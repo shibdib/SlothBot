@@ -87,23 +87,30 @@ module.exports.trackThreat = function (creep) {
                 let threatRating;
                 if (cache[user] && Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === MY_USERNAME) {
                     if (cache[user].lastAction + 3 > Game.time) return true;
-                    if (Math.random() > 0.8) log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. Adjusting threat rating for ' + user);
+                    let multiple = 5;
+                    if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === MY_USERNAME) multiple = 10;
+                    if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === user) multiple = 1;
                     if (_.includes(FRIENDLIES, user)) {
-                        threatRating = cache[user]['threatRating'] + 0.1;
+                        threatRating = cache[user]['threatRating'] + 1;
                     } else {
-                        threatRating = cache[user]['threatRating'] + 2.5;
+                        threatRating = cache[user]['threatRating'] + 2.5 * multiple;
                     }
+                    if (Math.random() > 0.8) log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. Adjusting threat rating for ' + user + ' (Now At - ' + threatRating + ')', 'DIPLOMACY:');
                     if (threatRating >= 1500) threatRating = 1500;
                 } else if (!cache[user]) {
-                    let multiple = 1;
+                    let multiple = 5;
                     if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === MY_USERNAME) multiple = 10;
+                    if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === user) multiple = 1;
                     if (_.includes(FRIENDLIES, user)) {
-                        log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. ' + user + ' has now temporarily been marked hostile.', 'DIPLOMACY:');
+                        log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. ' + user + ' has now temporarily been marked hostile. (Now At - ' + threatRating + ')', 'DIPLOMACY:');
                         threatRating = multiple;
                     } else {
-                        log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. ' + user + ' has now been marked hostile.', 'DIPLOMACY:');
+                        log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. ' + user + ' has now been marked hostile. (Now At - ' + threatRating + ')', 'DIPLOMACY:');
                         threatRating = 10 * multiple;
                     }
+                    let sentence = [user, 'now', 'marked', 'hostile'];
+                    let word = Game.time % sentence.length;
+                    this.say(sentence[word], true);
                 } else {
                     return;
                 }
@@ -125,10 +132,10 @@ module.exports.trackThreat = function (creep) {
                 let cache = Memory._badBoyList || {};
                 let threatRating;
                 if (cache[user]) {
-                    threatRating = cache[user]['threatRating'] + 0.25;
+                    threatRating = cache[user]['threatRating'] + 0.5;
                     if (threatRating >= 1500) threatRating = 1500;
                 } else if (!cache[user]) {
-                    threatRating = 15;
+                    threatRating = 25;
                     log.e(creep.name + ' has detected a neutral in ' + roomLink(creep.room.name) + '. ' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
                 }
                 cache[user] = {
