@@ -20,8 +20,8 @@ module.exports.role = function role(creep) {
     }
     // Set destination
     if (!creep.memory.destination) {
-        if (creep.memory.overlord === creep.room.name && creep.memory.misc.length) {
-            creep.memory.destination = _.sample(_.union(_.filter(creep.memory.misc, (r) => Memory.roomCache[r] && !Memory.roomCache[r].threatLevel), [creep.memory.overlord]));
+        if (creep.memory.overlord === creep.room.name && JSON.parse(creep.memory.misc).length) {
+            creep.memory.destination = _.sample(_.union(_.filter(JSON.parse(creep.memory.misc), (r) => Memory.roomCache[r] && !Memory.roomCache[r].threatLevel), [creep.memory.overlord]));
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
         }
