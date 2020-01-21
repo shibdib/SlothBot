@@ -237,7 +237,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
     if (destination) this.memory.energyDestination = destination.id;
     if (this.memory.energyDestination) {
         let energyItem = Game.getObjectById(this.memory.energyDestination);
-        if (!energyItem) return this.memory.energyDestination = undefined;
+        if (!energyItem || energyItem.room.name !== this.room.name) return this.memory.energyDestination = undefined;
         if ((energyItem.store && energyItem.store[RESOURCE_ENERGY] > 0) || (energyItem.energy && energyItem.energy > 0)) {
             if (amount && energyItem.store && energyItem.store[RESOURCE_ENERGY] < amount) amount = energyItem.store[RESOURCE_ENERGY];
             switch (this.withdraw(energyItem, RESOURCE_ENERGY, amount)) {
