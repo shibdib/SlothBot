@@ -129,10 +129,17 @@ function operationPlanner(room, creep = undefined) {
                             type: 'nuke',
                             level: 1
                         };
-                    } else if (towers.length <= 3) {
+                    } else if (towers.length >= 2) {
                         cache[room.name] = {
                             tick: tick,
                             type: 'siege',
+                            level: 1,
+                            priority: priority
+                        };
+                    } else if (towers.length === 1) {
+                        cache[room.name] = {
+                            tick: tick,
+                            type: 'siegeGroup',
                             level: 1,
                             priority: priority
                         };
