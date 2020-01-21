@@ -19,7 +19,7 @@ Memory.lastGlobalReset = Game.time;
 module.exports.loop = function () {
     tryInitSameMemory();
     // Handle cleaning memory for respawn
-    if (!memCleaned && !_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my && r.memory.bunkerHub).length) {
+    if (!memCleaned && !_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my && (r.memory.bunkerHub || r.memory.praiseRoom)).length) {
         for (let key in Memory) delete Memory[key];
     }
     memCleaned = true;

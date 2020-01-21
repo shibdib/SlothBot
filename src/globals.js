@@ -76,6 +76,7 @@ let globals = function () {
             drone: [MOVE, MOVE, CARRY, WORK],
             waller: [MOVE, MOVE, CARRY, WORK],
             upgrader: [MOVE, MOVE, CARRY, WORK],
+            praiseUpgrader: [MOVE, CARRY, WORK],
             hauler: [CARRY, CARRY, MOVE, MOVE],
             filler: [CARRY, CARRY, MOVE, MOVE],
             explorer: [MOVE],

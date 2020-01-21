@@ -65,7 +65,9 @@ module.exports.overlordMind = function (room, CPULimit) {
 
     // Manage creep spawning
     if (Game.time % 5 === 0) {
-        if (getLevel(room) < 2) {
+        if (room.memory.praiseRoom) {
+            spawning.praiseCreepQueue(room);
+        } else if (getLevel(room) < 2) {
             spawning.roomStartup(room);
         } else {
             try {

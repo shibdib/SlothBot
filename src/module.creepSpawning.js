@@ -248,6 +248,90 @@ module.exports.essentialCreepQueue = function (room) {
     }
 };
 
+//Praise room creeps
+module.exports.praiseCreepQueue = function (room) {
+    let level = getLevel(room);
+    let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name);
+    //Drones
+    let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD)[0];
+    if (inBuild || room.controller.level === 1) {
+        let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
+        let amount = 3;
+        if (drones.length < amount) {
+            queueCreep(room, 1 + drones.length, {role: 'drone', other: {localCache: true}})
+        }
+    }
+    //Harvesters
+    let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
+    if (harvesters.length === 0) {
+        delete roomQueue[room.name];
+        return queueCreep(room, 1, {role: 'stationaryHarvester', misc: true, other: {reboot: true}});
+    } else {
+        if (harvesters.length < 2 || (harvesters[0].ticksToLive < (harvesters[0].body.length * 3 + 10) && harvesters.length < 3)) {
+            queueCreep(room, PRIORITIES.stationaryHarvester, {role: 'stationaryHarvester', misc: true})
+        }
+    }
+    //Filler
+    if (_.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && !c.memory.linkID)).length) {
+        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.linkAttempt));
+        let filler = _.filter(roomCreeps, (c) => (c.memory.role === 'filler'));
+        if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < harvesters.length + 1) || filler.length < harvesters.length) {
+            queueCreep(room, PRIORITIES.hauler - 1, {
+                role: 'filler',
+                other: {
+                    reboot: true,
+                    localCache: true
+                }
+            })
+        }
+    }
+    // Local Responder
+    if (Memory.roomCache[room.name].threatLevel >= 3) {
+        let role = _.sample(['longbow', 'attacker']);
+        let responder = _.filter(Game.creeps, (creep) => creep.memory.other.responseTarget === room.name);
+        if (responder.length < Memory.roomCache[room.name].numberOfHostiles) {
+            queueCreep(room, PRIORITIES.responder, {
+                role: role,
+                other: {
+                    responseTarget: room.name
+                },
+                military: true
+            })
+        }
+    }
+    //Waller
+    if (level >= 2) {
+        let waller = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
+        let amount = 1;
+        if (waller.length < amount) {
+            queueCreep(room, PRIORITIES.waller, {role: 'waller', other: {localCache: true}})
+        }
+    }
+    //Upgrader
+    let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'praiseUpgrader');
+    let number = 3;
+    if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
+        queueCreep(room, PRIORITIES.upgrader + upgraders.length, {role: 'praiseUpgrader'})
+    }
+    // Food
+    let needFood = _.filter(roomCreeps, (creep) => creep.memory.role === 'praiseUpgrader' && creep.memory.needFood).length > 0;
+    if (!_.size(roomQueue[room.name]) && needFood) {
+        let food = _.filter(roomCreeps, (creep) => creep.memory.role === 'food').length > 0;
+        if (!food) {
+            let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
+            let spawnDirection = room.controller.pos.getDirectionTo(spawn);
+            spawn.spawnCreep([MOVE], 'feedMe' + Math.random(), {
+                memory: {
+                    born: Game.time,
+                    role: 'food',
+                    overlord: room.name
+                },
+                directions: [spawnDirection]
+            })
+        }
+    }
+};
+
 //Non essential creeps
 module.exports.miscCreepQueue = function (room) {
     let level = getLevel(room);

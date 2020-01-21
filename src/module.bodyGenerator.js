@@ -12,6 +12,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
     switch (role) {
         // Explorer/Scout
         case 'explorer':
+        case 'food':
         case 'scout':
             move = 1;
             break;
@@ -32,6 +33,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             work = _.random(level * 0.5, level * 2);
             carry = _.random(2, level);
             move = work + carry;
+            break;
+        case 'praiseUpgrader':
+            work = _.random(level + 1, level * 2);
+            carry = 1;
+            move = 1;
             break;
         case 'upgrader':
             if ((importantBuilds && !room.energyState) || room.memory.nuke) {
@@ -73,7 +79,12 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = 3;
             break;
         case 'stationaryHarvester':
-            if (level < 5) {
+            if (misc) {
+                work = 3;
+                carry = 1;
+                move = 1;
+                break;
+            } else if (level < 5 || misc) {
                 work = 4;
                 carry = 1;
                 break;
