@@ -311,6 +311,16 @@ module.exports.miscCreepQueue = function (room) {
                     military: true
                 })
             }
+            let sectorScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer' && creep.memory.other.sectorScout && Game.map.getRoomLinearDistance(creep.room.name, room.name) <= 6);
+            if (sectorScout.length < 1) {
+                queueCreep(room, PRIORITIES.explorer + sectorScout.length, {
+                    role: 'explorer',
+                    military: true,
+                    other: {
+                        sectorScout: true
+                    }
+                })
+            }
         }
         // Assist room
         if (level >= 3) {

@@ -13,9 +13,10 @@ module.exports.role = function (creep) {
     creep.room.cacheRoomIntel();
     let sayings = EXPLORER_SPAM;
     creep.say(_.sample(sayings), true);
+    let sectorScout = creep.memory.other.sectorScout;
     if (!creep.memory.destination) {
         let portal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL)[0];
-        if (portal && !portal.destination.shard && !creep.memory.usedPortal && (creep.memory.other.portalJump || Math.random() > 0.5)) {
+        if (!sectorScout && portal && !portal.destination.shard && !creep.memory.usedPortal && (creep.memory.other.portalJump || Math.random() > 0.5)) {
             if (!creep.memory.other.portalJump) {
                 creep.memory.other.portalJump = portal.destination.roomName;
                 log.a(creep.name + ' has found a portal in ' + roomLink(creep.room.name) + ' and is taking it.')
@@ -26,7 +27,7 @@ module.exports.role = function (creep) {
         } else {
             let adjacent = Game.map.describeExits(creep.pos.roomName);
             let possibles, target;
-            possibles = _.filter(adjacent, (r) => !Memory.roomCache[r] || Memory.roomCache[r].cached + 3000 < Game.time);
+            possibles = _.filter(adjacent, (r) => !Memory.roomCache[r] || (Memory.roomCache[r].cached + 3000 < Game.time && (!sectorScout || !Memory.roomCache[r].isHighway)));
             if (possibles.length) {
                 target = _.sample(possibles);
             }
