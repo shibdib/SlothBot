@@ -243,7 +243,7 @@ module.exports.essentialCreepQueue = function (room) {
     if (level < 4 && !inBuild) number = 6 - level;
     if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
         //If room is about to downgrade get a creep out asap
-        let reboot = room.controller.ticksToDowngrade <= 1500 || room.controller.progress > room.controller.progressTotal;
+        let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.progress > room.controller.progressTotal || Memory.roomCache[room.name].threatLevel >= 3;
         queueCreep(room, PRIORITIES.upgrader + upgraders.length, {role: 'upgrader', other: {reboot: reboot}})
     }
 };
