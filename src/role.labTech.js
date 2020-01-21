@@ -28,6 +28,8 @@ module.exports.role = function (creep) {
     // Empty labs
     if (creep.memory.empty) return emptyLab(creep);
     // Empty mineral harvester container
+    if (linkManager(creep)) return;
+    // Empty mineral harvester container
     if (mineralHauler(creep)) return;
     // Handle terminal goods
     if (terminalControl(creep)) return;
@@ -211,6 +213,7 @@ function supplyLab(creep) {
     }
 }
 
+// Deliver boosts
 function boostDelivery(creep) {
     if (creep.room.controller.level < 6 || !_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active === true && s.memory.neededBoost)[0]) return false;
     let lab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active === true && s.memory.neededBoost)[0];
@@ -302,6 +305,7 @@ function boostDelivery(creep) {
     }
 }
 
+// Get dropped resources
 function droppedResources(creep) {
     let tombstone = creep.room.find(FIND_TOMBSTONES, {filter: (r) => _.sum(r.store) > r.store[RESOURCE_ENERGY] || (!r.store[RESOURCE_ENERGY] && _.sum(r.store) > 0)})[0];
     let resources = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY})[0];
@@ -348,6 +352,22 @@ function droppedResources(creep) {
                     creep.shibMove(resources);
                     return true;
             }
+        }
+    } else {
+        return false;
+    }
+}
+
+// Full link
+function linkManager(creep) {
+    let hub = Game.getObjectById(creep.room.hubLink);
+    if (hub && hub.energy >= hub.energyCapacity * 0.9) {
+        switch (creep.withdraw(hub, RESOURCE_ENERGY)) {
+            case OK:
+                return true;
+            case ERR_NOT_IN_RANGE:
+                creep.shibMove(hub);
+                return true;
         }
     } else {
         return false;

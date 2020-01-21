@@ -187,7 +187,6 @@ module.exports.essentialCreepQueue = function (room) {
             });
         } else {
             let amount = 1;
-            if (room.controller.level >= 6 && !_.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.energy < s.energyCapacity * 0.9).length) amount = 2;
             if ((hauler[0] && hauler[0].ticksToLive < (hauler[0].body.length * 6 + 50) && hauler.length < amount + 1) || hauler.length < amount) {
                 queueCreep(room, PRIORITIES.hauler + hauler.length, {
                     role: 'hauler',
