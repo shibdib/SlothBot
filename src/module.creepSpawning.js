@@ -350,9 +350,9 @@ module.exports.miscCreepQueue = function (room) {
                     }
                 }
                 // Marauder
-                if (POKE_ATTACKS) {
+                if (Memory._badBoyArray && Memory._badBoyArray.length) {
                     let marauder = _.filter(Game.creeps, (creep) => creep.memory.operation === 'marauding');
-                    if (marauder.length < 2 && Math.random() > 0.5) {
+                    if (marauder.length < Memory.myRooms.length * 0.5) {
                         queueCreep(room, PRIORITIES.medium, {
                             role: 'longbow',
                             operation: 'marauding',

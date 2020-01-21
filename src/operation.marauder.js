@@ -4,25 +4,28 @@
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
  */
+
+let highCommand = require('military.highCommand');
 Creep.prototype.marauding = function () {
-    let sentence = ['Just', 'Here', 'To', 'Ruin', 'Your', 'Day'];
+    let sentence = ['Oh', 'No', 'Here', 'I', 'Go', 'Killing', 'Again'];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
+    this.attackInRange();
     // Set a target
     if (!this.memory.destination) {
-        let lowLevel = _.sample(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.safemode && r.level && !r.towers));
+        let lowLevel = _.sample(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && _.includes(Memory._badBoyArray, r.user) && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.safemode && r.level && !r.towers));
         if (lowLevel) {
             this.memory.destination = lowLevel.name;
         } else {
-            let potential = _.sample(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.level && !r.towers));
-            if (potential) this.memory.destination = potential.name; else this.memory.recycle = true;
+            let potential = _.sample(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && _.includes(Memory._badBoyArray, r.user) && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.level && !r.towers));
+            if (potential) this.memory.destination = potential.name; else this.handleMilitaryCreep();
         }
     } else {
         if (this.room.name !== this.memory.destination) {
-            this.attackInRange();
             return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 19});
         }
         if (this.room.name === this.memory.destination) {
+            highCommand.generateThreat(this);
             // If on target and cant win find a new target
             if (!this.canIWin() || !this.handleMilitaryCreep()) {
                 this.room.cacheRoomIntel(true);
