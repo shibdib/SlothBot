@@ -92,44 +92,6 @@ function manageResponseForces() {
 
 function auxiliaryOperations() {
     let maxLevel = Memory.maxLevel;
-    // Kill strongholds (Falls under target rooms)
-    let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => r.sk && r.towers && r.closestRange <= 3), 'closestRange');
-    if (stronghold.length && !_.filter(Memory.targetRooms, (target) => target.type === 'siegeGroup').length) {
-        for (let target of stronghold) {
-            if (Memory.targetRooms[target.name]) continue;
-            let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
-            if (lastOperation + 5500 > Game.time) continue;
-            let cache = Memory.targetRooms || {};
-            let tick = Game.time;
-            cache[target.name] = {
-                tick: tick,
-                type: 'attack'
-            };
-            Memory.targetRooms = cache;
-            log.a('Scout operation planned for ' + roomLink(target.name) + ' SUSPECTED INVADER STRONGHOLD (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
-            break;
-        }
-    }
-    /**
-     // Clean
-     let cleaning = _.filter(Memory.auxiliaryTargets, (target) => target.type === 'clean' || target.type === 'claimClear').length || 0;
-     if (cleaning < CLEAN_LIMIT) {
-        let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.structures && !r.owner && !r.isHighway && !r.sk && !r.invaderCore && r.closestRange <= LOCAL_SPHERE * 2), 'closestRange')[0];
-        if (enemyClean) {
-            let cache = Memory.auxiliaryTargets || {};
-            let overlordCount = Memory.myRooms.length;
-            let type = 'clean';
-            if (Game.gcl.level > overlordCount) type = 'claimClear';
-            cache[enemyClean.name] = {
-                tick: Game.time,
-                type: type,
-                level: 1,
-                priority: 4
-            };
-            Memory.auxiliaryTargets = cache;
-            log.a('Cleaning operation planned for ' + roomLink(enemyClean.name), 'HIGH COMMAND: ');
-        }
-    }**/
     if (maxLevel >= 6) {
         // Power Mining
         if (maxLevel >= 8) {
@@ -198,6 +160,24 @@ function operationRequests() {
         break;
     }
     if (totalCountFiltered <= targetLimit) {
+        // Kill strongholds (Falls under target rooms)
+        let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => r.sk && r.towers && r.closestRange <= 3), 'closestRange');
+        if (stronghold.length && !_.filter(Memory.targetRooms, (target) => target.type === 'siegeGroup').length) {
+            for (let target of stronghold) {
+                if (Memory.targetRooms[target.name]) continue;
+                let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
+                if (lastOperation + 5500 > Game.time) continue;
+                let cache = Memory.targetRooms || {};
+                let tick = Game.time;
+                cache[target.name] = {
+                    tick: tick,
+                    type: 'attack'
+                };
+                Memory.targetRooms = cache;
+                log.a('Scout operation planned for ' + roomLink(target.name) + ' SUSPECTED INVADER STRONGHOLD (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+                break;
+            }
+        }
         // New Spawn Denial
         let newSpawns = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !r.safemode && r.closestRange <= LOCAL_SPHERE * 3 && !checkForNap(r.user) && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level && !r.towers), 'closestRange');
         for (let target of newSpawns) {
@@ -263,7 +243,6 @@ function manageAttacks() {
     let maxLevel = Memory.maxLevel;
     let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'attack' && target.type !== 'scout' && target.type !== 'guard').length || 0;
     let siegeCountFiltered = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup').length || 0;
-    let pokeLimit = POKE_LIMIT;
     let staleMulti = 1;
     for (let key in Memory.targetRooms) {
         let type = Memory.targetRooms[key].type;
