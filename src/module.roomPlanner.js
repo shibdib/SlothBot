@@ -460,6 +460,9 @@ function findHub(room, hubCheck = undefined) {
 
 function praiseRoom(room) {
     let level = getLevel(room);
+    // Abandon praise room at rcl8
+    if (level === 8) return abandonRoom(room);
+    // Build spawn, if the spawn exists make sure it has a rampart
     let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0] || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_SPAWN)[0];
     if (!spawn) {
         for (let xOff = -1; xOff <= 1; xOff++) {
@@ -491,7 +494,6 @@ function praiseRoom(room) {
             for (let rampartPos of buildPositions) {
                 let pos = new RoomPosition(rampartPos.x, rampartPos.y, room.name);
                 if (level >= 2) {
-                    // Handle tunnels
                     if (!pos.isNearTo(room.controller) && !pos.isNearTo(room.mineral) && !pos.isNearTo(pos.findClosestByRange(FIND_SOURCES)) && ((isEven(pos.x) && isOdd(pos.y)) || (isOdd(pos.x) && isEven(pos.y))) && !pos.checkForBuiltWall() && !pos.checkForConstructionSites() && pos.isNearTo(pos.findClosestByRange(_.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART)))) {
                         if (pos.checkForRampart()) pos.checkForRampart().destroy();
                         if (pos.checkForRoad()) pos.checkForRoad().destroy();
@@ -515,7 +517,7 @@ function praiseRoom(room) {
     }
     // Tower
     if (level >= 3) {
-        if (room.mineral.pos.countOpenTerrainAround() > 1) {
+        if (room.mineral.pos.countOpenTerrainAround()) {
             for (let xOff = -1; xOff <= 1; xOff++) {
                 for (let yOff = -1; yOff <= 1; yOff++) {
                     if (xOff !== 0 || yOff !== 0) {
