@@ -303,7 +303,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
 Creep.prototype.locateEnergy = function () {
     let hauler = this.memory.role === 'hauler';
     // Fuel Trucks
-    let fuelTrucks = _.filter(this.room.creeps, (c) => c.my && c.memory.role === 'fuelTruck' && c.store[RESOURCE_ENERGY]);
+    let fuelTrucks = _.filter(this.room.creeps, (c) => c.my && c.memory.role === 'fuelTruck' && c.memory.overlord !== c.room.name && c.store[RESOURCE_ENERGY]);
     if (fuelTrucks.length && this.memory.role !== 'fuelTruck') {
         this.memory.energyDestination = fuelTrucks[0].id;
         return true;
