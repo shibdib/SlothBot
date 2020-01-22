@@ -110,7 +110,7 @@ module.exports.trackThreat = function (creep) {
                     }
                     let sentence = [user, 'now', 'marked', 'hostile'];
                     let word = Game.time % sentence.length;
-                    this.say(sentence[word], true);
+                    creep.say(sentence[word], true);
                 } else {
                     return;
                 }
