@@ -30,7 +30,7 @@ module.exports.role = function (creep) {
         if (!_.sum(creep.store)) {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 22});
         }
-        let dropPoint = Game.getObjectById(creep.room.memory.controllerContainer) || creep.room.storage;
+        let dropPoint = creep.room.storage;
         if (dropPoint) {
             switch (creep.transfer(dropPoint, RESOURCE_ENERGY)) {
                 case OK:
