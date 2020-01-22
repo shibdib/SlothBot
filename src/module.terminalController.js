@@ -48,16 +48,16 @@ module.exports.terminalControl = function (room) {
         //Disperse Minerals and Boosts
         if (balanceResources(room.terminal)) return;
         if (room.name === Memory.saleTerminal.room && spendingMoney > 0) {
-            //Buy minerals if needed
-            if (baseMineralOnDemandBuys(room.terminal, globalOrders, myOrders)) return;
-            //Buy Power
-            if (buyPower(room.terminal, globalOrders)) return;
             //Buy resources being sold at below market value
             if (dealFinder(room.terminal, globalOrders)) return;
+            //Buy minerals if needed
+            if (baseMineralOnDemandBuys(room.terminal, globalOrders, myOrders)) return;
+            //Buy Energy
+            if (buyEnergy(room.terminal, globalOrders)) return;
+            //Buy Power
+            if (buyPower(room.terminal, globalOrders)) return;
         }
     }
-    //Buy Energy
-    if (buyEnergy(room.terminal, globalOrders)) return;
     //Dump Excess
     if (fillBuyOrders(room.terminal, globalOrders)) return;
     // Place sell orders
