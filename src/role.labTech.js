@@ -400,7 +400,7 @@ function terminalControl(creep) {
                         creep.shibMove(creep.room.terminal);
                         return true;
                 }
-            } else if (resourceType === RESOURCE_ENERGY && creep.room.terminal.store[resourceType] >= TERMINAL_ENERGY_BUFFER) {
+            } else if (resourceType === RESOURCE_ENERGY && creep.room.terminal.store[resourceType] >= TERMINAL_ENERGY_BUFFER * 1.1) {
                 switch (creep.withdraw(creep.room.terminal, resourceType)) {
                     case OK:
                         return true;
