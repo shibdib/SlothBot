@@ -143,16 +143,20 @@ function pricingUpdateSell(globalOrders, myOrders) {
         if (order.type === ORDER_SELL) {
             let currentPrice = order.price;
             let newPrice = currentPrice;
-            let competitorOrder = _.min(globalOrders.filter(o => !_.includes(Memory.myRooms, o.roomName) && o.resourceType === order.resourceType && o.type === ORDER_SELL && o.remainingAmount >= MINERAL_TRADE_AMOUNT), 'price');
+            let competitorOrder = _.min(globalOrders.filter(o => !_.includes(Memory.myRooms, o.roomName) && o.resourceType === order.resourceType && o.type === ORDER_SELL), 'price');
             if (competitorOrder) {
-                newPrice = competitorOrder.price - 0.01;
+                newPrice = competitorOrder.price - 0.001;
             } else if (latestMarketHistory(order.resourceType)) {
                 newPrice = latestMarketHistory(order.resourceType)['avgPrice'];
             }
-            let cost = (newPrice - order.price) * order.remainingAmount * 0.05;
-            if (currentPrice !== newPrice && cost <= spendingMoney) {
+            let cost = 0;
+            if (currentPrice < newPrice) {
+                cost = (newPrice - currentPrice) * order.remainingAmount * 0.05;
+            }
+            let availableCash = Game.market.credits - CREDIT_BUFFER;
+            if (currentPrice !== newPrice && cost <= availableCash) {
                 if (Game.market.changeOrderPrice(order.id, newPrice) === OK) {
-                    log.w("Sell order price decrease " + order.id + " new/old " + newPrice + "/" + order.price + " Resource - " + order.resourceType, "Market: ");
+                    log.w("Sell order price change " + order.id + " new/old " + newPrice + "/" + order.price + " Resource - " + order.resourceType, "Market: ");
                 }
             }
         }
@@ -168,7 +172,8 @@ function manageSellOrders(myOrders) {
                 let amount = Game.rooms[order.roomName].terminal.store[order.resourceType] - order.remainingAmount;
                 if (amount > 0) {
                     let cost = order.price * amount * 0.05;
-                    if (cost > spendingMoney) amount = _.round(amount * ((spendingMoney) / (cost * amount)));
+                    let availableCash = Game.market.credits - CREDIT_BUFFER;
+                    if (cost > availableCash) amount = _.round(availableCash / (order.price * 0.05));
                     if (Game.market.extendOrder(order.id, amount) === OK) {
                         log.w("Extended sell order " + order.id + " an additional " + amount + " " + order.resourceType + " in " + roomLink(order.roomName), "Market: ");
                         return true;
@@ -193,16 +198,17 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS, [RESOURCE_POWER]), resourceType) && terminal.room.store(resourceType) < BOOST_TRADE_AMOUNT) continue;
         // Sell
         let price = 5;
-        let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL && order.remainingAmount >= MINERAL_TRADE_AMOUNT), 'price');
+        let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL), 'price');
         if (competitorOrder) {
-            price = competitorOrder.price - 0.01;
+            price = competitorOrder.price - 0.001;
         } else if (latestMarketHistory(resourceType)) {
             price = latestMarketHistory(resourceType)['avgPrice'];
         }
         let amount = terminal.room.store(resourceType) - REACTION_AMOUNT;
         if (amount > terminal.store[resourceType]) amount = terminal.store[resourceType];
         let cost = price * amount * 0.05;
-        if (cost > spendingMoney) amount = _.round(amount * ((spendingMoney) / (cost * amount)));
+        let availableCash = Game.market.credits - CREDIT_BUFFER;
+        if (cost > availableCash) amount = _.round(availableCash / (price * 0.05));
         if (Game.market.createOrder(ORDER_SELL, resourceType, price, amount, terminal.pos.roomName) === OK) {
             log.w("New Sell Order: " + resourceType + " at/per " + price + ' in ' + roomLink(terminal.room.name), "Market: ");
             return true;
