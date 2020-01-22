@@ -446,6 +446,7 @@ function findHub(room, hubCheck = undefined) {
                         layout.push(structure);
                     }
                 }
+                if (hubCheck) return true;
                 room.memory.bunkerHub = {};
                 room.memory.bunkerHub.x = pos.x;
                 room.memory.bunkerHub.y = pos.y;
