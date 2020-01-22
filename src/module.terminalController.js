@@ -42,6 +42,7 @@ module.exports.terminalControl = function (room) {
         }
         runOnce = Game.time;
     }
+    if (room.terminal.cooldown) return;
     if (room.terminal.store[RESOURCE_ENERGY]) {
         //Send energy to rooms under siege
         if (emergencyEnergy(room.terminal)) return;
@@ -433,6 +434,7 @@ function latestMarketHistory(resource) {
 
 function profitCheck(force = false) {
     let hourlyTick = EST_TICKS_PER_MIN * 60;
+    let fiveMinuteTick = EST_TICKS_PER_MIN * 5;
     let profitTracking = Memory._banker || {};
     if (force || profitTracking.lastData + hourlyTick < Game.time || !profitTracking.lastData) {
         profitTracking.lastData = Game.time;
@@ -440,7 +442,15 @@ function profitCheck(force = false) {
         let lastCredit = profitTracking.lastTotalAmount || Game.market.credits;
         profitTracking.lastTotalAmount = Game.market.credits;
         let hourChange = Game.market.credits - lastCredit;
-        if (hourChange > 0) profitTracking.spendingAccount += (hourChange * 0.8); else profitTracking.spendingAccount += hourChange;
+        // Add 80% of profits for the hour to spending account
+        if (hourChange > 0) {
+            profitTracking.spendingAccount += (hourChange * 0.8);
+            log.w("New spending account amount (HOURLY UPDATE) - " + profitTracking.spendingAccount, "Market: ");
+        } else {
+            profitTracking.spendingAccount += hourChange;
+            log.w("New spending account amount (HOURLY UPDATE) - " + profitTracking.spendingAccount, "Market: ");
+        }
+        // Track profits
         if (hourlyProfits.length < 240) {
             hourlyProfits.push(hourChange)
         } else {
@@ -448,6 +458,13 @@ function profitCheck(force = false) {
             hourlyProfits.push(hourChange);
         }
         profitTracking.hourArray = hourlyProfits;
-        Memory._banker = profitTracking;
+    } else if (profitTracking.lastInflux + fiveMinuteTick < Game.time || !profitTracking.lastInflux) {
+        profitTracking.lastInflux = Game.time;
+        if (Game.market.credits > CREDIT_BUFFER && Math.random() > 0.5) {
+            let bankersCut = Game.market.credits * 0.8;
+            profitTracking.spendingAccount += (bankersCut * 0.1);
+            log.w("New spending account amount (RANDOM INFLUX) - " + profitTracking.spendingAccount, "Market: ");
+        }
     }
+    Memory._banker = profitTracking;
 }
