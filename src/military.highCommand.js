@@ -315,6 +315,7 @@ function manageAttacks() {
             case 'commodity':
             case 'clean':
             case 'claimClear':
+            case 'claimScout':
             case 'claim':
                 delete Memory.targetRooms[key];
                 break;
