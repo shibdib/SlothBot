@@ -13,16 +13,17 @@ Creep.prototype.marauding = function () {
     this.attackInRange();
     // Set a target
     if (!this.memory.destination) {
-        let lowLevel = _.sortBy(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && _.includes(Memory._badBoyArray, r.user) && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.safemode && r.level && !r.towers), function (r) {
-            Game.map.getRoomLinearDistance(r.name, this.room.name);
+        let target = _.sortBy(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && _.includes(Memory._badBoyArray, r.user) && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.safemode && r.level && !r.towers), function (r) {
+            Game.map.getRoomLinearDistance(r.name, this.pos.roomName);
+        })[0] || _.sortBy(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && _.includes(Memory._badBoyArray, r.user) && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.level && !r.towers), function (r) {
+            Game.map.getRoomLinearDistance(r.name, this.pos.roomName);
+        })[0] || _.sortBy(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.level && !r.towers), function (r) {
+            Game.map.getRoomLinearDistance(r.name, this.pos.roomName);
         })[0];
-        if (lowLevel) {
-            this.memory.destination = lowLevel.name;
-        } else {
-            let potential = _.sortBy(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && _.includes(Memory._badBoyArray, r.user) && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.level && !r.towers), function (r) {
-                Game.map.getRoomLinearDistance(r.name, this.room.name);
-            })[0];
-            if (potential) this.memory.destination = potential.name; else this.handleMilitaryCreep();
+        if (target) {
+            this.memory.destination = target.name;
+        } else if (!this.handleMilitaryCreep()) {
+            this.findDefensivePosition(this);
         }
     } else {
         if (this.room.name !== this.memory.destination) {
