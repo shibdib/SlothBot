@@ -461,7 +461,7 @@ function profitCheck(force = false) {
     } else if (profitTracking.lastInflux + fiveMinuteTick < Game.time || !profitTracking.lastInflux) {
         profitTracking.lastInflux = Game.time;
         if (Game.market.credits > CREDIT_BUFFER && Math.random() > 0.5) {
-            let bankersCut = Game.market.credits * 0.8;
+            let bankersCut = (Game.market.credits - CREDIT_BUFFER) * 0.8;
             profitTracking.spendingAccount += (bankersCut * 0.1);
             log.w("New spending account amount (RANDOM INFLUX) - " + profitTracking.spendingAccount, "Market: ");
         }
