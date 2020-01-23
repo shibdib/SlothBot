@@ -435,13 +435,14 @@ function terminalControl(creep) {
 
 // Remove minerals from the storage if it's overfull and has no energy
 function storageEmpty(creep) {
-    if (!creep.room.storage || !creep.room.terminal || _.sum(creep.room.terminal.store) >= 0.70 * creep.room.terminal.store.getCapacity() || creep.memory.hauling) return false;
+    if (!creep.room.storage || !creep.room.terminal || _.sum(creep.room.terminal.store) >= 0.75 * creep.room.terminal.store.getCapacity() || creep.memory.hauling) return false;
     let maxResource = 0;
     let overflow;
     for (let resource of Object.keys(creep.room.storage.store)) {
         if (resource === RESOURCE_ENERGY) maxResource = ENERGY_AMOUNT;
-        if (!_.includes(BASE_MINERALS, resource)) maxResource = BOOST_AMOUNT * 1.2;
-        if (_.includes(ALL_COMMODITIES, resource)) maxResource = 0;
+        else if (_.includes(BASE_MINERALS, resource)) maxResource = REACTION_AMOUNT;
+        else if (_.includes(LAB_PRIORITY, resource)) maxResource = BOOST_AMOUNT * 1.2;
+        else if (!_.includes(BASE_MINERALS, resource)) maxResource = REACTION_AMOUNT;
         if (creep.room.storage.store[resource] > maxResource) {
             maxResource = creep.room.storage.store[resource];
             overflow = resource;
