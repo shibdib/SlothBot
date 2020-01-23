@@ -65,7 +65,7 @@ module.exports.processBuildQueue = function () {
                     if (topPriority.other.boostCheck) {
                         let hasBoost;
                         for (let boost of BOOST_USE[topPriority.other.boostCheck]) {
-                            hasBoost = spawn.room.getBoostAmount(boost) >= 500;
+                            hasBoost = spawn.room.store(boost) >= 500;
                         }
                         if (!hasBoost) continue;
                     }

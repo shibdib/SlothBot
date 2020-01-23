@@ -741,119 +741,119 @@ Creep.prototype.tryToBoost = function (boosts, require = false) {
             let boostInRoom;
             switch (boosts[key]) {
                 case 'attack':
-                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_UTRIUM_ACID);
+                    boostInRoom = this.room.store(RESOURCE_CATALYZED_UTRIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(ATTACK) * 30;
                     if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_UTRIUM_ACID);
-                    } else if (getBoostAmount(this.room, RESOURCE_UTRIUM_ACID) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_UTRIUM_ACID) >= boostNeeded) {
                         available.push(RESOURCE_UTRIUM_ACID);
-                    } else if (getBoostAmount(this.room, RESOURCE_UTRIUM_HYDRIDE) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_UTRIUM_HYDRIDE) >= boostNeeded) {
                         available.push(RESOURCE_UTRIUM_HYDRIDE);
                     }
                     continue;
                 case 'upgrade':
-                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ACID);
+                    boostInRoom = this.room.store(RESOURCE_CATALYZED_GHODIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
                     if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_GHODIUM_ACID);
-                    } else if (getBoostAmount(this.room, RESOURCE_GHODIUM_ACID) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_GHODIUM_ACID) >= boostNeeded) {
                         available.push(RESOURCE_GHODIUM_ACID);
-                    } else if (getBoostAmount(this.room, RESOURCE_GHODIUM_HYDRIDE) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_GHODIUM_HYDRIDE) >= boostNeeded) {
                         available.push(RESOURCE_GHODIUM_HYDRIDE);
                     }
                     continue;
                 case 'tough':
-                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
+                    boostInRoom = this.room.store(RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(TOUGH) * 30;
                     if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
-                    } else if (getBoostAmount(this.room, RESOURCE_GHODIUM_ALKALIDE) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_GHODIUM_ALKALIDE) >= boostNeeded) {
                         available.push(RESOURCE_GHODIUM_ALKALIDE);
-                    } else if (getBoostAmount(this.room, RESOURCE_GHODIUM_OXIDE) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_GHODIUM_OXIDE) >= boostNeeded) {
                         available.push(RESOURCE_GHODIUM_OXIDE);
                     }
                     continue;
                 case 'ranged':
-                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
+                    boostInRoom = this.room.store(RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(RANGED_ATTACK) * 30;
                     if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
-                    } else if (getBoostAmount(this.room, RESOURCE_KEANIUM_ALKALIDE) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_KEANIUM_ALKALIDE) >= boostNeeded) {
                         available.push(RESOURCE_KEANIUM_ALKALIDE);
-                    } else if (getBoostAmount(this.room, RESOURCE_KEANIUM_OXIDE) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_KEANIUM_OXIDE) >= boostNeeded) {
                         available.push(RESOURCE_KEANIUM_OXIDE);
                     }
                     continue;
                 case 'heal':
-                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
+                    boostInRoom = this.room.store(RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(HEAL) * 30;
                     if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
-                    } else if (getBoostAmount(this.room, RESOURCE_LEMERGIUM_ALKALIDE) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_LEMERGIUM_ALKALIDE) >= boostNeeded) {
                         available.push(RESOURCE_LEMERGIUM_ALKALIDE);
-                    } else if (getBoostAmount(this.room, RESOURCE_LEMERGIUM_OXIDE) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_LEMERGIUM_OXIDE) >= boostNeeded) {
                         available.push(RESOURCE_LEMERGIUM_OXIDE);
                     }
                     continue;
                 case 'build':
-                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_LEMERGIUM_ACID);
+                    boostInRoom = this.room.store(RESOURCE_CATALYZED_LEMERGIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
                     if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_LEMERGIUM_ACID);
-                    } else if (getBoostAmount(this.room, RESOURCE_LEMERGIUM_ACID) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_LEMERGIUM_ACID) >= boostNeeded) {
                         available.push(RESOURCE_LEMERGIUM_ACID);
-                    } else if (getBoostAmount(this.room, RESOURCE_LEMERGIUM_HYDRIDE) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_LEMERGIUM_HYDRIDE) >= boostNeeded) {
                         available.push(RESOURCE_LEMERGIUM_HYDRIDE);
                     }
                     continue;
                 case 'move':
-                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
+                    boostInRoom = this.room.store(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(MOVE) * 30;
                     if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
-                    } else if (getBoostAmount(this.room, RESOURCE_ZYNTHIUM_ALKALIDE) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_ZYNTHIUM_ALKALIDE) >= boostNeeded) {
                         available.push(RESOURCE_ZYNTHIUM_ALKALIDE);
-                    } else if (getBoostAmount(this.room, RESOURCE_ZYNTHIUM_OXIDE) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_ZYNTHIUM_OXIDE) >= boostNeeded) {
                         available.push(RESOURCE_ZYNTHIUM_OXIDE);
                     }
                     continue;
                 case 'harvest':
-                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
+                    boostInRoom = this.room.store(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
                     if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_UTRIUM_ALKALIDE);
-                    } else if (getBoostAmount(this.room, RESOURCE_UTRIUM_ALKALIDE) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_UTRIUM_ALKALIDE) >= boostNeeded) {
                         available.push(RESOURCE_UTRIUM_ALKALIDE);
-                    } else if (getBoostAmount(this.room, RESOURCE_UTRIUM_OXIDE) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_UTRIUM_OXIDE) >= boostNeeded) {
                         available.push(RESOURCE_UTRIUM_OXIDE);
                     }
                     continue;
                 case 'dismantle':
-                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ACID);
+                    boostInRoom = this.room.store(RESOURCE_CATALYZED_ZYNTHIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
                     if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_ZYNTHIUM_ACID);
-                    } else if (getBoostAmount(this.room, RESOURCE_ZYNTHIUM_ACID) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_ZYNTHIUM_ACID) >= boostNeeded) {
                         available.push(RESOURCE_ZYNTHIUM_ACID);
-                    } else if (getBoostAmount(this.room, RESOURCE_ZYNTHIUM_HYDRIDE) >= boostNeeded) {
+                    } else if (this.room.store(RESOURCE_ZYNTHIUM_HYDRIDE) >= boostNeeded) {
                         available.push(RESOURCE_ZYNTHIUM_HYDRIDE);
                     }
             }
@@ -871,7 +871,7 @@ Creep.prototype.tryToBoost = function (boosts, require = false) {
             return this.memory.boostAttempt = true;
         }
         for (let key in this.memory.requestedBoosts) {
-            let boostInRoom = getBoostAmount(this.room, this.memory.requestedBoosts[key]);
+            let boostInRoom = this.room.store(this.memory.requestedBoosts[key]);
             if (boostInRoom < this.memory.boostNeeded) {
                 this.memory.requestedBoosts.shift();
                 let lab = Game.getObjectById(this.memory.boostLab);

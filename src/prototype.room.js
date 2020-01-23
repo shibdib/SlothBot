@@ -247,34 +247,6 @@ Object.defineProperty(Room.prototype, 'energy', {
     configurable: true
 });
 
-let resourceStore = {};
-Room.prototype.store = function (resource) {
-    if (!resourceStore[this.name] || resourceStore[this.name].tick !== Game.time) {
-        resourceStore[this.name] = {};
-        resourceStore[this.name].tick = Game.time;
-    }
-    if (!resourceStore[this.name][resource]) {
-        resourceStore[this.name][resource] = getRoomResource(this, resource);
-    }
-    return resourceStore[this.name][resource];
-};
-
-function getRoomResource(room, resource) {
-    let terminalStore = 0;
-    if (room.terminal) terminalStore = room.terminal.store[resource] || 0;
-    let storageStore = 0;
-    if (room.storage) storageStore = room.storage.store[resource] || 0;
-    let containerStore = 0;
-    _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[resource] && s.id !== room.memory.controllerContainer).forEach((c) => containerStore = c.store[resource] + containerStore);
-    let linkStore = 0;
-    let droppedStore = 0;
-    if (resource === RESOURCE_ENERGY) {
-        _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.energy && s.id !== room.memory.controllerLink).forEach((c) => linkStore = c.energy + linkStore);
-        room.droppedEnergy.forEach((c) => droppedStore = c.amount + droppedStore);
-    }
-    return terminalStore + storageStore + containerStore + linkStore + droppedStore;
-}
-
 /**
  * Provides structure memory.
  */
@@ -311,6 +283,29 @@ Object.defineProperty(StructureTerminal.prototype, 'memory', {
     configurable: true,
     enumerable: false,
 });
+
+// Creates a room prototype that accepts RESOURCE_* Constants that gets you the total of that resource in a room.
+// EXAMPLE USAGE - Game.rooms['W0S0'].store(RESOURCE_ENERGY);
+Room.prototype.store = function (resource) {
+    if (!this._resourceStore || this._resourceStore.tick !== Game.time) {
+        this._resourceStore = {};
+        this._resourceStore.tick = Game.time;
+    }
+    if (!this._resourceStore[resource]) {
+        this._resourceStore[resource] = getRoomResource(this, resource);
+    }
+    return this._resourceStore[resource];
+};
+
+function getRoomResource(room, resource) {
+    if (!room || !resource) return undefined;
+    let count = 0;
+    _.filter(room.structures, (s) => s.store && s.store[resource] && s.structureType !== STRUCTURE_NUKER &&
+        s.structureType !== STRUCTURE_TOWER && (resource !== RESOURCE_ENERGY || s.structureType !== STRUCTURE_LAB)).forEach((c) => count += c.store[resource]);
+    _.filter(room.creeps, (s) => s.store[resource]).forEach((c) => count += c.store[resource]);
+    _.filter(room.droppedResources, (r) => r.resourceType === resource).forEach((r) => count += r.amount);
+    return count;
+}
 
 Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
@@ -545,25 +540,4 @@ Room.prototype.findClosestOwnedRoom = function (range = false, safePath = false,
     }
     if (!range) return closest;
     return distance;
-};
-
-Room.prototype.getBoostAmount = function (boost) {
-    let boostInRoomStructures = _.sum(this.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
-        if (s['structure'] && s['structure'].structureType === STRUCTURE_NUKER) return 0;
-        if (s['structure'] && s['structure'].store) {
-            return s['structure'].store[boost] || 0;
-        } else if (s['structure'] && s['structure'].mineralType === boost) {
-            return s['structure'].mineralAmount || 0;
-        } else {
-            return 0;
-        }
-    });
-    let boostInRoomCreeps = _.sum(this.lookForAtArea(LOOK_CREEPS, 0, 0, 49, 49, true), (s) => {
-        if (s['creep'] && s['creep'].store) {
-            return s['creep'].store[boost] || 0;
-        } else {
-            return 0;
-        }
-    });
-    return boostInRoomCreeps + boostInRoomStructures;
 };
