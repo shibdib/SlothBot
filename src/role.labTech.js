@@ -73,7 +73,7 @@ function storeBoosts(creep) {
         storeTarget = creep.room.terminal;
         // Storage cases
         if (_.sum(creep.room.storage.store) < 0.95 * creep.room.storage.store.getCapacity()) {
-            if (_.sum(creep.room.terminal.store) >= 0.95 * creep.room.terminal.store.getCapacity()) storeTarget = creep.room.storage;
+            if (_.sum(creep.room.terminal.store) >= 0.90 * creep.room.terminal.store.getCapacity()) storeTarget = creep.room.storage;
             else if (_.includes(BASE_MINERALS, resourceType) && creep.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = creep.room.terminal;
             else if (_.includes(ALL_COMMODITIES, resourceType)) storeTarget = creep.room.terminal;
             else if ((!_.includes(BASE_MINERALS, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT) || (_.includes(LAB_PRIORITY, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT * 2)) storeTarget = creep.room.storage;

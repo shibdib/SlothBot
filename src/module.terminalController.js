@@ -326,6 +326,23 @@ function fillBuyOrders(terminal, globalOrders) {
 }
 
 function balanceResources(terminal) {
+    if (Memory.roomCache[terminal.room.name].threatLevel < 3) {
+        // Find needy terminals
+        let needyTerminal = _.min(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.energy < terminal.room.energy * 0.85), '.room.energy');
+        if (needyTerminal.id) {
+            // Determine how much you can move
+            let availableAmount = terminal.store[RESOURCE_ENERGY] - (TERMINAL_ENERGY_BUFFER * 0.5);
+            let requestedAmount = (terminal.room.energy - needyTerminal.room.energy) * 0.5;
+            if (requestedAmount > availableAmount) requestedAmount = availableAmount;
+            if (requestedAmount > 1000) {
+                switch (terminal.send(RESOURCE_ENERGY, requestedAmount, needyTerminal.room.name)) {
+                    case OK:
+                        log.a('Balancing ' + requestedAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                        return true;
+                }
+            }
+        }
+    }
     // Loop resources
     for (let resource of Object.keys(terminal.store)) {
         // Energy balance handled elsewhere
@@ -365,22 +382,6 @@ function balanceResources(terminal) {
             switch (terminal.send(resource, sendAmount, Memory.saleTerminal.room)) {
                 case OK:
                     log.a('Sent ' + sendAmount + ' ' + resource + ' To ' + roomLink(Memory.saleTerminal.room) + ' From ' + roomLink(terminal.room.name) + ' to sell on the market.', "Market: ");
-                    return true;
-            }
-        }
-    }
-    if (Memory.roomCache[terminal.room.name].threatLevel >= 3) return false;
-    // Find needy terminals
-    let needyTerminal = _.min(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.energy < terminal.room.energy * 0.85), '.room.energy');
-    if (needyTerminal.id) {
-        // Determine how much you can move
-        let availableAmount = terminal.store[RESOURCE_ENERGY] - (TERMINAL_ENERGY_BUFFER * 0.5);
-        let requestedAmount = (terminal.room.energy - needyTerminal.room.energy) * 0.5;
-        if (requestedAmount > availableAmount) requestedAmount = availableAmount;
-        if (requestedAmount > 1000) {
-            switch (terminal.send(RESOURCE_ENERGY, requestedAmount, needyTerminal.room.name)) {
-                case OK:
-                    log.a('Balancing ' + requestedAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
                     return true;
             }
         }
