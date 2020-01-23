@@ -513,6 +513,7 @@ module.exports.remoteCreepQueue = function (room) {
     //Remotes
     if (!room.memory.turtleMode && remoteHives[room.name] && !Memory.roomCache[room.name].responseNeeded) {
         room.memory.spawnBorderPatrol = undefined;
+        let skMining;
         let remotes = JSON.parse(remoteHives[room.name]);
         for (let keys in shuffle(remotes)) {
             if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remotes[keys])) continue;
@@ -532,6 +533,7 @@ module.exports.remoteCreepQueue = function (room) {
             }
             // Handle SK
             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk && level >= 7 && (!Memory.roomCache[remotes[keys]].invaderCooldown || Memory.roomCache[remotes[keys]].invaderCooldown < Game.time - 50)) {
+                skMining = true;
                 let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKAttacker');
                 if ((SKAttacker[0] && SKAttacker[0].ticksToLive < (SKAttacker[0].body.length * 3 + 10) && SKAttacker.length < 2) || SKAttacker.length < 1) {
                     queueCreep(room, PRIORITIES.SKWorker + 1, {
@@ -556,15 +558,18 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             } else if (!Memory.roomCache[remotes[keys]] || !Memory.roomCache[remotes[keys]].sk) {
-                let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
-                let sourceCount = 1;
-                if (!room.energyState && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
-                if (remoteHarvester.length < sourceCount || (remoteHarvester[0] && remoteHarvester[0].ticksToLive < (remoteHarvester[0].body.length * 3 + 10) && remoteHarvester.length < sourceCount + 1)) {
-                    room.memory.lastRemoteAttempt = Game.time;
-                    queueCreep(room, PRIORITIES.remoteHarvester + remoteHarvester.length, {
-                        role: 'remoteHarvester',
-                        destination: remotes[keys]
-                    })
+                // No regular remotes if SK mining
+                if (!skMining) {
+                    let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
+                    let sourceCount = 1;
+                    if (!room.energyState && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
+                    if (remoteHarvester.length < sourceCount || (remoteHarvester[0] && remoteHarvester[0].ticksToLive < (remoteHarvester[0].body.length * 3 + 10) && remoteHarvester.length < sourceCount + 1)) {
+                        room.memory.lastRemoteAttempt = Game.time;
+                        queueCreep(room, PRIORITIES.remoteHarvester + remoteHarvester.length, {
+                            role: 'remoteHarvester',
+                            destination: remotes[keys]
+                        })
+                    }
                 }
                 if (Memory.roomCache[remotes[keys]] && (!Memory.roomCache[remotes[keys]].reservationExpires || Game.time > Memory.roomCache[remotes[keys]].reservationExpires)) {
                     let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.other.reservationTarget === remotes[keys]);
@@ -600,9 +605,7 @@ module.exports.remoteCreepQueue = function (room) {
     }
     // Remote Road Builder
     let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'roadBuilder');
-    let amount = 2;
-    if (!_.size(remoteHives[room.name]) || room.memory.turtleMode) amount = 1;
-    if (roadBuilder.length < amount) {
+    if (roadBuilder.length < 1) {
         let misc = remoteHives[room.name];
         if (room.memory.turtleMode) misc = JSON.stringify([]);
         queueCreep(room, PRIORITIES.roadBuilder, {
