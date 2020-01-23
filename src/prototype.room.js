@@ -417,7 +417,7 @@ Room.prototype.invaderCheck = function () {
         if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
         Memory.roomCache[this.name].lastInvaderCheck = Game.time;
         // No invader checks for hostile rooms
-        if (((this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) || this.findClosestOwnedRoom(true) >= 5) {
+        if (Memory.roomCache[this.name].user !== MY_USERNAME) {
             Memory.roomCache[this.name].numberOfHostiles = undefined;
             Memory.roomCache[this.name].responseNeeded = undefined;
             Memory.roomCache[this.name].alertEmail = undefined;

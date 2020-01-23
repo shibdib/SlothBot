@@ -287,15 +287,15 @@ module.exports.praiseCreepQueue = function (room) {
     }
     // Local Responder
     if (Memory.roomCache[room.name].threatLevel) {
+        console.log(room.name)
         let role = _.sample(['longbow', 'attacker']);
         let responder = _.filter(Game.creeps, (creep) => creep.memory.other.responseTarget === room.name);
-        if (responder.length < Memory.roomCache[room.name].numberOfHostiles) {
+        if (responder.length < Memory.roomCache[room.name].threatLevel) {
             queueCreep(room, PRIORITIES.responder, {
                 role: role,
                 other: {
                     responseTarget: room.name
-                },
-                military: true
+                }
             })
         }
     }
