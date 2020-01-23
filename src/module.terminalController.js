@@ -366,10 +366,10 @@ function balanceResources(terminal) {
             s.room.store(resource);
         })[0];
         let sendAmount = available - keepAmount;
-        sendAmount = keepAmount - needyTerminal.room.store(resource);
-        if (sendAmount > terminal.store[resource]) sendAmount = terminal.store[resource];
         if (sendAmount <= 100) continue;
         if (needyTerminal && !stockpile) {
+            sendAmount = keepAmount - needyTerminal.room.store(resource);
+            if (sendAmount > terminal.store[resource]) sendAmount = terminal.store[resource];
             switch (terminal.send(resource, sendAmount, needyTerminal.room.name)) {
                 case OK:
                     log.a('Balancing ' + sendAmount + ' ' + resource + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
