@@ -6,6 +6,7 @@
  */
 
 module.exports.role = function (creep) {
+    if (creep.renewalCheck()) return;
     //INITIAL CHECKS
     if (creep.wrongRoom()) return;
     creep.say(ICONS.haul, true);

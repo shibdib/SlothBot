@@ -10,7 +10,7 @@
  */
 
 module.exports.role = function (creep) {
-    if (creep.shibKite(3)) return true;
+    if (creep.renewalCheck()) return;
     if (creep.tryToBoost(['build'])) return;
     creep.say(ICONS.castle, true);
     if (creep.wrongRoom()) return;

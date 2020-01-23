@@ -10,6 +10,7 @@
  */
 
 module.exports.role = function (creep) {
+    if (creep.renewalCheck()) return;
     creep.say(ICONS.haul2, true);
     //Invader detection
     if (creep.fleeHome()) return;
