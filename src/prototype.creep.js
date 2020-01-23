@@ -717,231 +717,113 @@ Creep.prototype.renewalCheck = function (cutoff = 100, target = 1200, force = fa
     return false;
 };
 
-Creep.prototype.tryToBoost = function (boosts, require = false) {
+Creep.prototype.tryToBoost = function (boosts) {
     if (this.memory.boostAttempt) return false;
-    // Unboosting
-    /**if (labs[0] && this.memory.boostAttempt && !this.memory.unboosted && this.ticksToLive <= 75) {
-        switch (labs[0].unboostCreep(this)) {
-            case OK:
-                this.memory.unboosted = true;
-                break;
-            case ERR_NOT_IN_RANGE:
-                this.say('Un-boosting');
-                break;
-            case ERR_NOT_FOUND:
-                this.memory.unboosted = true;
-        }
-        this.shibMove(labs[0]);
-        return true;
-    }**/
-    if (!this.memory.requestedBoosts) {
-        let available = [];
+    if (!this.memory.boosts) this.memory.boosts = {};
+    // Figure out what boosts to get, try to use the most powerful
+    if (!this.memory.boosts.requestedBoosts) {
+        let available = {};
         let boostNeeded;
-        for (let key in boosts) {
-            let boostInRoom;
-            switch (boosts[key]) {
+        for (let boostType of boosts) {
+            switch (boostType) {
                 case 'attack':
-                    boostInRoom = this.room.store(RESOURCE_CATALYZED_UTRIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(ATTACK) * 30;
-                    if (!boostNeeded) continue;
-                    this.memory.boostNeeded = boostNeeded;
-                    if (boostInRoom >= boostNeeded) {
-                        available.push(RESOURCE_CATALYZED_UTRIUM_ACID);
-                    } else if (this.room.store(RESOURCE_UTRIUM_ACID) >= boostNeeded) {
-                        available.push(RESOURCE_UTRIUM_ACID);
-                    } else if (this.room.store(RESOURCE_UTRIUM_HYDRIDE) >= boostNeeded) {
-                        available.push(RESOURCE_UTRIUM_HYDRIDE);
-                    }
-                    continue;
-                case 'upgrade':
-                    boostInRoom = this.room.store(RESOURCE_CATALYZED_GHODIUM_ACID);
-                    boostNeeded = this.getActiveBodyparts(WORK) * 30;
-                    if (!boostNeeded) continue;
-                    this.memory.boostNeeded = boostNeeded;
-                    if (boostInRoom >= boostNeeded) {
-                        available.push(RESOURCE_CATALYZED_GHODIUM_ACID);
-                    } else if (this.room.store(RESOURCE_GHODIUM_ACID) >= boostNeeded) {
-                        available.push(RESOURCE_GHODIUM_ACID);
-                    } else if (this.room.store(RESOURCE_GHODIUM_HYDRIDE) >= boostNeeded) {
-                        available.push(RESOURCE_GHODIUM_HYDRIDE);
-                    }
-                    continue;
-                case 'tough':
-                    boostInRoom = this.room.store(RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
-                    boostNeeded = this.getActiveBodyparts(TOUGH) * 30;
-                    if (!boostNeeded) continue;
-                    this.memory.boostNeeded = boostNeeded;
-                    if (boostInRoom >= boostNeeded) {
-                        available.push(RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
-                    } else if (this.room.store(RESOURCE_GHODIUM_ALKALIDE) >= boostNeeded) {
-                        available.push(RESOURCE_GHODIUM_ALKALIDE);
-                    } else if (this.room.store(RESOURCE_GHODIUM_OXIDE) >= boostNeeded) {
-                        available.push(RESOURCE_GHODIUM_OXIDE);
-                    }
-                    continue;
+                    break;
                 case 'ranged':
-                    boostInRoom = this.room.store(RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(RANGED_ATTACK) * 30;
-                    if (!boostNeeded) continue;
-                    this.memory.boostNeeded = boostNeeded;
-                    if (boostInRoom >= boostNeeded) {
-                        available.push(RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
-                    } else if (this.room.store(RESOURCE_KEANIUM_ALKALIDE) >= boostNeeded) {
-                        available.push(RESOURCE_KEANIUM_ALKALIDE);
-                    } else if (this.room.store(RESOURCE_KEANIUM_OXIDE) >= boostNeeded) {
-                        available.push(RESOURCE_KEANIUM_OXIDE);
-                    }
-                    continue;
+                    break;
+                case 'tough':
+                    boostNeeded = this.getActiveBodyparts(TOUGH) * 30;
+                    break;
                 case 'heal':
-                    boostInRoom = this.room.store(RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(HEAL) * 30;
-                    if (!boostNeeded) continue;
-                    this.memory.boostNeeded = boostNeeded;
-                    if (boostInRoom >= boostNeeded) {
-                        available.push(RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
-                    } else if (this.room.store(RESOURCE_LEMERGIUM_ALKALIDE) >= boostNeeded) {
-                        available.push(RESOURCE_LEMERGIUM_ALKALIDE);
-                    } else if (this.room.store(RESOURCE_LEMERGIUM_OXIDE) >= boostNeeded) {
-                        available.push(RESOURCE_LEMERGIUM_OXIDE);
-                    }
-                    continue;
-                case 'build':
-                    boostInRoom = this.room.store(RESOURCE_CATALYZED_LEMERGIUM_ACID);
-                    boostNeeded = this.getActiveBodyparts(WORK) * 30;
-                    if (!boostNeeded) continue;
-                    this.memory.boostNeeded = boostNeeded;
-                    if (boostInRoom >= boostNeeded) {
-                        available.push(RESOURCE_CATALYZED_LEMERGIUM_ACID);
-                    } else if (this.room.store(RESOURCE_LEMERGIUM_ACID) >= boostNeeded) {
-                        available.push(RESOURCE_LEMERGIUM_ACID);
-                    } else if (this.room.store(RESOURCE_LEMERGIUM_HYDRIDE) >= boostNeeded) {
-                        available.push(RESOURCE_LEMERGIUM_HYDRIDE);
-                    }
-                    continue;
+                    break;
+                case 'carry':
+                    boostNeeded = this.getActiveBodyparts(CARRY) * 30;
+                    break;
                 case 'move':
-                    boostInRoom = this.room.store(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(MOVE) * 30;
-                    if (!boostNeeded) continue;
-                    this.memory.boostNeeded = boostNeeded;
-                    if (boostInRoom >= boostNeeded) {
-                        available.push(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
-                    } else if (this.room.store(RESOURCE_ZYNTHIUM_ALKALIDE) >= boostNeeded) {
-                        available.push(RESOURCE_ZYNTHIUM_ALKALIDE);
-                    } else if (this.room.store(RESOURCE_ZYNTHIUM_OXIDE) >= boostNeeded) {
-                        available.push(RESOURCE_ZYNTHIUM_OXIDE);
-                    }
-                    continue;
+                    break;
+                case 'upgrade':
+                case 'build':
                 case 'harvest':
-                    boostInRoom = this.room.store(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
-                    boostNeeded = this.getActiveBodyparts(WORK) * 30;
-                    if (!boostNeeded) continue;
-                    this.memory.boostNeeded = boostNeeded;
-                    if (boostInRoom >= boostNeeded) {
-                        available.push(RESOURCE_CATALYZED_UTRIUM_ALKALIDE);
-                    } else if (this.room.store(RESOURCE_UTRIUM_ALKALIDE) >= boostNeeded) {
-                        available.push(RESOURCE_UTRIUM_ALKALIDE);
-                    } else if (this.room.store(RESOURCE_UTRIUM_OXIDE) >= boostNeeded) {
-                        available.push(RESOURCE_UTRIUM_OXIDE);
-                    }
-                    continue;
                 case 'dismantle':
-                    boostInRoom = this.room.store(RESOURCE_CATALYZED_ZYNTHIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
-                    if (!boostNeeded) continue;
-                    this.memory.boostNeeded = boostNeeded;
-                    if (boostInRoom >= boostNeeded) {
-                        available.push(RESOURCE_CATALYZED_ZYNTHIUM_ACID);
-                    } else if (this.room.store(RESOURCE_ZYNTHIUM_ACID) >= boostNeeded) {
-                        available.push(RESOURCE_ZYNTHIUM_ACID);
-                    } else if (this.room.store(RESOURCE_ZYNTHIUM_HYDRIDE) >= boostNeeded) {
-                        available.push(RESOURCE_ZYNTHIUM_HYDRIDE);
-                    }
+                    break;
+            }
+            let count = 0;
+            for (let boost of BOOST_USE[boostType]) {
+                if (this.room.store(boost) >= boostNeeded) {
+                    available[boost]['boost'] = boost;
+                    available[boost]['amount'] = boostNeeded;
+                    break;
+                } else if (count === 2 && this.room.store(boost) >= boostNeeded * 0.5) {
+                    available[boost]['boost'] = boost;
+                    available[boost]['amount'] = this.room.store(boost);
+                }
+                count++;
             }
         }
-        this.memory.requestedBoosts = available;
-    } else {
-        if (!require && (!this.memory.requestedBoosts.length || this.ticksToLive < 750)) {
-            let lab = Game.getObjectById(this.memory.boostLab);
-            if (lab) {
-                lab.memory = undefined;
-            }
-            this.memory.requestedBoosts = undefined;
-            this.memory.boostLab = undefined;
-            this.memory.boostNeeded = undefined;
-            return this.memory.boostAttempt = true;
-        }
-        for (let key in this.memory.requestedBoosts) {
-            let boostInRoom = this.room.store(this.memory.requestedBoosts[key]);
-            if (boostInRoom < this.memory.boostNeeded) {
-                this.memory.requestedBoosts.shift();
-                let lab = Game.getObjectById(this.memory.boostLab);
-                if (lab) {
-                    lab.memory = undefined;
-                }
-                this.memory.boostLab = undefined;
-                this.memory.boostNeeded = undefined;
-                continue;
-            }
-            if (!this.memory.boostLab) {
-                let labs = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB);
-                let filledLab = _.filter(labs, (s) => s.mineralType === this.memory.requestedBoosts[key] && s.energy > 0)[0];
-                let idleLab = _.filter(labs, (s) => s.energy > 0 && (!s.memory.creating || s.memory.creating === this.memory.requestedBoosts[key]))[0];
-                if (filledLab) {
-                    if (filledLab.memory.neededBoost && filledLab.memory.neededBoost !== this.memory.requestedBoosts[key]) return;
-                    this.memory.boostLab = filledLab.id;
-                    filledLab.memory.neededBoost = this.memory.requestedBoosts[key];
-                    filledLab.memory.active = true;
-                    filledLab.memory.requested = Game.time;
-                } else if (idleLab) {
-                    if (idleLab.memory.neededBoost && idleLab.memory.neededBoost !== this.memory.requestedBoosts[key]) return;
-                    this.memory.boostLab = idleLab.id;
-                    idleLab.memory.neededBoost = this.memory.requestedBoosts[key];
-                    idleLab.memory.active = true;
-                    idleLab.memory.requested = Game.time;
-                } else {
-                    return this.memory.boostAttempt = true;
-                }
-            }
-            let lab = Game.getObjectById(this.memory.boostLab);
-            if (!lab.memory || !lab.memory.neededBoost) {
-                this.memory.requestedBoosts.shift();
-                lab.memory = undefined;
-                this.memory.boostLab = undefined;
-                this.memory.boostNeeded = undefined;
-                return;
-            }
-            if (lab && lab.pos.getRangeTo(this) > 1) {
-                this.say(ICONS.boost);
-                this.shibMove(lab);
+        this.memory.boosts.requestedBoosts = available;
+    } else if (_.size(this.memory.boosts.requestedBoosts) && this.ticksToLive > 1000) {
+        for (let requestedBoost of Object.keys(this.memory.boosts.requestedBoosts)) {
+            // Check if boost is low, if so restart
+            let boostInRoom = this.room.store(requestedBoost);
+            if (boostInRoom < this.memory.boosts.requestedBoosts[requestedBoost]['amount']) {
+                this.memory.boosts = undefined;
+                let lab = Game.getObjectById(this.memory.boosts.boostLab);
+                if (lab) lab.memory = undefined;
                 return true;
             }
-            if (lab && lab.mineralType === lab.memory.neededBoost && lab.energy > 0 && (lab.mineralAmount >= this.memory.boostNeeded || lab.mineralAmount >= lab.mineralCapacity * 0.75)) {
-                switch (lab.boostCreep(this)) {
-                    case OK:
-                        if (lab.memory.creating) lab.memory.neededBoost = undefined; else lab.memory = undefined;
-                        this.memory.requestedBoosts.shift();
-                        if (this.memory.requestedBoosts.length) {
-                            this.memory.boostNeeded = this.memory.requestedBoosts[0];
-                            lab.memory.neededBoost = this.memory.requestedBoosts[0];
-                            lab.memory.active = true;
-                            lab.memory.requested = Game.time;
-                        }
-                        this.say(ICONS.greenCheck);
-                        return this.shibMove(lab);
-                    case ERR_NOT_IN_RANGE:
-                        this.say(ICONS.boost);
-                        this.shibMove(lab);
-                        return true;
-                    case ERR_NOT_ENOUGH_RESOURCES:
-                        this.say(ICONS.boost);
-                        this.shibMove(lab);
-                        return true;
+            // Find a lab to boost the creep if none exist, idle.
+            if (!this.memory.boosts.boostLab) {
+                let lab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.energy > 0 &&
+                    (s.mineralType === requestedBoost || s.memory.creating === requestedBoost || !s.memory.creating) &&
+                    (!lab.memory.neededBoost || lab.memory.neededBoost === requestedBoost))[0];
+                if (lab) {
+                    this.memory.boosts.boostLab = lab.id;
+                    lab.memory.neededBoost = requestedBoost;
+                    lab.memory.active = true;
+                    lab.memory.requested = Game.time;
+                } else {
+                    this.idleFor(5);
+                    return true;
                 }
-            } else {
-                this.shibMove(lab);
+            }
+            let lab = Game.getObjectById(this.memory.boosts.boostLab);
+            if (lab) {
+                if (!this.pos.isNearTo(lab)) {
+                    this.say(ICONS.boost);
+                    this.shibMove(lab);
+                    return true;
+                } else if (lab.mineralType === lab.memory.neededBoost && lab.energy && lab.mineralAmount >= this.memory.boosts.requestedBoosts[requestedBoost]['amount']) {
+                    switch (lab.boostCreep(this)) {
+                        case OK:
+                            if (lab.memory.creating) lab.memory.neededBoost = undefined; else lab.memory = undefined;
+                            this.memory.boosts.requestedBoosts = _.filter(this.memory.boosts.requestedBoosts, (b) => b['boost'] !== requestedBoost);
+                            this.say(ICONS.greenCheck);
+                            return true;
+                        case ERR_NOT_IN_RANGE:
+                            this.say(ICONS.boost);
+                            this.shibMove(lab);
+                            return true;
+                        case ERR_NOT_ENOUGH_RESOURCES:
+                            this.say(ICONS.boost);
+                            this.idleFor(5);
+                            return true;
+                    }
+                } else {
+                    this.idleFor(5);
+                }
             }
         }
         return true;
+    } else {
+        if (Game.getObjectById(this.memory.boosts.boostLab)) {
+            Game.getObjectById(this.memory.boosts.boostLab).memory = undefined;
+        }
+        this.memory.boosts = undefined;
+        return this.memory.boostAttempt = true;
     }
 };
 
