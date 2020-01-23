@@ -973,26 +973,6 @@ Creep.prototype.fleeNukeRoom = function () {
     if (!this.memory.fleeTo) this.memory.fleeTo = _.sample(_.filter(Memory.myRooms, (r) => r.name !== this.memory.overlord)).name;
 };
 
-function getBoostAmount(room, boost) {
-    let boostInRoomStructures = _.sum(room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
-        if (s['structure'] && s['structure'].store) {
-            return s['structure'].store[boost] || 0;
-        } else if (s['structure'] && s['structure'].mineralType === boost) {
-            return s['structure'].mineralAmount || 0;
-        } else {
-            return 0;
-        }
-    });
-    let boostInRoomCreeps = _.sum(room.lookForAtArea(LOOK_CREEPS, 0, 0, 49, 49, true), (s) => {
-        if (s['creep'] && s['creep'].store) {
-            return s['creep'].store[boost] || 0;
-        } else {
-            return 0;
-        }
-    });
-    return boostInRoomCreeps + boostInRoomStructures;
-}
-
 function positionAtDirection(origin, direction) {
     let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
     let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
