@@ -377,6 +377,10 @@ function manageAuxiliary() {
     if (!Memory.auxiliaryTargets || !_.size(Memory.auxiliaryTargets)) return;
     let maxLevel = Memory.maxLevel;
     for (let key in Memory.auxiliaryTargets) {
+        if (!Memory.auxiliaryTargets[key]) {
+            delete Memory.auxiliaryTargets[key];
+            continue;
+        }
         let type = Memory.auxiliaryTargets[key].type;
         // Special Conditions
         switch (type) {
