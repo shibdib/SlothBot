@@ -370,13 +370,14 @@ function balanceResources(terminal) {
         if (needyTerminal && !stockpile) {
             sendAmount = keepAmount - needyTerminal.room.store(resource);
             if (sendAmount > terminal.store[resource]) sendAmount = terminal.store[resource];
+            if (sendAmount < 100) continue;
             switch (terminal.send(resource, sendAmount, needyTerminal.room.name)) {
                 case OK:
                     log.a('Balancing ' + sendAmount + ' ' + resource + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
                     return true;
             }
         } else if (terminal.room.name !== Memory.saleTerminal.room) {
-            if (sendAmount <= 500) continue;
+            if (sendAmount < 500) continue;
             let energyCost = Game.market.calcTransactionCost(sendAmount, terminal.room.name, Memory.saleTerminal.room);
             if (energyCost > terminal.store[RESOURCE_ENERGY]) sendAmount = 500;
             switch (terminal.send(resource, sendAmount, Memory.saleTerminal.room)) {
