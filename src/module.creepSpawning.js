@@ -286,7 +286,7 @@ module.exports.praiseCreepQueue = function (room) {
         }
     }
     // Local Responder
-    if (Memory.roomCache[room.name].threatLevel >= 3) {
+    if (Memory.roomCache[room.name].threatLevel) {
         let role = _.sample(['longbow', 'attacker']);
         let responder = _.filter(Game.creeps, (creep) => creep.memory.other.responseTarget === room.name);
         if (responder.length < Memory.roomCache[room.name].numberOfHostiles) {
@@ -526,7 +526,7 @@ module.exports.remoteCreepQueue = function (room) {
             // If it's reserved by someone else continue
             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reservation && Memory.roomCache[remotes[keys]].reservation !== MY_USERNAME) continue;
             // Handle response needed
-            if (Memory.roomCache[remotes[keys]] && !Memory.roomCache[remotes[keys]].sk && Memory.roomCache[remotes[keys]].hostilePower > Memory.roomCache[remotes[keys]].friendlyPower && Memory.roomCache[remotes[keys]].lastInvaderCheck + 1000 > Game.time) {
+            if (Memory.roomCache[remotes[keys]] && !Memory.roomCache[remotes[keys]].sk && Memory.roomCache[remotes[keys]].threatLevel && Memory.roomCache[remotes[keys]].lastInvaderCheck + 1000 > Game.time) {
                 room.memory.spawnBorderPatrol = remotes[keys] && _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol').length < 2;
                 continue;
             }

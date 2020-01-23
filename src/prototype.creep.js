@@ -1010,15 +1010,16 @@ function positionAtDirection(origin, direction) {
 
 // Get attack/heal power and account for boosts
 Creep.prototype.abilityPower = function (ignoreTough = undefined) {
-    let attackPower = 0;
+    let meleePower = 0;
+    let rangedPower = 0;
     let healPower = 0;
     for (let part of this.body) {
         if (!part.hits) continue;
         if (part.boost) {
             if (part.type === ATTACK) {
-                attackPower += ATTACK_POWER * BOOSTS[part.type][part.boost][part.type];
+                meleePower += ATTACK_POWER * BOOSTS[part.type][part.boost][part.type];
             } else if (part.type === RANGED_ATTACK) {
-                attackPower += RANGED_ATTACK_POWER * BOOSTS[part.type][part.boost][part.type];
+                rangedPower += RANGED_ATTACK_POWER * BOOSTS[part.type][part.boost][part.type];
             } else if (part.type === HEAL) {
                 healPower += HEAL_POWER * BOOSTS[part.type][part.boost][part.type];
             } else if (part.type === TOUGH && !ignoreTough && this.getActiveBodyparts(HEAL)) {
@@ -1026,15 +1027,15 @@ Creep.prototype.abilityPower = function (ignoreTough = undefined) {
             }
         } else {
             if (part.type === ATTACK) {
-                attackPower += ATTACK_POWER;
+                meleePower += ATTACK_POWER;
             } else if (part.type === RANGED_ATTACK) {
-                attackPower += RANGED_ATTACK_POWER;
+                rangedPower += RANGED_ATTACK_POWER;
             } else if (part.type === HEAL) {
                 healPower += HEAL_POWER;
             }
         }
     }
-    return {attack: attackPower, defense: healPower};
+    return {attack: meleePower + rangedPower, defense: healPower, melee: meleePower, ranged: rangedPower};
 };
 
 Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = false) {

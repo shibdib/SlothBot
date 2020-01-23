@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -52,18 +52,18 @@ module.exports.towerControl = function (room) {
             }
         }
     } else if (hostileCreeps.length) {
-        let towers = _.shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_TOWER && s.isActive()));
+        let towers = _.shuffle(_.filter(structures, (s) => s && s.structureType === STRUCTURE_TOWER && s.isActive()));
         let potentialAttack = 0;
-        _.filter(creeps, (c) => c.my && c.memory.military).forEach((c) => potentialAttack += c.abilityPower().attack);
+        _.filter(creeps, (c) => c && c.my && c.memory.military).forEach((c) => potentialAttack += c.abilityPower().attack);
         for (let i = 0; i < hostileCreeps.length; i++) {
             towers.forEach((t) => potentialAttack += determineDamage(hostileCreeps[i].pos.getRangeTo(t)));
             let inRangeMeleeHealers = _.filter(hostileCreeps, (s) => s.pos.getRangeTo(hostileCreeps[i]) === 1 && s.getActiveBodyparts(HEAL));
             let inRangeRangedHealers = _.filter(hostileCreeps, (s) => s.pos.getRangeTo(hostileCreeps[i]) > 1 && s.pos.getRangeTo(hostileCreeps[i]) < 4 && s.getActiveBodyparts(HEAL));
-            let inRangeResponders = _.filter(creeps, (c) => c.getActiveBodyparts(ATTACK) && c.pos.getRangeTo(hostileCreeps[i]) === 1);
-            let inRangeLongbows = _.filter(creeps, (c) => c.getActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(hostileCreeps[i]) < 4);
+            let inMeleeRange = _.filter(creeps, (c) => c.pos.getRangeTo(hostileCreeps[i]) === 1);
+            let inRangedRange = _.filter(creeps, (c) => c.pos.getRangeTo(hostileCreeps[i]) <= 3);
             let attackPower = 0;
-            if (inRangeResponders.length) inRangeResponders.forEach((c) => attackPower += c.abilityPower().attack);
-            if (inRangeLongbows.length) inRangeLongbows.forEach((c) => attackPower += c.abilityPower().attack);
+            if (inMeleeRange.length) inMeleeRange.forEach((c) => attackPower += c.abilityPower().attack);
+            if (inRangedRange.length) inRangedRange.forEach((c) => attackPower += c.abilityPower().ranged);
             towers.forEach((t) => attackPower += determineDamage(hostileCreeps[i].pos.getRangeTo(t)));
             let healPower = 0;
             if (inRangeMeleeHealers.length) inRangeMeleeHealers.forEach((c) => healPower += c.abilityPower(true).defense);

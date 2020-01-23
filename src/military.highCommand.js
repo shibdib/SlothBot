@@ -30,8 +30,7 @@ function manageResponseForces() {
     idleResponders.forEach((c) => idlePower += c.combatPower);
     let ownedRoomAttack = _.findKey(Memory.roomCache, (r) => r.owner && r.owner === MY_USERNAME && r.lastPlayerSighting + 25 > Game.time);
     let invaderCore = _.findKey(Memory.roomCache, (r) => r.closestRange === 1 && !r.sk && r.invaderCore);
-    let responseTargets = _.max(_.filter(Memory.roomCache, (r) => r.threatLevel && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE &&
-        r.hostilePower < (r.friendlyPower + (_.sum(_.filter(Game.creeps, (c) => c.my && c.memory.other && c.memory.other.responseTarget === r.name), 'combatPower')) + idlePower) * 0.85 && r.lastInvaderCheck + 550 >= Game.time), '.threatLevel');
+    let responseTargets = _.max(_.filter(Memory.roomCache, (r) => r.threatLevel && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE && r.lastInvaderCheck + 550 >= Game.time), '.threatLevel');
     let highestHeat = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE && !r.numberOfHostiles &&
         r.lastInvaderCheck + 550 >= Game.time), '.roomHeat');
     let guard = _.findKey(Memory.targetRooms, (o) => o && o.type === 'guard' && o.level);
@@ -385,10 +384,11 @@ function manageAuxiliary() {
                 if (maxLevel < 6) delete Memory.auxiliaryTargets[key];
                 break;
             case 'claim':
+            case 'claimScout':
+            case 'claimClear':
                 if (Game.gcl.level === Memory.myRooms.length) delete Memory.auxiliaryTargets[key];
                 break;
             case 'clean':
-            case 'claimClear':
                 break;
         }
         if (!Memory.auxiliaryTargets[key]) continue;

@@ -439,6 +439,7 @@ function findHub(room, hubCheck = undefined) {
                         structure.structureType = type.type;
                         structure.x = s.x + xOffset;
                         structure.y = s.y + yOffset;
+                        if (structure.x > 49 || structure.x < 1 || structure.y > 49 || structure.y < 1) continue primary;
                         let structurePos = new RoomPosition(structure.x, structure.y, room.name);
                         if (type.type !== STRUCTURE_RAMPART && (structurePos.checkIfOutOfBounds() || pos.getRangeTo(controller) < 2 || pos.getRangeTo(closestSource) < 2 || structurePos.checkForWall())) {
                             continue primary;
