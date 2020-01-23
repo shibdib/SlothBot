@@ -432,7 +432,7 @@ function addStructuresToMatrix(room, matrix, type) {
         matrix.set(site.pos.x, site.pos.y, 256);
     }
     //Stationary creeps
-    let stationaryCreeps = _.filter(room.creeps, (c) => c.my && (c.memory.role === 'stationaryHarvester' || c.memory.role === 'upgrader' || c.memory.role === 'reserver' || c.memory.role === 'remoteHarvester' || c.memory.role === 'praiseUpgrader'));
+    let stationaryCreeps = _.filter(room.creeps, (c) => c.my && (!c.getActiveBodyparts(MOVE) || c.memory.role === 'stationaryHarvester' || c.memory.role === 'upgrader' || c.memory.role === 'reserver' || c.memory.role === 'remoteHarvester' || c.memory.role === 'praiseUpgrader'));
     for (let site of stationaryCreeps) {
         matrix.set(site.pos.x, site.pos.y, 75);
     }
