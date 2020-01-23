@@ -29,10 +29,10 @@ module.exports.role = function (creep) {
     if (creep.memory.empty) return emptyLab(creep);
     // Empty mineral harvester container
     if (linkManager(creep)) return;
-    // Empty mineral harvester container
-    if (mineralHauler(creep)) return;
     // Handle terminal goods
     if (terminalControl(creep)) return;
+    // Empty mineral harvester container
+    if (mineralHauler(creep)) return;
     // Handle storage goods
     if (storageEmpty(creep)) return;
     // Handle dropped goodies
@@ -73,11 +73,15 @@ function storeBoosts(creep) {
         storeTarget = creep.room.terminal;
         // Storage cases
         if (_.sum(creep.room.storage.store) < 0.95 * creep.room.storage.store.getCapacity()) {
-            if (_.includes(ALL_COMMODITIES, resourceType)) storeTarget = creep.room.terminal;
+            if (_.sum(creep.room.terminal.store) >= 0.95 * creep.room.terminal.store.getCapacity()) storeTarget = creep.room.storage;
+            else if (_.includes(BASE_MINERALS, resourceType) && creep.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = creep.room.terminal;
+            else if (_.includes(ALL_COMMODITIES, resourceType)) storeTarget = creep.room.terminal;
             else if ((!_.includes(BASE_MINERALS, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT) || (_.includes(LAB_PRIORITY, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT * 2)) storeTarget = creep.room.storage;
         }
         // Nuker case
-        if (nuker && nuker.ghodium < nuker.ghodiumCapacity && creep.store[RESOURCE_GHODIUM]) storeTarget = nuker;
+        if (creep.store[RESOURCE_GHODIUM] && nuker && nuker.store.getFreeCapacity(RESOURCE_GHODIUM)) storeTarget = nuker;
+        // Everything is full just drop it
+        if (_.sum(creep.room.terminal.store) >= 0.95 * creep.room.terminal.store.getCapacity() && _.sum(creep.room.terminal.store) >= 0.95 * creep.room.terminal.store.getCapacity()) return creep.drop(resourceType);
         switch (creep.transfer(storeTarget, resourceType)) {
             case OK:
                 creep.memory.empty = undefined;
@@ -119,6 +123,9 @@ function emptyLab(creep) {
                 creep.memory.labHelper = undefined;
                 return undefined;
         }
+    } else {
+        creep.memory.empty = undefined;
+        creep.memory.labHelper = undefined;
     }
 }
 
@@ -378,7 +385,7 @@ function linkManager(creep) {
 function terminalControl(creep) {
     // Handle nuker needing ghodium
     let nuke = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
-    if (nuke && nuke.ghodium < nuke.ghodiumCapacity && (creep.room.storage.store[RESOURCE_GHODIUM] || creep.room.terminal.store[RESOURCE_GHODIUM])) {
+    if (nuke && nuke.store.getFreeCapacity(RESOURCE_GHODIUM) && (creep.room.storage.store[RESOURCE_GHODIUM] || creep.room.terminal.store[RESOURCE_GHODIUM])) {
         let storage = creep.room.terminal;
         if (creep.room.storage.store[RESOURCE_GHODIUM]) storage = creep.room.storage;
         switch (creep.withdraw(storage, RESOURCE_GHODIUM)) {
@@ -387,6 +394,19 @@ function terminalControl(creep) {
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(storage);
                 return;
+        }
+    }
+    // Handle a super full terminal
+    if (_.sum(creep.room.terminal.store) >= 0.95 * creep.room.terminal.store.getCapacity()) {
+        let maxResource = Object.keys(creep.room.terminal.store).sort(function (a, b) {
+            return creep.room.terminal.store[a] - creep.room.terminal.store[b]
+        })[_.size(creep.room.terminal.store) - 1];
+        switch (creep.withdraw(creep.room.terminal, maxResource)) {
+            case OK:
+                return true;
+            case ERR_NOT_IN_RANGE:
+                creep.shibMove(creep.room.terminal);
+                return true;
         }
     }
     // Store resource in storage up to the stockpile amount
@@ -408,19 +428,6 @@ function terminalControl(creep) {
                         creep.shibMove(creep.room.terminal);
                         return true;
                 }
-            }
-        }
-    }
-    if (!creep.room.terminal || _.sum(creep.room.terminal.store) < 0.95 * creep.room.terminal.store.getCapacity() || creep.memory.hauling) return false;
-    let maxResource = 0;
-    for (let resource of Object.keys(creep.room.terminal.store)) {
-        if (creep.room.terminal.store[resource] > maxResource) {
-            switch (creep.withdraw(creep.room.terminal, resource)) {
-                case OK:
-                    return true;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(creep.room.terminal);
-                    return true;
             }
         }
     }
