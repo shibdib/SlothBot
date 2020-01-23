@@ -13,14 +13,14 @@ module.exports.role = function (creep) {
     creep.say(ICONS.haul2, true);
     //Invader detection
     if (creep.fleeHome()) return;
+    // Check if empty
+    if (!_.sum(creep.store)) {
+        creep.memory.storageDestination = undefined;
+        creep.memory.hauling = undefined;
+        return;
+    }
     if (creep.memory.hauling) {
         if (creep.pos.roomName === creep.memory.overlord) {
-            // Check if empty
-            if (!_.sum(creep.store)) {
-                creep.memory.storageDestination = undefined;
-                creep.memory.hauling = undefined;
-                return;
-            }
             // If carrying minerals deposit in terminal or storage
             if (_.sum(creep.store) > creep.store[RESOURCE_ENERGY]) creep.memory.storageDestination = creep.room.terminal.id || creep.room.storage.id;
             if (creep.memory.storageDestination) {
