@@ -123,7 +123,8 @@ function dropOff(creep) {
     }
     //Controller
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
-    if (controllerContainer && _.sum(controllerContainer.store) < controllerContainer.store.getCapacity() && Math.random() > _.sum(controllerContainer.store) / controllerContainer.store.getCapacity()) {
+    if (controllerContainer && _.sum(controllerContainer.store) < controllerContainer.store.getCapacity() &&
+        ((!creep.room.controllerLink && Math.random() > _.sum(controllerContainer.store) / controllerContainer.store.getCapacity()) || (creep.room.controllerLink && Math.random() > (_.sum(controllerContainer.store) / controllerContainer.store.getCapacity()) * 0.5))) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     }
