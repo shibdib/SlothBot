@@ -690,7 +690,7 @@ Creep.prototype.borderCheck = function () {
 };
 
 Creep.prototype.renewalCheck = function (cutoff = 100, target = 1200, force = false) {
-    if (!this.memory.other.spawnedLevel) this.memory.other.spawnedLevel = this.room.level;
+    if (!this.memory.other.spawnedLevel) this.memory.other.spawnedLevel = Game.rooms[this.memory.overlord].level;
     if (this.memory.other.spawnedLevel === this.room.level && (this.ticksToLive < cutoff || this.memory.renewing) && Game.rooms[this.memory.overlord].energyAvailable) {
         if (this.ticksToLive >= target) {
             delete this.memory.boostAttempt;
