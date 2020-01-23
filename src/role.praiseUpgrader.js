@@ -13,6 +13,7 @@ module.exports.role = function (creep) {
     if (creep.renewalCheck()) return;
     if (creep.isFull) creep.memory.working = true;
     if (!creep.store[RESOURCE_ENERGY]) delete creep.memory.working;
+    creep.memory.needFood = undefined;
     if (creep.memory.working) {
         switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
             case OK:
@@ -27,7 +28,6 @@ module.exports.role = function (creep) {
         let spawn = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
         let foodPos = spawn.pos.getAdjacentPosition(creep.room.controller.pos.getDirectionTo(spawn));
         if (!creep.pos.isNearTo(foodPos)) return creep.shibMove(foodPos, {range: 1}); else if (creep.pos.getRangeTo(foodPos) === 0) creep.moveRandom();
-        creep.memory.needFood = undefined;
         //Dropped
         let dropped = creep.pos.findInRange(creep.room.droppedEnergy, 3)[0];
         if (dropped) {
