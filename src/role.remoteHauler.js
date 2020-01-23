@@ -105,7 +105,7 @@ function dropOff(creep) {
     buildLinks(creep);
     // Lab
     let lab = creep.pos.findClosestByRange(creep.room.structures, {
-        filter: (s) => s.room.storage && s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive()
+        filter: (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive()
     });
     if (lab) {
         creep.memory.storageDestination = lab.id;
@@ -129,11 +129,15 @@ function dropOff(creep) {
         return true;
     }
     //Close Link
-    let closestLink = creep.pos.findClosestByRange(creep.room.structures, {
-        filter: (s) => s.room.storage && s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive() && s.pos.getRangeTo(creep) < creep.room.storage.pos.getRangeTo(creep)
-    });
-    if (closestLink) {
-        creep.memory.storageDestination = closestLink.id;
+    if (!creep.memory.linkSearch) {
+        let closestLink = creep.pos.findClosestByRange(creep.room.structures, {
+            filter: (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.isActive() && s.pos.getRangeTo(s.pos.findClosestByRange(Game.map.findExit(s.room.name, creep.memory.destination))) < 5
+        });
+        creep.memory.linkSearch = true;
+        if (closestLink) creep.memory.borderLink = closestLink.id;
+    }
+    if (creep.memory.borderLink) {
+        creep.memory.storageDestination = creep.memory.borderLink;
         return true;
     }
     // Else fill spawns/extensions
