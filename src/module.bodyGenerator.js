@@ -220,7 +220,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             break;
         case 'remoteHarvester':
             if (level >= 4) {
-                work = 4;
+                work = 6;
             } else {
                 work = 2;
             }
