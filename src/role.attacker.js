@@ -25,5 +25,7 @@ module.exports.role = function (creep) {
                 creep.borderPatrol();
                 break;
         }
+    } else {
+        if (!creep.handleMilitaryCreep()) creep.findDefensivePosition(creep);
     }
 };
