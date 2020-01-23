@@ -14,11 +14,11 @@ Creep.prototype.marauding = function () {
     // Set a target
     if (!this.memory.destination) {
         let target = _.sortBy(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && _.includes(Memory._badBoyArray, r.user) && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.safemode && r.level && !r.towers), function (r) {
-            Game.map.getRoomLinearDistance(r.name, this.room.name);
+            Memory.roomCache[r.name].closestRange;
         })[0] || _.sortBy(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && _.includes(Memory._badBoyArray, r.user) && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.level && !r.towers), function (r) {
-            Game.map.getRoomLinearDistance(r.name, this.room.name);
+            Memory.roomCache[r.name].closestRange;
         })[0] || _.sortBy(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.level && !r.towers), function (r) {
-            Game.map.getRoomLinearDistance(r.name, this.room.name);
+            Memory.roomCache[r.name].closestRange;
         })[0];
         if (target) {
             this.memory.destination = target.name;
