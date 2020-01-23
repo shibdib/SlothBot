@@ -1003,7 +1003,7 @@ Creep.prototype.abilityPower = function (ignoreTough = undefined) {
             } else if (part.type === HEAL) {
                 healPower += HEAL_POWER * BOOSTS[part.type][part.boost][part.type];
             } else if (part.type === TOUGH && !ignoreTough && this.getActiveBodyparts(HEAL)) {
-                healPower += HEAL_POWER * BOOSTS[part.type][part.boost][part.type];
+                healPower += HEAL_POWER * (1 - BOOSTS[part.type][part.boost]['damage']);
             }
         } else {
             if (part.type === ATTACK) {
