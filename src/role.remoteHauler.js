@@ -17,7 +17,6 @@ module.exports.role = function (creep) {
     if (!_.sum(creep.store)) {
         creep.memory.storageDestination = undefined;
         creep.memory.hauling = undefined;
-        return;
     }
     if (creep.memory.hauling) {
         if (creep.pos.roomName === creep.memory.overlord) {
