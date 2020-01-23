@@ -754,12 +754,17 @@ Creep.prototype.tryToBoost = function (boosts) {
             let count = 0;
             for (let boost of BOOST_USE[boostType]) {
                 if (this.room.store(boost) >= boostNeeded) {
-                    available[boost]['boost'] = boost;
-                    available[boost]['amount'] = boostNeeded;
+                    available[boost] = {
+                        'boost': boost,
+                        'amount': boostNeeded
+                    };
                     break;
                 } else if (count === 2 && this.room.store(boost) >= boostNeeded * 0.5) {
-                    available[boost]['boost'] = boost;
-                    available[boost]['amount'] = this.room.store(boost);
+                    available[boost] = {
+                        'boost': boost,
+                        'amount': boostNeeded
+                    };
+                    break;
                 }
                 count++;
             }
