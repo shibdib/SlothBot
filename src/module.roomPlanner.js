@@ -484,10 +484,10 @@ function praiseRoom(room) {
             rampartSpots[room.name] = undefined;
             let rect_array = [];
             rect_array.push({
-                x1: spawn.pos.x - 5,
-                y1: spawn.pos.y - 5,
-                x2: spawn.pos.x + 5,
-                y2: spawn.pos.y + 5
+                x1: spawn.pos.x - 2,
+                y1: spawn.pos.y - 2,
+                x2: spawn.pos.x + 2,
+                y2: spawn.pos.y + 2
             });
             let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
             rampartSpots[room.name] = JSON.stringify(minCut.GetCutTiles(room.name, rect_array, bounds));
