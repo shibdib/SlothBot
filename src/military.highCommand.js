@@ -244,6 +244,10 @@ function manageAttacks() {
     let siegeCountFiltered = _.filter(Memory.targetRooms, (target) => target && (target.type === 'siege' || target.type === 'siegeGroup')).length || 0;
     let staleMulti = 1;
     for (let key in Memory.targetRooms) {
+        if (!Memory.targetRooms[key]) {
+            delete Memory.targetRooms[key];
+            continue;
+        }
         let type = Memory.targetRooms[key].type;
         // Special Conditions
         switch (type) {
