@@ -102,11 +102,11 @@ module.exports.trackThreat = function (creep) {
                     if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === MY_USERNAME) multiple = 10;
                     if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === user) multiple = 1;
                     if (_.includes(FRIENDLIES, user)) {
-                        log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. ' + user + ' has now temporarily been marked hostile. (Now At - ' + threatRating + ')', 'DIPLOMACY:');
                         threatRating = multiple;
+                        log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. ' + user + ' has now temporarily been marked hostile. (Now At - ' + threatRating + ')', 'DIPLOMACY:');
                     } else {
-                        log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. ' + user + ' has now been marked hostile. (Now At - ' + threatRating + ')', 'DIPLOMACY:');
                         threatRating = 10 * multiple;
+                        log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. ' + user + ' has now been marked hostile. (Now At - ' + threatRating + ')', 'DIPLOMACY:');
                     }
                     let sentence = [user, 'now', 'marked', 'hostile'];
                     let word = Game.time % sentence.length;
