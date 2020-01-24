@@ -33,15 +33,11 @@ module.exports.processBuildQueue = function () {
                 if (!Memory.roomCache[spawn.room.name]) spawn.room.cacheRoomIntel(true);
                 let maxLevel = Memory.maxLevel;
                 if (!spawn.room.memory.nuke && _.size(globalQueue) && !Memory.roomCache[spawn.room.name].responseNeeded && _.inRange(level, maxLevel - 1, maxLevel + 1)) {
-                    let range = LOCAL_SPHERE;
-                    if (spawn.room.energy > ENERGY_AMOUNT) range = LOCAL_SPHERE * 3;
+                    // Filter ops by range
+                    let range = LOCAL_SPHERE * 1.5;
+                    if (spawn.room.energyState) range = LOCAL_SPHERE * 3;
                     let distanceFilteredGlobal = _.filter(globalQueue, (q) => q.destination && (Memory.auxiliaryTargets[q.destination] || Game.map.getRoomLinearDistance(q.destination, spawn.room.name) < range));
-                    // If no energy surplus just urgent priority targets
-                    if (spawn.room.energyState || spawn.room.energyAvailable === spawn.room.energyCapacityAvailable) {
-                        queue = _.sortBy(Object.assign({}, distanceFilteredGlobal, roomQueue[spawn.room.name]), 'priority');
-                    } else {
-                        queue = _.sortBy(Object.assign({}, _.filter(distanceFilteredGlobal, (t) => t.priority <= PRIORITIES.urgent), roomQueue[spawn.room.name]), 'priority');
-                    }
+                    queue = _.sortBy(Object.assign({}, distanceFilteredGlobal, roomQueue[spawn.room.name]), 'priority');
                 } else {
                     queue = _.sortBy(roomQueue[spawn.room.name], 'priority')
                 }
@@ -515,8 +511,8 @@ module.exports.remoteCreepQueue = function (room) {
         let remotes = JSON.parse(remoteHives[room.name]);
         for (let keys in shuffle(remotes)) {
             if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remotes[keys])) continue;
-            // Handle invader cores
-            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].invaderCore && !Memory.roomCache[remotes[keys]].sk) {
+            // Handle invaders
+            if (Memory.roomCache[remotes[keys]] && !Memory.roomCache[remotes[keys]].sk && (Memory.roomCache[remotes[keys]].invaderCore || Memory.roomCache[remotes[keys]].numberOfHostiles)) {
                 room.memory.spawnBorderPatrol = true;
                 continue;
             }
@@ -524,11 +520,6 @@ module.exports.remoteCreepQueue = function (room) {
             if (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].level || !Memory.roomCache[remotes[keys]].sources)) continue;
             // If it's reserved by someone else continue
             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reservation && Memory.roomCache[remotes[keys]].reservation !== MY_USERNAME) continue;
-            // Handle response needed
-            if (Memory.roomCache[remotes[keys]] && !Memory.roomCache[remotes[keys]].sk && Memory.roomCache[remotes[keys]].threatLevel && Memory.roomCache[remotes[keys]].lastInvaderCheck + 1000 > Game.time) {
-                room.memory.spawnBorderPatrol = remotes[keys] && _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol').length < 2;
-                continue;
-            }
             // Handle SK
             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk && level >= 7 && (!Memory.roomCache[remotes[keys]].invaderCooldown || Memory.roomCache[remotes[keys]].invaderCooldown < Game.time - 50)) {
                 skMining = true;
