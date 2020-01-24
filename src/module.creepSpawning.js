@@ -160,11 +160,12 @@ module.exports.essentialCreepQueue = function (room) {
     let level = getLevel(room);
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name);
     //Harvesters
-    let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && !c.memory.other.reboot));
+    let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
     if (harvesters.length === 0) {
         delete roomQueue[room.name];
         return queueCreep(room, 1, {role: 'stationaryHarvester', other: {reboot: true}});
     } else {
+        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && !c.memory.other.reboot));
         if (harvesters.length < 2 || (harvesters[0].ticksToLive < (harvesters[0].body.length * 3 + 10) && harvesters.length < 3)) {
             queueCreep(room, PRIORITIES.stationaryHarvester, {role: 'stationaryHarvester'})
         }
@@ -257,11 +258,12 @@ module.exports.praiseCreepQueue = function (room) {
         }
     }
     //Harvesters
-    let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && !c.memory.other.reboot));
+    let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
     if (harvesters.length === 0) {
         delete roomQueue[room.name];
         return queueCreep(room, 1, {role: 'stationaryHarvester', misc: true, other: {reboot: true}});
     } else {
+        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && !c.memory.other.reboot));
         if (harvesters.length < 2 || (harvesters[0].ticksToLive < (harvesters[0].body.length * 3 + 10) && harvesters.length < 3)) {
             queueCreep(room, PRIORITIES.stationaryHarvester, {role: 'stationaryHarvester', misc: true})
         }
@@ -315,7 +317,7 @@ module.exports.praiseCreepQueue = function (room) {
     let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'praiseUpgrader');
     let harvestPower = 0;
     harvesters.forEach((h) => harvestPower += h.getActiveBodyparts(WORK) * HARVEST_POWER);
-    let number = _.ceil((harvestPower / 6)) || 2;
+    let number = _.ceil((harvestPower / 7)) || 2;
     if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
         queueCreep(room, PRIORITIES.upgrader + upgraders.length, {role: 'praiseUpgrader'})
     }
@@ -360,7 +362,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     //Foreman
-    if (level >= 7 && Memory.saleTerminal && room.name === Memory.saleTerminal.room && _.filter(room.structures, (s) => s.structureType === STRUCTURE_FACTORY)[0]) {
+    if (level >= 7 && room.factory) {
         let foreman = _.filter(roomCreeps, (creep) => (creep.memory.role === 'foreman'));
         if (!foreman.length) {
             queueCreep(room, PRIORITIES.miscHauler, {role: 'foreman', other: {localCache: true}})
