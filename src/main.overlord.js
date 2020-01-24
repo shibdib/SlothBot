@@ -45,7 +45,7 @@ module.exports.overlordMind = function (room, CPULimit) {
     }
 
     //Build Room
-    if ((!room.memory.bunkerHub && !room.memory.praiseRoom) || (getLevel(room) !== room.controller.level && Game.time % 25 === 0) || (Game.time % 200 === 0 && Math.random() > 0.5)) {
+    if ((!room.memory.bunkerHub && !room.memory.praiseRoom) || (getLevel(room) !== room.controller.level && Game.time % 25 === 0) || (Game.time % 100 === 0 && Math.random() > 0.5)) {
         try {
             planner.buildRoom(room);
         } catch (e) {

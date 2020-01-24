@@ -87,7 +87,7 @@ function buildFromLayout(room) {
         if (!factory || !power || !nuker) {
             let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_EXTENSION);
             let buildThis = STRUCTURE_FACTORY;
-            if (level === 8) if (!power) buildThis = STRUCTURE_POWER_SPAWN; else if (!nuker) buildThis = STRUCTURE_NUKER;
+            if (level === 8 && !power) buildThis = STRUCTURE_POWER_SPAWN; else if (level === 8 && !nuker) buildThis = STRUCTURE_NUKER;
             for (let structure of shuffle(filter)) {
                 let pos = new RoomPosition(structure.x, structure.y, room.name);
                 if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
@@ -102,7 +102,6 @@ function buildFromLayout(room) {
     // Hub
     if (room.memory.bunkerVersion < 2 || room.memory.bunkerVersion > 5) {
         if (level >= 5 || room.memory.hubLink) {
-            delete room.memory.hubContainer;
             if (hub.checkForAllStructure()[0]) {
                 if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = hub.checkForAllStructure()[0].id;
                 if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK && !hub.checkForAllStructure()[0].isActive()) room.memory.hubLink = undefined;
