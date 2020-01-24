@@ -15,19 +15,19 @@ module.exports.role = function (creep) {
     creep.say(ICONS.reaction, true);
     // Tow Truck
     if (creep.towTruck()) return;
-    let terminal = creep.room.terminal;
-    let storage = creep.room.storage;
-    if (!_.sum(creep.store)) creep.memory.hauling = false;
-    if (_.sum(creep.store) > creep.store.getCapacity() * 0.75) creep.memory.hauling = true;
+    // Deliver
+    if (_.sum(creep.store)) return deliverResource(creep);
+    // Get resource
+    if (creep.memory.resourceNeeded) return getResource(creep);
     //If creep needs boosts do that first
     if (boostDelivery(creep)) return;
-    // Fill needy labs
-    if (creep.memory.supplier) return supplyLab(creep);
-    // Deliver
-    if (_.sum(creep.store)) return storeBoosts(creep);
+    // Get lab orders
+    if (labSupplies(creep)) return;
+    // Check nuker for ghodium
+    if (nukeSupplies(creep)) return;
     // Empty labs
-    if (creep.memory.empty) return emptyLab(creep);
-    // Empty mineral harvester container
+    if (emptyLab(creep)) return;
+    // Handle a super full hub link
     if (linkManager(creep)) return;
     // Handle terminal goods
     if (terminalControl(creep)) return;
@@ -37,185 +37,58 @@ module.exports.role = function (creep) {
     if (storageEmpty(creep)) return;
     // Handle dropped goodies
     if (droppedResources(creep)) return;
-    let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
-    for (let lab of labs) {
-        // If lab is empty continue
-        if (!lab.mineralAmount || !lab.mineralType) continue;
-        // If lab has correct resource continue
-        if (lab.memory.itemNeeded && lab.memory.itemNeeded === lab.mineralType) continue;
-        if (lab.memory.neededBoost && lab.memory.neededBoost === lab.mineralType) continue;
-        // If lab is an output lab that isn't full continue
-        if (!lab.memory.itemNeeded && !lab.memory.neededBoost && lab.mineralAmount < 750 && lab.memory.creating && lab.memory.creating === lab.mineralType) continue;
-        if (!creep.memory.labHelper) creep.memory.labHelper = lab.id;
-        creep.memory.empty = true;
-        return;
-    }
-    for (let lab of labs) {
-        // If lab doesn't need anything or there isn't anything in the room to give it
-        let stockedLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === lab.memory.itemNeeded)[0];
-        if (!lab.memory.itemNeeded || (!storage.store[lab.memory.itemNeeded] && !terminal.store[lab.memory.itemNeeded] && !stockedLab)) continue;
-        // If lab has correct resource continue
-        if (lab.mineralAmount >= 50) continue;
-        if (!creep.memory.labHelper) creep.memory.labHelper = lab.id;
-        creep.memory.supplier = true;
-        return supplyLab(creep);
-    }
-    creep.idleFor(2);
+    creep.idleFor(20);
 };
 
+// Get item
+function getResource(creep) {
+    let storageSite = creep.room.terminal;
+    if (creep.room.storage.store[creep.memory.resourceNeeded]) storageSite = creep.room.storage;
+    let stockedLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === creep.memory.resourceNeeded && s.mineralType !== s.memory.itemNeeded && s.mineralType !== s.memory.neededBoost)[0];
+    if (stockedLab) storageSite = stockedLab;
+    creep.say(creep.memory.resourceNeeded, true);
+    switch (creep.withdraw(storageSite, creep.memory.resourceNeeded)) {
+        case OK:
+            creep.memory.resourceNeeded = undefined;
+            return true;
+        case ERR_NOT_IN_RANGE:
+            creep.shibMove(storageSite);
+            return true;
+    }
+}
+
 // Store items
-function storeBoosts(creep) {
+function deliverResource(creep) {
     if (!_.sum(creep.store)) return false;
-    let nuker = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
     let storeTarget;
+    creep.say('DELIVER', true);
     for (let resourceType in creep.store) {
         // Default terminal
         storeTarget = creep.room.terminal;
         // Storage cases
-        if (_.sum(creep.room.storage.store) < 0.95 * creep.room.storage.store.getCapacity()) {
+        let nuke = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER && s.store.getFreeCapacity(RESOURCE_GHODIUM))[0];
+        let lab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active === true && (s.memory.neededBoost === resourceType || s.memory.itemNeeded === resourceType))[0];
+        if (lab) storeTarget = lab;
+        else if (nuke && creep.store[RESOURCE_GHODIUM]) storeTarget = nuke;
+        else if (_.sum(creep.room.storage.store) < 0.95 * creep.room.storage.store.getCapacity()) {
             if (_.sum(creep.room.terminal.store) >= 0.90 * creep.room.terminal.store.getCapacity()) storeTarget = creep.room.storage;
-            else if (_.includes(BASE_MINERALS, resourceType) && creep.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = creep.room.terminal;
+            else if (_.includes(BASE_MINERALS, resourceType) && creep.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = creep.room.storage;
             else if (_.includes(ALL_COMMODITIES, resourceType)) storeTarget = creep.room.terminal;
-            else if ((!_.includes(BASE_MINERALS, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT) || (_.includes(LAB_PRIORITY, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT * 2)) storeTarget = creep.room.storage;
+            else if (_.includes(_.union(TIER_3_BOOSTS, LAB_PRIORITY), resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT) storeTarget = creep.room.storage;
+            else if (!_.includes(BASE_MINERALS, resourceType) && !_.includes(ALL_COMMODITIES, resourceType) && creep.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = creep.room.storage;
+            else if (resourceType === RESOURCE_ENERGY && creep.room.terminal.store[resourceType] >= TERMINAL_ENERGY_BUFFER * 1.1 && creep.room.storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) storeTarget = creep.room.storage;
         }
-        // Nuker case
-        if (creep.store[RESOURCE_GHODIUM] && nuker && nuker.store.getFreeCapacity(RESOURCE_GHODIUM)) storeTarget = nuker;
-        // Everything is full just drop it
-        if (_.sum(creep.room.terminal.store) >= 0.95 * creep.room.terminal.store.getCapacity() && _.sum(creep.room.terminal.store) >= 0.95 * creep.room.terminal.store.getCapacity()) return creep.drop(resourceType);
         switch (creep.transfer(storeTarget, resourceType)) {
             case OK:
-                creep.memory.empty = undefined;
-                creep.memory.labHelper = undefined;
+                creep.memory.resourceNeeded = undefined;
                 return;
             case ERR_NOT_IN_RANGE:
-                creep.memory.empty = true;
                 creep.shibMove(storeTarget);
                 return;
             case ERR_FULL:
+                creep.memory.resourceNeeded = undefined;
                 creep.drop(resourceType);
                 return true;
-        }
-    }
-}
-
-// Empty Function
-function emptyLab(creep) {
-    let lab = Game.getObjectById(creep.memory.labHelper);
-    creep.say(ICONS.reaction + 'Emptying', true);
-    if (_.sum(creep.store)) {
-        storeBoosts(creep);
-    } else if (lab) {
-        if (!lab.mineralType) {
-            creep.memory.empty = undefined;
-            creep.memory.labHelper = undefined;
-            return;
-        }
-        switch (creep.withdraw(lab, lab.mineralType)) {
-            case OK:
-                creep.memory.empty = true;
-                return undefined;
-            case ERR_NOT_IN_RANGE:
-                creep.shibMove(lab);
-                creep.memory.empty = true;
-                return undefined;
-            case ERR_NOT_ENOUGH_RESOURCES:
-                creep.memory.empty = undefined;
-                creep.memory.labHelper = undefined;
-                return undefined;
-        }
-    } else {
-        creep.memory.empty = undefined;
-        creep.memory.labHelper = undefined;
-    }
-}
-
-// Supplier Function
-function supplyLab(creep) {
-    let terminal = creep.room.terminal;
-    let storage = creep.room.storage;
-    let lab = Game.getObjectById(creep.memory.labHelper);
-    if (!lab || !terminal || !storage) {
-        creep.memory.itemStorage = undefined;
-        creep.memory.labHelper = undefined;
-        creep.memory.componentNeeded = undefined;
-        creep.memory.supplier = undefined;
-        return;
-    }
-    creep.say(ICONS.reaction + 'Filling', true);
-    creep.memory.componentNeeded = lab.memory.itemNeeded;
-    if (!creep.store[creep.memory.componentNeeded]) {
-        let carried = creep.store[creep.memory.componentNeeded] || 0;
-        if (_.sum(creep.store) > carried) {
-            for (let resourceType in creep.store) {
-                if (resourceType === creep.memory.componentNeeded) continue;
-                switch (creep.transfer(storage, resourceType)) {
-                    case OK:
-                        return;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(storage);
-                        return;
-                }
-            }
-        }
-        if (!creep.memory.itemStorage) {
-            if (storage.store[lab.memory.itemNeeded] > 0) {
-                creep.memory.itemStorage = storage.id;
-            } else if (terminal.store[lab.memory.itemNeeded] > 0) {
-                creep.memory.itemStorage = terminal.id;
-            } else if (_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === lab.memory.itemNeeded)[0] && _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === lab.memory.itemNeeded)[0].mineralAmount > 0) {
-                creep.memory.itemStorage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === lab.memory.itemNeeded)[0].id;
-            } else {
-                creep.memory.itemStorage = undefined;
-                creep.memory.labHelper = undefined;
-                creep.memory.componentNeeded = undefined;
-                creep.memory.supplier = undefined;
-            }
-        } else {
-            switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), creep.memory.componentNeeded)) {
-                case OK:
-                    creep.memory.itemStorage = undefined;
-                    return;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(Game.getObjectById(creep.memory.itemStorage));
-                    return;
-                case ERR_NOT_ENOUGH_RESOURCES:
-                    creep.memory.itemStorage = undefined;
-                    creep.memory.labHelper = undefined;
-                    creep.memory.componentNeeded = undefined;
-                    creep.memory.supplier = undefined;
-                    return;
-                case ERR_INVALID_ARGS:
-                    creep.memory.itemStorage = undefined;
-                    creep.memory.labHelper = undefined;
-                    creep.memory.componentNeeded = undefined;
-                    creep.memory.supplier = undefined;
-                    return;
-            }
-        }
-    } else {
-        if (_.sum(creep.store) > creep.store[creep.memory.componentNeeded]) {
-            for (let resourceType in creep.store) {
-                if (resourceType === creep.memory.componentNeeded) continue;
-                switch (creep.transfer(storage, resourceType)) {
-                    case OK:
-                        return;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(storage);
-                        return;
-                }
-            }
-        } else {
-            switch (creep.transfer(lab, creep.memory.componentNeeded)) {
-                case OK:
-                    creep.memory.itemStorage = undefined;
-                    creep.memory.labHelper = undefined;
-                    creep.memory.componentNeeded = undefined;
-                    creep.memory.supplier = undefined;
-                    return undefined;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(lab);
-                    return undefined;
-            }
         }
     }
 }
@@ -224,91 +97,41 @@ function supplyLab(creep) {
 function boostDelivery(creep) {
     if (creep.room.controller.level < 6 || !_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active === true && s.memory.neededBoost)[0]) return false;
     let lab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active === true && s.memory.neededBoost)[0];
-    if (!lab) return delete creep.memory.labTech;
-    //Make sure creep needing boost exists
-    let boostCreep = _.filter(creep.room.creeps, (c) => c.memory && c.memory.boostLab === lab.id)[0];
-    if (!boostCreep) {
-        delete lab.memory;
-        return delete creep.memory.labTech
-    }
-    //If lab is already full enough continue
-    if (lab.mineralType === lab.memory.neededBoost && lab.mineralAmount >= boostCreep.memory.boostNeeded) return false;
-    let terminal = creep.room.terminal;
-    let storage = creep.room.storage;
-    creep.say(lab.memory.neededBoost, true);
-    if (_.sum(creep.store) && creep.store[lab.memory.neededBoost] === _.sum(creep.store)) {
-        switch (creep.transfer(lab, lab.memory.neededBoost)) {
-            case OK:
-                return delete creep.memory.labTech;
-            case ERR_NOT_IN_RANGE:
-                creep.shibMove(lab);
-                creep.memory.labTech = true;
-                return true;
-        }
-    } else if (_.sum(creep.store) > creep.store[lab.memory.neededBoost]) {
-        for (let resourceType in creep.store) {
-            if (resourceType === lab.memory.neededBoost) continue;
-            switch (creep.transfer(terminal, resourceType)) {
-                case OK:
-                    creep.memory.labTech = true;
-                    return true;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(terminal);
-                    creep.memory.labTech = true;
-                    return true;
-            }
+    if (lab) {
+        let boostCreep = _.filter(creep.room.creeps, (c) => c.memory && c.memory.boostLab === lab.id)[0];
+        if (boostCreep && creep.room.store(lab.memory.neededBoost)) {
+            creep.memory.resourceNeeded = lab.memory.neededBoost;
+            return true;
+        } else {
+            delete lab.memory;
         }
     }
-    if (lab.mineralType && lab.mineralType !== lab.memory.neededBoost) {
-        if (_.sum(creep.store) > 0) {
-            storeBoosts(creep);
-        } else {
-            switch (creep.withdraw(lab, lab.mineralType)) {
-                case OK:
-                    creep.memory.labTech = true;
-                    return true;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(lab);
-                    creep.memory.labTech = true;
-                    return true;
-            }
-        }
-    } else {
-        if (!creep.memory.itemStorage) {
-            if (storage.store[lab.memory.neededBoost] > 0) {
-                creep.memory.labTech = true;
-                creep.memory.itemStorage = storage.id;
-                return true;
-            } else if (terminal.store[lab.memory.neededBoost] > 0) {
-                creep.memory.labTech = true;
-                creep.memory.itemStorage = terminal.id;
-                return true;
-            } else {
-                delete creep.memory.labTech;
-                delete creep.memory.itemStorage;
-                delete lab.memory;
-                return false;
-            }
-        } else {
-            let amount = creep.store.getCapacity();
-            if (boostCreep.memory.boostNeeded < creep.store.getCapacity()) amount = boostCreep.memory.boostNeeded;
-            if (!Game.getObjectById(creep.memory.itemStorage) || !Game.getObjectById(creep.memory.itemStorage).store) return creep.memory.itemStorage = undefined;
-            if (Game.getObjectById(creep.memory.itemStorage).store[lab.memory.neededBoost] < amount) amount = Game.getObjectById(creep.memory.itemStorage).store[lab.memory.neededBoost];
-            switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), lab.memory.neededBoost, amount)) {
-                case OK:
-                    delete creep.memory.itemStorage;
-                    return true;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(Game.getObjectById(creep.memory.itemStorage));
-                    creep.memory.labTech = true;
-                    return true;
-                case ERR_NOT_ENOUGH_RESOURCES:
-                    delete creep.memory.labTech;
-                    delete creep.memory.itemStorage;
-                    delete lab.memory;
-                    return false;
-            }
-        }
+}
+
+// Needy Lab
+function labSupplies(creep) {
+    let needyLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.itemNeeded && s.store[s.memory.itemNeeded] < 150 && creep.room.store(s.memory.itemNeeded))[0];
+    if (needyLab) {
+        creep.memory.resourceNeeded = needyLab.memory.itemNeeded;
+        return true;
+    }
+}
+
+// Needy nuker
+function nukeSupplies(creep) {
+    let nuke = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER && nuke.store.getFreeCapacity(RESOURCE_GHODIUM))[0];
+    if (nuke && creep.room.store(RESOURCE_GHODIUM)) {
+        creep.memory.resourceNeeded = RESOURCE_GHODIUM;
+        return true;
+    }
+}
+
+// Empty Function
+function emptyLab(creep) {
+    let stockedLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType && s.mineralType !== s.memory.itemNeeded && s.mineralType !== s.memory.neededBoost)[0];
+    if (stockedLab) {
+        creep.memory.resourceNeeded = stockedLab.mineralType;
+        return true;
     }
 }
 
@@ -369,6 +192,7 @@ function droppedResources(creep) {
 function linkManager(creep) {
     let hub = Game.getObjectById(creep.room.hubLink);
     if (hub && hub.energy >= LINK_CAPACITY * 0.9) {
+        creep.say('LINK', true);
         switch (creep.withdraw(hub, RESOURCE_ENERGY)) {
             case OK:
                 return true;
@@ -376,28 +200,14 @@ function linkManager(creep) {
                 creep.shibMove(hub);
                 return true;
         }
-    } else {
-        return false;
     }
 }
 
 // Remove minerals from the terminal if it's overfull and has no energy or move boosts to storage
 function terminalControl(creep) {
-    // Handle nuker needing ghodium
-    let nuke = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
-    if (nuke && nuke.store.getFreeCapacity(RESOURCE_GHODIUM) && (creep.room.storage.store[RESOURCE_GHODIUM] || creep.room.terminal.store[RESOURCE_GHODIUM])) {
-        let storage = creep.room.terminal;
-        if (creep.room.storage.store[RESOURCE_GHODIUM]) storage = creep.room.storage;
-        switch (creep.withdraw(storage, RESOURCE_GHODIUM)) {
-            case OK:
-                return;
-            case ERR_NOT_IN_RANGE:
-                creep.shibMove(storage);
-                return;
-        }
-    }
     // Handle a super full terminal
     if (_.sum(creep.room.terminal.store) >= 0.95 * creep.room.terminal.store.getCapacity()) {
+        creep.say('BANKER', true);
         let maxResource = Object.keys(creep.room.terminal.store).sort(function (a, b) {
             return creep.room.terminal.store[a] - creep.room.terminal.store[b]
         })[_.size(creep.room.terminal.store) - 1];
@@ -409,18 +219,20 @@ function terminalControl(creep) {
                 return true;
         }
     }
-    // Store resource in storage up to the stockpile amount
-    if (_.sum(creep.room.storage.store) < 0.95 * creep.room.storage.store.getCapacity()) {
+    // Handle moving to storage
+    else if (_.sum(creep.room.storage.store) < 0.95 * creep.room.storage.store.getCapacity()) {
         for (let resourceType of Object.keys(creep.room.terminal.store)) {
-            if (resourceType !== RESOURCE_ENERGY && !_.includes(BASE_MINERALS, resourceType) && !_.includes(ALL_COMMODITIES, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT) {
-                switch (creep.withdraw(creep.room.terminal, resourceType)) {
-                    case OK:
-                        return true;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(creep.room.terminal);
-                        return true;
-                }
-            } else if (resourceType === RESOURCE_ENERGY && creep.room.terminal.store[resourceType] >= TERMINAL_ENERGY_BUFFER * 1.1) {
+            // Default terminal
+            let needsMovement = false;
+            // Storage cases
+            if (_.sum(creep.room.storage.store) < 0.95 * creep.room.storage.store.getCapacity()) {
+                if (_.sum(creep.room.terminal.store) >= 0.90 * creep.room.terminal.store.getCapacity()) needsMovement = true;
+                else if (_.includes(BASE_MINERALS, resourceType) && creep.room.storage.store[resourceType] < REACTION_AMOUNT) needsMovement = true;
+                else if (!_.includes(BASE_MINERALS, resourceType) && !_.includes(ALL_COMMODITIES, resourceType) && creep.room.storage.store[resourceType] < REACTION_AMOUNT) needsMovement = true;
+                else if (resourceType === RESOURCE_ENERGY && creep.room.terminal.store[resourceType] >= TERMINAL_ENERGY_BUFFER * 1.1 && creep.room.storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) needsMovement = true;
+            }
+            if (needsMovement) {
+                creep.say('BANKER', true);
                 switch (creep.withdraw(creep.room.terminal, resourceType)) {
                     case OK:
                         return true;
@@ -435,20 +247,22 @@ function terminalControl(creep) {
 
 // Remove minerals from the storage if it's overfull and has no energy
 function storageEmpty(creep) {
-    if (!creep.room.storage || !creep.room.terminal || _.sum(creep.room.terminal.store) >= 0.75 * creep.room.terminal.store.getCapacity() || creep.memory.hauling) return false;
+    if (!creep.room.storage || !creep.room.terminal || _.sum(creep.room.terminal.store) >= 0.75 * creep.room.terminal.store.getCapacity()) return false;
     let maxResource = 0;
     let overflow;
     for (let resource of Object.keys(creep.room.storage.store)) {
         if (resource === RESOURCE_ENERGY) maxResource = ENERGY_AMOUNT;
-        else if (_.includes(BASE_MINERALS, resource)) maxResource = REACTION_AMOUNT;
+        else if (_.includes(BASE_MINERALS, resource)) maxResource = REACTION_AMOUNT * 1.2;
         else if (_.includes(LAB_PRIORITY, resource)) maxResource = BOOST_AMOUNT * 1.2;
-        else if (!_.includes(BASE_MINERALS, resource)) maxResource = REACTION_AMOUNT;
+        else if (!_.includes(BASE_MINERALS, resource)) maxResource = REACTION_AMOUNT * 1.2;
         if (creep.room.storage.store[resource] > maxResource) {
+            creep.say('BANKER', true);
             maxResource = creep.room.storage.store[resource];
             overflow = resource;
             break;
         }
     }
+    creep.say('STORAGE', true);
     switch (creep.withdraw(creep.room.storage, overflow, creep.room.storage.store[overflow] - maxResource)) {
         case OK:
             return true;
