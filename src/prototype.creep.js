@@ -689,7 +689,7 @@ Creep.prototype.borderCheck = function () {
     return false;
 };
 
-Creep.prototype.renewalCheck = function (cutoff = 100, target = 1200, force = false) {
+Creep.prototype.renewalCheck = function (cutoff = ((this.body.length * 3) + 50), target = 1200, force = false) {
     if (!this.memory.other.spawnedLevel) this.memory.other.spawnedLevel = Game.rooms[this.memory.overlord].level;
     if (this.memory.other.spawnedLevel === this.room.level && (this.ticksToLive < cutoff || this.memory.renewing) && Game.rooms[this.memory.overlord].energyAvailable) {
         if (this.ticksToLive >= target) {
