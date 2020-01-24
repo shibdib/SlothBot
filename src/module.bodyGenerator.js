@@ -125,6 +125,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             work = 1;
             move = tough + heal + work;
             break;
+        case 'defender':
+            if (Math.random() > 0.49) attack = 3 * level; else rangedAttack = 2 * level;
+            move = (attack + rangedAttack) * 0.5;
+            break;
         case 'longbow':
             if (level === 3) {
                 rangedAttack = 2;

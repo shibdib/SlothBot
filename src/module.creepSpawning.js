@@ -223,11 +223,10 @@ module.exports.essentialCreepQueue = function (room) {
     }
     // Local Responder
     if (Memory.roomCache[room.name].threatLevel >= 3) {
-        let role = _.sample(['longbow', 'attacker']);
         let responder = _.filter(Game.creeps, (creep) => creep.memory.other.responseTarget === room.name);
         if (responder.length < Memory.roomCache[room.name].numberOfHostiles) {
             queueCreep(room, PRIORITIES.responder, {
-                role: role,
+                role: 'defender',
                 other: {
                     responseTarget: room.name
                 },
@@ -287,11 +286,10 @@ module.exports.praiseCreepQueue = function (room) {
     }
     // Local Responder
     if (Memory.roomCache[room.name].threatLevel) {
-        let role = _.sample(['longbow', 'attacker']);
         let responder = _.filter(Game.creeps, (creep) => creep.memory.other.responseTarget === room.name);
         if (responder.length < Memory.roomCache[room.name].threatLevel * 2) {
             queueCreep(room, PRIORITIES.responder, {
-                role: role,
+                role: 'defender',
                 other: {
                     responseTarget: room.name
                 },

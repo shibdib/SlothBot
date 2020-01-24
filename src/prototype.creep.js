@@ -1600,7 +1600,7 @@ Creep.prototype.canIWin = function (range = 50) {
     return !hostilePower || hostilePower * 1.1 <= alliedPower || this.pos.checkForRampart();
 };
 
-Creep.prototype.findDefensivePosition = function (target) {
+Creep.prototype.findDefensivePosition = function (target = this) {
     if (this.id === target.id && this.room.hostileCreeps.length) target = this.pos.findClosestByRange(this.room.hostileCreeps);
     if (target) {
         if (!this.memory.assignedRampart) {
@@ -1609,10 +1609,15 @@ Creep.prototype.findDefensivePosition = function (target) {
                 this.memory.assignedRampart = bestRampart.id;
                 if (bestRampart.pos !== this.pos) {
                     this.shibMove(bestRampart, {range: 0});
+                    return true;
                 }
             }
         } else {
-            if (this.pos.getRangeTo(Game.getObjectById(this.memory.assignedRampart))) this.shibMove(Game.getObjectById(this.memory.assignedRampart), {range: 0});
+            if (this.pos.getRangeTo(Game.getObjectById(this.memory.assignedRampart))) {
+                this.shibMove(Game.getObjectById(this.memory.assignedRampart), {range: 0});
+                return true;
+            }
         }
     }
-}
+    return false;
+};
