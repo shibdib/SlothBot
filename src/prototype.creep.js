@@ -877,7 +877,7 @@ function positionAtDirection(origin, direction) {
 /////////////////////////////////////////////
 
 // Get attack/heal power and account for boosts
-Creep.prototype.abilityPower = function (ignoreTough = undefined) {
+Creep.prototype.abilityPower = function () {
     let meleePower = 0;
     let rangedPower = 0;
     let healPower = 0;
@@ -885,12 +885,12 @@ Creep.prototype.abilityPower = function (ignoreTough = undefined) {
         if (!part.hits) continue;
         if (part.boost) {
             if (part.type === ATTACK) {
-                meleePower += ATTACK_POWER * BOOSTS[part.type][part.boost][part.type];
+                meleePower += ATTACK_POWER * BOOSTS[part.type][part.boost]['attack'];
             } else if (part.type === RANGED_ATTACK) {
-                rangedPower += RANGED_ATTACK_POWER * BOOSTS[part.type][part.boost][part.type];
+                rangedPower += RANGED_ATTACK_POWER * BOOSTS[part.type][part.boost]['rangedAttack'];
             } else if (part.type === HEAL) {
-                healPower += HEAL_POWER * BOOSTS[part.type][part.boost][part.type];
-            } else if (part.type === TOUGH && !ignoreTough && this.getActiveBodyparts(HEAL)) {
+                healPower += HEAL_POWER * BOOSTS[part.type][part.boost]['heal'];
+            } else if (part.type === TOUGH) {
                 healPower += HEAL_POWER * (1 - BOOSTS[part.type][part.boost]['damage']);
             }
         } else {
