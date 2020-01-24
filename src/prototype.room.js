@@ -274,8 +274,9 @@ Room.prototype.store = function (resource) {
 function getRoomResource(room, resource) {
     if (!room || !resource) return undefined;
     let count = 0;
-    _.filter(room.structures, (s) => s.store && s.store[resource] && s.structureType !== STRUCTURE_NUKER &&
-        s.structureType !== STRUCTURE_TOWER && s.structureType !== STRUCTURE_LAB).forEach((s) => count += s.store[resource]);
+    _.filter(room.structures, (s) => s.store && s.store.getUsedCapacity(resource) && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_FACTORY && s.structureType !== STRUCTURE_TOWER &&
+        s.structureType !== STRUCTURE_SPAWN && s.structureType !== STRUCTURE_EXTENSION && s.structureType !== STRUCTURE_LAB).forEach((s) => count += s.store.getUsedCapacity(resource));
+    _.filter(room.structures, (s) => resource !== RESOURCE_ENERGY && s.store && s.store.getUsedCapacity(resource) && s.structureType === STRUCTURE_LAB && resource !== s.memory.itemNeeded && resource !== s.memory.neededBoost).forEach((s) => count += s.store.getUsedCapacity(resource));
     _.filter(room.creeps, (c) => c.store[resource]).forEach((c) => count += c.store[resource]);
     _.filter(room.droppedResources, (r) => r.resourceType === resource).forEach((r) => count += r.amount);
     return count;

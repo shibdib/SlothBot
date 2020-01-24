@@ -6,7 +6,6 @@
  */
 
 module.exports.factoryControl = function (room) {
-    if (!Memory.saleTerminal || room.name !== Memory.saleTerminal.room) return;
     // Get factory and see if it has anything in it
     if (room.factory) {
         if (!room.factory.memory.producing) {
@@ -14,12 +13,14 @@ module.exports.factoryControl = function (room) {
                 log.a('Producing ' + RESOURCE_BATTERY + ' in ' + roomLink(room.name), ' FACTORY CONTROL:');
                 return room.factory.memory.producing = RESOURCE_BATTERY;
             } else {
-                for (let commodity of ALL_COMMODITIES) {
+                for (let commodity of shuffle(ALL_COMMODITIES)) {
+                    // If a base continue
+                    if (!COMMODITIES[commodity]) continue;
                     if (room.store(commodity) > REACTION_AMOUNT * 2 || commodity === RESOURCE_BATTERY || COMMODITIES[commodity].level) continue;
                     let enough;
                     for (let neededResource of Object.keys(COMMODITIES[commodity].components)) {
                         enough = false;
-                        if (room.store(neededResource) < COMMODITIES[commodity].components[neededResource]) break;
+                        if (room.store(neededResource) + room.factory.store[neededResource] < COMMODITIES[commodity].components[neededResource]) break;
                         enough = true;
                     }
                     if (enough) {
@@ -29,6 +30,7 @@ module.exports.factoryControl = function (room) {
                 }
             }
         } else {
+            room.factory.say(room.factory.memory.producing);
             if (room.factory && _.sum(room.factory.store) && !room.factory.cooldown) {
                 switch (room.factory.produce(room.factory.memory.producing)) {
                     case OK:
@@ -40,7 +42,7 @@ module.exports.factoryControl = function (room) {
                 if (room.store(room.factory.memory.producing) >= REACTION_AMOUNT * 2) return room.factory.memory.producing = undefined;
                 if (Math.random() > 0.5) {
                     for (let neededResource of Object.keys(COMMODITIES[room.factory.memory.producing].components)) {
-                        if (room.store(neededResource) < COMMODITIES[room.factory.memory.producing].components[neededResource]) return room.factory.memory.producing = undefined;
+                        if (room.store(neededResource) + room.factory.store[neededResource] < COMMODITIES[room.factory.memory.producing].components[neededResource]) return room.factory.memory.producing = undefined;
                     }
                 }
             } else if (room.energy < ENERGY_AMOUNT) return room.factory.memory.producing = undefined;

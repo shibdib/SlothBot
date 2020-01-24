@@ -378,7 +378,7 @@ Creep.prototype.locateEnergy = function () {
 
 Creep.prototype.haulerDelivery = function () {
     //Tower
-    if (Memory.roomCache[this.room.name].responseNeeded) {
+    if (Memory.roomCache[this.room.name].threatLevel) {
         let tower = this.pos.findClosestByRange(this.room.structures, {
             filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.85 &&
                 _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy

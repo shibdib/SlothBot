@@ -27,12 +27,12 @@ module.exports.role = function (creep) {
     if (labSupplies(creep)) return;
     // Check nuker for ghodium
     if (nukeSupplies(creep)) return;
+    // Empty mineral harvester container
+    if (mineralHauler(creep)) return;
     // Handle a super full hub link
     if (linkManager(creep)) return;
     // Handle terminal goods
     if (terminalControl(creep)) return;
-    // Empty mineral harvester container
-    if (mineralHauler(creep)) return;
     // Handle storage goods
     if (storageEmpty(creep)) return;
     // Handle dropped goodies
@@ -45,6 +45,8 @@ function getResource(creep) {
     let storageSite = creep.room.terminal;
     if (creep.room.storage.store[creep.memory.resourceNeeded]) storageSite = creep.room.storage;
     let stockedLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === creep.memory.resourceNeeded && s.mineralType !== s.memory.itemNeeded && s.mineralType !== s.memory.neededBoost)[0];
+    let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[creep.memory.resourceNeeded])[0];
+    if (container) storageSite = container;
     if (stockedLab) storageSite = stockedLab;
     creep.say(creep.memory.resourceNeeded, true);
     if (storageSite.store[creep.memory.resourceNeeded]) {

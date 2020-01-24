@@ -19,16 +19,16 @@ module.exports.role = function (creep) {
     if (_.sum(creep.store)) return deliverResource(creep);
     // Get resource
     if (creep.memory.resourceNeeded) return getResource(creep);
-    // Empty labs
+    // Empty factories
     if (emptyFactory(creep)) return;
     // Get factory orders
     if (factorySupplies(creep)) return;
+    // Empty mineral harvester container
+    if (mineralHauler(creep)) return;
     // Handle a super full hub link
     if (linkManager(creep)) return;
     // Handle terminal goods
     if (terminalControl(creep)) return;
-    // Empty mineral harvester container
-    if (mineralHauler(creep)) return;
     // Handle storage goods
     if (storageEmpty(creep)) return;
     // Handle dropped goodies
@@ -41,7 +41,9 @@ function getResource(creep) {
     let storageSite = creep.room.terminal;
     if (creep.room.storage.store[creep.memory.resourceNeeded]) storageSite = creep.room.storage;
     let stockedLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === creep.memory.resourceNeeded && s.mineralType !== s.memory.itemNeeded && s.mineralType !== s.memory.neededBoost)[0];
+    let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[creep.memory.resourceNeeded])[0];
     if (stockedLab) storageSite = stockedLab;
+    if (container) storageSite = container;
     if (creep.room.factory && creep.memory.empty) storageSite = creep.room.factory;
     creep.say(creep.memory.resourceNeeded, true);
     if (storageSite.store[creep.memory.resourceNeeded]) {
@@ -68,7 +70,7 @@ function deliverResource(creep) {
         // Default terminal
         storeTarget = creep.room.terminal;
         // Storage cases
-        let needyFactory = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_FACTORY && creep.memory.structureType === STRUCTURE_FACTORY && s.memory.inbound && creep.store[s.memory.inbound])[0];
+        let needyFactory = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_FACTORY && s.memory.producing && _.includes(Object.keys(COMMODITIES[creep.room.factory.memory.producing].components), resourceType))[0];
         if (needyFactory) storeTarget = needyFactory;
         else if (_.sum(creep.room.storage.store) < 0.95 * creep.room.storage.store.getCapacity()) {
             if (_.sum(creep.room.terminal.store) >= 0.90 * creep.room.terminal.store.getCapacity()) storeTarget = creep.room.storage;
@@ -102,7 +104,6 @@ function factorySupplies(creep) {
         for (let neededResource of Object.keys(COMMODITIES[needyFactory.memory.producing].components)) {
             if (needyFactory.store[neededResource] < COMMODITIES[needyFactory.memory.producing].components[neededResource] && creep.room.store(neededResource)) {
                 creep.memory.resourceNeeded = neededResource;
-                needyFactory.memory.inbound = neededResource;
                 creep.memory.structureType = STRUCTURE_FACTORY;
                 return true;
             }
