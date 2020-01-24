@@ -27,7 +27,7 @@ Creep.prototype.holdRoom = function () {
         this.attackInRange();
         if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
         if (this.room.name !== this.memory.destination) this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
-        this.handleMilitaryCreep(false, false, true)
+        if (!this.handleMilitaryCreep(false, false, true)) this.scorchedEarth();
     } else if (this.memory.role === 'deconstructor') {
         if (this.room.name !== this.memory.destination) this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
         this.scorchedEarth();
@@ -36,7 +36,7 @@ Creep.prototype.holdRoom = function () {
 
 function levelManager(creep) {
     if (!Memory.targetRooms[creep.memory.destination] || creep.room.name !== creep.memory.destination) return;
-    if (!creep.room.controller.owner) return delete Memory.targetRooms[creep.memory.destination];
+    if (!creep.room.controller.owner || (!creep.room.creeps.length && !creep.room.structures.length)) return delete Memory.targetRooms[creep.memory.destination];
     // Safemode
     if (creep.room.controller.safeMode) {
         let cache = Memory.targetRooms || {};
