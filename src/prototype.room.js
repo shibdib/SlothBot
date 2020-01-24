@@ -247,43 +247,6 @@ Object.defineProperty(Room.prototype, 'energy', {
     configurable: true
 });
 
-/**
- * Provides structure memory.
- */
-Object.defineProperty(StructureLab.prototype, 'memory', {
-    get: function () {
-        if (Memory.structureMemory === undefined || !Memory.structureMemory) {
-            Memory.structureMemory = {};
-        }
-        if (Memory.structureMemory[this.id] === undefined || !Memory.structureMemory[this.id]) {
-            Memory.structureMemory[this.id] = {};
-        }
-        return Memory.structureMemory[this.id];
-    },
-    set: function (v) {
-        return _.set(Memory, 'structureMemory.' + this.id, v);
-    },
-    configurable: true,
-    enumerable: false,
-});
-
-Object.defineProperty(StructureTerminal.prototype, 'memory', {
-    get: function () {
-        if (Memory.structureMemory === undefined || !Memory.structureMemory) {
-            Memory.structureMemory = {};
-        }
-        if (Memory.structureMemory[this.id] === undefined || !Memory.structureMemory[this.id]) {
-            Memory.structureMemory[this.id] = {};
-        }
-        return Memory.structureMemory[this.id];
-    },
-    set: function (v) {
-        return _.set(Memory, 'structureMemory.' + this.id, v);
-    },
-    configurable: true,
-    enumerable: false,
-});
-
 // Creates a room prototype that accepts RESOURCE_* Constants that gets you the total of that resource in a room.
 // EXAMPLE USAGE - Game.rooms['W0S0'].store(RESOURCE_ENERGY);
 Room.prototype.store = function (resource) {
