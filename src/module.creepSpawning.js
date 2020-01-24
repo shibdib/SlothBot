@@ -316,18 +316,24 @@ module.exports.praiseCreepQueue = function (room) {
     let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'praiseUpgrader');
     let harvestPower = 0;
     harvesters.forEach((h) => harvestPower += h.getActiveBodyparts(WORK) * HARVEST_POWER);
-    let number = _.ceil((harvestPower / 7)) || 2;
+    let number = _.ceil((harvestPower / 6)) || 2;
     if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
         queueCreep(room, PRIORITIES.upgrader + upgraders.length, {role: 'praiseUpgrader'})
     }
     // Food
     let needFood = _.filter(roomCreeps, (creep) => creep.memory.role === 'praiseUpgrader' && _.sum(creep.store) < creep.store.getCapacity() * 0.15).length > 0;
     if (!_.size(roomQueue[room.name]) && needFood) {
+        let lowUpgrader = _.filter(roomCreeps, (creep) => creep.memory.role === 'praiseUpgrader' && creep.ticksToLive < 50)[0];
         let food = _.filter(roomCreeps, (creep) => creep.memory.role === 'food').length > 0;
-        if (!food) {
+        if (!food && !lowUpgrader) {
+            let praisePower = 0;
+            upgraders.forEach((h) => praisePower += h.getActiveBodyparts(WORK) * UPGRADE_CONTROLLER_POWER);
+            praisePower *= 4;
+            let body;
+            if (praisePower >= 250) body = [HEAL]; else if (praisePower >= 150) body = [RANGED_ATTACK]; else if (praisePower >= 100) body = [WORK]; else if (praisePower >= 80) body = [ATTACK]; else body = [CARRY];
             let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
             let spawnDirection = room.controller.pos.getDirectionTo(spawn);
-            spawn.spawnCreep([MOVE], 'feedMe' + Math.random(), {
+            spawn.spawnCreep(body, 'feedMe' + Math.random(), {
                 memory: {
                     born: Game.time,
                     role: 'food',
@@ -436,7 +442,7 @@ module.exports.miscCreepQueue = function (room) {
             }
             if (level >= 6 && room.energyState) {
                 // Energy Supplies
-                let needEnergy = _.sample(_.filter(safeToSupport, ((r) => r !== room.name && !Game.rooms[r].energyState && Game.map.getRoomLinearDistance(r, room.name) < 6)));
+                let needEnergy = _.sample(_.filter(safeToSupport, ((r) => r !== room.name && !Game.rooms[r].energyState && !Game.rooms[r].memory.praiseRoom && Game.map.getRoomLinearDistance(r, room.name) < 6)));
                 if (needEnergy) {
                     let fuelTruck = _.filter(Game.creeps, (creep) => creep.memory.destination === needEnergy && creep.memory.role === 'fuelTruck');
                     if (!fuelTruck.length) {
@@ -447,7 +453,7 @@ module.exports.miscCreepQueue = function (room) {
                     }
                 }
                 // Power Level
-                let upgraderRequested = _.sample(_.filter(safeToSupport, ((r) => r !== room.name && Game.rooms[r].controller.level + 1 < level && Game.map.getRoomLinearDistance(r, room.name) < 6)));
+                let upgraderRequested = _.sample(_.filter(safeToSupport, ((r) => r !== room.name && !Game.rooms[r].memory.praiseRoom && Game.rooms[r].controller.level + 1 < level && Game.map.getRoomLinearDistance(r, room.name) < 6)));
                 if (upgraderRequested) {
                     let remoteUpgraders = _.filter(Game.creeps, (creep) => creep.memory.destination === upgraderRequested && creep.memory.role === 'remoteUpgrader');
                     if (!remoteUpgraders.length) {

@@ -396,10 +396,11 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
     // Spawns/Extensions
-    if (!this.memory.other.spawnsExtensions || Math.random() > 0.9) {
+    let harvesters = _.filter(this.room.creeps, (c) => (c.my && c.memory.role === 'stationaryHarvester'));
+    if (!this.memory.other.spawnsExtensions || Math.random() > 0.9 || harvesters.length < 2) {
         this.memory.other.spawnsExtensions = JSON.stringify(_.pluck(_.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && !s.pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.role === 'stationaryHarvester'}).length), 'id'));
-        return;
-    } else {
+    }
+    if (this.memory.other.spawnsExtensions) {
         let spawnsExtensions = [];
         let parsedID = JSON.parse(this.memory.other.spawnsExtensions);
         parsedID.forEach((s) => spawnsExtensions.push(Game.getObjectById(s)));
@@ -712,7 +713,7 @@ Creep.prototype.renewalCheck = function (cutoff = ((this.body.length * 3) + 50),
                     this.shibMove(spawn);
                     return true;
             }
-        } else if (this.ticksToLive < 25) this.memory.recycle = true;
+        }
     }
     delete this.memory.renewing;
     return false;
