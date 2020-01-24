@@ -21,6 +21,11 @@ module.exports.overlordMind = function (room, CPULimit) {
     let mindStart = Game.cpu.getUsed();
     let cpuBucket = Game.cpu.bucket;
 
+    // Handle auto spawn placement
+    if (Memory.myRooms.length === 1 && !_.filter(Game.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0]) {
+        planner.buildRoom(room);
+    }
+
     // Cache globals
     cacheRoomItems(room);
 

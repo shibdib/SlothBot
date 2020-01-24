@@ -40,6 +40,9 @@ module.exports.hubCheck = function (room) {
 function buildFromLayout(room) {
     if (!room.memory.bunkerVersion) room.memory.bunkerVersion = 1;
     let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+    if (Memory.myRooms.length === 1 && !_.filter(Game.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0]) {
+        return hub.createConstructionSite(STRUCTURE_SPAWN);
+    }
     let level = room.controller.level;
     let layout = JSON.parse(storedLayouts[room.name]);
     let extensionLevel = getLevel(room);
