@@ -776,9 +776,9 @@ Creep.prototype.tryToBoost = function (boosts) {
             // Check if boost is low, if so restart
             let boostInRoom = this.room.store(requestedBoost);
             if (boostInRoom < this.memory.boosts.requestedBoosts[requestedBoost]['amount']) {
-                this.memory.boosts = undefined;
                 let lab = Game.getObjectById(this.memory.boosts.boostLab);
                 if (lab) lab.memory = undefined;
+                this.memory.boosts = undefined;
                 return true;
             }
             // Find a lab to boost the creep if none exist, idle.
