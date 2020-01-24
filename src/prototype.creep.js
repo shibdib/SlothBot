@@ -1121,9 +1121,10 @@ Creep.prototype.scorchedEarth = function () {
     if (this.room.user && _.includes(FRIENDLIES, this.room.user)) return false;
     // Set target
     let hostile = this.pos.findClosestByRange(_.filter(this.room.structures, (s) =>
-        s.structureType !== STRUCTURE_POWER_BANK && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_KEEPER_LAIR));
+        s.structureType !== STRUCTURE_POWER_BANK && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER)) ||
+        this.pos.findClosestByRange(_.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_POWER_BANK && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_KEEPER_LAIR));
     // If target fight
-    if (hostile && hostile.pos.roomName === this.pos.roomName && (this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK))) {
+    if (hostile && hostile.pos.roomName === this.pos.roomName && (this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK) || this.getActiveBodyparts(WORK))) {
         if (this.getActiveBodyparts(ATTACK)) {
             switch (this.attack(hostile)) {
                 case OK:
@@ -1132,11 +1133,20 @@ Creep.prototype.scorchedEarth = function () {
                     if (this.getActiveBodyparts(RANGED_ATTACK)) this.rangedMassAttack();
                     this.shibMove(hostile);
             }
-        } else if (this.getActiveBodyparts(RANGED_ATTACK)) {
+        }
+        if (this.getActiveBodyparts(RANGED_ATTACK)) {
             if (hostile.structureType !== STRUCTURE_ROAD && hostile.structureType !== STRUCTURE_WALL && hostile.structureType !== STRUCTURE_CONTAINER) this.rangedMassAttack(); else this.rangedAttack(hostile);
             let range = 0;
             if (hostile.pos.checkForImpassible()) range = 1;
             this.shibMove(hostile, {range: range});
+        }
+        if (this.getActiveBodyparts(WORK)) {
+            switch (this.dismantle(hostile)) {
+                case OK:
+                    break;
+                case ERR_NOT_IN_RANGE:
+                    this.shibMove(hostile);
+            }
         }
     } else {
         this.memory.scorchedTarget = undefined;

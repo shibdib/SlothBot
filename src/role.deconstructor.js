@@ -13,7 +13,7 @@ module.exports.role = function (creep) {
     switch (creep.memory.operation) {
         case 'hold':
         case 'clean':
-            creep.cleanRoom();
+            creep.holdRoom();
             break;
         case 'siege':
             creep.siegeRoom();

@@ -177,8 +177,8 @@ function operationRequests() {
                 break;
             }
         }
-        // New Spawn Denial
-        let newSpawns = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !r.safemode && r.closestRange <= LOCAL_SPHERE * 3 && !checkForNap(r.user) && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level && !r.towers), 'closestRange');
+        // New Spawn Denial/No towers
+        let newSpawns = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && !r.towers && r.structures && r.owner && !checkForNap(r.owner) && !_.includes(FRIENDLIES, r.owner) && r.owner !== 'Invader' && !r.safemode && r.closestRange <= LOCAL_SPHERE * 3), 'closestRange');
         for (let target of newSpawns) {
             if (Memory.targetRooms[target.name]) continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
@@ -187,7 +187,7 @@ function operationRequests() {
             cache[target.name] = {
                 tick: Game.time,
                 type: 'hold',
-                level: 0,
+                level: 1,
                 priority: 1
             };
             Memory.targetRooms = cache;
