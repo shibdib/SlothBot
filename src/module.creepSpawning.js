@@ -301,6 +301,16 @@ module.exports.praiseCreepQueue = function (room) {
             queueCreep(room, PRIORITIES.waller, {role: 'waller', other: {localCache: true}})
         }
     }
+    //Mineral Harvester
+    let extractor = room.structures.filter((s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
+    if (extractor && room.mineral.mineralAmount) {
+        let praiseMineral = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'praiseMineral');
+        if (!praiseMineral.length) {
+            queueCreep(room, PRIORITIES.mineralHarvester, {
+                role: 'praiseMineral'
+            })
+        }
+    }
     //Upgrader
     let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'praiseUpgrader');
     let number = 3;

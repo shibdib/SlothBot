@@ -46,16 +46,21 @@ module.exports.terminalControl = function (room) {
         runOnce = Game.time;
     }
     if (room.terminal.cooldown) return;
+    // Handle praise room
+    if (room.memory.praiseRoom) {
+        balanceResources(room.terminal);
+        return;
+    }
     if (room.terminal.store[RESOURCE_ENERGY]) {
         //Send energy to rooms under siege
         if (emergencyEnergy(room.terminal)) return;
         //Disperse Minerals and Boosts
         if (balanceResources(room.terminal)) return;
+        //Buy Energy
+        if (spendingMoney && buyEnergy(room.terminal, globalOrders)) return;
         if (room.name === Memory.saleTerminal.room && spendingMoney > 0) {
             //Buy resources being sold at below market value
             if (dealFinder(room.terminal, globalOrders)) return;
-            //Buy Energy
-            if (buyEnergy(room.terminal, globalOrders)) return;
             //Buy Power
             if (buyPower(room.terminal, globalOrders)) return;
         }

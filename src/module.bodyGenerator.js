@@ -26,6 +26,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             if (level > 2) move = 3;
             break;
         // General Creeps
+        case 'praiseMineral':
         case 'drone':
         case 'roadBuilder':
         case 'repairer':

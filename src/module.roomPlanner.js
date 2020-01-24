@@ -513,8 +513,10 @@ function praiseRoom(room) {
     // Tower
     if (room.controller.level >= 3) {
         let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER);
+        let towerHub = room.mineral;
+        if (towers.length) towerHub = _.sample(towers);
         //Build Towers
-        if (CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level] > towers.length && room.mineral.pos.countOpenTerrainAround()) {
+        if (CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level] > towers.length && towerHub.pos.countOpenTerrainAround() > 1) {
             for (let xOff = -1; xOff <= 1; xOff++) {
                 for (let yOff = -1; yOff <= 1; yOff++) {
                     if (xOff !== 0 || yOff !== 0) {
@@ -528,6 +530,22 @@ function praiseRoom(room) {
             towers.forEach(function (t) {
                 if (!t.pos.checkForRampart() && !t.pos.checkForConstructionSites()) t.pos.createConstructionSite(STRUCTURE_RAMPART)
             })
+        }
+    }
+    // Terminal and Mineral
+    if (room.controller.level >= 6) {
+        // Build extractor
+        if (!room.mineral.pos.checkForAllStructure()) room.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+        // Build terminal
+        if (!room.terminal) {
+            for (let xOff = -1; xOff <= 1; xOff++) {
+                for (let yOff = -1; yOff <= 1; yOff++) {
+                    if (xOff !== 0 || yOff !== 0) {
+                        let pos = new RoomPosition(room.mineral.pos.x + xOff, room.mineral.pos.y + yOff, room.name);
+                        if (!pos.checkForImpassible() && pos.countOpenTerrainAround()) pos.createConstructionSite(STRUCTURE_TERMINAL);
+                    }
+                }
+            }
         }
     }
 }
