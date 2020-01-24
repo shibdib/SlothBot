@@ -44,7 +44,7 @@ module.exports.overlordMind = function (room, CPULimit) {
     }
 
     //Build Room
-    if (!room.memory.bunkerHub || (room.controller.level < 4 && Math.random() > 0.7) || (getLevel(room) !== room.controller.level && Game.time % 20 === 0) || (Game.time % 200 === 0 && Math.random() > 0.5)) {
+    if (!room.memory.bunkerHub || (getLevel(room) !== room.controller.level && Game.time % 25 === 0) || (Game.time % 200 === 0 && Math.random() > 0.5)) {
         try {
             planner.buildRoom(room);
         } catch (e) {
@@ -64,7 +64,7 @@ module.exports.overlordMind = function (room, CPULimit) {
     if ((Game.cpu.getUsed() - mindStart) > CPULimit) return;
 
     // Manage creep spawning
-    if (Game.time % 5 === 0) {
+    if (Game.time % 5 === 0 || room.memory.praiseRoom) {
         if (room.memory.praiseRoom) {
             spawning.praiseCreepQueue(room);
         } else if (getLevel(room) < 2) {

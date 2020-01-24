@@ -314,7 +314,7 @@ module.exports.praiseCreepQueue = function (room) {
         queueCreep(room, PRIORITIES.upgrader + upgraders.length, {role: 'praiseUpgrader'})
     }
     // Food
-    let needFood = _.filter(roomCreeps, (creep) => creep.memory.role === 'praiseUpgrader' && creep.memory.needFood).length > 0;
+    let needFood = _.filter(roomCreeps, (creep) => creep.memory.role === 'praiseUpgrader' && _.sum(creep.store) < creep.store.getCapacity() * 0.15).length > 0;
     if (!_.size(roomQueue[room.name]) && needFood) {
         let food = _.filter(roomCreeps, (creep) => creep.memory.role === 'food').length > 0;
         if (!food) {
@@ -625,7 +625,7 @@ module.exports.globalCreepQueue = function () {
     // Targets
     for (let key in shuffle(operations)) {
         if (!operations[key]) continue;
-        let opLevel = Number(operations[key].level) || 1;
+        let opLevel = operations[key].level;
         let priority = operations[key].priority || 4;
         //Observers
         if (opLevel === 0 && !operations[key].observerCheck) {

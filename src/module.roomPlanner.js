@@ -512,22 +512,27 @@ function praiseRoom(room) {
                 } else if (pos.isNearTo(room.controller)) {
                     if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
                 }
-                /**else if (!pos.checkForObstacleStructure() && !pos.checkForRoad() &&
-                 !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD && s.progress < s.progressTotal * 0.95).length) pos.createConstructionSite(STRUCTURE_ROAD);**/
             }
         }
     }
     // Tower
     if (level >= 3) {
-        if (room.mineral.pos.countOpenTerrainAround()) {
+        let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER);
+        //Build Towers
+        if (CONTROLLER_STRUCTURES[STRUCTURE_TOWER][level] < towers.length && room.mineral.pos.countOpenTerrainAround()) {
             for (let xOff = -1; xOff <= 1; xOff++) {
                 for (let yOff = -1; yOff <= 1; yOff++) {
                     if (xOff !== 0 || yOff !== 0) {
                         let pos = new RoomPosition(room.mineral.pos.x + xOff, room.mineral.pos.y + yOff, room.name);
-                        if (!pos.checkForImpassible() && pos.countOpenTerrainAround() && pos.createConstructionSite(STRUCTURE_TOWER)) return;
+                        if (!pos.checkForImpassible() && pos.countOpenTerrainAround()) pos.createConstructionSite(STRUCTURE_TOWER);
                     }
                 }
             }
+        } else {
+            // Ramparts on Towers
+            towers.forEach(function (t) {
+                if (!t.pos.checkForRampart() && !t.pos.checkForConstructionSites()) t.pos.createConstructionSite(STRUCTURE_RAMPART)
+            })
         }
     }
 }
