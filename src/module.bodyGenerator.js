@@ -31,7 +31,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'roadBuilder':
         case 'repairer':
         case 'waller':
-            work = _.floor(((room.energyCapacityAvailable * 0.5) - 100) / 100);
+            work = _.random(2, level * 2);
             carry = _.random(2, level);
             move = work + carry;
             break;
@@ -129,8 +129,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = tough + heal + work;
             break;
         case 'defender':
-            if (Math.random() > 0.49) attack = 3 * level; else rangedAttack = 2 * level;
-            move = (attack + rangedAttack) * 0.5;
+            if (Math.random() > 0.49) attack = _.floor((room.energyCapacityAvailable - 200) / 80) || 1; else rangedAttack = _.floor((room.energyCapacityAvailable - 200) / 150) || 1;
+            if (attack > 40) attack = 40; else if (rangedAttack > 40) rangedAttack = 40;
+            move = 4;
             break;
         case 'longbow':
             if (level === 3) {
