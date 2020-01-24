@@ -47,13 +47,17 @@ function getResource(creep) {
     let stockedLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === creep.memory.resourceNeeded && s.mineralType !== s.memory.itemNeeded && s.mineralType !== s.memory.neededBoost)[0];
     if (stockedLab) storageSite = stockedLab;
     creep.say(creep.memory.resourceNeeded, true);
-    switch (creep.withdraw(storageSite, creep.memory.resourceNeeded)) {
-        case OK:
-            creep.memory.resourceNeeded = undefined;
-            return true;
-        case ERR_NOT_IN_RANGE:
-            creep.shibMove(storageSite);
-            return true;
+    if (storageSite.store[creep.memory.resourceNeeded]) {
+        switch (creep.withdraw(storageSite, creep.memory.resourceNeeded)) {
+            case OK:
+                creep.memory.resourceNeeded = undefined;
+                return true;
+            case ERR_NOT_IN_RANGE:
+                creep.shibMove(storageSite);
+                return true;
+        }
+    } else {
+        creep.memory.resourceNeeded = undefined;
     }
 }
 
@@ -95,7 +99,6 @@ function deliverResource(creep) {
 
 // Deliver boosts
 function boostDelivery(creep) {
-    if (creep.room.controller.level < 6 || !_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active === true && s.memory.neededBoost)[0]) return false;
     let lab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active === true && s.memory.neededBoost)[0];
     if (lab) {
         let boostCreep = _.filter(creep.room.creeps, (c) => c.memory && c.memory.boostLab === lab.id)[0];

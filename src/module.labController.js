@@ -119,7 +119,7 @@ function manageActiveLabs(room) {
                             // Check if we already have enough
                             let cutOff = BOOST_AMOUNT;
                             if (_.includes(LAB_PRIORITY, outputLab.memory.creating)) cutOff = BOOST_AMOUNT * 2.5;
-                            if (outputLab.room.store(outputLab.memory.creating) > cutOff) {
+                            if (outputLab.room.store(outputLab.memory.creating) + outputLab.store[outputLab.memory.creating] > cutOff) {
                                 log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
                                 for (let id in creators) {
                                     creators[id].memory = undefined;
@@ -131,7 +131,7 @@ function manageActiveLabs(room) {
                         case ERR_NOT_ENOUGH_RESOURCES:
                             for (let id in creators) {
                                 let lab = Game.getObjectById(creators[id]);
-                                let total = lab.room.store(lab.memory.itemNeeded);
+                                let total = lab.room.store(lab.memory.itemNeeded) + lab.store[lab.memory.itemNeeded];
                                 if (total < 10) {
                                     log.a(outputLab.room.name + ' is no longer producing ' + lab.memory.creating + ' due to a shortage of ' + lab.memory.itemNeeded);
                                     for (let id in creators) {
