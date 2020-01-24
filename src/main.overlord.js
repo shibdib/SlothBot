@@ -6,6 +6,7 @@
  */
 
 let observers = require('module.observerController');
+let factory = require('module.factoryController');
 let defense = require('military.defense');
 let links = require('module.linkController');
 let terminals = require('module.terminalController');
@@ -102,6 +103,17 @@ module.exports.overlordMind = function (room, CPULimit) {
             observers.observerControl(room);
         } catch (e) {
             log.e('Observer Control for room ' + room.name + ' experienced an error');
+            log.e(e.stack);
+            Game.notify(e.stack);
+        }
+    }
+
+    // Factory Control
+    if (room.level >= 7 && cpuBucket >= 2000) {
+        try {
+            factory.factoryControl(room);
+        } catch (e) {
+            log.e('Factory Control for room ' + room.name + ' experienced an error');
             log.e(e.stack);
             Game.notify(e.stack);
         }

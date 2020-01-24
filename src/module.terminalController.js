@@ -181,10 +181,11 @@ function manageSellOrders(myOrders) {
                 let amount = Game.rooms[order.roomName].terminal.store[order.resourceType] - order.remainingAmount;
                 if (amount > 0) {
                     let cost = order.price * amount * 0.05;
-                    let availableCash = Game.market.credits - CREDIT_BUFFER;
-                    if (cost > availableCash) amount = _.round(availableCash / (order.price * 0.05));
+                    if (cost > spendingMoney) amount = _.round(spendingMoney / (order.price * 0.05));
                     if (Game.market.extendOrder(order.id, amount) === OK) {
                         log.w("Extended sell order " + order.id + " an additional " + amount + " " + order.resourceType + " in " + roomLink(order.roomName), "Market: ");
+                        spendingMoney -= (order.price * amount * 0.05);
+                        log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
                         return true;
                     }
                 }
@@ -290,6 +291,8 @@ function fillBuyOrders(terminal, globalOrders) {
     if (!terminal.store[RESOURCE_ENERGY]) return;
     for (let resourceType of _.shuffle(Object.keys(terminal.store))) {
         if (resourceType === RESOURCE_ENERGY) continue;
+        // No base minerals if we can produce commodities
+        if (Memory.maxLevel >= 7 && _.includes(BASE_MINERALS, resourceType)) continue;
         // Only fill buy orders if we need credits or have too much
         let sellAmount = terminal.store[resourceType] - reactionAmount;
         if (resourceType === RESOURCE_OPS) sellAmount = terminal.store[resourceType];
@@ -372,7 +375,7 @@ function balanceResources(terminal) {
         })[0];
         let sendAmount = available - keepAmount;
         if (sendAmount <= 100) continue;
-        if (needyTerminal && !stockpile) {
+        if (needyTerminal && !stockpile && !_.includes(ALL_COMMODITIES, resource)) {
             sendAmount = keepAmount - needyTerminal.room.store(resource);
             if (sendAmount > terminal.store[resource]) sendAmount = terminal.store[resource];
             if (sendAmount < 100) continue;

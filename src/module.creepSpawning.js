@@ -357,6 +357,13 @@ module.exports.miscCreepQueue = function (room) {
             queueCreep(room, PRIORITIES.miscHauler, {role: 'labTech', other: {localCache: true}})
         }
     }
+    //Foreman
+    if (level >= 7 && Memory.saleTerminal && room.name === Memory.saleTerminal.room && _.filter(room.structures, (s) => s.structureType === STRUCTURE_FACTORY)[0]) {
+        let foreman = _.filter(roomCreeps, (creep) => (creep.memory.role === 'foreman'));
+        if (!foreman.length) {
+            queueCreep(room, PRIORITIES.miscHauler, {role: 'foreman', other: {localCache: true}})
+        }
+    }
     //Power
     if (level === 8 && room.store(RESOURCE_POWER) && _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0]) {
         let powerManager = _.filter(roomCreeps, (creep) => (creep.memory.role === 'powerManager'));

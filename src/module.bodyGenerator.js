@@ -75,9 +75,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             break;
         case 'courier':
         case 'powerManager':
+        case 'foreman':
         case 'labTech':
-            carry = 6;
-            move = 3;
+            carry = 10;
+            move = 5;
             break;
         case 'stationaryHarvester':
             if (misc) {

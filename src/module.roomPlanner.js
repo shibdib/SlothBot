@@ -80,14 +80,14 @@ function buildFromLayout(room) {
         }
     }
     // Handle special buildings
-    if (!built && level === 8 && level === extensionLevel) {
+    if (!built && level >= 7 && level === extensionLevel) {
         let factory = _.filter(room.structures, (s) => s.structureType === STRUCTURE_FACTORY)[0] || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_FACTORY)[0];
         let power = _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0] || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0];
         let nuker = _.filter(room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0] || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_NUKER)[0];
         if (!factory || !power || !nuker) {
             let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_EXTENSION);
             let buildThis = STRUCTURE_FACTORY;
-            if (!power) buildThis = STRUCTURE_POWER_SPAWN; else if (!nuker) buildThis = STRUCTURE_NUKER;
+            if (level === 8) if (!power) buildThis = STRUCTURE_POWER_SPAWN; else if (!nuker) buildThis = STRUCTURE_NUKER;
             for (let structure of shuffle(filter)) {
                 let pos = new RoomPosition(structure.x, structure.y, room.name);
                 if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {

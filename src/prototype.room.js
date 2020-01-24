@@ -247,6 +247,17 @@ Object.defineProperty(Room.prototype, 'energy', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'factory', {
+    get: function () {
+        if (!this._factory) {
+            this._factory = _.find(this.structures, (s) => s.structureType === STRUCTURE_FACTORY && s.isActive())[0];
+        }
+        return this._factory;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 // Creates a room prototype that accepts RESOURCE_* Constants that gets you the total of that resource in a room.
 // EXAMPLE USAGE - Game.rooms['W0S0'].store(RESOURCE_ENERGY);
 Room.prototype.store = function (resource) {
