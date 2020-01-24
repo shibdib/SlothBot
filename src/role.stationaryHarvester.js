@@ -38,7 +38,7 @@ module.exports.role = function (creep) {
         }
     } else {
         if (!creep.findSource()) {
-            let oldestHarvester = _.min(_.filter(creep.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester'), 'ticksToLive');
+            let oldestHarvester = _.min(_.filter(creep.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester'), 'ticksToLive') || _.filter(creep.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester' && c.memory.other.reboot)[0];
             creep.shibMove(oldestHarvester);
             if (creep.pos.getRangeTo(oldestHarvester) <= 2) {
                 oldestHarvester.memory.recycle = true;

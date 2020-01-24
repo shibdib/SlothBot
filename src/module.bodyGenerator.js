@@ -31,12 +31,12 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'roadBuilder':
         case 'repairer':
         case 'waller':
-            work = _.random(level * 0.5, level * 2);
+            work = _.floor(((room.energyCapacityAvailable * 0.5) - 100) / 100);
             carry = _.random(2, level);
             move = work + carry;
             break;
         case 'praiseUpgrader':
-            work = _.random(level + 1, level * 2);
+            work = _.floor((room.energyCapacityAvailable - 100) / 100);
             carry = 1;
             move = 1;
             break;
@@ -52,7 +52,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
                 move = work + carry;
                 break;
             } else {
-                work = _.random(8 + level, 20);
+                work = _.floor((room.energyCapacityAvailable - 100) / 100);
+                if (work > 30) work = 30;
                 if (level === 8 && room.energyState) work = 15; else if (level === 8) work = 1;
                 carry = 1;
                 break;
@@ -82,7 +83,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             break;
         case 'stationaryHarvester':
             if (misc) {
-                work = 3;
+                work = _.floor((room.energyCapacityAvailable - 200) / 100) || 1;
                 carry = 1;
                 move = 1;
                 break;

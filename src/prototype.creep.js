@@ -396,7 +396,7 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
     // Spawns/Extensions
-    if (!this.memory.other.spawnsExtensions) {
+    if (!this.memory.other.spawnsExtensions || Math.random() > 0.9) {
         this.memory.other.spawnsExtensions = JSON.stringify(_.pluck(_.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && !s.pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.role === 'stationaryHarvester'}).length), 'id'));
         return;
     } else {

@@ -250,7 +250,7 @@ Object.defineProperty(Room.prototype, 'energy', {
 Object.defineProperty(Room.prototype, 'factory', {
     get: function () {
         if (!this._factory) {
-            this._factory = _.find(this.structures, (s) => s.structureType === STRUCTURE_FACTORY && s.isActive())[0];
+            this._factory = _.filter(this.structures, (s) => s.structureType === STRUCTURE_FACTORY && s.isActive())[0];
         }
         return this._factory;
     },
