@@ -33,7 +33,6 @@ module.exports.role = function (creep) {
                 case ERR_FULL || ERR_INVALID_TARGET:
                     delete creep.memory.storageDestination;
                     delete creep.memory._shibMove;
-                    if (storageItem.memory) delete storageItem.memory.deliveryIncoming;
                     break;
             }
         } else creep.idleFor(5);
