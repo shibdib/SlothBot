@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -112,6 +112,10 @@ RoomPosition.prototype.checkForConstructionSites = function () {
 
 RoomPosition.prototype.checkForRoad = function () {
     return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_ROAD)[0];
+};
+
+RoomPosition.prototype.checkForContainer = function () {
+    return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
 };
 
 RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
