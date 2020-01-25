@@ -11,10 +11,8 @@
 
 module.exports.role = function (creep) {
     if (creep.renewalCheck()) return;
-    if (creep.isFull) creep.memory.working = true;
-    if (!creep.store[RESOURCE_ENERGY]) delete creep.memory.working;
     creep.memory.needFood = undefined;
-    if (creep.memory.working) {
+    if (creep.store[RESOURCE_ENERGY]) {
         switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
             case OK:
                 return;

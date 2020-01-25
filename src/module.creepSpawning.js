@@ -316,7 +316,7 @@ module.exports.praiseCreepQueue = function (room) {
     let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'praiseUpgrader');
     let harvestPower = 0;
     harvesters.forEach((h) => harvestPower += h.getActiveBodyparts(WORK) * HARVEST_POWER);
-    let number = _.ceil((harvestPower / 6)) || 2;
+    let number = _.ceil((harvestPower / 7)) || 2;
     if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
         queueCreep(room, PRIORITIES.upgrader + upgraders.length, {role: 'praiseUpgrader'})
     }
@@ -330,7 +330,7 @@ module.exports.praiseCreepQueue = function (room) {
             upgraders.forEach((h) => praisePower += h.getActiveBodyparts(WORK) * UPGRADE_CONTROLLER_POWER);
             praisePower *= 4;
             let body;
-            if (praisePower >= 250) body = [HEAL]; else if (praisePower >= 150) body = [RANGED_ATTACK]; else if (praisePower >= 100) body = [WORK]; else if (praisePower >= 80) body = [ATTACK]; else body = [CARRY];
+            if (praisePower >= 175) body = [HEAL]; else if (praisePower >= 110) body = [RANGED_ATTACK]; else if (praisePower >= 80) body = [WORK]; else if (praisePower >= 50) body = [ATTACK]; else body = [CARRY];
             let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
             let spawnDirection = room.controller.pos.getDirectionTo(spawn);
             spawn.spawnCreep(body, 'feedMe' + Math.random(), {
