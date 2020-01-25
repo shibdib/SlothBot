@@ -424,7 +424,7 @@ Creep.prototype.haulerDelivery = function () {
             }
         }
         //Terminal low
-        if (terminal && this.memory.withdrawID !== terminal.id && terminal.my && terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER) {
+        if (terminal && this.memory.withdrawID !== terminal.id && terminal.my && terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER * 0.1) {
             this.memory.storageDestination = terminal.id;
             return true;
         }
@@ -786,7 +786,7 @@ Creep.prototype.tryToBoost = function (boosts) {
             if (!this.memory.boosts.boostLab) {
                 let lab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.energy > 0 &&
                     (s.mineralType === requestedBoost || s.memory.creating === requestedBoost || !s.memory.creating) &&
-                    (!lab.memory.neededBoost || lab.memory.neededBoost === requestedBoost))[0];
+                    (!s.memory.neededBoost || s.memory.neededBoost === requestedBoost))[0];
                 if (lab) {
                     this.memory.boosts.boostLab = lab.id;
                     lab.memory.neededBoost = requestedBoost;

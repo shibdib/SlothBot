@@ -33,8 +33,8 @@ function manageBoostProduction(room) {
     let boostList = _.union(LAB_PRIORITY, BASE_COMPOUNDS, TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS);
     for (let key in boostList) {
         // Check if we already have enough
-        let cutOff = BOOST_AMOUNT;
-        if (_.includes(LAB_PRIORITY, boostList[key])) cutOff = BOOST_AMOUNT * 2.5;
+        let cutOff = REACTION_AMOUNT;
+        if (_.includes(LAB_PRIORITY, boostList[key])) cutOff = REACTION_AMOUNT * 2.5;
         if (room.store(boostList[key]) >= cutOff) continue;
         // Only one hub per output
         if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === boostList[key]).length) continue;

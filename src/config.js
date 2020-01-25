@@ -55,7 +55,7 @@ global.MINERAL_TRADE_AMOUNT = TERMINAL_CAPACITY * 0.015;  // Hold this much of a
 global.BOOST_TRADE_AMOUNT = TERMINAL_CAPACITY * 0.03;  // Hold this much of a mineral before selling
 global.TERMINAL_ENERGY_BUFFER = TERMINAL_CAPACITY * 0.025; // Keep this much in terminal (Needed for trade)
 global.REACTION_AMOUNT = TERMINAL_CAPACITY * 0.005; // Minimum amount for base reaction minerals and power
-global.BOOST_AMOUNT = TERMINAL_CAPACITY * 0.01; // Try to have this much of all applicable boosts
+global.BOOST_AMOUNT = TERMINAL_CAPACITY * 0.005; // Try to have this much of all applicable boosts
 global.DUMP_AMOUNT = TERMINAL_CAPACITY * 0.1; // Fills buys (of if overflowing it will offload to other terminals)
 
 // Baseline/Default prices

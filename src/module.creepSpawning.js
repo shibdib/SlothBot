@@ -367,7 +367,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     //Foreman
-    if (level >= 7 && room.factory) {
+    if (level >= 7 && room.factory && room.factory.memory.producing) {
         let foreman = _.filter(roomCreeps, (creep) => (creep.memory.role === 'foreman'));
         if (!foreman.length) {
             queueCreep(room, PRIORITIES.miscHauler, {role: 'foreman', other: {localCache: true}})

@@ -121,6 +121,11 @@ function dropOff(creep) {
         creep.memory.storageDestination = tower.id;
         return true;
     }
+    // Terminal
+    if (creep.room.terminal && creep.room.terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER * 0.5) {
+        creep.memory.storageDestination = creep.room.terminal.id;
+        return true;
+    }
     //Controller
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     if (controllerContainer && _.sum(controllerContainer.store) < controllerContainer.store.getCapacity() &&
