@@ -198,7 +198,7 @@ function linkManager(creep) {
 function terminalControl(creep) {
     // Sort by max
     // Handle a super full terminal
-    if (_.sum(creep.room.terminal.store) >= 0.95 * creep.room.terminal.store.getCapacity()) {
+    if (_.sum(creep.room.terminal.store) >= 0.98 * creep.room.terminal.store.getCapacity()) {
         let maxResource = Object.keys(creep.room.terminal.store).sort(function (a, b) {
             return creep.room.terminal.store[a] - creep.room.terminal.store[b]
         })[_.size(creep.room.terminal.store) - 1];
@@ -221,7 +221,7 @@ function terminalControl(creep) {
             let amountNeeded = 0;
             // Storage cases
             if (_.sum(creep.room.storage.store) < 0.95 * creep.room.storage.store.getCapacity()) {
-                if (_.sum(creep.room.terminal.store) >= 0.925 * creep.room.terminal.store.getCapacity()) {
+                if (_.sum(creep.room.terminal.store) >= 0.97 * creep.room.terminal.store.getCapacity()) {
                     amountNeeded = creep.store.getFreeCapacity(resourceType);
                 } else if (_.includes(_.union(BASE_MINERALS, ALL_BOOSTS), resourceType) && creep.room.storage.store[resourceType] < REACTION_AMOUNT) {
                     amountNeeded = REACTION_AMOUNT - creep.room.storage.store[resourceType];
