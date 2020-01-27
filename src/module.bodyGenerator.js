@@ -8,7 +8,7 @@
 module.exports.bodyGenerator = function (level, role, room = undefined, misc = undefined) {
     let body = [];
     let work, claim, carry, move, tough, attack, rangedAttack, heal, deficitExemption;
-    let deficit = room.energy / (ENERGY_AMOUNT * 1.1);
+    let deficit = room.energy / (ENERGY_AMOUNT * 1.5);
     if (deficit > 1 || room.controller.level < 5) deficit = 1;
     else if (deficit < 0.25) deficit = 0.25;
     let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
