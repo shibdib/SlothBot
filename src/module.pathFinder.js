@@ -517,7 +517,7 @@ function addSksToMatrix(room, matrix) {
         if (sk.length > 0) {
             for (let c = 0; c < sk.length; c++) {
                 matrix.set(sk[c].pos.x, sk[c].pos.y, 0xff);
-                let sites = sk[c].room.lookForAtArea(LOOK_TERRAIN, sk[c].pos.y - 4, sk[c].pos.x - 4, sk[c].pos.y + 4, sk[c].pos.x + 4, true);
+                let sites = sk[c].room.lookForAtArea(LOOK_TERRAIN, sk[c].pos.y - 5, sk[c].pos.x - 5, sk[c].pos.y + 5, sk[c].pos.x + 5, true);
                 for (let key in sites) {
                     let position;
                     try {
@@ -526,7 +526,7 @@ function addSksToMatrix(room, matrix) {
                         continue;
                     }
                     if (position && !position.checkForWall()) {
-                        matrix.set(position.x, position.y, 255 - (position.getRangeTo(sk[c]) * 10))
+                        matrix.set(position.x, position.y, 255)
                     }
                 }
             }
