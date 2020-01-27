@@ -56,13 +56,15 @@ module.exports.terminalControl = function (room) {
     if (room.terminal.store[RESOURCE_ENERGY]) {
         //Send energy to rooms under siege
         if (emergencyEnergy(room.terminal)) return;
-        //Disperse Minerals and Boosts
-        if (balanceResources(room.terminal)) return;
-        if (room.name === Memory.saleTerminal.room && spendingMoney > 0) {
-            //Buy resources being sold at below market value
-            if (dealFinder(room.terminal, globalOrders)) return;
-            //Buy Power
-            if (buyPower(room.terminal, globalOrders)) return;
+        if (room.energy >= ENERGY_AMOUNT * 0.5) {
+            //Disperse Minerals and Boosts
+            if (balanceResources(room.terminal)) return;
+            if (room.name === Memory.saleTerminal.room && spendingMoney > 0) {
+                //Buy resources being sold at below market value
+                if (dealFinder(room.terminal, globalOrders)) return;
+                //Buy Power
+                if (buyPower(room.terminal, globalOrders)) return;
+            }
         }
         //Buy minerals if needed
         if (baseMineralOnDemandBuys(room.terminal, globalOrders)) return;
@@ -271,12 +273,12 @@ function buyPower(terminal, globalOrders) {
 }
 
 function buyEnergy(terminal, globalOrders) {
-    if (terminal.room.energy < ENERGY_AMOUNT && Game.market.credits > CREDIT_BUFFER * 2.5) {
+    if (terminal.room.energy < ENERGY_AMOUNT && spendingMoney) {
         let sellOrder = _.min(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName)), 'price');
         if (sellOrder.price) {
             let buyAmount = (ENERGY_AMOUNT - terminal.room.energy) * 1.1;
             if (buyAmount > sellOrder.amount) buyAmount = sellOrder.amount;
-            if (buyAmount * sellOrder.price > (CREDIT_BUFFER * 2.5) - Game.market.credits) buyAmount = _.round(((CREDIT_BUFFER * 2.5) - Game.market.credits) / sellOrder.price);
+            if (buyAmount * sellOrder.price > spendingMoney) buyAmount = _.round(spendingMoney / sellOrder.price);
             if (buyAmount >= 500 && Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
                 log.w("Bought " + buyAmount + " " + sellOrder.resourceType + " for " + (sellOrder.price * buyAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
                 spendingMoney -= (sellOrder.price * buyAmount);

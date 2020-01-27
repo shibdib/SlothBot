@@ -23,6 +23,18 @@ module.exports.role = function (creep) {
                 creep.memory.onContainer = true;
             }
         }
+        // Build container
+        if (!creep.memory.containerID && !extensionFiller(creep) && _.sum(creep.store) === creep.store.getCapacity()) {
+            let dropped = creep.pos.lookFor(LOOK_RESOURCES)[0];
+            if (dropped && dropped.amount >= 500) {
+                let site = creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
+                if (site) {
+                    return creep.build(site);
+                } else {
+                    creep.idleFor(5);
+                }
+            }
+        }
         let source = Game.getObjectById(creep.memory.source);
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
@@ -85,7 +97,7 @@ function depositEnergy(creep) {
 function extensionFinder(creep) {
     creep.memory.extensionsFound = true;
     let source = Game.getObjectById(creep.memory.source);
-    let container = Game.getObjectById(creep.memory.containerID) || source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
+    let container = Game.getObjectById(creep.memory.containerID) || source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0] || creep;
     if (container) {
         let extension = container.pos.findInRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION), 1);
         if (extension.length) {
@@ -98,6 +110,7 @@ function extensionFinder(creep) {
 }
 
 function extensionFiller(creep) {
+    if (!creep.memory.extensions) return false;
     let rawExtension = JSON.parse(creep.memory.extensions);
     for (let id of rawExtension) {
         let extension = Game.getObjectById(id);
@@ -160,11 +173,11 @@ function harvestDepositContainer(source, creep) {
     } else {
         let site = source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.room.controller)})[0];
         if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 2 && !creep.pos.isNearTo(creep.room.controller)) {
-            if (!_.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_CONTAINER).length && creep.pos.createConstructionSite(STRUCTURE_CONTAINER) === OK) creep.memory.containerAttempt = true;
+            if (_.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_CONTAINER).length < 2) creep.pos.createConstructionSite(STRUCTURE_CONTAINER)
         } else if (site) {
             if (creep.pos.getRangeTo(site) > 0) creep.shibMove(site, {range: 0});
-            creep.memory.containerAttempt = true;
         }
+        creep.memory.containerAttempt = true;
     }
 }
 

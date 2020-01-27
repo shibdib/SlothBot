@@ -114,9 +114,6 @@ function earlyWarning(room) {
         Memory.roomCache[room.name].threatLevel = Memory.roomCache[adjacent].threatLevel;
         Memory.roomCache[room.name].tickDetected = Game.time;
         //log.a(roomLink(room.name) + ' has gone to threat level ' + Memory.roomCache[adjacent].threatLevel + ' due to a triggering of the early warning system in ' + roomLink(adjacent) + '.', 'DEFENSE COMMAND');
-    } else if (room.controller.safeMode && room.controller.safeMode < 1700) {
-        Memory.roomCache[room.name].threatLevel = 4;
-        Memory.roomCache[room.name].tickDetected = Game.time;
     }
 }
 

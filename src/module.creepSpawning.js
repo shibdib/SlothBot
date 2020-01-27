@@ -158,6 +158,7 @@ module.exports.roomStartup = function (room) {
 module.exports.essentialCreepQueue = function (room) {
     //Static room info
     let level = getLevel(room);
+    let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER)[0];
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name);
     //Harvesters
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
@@ -233,9 +234,10 @@ module.exports.essentialCreepQueue = function (room) {
     }
     //Upgrader
     let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
+    let upgradePower = 0;
     let number = 1;
-    let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER)[0];
-    if (level < 4 && !inBuild) number = 6 - level;
+    upgraders.forEach((h) => upgradePower += h.getActiveBodyparts(WORK) * UPGRADE_CONTROLLER_POWER);
+    if (level < 4 && !inBuild && upgradePower < ROOM_ENERGY_PER_TICK[room.name] * ROOM_ENERGY_ALLOTMENT['upgrade']) number = upgraders.length + 1;
     if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
         //If room is about to downgrade get a creep out asap
         let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.progress > room.controller.progressTotal || Memory.roomCache[room.name].threatLevel >= 3;
@@ -314,9 +316,10 @@ module.exports.praiseCreepQueue = function (room) {
     }
     //Upgrader
     let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'praiseUpgrader');
-    let harvestPower = 0;
-    harvesters.forEach((h) => harvestPower += h.getActiveBodyparts(WORK) * HARVEST_POWER);
-    let number = _.ceil((harvestPower / 7)) || 2;
+    let upgradePower = 0;
+    let number = 1;
+    upgraders.forEach((h) => upgradePower += h.getActiveBodyparts(WORK) * UPGRADE_CONTROLLER_POWER);
+    if (upgradePower < ROOM_ENERGY_PER_TICK[room.name] * 0.75) number = upgraders.length + 1;
     if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
         queueCreep(room, PRIORITIES.upgrader + upgraders.length, {role: 'praiseUpgrader'})
     }
@@ -351,13 +354,18 @@ module.exports.miscCreepQueue = function (room) {
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name && (!r.memory.destination || r.memory.destination === room.name));
     //Drones
     let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD)[0];
+    let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
+    let priority = PRIORITIES.drone;
+    let buildPower = 0;
+    let number = 1;
+    let reboot = true;
     if (inBuild) {
-        let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
-        let priority = PRIORITIES.drone;
-        let amount = 9 - level;
-        if (drones.length < amount) {
-            queueCreep(room, priority + drones.length, {role: 'drone', other: {localCache: true}})
-        }
+        drones.forEach((h) => buildPower += h.getActiveBodyparts(WORK) * BUILD_POWER);
+        reboot = false;
+        if (buildPower < ROOM_ENERGY_PER_TICK[room.name] * ROOM_ENERGY_ALLOTMENT['build']) number = drones.length + 1;
+    }
+    if (drones.length < number) {
+        queueCreep(room, priority + drones.length, {role: 'drone', other: {localCache: true, reboot: reboot}})
     }
     //LabTech
     if (room.terminal) {
@@ -385,6 +393,10 @@ module.exports.miscCreepQueue = function (room) {
     if (level >= 2) {
         let waller = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 1;
+        let buildPower = 0;
+        let number = 1;
+        waller.forEach((h) => number += h.getActiveBodyparts(WORK) * REPAIR_COST);
+        if (buildPower < ROOM_ENERGY_PER_TICK[room.name] * ROOM_ENERGY_ALLOTMENT['build']) number = waller.length + 1;
         if (Memory.roomCache[room.name].threatLevel >= 3) amount = 2;
         if (waller.length < amount) {
             queueCreep(room, PRIORITIES.waller, {role: 'waller', other: {localCache: true}})
@@ -617,16 +629,15 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
         }
-    }
-    // Remote Road Builder
-    let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'roadBuilder');
-    if (roadBuilder.length < 1) {
-        let misc = remoteHives[room.name];
-        if (room.memory.turtleMode) misc = JSON.stringify([]);
-        queueCreep(room, PRIORITIES.roadBuilder, {
-            role: 'roadBuilder',
-            misc: misc
-        })
+        // Remote Road Builder
+        let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'roadBuilder');
+        if (!room.memory.turtleMode && roadBuilder.length < 1) {
+            let misc = remoteHives[room.name];
+            queueCreep(room, PRIORITIES.roadBuilder, {
+                role: 'roadBuilder',
+                misc: misc
+            })
+        }
     }
 };
 

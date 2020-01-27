@@ -100,14 +100,6 @@ Creep.prototype.constructionWork = function () {
         this.memory.task = 'build';
         return true;
     }
-    site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.3 && !_.filter(this.room.creeps, (c) => c.my && c.memory.constructionSite === s.id).length);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        this.memory.targetHits = site.hitsMax * 0.65;
-        return true;
-    }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_EXTENSION);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
@@ -172,14 +164,6 @@ Creep.prototype.constructionWork = function () {
         this.memory.task = 'build';
         return true;
     }
-    site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.3 && !_.filter(this.room.creeps, (c) => c.my && c.memory.constructionSite === s.id).length);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        this.memory.targetHits = site.hitsMax * 0.65;
-        return true;
-    }
     let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax);
     site = _.filter(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax);
     if (site.length > 0) {
@@ -188,7 +172,7 @@ Creep.prototype.constructionWork = function () {
         this.memory.task = 'repair';
         return true;
     }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.3);
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.5);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
@@ -196,7 +180,7 @@ Creep.prototype.constructionWork = function () {
         this.memory.targetHits = site.hitsMax * 0.65;
         return true;
     }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.3);
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
@@ -783,7 +767,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 return true;
             }
             // Find a lab to boost the creep if none exist, idle.
-            if (!this.memory.boosts.boostLab) {
+            if (!this.memory.boosts.boostLab || !Game.getObjectById(this.memory.boosts.boostLab).memory.neededBoost) {
                 let lab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.energy > 0 &&
                     (s.mineralType === requestedBoost || s.memory.creating === requestedBoost || !s.memory.creating) &&
                     (!s.memory.neededBoost || s.memory.neededBoost === requestedBoost))[0];
@@ -1567,8 +1551,9 @@ Creep.prototype.borderHump = function () {
 Creep.prototype.fleeHome = function (force = false) {
     if (this.hits < this.hitsMax) force = true;
     if (this.memory.overlord === this.room.name && !this.memory.runCooldown) return false;
-    if (!Memory.roomCache[this.room.name]) this.room.cacheRoomIntel();
-    if (!force && !this.memory.runCooldown && !Memory.roomCache[this.room.name].hostilePower && this.hits === this.hitsMax) return false;
+    this.room.cacheRoomIntel();
+    this.room.invaderCheck();
+    if (!force && !this.memory.runCooldown && !Memory.roomCache[this.room.name].threatLevel && this.hits === this.hitsMax) return false;
     let cooldown = this.memory.runCooldown || Game.time + 100;
     this.memory.runCooldown = cooldown;
     if (this.room.name !== this.memory.overlord) {
@@ -1632,3 +1617,21 @@ Creep.prototype.findDefensivePosition = function (target = this) {
     }
     return false;
 };
+
+/**
+ ["attack", "attackController", "build", "claimController", "dismantle", "drop", "generateSafeMode", "harvest", "heal", "move", "moveByPath", "moveTo", "pickup", "rangedAttack", "rangedHeal", "rangedMassAttack", "repair", "reserveController", "signController", "suicide", "transfer", "upgradeController", "withdraw"
+ ].forEach(function (method) {
+    let original = Creep.prototype[method];
+    // Magic
+    Creep.prototype[method] = function () {
+        let status = original.apply(this, arguments);
+        if (typeof status === "number" && status < 0) {
+            console.log(
+                `Creep ${this.name} action ${method} failed with status ${status} at ${
+                    this.pos
+                    }`
+            );
+        }
+        return status;
+    };
+});**/

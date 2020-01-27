@@ -19,7 +19,7 @@ module.exports.towerControl = function (room) {
     if (!hostileCreeps.length && repairTower) {
         if (Math.random() > 0.95) roomRepairTower[room.name] = undefined; else roomRepairTower[room.name] = repairTower.id;
         let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)).concat(_.filter(room.powerCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)));
-        let degrade = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5) || (s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.25))[0];
+        let degrade = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.25) || (s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.25))[0];
         if (repairTower.energy > repairTower.energyCapacity * 0.15 && (woundedCreep.length || degrade)) {
             if (woundedCreep.length > 0) {
                 repairTower.heal(woundedCreep[0]);
@@ -44,7 +44,7 @@ module.exports.towerControl = function (room) {
             if (barriers) {
                 return repairTower.repair(barriers);
             }
-            if (repairTower.energy > repairTower.energyCapacity * 0.7) {
+            if (repairTower.energy > repairTower.energyCapacity * 0.7 && repairTower.room.energy > ENERGY_AMOUNT) {
                 let lowestRampart = _.min(_.filter(structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level]), 'hits');
                 if (lowestRampart) {
                     return repairTower.repair(lowestRampart);
