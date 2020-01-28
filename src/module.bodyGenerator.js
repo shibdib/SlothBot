@@ -105,14 +105,13 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             if (tough > 7) tough = 7;
             heal = _.floor((room.energyCapacityAvailable * 0.35) / BODYPART_COST[HEAL]) || 1;
             if (heal > 17) heal = 17;
-            if (role === 'drainer') work = 1;
+            if (role === 'drainer') work = 1; else work = 0;
             move = tough + heal + work;
             break;
         case 'defender':
             if (Math.random() > 0.49) attack = _.floor((room.energyCapacityAvailable * 0.9) / BODYPART_COST[ATTACK]) || 1; else rangedAttack = _.floor((room.energyCapacityAvailable * 0.9) / BODYPART_COST[RANGED_ATTACK]) || 1;
             if (attack > 45) attack = 45; else if (rangedAttack > 45) rangedAttack = 45;
             move = 5;
-            move *= deficit;
             break;
         case 'longbow':
             rangedAttack = _.floor((room.energyCapacityAvailable * 0.40) / BODYPART_COST[RANGED_ATTACK]) || 1;
