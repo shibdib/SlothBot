@@ -40,7 +40,7 @@ module.exports.terminalControl = function (room) {
             if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].controller.level === Memory.maxLevel) {
                 return Memory.saleTerminal.saleSet = Game.time;
             }
-            Memory.saleTerminal.room = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.level === Memory.maxLevel && s.isActive() && _.sum(s.store) < s.store.getCapacity() * 0.9)).room.name;
+            Memory.saleTerminal.room = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && !s.room.memory.praiseRoom && s.room.level === Memory.maxLevel && s.isActive() && _.sum(s.store) < s.store.getCapacity() * 0.9)).room.name;
             Memory.saleTerminal.saleSet = Game.time;
         }
         runOnce = Game.time;
@@ -345,7 +345,7 @@ function balanceResources(terminal) {
     // Balance Energy
     if (Memory.roomCache[terminal.room.name].threatLevel < 3) {
         // Find needy terminals
-        let needyTerminal = _.min(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.energy < terminal.room.energy * 0.85), '.room.energy');
+        let needyTerminal = _.min(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.energy < terminal.room.energy * 0.85 && !r.room.memory.praiseRoom), '.room.energy');
         if (needyTerminal.id) {
             // Determine how much you can move
             let availableAmount = terminal.store[RESOURCE_ENERGY] - (TERMINAL_ENERGY_BUFFER * 0.5);
@@ -355,6 +355,15 @@ function balanceResources(terminal) {
                 switch (terminal.send(RESOURCE_ENERGY, requestedAmount, needyTerminal.room.name)) {
                     case OK:
                         log.a('Balancing ' + requestedAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                        return true;
+                }
+            }
+        } else if (terminal.room.memory.praiseRoom) {
+            let availableAmount = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
+            if (availableAmount > 0) {
+                switch (terminal.send(RESOURCE_ENERGY, availableAmount, Memory.saleTerminal.room)) {
+                    case OK:
+                        log.a('Sent ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(Memory.saleTerminal.room) + ' From ' + roomLink(terminal.room.name) + ' to stockpile.', "Market: ");
                         return true;
                 }
             }
@@ -376,12 +385,14 @@ function balanceResources(terminal) {
         if (_.includes(ALL_BOOSTS, resource)) {
             keepAmount = BOOST_AMOUNT;
         }
+        // Praise empties
+        if (terminal.room.memory.praiseRoom) keepAmount = 0;
         // Next resource if we don't have enough to send
         let available = terminal.room.store(resource) - keepAmount;
         if (available > terminal.store[resource]) available = terminal.store[resource];
         if (available <= keepAmount * 0.1) continue;
         // Find room in need
-        let needyTerminal = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.store(resource) < keepAmount), function (s) {
+        let needyTerminal = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.store(resource) < keepAmount && !r.room.memory.praiseRoom), function (s) {
             s.room.store(resource);
         })[0];
         if (needyTerminal) {
