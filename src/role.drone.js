@@ -75,11 +75,10 @@ module.exports.role = function role(creep) {
 
 function building(creep) {
     if (creep.memory.task && creep.memory.task !== 'build' && creep.memory.task !== 'repair') return;
-    let upgrader = _.filter(creep.room.creeps, (c) => c.my && c.memory && ((c.memory.role === 'drone' && c.memory.task === 'upgrade') || c.memory.role === 'upgrader'));
-    let dedicatedUpgrader = _.filter(creep.room.creeps, (c) => c.my && c.memory && (c.memory.role === 'upgrader' || c.memory.role === 'praiseUpgrader'));
+    let upgrader = _.filter(creep.room.creeps, (c) => c.my && c.memory && ((c.memory.role === 'drone' && c.memory.task === 'upgrade') || c.memory.role === 'upgrader' || c.memory.role === 'remoteUpgrader' || c.memory.role === 'praiseUpgrader'));
     //let drones = _.filter(creep.room.creeps, (c) => c.my && c.memory && (c.memory.role === 'drone' || c.memory.role === 'upgrader'));
     if ((Memory.roomCache[creep.room.name].sk || creep.memory.task === 'build' || creep.memory.task === 'repair') ||
-        ((dedicatedUpgrader.length || upgrader.length || creep.room.controller.upgradeBlocked) && (creep.memory.constructionSite || creep.constructionWork()))) {
+        ((upgrader.length || creep.room.controller.upgradeBlocked) && (creep.memory.constructionSite || creep.constructionWork()))) {
         creep.say('Build!', true);
         creep.builderFunction();
         return true;
