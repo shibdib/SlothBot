@@ -445,7 +445,7 @@ module.exports.miscCreepQueue = function (room) {
             if (needDrones) {
                 let drones = _.filter(Game.creeps, (creep) => (creep.memory.destination === needDrones || creep.memory.overlord === needDrones) && creep.memory.role === 'drone');
                 let amount = ROOM_SOURCE_SPACE[needDrones] || 2;
-                if (drones.length < amount) {
+                if (drones.length < amount || (drones[0].ticksToLive < (drones[0].body.length * 3 + (10 * Game.map.getRoomLinearDistance(needDrones, room.name))) && drones.length < amount + 1)) {
                     queueCreep(room, PRIORITIES.assistPioneer, {
                         role: 'drone',
                         destination: needDrones
