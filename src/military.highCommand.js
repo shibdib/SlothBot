@@ -248,6 +248,10 @@ function manageAttacks() {
             delete Memory.targetRooms[key];
             continue;
         }
+        if (!Memory.roomCache[key]) {
+            delete Memory.targetRooms[key];
+            return;
+        }
         let type = Memory.targetRooms[key].type;
         // Special Conditions
         switch (type) {
@@ -382,6 +386,10 @@ function manageAuxiliary() {
             continue;
         }
         let type = Memory.auxiliaryTargets[key].type;
+        if (!Memory.roomCache[key]) {
+            delete Memory.auxiliaryTargets[key];
+            return;
+        }
         // Special Conditions
         switch (type) {
             case 'power':
