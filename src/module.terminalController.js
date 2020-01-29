@@ -202,12 +202,14 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         if (availableCash <= 0) return false;
         // No energy
         if (resourceType === RESOURCE_ENERGY) continue;
-        // No base minerals if we can produce commodities and direct sales only of commodities except for batteries
-        if (terminal.room.factory && (_.includes(BASE_MINERALS, resourceType) || (_.includes(ALL_COMMODITIES, resourceType) && resourceType !== RESOURCE_BATTERY))) continue;
         // Avoid Duplicates
         if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
         // Handle minerals
-        if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS), resourceType) && terminal.room.store(resourceType) < reactionAmount) continue;
+        let mineralCutoff = REACTION_AMOUNT;
+        if (terminal.room.factory) mineralCutoff = REACTION_AMOUNT * 2;
+        if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS), resourceType) && terminal.room.store(resourceType) < mineralCutoff) continue;
+        // Handle commodities
+        if (_.includes(ALL_COMMODITIES, resourceType) && terminal.room.store(resourceType) < REACTION_AMOUNT * 0.5) continue;
         // Handle boosts
         if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS, [RESOURCE_POWER]), resourceType) && terminal.room.store(resourceType) < BOOST_TRADE_AMOUNT) continue;
         // Sell
