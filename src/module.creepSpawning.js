@@ -180,7 +180,7 @@ module.exports.essentialCreepQueue = function (room) {
                 role: 'hauler',
                 other: {
                     reboot: true,
-                    localCache: true
+                    localCache: false
                 }
             });
         } else {
@@ -189,7 +189,7 @@ module.exports.essentialCreepQueue = function (room) {
                 queueCreep(room, PRIORITIES.hauler + hauler.length, {
                     role: 'hauler',
                     other: {
-                        localCache: true
+                        localCache: false
                     }
                 })
             }
@@ -206,14 +206,14 @@ module.exports.essentialCreepQueue = function (room) {
                     role: 'filler',
                     other: {
                         reboot: true,
-                        localCache: true
+                        localCache: false
                     }
                 });
             } else {
                 queueCreep(room, PRIORITIES.hauler - 1, {
                     role: 'filler',
                     other: {
-                        localCache: true
+                        localCache: false
                     }
                 })
             }
@@ -256,7 +256,7 @@ module.exports.praiseCreepQueue = function (room) {
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
         let amount = 3;
         if (drones.length < amount) {
-            queueCreep(room, 1 + drones.length, {role: 'drone', other: {localCache: true}})
+            queueCreep(room, 1 + drones.length, {role: 'drone', other: {localCache: false}})
         }
     }
     //Harvesters
@@ -278,7 +278,7 @@ module.exports.praiseCreepQueue = function (room) {
                 role: 'filler',
                 other: {
                     reboot: true,
-                    localCache: true
+                    localCache: false
                 }
             })
         }
@@ -301,7 +301,7 @@ module.exports.praiseCreepQueue = function (room) {
         let waller = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 1;
         if (waller.length < amount) {
-            queueCreep(room, PRIORITIES.waller, {role: 'waller', other: {localCache: true}})
+            queueCreep(room, PRIORITIES.waller, {role: 'waller', other: {localCache: false}})
         }
     }
     //Mineral Harvester
@@ -365,27 +365,27 @@ module.exports.miscCreepQueue = function (room) {
         if (buildPower < ROOM_ENERGY_PER_TICK[room.name] * ROOM_ENERGY_ALLOTMENT['build']) number = drones.length + 1;
     }
     if (drones.length < number) {
-        queueCreep(room, priority + drones.length, {role: 'drone', other: {localCache: true, reboot: reboot}})
+        queueCreep(room, priority + drones.length, {role: 'drone', other: {localCache: false, reboot: reboot}})
     }
     //LabTech
     if (room.terminal) {
         let labTech = _.filter(roomCreeps, (creep) => (creep.memory.role === 'labTech'));
         if (!labTech.length) {
-            queueCreep(room, PRIORITIES.miscHauler, {role: 'labTech', other: {localCache: true}})
+            queueCreep(room, PRIORITIES.miscHauler, {role: 'labTech', other: {localCache: false}})
         }
     }
     //Foreman
     if (level >= 7 && room.factory && room.factory.memory.producing) {
         let foreman = _.filter(roomCreeps, (creep) => (creep.memory.role === 'foreman'));
         if (!foreman.length) {
-            queueCreep(room, PRIORITIES.miscHauler, {role: 'foreman', other: {localCache: true}})
+            queueCreep(room, PRIORITIES.miscHauler, {role: 'foreman', other: {localCache: false}})
         }
     }
     //Power
     if (level === 8 && room.store(RESOURCE_POWER) && _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0]) {
         let powerManager = _.filter(roomCreeps, (creep) => (creep.memory.role === 'powerManager'));
         if (!powerManager.length) {
-            queueCreep(room, PRIORITIES.miscHauler, {role: 'powerManager', other: {localCache: true}})
+            queueCreep(room, PRIORITIES.miscHauler, {role: 'powerManager', other: {localCache: false}})
         }
     }
     //SPECIALIZED
@@ -399,7 +399,7 @@ module.exports.miscCreepQueue = function (room) {
         if (buildPower < ROOM_ENERGY_PER_TICK[room.name] * ROOM_ENERGY_ALLOTMENT['build']) number = waller.length + 1;
         if (Memory.roomCache[room.name].threatLevel >= 3) amount = 2;
         if (waller.length < amount) {
-            queueCreep(room, PRIORITIES.waller, {role: 'waller', other: {localCache: true}})
+            queueCreep(room, PRIORITIES.waller, {role: 'waller', other: {localCache: false}})
         }
     }
     //Mineral Harvester
@@ -483,7 +483,7 @@ module.exports.miscCreepQueue = function (room) {
                             role: 'longbow',
                             operation: 'marauding',
                             military: true,
-                            other: {localCache: true}
+                            other: {localCache: false}
                         });
                     }
                 }
