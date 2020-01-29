@@ -47,7 +47,6 @@ module.exports.terminalControl = function (room) {
         runOnce = Game.time;
     }
     if (room.terminal.cooldown) return;
-    if (room.name === Memory.saleTerminal.room) console.log(1)
     // Handle praise room
     if (room.memory.praiseRoom) {
         balanceResources(room.terminal);
@@ -73,7 +72,6 @@ module.exports.terminalControl = function (room) {
         //Dump Excess
         if (fillBuyOrders(room.terminal, globalOrders)) return;
     }
-    if (room.name === Memory.saleTerminal.room) console.log(1)
     // Place sell orders
     if (room.name === Memory.saleTerminal.room) placeSellOrders(room.terminal, globalOrders, myOrders);
 };
