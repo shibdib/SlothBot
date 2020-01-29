@@ -173,7 +173,7 @@ function harvestDepositContainer(source, creep) {
     } else {
         let site = source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.room.controller)})[0];
         if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 2 && !creep.pos.isNearTo(creep.room.controller)) {
-            if (_.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_CONTAINER).length < 2) creep.pos.createConstructionSite(STRUCTURE_CONTAINER)
+            creep.pos.createConstructionSite(STRUCTURE_CONTAINER)
         } else if (site) {
             if (creep.pos.getRangeTo(site) > 0) creep.shibMove(site, {range: 0});
         }
