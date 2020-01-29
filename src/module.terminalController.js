@@ -47,6 +47,7 @@ module.exports.terminalControl = function (room) {
         runOnce = Game.time;
     }
     if (room.terminal.cooldown) return;
+    if (room.name === Memory.saleTerminal.room) console.log(1)
     // Handle praise room
     if (room.memory.praiseRoom) {
         balanceResources(room.terminal);
@@ -72,6 +73,7 @@ module.exports.terminalControl = function (room) {
         //Dump Excess
         if (fillBuyOrders(room.terminal, globalOrders)) return;
     }
+    if (room.name === Memory.saleTerminal.room) console.log(1)
     // Place sell orders
     if (room.name === Memory.saleTerminal.room) placeSellOrders(room.terminal, globalOrders, myOrders);
 };
@@ -199,6 +201,7 @@ function manageSellOrders(myOrders) {
 
 function placeSellOrders(terminal, globalOrders, myOrders) {
     for (let resourceType of Object.keys(terminal.store)) {
+        let sellAmount = 0;
         let availableCash = Game.market.credits - CREDIT_BUFFER;
         if (availableCash <= 0) return false;
         // No energy
@@ -206,13 +209,15 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         // Avoid Duplicates
         if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
         // Handle minerals
-        let mineralCutoff = REACTION_AMOUNT;
-        if (terminal.room.factory) mineralCutoff = REACTION_AMOUNT * 2;
-        if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS), resourceType) && terminal.room.store(resourceType) < mineralCutoff) continue;
+        if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS), resourceType)) {
+            let mineralCutoff = REACTION_AMOUNT;
+            if (terminal.room.factory) mineralCutoff = REACTION_AMOUNT * 2;
+            sellAmount = terminal.room.store(resourceType) - mineralCutoff;
+        }
         // Handle commodities
-        if (_.includes(ALL_COMMODITIES, resourceType) && terminal.room.store(resourceType) < REACTION_AMOUNT * 0.5) continue;
+        if (_.includes(ALL_COMMODITIES, resourceType)) sellAmount = terminal.room.store(resourceType) - REACTION_AMOUNT * 0.5;
         // Handle boosts
-        if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS, [RESOURCE_POWER]), resourceType) && terminal.room.store(resourceType) < BOOST_TRADE_AMOUNT) continue;
+        if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS, [RESOURCE_POWER]), resourceType)) sellAmount = terminal.room.store(resourceType) - BOOST_TRADE_AMOUNT;
         // Sell
         let price = 5;
         let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL), 'price');
@@ -221,13 +226,14 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         } else if (latestMarketHistory(resourceType)) {
             price = latestMarketHistory(resourceType)['avgPrice'];
         }
-        let amount = terminal.room.store(resourceType) - reactionAmount;
-        if (amount > terminal.store[resourceType]) amount = terminal.store[resourceType];
-        let cost = price * amount * 0.05;
-        if (cost > availableCash) amount = _.round(availableCash / (price * 0.05));
-        if (Game.market.createOrder(ORDER_SELL, resourceType, price, amount, terminal.pos.roomName) === OK) {
-            log.w("New Sell Order: " + resourceType + " at/per " + price + ' in ' + roomLink(terminal.room.name), "Market: ");
-            return true;
+        if (sellAmount > terminal.store[resourceType]) sellAmount = terminal.store[resourceType];
+        let cost = price * sellAmount * 0.05;
+        if (cost > availableCash) sellAmount = _.round(availableCash / (price * 0.05));
+        if (sellAmount > 0) {
+            if (Game.market.createOrder(ORDER_SELL, resourceType, price, sellAmount, terminal.pos.roomName) === OK) {
+                log.w("New Sell Order: " + resourceType + " at/per " + price + ' in ' + roomLink(terminal.room.name), "Market: ");
+                return true;
+            }
         }
     }
 }
@@ -298,9 +304,9 @@ function fillBuyOrders(terminal, globalOrders) {
     });
     for (let resourceType of sortedKeys) {
         if (resourceType === RESOURCE_ENERGY) continue;
-        let keepAmount = reactionAmount;
+        let keepAmount = DUMP_AMOUNT * 0.75;
         // Send all of these
-        if ((_.includes(ALL_COMMODITIES, resourceType) && Game.market.credits < CREDIT_BUFFER * 2) || resourceType === RESOURCE_OPS || resourceType === RESOURCE_POWER) {
+        if ((_.includes(ALL_COMMODITIES, resourceType) && Game.market.credits < CREDIT_BUFFER * 2) || resourceType === RESOURCE_OPS || resourceType === RESOURCE_POWER || Game.market.credits < CREDIT_BUFFER * 0.5) {
             keepAmount = 0;
         }
         // Keep boost amount

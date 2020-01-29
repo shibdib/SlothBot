@@ -149,7 +149,7 @@ module.exports.overlordMind = function (room, CPULimit) {
     }
 
     // Handle Terminals
-    if (room.terminal && room.level >= 6 && !room.terminal.cooldown && Game.time % _.random(7, 12) === 0) {
+    if (room.terminal && room.level >= 6 && !room.terminal.cooldown && Game.time % 5 === 0) {
         try {
             terminals.terminalControl(room);
         } catch (e) {
