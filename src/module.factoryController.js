@@ -21,7 +21,7 @@ module.exports.factoryControl = function (room) {
                     for (let neededResource of Object.keys(COMMODITIES[commodity].components)) {
                         enough = false;
                         if (room.store(neededResource) + room.factory.store[neededResource] < COMMODITIES[commodity].components[neededResource]) break;
-                        if (_.includes(BASE_MINERALS, neededResource) && room.store(neededResource) < REACTION_AMOUNT * 0.25) break;
+                        if (_.includes(BASE_MINERALS, neededResource) && room.store(neededResource) < REACTION_AMOUNT * 0.5) break;
                         enough = true;
                     }
                     if (enough) {
@@ -70,7 +70,7 @@ module.exports.factoryControl = function (room) {
                 if (Math.random() > 0.5) {
                     for (let neededResource of Object.keys(COMMODITIES[room.factory.memory.producing].components)) {
                         if (room.store(neededResource) + room.factory.store[neededResource] < COMMODITIES[room.factory.memory.producing].components[neededResource] ||
-                            _.includes(BASE_MINERALS, neededResource) && room.store(neededResource) < REACTION_AMOUNT * 0.2) {
+                            _.includes(BASE_MINERALS, neededResource) && room.store(neededResource) < REACTION_AMOUNT * 0.45) {
                             log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to a shortage of ' + neededResource, ' FACTORY CONTROL:');
                             return delete room.factory.memory.producing;
                         }
