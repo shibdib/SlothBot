@@ -174,3 +174,12 @@ status = function () {
     }
     return log.a('---------------------------------------------------------------------------', ' ');
 };
+
+getMarketHistory = function (resource) {
+    let history = Game.market.getHistory(resource);
+    if (_.size(history)) {
+        return history[_.size(history) - 1]
+    } else {
+        return false;
+    }
+}
