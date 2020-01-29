@@ -21,7 +21,7 @@ module.exports.role = function (powerCreep) {
     // Get Ops from terminal
     if (powerCreep.room.store(RESOURCE_OPS) && _.size(powerCreep.powers) > 1 && powerCreep.store[RESOURCE_OPS] < powerCreep.store.getCapacity() * 0.5) {
         let store;
-        if (powerCreep.room.storage.store[RESOURCE_OPS]) store = powerCreep.room.storage; else if (powerCreep.room.storage.terminal[RESOURCE_OPS]) store = powerCreep.room.terminal;
+        if (powerCreep.room.storage.store[RESOURCE_OPS]) store = powerCreep.room.storage; else if (powerCreep.room.terminal[RESOURCE_OPS]) store = powerCreep.room.terminal;
         if (store) {
             switch (powerCreep.withdraw(store, RESOURCE_OPS)) {
                 case OK:
