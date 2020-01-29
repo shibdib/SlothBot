@@ -1011,17 +1011,17 @@ function displayQueue(room) {
     let military = _.pluck(queue, 'military');
     let lower = _.size(queue) + 2;
     if (lower > 7) lower = 7;
-    room.visual.rect(39, 0, 49, lower, {
+    room.visual.rect(34, 0, 49, lower, {
         fill: '#ffffff',
         opacity: '0.55',
         stroke: 'black'
     });
-    displayText(room, 40, 1, 'Creep Build Queue');
+    displayText(room, 35, 1, 'Creep Build Queue');
     if (!_.size(queue)) return;
     for (let i = 0; i < 5; i++) {
         if (!roles[i]) break;
         let mil = '';
         if (military[i]) mil = '*';
-        displayText(room, 40, 2 + i, _.capitalize(roles[i]) + mil + ' Priority- ' + priority[i] + ' Age- ' + (Game.time - tickQueued[i]));
+        displayText(room, 35, 2 + i, _.capitalize(roles[i]) + mil + ' Priority- ' + priority[i] + ' Age- ' + (Game.time - tickQueued[i]));
     }
 }
