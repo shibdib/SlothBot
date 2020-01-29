@@ -480,7 +480,7 @@ function profitCheck(force = false) {
     let profitTracking = Memory._banker || {};
     if (force || profitTracking.lastData + hourlyTick < Game.time || !profitTracking.lastData) {
         profitTracking.lastData = Game.time;
-        let hourlyProfits = profitTracking.hourArray || [];
+        //let hourlyProfits = profitTracking.hourArray || [];
         let lastCredit = profitTracking.lastTotalAmount || Game.market.credits;
         profitTracking.lastTotalAmount = Game.market.credits;
         let hourChange = Game.market.credits - lastCredit;
@@ -492,14 +492,16 @@ function profitCheck(force = false) {
             spendingMoney += hourChange;
             log.w("New spending account amount (HOURLY UPDATE) - " + spendingMoney, "Market: ");
         }
-        // Track profits
-        if (hourlyProfits.length < 240) {
+        /**
+         // Track profits
+         if (hourlyProfits.length < 240) {
             hourlyProfits.push(hourChange)
         } else {
             hourlyProfits.shift();
             hourlyProfits.push(hourChange);
-        }
-        profitTracking.hourArray = hourlyProfits;
+        }**/
+        // Clear old
+        profitTracking.hourArray = undefined;
     } else if (profitTracking.lastInflux + fiveMinuteTick < Game.time || !profitTracking.lastInflux) {
         profitTracking.lastInflux = Game.time;
         if (Game.market.credits > CREDIT_BUFFER && Math.random() > 0.5) {
