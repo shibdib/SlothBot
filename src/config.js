@@ -51,6 +51,7 @@ global.LAB_PRIORITY = [RESOURCE_GHODIUM_HYDRIDE, RESOURCE_GHODIUM, RESOURCE_CATA
 global.BUY_ENERGY = true; // If true it will buy energy at anything below the baseline energy price if a room isn't considered in surplus
 global.CREDIT_BUFFER = 10000; // Stay above
 global.ENERGY_AMOUNT = (TERMINAL_CAPACITY * 0.1 + STORAGE_CAPACITY * 0.025); // Aim for this amount in a room
+global.FACTORY_CUTOFF = ENERGY_AMOUNT * 0.5; // Amount needed for a factory to be active
 global.MINERAL_TRADE_AMOUNT = TERMINAL_CAPACITY * 0.015;  // Hold this much of a mineral before selling
 global.BOOST_TRADE_AMOUNT = TERMINAL_CAPACITY * 0.03;  // Hold this much of a mineral before selling
 global.TERMINAL_ENERGY_BUFFER = TERMINAL_CAPACITY * 0.025; // Keep this much in terminal (Needed for trade)

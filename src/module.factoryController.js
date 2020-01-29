@@ -8,7 +8,7 @@
 module.exports.factoryControl = function (room) {
     // Get factory and see if it has anything in it
     if (room.factory) {
-        if (!room.factory.memory.producing && room.energy > ENERGY_AMOUNT * 0.6) {
+        if (!room.factory.memory.producing && room.energy > FACTORY_CUTOFF) {
             if (room.energy > ENERGY_AMOUNT * 1.5) {
                 log.a('Producing ' + RESOURCE_BATTERY + ' in ' + roomLink(room.name), ' FACTORY CONTROL:');
                 return room.factory.memory.producing = RESOURCE_BATTERY;
@@ -16,7 +16,12 @@ module.exports.factoryControl = function (room) {
                 for (let commodity of shuffle(ALL_COMMODITIES)) {
                     // If a base continue
                     if (!COMMODITIES[commodity] || room.store(commodity) >= DUMP_AMOUNT * 0.9) continue;
-                    if (commodity === RESOURCE_BATTERY || COMMODITIES[commodity].level) continue;
+                    if (commodity === RESOURCE_BATTERY) continue;
+                    // Handle levels
+                    if (COMMODITIES[commodity].level) {
+                        let powerCreep = _.filter(room.powerCreeps, (p) => p.my && p.powers[PWR_OPERATE_FACTORY] && p.powers[PWR_OPERATE_FACTORY].level === COMMODITIES[commodity].level)[0];
+                        if (!powerCreep) continue;
+                    }
                     let enough;
                     for (let neededResource of Object.keys(COMMODITIES[commodity].components)) {
                         enough = false;
@@ -46,7 +51,7 @@ module.exports.factoryControl = function (room) {
                     }
                 }
             }
-        } else if (!room.factory.memory.producing && room.energy < ENERGY_AMOUNT * 0.5 && room.store(RESOURCE_BATTERY) >= 50) {
+        } else if (!room.factory.memory.producing && room.energy < FACTORY_CUTOFF && room.store(RESOURCE_BATTERY) >= 50) {
             log.a('Converting ' + RESOURCE_BATTERY + ' to ENERGY in ' + roomLink(room.name), ' FACTORY CONTROL:');
             return room.factory.memory.producing = RESOURCE_ENERGY;
         } else if (room.factory.memory.producing) {
@@ -63,7 +68,7 @@ module.exports.factoryControl = function (room) {
                     log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to hitting the production cap.', ' FACTORY CONTROL:');
                     return delete room.factory.memory.producing;
                 }
-                if (room.energy < ENERGY_AMOUNT * 0.5) {
+                if (room.energy < FACTORY_CUTOFF * 0.9) {
                     log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to being low on energy.', ' FACTORY CONTROL:');
                     return delete room.factory.memory.producing;
                 }
