@@ -537,7 +537,7 @@ function praiseRoom(room) {
     // Terminal and Mineral
     if (room.controller.level >= 6) {
         // Build extractor
-        if (!room.mineral.pos.checkForAllStructure()) room.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+        if (!room.mineral.pos.checkForAllStructure().length && !room.mineral.pos.checkForConstructionSites()) room.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
         // Build terminal
         if (!room.terminal) {
             for (let xOff = -1; xOff <= 1; xOff++) {
