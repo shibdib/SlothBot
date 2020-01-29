@@ -208,7 +208,6 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         if (resourceType === RESOURCE_ENERGY) {
             sellAmount = terminal.room.energy - ENERGY_AMOUNT * 2.5;
         }
-        ;
         // Handle minerals
         if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS), resourceType)) {
             let mineralCutoff = REACTION_AMOUNT;
@@ -216,7 +215,8 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
             sellAmount = terminal.room.store(resourceType) - mineralCutoff;
         }
         // Handle commodities
-        if (_.includes(ALL_COMMODITIES, resourceType)) sellAmount = terminal.room.store(resourceType) - REACTION_AMOUNT * 0.5;
+        if (_.includes(_.union(REGIONAL_0_COMMODITIES, COMPRESSED_COMMODITIES), resourceType)) sellAmount = terminal.room.store(resourceType) - REACTION_AMOUNT * 0.5;
+        if (_.includes(_.union(REGIONAL_1_COMMODITIES, REGIONAL_2_COMMODITIES, REGIONAL_3_COMMODITIES, REGIONAL_4_COMMODITIES, REGIONAL_5_COMMODITIES), resourceType)) sellAmount = terminal.room.store(resourceType);
         // Handle boosts
         if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS, [RESOURCE_POWER]), resourceType)) sellAmount = terminal.room.store(resourceType) - BOOST_TRADE_AMOUNT;
         // Sell
@@ -307,7 +307,7 @@ function fillBuyOrders(terminal, globalOrders) {
         if (resourceType === RESOURCE_ENERGY) continue;
         let keepAmount = DUMP_AMOUNT * 0.75;
         // Send all of these
-        if ((_.includes(ALL_COMMODITIES, resourceType) && Game.market.credits < CREDIT_BUFFER * 2) || Game.market.credits < CREDIT_BUFFER * 0.5) {
+        if (Game.market.credits < CREDIT_BUFFER * 0.5) {
             keepAmount = 0;
         }
         // Keep boost amount
