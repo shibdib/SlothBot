@@ -15,7 +15,7 @@ module.exports.factoryControl = function (room) {
             } else {
                 for (let commodity of shuffle(ALL_COMMODITIES)) {
                     // If a base continue
-                    if (!COMMODITIES[commodity]) continue;
+                    if (!COMMODITIES[commodity] || room.store(commodity) >= DUMP_AMOUNT * 0.9) continue;
                     if (commodity === RESOURCE_BATTERY || COMMODITIES[commodity].level) continue;
                     let enough;
                     for (let neededResource of Object.keys(COMMODITIES[commodity].components)) {
