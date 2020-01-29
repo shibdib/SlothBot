@@ -156,7 +156,7 @@ function pricingUpdateSell(globalOrders, myOrders) {
             let currentPrice = order.price;
             let newPrice = currentPrice;
             let competitorOrder = _.min(globalOrders.filter(o => !_.includes(Memory.myRooms, o.roomName) && o.resourceType === order.resourceType && o.type === ORDER_SELL), 'price');
-            if (competitorOrder) {
+            if (competitorOrder.id) {
                 newPrice = competitorOrder.price - 0.001;
             } else if (latestMarketHistory(order.resourceType)) {
                 newPrice = latestMarketHistory(order.resourceType)['avgPrice'];
@@ -202,10 +202,13 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         let sellAmount = 0;
         let availableCash = Game.market.credits - CREDIT_BUFFER;
         if (availableCash <= 0) return false;
-        // No energy
-        if (resourceType === RESOURCE_ENERGY) continue;
         // Avoid Duplicates
         if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
+        // Energy
+        if (resourceType === RESOURCE_ENERGY) {
+            sellAmount = terminal.room.energy - ENERGY_AMOUNT * 2.5;
+        }
+        ;
         // Handle minerals
         if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS), resourceType)) {
             let mineralCutoff = REACTION_AMOUNT;
@@ -219,10 +222,10 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         // Sell
         let price = 5;
         let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL), 'price');
-        if (competitorOrder) {
+        if (competitorOrder.id) {
             price = competitorOrder.price - 0.001;
         } else if (latestMarketHistory(resourceType)) {
-            price = latestMarketHistory(resourceType)['avgPrice'];
+            price = latestMarketHistory(resourceType)['avgPrice'] + 0.001;
         }
         if (sellAmount > terminal.store[resourceType]) sellAmount = terminal.store[resourceType];
         let cost = price * sellAmount * 0.05;
@@ -304,7 +307,7 @@ function fillBuyOrders(terminal, globalOrders) {
         if (resourceType === RESOURCE_ENERGY) continue;
         let keepAmount = DUMP_AMOUNT * 0.75;
         // Send all of these
-        if ((_.includes(ALL_COMMODITIES, resourceType) && Game.market.credits < CREDIT_BUFFER * 2) || resourceType === RESOURCE_OPS || resourceType === RESOURCE_POWER || Game.market.credits < CREDIT_BUFFER * 0.5) {
+        if ((_.includes(ALL_COMMODITIES, resourceType) && Game.market.credits < CREDIT_BUFFER * 2) || Game.market.credits < CREDIT_BUFFER * 0.5) {
             keepAmount = 0;
         }
         // Keep boost amount
