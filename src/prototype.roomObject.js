@@ -58,6 +58,23 @@ Object.defineProperty(StructureTerminal.prototype, 'memory', {
     configurable: true,
     enumerable: false,
 });
+
+Object.defineProperty(Source.prototype, 'memory', {
+    get: function () {
+        if (Memory.structureMemory === undefined || !Memory.structureMemory) {
+            Memory.structureMemory = {};
+        }
+        if (Memory.structureMemory[this.id] === undefined || !Memory.structureMemory[this.id]) {
+            Memory.structureMemory[this.id] = {};
+        }
+        return Memory.structureMemory[this.id];
+    },
+    set: function (v) {
+        return _.set(Memory, 'structureMemory.' + this.id, v);
+    },
+    configurable: true,
+    enumerable: false,
+});
 /**
  * Generalized target locking function for actors with memory.
  *

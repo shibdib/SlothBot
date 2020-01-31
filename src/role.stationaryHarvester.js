@@ -12,8 +12,6 @@
 module.exports.role = function (creep) {
     //If source is set harvest
     if (creep.memory.source) {
-        //Find container
-        if (!creep.memory.containerAttempt && !creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
         let container = Game.getObjectById(creep.memory.containerID);
         //Make sure you're on the container
         if (!creep.memory.onContainer && creep.memory.containerID) {
@@ -44,6 +42,8 @@ module.exports.role = function (creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
+                //Find container
+                if (!creep.memory.containerAttempt && !creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
                 if (container && container.store[RESOURCE_ENERGY] > 10 && creep.memory.linkID && Game.time % 3 === 0) creep.withdraw(container, RESOURCE_ENERGY);
                 if (_.sum(creep.store) === creep.store.getCapacity()) return depositEnergy(creep);
                 break;
@@ -168,14 +168,23 @@ function harvestDepositContainer(source, creep) {
     let container = source.pos.findInRange(creep.room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.room.controller)})[0];
     if (container) {
         if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
+        if (!source.memory.containerPos) source.memory.containerPos = JSON.stringify(container.pos);
         creep.memory.containerAttempt = true;
         return container.id;
     } else {
-        let site = source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.room.controller)})[0];
-        if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 2 && !creep.pos.isNearTo(creep.room.controller)) {
-            creep.pos.createConstructionSite(STRUCTURE_CONTAINER)
-        } else if (site) {
-            if (creep.pos.getRangeTo(site) > 0) creep.shibMove(site, {range: 0});
+        if (!source.memory.containerPos) {
+            let site = source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.room.controller)})[0];
+            if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 2 && !creep.pos.isNearTo(creep.room.controller)) {
+                creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
+                source.memory.containerPos = JSON.stringify(creep.pos);
+            } else if (site) {
+                if (creep.pos.getRangeTo(site) > 0) creep.shibMove(site, {range: 0});
+                source.memory.containerPos = JSON.stringify(site.pos);
+            }
+        } else {
+            let storedSite = JSON.parse(source.memory.containerPos);
+            let containerSite = new RoomPosition(storedSite.x, storedSite.y, storedSite.roomName);
+            if (!containerSite.checkForConstructionSites()) containerSite.createConstructionSite(STRUCTURE_CONTAINER);
         }
         creep.memory.containerAttempt = true;
     }
