@@ -332,7 +332,9 @@ function fillBuyOrders(terminal, globalOrders) {
                             return true;
                     }
                 }
-            } // Offload if we're overflowing
+            }
+            /**
+             // Offload if we're overflowing
             else if ((!_.includes(ALL_COMMODITIES, resourceType) && sellAmount >= DUMP_AMOUNT) || (_.includes(ALL_COMMODITIES, resourceType) && sellAmount >= DUMP_AMOUNT * 2)) {
                 let randomRoom = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && r.level >= 6)) || _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && r.level >= 6));
                 if (randomRoom) {
@@ -346,7 +348,7 @@ function fillBuyOrders(terminal, globalOrders) {
                         }
                     }
                 }
-            }
+            }**/
         }
     }
 }
