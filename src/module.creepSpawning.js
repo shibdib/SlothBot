@@ -70,9 +70,10 @@ module.exports.processBuildQueue = function () {
                         body = generator.bodyGenerator(level - 1, role, spawn.room, topPriority.misc);
                         cost = global.UNIT_COST(body);
                     }
+                    if (!body || !body.length) continue;
                     if (body && body.length && cost <= spawn.room.energyCapacityAvailable) break;
                 }
-                if (cost > spawn.room.energyAvailable || !body) {
+                if (cost > spawn.room.energyAvailable || !body.length) {
                     if (body && cost <= spawn.room.energyCapacityAvailable) spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
                     continue;
                 }
