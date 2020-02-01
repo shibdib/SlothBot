@@ -239,7 +239,7 @@ Object.defineProperty(Room.prototype, 'level', {
 Object.defineProperty(Room.prototype, 'energy', {
     get: function () {
         if (!this._energy) {
-            this._energy = getRoomResource(this, RESOURCE_ENERGY);
+            this._energy = getRoomResource(this, RESOURCE_ENERGY, true);
         }
         return this._energy;
     },
@@ -260,23 +260,27 @@ Object.defineProperty(Room.prototype, 'factory', {
 
 // Creates a room prototype that accepts RESOURCE_* Constants that gets you the total of that resource in a room.
 // EXAMPLE USAGE - Game.rooms['W0S0'].store(RESOURCE_ENERGY);
-Room.prototype.store = function (resource) {
+Room.prototype.store = function (resource, unused = false) {
     if (!this._resourceStore || this._resourceStore.tick !== Game.time) {
         this._resourceStore = {};
         this._resourceStore.tick = Game.time;
     }
     if (!this._resourceStore[resource]) {
-        this._resourceStore[resource] = getRoomResource(this, resource);
+        this._resourceStore[resource] = getRoomResource(this, resource, unused);
     }
     return this._resourceStore[resource];
 };
 
-function getRoomResource(room, resource) {
+function getRoomResource(room, resource, unused = false) {
     if (!room || !resource) return undefined;
     let count = 0;
-    _.filter(room.structures, (s) => s.store && s.store.getUsedCapacity(resource) && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TOWER &&
-        s.structureType !== STRUCTURE_SPAWN && s.structureType !== STRUCTURE_EXTENSION && s.structureType !== STRUCTURE_LAB).forEach((s) => count += s.store.getUsedCapacity(resource));
-    _.filter(room.structures, (s) => resource !== RESOURCE_ENERGY && s.store && s.store.getUsedCapacity(resource) && s.structureType === STRUCTURE_LAB && resource !== s.memory.itemNeeded && resource !== s.memory.neededBoost).forEach((s) => count += s.store.getUsedCapacity(resource));
+    if (!unused) {
+        _.filter(room.structures, (s) => s.store && s.store.getUsedCapacity(resource) && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TOWER &&
+            s.structureType !== STRUCTURE_SPAWN && s.structureType !== STRUCTURE_EXTENSION && s.structureType !== STRUCTURE_LAB).forEach((s) => count += s.store.getUsedCapacity(resource));
+        _.filter(room.structures, (s) => resource !== RESOURCE_ENERGY && s.store && s.store.getUsedCapacity(resource) && s.structureType === STRUCTURE_LAB && resource !== s.memory.itemNeeded && resource !== s.memory.neededBoost).forEach((s) => count += s.store.getUsedCapacity(resource));
+    } else {
+        _.filter(room.structures, (s) => s.store && s.store.getUsedCapacity(resource) && (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_CONTAINER)).forEach((s) => count += s.store.getUsedCapacity(resource));
+    }
     _.filter(room.creeps, (c) => c.store[resource]).forEach((c) => count += c.store[resource]);
     _.filter(room.droppedResources, (r) => r.resourceType === resource).forEach((r) => count += r.amount);
     return count;
