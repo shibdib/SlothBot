@@ -68,6 +68,19 @@ Object.defineProperty(Room.prototype, 'deposits', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'nukes', {
+    get: function () {
+        // If we dont have the value stored locally
+        if (!this._nukes) {
+            this._nukes = this.find(FIND_NUKES);
+        }
+        // return the locally stored value
+        return this._nukes;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'mineral', {
     get: function () {
         // If we dont have the value stored locally

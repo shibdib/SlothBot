@@ -12,7 +12,7 @@
 module.exports.labManager = function () {
     let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
     for (let room of myRooms) {
-        if (room.controller.level < 6) continue;
+        if (room.controller.level < 6 || room.nukes.length) continue;
         room.memory.reactionRoom = true;
         let lab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
         if (lab && room.terminal && Math.random() >= 0.5) cleanLabs(room);

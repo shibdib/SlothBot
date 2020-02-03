@@ -369,21 +369,21 @@ module.exports.miscCreepQueue = function (room) {
         queueCreep(room, priority + drones.length, {role: 'drone', other: {localCache: false, reboot: reboot}})
     }
     //LabTech
-    if (room.terminal) {
+    if (!room.nukes.length && room.terminal) {
         let labTech = _.filter(roomCreeps, (creep) => (creep.memory.role === 'labTech'));
         if (!labTech.length) {
             queueCreep(room, PRIORITIES.miscHauler, {role: 'labTech', other: {localCache: false}})
         }
     }
     //Foreman
-    if (level >= 7 && room.factory && room.factory.memory.producing) {
+    if (!room.nukes.length && level >= 7 && room.factory && room.factory.memory.producing) {
         let foreman = _.filter(roomCreeps, (creep) => (creep.memory.role === 'foreman'));
         if (!foreman.length) {
             queueCreep(room, PRIORITIES.miscHauler, {role: 'foreman', other: {localCache: false}})
         }
     }
     //Power
-    if (level === 8 && room.store(RESOURCE_POWER) && _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0]) {
+    if (!room.nukes.length && level === 8 && room.store(RESOURCE_POWER) && _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0]) {
         let powerManager = _.filter(roomCreeps, (creep) => (creep.memory.role === 'powerManager'));
         if (!powerManager.length) {
             queueCreep(room, PRIORITIES.miscHauler, {role: 'powerManager', other: {localCache: false}})
@@ -398,13 +398,13 @@ module.exports.miscCreepQueue = function (room) {
         let number = 1;
         waller.forEach((h) => number += h.getActiveBodyparts(WORK) * REPAIR_COST);
         if (buildPower < ROOM_ENERGY_PER_TICK[room.name] * ROOM_ENERGY_ALLOTMENT['build']) number = waller.length + 1;
-        if (Memory.roomCache[room.name].threatLevel >= 3) amount = 2;
+        if (Memory.roomCache[room.name].threatLevel >= 3 || room.nukes.length) amount = 3;
         if (waller.length < amount) {
             queueCreep(room, PRIORITIES.waller, {role: 'waller', other: {localCache: false}})
         }
     }
     //Mineral Harvester
-    if (level >= 6 && room.mineral.mineralAmount) {
+    if (!room.nukes.length && level >= 6 && room.mineral.mineralAmount) {
         let mineralHarvester = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'mineralHarvester');
         let extractor = room.structures.filter((s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
         if (extractor && !mineralHarvester.length) {
@@ -417,7 +417,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     // If no conflict detected
-    if (!Memory.roomCache[room.name].responseNeeded && !room.memory.spawnBorderPatrol) {
+    if (!room.nukes.length && !Memory.roomCache[room.name].responseNeeded && !room.memory.spawnBorderPatrol) {
         //Pre observer spawn explorers
         if (Memory.maxLevel < 8) {
             let amount = 4;

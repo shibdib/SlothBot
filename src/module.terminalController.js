@@ -41,10 +41,15 @@ module.exports.terminalControl = function (room) {
             if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].controller.level === Memory.maxLevel) {
                 return Memory.saleTerminal.saleSet = Game.time;
             }
-            Memory.saleTerminal.room = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && !s.room.memory.praiseRoom && s.room.level === Memory.maxLevel && s.isActive() && _.sum(s.store) < s.store.getCapacity() * 0.9)).room.name;
+            Memory.saleTerminal.room = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && !s.room.memory.praiseRoom && s.room.level === Memory.maxLevel && !s.room.nukes.length && s.isActive() && _.sum(s.store) < s.store.getCapacity() * 0.9)).room.name;
             Memory.saleTerminal.saleSet = Game.time;
         }
         runOnce = Game.time;
+    }
+    // If sale terminal has a nuke incoming clear it
+    if (Memory.saleTerminal.room && room.name === Memory.saleTerminal.room && room.nukes.length) {
+        Memory.saleTerminal.room = undefined;
+        return log.a(roomLink(room.name) + ' is no longer the primary market room due to an incoming nuke.');
     }
     if (room.terminal.cooldown) return;
     // Handle praise room
@@ -355,7 +360,7 @@ function fillBuyOrders(terminal, globalOrders) {
 
 function balanceResources(terminal) {
     // Balance Energy
-    if (Memory.roomCache[terminal.room.name].threatLevel < 3) {
+    if (Memory.roomCache[terminal.room.name].threatLevel < 3 && !terminal.room.nukes.length) {
         // Find needy terminals
         let needyTerminal = _.min(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.energy < terminal.room.energy * 0.85 && !r.room.memory.praiseRoom), '.room.energy');
         if (needyTerminal.id) {
@@ -397,14 +402,14 @@ function balanceResources(terminal) {
         if (_.includes(ALL_BOOSTS, resource)) {
             keepAmount = BOOST_AMOUNT;
         }
-        // Praise empties
-        if (terminal.room.memory.praiseRoom) keepAmount = 0;
+        // Praise empties and nuke room
+        if (terminal.room.memory.praiseRoom || terminal.room.nukes.length) keepAmount = 0;
         // Next resource if we don't have enough to send
         let available = terminal.room.store(resource) - keepAmount;
         if (available > terminal.store[resource]) available = terminal.store[resource];
         if (available <= keepAmount * 0.1) continue;
         // Find room in need
-        let needyTerminal = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.store(resource) < keepAmount && !r.room.memory.praiseRoom), function (s) {
+        let needyTerminal = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && !r.room.nukes.length && r.room.name !== terminal.room.name && r.room.store(resource) < keepAmount && !r.room.memory.praiseRoom), function (s) {
             s.room.store(resource);
         })[0];
         if (needyTerminal) {
@@ -427,7 +432,7 @@ function balanceResources(terminal) {
 
 function emergencyEnergy(terminal) {
     // Balance energy
-    if (terminal.store[RESOURCE_ENERGY] && !Memory.roomCache[terminal.room.name].requestingSupport) {
+    if (terminal.store[RESOURCE_ENERGY] && !Memory.roomCache[terminal.room.name].requestingSupport && Memory.roomCache[terminal.room.name].threatLevel < 3 && !terminal.room.nukes.length) {
         // Find needy terminals
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
         let responseNeeded = _.min(_.filter(myRooms, (r) => r.name !== terminal.room.name && ((Memory.roomCache[r.name] && Memory.roomCache[r.name].threatLevel >= 3) || (r.memory.nuke > 1500)) && r.terminal && r.energy < ENERGY_AMOUNT * 2), '.energy');

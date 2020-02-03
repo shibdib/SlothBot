@@ -37,6 +37,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             carry = _.floor(((room.energyCapacityAvailable * 0.025)) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
             move = work + carry;
+            if (room.nukes.length) deficitExemption = true;
             break;
         case 'praiseUpgrader':
             deficitExemption = true;
@@ -46,7 +47,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = 1;
             break;
         case 'upgrader':
-            if ((importantBuilds && !room.energyState) || room.memory.nuke) {
+            if ((importantBuilds && !room.energyState) || room.nukes.length) {
                 work = 1;
                 carry = 1;
                 move = work + carry;
