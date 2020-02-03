@@ -201,7 +201,7 @@ function minionController(minion) {
     // Disable notifications
     if (minion.ticksToLive > 1490) minion.notifyWhenAttacked(false);
     // Handle nuke flee
-    if (minion.memory.fleeNukeTime && minion.fleeNukeRoom(minion.memory.fleeNukeRoom)) return;
+    if (minion.memory.fleeNukeTime && minion.fleeNukeRoom()) return;
     // If idle sleep
     if (minion.idle) return;
     // If minion has been flagged to recycle do so

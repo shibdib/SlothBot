@@ -216,3 +216,14 @@ PowerCreep.prototype.fleeRoom = function (room) {
     this.say('NUKE! RUN!', true);
     this.shibMove(exit);
 };
+
+PowerCreep.prototype.fleeNukeRoom = function () {
+    this.say('NUKE!', true);
+    if (this.memory.fleeNukeTime <= Game.time) {
+        this.memory.fleeNukeTime = undefined;
+        this.memory.fleeNukeRoom = undefined;
+        return false;
+    }
+    if (this.memory.fleeTo && this.room.name !== this.memory.fleeTo) this.shibMove(new RoomPosition(25, 25, this.memory.fleeTo), {range: 23}); else if (this.room.name !== this.memory.fleeTo) this.idleFor(this.memory.fleeNukeTime - Game.time);
+    if (!this.memory.fleeTo) this.memory.fleeTo = _.sample(_.filter(Memory.myRooms, (r) => !r.nukes.length)).name;
+};

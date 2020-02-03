@@ -36,6 +36,8 @@ module.exports.powerControl = function () {
                     try {
                         // If idle sleep
                         if (powerCreep.idle) continue;
+                        // Handle nuke flee
+                        if (powerCreep.memory.fleeNukeTime && powerCreep.fleeNukeRoom()) return;
                         powerCreepRole.role(powerCreep);
                     } catch (e) {
                         log.e(powerCreepRole.name + ' in room ' + powerCreep.room.name + ' experienced an error');
