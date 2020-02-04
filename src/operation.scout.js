@@ -111,6 +111,16 @@ function operationPlanner(room, creep = undefined) {
                     'threat level for a siege', 'OPERATION PLANNER: ');
                 return memory.recycle;
             }
+            // Handle MAD
+            if (Memory.MAD && _.includes(Memory.MAD, controller.owner.username) && nukeTarget(room)) {
+                cache[room.name] = {
+                    tick: tick,
+                    dDay: tick + 50000,
+                    type: 'nuke',
+                    level: 1
+                };
+                Memory.MAD = _.filter(Memory.MAD, (u) => u !== controller.owner.username);
+            } else
             // If owned room has no towers
             if (!towers.length || _.max(towers, 'energy').energy < 10) {
                 cache[room.name] = {
@@ -122,7 +132,8 @@ function operationPlanner(room, creep = undefined) {
                 // If owned room has tower
             } else if (SIEGE_ENABLED) {
                 if (maxLevel === 8) {
-                    if (towers.length >= 3 && nukeTarget(room)) {
+                    //TODO: Redo non MAD nuke threshold
+                    if (towers.length >= 9 && nukeTarget(room)) {
                         cache[room.name] = {
                             tick: tick,
                             dDay: tick + 50000,
@@ -216,9 +227,7 @@ function claimScout(room) {
 }
 
 function nukeTarget(room) {
-    return false;
-    //TODO: Rework nuke threshold
-    let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && s.ghodium === s.ghodiumCapacity && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, room.name) <= 10);
+    let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, room.name) <= 10);
     let inboundNukes = room.find(FIND_NUKES);
     if (nukes.length && !inboundNukes.length) {
         let launched = 0;

@@ -194,6 +194,11 @@ handleNukeAttack = function (room) {
         return false;
     }
     room.memory.nuke = _.min(nukes, '.timeToLand').timeToLand;
+    let launchRoom = _.sample(nukes).launchRoomName;
+    if (Memory.roomCache[launchRoom] && Memory.roomCache[launchRoom].owner) {
+        let nukeTargets = Memory.MAD || [];
+        Memory.MAD = _.uniq(nukeTargets.push(Memory.roomCache[launchRoom].owner))
+    }
     for (let nuke of nukes) {
         if (nuke.timeToLand <= 75) {
             for (let c of nuke.room.creeps) {

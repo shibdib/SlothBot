@@ -158,6 +158,20 @@ function operationRequests() {
         Memory.targetRooms = cache;
         break;
     }
+    // Handle MAD
+    if (Memory.MAD && Memory.MAD.length) {
+        let MADTarget = _.sortBy(_.filter(Memory.roomCache, (r) => r.owner && _.includes(Memory.MAD, r.owner) && !checkForNap(r.user) && r.level >= 5), 'closestRange');
+        if (MADTarget.length && !Memory.targetRooms[MADTarget[0].name]) {
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[MADTarget[0].name] = {
+                tick: tick,
+                type: 'attack'
+            };
+            Memory.targetRooms = cache;
+            log.a('NUCLEAR Scout operation planned for ' + roomLink(MADTarget[0].name) + ' INITIATING MAD PROTOCOL. (Nearest Friendly Room - ' + MADTarget[0].closestRange + ' rooms away)', 'HIGH COMMAND: ');
+        }
+    }
     if (totalCountFiltered <= targetLimit) {
         // Kill strongholds (Falls under target rooms)
         let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => r.sk && r.towers && r.closestRange <= 3), 'closestRange');
@@ -564,7 +578,7 @@ function manualAttacks() {
 }
 
 function nukeFlag(flag) {
-    let nuker = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && s.ghodium === s.ghodiumCapacity && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, flag.pos.roomName) <= 10)[0];
+    let nuker = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, flag.pos.roomName) <= 10)[0];
     if (!nuker) {
         log.e('Nuke request for room ' + flag.pos.roomName + ' denied, no nukes found in-range.');
         flag.remove();
