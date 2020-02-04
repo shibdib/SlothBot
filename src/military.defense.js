@@ -202,7 +202,7 @@ handleNukeAttack = function (room) {
             }
             return true;
         }
-        let structures = nuke.pos.findInRange(FIND_MY_STRUCTURES, 5, {filter: (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_FACTORY});
+        let structures = nuke.pos.findInRange(FIND_MY_STRUCTURES, 5, {filter: (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_FACTORY || s.structureType === STRUCTURE_POWER_SPAWN});
         for (let structure of structures) {
             if (structure.pos.checkForConstructionSites() || structure.pos.checkForRampart()) continue;
             structure.pos.createConstructionSite(STRUCTURE_RAMPART);
