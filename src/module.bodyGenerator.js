@@ -200,7 +200,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         claim *= deficit;
         carry *= deficit;
         heal *= deficit;
-        move *= deficit;
+        move = (move + 0.5) * deficit;
     }
     for (let i = 0; i < work; i++) body.push(WORK)
     for (let i = 0; i < carry; i++) body.push(CARRY)
