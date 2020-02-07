@@ -13,6 +13,7 @@ const structureMatrixCache = {};
 const creepMatrixCache = {};
 const hostileMatrixCache = {};
 const skMatrixCache = {};
+let tempAvoidRooms = [];
 let routeCache = {};
 let pathCache = {};
 
@@ -37,6 +38,17 @@ function shibMove(creep, heading, options = {}) {
             radius: 0.55,
             stroke: 'black'
         });
+    }
+    // If stuck in room, move
+    if (creep.memory.routeReset) {
+        if (creep.memory.lastRoom !== creep.room.name) {
+            creep.memory.roomTimer = undefined;
+            creep.memory.lastRoom = undefined;
+            creep.memory.routeReset = undefined;
+            return creep.memory._shibMove = undefined;
+        } else {
+            creep.moveTo(creep.pos.findClosestByPath(FIND_EXIT));
+        }
     }
     // Get range
     let rangeToDestination = creep.pos.getRangeTo(heading);
@@ -101,6 +113,21 @@ function shibMove(creep, heading, options = {}) {
             options.useCache = false;
             creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
             if (Math.random() > .9) return creep.moveRandom();
+        }
+    }
+    //Handle getting stuck in rooms on multi rooms pathing
+    if (pathInfo.route && pathInfo.route.length) {
+        if (!creep.memory.lastRoom || creep.memory.lastRoom !== creep.room.name) {
+            creep.memory.roomTimer = 0;
+            creep.memory.lastRoom = creep.room.name;
+        }
+        creep.memory.roomTimer++;
+        if (creep.memory.roomTimer >= 100) {
+            // Handle this being the desto but the room being inaccessible
+            if (creep.memory.targetRoom === creep.room.name) return creep.memory.recycle = true;
+            // Otherwise move to closes exit and set stuck room to avoid
+            if (!_.includes(tempAvoidRooms, creep.room.name)) tempAvoidRooms.push(creep.room.name);
+            return creep.memory.routeReset = true;
         }
     }
     //Execute path if target is valid and path is set
@@ -282,8 +309,8 @@ function findRoute(origin, destination, options = {}) {
             let isHighway = (parsed[1] % 10 === 0) || (parsed[2] % 10 === 0);
             // SK rooms are avoided when there is no vision in the room, harvested-from SK rooms are allowed
             if (Memory.roomCache[roomName] && Memory.roomCache[roomName].sk) return 5;
-            // Check for manual flagged rooms
-            if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) return 254;
+            // Check for avoid flagged rooms
+            if (Memory.avoidRooms && _.includes(_.union(Memory.avoidRooms, tempAvoidRooms), roomName)) return 254;
             if (Memory.roomCache && Memory.roomCache[roomName]) {
                 // If room is under attack
                 if (Memory.roomCache[roomName] && Memory.roomCache[roomName].threatLevel >= 3) return 75;
