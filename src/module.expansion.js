@@ -40,7 +40,7 @@ module.exports.claimNewRoom = function () {
                 let avoidRooms = _.filter(Memory.roomCache, (r) => r.level);
                 for (let avoidKey in avoidRooms) {
                     let avoidName = avoidRooms[avoidKey].name;
-                    let distance = Game.map.findRoute(name, avoidName).length;
+                    let distance = Game.map.getRoomLinearDistance(name, avoidName);
                     let cutoff = 2;
                     if (_.includes(FRIENDLIES, avoidRooms[avoidKey].owner)) cutoff = 3;
                     if (distance < cutoff) continue loop1;
