@@ -18,7 +18,7 @@ module.exports.factoryControl = function (room) {
                 }
             }
             // Check if it's still good to produce
-            if (room.factory.memory.producing !== RESOURCE_BATTERY) {
+            if (room.factory.memory.producing !== RESOURCE_ENERGY) {
                 if (_.includes(BASE_MINERALS, room.factory.memory.producing) && room.store(room.factory.memory.producing) > REACTION_AMOUNT * 0.2) {
                     log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to hitting the production cap.', ' FACTORY CONTROL:');
                     return delete room.factory.memory.producing;
