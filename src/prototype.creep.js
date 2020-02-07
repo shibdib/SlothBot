@@ -422,7 +422,7 @@ Creep.prototype.haulerDelivery = function () {
         if (this.room.controller.level >= 8) {
             //Nuke
             let nuke = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy < s.energyCapacity)[0];
-            if (nuke) {
+            if (nuke && this.room.energy >= ENERGY_AMOUNT * 0.5) {
                 this.memory.storageDestination = nuke.id;
                 return true;
             }
