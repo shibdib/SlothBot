@@ -19,8 +19,10 @@ module.exports.terminalControl = function (room) {
     let myOrders = Game.market.orders;
     //Things that don't need to be run for every terminal
     if (runOnce !== Game.time) {
-        if (spendingMoney > Game.market.credits - CREDIT_BUFFER) spendingMoney = Game.market.credits - (CREDIT_BUFFER * 1.1);
-        Memory._banker.spendingAccount = _.floor(spendingMoney, 1);
+        if (Memory._banker) {
+            if (spendingMoney > Game.market.credits - CREDIT_BUFFER) spendingMoney = Game.market.credits - (CREDIT_BUFFER * 1.1);
+            Memory._banker.spendingAccount = _.floor(spendingMoney, 1);
+        }
         // Track profits
         profitCheck();
         // Reaction amount is 500 if we are low on cash
