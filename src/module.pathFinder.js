@@ -286,12 +286,12 @@ function findRoute(origin, destination, options = {}) {
             if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) return 254;
             if (Memory.roomCache && Memory.roomCache[roomName]) {
                 // If room is under attack
-                if (Memory.roomCache[roomName] && Memory.roomCache[roomName].threatLevel >= 3) return 50;
+                if (Memory.roomCache[roomName] && Memory.roomCache[roomName].threatLevel >= 3) return 75;
                 // Friendly Rooms
-                if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 4;
+                if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 50;
                 // Avoid rooms owned by others
                 if (Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner)) {
-                    if (Memory.roomCache[roomName].towers) return 256; else return 25;
+                    if (Memory.roomCache[roomName].towers) return 256; else return 75;
                 }
                 // Avoid strongholds
                 if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].towers) return 256;
@@ -300,7 +300,7 @@ function findRoute(origin, destination, options = {}) {
             } else
             // Unknown rooms have a slightly higher weight
             if (!Memory.roomCache[roomName]) return 25;
-            if (isHighway) return 2;
+            if (isHighway) return 1;
             return 2.25;
         }
     });
