@@ -379,7 +379,7 @@ function balanceResources(terminal) {
             }
         } else if (terminal.room.memory.praiseRoom) {
             let availableAmount = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
-            if (availableAmount > 0) {
+            if (availableAmount >= 1000) {
                 switch (terminal.send(RESOURCE_ENERGY, availableAmount, Memory.saleTerminal.room)) {
                     case OK:
                         log.a('Sent ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(Memory.saleTerminal.room) + ' From ' + roomLink(terminal.room.name) + ' to stockpile.', "Market: ");
@@ -409,7 +409,7 @@ function balanceResources(terminal) {
         // Next resource if we don't have enough to send
         let available = terminal.room.store(resource) - keepAmount;
         if (available > terminal.store[resource]) available = terminal.store[resource];
-        if (available <= keepAmount * 0.1) continue;
+        if (available <= keepAmount * 0.1 || available < 100) continue;
         // Find room in need
         let needyTerminal = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && !r.room.nukes.length && r.room.name !== terminal.room.name && r.room.store(resource) < keepAmount && !r.room.memory.praiseRoom), function (s) {
             s.room.store(resource);
