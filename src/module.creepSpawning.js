@@ -47,7 +47,6 @@ module.exports.processBuildQueue = function () {
                 for (let key in queue) {
                     topPriority = queue[key];
                     if (!topPriority.role) continue;
-                    if (topPriority.destination && Game.map.findRoute(topPriority.destination, spawn.room.name).length > 20) continue;
                     role = topPriority.role;
                     if (topPriority.misc && topPriority.misc === 'vary') level = _.random(_.round(level / 1.5), level);
                     if (topPriority.other.reboot || level === 1) {
@@ -71,7 +70,9 @@ module.exports.processBuildQueue = function () {
                         cost = global.UNIT_COST(body);
                     }
                     if (!body || !body.length) continue;
-                    if (body && body.length && cost <= spawn.room.energyCapacityAvailable) break;
+                    // Add a distance sanity check for claim parts
+                    if (topPriority.destination && (Game.map.findRoute(topPriority.destination, spawn.room.name).length > 20 || (_.includes(body, CLAIM) && Game.map.findRoute(topPriority.destination, spawn.room.name).length > 8))) continue;
+                    if (cost <= spawn.room.energyCapacityAvailable) break;
                 }
                 if (cost > spawn.room.energyAvailable || !body || !body.length) {
                     if (body && cost <= spawn.room.energyCapacityAvailable) spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
