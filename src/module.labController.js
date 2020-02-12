@@ -131,7 +131,7 @@ function manageActiveLabs(room) {
                         case ERR_NOT_ENOUGH_RESOURCES:
                             for (let id in creators) {
                                 let lab = Game.getObjectById(creators[id]);
-                                let total = lab.room.store(lab.memory.itemNeeded) + lab.store[lab.memory.itemNeeded];
+                                let total = lab.room.store(lab.memory.itemNeeded, true) + lab.store[lab.memory.itemNeeded];
                                 if (total < 10) {
                                     log.a(outputLab.room.name + ' is no longer producing ' + lab.memory.creating + ' due to a shortage of ' + lab.memory.itemNeeded);
                                     for (let id in creators) {

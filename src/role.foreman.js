@@ -262,6 +262,8 @@ function storageControl(creep) {
                 amountNeeded = TERMINAL_ENERGY_BUFFER - creep.room.terminal.store[resourceType];
             } else if (resourceType === RESOURCE_ENERGY && creep.room.storage.store[resourceType] > ENERGY_AMOUNT * 1.1) {
                 amountNeeded = ENERGY_AMOUNT * 1.1 - creep.room.storage.store[resourceType];
+            } else {
+                amountNeeded = creep.room.storage.store[resourceType];
             }
             if (amountNeeded > creep.store.getFreeCapacity(resourceType)) amountNeeded = creep.store.getFreeCapacity(resourceType);
             if (amountNeeded > creep.room.storage.store[resourceType]) amountNeeded = creep.room.storage.store[resourceType];
