@@ -110,7 +110,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = tough + heal + work;
             break;
         case 'defender':
-            if (Math.random() > 0.49) attack = _.floor((room.energyCapacityAvailable * 0.9) / BODYPART_COST[ATTACK]) || 1; else rangedAttack = _.floor((room.energyCapacityAvailable * 0.9) / BODYPART_COST[RANGED_ATTACK]) || 1;
+            if (Math.random() > 0.49) attack = _.floor((room.energyCapacityAvailable * 0.7) / BODYPART_COST[ATTACK]) || 1; else rangedAttack = _.floor((room.energyCapacityAvailable * 0.7) / BODYPART_COST[RANGED_ATTACK]) || 1;
             if (attack > 45) attack = 45; else if (rangedAttack > 45) rangedAttack = 45;
             move = 5;
             break;
