@@ -215,15 +215,14 @@ function claimScout(room) {
         room.memory = undefined;
         log.i(room.name + ' - Has been marked for claiming');
         Game.notify(room.name + ' - Has been marked for claiming');
-        room.cacheRoomIntel(true);
     } else {
         let noClaim = Memory.noClaim || [];
         noClaim.push(room.name);
         Memory.noClaim = noClaim;
-        room.cacheRoomIntel(true);
-        delete Memory.targetRooms[room.name];
-        delete Memory.auxiliaryTargets[room.name];
     }
+    room.cacheRoomIntel(true);
+    delete Memory.targetRooms[room.name];
+    delete Memory.auxiliaryTargets[room.name];
 }
 
 function nukeTarget(room) {
