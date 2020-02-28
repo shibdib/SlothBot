@@ -92,7 +92,7 @@ let globals = function () {
             filler: [CARRY, CARRY, MOVE, MOVE],
             explorer: [MOVE],
             scout: [MOVE],
-            responder: [TOUGH, TOUGH, MOVE, MOVE, MOVE, ATTACK],
+            defender: [TOUGH, TOUGH, MOVE, MOVE, MOVE, ATTACK],
             longbow: [RANGED_ATTACK, MOVE],
             remoteHauler: [CARRY, CARRY, MOVE, MOVE],
             remoteHarvester: [MOVE, CARRY, WORK],

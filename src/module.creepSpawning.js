@@ -326,11 +326,9 @@ module.exports.praiseCreepQueue = function (room) {
         queueCreep(room, PRIORITIES.upgrader + upgraders.length, {role: 'praiseUpgrader'})
     }
     // Food
-    let needFood = _.filter(roomCreeps, (creep) => creep.memory.role === 'praiseUpgrader' && _.sum(creep.store) < creep.store.getCapacity() * 0.15).length > 0;
-    if (!_.size(roomQueue[room.name]) && needFood) {
-        let lowUpgrader = _.filter(roomCreeps, (creep) => creep.memory.role === 'praiseUpgrader' && creep.ticksToLive < 50)[0];
-        let food = _.filter(roomCreeps, (creep) => creep.memory.role === 'food').length > 0;
-        if (!food && !lowUpgrader) {
+    if (!_.size(roomQueue[room.name])) {
+        let needFood = _.filter(roomCreeps, (creep) => creep.memory.role === 'praiseUpgrader' && _.sum(creep.store) < creep.store.getCapacity() * 0.15).length > 0 && !_.filter(roomCreeps, (creep) => creep.memory.role === 'food').length;
+        if (needFood) {
             let praisePower = 0;
             upgraders.forEach((h) => praisePower += h.getActiveBodyparts(WORK) * UPGRADE_CONTROLLER_POWER);
             praisePower *= 4;
