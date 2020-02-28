@@ -125,7 +125,7 @@ function unSavableCheck(room) {
     let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)));
     if (hostiles.length && !towers.length) {
         room.memory.badCount = badCount + 1;
-        if (room.memory.badCount > room.controller.level + 2) {
+        if (room.memory.badCount > room.controller.level * 2.5) {
             let hostileOwners = [];
             for (let hostile of room.hostileCreeps) hostileOwners.push(hostile.owner.username)
             abandonOverrun(room);
