@@ -464,7 +464,7 @@ function findHub(room, hubCheck = undefined) {
 
 function praiseRoom(room) {
     // Abandon praise room at rcl8
-    if (room.controller.level === 8) return abandonRoom(room);
+    if (room.controller.level === 8) return abandonRoom(room.name);
     // Build spawn, if the spawn exists make sure it has a rampart
     let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0] || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_SPAWN)[0];
     if (!spawn) {

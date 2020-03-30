@@ -204,6 +204,9 @@ function operationPlanner(room, creep = undefined) {
 
 function claimScout(room) {
     let roomPlanner = require('module.roomPlanner');
+    room.cacheRoomIntel(true);
+    delete Memory.targetRooms[room.name];
+    delete Memory.auxiliaryTargets[room.name];
     // Make sure it's not super far away
     let range = room.findClosestOwnedRoom(true);
     // Determine if room is still suitable
@@ -220,9 +223,6 @@ function claimScout(room) {
         noClaim.push(room.name);
         Memory.noClaim = noClaim;
     }
-    room.cacheRoomIntel(true);
-    delete Memory.targetRooms[room.name];
-    delete Memory.auxiliaryTargets[room.name];
 }
 
 function nukeTarget(room) {
