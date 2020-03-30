@@ -31,10 +31,10 @@ module.exports.role = function (creep) {
             if (possibles.length) {
                 target = _.sample(possibles);
             }
-            if (!possibles.length || (target && !Game.map.isRoomAvailable(target))) {
+            if (!possibles.length || (target && Game.map.getRoomStatus(target) !== 'normal')) {
                 target = _.sample(adjacent);
             }
-            if (!Game.map.isRoomAvailable(target)) return creep.say("??");
+            if (Game.map.getRoomStatus(target) !== 'normal') return creep.say("??");
             creep.memory.destination = target;
         }
     }
