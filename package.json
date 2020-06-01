@@ -2,6 +2,9 @@
   "name": "screeps",
   "version": "0.0.1",
   "dependencies": {
+    "grunt": "latest",
+    "grunt-screeps": "latest",
+    "nodejs": "latest",
     "screeps-api": "latest"
   }
 }
