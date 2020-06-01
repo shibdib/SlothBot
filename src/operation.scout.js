@@ -271,8 +271,8 @@ function forwardObserver(room) {
     switch (Memory.targetRooms[room.name].type) {
         case 'hold':
             // HOLD - Clear target if room is no longer owned
-            if (!room.controller.owner || room.controller.safeMode || !Memory.targetRooms[room.name]) {
-                log.a('Canceling hold operation in ' + roomLink(memory.destination) + ' as it is no longer owned.', 'HIGH COMMAND: ');
+            if (!room.controller || !room.controller.owner || room.controller.safeMode || !Memory.targetRooms[room.name]) {
+                log.a('Canceling hold operation in ' + roomLink(room.name) + ' as it is no longer owned.', 'HIGH COMMAND: ');
                 delete Memory.targetRooms[room.name];
                 return;
             }
