@@ -222,6 +222,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
             sellAmount = terminal.room.store(resourceType) - mineralCutoff;
         }
         // Handle commodities
+        if (resourceType === RESOURCE_BATTERY) sellAmount = terminal.room.store(resourceType) - 1000;
         if (_.includes(_.union(REGIONAL_0_COMMODITIES, COMPRESSED_COMMODITIES), resourceType)) sellAmount = terminal.room.store(resourceType) - REACTION_AMOUNT * 0.5;
         if (_.includes(_.union(REGIONAL_1_COMMODITIES, REGIONAL_2_COMMODITIES, REGIONAL_3_COMMODITIES, REGIONAL_4_COMMODITIES, REGIONAL_5_COMMODITIES), resourceType)) sellAmount = terminal.room.store(resourceType);
         // Handle boosts
@@ -403,6 +404,10 @@ function balanceResources(terminal) {
         // Keep boost amount
         if (_.includes(ALL_BOOSTS, resource)) {
             keepAmount = BOOST_AMOUNT;
+        }
+        // Keep 1000 batteries
+        if (resource === RESOURCE_BATTERY) {
+            keepAmount = 1000;
         }
         // Praise empties and nuke room
         if (terminal.room.memory.praiseRoom || terminal.room.nukes.length) keepAmount = 0;
