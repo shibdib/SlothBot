@@ -10,12 +10,10 @@
  */
 
 module.exports.powerControl = function () {
-    let powerSpawns = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN);
+    let powerSpawns = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.power >= 1 && s.energy >= 50);
     if (powerSpawns.length) {
         for (let powerSpawn of powerSpawns) {
-            if (powerSpawn.power >= 1 && powerSpawn.energy >= 50) {
-                powerSpawn.processPower();
-            }
+            powerSpawn.processPower();
         }
     }
     // Handle PC spawning
