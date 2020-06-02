@@ -80,6 +80,7 @@ module.exports.role = function (creep) {
         }
         let target = Game.getObjectById(creep.memory.currentTarget);
         if (target) {
+            target.say(target.hits + ' / ' + creep.memory.targetHits);
             switch (creep.repair(target)) {
                 case OK:
                     if (target.hits >= creep.memory.targetHits + 1200) creep.memory.currentTarget = undefined;
