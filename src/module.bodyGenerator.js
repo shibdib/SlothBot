@@ -28,7 +28,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'commodityMiner':
             work = _.ceil((ROOM_ENERGY_PER_TICK[room.name] * ROOM_ENERGY_ALLOTMENT['build']) / BUILD_POWER) || 1;
             if (work > 15) work = 15;
-            carry = _.floor(((room.energyCapacityAvailable * 0.25)) / BODYPART_COST[CARRY]) || 1;
+            carry = _.floor((room.energyCapacityAvailable * _.random(0.1, 0.3)) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
             move = work + carry;
             break;
