@@ -17,6 +17,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'explorer':
         case 'food':
         case 'scout':
+            deficitExemption = true;
             move = 1;
             break;
         // General Creeps
@@ -27,7 +28,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'commodityMiner':
             work = _.ceil((ROOM_ENERGY_PER_TICK[room.name] * ROOM_ENERGY_ALLOTMENT['build']) / BUILD_POWER) || 1;
             if (work > 15) work = 15;
-            carry = _.floor(((room.energyCapacityAvailable * 0.10)) / BODYPART_COST[CARRY]) || 1;
+            carry = _.floor(((room.energyCapacityAvailable * 0.25)) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
             move = work + carry;
             break;
@@ -80,7 +81,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             break;
         case 'stationaryHarvester':
             deficitExemption = true;
-            work = _.floor((room.energyCapacityAvailable - 200) / BODYPART_COST[WORK]) || 1;
+            work = _.floor((room.energyCapacityAvailable - 250) / BODYPART_COST[WORK]) || 1;
             // 7 Is the cap
             if (work > 7) work = 6;
             carry = 1;
@@ -200,7 +201,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         claim *= deficit;
         carry *= deficit;
         heal *= deficit;
-        move = (move + 0.5) * deficit;
+        move = move * deficit || 1;
     }
     for (let i = 0; i < work; i++) body.push(WORK)
     for (let i = 0; i < carry; i++) body.push(CARRY)
