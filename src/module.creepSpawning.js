@@ -174,7 +174,7 @@ module.exports.essentialCreepQueue = function (room) {
         }
     }
     //Haulers
-    if (room.memory.hubLink) {
+    if (room.memory.hubLink || (room.storage && room.energy > ENERGY_AMOUNT)) {
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
         if (!hauler.length) {
             delete roomQueue[room.name];
