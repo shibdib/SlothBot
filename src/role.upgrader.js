@@ -43,7 +43,8 @@ module.exports.role = function (creep) {
     }
     if (creep.memory.energyDestination) {
         creep.withdrawResource();
-    } else if (!creep.getActiveBodyparts(MOVE)) {
+    } else if (creep.memory.other.stationary || (creep.getActiveBodyparts(MOVE) < 2 && creep.getActiveBodyparts(WORK) > 3)) {
+        creep.memory.other.stationary = true;
         if (!creep.memory.onContainer) {
             if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
                 return creep.shibMove(container, {range: 0});
