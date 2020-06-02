@@ -40,7 +40,7 @@ module.exports.towerControl = function (room) {
             }
         } else if (repairTower.energy > repairTower.energyCapacity * 0.5) {
             let structures = room.structures;
-            let barriers = _.min(_.filter(structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 5000), 'hits')[0];
+            let barriers = _.min(_.filter(structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 5000), 'hits');
             if (barriers) {
                 return repairTower.repair(barriers);
             }
