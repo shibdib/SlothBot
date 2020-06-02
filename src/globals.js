@@ -15,7 +15,7 @@ let globals = function () {
     // Energy income breakdown
     global.ROOM_ENERGY_ALLOTMENT = {
         'store': 0.2,
-        'upgrade': 0.5,
+        'upgrade': 0.55,
         'build': 0.6,
         'walls': 0.1,
         'other': 0.3
