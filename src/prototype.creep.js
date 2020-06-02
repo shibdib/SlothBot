@@ -456,7 +456,7 @@ Creep.prototype.haulerDelivery = function () {
         return true;
     }
     //Controller
-    if (controllerContainer && !controllerContainer.store[RESOURCE_ENERGY]) {
+    if (controllerContainer && (!controllerContainer.store[RESOURCE_ENERGY] || (controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5 && this.room.energy > ENERGY_AMOUNT))) {
         this.memory.storageDestination = controllerContainer.id;
         return true;
     }
