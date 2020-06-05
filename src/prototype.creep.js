@@ -465,6 +465,12 @@ Creep.prototype.haulerDelivery = function () {
         this.memory.storageDestination = storage.id;
         return true;
     }
+    //Creeps
+    let needyCreep = this.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.my && (c.memory.role === 'upgrader' || c.memory.role === 'drone' || c.memory.role === 'waller') && _.sum(c.store) < c.store.getCapacity() * 0.85));
+    if (needyCreep) {
+        this.memory.storageDestination = needyCreep.id;
+        return true;
+    }
     return false;
 };
 
