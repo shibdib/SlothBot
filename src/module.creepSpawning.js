@@ -20,7 +20,7 @@ module.exports.processBuildQueue = function () {
         let spawn = spawns[key];
         let level = getLevel(spawn.room);
         // Clear queue if something is stuck
-        if (lastBuilt[spawn.room.name] && roomQueue[spawn.room.name] && (Game.time - lastBuilt[spawn.room.name] >= 1450)) {
+        if (lastBuilt[spawn.room.name] && roomQueue[spawn.room.name] && (lastBuilt[spawn.room.name] + 2500 < Game.time)) {
             roomQueue[spawn.room.name] = undefined;
             lastBuilt[spawn.room.name] = Game.time;
             continue;
@@ -108,11 +108,11 @@ module.exports.processBuildQueue = function () {
                         energyStructures: energyStructures
                     })) {
                         case OK:
+                            lastBuilt[spawn.room.name] = Game.time;
                             if (!topPriority.operation) log.d(spawn.room.name + ' Spawning a ' + role);
                             if (topPriority.military && globalQueue) delete globalQueue[role];
                             if (topPriority.buildCount && roomQueue[spawn.room.name][role]) return roomQueue[spawn.room.name][role].buildCount = topPriority.buildCount - 1;
                             if (roomQueue[spawn.room.name]) delete roomQueue[spawn.room.name][role];
-                            lastBuilt[spawn.room.name] = Game.time;
                             break;
                         default:
                     }
@@ -365,7 +365,7 @@ module.exports.miscCreepQueue = function (room) {
         if (buildPower < ROOM_ENERGY_PER_TICK[room.name] * ROOM_ENERGY_ALLOTMENT['build']) number = drones.length + 1;
     }
     if (drones.length < number) {
-        queueCreep(room, priority + drones.length, {role: 'drone', other: {localCache: false, reboot: reboot}})
+        queueCreep(room, priority + (drones.length * 0.2), {role: 'drone', other: {localCache: false, reboot: reboot}})
     }
     //LabTech
     if (!room.nukes.length && room.terminal) {
