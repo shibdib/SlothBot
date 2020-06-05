@@ -111,7 +111,7 @@ Object.defineProperty(Room.prototype, 'energyState', {
             this._energyState = 0;
             if (this.energy >= ENERGY_AMOUNT * 2.5) {
                 this._energyState = 2;
-            } else if (this.energy >= ENERGY_AMOUNT) {
+            } else if (this.energy >= ENERGY_AMOUNT * 0.9) {
                 this._energyState = 1;
             }
         }

@@ -34,8 +34,8 @@ module.exports.processBuildQueue = function () {
                 let maxLevel = Memory.maxLevel;
                 if (!spawn.room.memory.nuke && _.size(globalQueue) && !Memory.roomCache[spawn.room.name].responseNeeded && _.inRange(level, maxLevel - 1, maxLevel + 1)) {
                     // Filter ops by range
-                    let range = LOCAL_SPHERE * 1.5;
-                    if (spawn.room.energyState) range = LOCAL_SPHERE * 3;
+                    let range = LOCAL_SPHERE * 2;
+                    if (spawn.room.energyState) range = LOCAL_SPHERE * 4;
                     let distanceFilteredGlobal = _.filter(globalQueue, (q) => q.destination && (Memory.auxiliaryTargets[q.destination] || Game.map.getRoomLinearDistance(q.destination, spawn.room.name) < range));
                     queue = _.sortBy(Object.assign({}, distanceFilteredGlobal, roomQueue[spawn.room.name]), 'priority');
                 } else {

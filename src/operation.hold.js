@@ -26,7 +26,7 @@ Creep.prototype.holdRoom = function () {
         // If military action required do that
         this.attackInRange();
         if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
-        if (this.room.name !== this.memory.destination) this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
+        if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
         if (!this.handleMilitaryCreep(false, false, true)) this.scorchedEarth();
     } else if (this.memory.role === 'deconstructor') {
         if (this.room.name !== this.memory.destination) this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
