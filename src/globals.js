@@ -9,7 +9,19 @@ let Log = require('logger');
 
 let globals = function () {
 
-    require('config');
+    // Try to load a private server config otherwise load the default
+    try {
+        require(Game.shard.name);
+        console.log('Loaded config for ' + Game.shard.name);
+    } catch (e) {
+        try {
+            require(Memory.customConfig);
+            console.log('Loaded config for ' + Memory.customConfig);
+        } catch (e) {
+            require('config');
+            console.log('No custom config found loading config.js');
+        }
+    }
     global.LAYOUT_VERSION = 1.52;
 
     // Energy income breakdown
