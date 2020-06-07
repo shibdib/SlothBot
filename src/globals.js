@@ -29,7 +29,7 @@ let globals = function () {
         'store': 0.2,
         'upgrade': 0.55,
         'build': 0.8,
-        'walls': 0.1,
+        'walls': 0.2,
         'other': 0.3
     };
 

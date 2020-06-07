@@ -33,12 +33,12 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = work + carry;
             break;
         case 'waller':
+            if (room.nukes.length) deficitExemption = true;
             work = _.ceil((ROOM_ENERGY_PER_TICK[room.name] * ROOM_ENERGY_ALLOTMENT['walls']) / BUILD_POWER) || 1;
             if (work > 15) work = 15;
-            carry = _.floor(((room.energyCapacityAvailable * 0.025)) / BODYPART_COST[CARRY]) || 1;
+            carry = _.floor((room.energyCapacityAvailable * _.random(0.1, 0.3)) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
             move = work + carry;
-            if (room.nukes.length) deficitExemption = true;
             break;
         case 'praiseUpgrader':
             deficitExemption = true;
@@ -147,7 +147,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = 1;
             break;
         case 'reserver':
-            claim = _.floor((room.energyCapacityAvailable * 0.10) / BODYPART_COST[CLAIM]) || 1;
+            claim = _.floor((room.energyCapacityAvailable * 0.20) / BODYPART_COST[CLAIM]) || 1;
             if (claim > 25) claim = 25;
             move = claim;
             break;
