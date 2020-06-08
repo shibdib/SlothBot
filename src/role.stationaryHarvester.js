@@ -20,6 +20,8 @@ module.exports.role = function (creep) {
             } else if (container) {
                 creep.memory.onContainer = true;
             }
+        } else if (!creep.memory.containerID && !creep.memory.containerAttempt) {
+            return harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
         }
         // Build container
         if (!creep.memory.containerID && !extensionFiller(creep) && _.sum(creep.store) === creep.store.getCapacity()) {
