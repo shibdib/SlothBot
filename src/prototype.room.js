@@ -311,12 +311,12 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         closestRange = this.findClosestOwnedRoom(true);
         // Get special rooms via name
         //let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
-        let isHighway = !room.controller;
-        if (!isHighway) isHighway = undefined;
         let cache = Memory.roomCache || {};
         let sources = room.sources;
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) && !e.getActiveBodyparts(RANGED_ATTACK)));
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)[0]) sk = true;
+        let isHighway = !room.controller && !sk && !room.sources.length;
+        if (!isHighway) isHighway = undefined;
         if (room.controller) {
             safemode = room.controller.safeMode;
             if (room.controller.owner) {
