@@ -38,6 +38,8 @@ Creep.prototype.borderPatrol = function () {
         if (!this.memory.onTarget) this.memory.onTarget = Game.time;
         this.memory.other.responseTarget = undefined;
         this.memory.awaitingOrders = true;
+        // Don't idle in SK rooms, go home
+        if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) return this.memory.other.responseTarget = this.memory.overlord;
         // Idle in target rooms for 100-250 ticks
         if (this.memory.onTarget && this.memory.onTarget + _.random(100, 250) <= Game.time) {
             this.memory.onTarget = undefined;
