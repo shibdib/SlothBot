@@ -11,8 +11,8 @@ module.exports.highCommand = function () {
     let maxLevel = Memory.maxLevel;
     // Manage dispatching responders
     if (Game.time % 10 === 0) manageResponseForces();
-    // Crush new spawns
-    if (NEW_SPAWN_DENIAL && Game.time % 10 === 0) auxiliaryOperations();
+    // Auxiliary
+    if (Game.time % 10 === 0) auxiliaryOperations();
     // Request scouting for new operations
     if (maxLevel >= 4 && Game.time % 750 === 0) operationRequests();
     // Manage old operations
@@ -192,21 +192,23 @@ function operationRequests() {
             }
         }
         // New Spawn Denial/No towers
-        let newSpawns = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && !r.towers && r.structures && r.owner && !checkForNap(r.owner) && !_.includes(FRIENDLIES, r.owner) && r.owner !== 'Invader' && !r.safemode && r.closestRange <= LOCAL_SPHERE * 3), 'closestRange');
-        for (let target of newSpawns) {
-            if (Memory.targetRooms[target.name]) continue;
-            let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
-            if (lastOperation + 1000 > Game.time) continue;
-            let cache = Memory.targetRooms || {};
-            cache[target.name] = {
-                tick: Game.time,
-                type: 'hold',
-                level: 1,
-                priority: 1
-            };
-            Memory.targetRooms = cache;
-            log.a('Hold operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
-            break;
+        if (NEW_SPAWN_DENIAL) {
+            let newSpawns = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && !r.towers && r.structures && r.owner && !checkForNap(r.owner) && !_.includes(FRIENDLIES, r.owner) && r.owner !== 'Invader' && !r.safemode && r.closestRange <= LOCAL_SPHERE * 3), 'closestRange');
+            for (let target of newSpawns) {
+                if (Memory.targetRooms[target.name]) continue;
+                let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
+                if (lastOperation + 1000 > Game.time) continue;
+                let cache = Memory.targetRooms || {};
+                cache[target.name] = {
+                    tick: Game.time,
+                    type: 'hold',
+                    level: 1,
+                    priority: 1
+                };
+                Memory.targetRooms = cache;
+                log.a('Hold operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+                break;
+            }
         }
         // Harass Enemies
         let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => HARASS_ATTACKS && r.user && r.user !== MY_USERNAME && !checkForNap(r.user) && (_.includes(Memory._nuisance, r.user) || _.includes(Memory._enemies, r.user)) && !Memory.targetRooms[r.name] && !Memory.auxiliaryTargets[r.name] && !r.sk && (!r.isHighway || r.power || r.commodity) && !r.level && r.closestRange <= LOCAL_SPHERE * 3), 'closestRange');
