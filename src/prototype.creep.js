@@ -219,6 +219,7 @@ Creep.prototype.constructionWork = function () {
 
 Creep.prototype.withdrawResource = function (destination = undefined, amount = undefined) {
     if (destination) this.memory.energyDestination = destination.id;
+    if (amount && amount < 0) return this.memory.hauling = true;
     if (this.memory.energyDestination) {
         let energyItem = Game.getObjectById(this.memory.energyDestination);
         if (!energyItem || energyItem.room.name !== this.room.name) return this.memory.energyDestination = undefined;
