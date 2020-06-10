@@ -304,14 +304,13 @@ function findRoute(origin, destination, options = {}) {
             if (Game.map.getRoomLinearDistance(origin, roomName) > restrictDistance) return 256;
             // My rooms
             if (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) return 1;
-            // Get special rooms via name
-            let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
-            let isHighway = (parsed[1] % 10 === 0) || (parsed[2] % 10 === 0);
-            // SK rooms are avoided when there is no vision in the room, harvested-from SK rooms are allowed
-            if (Memory.roomCache[roomName] && Memory.roomCache[roomName].sk) return 5;
             // Check for avoid flagged rooms
             if (Memory.avoidRooms && _.includes(_.union(Memory.avoidRooms, tempAvoidRooms), roomName)) return 254;
             if (Memory.roomCache && Memory.roomCache[roomName]) {
+                // Avoid strongholds
+                if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].towers) return 256;
+                // SK rooms are avoided if not being mined
+                if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].mined + 50 < Game.time) return 20;
                 // If room is under attack
                 if (Memory.roomCache[roomName] && Memory.roomCache[roomName].threatLevel >= 3) return 75;
                 // Friendly Rooms
@@ -320,14 +319,13 @@ function findRoute(origin, destination, options = {}) {
                 if (Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner)) {
                     if (Memory.roomCache[roomName].towers) return 256; else return 75;
                 }
-                // Avoid strongholds
-                if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].towers) return 256;
                 // Avoid rooms reserved by others
                 if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 15;
+                // Highway
+                if (Memory.roomCache[roomName].isHighway) return 1;
             } else
             // Unknown rooms have a slightly higher weight
             if (!Memory.roomCache[roomName]) return 25;
-            if (isHighway) return 1;
             return 2.25;
         }
     });
@@ -531,7 +529,7 @@ function addHostilesToMatrix(room, matrix) {
 function getSKMatrix(roomName, matrix) {
     let room = Game.rooms[roomName];
     if (!Memory.roomCache[roomName] || !Memory.roomCache[roomName].sk) return matrix;
-    if (!skMatrixCache[room.name] || (!room.memory.skMatrixTick || Game.time !== room.memory.skMatrixTick + 25)) {
+    if (!skMatrixCache[room.name] || (!room.memory.skMatrixTick || Game.time !== room.memory.skMatrixTick + 3)) {
         room.memory.skMatrixTick = Game.time;
         skMatrixCache[room.name] = addSksToMatrix(room, matrix).serialize();
     }
@@ -540,20 +538,20 @@ function getSKMatrix(roomName, matrix) {
 
 function addSksToMatrix(room, matrix) {
     if (room && Memory.roomCache[room.name] && Memory.roomCache[room.name].sk) {
-        let sk = room.find(FIND_CREEPS, {filter: (c) => c.owner.username === 'Source Keeper'});
-        if (sk.length > 0) {
-            for (let c = 0; c < sk.length; c++) {
-                matrix.set(sk[c].pos.x, sk[c].pos.y, 0xff);
-                let sites = sk[c].room.lookForAtArea(LOOK_TERRAIN, sk[c].pos.y - 5, sk[c].pos.x - 5, sk[c].pos.y + 5, sk[c].pos.x + 5, true);
-                for (let key in sites) {
+        let sks = room.find(FIND_CREEPS, {filter: (c) => c.owner.username === 'Source Keeper'});
+        if (sks.length > 0) {
+            for (let sk of sks) {
+                matrix.set(sk.pos.x, sk.pos.y, 256);
+                let sites = sk.room.lookForAtArea(LOOK_TERRAIN, sk.pos.y - 4, sk.pos.x - 4, sk.pos.y + 4, sk.pos.x + 4, true);
+                for (let site of sites) {
                     let position;
                     try {
-                        position = new RoomPosition(sites[key].x, sites[key].y, room.name);
+                        position = new RoomPosition(site.x, site.y, room.name);
                     } catch (e) {
                         continue;
                     }
                     if (position && !position.checkForWall()) {
-                        matrix.set(position.x, position.y, 255)
+                        matrix.set(position.x, position.y, 150)
                     }
                 }
             }

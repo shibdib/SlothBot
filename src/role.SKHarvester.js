@@ -25,12 +25,7 @@ module.exports.role = function (creep) {
                 creep.shibMove(source);
                 break;
             case OK:
-                /**if (creep.memory.haulerID && Game.time % 50 === 0) {
-                    if (!Array.isArray(creep.memory.haulerID)) creep.memory.haulerID = [creep.memory.haulerID];
-                    creep.memory.haulerID = _.remove(creep.memory.haulerID, function (n) {
-                        return Game.getObjectById(n);
-                    });
-                }**/
+                Memory.roomCache[creep.room.name].mined = Game.time;
                 break;
         }
     } else creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
