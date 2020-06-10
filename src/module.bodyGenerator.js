@@ -26,15 +26,15 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'drone':
         case 'roadBuilder':
         case 'commodityMiner':
-            work = _.ceil((ROOM_ENERGY_PER_TICK[room.name] * ROOM_ENERGY_ALLOTMENT['build']) / BUILD_POWER) || 1;
+            work = _.floor(((room.energyCapacityAvailable * _.random(0.2, 0.5)) * ROOM_ENERGY_ALLOTMENT['work']) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
-            carry = _.floor((room.energyCapacityAvailable * _.random(0.1, 0.3)) / BODYPART_COST[CARRY]) || 1;
+            carry = _.floor((room.energyCapacityAvailable * _.random(0.2, 0.5)) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
             move = work + carry;
             break;
         case 'waller':
             if (room.nukes.length) deficitExemption = true;
-            work = _.ceil((ROOM_ENERGY_PER_TICK[room.name] * ROOM_ENERGY_ALLOTMENT['walls']) / BUILD_POWER) || 1;
+            work = _.floor(((room.energyCapacityAvailable * _.random(0.2, 0.5)) * ROOM_ENERGY_ALLOTMENT['walls']) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
             carry = _.floor((room.energyCapacityAvailable * _.random(0.1, 0.3)) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
@@ -103,6 +103,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'siegeHealer':
         case 'healer':
         case 'drainer':
+            deficitExemption = true;
             tough = _.floor((room.energyCapacityAvailable * 0.15) / BODYPART_COST[TOUGH]) || 1;
             if (tough > 7) tough = 7;
             heal = _.floor((room.energyCapacityAvailable * 0.35) / BODYPART_COST[HEAL]) || 1;
@@ -171,6 +172,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             if (!room.memory.roadsBuilt) move = carry;
             break;
         case 'SKAttacker':
+            deficitExemption = true;
             attack = 16;
             tough = 4;
             heal = 5;
