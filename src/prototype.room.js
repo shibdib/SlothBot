@@ -404,20 +404,39 @@ let invaderAlert = {};
 Room.prototype.invaderCheck = function () {
     if (Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 10 > Game.time && !Memory.roomCache[this.name].threatLevel) return;
     if (!Memory.roomCache || !Memory.roomCache[this.name]) this.cacheRoomIntel();
-    if (this.hostileCreeps.length) {
+    // No hostile detected
+    if (!this.hostileCreeps.length) {
+        if (Memory.roomCache[this.name].threatLevel) {
+            let waitOut = 15;
+            if (Memory.roomCache[this.name].threatLevel > 3) waitOut = 50;
+            // Clear if no waitOut or if not one of your rooms
+            if (Memory.roomCache[this.name].tickDetected + waitOut < Game.time || Memory.roomCache[this.name].user !== MY_USERNAME) {
+                Memory.roomCache[this.name].threatLevel = undefined;
+                let roomHeat = (Memory.roomCache[this.name].roomHeat - 0.25) || 0;
+                if (roomHeat <= 0) {
+                    Memory.roomCache[this.name].roomHeat = undefined;
+                } else {
+                    Memory.roomCache[this.name].roomHeat = roomHeat;
+                }
+                Memory.roomCache[this.name].numberOfHostiles = undefined;
+                Memory.roomCache[this.name].responseNeeded = undefined;
+                Memory.roomCache[this.name].alertEmail = undefined;
+                Memory.roomCache[this.name].requestingSupport = undefined;
+                Memory.roomCache[this.name].invaderTTL = undefined;
+            }
+            return false;
+        } else if (Memory.roomCache[this.name].roomHeat) {
+            let roomHeat = Memory.roomCache[this.name].roomHeat - 0.25;
+            if (roomHeat <= 0) {
+                Memory.roomCache[this.name].roomHeat = undefined;
+            } else {
+                Memory.roomCache[this.name].roomHeat = roomHeat;
+            }
+        }
+    } else {
         if (!Memory.roomCache) Memory.roomCache = {};
         if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
         Memory.roomCache[this.name].lastInvaderCheck = Game.time;
-        // No invader checks for hostile rooms
-        if (Memory.roomCache[this.name].user !== MY_USERNAME) {
-            Memory.roomCache[this.name].numberOfHostiles = undefined;
-            Memory.roomCache[this.name].responseNeeded = undefined;
-            Memory.roomCache[this.name].alertEmail = undefined;
-            Memory.roomCache[this.name].requestingSupport = undefined;
-            Memory.roomCache[this.name].threatLevel = undefined;
-            Memory.roomCache[this.name].lastInvaderCheck = undefined;
-            return;
-        }
         let invader = this.hostileCreeps;
         if (invader.length > 0) {
             let hostileCombatPower = 0;
@@ -441,75 +460,35 @@ Room.prototype.invaderCheck = function () {
             let ownerArray = [];
             invader.forEach((c) => ownerArray.push(c.owner.username));
             ownerArray = _.uniq(ownerArray);
-            // Determine threat
+            // If Armed Invaders
+            if (armedInvader.length) {
+                Memory.roomCache[this.name].invaderTTL = _.max(armedInvader, 'ticksToLive').ticksToLive + Game.time;
+                Memory.roomCache[this.name].lastInvaderSighting = Game.time;
+                if (invader[0].owner.username !== 'Invader') Memory.roomCache[this.name].lastPlayerSighting = Game.time;
+                if (invaderAlert[this.name] < Game.time && Game.time % 50 === 0) {
+                    invaderAlert[this.name] = Game.time;
+                    log.a('Invaders detected in ' + roomLink(this.name) + '. ' + invader.length +
+                        ' creeps detected. (Invader/Friendly Power Present - ' + hostileCombatPower + '/' + alliedCombatPower + ')', 'RESPONSE COMMAND');
+                }
+                Memory.roomCache[this.name].responseNeeded = true;
+            }
+            // Determine threat level
             if (!armedInvader.length && (!this.controller || !this.controller.safeMode)) {
                 Memory.roomCache[this.name].threatLevel = 0;
             } else if ((invader.length === 1 && invader[0].owner.username === 'Invader') || (this.controller && this.controller.safeMode)) {
                 Memory.roomCache[this.name].threatLevel = 1;
-                Memory.roomCache[this.name].lastInvaderSighting = Game.time;
-                if (invaderAlert[this.name] < Game.time && Game.time % 50 === 0) {
-                    invaderAlert[this.name] = Game.time;
-                    log.a('Invaders detected in ' + roomLink(this.name) + '. ' + invader.length +
-                        ' creeps detected. (Invader/Friendly Power Present - ' + hostileCombatPower + '/' + alliedCombatPower + ')', 'RESPONSE COMMAND');
-                }
-                Memory.roomCache[this.name].responseNeeded = true;
             } else if (invader.length > 1 && invader[0].owner.username === 'Invader' && ownerArray.length === 1 && hostileCombatPower) {
                 Memory.roomCache[this.name].threatLevel = 2;
-                Memory.roomCache[this.name].lastInvaderSighting = Game.time;
-                if (invaderAlert[this.name] < Game.time && Game.time % 50 === 0) {
-                    invaderAlert[this.name] = Game.time;
-                    log.a('Invaders detected in ' + roomLink(this.name) + '. ' + invader.length +
-                        ' creeps detected. (Invader/Friendly Power Present - ' + hostileCombatPower + '/' + alliedCombatPower + ')', 'RESPONSE COMMAND');
-                }
-                Memory.roomCache[this.name].responseNeeded = true;
             } else if (invader.length === 1 && invader[0].owner.username !== 'Invader' && hostileCombatPower) {
                 Memory.roomCache[this.name].threatLevel = 3;
-                Memory.roomCache[this.name].lastPlayerSighting = Game.time;
-                if (invaderAlert[this.name] < Game.time && Game.time % 50 === 0) {
-                    invaderAlert[this.name] = Game.time;
-                    log.a('Players creeps detected in ' + roomLink(this.name) + '. ' + invader.length +
-                        ' hostiles detected. Owners - ' + ownerArray.toString() + ' (Invader/Friendly Power Present - ' + hostileCombatPower + '/' + alliedCombatPower + ')', 'RESPONSE COMMAND');
-                }
-                Memory.roomCache[this.name].responseNeeded = true;
                 let roomHeat = Memory.roomCache[this.name].roomHeat || 0;
                 Memory.roomCache[this.name].roomHeat = roomHeat + (invader.length * 5);
             } else if (invader.length > 1 && (invader[0].owner.username !== 'Invader' || ownerArray.length > 1) && hostileCombatPower) {
                 Memory.roomCache[this.name].threatLevel = 4;
-                Memory.roomCache[this.name].lastPlayerSighting = Game.time;
-                if (invaderAlert[this.name] < Game.time && Game.time % 50 === 0) {
-                    invaderAlert[this.name] = Game.time;
-                    log.a('Players creeps detected in ' + roomLink(this.name) + '. ' + invader.length +
-                        ' hostiles detected. Owners - ' + ownerArray.toString() + ' (Invader/Friendly Power Present - ' + hostileCombatPower + '/' + alliedCombatPower + ')', 'RESPONSE COMMAND');
-                }
-                Memory.roomCache[this.name].responseNeeded = true;
                 let roomHeat = Memory.roomCache[this.name].roomHeat || 0;
                 Memory.roomCache[this.name].roomHeat = roomHeat + (invader.length * 5);
             }
             return Memory.roomCache[this.name].threatLevel > 0;
-        }
-    } else if (Memory.roomCache[this.name].threatLevel) {
-        let waitOut = 15;
-        if (Memory.roomCache[this.name].threatLevel > 3) waitOut = 50;
-        if (Memory.roomCache[this.name].tickDetected + waitOut < Game.time) {
-            Memory.roomCache[this.name].threatLevel = undefined;
-            let roomHeat = (Memory.roomCache[this.name].roomHeat - 0.25) || 0;
-            if (roomHeat <= 0) {
-                Memory.roomCache[this.name].roomHeat = undefined;
-            } else {
-                Memory.roomCache[this.name].roomHeat = roomHeat;
-            }
-            Memory.roomCache[this.name].numberOfHostiles = undefined;
-            Memory.roomCache[this.name].responseNeeded = undefined;
-            Memory.roomCache[this.name].alertEmail = undefined;
-            Memory.roomCache[this.name].requestingSupport = undefined;
-        }
-        return false;
-    } else if (Memory.roomCache[this.name].roomHeat) {
-        let roomHeat = Memory.roomCache[this.name].roomHeat - 0.25;
-        if (roomHeat <= 0) {
-            Memory.roomCache[this.name].roomHeat = undefined;
-        } else {
-            Memory.roomCache[this.name].roomHeat = roomHeat;
         }
     }
 };
