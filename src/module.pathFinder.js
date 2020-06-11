@@ -40,11 +40,8 @@ function shibMove(creep, heading, options = {}) {
         });
     }
     // If stuck in room, move
-    if (creep.memory.routeReset) {
-        if (creep.memory.lastRoom !== creep.room.name) {
-            creep.memory.roomTimer = undefined;
-            creep.memory.lastRoom = undefined;
-            creep.memory.routeReset = undefined;
+    if (creep.memory._shibMove && creep.memory._shibMove.routeReset) {
+        if (creep.memory._shibMove.lastRoom !== creep.room.name) {
             return creep.memory._shibMove = undefined;
         } else {
             creep.moveTo(creep.pos.findClosestByPath(FIND_EXIT));
@@ -89,7 +86,7 @@ function shibMove(creep, heading, options = {}) {
     if (!creep.memory._shibMove || (creep.memory._shibMove.path && (creep.memory._shibMove.path.length < 1 || !creep.memory._shibMove.path))) creep.memory._shibMove = {};
     if (creep.memory._shibMove && ((creep.memory._shibMove.path && creep.memory._shibMove.path.length < 1) || !creep.memory._shibMove.path)) creep.memory._shibMove = {};
     // Check if target moved
-    if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y)) creep.memory._shibMove = {};
+    if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y || creep.memory._shibMove.target.roomName !== target.roomName)) creep.memory._shibMove = {};
     // Set var
     let pathInfo = creep.memory._shibMove;
     pathInfo.targetRoom = targetRoom(heading);
@@ -117,17 +114,18 @@ function shibMove(creep, heading, options = {}) {
     }
     //Handle getting stuck in rooms on multi rooms pathing
     if (pathInfo.route && pathInfo.route.length) {
-        if (!creep.memory.lastRoom || creep.memory.lastRoom !== creep.room.name) {
-            creep.memory.roomTimer = 0;
-            creep.memory.lastRoom = creep.room.name;
+        if (!creep.memory._shibMove.lastRoom || creep.memory.lastRoom !== creep.room.name) {
+            creep.memory._shibMove.roomTimer = 0;
+            creep.memory._shibMove.lastRoom = creep.room.name;
         }
-        creep.memory.roomTimer++;
-        if (creep.memory.roomTimer >= 100) {
+        creep.memory._shibMove.roomTimer++;
+        if (creep.memory._shibMove.roomTimer >= 100) {
             // Handle this being the desto but the room being inaccessible
             if (creep.memory.targetRoom === creep.room.name) return creep.memory.recycle = true;
             // Otherwise move to closes exit and set stuck room to avoid
             if (!_.includes(tempAvoidRooms, creep.room.name)) tempAvoidRooms.push(creep.room.name);
-            return creep.memory.routeReset = true;
+            delete creep.memory._shibMove;
+            return creep.memory._shibMove.routeReset = true;
         }
     }
     //Execute path if target is valid and path is set
