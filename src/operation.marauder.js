@@ -10,7 +10,10 @@ Creep.prototype.marauding = function () {
     let sentence = ['Oh', 'No', 'Here', 'I', 'Go', 'Killing', 'Again'];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
+    // Attack in range
     this.attackInRange();
+    // Handle healing
+    this.healInRange();
     // Set a target
     if (!this.memory.destination) {
         let target = _.sortBy(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && _.includes(Memory._badBoyArray, r.user) && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.safemode && r.level && !r.towers), function (r) {
