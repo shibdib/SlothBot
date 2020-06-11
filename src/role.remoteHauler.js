@@ -20,6 +20,8 @@ module.exports.role = function (creep) {
         creep.memory.hauling = undefined;
     }
     if (creep.memory.hauling) {
+        // Perform opportunistic road repair
+        creep.repairRoad();
         if (creep.pos.roomName === creep.memory.overlord) {
             // If carrying minerals deposit in terminal or storage
             if (_.sum(creep.store) > creep.store[RESOURCE_ENERGY]) creep.memory.storageDestination = creep.room.terminal.id || creep.room.storage.id;
@@ -62,8 +64,8 @@ module.exports.role = function (creep) {
         // Check if ready to haul
         if (!creep.memory.hauling && (creep.isFull || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.store)))) return creep.memory.hauling = true;
         // handle safe SK movement
-        let lair = creep.pos.findInRange(creep.room.structures, 4, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
-        let SK = creep.pos.findInRange(creep.room.creeps, 4, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
+        let lair = creep.pos.findInRange(creep.room.structures, 5, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
+        let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
         if (SK) return creep.shibKite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair, 7);
         if (!creep.memory.energyDestination) findResources(creep);
         if (creep.memory.energyDestination) {
@@ -78,6 +80,12 @@ module.exports.role = function (creep) {
 };
 
 findResources = function (creep) {
+    // Container
+    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== creep.id), '.store.getCapacity()') + (creep.store.getCapacity() * 0.4)});
+    if (container) {
+        creep.memory.energyDestination = container.id;
+        return true;
+    }
     let droppedResource = creep.pos.findClosestByRange(creep.room.droppedResources);
     if (droppedResource) {
         creep.memory.energyDestination = droppedResource.id;
@@ -87,12 +95,6 @@ findResources = function (creep) {
     let tombstone = creep.pos.findClosestByRange(creep.room.tombstones, {filter: (r) => r.store[RESOURCE_ENERGY]});
     if (tombstone) {
         creep.memory.energyDestination = tombstone.id;
-        return true;
-    }
-    // Container
-    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== creep.id), '.store.getCapacity()') + (creep.store.getCapacity() * 0.4)});
-    if (container) {
-        creep.memory.energyDestination = container.id;
         return true;
     }
     return false;
