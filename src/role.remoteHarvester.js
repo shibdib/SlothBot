@@ -12,6 +12,16 @@
 module.exports.role = function (creep) {
     //Invader detection
     if (creep.fleeHome()) return;
+    // handle safe SK movement
+    let lair = creep.pos.findInRange(creep.room.structures, 5, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
+    let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
+    if (SK) {
+        creep.memory.onContainer = undefined;
+        return creep.shibKite(6);
+    } else if (lair && lair.ticksToSpawn <= 10) {
+        creep.memory.onContainer = undefined;
+        return creep.flee(lair, 7);
+    }
     // If you're in place just harvest
     if (creep.memory.onContainer) {
         //Suicide and cache intel if room is reserved/owned by someone else
@@ -36,10 +46,15 @@ module.exports.role = function (creep) {
                     });
                 }**/
                 if (container) {
-                    if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
-                    if (_.sum(container.store) >= 1980) creep.idleFor(20);
+                    if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.7) return creep.repair(container);
+                    if (_.sum(container.store) >= 1980) {
+                        if (container.hits < container.hitsMax) creep.repair(container); else creep.idleFor(20);
+                    }
                 } else {
                     creep.memory.containerID = undefined;
+                    if (creep.pos.checkForConstructionSites() && creep.pos.checkForEnergy() && creep.pos.checkForEnergy().energy >= 1000) {
+                        creep.build(creep.pos.checkForConstructionSites());
+                    }
                 }
                 break;
         }
