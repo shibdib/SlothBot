@@ -354,7 +354,7 @@ Creep.prototype.locateEnergy = function () {
             return true;
         }
         //Take straight from remoteHaulers/fuel truck at low level who have nowhere to drop
-        if (this.room.controller.level < 3) {
+        if (this.room.controller && this.room.controller.level < 3) {
             let hauler = this.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination && c.memory.idle
                 && c.store[RESOURCE_ENERGY] >= (this.room.creeps.filter((c2) => c2.my && c2.memory.energyDestination === c.id && c2.id !== this.id).length + 1) * this.store.getCapacity()));
             if (hauler) {
