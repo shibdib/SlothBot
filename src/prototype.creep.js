@@ -56,6 +56,14 @@ Object.defineProperty(Creep.prototype, 'combatPower', {
     configurable: true
 });
 
+Creep.prototype.repairRoad = function () {
+    if (!this.getActiveBodyparts(WORK)) return false;
+    let road = this.pos.checkForRoad();
+    if (road && road.hits < road.hitsMax * 0.6) {
+        this.repair(road);
+    }
+};
+
 Creep.prototype.wrongRoom = function () {
     if (this.memory.overlord && this.pos.roomName !== this.memory.overlord) {
         this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 23});
@@ -137,6 +145,21 @@ Creep.prototype.constructionWork = function () {
         this.memory.targetHits = 12500;
         return true;
     }
+    let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax);
+    site = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.5), 'hits');
+    if (site.id) {
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'repair';
+        this.memory.targetHits = site.hitsMax * 0.65;
+        return true;
+    }
+    site = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5), 'hits');
+    if (site.id) {
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'repair';
+        this.memory.targetHits = site.hitsMax * 0.65;
+        return true;
+    }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_CONTAINER);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
@@ -164,28 +187,11 @@ Creep.prototype.constructionWork = function () {
         this.memory.task = 'build';
         return true;
     }
-    let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax);
     site = _.filter(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
-        return true;
-    }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.5);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        this.memory.targetHits = site.hitsMax * 0.65;
-        return true;
-    }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        this.memory.targetHits = site.hitsMax * 0.65;
         return true;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000);
@@ -1579,7 +1585,8 @@ Creep.prototype.fleeHome = function (force = false) {
     this.memory.runCooldown = cooldown;
     if (this.room.name !== this.memory.overlord) {
         this.say('RUN!', true);
-        this.memory.runCooldown = Game.time + 25;
+        let hostile = _.max(_.filter(this.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)), 'ticksToLive');
+        if (hostile.id) this.memory.runCooldown = Game.time + hostile.ticksToLive; else this.memory.runCooldown = Game.time + 25;
         this.goToHub(this.memory.overlord, true);
     } else if (Game.time <= cooldown) {
         if (this.shibKite()) return;
@@ -1596,16 +1603,16 @@ Creep.prototype.canIWin = function (range = 50) {
     let hostilePower = 0;
     let healPower = 0;
     let meleeOnly = _.filter(this.room.hostileCreeps, (c) => c.getActiveBodyparts(RANGED_ATTACK) && this.pos.getRangeTo(c) <= range).length === 0;
-    let armedHostiles = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= range);
+    let armedHostiles = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL)) && this.pos.getRangeTo(c) <= range);
     for (let i = 0; i < armedHostiles.length; i++) {
         if (armedHostiles[i].getActiveBodyparts(HEAL)) {
-            hostilePower += armedHostiles[i].abilityPower().defense * 0.5;
+            hostilePower += armedHostiles[i].abilityPower().defense;
             healPower += armedHostiles[i].abilityPower().defense;
         }
         hostilePower += armedHostiles[i].abilityPower().attack;
     }
     let alliedPower = 0;
-    let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) && this.pos.getRangeTo(c) <= range);
+    let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK || c.getActiveBodyparts(HEAL)) && this.pos.getRangeTo(c) <= range);
     for (let i = 0; i < armedFriendlies.length; i++) {
         if (armedFriendlies[i].getActiveBodyparts(HEAL)) alliedPower += armedFriendlies[i].abilityPower().defense * 0.5;
         alliedPower += armedFriendlies[i].abilityPower().attack;
