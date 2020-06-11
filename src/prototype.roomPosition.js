@@ -118,6 +118,10 @@ RoomPosition.prototype.checkForContainer = function () {
     return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
 };
 
+RoomPosition.prototype.checkForEnergy = function () {
+    return this.lookFor(LOOK_ENERGY)[0];
+};
+
 RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
     if (Game.rooms[this.roomName]) {
         if (!ramparts) return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD);
