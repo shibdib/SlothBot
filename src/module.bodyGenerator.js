@@ -24,7 +24,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'remoteUpgrader':
         case 'praiseMineral':
         case 'drone':
-        case 'roadBuilder':
         case 'commodityMiner':
             work = _.floor(((room.energyCapacityAvailable * _.random(0.2, 0.5)) * ROOM_ENERGY_ALLOTMENT['work']) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
@@ -117,6 +116,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = 5;
             break;
         case 'longbow':
+            deficitExemption = true;
             rangedAttack = _.floor((room.energyCapacityAvailable * 0.40) / BODYPART_COST[RANGED_ATTACK]) || 1;
             if (rangedAttack > 20) rangedAttack = 20;
             heal = _.floor((room.energyCapacityAvailable * 0.10) / BODYPART_COST[HEAL]);
@@ -160,7 +160,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'remoteHarvester':
             deficitExemption = true;
             work = _.floor((room.energyCapacityAvailable * 0.15) / BODYPART_COST[WORK]) || 1;
-            if (work > 7) work = 7;
+            if (work > 5) work = 5;
             carry = 1;
             if ((room.memory.roadsBuilt || level >= 6) && role !== 'SKHarvester') move = work / 2; else move = work;
             break;
@@ -168,8 +168,16 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             deficitExemption = true;
             carry = _.floor((room.energyCapacityAvailable * 0.25) / BODYPART_COST[CARRY]) || 1;
             if (carry > 25) carry = 25;
-            move = _.ceil(carry / 2);
-            if (!room.memory.roadsBuilt) move = carry;
+            if (Math.random() > 0.7) work = 1; else work = 0;
+            move = _.ceil((carry + work) / 2);
+            if (misc) move = carry + work;
+            break;
+        case 'roadBuilder':
+            work = _.floor(((room.energyCapacityAvailable * _.random(0.2, 0.5))) / BODYPART_COST[WORK]) || 1;
+            if (work > 15) work = 15;
+            carry = _.floor((room.energyCapacityAvailable * _.random(0.2, 0.5)) / BODYPART_COST[CARRY]) || 1;
+            if (carry > 10) carry = 10;
+            move = work + carry;
             break;
         case 'SKAttacker':
             deficitExemption = true;
@@ -204,6 +212,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         carry *= deficit;
         heal *= deficit;
         move = (move * deficit) + 0.5 || 1;
+        if (move === (work + attack + rangedAttack + tough + claim + carry + heal) - 1) move += 1;
     }
     for (let i = 0; i < work; i++) body.push(WORK)
     for (let i = 0; i < carry; i++) body.push(CARRY)
