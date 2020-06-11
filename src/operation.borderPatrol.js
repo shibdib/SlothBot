@@ -22,7 +22,9 @@ Creep.prototype.borderPatrol = function () {
     this.healInRange();
     // Handle flee
     if (this.memory.runCooldown || (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK))) return this.fleeHome(true);
-    if (this.canIWin(5) && this.handleMilitaryCreep()) {
+    if (this.memory.other.responseTarget && this.room.name !== this.memory.other.responseTarget) {
+        this.shibMove(new RoomPosition(25, 25, this.memory.other.responseTarget), {range: 22});
+    } else if (this.canIWin(5) && this.handleMilitaryCreep()) {
         this.memory.onTarget = undefined;
     } else if (Math.random() > 0.7 && !this.canIWin(50)) {
         if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget) this.memory.other.responseTarget = undefined;
@@ -31,8 +33,6 @@ Creep.prototype.borderPatrol = function () {
     } else if (!this.canIWin(6)) {
         if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget) this.memory.other.responseTarget = undefined;
         this.shibKite(6);
-    } else if (this.memory.other.responseTarget && this.room.name !== this.memory.other.responseTarget) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.other.responseTarget), {range: 22});
     } else {
         // If on target, be available to respond
         if (!this.memory.onTarget) this.memory.onTarget = Game.time;
