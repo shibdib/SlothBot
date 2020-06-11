@@ -156,13 +156,12 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             carry = 20;
             move = 20;
             break;
-        case 'SKHarvester':
         case 'remoteHarvester':
             deficitExemption = true;
             work = _.floor((room.energyCapacityAvailable * 0.15) / BODYPART_COST[WORK]) || 1;
             if (work > 5) work = 5;
             carry = 1;
-            if ((room.memory.roadsBuilt || level >= 6) && role !== 'SKHarvester') move = work / 2; else move = work;
+            if (room.memory.roadsBuilt || level >= 6) move = work / 2; else move = work;
             break;
         case 'remoteHauler':
             deficitExemption = true;

@@ -30,7 +30,7 @@ module.exports.overlordMind = function (room, CPULimit) {
     if (!ROOM_ENERGY_PER_TICK[room.name] || Game.time % 5 === 0) {
         let income = 0;
         let inRoomHarvesters = _.filter(Game.creeps, (c) => c.memory.overlord === room.name && c.memory.role === 'stationaryHarvester');
-        let remoteHarvesters = _.filter(Game.creeps, (c) => c.memory.overlord === room.name && (c.memory.role === 'remoteHarvester' || c.memory.role === 'SKHarvester'));
+        let remoteHarvesters = _.filter(Game.creeps, (c) => c.memory.overlord === room.name && (c.memory.role === 'remoteHarvester'));
         inRoomHarvesters.forEach((h) => income += h.getActiveBodyparts(WORK) * HARVEST_POWER);
         remoteHarvesters.forEach((h) => income += (h.getActiveBodyparts(WORK) * HARVEST_POWER) * 0.7);
         ROOM_ENERGY_PER_TICK[room.name] = income;
