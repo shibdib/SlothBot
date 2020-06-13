@@ -1585,7 +1585,10 @@ Creep.prototype.fleeHome = function (force = false) {
     if (this.room.name !== this.memory.overlord) {
         this.say('RUN!', true);
         let hostile = _.max(_.filter(this.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)), 'ticksToLive');
-        if (hostile.id) this.memory.runCooldown = Game.time + hostile.ticksToLive; else this.memory.runCooldown = Game.time + 25;
+        if (hostile.id) {
+            if (hostile.ticksToLive > this.ticksToLive) return this.memory.recycle = true;
+            this.memory.runCooldown = Game.time + hostile.ticksToLive;
+        } else this.memory.runCooldown = Game.time + 25;
         this.goToHub(this.memory.overlord, true);
     } else if (Game.time <= cooldown) {
         if (this.shibKite()) return;

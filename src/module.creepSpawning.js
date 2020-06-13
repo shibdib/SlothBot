@@ -551,7 +551,14 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteName = remotes[keys];
             if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remoteName)) continue;
             // Handle invaders
-            if (Memory.roomCache[remoteName] && !Memory.roomCache[remoteName].sk && (Memory.roomCache[remoteName].invaderCore || Memory.roomCache[remoteName].numberOfHostiles)) {
+            if (Memory.roomCache[remoteName] && (Memory.roomCache[remoteName].invaderCore || Memory.roomCache[remoteName].threatLevel)) {
+                if (Memory.roomCache[remoteName].invaderTTL && Memory.roomCache[remoteName].invaderTTL < Game.time) {
+                    let scout = _.filter(Game.creeps, (creep) => creep.memory.destination === remoteName && creep.memory.role === 'scout');
+                    if (!scout.length) {
+                        queueGlobalCreep(PRIORITIES.priority, {role: 'scout', destination: remoteName, military: true})
+                    }
+                    continue;
+                }
                 room.memory.spawnBorderPatrol = true;
                 continue;
             }
@@ -623,7 +630,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
             // Remote Hauler
-            let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remoteName && (creep.memory.role === 'remoteHarvester'));
+            let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remoteName && creep.memory.role === 'remoteHarvester' && !Memory.roomCache[remoteName].threatLevel);
             if (remoteHarvester.length) {
                 let remoteHaulers = _.filter(Game.creeps, (creep) => creep.my && creep.memory.role === 'remoteHauler' && creep.memory.destination === remoteName).length;
                 let target = 1;

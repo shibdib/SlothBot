@@ -307,12 +307,12 @@ function findRoute(origin, destination, options = {}) {
             if (Memory.roomCache && Memory.roomCache[roomName]) {
                 // Avoid strongholds
                 if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].towers) return 256;
-                // SK rooms are avoided if not being mined
-                if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].mined + 50 < Game.time) return 20;
                 // If room is under attack
-                if (Memory.roomCache[roomName] && Memory.roomCache[roomName].threatLevel >= 3) return 75;
+                if (Memory.roomCache[roomName] && Memory.roomCache[roomName].threatLevel >= 2) return 100;
+                // SK rooms are avoided if not being mined
+                if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].mined + 50 < Game.time) return 30;
                 // Friendly Rooms
-                if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 50;
+                if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 10;
                 // Avoid rooms owned by others
                 if (Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner)) {
                     if (Memory.roomCache[roomName].towers) return 256; else return 75;
@@ -324,7 +324,7 @@ function findRoute(origin, destination, options = {}) {
             } else
             // Unknown rooms have a slightly higher weight
             if (!Memory.roomCache[roomName]) return 25;
-            return 2.25;
+            return 20;
         }
     });
     let path = undefined;
