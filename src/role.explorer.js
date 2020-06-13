@@ -14,6 +14,7 @@ module.exports.role = function (creep) {
     let sayings = EXPLORER_SPAM;
     creep.say(_.sample(sayings), true);
     let sectorScout = creep.memory.other.sectorScout;
+    // Set destination
     if (!creep.memory.destination) {
         let portal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL)[0];
         if (!sectorScout && portal && !portal.destination.shard && !creep.memory.usedPortal && (creep.memory.other.portalJump || Math.random() > 0.5)) {
@@ -27,14 +28,18 @@ module.exports.role = function (creep) {
         } else {
             let adjacent = Game.map.describeExits(creep.pos.roomName);
             let possibles, target;
+            // If there's unexplored prioritize else pick a random adjacent
             possibles = _.filter(adjacent, (r) => !Memory.roomCache[r] || (Memory.roomCache[r].cached + 3000 < Game.time && (!sectorScout || !Memory.roomCache[r].isHighway)));
-            if (possibles.length) {
-                target = _.sample(possibles);
-            }
-            if (!possibles.length || (target && Game.map.getRoomStatus(target) !== 'normal')) {
+            if (possibles.length) target = _.sample(possibles); else target = _.sample(adjacent);
+            // Use try/catch for private servers that don't support this
+            try {
+                if (Game.map.getRoomStatus(target).status !== 'normal') {
+                    target = _.sample(adjacent);
+                    if (Game.map.getRoomStatus(target).status !== 'normal') return creep.moveRandom();
+                }
+            } catch {
                 target = _.sample(adjacent);
             }
-            //if (Game.map.getRoomStatus(target) !== 'normal') return creep.say("??");
             creep.memory.destination = target;
         }
     }
