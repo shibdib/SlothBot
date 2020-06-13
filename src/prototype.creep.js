@@ -1510,7 +1510,7 @@ Creep.prototype.moveRandom = function () {
     for (let i = start; i < start + 8; i++) {
         direction = ((i - 1) % 8) + 1;
         let pos = this.pos.getAdjacentPosition(direction);
-        if (pos.isExit() || pos.checkForWall() || pos.checkForObstacleStructure() || pos.checkForCreep()) {
+        if (!pos || pos.isExit() || pos.checkForWall() || pos.checkForObstacleStructure() || pos.checkForCreep()) {
             continue;
         }
         break;
