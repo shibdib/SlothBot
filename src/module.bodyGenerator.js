@@ -169,7 +169,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             if (carry > 25) carry = 25;
             if (Math.random() > 0.7) work = 1; else work = 0;
             move = _.ceil((carry + work) / 2);
-            if (misc) move = carry + work;
+            if (!misc) move = carry + work;
             break;
         case 'roadBuilder':
             work = _.floor(((room.energyCapacityAvailable * _.random(0.2, 0.5))) / BODYPART_COST[WORK]) || 1;

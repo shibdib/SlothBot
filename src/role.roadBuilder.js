@@ -41,7 +41,7 @@ module.exports.role = function role(creep) {
     }
     // Work
     if (creep.memory.working === true) {
-        remoteRoads(creep);
+        if (!remoteRoads(creep)) Memory.roomCache[creep.room.name].roadsBuilt = true;
         if (creep.memory.constructionSite || creep.constructionWork()) {
             if (!Game.getObjectById(creep.memory.constructionSite)) return creep.memory.constructionSite = undefined;
             creep.builderFunction();
@@ -118,6 +118,7 @@ function remoteRoads(creep) {
         let middle = _.round(exits.length / 2);
         if (buildRoadFromTo(creep.room, creep.room.controller, exits[middle])) return true;
     }
+    return false;
 }
 
 function buildRoadFromTo(room, start, end) {
@@ -179,10 +180,8 @@ function buildRoadFromTo(room, start, end) {
 
 function buildRoad(position, room) {
     if (position.checkForImpassible(true) || position.checkForRoad() || position.checkForConstructionSites() || _.size(room.constructionSites) >= 5) {
-        Memory.roomCache[room.name].roadsBuilt = true;
         return false;
     } else if (position.createConstructionSite(STRUCTURE_ROAD) === OK) {
-        Memory.roomCache[room.name].roadsBuilt = undefined;
         return true;
     }
 }
