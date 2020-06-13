@@ -43,17 +43,15 @@ Creep.prototype.borderPatrol = function () {
         // Idle in target rooms for 100-250 ticks
         if (this.memory.onTarget && this.memory.onTarget + _.random(100, 250) <= Game.time) {
             this.memory.onTarget = undefined;
-            offDuty(this);
-        } else {
-            this.goToHub(this.room.name, this.pos.getRangeTo(this.pos.findClosestByRange(FIND_EXIT)) - 2);
         }
+        offDuty(this);
     }
 };
 
 function offDuty(creep) {
-    if (!Memory.roomCache[creep.room.name].roomHeat && creep.room.name !== creep.memory.overlord || creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.overlord)) >= 5) {
+    if (!Memory.roomCache[creep.room.name].roomHeat && creep.room.name !== creep.memory.overlord) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 3});
-    } else {
+    } else if (!creep.findDefensivePosition()) {
         creep.idleFor(creep.pos.getRangeTo(creep.pos.findClosestByRange(FIND_EXIT)) - 4);
     }
 }
