@@ -341,9 +341,8 @@ function fillBuyOrders(terminal, globalOrders) {
                     }
                 }
             }
-            /**
-             // Offload if we're overflowing
-            else if ((!_.includes(ALL_COMMODITIES, resourceType) && sellAmount >= DUMP_AMOUNT) || (_.includes(ALL_COMMODITIES, resourceType) && sellAmount >= DUMP_AMOUNT * 2)) {
+            // Offload if we're overflowing
+            else if (((!_.includes(ALL_COMMODITIES, resourceType) && sellAmount >= DUMP_AMOUNT * 3) || (_.includes(ALL_COMMODITIES, resourceType) && sellAmount >= DUMP_AMOUNT * 4)) && terminal.room.energyState) {
                 let randomRoom = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && r.level >= 6)) || _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && r.level >= 6));
                 if (randomRoom) {
                     randomRoom = randomRoom.name;
@@ -356,7 +355,7 @@ function fillBuyOrders(terminal, globalOrders) {
                         }
                     }
                 }
-            }**/
+            }
         }
     }
 }
