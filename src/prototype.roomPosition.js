@@ -52,7 +52,11 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
         [-1, 0],
         [-1, -1]
     ];
-    return new RoomPosition(this.x + adjacentPos[direction][0], this.y + adjacentPos[direction][1], this.roomName);
+    try {
+        return new RoomPosition(this.x + adjacentPos[direction][0], this.y + adjacentPos[direction][1], this.roomName);
+    } catch (e) {
+        return undefined;
+    }
 };
 
 RoomPosition.prototype.countOpenTerrainAround = function () {
