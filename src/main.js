@@ -150,6 +150,7 @@ status = function () {
     if (operations && _.size(operations)) {
         log.a('--OPERATION INFO--', ' ');
         for (let key in operations) {
+            if (!operations[key] || !key) continue;
             let level = operations[key].level || 0;
             let type = operations[key].type;
             if (type === 'scout' || type === 'attack') continue;
