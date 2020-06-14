@@ -537,7 +537,7 @@ function getSKMatrix(roomName, matrix) {
 function addSksToMatrix(room, matrix) {
     if (room && Memory.roomCache[room.name] && Memory.roomCache[room.name].sk) {
         let sks = room.find(FIND_CREEPS, {filter: (c) => c.owner.username === 'Source Keeper'});
-        let lairs = room.find(FIND_STRUCTURES, {filter: (s) => s.owner.username === 'Source Keeper' && s.ticksToSpawn < 25});
+        let lairs = room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn < 25});
         if (sks.length) {
             for (let sk of sks) {
                 matrix.set(sk.pos.x, sk.pos.y, 256);
