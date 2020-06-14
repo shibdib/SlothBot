@@ -265,7 +265,7 @@ function storageControl(creep) {
                 amountNeeded = TERMINAL_ENERGY_BUFFER - creep.room.terminal.store[resourceType];
             } else if (resourceType === RESOURCE_ENERGY && creep.room.storage.store[resourceType] > ENERGY_AMOUNT * 1.1) {
                 amountNeeded = ENERGY_AMOUNT * 1.1 - creep.room.storage.store[resourceType];
-            } else if (!_.includes(_.union(BASE_MINERALS, ALL_BOOSTS, [RESOURCE_ENERGY]), resourceType)) {
+            } else if (!_.includes(_.union(BASE_MINERALS, ALL_BOOSTS, [RESOURCE_ENERGY], COMPRESSED_COMMODITIES), resourceType)) {
                 amountNeeded = creep.room.storage.store[resourceType];
             } else if (_.includes(COMPRESSED_COMMODITIES, resourceType) && creep.room.terminal.store[resourceType] < 10000) {
                 amountNeeded = 10000 - creep.room.terminal.store[resourceType];

@@ -25,6 +25,8 @@ module.exports.role = function (creep) {
     if (emptyLab(creep)) return;
     // Get lab orders
     if (labSupplies(creep)) return;
+    // Handle dropped goodies
+    if (droppedResources(creep)) return;
     // Check nuker for ghodium
     if (nukeSupplies(creep)) return;
     // Empty mineral harvester container
@@ -35,8 +37,6 @@ module.exports.role = function (creep) {
     if (terminalControl(creep)) return;
     // Handle storage goods
     if (storageControl(creep)) return;
-    // Handle dropped goodies
-    if (droppedResources(creep)) return;
     creep.idleFor(20);
 };
 
@@ -269,6 +269,7 @@ function terminalControl(creep) {
 
 // Remove minerals from the storage if it's overfull and has no energy
 function storageControl(creep) {
+    creep.say(12)
     // Sort by max
     let maxResource = Object.keys(creep.room.storage.store).sort(function (a, b) {
         return creep.room.storage.store[a] - creep.room.storage.store[b]
@@ -284,14 +285,14 @@ function storageControl(creep) {
                 amountNeeded = TERMINAL_ENERGY_BUFFER - creep.room.terminal.store[resourceType];
             } else if (resourceType === RESOURCE_ENERGY && creep.room.storage.store[resourceType] > ENERGY_AMOUNT * 1.1) {
                 amountNeeded = ENERGY_AMOUNT * 1.1 - creep.room.storage.store[resourceType];
-            } else if (!_.includes(_.union(BASE_MINERALS, ALL_BOOSTS, [RESOURCE_ENERGY]), resourceType)) {
+            } else if (!_.includes(_.union(BASE_MINERALS, ALL_BOOSTS, [RESOURCE_ENERGY], COMPRESSED_COMMODITIES), resourceType)) {
                 amountNeeded = creep.room.storage.store[resourceType];
             } else if (_.includes(COMPRESSED_COMMODITIES, resourceType) && creep.room.terminal.store[resourceType] < 10000) {
                 amountNeeded = 10000 - creep.room.terminal.store[resourceType];
             }
-            if (amountNeeded > creep.store.getFreeCapacity(resourceType)) amountNeeded = creep.store.getFreeCapacity(resourceType);
-            if (amountNeeded > creep.room.storage.store[resourceType]) amountNeeded = creep.room.storage.store[resourceType];
             if (amountNeeded) {
+                if (amountNeeded > creep.store.getFreeCapacity(resourceType)) amountNeeded = creep.store.getFreeCapacity(resourceType);
+                if (amountNeeded > creep.room.storage.store[resourceType]) amountNeeded = creep.room.storage.store[resourceType];
                 creep.say('STORAGE', true);
                 switch (creep.withdraw(creep.room.storage, resourceType, amountNeeded)) {
                     case OK:
