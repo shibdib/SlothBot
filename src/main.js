@@ -77,7 +77,6 @@ module.exports.loop = function () {
 
     //Hive Mind
     if (Memory.myRooms && Memory.myRooms.length) hive.hiveMind();
-    //});
 };
 
 abandon = function (room) {
