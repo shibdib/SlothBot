@@ -527,7 +527,7 @@ function addHostilesToMatrix(room, matrix) {
 function getSKMatrix(roomName, matrix) {
     let room = Game.rooms[roomName];
     if (!Memory.roomCache[roomName] || !Memory.roomCache[roomName].sk) return matrix;
-    if (!skMatrixCache[room.name] || (!room.memory.skMatrixTick || Game.time !== room.memory.skMatrixTick + 3)) {
+    if (!skMatrixCache[room.name] || (!room.memory.skMatrixTick || Game.time !== room.memory.skMatrixTick + 5)) {
         room.memory.skMatrixTick = Game.time;
         skMatrixCache[room.name] = addSksToMatrix(room, matrix).serialize();
     }
@@ -537,7 +537,8 @@ function getSKMatrix(roomName, matrix) {
 function addSksToMatrix(room, matrix) {
     if (room && Memory.roomCache[room.name] && Memory.roomCache[room.name].sk) {
         let sks = room.find(FIND_CREEPS, {filter: (c) => c.owner.username === 'Source Keeper'});
-        if (sks.length > 0) {
+        let lairs = room.find(FIND_STRUCTURES, {filter: (s) => s.owner.username === 'Source Keeper' && s.ticksToSpawn < 25});
+        if (sks.length) {
             for (let sk of sks) {
                 matrix.set(sk.pos.x, sk.pos.y, 256);
                 let sites = sk.room.lookForAtArea(LOOK_TERRAIN, sk.pos.y - 4, sk.pos.x - 4, sk.pos.y + 4, sk.pos.x + 4, true);
@@ -549,7 +550,30 @@ function addSksToMatrix(room, matrix) {
                         continue;
                     }
                     if (position && !position.checkForWall()) {
-                        matrix.set(position.x, position.y, 150)
+                        let rating = 200;
+                        let range = position.getRangeTo(sk);
+                        if (range === 4) rating = 100; else if (range === 3) rating = 125; else if (range === 2) rating = 150;
+                        matrix.set(position.x, position.y, rating)
+                    }
+                }
+            }
+        }
+        if (lairs.length) {
+            for (let lair of lairs) {
+                matrix.set(lair.pos.x, lair.pos.y, 256);
+                let sites = lair.room.lookForAtArea(LOOK_TERRAIN, lair.pos.y - 4, lair.pos.x - 4, lair.pos.y + 4, lair.pos.x + 4, true);
+                for (let site of sites) {
+                    let position;
+                    try {
+                        position = new RoomPosition(site.x, site.y, room.name);
+                    } catch (e) {
+                        continue;
+                    }
+                    if (position && !position.checkForWall()) {
+                        let rating = 200;
+                        let range = position.getRangeTo(lair);
+                        if (range === 4) rating = 100; else if (range === 3) rating = 125; else if (range === 2) rating = 150;
+                        matrix.set(position.x, position.y, rating)
                     }
                 }
             }
