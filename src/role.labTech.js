@@ -269,7 +269,6 @@ function terminalControl(creep) {
 
 // Remove minerals from the storage if it's overfull and has no energy
 function storageControl(creep) {
-    creep.say(12)
     // Sort by max
     let maxResource = Object.keys(creep.room.storage.store).sort(function (a, b) {
         return creep.room.storage.store[a] - creep.room.storage.store[b]
