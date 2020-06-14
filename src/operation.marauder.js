@@ -37,7 +37,7 @@ Creep.prototype.marauding = function () {
         if (this.room.name === this.memory.destination) {
             highCommand.generateThreat(this);
             // If on target and cant win find a new target
-            if (!this.canIWin() || !this.handleMilitaryCreep()) {
+            if (!this.canIWin() || (!this.handleMilitaryCreep() && !this.moveToHostileConstructionSites())) {
                 this.room.cacheRoomIntel(true);
                 this.attackInRange();
                 this.memory.destination = undefined;
