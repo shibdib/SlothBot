@@ -50,6 +50,7 @@ module.exports.role = function (creep) {
                     if (_.sum(container.store) >= 1980) {
                         if (container.hits < container.hitsMax) creep.repair(container); else creep.idleFor(20);
                     }
+                    if (Math.random() > 0.8) creep.memory.onContainer = undefined;
                 } else {
                     creep.memory.containerID = undefined;
                     if (creep.pos.checkForConstructionSites() && creep.pos.checkForEnergy() && creep.pos.checkForEnergy().energy >= 1000) {
