@@ -408,6 +408,10 @@ function balanceResources(terminal) {
         if (resource === RESOURCE_BATTERY) {
             keepAmount = 1000;
         }
+        // Keep 5000 compressed
+        if (_.includes(COMPRESSED_COMMODITIES, resource)) {
+            keepAmount = 5000;
+        }
         // Praise empties and nuke room
         if (terminal.room.memory.praiseRoom || terminal.room.nukes.length) keepAmount = 0;
         // Next resource if we don't have enough to send
