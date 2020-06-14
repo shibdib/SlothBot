@@ -207,7 +207,7 @@ function manageSellOrders(myOrders) {
 function placeSellOrders(terminal, globalOrders, myOrders) {
     for (let resourceType of Object.keys(terminal.store)) {
         let sellAmount = 0;
-        let availableCash = Game.market.credits - CREDIT_BUFFER;
+        let availableCash = Game.market.credits;
         if (availableCash <= 0) return false;
         // Avoid Duplicates
         if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
@@ -223,7 +223,8 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         }
         // Handle commodities
         if (resourceType === RESOURCE_BATTERY) sellAmount = terminal.room.store(resourceType) - 1000;
-        if (_.includes(_.union(REGIONAL_0_COMMODITIES, COMPRESSED_COMMODITIES), resourceType)) sellAmount = terminal.room.store(resourceType) - REACTION_AMOUNT * 0.5;
+        if (_.includes(_.union(COMPRESSED_COMMODITIES), resourceType)) sellAmount = terminal.room.store(resourceType) - 5000;
+        if (_.includes(_.union(REGIONAL_0_COMMODITIES), resourceType)) sellAmount = terminal.room.store(resourceType) - REACTION_AMOUNT * 0.5;
         if (_.includes(_.union(REGIONAL_1_COMMODITIES, REGIONAL_2_COMMODITIES, REGIONAL_3_COMMODITIES, REGIONAL_4_COMMODITIES, REGIONAL_5_COMMODITIES), resourceType)) sellAmount = terminal.room.store(resourceType);
         // Handle boosts
         if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS, [RESOURCE_POWER]), resourceType)) sellAmount = terminal.room.store(resourceType) - BOOST_TRADE_AMOUNT;
