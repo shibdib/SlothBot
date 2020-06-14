@@ -145,6 +145,11 @@ function dropOff(creep) {
         creep.memory.storageDestination = creep.memory.borderLink;
         return true;
     }
+    // Storage
+    if (creep.room.storage) {
+        creep.memory.storageDestination = creep.room.storage.id;
+        return true;
+    }
     // Else fill spawns/extensions
     if (creep.haulerDelivery()) {
         return true;
