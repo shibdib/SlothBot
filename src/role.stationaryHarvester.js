@@ -182,13 +182,13 @@ function harvestDepositContainer(source, creep) {
             } else if (site) {
                 if (creep.pos.getRangeTo(site) > 0) creep.shibMove(site, {range: 0});
                 source.memory.containerPos = JSON.stringify(site.pos);
+                creep.memory.containerAttempt = true;
             }
         } else {
             let storedSite = JSON.parse(source.memory.containerPos);
             let containerSite = new RoomPosition(storedSite.x, storedSite.y, storedSite.roomName);
             if (!containerSite.checkForConstructionSites()) containerSite.createConstructionSite(STRUCTURE_CONTAINER);
         }
-        creep.memory.containerAttempt = true;
     }
 }
 
