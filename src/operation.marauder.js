@@ -22,7 +22,11 @@ Creep.prototype.marauding = function () {
             Memory.roomCache[r.name].closestRange;
         })[0] || _.sortBy(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && Memory.ncpArray && _.includes(Memory.ncpArray, r.user) && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.level && !r.towers), function (r) {
             Memory.roomCache[r.name].closestRange;
+        })[0] || _.sortBy(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.towers && NEW_SPAWN_DENIAL), function (r) {
+            Memory.roomCache[r.name].closestRange;
         })[0] || _.sortBy(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.level && !r.towers && NEW_SPAWN_DENIAL), function (r) {
+            Memory.roomCache[r.name].closestRange;
+        })[0] || _.sortBy(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.level && !r.towers), function (r) {
             Memory.roomCache[r.name].closestRange;
         })[0];
         if (target) {
@@ -36,11 +40,12 @@ Creep.prototype.marauding = function () {
         }
         if (this.room.name === this.memory.destination) {
             highCommand.generateThreat(this);
+            if (!this.memory.onScene) this.memory.onScene = Game.time;
             // If on target and cant win find a new target
-            if (!this.canIWin() || (!this.handleMilitaryCreep() && !this.moveToHostileConstructionSites())) {
+            if (!this.canIWin() || (!this.handleMilitaryCreep() && !this.moveToHostileConstructionSites()) || this.memory.onScene + 100 < Game.time) {
                 this.room.cacheRoomIntel(true);
-                this.attackInRange();
                 this.memory.destination = undefined;
+                this.memory.onScene = undefined;
                 this.shibKite();
             }
         }
