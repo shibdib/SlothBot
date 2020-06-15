@@ -45,21 +45,17 @@ module.exports.role = function (creep) {
     }
     if (creep.memory.destinationReached !== true) {
         if (creep.pos.roomName === creep.memory.destination) {
+            // Sign the controller
             if (creep.room.controller && (!creep.room.controller.owner || creep.room.controller.level < 3) && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
-                try {
-                    if (creep.room.controller.sign && creep.room.controller.sign.username === MY_USERNAME) {
-                        return creep.memory.destinationReached = true;
-                    }
-                } catch (e) {
-
-                }
+                // If already signed continue
+                if (creep.room.controller.sign && creep.room.controller.sign.username === MY_USERNAME) return creep.memory.destinationReached = true;
+                // Else sign
                 let signs = EXPLORED_ROOM_SIGNS;
                 switch (creep.signController(creep.room.controller, _.sample(signs))) {
-                    case OK:
-                        creep.memory.destinationReached = true;
-                        break;
                     case ERR_NOT_IN_RANGE:
-                        if (!creep.shibMove(creep.room.controller, {offRoad: true})) creep.memory.destinationReached = true;
+                        // If you cant reach the controller continue else move to it
+                        if (!creep.room.controller.pos.countOpenTerrainAround()) return creep.memory.destinationReached = true;
+                        creep.shibMove(creep.room.controller);
                 }
             } else if (!creep.moveToHostileConstructionSites(true)) {
                 creep.memory.destinationReached = true;
