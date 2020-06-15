@@ -148,9 +148,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = 1;
             break;
         case 'reserver':
-            claim = _.floor((room.energyCapacityAvailable * 0.20) / BODYPART_COST[CLAIM]) || 1;
+            claim = _.floor((room.energyCapacityAvailable * 0.50) / BODYPART_COST[CLAIM]) || 1;
             if (claim > 25) claim = 25;
-            move = claim;
+            if (level >= 7) move = claim * 0.5; else move = claim;
             break;
         case 'fuelTruck':
             carry = 20;
