@@ -454,7 +454,7 @@ module.exports.miscCreepQueue = function (room) {
             }
             if (level >= 6 && room.energyState) {
                 // Energy Supplies
-                let needEnergy = _.sample(_.filter(safeToSupport, ((r) => r !== room.name && !Game.rooms[r].energyState && !Game.rooms[r].memory.praiseRoom && Game.map.getRoomLinearDistance(r, room.name) < 6)));
+                let needEnergy = _.sample(_.filter(safeToSupport, ((r) => r !== room.name && !Game.rooms[r].energyState && !Game.rooms[r].memory.praiseRoom && Game.map.getRoomLinearDistance(r, room.name) < 6 && !Game.rooms[r].terminal)));
                 if (needEnergy) {
                     let fuelTruck = _.filter(Game.creeps, (creep) => creep.memory.destination === needEnergy && creep.memory.role === 'fuelTruck');
                     if (!fuelTruck.length) {
