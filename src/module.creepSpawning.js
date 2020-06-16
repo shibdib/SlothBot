@@ -593,7 +593,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             } else if (!Memory.roomCache[remoteName] || !Memory.roomCache[remoteName].sk) {
                 // No regular remotes if SK mining
-                if (!skMining || Memory.roomCache[remoteName].sources > 2 || !room.energyState) {
+                if (Memory.roomCache[remoteName].sources > 2 || room.energyState < 2) {
                     let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remoteName && creep.memory.role === 'remoteHarvester');
                     let sourceCount = 1;
                     if (!room.energyState && Memory.roomCache[remoteName] && Memory.roomCache[remoteName].sources) sourceCount = Memory.roomCache[remoteName].sources;
