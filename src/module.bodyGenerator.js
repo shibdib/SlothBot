@@ -11,6 +11,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
     let deficit = room.energy / (ENERGY_AMOUNT * 1.5);
     if (deficit > 1 || !room.storage) deficit = 1;
     else if (deficit < 0.25) deficit = 0.25;
+    let energyBonus = 0;
+    if (room.energy > ENERGY_AMOUNT) energyBonus = 1 - (room.energy / ENERGY_AMOUNT);
     let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
     switch (role) {
         // Explorer/Scout
@@ -25,7 +27,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'praiseMineral':
         case 'drone':
         case 'commodityMiner':
-            work = _.floor(((room.energyCapacityAvailable * _.random(0.2, 0.5)) * ROOM_ENERGY_ALLOTMENT['work']) / BODYPART_COST[WORK]) || 1;
+            work = _.floor(((room.energyCapacityAvailable * _.random(0.2, 0.5)) * (ROOM_ENERGY_ALLOTMENT['work'] + energyBonus)) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
             carry = _.floor((room.energyCapacityAvailable * _.random(0.2, 0.5)) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
@@ -33,7 +35,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             break;
         case 'waller':
             if (room.nukes.length) deficitExemption = true;
-            work = _.floor(((room.energyCapacityAvailable * _.random(0.2, 0.5)) * ROOM_ENERGY_ALLOTMENT['walls']) / BODYPART_COST[WORK]) || 1;
+            work = _.floor(((room.energyCapacityAvailable * _.random(0.2, 0.5)) * (ROOM_ENERGY_ALLOTMENT['walls'] + energyBonus)) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
             carry = _.floor((room.energyCapacityAvailable * _.random(0.1, 0.3)) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
@@ -58,7 +60,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
                 move = work + carry;
                 break;
             } else {
-                work = _.ceil((ROOM_ENERGY_PER_TICK[room.name] * ROOM_ENERGY_ALLOTMENT['upgrade']) / UPGRADE_CONTROLLER_POWER) || 1;
+                work = _.ceil((ROOM_ENERGY_PER_TICK[room.name] * (ROOM_ENERGY_ALLOTMENT['upgrade'] + energyBonus)) / UPGRADE_CONTROLLER_POWER) || 1;
                 if (work > 25) work = 25;
                 if (level === 8 && room.energyState) work = 15; else if (level === 8) work = 1;
                 work *= deficit;
