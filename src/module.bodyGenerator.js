@@ -55,7 +55,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
                 move = work + carry;
                 break;
             } else if (level < 4) {
-                work = _.random(level + 1, level * 2);
+                work = _.random(level, level * 2);
                 carry = 1;
                 move = work + carry;
                 break;
@@ -82,9 +82,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             break;
         case 'stationaryHarvester':
             deficitExemption = true;
-            work = _.floor((room.energyCapacityAvailable - 250) / BODYPART_COST[WORK]) || 1;
+            work = _.floor((room.energyCapacityAvailable * 0.50) / BODYPART_COST[WORK]) || 1;
             // 7 Is the cap
-            if (work > 7) work = 6;
+            if (work > 7) work = 7;
             carry = 1;
             if (misc) move = 1;
             break;
@@ -150,7 +150,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = 1;
             break;
         case 'reserver':
-            claim = _.floor((room.energyCapacityAvailable * 0.50) / BODYPART_COST[CLAIM]) || 1;
+            claim = _.floor((room.energyCapacityAvailable * 0.40) / BODYPART_COST[CLAIM]) || 1;
             if (claim > 25) claim = 25;
             if (level >= 7) move = claim * 0.5; else move = claim;
             break;
