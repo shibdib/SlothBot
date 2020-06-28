@@ -28,7 +28,7 @@ let globals = function () {
     global.ROOM_ENERGY_ALLOTMENT = {
         'store': 0.2,
         'upgrade': 0.55,
-        'build': 0.8,
+        'build': 0.5,
         'walls': 0.2,
         'other': 0.3
     };
