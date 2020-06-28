@@ -71,6 +71,8 @@ function threatManager() {
 }
 
 module.exports.trackThreat = function (creep) {
+    // Scouts/Explorers don't generate threat
+    if (creep.memory.role === 'scout' || creep.memory.role === 'explorer') return;
     // Handle damage
     if (!creep.memory._lastHits) return creep.memory._lastHits = creep.hits;
     if (creep.hits < creep.memory._lastHits) {
