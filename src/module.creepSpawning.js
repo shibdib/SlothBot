@@ -165,7 +165,6 @@ module.exports.essentialCreepQueue = function (room) {
     //Harvesters
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
     if (harvesters.length === 0) {
-        delete roomQueue[room.name];
         return queueCreep(room, 1, {role: 'stationaryHarvester', other: {reboot: true}});
     } else {
         let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && !c.memory.other.reboot));
@@ -177,7 +176,6 @@ module.exports.essentialCreepQueue = function (room) {
     if (room.memory.hubLink || (room.storage && room.energy > ENERGY_AMOUNT)) {
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
         if (!hauler.length) {
-            delete roomQueue[room.name];
             return queueCreep(room, -1, {
                 role: 'hauler',
                 other: {
@@ -203,7 +201,6 @@ module.exports.essentialCreepQueue = function (room) {
         let filler = _.filter(roomCreeps, (c) => (c.memory.role === 'filler'));
         if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < harvesters.length + 1) || filler.length < harvesters.length) {
             if (filler.length === 0) {
-                delete roomQueue[room.name];
                 return queueCreep(room, -1, {
                     role: 'filler',
                     other: {
@@ -243,7 +240,6 @@ module.exports.essentialCreepQueue = function (room) {
     if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
         //If room is about to downgrade get a creep out asap
         let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.progress > room.controller.progressTotal || Memory.roomCache[room.name].threatLevel >= 3;
-        if (reboot) delete roomQueue[room.name];
         queueCreep(room, PRIORITIES.upgrader + upgraders.length, {role: 'upgrader', other: {reboot: reboot}})
     }
 };
@@ -264,7 +260,6 @@ module.exports.praiseCreepQueue = function (room) {
     //Harvesters
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
     if (harvesters.length === 0) {
-        delete roomQueue[room.name];
         return queueCreep(room, 1, {role: 'stationaryHarvester', misc: true, other: {reboot: true}});
     } else {
         let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && !c.memory.other.reboot));
@@ -419,7 +414,7 @@ module.exports.miscCreepQueue = function (room) {
     if (!room.nukes.length && !Memory.roomCache[room.name].responseNeeded && !room.memory.spawnBorderPatrol) {
         //Pre observer spawn explorers
         if (Memory.maxLevel < 8) {
-            let amount = 4;
+            let amount = 10;
             let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
             if (explorers.length < amount) {
                 queueCreep(room, PRIORITIES.explorer + explorers.length, {
