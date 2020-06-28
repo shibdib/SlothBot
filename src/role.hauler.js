@@ -33,12 +33,18 @@ module.exports.role = function (creep) {
                     break;
             }
         } else creep.idleFor(5);
-    } else if (creep.memory.energyDestination || creep.locateEnergy(true)) {
-        if (creep.withdrawResource()) {
-            if (creep.haulerDelivery()) {
-                let storageItem = Game.getObjectById(creep.memory.storageDestination);
-                creep.shibMove(storageItem);
-            } else creep.idleFor(5);
+    } else {
+        if (creep.memory.storageDestination || creep.haulerDelivery()) {
+            if (creep.memory.energyDestination || creep.locateEnergy(true)) {
+                if (creep.withdrawResource()) {
+                    if (creep.haulerDelivery()) {
+                        let storageItem = Game.getObjectById(creep.memory.storageDestination);
+                        creep.shibMove(storageItem);
+                    } else creep.idleFor(5);
+                }
+            }
+        } else {
+            creep.idleFor(10)
         }
-    } else creep.idleFor(5);
+    }
 };

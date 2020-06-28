@@ -403,7 +403,9 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
     let terminal = this.room.terminal;
+    if (!terminal || !terminal.my) terminal = undefined;
     let storage = this.room.storage;
+    if (!storage || !storage.my) storage = undefined;
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
     if (this.room.controller.level >= 6) {
         if (!this.room.memory.controllerLink && controllerContainer && !controllerContainer.store[RESOURCE_ENERGY]) {
@@ -414,7 +416,7 @@ Creep.prototype.haulerDelivery = function () {
             }
         }
         //Terminal low
-        if (terminal && this.memory.withdrawID !== terminal.id && terminal.my && terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER * 0.1) {
+        if (terminal && this.memory.withdrawID !== terminal.id && terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER) {
             this.memory.storageDestination = terminal.id;
             return true;
         }
@@ -451,23 +453,18 @@ Creep.prototype.haulerDelivery = function () {
             return true;
         }
     }
-    //Storage
-    if (storage && this.memory.withdrawID !== storage.id && storage.my && storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 0.5) {
-        this.memory.storageDestination = storage.id;
-        return true;
-    }
-    //Terminal
-    if (terminal && this.memory.withdrawID !== terminal.id) {
-        this.memory.storageDestination = terminal.id;
-        return true;
-    }
     //Controller
     if (controllerContainer && (!controllerContainer.store[RESOURCE_ENERGY] || (controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5 && this.room.energy > ENERGY_AMOUNT))) {
         this.memory.storageDestination = controllerContainer.id;
         return true;
     }
+    //Terminal
+    if (terminal && this.memory.withdrawID !== terminal.id && terminal.store[RESOURCE_ENERGY] < terminal.store.getCapacity() * 0.25 && _.sum(terminal.store) < terminal.store.getCapacity()) {
+        this.memory.storageDestination = terminal.id;
+        return true;
+    }
     //Storage
-    if (storage && this.memory.withdrawID !== storage.id && storage.my && _.sum(storage.store) < storage.store.getCapacity()) {
+    if (storage && this.memory.withdrawID !== storage.id && _.sum(storage.store) < storage.store.getCapacity()) {
         this.memory.storageDestination = storage.id;
         return true;
     }
