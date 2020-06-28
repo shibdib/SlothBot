@@ -11,9 +11,8 @@ require("require");
 let hive = require('main.hive');
 let cleanUp = require('module.cleanup');
 const tickLengthArray = [];
-const lastGlobal = Memory.lastGlobalReset || Game.time;
 let memCleaned, LAST_MEMORY_TICK;
-log.e('Global Reset - Last reset occurred ' + (Game.time - lastGlobal) + ' ticks ago.');
+log.e('Global Reset - Last reset occurred ' + (Game.time - (Memory.lastGlobalReset || Game.time)) + ' ticks ago.');
 Memory.lastGlobalReset = Game.time;
 
 module.exports.loop = function () {
@@ -128,49 +127,61 @@ status = function () {
     log.a('---------------------------------------------------------------------------', ' ');
     log.a('--GLOBAL INFO--', ' ');
     log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + ((_.round(Game.gcl.progress / Game.gcl.progressTotal, 2)) * 100) + '% | Creep Count - ' + _.size(Game.creeps), ' ');
-    log.a('--ROOM INFO--', ' ');
-    let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
-    for (let activeRoom of myRooms) {
-        if (!activeRoom.controller) continue;
-        let marauder, averageCpu = 'No Data';
-        if (ROOM_CPU_ARRAY[activeRoom.name]) averageCpu = _.round(average(ROOM_CPU_ARRAY[activeRoom.name]), 2) || 'No Data';
-        let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
-        let marauderText = '';
-        let marauderCreep = _.filter(roomCreeps, (c) => c.memory.operation === 'marauding')[0];
-        if (marauderCreep) {
-            marauder = roomLink(marauderCreep.pos.roomName);
-            marauderText = '| Marauder Location - ' + marauder + ' ';
-        }
-        log.e(roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + ((_.round(activeRoom.controller.progress / activeRoom.controller.progressTotal, 2)) * 100) + '% | Energy Available - ' + activeRoom.energy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(ROOM_ENERGY_INCOME_ARRAY[activeRoom.name])), 0) + ' ' + marauderText + '| Creep Count: ' + _.size(roomCreeps), ' ');
-    }
-    let targetRooms = Memory.targetRooms;
-    let auxiliaryTargets = Memory.auxiliaryTargets;
-    let operations = Object.assign(targetRooms, auxiliaryTargets);
-    if (operations && _.size(operations)) {
-        log.a('--OPERATION INFO--', ' ');
-        for (let key in operations) {
-            if (!operations[key] || !key) continue;
-            let level = operations[key].level || 0;
-            let type = operations[key].type;
-            if (type === 'scout' || type === 'attack') continue;
-            let priority = 'Routine';
-            if (operations[key].priority === 3) priority = 'Increased'; else if (operations[key].priority === 2) priority = 'High'; else if (operations[key].priority === 1) priority = 'Urgent';
-            if (operations[key].enemyDead || operations[key].friendlyDead) {
-                log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + roomLink(key) + ' | Enemy KIA - ' + operations[key].trackedEnemy.length + '/' + operations[key].enemyDead + ' | Friendly KIA - ' + operations[key].trackedFriendly.length + '/' + operations[key].friendlyDead, ' ');
-            } else if (operations[key].type === 'pending') {
-                log.e(_.capitalize(type) + ' | Countdown - ' + (operations[key].dDay - Game.time) + ' ticks | Room ' + roomLink(key), ' ');
-            } else {
-                log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + roomLink(key), ' ');
+    try {
+        log.a('--ROOM INFO--', ' ');
+        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
+        for (let activeRoom of myRooms) {
+            if (!activeRoom.controller) continue;
+            let marauder, averageCpu = 'No Data';
+            if (ROOM_CPU_ARRAY[activeRoom.name]) averageCpu = _.round(average(ROOM_CPU_ARRAY[activeRoom.name]), 2) || 'No Data';
+            let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
+            let marauderText = '';
+            let marauderCreep = _.filter(roomCreeps, (c) => c.memory.operation === 'marauding')[0];
+            if (marauderCreep) {
+                marauder = roomLink(marauderCreep.pos.roomName);
+                marauderText = '| Marauder Location - ' + marauder + ' ';
             }
+            log.e(roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + ((_.round(activeRoom.controller.progress / activeRoom.controller.progressTotal, 2)) * 100) + '% | Energy Available - ' + activeRoom.energy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(ROOM_ENERGY_INCOME_ARRAY[activeRoom.name])), 0) + ' ' + marauderText + '| Creep Count: ' + _.size(roomCreeps), ' ');
         }
-        let scouts = _.filter(operations, (t) => t.type === 'scout' || t.type === 'attack');
-        if (scouts.length) log.e('Scout Target Count - ' + scouts.length, ' ');
+    } catch (e) {
+        log.a('--ROOM INFO FAILED--', ' ');
     }
-    if (Memory._badBoyArray && Memory._badBoyArray.length) {
-        log.a('--DIPLOMATIC INFO--', ' ');
-        if (Memory._enemies && Memory._enemies.length) log.e('Current Enemies: ' + Memory._enemies.join(", "), ' ');
-        if (Memory._nuisance && Memory._nuisance.length) log.e('Current Nuisances: ' + Memory._nuisance.join(", "), ' ');
-        if (Memory._threatList && Memory._threatList.length) log.e('Current Threats: ' + Memory._threatList.join(", "), ' ');
+    try {
+        let targetRooms = Memory.targetRooms;
+        let auxiliaryTargets = Memory.auxiliaryTargets;
+        let operations = Object.assign(targetRooms, auxiliaryTargets);
+        if (operations && _.size(operations)) {
+            log.a('--OPERATION INFO--', ' ');
+            for (let key in operations) {
+                if (!operations[key] || !key) continue;
+                let level = operations[key].level || 0;
+                let type = operations[key].type;
+                if (type === 'scout' || type === 'attack') continue;
+                let priority = 'Routine';
+                if (operations[key].priority === 3) priority = 'Increased'; else if (operations[key].priority === 2) priority = 'High'; else if (operations[key].priority === 1) priority = 'Urgent';
+                if (operations[key].enemyDead || operations[key].friendlyDead) {
+                    log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + roomLink(key) + ' | Enemy KIA - ' + operations[key].trackedEnemy.length + '/' + operations[key].enemyDead + ' | Friendly KIA - ' + operations[key].trackedFriendly.length + '/' + operations[key].friendlyDead, ' ');
+                } else if (operations[key].type === 'pending') {
+                    log.e(_.capitalize(type) + ' | Countdown - ' + (operations[key].dDay - Game.time) + ' ticks | Room ' + roomLink(key), ' ');
+                } else {
+                    log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + roomLink(key), ' ');
+                }
+            }
+            let scouts = _.filter(operations, (t) => t.type === 'scout' || t.type === 'attack');
+            if (scouts.length) log.e('Scout Target Count - ' + scouts.length, ' ');
+        }
+    } catch (e) {
+        log.a('--OPERATION INFO FAILED--', ' ');
+    }
+    try {
+        if (Memory._badBoyArray && Memory._badBoyArray.length) {
+            log.a('--DIPLOMATIC INFO--', ' ');
+            if (Memory._enemies && Memory._enemies.length) log.e('Current Enemies: ' + Memory._enemies.join(", "), ' ');
+            if (Memory._nuisance && Memory._nuisance.length) log.e('Current Nuisances: ' + Memory._nuisance.join(", "), ' ');
+            if (Memory._threatList && Memory._threatList.length) log.e('Current Threats: ' + Memory._threatList.join(", "), ' ');
+        }
+    } catch (e) {
+        log.a('--DIPLOMATIC INFO FAILED--', ' ');
     }
     return log.a('---------------------------------------------------------------------------', ' ');
 };
