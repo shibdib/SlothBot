@@ -11,8 +11,7 @@
 
 module.exports.role = function (creep) {
     creep.room.cacheRoomIntel();
-    let sayings = EXPLORER_SPAM;
-    creep.say(_.sample(sayings), true);
+    creep.say(_.sample(EXPLORER_SPAM), true);
     let sectorScout = creep.memory.other.sectorScout;
     // Set destination
     if (!creep.memory.destination) {
@@ -29,8 +28,8 @@ module.exports.role = function (creep) {
             let adjacent = Game.map.describeExits(creep.pos.roomName);
             let possibles, target;
             // If there's unexplored prioritize else pick a random adjacent
-            possibles = _.filter(adjacent, (r) => !Memory.roomCache[r] || (Memory.roomCache[r].cached + 3000 < Game.time && (!sectorScout || !Memory.roomCache[r].isHighway)));
-            if (possibles.length) target = _.sample(possibles); else target = _.sample(adjacent);
+            possibles = _.filter(adjacent, (r) => !Memory.roomCache[r]) || _.min(adjacent, (r) => Memory.roomCache[r].cached);
+            if (possibles.length && Math.random() > 0.8) target = _.sample(possibles); else target = _.sample(adjacent);
             // Use try/catch for private servers that don't support this
             try {
                 if (Game.map.getRoomStatus(target).status !== 'normal') {
@@ -50,8 +49,7 @@ module.exports.role = function (creep) {
                 // If already signed continue
                 if (creep.room.controller.sign && creep.room.controller.sign.username === MY_USERNAME) return creep.memory.destinationReached = true;
                 // Else sign
-                let signs = EXPLORED_ROOM_SIGNS;
-                switch (creep.signController(creep.room.controller, _.sample(signs))) {
+                switch (creep.signController(creep.room.controller, _.sample(EXPLORED_ROOM_SIGNS))) {
                     case ERR_NOT_IN_RANGE:
                         // If you cant reach the controller continue else move to it
                         if (!creep.room.controller.pos.countOpenTerrainAround()) return creep.memory.destinationReached = true;
