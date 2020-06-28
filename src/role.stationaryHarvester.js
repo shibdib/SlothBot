@@ -21,7 +21,7 @@ module.exports.role = function (creep) {
                 creep.memory.onContainer = true;
             }
         } else if (!creep.memory.containerID && !creep.memory.containerAttempt) {
-            return creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
+            creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
         }
         // Build container
         if (!creep.memory.containerID && !extensionFiller(creep) && _.sum(creep.store) === creep.store.getCapacity()) {
@@ -188,6 +188,7 @@ function harvestDepositContainer(source, creep) {
             let storedSite = JSON.parse(source.memory.containerPos);
             let containerSite = new RoomPosition(storedSite.x, storedSite.y, storedSite.roomName);
             if (!containerSite.checkForConstructionSites()) containerSite.createConstructionSite(STRUCTURE_CONTAINER);
+            creep.memory.containerAttempt = true;
         }
     }
 }
