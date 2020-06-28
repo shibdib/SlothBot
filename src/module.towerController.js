@@ -5,10 +5,6 @@
  * Project - Overlord-Bot (Screeps)
  */
 
-/**
- * Created by rober on 5/16/2017.
- */
-
 let roomRepairTower = {};
 
 module.exports.towerControl = function (room) {
