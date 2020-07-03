@@ -38,7 +38,13 @@ module.exports.role = function (creep) {
                 }
                 return;
             case ERR_NOT_IN_RANGE:
-                return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+                if (link && link.energy) {
+                    creep.withdrawResource(link);
+                } else if (container && container.store[RESOURCE_ENERGY]) {
+                    creep.withdrawResource(container);
+                } else {
+                    return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+                }
         }
     }
     if (creep.memory.energyDestination) {
