@@ -27,9 +27,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'praiseMineral':
         case 'drone':
         case 'commodityMiner':
-            work = _.floor(((room.energyCapacityAvailable * _.random(0.2, 0.5)) * (ROOM_ENERGY_ALLOTMENT['work'] + energyBonus)) / BODYPART_COST[WORK]) || 1;
+            work = _.floor((room.energyCapacityAvailable * _.random(0.1, 0.3)) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
-            carry = _.floor((room.energyCapacityAvailable * _.random(0.2, 0.5)) / BODYPART_COST[CARRY]) || 1;
+            carry = _.floor((room.energyCapacityAvailable * _.random(0.05, 0.2)) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
             move = work + carry;
             break;
@@ -113,7 +113,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = tough + heal + work;
             break;
         case 'defender':
-            if (Math.random() > 0.49) attack = _.floor((room.energyCapacityAvailable * 0.7) / BODYPART_COST[ATTACK]) || 1; else rangedAttack = _.floor((room.energyCapacityAvailable * 0.7) / BODYPART_COST[RANGED_ATTACK]) || 1;
+            if (Math.random() > 0.49) attack = _.floor((room.energyCapacityAvailable * 0.5) / BODYPART_COST[ATTACK]) || 1; else rangedAttack = _.floor((room.energyCapacityAvailable * 0.5) / BODYPART_COST[RANGED_ATTACK]) || 1;
             if (attack > 45) attack = 45; else if (rangedAttack > 45) rangedAttack = 45;
             move = 5;
             break;
