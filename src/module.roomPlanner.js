@@ -124,7 +124,7 @@ function buildFromLayout(room) {
             // Delete old memory
             room.memory.rampartSpots = undefined;
             rampartSpots[room.name] = undefined;
-            let hubBuffer = 8;
+            let hubBuffer = 10;
             let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
             let closestExit = hub.getRangeTo(hub.findClosestByRange(FIND_EXIT)) - 2;
             if (closestExit < hubBuffer) hubBuffer = closestExit;
