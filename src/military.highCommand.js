@@ -78,7 +78,8 @@ function manageResponseForces() {
             creep.memory.idle = undefined;
             if (creep.room.name !== invaderCore) log.a(creep.name + ' reassigned to a to deal with invader core in ' + roomLink(invaderCore) + ' from ' + roomLink(creep.room.name));
         }
-    } else if (highestHeat && highestHeat.name) {
+    }
+    /** else if (highestHeat && highestHeat.name) {
         for (let creep of _.sortBy(_.filter(idleResponders, (c) => Game.map.getRoomLinearDistance(c.room.name, highestHeat.name) <= 5), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, highestHeat.name);
         })) {
@@ -87,7 +88,8 @@ function manageResponseForces() {
             creep.memory.idle = undefined;
             if (creep.room.name !== highestHeat.name) log.a(creep.name + ' reassigned to a contested room ' + roomLink(highestHeat.name) + ' from ' + roomLink(creep.room.name));
         }
-    } else if (guard) {
+    } **/
+    else if (guard) {
         for (let creep of _.sortBy(_.filter(idleResponders, (c) => Game.map.getRoomLinearDistance(c.room.name, guard) <= 5), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, guard);
         })) {
