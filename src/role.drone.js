@@ -89,7 +89,7 @@ function hauling(creep) {
     if (creep.memory.task && creep.memory.task !== 'haul') return;
     if (!creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME) return false;
     let haulers = _.filter(creep.room.creeps, (c) => c.my && c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler' || c.memory.role === 'filler'));
-    let needyTower = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.5).length > 0;
+    let needyTower = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && !s.energy).length > 0;
     if (creep.memory.task === 'haul' || (creep.isFull && (!haulers.length || needyTower) && !creep.memory.task && (creep.room.energyAvailable < creep.room.energyCapacityAvailable || needyTower))) {
         creep.memory.task = 'haul';
         creep.say('Haul!', true);
