@@ -49,21 +49,21 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = 1;
             break;
         case 'upgrader':
-            if ((importantBuilds && !room.energyState) || room.nukes.length) {
+            if (level !== room.controller.level || room.nukes.length) {
                 work = 1;
                 carry = 1;
                 move = work + carry;
                 break;
             } else if (level < 4) {
-                work = _.random(level, level * 2);
+                work = _.floor((room.energyCapacityAvailable * _.random(0.3, 0.5)) / BODYPART_COST[WORK]) || 1;
                 carry = 1;
                 move = work + carry;
                 break;
             } else {
-                work = _.ceil((ROOM_ENERGY_PER_TICK[room.name] * (ROOM_ENERGY_ALLOTMENT['upgrade'] + energyBonus)) / UPGRADE_CONTROLLER_POWER) || 1;
+                work = _.floor((room.energyCapacityAvailable * _.random(0.5, 0.7)) / BODYPART_COST[WORK]) || 1;
                 if (work > 25) work = 25;
                 if (level === 8 && room.energyState) work = 15; else if (level === 8) work = 1;
-                work *= deficit;
+                //work *= deficit;
                 carry = 1;
                 break;
             }
@@ -105,28 +105,28 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'healer':
         case 'drainer':
             deficitExemption = true;
-            tough = _.floor((room.energyCapacityAvailable * 0.15) / BODYPART_COST[TOUGH]) || 1;
+            tough = _.floor((room.energyCapacityAvailable * 0.1) / BODYPART_COST[TOUGH]) || 1;
             if (tough > 7) tough = 7;
-            heal = _.floor((room.energyCapacityAvailable * 0.35) / BODYPART_COST[HEAL]) || 1;
+            heal = _.floor((room.energyCapacityAvailable * 0.4) / BODYPART_COST[HEAL]) || 1;
             if (heal > 17) heal = 17;
             if (role === 'drainer') work = 1; else work = 0;
             move = tough + heal + work;
             break;
         case 'defender':
-            if (Math.random() > 0.49) attack = _.floor((room.energyCapacityAvailable * 0.5) / BODYPART_COST[ATTACK]) || 1; else rangedAttack = _.floor((room.energyCapacityAvailable * 0.5) / BODYPART_COST[RANGED_ATTACK]) || 1;
+            if (Math.random() > 0.49) attack = _.floor((room.energyCapacityAvailable * 0.9) / BODYPART_COST[ATTACK]) || 1; else rangedAttack = _.floor((room.energyCapacityAvailable * 0.9) / BODYPART_COST[RANGED_ATTACK]) || 1;
             if (attack > 45) attack = 45; else if (rangedAttack > 45) rangedAttack = 45;
-            move = 5;
+            move = _.floor((room.energyCapacityAvailable * 0.1) / BODYPART_COST[RANGED_ATTACK]) || 1;
             break;
         case 'longbow':
             deficitExemption = true;
-            rangedAttack = _.floor((room.energyCapacityAvailable * 0.40) / BODYPART_COST[RANGED_ATTACK]) || 1;
+            rangedAttack = _.floor((room.energyCapacityAvailable * 0.45) / BODYPART_COST[RANGED_ATTACK]) || 1;
             if (rangedAttack > 20) rangedAttack = 20;
-            heal = _.floor((room.energyCapacityAvailable * 0.10) / BODYPART_COST[HEAL]);
+            heal = _.floor((room.energyCapacityAvailable * 0.05) / BODYPART_COST[HEAL]);
             if (heal > 5) heal = 5;
             move = heal + rangedAttack;
             break;
         case 'deconstructor':
-            work = _.floor((room.energyCapacityAvailable * 0.50) / BODYPART_COST[WORK]) || 1;
+            work = _.floor((room.energyCapacityAvailable * _.random(0.3, 0.5)) / BODYPART_COST[WORK]) || 1;
             if (work > 25) work = 25;
             move = work;
             break;
@@ -150,7 +150,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = 1;
             break;
         case 'reserver':
-            claim = _.floor((room.energyCapacityAvailable * 0.40) / BODYPART_COST[CLAIM]) || 1;
+            claim = _.floor((room.energyCapacityAvailable * 0.50) / BODYPART_COST[CLAIM]) || 1;
             if (claim > 25) claim = 25;
             if (level >= 7) move = claim * 0.5; else move = claim;
             break;
