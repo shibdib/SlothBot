@@ -1593,7 +1593,7 @@ Creep.prototype.fleeHome = function (force = false) {
     if (this.memory.overlord === this.room.name && !this.memory.runCooldown) return false;
     this.room.cacheRoomIntel();
     this.room.invaderCheck();
-    if (!force && !this.memory.runCooldown && !Memory.roomCache[this.room.name].threatLevel && this.hits === this.hitsMax) return false;
+    if (!force && !this.memory.runCooldown && this.hits === this.hitsMax && Memory.roomCache[this.room.name].lastCombat + 10 < Game.time) return false;
     let cooldown = this.memory.runCooldown || Game.time + 100;
     this.memory.runCooldown = cooldown;
     if (this.room.name !== this.memory.overlord) {

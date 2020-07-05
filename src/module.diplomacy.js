@@ -78,6 +78,7 @@ module.exports.trackThreat = function (creep) {
     if (creep.hits < creep.memory._lastHits) {
         creep.room.invaderCheck();
         creep.room.cacheRoomIntel();
+        Memory.roomCache[creep.room.name].lastCombat = Game.time;
         if (creep.room.controller && ((creep.room.controller.owner && creep.room.controller.owner.username !== MY_USERNAME) || (creep.room.controller.reservation && creep.room.controller.reservation.username !== MY_USERNAME)) && creep.memory.destination !== creep.room.name) return false;
         let nearbyCreeps = _.uniq(_.pluck(_.filter(creep.room.creeps, (c) => ((c.getActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(creep) <= 3) || (c.getActiveBodyparts(ATTACK) && c.pos.isNearTo(creep))) && c.owner.username !== MY_USERNAME), 'owner.username'));
         if (nearbyCreeps.length) {
@@ -90,8 +91,8 @@ module.exports.trackThreat = function (creep) {
                 if (cache[user] && Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === MY_USERNAME) {
                     if (cache[user].lastAction + 3 > Game.time) return true;
                     let multiple = 5;
-                    if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === MY_USERNAME) multiple = 10;
-                    if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === user) multiple = 1;
+                    if (Memory.roomCache[creep.room.name].user === MY_USERNAME) multiple = 10;
+                    if (Memory.roomCache[creep.room.name].user === user) multiple = 1;
                     if (_.includes(FRIENDLIES, user)) {
                         threatRating = cache[user]['threatRating'] + 1;
                     } else {
