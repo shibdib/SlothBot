@@ -454,7 +454,7 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
     //Controller
-    if (controllerContainer && (!controllerContainer.store[RESOURCE_ENERGY] || (controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5 && this.room.energy > ENERGY_AMOUNT))) {
+    if (controllerContainer && (!controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5)) {
         this.memory.storageDestination = controllerContainer.id;
         return true;
     }
@@ -469,12 +469,13 @@ Creep.prototype.haulerDelivery = function () {
         return true;
     }
     //Creeps
-    let needyCreep = this.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.my && (c.memory.role === 'upgrader' || c.memory.role === 'drone' || c.memory.role === 'waller') && _.sum(c.store) < c.store.getCapacity() * 0.85));
-    if (needyCreep) {
+    /**
+     let needyCreep = this.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.my && (c.memory.role === 'upgrader' || c.memory.role === 'drone' || c.memory.role === 'waller') && _.sum(c.store) < c.store.getCapacity() * 0.85));
+     if (needyCreep) {
         this.memory.storageDestination = needyCreep.id;
         return true;
     }
-    return false;
+     return false;**/
 };
 
 Creep.prototype.builderFunction = function () {
@@ -844,7 +845,7 @@ Creep.prototype.tryToBoost = function (boosts) {
 Creep.prototype.recycleCreep = function () {
     let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
     if (!this.memory.overlord) this.memory.overlord = Memory.myRooms[0];
-    if (!spawn) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 20});
+    if (!spawn) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 23});
     // Clear role to queue replacement if needed
     this.memory.role = undefined;
     switch (spawn.recycleCreep(this)) {
@@ -1008,28 +1009,39 @@ Creep.prototype.attackHostile = function (hostile) {
     // If has a range part use it
     if (this.getActiveBodyparts(RANGED_ATTACK) && this.pos.getRangeTo(hostile) <= 3) this.rangedAttack(hostile);
     // Attack
-    switch (this.attack(hostile)) {
-        case OK:
-            this.memory.lastRange = undefined;
-            this.memory.kiteCount = undefined;
-            this.shibMove(moveTarget, {ignoreCreeps: false, range: 0});
-            return true;
-        case ERR_NOT_IN_RANGE:
-            if (this.getActiveBodyparts(HEAL) && this.hits < this.hitsMax) this.heal(this);
-            let range = this.pos.getRangeTo(hostile);
-            let lastRange = this.memory.lastRange || range;
-            this.memory.lastRange = range;
-            if (hostile instanceof Creep && Math.random() > 0.3 && range >= lastRange && range <= 4 && hostile.getActiveBodyparts(RANGED_ATTACK) && this.hits < this.hitsMax * 0.95) {
-                this.memory.kiteCount = this.memory.kiteCount || 1;
-                if (this.memory.kiteCount > 5 || this.hits < this.hitsMax * 0.5) {
-                    this.fleeHome(true);
+    if (this.getActiveBodyparts(ATTACK)) {
+        switch (this.attack(hostile)) {
+            case OK:
+                this.memory.lastRange = undefined;
+                this.memory.kiteCount = undefined;
+                this.shibMove(moveTarget, {ignoreCreeps: false, range: 0});
+                return true;
+            case ERR_NOT_IN_RANGE:
+                if (this.getActiveBodyparts(HEAL) && this.hits < this.hitsMax) this.heal(this);
+                let range = this.pos.getRangeTo(hostile);
+                let lastRange = this.memory.lastRange || range;
+                this.memory.lastRange = range;
+                if (hostile instanceof Creep && Math.random() > 0.3 && range >= lastRange && range <= 4 && hostile.getActiveBodyparts(RANGED_ATTACK) && this.hits < this.hitsMax * 0.95) {
+                    this.memory.kiteCount = this.memory.kiteCount || 1;
+                    if (this.memory.kiteCount > 5 || this.hits < this.hitsMax * 0.5) {
+                        this.fleeHome(true);
+                    } else {
+                        this.shibKite(6);
+                    }
                 } else {
-                    this.shibKite(6);
+                    this.shibMove(moveTarget, {ignoreCreeps: false, range: 1});
                 }
-            } else {
+                return true;
+        }
+    }
+    if (this.getActiveBodyparts(WORK) && target instanceof Structure) {
+        switch (this.dismantle(hostile)) {
+            case OK:
+                return true;
+            case ERR_NOT_IN_RANGE:
                 this.shibMove(moveTarget, {ignoreCreeps: false, range: 1});
-            }
-            return true;
+                return true;
+        }
     }
 };
 
@@ -1108,6 +1120,8 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
     if (hostile && hostile.pos.roomName === this.pos.roomName && (this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK))) {
         // Heal if needed
         if (!this.getActiveBodyparts(ATTACK) && this.getActiveBodyparts(HEAL) && this.hits < this.hitsMax) this.heal(this);
+        // Handle deconstructor
+        if (this.getActiveBodyparts(WORK) && this.attackHostile(hostile)) return true;
         // Fight from rampart
         if (rampart && this.fightRampart(hostile)) return true;
         // Melee attacker
@@ -1271,7 +1285,10 @@ Creep.prototype.fightRanged = function (target) {
                     this.shibMove(target, {range: moveRange, ignoreCreeps: false});
                 } else {
                     if (this.getActiveBodyparts(HEAL) && this.pos.getRangeTo(partner) <= 1 && this.hits / this.hitsMax > partner.hits / partner.hitsMax) this.heal(partner);
-                    this.shibMove(partner, {range: 0, ignoreCreeps: false});
+                    if (target && (target.getActiveBodyparts(ATTACK) || target.getActiveBodyparts(RANGED_ATTACK))) this.shibMove(partner, {
+                        range: 1,
+                        ignoreCreeps: false
+                    }); else this.shibMove(target, {range: 0, ignoreCreeps: false});
                 }
             }
         } else {
