@@ -8,10 +8,12 @@
 let highCommand = require('military.highCommand');
 
 Creep.prototype.holdRoom = function () {
-    let sentence = ['This', 'Room', 'Has', 'Been', 'Marked', 'For', 'Other', 'Uses', 'Please', 'Abandon'];
+    let sentence = ['Please', 'Abandon'];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
-    // Handle border
+    // If military action required do that
+    this.attackInRange();
+    if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
     if (this.memory.role === 'longbow') {
         levelManager(this);
         highCommand.generateThreat(this);
@@ -23,14 +25,11 @@ Creep.prototype.holdRoom = function () {
         } else if (!Memory.targetRooms[this.memory.destination]) {
             return this.memory.recycle = true;
         }
-        // If military action required do that
-        this.attackInRange();
-        if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
         if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
         if (!this.handleMilitaryCreep(false, false, true)) this.scorchedEarth();
     } else if (this.memory.role === 'deconstructor') {
-        if (this.room.name !== this.memory.destination) this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
-        this.scorchedEarth();
+        if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
+        if (!this.handleMilitaryCreep(false, false, true)) this.scorchedEarth();
     }
 };
 
