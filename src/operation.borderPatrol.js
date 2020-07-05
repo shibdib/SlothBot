@@ -49,9 +49,8 @@ Creep.prototype.borderPatrol = function () {
 };
 
 function offDuty(creep) {
-    if (!Memory.roomCache[creep.room.name].roomHeat && creep.room.name !== creep.memory.overlord) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 3});
-    } else if (!creep.findDefensivePosition()) {
-        creep.idleFor(creep.pos.getRangeTo(creep.pos.findClosestByRange(FIND_EXIT)) - 4);
+    if (!creep.findDefensivePosition() && !creep.borderCheck()) {
+        let center = new RoomPosition(25, 25, creep.room.name);
+        if (creep.pos.getRangeTo(center) > 20) creep.shibMove(center, {range: 18}); else creep.idleFor(creep.pos.getRangeTo(creep.pos.findClosestByRange(FIND_EXIT)) - 4);
     }
 }
