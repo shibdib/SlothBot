@@ -173,7 +173,7 @@ module.exports.essentialCreepQueue = function (room) {
         }
     }
     //Haulers
-    if (room.memory.hubLink || (room.storage && room.energy > ENERGY_AMOUNT)) {
+    if (room.memory.hubLink || room.storage) {
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
         if (!hauler.length) {
             return queueCreep(room, -1, {
@@ -235,8 +235,11 @@ module.exports.essentialCreepQueue = function (room) {
     let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
     let upgradePower = 0;
     let number = 1;
+    let deficit = room.energy / (ENERGY_AMOUNT * 1.5);
+    if (deficit > 1 || !room.storage) deficit = 1;
     upgraders.forEach((h) => upgradePower += h.getActiveBodyparts(WORK) * UPGRADE_CONTROLLER_POWER);
     if (level < 8 && !inBuild && upgradePower < (ROOM_ENERGY_PER_TICK[room.name]) * ROOM_ENERGY_ALLOTMENT['upgrade'] && upgraders.length < (8 - room.level)) number = upgraders.length + 1;
+    number *= deficit;
     if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
         //If room is about to downgrade get a creep out asap
         let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.progress > room.controller.progressTotal || Memory.roomCache[room.name].threatLevel >= 3;
@@ -385,7 +388,7 @@ module.exports.miscCreepQueue = function (room) {
     }
     //SPECIALIZED
     //Waller
-    if (level >= 2) {
+    if (level >= 3) {
         let waller = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 1;
         let buildPower = 0;
