@@ -124,7 +124,7 @@ module.exports.hiveMind = function () {
 let errorCount = {};
 function minionController(minion) {
     // If on portal move
-    if (minion.portalCheck()) return;
+    if (minion.portalCheck() || minion.borderCheck()) return;
     // Disable notifications
     if (minion.ticksToLive > 1450) minion.notifyWhenAttacked(false);
     // If minion has been flagged to recycle do so
