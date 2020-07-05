@@ -46,7 +46,7 @@ module.exports.role = function (creep) {
             case OK:
                 //Find container
                 if (!creep.memory.containerAttempt && !creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
-                if (container && container.store[RESOURCE_ENERGY] > 10 && creep.memory.linkID && Game.time % 3 === 0) creep.withdraw(container, RESOURCE_ENERGY);
+                if (container && container.store[RESOURCE_ENERGY] > 10 && (creep.memory.linkID || creep.memory.extensions) && Game.time % 3 === 0) creep.withdraw(container, RESOURCE_ENERGY);
                 if (_.sum(creep.store) === creep.store.getCapacity()) return depositEnergy(creep);
                 break;
         }
@@ -88,7 +88,7 @@ function depositEnergy(creep) {
         if (container.hits < container.hitsMax * 0.5) {
             return creep.repair(container);
         } else if (_.sum(container.store) >= 1900) {
-            creep.idleFor(20);
+            if (container.hits < container.hitsMax) creep.repair(container); else creep.idleFor(20);
         }
     } else {
         creep.memory.containerID = undefined;
@@ -104,7 +104,7 @@ function extensionFinder(creep) {
         let extension = container.pos.findInRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION), 1);
         if (extension.length) {
             for (let s of extension) {
-                if (!s.pos.checkForRampart() && !s.pos.checkForConstructionSites()) s.pos.createConstructionSite(STRUCTURE_RAMPART);
+                if (creep.room.controller.level >= 4 && !s.pos.checkForRampart() && !s.pos.checkForConstructionSites()) s.pos.createConstructionSite(STRUCTURE_RAMPART);
             }
             creep.memory.extensions = JSON.stringify(_.pluck(extension, 'id'));
         }
