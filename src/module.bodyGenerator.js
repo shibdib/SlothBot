@@ -62,9 +62,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
                 break;
             } else {
                 work = _.floor((room.energyCapacityAvailable * _.random(0.5, 0.7)) / BODYPART_COST[WORK]) || 1;
-                if (work > 25) work = 25;
+                if (work > 48) work = 48;
                 if (level === 8 && room.energyState) work = 15; else if (level === 8) work = 1;
                 //work *= deficit;
+                move = 1;
                 carry = 1;
                 break;
             }
