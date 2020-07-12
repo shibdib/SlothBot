@@ -30,12 +30,7 @@ module.exports.role = function (creep) {
                 for (const resourceType in creep.store) {
                     switch (creep.transfer(storageItem, resourceType)) {
                         case OK:
-                            if (!_.sum(creep.store) && (storageItem.structureType !== STRUCTURE_LINK || creep.memory.waitLink)) {
-                                creep.memory.waitLink = undefined;
-                            } else if (storageItem.structureType === STRUCTURE_LINK && _.sum(creep.store)) {
-                                creep.memory.waitLink = true;
-                                creep.idleFor(storageItem.cooldown + 1 || 5);
-                            }
+                            creep.memory.waitLink = undefined;
                             creep.memory.storageDestination = undefined;
                             break;
                         case ERR_NOT_IN_RANGE:
@@ -47,7 +42,7 @@ module.exports.role = function (creep) {
                                 creep.memory.waitLink = undefined;
                             } else {
                                 creep.memory.waitLink = true;
-                                creep.idleFor(5);
+                                creep.idleFor(storageItem.cooldown + 1 || 5);
                             }
                             break;
                     }
