@@ -47,10 +47,29 @@ Creep.prototype.rangersRoom = function () {
         // Generate threat
         highCommand.generateThreat(this);
         // If military action required do that
-        if (!this.canIWin(4)) return this.shibKite();
-        if (this.handleMilitaryCreep(false, false)) return;
-        // Scorched Earth
-        this.scorchedEarth();
+        if (!this.canIWin(6)) return this.fleeHome(true);
+        if (this.handleMilitaryCreep(false, false)) {
+            this.memory.timeout = undefined;
+            return;
+        }
+        // Rotate around
+        if (this.memory.timeout + 25 < Game.time) {
+            let adjacent = Game.map.describeExits(this.pos.roomName);
+            // Check for adjacent targets
+            let possible = _.filter(adjacent, (r) => Memory.roomCache[r] && Memory.roomCache[r].user === Memory.roomCache[this.room.name].user && !Memory.roomCache[r].towers)[0];
+            if (possible) {
+                this.memory.timeout = undefined;
+                Memory.targetRooms[possible] = Memory.targetRooms[this.room.name];
+                Memory.targetRooms[this.room.name] = undefined;
+                let creeps = _.filter(Game.creeps, (c) => c.my && c.memory.destination === this.room.name);
+                for (let creep of creeps) {
+                    creeps.memory.destination = possible;
+                }
+            } else {
+                this.scorchedEarth();
+            }
+        } else if (!this.memory.timeout) this.memory.timeout = Game.time;
+
     } else {
         // Set leader and move to them
         let leader = Game.getObjectById(this.memory.leader);

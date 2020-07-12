@@ -14,8 +14,8 @@ Creep.prototype.holdRoom = function () {
     // If military action required do that
     this.attackInRange();
     if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
+    levelManager(this);
     if (this.memory.role === 'longbow') {
-        levelManager(this);
         highCommand.generateThreat(this);
         // Handle target room
         if (this.room.name === this.memory.destination && Memory.targetRooms[this.memory.destination]) {
@@ -26,6 +26,7 @@ Creep.prototype.holdRoom = function () {
             return this.memory.recycle = true;
         }
         if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
+        if (!this.canIWin(6)) return this.fleeHome(true);
         if (!this.handleMilitaryCreep(false, false, true)) this.scorchedEarth();
     } else if (this.memory.role === 'deconstructor') {
         if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
@@ -51,13 +52,17 @@ function levelManager(creep) {
     }
     let towers = _.filter(creep.room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10 && c.isActive());
     let armedEnemies = _.filter(creep.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && c.owner.username === c.room.controller.owner.username);
-    if (creep.room.name === creep.memory.destination && towers.length) {
+    let armedOwners = _.filter(_.union(_.pluck(armedEnemies, 'owner.username'), [creep.room.controller.owner.username]), (o) => !_.includes(FRIENDLIES, o));
+    console.log(armedOwners)
+    if (armedOwners.length > 1) {
+        delete Memory.targetRooms[creep.memory.destination];
+        log.a('Canceling operation in ' + roomLink(creep.memory.destination) + ' as there is a 3rd party present.', 'HIGH COMMAND: ');
+        creep.room.cacheRoomIntel(true);
+    } else if (towers.length) {
         delete Memory.targetRooms[creep.memory.destination];
         log.a('Canceling operation in ' + roomLink(creep.memory.destination) + ' as we cannot hold it due to towers.', 'HIGH COMMAND: ');
         creep.room.cacheRoomIntel(true);
-        return;
-    }
-    if (armedEnemies.length) {
+    } else if (armedEnemies.length) {
         Memory.targetRooms[creep.memory.destination].level = 2;
     } else if (creep.room.hostileCreeps.length) {
         Memory.targetRooms[creep.memory.destination].level = 1;
