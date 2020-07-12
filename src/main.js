@@ -96,7 +96,7 @@ abandon = function (room) {
     noClaim.push(room);
     delete Game.rooms[room].memory;
     Game.rooms[room].cacheRoomIntel(true);
-    Memory.roomCache[room].noClaim = Game.time;
+    Memory.roomCache[room].noClaim = Game.time + 999999999999;
     Game.rooms[room].controller.unclaim();
 };
 
