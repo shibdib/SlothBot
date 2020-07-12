@@ -111,6 +111,7 @@ findResources = function (creep) {
 // Remote Hauler Drop Off
 function dropOff(creep) {
     buildLinks(creep);
+    let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     //Close Link
     if (!creep.memory.linkSearch) {
         let closestLink = creep.pos.findClosestByRange(creep.room.structures, {
@@ -141,6 +142,11 @@ function dropOff(creep) {
         creep.memory.storageDestination = creep.memory.borderLink;
         return true;
     }
+    //Controller
+    if (controllerContainer && _.sum(controllerContainer.store) < controllerContainer.store.getCapacity() * 0.5 && !creep.room.controllerLink) {
+        creep.memory.storageDestination = controllerContainer.id;
+        return true;
+    }
     // Terminal
     if (creep.room.terminal && creep.room.terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER * 0.5) {
         creep.memory.storageDestination = creep.room.terminal.id;
@@ -152,7 +158,6 @@ function dropOff(creep) {
         return true;
     }
     //Controller
-    let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     if (controllerContainer && _.sum(controllerContainer.store) < controllerContainer.store.getCapacity() &&
         ((!creep.room.controllerLink && Math.random() > _.sum(controllerContainer.store) / controllerContainer.store.getCapacity()) || (creep.room.controllerLink && Math.random() > (_.sum(controllerContainer.store) / controllerContainer.store.getCapacity()) * 0.5))) {
         creep.memory.storageDestination = controllerContainer.id;
