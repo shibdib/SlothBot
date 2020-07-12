@@ -90,7 +90,7 @@ function safeModeManager(room) {
     // Ensure camping enemies continue to gain threat even if no creeps present.
     addThreat(room);
     let controller = room.controller;
-    if (!room.hostileCreeps.length || controller.safeMode || controller.safeModeCooldown || !controller.safeModeAvailable || controller.ticksToDowngrade || controller.level < 3) {
+    if (!room.hostileCreeps.length || controller.safeMode || controller.safeModeCooldown || !controller.safeModeAvailable || controller.ticksToDowngrade) {
         structureCount[room.name] = undefined;
         return;
     }
