@@ -25,7 +25,7 @@ module.exports.linkControl = function (room) {
             link.transferEnergy(controllerLink);
         } else if (hubLink && hubLink.energy < 500) {
             link.transferEnergy(hubLink);
-        } else if (controllerLink && controllerLink.energy < 700) {
+        } else if (controllerLink && controllerLink.energy < 300) {
             link.transferEnergy(controllerLink);
         } else if (hubLink && hubLink.energy < 750) {
             link.transferEnergy(hubLink);
