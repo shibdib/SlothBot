@@ -38,19 +38,21 @@ Creep.prototype.marauding = function () {
             this.findDefensivePosition(this);
         }
     } else {
-        if (this.room.name !== this.memory.other.destination) {
-            return this.shibMove(new RoomPosition(25, 25, this.memory.other.destination), {range: 19});
-        }
-        if (this.room.name === this.memory.other.destination) {
-            highCommand.generateThreat(this);
-            if (!this.memory.other.onScene) this.memory.other.onScene = Game.time;
-            // If on target and cant win find a new target
-            if (!this.canIWin() || (!this.handleMilitaryCreep() && !this.moveToHostileConstructionSites()) || this.memory.other.onScene + 100 < Game.time) {
-                this.room.cacheRoomIntel(true);
-                this.memory.other.visited.push(this.memory.other.destination);
-                this.memory.other.destination = undefined;
-                this.memory.other.onScene = undefined;
-                this.shibKite();
+        if (!this.canIWin() || (!this.handleMilitaryCreep() && !this.moveToHostileConstructionSites())) {
+            if (this.room.name !== this.memory.other.destination) {
+                return this.shibMove(new RoomPosition(25, 25, this.memory.other.destination), {range: 19});
+            }
+            if (this.room.name === this.memory.other.destination) {
+                highCommand.generateThreat(this);
+                if (!this.memory.other.onScene) this.memory.other.onScene = Game.time;
+                // If on target and cant win find a new target
+                if (this.memory.other.onScene + 100 < Game.time) {
+                    this.room.cacheRoomIntel(true);
+                    this.memory.other.visited.push(this.memory.other.destination);
+                    this.memory.other.destination = undefined;
+                    this.memory.other.onScene = undefined;
+                    this.shibKite();
+                }
             }
         }
     }
