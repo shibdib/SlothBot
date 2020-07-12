@@ -89,7 +89,7 @@ module.exports.trackThreat = function (creep) {
                 let cache = Memory._badBoyList || {};
                 let threatRating;
                 if (cache[user] && Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === MY_USERNAME) {
-                    if (cache[user].lastAction + 3 > Game.time) return true;
+                    if (cache[user].lastAction + 3 > Game.time) continue;
                     let multiple = 5;
                     if (Memory.roomCache[creep.room.name].user === MY_USERNAME) multiple = 10;
                     if (Memory.roomCache[creep.room.name].user === user) multiple = 1;
@@ -131,14 +131,15 @@ module.exports.trackThreat = function (creep) {
         let neutrals = _.uniq(_.pluck(_.filter(creep.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper'), 'owner.username'));
         if (neutrals.length) {
             for (let user of neutrals) {
-                if (user === MY_USERNAME || _.includes(FRIENDLIES, user)) continue;
+                if (user === MY_USERNAME || _.includes(FRIENDLIES, user) || Memory.roomCache[creep.room.name].isHighway) continue;
                 let cache = Memory._badBoyList || {};
+                if (cache[user] && cache[user].lastAction + 50 > Game.time) continue;
                 let threatRating;
                 if (cache[user]) {
                     threatRating = cache[user]['threatRating'] + 0.5;
                     if (threatRating >= 1500) threatRating = 1500;
                 } else if (!cache[user]) {
-                    threatRating = 25;
+                    threatRating = 10;
                     log.e(creep.name + ' has detected a neutral in ' + roomLink(creep.room.name) + '. ' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
                 }
                 cache[user] = {
