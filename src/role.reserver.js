@@ -25,7 +25,7 @@ module.exports.role = function (creep) {
                         creep.memory.signed = true;
                     }
                     let ticks;
-                    if (creep.room.controller.reservation) {
+                    if (creep.room.controller.reservation && creep.room.controller.reservation.username === MY_USERNAME) {
                         ticks = creep.room.controller.reservation['ticksToEnd'] || 0;
                     } else {
                         ticks = 0;
