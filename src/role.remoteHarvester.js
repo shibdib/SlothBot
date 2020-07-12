@@ -17,10 +17,15 @@ module.exports.role = function (creep) {
     let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
     if (SK) {
         creep.memory.onContainer = undefined;
-        return creep.shibKite(6);
-    } else if (lair && lair.ticksToSpawn <= 10) {
+        return creep.shibKite(8);
+    } else if (lair && lair.ticksToSpawn <= 15) {
         creep.memory.onContainer = undefined;
-        return creep.flee(lair, 7);
+        return creep.flee(lair, 8);
+    }
+    // Handle invader cores in sk
+    if (lair && _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0]) {
+        creep.room.cacheRoomIntel(true);
+        return creep.memory.recycle = true;
     }
     // If you're in place just harvest
     if (creep.memory.onContainer) {

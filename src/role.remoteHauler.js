@@ -66,7 +66,12 @@ module.exports.role = function (creep) {
         // handle safe SK movement
         let lair = creep.pos.findInRange(creep.room.structures, 5, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
         let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
-        if (SK) return creep.shibKite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair, 7);
+        if (SK) return creep.shibKite(8); else if (lair && lair.ticksToSpawn <= 15) return creep.flee(lair, 8);
+        // Handle invader cores in sk
+        if (lair && _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0]) {
+            creep.room.cacheRoomIntel(true);
+            return creep.memory.recycle = true;
+        }
         if (!creep.memory.energyDestination) findResources(creep);
         if (creep.memory.energyDestination) {
             let energy = Game.getObjectById(creep.memory.energyDestination);
@@ -81,7 +86,10 @@ module.exports.role = function (creep) {
 
 findResources = function (creep) {
     // Container
-    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== creep.id), '.store.getCapacity()') + (creep.store.getCapacity() * 0.4)});
+    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
+        filter: (s) => s.structureType === STRUCTURE_CONTAINER
+            && s.store[RESOURCE_ENERGY] >= (creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== creep.id).length + 1) * creep.store.getFreeCapacity() * 0.7
+    });
     if (container) {
         creep.memory.energyDestination = container.id;
         return true;
@@ -92,7 +100,7 @@ findResources = function (creep) {
         return true;
     }
     // Tombstone
-    let tombstone = creep.pos.findClosestByRange(creep.room.tombstones, {filter: (r) => r.store[RESOURCE_ENERGY]});
+    let tombstone = creep.pos.findClosestByRange(creep.room.tombstones, {filter: (r) => r.store[RESOURCE_ENERGY] >= (creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== creep.id).length + 1) * creep.store.getFreeCapacity() * 0.5});
     if (tombstone) {
         creep.memory.energyDestination = tombstone.id;
         return true;
@@ -103,6 +111,14 @@ findResources = function (creep) {
 // Remote Hauler Drop Off
 function dropOff(creep) {
     buildLinks(creep);
+    //Close Link
+    if (!creep.memory.linkSearch) {
+        let closestLink = creep.pos.findClosestByRange(creep.room.structures, {
+            filter: (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.isActive() && s.pos.getRangeTo(s.pos.findClosestByRange(Game.map.findExit(s.room.name, creep.memory.destination))) < 5
+        });
+        creep.memory.linkSearch = true;
+        if (closestLink) creep.memory.borderLink = closestLink.id;
+    }
     // Lab
     let lab = creep.pos.findClosestByRange(creep.room.structures, {
         filter: (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive()
@@ -121,9 +137,18 @@ function dropOff(creep) {
         creep.memory.storageDestination = tower.id;
         return true;
     }
+    if (creep.memory.borderLink) {
+        creep.memory.storageDestination = creep.memory.borderLink;
+        return true;
+    }
     // Terminal
     if (creep.room.terminal && creep.room.terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER * 0.5) {
         creep.memory.storageDestination = creep.room.terminal.id;
+        return true;
+    }
+    //Storage baseline
+    if (creep.room.storage && creep.room.storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 0.20) {
+        creep.memory.storageDestination = creep.room.storage.id;
         return true;
     }
     //Controller
@@ -131,18 +156,6 @@ function dropOff(creep) {
     if (controllerContainer && _.sum(controllerContainer.store) < controllerContainer.store.getCapacity() &&
         ((!creep.room.controllerLink && Math.random() > _.sum(controllerContainer.store) / controllerContainer.store.getCapacity()) || (creep.room.controllerLink && Math.random() > (_.sum(controllerContainer.store) / controllerContainer.store.getCapacity()) * 0.5))) {
         creep.memory.storageDestination = controllerContainer.id;
-        return true;
-    }
-    //Close Link
-    if (!creep.memory.linkSearch) {
-        let closestLink = creep.pos.findClosestByRange(creep.room.structures, {
-            filter: (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.isActive() && s.pos.getRangeTo(s.pos.findClosestByRange(Game.map.findExit(s.room.name, creep.memory.destination))) < 5
-        });
-        creep.memory.linkSearch = true;
-        if (closestLink) creep.memory.borderLink = closestLink.id;
-    }
-    if (creep.memory.borderLink) {
-        creep.memory.storageDestination = creep.memory.borderLink;
         return true;
     }
     // Storage

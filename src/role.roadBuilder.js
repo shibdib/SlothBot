@@ -20,7 +20,7 @@ module.exports.role = function role(creep) {
     // Set destination
     if (!creep.memory.destination) {
         if (creep.memory.overlord === creep.room.name) {
-            creep.memory.destination = _.sample(_.filter(JSON.parse(creep.memory.misc), (r) => Memory.roomCache[r] && !Memory.roomCache[r].threatLevel));
+            creep.memory.destination = _.sample(_.filter(JSON.parse(creep.memory.misc), (r) => Memory.roomCache[r] && !Memory.roomCache[r].threatLevel && !Memory.roomCache[r].invaderCore && (!Memory.roomCache[r].sk || Game.rooms[creep.memory.overlord].level >= 7)));
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
         }
@@ -72,7 +72,7 @@ module.exports.role = function role(creep) {
                 }
             } else {
                 delete creep.memory.harvest;
-                creep.idleFor(5);
+                delete creep.memory.destination;
             }
         }
     }
