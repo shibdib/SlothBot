@@ -234,7 +234,7 @@ function minionController(minion) {
         } else {
             cpuUsageArray.shift();
             cpuUsageArray.push(used);
-            if (average(cpuUsageArray) > 3) {
+            if (average(cpuUsageArray) > 3 && minion.memory.role !== 'claimer') {
                 minion.suicide();
                 log.e(minion.name + ' was killed for overusing CPU in room ' + roomLink(minion.room.name));
             }
