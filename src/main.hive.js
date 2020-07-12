@@ -68,7 +68,7 @@ module.exports.hiveMind = function () {
     //Expansion Manager
     if (Game.time % 25 === 0) {
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
-        if (Memory.maxLevel >= 3 && Memory.minLevel > 3 && Game.gcl.level > Memory.myRooms.length) {
+        if (Memory.minLevel >= 3 && Game.gcl.level > Memory.myRooms.length) {
             let safemode = _.filter(myRooms, (r) => r.controller.safeMode);
             let claimMission = _.filter(Memory.auxiliaryTargets, (t) => t.type === 'claimScout' || t.type === 'claim');
             if ((!safemode.length || !Memory._badBoyArray || !Memory._badBoyArray.length) && !claimMission.length) {
@@ -154,7 +154,7 @@ function minionController(minion) {
         } else {
             cpuUsageArray.shift();
             cpuUsageArray.push(used);
-            if (average(cpuUsageArray) > 7.5) {
+            if (average(cpuUsageArray) > 7.5 && minion.memory.role !== 'claimer') {
                 minion.suicide();
                 if (minion.memory.military && minion.memory.destination && (Memory.targetRooms[minion.memory.destination] || Memory.auxiliaryTargets[minion.memory.destination])) {
                     delete Memory.targetRooms[minion.memory.destination];

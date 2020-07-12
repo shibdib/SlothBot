@@ -43,7 +43,7 @@ module.exports.claimNewRoom = function () {
                     let distance = Game.map.getRoomLinearDistance(name, avoidName);
                     let cutoff = 2;
                     if (_.includes(FRIENDLIES, avoidRooms[avoidKey].owner)) cutoff = 3;
-                    if (distance < cutoff) continue loop1;
+                    if (distance < 3) baseScore -= 350; else if (baseScore < 7) baseScore += 100; else baseScore -= 350;
                 }
                 // Add points if closer
                 baseScore += 500 / worthyRooms[key].closestRange;
