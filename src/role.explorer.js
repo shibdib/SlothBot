@@ -32,9 +32,9 @@ module.exports.role = function (creep) {
             if (possibles.length && Math.random() > 0.8) target = _.sample(possibles); else target = _.sample(adjacent);
             // Use try/catch for private servers that don't support this
             try {
-                if (Game.map.getRoomStatus(target).status !== 'normal') {
+                if (Game.map.getRoomStatus(target).status !== Game.map.getRoomStatus(creep.memory.overlord).status) {
                     target = _.sample(adjacent);
-                    if (Game.map.getRoomStatus(target).status !== 'normal') return creep.moveRandom();
+                    if (Game.map.getRoomStatus(target).status !== Game.map.getRoomStatus(creep.memory.overlord).status) return creep.moveRandom();
                 }
             } catch {
                 target = _.sample(adjacent);
