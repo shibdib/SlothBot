@@ -1358,7 +1358,7 @@ Creep.prototype.attackInRange = function () {
     let leader = Game.getObjectById(this.memory.leader);
     if (leader) hostile = Game.getObjectById(leader.memory.target) || Game.getObjectById(leader.memory.scorchedTarget) || this.findClosestEnemy(false);
     if (!hostile || hostile.pos.getRangeTo(this) > 3) hostile = this.findClosestEnemy(false);
-    let targets = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || c.owner.username === 'Source Keeper'});
+    let targets = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) && !_.includes(FRIENDLIES, c.owner.username)) || c.owner.username === 'Invader' || c.owner.username === 'Source Keeper'});
     let allies = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my});
     if (!hostile && targets.length) hostile = this.pos.findClosestByRange(targets);
     let range = this.pos.getRangeTo(hostile);
