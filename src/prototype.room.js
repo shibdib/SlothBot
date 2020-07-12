@@ -302,7 +302,7 @@ function getRoomResource(room, resource, unused = false) {
 Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     let room = Game.rooms[this.name];
-    let potentialTarget, nonCombats, mineral, sk, power, portal, user, level, closestRange, important, owner,
+    let nonCombats, mineral, sk, power, portal, user, level, closestRange, owner,
         reservation, commodity, safemode, hubCheck;
     if (room) {
         // Make NCP array
@@ -313,7 +313,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         //let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
         let cache = Memory.roomCache || {};
         let sources = room.sources;
-        nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) && !e.getActiveBodyparts(RANGED_ATTACK)));
+        nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) && !e.getActiveBodyparts(RANGED_ATTACK) && (e.getActiveBodyparts(WORK) || e.getActiveBodyparts(CARRY))));
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)[0]) sk = true;
         let isHighway = !room.controller && !sk && !room.sources.length;
         if (!isHighway) isHighway = undefined;
@@ -340,7 +340,6 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 if (sources.length === 2) hubCheck = roomPlanner.hubCheck(this);
             }
             level = room.controller.level || undefined;
-            if (_.includes(HOSTILES, user)) important = true;
         }
         // Store portal info
         portal = _.filter(room.structures, (e) => e.structureType === STRUCTURE_PORTAL);
@@ -367,7 +366,6 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         power = _.filter(room.structures, (e) => e && e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
         if (power.length && power[0].pos.countOpenTerrainAround() > 1) power = Game.time + power[0].ticksToDecay; else power = undefined;
         if (!user && nonCombats.length >= 2) {
-            potentialTarget = true;
             user = nonCombats[0].owner.username;
         }
         let key = room.name;
@@ -381,17 +379,14 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             reservation: reservation,
             level: level,
             sk: sk,
-            potentialTarget: potentialTarget,
             user: user,
             safemode: safemode,
             portal: portal,
             power: power,
             isHighway: isHighway,
             closestRange: closestRange,
-            important: important,
             hubCheck: hubCheck,
-            forestPvp: room.controller && room.controller.sign && room.controller.sign.text.toLowerCase().includes('@PVP@'),
-            invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length,
+            invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,
             towers: _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10).length,
             structures: _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR).length
         };
