@@ -158,6 +158,11 @@ function dropOff(creep) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     }
+    // Terminal
+    if (creep.room.terminal && creep.room.terminal.store.getFreeCapacity()) {
+        creep.memory.storageDestination = creep.room.terminal.id;
+        return true;
+    }
     // Storage
     if (creep.room.storage) {
         creep.memory.storageDestination = creep.room.storage.id;

@@ -84,7 +84,7 @@ function deliverResource(creep) {
             else if (_.includes(ALL_COMMODITIES, resourceType)) storeTarget = creep.room.terminal;
             else if (_.includes(_.union(TIER_3_BOOSTS, LAB_PRIORITY), resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT) storeTarget = creep.room.storage;
             else if (!_.includes(BASE_MINERALS, resourceType) && !_.includes(ALL_COMMODITIES, resourceType) && creep.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = creep.room.storage;
-            else if (resourceType === RESOURCE_ENERGY && creep.room.terminal.store[resourceType] >= TERMINAL_ENERGY_BUFFER * 1.1 && creep.room.storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) storeTarget = creep.room.storage;
+            else if (resourceType === RESOURCE_ENERGY && creep.room.terminal.store[resourceType] >= TERMINAL_ENERGY_BUFFER * 1.1 && creep.room.storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 0.25) storeTarget = creep.room.storage;
         }
         switch (creep.transfer(storeTarget, resourceType)) {
             case OK:
@@ -139,7 +139,7 @@ function labSupplies(creep) {
 
 // Empty Labs
 function emptyLab(creep) {
-    let stockedLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType && s.mineralType !== s.memory.itemNeeded && s.mineralType !== s.memory.neededBoost && (s.mineralType !== s.memory.creating || s.store.getUsedCapacity(s.memory.creating) >= 100))[0];
+    let stockedLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType && s.mineralType !== s.memory.itemNeeded && s.mineralType !== s.memory.neededBoost)[0];
     if (stockedLab) {
         creep.memory.resourceNeeded = stockedLab.mineralType;
         return true;
@@ -245,7 +245,7 @@ function terminalControl(creep) {
                     amountNeeded = creep.store.getFreeCapacity(resourceType);
                 } else if (_.includes(_.union(BASE_MINERALS, ALL_BOOSTS), resourceType) && creep.room.storage.store[resourceType] < REACTION_AMOUNT) {
                     amountNeeded = REACTION_AMOUNT - creep.room.storage.store[resourceType];
-                } else if (resourceType === RESOURCE_ENERGY && creep.room.terminal.store[resourceType] >= TERMINAL_ENERGY_BUFFER * 1.1 && creep.room.storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) {
+                } else if (resourceType === RESOURCE_ENERGY && creep.room.terminal.store[resourceType] >= TERMINAL_ENERGY_BUFFER * 1.1 && creep.room.storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 0.25) {
                     amountNeeded = creep.room.terminal.store[resourceType] - (TERMINAL_ENERGY_BUFFER * 1.1);
                 } else if (_.includes(COMPRESSED_COMMODITIES, resourceType) && creep.room.terminal.store[resourceType] >= 10000) {
                     amountNeeded = creep.room.terminal.store[resourceType] - 10000;
@@ -282,8 +282,8 @@ function storageControl(creep) {
                 amountNeeded = creep.room.storage.store[resourceType] - REACTION_AMOUNT;
             } else if (resourceType === RESOURCE_ENERGY && creep.room.terminal.store[resourceType] < TERMINAL_ENERGY_BUFFER) {
                 amountNeeded = TERMINAL_ENERGY_BUFFER - creep.room.terminal.store[resourceType];
-            } else if (resourceType === RESOURCE_ENERGY && creep.room.storage.store[resourceType] > ENERGY_AMOUNT * 1.1) {
-                amountNeeded = ENERGY_AMOUNT * 1.1 - creep.room.storage.store[resourceType];
+            } else if (resourceType === RESOURCE_ENERGY && creep.room.storage.store[resourceType] > ENERGY_AMOUNT * 0.26) {
+                amountNeeded = ENERGY_AMOUNT * 0.26 - creep.room.storage.store[resourceType];
             } else if (!_.includes(_.union(BASE_MINERALS, ALL_BOOSTS, [RESOURCE_ENERGY], COMPRESSED_COMMODITIES), resourceType)) {
                 amountNeeded = creep.room.storage.store[resourceType];
             } else if (_.includes(COMPRESSED_COMMODITIES, resourceType) && creep.room.terminal.store[resourceType] < 10000) {
