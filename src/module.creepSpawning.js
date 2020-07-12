@@ -472,7 +472,7 @@ module.exports.miscCreepQueue = function (room) {
             if ((Memory._badBoyArray && Memory._badBoyArray.length) || NEW_SPAWN_DENIAL) {
                 if (Memory.maxLevel >= level) {
                     let marauder = _.filter(Game.creeps, (creep) => creep.memory.operation === 'marauding' && creep.memory.role === 'longbow');
-                    if (marauder.length < Memory.myRooms.length * 0.5) {
+                    if (!marauder.length) {
                         queueCreep(room, PRIORITIES.medium, {
                             role: 'longbow',
                             operation: 'marauding',
@@ -481,8 +481,8 @@ module.exports.miscCreepQueue = function (room) {
                         });
                     }
                 }
-                let poke = _.filter(Game.creeps, (creep) => creep.memory.operation === 'marauding' && creep.memory.role === 'poke');
-                if (poke.length < Memory.myRooms.length * 1.5) {
+                let poke = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'poke');
+                if (!poke.length) {
                     queueCreep(room, PRIORITIES.medium, {
                         role: 'poke',
                         operation: 'marauding',
