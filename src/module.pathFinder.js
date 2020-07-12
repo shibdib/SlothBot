@@ -738,14 +738,14 @@ RoomPosition.prototype.shibMove = function (destination, options) {
 };
 
 
-Creep.prototype.shibKite = function (fleeRange = 6) {
+Creep.prototype.shibKite = function (fleeRange = 6, target = undefined) {
     if (!this.getActiveBodyparts(MOVE) || (this.room.controller && this.room.controller.safeMode)) return false;
-    let avoid = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange + 1);
+    let avoid = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange + 1) || this.pos.findInRange(this.room.structures, fleeRange + 1, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0] || target;
     if ((this.memory.destination === this.room.name || this.memory.other.responseTarget === this.room.name) && Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) {
         let sk = _.filter(this.room.creeps, (c) => c.owner.username === 'Source Keeper' && this.pos.getRangeTo(c) <= fleeRange + 1);
         avoid = _.union(avoid, sk);
     }
-    if (!avoid.length) return false;
+    if (!avoid || !avoid.length) return false;
     // If in a rampart you're safe
     if (this.pos.checkForRampart()) return true;
     this.memory._shibMove = undefined;
