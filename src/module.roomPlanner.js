@@ -112,20 +112,19 @@ function buildFromLayout(room) {
             if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = hub.checkForAllStructure()[0].id;
             if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK && !hub.checkForAllStructure()[0].isActive()) room.memory.hubLink = undefined;
             if (hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) hub.checkForAllStructure()[0].destroy();
-            if (hub.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER && hub.checkForAllStructure()[0].structureType !== STRUCTURE_LINK) {
+            if (hub.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER && hub.checkForAllStructure()[0].structureType !== STRUCTURE_LINK && hub.checkForAllStructure()[0].structureType !== STRUCTURE_ROAD) {
                 let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_EXTENSION);
                 for (let structure of shuffle(filter)) {
                     let pos = new RoomPosition(structure.x, structure.y, room.name);
                     if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
-                        if (pos.createConstructionSite(STRUCTURE_LINK) === OK) {
+                        if (level >= 7 && pos.createConstructionSite(STRUCTURE_LINK) === OK) {
                             room.memory.hubLinkLocation = {x: pos.x, y: pos.y};
                             break;
                         }
                     }
                 }
             }
-        }
-        if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_LINK);
+        } else if (level >= 7 && !hub.checkForConstructionSites()) hub.createConstructionSite(STRUCTURE_LINK);
     }
     // Bunker Ramparts
     if (level >= 3 && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length) {
