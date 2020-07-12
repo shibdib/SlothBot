@@ -103,15 +103,29 @@ function buildFromLayout(room) {
         }
     }
     // Hub
-    if (room.memory.bunkerVersion < 2 || room.memory.bunkerVersion > 5) {
-        if (level >= 5 || room.memory.hubLink) {
-            if (hub.checkForAllStructure()[0]) {
-                if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = hub.checkForAllStructure()[0].id;
-                if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK && !hub.checkForAllStructure()[0].isActive()) room.memory.hubLink = undefined;
-                if (hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) hub.checkForAllStructure()[0].destroy();
+    if (level >= 7 || room.memory.hubLink) {
+        if (room.memory.hubLinkLocation) {
+            let pos = new RoomPosition(room.memory.hubLinkLocation.x, room.memory.hubLinkLocation.y, room.name);
+            if (pos.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = pos.checkForAllStructure()[0].id;
+            if (pos.checkForAllStructure()[0].structureType === STRUCTURE_LINK && !pos.checkForAllStructure()[0].isActive()) room.memory.hubLink = undefined;
+        } else if (hub.checkForAllStructure()[0]) {
+            if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = hub.checkForAllStructure()[0].id;
+            if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK && !hub.checkForAllStructure()[0].isActive()) room.memory.hubLink = undefined;
+            if (hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) hub.checkForAllStructure()[0].destroy();
+            if (hub.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER && hub.checkForAllStructure()[0].structureType !== STRUCTURE_LINK) {
+                let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_EXTENSION);
+                for (let structure of shuffle(filter)) {
+                    let pos = new RoomPosition(structure.x, structure.y, room.name);
+                    if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
+                        if (pos.createConstructionSite(STRUCTURE_LINK) === OK) {
+                            room.memory.hubLinkLocation = {x: pos.x, y: pos.y};
+                            break;
+                        }
+                    }
+                }
             }
-            if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_LINK);
         }
+        if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_LINK);
     }
     // Bunker Ramparts
     if (level >= 3 && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length) {
@@ -151,7 +165,10 @@ function buildFromLayout(room) {
                 y2: room.controller.pos.y + 1
             });
             let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
-            rampartSpots[room.name] = JSON.stringify(minCut.GetCutTiles(room.name, rect_array, bounds));
+            try {
+                rampartSpots[room.name] = JSON.stringify(minCut.GetCutTiles(room.name, rect_array, bounds));
+            } catch (e) {
+            }
         } else if (rampartSpots[room.name]) {
             let buildPositions = JSON.parse(rampartSpots[room.name]);
             for (let rampartPos of buildPositions) {
@@ -207,7 +224,7 @@ function buildFromLayout(room) {
         } else {
             room.memory.controllerContainer = controllerContainer.id;
         }
-    } else if (room.controller.level >= 7) {
+    } else if (room.controller.level >= 5) {
         let controllerLink = _.filter(room.controller.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!controllerLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
@@ -222,26 +239,31 @@ function buildFromLayout(room) {
             room.memory.controllerLink = controllerLink.id;
         }
     }
-    // Mineral Container
-    let extractor = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
-    if (extractor) {
-        let extractorContainer = _.filter(extractor.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
-        if (!extractorContainer) {
-            let extractorBuild = _.filter(extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
-            if (!extractorBuild) {
-                let containerSpots = room.lookForAtArea(LOOK_TERRAIN, extractor.pos.y - 1, extractor.pos.x - 1, extractor.pos.y + 1, extractor.pos.x + 1, true);
-                for (let key in containerSpots) {
-                    let position = new RoomPosition(containerSpots[key].x, containerSpots[key].y, room.name);
-                    if (position && position.getRangeTo(extractor) === 1) {
-                        if (!position.checkForImpassible()) {
-                            position.createConstructionSite(STRUCTURE_CONTAINER);
-                            break;
+    // Mineral
+    if (level >= 6) {
+        let extractor = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
+        if (extractor) {
+            let extractorContainer = _.filter(extractor.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
+            if (!extractorContainer) {
+                let extractorBuild = _.filter(extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
+                if (!extractorBuild) {
+                    let containerSpots = room.lookForAtArea(LOOK_TERRAIN, extractor.pos.y - 1, extractor.pos.x - 1, extractor.pos.y + 1, extractor.pos.x + 1, true);
+                    for (let key in containerSpots) {
+                        let position = new RoomPosition(containerSpots[key].x, containerSpots[key].y, room.name);
+                        if (position && position.getRangeTo(extractor) === 1) {
+                            if (!position.checkForImpassible()) {
+                                position.createConstructionSite(STRUCTURE_CONTAINER);
+                                break;
+                            }
                         }
                     }
                 }
+            } else {
+                room.memory.extractorContainer = extractorContainer.id;
             }
         } else {
-            room.memory.extractorContainer = extractorContainer.id;
+            let mineral = room.mineral;
+            if (!mineral.pos.checkForAllStructure().length && !mineral.pos.checkForConstructionSites()) mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
         }
     }
     // Roads
@@ -275,6 +297,11 @@ function buildFromLayout(room) {
                     }
                 }
             }
+            // Controller Road
+            let container = Game.getObjectById(room.memory.controllerContainer);
+            if (!inBuild && container) {
+                buildRoadFromTo(room, spawn, container);
+            }
             // Neighboring Roads
             let neighboring = Game.map.describeExits(spawn.pos.roomName);
             if (!inBuild && neighboring) {
@@ -307,17 +334,10 @@ function buildFromLayout(room) {
                     }
                 }
             }
-            // Controller Road
-            let container = Game.getObjectById(room.memory.controllerContainer);
-            if (!inBuild && container) {
-                buildRoadFromTo(room, spawn, container);
-            }
             // Mineral Roads/Harvester
             if (!inBuild && level >= 6) {
-                let mineral = room.find(FIND_MINERALS)[0];
                 let container = Game.getObjectById(room.memory.extractorContainer);
                 let spawn = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
-                if (!mineral.pos.checkForAllStructure().length && !mineral.pos.checkForConstructionSites()) mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
                 buildRoadFromTo(room, spawn, container);
             }
         }
