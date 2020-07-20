@@ -12,12 +12,8 @@ module.exports.role = function (creep) {
     let powerSpawn = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0];
     if (!powerSpawn) return creep.memory.recycle;
     let powerSource, energySource;
-    if (creep.room.storage.store[RESOURCE_POWER]) powerSource = creep.room.storage;
-    if (creep.room.terminal.store[RESOURCE_POWER]) powerSource = creep.room.terminal;
-    if (creep.room.energyState) {
-        if (creep.room.terminal.store[RESOURCE_ENERGY]) energySource = creep.room.terminal;
-        if (creep.room.storage.store[RESOURCE_ENERGY]) energySource = creep.room.storage;
-    }
+    if (creep.room.storage.store[RESOURCE_POWER]) powerSource = creep.room.storage; else if (creep.room.terminal.store[RESOURCE_POWER]) powerSource = creep.room.terminal;
+    if (creep.room.storage.store[RESOURCE_ENERGY]) energySource = creep.room.storage; else if (creep.room.terminal.store[RESOURCE_ENERGY]) energySource = creep.room.terminal;
     if (creep.store[RESOURCE_ENERGY] && powerSpawn.energy < powerSpawn.energyCapacity) {
         switch (creep.transfer(powerSpawn, RESOURCE_ENERGY)) {
             case OK:
