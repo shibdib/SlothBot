@@ -101,6 +101,26 @@ Creep.prototype.findMineral = function () {
     }
 };
 
+Creep.prototype.skSafety = function () {
+    // handle safe SK movement
+    let lair = this.pos.findInRange(this.room.structures, 8, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
+    if (lair) {
+        let SK = this.pos.findInRange(this.room.creeps, 8, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
+        if (SK) {
+            this.shibKite(6);
+            return true;
+        } else if (lair.ticksToSpawn <= 15) {
+            this.shibMove(this.pos.findClosestByRange(Game.map.findExit(this.room.name, this.memory.overlord)), {range: 2});
+            return true;
+        }
+        // Handle invader cores in sk
+        if (_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0]) {
+            this.room.cacheRoomIntel(true);
+            return this.memory.recycle = true;
+        }
+    }
+}
+
 Creep.prototype.constructionWork = function () {
     let construction = this.room.constructionSites;
     let site = _.filter(construction, (s) => s.structureType === STRUCTURE_TOWER);
@@ -232,66 +252,87 @@ Creep.prototype.constructionWork = function () {
     return false;
 };
 
+Creep.prototype.opportunisticFill = function () {
+    if (!this.store[RESOURCE_ENERGY]) return false;
+    // Fill nearby energy structures as you pass
+    let energyStructures = this.pos.findInRangeStructures(this.room.structures, 1, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER]);
+    if (energyStructures.length) this.transfer(_.sample(energyStructures), RESOURCE_ENERGY)
+}
+
 Creep.prototype.withdrawResource = function (destination = undefined, amount = undefined) {
     if (destination) this.memory.energyDestination = destination.id;
     if (amount && amount < 0) return this.memory.hauling = true;
     if (this.memory.energyDestination) {
         let energyItem = Game.getObjectById(this.memory.energyDestination);
         if (!energyItem || energyItem.room.name !== this.room.name) return this.memory.energyDestination = undefined;
-        if ((energyItem.store && energyItem.store[RESOURCE_ENERGY] > 0) || (energyItem.energy && energyItem.energy > 0)) {
-            if (amount && energyItem.store && energyItem.store[RESOURCE_ENERGY] < amount) amount = energyItem.store[RESOURCE_ENERGY];
-            switch (this.withdraw(energyItem, RESOURCE_ENERGY, amount)) {
+        if (_.sum(energyItem.store)) {
+            for (let resource of Object.keys(energyItem.store)) {
+                if (energyItem instanceof Structure) resource = RESOURCE_ENERGY;
+                if (amount && energyItem.store[resource] < amount) amount = energyItem.store[resource];
+                switch (this.withdraw(energyItem, resource, amount)) {
+                    case OK:
+                        this.memory.withdrawID = energyItem.id;
+                        this.memory.energyDestination = undefined;
+                        this.memory._shibMove = undefined;
+                        return true;
+                    case ERR_INVALID_TARGET:
+                        switch (this.pickup(energyItem)) {
+                            case OK:
+                                this.memory.withdrawID = energyItem.id;
+                                this.memory.energyDestination = undefined;
+                                this.memory._shibMove = undefined;
+                                break;
+                            case ERR_NOT_IN_RANGE:
+                                this.shibMove(energyItem, {range: 1});
+                                break;
+                            case ERR_FULL:
+                                this.memory.energyDestination = undefined;
+                                this.memory._shibMove = undefined;
+                                break;
+                            case ERR_INVALID_TARGET:
+                                switch (energyItem.transfer(this, resource, amount)) {
+                                    case OK:
+                                        this.memory.withdrawID = energyItem.id;
+                                        this.memory.energyDestination = undefined;
+                                        this.memory._shibMove = undefined;
+                                        return true;
+                                    case ERR_NOT_IN_RANGE:
+                                        this.shibMove(energyItem, {range: 1});
+                                        break;
+                                    case ERR_FULL:
+                                        this.memory.energyDestination = undefined;
+                                        this.memory._shibMove = undefined;
+                                        break;
+                                }
+                                break;
+                        }
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        this.shibMove(energyItem, {range: 1});
+                        break;
+                    case ERR_NOT_ENOUGH_RESOURCES:
+                        this.memory.energyDestination = undefined;
+                        this.memory._shibMove = undefined;
+                        break;
+                    case ERR_FULL:
+                        this.memory.energyDestination = undefined;
+                        this.memory._shibMove = undefined;
+                        break;
+                    case ERR_INVALID_ARGS:
+                        this.memory.energyDestination = undefined;
+                        this.memory._shibMove = undefined;
+                        break;
+                }
+            }
+        } else if (energyItem.amount) {
+            switch (this.pickup(energyItem)) {
                 case OK:
                     this.memory.withdrawID = energyItem.id;
                     this.memory.energyDestination = undefined;
                     this.memory._shibMove = undefined;
-                    return true;
-                case ERR_INVALID_TARGET:
-                    switch (this.pickup(energyItem)) {
-                        case OK:
-                            this.memory.withdrawID = energyItem.id;
-                            this.memory.energyDestination = undefined;
-                            this.memory._shibMove = undefined;
-                            break;
-                        case ERR_NOT_IN_RANGE:
-                            this.shibMove(energyItem, {range: 1});
-                            break;
-                        case ERR_FULL:
-                            this.memory.energyDestination = undefined;
-                            this.memory._shibMove = undefined;
-                            break;
-                        case ERR_INVALID_TARGET:
-                            switch (energyItem.transfer(this, RESOURCE_ENERGY, amount)) {
-                                case OK:
-                                    this.memory.withdrawID = energyItem.id;
-                                    this.memory.energyDestination = undefined;
-                                    this.memory._shibMove = undefined;
-                                    return true;
-                                case ERR_NOT_IN_RANGE:
-                                    this.shibMove(energyItem, {range: 1});
-                                    break;
-                                case ERR_FULL:
-                                    this.memory.energyDestination = undefined;
-                                    this.memory._shibMove = undefined;
-                                    break;
-                            }
-                            break;
-                    }
                     break;
                 case ERR_NOT_IN_RANGE:
                     this.shibMove(energyItem, {range: 1});
-                    break;
-                case ERR_NOT_ENOUGH_RESOURCES:
-                    this.memory.energyDestination = undefined;
-                    this.memory._shibMove = undefined;
-                    break;
-                case ERR_FULL:
-                    this.memory.energyDestination = undefined;
-                    this.memory._shibMove = undefined;
-                    break;
-                case ERR_INVALID_ARGS:
-                    this.memory.energyDestination = undefined;
-                    this.memory._shibMove = undefined;
                     break;
             }
         } else {
@@ -302,7 +343,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
 
 Creep.prototype.locateEnergy = function () {
     // Fuel Trucks
-    let fuelTrucks = _.filter(this.room.creeps, (c) => c.my && c.memory.role === 'fuelTruck' && c.memory.overlord !== c.room.name && c.store[RESOURCE_ENERGY] > (this.room.creeps.filter((d) => d.my && d.memory.energyDestination === c.id && d.id !== this.id).length + 1) * this.store.getFreeCapacity());
+    let fuelTrucks = _.filter(this.room.creeps, (c) => c.my && c.memory.role === 'fuelTruck' && c.memory.overlord !== c.room.name && c.store[RESOURCE_ENERGY]);
     if (fuelTrucks.length && this.memory.role !== 'fuelTruck') {
         this.memory.energyDestination = fuelTrucks[0].id;
         return true;
@@ -318,6 +359,12 @@ Creep.prototype.locateEnergy = function () {
     let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY]});
     if (tombstone) {
         this.memory.energyDestination = tombstone.id;
+        return true;
+    }
+    // Ruin
+    let ruin = this.pos.findClosestByRange(this.room.ruins, {filter: (r) => r.store[RESOURCE_ENERGY]});
+    if (ruin) {
+        this.memory.energyDestination = ruin.id;
         return true;
     }
     // Links
@@ -377,20 +424,24 @@ Creep.prototype.locateEnergy = function () {
 Creep.prototype.haulerDelivery = function () {
     // If you have a destination, deliver
     if (this.memory.storageDestination) {
+        // If carrying minerals deposit in terminal or storage
+        if (_.sum(this.store) > this.store[RESOURCE_ENERGY]) this.memory.storageDestination = this.room.terminal.id || this.room.storage.id;
         let storageItem = Game.getObjectById(this.memory.storageDestination);
         if (!storageItem) return delete this.memory.storageDestination;
-        switch (this.transfer(storageItem, RESOURCE_ENERGY)) {
-            case OK:
-                delete this.memory.storageDestination;
-                delete this.memory._shibMove;
-                return;
-            case ERR_NOT_IN_RANGE:
-                this.shibMove(storageItem);
-                return true;
-            case ERR_FULL || ERR_INVALID_TARGET:
-                delete this.memory.storageDestination;
-                delete this.memory._shibMove;
-                break;
+        for (const resourceType in this.store) {
+            switch (this.transfer(storageItem, resourceType)) {
+                case OK:
+                    delete this.memory.storageDestination;
+                    delete this.memory._shibMove;
+                    return;
+                case ERR_NOT_IN_RANGE:
+                    this.shibMove(storageItem);
+                    return true;
+                case ERR_FULL || ERR_INVALID_TARGET:
+                    delete this.memory.storageDestination;
+                    delete this.memory._shibMove;
+                    break;
+            }
         }
     }
     //Tower
@@ -412,8 +463,7 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
     // Spawns/Extensions
-    let harvesters = _.filter(this.room.creeps, (c) => (c.my && c.memory.role === 'stationaryHarvester'));
-    if (!this.memory.other.spawnsExtensions || Math.random() > 0.9 || harvesters.length < 2) {
+    if (!this.memory.other.spawnsExtensions || Math.random() > 0.9) {
         this.memory.other.spawnsExtensions = JSON.stringify(_.pluck(_.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && !s.pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.role === 'stationaryHarvester'}).length), 'id'));
     }
     if (this.memory.other.spawnsExtensions) {
@@ -509,7 +559,7 @@ Creep.prototype.haulerDelivery = function () {
 
 Creep.prototype.builderFunction = function () {
     let construction = Game.getObjectById(this.memory.constructionSite);
-    if (!construction || construction === null) {
+    if (!construction || construction === null || (construction.pos.roomName !== this.pos.roomName)) {
         this.memory.constructionSite = undefined;
         this.memory.task = undefined;
         return;
@@ -666,61 +716,61 @@ Creep.prototype.borderCheck = function () {
     let y = thisPos.y;
     if (x === 0 || y === 0 || x === 49 || y === 49) {
         if (x === 0 && y === 0) {
-            return this.move(BOTTOM_RIGHT);
+            this.move(BOTTOM_RIGHT);
         }
         else if (x === 0 && y === 49) {
-            return this.move(TOP_RIGHT);
+            this.move(TOP_RIGHT);
         }
         else if (x === 49 && y === 0) {
-            return this.move(BOTTOM_LEFT);
+            this.move(BOTTOM_LEFT);
         }
         else if (x === 49 && y === 49) {
-            return this.move(TOP_LEFT);
+            this.move(TOP_LEFT);
         }
         let pos;
         if (x === 49) {
             pos = positionAtDirection(thisPos, LEFT);
             if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(LEFT)
+                this.move(LEFT)
+            } else {
+                pos = positionAtDirection(thisPos, TOP_LEFT);
+                if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
+                    this.move(TOP_LEFT)
+                } else this.move(BOTTOM_LEFT)
             }
-            pos = positionAtDirection(thisPos, TOP_LEFT);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(TOP_LEFT)
-            }
-            return this.move(BOTTOM_LEFT)
         }
         else if (x === 0) {
             pos = positionAtDirection(thisPos, RIGHT);
             if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
                 return this.move(RIGHT)
+            } else {
+                pos = positionAtDirection(thisPos, TOP_RIGHT);
+                if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
+                    this.move(TOP_RIGHT)
+                } else this.move(BOTTOM_RIGHT)
             }
-            pos = positionAtDirection(thisPos, TOP_RIGHT);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(TOP_RIGHT)
-            }
-            return this.move(BOTTOM_RIGHT)
         }
         else if (y === 0) {
             pos = positionAtDirection(thisPos, BOTTOM);
             if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(BOTTOM)
+                this.move(BOTTOM)
+            } else {
+                pos = positionAtDirection(thisPos, BOTTOM_RIGHT);
+                if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
+                    this.move(BOTTOM_RIGHT)
+                } else this.move(BOTTOM_LEFT)
             }
-            pos = positionAtDirection(thisPos, BOTTOM_RIGHT);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(BOTTOM_RIGHT)
-            }
-            return this.move(BOTTOM_LEFT)
         }
         else if (y === 49) {
             pos = positionAtDirection(thisPos, TOP);
             if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(TOP)
+                this.move(TOP)
+            } else {
+                pos = positionAtDirection(thisPos, TOP_RIGHT);
+                if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
+                    this.move(TOP_RIGHT)
+                } else this.move(TOP_LEFT)
             }
-            pos = positionAtDirection(thisPos, TOP_RIGHT);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(TOP_RIGHT)
-            }
-            return this.move(TOP_LEFT)
         }
         return true;
     }
@@ -801,7 +851,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 } else if (count === 2 && this.room.store(boost) >= boostNeeded * 0.5) {
                     available[boost] = {
                         'boost': boost,
-                        'amount': boostNeeded
+                        'amount': boostNeeded * 0.5
                     };
                     break;
                 }
@@ -809,7 +859,7 @@ Creep.prototype.tryToBoost = function (boosts) {
             }
         }
         this.memory.boosts.requestedBoosts = available;
-    } else if (_.size(this.memory.boosts.requestedBoosts) && this.ticksToLive > 1000) {
+    } else if (_.size(this.memory.boosts.requestedBoosts)) {
         for (let requestedBoost of Object.keys(this.memory.boosts.requestedBoosts)) {
             // Check if boost is low, if so restart
             let boostInRoom = this.room.store(requestedBoost);
@@ -822,16 +872,25 @@ Creep.prototype.tryToBoost = function (boosts) {
             // Find a lab to boost the creep if none exist, idle.
             if (!this.memory.boosts.boostLab || !Game.getObjectById(this.memory.boosts.boostLab).memory.neededBoost) {
                 let lab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.energy > 0 &&
-                    (s.mineralType === requestedBoost || s.memory.creating === requestedBoost || !s.memory.creating) &&
+                    (s.mineralType === requestedBoost || !s.memory.creating) &&
                     (!s.memory.neededBoost || s.memory.neededBoost === requestedBoost))[0];
                 if (lab) {
                     this.memory.boosts.boostLab = lab.id;
                     lab.memory.neededBoost = requestedBoost;
+                    lab.memory.amount = this.memory.boosts.requestedBoosts[requestedBoost]['amount'];
                     lab.memory.active = true;
+                    lab.memory.requestor = this.id;
                     lab.memory.requested = Game.time;
-                } else {
+                } else if (!this.memory.boosts.labTimeout || this.memory.boosts.labTimeout < 10) {
+                    if (!this.memory.boosts.labTimeout) this.memory.boosts.labTimeout = 1; else this.memory.boosts.labTimeout += 1;
                     this.idleFor(5);
                     return true;
+                } else {
+                    if (Game.getObjectById(this.memory.boosts.boostLab)) {
+                        Game.getObjectById(this.memory.boosts.boostLab).memory = undefined;
+                    }
+                    this.memory.boosts = undefined;
+                    return this.memory.boostAttempt = true;
                 }
             }
             let lab = Game.getObjectById(this.memory.boosts.boostLab);
@@ -856,8 +915,6 @@ Creep.prototype.tryToBoost = function (boosts) {
                             this.idleFor(5);
                             return true;
                     }
-                } else {
-                    this.idleFor(5);
                 }
             }
         }
@@ -872,6 +929,8 @@ Creep.prototype.tryToBoost = function (boosts) {
 };
 
 Creep.prototype.recycleCreep = function () {
+    this.healInRange();
+    this.attackInRange();
     let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
     if (!this.memory.overlord) this.memory.overlord = Memory.myRooms[0];
     if (!spawn) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 23});
@@ -1259,7 +1318,6 @@ Creep.prototype.fightRampart = function (hostile = undefined) {
     }
     if (this.pos.getRangeTo(position) > 0) {
         this.shibMove(Game.getObjectById(this.memory.assignedRampart), {range: 0});
-        return true;
     }
     if (this.pos.getRangeTo(target) <= 1 && this.getActiveBodyparts(ATTACK)) {
         this.attack(target)
@@ -1688,8 +1746,12 @@ Creep.prototype.findDefensivePosition = function (target = this) {
         } else {
             if (this.pos.getRangeTo(Game.getObjectById(this.memory.assignedRampart))) {
                 this.shibMove(Game.getObjectById(this.memory.assignedRampart), {range: 0});
-                return true;
+            } else {
+                let idleFor = this.pos.getRangeTo(this.pos.findClosestByRange(FIND_EXIT)) - 4;
+                if (idleFor <= 5) idleFor = 5;
+                this.idleFor(idleFor);
             }
+            return true;
         }
     }
     return false;
