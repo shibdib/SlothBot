@@ -57,12 +57,14 @@ function threatManager() {
     }
     // Add manual enemies
     Memory._enemies = _.union(Memory._enemies, HOSTILES);
+    Memory._threatList = _.union(Memory._threatList, HOSTILES);
     // If Not Standard/S+ Server everyone except manually specified are hostile
     if (_.includes(COMBAT_SERVER, Game.shard.name)) Memory._enemies = _.filter(_.pluck(Memory.roomCache, 'user'), (p) => !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME && !_.includes(FRIENDLIES, p));
     // NCP's are always hostile (Also clean NCP array)
     if (NCP_HOSTILE && Memory.ncpArray && Memory.ncpArray.length) {
         if (Math.random() > 0.5) _.remove(Memory.ncpArray, (u) => !_.includes(_.pluck(Memory.roomCache, 'user'), u));
         Memory._enemies = _.union(Memory._enemies, Memory.ncpArray);
+        Memory._threatList = _.union(Memory._threatList, Memory.ncpArray);
     }
     // Clean up lists
     Memory._badBoyArray = _.uniq(_.filter(Memory._badBoyArray, (p) => p !== null && p !== undefined));
