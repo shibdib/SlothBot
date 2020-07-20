@@ -34,7 +34,6 @@ module.exports.powerControl = function () {
                     try {
                         // Handle suicide
                         if (!powerCreep.level && sparePowerLevels <= 0) {
-                            console.log(powerCreep.name)
                             powerCreep.suicide();
                             continue;
                         }
