@@ -18,6 +18,7 @@ let routeCache = {};
 let pathCache = {};
 
 function shibMove(creep, heading, options = {}) {
+    if (creep.borderCheck()) return;
     _.defaults(options, {
         useCache: true,
         ignoreCreeps: true,
@@ -93,7 +94,7 @@ function shibMove(creep, heading, options = {}) {
     //Clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
         let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.getActiveBodyparts(MOVE) && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y &&
-            c.memory.role !== 'Reserver')[0];
+            c.memory.role !== 'Reserver' && c.memory.role !== 'powerAttacker')[0];
         if (bumpCreep && Math.random() > 0.5) {
             if (!creep.memory.trailer) {
                 bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
@@ -298,6 +299,8 @@ function findRoute(origin, destination, options = {}) {
         routeCallback: function (roomName) {
             // Skip origin/destination
             if (roomName === origin || roomName === destination) return 1;
+            // Add a check for novice/respawn
+            if (Game.map.getRoomStatus(roomName).status !== Game.map.getRoomStatus(origin).status) return 256;
             // room is too far out of the way
             if (Game.map.getRoomLinearDistance(origin, roomName) > restrictDistance) return 256;
             // My rooms
@@ -320,11 +323,11 @@ function findRoute(origin, destination, options = {}) {
                 // Avoid rooms reserved by others
                 if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 15;
                 // Highway
-                if (Memory.roomCache[roomName].isHighway) return 1;
+                if (Memory.roomCache[roomName].isHighway) return 5;
             } else
-            // Unknown rooms have a slightly higher weight
-            if (!Memory.roomCache[roomName]) return 25;
-            return 20;
+                // Unknown rooms have a slightly higher weight
+            if (!Memory.roomCache[roomName]) return 15;
+            return 12;
         }
     });
     let path = undefined;
@@ -517,7 +520,7 @@ function addHostilesToMatrix(room, matrix) {
             }
             if (!position || matrix.get(position.x, position.y)) continue;
             if (!position.checkForWall()) {
-                matrix.set(position.x, position.y, 255)
+                matrix.set(position.x, position.y, 150)
             }
         }
     }
