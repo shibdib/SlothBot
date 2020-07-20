@@ -124,7 +124,7 @@ module.exports.hiveMind = function () {
 let errorCount = {};
 function minionController(minion) {
     // If on portal move
-    if (minion.portalCheck() || minion.borderCheck()) return;
+    if (minion.portalCheck()) return;
     // Disable notifications
     if (minion.ticksToLive > 1450) minion.notifyWhenAttacked(false);
     // If minion has been flagged to recycle do so
@@ -140,7 +140,6 @@ function minionController(minion) {
     let start = Game.cpu.getUsed();
     try {
         let creepRole = require('role.' + memoryRole);
-        if (minion.borderCheck()) return;
         // Report intel chance
         if (minion.room.name !== minion.memory.overlord && Math.random() > 0.5) {
             minion.room.invaderCheck();
