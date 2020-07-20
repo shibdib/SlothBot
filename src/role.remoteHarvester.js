@@ -12,21 +12,8 @@
 module.exports.role = function (creep) {
     //Invader detection
     if (creep.fleeHome()) return;
-    // handle safe SK movement
-    let lair = creep.pos.findInRange(creep.room.structures, 5, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
-    let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
-    if (SK) {
-        creep.memory.onContainer = undefined;
-        return creep.shibKite(8);
-    } else if (lair && lair.ticksToSpawn <= 15) {
-        creep.memory.onContainer = undefined;
-        return creep.flee(lair, 8);
-    }
-    // Handle invader cores in sk
-    if (lair && _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0]) {
-        creep.room.cacheRoomIntel(true);
-        return creep.memory.recycle = true;
-    }
+    // SK Safety
+    if (creep.skSafety()) return;
     // If you're in place just harvest
     if (creep.memory.onContainer) {
         //Suicide and cache intel if room is reserved/owned by someone else
@@ -36,6 +23,14 @@ module.exports.role = function (creep) {
         }
         let source = Game.getObjectById(creep.memory.source);
         let container = Game.getObjectById(creep.memory.containerID);
+        // Handle requesting a hauler
+        if (container && _.sum(container.store) >= 150 * Game.rooms[creep.memory.overlord].level) {
+            creep.memory.needHauler = container.id;
+        } else if (!container && creep.pos.checkForEnergy() && creep.pos.checkForEnergy().energy >= 150 * Game.rooms[creep.memory.overlord].level) {
+            creep.memory.needHauler = creep.pos.checkForEnergy().id;
+        } else {
+            creep.memory.needHauler = undefined;
+        }
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(source);
@@ -106,6 +101,12 @@ module.exports.role = function (creep) {
                     if (creep.memory.containerID) {
                         if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
                         if (_.sum(container.store) >= 1980) creep.idleFor(20);
+                    } else {
+                        if (!container && creep.pos.checkForEnergy() && creep.pos.checkForEnergy().energy >= 150 * Game.rooms[creep.memory.overlord].level) {
+                            creep.memory.needHauler = creep.pos.checkForEnergy().id;
+                        } else {
+                            creep.memory.needHauler = undefined;
+                        }
                     }
                     break;
             }
@@ -122,7 +123,8 @@ function harvestDepositContainer(source, creep) {
                 return container.id;
             } else {
                 let site = source.pos.findInRange(creep.room.constructionSites, 3, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
-                if (!site && creep.pos.getRangeTo(source) === 1 && !creep.pos.checkForWall()) {
+                if (!creep.memory.siteAttempt && !site && creep.pos.getRangeTo(source) === 1 && !creep.pos.checkForWall()) {
+                    creep.memory.siteAttempt = true;
                     creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
                 } else if (!site && creep.pos.checkForWall()) {
                     findContainerSpot(creep.room, source.pos);
