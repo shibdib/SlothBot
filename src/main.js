@@ -76,6 +76,12 @@ module.exports.loop = function () {
 
     //Hive Mind
     if (Memory.myRooms && Memory.myRooms.length) hive.hiveMind();
+
+    // Pixel Gen
+    if (Game.cpu.bucket >= 7500 && !!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name)) {
+        Game.cpu.generatePixel();
+        log.a('Pixel Generated.');
+    }
 };
 
 abandon = function (room) {
@@ -141,7 +147,9 @@ status = function () {
                 marauder = roomLink(marauderCreep.pos.roomName);
                 marauderText = '| Marauder Location - ' + marauder + ' ';
             }
-            log.e(roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + ((_.round(activeRoom.controller.progress / activeRoom.controller.progressTotal, 2)) * 100) + '% | Energy Available - ' + activeRoom.energy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(ROOM_ENERGY_INCOME_ARRAY[activeRoom.name])), 0) + ' ' + marauderText + '| Creep Count: ' + _.size(roomCreeps), ' ');
+            let lowPowerText = '';
+            if (activeRoom.memory.lowPower) lowPowerText = ' [LOW POWER]';
+            log.e(roomLink(activeRoom.name) + lowPowerText + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + ((_.round(activeRoom.controller.progress / activeRoom.controller.progressTotal, 2)) * 100) + '% | Energy Available - ' + activeRoom.energy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(ROOM_ENERGY_INCOME_ARRAY[activeRoom.name])), 0) + ' ' + marauderText + '| Creep Count: ' + _.size(roomCreeps), ' ');
         }
     } catch (e) {
         log.a('--ROOM INFO FAILED--', ' ');
@@ -178,7 +186,6 @@ status = function () {
             log.a('--DIPLOMATIC INFO--', ' ');
             if (Memory._enemies && Memory._enemies.length) log.e('Current Enemies: ' + Memory._enemies.join(", "), ' ');
             if (Memory._nuisance && Memory._nuisance.length) log.e('Current Nuisances: ' + Memory._nuisance.join(", "), ' ');
-            if (Memory._threatList && Memory._threatList.length) log.e('Current Threats: ' + Memory._threatList.join(", "), ' ');
         }
     } catch (e) {
         log.a('--DIPLOMATIC INFO FAILED--', ' ');
