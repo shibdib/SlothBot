@@ -12,7 +12,7 @@
 module.exports.labManager = function () {
     let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
     for (let room of myRooms) {
-        if (room.controller.level < 6 || room.nukes.length) continue;
+        if (room.controller.level < 6 || room.nukes.length || room.memory.lowPower) continue;
         room.memory.reactionRoom = true;
         let lab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
         if (lab && room.terminal && Math.random() >= 0.5) cleanLabs(room);
@@ -171,8 +171,8 @@ function cleanLabs(room) {
     let boostLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.neededBoost);
     for (let key in boostLabs) {
         let boostLab = boostLabs[key];
-        if (boostLab.memory && (!boostLab.memory.requested || boostLab.memory.requested + 150 < Game.time)) {
-            boostLab.memory.neededBoost = undefined;
+        if (boostLab.memory && (!boostLab.memory.requested || boostLab.memory.requested + 150 < Game.time || !Game.getObjectById(boostLab.memory.requestor))) {
+            boostLab.memory = undefined;
         }
     }
     let reactionLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating);

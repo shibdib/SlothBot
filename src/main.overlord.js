@@ -45,6 +45,27 @@ module.exports.overlordMind = function (room, CPULimit) {
     // Handle Defense
     defense.controller(room);
 
+    // Potential low power mode
+    if (room.level === 8) {
+        if (room.memory.lowPower) {
+            let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD)[0];
+            if (room.memory.lowPower + 10000 < Game.time || inBuild || Memory.roomCache[room.name].threatLevel > 2) {
+                log.a(room.name + ' is no longer in a low power state.');
+                room.memory.lowPower = undefined;
+                room.memory.lastLowPower = Game.time;
+            }
+        } else if (!room.memory.lastLowPower || room.memory.lastLowPower + 12500 < Game.time) {
+            let maxLevelRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8 && !r.constructionSites.length);
+            let lowPowerRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8 && r.memory.lowPower);
+            if (lowPowerRooms.length < maxLevelRooms.length * 0.5 && Math.random() > 0.8) {
+                log.a(room.name + ' has entered a low power state for 10000 ticks.');
+                room.memory.lowPower = Game.time;
+            }
+        }
+    } else {
+        room.memory.lowPower = undefined;
+    }
+
     // Manage creeps
     let roomCreeps = _.sortBy(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military), '.memory.lastManaged');
     // Worker minions
@@ -94,7 +115,7 @@ module.exports.overlordMind = function (room, CPULimit) {
                 Game.notify(e.stack);
             }
             try {
-                spawning.miscCreepQueue(room);
+                if (!room.memory.lowPower) spawning.miscCreepQueue(room);
             } catch (e) {
                 log.e('Misc Queueing for room ' + room.name + ' experienced an error');
                 log.e(e.stack);
@@ -113,7 +134,7 @@ module.exports.overlordMind = function (room, CPULimit) {
     }
 
     // Observer Control
-    if (room.level === 8 && cpuBucket >= 2000) {
+    if (room.level === 8 && cpuBucket >= 2000 && !room.memory.lowPower) {
         try {
             observers.observerControl(room);
         } catch (e) {
@@ -124,7 +145,7 @@ module.exports.overlordMind = function (room, CPULimit) {
     }
 
     // Factory Control
-    if (room.level >= 7 && cpuBucket >= 2000) {
+    if (room.level >= 7 && cpuBucket >= 2000 && !room.memory.lowPower) {
         try {
             factory.factoryControl(room);
         } catch (e) {
@@ -149,7 +170,7 @@ module.exports.overlordMind = function (room, CPULimit) {
     }
 
     // Handle Terminals
-    if (room.terminal && room.level >= 6 && !room.terminal.cooldown && Game.time % 5 === 0) {
+    if (room.terminal && room.level >= 6 && !room.terminal.cooldown && Game.time % 5 === 0 && !room.memory.lowPower) {
         try {
             terminals.terminalControl(room);
         } catch (e) {
@@ -193,7 +214,7 @@ function minionController(minion) {
     // Set last managed tick
     minion.memory.lastManaged = Game.time;
     // If bucket gets real low kill remotes
-    if (Game.cpu.bucket < 3000) {
+    if (Game.cpu.bucket < 1000) {
         if (minion.room.name !== minion.memory.overlord) minion.suicide();
     }
     // If on portal or border move
