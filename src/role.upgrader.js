@@ -77,28 +77,32 @@ function herald(creep) {
     if (creep.memory.notHerald) return;
     if (creep.memory.herald) {
         let sentence = ['-'];
-        if (Memory.LOANalliance) sentence = sentence.concat([Memory.LOANalliance, '-']);
-        if (Memory.roomCache[creep.room.name].responseNeeded) {
-            if (Memory.roomCache[creep.room.name].threatLevel === 1) sentence = sentence.concat(['FPCON', 'ALPHA']);
-            if (Memory.roomCache[creep.room.name].threatLevel === 2) sentence = sentence.concat(['FPCON', 'BRAVO']);
-            if (Memory.roomCache[creep.room.name].threatLevel === 3) sentence = sentence.concat(['FPCON', 'CHARLIE']);
-            if (Memory.roomCache[creep.room.name].threatLevel >= 4) sentence = sentence.concat(['FPCON', 'DELTA']);
-        } else if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].lastPlayerSighting) {
-            sentence = sentence.concat(['LAST', 'ATTACK', Game.time - Memory.roomCache[creep.room.name].lastPlayerSighting, 'TICKS', 'AGO']);
+        if (creep.room.memory.lowPower) {
+            sentence = sentence.concat(['This', 'Room', 'Is', 'In', 'Low', 'Power', 'Mode', 'For', ((creep.room.memory.lowPower + 10000) - Game.time), 'Ticks']);
         } else {
-            sentence = sentence.concat(['FPCON', 'NORMAL']);
-        }
-        if (Memory._badBoyArray && Memory._badBoyArray.length) {
-            sentence = sentence.concat(['-', 'THREAT', 'LIST', '-']);
-            sentence = sentence.concat(Memory._badBoyArray);
-        }
-        if (Memory._friendsArray && Memory._friendsArray.length > 1) {
-            sentence = sentence.concat(['-', 'FRIENDS', 'LIST', '-']);
-            sentence = sentence.concat(Memory._friendsArray);
-        }
-        if (Memory.ncpArray && Memory.ncpArray.length > 1) {
-            sentence = sentence.concat(['-', 'KNOWN', 'NCP', 'LIST', '-']);
-            sentence = sentence.concat(Memory.ncpArray);
+            if (Memory.LOANalliance) sentence = sentence.concat([Memory.LOANalliance, '-']);
+            if (Memory.roomCache[creep.room.name].responseNeeded) {
+                if (Memory.roomCache[creep.room.name].threatLevel === 1) sentence = sentence.concat(['FPCON', 'ALPHA']);
+                if (Memory.roomCache[creep.room.name].threatLevel === 2) sentence = sentence.concat(['FPCON', 'BRAVO']);
+                if (Memory.roomCache[creep.room.name].threatLevel === 3) sentence = sentence.concat(['FPCON', 'CHARLIE']);
+                if (Memory.roomCache[creep.room.name].threatLevel >= 4) sentence = sentence.concat(['FPCON', 'DELTA']);
+            } else if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].lastPlayerSighting) {
+                sentence = sentence.concat(['LAST', 'ATTACK', Game.time - Memory.roomCache[creep.room.name].lastPlayerSighting, 'TICKS', 'AGO']);
+            } else {
+                sentence = sentence.concat(['FPCON', 'NORMAL']);
+            }
+            if (Memory._badBoyArray && Memory._badBoyArray.length) {
+                sentence = sentence.concat(['-', 'THREAT', 'LIST', '-']);
+                sentence = sentence.concat(Memory._badBoyArray);
+            }
+            if (Memory._friendsArray && Memory._friendsArray.length > 1) {
+                sentence = sentence.concat(['-', 'FRIENDS', 'LIST', '-']);
+                sentence = sentence.concat(Memory._friendsArray);
+            }
+            if (Memory.ncpArray && Memory.ncpArray.length > 1) {
+                sentence = sentence.concat(['-', 'KNOWN', 'NCP', 'LIST', '-']);
+                sentence = sentence.concat(Memory.ncpArray);
+            }
         }
         let word = Game.time % sentence.length;
         creep.say(sentence[word], true);
