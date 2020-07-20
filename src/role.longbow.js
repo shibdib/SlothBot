@@ -10,10 +10,10 @@
  */
 
 module.exports.role = function (creep) {
+    // Boosts
+    if (creep.tryToBoost(['ranged'])) return;
     // Border Patrol
     if (creep.memory.operation === 'borderPatrol') return creep.borderPatrol();
-    // Boosts
-    if (!creep.memory.boostAttempt) return creep.tryToBoost(['ranged']);
     // Responder Mode
     if (creep.memory.other.responseTarget || !creep.memory.operation) {
         if (creep.hits < creep.hitsMax) creep.heal(creep);
