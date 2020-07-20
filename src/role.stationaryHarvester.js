@@ -193,23 +193,18 @@ function harvestDepositContainer(source, creep) {
 }
 
 function extensionBuilder(creep) {
-    let container = Game.getObjectById(creep.memory.containerID);
-    let inBuild;
-    let site = creep.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-    if (site) {
-        if (creep.pos.getRangeTo(site) <= 1) {
-            inBuild = site.id;
-        }
-    }
-    if ((container && creep.pos.getRangeTo(container) > 0) || (inBuild && creep.pos.getRangeTo(inBuild) > 0)) {
-        let moveTo = container || inBuild;
-        return creep.shibMove(moveTo, {range: 0});
-    } else if (container || inBuild) {
+    let source = Game.getObjectById(creep.memory.source);
+    if (!source.memory.containerPos) return;
+    let storedSite = JSON.parse(source.memory.containerPos);
+    let container = new RoomPosition(storedSite.x, storedSite.y, storedSite.roomName);
+    if (creep.pos.getRangeTo(container) > 0) {
+        return creep.shibMove(container, {range: 0});
+    } else {
         let count = 0;
         for (let xOff = -1; xOff <= 1; xOff++) {
             for (let yOff = -1; yOff <= 1; yOff++) {
                 if (xOff !== 0 || yOff !== 0) {
-                    let pos = new RoomPosition(creep.pos.x + xOff, creep.pos.y + yOff, creep.room.name);
+                    let pos = new RoomPosition(container.x + xOff, container.y + yOff, container.roomName);
                     if (pos.checkForWall() || pos.checkForConstructionSites() || pos.checkForObstacleStructure() || pos.isExit() || pos.isNearTo(creep.room.controller)) continue;
                     count++;
                     if ((!creep.memory.linkID && count < 3) || (creep.memory.linkID && count < 2)) continue;
