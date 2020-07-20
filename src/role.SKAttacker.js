@@ -10,7 +10,6 @@
  */
 
 module.exports.role = function (creep) {
-    if (creep.memory.boostAttempt !== true) return creep.tryToBoost(['attack']);
     if (creep.room.name === creep.memory.destination) {
         // Handle invader cores in sk
         let core = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0];

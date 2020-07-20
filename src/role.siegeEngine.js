@@ -3,7 +3,7 @@
  */
 
 module.exports.role = function (creep) {
-    if (!creep.memory.boostAttempt) return creep.tryToBoost(['tough', 'attack', 'ranged']);
+    if (creep.tryToBoost(['tough', 'attack', 'ranged'])) return;
     if (creep.memory.operation === 'siege') return creep.siegeRoom();
     if (creep.memory.operation === 'siegeGroup') return creep.siegeGroupRoom();
 };

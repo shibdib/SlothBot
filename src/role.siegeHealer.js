@@ -3,7 +3,7 @@
  */
 
 module.exports.role = function (creep) {
-    if (!creep.memory.boostAttempt) return creep.tryToBoost(['heal', 'tough']);
+    if (creep.tryToBoost(['heal', 'tough'])) return;
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     creep.siegeRoom();
 };
