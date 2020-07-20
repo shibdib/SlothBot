@@ -116,8 +116,14 @@ function cleanRoomIntel() {
 
 function cleanStructureMemory() {
     if (Memory.structureMemory) {
-        for (let key in Memory.structureMemory) {
-            if (!Game.getObjectById(key)) delete Memory.structureMemory[key];
+        Memory.structureMemory = undefined;
+    } else if (Memory.myRooms.length) {
+        for (let room of Memory.myRooms) {
+            if (Game.rooms[room].memory.structureMemory) {
+                for (let structure of Object.keys(Game.rooms[room].memory.structureMemory)) {
+                    if (!Game.getObjectById(structure)) Game.rooms[room].memory.structureMemory[structure] = undefined;
+                }
+            }
         }
     }
 }

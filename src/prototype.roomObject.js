@@ -10,16 +10,16 @@
  */
 Object.defineProperty(StructureLab.prototype, 'memory', {
     get: function () {
-        if (Memory.structureMemory === undefined || !Memory.structureMemory) {
-            Memory.structureMemory = {};
+        if (this.room.memory._structureMemory === undefined || !this.room.memory._structureMemory) {
+            this.room.memory._structureMemory = {};
         }
-        if (Memory.structureMemory[this.id] === undefined || !Memory.structureMemory[this.id]) {
-            Memory.structureMemory[this.id] = {};
+        if (this.room.memory._structureMemory[this.id] === undefined || !this.room.memory._structureMemory[this.id]) {
+            this.room.memory._structureMemory[this.id] = {};
         }
-        return Memory.structureMemory[this.id];
+        return this.room.memory._structureMemory[this.id];
     },
     set: function (v) {
-        return _.set(Memory, 'structureMemory.' + this.id, v);
+        return _.set(this.room.memory, '_structureMemory.' + this.id, v);
     },
     configurable: true,
     enumerable: false,
@@ -27,16 +27,16 @@ Object.defineProperty(StructureLab.prototype, 'memory', {
 
 Object.defineProperty(StructureFactory.prototype, 'memory', {
     get: function () {
-        if (Memory.structureMemory === undefined || !Memory.structureMemory) {
-            Memory.structureMemory = {};
+        if (this.room.memory._structureMemory === undefined || !this.room.memory._structureMemory) {
+            this.room.memory._structureMemory = {};
         }
-        if (Memory.structureMemory[this.id] === undefined || !Memory.structureMemory[this.id]) {
-            Memory.structureMemory[this.id] = {};
+        if (this.room.memory._structureMemory[this.id] === undefined || !this.room.memory._structureMemory[this.id]) {
+            this.room.memory._structureMemory[this.id] = {};
         }
-        return Memory.structureMemory[this.id];
+        return this.room.memory._structureMemory[this.id];
     },
     set: function (v) {
-        return _.set(Memory, 'structureMemory.' + this.id, v);
+        return _.set(this.room.memory, '_structureMemory.' + this.id, v);
     },
     configurable: true,
     enumerable: false,
@@ -44,16 +44,16 @@ Object.defineProperty(StructureFactory.prototype, 'memory', {
 
 Object.defineProperty(StructureTerminal.prototype, 'memory', {
     get: function () {
-        if (Memory.structureMemory === undefined || !Memory.structureMemory) {
-            Memory.structureMemory = {};
+        if (this.room.memory._structureMemory === undefined || !this.room.memory._structureMemory) {
+            this.room.memory._structureMemory = {};
         }
-        if (Memory.structureMemory[this.id] === undefined || !Memory.structureMemory[this.id]) {
-            Memory.structureMemory[this.id] = {};
+        if (this.room.memory._structureMemory[this.id] === undefined || !this.room.memory._structureMemory[this.id]) {
+            this.room.memory._structureMemory[this.id] = {};
         }
-        return Memory.structureMemory[this.id];
+        return this.room.memory._structureMemory[this.id];
     },
     set: function (v) {
-        return _.set(Memory, 'structureMemory.' + this.id, v);
+        return _.set(this.room.memory, '_structureMemory.' + this.id, v);
     },
     configurable: true,
     enumerable: false,
@@ -61,16 +61,16 @@ Object.defineProperty(StructureTerminal.prototype, 'memory', {
 
 Object.defineProperty(Source.prototype, 'memory', {
     get: function () {
-        if (Memory.structureMemory === undefined || !Memory.structureMemory) {
-            Memory.structureMemory = {};
+        if (this.room.memory._structureMemory === undefined || !this.room.memory._structureMemory) {
+            this.room.memory._structureMemory = {};
         }
-        if (Memory.structureMemory[this.id] === undefined || !Memory.structureMemory[this.id]) {
-            Memory.structureMemory[this.id] = {};
+        if (this.room.memory._structureMemory[this.id] === undefined || !this.room.memory._structureMemory[this.id]) {
+            this.room.memory._structureMemory[this.id] = {};
         }
-        return Memory.structureMemory[this.id];
+        return this.room.memory._structureMemory[this.id];
     },
     set: function (v) {
-        return _.set(Memory, 'structureMemory.' + this.id, v);
+        return _.set(this.room.memory, '_structureMemory.' + this.id, v);
     },
     configurable: true,
     enumerable: false,
