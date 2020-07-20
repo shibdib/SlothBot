@@ -42,9 +42,8 @@ module.exports.towerControl = function (room) {
             let barriers = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 10000), 'hits');
             if (barriers) {
                 return repairTower.repair(barriers);
-            }
-            if (repairTower.energy > repairTower.energyCapacity * 0.7 && repairTower.room.energy > ENERGY_AMOUNT) {
-                let lowestRampart = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level]), 'hits');
+            } else if (repairTower.energy > repairTower.energyCapacity * 0.7 && repairTower.room.energyState) {
+                let lowestRampart = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level] * 0.5), 'hits');
                 if (lowestRampart) {
                     return repairTower.repair(lowestRampart);
                 }
