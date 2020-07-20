@@ -11,12 +11,11 @@
 
 module.exports.role = function role(creep) {
     creep.say('HIGHWAY', true);
+    if (creep.borderCheck()) return;
     //Invader detection
     if (creep.fleeHome()) return;
-    // handle safe SK movement
-    let lair = creep.pos.findInRange(creep.room.structures, 5, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
-    let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
-    if (SK) return creep.shibKite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair, 7);
+    // SK Safety
+    if (creep.skSafety()) return;
     // Set destination
     if (!creep.memory.destination) {
         if (creep.memory.overlord === creep.room.name) {
