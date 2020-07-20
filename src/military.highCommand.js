@@ -420,15 +420,14 @@ function manageAuxiliary() {
             continue;
         }
         let type = Memory.auxiliaryTargets[key].type;
-        if (!Memory.roomCache[key]) {
-            delete Memory.auxiliaryTargets[key];
-            return;
-        }
         // Special Conditions
         switch (type) {
             case 'power':
                 if (maxLevel < 8) delete Memory.auxiliaryTargets[key];
-                if (Memory.roomCache[key].power + 1500 < Game.time) delete Memory.auxiliaryTargets[key];
+                if (Memory.roomCache[key].power + 1500 < Game.time) {
+                    delete Memory.auxiliaryTargets[key];
+                    delete Memory.roomCache[key];
+                }
                 break;
             case 'commodity':
                 if (maxLevel < 6) delete Memory.auxiliaryTargets[key];
@@ -447,15 +446,6 @@ function manageAuxiliary() {
             delete Memory.auxiliaryTargets[key];
             log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
             continue;
-        }
-        // Remove your rooms
-        if (Memory.roomCache[key] && Memory.roomCache[key].user && Memory.roomCache[key].user === MY_USERNAME) {
-            delete Memory.auxiliaryTargets[key];
-            continue;
-        }
-        // Remove allied rooms
-        if (Memory.roomCache[key] && Memory.roomCache[key].user && (_.includes(FRIENDLIES, Memory.roomCache[key].user) || checkForNap(Memory.roomCache[key].user))) {
-            delete Memory.auxiliaryTargets[key];
         }
     }
 }
