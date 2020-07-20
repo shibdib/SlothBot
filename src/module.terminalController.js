@@ -64,9 +64,9 @@ module.exports.terminalControl = function (room) {
     if (room.terminal.store[RESOURCE_ENERGY]) {
         //Send energy to rooms under siege
         if (emergencyEnergy(room.terminal)) return;
+        //Disperse Minerals and Boosts
+        if (balanceResources(room.terminal)) return;
         if (room.energy >= ENERGY_AMOUNT * 0.5) {
-            //Disperse Minerals and Boosts
-            if (balanceResources(room.terminal)) return;
             if (room.name === Memory.saleTerminal.room && spendingMoney > 0) {
                 //Buy resources being sold at below market value
                 if (dealFinder(room.terminal, globalOrders)) return;
@@ -212,9 +212,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         // Avoid Duplicates
         if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
         // Energy
-        if (resourceType === RESOURCE_ENERGY) {
-            sellAmount = terminal.room.energy - ENERGY_AMOUNT * 2.5;
-        }
+        if (resourceType === RESOURCE_ENERGY) sellAmount = terminal.room.energy - ENERGY_AMOUNT * 2.5;
         // Handle minerals
         if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS), resourceType)) {
             let mineralCutoff = REACTION_AMOUNT;
@@ -228,8 +226,10 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         if (_.includes(_.union(REGIONAL_1_COMMODITIES, REGIONAL_2_COMMODITIES, REGIONAL_3_COMMODITIES, REGIONAL_4_COMMODITIES, REGIONAL_5_COMMODITIES), resourceType)) sellAmount = terminal.room.store(resourceType);
         // Handle boosts
         if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS, [RESOURCE_POWER]), resourceType)) sellAmount = terminal.room.store(resourceType) - BOOST_TRADE_AMOUNT;
+        // Power
+        if (resourceType === RESOURCE_POWER) sellAmount = terminal.room.store(resourceType) - 10000;
         // Sell
-        let price = 5;
+        let price = 8;
         let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL), 'price');
         if (competitorOrder.id) {
             price = competitorOrder.price - 0.001;
@@ -332,7 +332,7 @@ function fillBuyOrders(terminal, globalOrders) {
             if (buyer.id) {
                 if (buyer.remainingAmount < sellAmount) sellAmount = buyer.remainingAmount;
                 if (Game.market.calcTransactionCost(sellAmount, terminal.room.name, buyer.roomName) > terminal.store[RESOURCE_ENERGY]) sellAmount = _.floor(terminal.store[RESOURCE_ENERGY] / (1 - Math.exp(-Game.map.getRoomLinearDistance(terminal.room.name, buyer.roomName) / 30)));
-                if (sellAmount * buyer.price >= 25) {
+                if (sellAmount * buyer.price >= 500) {
                     switch (Game.market.deal(buyer.id, sellAmount, terminal.pos.roomName)) {
                         case OK:
                             log.w(terminal.pos.roomName + " Sell Off Completed - " + resourceType + " for " + (buyer.price * sellAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
@@ -408,6 +408,10 @@ function balanceResources(terminal) {
         // Keep 1000 batteries
         if (resource === RESOURCE_BATTERY) {
             keepAmount = 1000;
+        }
+        // Keep reaction amount
+        if (_.includes(BASE_MINERALS, resource)) {
+            keepAmount = REACTION_AMOUNT;
         }
         // Keep 5000 compressed
         if (_.includes(COMPRESSED_COMMODITIES, resource)) {
