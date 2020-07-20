@@ -6,6 +6,7 @@
  */
 
 module.exports.role = function (creep) {
+    creep.opportunisticFill();
     if (creep.renewalCheck()) return;
     //INITIAL CHECKS
     if (creep.wrongRoom()) return;
