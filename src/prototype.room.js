@@ -180,7 +180,7 @@ Object.defineProperty(Room.prototype, 'powerCreeps', {
 Object.defineProperty(Room.prototype, 'hostileCreeps', {
     get: function () {
         if (!this._Hostilecreeps) {
-            this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && (!_.includes(FRIENDLIES, c.owner.username) || _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || c.owner.username !== 'Source Keeper'));
+            this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'));
             this._Hostilecreeps.concat(_.filter(this.powerCreeps, (c) => !c.my && (!_.includes(FRIENDLIES, c.owner.username))));
         }
         return this._Hostilecreeps;
@@ -285,7 +285,7 @@ function getRoomResource(room, resource, unused = false) {
     if (!unused) {
         _.filter(room.structures, (s) => s.store && s.store.getUsedCapacity(resource) && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TOWER &&
             s.structureType !== STRUCTURE_SPAWN && s.structureType !== STRUCTURE_EXTENSION && s.structureType !== STRUCTURE_LAB).forEach((s) => count += s.store.getUsedCapacity(resource));
-        _.filter(room.structures, (s) => resource !== RESOURCE_ENERGY && s.store && s.store.getUsedCapacity(resource) && s.structureType === STRUCTURE_LAB && resource !== s.memory.itemNeeded && resource !== s.memory.neededBoost).forEach((s) => count += s.store.getUsedCapacity(resource));
+        _.filter(room.structures, (s) => resource !== RESOURCE_ENERGY && s.store && s.store.getUsedCapacity(resource) && s.structureType === STRUCTURE_LAB && resource !== s.memory.itemNeeded).forEach((s) => count += s.store.getUsedCapacity(resource));
     } else {
         _.filter(room.structures, (s) => s.store && s.store.getUsedCapacity(resource) && (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_CONTAINER)).forEach((s) => count += s.store.getUsedCapacity(resource));
     }
@@ -320,7 +320,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 // Signage NCP check
                 if (room.controller.sign) {
                     let text = room.controller.sign.text.toLowerCase();
-                    if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum') || text.includes('ᴏᴠᴇʀᴍɪɴᴅ')) {
+                    if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum') || text.includes('ᴏᴠᴇʀᴍɪɴᴅ') || text.includes('jln')) {
                         ncpArray.push(room.controller.sign.username);
                     } else if (_.includes(ncpArray, room.controller.sign.username)) {
                         _.remove(ncpArray, (u) => u === room.controller.sign.username);
@@ -395,7 +395,9 @@ Room.prototype.invaderCheck = function () {
     if (Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 10 > Game.time && !Memory.roomCache[this.name].threatLevel) return;
     if (!Memory.roomCache || !Memory.roomCache[this.name]) this.cacheRoomIntel();
     // No hostile detected
+    if (this.name === 'W13S5') console.log(1)
     if (!this.hostileCreeps.length) {
+        if (this.name === 'W13S5') console.log(2)
         if (Memory.roomCache[this.name].threatLevel) {
             let waitOut = 15;
             if (Memory.roomCache[this.name].threatLevel > 3) waitOut = 50;
@@ -424,6 +426,7 @@ Room.prototype.invaderCheck = function () {
             }
         }
     } else {
+        if (this.name === 'W13S5') console.log(3)
         if (!Memory.roomCache) Memory.roomCache = {};
         if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
         Memory.roomCache[this.name].lastInvaderCheck = Game.time;
