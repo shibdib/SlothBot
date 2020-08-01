@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -9,16 +9,13 @@
  * Created by Bob on 7/12/2017.
  */
 module.exports.role = function (creep) {
-    if (creep.shibKite()) return true;
-    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    if (creep.shibKite() || creep.fleeHome()) return true;
     //Initial move
     if (!_.sum(creep.store)) creep.memory.harvesting = true;
     if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;
     if (creep.pos.roomName !== creep.memory.destination && !creep.memory.hauling) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20}); else creep.memory.destinationReached = true;
-    // handle safe SK movement
-    let lair = creep.pos.findInRange(creep.room.structures, 5, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
-    let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
-    if (SK) return creep.shibKite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair);
+    // SK Safety
+    if (creep.skSafety()) return;
     if (creep.isFull || !creep.memory.harvesting) {
         delete creep.memory.harvesting;
         creep.memory.hauling = true;
@@ -33,6 +30,11 @@ module.exports.role = function (creep) {
         }
         if (creep.memory.source) {
             if (creep.memory.extractor) {
+                if (!creep.memory.mineralStore) {
+                    let currentMinerals = OWNED_MINERALS || [];
+                    currentMinerals.push(creep.room.mineral.mineralType);
+                    OWNED_MINERALS = _.uniq(currentMinerals);
+                }
                 let extractor = Game.getObjectById(creep.memory.extractor);
                 if (!extractor) return creep.memory.recycle = true;
                 if (extractor.cooldown && extractor.pos.getRangeTo(creep) < 2) {

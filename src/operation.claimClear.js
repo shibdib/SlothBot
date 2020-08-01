@@ -1,7 +1,12 @@
-let highCommand = require('military.highCommand');
+/*
+ * Copyright (c) 2020.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
 
 Creep.prototype.claimClear = function () {
-    if (this.room.name === this.memory.targetRoom) {
+    if (this.room.name === this.memory.destination) {
         if (!this.room.controller.owner) {
             switch (this.claimController(this.room.controller)) {
                 case ERR_NOT_IN_RANGE:
@@ -19,11 +24,12 @@ Creep.prototype.claimClear = function () {
         } else {
             cleanRoom(this.room, this.room.structures);
             this.room.controller.unclaim();
+            this.room.cacheRoomIntel(true);
             if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
             this.memory.recycle = true;
         }
     } else {
-        return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
+        return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
     }
 };
 

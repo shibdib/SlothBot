@@ -9,32 +9,49 @@ let Log = require('logger');
 
 let globals = function () {
 
-    require('config');
+    // Try to load a private server config otherwise load the default
+    try {
+        require(Game.shard.name);
+        console.log('Loaded config for ' + Game.shard.name);
+    } catch (e) {
+        try {
+            require(Memory.customConfig);
+            console.log('Loaded config for ' + Memory.customConfig);
+        } catch (e) {
+            require('config');
+            console.log('No custom config found loading config.js');
+        }
+    }
     global.LAYOUT_VERSION = 1.52;
 
-    //PC Stuff
-    global.OPERATOR_UPGRADE_PRIORITY = [PWR_GENERATE_OPS, PWR_OPERATE_SPAWN, PWR_OPERATE_EXTENSION, PWR_OPERATE_TOWER];
-
-    //Terminal
-    global.REACTION_NEEDS = [RESOURCE_ZYNTHIUM,
-        RESOURCE_KEANIUM, RESOURCE_UTRIUM, RESOURCE_LEMERGIUM, RESOURCE_OXYGEN, RESOURCE_HYDROGEN, RESOURCE_CATALYST];
-
-    global.BOOST_NEEDS = [];
-    global.OWNED_MINERALS = [];
-    global.TRADE_TARGETS = [];
-
-    global.DO_NOT_SELL_LIST = [RESOURCE_CATALYZED_UTRIUM_ACID,
-        RESOURCE_CATALYZED_ZYNTHIUM_ACID,
-        RESOURCE_CATALYZED_GHODIUM_ACID];
-
+    // Energy income breakdown
+    global.ROOM_ENERGY_ALLOTMENT = {
+        'store': 0.2,
+        'upgrade': 0.55,
+        'build': 0.5,
+        'walls': 0.2,
+        'other': 0.3
+    };
 
     // Reaction
-    global.MAKE_THESE_BOOSTS = [RESOURCE_GHODIUM, RESOURCE_GHODIUM_ACID, RESOURCE_GHODIUM_ALKALIDE, RESOURCE_LEMERGIUM_ALKALIDE, RESOURCE_UTRIUM_ACID, RESOURCE_LEMERGIUM_ACID, RESOURCE_UTRIUM_ALKALIDE];
-    global.END_GAME_BOOSTS = [RESOURCE_CATALYZED_GHODIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ACID, RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE];
+    global.TIER_3_BOOSTS = [RESOURCE_CATALYZED_GHODIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ACID, RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE];
     global.TIER_2_BOOSTS = [RESOURCE_GHODIUM_ALKALIDE, RESOURCE_GHODIUM_ACID, RESOURCE_ZYNTHIUM_ACID, RESOURCE_ZYNTHIUM_ALKALIDE, RESOURCE_LEMERGIUM_ALKALIDE, RESOURCE_LEMERGIUM_ACID, RESOURCE_KEANIUM_ACID, RESOURCE_KEANIUM_ALKALIDE, RESOURCE_UTRIUM_ALKALIDE, RESOURCE_UTRIUM_ACID];
     global.TIER_1_BOOSTS = [RESOURCE_GHODIUM_HYDRIDE, RESOURCE_GHODIUM_OXIDE, RESOURCE_ZYNTHIUM_HYDRIDE, RESOURCE_ZYNTHIUM_OXIDE, RESOURCE_LEMERGIUM_OXIDE, RESOURCE_LEMERGIUM_HYDRIDE, RESOURCE_KEANIUM_OXIDE, RESOURCE_KEANIUM_HYDRIDE, RESOURCE_UTRIUM_HYDRIDE, RESOURCE_UTRIUM_OXIDE];
     global.BASE_COMPOUNDS = [RESOURCE_GHODIUM, RESOURCE_ZYNTHIUM_KEANITE, RESOURCE_UTRIUM_LEMERGITE, RESOURCE_HYDROXIDE];
     global.BASE_MINERALS = [RESOURCE_HYDROGEN, RESOURCE_OXYGEN, RESOURCE_UTRIUM, RESOURCE_LEMERGIUM, RESOURCE_KEANIUM, RESOURCE_ZYNTHIUM, RESOURCE_CATALYST, RESOURCE_GHODIUM];
+    global.ALL_BOOSTS = _.union(TIER_3_BOOSTS, TIER_2_BOOSTS, TIER_1_BOOSTS, BASE_COMPOUNDS);
+
+    // Commodities
+    global.MAKE_THESE_COMMODITIES = [];
+    global.BASE_COMMODITIES = [RESOURCE_SILICON, RESOURCE_METAL, RESOURCE_BIOMASS, RESOURCE_MIST];
+    global.COMPRESSED_COMMODITIES = [RESOURCE_UTRIUM_BAR, RESOURCE_LEMERGIUM_BAR, RESOURCE_ZYNTHIUM_BAR, RESOURCE_KEANIUM_BAR, RESOURCE_GHODIUM_MELT, RESOURCE_OXIDANT, RESOURCE_REDUCTANT, RESOURCE_PURIFIER, RESOURCE_BATTERY, RESOURCE_COMPOSITE, RESOURCE_CRYSTAL, RESOURCE_LIQUID];
+    global.REGIONAL_0_COMMODITIES = [RESOURCE_WIRE, RESOURCE_CELL, RESOURCE_ALLOY, RESOURCE_CONDENSATE];
+    global.REGIONAL_1_COMMODITIES = [RESOURCE_SWITCH, RESOURCE_PHLEGM, RESOURCE_TUBE, RESOURCE_CONCENTRATE];
+    global.REGIONAL_2_COMMODITIES = [RESOURCE_TRANSISTOR, RESOURCE_TISSUE, RESOURCE_FIXTURES, RESOURCE_EXTRACT];
+    global.REGIONAL_3_COMMODITIES = [RESOURCE_MICROCHIP, RESOURCE_MUSCLE, RESOURCE_FRAME, RESOURCE_SPIRIT];
+    global.REGIONAL_4_COMMODITIES = [RESOURCE_CIRCUIT, RESOURCE_ORGANOID, RESOURCE_HYDRAULICS, RESOURCE_EMANATION];
+    global.REGIONAL_5_COMMODITIES = [RESOURCE_DEVICE, RESOURCE_ORGANISM, RESOURCE_MACHINE, RESOURCE_ESSENCE];
+    global.ALL_COMMODITIES = _.union(BASE_COMMODITIES, COMPRESSED_COMMODITIES, REGIONAL_0_COMMODITIES, REGIONAL_1_COMMODITIES, REGIONAL_2_COMMODITIES, REGIONAL_3_COMMODITIES, REGIONAL_4_COMMODITIES, REGIONAL_5_COMMODITIES);
 
     global.PRIORITIES = {
         // Harvesters
@@ -54,13 +71,12 @@ let globals = function () {
         remoteHauler: 4,
         remoteUpgrader: 7,
         roadBuilder: 7,
-        assistPioneer: 6,
+        assistPioneer: 3,
         fuelTruck: 7,
-        remoteResponse: 5,
         reserver: 4,
         borderPatrol: 3,
         // Power
-        Power: 3,
+        Power: 6,
         // SK
         SKWorker: 5,
         // Military
@@ -83,11 +99,12 @@ let globals = function () {
             drone: [MOVE, MOVE, CARRY, WORK],
             waller: [MOVE, MOVE, CARRY, WORK],
             upgrader: [MOVE, MOVE, CARRY, WORK],
+            praiseUpgrader: [MOVE, CARRY, WORK],
             hauler: [CARRY, CARRY, MOVE, MOVE],
             filler: [CARRY, CARRY, MOVE, MOVE],
             explorer: [MOVE],
             scout: [MOVE],
-            responder: [TOUGH, TOUGH, MOVE, MOVE, MOVE, ATTACK],
+            defender: [MOVE, ATTACK],
             longbow: [RANGED_ATTACK, MOVE],
             remoteHauler: [CARRY, CARRY, MOVE, MOVE],
             remoteHarvester: [MOVE, CARRY, WORK],
@@ -99,11 +116,15 @@ let globals = function () {
     global.ROAD_CACHE = {};
     global.CREEP_CPU_ARRAY = {};
     global.ROOM_CPU_ARRAY = {};
-    global.ROOM_ENERGY_ARRAY = {};
+    global.CREEP_ROLE_CPU_ARRAY = {};
+    global.ROOM_TASK_CPU_ARRAY = {};
+    global.ROOM_ENERGY_INCOME_ARRAY = {};
+    global.ROOM_ENERGY_PER_TICK = {};
     global.TASK_CPU_ARRAY = {};
     global.ROOM_CREEP_CPU_OBJECT = {};
     global.ROOM_SOURCE_SPACE = {};
     global.ROOM_CONTROLLER_SPACE = {};
+    global.OWNED_MINERALS = [];
 
     global.ICONS = {
         [STRUCTURE_CONTROLLER]: "\uD83C\uDFF0"
@@ -196,61 +217,6 @@ let globals = function () {
 
     global.CUMULATIVE_CONTROLLER_DOWNGRADE = _.map(CONTROLLER_DOWNGRADE, (v1, k1, c1) => (_.reduce(c1, (a, v2, k2, c2) => (a + ((k2 <= k1) ? v2 : 0)), 0)));
 
-    global.resourceWorth = function (resourceType) {
-        switch (resourceType) {
-            case RESOURCE_ENERGY:
-            default:
-                return 1; // 10^0
-            case RESOURCE_HYDROGEN:
-            case RESOURCE_OXYGEN:
-            case RESOURCE_UTRIUM:
-            case RESOURCE_LEMERGIUM:
-            case RESOURCE_KEANIUM:
-            case RESOURCE_ZYNTHIUM:
-            case RESOURCE_CATALYST:
-                return 10; // 10^1
-            case RESOURCE_HYDROXIDE:
-            case RESOURCE_ZYNTHIUM_KEANITE:
-            case RESOURCE_UTRIUM_LEMERGITE:
-                return 100; // 10^2
-            case RESOURCE_GHODIUM:
-            case RESOURCE_UTRIUM_HYDRIDE:
-            case RESOURCE_UTRIUM_OXIDE:
-            case RESOURCE_KEANIUM_HYDRIDE:
-            case RESOURCE_KEANIUM_OXIDE:
-            case RESOURCE_LEMERGIUM_HYDRIDE:
-            case RESOURCE_LEMERGIUM_OXIDE:
-            case RESOURCE_ZYNTHIUM_HYDRIDE:
-            case RESOURCE_ZYNTHIUM_OXIDE:
-            case RESOURCE_GHODIUM_HYDRIDE:
-            case RESOURCE_GHODIUM_OXIDE:
-                return 1000; // 10^3
-            case RESOURCE_UTRIUM_ACID:
-            case RESOURCE_UTRIUM_ALKALIDE:
-            case RESOURCE_KEANIUM_ACID:
-            case RESOURCE_KEANIUM_ALKALIDE:
-            case RESOURCE_LEMERGIUM_ACID:
-            case RESOURCE_LEMERGIUM_ALKALIDE:
-            case RESOURCE_ZYNTHIUM_ACID:
-            case RESOURCE_ZYNTHIUM_ALKALIDE:
-            case RESOURCE_GHODIUM_ACID:
-            case RESOURCE_GHODIUM_ALKALIDE:
-                return 10000; // 10^4
-            case RESOURCE_CATALYZED_UTRIUM_ACID:
-            case RESOURCE_CATALYZED_UTRIUM_ALKALIDE:
-            case RESOURCE_CATALYZED_KEANIUM_ACID:
-            case RESOURCE_CATALYZED_KEANIUM_ALKALIDE:
-            case RESOURCE_CATALYZED_LEMERGIUM_ACID:
-            case RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE:
-            case RESOURCE_CATALYZED_ZYNTHIUM_ACID:
-            case RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE:
-            case RESOURCE_CATALYZED_GHODIUM_ACID:
-            case RESOURCE_CATALYZED_GHODIUM_ALKALIDE:
-                return 100000; // 10^5
-            case RESOURCE_POWER:
-                return 1000000; // 10^6
-        }
-    };
     global.RCL_1_ENERGY = 300;
     global.RCL_2_ENERGY = 550;
     global.RCL_3_ENERGY = 800;
@@ -319,15 +285,15 @@ let globals = function () {
 
     // Boost Uses
     global.BOOST_USE = {
-        'attack': [RESOURCE_UTRIUM_HYDRIDE, RESOURCE_UTRIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID],
-        'upgrade': [RESOURCE_GHODIUM_HYDRIDE, RESOURCE_GHODIUM_ACID, RESOURCE_CATALYZED_GHODIUM_ACID],
-        'tough': [RESOURCE_GHODIUM_OXIDE, RESOURCE_GHODIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ALKALIDE],
-        'ranged': [RESOURCE_KEANIUM_OXIDE, RESOURCE_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE],
-        'heal': [RESOURCE_LEMERGIUM_OXIDE, RESOURCE_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE],
-        'build': [RESOURCE_LEMERGIUM_HYDRIDE, RESOURCE_LEMERGIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ACID],
-        'move': [RESOURCE_ZYNTHIUM_OXIDE, RESOURCE_ZYNTHIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE],
-        'harvest': [RESOURCE_UTRIUM_OXIDE, RESOURCE_UTRIUM_ALKALIDE, RESOURCE_CATALYZED_UTRIUM_ALKALIDE],
-        'dismantle': [RESOURCE_ZYNTHIUM_HYDRIDE, RESOURCE_ZYNTHIUM_ACID, RESOURCE_CATALYZED_ZYNTHIUM_ACID]
+        'attack': [RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_UTRIUM_ACID, RESOURCE_UTRIUM_HYDRIDE],
+        'upgrade': [RESOURCE_CATALYZED_GHODIUM_ACID, RESOURCE_GHODIUM_ACID, RESOURCE_GHODIUM_HYDRIDE],
+        'tough': [RESOURCE_CATALYZED_GHODIUM_ALKALIDE, RESOURCE_GHODIUM_ALKALIDE, RESOURCE_GHODIUM_OXIDE],
+        'ranged': [RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_KEANIUM_ALKALIDE, RESOURCE_KEANIUM_OXIDE],
+        'heal': [RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_LEMERGIUM_ALKALIDE, RESOURCE_LEMERGIUM_OXIDE],
+        'build': [RESOURCE_CATALYZED_LEMERGIUM_ACID, RESOURCE_LEMERGIUM_ACID, RESOURCE_LEMERGIUM_HYDRIDE],
+        'move': [RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE, RESOURCE_ZYNTHIUM_ALKALIDE, RESOURCE_ZYNTHIUM_OXIDE],
+        'harvest': [RESOURCE_CATALYZED_UTRIUM_ALKALIDE, RESOURCE_UTRIUM_ALKALIDE, RESOURCE_UTRIUM_OXIDE],
+        'dismantle': [RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_ZYNTHIUM_ACID, RESOURCE_ZYNTHIUM_HYDRIDE]
     };
 
     global.MY_USERNAME = _.get(
@@ -358,52 +324,6 @@ let globals = function () {
             configurable: true,
             enumerable: false
         });
-    };
-
-    /*
-     The following is copied from the path finder in the screeps driver at:
-     https://github.com/screeps/driver/blob/master/lib/path-finder.js
-     */
-    //const MAX_WORLD_SIZE = 255; // Talk to marcel before growing world larger than W127N127 :: E127S127
-    // Convert a room name to/from usable coordinates ("E1N1" -> { xx: 129, yy: 126 })
-    global.parseRoomName = function (roomName) {
-        let room = /^([WE])([0-9]+)([NS])([0-9]+)$/.exec(roomName);
-        if (!room) {
-            return; //throw src Error("Invalid room name " + roomName);
-        }
-        let rx = (WORLD_WIDTH >> 1) + ((room[1] === "W") ? (-Number(room[2])) : (Number(room[2]) + 1));
-        let ry = (WORLD_HEIGHT >> 1) + ((room[3] === "N") ? (-Number(room[4])) : (Number(room[4]) + 1));
-        if (((rx > 0) && (rx <= WORLD_WIDTH) && (ry > 0) && (ry <= WORLD_HEIGHT)) === false) {
-            return; //throw src Error("Invalid room name " + roomName);
-        }
-        return {xx: rx, yy: ry};
-    };
-    // Converts return value of 'parseRoomName' back into a normal room name
-    global.generateRoomName = function (xx, yy) {
-        return (
-            ((xx <= (WORLD_WIDTH >> 1)) ? ("W" + ((WORLD_WIDTH >> 1) - xx)) : ("E" + (xx - (WORLD_WIDTH >> 1) - 1)))
-            + ((yy <= (WORLD_HEIGHT >> 1)) ? ("N" + ((WORLD_HEIGHT >> 1) - yy)) : ("S" + (yy - (WORLD_HEIGHT >> 1) - 1)))
-        );
-    };
-    // Helper function to convert RoomPosition objects into global coordinate objects
-    global.toWorldPosition = function (rp) {
-        let xx = (rp.x | 0), yy = (rp.y | 0);
-        if (((xx >= 0) && (xx < 50) && (yy >= 0) && (yy < 50)) === false) {
-            return; //throw src Error("Invalid room position");
-        }
-        let offset = parseRoomName(rp.roomName);
-        return {
-            xx: (xx + offset.xx * 50)
-            , yy: (yy + offset.yy * 50)
-        };
-    };
-    // Converts back to a RoomPosition
-    global.fromWorldPosition = function (wp) {
-        return new RoomPosition(
-            wp[0] % 50
-            , wp[1] % 50
-            , generateRoomName(Math.floor(wp[0] / 50), Math.floor(wp[1] / 50))
-        );
     };
 
     //Get average of array
@@ -512,21 +432,17 @@ let globals = function () {
 
     global.shuffle = function (array) {
         let counter = array.length;
-
         // While there are elements in the array
         while (counter > 0) {
             // Pick a random index
             let index = Math.floor(Math.random() * counter);
-
             // Decrease counter by 1
             counter--;
-
             // And swap the last element with it
             let temp = array[counter];
             array[counter] = array[index];
             array[index] = temp;
         }
-
         return array;
     };
 

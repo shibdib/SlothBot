@@ -10,23 +10,18 @@
  */
 
 module.exports.role = function role(creep) {
+    creep.say('HIGHWAY', true);
+    if (creep.borderCheck()) return;
     //Invader detection
-    if (creep.hits < creep.hitsMax || creep.memory.runCooldown) {
-        creep.memory.destination = undefined;
-        return creep.goHomeAndHeal();
-    }
-    // Handle SK
-    if (Memory.roomCache[creep.room.name].sk) {
-        let lair = creep.pos.findInRange(creep.room.structures, 5, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
-        let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
-        if (SK) return creep.shibKite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair);
-    }
+    if (creep.fleeHome()) return;
+    // SK Safety
+    if (creep.skSafety()) return;
     // Set destination
     if (!creep.memory.destination) {
         if (creep.memory.overlord === creep.room.name) {
-            creep.memory.destination = _.sample(_.union(JSON.parse(creep.memory.misc), [creep.memory.overlord]));
+            creep.memory.destination = _.sample(_.filter(JSON.parse(creep.memory.misc), (r) => Memory.roomCache[r] && !Memory.roomCache[r].threatLevel && !Memory.roomCache[r].invaderCore && (!Memory.roomCache[r].sk || Game.rooms[creep.memory.overlord].level >= 7)));
         } else {
-            return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
+            creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
         }
     }
     // Remove bad desto
@@ -46,15 +41,16 @@ module.exports.role = function role(creep) {
     }
     // Work
     if (creep.memory.working === true) {
-        if (creep.memory.constructionSite || creep.findConstruction()) {
-            if (!Game.getObjectById(creep.memory.constructionSite) || Game.getObjectById(creep.memory.constructionSite).pos.roomName !== creep.memory.destination) return creep.memory.constructionSite = undefined;
+        if (!remoteRoads(creep)) Memory.roomCache[creep.room.name].roadsBuilt = true;
+        if (creep.memory.constructionSite || creep.constructionWork()) {
+            if (!Game.getObjectById(creep.memory.constructionSite)) return creep.memory.constructionSite = undefined;
             creep.builderFunction();
         } else {
-            if (!remoteRoads(creep)) creep.memory.destination = undefined;
+            creep.memory.destination = undefined;
             if (creep.memory.overlord === creep.room.name) creep.idleFor(5);
         }
     } else {
-        if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
+        if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
         } else {
@@ -75,14 +71,14 @@ module.exports.role = function role(creep) {
                 }
             } else {
                 delete creep.memory.harvest;
-                creep.idleFor(5);
+                delete creep.memory.destination;
             }
         }
     }
 };
 
 function remoteRoads(creep) {
-    if (creep.room.name !== creep.memory.destination || !creep.room.sources.length) return false;
+    if (creep.room.name !== creep.memory.destination || creep.room.constructionSites.length > 3) return false;
     let sources = creep.room.sources;
     let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
     let homeExit = creep.room.find(goHome);
@@ -99,7 +95,7 @@ function remoteRoads(creep) {
         if (buildRoadFromTo(creep.room, sources[key], homeExit[homeMiddle])) return true;
     }
     let mineral = creep.room.find(FIND_MINERALS)[0];
-    if (mineral && Memory.roomCache[creep.room.name].sk && buildRoadFromTo(creep.room, mineral, homeExit[homeMiddle])) return true;
+    if (mineral && Memory.roomCache[creep.room.name].sources > 2 && buildRoadFromTo(creep.room, mineral, homeExit[homeMiddle])) return true;
     if (creep.room.controller && buildRoadFromTo(creep.room, creep.room.controller, homeExit[homeMiddle])) return true;
     let neighboring = Game.map.describeExits(creep.pos.roomName);
     if (neighboring['1'] && neighboring['1'] !== creep.memory.overlord) {
@@ -122,6 +118,7 @@ function remoteRoads(creep) {
         let middle = _.round(exits.length / 2);
         if (buildRoadFromTo(creep.room, creep.room.controller, exits[middle])) return true;
     }
+    return false;
 }
 
 function buildRoadFromTo(room, start, end) {
@@ -152,6 +149,9 @@ function buildRoadFromTo(room, start, end) {
                     if (_.includes(OBSTACLE_OBJECT_TYPES, structures.structureType)) {
                         costMatrix.set(structures.pos.x, structures.pos.y, 256);
                     }
+                    if (structures.structureType === STRUCTURE_CONTAINER) {
+                        costMatrix.set(structures.pos.x, structures.pos.y, 150);
+                    }
                 }
                 for (let site of room.constructionSites) {
                     if (site.structureType === STRUCTURE_ROAD) {
@@ -179,8 +179,11 @@ function buildRoadFromTo(room, start, end) {
 }
 
 function buildRoad(position, room) {
-    if (position.checkForImpassible(true) || position.checkForRoad() || position.checkForConstructionSites() || _.size(room.constructionSites) >= 5) return false;
-    if (position.createConstructionSite(STRUCTURE_ROAD) === OK) return true;
+    if (position.checkForImpassible(true) || position.checkForRoad() || position.checkForConstructionSites() || _.size(room.constructionSites) >= 5) {
+        return false;
+    } else if (position.createConstructionSite(STRUCTURE_ROAD) === OK) {
+        return true;
+    }
 }
 
 function cacheRoad(room, from, to, path) {

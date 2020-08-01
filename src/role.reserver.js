@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -11,11 +11,9 @@
 
 module.exports.role = function (creep) {
     //Invader detection
-    if (creep.hits < creep.hitsMax || creep.memory.runCooldown) {
-        return creep.goHomeAndHeal();
-    }
+    if (creep.fleeHome()) return;
     //Initial Move
-    if (creep.pos.roomName !== creep.memory.reservationTarget) return creep.shibMove(new RoomPosition(25, 25, creep.memory.reservationTarget, {range: 23}));
+    if (creep.pos.roomName !== creep.memory.other.reservationTarget) return creep.shibMove(new RoomPosition(25, 25, creep.memory.other.reservationTarget, {range: 23}));
     //Reserver
     if (creep.memory.inPlace) {
         if (!creep.room.controller.reservation || creep.room.controller.reservation.username === MY_USERNAME) {
@@ -27,7 +25,7 @@ module.exports.role = function (creep) {
                         creep.memory.signed = true;
                     }
                     let ticks;
-                    if (creep.room.controller.reservation) {
+                    if (creep.room.controller.reservation && creep.room.controller.reservation.username === MY_USERNAME) {
                         ticks = creep.room.controller.reservation['ticksToEnd'] || 0;
                     } else {
                         ticks = 0;

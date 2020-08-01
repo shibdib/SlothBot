@@ -24,42 +24,50 @@ module.exports.role = function (creep) {
                 if (Math.random() > 0.99) creep.memory.onContainer = undefined;
                 if (!creep.memory.onContainer) {
                     if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
+                        if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
                         return creep.shibMove(container, {range: 0});
-                    } else {
-                        creep.memory.onContainer = true;
+                    } else if (container) {
+                        if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
+                        return creep.shibMove(container, {range: 1});
                     }
                 }
-                if (!creep.isFull) {
-                    if (link && link.energy) {
-                        creep.withdrawResource(link);
-                    } else if (container && container.store[RESOURCE_ENERGY]) {
-                        creep.withdrawResource(container);
-                    }
+                if (link && link.energy) {
+                    creep.withdrawResource(link);
+                } else if (container && container.store[RESOURCE_ENERGY]) {
+                    creep.withdrawResource(container);
                 }
                 return;
             case ERR_NOT_IN_RANGE:
-                return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+                if (link && link.energy) {
+                    creep.withdrawResource(link);
+                } else if (container && container.store[RESOURCE_ENERGY]) {
+                    creep.withdrawResource(container);
+                } else {
+                    return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+                }
         }
     }
     if (creep.memory.energyDestination) {
         creep.withdrawResource();
-    } else if (!creep.getActiveBodyparts(MOVE)) {
+    } else if (creep.memory.other.stationary || (creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE))) {
+        creep.memory.other.stationary = true;
         if (!creep.memory.onContainer) {
             if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
                 return creep.shibMove(container, {range: 0});
             } else {
-                creep.memory.onContainer = true;
+                if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
+                return creep.shibMove(container, {range: 1});
             }
         } else {
             if (link && link.energy) {
                 creep.withdrawResource(link);
-            } else if (container && container.store[RESOURCE_ENERGY] >= creep.store.getCapacity()) {
+            } else if (container && container.store[RESOURCE_ENERGY]) {
                 creep.withdrawResource(container);
             }
         }
-    } else if (container && container.store[RESOURCE_ENERGY] >= creep.store.getCapacity()) {
+    } else if (container && container.store[RESOURCE_ENERGY]) {
         creep.withdrawResource(container);
-    } else if (!creep.findEnergy(25)) {
+    } else if (!creep.locateEnergy(25)) {
         let source = creep.pos.getClosestSource();
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
     }
@@ -69,28 +77,32 @@ function herald(creep) {
     if (creep.memory.notHerald) return;
     if (creep.memory.herald) {
         let sentence = ['-'];
-        if (Memory.LOANalliance) sentence = sentence.concat([Memory.LOANalliance, '-']);
-        if (Memory.roomCache[creep.room.name].responseNeeded) {
-            if (Memory.roomCache[creep.room.name].threatLevel === 1) sentence = sentence.concat(['FPCON', 'ALPHA']);
-            if (Memory.roomCache[creep.room.name].threatLevel === 2) sentence = sentence.concat(['FPCON', 'BRAVO']);
-            if (Memory.roomCache[creep.room.name].threatLevel === 3) sentence = sentence.concat(['FPCON', 'CHARLIE']);
-            if (Memory.roomCache[creep.room.name].threatLevel >= 4) sentence = sentence.concat(['FPCON', 'DELTA']);
-        } else if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].lastPlayerSighting) {
-            sentence = sentence.concat(['LAST', 'ATTACK', Game.time - Memory.roomCache[creep.room.name].lastPlayerSighting, 'TICKS', 'AGO']);
+        if (creep.room.memory.lowPower) {
+            sentence = sentence.concat(['This', 'Room', 'Is', 'In', 'Low', 'Power', 'Mode', 'For', ((creep.room.memory.lowPower + 10000) - Game.time), 'Ticks']);
         } else {
-            sentence = sentence.concat(['FPCON', 'NORMAL']);
-        }
-        if (Memory._badBoyArray && Memory._badBoyArray.length) {
-            sentence = sentence.concat(['-', 'THREAT', 'LIST', '-']);
-            sentence = sentence.concat(Memory._badBoyArray);
-        }
-        if (Memory._friendsArray && Memory._friendsArray.length > 1) {
-            sentence = sentence.concat(['-', 'FRIENDS', 'LIST', '-']);
-            sentence = sentence.concat(Memory._friendsArray);
-        }
-        if (Memory.ncpArray && Memory.ncpArray.length > 1) {
-            sentence = sentence.concat(['-', 'KNOWN', 'NCP', 'LIST', '-']);
-            sentence = sentence.concat(Memory.ncpArray);
+            if (Memory.LOANalliance) sentence = sentence.concat([Memory.LOANalliance, '-']);
+            if (Memory.roomCache[creep.room.name].responseNeeded) {
+                if (Memory.roomCache[creep.room.name].threatLevel === 1) sentence = sentence.concat(['FPCON', 'ALPHA']);
+                if (Memory.roomCache[creep.room.name].threatLevel === 2) sentence = sentence.concat(['FPCON', 'BRAVO']);
+                if (Memory.roomCache[creep.room.name].threatLevel === 3) sentence = sentence.concat(['FPCON', 'CHARLIE']);
+                if (Memory.roomCache[creep.room.name].threatLevel >= 4) sentence = sentence.concat(['FPCON', 'DELTA']);
+            } else if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].lastPlayerSighting) {
+                sentence = sentence.concat(['LAST', 'ATTACK', Game.time - Memory.roomCache[creep.room.name].lastPlayerSighting, 'TICKS', 'AGO']);
+            } else {
+                sentence = sentence.concat(['FPCON', 'NORMAL']);
+            }
+            if (Memory._badBoyArray && Memory._badBoyArray.length) {
+                sentence = sentence.concat(['-', 'THREAT', 'LIST', '-']);
+                sentence = sentence.concat(Memory._badBoyArray);
+            }
+            if (Memory._friendsArray && Memory._friendsArray.length > 1) {
+                sentence = sentence.concat(['-', 'FRIENDS', 'LIST', '-']);
+                sentence = sentence.concat(Memory._friendsArray);
+            }
+            if (Memory.ncpArray && Memory.ncpArray.length > 1) {
+                sentence = sentence.concat(['-', 'KNOWN', 'NCP', 'LIST', '-']);
+                sentence = sentence.concat(Memory.ncpArray);
+            }
         }
         let word = Game.time % sentence.length;
         creep.say(sentence[word], true);
@@ -99,11 +111,9 @@ function herald(creep) {
             let addition = '';
             if (Game.shard.name === 'treecafe' && creep.room.controller.level >= 4) addition = ' @pvp@';
             switch (creep.signController(creep.room.controller, _.sample(signs) + addition)) {
-                case OK:
+                default:
                     creep.memory.signed = true;
                     break;
-                case ERR_NOT_IN_RANGE:
-                    return creep.shibMove(creep.room.controller, {range: 1});
             }
         }
     } else {

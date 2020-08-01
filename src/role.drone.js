@@ -10,8 +10,10 @@
  */
 
 module.exports.role = function role(creep) {
+    creep.opportunisticFill();
     if (creep.shibKite()) return true;
-    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    //Invader detection
+    if (creep.fleeHome()) return;
     // Handle remote drones
     if (creep.memory.destination && creep.room.name !== creep.memory.destination) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
@@ -40,7 +42,7 @@ module.exports.role = function role(creep) {
         creep.idleFor(15);
     } else {
         creep.memory.task = undefined;
-        if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
+        if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
         } else {
@@ -74,11 +76,8 @@ module.exports.role = function role(creep) {
 
 function building(creep) {
     if (creep.memory.task && creep.memory.task !== 'build' && creep.memory.task !== 'repair') return;
-    let upgrader = _.filter(creep.room.creeps, (c) => c.my && c.memory && ((c.memory.role === 'drone' && c.memory.task === 'upgrade') || c.memory.role === 'upgrader'));
-    let dedicatedUpgrader = _.filter(creep.room.creeps, (c) => c.my && c.memory && c.memory.role === 'upgrader');
-    //let drones = _.filter(creep.room.creeps, (c) => c.my && c.memory && (c.memory.role === 'drone' || c.memory.role === 'upgrader'));
-    if ((Memory.roomCache[creep.room.name].sk || creep.memory.task === 'build' || creep.memory.task === 'repair') ||
-        ((dedicatedUpgrader.length || upgrader.length || creep.room.controller.upgradeBlocked) && (creep.memory.constructionSite || creep.findConstruction() || creep.findRepair()))) {
+    let upgrader = _.filter(creep.room.creeps, (c) => c.my && c.memory && ((c.memory.role === 'drone' && c.memory.task === 'upgrade') || c.memory.role === 'upgrader' || c.memory.role === 'remoteUpgrader' || c.memory.role === 'praiseUpgrader'));
+    if ((creep.memory.task === 'build' || creep.memory.task === 'repair') || ((upgrader.length || creep.room.controller.upgradeBlocked) && (creep.memory.constructionSite || creep.constructionWork()))) {
         creep.say('Build!', true);
         creep.builderFunction();
         return true;
@@ -89,7 +88,7 @@ function hauling(creep) {
     if (creep.memory.task && creep.memory.task !== 'haul') return;
     if (!creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME) return false;
     let haulers = _.filter(creep.room.creeps, (c) => c.my && c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler' || c.memory.role === 'filler'));
-    let needyTower = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.5).length > 0;
+    let needyTower = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && !s.energy).length > 0;
     if (creep.memory.task === 'haul' || (creep.isFull && (!haulers.length || needyTower) && !creep.memory.task && (creep.room.energyAvailable < creep.room.energyCapacityAvailable || needyTower))) {
         creep.memory.task = 'haul';
         creep.say('Haul!', true);

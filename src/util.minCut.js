@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -36,7 +36,7 @@ function room_2d_array(roomname, bounds = {x1: 0, y1: 0, x2: 49, y2: 49}) {
         j = bounds.y1;
         for (; j <= jmax; j++) {
             let pos = new RoomPosition(i, j, roomname);
-            if (terrain.get(i, j) !== TERRAIN_MASK_WALL || (pos && _.filter(pos.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_ROAD)[0])) {
+            if ((terrain.get(i, j) !== TERRAIN_MASK_WALL || (pos && _.filter(pos.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_ROAD)[0])) && (!pos || !pos.checkForBarrierStructure())) {
                 room_2d[i][j] = NORMAL; // mark unwalkable
                 if (i === bounds.x1 || j === bounds.y1 || i === bounds.x2 || j === bounds.y2)
                     room_2d[i][j] = TO_EXIT; // Sink Tiles mark from given bounds
@@ -46,28 +46,6 @@ function room_2d_array(roomname, bounds = {x1: 0, y1: 0, x2: 49, y2: 49}) {
             }
         }
     }
-
-    /* OLD CODE
-    let terrain_array=room.lookForAtArea(LOOK_TERRAIN,0,0,49,49,true);
-    if (terrain_array.length == 0) {
-        console.log('get_room_array in room_layout, look-at-for-Area Fehler');
-    }
-    let terrain='';
-    let x_pos=0;
-    let y_pos=0;
-    let i=0;const imax=terrain_array.length;
-    for (;i<imax;i++) { // Filling array with terrain information
-        terrain=terrain_array[i];
-        x_pos=terrain.x;
-        y_pos=terrain.y;
-        if (terrain.terrain==='wall') {
-            room_2d[x_pos][y_pos]=-1; // mark unwalkable
-        } else {
-            if (x_pos===0 || y_pos===0 ||x_pos===49 || y_pos===49)
-                room_2d[x_pos][y_pos]=3; // Exit Tiles mark
-        }
-    }
-    ENDE OLD CODE */
 
     // Marks tiles Near Exits for sink- where you cannot build wall/rampart
     let y = 1;

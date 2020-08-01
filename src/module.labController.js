@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2020.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 6/24/2017.
  */
@@ -5,7 +12,7 @@
 module.exports.labManager = function () {
     let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
     for (let room of myRooms) {
-        if (room.controller.level < 6) continue;
+        if (room.controller.level < 6 || room.nukes.length || room.memory.lowPower) continue;
         room.memory.reactionRoom = true;
         let lab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
         if (lab && room.terminal && Math.random() >= 0.5) cleanLabs(room);
@@ -23,14 +30,16 @@ function manageBoostProduction(room) {
     }
     if (!hub || !hub.length || hub.length < 3) return;
     let boost;
-    let boostList = _.union(MAKE_THESE_BOOSTS, TIER_2_BOOSTS, TIER_1_BOOSTS, BASE_COMPOUNDS);
+    let boostList = _.union(LAB_PRIORITY, BASE_COMPOUNDS, TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS);
     for (let key in boostList) {
+        // Check if we already have enough
+        let cutOff = REACTION_AMOUNT;
+        if (_.includes(LAB_PRIORITY, boostList[key])) cutOff = REACTION_AMOUNT * 2.5;
+        if (room.store(boostList[key]) >= cutOff) continue;
         // Only one hub per output
         if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === boostList[key]).length) continue;
         // Check for inputs
         if (!checkForInputs(room, boostList[key])) continue;
-        // Check if we already have enough
-        if (room.getBoostAmount(boostList[key]) >= BOOST_AMOUNT * 2) continue;
         boost = boostList[key];
         break;
     }
@@ -91,7 +100,7 @@ function manageActiveLabs(room) {
                 let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
                 let creatorOne = Game.getObjectById(creators[0]);
                 let creatorTwo = Game.getObjectById(creators[1]);
-                //If any dont exist reset
+                //If any don't exist reset
                 if (!outputLab || !creatorOne || !creatorTwo) {
                     log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a lab error (2).');
                     for (let id in creators) {
@@ -107,10 +116,10 @@ function manageActiveLabs(room) {
                 if (outputLab.memory.creating) {
                     switch (outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]))) {
                         case OK:
-                            // Enough created
-                            let total = outputLab.room.getBoostAmount(outputLab.memory.creating);
-                            if (((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 2.25) ||
-                                ((_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || _.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 6)) {
+                            // Check if we already have enough
+                            let cutOff = BOOST_AMOUNT;
+                            if (_.includes(LAB_PRIORITY, outputLab.memory.creating)) cutOff = BOOST_AMOUNT * 2.5;
+                            if (outputLab.room.store(outputLab.memory.creating) + outputLab.store[outputLab.memory.creating] > cutOff) {
                                 log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
                                 for (let id in creators) {
                                     creators[id].memory = undefined;
@@ -122,7 +131,7 @@ function manageActiveLabs(room) {
                         case ERR_NOT_ENOUGH_RESOURCES:
                             for (let id in creators) {
                                 let lab = Game.getObjectById(creators[id]);
-                                let total = lab.room.getBoostAmount(lab.memory.itemNeeded);
+                                let total = lab.room.store(lab.memory.itemNeeded, true) + lab.store[lab.memory.itemNeeded];
                                 if (total < 10) {
                                     log.a(outputLab.room.name + ' is no longer producing ' + lab.memory.creating + ' due to a shortage of ' + lab.memory.itemNeeded);
                                     for (let id in creators) {
@@ -153,7 +162,7 @@ function checkForInputs(room, boost) {
     for (let input of shuffle(components)) {
         let storageAmount = storage.store[input] || 0;
         let terminalAmount = terminal.store[input] || 0;
-        if (storageAmount + terminalAmount < 150) return false;
+        if (storageAmount + terminalAmount < 100) return false;
     }
     return boost;
 }
@@ -162,8 +171,8 @@ function cleanLabs(room) {
     let boostLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.neededBoost);
     for (let key in boostLabs) {
         let boostLab = boostLabs[key];
-        if (boostLab.memory && (!boostLab.memory.requested || boostLab.memory.requested + 150 < Game.time)) {
-            boostLab.memory.neededBoost = undefined;
+        if (boostLab.memory && (!boostLab.memory.requested || boostLab.memory.requested + 150 < Game.time || !Game.getObjectById(boostLab.memory.requestor))) {
+            boostLab.memory = undefined;
         }
     }
     let reactionLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating);

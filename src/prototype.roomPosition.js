@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -52,7 +52,11 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
         [-1, 0],
         [-1, -1]
     ];
-    return new RoomPosition(this.x + adjacentPos[direction][0], this.y + adjacentPos[direction][1], this.roomName);
+    try {
+        return new RoomPosition(this.x + adjacentPos[direction][0], this.y + adjacentPos[direction][1], this.roomName);
+    } catch (e) {
+        return undefined;
+    }
 };
 
 RoomPosition.prototype.countOpenTerrainAround = function () {
@@ -112,6 +116,14 @@ RoomPosition.prototype.checkForConstructionSites = function () {
 
 RoomPosition.prototype.checkForRoad = function () {
     return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_ROAD)[0];
+};
+
+RoomPosition.prototype.checkForContainer = function () {
+    return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
+};
+
+RoomPosition.prototype.checkForEnergy = function () {
+    return this.lookFor(LOOK_ENERGY)[0];
 };
 
 RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {

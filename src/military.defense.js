@@ -90,16 +90,16 @@ function safeModeManager(room) {
     // Ensure camping enemies continue to gain threat even if no creeps present.
     addThreat(room);
     let controller = room.controller;
-    if (!room.hostileCreeps.length || controller.safeMode || controller.safeModeCooldown || !controller.safeModeAvailable || controller.ticksToDowngrade || controller.level < 3) {
+    if (!room.hostileCreeps.length || controller.safeMode || controller.safeModeCooldown || !controller.safeModeAvailable || controller.ticksToDowngrade) {
         structureCount[room.name] = undefined;
         return;
     }
-    let worthyCount = structureCount[room.name] || _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_RAMPART).length;
+    let worthyCount = structureCount[room.name] || _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
     structureCount[room.name] = worthyCount;
-    let structureLost = worthyCount > _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_RAMPART).length;
-    let damagedCritical = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_STORAGE) && s.hits < s.hitsMax).length;
+    let structureLost = worthyCount > _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
+    let damagedCritical = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TOWER) && s.hits < s.hitsMax).length;
     let towers = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_TOWER && s.energy > 10)).length;
-    if (structureLost || damagedCritical > 0 || !towers) {
+    if (structureLost || damagedCritical || !towers) {
         let ownerArray = [];
         room.hostileCreeps.forEach((c) => ownerArray.push(c.owner.username));
         room.controller.activateSafeMode();
@@ -113,21 +113,18 @@ function earlyWarning(room) {
     if (adjacent) {
         Memory.roomCache[room.name].threatLevel = Memory.roomCache[adjacent].threatLevel;
         Memory.roomCache[room.name].tickDetected = Game.time;
-        log.a(roomLink(room.name) + ' has gone to threat level ' + Memory.roomCache[adjacent].threatLevel + ' due to a triggering of the early warning system in ' + roomLink(adjacent) + '.', 'DEFENSE COMMAND');
-    } else if (room.controller.safeMode && room.controller.safeMode < 1700) {
-        Memory.roomCache[room.name].threatLevel = 4;
-        Memory.roomCache[room.name].tickDetected = Game.time;
+        //log.a(roomLink(room.name) + ' has gone to threat level ' + Memory.roomCache[adjacent].threatLevel + ' due to a triggering of the early warning system in ' + roomLink(adjacent) + '.', 'DEFENSE COMMAND');
     }
 }
 
 function unSavableCheck(room) {
     // Abandon Bad Rooms
-    if (room.controller.safeMode || !room.hostileCreeps.length) return;
     let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
     let badCount = room.memory.badCount || 0;
-    if (room.hostileCreeps.length && !towers.length) {
+    let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)));
+    if (hostiles.length && !towers.length && !room.controller.safeMode) {
         room.memory.badCount = badCount + 1;
-        if (room.memory.badCount > room.controller.level + 2) {
+        if (room.memory.badCount > room.controller.level * 2.5) {
             let hostileOwners = [];
             for (let hostile of room.hostileCreeps) hostileOwners.push(hostile.owner.username)
             abandonOverrun(room);
@@ -157,7 +154,7 @@ function addThreat(room) {
                 if (threatRating >= 1500) threatRating = 1500;
             } else if (!cache[user]) {
                 threatRating = 25;
-                log.e(name + ' has detected a neutral in ' + roomLink(room.name) + '. ' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
+                log.e(roomLink(room.name) + ' has detected a neutral.' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
             }
             cache[user] = {
                 threatRating: threatRating,
@@ -184,7 +181,8 @@ abandonOverrun = function (room) {
     let noClaim = Memory.noClaim || [];
     noClaim.push(room.name);
     delete room.memory;
-    delete Memory.roomCache[room.name];
+    room.cacheRoomIntel(true);
+    Memory.roomCache[room.name].noClaim = Game.time;
     room.controller.unclaim();
 };
 
@@ -195,6 +193,11 @@ handleNukeAttack = function (room) {
         return false;
     }
     room.memory.nuke = _.min(nukes, '.timeToLand').timeToLand;
+    let launchRoom = _.sample(nukes).launchRoomName;
+    if (Memory.roomCache[launchRoom] && Memory.roomCache[launchRoom].owner) {
+        let nukeTargets = Memory.MAD || [];
+        Memory.MAD = _.uniq(nukeTargets.push(Memory.roomCache[launchRoom].owner))
+    }
     for (let nuke of nukes) {
         if (nuke.timeToLand <= 75) {
             for (let c of nuke.room.creeps) {
@@ -203,7 +206,7 @@ handleNukeAttack = function (room) {
             }
             return true;
         }
-        let structures = nuke.pos.findInRange(FIND_MY_STRUCTURES, 5, {filter: (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL});
+        let structures = nuke.pos.findInRange(FIND_MY_STRUCTURES, 5, {filter: (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_FACTORY || s.structureType === STRUCTURE_POWER_SPAWN});
         for (let structure of structures) {
             if (structure.pos.checkForConstructionSites() || structure.pos.checkForRampart()) continue;
             structure.pos.createConstructionSite(STRUCTURE_RAMPART);

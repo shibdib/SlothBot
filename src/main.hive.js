@@ -5,7 +5,7 @@
  * Project - Overlord-Bot (Screeps)
  */
 
-let overlord = require('main.Overlord');
+let overlord = require('main.overlord');
 let highCommand = require('military.highCommand');
 let labs = require('module.labController');
 let power = require('module.powerManager');
@@ -43,7 +43,7 @@ module.exports.hiveMind = function () {
         }
     }
     // Military first
-    let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.military || !r.memory.overlord));
+    let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => (r.memory.military || !r.memory.overlord) && !r.spawning));
     for (let key in militaryCreeps) {
         try {
             minionController(militaryCreeps[key]);
@@ -54,10 +54,11 @@ module.exports.hiveMind = function () {
         }
     }
     // Process Overlords
+    let overlordCPULimit = adjustedCPULimit(Game.cpu.limit - 5, Game.cpu.bucket) / _.size(Memory.myRooms);
     for (let key of Memory.myRooms) {
         let activeRoom = Game.rooms[key];
         try {
-            overlord.overlordMind(activeRoom);
+            overlord.overlordMind(activeRoom, overlordCPULimit);
         } catch (e) {
             log.e('Overlord Module experienced an error');
             log.e(e.stack);
@@ -65,17 +66,12 @@ module.exports.hiveMind = function () {
         }
     }
     //Expansion Manager
-    if (Game.time % 10000 === 0) Memory.noClaim = undefined;
     if (Game.time % 25 === 0) {
-        let overlordCount = Memory.myRooms.length;
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
-        let maxRooms = _.round(Game.cpu.limit / 9);
-        if (TEN_CPU) maxRooms = 2;
-        if (Memory.maxLevel >= 4 && Memory.minLevel >= 3 && overlordCount < maxRooms && Game.gcl.level > overlordCount) {
-            let needyRoom = _.filter(myRooms, (r) => r.memory.buildersNeeded);
+        if (Memory.minLevel >= 3 && Game.gcl.level > Memory.myRooms.length) {
             let safemode = _.filter(myRooms, (r) => r.controller.safeMode);
-            let claimMission = _.filter(Memory.targetRooms, (t) => t.type === 'claimScout' || t.type === 'claim');
-            if (needyRoom.length < myRooms.length / 2 && !safemode.length && !claimMission.length) {
+            let claimMission = _.filter(Memory.auxiliaryTargets, (t) => t.type === 'claimScout' || t.type === 'claim');
+            if ((!safemode.length || !Memory._badBoyArray || !Memory._badBoyArray.length) && !claimMission.length) {
                 try {
                     expansion.claimNewRoom();
                 } catch (e) {
@@ -87,10 +83,10 @@ module.exports.hiveMind = function () {
         }
     }
 
-    //Non room specific creep spawning
+    // Global creep queue
     if (Game.time % 25 === 0) {
         try {
-            spawning.militaryCreepQueue();
+            spawning.globalCreepQueue();
         } catch (e) {
             log.e('Military Creep queue experienced an error');
             log.e(e.stack);
@@ -125,6 +121,7 @@ module.exports.hiveMind = function () {
     }
 };
 
+let errorCount = {};
 function minionController(minion) {
     // If on portal move
     if (minion.portalCheck()) return;
@@ -143,7 +140,6 @@ function minionController(minion) {
     let start = Game.cpu.getUsed();
     try {
         let creepRole = require('role.' + memoryRole);
-        if (minion.borderCheck()) return;
         // Report intel chance
         if (minion.room.name !== minion.memory.overlord && Math.random() > 0.5) {
             minion.room.invaderCheck();
@@ -157,12 +153,34 @@ function minionController(minion) {
         } else {
             cpuUsageArray.shift();
             cpuUsageArray.push(used);
-            if (average(cpuUsageArray) > 10) {
-                minion.memory.recycle = true;
-                log.e(minion.name + ' was killed for overusing CPU in room ' + minion.room.name);
+            if (average(cpuUsageArray) > 7.5 && minion.memory.role !== 'claimer') {
+                minion.suicide();
+                if (minion.memory.military && minion.memory.destination && (Memory.targetRooms[minion.memory.destination] || Memory.auxiliaryTargets[minion.memory.destination])) {
+                    delete Memory.targetRooms[minion.memory.destination];
+                    delete Memory.auxiliaryTargets[minion.memory.destination];
+                }
+                log.e(minion.name + ' was killed for overusing CPU in room ' + roomLink(minion.room.name));
             }
         }
         CREEP_CPU_ARRAY[minion.name] = cpuUsageArray;
+        cpuUsageArray = CREEP_ROLE_CPU_ARRAY[minion.role] || [];
+        if (cpuUsageArray.length < 50) {
+            cpuUsageArray.push(used)
+        } else {
+            cpuUsageArray.shift();
+            cpuUsageArray.push(used);
+        }
+        CREEP_ROLE_CPU_ARRAY[minion.role] = cpuUsageArray;
+        let roomCreepCpu = ROOM_CREEP_CPU_OBJECT['military'] || {};
+        cpuUsageArray = roomCreepCpu[minion.name] || [];
+        if (cpuUsageArray.length < 50) {
+            cpuUsageArray.push(used)
+        } else {
+            cpuUsageArray.shift();
+            cpuUsageArray.push(used);
+        }
+        roomCreepCpu[minion.name] = cpuUsageArray;
+        ROOM_CREEP_CPU_OBJECT['military'] = roomCreepCpu;
         minion.room.visual.text(
             _.round(average(cpuUsageArray), 2),
             minion.pos.x,
@@ -170,9 +188,20 @@ function minionController(minion) {
             {opacity: 0.8, font: 0.4, stroke: '#000000', strokeWidth: 0.05}
         );
     } catch (e) {
-        log.e(minion.name + ' experienced an error in room ' + minion.room.name);
-        log.e(e.stack);
-        Game.notify(e.stack);
+        if (!errorCount[minion.name]) errorCount[minion.name] = 1; else errorCount[minion.name] += 1;
+        if (errorCount[minion.name] < 10) {
+            if (errorCount[minion.name] === 1) {
+                log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name));
+                log.e(e.stack);
+                Game.notify(e.stack);
+            }
+        } else if (errorCount[minion.name] >= 50) {
+            if (errorCount[minion.name] === 50) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been killed.');
+            minion.suicide();
+        } else {
+            if (errorCount[minion.name] === 10) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been marked for recycling due to hitting the error cap.');
+            minion.memory.recycle = true;
+        }
     }
 }
 

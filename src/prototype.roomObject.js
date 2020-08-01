@@ -1,3 +1,80 @@
+/*
+ * Copyright (c) 2020.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
+/**
+ * Provides structure memory.
+ */
+Object.defineProperty(StructureLab.prototype, 'memory', {
+    get: function () {
+        if (this.room.memory._structureMemory === undefined || !this.room.memory._structureMemory) {
+            this.room.memory._structureMemory = {};
+        }
+        if (this.room.memory._structureMemory[this.id] === undefined || !this.room.memory._structureMemory[this.id]) {
+            this.room.memory._structureMemory[this.id] = {};
+        }
+        return this.room.memory._structureMemory[this.id];
+    },
+    set: function (v) {
+        return _.set(this.room.memory, '_structureMemory.' + this.id, v);
+    },
+    configurable: true,
+    enumerable: false,
+});
+
+Object.defineProperty(StructureFactory.prototype, 'memory', {
+    get: function () {
+        if (this.room.memory._structureMemory === undefined || !this.room.memory._structureMemory) {
+            this.room.memory._structureMemory = {};
+        }
+        if (this.room.memory._structureMemory[this.id] === undefined || !this.room.memory._structureMemory[this.id]) {
+            this.room.memory._structureMemory[this.id] = {};
+        }
+        return this.room.memory._structureMemory[this.id];
+    },
+    set: function (v) {
+        return _.set(this.room.memory, '_structureMemory.' + this.id, v);
+    },
+    configurable: true,
+    enumerable: false,
+});
+
+Object.defineProperty(StructureTerminal.prototype, 'memory', {
+    get: function () {
+        if (this.room.memory._structureMemory === undefined || !this.room.memory._structureMemory) {
+            this.room.memory._structureMemory = {};
+        }
+        if (this.room.memory._structureMemory[this.id] === undefined || !this.room.memory._structureMemory[this.id]) {
+            this.room.memory._structureMemory[this.id] = {};
+        }
+        return this.room.memory._structureMemory[this.id];
+    },
+    set: function (v) {
+        return _.set(this.room.memory, '_structureMemory.' + this.id, v);
+    },
+    configurable: true,
+    enumerable: false,
+});
+
+Object.defineProperty(Source.prototype, 'memory', {
+    get: function () {
+        if (this.room.memory._structureMemory === undefined || !this.room.memory._structureMemory) {
+            this.room.memory._structureMemory = {};
+        }
+        if (this.room.memory._structureMemory[this.id] === undefined || !this.room.memory._structureMemory[this.id]) {
+            this.room.memory._structureMemory[this.id] = {};
+        }
+        return this.room.memory._structureMemory[this.id];
+    },
+    set: function (v) {
+        return _.set(this.room.memory, '_structureMemory.' + this.id, v);
+    },
+    configurable: true,
+    enumerable: false,
+});
 /**
  * Generalized target locking function for actors with memory.
  *

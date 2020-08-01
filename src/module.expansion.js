@@ -1,20 +1,17 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
  */
 
 module.exports.claimNewRoom = function () {
-    let noClaim = Memory.noClaim || [];
-    let worthyRooms = _.filter(Memory.roomCache, (r) => !r.user && r.mineral && r.sources === 2 && r.closestRange <= 12);
-    if (!Memory.lastExpansion) Memory.lastExpansion = Game.time;
+    let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 3000 < Game.time) && r.hubCheck && r.closestRange <= 8);
     if (worthyRooms.length > 0) {
         let possibles = {};
         loop1:
             for (let key in worthyRooms) {
                 let name = worthyRooms[key].name;
-                if (_.includes(noClaim, name)) continue;
                 // All rooms start at 5000
                 let baseScore = 5000;
                 // Remote access
@@ -38,31 +35,29 @@ module.exports.claimNewRoom = function () {
                 }
                 baseScore -= terrainScore;
                 // If it's a new mineral add to the score
-                if (worthyRooms[key].mineral && !_.includes(Memory.ownedMinerals, worthyRooms[key].mineral)) baseScore += 450;
+                if (worthyRooms[key].mineral && !_.includes(OWNED_MINERALS, worthyRooms[key].mineral)) baseScore += 450;
                 // Check if it's near any owned rooms
                 let avoidRooms = _.filter(Memory.roomCache, (r) => r.level);
                 for (let avoidKey in avoidRooms) {
                     let avoidName = avoidRooms[avoidKey].name;
-                    let distance = Game.map.findRoute(name, avoidName).length;
+                    let distance = Game.map.getRoomLinearDistance(name, avoidName);
                     let cutoff = 2;
                     if (_.includes(FRIENDLIES, avoidRooms[avoidKey].owner)) cutoff = 3;
-                    if (distance < cutoff) continue loop1;
+                    if (distance <= 1) continue loop1; else if (distance < 3) baseScore -= 350; else if (baseScore < 7) baseScore += 100; else baseScore -= 350;
                 }
-                // Add points if closer
-                baseScore += 500 / worthyRooms[key].closestRange;
                 worthyRooms[key].claimValue = baseScore;
                 possibles[key] = worthyRooms[key];
             }
         let claimTarget = _.max(possibles, 'claimValue').name;
         if (claimTarget) {
-            let cache = Memory.targetRooms || {};
+            let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;
             cache[claimTarget] = {
                 tick: tick,
                 type: 'claimScout',
                 priority: 1
             };
-            Memory.targetRooms = cache;
+            Memory.auxiliaryTargets = cache;
             log.a('Claim Scout Mission For ' + claimTarget + ' Initiated.', 'EXPANSION CONTROL: ');
         }
     }

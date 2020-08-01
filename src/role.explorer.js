@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -10,64 +10,56 @@
  */
 
 module.exports.role = function (creep) {
-    let sayings = EXPLORER_SPAM;
-    creep.say(_.sample(sayings), true);
+    creep.room.cacheRoomIntel();
+    creep.say(_.sample(EXPLORER_SPAM), true);
+    let sectorScout = creep.memory.other.sectorScout;
+    // Set destination
     if (!creep.memory.destination) {
         let portal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL)[0];
-        if (portal && !portal.destination.shard && !creep.memory.usedPortal && (creep.memory.portalJump || Math.random() > 0.5)) {
-            if (!creep.memory.portalJump) {
-                creep.memory.portalJump = portal.destination.roomName;
+        if (!sectorScout && portal && !portal.destination.shard && !creep.memory.usedPortal && (creep.memory.other.portalJump || Math.random() > 0.5)) {
+            if (!creep.memory.other.portalJump) {
+                creep.memory.other.portalJump = portal.destination.roomName;
                 log.a(creep.name + ' has found a portal in ' + roomLink(creep.room.name) + ' and is taking it.')
-            } else if (creep.memory.portalJump === creep.room.name) {
+            } else if (creep.memory.other.portalJump === creep.room.name) {
                 return creep.memory.usedPortal = true;
             }
             return creep.moveTo(portal);
         } else {
             let adjacent = Game.map.describeExits(creep.pos.roomName);
             let possibles, target;
-            possibles = _.filter(adjacent, (r) => !Memory.roomCache[r] || Memory.roomCache[r].cached + 3000 < Game.time);
-            if (possibles.length) {
-                target = _.sample(possibles);
-            }
-            if (!possibles.length || (target && !Game.map.isRoomAvailable(target))) {
+            // If there's unexplored prioritize else pick a random adjacent
+            possibles = _.filter(adjacent, (r) => !Memory.roomCache[r]) || _.min(adjacent, (r) => Memory.roomCache[r].cached);
+            if (possibles.length && Math.random() > 0.8) target = _.sample(possibles); else target = _.sample(adjacent);
+            // Use try/catch for private servers that don't support this
+            try {
+                if (Game.map.getRoomStatus(target).status !== Game.map.getRoomStatus(creep.memory.overlord).status) {
+                    target = _.sample(adjacent);
+                    if (Game.map.getRoomStatus(target).status !== Game.map.getRoomStatus(creep.memory.overlord).status) return creep.moveRandom();
+                }
+            } catch {
                 target = _.sample(adjacent);
             }
-            if (!Game.map.isRoomAvailable(target)) return creep.say("??");
             creep.memory.destination = target;
         }
     }
     if (creep.memory.destinationReached !== true) {
         if (creep.pos.roomName === creep.memory.destination) {
-            if (!creep.memory.cached) {
-                creep.memory.cached = true;
-                creep.room.cacheRoomIntel();
-            }
+            // Sign the controller
             if (creep.room.controller && (!creep.room.controller.owner || creep.room.controller.level < 3) && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
-                try {
-                    if (creep.room.controller.sign && creep.room.controller.sign.username === MY_USERNAME) {
-                        return creep.memory.destinationReached = true;
-                    }
-                } catch (e) {
-
-                }
-                let signs = EXPLORED_ROOM_SIGNS;
-                if (Memory.roomCache[creep.room.name].claimValue) signs = ['AI Room Claim Value - ' + Memory.roomCache[creep.room.name].claimValue, 'Claim Value of ' + Memory.roomCache[creep.room.name].claimValue];
-                if (Memory.roomCache[creep.room.name].needsCleaning) signs = ['This AI Has Marked This Room For Cleaning', 'This AI finds this room filthy, I will return to clean it'];
-                if (Memory.roomCache[creep.room.name].potentialTarget) signs = ['This AI Finds This Room Interesting, We Will Return', 'This room has been marked for cleansing by an automated AI'];
-                if (Memory.roomCache[creep.room.name].ncp) signs = ['You have been flagged as a NCP, please use your own code or you will be attacked.'];
-                switch (creep.signController(creep.room.controller, _.sample(signs))) {
-                    case OK:
-                        creep.memory.destinationReached = true;
-                        break;
+                // If already signed continue
+                if (creep.room.controller.sign && creep.room.controller.sign.username === MY_USERNAME) return creep.memory.destinationReached = true;
+                // Else sign
+                switch (creep.signController(creep.room.controller, _.sample(EXPLORED_ROOM_SIGNS))) {
                     case ERR_NOT_IN_RANGE:
-                        if (!creep.shibMove(creep.room.controller, {offRoad: true})) creep.memory.destinationReached = true;
+                        // If you cant reach the controller continue else move to it
+                        if (!creep.room.controller.pos.countOpenTerrainAround()) return creep.memory.destinationReached = true;
+                        creep.shibMove(creep.room.controller);
                 }
             } else if (!creep.moveToHostileConstructionSites(true)) {
                 creep.memory.destinationReached = true;
             }
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {
-                allowHostile: true,
                 offRoad: true
             });
         }

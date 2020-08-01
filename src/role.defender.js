@@ -10,9 +10,5 @@
  */
 
 module.exports.role = function (creep) {
-    switch (creep.memory.operation) {
-        case 'drain':
-            creep.drainRoom();
-            break;
-    }
+    if (!creep.handleMilitaryCreep() && !creep.findDefensivePosition(creep)) creep.idleFor(creep.pos.getRangeTo(creep.pos.findClosestByRange(FIND_EXIT)) - 4);
 };

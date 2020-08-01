@@ -16,36 +16,41 @@ Creep.prototype.borderPatrol = function () {
     if (this.room.memory.towerTarget && Game.getObjectById(this.room.memory.towerTarget)) {
         if (this.getActiveBodyparts(RANGED_ATTACK)) return this.fightRanged(Game.getObjectById(this.room.memory.towerTarget)); else if (this.getActiveBodyparts(ATTACK)) this.attackHostile(Game.getObjectById(this.room.memory.towerTarget));
     }
+    // Attack in range
     this.attackInRange();
-    if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
-    if (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK)) return this.goHomeAndHeal();
-    if (this.canIWin(5) && this.handleMilitaryCreep()) {
+    // Handle healing
+    this.healInRange();
+    // Handle flee
+    if (this.memory.runCooldown || (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK))) return this.fleeHome(true);
+    if (this.memory.other.responseTarget && this.room.name !== this.memory.other.responseTarget) {
+        this.shibMove(new RoomPosition(25, 25, this.memory.other.responseTarget), {range: 22});
+    } else if (this.canIWin(5) && this.handleMilitaryCreep()) {
         this.memory.onTarget = undefined;
-    } else if (!this.canIWin(5)) {
-        if (this.memory.responseTarget && this.room.name === this.memory.responseTarget) this.memory.responseTarget = undefined;
-        this.attackInRange();
-        this.shibKite(5);
-    } else if (this.memory.responseTarget && this.room.name !== this.memory.responseTarget) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 22});
+    } else if (Math.random() > 0.7 && !this.canIWin(50)) {
+        if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget) this.memory.other.responseTarget = undefined;
+        this.memory.runCooldown = 5;
+        return this.fleeHome(true);
+    } else if (!this.canIWin(6)) {
+        if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget) this.memory.other.responseTarget = undefined;
+        this.shibKite(6);
     } else {
         // If on target, be available to respond
         if (!this.memory.onTarget) this.memory.onTarget = Game.time;
-        // Idle in target rooms for 25 ticks
-        if (!this.memory.responseTarget || (this.memory.onTarget && this.memory.onTarget + _.random(10, 25) <= Game.time)) {
-            this.memory.responseTarget = undefined;
+        this.memory.other.responseTarget = undefined;
+        this.memory.awaitingOrders = true;
+        // Don't idle in SK rooms, go home
+        if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) return this.memory.other.responseTarget = this.memory.overlord;
+        // Idle in target rooms for 100-250 ticks
+        if (this.memory.onTarget && this.memory.onTarget + _.random(100, 250) <= Game.time) {
             this.memory.onTarget = undefined;
-            this.memory.awaitingOrders = true;
-            offDuty(this);
-        } else {
-            this.findDefensivePosition(this);
         }
+        offDuty(this);
     }
 };
 
 function offDuty(creep) {
-    if (creep.room.name !== creep.memory.overlord || creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.overlord)) >= 5) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 3});
-    } else {
-        creep.idleFor(creep.pos.getRangeTo(creep.pos.findClosestByRange(FIND_EXIT)) - 4);
+    if (!creep.findDefensivePosition() && !creep.borderCheck()) {
+        let center = new RoomPosition(25, 25, creep.room.name);
+        if (creep.pos.getRangeTo(center) > 20) creep.shibMove(center, {range: 18}); else creep.idleFor(creep.pos.getRangeTo(creep.pos.findClosestByRange(FIND_EXIT)) - 4);
     }
 }

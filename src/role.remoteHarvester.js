@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -11,10 +11,9 @@
 
 module.exports.role = function (creep) {
     //Invader detection
-    if (creep.shibKite(5) || creep.memory.runCooldown) {
-        creep.memory.onContainer = undefined;
-        return creep.goHomeAndHeal();
-    }
+    if (creep.fleeHome()) return;
+    // SK Safety
+    if (creep.skSafety()) return;
     // If you're in place just harvest
     if (creep.memory.onContainer) {
         //Suicide and cache intel if room is reserved/owned by someone else
@@ -24,6 +23,14 @@ module.exports.role = function (creep) {
         }
         let source = Game.getObjectById(creep.memory.source);
         let container = Game.getObjectById(creep.memory.containerID);
+        // Handle requesting a hauler
+        if (container && _.sum(container.store) >= 150 * Game.rooms[creep.memory.overlord].level) {
+            creep.memory.needHauler = container.id;
+        } else if (!container && creep.pos.checkForEnergy() && creep.pos.checkForEnergy().energy >= 150 * Game.rooms[creep.memory.overlord].level) {
+            creep.memory.needHauler = creep.pos.checkForEnergy().id;
+        } else {
+            creep.memory.needHauler = undefined;
+        }
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(source);
@@ -39,10 +46,16 @@ module.exports.role = function (creep) {
                     });
                 }**/
                 if (container) {
-                    if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
-                    if (_.sum(container.store) >= 1980) creep.idleFor(20);
+                    if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.7) return creep.repair(container);
+                    if (_.sum(container.store) >= 1980) {
+                        if (container.hits < container.hitsMax) creep.repair(container); else creep.idleFor(20);
+                    }
+                    if (Math.random() > 0.8) creep.memory.onContainer = undefined;
                 } else {
                     creep.memory.containerID = undefined;
+                    if (creep.pos.checkForConstructionSites() && creep.pos.checkForEnergy() && creep.pos.checkForEnergy().energy >= 1000) {
+                        creep.build(creep.pos.checkForConstructionSites());
+                    }
                 }
                 break;
         }
@@ -88,6 +101,12 @@ module.exports.role = function (creep) {
                     if (creep.memory.containerID) {
                         if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
                         if (_.sum(container.store) >= 1980) creep.idleFor(20);
+                    } else {
+                        if (!container && creep.pos.checkForEnergy() && creep.pos.checkForEnergy().energy >= 150 * Game.rooms[creep.memory.overlord].level) {
+                            creep.memory.needHauler = creep.pos.checkForEnergy().id;
+                        } else {
+                            creep.memory.needHauler = undefined;
+                        }
                     }
                     break;
             }
@@ -104,7 +123,8 @@ function harvestDepositContainer(source, creep) {
                 return container.id;
             } else {
                 let site = source.pos.findInRange(creep.room.constructionSites, 3, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
-                if (!site && creep.pos.getRangeTo(source) === 1 && !creep.pos.checkForWall()) {
+                if (!creep.memory.siteAttempt && !site && creep.pos.getRangeTo(source) === 1 && !creep.pos.checkForWall()) {
+                    creep.memory.siteAttempt = true;
                     creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
                 } else if (!site && creep.pos.checkForWall()) {
                     findContainerSpot(creep.room, source.pos);

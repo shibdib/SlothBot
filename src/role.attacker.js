@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -10,14 +10,22 @@
  */
 
 module.exports.role = function (creep) {
-    // Harass
-    if (creep.memory.operation && creep.memory.operation === 'borderPatrol') return creep.borderPatrol();
-    // Boosts
-    if (!creep.memory.boostAttempt) return creep.tryToBoost(['attack']);
-    // Harass
-    if (creep.memory.operation && creep.memory.operation === 'harass') creep.harassRoom();
-    // Escort
-    if (creep.memory.operation && creep.memory.operation === 'guard') creep.guardRoom();
-    // Hold
-    if (creep.memory.operation && creep.memory.operation === 'hold') creep.holdRoom();
+    if (creep.memory.operation) {
+        switch (creep.memory.operation) {
+            case 'marauding':
+                creep.marauding();
+                break;
+            case 'guard':
+                creep.guardRoom();
+                break;
+            case 'hold':
+                creep.holdRoom();
+                break;
+            case 'borderPatrol':
+                creep.borderPatrol();
+                break;
+        }
+    } else {
+        if (!creep.handleMilitaryCreep()) creep.findDefensivePosition(creep);
+    }
 };

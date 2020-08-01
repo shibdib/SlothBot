@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -10,6 +10,8 @@
  */
 
 module.exports.role = function (creep) {
+    // If you lost your claim part... die
+    if (!creep.getActiveBodyparts(CLAIM)) creep.suicide();
     //Check if claim clear op
     if (creep.memory.operation === 'claimClear') return creep.claimClear();
     //Initial move
@@ -18,15 +20,15 @@ module.exports.role = function (creep) {
         if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     } else {
         if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;
-        creep.room.cacheRoomIntel(true);
         if (creep.room.controller) {
             if (creep.room.controller.owner) return creep.memory.recycle = true;
             if (!creep.memory.signed) {
-                switch (creep.signController(creep.room.controller, "#Overlord-Bot Hive")) {
+                switch (creep.signController(creep.room.controller, _.sample(OWNED_ROOM_SIGNS))) {
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(creep.room.controller);
                         break;
                     case OK:
+                        creep.room.cacheRoomIntel(true);
                         creep.memory.signed = true;
                 }
             } else {
@@ -41,9 +43,13 @@ module.exports.role = function (creep) {
                     case ERR_INVALID_TARGET:
                         break;
                     case OK:
-                        Game.rooms[creep.memory.overlord].memory.claimTarget = undefined;
-                        Memory.targetRooms[creep.room.name] = undefined;
-                        cleanRoom(creep.room, creep.room.structures)
+                        Memory.auxiliaryTargets[creep.room.name] = undefined;
+                        cleanRoom(creep.room, creep.room.structures);
+                        let praiseRoom = _.filter(Memory.myRooms, (r) => Game.rooms[r].memory.praiseRoom);
+                        if (!praiseRoom.length && Memory.myRooms.length >= 2 && BUILD_PRAISE_ROOMS) {
+                            creep.room.memory.praiseRoom = true;
+                            creep.room.memory.bunkerHub = undefined;
+                        }
                 }
             }
         }

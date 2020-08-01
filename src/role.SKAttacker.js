@@ -10,14 +10,20 @@
  */
 
 module.exports.role = function (creep) {
-    if (creep.memory.boostAttempt !== true) return creep.tryToBoost(['attack']);
     if (creep.room.name === creep.memory.destination) {
+        // Handle invader cores in sk
+        let core = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0];
+        if (core) {
+            creep.room.cacheRoomIntel(true);
+            return creep.memory.recycle = true;
+        }
         let invaders = _.filter(creep.room.creeps, (c) => c.owner.username === 'Invader');
         if (invaders.length > 1) {
             Memory.roomCache[creep.room.name].invaderCooldown = Game.time + invaders[0].ticksToLive;
         } else {
             Memory.roomCache[creep.room.name].invaderCooldown = undefined;
         }
+        creep.attackInRange();
         let sourceKeeper = creep.pos.findClosestByRange(creep.pos.findInRange(creep.room.hostileCreeps, 30, {filter: (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL))})) ||
             creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper'});
         if (sourceKeeper) {
