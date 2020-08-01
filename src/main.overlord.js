@@ -67,7 +67,7 @@ module.exports.overlordMind = function (room, CPULimit) {
     }
 
     // Manage creeps
-    let roomCreeps = _.sortBy(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military), '.memory.lastManaged');
+    let roomCreeps = _.sortBy(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military && !r.spawning), '.memory.lastManaged');
     // Worker minions
     for (let key in roomCreeps) {
         try {

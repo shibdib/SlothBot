@@ -19,7 +19,7 @@ module.exports.factoryControl = function (room) {
             }
             // Check if it's still good to produce
             if (room.factory.memory.producing !== RESOURCE_ENERGY) {
-                if (!_.includes(COMPRESSED_COMMODITIES, room.factory.memory.producing) && room.store(room.factory.memory.producing) > REACTION_AMOUNT * 1.5) {
+                if (!_.includes(COMPRESSED_COMMODITIES, room.factory.memory.producing) && room.store(room.factory.memory.producing) > REACTION_AMOUNT) {
                     log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to hitting the production cap.', ' FACTORY CONTROL:');
                     return delete room.factory.memory.producing;
                 }
@@ -46,6 +46,20 @@ module.exports.factoryControl = function (room) {
                     log.a('Producing ' + RESOURCE_BATTERY + ' in ' + roomLink(room.name), ' FACTORY CONTROL:');
                     return room.factory.memory.producing = RESOURCE_BATTERY;
                 } else {
+                    // De-compress
+                    for (let mineral of shuffle(BASE_MINERALS)) {
+                        if (!COMMODITIES[mineral] || room.store(mineral) >= REACTION_AMOUNT * 0.5) continue;
+                        let enough;
+                        for (let neededResource of Object.keys(COMMODITIES[mineral].components)) {
+                            enough = false;
+                            if (room.store(neededResource) + room.factory.store[neededResource] < COMMODITIES[mineral].components[neededResource]) break;
+                            enough = true;
+                        }
+                        if (enough) {
+                            log.a('De-compressing ' + mineral + ' in ' + roomLink(room.name), ' FACTORY CONTROL:');
+                            return room.factory.memory.producing = mineral;
+                        }
+                    }
                     for (let commodity of shuffle(ALL_COMMODITIES)) {
                         // If a base continue
                         if (!COMMODITIES[commodity] || (room.store(commodity) >= DUMP_AMOUNT * 0.9 && !_.includes(COMPRESSED_COMMODITIES, commodity))) continue;
@@ -65,22 +79,6 @@ module.exports.factoryControl = function (room) {
                         if (enough) {
                             log.a('Producing ' + commodity + ' in ' + roomLink(room.name), ' FACTORY CONTROL:');
                             return room.factory.memory.producing = commodity;
-                        }
-                    }
-                    // De-compress
-                    if (room.name === Memory.saleTerminal.room) {
-                        for (let mineral of shuffle(BASE_MINERALS)) {
-                            if (!COMMODITIES[mineral] || room.store(mineral) >= REACTION_AMOUNT * 0.05) continue;
-                            let enough;
-                            for (let neededResource of Object.keys(COMMODITIES[mineral].components)) {
-                                enough = false;
-                                if (room.store(neededResource) + room.factory.store[neededResource] < COMMODITIES[mineral].components[neededResource]) break;
-                                enough = true;
-                            }
-                            if (enough) {
-                                log.a('De-compressing ' + mineral + ' in ' + roomLink(room.name), ' FACTORY CONTROL:');
-                                return room.factory.memory.producing = mineral;
-                            }
                         }
                     }
                 }

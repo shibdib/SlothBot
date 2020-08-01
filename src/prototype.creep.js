@@ -386,7 +386,7 @@ Creep.prototype.locateEnergy = function () {
         this.memory.energyDestination = terminal.id;
         return true;
     }
-    if (this.memory.role !== 'hauler' || this.room.controller.level < 5 || (this.memory.findEnergyCountdown >= this.room.controller.level)) {
+    if (this.memory.role !== 'hauler' || this.room.controller.level < 6 || (this.memory.findEnergyCountdown >= this.room.controller.level) || this.room.creeps.length <= 4) {
         // Container
         let container = this.pos.findClosestByRange(this.room.structures, {
             filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id
@@ -807,7 +807,7 @@ Creep.prototype.renewalCheck = function (cutoff = ((this.body.length * 3) + 50),
 };
 
 Creep.prototype.tryToBoost = function (boosts) {
-    if (this.memory.boostAttempt) return false;
+    if (this.memory.boostAttempt || this.room.memory.lowPower) return false;
     if (!this.memory.boosts) this.memory.boosts = {};
     // Figure out what boosts to get, try to use the most powerful
     if (!this.memory.boosts.requestedBoosts) {

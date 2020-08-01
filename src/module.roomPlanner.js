@@ -137,26 +137,26 @@ function buildFromLayout(room) {
             // Delete old memory
             room.memory.rampartSpots = undefined;
             rampartSpots[room.name] = undefined;
-            let hubBuffer = 10;
-            let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-            let closestExit = hub.getRangeTo(hub.findClosestByRange(FIND_EXIT)) - 2;
-            if (closestExit < hubBuffer) hubBuffer = closestExit;
             let rect_array = [];
-            rect_array.push({
-                x1: room.memory.bunkerHub.x - hubBuffer,
-                y1: room.memory.bunkerHub.y - hubBuffer,
-                x2: room.memory.bunkerHub.x + hubBuffer,
-                y2: room.memory.bunkerHub.y + hubBuffer
-            });
+            // structures
+            for (let structure of layout) {
+                rect_array.push({
+                    x1: structure.x - 1,
+                    y1: structure.y - 1,
+                    x2: structure.x + 1,
+                    y2: structure.y + 1
+                });
+            }
             // Sources
             for (let source of room.sources) {
                 rect_array.push({
-                    x1: source.x - 1,
-                    y1: source.y - 1,
-                    x2: source.x + 1,
-                    y2: source.y + 1
+                    x1: source.pos.x - 1,
+                    y1: source.pos.y - 1,
+                    x2: source.pos.x + 1,
+                    y2: source.pos.y + 1
                 });
             }
+            // Controller
             rect_array.push({
                 x1: room.controller.pos.x - 1,
                 y1: room.controller.pos.y - 1,
@@ -167,6 +167,8 @@ function buildFromLayout(room) {
             try {
                 rampartSpots[room.name] = JSON.stringify(minCut.GetCutTiles(room.name, rect_array, bounds));
             } catch (e) {
+                log.e('MinCut Error in room ' + room.name);
+                log.e(e);
             }
         } else if (rampartSpots[room.name]) {
             let buildPositions = JSON.parse(rampartSpots[room.name]);

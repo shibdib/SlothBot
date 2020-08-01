@@ -87,7 +87,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             carry = _.floor((room.energyCapacityAvailable * 0.25) / BODYPART_COST[CARRY]) || 1;
             if (carry > 12) carry = 12;
             if (Math.random() > 0.7) work = 1; else work = 0;
-            move = _.floor((carry + work) / 2);
+            move = _.ceil((carry + work) / 2);
             if (!room.memory.roadsBuilt) move = carry + work;
             break;
         case 'stationaryHarvester':
@@ -176,7 +176,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             break;
         case 'remoteHarvester':
             deficitExemption = true;
-            work = _.floor((room.energyCapacityAvailable * 0.5) / BODYPART_COST[WORK]) || 1;
+            work = _.floor((room.energyCapacityAvailable * 0.4) / BODYPART_COST[WORK]) || 1;
             if (work > 10) work = 10;
             carry = 1;
             if (room.memory.roadsBuilt || level >= 6) move = work / 2; else move = work;
@@ -186,7 +186,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             carry = _.floor((room.energyCapacityAvailable * 0.40) / BODYPART_COST[CARRY]) || 1;
             if (level <= 6 && carry > 24) carry = 24; else if (level > 6 && carry > 30) carry = 30;
             if (Math.random() > 0.7) work = 1; else work = 0;
-            if (level < 6) move = carry + work; else move = _.floor((carry + work) / 2);
+            if (level < 6) move = carry + work; else move = _.ceil((carry + work) / 2);
             break;
         case 'roadBuilder':
             work = _.floor(((room.energyCapacityAvailable * _.random(0.2, 0.5))) / BODYPART_COST[WORK]) || 1;

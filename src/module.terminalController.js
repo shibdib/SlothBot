@@ -17,7 +17,7 @@ if (Memory._banker) spendingMoney = Memory._banker.spendingAccount; else spendin
 module.exports.terminalControl = function (room) {
     Memory.saleTerminal = Memory.saleTerminal || {};
     let myOrders = Game.market.orders;
-    //Things that don't need to be run for every terminal
+    // Things that don't need to be run for every terminal
     if (runOnce !== Game.time) {
         if (Memory._banker) {
             if (spendingMoney > Game.market.credits - CREDIT_BUFFER) spendingMoney = Game.market.credits - (CREDIT_BUFFER * 1.1);
@@ -27,19 +27,23 @@ module.exports.terminalControl = function (room) {
         profitCheck();
         // Reaction amount is 500 if we are low on cash
         if (Game.market.credits < CREDIT_BUFFER) reactionAmount = 500; else reactionAmount = REACTION_AMOUNT;
-        //Get global orders
+        // Get global orders
         globalOrders = Game.market.getAllOrders();
-        //Cleanup broken or old orders
+        // Cleanup broken or old orders
         orderCleanup(myOrders);
-        //Handle Sell Orders
+        // Handle Sell Orders
         manageSellOrders(myOrders);
-        //Update prices
+        // Sell pixels
+        if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name)) sellPixels(globalOrders);
+        // Update prices
         if (lastPriceAdjust + 100 < Game.time) {
             pricingUpdateSell(globalOrders, myOrders);
             lastPriceAdjust = Game.time;
         }
         // Set saleTerminal
         if (!Memory.saleTerminal.room || Memory.saleTerminal.saleSet + 15000 < Game.time) {
+            // Clear if no longer valid
+            if (!Game.rooms[Memory.saleTerminal.room] || !Memory.roomCache[Memory.saleTerminal.room] || Memory.roomCache[Memory.saleTerminal.room].owner !== MY_USERNAME) Memory.saleTerminal = {};
             if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].controller.level === Memory.maxLevel) {
                 return Memory.saleTerminal.saleSet = Game.time;
             }
@@ -488,6 +492,23 @@ function dealFinder(terminal, globalOrders) {
     }
 }
 
+function sellPixels(globalOrders) {
+    let sellAmount = Game.resources[PIXEL];
+    if (sellAmount >= 25) {
+        let buyer = _.max(globalOrders.filter(order => order.resourceType === PIXEL && order.type === ORDER_BUY && order.price >= latestMarketHistory(PIXEL)['avgPrice'] * 0.8), 'price');
+        if (buyer.id) {
+            if (buyer.remainingAmount < sellAmount) sellAmount = buyer.remainingAmount;
+            switch (Game.market.deal(buyer.id, sellAmount)) {
+                case OK:
+                    log.w("Pixel Sell Off Completed - For " + (buyer.price * sellAmount) + " credits.", "Market: ");
+                    spendingMoney += ((buyer.price * sellAmount) * 0.75);
+                    log.w("New spending account amount - " + spendingMoney, "Market: ");
+                    return true;
+            }
+        }
+    }
+}
+
 function latestMarketHistory(resource) {
     let history = Game.market.getHistory(resource);
     if (_.size(history)) {
@@ -507,7 +528,12 @@ function profitCheck(force = false) {
         let lastCredit = profitTracking.lastTotalAmount || Game.market.credits;
         profitTracking.lastTotalAmount = Game.market.credits;
         let hourChange = Game.market.credits - lastCredit;
-        // Add 80% of profits for the hour to spending account
+        // Spending account is capped at 100k
+        if (Game.market.credits > 100000 && spendingMoney > 100000) {
+            spendingMoney = 100000;
+            log.w("New spending account amount (HOURLY UPDATE) - " + spendingMoney, "Market: ");
+        } else
+            // Add 80% of profits for the hour to spending account
         if (hourChange > 0) {
             spendingMoney += (hourChange * 0.8);
             log.w("New spending account amount (HOURLY UPDATE) - " + spendingMoney, "Market: ");
@@ -527,7 +553,7 @@ function profitCheck(force = false) {
         profitTracking.hourArray = undefined;
     } else if (profitTracking.lastInflux + fiveMinuteTick < Game.time || !profitTracking.lastInflux) {
         profitTracking.lastInflux = Game.time;
-        if (Game.market.credits > CREDIT_BUFFER && Math.random() > 0.5) {
+        if (Game.market.credits > CREDIT_BUFFER && Math.random() > 0.5 && spendingMoney < 1000) {
             let bankersCut = (Game.market.credits - CREDIT_BUFFER) * 0.8;
             spendingMoney += (bankersCut * 0.1);
             log.w("New spending account amount (RANDOM INFLUX) - " + spendingMoney, "Market: ");

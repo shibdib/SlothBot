@@ -395,9 +395,7 @@ Room.prototype.invaderCheck = function () {
     if (Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 10 > Game.time && !Memory.roomCache[this.name].threatLevel) return;
     if (!Memory.roomCache || !Memory.roomCache[this.name]) this.cacheRoomIntel();
     // No hostile detected
-    if (this.name === 'W13S5') console.log(1)
     if (!this.hostileCreeps.length) {
-        if (this.name === 'W13S5') console.log(2)
         if (Memory.roomCache[this.name].threatLevel) {
             let waitOut = 15;
             if (Memory.roomCache[this.name].threatLevel > 3) waitOut = 50;
@@ -426,7 +424,6 @@ Room.prototype.invaderCheck = function () {
             }
         }
     } else {
-        if (this.name === 'W13S5') console.log(3)
         if (!Memory.roomCache) Memory.roomCache = {};
         if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
         Memory.roomCache[this.name].lastInvaderCheck = Game.time;

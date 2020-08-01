@@ -93,15 +93,22 @@ function shibMove(creep, heading, options = {}) {
     pathInfo.targetRoom = targetRoom(heading);
     //Clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
-        let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.getActiveBodyparts(MOVE) && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y &&
+        let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y &&
             c.memory.role !== 'Reserver' && c.memory.role !== 'powerAttacker')[0];
         if (bumpCreep && Math.random() > 0.5) {
             if (!creep.memory.trailer) {
-                bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
+                if (bumpCreep.getActiveBodyparts(MOVE)) {
+                    bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
+                } else {
+                    creep.pull(bumpCreep);
+                    creep.move(creep.pos.getDirectionTo(bumpCreep));
+                }
                 bumpCreep.say(ICONS.traffic, true)
+                pathInfo.pathPosTime = 0;
             } else {
                 bumpCreep.moveRandom();
                 bumpCreep.say(ICONS.traffic, true)
+                pathInfo.pathPosTime = 0;
             }
         } else {
             delete pathInfo.path;
@@ -110,7 +117,7 @@ function shibMove(creep, heading, options = {}) {
             options.freshMatrix = true;
             options.useCache = false;
             creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
-            if (Math.random() > .9) return creep.moveRandom();
+            if (Math.random() > 0.9) return creep.moveRandom();
         }
     }
     //Handle getting stuck in rooms on multi rooms pathing
@@ -553,9 +560,9 @@ function addSksToMatrix(room, matrix) {
                         continue;
                     }
                     if (position && !position.checkForWall()) {
-                        let rating = 200;
+                        let rating = 220;
                         let range = position.getRangeTo(sk);
-                        if (range === 4) rating = 100; else if (range === 3) rating = 125; else if (range === 2) rating = 150;
+                        if (range === 4) rating = 150; else if (range === 3) rating = 175; else if (range === 2) rating = 200;
                         matrix.set(position.x, position.y, rating)
                     }
                 }
