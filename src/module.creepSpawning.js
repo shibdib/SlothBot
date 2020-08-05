@@ -125,6 +125,9 @@ module.exports.processBuildQueue = function () {
                             if (topPriority.buildCount && roomQueue[spawn.room.name][role]) return roomQueue[spawn.room.name][role].buildCount = topPriority.buildCount - 1;
                             if (roomQueue[spawn.room.name]) delete roomQueue[spawn.room.name][role];
                             break;
+                        case ERR_NOT_ENOUGH_ENERGY:
+                            energyOrder[spawn.room.name] = undefined;
+                            break;
                         default:
                             console.log('Room Spawn Error ' + spawn.room.name);
                             console.log(spawn.spawnCreep(body, name, {
@@ -225,10 +228,10 @@ module.exports.essentialCreepQueue = function (room) {
         }
     }
     //Filler
-    if (_.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && !c.memory.linkID)).length) {
-        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.linkAttempt && !c.memory.linkID && c.pos.getRangeTo(c.pos.findClosestByRange(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))) > 10));
+    if (level < 6) {
+        let amount = 2 + _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.id !== s.room.memory.controllerContainer && s.store[RESOURCE_ENERGY] >= 1800).length;
         let filler = _.filter(roomCreeps, (c) => (c.memory.role === 'filler'));
-        if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < harvesters.length + 1) || filler.length < harvesters.length) {
+        if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < amount + 1) || filler.length < amount) {
             if (filler.length === 0) {
                 return queueCreep(room, -1, {
                     role: 'filler',
@@ -766,19 +769,14 @@ module.exports.globalCreepQueue = function () {
                 let unClaimerNeeded = operations[key].claimAttacker;
                 let cleanerNeeded = operations[key].cleaner;
                 let longbows = 1;
-                let reboot = true;
-                if (opLevel > 1) {
-                    longbows = 2;
-                    reboot = false;
-                }
+                if (opLevel > 1) longbows = opLevel;
                 let longbow = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'longbow' && creep.memory.operation === 'hold');
                 if ((longbow.length < longbows || (longbow[0] && longbow[0].ticksToLive < (longbow[0].body.length * 3 + 50) && longbow.length < longbows + 1))) {
                     queueGlobalCreep(priority, {
                         role: 'longbow',
                         destination: key,
                         operation: 'hold',
-                        military: true,
-                        other: {reboot: reboot}
+                        military: true
                     })
                 }
                 let claimAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'claimAttacker' && creep.memory.operation === 'hold');
