@@ -62,7 +62,7 @@ function levelManager(creep) {
         log.a('Canceling operation in ' + roomLink(creep.memory.destination) + ' as we cannot hold it due to towers.', 'HIGH COMMAND: ');
         creep.room.cacheRoomIntel(true);
     } else if (armedEnemies.length) {
-        Memory.targetRooms[creep.memory.destination].level = 2;
+        Memory.targetRooms[creep.memory.destination].level = armedEnemies.length + 1;
     } else if (creep.room.hostileCreeps.length) {
         Memory.targetRooms[creep.memory.destination].level = 1;
     } else {
