@@ -11,7 +11,6 @@
 
 module.exports.role = function role(creep) {
     creep.say('HIGHWAY', true);
-    if (creep.borderCheck()) return;
     //Invader detection
     if (creep.fleeHome()) return;
     // SK Safety
@@ -79,6 +78,12 @@ module.exports.role = function role(creep) {
 
 function remoteRoads(creep) {
     if (creep.room.name !== creep.memory.destination || creep.room.constructionSites.length > 3) return false;
+    // Prevent spamming this function
+    if (creep.memory.other.lastChecked === creep.room.name) {
+        creep.memory.other.lastChecked = undefined;
+        return creep.idleFor(50);
+    }
+    creep.memory.other.lastChecked = creep.room.name;
     let sources = creep.room.sources;
     let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
     let homeExit = creep.room.find(goHome);
