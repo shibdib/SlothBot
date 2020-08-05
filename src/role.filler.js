@@ -6,20 +6,16 @@
  */
 
 module.exports.role = function (creep) {
-    creep.opportunisticFill();
-    if (creep.renewalCheck()) return;
-    //INITIAL CHECKS
-    if (creep.wrongRoom()) return;
     creep.say(ICONS.haul, true);
-    // Tow Truck
-    if (creep.towTruck()) return;
     // If hauling do things
     if (creep.isFull) creep.memory.hauling = true;
-    if (!_.sum(creep.store)) creep.memory.hauling = undefined;
     if (creep.memory.hauling) {
+        if (!_.sum(creep.store)) return creep.memory.hauling = undefined;
         // Perform opportunistic road repair
-        creep.repairRoad();
+        creep.opportunisticFill();
         creep.haulerDelivery();
+    } else if (creep.towTruck()) {
+        return true;
     } else if (creep.memory.energyDestination || creep.locateEnergy()) {
         creep.withdrawResource()
     } else {

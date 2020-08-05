@@ -86,9 +86,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             deficitExemption = true;
             carry = _.floor((room.energyCapacityAvailable * 0.25) / BODYPART_COST[CARRY]) || 1;
             if (carry > 12) carry = 12;
-            if (Math.random() > 0.7) work = 1; else work = 0;
-            move = _.ceil((carry + work) / 2);
-            if (!room.memory.roadsBuilt) move = carry + work;
+            move = _.ceil(carry / 2);
+            if (!room.memory.roadsBuilt) move = carry;
             break;
         case 'stationaryHarvester':
             deficitExemption = true;
@@ -124,9 +123,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             break;
         case 'defender':
             deficitExemption = true;
-            if (Math.random() > 0.49 || level < 5) attack = _.floor((room.energyCapacityAvailable * 0.4) / BODYPART_COST[ATTACK]) || 1; else rangedAttack = _.floor((room.energyCapacityAvailable * 0.4) / BODYPART_COST[RANGED_ATTACK]) || 1;
+            if (Math.random() > 0.49 || level < 5) attack = _.floor((room.energyCapacityAvailable * 0.75) / BODYPART_COST[ATTACK]) || 1; else rangedAttack = _.floor((room.energyCapacityAvailable * 0.75) / BODYPART_COST[RANGED_ATTACK]) || 1;
             if (attack > 45) attack = 45; else if (rangedAttack > 45) rangedAttack = 45;
-            move = _.floor((room.energyCapacityAvailable * 0.5) / BODYPART_COST[MOVE]) || 1;
+            move = _.floor((room.energyCapacityAvailable * 0.2) / BODYPART_COST[MOVE]) || 1;
+            if (move > 5) move = 5;
             break;
         case 'longbow':
             deficitExemption = true;
