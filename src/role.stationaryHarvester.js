@@ -106,6 +106,8 @@ function extensionFinder(creep) {
             for (let s of extension) {
                 if (creep.room.controller.level >= 4 && !s.pos.checkForRampart() && !s.pos.checkForConstructionSites()) s.pos.createConstructionSite(STRUCTURE_RAMPART);
             }
+            let sourceExtensions = creep.room.memory.sourceExtension || [];
+            creep.room.memory.sourceExtension = JSON.stringify(_.uniq(sourceExtensions, _.pluck(extension, 'id')));
             creep.memory.extensions = JSON.stringify(_.pluck(extension, 'id'));
         }
     }

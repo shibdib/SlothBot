@@ -13,63 +13,73 @@ module.exports.role = function (creep) {
     //INITIAL CHECKS
     if (creep.tryToBoost(['upgrade']) || creep.wrongRoom()) return;
     // Handle yelling
-    herald(creep);
-    if (creep.isFull) creep.memory.working = true;
-    if (!creep.store[RESOURCE_ENERGY]) delete creep.memory.working;
+    //herald(creep);
     let container = Game.getObjectById(creep.room.memory.controllerContainer);
     let link = Game.getObjectById(creep.room.memory.controllerLink);
-    if (creep.memory.working) {
-        switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
-            case OK:
-                if (Math.random() > 0.99) creep.memory.onContainer = undefined;
-                if (!creep.memory.onContainer) {
-                    if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
-                        if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
-                        return creep.shibMove(container, {range: 0});
-                    } else if (container) {
-                        if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
-                        return creep.shibMove(container, {range: 1});
+    if (creep.memory.other.inPosition) {
+        if (link && link.energy) {
+            if (creep.withdraw(link, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) creep.memory.other.inPosition = undefined;
+        } else if (container && container.store[RESOURCE_ENERGY]) {
+            if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) creep.memory.other.inPosition = undefined;
+        }
+        creep.upgradeController(Game.rooms[creep.memory.overlord].controller)
+    } else {
+        if (creep.isFull) creep.memory.working = true;
+        if (!creep.store[RESOURCE_ENERGY]) delete creep.memory.working;
+        creep.memory.other.inPosition = creep.memory.other.stationary && (!link || creep.pos.isNearTo(link)) && (!container || creep.pos.isNearTo(container));
+        if (creep.memory.working) {
+            switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
+                case OK:
+                    if (Math.random() > 0.99) creep.memory.onContainer = undefined;
+                    if (!creep.memory.onContainer) {
+                        if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
+                            if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
+                            return creep.shibMove(container, {range: 0});
+                        } else if (container) {
+                            if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
+                            return creep.shibMove(container, {range: 1});
+                        }
                     }
-                }
-                if (link && link.energy) {
-                    creep.withdrawResource(link);
-                } else if (container && container.store[RESOURCE_ENERGY]) {
-                    creep.withdrawResource(container);
-                }
-                return;
-            case ERR_NOT_IN_RANGE:
-                if (link && link.energy) {
-                    creep.withdrawResource(link);
-                } else if (container && container.store[RESOURCE_ENERGY]) {
-                    creep.withdrawResource(container);
+                    if (link && link.energy) {
+                        creep.withdrawResource(link);
+                    } else if (container && container.store[RESOURCE_ENERGY]) {
+                        creep.withdrawResource(container);
+                    }
+                    return;
+                case ERR_NOT_IN_RANGE:
+                    if (link && link.energy) {
+                        creep.withdrawResource(link);
+                    } else if (container && container.store[RESOURCE_ENERGY]) {
+                        creep.withdrawResource(container);
+                    } else {
+                        return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+                    }
+            }
+        }
+        if (creep.memory.energyDestination) {
+            creep.withdrawResource();
+        } else if (creep.memory.other.stationary || (creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE))) {
+            creep.memory.other.stationary = true;
+            if (!creep.memory.onContainer) {
+                if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
+                    return creep.shibMove(container, {range: 0});
                 } else {
-                    return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+                    if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
+                    return creep.shibMove(container, {range: 1});
                 }
-        }
-    }
-    if (creep.memory.energyDestination) {
-        creep.withdrawResource();
-    } else if (creep.memory.other.stationary || (creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE))) {
-        creep.memory.other.stationary = true;
-        if (!creep.memory.onContainer) {
-            if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
-                return creep.shibMove(container, {range: 0});
             } else {
-                if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
-                return creep.shibMove(container, {range: 1});
+                if (link && link.energy) {
+                    creep.withdrawResource(link);
+                } else if (container && container.store[RESOURCE_ENERGY]) {
+                    creep.withdrawResource(container);
+                }
             }
-        } else {
-            if (link && link.energy) {
-                creep.withdrawResource(link);
-            } else if (container && container.store[RESOURCE_ENERGY]) {
-                creep.withdrawResource(container);
-            }
+        } else if (container && container.store[RESOURCE_ENERGY]) {
+            creep.withdrawResource(container);
+        } else if (!creep.locateEnergy(25)) {
+            let source = creep.pos.getClosestSource();
+            if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
         }
-    } else if (container && container.store[RESOURCE_ENERGY]) {
-        creep.withdrawResource(container);
-    } else if (!creep.locateEnergy(25)) {
-        let source = creep.pos.getClosestSource();
-        if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
     }
 };
 

@@ -336,7 +336,7 @@ function fillBuyOrders(terminal, globalOrders) {
             if (buyer.id) {
                 if (buyer.remainingAmount < sellAmount) sellAmount = buyer.remainingAmount;
                 if (Game.market.calcTransactionCost(sellAmount, terminal.room.name, buyer.roomName) > terminal.store[RESOURCE_ENERGY]) sellAmount = _.floor(terminal.store[RESOURCE_ENERGY] / (1 - Math.exp(-Game.map.getRoomLinearDistance(terminal.room.name, buyer.roomName) / 30)));
-                if (sellAmount * buyer.price >= 500) {
+                if (sellAmount * buyer.price >= 5) {
                     switch (Game.market.deal(buyer.id, sellAmount, terminal.pos.roomName)) {
                         case OK:
                             log.w(terminal.pos.roomName + " Sell Off Completed - " + resourceType + " for " + (buyer.price * sellAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
@@ -367,7 +367,7 @@ function fillBuyOrders(terminal, globalOrders) {
 
 function balanceResources(terminal) {
     // Balance Energy
-    if (Memory.roomCache[terminal.room.name].threatLevel < 3 && !terminal.room.nukes.length) {
+    if (!Memory.roomCache[terminal.room.name].threatLevel && !terminal.room.nukes.length) {
         // Find needy terminals
         let needyTerminal = _.min(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.energy < terminal.room.energy * 0.85 && !r.room.memory.praiseRoom), '.room.energy');
         if (needyTerminal.id) {
@@ -451,7 +451,7 @@ function balanceResources(terminal) {
 
 function emergencyEnergy(terminal) {
     // Balance energy
-    if (terminal.store[RESOURCE_ENERGY] && !Memory.roomCache[terminal.room.name].requestingSupport && Memory.roomCache[terminal.room.name].threatLevel < 3 && !terminal.room.nukes.length) {
+    if (terminal.store[RESOURCE_ENERGY] && !Memory.roomCache[terminal.room.name].requestingSupport && !Memory.roomCache[terminal.room.name].threatLevel && !terminal.room.nukes.length) {
         // Find needy terminals
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
         let responseNeeded = _.min(_.filter(myRooms, (r) => r.name !== terminal.room.name && ((Memory.roomCache[r.name] && Memory.roomCache[r.name].threatLevel >= 3) || (r.memory.nuke > 1500)) && r.terminal && r.energy < ENERGY_AMOUNT * 2), '.energy');
@@ -478,16 +478,18 @@ function emergencyEnergy(terminal) {
 }
 
 function dealFinder(terminal, globalOrders) {
-    let sellOrder = _.min(globalOrders.filter(order => order.type === ORDER_SELL && latestMarketHistory(order.resourceType) && order.price <= latestMarketHistory(order.resourceType)['avgPrice'] * 0.7 &&
-        Game.market.calcTransactionCost(order.amount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY] * 0.5), 'price');
-    let buyAmount = sellOrder.amount;
-    if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.round(buyAmount * ((spendingMoney) / (sellOrder.price * buyAmount)));
-    if (sellOrder.id && buyAmount >= 500) {
-        if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
-            log.w("Bought " + buyAmount + sellOrder.resourceType + " for " + (sellOrder.price * buyAmount) + " credits (DEAL FOUND!!) in " + roomLink(terminal.room.name), "Market: ");
-            spendingMoney -= (sellOrder.price * buyAmount);
-            log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
-            return true;
+    if (terminal.store.getFreeCapacity() >= TERMINAL_CAPACITY * 0.25) {
+        let sellOrder = _.min(globalOrders.filter(order => order.type === ORDER_SELL && latestMarketHistory(order.resourceType) && order.price <= latestMarketHistory(order.resourceType)['avgPrice'] * 0.7 &&
+            Game.market.calcTransactionCost(order.amount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY] * 0.5), 'price');
+        let buyAmount = sellOrder.amount;
+        if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.round(buyAmount * ((spendingMoney) / (sellOrder.price * buyAmount)));
+        if (sellOrder.id && buyAmount >= 500) {
+            if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
+                log.w("Bought " + buyAmount + sellOrder.resourceType + " for " + (sellOrder.price * buyAmount) + " credits (DEAL FOUND!!) in " + roomLink(terminal.room.name), "Market: ");
+                spendingMoney -= (sellOrder.price * buyAmount);
+                log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
+                return true;
+            }
         }
     }
 }
