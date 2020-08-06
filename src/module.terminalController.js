@@ -415,7 +415,8 @@ function balanceResources(terminal) {
         }
         // Keep reaction amount
         if (_.includes(BASE_MINERALS, resource)) {
-            keepAmount = REACTION_AMOUNT;
+            let lab = _.filter(terminal.room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
+            if (lab) keepAmount = REACTION_AMOUNT; else keepAmount = 0;
         }
         // Keep 5000 compressed
         if (_.includes(COMPRESSED_COMMODITIES, resource)) {
