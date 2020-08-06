@@ -41,7 +41,7 @@ module.exports.controller = function (room) {
     // Send an email on a player attack with details of attack
     if (Memory.roomCache[room.name].threatLevel && !Memory.roomCache[room.name].alertEmail && Memory.roomCache[room.name].threatLevel >= 4) {
         Memory.roomCache[room.name].alertEmail = true;
-        let playerHostile = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 1) && c.owner.username !== 'Invader')[0];
+        let playerHostile = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 1) && c.owner.username !== 'Invader');
         if (!playerHostile || !playerHostile.length) return;
         let hostileOwners = [];
         for (let hostile of playerHostile) hostileOwners.push(hostile.owner.username)
@@ -59,6 +59,9 @@ module.exports.controller = function (room) {
         log.a('----------------------');
         log.a('Hostile Owners - ' + hostileOwners.toString());
         log.a('----------------------');
+        let nukeTargets = Memory.MAD || [];
+        playerHostile.forEach((p) => nukeTargets.push(p.owner.username))
+        Memory.MAD = _.uniq(nukeTargets);
     }
 
     // Request assistance
@@ -196,7 +199,8 @@ handleNukeAttack = function (room) {
     let launchRoom = _.sample(nukes).launchRoomName;
     if (Memory.roomCache[launchRoom] && Memory.roomCache[launchRoom].owner) {
         let nukeTargets = Memory.MAD || [];
-        Memory.MAD = _.uniq(nukeTargets.push(Memory.roomCache[launchRoom].owner))
+        nukeTargets.push(Memory.roomCache[launchRoom].owner);
+        Memory.MAD = _.uniq(nukeTargets)
     }
     for (let nuke of nukes) {
         if (nuke.timeToLand <= 75) {

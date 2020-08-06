@@ -298,7 +298,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     let room = Game.rooms[this.name];
     let nonCombats, mineral, sk, power, portal, user, level, closestRange, owner,
-        reservation, commodity, safemode, hubCheck;
+        reservation, commodity, safemode, hubCheck, spawnLocation;
     if (room) {
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
@@ -326,6 +326,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                         _.remove(ncpArray, (u) => u === room.controller.sign.username);
                     }
                 }
+                let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
+                if (spawn) spawnLocation = JSON.stringify(spawn.pos);
             } else if (room.controller.reservation) {
                 reservation = room.controller.reservation.username;
                 user = room.controller.reservation.username;
@@ -371,6 +373,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             mineral: mineral,
             commodity: commodity,
             owner: owner,
+            spawnLocation: spawnLocation,
             reservation: reservation,
             level: level,
             sk: sk,

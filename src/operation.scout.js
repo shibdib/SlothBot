@@ -133,7 +133,7 @@ function operationPlanner(room, creep = undefined) {
             } else if (SIEGE_ENABLED) {
                 if (maxLevel === 8) {
                     //TODO: Redo non MAD nuke threshold
-                    if (towers.length >= 9 && nukeTarget(room)) {
+                    if (towers.length >= 2 && nukeTarget(room)) {
                         cache[room.name] = {
                             tick: tick,
                             dDay: tick + 50000,

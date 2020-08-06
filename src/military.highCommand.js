@@ -14,7 +14,7 @@ module.exports.highCommand = function () {
     // Auxiliary
     if (Game.time % 10 === 0) auxiliaryOperations();
     // Request scouting for new operations
-    if (maxLevel >= 4 && Game.time % 750 === 0) operationRequests();
+    if (maxLevel >= 4 && Game.time % 100 === 0) operationRequests();
     // Manage old operations
     if (Game.time % 50 === 0) {
         manageAttacks();
@@ -174,16 +174,29 @@ function operationRequests() {
     }
     // Handle MAD
     if (Memory.MAD && Memory.MAD.length) {
-        let MADTarget = _.sortBy(_.filter(Memory.roomCache, (r) => r.owner && _.includes(Memory.MAD, r.owner) && !checkForNap(r.user) && r.level >= 5), 'closestRange');
+        // Find nuke targets
+        let MADTarget = _.sortBy(_.filter(Memory.roomCache, (r) => r.owner && _.includes(Memory.MAD, r.owner) && r.spawnLocation && r.level >= 6 && !Memory.targetRooms[r.name]), 'closestRange');
         if (MADTarget.length && !Memory.targetRooms[MADTarget[0].name]) {
-            let cache = Memory.targetRooms || {};
-            let tick = Game.time;
-            cache[MADTarget[0].name] = {
-                tick: tick,
-                type: 'attack'
-            };
-            Memory.targetRooms = cache;
-            log.a('NUCLEAR Scout operation planned for ' + roomLink(MADTarget[0].name) + ' INITIATING MAD PROTOCOL. (Nearest Friendly Room - ' + MADTarget[0].closestRange + ' rooms away)', 'HIGH COMMAND: ');
+            for (let targetRoom of MADTarget) {
+                // Look for nukes in range
+                let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, targetRoom.name) <= 10)[0];
+                if (nukes) {
+                    nukes.launchNuke(JSON.parse(targetRoom.spawnLocation));
+                    log.a('NUCLEAR LAUNCH DETECTED - ' + JSON.parse(targetRoom.spawnLocation).roomName + ' ' + JSON.parse(targetRoom.spawnLocation).x + '.' + JSON.parse(targetRoom.spawnLocation).y + ' has a nuke inbound from ' + nukes.room.name + ' and will impact in 50,000 ticks.', 'HIGH COMMAND: ');
+                    let cache = Memory.targetRooms || {};
+                    let tick = Game.time;
+                    cache[targetRoom.name] = {
+                        tick: tick,
+                        dDay: tick + 50000,
+                        type: 'nuke',
+                        level: 1
+                    };
+                    Memory.targetRooms = cache;
+                    // Chance this nuke is enough to remove it from the MAD list
+                    if (Math.random() > 0.5) Memory.MAD = _.filter(Memory.MAD, (u) => u !== targetRoom.owner);
+                    break;
+                }
+            }
         }
     }
     if (totalCountFiltered <= targetLimit) {
