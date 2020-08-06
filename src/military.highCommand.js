@@ -183,6 +183,7 @@ function operationRequests() {
                 if (nukes) {
                     nukes.launchNuke(JSON.parse(targetRoom.spawnLocation));
                     log.a('NUCLEAR LAUNCH DETECTED - ' + JSON.parse(targetRoom.spawnLocation).roomName + ' ' + JSON.parse(targetRoom.spawnLocation).x + '.' + JSON.parse(targetRoom.spawnLocation).y + ' has a nuke inbound from ' + nukes.room.name + ' and will impact in 50,000 ticks.', 'HIGH COMMAND: ');
+                    Game.notify('NUCLEAR LAUNCH DETECTED - ' + JSON.parse(targetRoom.spawnLocation).roomName + ' ' + JSON.parse(targetRoom.spawnLocation).x + '.' + JSON.parse(targetRoom.spawnLocation).y + ' has a nuke inbound from ' + nukes.room.name + ' and will impact in 50,000 ticks.');
                     let cache = Memory.targetRooms || {};
                     let tick = Game.time;
                     cache[targetRoom.name] = {
