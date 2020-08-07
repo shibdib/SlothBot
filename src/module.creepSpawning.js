@@ -549,10 +549,9 @@ module.exports.remoteCreepQueue = function (room) {
     // Handle turtle mode
     if (!room.memory.lastRemoteAttempt) room.memory.lastRemoteAttempt = Game.time;
     if (room.memory.turtleMode && room.memory.turtleMode + 5000 < Game.time) {
-        room.memory.turtleMode = undefined;
-        room.memory.lastRemoteAttempt = Game.time - 4000;
-    }
-    if (!room.memory.turtleMode && (!_.size(remoteHives[room.name]) || room.memory.lastRemoteAttempt + 5000 < Game.time)) {
+        remoteHives[room.name] = undefined;
+        return room.memory.turtleMode = undefined;
+    } else if (!room.memory.turtleMode && !_.size(remoteHives[room.name])) {
         room.memory.spawnBorderPatrol = undefined;
         return room.memory.turtleMode = Game.time;
     }
@@ -565,7 +564,7 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteName = remotes[keys];
             if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remoteName)) continue;
             // Handle invaders
-            if (Memory.roomCache[remoteName] && (Memory.roomCache[remoteName].invaderCore || Memory.roomCache[remoteName].threatLevel)) {
+            if (Memory.roomCache[remoteName] && (Memory.roomCache[remoteName].invaderCore || Memory.roomCache[remoteName].threatLevel || Memory.roomCache[remoteName].responseNeeded)) {
                 if (Memory.roomCache[remoteName].invaderTTL && Memory.roomCache[remoteName].invaderTTL < Game.time) {
                     let scout = _.filter(Game.creeps, (creep) => creep.memory.destination === remoteName && creep.memory.role === 'scout');
                     if (!scout.length) {
