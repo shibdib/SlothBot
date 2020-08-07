@@ -444,7 +444,7 @@ Room.prototype.invaderCheck = function () {
             }
             Memory.roomCache[this.name].hostilePower = hostileCombatPower || 1;
             Memory.roomCache[this.name].friendlyPower = alliedCombatPower;
-            let armedInvader = _.filter(invader, (c) => c.getActiveBodyparts(ATTACK) > 3 || c.getActiveBodyparts(RANGED_ATTACK) > 3 || c.getActiveBodyparts(HEAL) > 3 || c.getActiveBodyparts(WORK) >= 6 || c.getActiveBodyparts(CLAIM));
+            let armedInvader = _.filter(invader, (c) => c.getActiveBodyparts(ATTACK || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL) || c.getActiveBodyparts(WORK) >= 6 || c.getActiveBodyparts(CLAIM)));
             Memory.roomCache[this.name].tickDetected = Game.time;
             if (!Memory.roomCache[this.name].numberOfHostiles || Memory.roomCache[this.name].numberOfHostiles < invader.length) {
                 Memory.roomCache[this.name].numberOfHostiles = invader.length || 1;
