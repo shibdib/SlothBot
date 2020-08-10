@@ -23,14 +23,6 @@ module.exports.role = function (creep) {
         }
         let source = Game.getObjectById(creep.memory.source);
         let container = Game.getObjectById(creep.memory.containerID);
-        // Handle requesting a hauler
-        if (container && _.sum(container.store) >= 150 * Game.rooms[creep.memory.overlord].level) {
-            creep.memory.needHauler = container.id;
-        } else if (!container && creep.pos.checkForEnergy() && creep.pos.checkForEnergy().energy >= 150 * Game.rooms[creep.memory.overlord].level) {
-            creep.memory.needHauler = creep.pos.checkForEnergy().id;
-        } else {
-            creep.memory.needHauler = undefined;
-        }
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(source);
@@ -39,12 +31,11 @@ module.exports.role = function (creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
-                /**if (creep.memory.haulerID && Game.time % 50 === 0) {
-                    if (!Array.isArray(creep.memory.haulerID)) creep.memory.haulerID = [creep.memory.haulerID];
-                    creep.memory.haulerID = _.remove(creep.memory.haulerID, function (n) {
-                        return Game.getObjectById(n);
-                    });
-                }**/
+                // Handle requesting a hauler
+                let amount = 0;
+                if (container) amount = _.sum(container.store); else if (creep.pos.checkForEnergy()) amount = creep.pos.checkForEnergy().energy;
+                creep.memory.needHauler = amount;
+                // Handle container
                 if (container) {
                     if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.7) return creep.repair(container);
                     if (_.sum(container.store) >= 1980) {

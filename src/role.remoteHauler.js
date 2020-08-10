@@ -59,9 +59,9 @@ module.exports.role = function (creep) {
             }
         } else {
             // Handle Finding A Harvester In Need, if none exists go home and idle
-            let remoteHarvester = _.filter(Game.creeps, (harv) => _.includes(JSON.parse(creep.memory.misc), harv.room.name) && harv.memory.needHauler && !_.filter(Game.creeps, (c) => c.memory.assignment === harv.memory.needHauler)[0]);
+            let remoteHarvester = _.filter(Game.creeps, (harv) => _.includes(JSON.parse(creep.memory.misc), harv.room.name) && harv.memory.needHauler && !_.filter(Game.creeps, (c) => c.memory.assignment === harv.id)[0]);
             if (remoteHarvester.length) {
-                creep.memory.assignment = _.sample(remoteHarvester).memory.needHauler;
+                creep.memory.assignment = _.max(remoteHarvester, 'memory.needHauler').id;
             } else {
                 if (creep.pos.roomName !== creep.memory.overlord) creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23}); else {
                     // Tow Truck
