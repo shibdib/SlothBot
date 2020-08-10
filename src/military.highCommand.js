@@ -193,23 +193,24 @@ function operationRequests() {
         if (MADTarget.length && !Memory.targetRooms[MADTarget[0].name]) {
             for (let targetRoom of MADTarget) {
                 // Look for nukes in range
-                let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, targetRoom.name) <= 10)[0];
-                if (nukes) {
-                    nukes.launchNuke(JSON.parse(targetRoom.spawnLocation));
-                    log.a('NUCLEAR LAUNCH DETECTED - ' + JSON.parse(targetRoom.spawnLocation).roomName + ' ' + JSON.parse(targetRoom.spawnLocation).x + '.' + JSON.parse(targetRoom.spawnLocation).y + ' has a nuke inbound from ' + nukes.room.name + ' and will impact in 50,000 ticks.', 'HIGH COMMAND: ');
-                    Game.notify('NUCLEAR LAUNCH DETECTED - ' + JSON.parse(targetRoom.spawnLocation).roomName + ' ' + JSON.parse(targetRoom.spawnLocation).x + '.' + JSON.parse(targetRoom.spawnLocation).y + ' has a nuke inbound from ' + nukes.room.name + ' and will impact in 50,000 ticks.');
-                    let cache = Memory.targetRooms || {};
-                    let tick = Game.time;
-                    cache[targetRoom.name] = {
-                        tick: tick,
-                        dDay: tick + 50000,
-                        type: 'nuke',
-                        level: 1
-                    };
-                    Memory.targetRooms = cache;
-                    // Chance this nuke is enough to remove it from the MAD list
-                    if (Math.random() > 0.5) Memory.MAD = _.filter(Memory.MAD, (u) => u !== targetRoom.owner);
-                    break;
+                let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, targetRoom.name) <= 10);
+                if (nukes.length) {
+                    for (let nuke of nukes) {
+                        nuke.launchNuke(JSON.parse(targetRoom.spawnLocation));
+                        log.a('NUCLEAR LAUNCH DETECTED - ' + JSON.parse(targetRoom.spawnLocation).roomName + ' ' + JSON.parse(targetRoom.spawnLocation).x + '.' + JSON.parse(targetRoom.spawnLocation).y + ' has a nuke inbound from ' + nukes.room.name + ' and will impact in 50,000 ticks.', 'HIGH COMMAND: ');
+                        Game.notify('NUCLEAR LAUNCH DETECTED - ' + JSON.parse(targetRoom.spawnLocation).roomName + ' ' + JSON.parse(targetRoom.spawnLocation).x + '.' + JSON.parse(targetRoom.spawnLocation).y + ' has a nuke inbound from ' + nukes.room.name + ' and will impact in 50,000 ticks.');
+                        let cache = Memory.targetRooms || {};
+                        let tick = Game.time;
+                        cache[targetRoom.name] = {
+                            tick: tick,
+                            dDay: tick + 50000,
+                            type: 'nuke',
+                            level: 1
+                        };
+                        Memory.targetRooms = cache;
+                        // Chance this nuke is enough to remove it from the MAD list
+                        if (Math.random() > 0.5) Memory.MAD = _.filter(Memory.MAD, (u) => u !== targetRoom.owner);
+                    }
                 }
             }
         }
@@ -526,50 +527,41 @@ function manualAttacks() {
                 dDay: tick + ticks,
                 type: 'pending'
             };
-        } else
-        if (_.startsWith(name, 'siege')) {
+        } else if (_.startsWith(name, 'siege')) {
             let type = 'siege';
             if (Memory.maxLevel < 8) type = 'siegeGroup';
             cache[Game.flags[name].pos.roomName] = {
                 type: type
             };
-        } else
-        if (_.startsWith(name, 'attack')) {
+        } else if (_.startsWith(name, 'attack')) {
             cache[Game.flags[name].pos.roomName] = {
                 type: 'attack'
             };
-        } else
-        if (_.startsWith(name, 'guard')) {
+        } else if (_.startsWith(name, 'guard')) {
             cache[Game.flags[name].pos.roomName] = {
                 type: 'guard'
             };
-        } else
-        if (_.startsWith(name, 'hold')) {
+        } else if (_.startsWith(name, 'hold')) {
             cache[Game.flags[name].pos.roomName] = {
                 type: 'hold'
             };
-        } else
-        if (_.startsWith(name, 'drain')) {
+        } else if (_.startsWith(name, 'drain')) {
             cache[Game.flags[name].pos.roomName] = {
                 type: 'drain'
             };
-        } else
-        if (_.startsWith(name, 'ranger')) {
+        } else if (_.startsWith(name, 'ranger')) {
             cache[Game.flags[name].pos.roomName] = {
                 type: 'rangers'
             };
-        } else
-        if (_.startsWith(name, 'swarm')) {
+        } else if (_.startsWith(name, 'swarm')) {
             cache[Game.flags[name].pos.roomName] = {
                 type: 'swarm'
             };
-        } else
-        if (_.startsWith(name, 'power')) {
+        } else if (_.startsWith(name, 'power')) {
             cache[Game.flags[name].pos.roomName] = {
                 type: 'power'
             };
-        } else
-        if (_.startsWith(name, 'nuke')) {
+        } else if (_.startsWith(name, 'nuke')) {
             cache[Game.flags[name].pos.roomName] = {
                 dDay: tick + 50000,
                 type: 'nuke'

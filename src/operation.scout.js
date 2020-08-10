@@ -227,34 +227,32 @@ function claimScout(room) {
 
 function nukeTarget(room) {
     let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, room.name) <= 10);
-    let inboundNukes = room.find(FIND_NUKES);
-    if (nukes.length && !inboundNukes.length) {
+    if (nukes.length) {
         let launched = 0;
-        let towerTarget, spawnTarget, terminalTarget;
-        for (let nuker of nukes) {
-            if (launched >= 2) break;
-            let clusteredTower = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.pos.findInRange(room.structures, 4, {filter: (l) => l.structureType === STRUCTURE_TOWER}).length >= 3)[0];
-            let clusteredSpawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.pos.findInRange(room.structures, 4, {filter: (l) => l.structureType === STRUCTURE_SPAWN}).length >= 2)[0];
-            if (clusteredTower && !towerTarget) {
+        let nukesNeeded;
+        for (let nuke of nukes) {
+            if (nukesNeeded && launched >= nukesNeeded) break;
+            let clusteredTower = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.pos.findInRange(room.structures, 4, {filter: (l) => l.structureType === STRUCTURE_TOWER}).length >= 3 && (!s.pos.checkForRampart() || s.pos.checkForRampart().hits < nukes.length * 7500000))[0];
+            let clusteredSpawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.pos.findInRange(room.structures, 4, {filter: (l) => l.structureType === STRUCTURE_SPAWN}).length >= 2 && (!s.pos.checkForRampart() || s.pos.checkForRampart().hits < nukes.length * 7500000))[0];
+            let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL && (!s.pos.checkForRampart() || s.pos.checkForRampart().hits < nukes.length * 7500000))[0];
+            if (clusteredTower) {
+                if (clusteredTower.pos.checkForRampart()) nukesNeeded = _.ceil(clusteredTower.pos.checkForRampart().hits / 10000000);
                 launched += 1;
-                nuker.launchNuke(clusteredTower.pos);
-                log.a('NUCLEAR LAUNCH DETECTED - ' + clusteredTower.pos.roomName + ' ' + clusteredTower.pos.x + '.' + clusteredTower.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
-                Game.notify('NUCLEAR LAUNCH DETECTED - ' + clusteredTower.pos.roomName + ' ' + clusteredTower.pos.x + '.' + clusteredTower.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
-            } else if (clusteredSpawns && !spawnTarget) {
+                nuke.launchNuke(clusteredTower.pos);
+                log.a('NUCLEAR LAUNCH DETECTED - ' + clusteredTower.pos.roomName + ' ' + clusteredTower.pos.x + '.' + clusteredTower.pos.y + ' has a nuke inbound from ' + nuke.room.name + ' and will impact in 50,000 ticks.');
+                Game.notify('NUCLEAR LAUNCH DETECTED - ' + clusteredTower.pos.roomName + ' ' + clusteredTower.pos.x + '.' + clusteredTower.pos.y + ' has a nuke inbound from ' + nuke.room.name + ' and will impact in 50,000 ticks.');
+            } else if (clusteredSpawns) {
+                if (clusteredSpawns.pos.checkForRampart()) nukesNeeded = _.ceil(clusteredSpawns.pos.checkForRampart().hits / 10000000);
                 launched += 1;
-                nuker.launchNuke(clusteredSpawns.pos);
-                log.a('NUCLEAR LAUNCH DETECTED - ' + clusteredSpawns.pos.roomName + ' ' + clusteredSpawns.pos.x + '.' + clusteredSpawns.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
-                Game.notify('NUCLEAR LAUNCH DETECTED - ' + clusteredSpawns.pos.roomName + ' ' + clusteredSpawns.pos.x + '.' + clusteredSpawns.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
-            } else if (room.terminal && !terminalTarget) {
+                nuke.launchNuke(clusteredSpawns.pos);
+                log.a('NUCLEAR LAUNCH DETECTED - ' + clusteredSpawns.pos.roomName + ' ' + clusteredSpawns.pos.x + '.' + clusteredSpawns.pos.y + ' has a nuke inbound from ' + nuke.room.name + ' and will impact in 50,000 ticks.');
+                Game.notify('NUCLEAR LAUNCH DETECTED - ' + clusteredSpawns.pos.roomName + ' ' + clusteredSpawns.pos.x + '.' + clusteredSpawns.pos.y + ' has a nuke inbound from ' + nuke.room.name + ' and will impact in 50,000 ticks.');
+            } else if (terminal) {
+                if (terminal.pos.checkForRampart()) nukesNeeded = _.ceil(terminal.pos.checkForRampart().hits / 10000000);
                 launched += 1;
-                nuker.launchNuke(room.terminal.pos);
-                log.a('NUCLEAR LAUNCH DETECTED - ' + room.terminal.pos.roomName + ' ' + room.terminal.pos.x + '.' + room.terminal.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
-                Game.notify('NUCLEAR LAUNCH DETECTED - ' + room.terminal.pos.roomName + ' ' + room.terminal.pos.x + '.' + room.terminal.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
-            } else if (room.storage) {
-                nuker.launchNuke(room.storage.pos);
-                log.a('NUCLEAR LAUNCH DETECTED - ' + room.storage.pos.roomName + ' ' + room.storage.pos.x + '.' + room.storage.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
-                Game.notify('NUCLEAR LAUNCH DETECTED - ' + room.storage.pos.roomName + ' ' + room.storage.pos.x + '.' + room.storage.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
-                break;
+                nuke.launchNuke(room.terminal.pos);
+                log.a('NUCLEAR LAUNCH DETECTED - ' + room.terminal.pos.roomName + ' ' + room.terminal.pos.x + '.' + room.terminal.pos.y + ' has a nuke inbound from ' + nuke.room.name + ' and will impact in 50,000 ticks.');
+                Game.notify('NUCLEAR LAUNCH DETECTED - ' + room.terminal.pos.roomName + ' ' + room.terminal.pos.x + '.' + room.terminal.pos.y + ' has a nuke inbound from ' + nuke.room.name + ' and will impact in 50,000 ticks.');
             }
         }
         return true;
