@@ -14,10 +14,11 @@ module.exports.role = function (creep) {
     if (creep.memory.source) {
         let container = Game.getObjectById(creep.memory.containerID);
         //Make sure you're on the container
-        if (!creep.memory.onContainer && creep.memory.containerID) {
-            if (container && creep.pos.getRangeTo(container) > 0) {
-                return creep.shibMove(container, {range: 0});
-            } else if (container) {
+        if (!creep.memory.onContainer && (container || Game.getObjectById(creep.memory.source).memory.containerPos)) {
+            let spot = container || JSON.parse(Game.getObjectById(creep.memory.source).memory.containerPos);
+            if (spot && creep.pos.getRangeTo(spot) > 0) {
+                return creep.shibMove(spot, {range: 0});
+            } else if (!creep.pos.getRangeTo(spot)) {
                 creep.memory.onContainer = true;
             }
         } else if (!creep.memory.containerID && !creep.memory.containerAttempt) {
