@@ -436,19 +436,24 @@ Creep.prototype.haulerDelivery = function () {
         if (_.sum(this.store) > this.store[RESOURCE_ENERGY]) this.memory.storageDestination = this.room.terminal.id || this.room.storage.id;
         let storageItem = Game.getObjectById(this.memory.storageDestination);
         if (!storageItem) return delete this.memory.storageDestination;
-        for (const resourceType in this.store) {
-            switch (this.transfer(storageItem, resourceType)) {
-                case OK:
-                    delete this.memory.storageDestination;
-                    delete this.memory._shibMove;
-                    return;
-                case ERR_NOT_IN_RANGE:
-                    this.shibMove(storageItem);
-                    return true;
-                case ERR_FULL || ERR_INVALID_TARGET:
-                    delete this.memory.storageDestination;
-                    delete this.memory._shibMove;
-                    break;
+        if (!storageItem.store.getFreeCapacity(RESOURCE_ENERGY)) {
+            delete this.memory.storageDestination;
+            delete this.memory._shibMove;
+        } else {
+            for (const resourceType in this.store) {
+                switch (this.transfer(storageItem, resourceType)) {
+                    case OK:
+                        delete this.memory.storageDestination;
+                        delete this.memory._shibMove;
+                        return;
+                    case ERR_NOT_IN_RANGE:
+                        this.shibMove(storageItem);
+                        return true;
+                    case ERR_FULL || ERR_INVALID_TARGET:
+                        delete this.memory.storageDestination;
+                        delete this.memory._shibMove;
+                        break;
+                }
             }
         }
     }

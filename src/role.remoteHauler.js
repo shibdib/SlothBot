@@ -101,9 +101,13 @@ function dropOff(creep) {
             return true;
         }
     }
-    let closestLink = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_LINK && s.store.getFreeCapacity(RESOURCE_ENERGY) && s.id !== s.room.memory.hubLink && s.isActive() && creep.pos.getRangeTo(s) <= 6});
+    let closestLink = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_LINK && s.store.getFreeCapacity(RESOURCE_ENERGY) && s.isActive() && creep.pos.getRangeTo(s) <= 6});
     if (closestLink) {
         creep.memory.storageDestination = closestLink.id;
+        return true;
+    }
+    if (creep.room.terminal) {
+        creep.memory.storageDestination = creep.room.terminal.id;
         return true;
     }
     // Else fill spawns/extensions
