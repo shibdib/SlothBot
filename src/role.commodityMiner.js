@@ -27,7 +27,7 @@ module.exports.role = function (creep) {
                 creep.memory.deposit = undefined;
                 break;
             case ERR_TIRED:
-                creep.idleFor(deposit.cooldown);
+                if (creep.pos.isNearTo(deposit)) creep.idleFor(deposit.cooldown);
         }
     } else {
         //Find Source

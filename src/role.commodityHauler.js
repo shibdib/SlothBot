@@ -8,7 +8,7 @@
 module.exports.role = function (creep) {
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
-    creep.memory.hauling = creep.isFull || Memory.auxiliaryTargets[creep.memory.destination] === undefined || creep.memory.ticksToLive < 150;
+    creep.memory.hauling = creep.isFull || !Memory.auxiliaryTargets[creep.memory.destination] || creep.memory.ticksToLive < 200;
     //Initial move
     if (!creep.memory.destinationReached && !creep.memory.hauling) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
