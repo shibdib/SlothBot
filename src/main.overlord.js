@@ -57,7 +57,7 @@ module.exports.overlordMind = function (room, CPULimit) {
         } else if (!room.memory.lastLowPower || room.memory.lastLowPower + 12500 < Game.time) {
             let maxLevelRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8 && !r.constructionSites.length);
             let lowPowerRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8 && r.memory.lowPower);
-            if (maxLevelRooms.length >= 3 && lowPowerRooms.length < maxLevelRooms.length * 0.5 && Math.random() > 0.8 && !inBuild && (!Memory.saleTerminal.room || room.name !== Memory.saleTerminal.room)) {
+            if (maxLevelRooms.length >= 3 && lowPowerRooms.length < maxLevelRooms.length * 0.5 && Math.random() > 0.8 && !inBuild && (!Memory.saleTerminal.room || room.name !== Memory.saleTerminal.room) && (Game.cpu.bucket < 9000 && (!Memory.lastPixelGenerated || Memory.lastPixelGenerated + 10000 < Game.time))) {
                 log.a(room.name + ' has entered a low power state for 10000 ticks.');
                 room.memory.lowPower = Game.time;
             }
