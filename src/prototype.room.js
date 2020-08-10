@@ -399,26 +399,24 @@ Room.prototype.invaderCheck = function () {
     if (!Memory.roomCache || !Memory.roomCache[this.name]) this.cacheRoomIntel();
     // No hostile detected
     if (!this.hostileCreeps.length) {
-        if (Memory.roomCache[this.name].threatLevel) {
-            let waitOut = 15;
-            if (Memory.roomCache[this.name].threatLevel > 3) waitOut = 50;
-            // Clear if no waitOut or if not one of your rooms
-            if (Memory.roomCache[this.name].tickDetected + waitOut < Game.time || Memory.roomCache[this.name].user !== MY_USERNAME) {
-                Memory.roomCache[this.name].threatLevel = undefined;
-                let roomHeat = (Memory.roomCache[this.name].roomHeat - 0.25) || 0;
-                if (roomHeat <= 0) {
-                    Memory.roomCache[this.name].roomHeat = undefined;
-                } else {
-                    Memory.roomCache[this.name].roomHeat = roomHeat;
-                }
-                Memory.roomCache[this.name].numberOfHostiles = undefined;
-                Memory.roomCache[this.name].responseNeeded = undefined;
-                Memory.roomCache[this.name].alertEmail = undefined;
-                Memory.roomCache[this.name].requestingSupport = undefined;
-                Memory.roomCache[this.name].invaderTTL = undefined;
+        let waitOut = 15;
+        if (Memory.roomCache[this.name].threatLevel > 3) waitOut = 50;
+        // Clear if no waitOut or if not one of your rooms
+        if (Memory.roomCache[this.name].tickDetected + waitOut < Game.time || Memory.roomCache[this.name].user !== MY_USERNAME) {
+            Memory.roomCache[this.name].threatLevel = undefined;
+            let roomHeat = (Memory.roomCache[this.name].roomHeat - 0.25) || 0;
+            if (roomHeat <= 0) {
+                Memory.roomCache[this.name].roomHeat = undefined;
+            } else {
+                Memory.roomCache[this.name].roomHeat = roomHeat;
             }
-            return false;
-        } else if (Memory.roomCache[this.name].roomHeat) {
+            Memory.roomCache[this.name].numberOfHostiles = undefined;
+            Memory.roomCache[this.name].responseNeeded = undefined;
+            Memory.roomCache[this.name].alertEmail = undefined;
+            Memory.roomCache[this.name].requestingSupport = undefined;
+            Memory.roomCache[this.name].invaderTTL = undefined;
+        }
+        if (Memory.roomCache[this.name].roomHeat) {
             let roomHeat = Memory.roomCache[this.name].roomHeat - 0.25;
             if (roomHeat <= 0) {
                 Memory.roomCache[this.name].roomHeat = undefined;
@@ -426,6 +424,7 @@ Room.prototype.invaderCheck = function () {
                 Memory.roomCache[this.name].roomHeat = roomHeat;
             }
         }
+        return false;
     } else {
         if (!Memory.roomCache) Memory.roomCache = {};
         if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
