@@ -228,7 +228,8 @@ module.exports.essentialCreepQueue = function (room) {
         }
     }
     //Filler
-    if (level < 6) {
+    let noLink = _.filter(harvesters, (c) => !c.memory.linkID && c.memory.linkAttempt)[0]
+    if (noLink) {
         let amount = 2 + _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.id !== s.room.memory.controllerContainer && s.store[RESOURCE_ENERGY] >= 1800).length;
         let filler = _.filter(roomCreeps, (c) => (c.memory.role === 'filler'));
         if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < amount + 1) || filler.length < amount) {
@@ -520,13 +521,14 @@ module.exports.remoteCreepQueue = function (room) {
     if (!remoteHives[room.name] || Math.random() > 0.95) {
         room.memory.remoteRooms = undefined;
         let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && !Memory.roomCache[r].isHighway && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
-            (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && !Memory.roomCache[r].owner && (level >= 7 || !Memory.roomCache[r].sk));
+            (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && !Memory.roomCache[r].owner);
         // Handle SK middle room
-        if (level >= 7 && _.filter(adjacent, (r) => Memory.roomCache[r] && Memory.roomCache[r].sk).length) {
+        /**
+         if (level >= 7 && _.filter(adjacent, (r) => Memory.roomCache[r] && Memory.roomCache[r].sk).length) {
             let skAdjacent = _.filter(adjacent, (r) => Memory.roomCache[r] && Memory.roomCache[r].sk)[0];
             let middleRoom = _.filter(Game.map.describeExits(skAdjacent), (r) => Memory.roomCache[r] && Memory.roomCache[r].sources >= 3 && !Memory.roomCache[r].sk)[0];
             if (middleRoom) adjacent.push(middleRoom);
-        }
+        }**/
         // Handle highway deadends
         if (!adjacent.length) {
             let highway = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && !Memory.roomCache[r].owner && Memory.roomCache[r].isHighway);
@@ -608,7 +610,6 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             } else if (!Memory.roomCache[remoteName] || !Memory.roomCache[remoteName].sk) {
-                // No regular remotes if SK mining
                 if (!invaderCoreReserved && !room.memory.lowPower) {
                     let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remoteName && creep.memory.role === 'remoteHarvester');
                     let sourceCount = 1;
