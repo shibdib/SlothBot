@@ -507,7 +507,8 @@ module.exports.miscCreepQueue = function (room) {
             queueCreep(room, PRIORITIES.borderPatrol + (borderPatrol.length * 2.5), {
                 role: 'longbow',
                 operation: 'borderPatrol',
-                military: true
+                military: true,
+                other: {responseTarget: room.memory.spawnBorderPatrol}
             });
         }
     }
@@ -574,7 +575,7 @@ module.exports.remoteCreepQueue = function (room) {
                     }
                     continue;
                 }
-                room.memory.spawnBorderPatrol = true;
+                room.memory.spawnBorderPatrol = remoteName;
                 continue;
             }
             // If owned or a highway continue
