@@ -47,8 +47,8 @@ module.exports.overlordMind = function (room, CPULimit) {
 
     // Potential low power mode
     if (room.level === 8) {
+        let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD)[0];
         if (room.memory.lowPower) {
-            let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD)[0];
             if (room.memory.lowPower + 10000 < Game.time || inBuild || Memory.roomCache[room.name].threatLevel > 2) {
                 log.a(room.name + ' is no longer in a low power state.');
                 room.memory.lowPower = undefined;
@@ -57,7 +57,7 @@ module.exports.overlordMind = function (room, CPULimit) {
         } else if (!room.memory.lastLowPower || room.memory.lastLowPower + 12500 < Game.time) {
             let maxLevelRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8 && !r.constructionSites.length);
             let lowPowerRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8 && r.memory.lowPower);
-            if (lowPowerRooms.length < maxLevelRooms.length * 0.5 && Math.random() > 0.8) {
+            if (maxLevelRooms.length >= 3 && lowPowerRooms.length < maxLevelRooms.length * 0.5 && Math.random() > 0.8 && !inBuild && (!Memory.saleTerminal.room || room.name !== Memory.saleTerminal.room) && (Game.cpu.bucket < 9000 && (!Memory.lastPixelGenerated || Memory.lastPixelGenerated + 10000 < Game.time))) {
                 log.a(room.name + ' has entered a low power state for 10000 ticks.');
                 room.memory.lowPower = Game.time;
             }

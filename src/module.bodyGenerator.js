@@ -34,6 +34,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'remoteUpgrader':
         case 'praiseMineral':
         case 'drone':
+            deficitExemption = true;
             work = _.floor((room.energyCapacityAvailable * _.random(0.1, 0.3)) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
             carry = _.floor((room.energyCapacityAvailable * _.random(0.05, 0.2)) / BODYPART_COST[CARRY]) || 1;
@@ -196,9 +197,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = work + carry;
             break;
         case 'commodityMiner':
-            work = _.floor((room.energyCapacityAvailable * _.random(0.3, 0.45)) / BODYPART_COST[WORK]) || 1;
-            carry = _.floor((room.energyCapacityAvailable * 0.05) / BODYPART_COST[CARRY]) || 1;
-            if (carry > 10) carry = 10;
+            work = _.floor((room.energyCapacityAvailable * 0.45) / BODYPART_COST[WORK]) || 1;
+            if (work > 20) work = 20;
+            carry = 1;
             move = work + carry;
             break;
         case 'commodityHauler':

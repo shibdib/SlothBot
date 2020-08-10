@@ -133,7 +133,7 @@ function operationPlanner(room, creep = undefined) {
             } else if (SIEGE_ENABLED) {
                 if (maxLevel === 8) {
                     //TODO: Redo non MAD nuke threshold
-                    if (towers.length >= 9 && nukeTarget(room)) {
+                    if (towers.length >= 2 && nukeTarget(room)) {
                         cache[room.name] = {
                             tick: tick,
                             dDay: tick + 50000,
@@ -266,7 +266,6 @@ function nukeTarget(room) {
 function forwardObserver(room) {
     let highCommand = require('military.highCommand');
     highCommand.operationSustainability(room);
-    levelManager(room);
     //Type specific stuff
     switch (Memory.targetRooms[room.name].type) {
         case 'hold':
@@ -280,23 +279,6 @@ function forwardObserver(room) {
             Memory.targetRooms[room.name].claimAttacker = !room.controller.upgradeBlocked && (!room.controller.ticksToDowngrade || room.controller.ticksToDowngrade > 1000);
             break;
     }
-    let armedEnemies = _.filter(room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
-    if (armedEnemies.length) {
-        if (Memory.targetRooms[room.name].oldPriority) Memory.targetRooms[room.name].priority = Memory.targetRooms[room.name].oldPriority;
-        Memory.targetRooms[room.name].level = 2;
-    } else if (room.hostileCreeps.length) {
-        if (Memory.targetRooms[room.name].oldPriority) Memory.targetRooms[room.name].priority = Memory.targetRooms[room.name].oldPriority;
-        Memory.targetRooms[room.name].level = 1;
-    } else {
-        if (Memory.targetRooms[room.name].type !== 'hold') {
-            if (!Memory.targetRooms[room.name].oldPriority) Memory.targetRooms[room.name].oldPriority = Memory.targetRooms[room.name].priority;
-            Memory.targetRooms[room.name].priority = 3;
-        }
-        Memory.targetRooms[room.name].level = 0;
-    }
-}
-
-function levelManager(room) {
     let armedEnemies = _.filter(room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
     if (armedEnemies.length) {
         if (Memory.targetRooms[room.name].oldPriority) Memory.targetRooms[room.name].priority = Memory.targetRooms[room.name].oldPriority;

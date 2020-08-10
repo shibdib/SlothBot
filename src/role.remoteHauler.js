@@ -76,15 +76,6 @@ module.exports.role = function (creep) {
 // Remote Hauler Drop Off
 function dropOff(creep) {
     buildLinks(creep);
-    let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
-    //Close Link
-    if (!creep.memory.linkSearch) {
-        let closestLink = creep.pos.findClosestByRange(creep.room.structures, {
-            filter: (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.isActive() && s.pos.getRangeTo(s.pos.findClosestByRange(Game.map.findExit(s.room.name, creep.memory.destination))) < 5
-        });
-        creep.memory.linkSearch = true;
-        if (closestLink) creep.memory.borderLink = closestLink.id;
-    }
     // Lab
     let lab = creep.pos.findClosestByRange(creep.room.structures, {
         filter: (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive()
@@ -110,43 +101,19 @@ function dropOff(creep) {
             return true;
         }
     }
-    if (creep.memory.borderLink) {
-        let link = Game.getObjectById(creep.memory.borderLink);
-        if (!link) creep.memory.borderLink = undefined;
-        if (link.store.getUsedCapacity() < link.store.getCapacity() && creep.pos.getRangeTo(link) <= 10) {
-            creep.memory.storageDestination = creep.memory.borderLink;
-            return true;
-        }
-    }
-    //Controller
-    if (controllerContainer && _.sum(controllerContainer.store) < controllerContainer.store.getCapacity() * 0.5 && !creep.room.controllerLink) {
-        creep.memory.storageDestination = controllerContainer.id;
-        return true;
-    }
-    // Terminal
-    if (creep.room.terminal && creep.room.terminal.store[RESOURCE_ENERGY] < creep.room.terminal.store.getCapacity() * 0.5) {
-        creep.memory.storageDestination = creep.room.terminal.id;
-        return true;
-    }
-    //Storage baseline
-    if (creep.room.storage && creep.room.storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 0.20) {
-        creep.memory.storageDestination = creep.room.storage.id;
+    let closestLink = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_LINK && s.store.getFreeCapacity(RESOURCE_ENERGY) && s.isActive() && creep.pos.getRangeTo(s) <= 6});
+    if (closestLink) {
+        creep.memory.storageDestination = closestLink.id;
         return true;
     }
     //Controller
-    if (controllerContainer && _.sum(controllerContainer.store) < controllerContainer.store.getCapacity() &&
-        ((!creep.room.controllerLink && Math.random() > _.sum(controllerContainer.store) / controllerContainer.store.getCapacity()) || (creep.room.controllerLink && Math.random() > (_.sum(controllerContainer.store) / controllerContainer.store.getCapacity()) * 0.5))) {
-        creep.memory.storageDestination = controllerContainer.id;
+    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+    if (controllerContainer && (!controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5) && (!creep.room.terminal || creep.room.terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.25)) {
+        this.memory.storageDestination = controllerContainer.id;
         return true;
     }
-    // Terminal
-    if (creep.room.terminal && creep.room.terminal.store.getFreeCapacity()) {
+    if (creep.room.terminal) {
         creep.memory.storageDestination = creep.room.terminal.id;
-        return true;
-    }
-    // Storage
-    if (creep.room.storage) {
-        creep.memory.storageDestination = creep.room.storage.id;
         return true;
     }
     // Else fill spawns/extensions

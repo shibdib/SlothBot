@@ -180,8 +180,8 @@ Object.defineProperty(Room.prototype, 'powerCreeps', {
 Object.defineProperty(Room.prototype, 'hostileCreeps', {
     get: function () {
         if (!this._Hostilecreeps) {
-            this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'));
-            this._Hostilecreeps.concat(_.filter(this.powerCreeps, (c) => !c.my && (!_.includes(FRIENDLIES, c.owner.username))));
+            this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Source Keeper');
+            this._Hostilecreeps.concat(_.filter(this.powerCreeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username)));
         }
         return this._Hostilecreeps;
     },
@@ -298,7 +298,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     let room = Game.rooms[this.name];
     let nonCombats, mineral, sk, power, portal, user, level, closestRange, owner,
-        reservation, commodity, safemode, hubCheck;
+        reservation, commodity, safemode, hubCheck, spawnLocation;
     if (room) {
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
@@ -326,6 +326,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                         _.remove(ncpArray, (u) => u === room.controller.sign.username);
                     }
                 }
+                let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
+                if (spawn) spawnLocation = JSON.stringify(spawn.pos);
             } else if (room.controller.reservation) {
                 reservation = room.controller.reservation.username;
                 user = room.controller.reservation.username;
@@ -371,6 +373,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             mineral: mineral,
             commodity: commodity,
             owner: owner,
+            spawnLocation: spawnLocation,
             reservation: reservation,
             level: level,
             sk: sk,
@@ -441,7 +444,7 @@ Room.prototype.invaderCheck = function () {
             }
             Memory.roomCache[this.name].hostilePower = hostileCombatPower || 1;
             Memory.roomCache[this.name].friendlyPower = alliedCombatPower;
-            let armedInvader = _.filter(invader, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL) || c.getActiveBodyparts(WORK) >= 6 || c.getActiveBodyparts(CLAIM));
+            let armedInvader = _.filter(invader, (c) => c.getActiveBodyparts(ATTACK || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL) || c.getActiveBodyparts(WORK) >= 6 || c.getActiveBodyparts(CLAIM)));
             Memory.roomCache[this.name].tickDetected = Game.time;
             if (!Memory.roomCache[this.name].numberOfHostiles || Memory.roomCache[this.name].numberOfHostiles < invader.length) {
                 Memory.roomCache[this.name].numberOfHostiles = invader.length || 1;
@@ -469,11 +472,11 @@ Room.prototype.invaderCheck = function () {
                 Memory.roomCache[this.name].threatLevel = 1;
             } else if (invader.length > 1 && invader[0].owner.username === 'Invader' && ownerArray.length === 1 && hostileCombatPower) {
                 Memory.roomCache[this.name].threatLevel = 2;
-            } else if (invader.length === 1 && invader[0].owner.username !== 'Invader' && hostileCombatPower) {
+            } else if (armedInvader.length === 1 && invader[0].owner.username !== 'Invader' && hostileCombatPower) {
                 Memory.roomCache[this.name].threatLevel = 3;
                 let roomHeat = Memory.roomCache[this.name].roomHeat || 0;
                 Memory.roomCache[this.name].roomHeat = roomHeat + (invader.length * 5);
-            } else if (invader.length > 1 && (invader[0].owner.username !== 'Invader' || ownerArray.length > 1) && hostileCombatPower) {
+            } else if (armedInvader.length > 1 && (invader[0].owner.username !== 'Invader' || ownerArray.length > 1) && hostileCombatPower) {
                 Memory.roomCache[this.name].threatLevel = 4;
                 let roomHeat = Memory.roomCache[this.name].roomHeat || 0;
                 Memory.roomCache[this.name].roomHeat = roomHeat + (invader.length * 5);

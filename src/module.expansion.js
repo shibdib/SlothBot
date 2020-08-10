@@ -22,7 +22,7 @@ module.exports.claimNewRoom = function () {
                 if (neighboring['3'] && Memory.roomCache[neighboring['3']] && !Memory.roomCache[neighboring['3']].user) sourceCount += Memory.roomCache[neighboring['3']].sources;
                 if (neighboring['5'] && Memory.roomCache[neighboring['5']] && !Memory.roomCache[neighboring['5']].user) sourceCount += Memory.roomCache[neighboring['5']].sources;
                 if (neighboring['7'] && Memory.roomCache[neighboring['7']] && !Memory.roomCache[neighboring['7']].user) sourceCount += Memory.roomCache[neighboring['7']].sources;
-                baseScore += (sourceCount * 70);
+                baseScore += (sourceCount * 100);
                 // Swamps suck
                 let terrain = Game.map.getRoomTerrain(name);
                 let terrainScore = 0;
@@ -30,12 +30,12 @@ module.exports.claimNewRoom = function () {
                     for (let x = 0; x < 50; x++) {
                         let tile = terrain.get(x, y);
                         if (tile === TERRAIN_MASK_WALL) terrainScore += 0.5;
-                        if (tile === TERRAIN_MASK_SWAMP) terrainScore += 2.5;
+                        if (tile === TERRAIN_MASK_SWAMP) terrainScore += 15;
                     }
                 }
                 baseScore -= terrainScore;
                 // If it's a new mineral add to the score
-                if (worthyRooms[key].mineral && !_.includes(OWNED_MINERALS, worthyRooms[key].mineral)) baseScore += 450;
+                if (worthyRooms[key].mineral && !_.includes(OWNED_MINERALS, worthyRooms[key].mineral)) baseScore += 1000;
                 // Check if it's near any owned rooms
                 let avoidRooms = _.filter(Memory.roomCache, (r) => r.level);
                 for (let avoidKey in avoidRooms) {
@@ -43,7 +43,7 @@ module.exports.claimNewRoom = function () {
                     let distance = Game.map.getRoomLinearDistance(name, avoidName);
                     let cutoff = 2;
                     if (_.includes(FRIENDLIES, avoidRooms[avoidKey].owner)) cutoff = 3;
-                    if (distance <= 1) continue loop1; else if (distance < 3) baseScore -= 350; else if (baseScore < 7) baseScore += 100; else baseScore -= 350;
+                    if (distance <= 1) continue loop1; else if (distance < 3) baseScore -= 150; else if (baseScore < 6) baseScore += 100; else baseScore -= 350;
                 }
                 worthyRooms[key].claimValue = baseScore;
                 possibles[key] = worthyRooms[key];

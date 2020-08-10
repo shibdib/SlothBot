@@ -369,12 +369,13 @@ function balanceResources(terminal) {
     // Balance Energy
     if (!Memory.roomCache[terminal.room.name].threatLevel && !terminal.room.nukes.length) {
         // Find needy terminals
-        let needyTerminal = _.min(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.energy < terminal.room.energy * 0.85 && !r.room.memory.praiseRoom), '.room.energy');
+        let needyTerminal = _.min(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.energy < terminal.room.energy * 0.85 && !r.room.memory.praiseRoom && r.store.getFreeCapacity()), '.room.energy');
         if (needyTerminal.id) {
             // Determine how much you can move
-            let availableAmount = terminal.store[RESOURCE_ENERGY] - (TERMINAL_ENERGY_BUFFER * 0.5);
+            let availableAmount = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
             let requestedAmount = (terminal.room.energy - needyTerminal.room.energy) * 0.5;
             if (requestedAmount > availableAmount) requestedAmount = availableAmount;
+            if (requestedAmount > 25000) requestedAmount = 25000;
             if (requestedAmount > 1000) {
                 switch (terminal.send(RESOURCE_ENERGY, requestedAmount, needyTerminal.room.name)) {
                     case OK:
@@ -415,7 +416,8 @@ function balanceResources(terminal) {
         }
         // Keep reaction amount
         if (_.includes(BASE_MINERALS, resource)) {
-            keepAmount = REACTION_AMOUNT;
+            let lab = _.filter(terminal.room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
+            if (lab) keepAmount = REACTION_AMOUNT; else keepAmount = 0;
         }
         // Keep 5000 compressed
         if (_.includes(COMPRESSED_COMMODITIES, resource)) {
@@ -428,7 +430,7 @@ function balanceResources(terminal) {
         if (available > terminal.store[resource]) available = terminal.store[resource];
         if (available <= keepAmount * 0.1 || available < 100) continue;
         // Find room in need
-        let needyTerminal = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && !r.room.nukes.length && r.room.name !== terminal.room.name && r.room.store(resource) < keepAmount && !r.room.memory.praiseRoom), function (s) {
+        let needyTerminal = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && !r.room.nukes.length && r.room.name !== terminal.room.name && r.room.store(resource) < keepAmount && !r.room.memory.praiseRoom && r.store.getFreeCapacity()), function (s) {
             s.room.store(resource);
         })[0];
         if (needyTerminal) {
@@ -439,7 +441,7 @@ function balanceResources(terminal) {
                     log.a('Balancing ' + available + ' ' + resource + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
                     return true;
             }
-        } else if (terminal.room.name !== Memory.saleTerminal.room) {
+        } else if (terminal.room.name !== Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].terminal.store.getFreeCapacity()) {
             switch (terminal.send(resource, available, Memory.saleTerminal.room)) {
                 case OK:
                     log.a('Sent ' + available + ' ' + resource + ' To ' + roomLink(Memory.saleTerminal.room) + ' From ' + roomLink(terminal.room.name) + ' to stockpile.', "Market: ");
@@ -495,7 +497,7 @@ function dealFinder(terminal, globalOrders) {
 }
 
 function sellPixels(globalOrders) {
-    let sellAmount = Game.resources[PIXEL];
+    let sellAmount = Game.resources[PIXEL] - PIXEL_BUFFER;
     if (sellAmount >= 25) {
         let buyer = _.max(globalOrders.filter(order => order.resourceType === PIXEL && order.type === ORDER_BUY && order.price >= latestMarketHistory(PIXEL)['avgPrice'] * 0.8), 'price');
         if (buyer.id) {

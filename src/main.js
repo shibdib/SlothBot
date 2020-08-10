@@ -81,6 +81,7 @@ module.exports.loop = function () {
     if (Game.cpu.bucket >= 7500 && !!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name)) {
         Game.cpu.generatePixel();
         log.a('Pixel Generated.');
+        Memory.lastPixelGenerated = Game.time;
     }
 };
 

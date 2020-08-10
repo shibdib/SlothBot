@@ -431,7 +431,7 @@ function getStructureMatrix(roomName, matrix, options) {
     let room = Game.rooms[roomName];
     let type = 1;
     if (options.ignoreRoads) type = 2; else if (options.offRoad) type = 3;
-    if (!structureMatrixCache[roomName + type] || (!room.memory.structureMatrixTick || Game.time > room.memory.structureMatrixTick + 4500 || Math.random() > 0.85)) {
+    if (!structureMatrixCache[roomName + type] || (!room.memory.structureMatrixTick || Game.time > room.memory.structureMatrixTick + 4500)) {
         room.memory.structureMatrixTick = Game.time;
         structureMatrixCache[roomName + type] = addStructuresToMatrix(room, matrix, type).serialize();
     }
@@ -481,7 +481,7 @@ function addStructuresToMatrix(room, matrix, type) {
 
 function getCreepMatrix(roomName, creep, matrix) {
     let room = Game.rooms[roomName];
-    if (!creepMatrixCache[roomName] || (!room.memory.creepMatrixTick || Game.time !== room.memory.creepMatrixTick + 5)) {
+    if (!creepMatrixCache[roomName] || (!room.memory.creepMatrixTick || Game.time !== room.memory.creepMatrixTick)) {
         room.memory.creepMatrixTick = Game.time;
         creepMatrixCache[roomName] = addCreepsToMatrix(room, matrix, creep).serialize();
     }
