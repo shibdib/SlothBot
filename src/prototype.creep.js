@@ -111,7 +111,7 @@ Creep.prototype.skSafety = function () {
         if (SK) {
             this.shibKite(6);
             return true;
-        } else if (lair.ticksToSpawn <= 15) {
+        } else if (lair.ticksToSpawn <= 20) {
             this.shibMove(this.pos.findClosestByRange(Game.map.findExit(this.room.name, this.memory.overlord)), {range: 2});
             return true;
         }
