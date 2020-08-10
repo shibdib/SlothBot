@@ -48,6 +48,7 @@ global.BARRIER_TARGET_HIT_POINTS = {
 global.LAB_PRIORITY = [RESOURCE_GHODIUM_HYDRIDE, RESOURCE_GHODIUM, RESOURCE_CATALYZED_GHODIUM_ACID];
 
 // Amount targets (Advanced)
+global.PIXEL_BUFFER = 500; // Sell any pixels above this amount
 global.BUY_ENERGY = true; // If true it will buy energy at anything below the baseline energy price if a room isn't considered in surplus
 global.CREDIT_BUFFER = 10000; // Stay above
 global.ENERGY_AMOUNT = (TERMINAL_CAPACITY * 0.1 + STORAGE_CAPACITY * 0.025); // Aim for this amount in a room
@@ -70,4 +71,4 @@ global.GHODIUM_MARKET_BASELINE = 1.100;
 global.BASE_MINERALS_MARKET_BASELINE = 0.100;
 
 // Room stuff
-global.BUILD_PRAISE_ROOMS = false;
+global.BUILD_PRAISE_ROOMS = true;
