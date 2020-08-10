@@ -103,9 +103,11 @@ Creep.prototype.findMineral = function () {
 
 Creep.prototype.skSafety = function () {
     // handle safe SK movement
-    let lair = this.pos.findInRange(this.room.structures, 4, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
+    let range = 4;
+    if (this.memory.destination && this.memory.destination === this.room.name) range = 8;
+    let lair = this.pos.findInRange(this.room.structures, range, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
     if (lair) {
-        let SK = this.pos.findInRange(this.room.creeps, 4, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
+        let SK = this.pos.findInRange(this.room.creeps, range, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
         if (SK) {
             this.shibKite(6);
             return true;
