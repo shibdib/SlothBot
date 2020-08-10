@@ -41,7 +41,7 @@ module.exports.factoryControl = function (room) {
             }
         } else if (Game.time % 25 === 0) {
             // If nothing is set to produce, every 25 ticks check and see if anything should be
-            if (!room.factory.memory.producing && room.energy > FACTORY_CUTOFF) {
+            if (!room.factory.memory.producing && room.energyState) {
                 if (room.energy > ENERGY_AMOUNT * 1.5) {
                     log.a('Producing ' + RESOURCE_BATTERY + ' in ' + roomLink(room.name), ' FACTORY CONTROL:');
                     return room.factory.memory.producing = RESOURCE_BATTERY;
@@ -82,7 +82,7 @@ module.exports.factoryControl = function (room) {
                         }
                     }
                 }
-            } else if (!room.factory.memory.producing && room.energy < FACTORY_CUTOFF && room.store(RESOURCE_BATTERY) >= 50) {
+            } else if (!room.factory.memory.producing && !room.energyState && room.store(RESOURCE_BATTERY) >= 50) {
                 log.a('Converting ' + RESOURCE_BATTERY + ' to ENERGY in ' + roomLink(room.name), ' FACTORY CONTROL:');
                 return room.factory.memory.producing = RESOURCE_ENERGY;
             }
