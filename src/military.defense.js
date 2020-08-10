@@ -24,10 +24,10 @@ module.exports.controller = function (room) {
     if (Game.time % 5 === 0) handleNukeAttack(room);
 
     // Check if you should safemode
-    if (Game.time % 5 === 0) safeModeManager(room);
+    if (Memory.roomCache[room.name].threatLevel) safeModeManager(room);
 
     // Abandon hopeless rooms
-    if (Game.time % 100 === 0) unSavableCheck(room);
+    if (Game.time % 100 === 0 && Memory.roomCache[room.name].threatLevel) unSavableCheck(room);
 
     // Tower control
     towers.towerControl(room);
@@ -100,14 +100,15 @@ function safeModeManager(room) {
     let worthyCount = structureCount[room.name] || _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
     structureCount[room.name] = worthyCount;
     let structureLost = worthyCount > _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
-    let damagedCritical = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TOWER) && s.hits < s.hitsMax).length;
-    let towers = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_TOWER && s.energy > 10)).length;
+    let damagedCritical = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TOWER) && s.hits < s.hitsMax).length > 0;
+    let towers = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_TOWER && s.energy > 10)).length > 0;
     if (structureLost || damagedCritical || !towers) {
-        let ownerArray = [];
-        room.hostileCreeps.forEach((c) => ownerArray.push(c.owner.username));
-        room.controller.activateSafeMode();
-        log.a(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString(), 'DEFENSE COMMAND');
-        Game.notify(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString());
+        if (room.controller.activateSafeMode() === OK) {
+            let ownerArray = [];
+            room.hostileCreeps.forEach((c) => ownerArray.push(c.owner.username));
+            log.a(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString(), 'DEFENSE COMMAND');
+            Game.notify(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString());
+        }
     }
 }
 
