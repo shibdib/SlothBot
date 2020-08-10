@@ -10,7 +10,6 @@
  */
 
 module.exports.role = function (creep) {
-    creep.opportunisticFill();
     if (creep.tryToBoost(['build'])) return;
     creep.say(ICONS.castle, true);
     if (creep.wrongRoom()) return;
@@ -29,7 +28,7 @@ module.exports.role = function (creep) {
                 nukeRampart = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5), 'hits');
             }
             let hostileBarrier = _.min(_.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)), 3)[0]), 'hits');
-            let barriers = _.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level]);
+            let barriers = _.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level] || s.room.energyState));
             let barrier = _.min(barriers, 'hits');
             let site = _.filter(creep.room.constructionSites, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL))[0];
             if (!hostileBarrier.id && barriers.length && barrier.hits < 2000) {
