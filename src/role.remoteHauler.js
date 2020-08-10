@@ -107,9 +107,9 @@ function dropOff(creep) {
         return true;
     }
     //Controller
-    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+    let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     if (controllerContainer && (!controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5) && (!creep.room.terminal || creep.room.terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.25)) {
-        this.memory.storageDestination = controllerContainer.id;
+        creep.memory.storageDestination = controllerContainer.id;
         return true;
     }
     if (creep.room.terminal) {
