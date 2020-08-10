@@ -1002,7 +1002,14 @@ Creep.prototype.abilityPower = function () {
             }
         }
     }
-    return {attack: meleePower + rangedPower, defense: healPower, melee: meleePower, ranged: rangedPower};
+    return {
+        attack: meleePower + rangedPower,
+        meleeAttack: meleePower,
+        rangedAttack: rangedPower,
+        defense: healPower,
+        melee: meleePower,
+        ranged: rangedPower
+    };
 };
 
 Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = false) {
@@ -1718,7 +1725,7 @@ Creep.prototype.canIWin = function (range = 50) {
             hostilePower += armedHostiles[i].abilityPower().defense;
             healPower += armedHostiles[i].abilityPower().defense;
         }
-        hostilePower += armedHostiles[i].abilityPower().attack;
+        if (!this.getActiveBodyparts(RANGED_ATTACK)) hostilePower += armedHostiles[i].abilityPower().attack; else if (armedHostiles[i].getActiveBodyparts(RANGED_ATTACK)) hostilePower += armedHostiles[i].abilityPower().rangedAttack;
     }
     let alliedPower = 0;
     let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK || c.getActiveBodyparts(HEAL)) && this.pos.getRangeTo(c) <= range);
@@ -1730,6 +1737,7 @@ Creep.prototype.canIWin = function (range = 50) {
     Memory.roomCache[this.room.name].hostilePower = hostilePower;
     Memory.roomCache[this.room.name].friendlyPower = alliedPower;
     if (this.getActiveBodyparts(RANGED_ATTACK) && meleeOnly && alliedPower > healPower) return true;
+    if (armedHostiles.length && armedHostiles[0].owner.username === 'Invader') hostilePower *= 0.7;
     return !hostilePower || hostilePower <= alliedPower || this.pos.checkForRampart();
 };
 
