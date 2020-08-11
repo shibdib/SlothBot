@@ -29,7 +29,7 @@ module.exports.role = function (creep) {
             let possibles, target;
             // If there's unexplored prioritize else pick a random adjacent
             possibles = _.filter(adjacent, (r) => !Memory.roomCache[r]) || _.min(adjacent, (r) => Memory.roomCache[r].cached);
-            if (possibles.length && Math.random() > 0.8) target = _.sample(possibles); else target = _.sample(adjacent);
+            if (possibles.length && Math.random() > 0.5) target = _.sample(possibles); else target = _.sample(adjacent);
             // Use try/catch for private servers that don't support this
             try {
                 if (Game.map.getRoomStatus(target).status !== Game.map.getRoomStatus(creep.memory.overlord).status) {
