@@ -71,7 +71,6 @@ module.exports.role = function (powerCreep) {
         let targetObserver = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_OBSERVER && (!s.effects || !s.effects.length))[0];
         let targetFactory = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_FACTORY && (!s.effects || !s.effects.length))[0];
         let targetSource = _.filter(powerCreep.room.sources, (s) => !s.effects || !s.effects.length)[0];
-        let targetMineral = _.filter(powerCreep.room.mineral, (s) => !s.effects || !s.effects.length)[0];
         let targetLab = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LAB && s.memory.creating && !s.memory.itemNeeded && (!s.effects || !s.effects.length))[0];
         // Enable power
         if (!powerCreep.room.controller.isPowerEnabled) {
@@ -104,22 +103,22 @@ module.exports.role = function (powerCreep) {
             return abilitySwitch(powerCreep, PWR_OPERATE_SPAWN, targetSpawn);
         }
         // Boost Sources
-        else if (targetSource && powerCreep.powers[PWR_REGEN_SOURCE] && !powerCreep.powers[PWR_REGEN_SOURCE].cooldown && powerCreep.ops >= POWER_INFO[PWR_REGEN_SOURCE].ops) {
+        else if (targetSource && powerCreep.powers[PWR_REGEN_SOURCE] && !powerCreep.powers[PWR_REGEN_SOURCE].cooldown) {
             powerCreep.say('SOURCE', true);
             return abilitySwitch(powerCreep, PWR_REGEN_SOURCE, targetSource);
         }
         // Boost Mineral
-        else if (targetMineral && powerCreep.powers[PWR_REGEN_MINERAL] && !powerCreep.powers[PWR_REGEN_MINERAL].cooldown && powerCreep.ops >= POWER_INFO[PWR_REGEN_MINERAL].ops) {
+        else if (powerCreep.room.mineral && powerCreep.powers[PWR_REGEN_MINERAL] && !powerCreep.powers[PWR_REGEN_MINERAL].cooldown && (!powerCreep.room.mineral.effects || !powerCreep.room.mineral.effects.length)) {
             powerCreep.say('MINERAL', true);
-            return abilitySwitch(powerCreep, PWR_REGEN_MINERAL, targetMineral);
+            return abilitySwitch(powerCreep, PWR_REGEN_MINERAL, powerCreep.room.mineral);
         }
         // Boost Factory
         else if (targetFactory && targetFactory.memory.producing && powerCreep.powers[PWR_OPERATE_FACTORY] && !powerCreep.powers[PWR_OPERATE_FACTORY].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_FACTORY].ops && powerCreep.powers[PWR_OPERATE_FACTORY].level === COMMODITIES[targetFactory.memory.producing].level) {
             powerCreep.say('FACTORY', true);
             return abilitySwitch(powerCreep, PWR_OPERATE_FACTORY, targetFactory);
         }
-        /**
-         // Boost Observer
+            /**
+             // Boost Observer
          else if (targetObserver && powerCreep.powers[PWR_OPERATE_OBSERVER] && !powerCreep.powers[PWR_OPERATE_OBSERVER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_OBSERVER].ops) {
             abilitySwitch(powerCreep, PWR_OPERATE_OBSERVER, targetObserver);
         }**/
