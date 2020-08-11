@@ -397,7 +397,7 @@ Creep.prototype.locateEnergy = function () {
     if (this.memory.role !== 'hauler' || this.room.controller.level < 6 || (this.memory.findEnergyCountdown >= this.room.controller.level) || this.room.creeps.length <= 4) {
         // Container
         let container = this.pos.findClosestByPath(this.room.structures, {
-            filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id
+            filter: (s) => s.structureType === STRUCTURE_CONTAINER && (this.room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= this.room.controller.level)
                 && s.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * this.store.getFreeCapacity()
         });
         if (container) {
