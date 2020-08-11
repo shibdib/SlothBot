@@ -179,6 +179,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             deficitExemption = true;
             work = _.floor((room.energyCapacityAvailable * 0.4) / BODYPART_COST[WORK]) || 1;
             if (work > 10) work = 10;
+            if (!room.energyState && work > 5) work = 5;
             carry = 1;
             if (room.memory.roadsBuilt || level >= 6) move = work / 2; else move = work;
             break;
@@ -186,6 +187,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             deficitExemption = true;
             carry = _.floor((room.energyCapacityAvailable * 0.40) / BODYPART_COST[CARRY]) || 1;
             if (level <= 6 && carry > 24) carry = 24; else if (level > 6 && carry > 30) carry = 30;
+            if (!room.energyState && carry > 12) carry = 12;
             if (Math.random() > 0.7) work = 1; else work = 0;
             if (level < 6) move = carry + work; else move = _.ceil((carry + work) / 2);
             break;

@@ -33,8 +33,16 @@ module.exports.role = function (creep) {
             case OK:
                 // Handle requesting a hauler
                 let amount = 0;
-                if (container) amount = _.sum(container.store); else if (creep.pos.checkForEnergy()) amount = creep.pos.checkForEnergy().energy;
-                creep.memory.needHauler = amount;
+                let target;
+                if (container) {
+                    target = container.id;
+                    amount = _.sum(container.store);
+                } else if (creep.pos.checkForEnergy()) {
+                    target = creep.pos.checkForEnergy().id;
+                    amount = creep.pos.checkForEnergy().energy;
+                }
+                creep.memory.needHauler = target;
+                creep.memory.energyAmount = amount;
                 // Handle container
                 if (container) {
                     if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.7) return creep.repair(container);
