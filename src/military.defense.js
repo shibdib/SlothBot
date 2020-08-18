@@ -13,79 +13,168 @@ let structureCount = {};
 
 //Claimed Defense
 module.exports.controller = function (room) {
-    //Reset structure count every so often
-    if (Game.time % 250 === 0) structureCount = {};
-    let structures = room.structures;
+                                              //Reset structure count every so often
+                                              if (Game.time % 250 === 0)
+                                                structureCount = {};
 
-    // Check for invaders and request help
-    room.invaderCheck();
+                                              // Check for invaders and request help
+                                              room.invaderCheck();
 
-    // Handle nuke defense
-    if (Game.time % 5 === 0) handleNukeAttack(room);
+                                              // Handle nuke defense
+                                              if (Game.time % 5 === 0)
+                                                handleNukeAttack(room);
 
-    // Check if you should safemode
-    if (Memory.roomCache[room.name].threatLevel) safeModeManager(room);
+                                              // Check if you should safemode
+                                              if (
+                                                Memory.roomCache[room.name]
+                                                  .threatLevel
+                                              )
+                                                safeModeManager(room);
 
-    // Abandon hopeless rooms
-    if (Game.time % 100 === 0 && Memory.roomCache[room.name].threatLevel) unSavableCheck(room);
+                                              // Abandon hopeless rooms
+                                              if (
+                                                Game.time % 100 === 0 &&
+                                                Memory.roomCache[room.name]
+                                                  .threatLevel
+                                              )
+                                                unSavableCheck(room);
 
-    // Tower control
-    towers.towerControl(room);
+                                              // Tower control
+                                              if (
+                                                Memory.roomCache[room.name]
+                                                  .threatLevel ||
+                                                Game.time % 5 === 0
+                                              )
+                                                towers.towerControl(room);
 
-    //Manage Ramparts for Allies
-    rampartManager(room, structures);
+                                              //Manage Ramparts for Allies
+                                              rampartManager(room);
 
-    // Early Warning System
-    earlyWarning(room);
+                                              // Early Warning System
+                                              earlyWarning(room);
 
-    // Send an email on a player attack with details of attack
-    if (Memory.roomCache[room.name].threatLevel && !Memory.roomCache[room.name].alertEmail && Memory.roomCache[room.name].threatLevel >= 4) {
-        Memory.roomCache[room.name].alertEmail = true;
-        let playerHostile = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 1) && c.owner.username !== 'Invader');
-        if (!playerHostile || !playerHostile.length) return;
-        let hostileOwners = [];
-        for (let hostile of playerHostile) hostileOwners.push(hostile.owner.username)
-        Game.notify('----------------------');
-        Game.notify(room.name + ' - Enemy detected, room is now in FPCON DELTA.');
-        Game.notify('----------------------');
-        Game.notify(Memory.roomCache[room.name].numberOfHostiles + ' - Foreign Hostiles Reported');
-        Game.notify('----------------------');
-        Game.notify('Hostile Owners - ' + hostileOwners.toString());
-        Game.notify('----------------------');
-        log.a('----------------------');
-        log.a(roomLink(room.name) + ' - Enemy detected, room is now in FPCON DELTA.');
-        log.a('----------------------');
-        log.a(Memory.roomCache[room.name].numberOfHostiles + ' - Foreign Hostiles Reported');
-        log.a('----------------------');
-        log.a('Hostile Owners - ' + hostileOwners.toString());
-        log.a('----------------------');
-        let nukeTargets = Memory.MAD || [];
-        playerHostile.forEach((p) => nukeTargets.push(p.owner.username))
-        Memory.MAD = _.uniq(nukeTargets);
-    }
+                                              // Send an email on a player attack with details of attack
+                                              if (
+                                                Memory.roomCache[room.name]
+                                                  .threatLevel &&
+                                                !Memory.roomCache[room.name]
+                                                  .alertEmail &&
+                                                Memory.roomCache[room.name]
+                                                  .threatLevel >= 4
+                                              ) {
+                                                Memory.roomCache[
+                                                  room.name
+                                                ].alertEmail = true;
+                                                let playerHostile = _.filter(
+                                                  room.hostileCreeps,
+                                                  (c) =>
+                                                    (c.getActiveBodyparts(
+                                                      ATTACK
+                                                    ) >= 1 ||
+                                                      c.getActiveBodyparts(
+                                                        RANGED_ATTACK
+                                                      ) >= 1 ||
+                                                      c.getActiveBodyparts(
+                                                        WORK
+                                                      ) >= 1) &&
+                                                    c.owner.username !==
+                                                      "Invader"
+                                                );
+                                                if (
+                                                  !playerHostile ||
+                                                  !playerHostile.length
+                                                )
+                                                  return;
+                                                let hostileOwners = [];
+                                                for (let hostile of playerHostile)
+                                                  hostileOwners.push(
+                                                    hostile.owner.username
+                                                  );
+                                                Game.notify(
+                                                  "----------------------"
+                                                );
+                                                Game.notify(
+                                                  room.name +
+                                                    " - Enemy detected, room is now in FPCON DELTA."
+                                                );
+                                                Game.notify(
+                                                  "----------------------"
+                                                );
+                                                Game.notify(
+                                                  Memory.roomCache[room.name]
+                                                    .numberOfHostiles +
+                                                    " - Foreign Hostiles Reported"
+                                                );
+                                                Game.notify(
+                                                  "----------------------"
+                                                );
+                                                Game.notify(
+                                                  "Hostile Owners - " +
+                                                    hostileOwners.toString()
+                                                );
+                                                Game.notify(
+                                                  "----------------------"
+                                                );
+                                                log.a("----------------------");
+                                                log.a(
+                                                  roomLink(room.name) +
+                                                    " - Enemy detected, room is now in FPCON DELTA."
+                                                );
+                                                log.a("----------------------");
+                                                log.a(
+                                                  Memory.roomCache[room.name]
+                                                    .numberOfHostiles +
+                                                    " - Foreign Hostiles Reported"
+                                                );
+                                                log.a("----------------------");
+                                                log.a(
+                                                  "Hostile Owners - " +
+                                                    hostileOwners.toString()
+                                                );
+                                                log.a("----------------------");
+                                                let nukeTargets =
+                                                  Memory.MAD || [];
+                                                playerHostile.forEach((p) =>
+                                                  nukeTargets.push(
+                                                    p.owner.username
+                                                  )
+                                                );
+                                                Memory.MAD = _.uniq(
+                                                  nukeTargets
+                                                );
+                                              }
 
-    // Request assistance
-    if (Memory.roomCache[room.name].threatLevel) {
-        if (Memory.roomCache[room.name].threatLevel >= 4 && !room.controller.safeMode) {
-            Memory.roomCache[room.name].requestingSupport = true;
-        }
-    }
-};
+                                              // Request assistance
+                                              if (
+                                                Memory.roomCache[room.name]
+                                                  .threatLevel
+                                              ) {
+                                                if (
+                                                  Memory.roomCache[room.name]
+                                                    .threatLevel >= 4 &&
+                                                  !room.controller.safeMode
+                                                ) {
+                                                  Memory.roomCache[
+                                                    room.name
+                                                  ].requestingSupport = true;
+                                                }
+                                              }
+                                            };
 
 //Functions
 
-function rampartManager(room, structures) {
+function rampartManager(room) {
     let allies = _.filter(room.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my);
     // Check if allies are in the room
     if (allies.length) {
         let enemies = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
         // Open ramparts
-        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic && !s.pos.checkForObstacleStructure() && s.pos.getRangeTo(s.pos.findClosestByRange(allies)) <= 1 && (!enemies.length || s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) > 2)).forEach((rampart) => rampart.setPublic(true));
+        _.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic && !s.pos.checkForObstacleStructure() && s.pos.getRangeTo(s.pos.findClosestByRange(allies)) <= 1 && (!enemies.length || s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) > 2)).forEach((rampart) => rampart.setPublic(true));
         // Close ramparts
-        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && (s.pos.getRangeTo(s.pos.findClosestByRange(allies)) > 1 || (enemies.length && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) <= 2))).forEach((rampart) => rampart.setPublic(false));
+        _.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && (s.pos.getRangeTo(s.pos.findClosestByRange(allies)) > 1 || (enemies.length && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) <= 2))).forEach((rampart) => rampart.setPublic(false));
     } else if (room.hostileCreeps.length) {
         // Close public ones
-        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic).forEach((rampart) => rampart.setPublic(false));
+        _.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic).forEach((rampart) => rampart.setPublic(false));
     }
 }
 

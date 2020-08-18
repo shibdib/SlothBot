@@ -8,32 +8,30 @@ function Callback() {
 }
 
 Callback.prototype = {
+  subscribe: function (fn) {
+    this.handlers.push(fn);
+  },
 
-    subscribe: function (fn) {
-        this.handlers.push(fn);
-    },
+  unsubscribe: function (fn) {
+    this.handlers = this.handlers.filter(function (item) {
+      if (item !== fn) {
+        return item;
+      }
+    });
+  },
 
-    unsubscribe: function (fn) {
-        this.handlers = this.handlers.filter(
-            function (item) {
-                if (item !== fn) {
-                    return item;
-                }
-            }
-        );
-    },
-
-    fire: function (o, thisObj) {
-        // TODO: Put error handling around the call?
-        this.handlers.forEach(function (item) {
-            try {
-                item.call(thisObj, o);
-            } catch (err) {
-                log.e('Ignored error calling back ', item.name, 'with', o, '-', err);
-            }
-        });
-    }
+  fire: function (o, thisObj) {
+    // TODO: Put error handling around the call?
+    this.handlers.forEach(function (item) {
+      try {
+        item.call(thisObj, o);
+      } catch (err) {
+        log.e("Ignored error calling back ", item.name, "with", o, "-", err);
+      }
+    });
+  },
 };
+
 
 module.exports = {
     Callback

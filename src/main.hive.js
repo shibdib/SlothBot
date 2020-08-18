@@ -122,6 +122,7 @@ module.exports.hiveMind = function () {
 };
 
 let errorCount = {};
+
 function minionController(minion) {
     // If on portal move
     if (minion.portalCheck() || minion.borderCheck()) return;

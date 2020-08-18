@@ -160,24 +160,32 @@ module.exports.overlordMind = function (room, CPULimit) {
 
     // Handle Links
     if (room.level >= 5) {
-        try {
-            links.linkControl(room);
-        } catch (e) {
-            log.e('Link Control for room ' + room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
+      try {
+        links.linkControl(room);
+      } catch (e) {
+        log.e("Link Control for room " + room.name + " experienced an error");
+        log.e(e.stack);
+        Game.notify(e.stack);
+      }
     }
 
     // Handle Terminals
-    if (room.terminal && room.level >= 6 && !room.terminal.cooldown && Game.time % 5 === 0 && !room.memory.lowPower) {
-        try {
-            terminals.terminalControl(room);
-        } catch (e) {
-            log.e('Terminal Control for room ' + room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
+    if (
+      room.terminal &&
+      !room.terminal.cooldown &&
+      Math.random() > 0.5 &&
+      Game.time % 10 === 0 &&
+      !room.memory.lowPower
+    ) {
+      try {
+        terminals.terminalControl(room);
+      } catch (e) {
+        log.e(
+          "Terminal Control for room " + room.name + " experienced an error"
+        );
+        log.e(e.stack);
+        Game.notify(e.stack);
+      }
     }
 
     // Store Data
@@ -294,9 +302,6 @@ function minionController(minion) {
                 Game.notify(e.stack);
             }
         } else if (errorCount[minion.name] >= 50) {
-            if (errorCount[minion.name] === 50) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been killed.');
-            minion.suicide();
-        } else {
             if (errorCount[minion.name] === 10) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been marked for recycling due to hitting the error cap.');
             minion.memory.recycle = true;
         }

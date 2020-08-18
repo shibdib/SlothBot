@@ -58,28 +58,38 @@ module.exports.role = function (creep) {
         }
         if (creep.memory.energyDestination) {
             creep.withdrawResource();
-        } else if (creep.memory.other.stationary || (creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE))) {
-            creep.memory.other.stationary = true;
-            if (!creep.memory.onContainer) {
-                if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
-                    return creep.shibMove(container, {range: 0});
-                } else {
-                    if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
-                    return creep.shibMove(container, {range: 1});
-                }
-            } else {
-                if (link && link.energy) {
-                    creep.withdrawResource(link);
-                } else if (container && container.store[RESOURCE_ENERGY]) {
-                    creep.withdrawResource(container);
-                }
-            }
-        } else if (container && container.store[RESOURCE_ENERGY]) {
-            creep.withdrawResource(container);
-        } else if (!creep.locateEnergy(25)) {
-            let source = creep.pos.getClosestSource();
-            if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
-        }
+        } else if (
+                 creep.memory.other.stationary ||
+                 creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE)
+               ) {
+                 creep.memory.other.stationary = true;
+                 if (!creep.memory.onContainer && container) {
+                   if (
+                     (!container.pos.checkForCreep() ||
+                       container.pos.checkForCreep().memory.role !==
+                         "upgrader") &&
+                     creep.pos.getRangeTo(container)
+                   ) {
+                     return creep.shibMove(container, { range: 0 });
+                   } else {
+                     if (container.pos.isNearTo(creep))
+                       creep.memory.onContainer = true;
+                     return creep.shibMove(container, { range: 1 });
+                   }
+                 } else {
+                   if (link && link.energy) {
+                     creep.withdrawResource(link);
+                   } else if (container && container.store[RESOURCE_ENERGY]) {
+                     creep.withdrawResource(container);
+                   }
+                 }
+               } else if (container && container.store[RESOURCE_ENERGY]) {
+                 creep.withdrawResource(container);
+               } else if (!creep.locateEnergy(25)) {
+                 let source = creep.pos.getClosestSource();
+                 if (creep.harvest(source) === ERR_NOT_IN_RANGE)
+                   creep.shibMove(source);
+               }
     }
 };
 

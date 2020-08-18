@@ -45,7 +45,11 @@ global.BARRIER_TARGET_HIT_POINTS = {
 };
 
 // The boosts you want labs to focus on first (resources permitted)
-global.LAB_PRIORITY = [RESOURCE_GHODIUM_HYDRIDE, RESOURCE_GHODIUM, RESOURCE_CATALYZED_GHODIUM_ACID];
+global.LAB_PRIORITY = [
+  RESOURCE_GHODIUM_HYDRIDE,
+  RESOURCE_GHODIUM,
+  RESOURCE_CATALYZED_GHODIUM_ACID,
+];
 
 // Amount targets (Advanced)
 global.PIXEL_BUFFER = 500; // Sell any pixels above this amount
