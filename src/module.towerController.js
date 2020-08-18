@@ -268,11 +268,11 @@ module.exports.towerControl = function (room) {
 
 // Computes damage of a tower
 function determineDamage(range) {
-    if (range <= 5) {
-        return 600;
-    } else if (range < 20) {
-        return 600 - (450 * (range - 5)) / 15;
-    } else {
-        return 150;
-    }
-}
+                                  if (range <= 5) {
+                                    return 600;
+                                  } else if (range < 20) {
+                                    return 600 - (450 * (range - 5)) / 15;
+                                  } else {
+                                    return 150;
+                                  }
+                                }

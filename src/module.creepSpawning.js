@@ -231,55 +231,55 @@ module.exports.processBuildQueue = function () {
 
 //First Room Startup
 module.exports.roomStartup = function (room) {
-    let queue = roomQueue[room.name];
-    let roomCreeps = _.filter(
-        Game.creeps,
-        (r) => r.memory.overlord === room.name
-    );
-    let drones = _.filter(roomCreeps, (c) => c.memory.role === "drone");
-    let priority = 3;
-    if (drones.length < 2) priority = 1;
-    if (drones.length < ROOM_SOURCE_SPACE[room.name] + 3) {
-        queueCreep(room, priority, {role: "drone"});
-    }
-    let harvesters = _.filter(
-        roomCreeps,
-        (c) => c.memory.role === "stationaryHarvester"
-    );
-    if (!_.includes(queue, "stationaryHarvester")) {
-        if (
-            harvesters.length < 2 ||
-            (harvesters[0].ticksToLive < harvesters[0].body.length * 3 + 10 &&
-                harvesters.length < 3)
-        ) {
-            queueCreep(room, 2, {role: "stationaryHarvester"});
-        }
-    }
-    let hauler = _.filter(roomCreeps, (c) => c.memory.role === "hauler");
-    if (!_.includes(queue, "hauler")) {
-        if (
-            hauler.length < 2 ||
-            (hauler[0].ticksToLive < hauler[0].body.length * 3 + 10 &&
-                hauler.length < 3)
-        ) {
-            queueCreep(room, 2, {role: "hauler"});
-        }
-    }
+  let queue = roomQueue[room.name];
+  let roomCreeps = _.filter(
+    Game.creeps,
+    (r) => r.memory.overlord === room.name
+  );
+  let drones = _.filter(roomCreeps, (c) => c.memory.role === "drone");
+  let priority = 3;
+  if (drones.length < 2) priority = 1;
+  if (drones.length < ROOM_SOURCE_SPACE[room.name] + 3) {
+    queueCreep(room, priority, { role: "drone" });
+  }
+  let harvesters = _.filter(
+    roomCreeps,
+    (c) => c.memory.role === "stationaryHarvester"
+  );
+  if (!_.includes(queue, "stationaryHarvester")) {
     if (
-        !_.includes(queue, "explorer") &&
-        !Memory.roomCache[room.name].responseNeeded
+      harvesters.length < 2 ||
+      (harvesters[0].ticksToLive < harvesters[0].body.length * 3 + 10 &&
+        harvesters.length < 3)
     ) {
-        let amount = 6;
-        let explorers = _.filter(
-            roomCreeps,
-            (creep) => creep.memory.role === "explorer"
-        );
-        if (explorers.length < amount) {
-            queueCreep(room, PRIORITIES.explorer + explorers.length, {
-                role: "explorer",
-            });
-        }
+      queueCreep(room, 2, { role: "stationaryHarvester" });
     }
+  }
+  let hauler = _.filter(roomCreeps, (c) => c.memory.role === "hauler");
+  if (!_.includes(queue, "hauler")) {
+    if (
+      hauler.length < 2 ||
+      (hauler[0].ticksToLive < hauler[0].body.length * 3 + 10 &&
+        hauler.length < 3)
+    ) {
+      queueCreep(room, 2, { role: "hauler" });
+    }
+  }
+  if (
+    !_.includes(queue, "explorer") &&
+    !Memory.roomCache[room.name].responseNeeded
+  ) {
+    let amount = 6;
+    let explorers = _.filter(
+      roomCreeps,
+      (creep) => creep.memory.role === "explorer"
+    );
+    if (explorers.length < amount) {
+      queueCreep(room, PRIORITIES.explorer + explorers.length, {
+        role: "explorer",
+      });
+    }
+  }
 };
 
 //Essential creeps
@@ -450,15 +450,15 @@ module.exports.essentialCreepQueue = function (room) {
       upgraders.length < number + 1)
   ) {
     //If room is about to downgrade get a creep out asap
-      let reboot =
-          room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 ||
-          room.controller.progress > room.controller.progressTotal ||
-          Memory.roomCache[room.name].threatLevel >= 3 ||
-          room.memory.lowPower;
-      queueCreep(room, PRIORITIES.upgrader + upgraders.length * 0.2, {
-          role: "upgrader",
-          other: {reboot: reboot},
-      });
+    let reboot =
+      room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 ||
+      room.controller.progress > room.controller.progressTotal ||
+      Memory.roomCache[room.name].threatLevel >= 3 ||
+      room.memory.lowPower;
+    queueCreep(room, PRIORITIES.upgrader + upgraders.length * 0.2, {
+      role: "upgrader",
+      other: { reboot: reboot },
+    });
   }
 };
 
