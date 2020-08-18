@@ -39,9 +39,13 @@ Creep.prototype.claimClear = function () {
 };
 
 function cleanRoom(room, structures) {
-    for (let key in structures) {
-        if (structures[key] && structures[key].structureType !== STRUCTURE_ROAD) {
-            structures[key].destroy();
-        }
-    }
-}
+                                       for (let key in structures) {
+                                         if (
+                                           structures[key] &&
+                                           structures[key].structureType !==
+                                             STRUCTURE_ROAD
+                                         ) {
+                                           structures[key].destroy();
+                                         }
+                                       }
+                                     }

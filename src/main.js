@@ -13,7 +13,7 @@ let cleanUp = require("module.cleanup");
 const tickLengthArray = [];
 let memCleaned, LAST_MEMORY_TICK;
 log.e(
-    "Global Reset - Last reset occurred " +
+  "Global Reset - Last reset occurred " +
     (Game.time - (Memory.lastGlobalReset || Game.time)) +
     " ticks ago."
 );
@@ -23,15 +23,15 @@ module.exports.loop = function () {
   tryInitSameMemory();
   // Handle cleaning memory for respawn
   if (
-      !memCleaned &&
-      !_.filter(
-          Game.rooms,
-          (r) =>
-              r.controller &&
-              r.controller.owner &&
-              r.controller.my &&
-              (r.memory.bunkerHub || r.memory.praiseRoom)
-      ).length
+    !memCleaned &&
+    !_.filter(
+      Game.rooms,
+      (r) =>
+        r.controller &&
+        r.controller.owner &&
+        r.controller.my &&
+        (r.memory.bunkerHub || r.memory.praiseRoom)
+    ).length
   ) {
     for (let key in Memory) delete Memory[key];
   }
@@ -43,8 +43,8 @@ module.exports.loop = function () {
   // Store owned rooms in array
   if (!Memory.myRooms || !Memory.myRooms.length || Math.random() > 0.5) {
     let myRooms = _.filter(
-        Game.rooms,
-        (r) => r.controller && r.controller.owner && r.controller.my
+      Game.rooms,
+      (r) => r.controller && r.controller.owner && r.controller.my
     );
     if (myRooms.length) {
       Memory.myRooms = _.pluck(myRooms, ".name");
@@ -83,7 +83,7 @@ module.exports.loop = function () {
     } else {
       let countDown = Memory.cooldown + 25 - Game.time;
       log.e(
-          "On CPU Cooldown For " +
+        "On CPU Cooldown For " +
           countDown +
           " more ticks. Current Bucket " +
           Game.cpu.bucket
@@ -101,8 +101,8 @@ module.exports.loop = function () {
 
   // Pixel Gen
   if (
-      Game.cpu.bucket >= 7500 &&
-      !!~["shard0", "shard1", "shard2", "shard3"].indexOf(Game.shard.name)
+    Game.cpu.bucket >= 7500 &&
+    !!~["shard0", "shard1", "shard2", "shard3"].indexOf(Game.shard.name)
   ) {
     Game.cpu.generatePixel();
     log.a("Pixel Generated.");

@@ -4,8 +4,8 @@
 // back later, and they're called with a specified object.
 
 function Callback() {
-    this.handlers = [];  // observers
-}
+                      this.handlers = []; // observers
+                    }
 
 Callback.prototype = {
   subscribe: function (fn) {
@@ -32,7 +32,6 @@ Callback.prototype = {
   },
 };
 
-
 module.exports = {
-    Callback
+  Callback,
 };

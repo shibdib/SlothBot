@@ -3961,4 +3961,3 @@ module.exports.allLayouts = [
   template11,
   template12,
 ];
-

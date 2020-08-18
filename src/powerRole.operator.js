@@ -449,25 +449,35 @@ function upgradePowers(powerCreep) {
 }
 
 function abilitySwitch(powerCreep, power, target = undefined) {
-    switch (powerCreep.usePower(power, target)) {
-        case OK:
-            break;
-        case ERR_NOT_IN_RANGE:
-            powerCreep.shibMove(target, {range: 3});
-            break;
-        case ERR_NOT_ENOUGH_RESOURCES:
-            return false;
-    }
-}
+                                                                switch (
+                                                                  powerCreep.usePower(
+                                                                    power,
+                                                                    target
+                                                                  )
+                                                                ) {
+                                                                  case OK:
+                                                                    break;
+                                                                  case ERR_NOT_IN_RANGE:
+                                                                    powerCreep.shibMove(
+                                                                      target,
+                                                                      {
+                                                                        range: 3,
+                                                                      }
+                                                                    );
+                                                                    break;
+                                                                  case ERR_NOT_ENOUGH_RESOURCES:
+                                                                    return false;
+                                                                }
+                                                              }
 
 function upgradeSwitch(powerCreep, power) {
-    switch (powerCreep.upgrade(power)) {
-        case OK:
-            log.a(powerCreep.name + ' just upgraded the ' + power + ' ability.')
-            break;
-        case ERR_NOT_ENOUGH_RESOURCES:
-            return;
-        case ERR_FULL:
-            break;
-    }
+  switch (powerCreep.upgrade(power)) {
+    case OK:
+      log.a(powerCreep.name + " just upgraded the " + power + " ability.");
+      break;
+    case ERR_NOT_ENOUGH_RESOURCES:
+      return;
+    case ERR_FULL:
+      break;
+  }
 }
