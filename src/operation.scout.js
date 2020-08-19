@@ -440,46 +440,46 @@ function forwardObserver(room) {
     case "hold":
       // HOLD - Clear target if room is no longer owned
       if (
-          !room.controller ||
-          !room.controller.owner ||
-          room.controller.safeMode ||
-          !Memory.targetRooms[room.name]
+        !room.controller ||
+        !room.controller.owner ||
+        room.controller.safeMode ||
+        !Memory.targetRooms[room.name]
       ) {
         log.a(
-            "Canceling hold operation in " +
+          "Canceling hold operation in " +
             roomLink(room.name) +
             " as it is no longer owned.",
-            "HIGH COMMAND: "
+          "HIGH COMMAND: "
         );
         delete Memory.targetRooms[room.name];
         return;
       }
       // Request unClaimer if room level is too high
       Memory.targetRooms[room.name].claimAttacker =
-          !room.controller.upgradeBlocked &&
-          (!room.controller.ticksToDowngrade ||
-              room.controller.ticksToDowngrade > 1000);
+        !room.controller.upgradeBlocked &&
+        (!room.controller.ticksToDowngrade ||
+          room.controller.ticksToDowngrade > 1000);
       break;
   }
   let armedEnemies = _.filter(
-      room.hostileCreeps,
-      (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)
+    room.hostileCreeps,
+    (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)
   );
   if (armedEnemies.length) {
     if (Memory.targetRooms[room.name].oldPriority)
       Memory.targetRooms[room.name].priority =
-          Memory.targetRooms[room.name].oldPriority;
+        Memory.targetRooms[room.name].oldPriority;
     Memory.targetRooms[room.name].level = 2;
   } else if (room.hostileCreeps.length) {
     if (Memory.targetRooms[room.name].oldPriority)
       Memory.targetRooms[room.name].priority =
-          Memory.targetRooms[room.name].oldPriority;
+        Memory.targetRooms[room.name].oldPriority;
     Memory.targetRooms[room.name].level = 1;
   } else {
     if (Memory.targetRooms[room.name].type !== "hold") {
       if (!Memory.targetRooms[room.name].oldPriority)
         Memory.targetRooms[room.name].oldPriority =
-            Memory.targetRooms[room.name].priority;
+          Memory.targetRooms[room.name].priority;
       Memory.targetRooms[room.name].priority = 3;
     }
     Memory.targetRooms[room.name].level = 0;
