@@ -1133,8 +1133,8 @@ function profitCheck(force = false) {
                                           );
                                         }
                                         /**
-     // Track profits
-     if (hourlyProfits.length < 240) {
+         // Track profits
+         if (hourlyProfits.length < 240) {
             hourlyProfits.push(hourChange)
         } else {
             hourlyProfits.shift();
