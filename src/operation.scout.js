@@ -198,47 +198,40 @@ function operationPlanner(room, creep = undefined) {
                                                        ];
                                                        // If the room has no controller
                                                        if (!controller) {
-                                                                          // Handle SK Cores
-                                                                          if (
-                                                                            towers.length
-                                                                          ) {
-                                                                            if (
-                                                                              maxLevel ===
-                                                                              8
-                                                                            ) {
-                                                                              if (
-                                                                                towers.length <=
-                                                                                3
-                                                                              ) {
-                                                                                cache[
-                                                                                  room.name
-                                                                                ] = {
-                                                                                  tick: tick,
-                                                                                  type:
-                                                                                    "siege",
-                                                                                  level: 1,
-                                                                                  priority: priority,
-                                                                                };
-                                                                              }
-                                                                            } else if (
-                                                                                     towers.length <=
-                                                                                       2 &&
-                                                                                     maxLevel >=
-                                                                                       7
-                                                                                   ) {
-                                                                                     cache[
-                                                                                       room.name
-                                                                                     ] = {
-                                                                                       tick: tick,
-                                                                                       type:
-                                                                                         "siegeGroup",
-                                                                                       level: 1,
-                                                                                       priority: priority,
-                                                                                     };
-                                                                                   }
-                                                                          }
-                                                                          // If the room is in safemode queue up another scout
-                                                                        } else if (
+                                                         // Handle SK Cores
+                                                         if (towers.length) {
+                                                           if (maxLevel === 8) {
+                                                             if (
+                                                               towers.length <=
+                                                               3
+                                                             ) {
+                                                               cache[
+                                                                 room.name
+                                                               ] = {
+                                                                 tick: tick,
+                                                                 type: "siege",
+                                                                 level: 1,
+                                                                 priority: priority,
+                                                               };
+                                                             }
+                                                           } else if (
+                                                             towers.length <=
+                                                               2 &&
+                                                             maxLevel >= 7
+                                                           ) {
+                                                             cache[
+                                                               room.name
+                                                             ] = {
+                                                               tick: tick,
+                                                               type:
+                                                                 "siegeGroup",
+                                                               level: 1,
+                                                               priority: priority,
+                                                             };
+                                                           }
+                                                         }
+                                                         // If the room is in safemode queue up another scout
+                                                       } else if (
                                                          controller.owner &&
                                                          controller.safeMode
                                                        ) {

@@ -62,7 +62,7 @@ Object.defineProperty(PowerCreep.prototype, "idle", {
 PowerCreep.prototype.goToHub = function (destination) {
   let hub = new RoomPosition(25, 25, destination);
   if (this.pos.getRangeTo(hub) <= 15) return this.idleFor(10);
-  return this.shibMove(hub, { range: 15 });
+  return this.shibMove(hub, {range: 15});
 };
 
 /**
