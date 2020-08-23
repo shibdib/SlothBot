@@ -112,78 +112,71 @@ function operationPlanner(room, creep = undefined) {
                 return memory.recycle;
             }
             // Handle MAD
-            if (
-              Memory.MAD &&
-              _.includes(Memory.MAD, controller.owner.username) &&
-              nukeTarget(room)
-            ) {
-              cache[room.name] = {
-                tick: tick,
-                dDay: tick + 50000,
-                type: "nuke",
-                level: 1,
-              };
-              Memory.MAD = _.filter(
-                Memory.MAD,
-                (u) => u !== controller.owner.username
-              );
-            }
-            // If owned room has no towers
-            else if (!towers.length || _.max(towers, "energy").energy < 10) {
-              cache[room.name] = {
-                tick: tick,
-                type: "hold",
-                level: 0,
-                priority: 99,
-              };
-              // If owned room has tower
-            } else if (SIEGE_ENABLED) {
-              if (maxLevel === 8) {
-                //TODO: Redo non MAD nuke threshold
-                if (towers.length >= 2 && nukeTarget(room)) {
-                  cache[room.name] = {
+            if (Memory.MAD && _.includes(Memory.MAD, controller.owner.username) && nukeTarget(room)) {
+                cache[room.name] = {
                     tick: tick,
                     dDay: tick + 50000,
-                    type: "nuke",
-                    level: 1,
-                  };
-                } else if (towers.length >= 3) {
-                  cache[room.name] = {
+                    type: 'nuke',
+                    level: 1
+                };
+                Memory.MAD = _.filter(Memory.MAD, (u) => u !== controller.owner.username);
+            } else
+            // If owned room has no towers
+            if (!towers.length || _.max(towers, 'energy').energy < 10) {
+                cache[room.name] = {
                     tick: tick,
-                    type: "drain",
-                    level: 1,
-                    priority: priority,
-                  };
-                } else if (towers.length === 2) {
-                  cache[room.name] = {
-                    tick: tick,
-                    type: "siege",
-                    level: 1,
-                    priority: priority,
-                  };
-                } else if (towers.length === 1) {
-                  cache[room.name] = {
-                    tick: tick,
-                    type: "siegeGroup",
-                    level: 1,
-                    priority: priority,
-                  };
+                    type: 'hold',
+                    level: 0,
+                    priority: 99
+                };
+                // If owned room has tower
+            } else if (SIEGE_ENABLED) {
+                if (maxLevel === 8) {
+                    //TODO: Redo non MAD nuke threshold
+                    if (towers.length >= 2 && nukeTarget(room)) {
+                        cache[room.name] = {
+                            tick: tick,
+                            dDay: tick + 50000,
+                            type: 'nuke',
+                            level: 1
+                        };
+                    } else if (towers.length >= 3) {
+                        cache[room.name] = {
+                            tick: tick,
+                            type: 'drain',
+                            level: 1,
+                            priority: priority
+                        };
+                    } else if (towers.length === 2) {
+                        cache[room.name] = {
+                            tick: tick,
+                            type: 'siege',
+                            level: 1,
+                            priority: priority
+                        };
+                    } else if (towers.length === 1) {
+                        cache[room.name] = {
+                            tick: tick,
+                            type: 'siegeGroup',
+                            level: 1,
+                            priority: priority
+                        };
+                    }
+                } else if (towers.length <= 1 && maxLevel >= 7) {
+                    cache[room.name] = {
+                        tick: tick,
+                        type: 'siegeGroup',
+                        level: 1,
+                        priority: priority
+                    };
+                } else if (towers.length <= 2 && maxLevel >= 6) {
+                    cache[room.name] = {
+                        tick: tick,
+                        type: 'drain',
+                        level: 1,
+                        priority: priority
+                    };
                 }
-              } else if (towers.length <= 1 && maxLevel >= 7) {
-                cache[room.name] = {
-                  tick: tick,
-                  type: "siegeGroup",
-                  level: 1,
-                  priority: priority,
-                };
-              } else if (towers.length <= 2 && maxLevel >= 6) {
-                cache[room.name] = {
-                  tick: tick,
-                  type: "drain",
-                  level: 1,
-                  priority: priority,
-                };
-              }
             }
             // If the room is unowned
         } else if (!controller.owner) {

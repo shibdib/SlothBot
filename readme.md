@@ -14,10 +14,9 @@ _This was made as a way for me to learn JS, so excuse any horrible practices you
 - Automated Room Defense
 - Automated Boost Creation and Use
 - Automated Market Interaction
-- Automated Pixel Generation
 - Automated Alliance Integration (This bot will recognize LOAN alliance members and not engage them)
-- Automated Attack Target Code 
 - Manual Attack Target Designation (Description forthcoming)
+- Automated Attack Target Code 
 
 ##Setup
 1. For the main server simply fork this repo and sync your github to the game, point it to the src folder.

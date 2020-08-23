@@ -42,107 +42,49 @@ module.exports.factoryControl = function (room) {
         } else if (Game.time % 25 === 0) {
             // If nothing is set to produce, every 25 ticks check and see if anything should be
             if (!room.factory.memory.producing && room.energyState) {
-              if (room.energy > ENERGY_AMOUNT * 1.5) {
-                log.a(
-                  "Producing " +
-                    RESOURCE_BATTERY +
-                    " in " +
-                    roomLink(room.name),
-                  " FACTORY CONTROL:"
-                );
-                return (room.factory.memory.producing = RESOURCE_BATTERY);
-              } else {
-                // De-compress
-                for (let mineral of shuffle(BASE_MINERALS)) {
-                  if (
-                    !COMMODITIES[mineral] ||
-                    room.store(mineral) >= REACTION_AMOUNT * 0.5
-                  )
-                    continue;
-                  let enough;
-                  for (let neededResource of Object.keys(
-                    COMMODITIES[mineral].components
-                  )) {
-                    enough = false;
-                    if (
-                      room.store(neededResource) +
-                        room.factory.store[neededResource] <
-                      COMMODITIES[mineral].components[neededResource]
-                    )
-                      break;
-                    enough = true;
-                  }
-                  if (enough) {
-                    log.a(
-                      "De-compressing " +
-                        mineral +
-                        " in " +
-                        roomLink(room.name),
-                      " FACTORY CONTROL:"
-                    );
-                    return (room.factory.memory.producing = mineral);
-                  }
+                if (room.energy > ENERGY_AMOUNT * 1.5) {
+                    log.a('Producing ' + RESOURCE_BATTERY + ' in ' + roomLink(room.name), ' FACTORY CONTROL:');
+                    return room.factory.memory.producing = RESOURCE_BATTERY;
+                } else {
+                    // De-compress
+                    for (let mineral of shuffle(BASE_MINERALS)) {
+                        if (!COMMODITIES[mineral] || room.store(mineral) >= REACTION_AMOUNT * 0.5) continue;
+                        let enough;
+                        for (let neededResource of Object.keys(COMMODITIES[mineral].components)) {
+                            enough = false;
+                            if (room.store(neededResource) + room.factory.store[neededResource] < COMMODITIES[mineral].components[neededResource]) break;
+                            enough = true;
+                        }
+                        if (enough) {
+                            log.a('De-compressing ' + mineral + ' in ' + roomLink(room.name), ' FACTORY CONTROL:');
+                            return room.factory.memory.producing = mineral;
+                        }
+                    }
+                    for (let commodity of shuffle(ALL_COMMODITIES)) {
+                        // If a base continue
+                        if (!COMMODITIES[commodity] || (room.store(commodity) >= DUMP_AMOUNT * 0.9 && !_.includes(COMPRESSED_COMMODITIES, commodity))) continue;
+                        if (commodity === RESOURCE_BATTERY) continue;
+                        // Handle levels
+                        if (COMMODITIES[commodity].level) {
+                            let powerCreep = _.filter(room.powerCreeps, (p) => p.my && p.powers[PWR_OPERATE_FACTORY] && p.powers[PWR_OPERATE_FACTORY].level === COMMODITIES[commodity].level)[0];
+                            if (!powerCreep) continue;
+                        }
+                        let enough;
+                        for (let neededResource of Object.keys(COMMODITIES[commodity].components)) {
+                            enough = false;
+                            if (room.store(neededResource) < COMMODITIES[commodity].components[neededResource]) break;
+                            if (_.includes(BASE_MINERALS, neededResource) && room.store(neededResource) < REACTION_AMOUNT * 0.4) break;
+                            enough = true;
+                        }
+                        if (enough) {
+                            log.a('Producing ' + commodity + ' in ' + roomLink(room.name), ' FACTORY CONTROL:');
+                            return room.factory.memory.producing = commodity;
+                        }
+                    }
                 }
-                for (let commodity of shuffle(ALL_COMMODITIES)) {
-                  // If a base continue
-                  if (
-                    !COMMODITIES[commodity] ||
-                    (room.store(commodity) >= DUMP_AMOUNT * 0.9 &&
-                      !_.includes(COMPRESSED_COMMODITIES, commodity))
-                  )
-                    continue;
-                  if (commodity === RESOURCE_BATTERY) continue;
-                  // Handle levels
-                  if (COMMODITIES[commodity].level) {
-                    let powerCreep = _.filter(
-                      room.powerCreeps,
-                      (p) =>
-                        p.my &&
-                        p.powers[PWR_OPERATE_FACTORY] &&
-                        p.powers[PWR_OPERATE_FACTORY].level ===
-                          COMMODITIES[commodity].level
-                    )[0];
-                    if (!powerCreep) continue;
-                  }
-                  let enough;
-                  for (let neededResource of Object.keys(
-                    COMMODITIES[commodity].components
-                  )) {
-                    enough = false;
-                    if (
-                      room.store(neededResource) <
-                      COMMODITIES[commodity].components[neededResource]
-                    )
-                      break;
-                    if (
-                      _.includes(BASE_MINERALS, neededResource) &&
-                      room.store(neededResource) < REACTION_AMOUNT * 0.4
-                    )
-                      break;
-                    enough = true;
-                  }
-                  if (enough) {
-                    log.a(
-                      "Producing " + commodity + " in " + roomLink(room.name),
-                      " FACTORY CONTROL:"
-                    );
-                    return (room.factory.memory.producing = commodity);
-                  }
-                }
-              }
-            } else if (
-              !room.factory.memory.producing &&
-              !room.energyState &&
-              room.store(RESOURCE_BATTERY) >= 50
-            ) {
-              log.a(
-                "Converting " +
-                  RESOURCE_BATTERY +
-                  " to ENERGY in " +
-                  roomLink(room.name),
-                " FACTORY CONTROL:"
-              );
-              return (room.factory.memory.producing = RESOURCE_ENERGY);
+            } else if (!room.factory.memory.producing && !room.energyState && room.store(RESOURCE_BATTERY) >= 50) {
+                log.a('Converting ' + RESOURCE_BATTERY + ' to ENERGY in ' + roomLink(room.name), ' FACTORY CONTROL:');
+                return room.factory.memory.producing = RESOURCE_ENERGY;
             }
         }
     }

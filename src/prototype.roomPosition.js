@@ -64,13 +64,8 @@ RoomPosition.prototype.countOpenTerrainAround = function () {
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
             if (xOff !== 0 || yOff !== 0) {
-                let pos = new RoomPosition(
-                  this.x + xOff,
-                  this.y + yOff,
-                  this.roomName
-                );
-                if (pos.checkForImpassible() || pos.checkForCreep())
-                  impassible += 1;
+                let pos = new RoomPosition(this.x + xOff, this.y + yOff, this.roomName);
+                if (pos.checkForImpassible() || (pos.checkForCreep() && !pos.checkForCreep().getActiveBodyparts(MOVE))) impassible += 1;
             }
         }
     }

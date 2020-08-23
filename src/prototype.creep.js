@@ -981,28 +981,26 @@ Creep.prototype.abilityPower = function () {
     let rangedPower = 0;
     let healPower = 0;
     for (let part of this.body) {
-      if (!part.hits) continue;
-      if (part.boost) {
-        if (part.type === ATTACK) {
-          meleePower += ATTACK_POWER * BOOSTS[part.type][part.boost]["attack"];
-        } else if (part.type === RANGED_ATTACK) {
-          rangedPower +=
-            RANGED_ATTACK_POWER * BOOSTS[part.type][part.boost]["rangedAttack"];
-        } else if (part.type === HEAL) {
-          healPower += HEAL_POWER * BOOSTS[part.type][part.boost]["heal"];
-        } else if (part.type === TOUGH) {
-          healPower +=
-            HEAL_POWER * (1 - BOOSTS[part.type][part.boost]["damage"]);
+        if (!part.hits) continue;
+        if (part.boost) {
+            if (part.type === ATTACK) {
+                meleePower += ATTACK_POWER * BOOSTS[part.type][part.boost]['attack'];
+            } else if (part.type === RANGED_ATTACK) {
+                rangedPower += RANGED_ATTACK_POWER * BOOSTS[part.type][part.boost]['rangedAttack'];
+            } else if (part.type === HEAL) {
+                healPower += HEAL_POWER * BOOSTS[part.type][part.boost]['heal'];
+            } else if (part.type === TOUGH) {
+                healPower += HEAL_POWER * (1 - BOOSTS[part.type][part.boost]['damage']);
+            }
+        } else {
+            if (part.type === ATTACK) {
+                meleePower += ATTACK_POWER;
+            } else if (part.type === RANGED_ATTACK) {
+                rangedPower += RANGED_ATTACK_POWER;
+            } else if (part.type === HEAL) {
+                healPower += HEAL_POWER;
+            }
         }
-      } else {
-        if (part.type === ATTACK) {
-          meleePower += ATTACK_POWER;
-        } else if (part.type === RANGED_ATTACK) {
-          rangedPower += RANGED_ATTACK_POWER;
-        } else if (part.type === HEAL) {
-          healPower += HEAL_POWER;
-        }
-      }
     }
     return {
         attack: meleePower + rangedPower,
@@ -1019,7 +1017,7 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
     let worthwhileStructures = this.room.hostileStructures.length > 0;
     if (!this.room.hostileCreeps.length && !worthwhileStructures) return undefined;
     let barriersPresent = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).length;
-    let hostileRoom = this.room.controller && !this.room.controller.my && ((this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner.username)) || (this.room.controller.reservation && !_.includes(FRIENDLIES, this.room.controller.reservation.username)) || _.filter(this.room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username)));
+    let hostileRoom = this.room.controller && !this.room.controller.my && ((this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner.username)) || (this.room.controller.reservation && !_.includes(FRIENDLIES, this.room.controller.reservation.username)));
     // Towers die first (No ramps)
     if (hostileRoom) {
         filter = {filter: (c) => c.structureType === STRUCTURE_TOWER && (!c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000) && c.isActive()};

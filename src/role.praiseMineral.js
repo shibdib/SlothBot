@@ -50,7 +50,7 @@ module.exports.role = function (creep) {
                 }
             }
         } else {
-                 creep.findMineral();
-               }
+            creep.findMineral();
+        }
     }
 };
