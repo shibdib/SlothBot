@@ -623,7 +623,7 @@ let template5 = [
         "pos": [{"x": 26, "y": 25}, {"x": 25, "y": 26}, {"x": 26, "y": 26}]
     }, {
         "layout": 5,
-        "type": STRUCTURE_OBSERVER, "pos": [{"x": 23, "y": 24}]
+        "type": STRUCTURE_OBSERVER, "pos": [{"x": 24, "y": 23}]
     }, {
         "layout": 5,
         "type": STRUCTURE_TERMINAL,
@@ -644,7 +644,7 @@ let template5 = [
         "pos": [{"x": 27, "y": 26}]
     }, {
         "layout": 5,
-        "type": STRUCTURE_NUKER, "pos": [{"x": 24, "y": 23}]
+        "type": STRUCTURE_NUKER, "pos": [{"x": 25, "y": 23}]
     }
 ];
 
