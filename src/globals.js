@@ -97,6 +97,7 @@ let globals = function () {
         0: {
             stationaryHarvester: [WORK, WORK, CARRY, MOVE],
             drone: [MOVE, MOVE, CARRY, WORK],
+            maintenance: [MOVE, MOVE, CARRY, WORK],
             waller: [MOVE, MOVE, CARRY, WORK],
             upgrader: [MOVE, MOVE, CARRY, WORK],
             praiseUpgrader: [MOVE, CARRY, WORK],
