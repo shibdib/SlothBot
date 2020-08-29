@@ -24,11 +24,13 @@ module.exports.role = function role(creep) {
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
     }
-    if (creep.isFull) {
+    if (creep.isFull && creep.memory.task !== 'harvest') {
         creep.memory.working = true;
         creep.memory.source = undefined;
         creep.memory.harvest = undefined;
     }
+    // If harvester needed harvest
+    if (harvest(creep)) return;
     // Work
     if (creep.memory.working === true) {
         creep.memory.source = undefined;
@@ -73,6 +75,35 @@ module.exports.role = function role(creep) {
         }
     }
 };
+
+function harvest(creep) {
+    let spawn = _.filter(creep.room.structures, (c) => c.my && c.structureType === STRUCTURE_SPAWN)[0];
+    let harvester = _.filter(creep.room.creeps, (c) => c.my && c.memory && c.memory.role === 'drone' && c.memory.task === 'harvest')[0];
+    if ((!spawn && !harvester) || creep.memory.task === 'harvest') {
+        let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
+        if (source) {
+            creep.memory.task = 'harvest';
+            creep.say('Harvest!', true);
+            creep.memory.source = source.id;
+            switch (creep.harvest(source)) {
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(source);
+                    if (Math.random() >= 0.9) {
+                        creep.memory.harvest = undefined;
+                        creep.memory.source = undefined;
+                        return;
+                    }
+                    break;
+                case ERR_NOT_ENOUGH_RESOURCES:
+                    creep.memory.source = undefined;
+                    break;
+                case OK:
+                    break;
+            }
+        }
+        return true;
+    }
+}
 
 function building(creep) {
     if (creep.memory.task && creep.memory.task !== 'build' && creep.memory.task !== 'repair') return;

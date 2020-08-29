@@ -81,7 +81,7 @@ function remoteRoads(creep) {
     // Prevent spamming this function
     if (creep.memory.other.lastChecked === creep.room.name) {
         creep.memory.other.lastChecked = undefined;
-        return creep.idleFor(50);
+        return creep.idleFor(3);
     }
     creep.memory.other.lastChecked = creep.room.name;
     let sources = creep.room.sources;
