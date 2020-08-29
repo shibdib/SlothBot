@@ -41,6 +41,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             if (carry > 10) carry = 10;
             move = work + carry;
             break;
+        case 'maintenance':
+            work = 1;
+            carry = 1;
+            move = 2;
+            break;
         case 'waller':
             if (room.nukes.length) deficitExemption = true;
             work = _.floor((room.energyCapacityAvailable * _.random(0.2, 0.5)) / BODYPART_COST[WORK]) || 1;
@@ -131,9 +136,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             break;
         case 'longbow':
             deficitExemption = true;
-            rangedAttack = _.floor((room.energyCapacityAvailable * 0.35) / BODYPART_COST[RANGED_ATTACK]) || 1;
+            rangedAttack = _.floor((room.energyCapacityAvailable * 0.3) / BODYPART_COST[RANGED_ATTACK]) || 1;
             if (rangedAttack > 19) rangedAttack = 19;
-            heal = _.floor((room.energyCapacityAvailable * 0.1) / BODYPART_COST[HEAL]);
+            heal = _.floor((room.energyCapacityAvailable * 0.2) / BODYPART_COST[HEAL]);
             if (heal > 6) heal = 6;
             move = heal + rangedAttack;
             break;
