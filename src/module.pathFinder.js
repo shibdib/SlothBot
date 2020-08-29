@@ -57,8 +57,8 @@ function shibMove(creep, heading, options = {}) {
     // Use roads with a trailer
     // Request a tow truck if needed
     if (!creep.className) {
-        if (heading.id && (creep.pos.getRangeTo(heading) > 3 || !creep.getActiveBodyparts(MOVE)) && !creep.memory.towDestination && _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length && creep.memory.role !== 'responder') {
-            creep.memory.towDestination = heading.id;
+        if ((creep.pos.getRangeTo(heading) > 3 || !creep.getActiveBodyparts(MOVE)) && !creep.memory.towDestination && _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length && creep.memory.role !== 'responder') {
+            creep.memory.towDestination = heading.id || heading;
             creep.memory.towRange = options.range;
         } else if (heading.id && creep.getActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {
             creep.memory.towDestination = undefined;
@@ -94,7 +94,7 @@ function shibMove(creep, heading, options = {}) {
     //Clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
         let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y &&
-            c.memory.role !== 'Reserver' && c.memory.role !== 'powerAttacker')[0];
+            c.memory.role !== 'Reserver' && c.memory.role !== 'powerAttacker' && c.memory.role !== 'stationaryHarvester')[0];
         if (bumpCreep && Math.random() > 0.5) {
             if (!creep.memory.trailer) {
                 if (bumpCreep.getActiveBodyparts(MOVE)) {
@@ -212,6 +212,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             if (route) {
                 allowedRooms = route;
                 pathInfo.route = route;
+                options.maxRooms = route.length
             } else {
                 let exitDir = Game.map.findExit(origin.roomName, pathInfo.targetRoom);
                 if (exitDir === ERR_NO_PATH) {
@@ -325,12 +326,12 @@ function findRoute(origin, destination, options = {}) {
                 if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 10;
                 // Avoid rooms owned by others
                 if (Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner)) {
-                    if (Memory.roomCache[roomName].towers) return 256; else return 75;
+                    if (Memory.roomCache[roomName].towers) return 256; else return 125;
                 }
                 // Avoid rooms reserved by others
                 if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 15;
                 // Highway
-                if (Memory.roomCache[roomName].isHighway) return 5;
+                if (Memory.roomCache[roomName].isHighway) return 8;
             } else
                 // Unknown rooms have a slightly higher weight
             if (!Memory.roomCache[roomName]) return 15;
@@ -427,12 +428,17 @@ function addTerrainToMatrix(roomName, type) {
     return matrix;
 }
 
+structureCount = {};
+siteCount = {};
+
 function getStructureMatrix(roomName, matrix, options) {
     let room = Game.rooms[roomName];
     let type = 1;
     if (options.ignoreRoads) type = 2; else if (options.offRoad) type = 3;
-    if (!structureMatrixCache[roomName + type] || (!room.memory.structureMatrixTick || Game.time > room.memory.structureMatrixTick + 4500)) {
+    if (!structureMatrixCache[roomName + type] || (!room.memory.structureMatrixTick || Game.time > room.memory.structureMatrixTick + 10000 || structureCount[roomName] !== room.structures.length || siteCount[roomName] !== room.constructionSites.length)) {
         room.memory.structureMatrixTick = Game.time;
+        structureCount[roomName] = room.structures.length;
+        siteCount[roomName] = room.constructionSites.length;
         structureMatrixCache[roomName + type] = addStructuresToMatrix(room, matrix, type).serialize();
     }
     return PathFinder.CostMatrix.deserialize(structureMatrixCache[roomName + type]);
