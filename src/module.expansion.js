@@ -6,7 +6,7 @@
  */
 
 module.exports.claimNewRoom = function () {
-    let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 3000 < Game.time) && r.hubCheck && r.closestRange <= 8);
+    let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 3000 < Game.time) && r.hubCheck && r.closestRange <= 12);
     if (worthyRooms.length > 0) {
         let possibles = {};
         loop1:
@@ -22,18 +22,20 @@ module.exports.claimNewRoom = function () {
                 if (neighboring['3'] && Memory.roomCache[neighboring['3']] && !Memory.roomCache[neighboring['3']].user) sourceCount += Memory.roomCache[neighboring['3']].sources;
                 if (neighboring['5'] && Memory.roomCache[neighboring['5']] && !Memory.roomCache[neighboring['5']].user) sourceCount += Memory.roomCache[neighboring['5']].sources;
                 if (neighboring['7'] && Memory.roomCache[neighboring['7']] && !Memory.roomCache[neighboring['7']].user) sourceCount += Memory.roomCache[neighboring['7']].sources;
-                baseScore += (sourceCount * 100);
+                baseScore += (sourceCount * 200);
                 // Swamps suck
                 let terrain = Game.map.getRoomTerrain(name);
                 let terrainScore = 0;
                 for (let y = 0; y < 50; y++) {
                     for (let x = 0; x < 50; x++) {
                         let tile = terrain.get(x, y);
-                        if (tile === TERRAIN_MASK_WALL) terrainScore += 0.5;
-                        if (tile === TERRAIN_MASK_SWAMP) terrainScore += 15;
+                        if (tile === TERRAIN_MASK_WALL) terrainScore += 0.25;
+                        if (tile === TERRAIN_MASK_SWAMP) terrainScore += 25;
                     }
                 }
                 baseScore -= terrainScore;
+                // Source range
+                baseScore -= Memory.roomCache[name].sourceRange;
                 // If it's a new mineral add to the score
                 if (worthyRooms[key].mineral && !_.includes(OWNED_MINERALS, worthyRooms[key].mineral)) baseScore += 1000;
                 // Check if it's near any owned rooms
@@ -41,9 +43,7 @@ module.exports.claimNewRoom = function () {
                 for (let avoidKey in avoidRooms) {
                     let avoidName = avoidRooms[avoidKey].name;
                     let distance = Game.map.getRoomLinearDistance(name, avoidName);
-                    let cutoff = 2;
-                    if (_.includes(FRIENDLIES, avoidRooms[avoidKey].owner)) cutoff = 3;
-                    if (distance <= 1) continue loop1; else if (distance < 3) baseScore -= 150; else if (baseScore < 6) baseScore += 100; else baseScore -= 350;
+                    if (distance <= 1) baseScore -= 1000; else if (distance < 3) baseScore -= 150; else if (baseScore < 6) baseScore += 100; else baseScore -= 350;
                 }
                 worthyRooms[key].claimValue = baseScore;
                 possibles[key] = worthyRooms[key];
