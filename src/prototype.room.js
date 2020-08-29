@@ -298,7 +298,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     let room = Game.rooms[this.name];
     let nonCombats, mineral, sk, power, portal, user, level, closestRange, owner,
-        reservation, commodity, safemode, hubCheck, spawnLocation;
+        reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange;
     if (room) {
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
@@ -334,7 +334,13 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             } else {
                 let roomPlanner = require('module.roomPlanner');
                 mineral = room.mineral.mineralType;
-                if (sources.length === 2) hubCheck = roomPlanner.hubCheck(this);
+                if (sources.length === 2) {
+                    hubCheck = roomPlanner.hubCheck(this);
+                    sourceRange = 0;
+                    for (let source of sources) {
+                        sourceRange += source.pos.getRangeTo(_.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER));
+                    }
+                }
             }
             level = room.controller.level || undefined;
         }
@@ -384,6 +390,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             isHighway: isHighway,
             closestRange: closestRange,
             hubCheck: hubCheck,
+            sourceRange: sourceRange,
             invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,
             towers: _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10).length,
             structures: _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR).length
@@ -443,7 +450,7 @@ Room.prototype.invaderCheck = function () {
             }
             Memory.roomCache[this.name].hostilePower = hostileCombatPower || 1;
             Memory.roomCache[this.name].friendlyPower = alliedCombatPower;
-            let armedInvader = _.filter(invader, (c) => c.getActiveBodyparts(ATTACK || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL) || c.getActiveBodyparts(WORK) >= 6 || c.getActiveBodyparts(CLAIM)));
+            let armedInvader = _.filter(invader, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL) || c.getActiveBodyparts(WORK) >= 6 || c.getActiveBodyparts(CLAIM));
             Memory.roomCache[this.name].tickDetected = Game.time;
             if (!Memory.roomCache[this.name].numberOfHostiles || Memory.roomCache[this.name].numberOfHostiles < invader.length) {
                 Memory.roomCache[this.name].numberOfHostiles = invader.length || 1;
@@ -457,7 +464,7 @@ Room.prototype.invaderCheck = function () {
                 Memory.roomCache[this.name].invaderTTL = _.max(armedInvader, 'ticksToLive').ticksToLive + Game.time;
                 Memory.roomCache[this.name].lastInvaderSighting = Game.time;
                 if (invader[0].owner.username !== 'Invader') Memory.roomCache[this.name].lastPlayerSighting = Game.time;
-                if (invaderAlert[this.name] < Game.time && Game.time % 50 === 0) {
+                if (invaderAlert[this.name] + 25 < Game.time) {
                     invaderAlert[this.name] = Game.time;
                     log.a('Invaders detected in ' + roomLink(this.name) + '. ' + invader.length +
                         ' creeps detected. (Invader/Friendly Power Present - ' + hostileCombatPower + '/' + alliedCombatPower + ')', 'RESPONSE COMMAND');
