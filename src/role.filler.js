@@ -7,6 +7,7 @@
 
 module.exports.role = function (creep) {
     creep.say(ICONS.haul, true);
+    if (creep.wrongRoom()) return;
     // If hauling do things
     if (creep.isFull) creep.memory.hauling = true;
     if (creep.memory.hauling) {

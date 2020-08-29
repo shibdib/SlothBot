@@ -16,7 +16,7 @@ Object.defineProperty(Creep.prototype, "idle", {
             return 0;
         }
         // Handle flee if hostile is gone
-        if (this.memory.runCooldown && this.memory.destination && this.memory.destination !== this.room.name && !Memory.roomCache[this.memory.destination].threatLevel) {
+        if (this.memory.runCooldown && this.memory.destination && this.memory.destination !== this.room.name && !Memory.roomCache[this.memory.destination].numberOfHostiles) {
             delete this.idle;
             delete this.memory.idle;
             delete this.memory.runCooldown;
@@ -125,7 +125,22 @@ Creep.prototype.skSafety = function () {
 
 Creep.prototype.constructionWork = function () {
     let construction = this.room.constructionSites;
-    let site = _.filter(construction, (s) => s.structureType === STRUCTURE_TOWER);
+    let site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'build';
+        return true;
+    }
+    site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000 && !_.filter(this.room.creeps, (c) => c.my && c.memory.constructionSite === s.id).length);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'repair';
+        this.memory.targetHits = 12500;
+        return true;
+    }
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_TOWER);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
@@ -168,14 +183,6 @@ Creep.prototype.constructionWork = function () {
         this.memory.task = 'build';
         return true;
     }
-    site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000 && !_.filter(this.room.creeps, (c) => c.my && c.memory.constructionSite === s.id).length);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        this.memory.targetHits = 12500;
-        return true;
-    }
     let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax);
     site = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.5), 'hits');
     if (site.id) {
@@ -192,13 +199,6 @@ Creep.prototype.constructionWork = function () {
         return true;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_CONTAINER);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'build';
-        return true;
-    }
-    site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
@@ -231,22 +231,6 @@ Creep.prototype.constructionWork = function () {
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         this.memory.targetHits = 12500;
-        return true;
-    }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_WALL && s.hits < 100000);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        this.memory.targetHits = 110000 * this.room.controller.level;
-        return true;
-    }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 100000);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        this.memory.targetHits = 110000 * this.room.controller.level;
         return true;
     }
     this.memory.constructionSite = undefined;
@@ -656,6 +640,8 @@ Creep.prototype.towTruck = function () {
         if (this.fatigue) return true;
         let trailer = Game.getObjectById(this.memory.trailer);
         if (trailer) {
+            let towDestination;
+            if (trailer.memory.towDestination && trailer.memory.towDestination.x) towDestination = new RoomPosition(trailer.memory.towDestination.x, trailer.memory.towDestination.y, this.room.name); else if (Game.getObjectById(trailer.memory.towDestination)) towDestination = Game.getObjectById(trailer.memory.towDestination);
             // Handle towing timeout
             if (this.memory.towStart + 125 < Game.time) {
                 this.memory.trailer = undefined;
@@ -667,7 +653,7 @@ Creep.prototype.towTruck = function () {
                 return false;
             } else
                 // Clear trailer if destination reached or no longer exists
-            if (!trailer.memory.towDestination || trailer.memory.towRange === trailer.pos.getRangeTo(Game.getObjectById(trailer.memory.towDestination))) {
+            if (!towDestination || trailer.memory.towRange === trailer.pos.getRangeTo(towDestination)) {
                 this.memory.trailer = undefined;
                 trailer.memory._shibMove = undefined;
                 trailer.memory.towCreep = undefined;
@@ -683,7 +669,7 @@ Creep.prototype.towTruck = function () {
                 return true;
             } else {
                 trailer.move(this);
-                if (!Game.getObjectById(trailer.memory.towDestination) || this.pos.getRangeTo(Game.getObjectById(trailer.memory.towDestination)) === trailer.memory.towRange) {
+                if (!towDestination || this.pos.getRangeTo(towDestination) === trailer.memory.towRange) {
                     this.move(this.pos.getDirectionTo(trailer));
                     this.memory.trailer = undefined;
                     trailer.memory._shibMove = undefined;
@@ -693,7 +679,7 @@ Creep.prototype.towTruck = function () {
                     trailer.memory.towRange = undefined;
                 } else {
                     trailer.memory._shibMove = undefined;
-                    this.shibMove(Game.getObjectById(trailer.memory.towDestination), {range: trailer.memory.towRange});
+                    this.shibMove(towDestination, {range: trailer.memory.towRange});
                 }
                 return true;
             }
@@ -718,6 +704,36 @@ Creep.prototype.borderCheck = function () {
     let x = thisPos.x;
     let y = thisPos.y;
     if (x === 0 || y === 0 || x === 49 || y === 49) {
+        let pathInfo = this.memory._shibMove;
+        if (pathInfo && pathInfo.path) {
+            let origin = normalizePos(this);
+            if (pathInfo.newPos && pathInfo.newPos.x === this.pos.x && pathInfo.newPos.y === this.pos.y && pathInfo.newPos.roomName === this.pos.roomName) pathInfo.path = pathInfo.path.slice(1);
+            if (pathInfo.pathPos === this.pos.x + '.' + this.pos.y + '.' + this.pos.roomName) {
+                pathInfo.pathPosTime++;
+            } else {
+                pathInfo.pathPos = this.pos.x + '.' + this.pos.y + '.' + this.pos.roomName;
+                pathInfo.pathPosTime = 0;
+            }
+            let nextDirection = parseInt(pathInfo.path[0], 10);
+            if (nextDirection && pathInfo.newPos) {
+                pathInfo.newPos = positionAtDirection(origin, nextDirection);
+                this.memory._shibMove = pathInfo;
+                switch (this.move(nextDirection)) {
+                    case OK:
+                        break;
+                    case ERR_TIRED:
+                        break;
+                    case ERR_NO_BODYPART:
+                        break;
+                    case ERR_BUSY:
+                        creep.idleFor(10);
+                        break;
+                }
+                return true;
+            } else {
+                delete pathInfo.path;
+            }
+        }
         if (x === 0 && y === 0) {
             this.move(BOTTOM_RIGHT);
         } else if (x === 0 && y === 49) {
@@ -935,7 +951,10 @@ Creep.prototype.recycleCreep = function () {
     this.attackInRange();
     let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
     if (!this.memory.overlord) this.memory.overlord = Memory.myRooms[0];
-    if (!spawn) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 23});
+    if (!spawn) {
+        this.memory.closestRoom = this.memory.closestRoom || this.room.findClosestOwnedRoom(false);
+        return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 23});
+    }
     // Clear role to queue replacement if needed
     this.memory.role = undefined;
     switch (spawn.recycleCreep(this)) {
@@ -1689,32 +1708,32 @@ Creep.prototype.borderHump = function () {
 };
 
 Creep.prototype.fleeHome = function (force = false) {
+    if (this.room.controller && this.room.controller.owner && this.room.controller.owner.username === MY_USERNAME && !this.memory.runCooldown) return false;
     if (this.hits < this.hitsMax) force = true;
-    if (this.memory.overlord === this.room.name && !this.memory.runCooldown) return false;
     this.room.cacheRoomIntel();
     this.room.invaderCheck();
     if (!force && !this.memory.runCooldown && (this.hits === this.hitsMax || (!Memory.roomCache[this.room.name].lastCombat || Memory.roomCache[this.room.name].lastCombat + 10 < Game.time))) return false;
-    let cooldown = this.memory.runCooldown || Game.time + 100;
-    this.memory.runCooldown = cooldown;
-    if (this.room.name !== this.memory.overlord) {
+    let cooldown = this.memory.runCooldown || Game.time + 50;
+    let closest = this.memory.fleeDestination || this.room.findClosestOwnedRoom(false);
+    this.memory.fleeDestination = closest;
+    if (this.room.name !== closest) {
         this.say('RUN!', true);
         let hostile = _.max(_.filter(this.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)), 'ticksToLive');
         if (hostile.id && !this.memory.military) {
             if (hostile.ticksToLive > this.ticksToLive) return this.memory.recycle = true;
             this.memory.runCooldown = Game.time + hostile.ticksToLive;
-        } else this.memory.runCooldown = Game.time + 25;
-        this.goToHub(this.memory.overlord, true);
+        } else this.memory.runCooldown = Game.time + 50;
+        this.shibMove(new RoomPosition(25, 25, closest), {range: 23});
     } else if (Game.time <= cooldown) {
-        if (this.shibKite()) return;
-        this.memory.runCooldown = cooldown;
         this.idleFor((cooldown - Game.time) / 2);
     } else {
+        delete this.memory.fleeDestination;
         delete this.memory.runCooldown;
     }
     return true;
 };
 
-Creep.prototype.canIWin = function (range = 50) {
+Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     if (!this.room.hostileCreeps.length || this.room.name === this.memory.overlord) return true;
     let hostilePower = 0;
     let healPower = 0;
@@ -1728,7 +1747,8 @@ Creep.prototype.canIWin = function (range = 50) {
         if (!this.getActiveBodyparts(RANGED_ATTACK)) hostilePower += armedHostiles[i].abilityPower().attack; else if (armedHostiles[i].getActiveBodyparts(RANGED_ATTACK)) hostilePower += armedHostiles[i].abilityPower().rangedAttack;
     }
     let alliedPower = 0;
-    let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK || c.getActiveBodyparts(HEAL)) && this.pos.getRangeTo(c) <= range);
+    let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL)) && this.pos.getRangeTo(c) <= range);
+    if (inbound) armedFriendlies = _.union(armedFriendlies, _.filter(Game.creeps, (c) => c.my && c.room.name !== this.room.name && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL)) && c.memory.destination && c.memory.destination === this.room.name))
     for (let i = 0; i < armedFriendlies.length; i++) {
         if (armedFriendlies[i].getActiveBodyparts(HEAL)) alliedPower += armedFriendlies[i].abilityPower().defense;
         alliedPower += armedFriendlies[i].abilityPower().attack;
@@ -1766,6 +1786,18 @@ Creep.prototype.findDefensivePosition = function (target = this) {
     }
     return false;
 };
+
+//FUNCTIONS
+function normalizePos(destination) {
+    if (!(destination instanceof RoomPosition)) {
+        if (destination) {
+            return destination.pos;
+        } else {
+            return;
+        }
+    }
+    return destination;
+}
 
 /**
  ["attack", "attackController", "build", "claimController", "dismantle", "drop", "generateSafeMode", "harvest", "heal", "move", "moveByPath", "moveTo", "pickup", "rangedAttack", "rangedHeal", "rangedMassAttack", "repair", "reserveController", "signController", "suicide", "transfer", "upgradeController", "withdraw"

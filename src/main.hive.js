@@ -67,9 +67,8 @@ module.exports.hiveMind = function () {
     }
     //Expansion Manager
     if (Game.time % 25 === 0) {
-        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
         if (Memory.minLevel >= 3 && Game.gcl.level > Memory.myRooms.length) {
-            let safemode = _.filter(myRooms, (r) => r.controller.safeMode);
+            let safemode = _.filter(Memory.myRooms, (r) => Game.rooms[r].controller.safeMode);
             let claimMission = _.filter(Memory.auxiliaryTargets, (t) => t.type === 'claimScout' || t.type === 'claim');
             if ((!safemode.length || !Memory._badBoyArray || !Memory._badBoyArray.length) && !claimMission.length) {
                 try {
@@ -82,7 +81,6 @@ module.exports.hiveMind = function () {
             }
         }
     }
-
     // Global creep queue
     if (Game.time % 25 === 0) {
         try {
