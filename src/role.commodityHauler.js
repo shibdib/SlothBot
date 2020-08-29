@@ -38,19 +38,22 @@ module.exports.role = function (creep) {
                 creep.idleFor(15);
             }
         }
-    } else if (creep.room.name !== creep.memory.overlord) {
-        return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
     } else {
-        let deliver = creep.room.terminal || creep.room.storage;
-        if (deliver) {
-            for (let resourceType in creep.store) {
-                switch (creep.transfer(deliver, resourceType)) {
-                    case OK:
-                        creep.memory.hauling = undefined;
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(deliver);
-                        break;
+        creep.memory.closestRoom = creep.memory.closestRoom || creep.room.findClosestOwnedRoom(false, false, 6);
+        if (creep.room.name !== creep.memory.closestRoom) {
+            return creep.shibMove(new RoomPosition(25, 25, creep.memory.closestRoom), {range: 23});
+        } else {
+            let deliver = creep.room.terminal || creep.room.storage;
+            if (deliver) {
+                for (let resourceType in creep.store) {
+                    switch (creep.transfer(deliver, resourceType)) {
+                        case OK:
+                            creep.memory.hauling = undefined;
+                            break;
+                        case ERR_NOT_IN_RANGE:
+                            creep.shibMove(deliver);
+                            break;
+                    }
                 }
             }
         }
