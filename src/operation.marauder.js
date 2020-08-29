@@ -44,7 +44,7 @@ Creep.prototype.marauding = function () {
             return this.shibMove(new RoomPosition(25, 25, this.memory.other.destination), {range: 19});
         }
         if (this.room.name === this.memory.other.destination) {
-            if (!this.canIWin() || (!this.moveToHostileConstructionSites() && !this.handleMilitaryCreep())) {
+            if ((!this.room.hostileCreeps.length && !this.room.hostileStructures.length) || !this.canIWin() || (!this.moveToHostileConstructionSites() && !this.handleMilitaryCreep())) {
                 highCommand.generateThreat(this);
                 if (!this.memory.other.onScene) this.memory.other.onScene = Game.time;
                 // If on target and cant win find a new target

@@ -22,15 +22,17 @@ Creep.prototype.borderPatrol = function () {
     this.healInRange();
     // Handle flee
     if (this.memory.runCooldown || (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK))) return this.fleeHome(true);
-    if (this.memory.other.responseTarget && this.room.name !== this.memory.other.responseTarget) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.other.responseTarget), {range: 22});
-    } else if (this.canIWin(5) && this.handleMilitaryCreep()) {
+    if (this.room.hostileCreeps.length && this.canIWin(5) && this.handleMilitaryCreep()) {
         this.memory.onTarget = undefined;
-    } else if (Math.random() > 0.7 && !this.canIWin(50)) {
+        this.memory.other.responseTarget = this.room.name;
+        this.memory.awaitingOrders = undefined;
+    } else if (this.memory.other.responseTarget && this.room.name !== this.memory.other.responseTarget) {
+        this.shibMove(new RoomPosition(25, 25, this.memory.other.responseTarget), {range: 22});
+    } else if (this.room.hostileCreeps.length && Math.random() > 0.7 && !this.canIWin(50, true)) {
         if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget) this.memory.other.responseTarget = undefined;
         this.memory.runCooldown = 5;
         return this.fleeHome(true);
-    } else if (!this.canIWin(6)) {
+    } else if (this.room.hostileCreeps.length && !this.canIWin(6)) {
         if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget) this.memory.other.responseTarget = undefined;
         this.shibKite(6);
     } else {

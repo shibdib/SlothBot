@@ -281,7 +281,7 @@ function forwardObserver(room) {
     if (armedEnemies.length) {
         if (Memory.targetRooms[room.name].oldPriority) Memory.targetRooms[room.name].priority = Memory.targetRooms[room.name].oldPriority;
         Memory.targetRooms[room.name].level = 2;
-    } else if (room.hostileCreeps.length) {
+    } else if (room.hostileCreeps.length || Memory.targetRooms[room.name].type === 'guard') {
         if (Memory.targetRooms[room.name].oldPriority) Memory.targetRooms[room.name].priority = Memory.targetRooms[room.name].oldPriority;
         Memory.targetRooms[room.name].level = 1;
     } else {

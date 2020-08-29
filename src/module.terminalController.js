@@ -25,20 +25,27 @@ module.exports.terminalControl = function (room) {
         }
         // Track profits
         profitCheck();
-        // Reaction amount is 500 if we are low on cash
-        if (Game.market.credits < CREDIT_BUFFER) reactionAmount = 500; else reactionAmount = REACTION_AMOUNT;
+        // Tweak reaction amount if broke
+        if (Game.market.credits < CREDIT_BUFFER) reactionAmount = REACTION_AMOUNT * 0.5; else reactionAmount = REACTION_AMOUNT;
         // Get global orders
         globalOrders = Game.market.getAllOrders();
-        // Cleanup broken or old orders
-        orderCleanup(myOrders);
-        // Handle Sell Orders
-        manageSellOrders(myOrders);
         // Sell pixels
         if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name)) sellPixels(globalOrders);
         // Update prices
         if (lastPriceAdjust + 100 < Game.time) {
             pricingUpdateSell(globalOrders, myOrders);
             lastPriceAdjust = Game.time;
+            if (Math.random() > 0.75) {
+                // Cleanup broken or old orders
+                orderCleanup(myOrders);
+                // Handle Sell Orders
+                manageSellOrders(myOrders);
+            }
+        }
+        // If sale terminal has a nuke incoming clear it
+        if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].nukes.length) {
+            log.a(roomLink(Memory.saleTerminal.room) + ' is no longer the primary market room due to an incoming nuke.');
+            Memory.saleTerminal.room = undefined;
         }
         // Set saleTerminal
         if (!Memory.saleTerminal.room || Memory.saleTerminal.saleSet + 15000 < Game.time) {
@@ -52,12 +59,6 @@ module.exports.terminalControl = function (room) {
         }
         runOnce = Game.time;
     }
-    // If sale terminal has a nuke incoming clear it
-    if (Memory.saleTerminal.room && room.name === Memory.saleTerminal.room && room.nukes.length) {
-        Memory.saleTerminal.room = undefined;
-        return log.a(roomLink(room.name) + ' is no longer the primary market room due to an incoming nuke.');
-    }
-    if (room.terminal.cooldown) return;
     // Handle praise room
     if (room.memory.praiseRoom) {
         balanceResources(room.terminal);
@@ -65,7 +66,7 @@ module.exports.terminalControl = function (room) {
     }
     //Buy Energy
     if (buyEnergy(room.terminal, globalOrders)) return;
-    if (room.terminal.store[RESOURCE_ENERGY]) {
+    if (room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
         //Send energy to rooms under siege
         if (emergencyEnergy(room.terminal)) return;
         //Disperse Minerals and Boosts
@@ -76,10 +77,10 @@ module.exports.terminalControl = function (room) {
                 if (dealFinder(room.terminal, globalOrders)) return;
                 //Buy Power
                 if (buyPower(room.terminal, globalOrders)) return;
+                //Buy minerals if needed
+                if (baseMineralOnDemandBuys(room.terminal, globalOrders)) return;
             }
         }
-        //Buy minerals if needed
-        if (baseMineralOnDemandBuys(room.terminal, globalOrders)) return;
         //Dump Excess
         if (fillBuyOrders(room.terminal, globalOrders)) return;
     }
