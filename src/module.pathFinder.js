@@ -307,8 +307,11 @@ function findRoute(origin, destination, options = {}) {
         routeCallback: function (roomName) {
             // Skip origin/destination
             if (roomName === origin || roomName === destination) return 1;
+            // Regex highway check
+            let [EW, NS] = roomName.match(/\d+/g);
+            let isAlleyRoom = EW%10 == 0 || NS%10 == 0;
             // Add a check for novice/respawn
-            if (Game.map.getRoomStatus(roomName).status !== Game.map.getRoomStatus(origin).status) return 256;
+            if (!isAlleyRoom && Game.map.getRoomStatus(roomName).status !== Game.map.getRoomStatus(origin).status) return 256;
             // room is too far out of the way
             if (Game.map.getRoomLinearDistance(origin, roomName) > restrictDistance) return 256;
             // My rooms
