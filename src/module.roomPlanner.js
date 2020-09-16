@@ -112,13 +112,12 @@ function buildFromLayout(room) {
         } else if (built < 3 && !inBuild) {
             let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
             if (labHub.checkForAllStructure().length) {
-                console.log(1)
                 one:
                     for (let xOff = -1; xOff <= 1; xOff++) {
                         for (let yOff = -1; yOff <= 1; yOff++) {
                             if (xOff !== 0 || yOff !== 0) {
                                 let pos = new RoomPosition(labHub.x + xOff, labHub.y + yOff, room.name);
-                                if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
+                                if (!pos.checkForImpassible() && !pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
                                     pos.createConstructionSite(STRUCTURE_LAB);
                                     break one;
                                 }
@@ -126,7 +125,6 @@ function buildFromLayout(room) {
                         }
                     }
             } else if (!labHub.checkForConstructionSites()) {
-                console.log(12)
                 labHub.createConstructionSite(STRUCTURE_LAB);
             }
         } else {
@@ -135,29 +133,36 @@ function buildFromLayout(room) {
         }
     }
     // Hub
-    if (level >= 7 || room.memory.hubLink) {
+    if (level >= 5 || room.memory.hubLink) {
         if (room.memory.hubLinkLocation) {
             let pos = new RoomPosition(room.memory.hubLinkLocation.x, room.memory.hubLinkLocation.y, room.name);
-            if (pos.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = pos.checkForAllStructure()[0].id;
-            if (pos.checkForAllStructure()[0].structureType === STRUCTURE_LINK && !pos.checkForAllStructure()[0].isActive()) room.memory.hubLink = undefined;
-        } else if (hub.checkForAllStructure()[0]) {
-            if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = hub.checkForAllStructure()[0].id;
-            if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK && !hub.checkForAllStructure()[0].isActive()) room.memory.hubLink = undefined;
-            if (hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) hub.checkForAllStructure()[0].destroy();
-            if (hub.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER && hub.checkForAllStructure()[0].structureType !== STRUCTURE_LINK && hub.checkForAllStructure()[0].structureType !== STRUCTURE_ROAD) {
-                let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_EXTENSION);
-                for (let structure of shuffle(filter)) {
-                    let pos = new RoomPosition(structure.x, structure.y, room.name);
-                    if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
-                        if (level >= 7 && pos.createConstructionSite(STRUCTURE_LINK) === OK) {
-                            room.memory.hubLinkLocation = {x: pos.x, y: pos.y};
-                            break;
+            if (pos.checkForAllStructure()[0]) {
+                if (pos.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = pos.checkForAllStructure()[0].id;
+                if (pos.checkForAllStructure()[0].structureType === STRUCTURE_LINK && !pos.checkForAllStructure()[0].isActive()) room.memory.hubLink = undefined;
+            } else if (!pos.checkForConstructionSites()) pos.createConstructionSite(STRUCTURE_LINK);
+        } else {
+            if (hub.checkForAllStructure()[0]) {
+                if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = hub.checkForAllStructure()[0].id;
+                if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK && !hub.checkForAllStructure()[0].isActive()) room.memory.hubLink = undefined;
+                if (hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) hub.checkForAllStructure()[0].destroy();
+                if (hub.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER && hub.checkForAllStructure()[0].structureType !== STRUCTURE_LINK && hub.checkForAllStructure()[0].structureType !== STRUCTURE_ROAD) {
+                    let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_EXTENSION);
+                    for (let structure of shuffle(filter)) {
+                        let pos = new RoomPosition(structure.x, structure.y, room.name);
+                        if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
+                            if (level >= 7 && pos.createConstructionSite(STRUCTURE_LINK) === OK) {
+                                room.memory.hubLinkLocation = {x: pos.x, y: pos.y};
+                                break;
+                            }
                         }
                     }
                 }
+            } else if (!hub.checkForConstructionSites()) {
+                room.memory.hubLinkLocation = {x: hub.x, y: hub.y};
             }
-        } else if (level >= 7 && !hub.checkForConstructionSites()) hub.createConstructionSite(STRUCTURE_LINK);
+        }
     }
+    if (!room.memory.hubLink && hub.checkForAllStructure()[0] && hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = hub.checkForAllStructure()[0].id;
     // Bunker Ramparts
     if (level >= 3 && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length) {
         if (!rampartSpots[room.name] || Math.random() > 0.98) {
@@ -257,7 +262,7 @@ function buildFromLayout(room) {
         } else {
             room.memory.controllerContainer = controllerContainer.id;
         }
-    } else if (level >= 5) {
+    } else if (level >= 7) {
         let controllerLink = _.filter(room.controller.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!controllerLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
@@ -269,6 +274,7 @@ function buildFromLayout(room) {
                 break;
             }
         } else {
+            if (!controllerLink.pos.checkForRampart()) controllerLink.pos.createConstructionSite(STRUCTURE_RAMPART);
             room.memory.controllerLink = controllerLink.id;
         }
     }
@@ -695,22 +701,18 @@ function buildRoadFromTo(room, start, end) {
                         if (tile === 2) costMatrix.set(x, y, 35);
                     }
                 }
-                for (let structures of room.structures) {
-                    if (_.includes(OBSTACLE_OBJECT_TYPES, structures.structureType)) {
-                        costMatrix.set(structures.pos.x, structures.pos.y, 256);
-                    }
-                }
                 for (let site of room.constructionSites) {
                     if (site.structureType === STRUCTURE_ROAD) {
                         costMatrix.set(site.pos.x, site.pos.y, 1);
                     }
                 }
-                for (let road of room.structures) {
-                    if (road.structureType === STRUCTURE_ROAD) {
-                        costMatrix.set(road.pos.x, road.pos.y, 1);
-                    }
-                    if (road.structureType === STRUCTURE_CONTAINER) {
-                        costMatrix.set(road.pos.x, road.pos.y, 71);
+                for (let structures of room.structures) {
+                    if (_.includes(OBSTACLE_OBJECT_TYPES, structures.structureType)) {
+                        costMatrix.set(structures.pos.x, structures.pos.y, 256);
+                    } else if (structures.structureType === STRUCTURE_ROAD) {
+                        costMatrix.set(structures.pos.x, structures.pos.y, 1);
+                    } else if (structures.structureType === STRUCTURE_CONTAINER) {
+                        costMatrix.set(structures.pos.x, structures.pos.y, 71);
                     }
                 }
             },
