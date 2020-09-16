@@ -30,7 +30,7 @@ function manageResponseForces() {
     idleResponders.forEach((c) => idlePower += c.combatPower);
     let activeResponders = _.filter(Game.creeps, (c) => c.memory && !c.memory.awaitingOrders && c.memory.operation === 'borderPatrol');
     let ownedRoomAttack = _.findKey(Memory.roomCache, (r) => r.owner && r.owner === MY_USERNAME && r.lastPlayerSighting + 25 > Game.time && (!r.responseDispatched || r.responseDispatched + 100 < Game.time));
-    let invaderCore = _.findKey(Memory.roomCache, (r) => r.closestRange <= 2 && !r.sk && r.invaderCore && !_.find(Game.creeps, (c) => c.my && c.memory.responseTarget === r.name) && (!r.responseDispatched || r.responseDispatched + 100 < Game.time));
+    let invaderCore = _.findKey(Memory.roomCache, (r) => r.closestRange <= 2 && !r.sk && !r.towers && r.invaderCore && !_.find(Game.creeps, (c) => c.my && c.memory.responseTarget === r.name) && (!r.responseDispatched || r.responseDispatched + 100 < Game.time));
     let responseTargets = _.max(_.filter(Memory.roomCache, (r) => r.responseNeeded && idlePower >= r.hostilePower && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE && r.lastInvaderCheck + 550 >= Game.time && (!r.responseDispatched || r.responseDispatched + 100 < Game.time)), '.threatLevel');
     let unarmedVisitors = _.findKey(Memory.roomCache, (r) => r.numberOfHostiles && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE && r.lastInvaderCheck + 550 >= Game.time && (!r.responseDispatched || r.responseDispatched + 100 < Game.time));
     let guard = _.findKey(Memory.targetRooms, (o) => o && o.type === 'guard' && o.level);
@@ -78,7 +78,7 @@ function manageResponseForces() {
             if (creep.room.name !== invaderCore) log.a(creep.name + ' reassigned to deal with invader core in ' + roomLink(invaderCore) + ' from ' + roomLink(creep.room.name));
         }
     } else if (unarmedVisitors) {
-        for (let creep of _.sortBy(_.filter(idleResponders, (c) => Game.map.getRoomLinearDistance(c.room.name, unarmedVisitors) <= 5), function (c) {
+        for (let creep of _.sortBy(_.filter(idleResponders, (c) => Game.map.getRoomLinearDistance(c.room.name, unarmedVisitors) <= 2), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, unarmedVisitors);
         })) {
             Memory.roomCache[unarmedVisitors].responseDispatched = Game.time;
@@ -179,12 +179,12 @@ function operationRequests() {
         if (MADTarget.length && !Memory.targetRooms[MADTarget[0].name]) {
             for (let targetRoom of MADTarget) {
                 // Look for nukes in range
-                let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, targetRoom.name) <= 10);
+                let nukes = _.filter(Game.structures, (s) => s.my && s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, targetRoom.name) <= 10);
                 if (nukes.length) {
                     for (let nuke of nukes) {
                         nuke.launchNuke(JSON.parse(targetRoom.spawnLocation));
-                        log.a('NUCLEAR LAUNCH DETECTED - ' + JSON.parse(targetRoom.spawnLocation).roomName + ' ' + JSON.parse(targetRoom.spawnLocation).x + '.' + JSON.parse(targetRoom.spawnLocation).y + ' has a nuke inbound from ' + nukes.room.name + ' and will impact in 50,000 ticks.', 'HIGH COMMAND: ');
-                        Game.notify('NUCLEAR LAUNCH DETECTED - ' + JSON.parse(targetRoom.spawnLocation).roomName + ' ' + JSON.parse(targetRoom.spawnLocation).x + '.' + JSON.parse(targetRoom.spawnLocation).y + ' has a nuke inbound from ' + nukes.room.name + ' and will impact in 50,000 ticks.');
+                        log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(JSON.parse(targetRoom.spawnLocation).roomName) + ' ' + JSON.parse(targetRoom.spawnLocation).x + '.' + JSON.parse(targetRoom.spawnLocation).y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.', 'HIGH COMMAND: ');
+                        Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(JSON.parse(targetRoom.spawnLocation).roomName) + ' ' + JSON.parse(targetRoom.spawnLocation).x + '.' + JSON.parse(targetRoom.spawnLocation).y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
                         let cache = Memory.targetRooms || {};
                         let tick = Game.time;
                         cache[targetRoom.name] = {
