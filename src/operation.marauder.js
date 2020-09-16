@@ -36,8 +36,7 @@ Creep.prototype.marauding = function () {
         if (target) {
             this.memory.other.destination = target.name;
         } else if (!this.handleMilitaryCreep()) {
-            this.memory.other.visited = [];
-            this.findDefensivePosition(this);
+            if (!this.goToHub(this.memory.overlord)) this.memory.other.visited = [];
         }
     } else {
         if (this.room.name !== this.memory.other.destination) {

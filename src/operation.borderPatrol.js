@@ -22,7 +22,7 @@ Creep.prototype.borderPatrol = function () {
     this.healInRange();
     // Handle flee
     if (this.memory.runCooldown || (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK))) return this.fleeHome(true);
-    if (this.room.hostileCreeps.length && this.canIWin(5) && this.handleMilitaryCreep()) {
+    if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(5) && this.handleMilitaryCreep()) {
         this.memory.onTarget = undefined;
         this.memory.other.responseTarget = this.room.name;
         this.memory.awaitingOrders = undefined;

@@ -63,7 +63,7 @@ Creep.prototype.rangersRoom = function () {
                 Memory.targetRooms[this.room.name] = undefined;
                 let creeps = _.filter(Game.creeps, (c) => c.my && c.memory.destination === this.room.name);
                 for (let creep of creeps) {
-                    creeps.memory.destination = possible;
+                    creep.memory.destination = possible;
                 }
             } else {
                 this.scorchedEarth();
