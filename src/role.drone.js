@@ -41,13 +41,14 @@ module.exports.role = function role(creep) {
         // If praiser needed praise
         if (upgrading(creep)) return;
         // Else idle
+        creep.memory.working = undefined;
         creep.idleFor(15);
     } else {
         creep.memory.task = undefined;
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
-        } else {
+        } else if (creep.room.controller && creep.room.controller.level < 6) {
             creep.memory.harvest = true;
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
             if (source) {
@@ -63,6 +64,7 @@ module.exports.role = function role(creep) {
                         }
                         break;
                     case ERR_NOT_ENOUGH_RESOURCES:
+                        creep.idleFor(source.ticksToRegeneration * 0.5);
                         creep.memory.source = undefined;
                         break;
                     case OK:
@@ -78,8 +80,10 @@ module.exports.role = function role(creep) {
 
 function harvest(creep) {
     let spawn = _.filter(creep.room.structures, (c) => c.my && c.structureType === STRUCTURE_SPAWN)[0];
+    let drone = _.filter(creep.room.creeps, (c) => c.my && c.memory && c.memory.role === 'drone' && c.id !== creep.id)[0];
     let harvester = _.filter(creep.room.creeps, (c) => c.my && c.memory && c.memory.role === 'drone' && c.memory.task === 'harvest')[0];
-    if ((!spawn && !harvester) || creep.memory.task === 'harvest') {
+    if ((!spawn && !harvester && drone && !creep.locateEnergy()) || creep.memory.task === 'harvest') {
+        if (!drone) return creep.memory.task = undefined;
         let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
         if (source) {
             creep.memory.task = 'harvest';
@@ -91,14 +95,13 @@ function harvest(creep) {
                     if (Math.random() >= 0.9) {
                         creep.memory.harvest = undefined;
                         creep.memory.source = undefined;
-                        return;
                     }
-                    break;
+                    return true;
                 case ERR_NOT_ENOUGH_RESOURCES:
                     creep.memory.source = undefined;
                     break;
                 case OK:
-                    break;
+                    return true;
             }
         }
         return true;

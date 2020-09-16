@@ -71,7 +71,7 @@ module.exports.role = function (creep) {
                 return creep.memory.recycle = true;
             }
             //If source is set mine
-            if (!creep.memory.source) creep.findSource();
+            if (!creep.memory.source && !creep.findSource()) return creep.idleFor(25);
         }
         //Harvest
         if (creep.memory.source) {

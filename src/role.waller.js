@@ -94,30 +94,7 @@ module.exports.role = function (creep) {
             creep.say('Energy!', true);
             creep.withdrawResource();
         } else {
-            creep.memory.harvest = true;
-            let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
-            if (source) {
-                creep.say('Harvest!', true);
-                creep.memory.source = source.id;
-                switch (creep.harvest(source)) {
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(source);
-                        if (Math.random() >= 0.9) {
-                            creep.memory.harvest = undefined;
-                            creep.memory.source = undefined;
-                            return;
-                        }
-                        break;
-                    case ERR_NOT_ENOUGH_RESOURCES:
-                        creep.memory.source = undefined;
-                        break;
-                    case OK:
-                        break;
-                }
-            } else {
-                delete creep.memory.harvest;
-                creep.idleFor(5);
-            }
+            creep.idleFor(5);
         }
     }
 };

@@ -10,7 +10,6 @@
  */
 
 module.exports.role = function (creep) {
-    creep.opportunisticFill();
     creep.say(ICONS.haul2, true);
     //Invader detection
     if (creep.fleeHome()) return;
@@ -74,6 +73,7 @@ module.exports.role = function (creep) {
 };
 
 // Remote Hauler Drop Off
+let praiseSupplied = {};
 function dropOff(creep) {
     buildLinks(creep);
     // Lab
@@ -108,16 +108,19 @@ function dropOff(creep) {
     }
     //Controller
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
-    if (controllerContainer && (!controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5) && (!creep.room.terminal || creep.room.terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.25)) {
+    if (controllerContainer && ((!praiseSupplied[creep.room.name] && Math.random() > 0.49) || creep.room.energyState) && (!controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5)) {
+        praiseSupplied[creep.room.name] = true;
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     }
-    if (creep.room.terminal) {
-        creep.memory.storageDestination = creep.room.terminal.id;
+    if (creep.room.storage) {
+        praiseSupplied[creep.room.name] = undefined;
+        creep.memory.storageDestination = creep.room.storage.id;
         return true;
     }
     // Else fill spawns/extensions
     if (creep.haulerDelivery()) {
+        praiseSupplied[creep.room.name] = undefined;
         return true;
     } else creep.idleFor(5);
 }

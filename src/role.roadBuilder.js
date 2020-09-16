@@ -153,19 +153,10 @@ function buildRoadFromTo(room, start, end) {
                 for (let structures of room.structures) {
                     if (_.includes(OBSTACLE_OBJECT_TYPES, structures.structureType)) {
                         costMatrix.set(structures.pos.x, structures.pos.y, 256);
-                    }
-                    if (structures.structureType === STRUCTURE_CONTAINER) {
-                        costMatrix.set(structures.pos.x, structures.pos.y, 150);
-                    }
-                }
-                for (let site of room.constructionSites) {
-                    if (site.structureType === STRUCTURE_ROAD) {
-                        costMatrix.set(site.pos.x, site.pos.y, 1);
-                    }
-                }
-                for (let road of room.structures) {
-                    if (road.structureType === STRUCTURE_ROAD) {
-                        costMatrix.set(road.pos.x, road.pos.y, 1);
+                    } else if (structures.structureType === STRUCTURE_ROAD) {
+                        costMatrix.set(structures.pos.x, structures.pos.y, 1);
+                    } else if (structures.structureType === STRUCTURE_CONTAINER) {
+                        costMatrix.set(structures.pos.x, structures.pos.y, 71);
                     }
                 }
             },

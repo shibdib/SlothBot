@@ -12,7 +12,7 @@ module.exports.role = function (creep) {
     if (creep.isFull) creep.memory.hauling = true;
     if (creep.memory.hauling) {
         if (!_.sum(creep.store)) return creep.memory.hauling = undefined;
-        // Perform opportunistic road repair
+        // Perform opportunistic filling
         creep.opportunisticFill();
         creep.haulerDelivery();
     } else if (creep.towTruck()) {

@@ -40,17 +40,17 @@ module.exports.role = function (creep) {
                             return creep.shibMove(container, {range: 1});
                         }
                     }
-                    if (link && link.energy) {
-                        creep.withdrawResource(link);
-                    } else if (container && container.store[RESOURCE_ENERGY]) {
+                    if (container && container.store[RESOURCE_ENERGY]) {
                         creep.withdrawResource(container);
+                    } else if (link && link.energy) {
+                        creep.withdrawResource(link);
                     }
                     return;
                 case ERR_NOT_IN_RANGE:
-                    if (link && link.energy) {
-                        creep.withdrawResource(link);
-                    } else if (container && container.store[RESOURCE_ENERGY]) {
+                    if (container && container.store[RESOURCE_ENERGY]) {
                         creep.withdrawResource(container);
+                    } else if (link && link.energy) {
+                        creep.withdrawResource(link);
                     } else {
                         return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
                     }
