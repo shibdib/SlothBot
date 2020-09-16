@@ -92,9 +92,8 @@ function rampartManager(room, structures) {
 function safeModeManager(room) {
     // Ensure camping enemies continue to gain threat even if no creeps present.
     addThreat(room);
-    let controller = room.controller;
-    let armedHostiles = _.filter(room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
-    if (!armedHostiles.length || controller.safeMode || controller.safeModeCooldown || !controller.safeModeAvailable) {
+    let armedHostiles = _.filter(room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK));
+    if (!armedHostiles.length || room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable) {
         structureCount[room.name] = undefined;
         return;
     }
@@ -114,11 +113,11 @@ function safeModeManager(room) {
 }
 
 function earlyWarning(room) {
-    let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel >= 3 && Memory.roomCache[r].threatLevel > Memory.roomCache[room.name].threatLevel && !Memory.roomCache[r].sk && !Memory.roomCache[r].isHighway)[0];
+    let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel >= 3 && Memory.roomCache[r].threatLevel > Memory.roomCache[room.name].threatLevel)[0];
     if (adjacent) {
         Memory.roomCache[room.name].threatLevel = Memory.roomCache[adjacent].threatLevel;
         Memory.roomCache[room.name].tickDetected = Game.time;
-        //log.a(roomLink(room.name) + ' has gone to threat level ' + Memory.roomCache[adjacent].threatLevel + ' due to a triggering of the early warning system in ' + roomLink(adjacent) + '.', 'DEFENSE COMMAND');
+        log.a(roomLink(room.name) + ' has gone to threat level ' + Memory.roomCache[adjacent].threatLevel + ' due to a triggering of the early warning system in ' + roomLink(adjacent) + '.', 'DEFENSE COMMAND');
     }
 }
 
