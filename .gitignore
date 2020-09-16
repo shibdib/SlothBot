@@ -16,5 +16,3 @@
 node_modules/
 package-lock.json
 /.screeps.json
-/src/sandbox.js
-/src/sandbox.js
