@@ -68,9 +68,9 @@ module.exports.hiveMind = function () {
     //Expansion Manager
     if (Game.time % 25 === 0) {
         if (Memory.minLevel >= 3 && Game.gcl.level > Memory.myRooms.length) {
-            let safemode = _.filter(Memory.myRooms, (r) => Game.rooms[r].controller.safeMode);
+            let inBuild = _.filter(Memory.myRooms, (r) => Game.rooms[r].memory["buildersNeeded"]);
             let claimMission = _.filter(Memory.auxiliaryTargets, (t) => t.type === 'claimScout' || t.type === 'claim');
-            if ((!safemode.length || !Memory._badBoyArray || !Memory._badBoyArray.length) && !claimMission.length) {
+            if ((!inBuild.length || !Memory._badBoyArray || !Memory._badBoyArray.length) && !claimMission.length) {
                 try {
                     expansion.claimNewRoom();
                 } catch (e) {
@@ -124,7 +124,10 @@ function minionController(minion) {
     // If on portal move
     if (minion.portalCheck() || minion.borderCheck()) return;
     // Disable notifications
-    if (minion.ticksToLive > 1450) minion.notifyWhenAttacked(false);
+    if (!minion.memory.notifyDisabled) {
+        minion.memory.notifyDisabled = true;
+        minion.notifyWhenAttacked(false);
+    }
     // If minion has been flagged to recycle do so
     if (!minion.memory.role || minion.memory.recycle) return minion.recycleCreep();
     // If idle sleep

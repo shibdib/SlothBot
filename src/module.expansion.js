@@ -43,7 +43,7 @@ module.exports.claimNewRoom = function () {
                 for (let avoidKey in avoidRooms) {
                     let avoidName = avoidRooms[avoidKey].name;
                     let distance = Game.map.getRoomLinearDistance(name, avoidName);
-                    if (distance <= 1) baseScore -= 1000; else if (distance < 3) baseScore -= 150; else if (baseScore < 6) baseScore += 100; else baseScore -= 350;
+                    if (distance <= 1) baseScore -= 2000; else if (distance < 3) baseScore -= 150; else if (baseScore < 6) baseScore += 100; else baseScore -= 350;
                 }
                 worthyRooms[key].claimValue = baseScore;
                 possibles[key] = worthyRooms[key];
