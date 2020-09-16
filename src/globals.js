@@ -71,7 +71,7 @@ let globals = function () {
         remoteHauler: 4,
         remoteUpgrader: 7,
         roadBuilder: 7,
-        assistPioneer: 3,
+        assistPioneer: 6,
         fuelTruck: 7,
         reserver: 5,
         borderPatrol: 3,
@@ -241,6 +241,12 @@ let globals = function () {
     global.EST_TICKS_PER_DAY = Math.ceil(86400 / EST_SEC_PER_TICK); // 24h * 60m * 60s = 86400s
 
     global.toStr = (obj) => JSON.stringify(obj, null, 2); // shortcut to stringify an object (idea credit: warinternal, from the Screeps Slack)
+
+    // Upkeep costs
+    global.RAMPART_UPKEEP	= RAMPART_DECAY_AMOUNT / REPAIR_POWER / RAMPART_DECAY_TIME;
+    global.ROAD_UPKEEP		= ROAD_DECAY_AMOUNT / REPAIR_POWER /  ROAD_DECAY_TIME;
+    global.CONTAINER_UPKEEP = CONTAINER_DECAY / REPAIR_POWER / CONTAINER_DECAY_TIME_OWNED;
+    global.REMOTE_CONTAINER_UPKEEP = CONTAINER_DECAY / REPAIR_POWER / CONTAINER_DECAY_TIME;
 
     // Boost Components
     global.BOOST_COMPONENTS = {
