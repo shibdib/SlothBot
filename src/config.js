@@ -30,7 +30,7 @@ global.ATTACK_ROOM_SIGNS = ["~~ALL YOUR BASE BELONG TO ME~~"];
 global.EXPLORER_SPAM = ['HI', 'Hello', 'Beep', 'Boop', 'Aloha', 'Shibby!'];
 
 // Attack limits (Too high and your CPU is screwed, hard coded for non subs)
-global.COMBAT_LIMIT = 1;
+global.COMBAT_LIMIT = 3;
 
 // Wall and rampart target amounts
 global.BARRIER_TARGET_HIT_POINTS = {
@@ -71,4 +71,4 @@ global.GHODIUM_MARKET_BASELINE = 1.100;
 global.BASE_MINERALS_MARKET_BASELINE = 0.100;
 
 // Room stuff
-global.BUILD_PRAISE_ROOMS = true;
+global.BUILD_PRAISE_ROOMS = false;
