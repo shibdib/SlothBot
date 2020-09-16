@@ -108,7 +108,7 @@ module.exports.role = function (powerCreep) {
             return abilitySwitch(powerCreep, PWR_REGEN_SOURCE, targetSource);
         }
         // Boost Mineral
-        else if (powerCreep.room.mineral && powerCreep.powers[PWR_REGEN_MINERAL] && !powerCreep.powers[PWR_REGEN_MINERAL].cooldown && (!powerCreep.room.mineral.effects || !powerCreep.room.mineral.effects.length)) {
+        else if (powerCreep.room.mineral && !powerCreep.room.mineral.ticksToRegeneration && powerCreep.powers[PWR_REGEN_MINERAL] && !powerCreep.powers[PWR_REGEN_MINERAL].cooldown && (!powerCreep.room.mineral.effects || !powerCreep.room.mineral.effects.length)) {
             powerCreep.say('MINERAL', true);
             return abilitySwitch(powerCreep, PWR_REGEN_MINERAL, powerCreep.room.mineral);
         }
@@ -242,7 +242,7 @@ function abilitySwitch(powerCreep, power, target = undefined) {
         case OK:
             break;
         case ERR_NOT_IN_RANGE:
-            powerCreep.shibMove(target, {range: 3});
+            powerCreep.shibMove(target, {range: POWER_INFO[power].range});
             break;
         case ERR_NOT_ENOUGH_RESOURCES:
             return false;
