@@ -133,4 +133,14 @@ module.exports.hud = function () {
             y++;
         }
     }
+    try {
+        if (Memory.targetRooms) {
+            for (let room of Object.keys(Memory.targetRooms)) {
+                if (!Memory.targetRooms[room]) continue;
+                Game.map.visual.text(_.capitalize(Memory.targetRooms[room].type), new RoomPosition(25,25,room), {color: '#ff0000', fontSize: 10});
+            }
+        }
+    } catch (e) {
+
+    }
 };
