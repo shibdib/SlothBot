@@ -43,12 +43,12 @@ module.exports.terminalControl = function (room) {
             }
         }
         // If sale terminal has a nuke incoming clear it
-        if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].nukes.length) {
+        if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room] && Game.rooms[Memory.saleTerminal.room].nukes.length) {
             log.a(roomLink(Memory.saleTerminal.room) + ' is no longer the primary market room due to an incoming nuke.');
             Memory.saleTerminal.room = undefined;
         }
         // Set saleTerminal
-        if (!Memory.saleTerminal.room || Memory.saleTerminal.saleSet + 15000 < Game.time) {
+        if (!Memory.saleTerminal.room || Memory.saleTerminal.saleSet + 15000 < Game.time || !Game.rooms[Memory.saleTerminal.room]) {
             // Clear if no longer valid
             if (!Game.rooms[Memory.saleTerminal.room] || !Memory.roomCache[Memory.saleTerminal.room] || Memory.roomCache[Memory.saleTerminal.room].owner !== MY_USERNAME) Memory.saleTerminal = {};
             if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].controller.level === Memory.maxLevel) {
@@ -66,24 +66,22 @@ module.exports.terminalControl = function (room) {
     }
     //Buy Energy
     if (buyEnergy(room.terminal, globalOrders)) return;
-    if (room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
+    if (room.energyState) {
         //Send energy to rooms under siege
         if (emergencyEnergy(room.terminal)) return;
-        //Disperse Minerals and Boosts
-        if (balanceResources(room.terminal)) return;
-        if (room.energy >= ENERGY_AMOUNT * 0.5) {
-            if (room.name === Memory.saleTerminal.room && spendingMoney > 0) {
-                //Buy resources being sold at below market value
-                if (dealFinder(room.terminal, globalOrders)) return;
-                //Buy Power
-                if (buyPower(room.terminal, globalOrders)) return;
-                //Buy minerals if needed
-                if (baseMineralOnDemandBuys(room.terminal, globalOrders)) return;
-            }
+        if (room.name === Memory.saleTerminal.room && spendingMoney > 0) {
+            //Buy resources being sold at below market value
+            //if (dealFinder(room.terminal, globalOrders)) return;
+            //Buy Power
+            if (buyPower(room.terminal, globalOrders)) return;
         }
         //Dump Excess
         if (fillBuyOrders(room.terminal, globalOrders)) return;
     }
+    //Disperse Minerals and Boosts
+    if (balanceResources(room.terminal)) return;
+    //Buy minerals if needed
+    if (baseMineralOnDemandBuys(room.terminal, globalOrders)) return;
     // Place sell orders
     if (room.name === Memory.saleTerminal.room) placeSellOrders(room.terminal, globalOrders, myOrders);
 };
@@ -256,10 +254,11 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
 function baseMineralOnDemandBuys(terminal, globalOrders) {
     for (let mineral of shuffle(BASE_MINERALS)) {
         // Don't buy minerals you can mine
-        if (_.includes(OWNED_MINERALS, mineral)) continue;
+        let target = reactionAmount * 0.8;
+        if (_.includes(OWNED_MINERALS, mineral)) target = 150;
         let stored = terminal.room.store(mineral) || 0;
-        if (stored < reactionAmount * 0.8) {
-            let buyAmount = reactionAmount - stored;
+        if (stored < target) {
+            let buyAmount = target - stored;
             if (Game.market.credits < CREDIT_BUFFER) _.floor(buyAmount *= (Game.market.credits / CREDIT_BUFFER));
             let sellOrder = _.min(globalOrders.filter(order => order.resourceType === mineral && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName)), 'price');
             if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.floor(spendingMoney / sellOrder.price);
@@ -300,7 +299,7 @@ function buyEnergy(terminal, globalOrders) {
     if (terminal.room.energy < ENERGY_AMOUNT && spendingMoney) {
         let sellOrder = _.min(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName)), 'price');
         if (sellOrder.price) {
-            let buyAmount = (ENERGY_AMOUNT - terminal.room.energy) * 1.1;
+            let buyAmount = 5000;
             if (buyAmount > sellOrder.amount) buyAmount = sellOrder.amount;
             if (buyAmount * sellOrder.price > spendingMoney) buyAmount = _.round(spendingMoney / sellOrder.price);
             if (buyAmount >= 500 && Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
