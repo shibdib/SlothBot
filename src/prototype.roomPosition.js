@@ -137,9 +137,9 @@ RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
 
 RoomPosition.prototype.checkForImpassible = function (ignoreWall = false) {
     if (ignoreWall) {
-        if (this.checkForObstacleStructure()) return true;
+        if (this.checkForObstacleStructure() || this.checkForCreep()) return true;
     } else {
-        if (this.checkForObstacleStructure() || this.checkForWall()) return true;
+        if (this.checkForObstacleStructure() || this.checkForWall() || this.checkForCreep()) return true;
     }
 };
 
