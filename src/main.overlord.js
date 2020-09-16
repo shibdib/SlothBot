@@ -90,6 +90,7 @@ module.exports.overlordMind = function (room, CPULimit) {
             Game.notify(e.stack);
         }
     }
+
     // Silence Alerts
     if (Game.time % 2500 === 0) {
         for (let building of room.structures) {
@@ -121,14 +122,12 @@ module.exports.overlordMind = function (room, CPULimit) {
                 log.e(e.stack);
                 Game.notify(e.stack);
             }
-            if (cpuBucket >= 5000) {
-                try {
-                    spawning.remoteCreepQueue(room);
-                } catch (e) {
-                    log.e('Remote Creep Queuing for room ' + room.name + ' experienced an error');
-                    log.e(e.stack);
-                    Game.notify(e.stack);
-                }
+            try {
+                spawning.remoteCreepQueue(room);
+            } catch (e) {
+                log.e('Remote Creep Queuing for room ' + room.name + ' experienced an error');
+                log.e(e.stack);
+                Game.notify(e.stack);
             }
         }
     }
@@ -170,7 +169,7 @@ module.exports.overlordMind = function (room, CPULimit) {
     }
 
     // Handle Terminals
-    if (room.terminal && !room.terminal.cooldown && room.level >= 6 && Game.time % 5 === 0 && !room.memory.lowPower) {
+    if (room.terminal && !room.terminal.cooldown && room.level >= 6 && Game.time % 5 === 0 && !room.memory.lowPower && Math.random() > 0.8) {
         try {
             terminals.terminalControl(room);
         } catch (e) {
@@ -220,7 +219,10 @@ function minionController(minion) {
     // If on portal or border move
     if (minion.portalCheck() || minion.borderCheck()) return;
     // Disable notifications
-    if (minion.ticksToLive > 1490) minion.notifyWhenAttacked(false);
+    if (!minion.memory.notifyDisabled) {
+        minion.memory.notifyDisabled = true;
+        minion.notifyWhenAttacked(false);
+    }
     // Handle nuke flee
     if (minion.memory.fleeNukeTime && minion.fleeNukeRoom()) return;
     // If idle sleep
