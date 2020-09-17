@@ -167,14 +167,14 @@ module.exports.essentialCreepQueue = function (room) {
     }
     //Haulers
     if (!getCreepCount(room, 'hauler')) {
-        queueCreep(room, -1, {role: 'hauler', other: {reboot: true, localCache: false}});
+        queueCreep(room, -1, {role: 'hauler', other: {reboot: true}});
     } else if (creepTTL['hauler'] < 100 && getCreepCount(room, 'hauler') === 1) {
         queueCreep(room, 1, {role: 'hauler'});
     }
     //Filler
 
     if (getCreepCount(room, 'filler') < 1 && _.filter(room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && c.memory.linkAttempt && !c.memory.linkID)[0]) {
-        queueCreep(room, PRIORITIES.hauler - 1, {role: 'filler', other: {localCache: false}})
+        queueCreep(room, PRIORITIES.hauler - 1, {role: 'filler'})
     }
     // Local Responder
     if (Memory.roomCache[room.name].threatLevel >= 2) {
@@ -220,7 +220,7 @@ module.exports.praiseCreepQueue = function (room) {
     if (inBuild || room.controller.level === 1) {
         let amount = 3;
         if (getCreepCount(room, 'drone') < amount) {
-            queueCreep(room, 1 + getCreepCount(room, 'drone'), {role: 'drone', other: {localCache: false}})
+            queueCreep(room, 1 + getCreepCount(room, 'drone'), {role: 'drone'})
         }
     }
     //Harvesters
@@ -233,7 +233,7 @@ module.exports.praiseCreepQueue = function (room) {
     }
     //Filler
     if (getCreepCount(room, 'filler') < getCreepCount(room, 'stationaryHarvester')) {
-        queueCreep(room, PRIORITIES.hauler - 1, {role: 'filler', other: {reboot: true, localCache: false}})
+        queueCreep(room, PRIORITIES.hauler - 1, {role: 'filler', other: {reboot: true}})
     }
     // Local Responder
     if (getCreepCount(room, 'defender') < Memory.roomCache[room.name].threatLevel) {
@@ -241,7 +241,7 @@ module.exports.praiseCreepQueue = function (room) {
     }
     //Waller
     if (level >= 3 && !getCreepCount(room, 'waller')) {
-        queueCreep(room, PRIORITIES.waller, {role: 'waller', other: {localCache: false}})
+        queueCreep(room, PRIORITIES.waller, {role: 'waller'})
     }
     //Mineral Harvester
     if (level >= 6) {
@@ -301,19 +301,19 @@ module.exports.miscCreepQueue = function (room) {
     }
     //Waller
     if (level >= 3 && !getCreepCount(room, 'waller')) {
-        queueCreep(room, PRIORITIES.waller, {role: 'waller', other: {localCache: false}})
+        queueCreep(room, PRIORITIES.waller, {role: 'waller'})
     }
     // If no conflict detected
     if (!room.nukes.length && !Memory.roomCache[room.name].threatLevel) {
         if (level >= 6) {
             //LabTech
             if (room.terminal && !getCreepCount(room, 'labTech')) {
-                queueCreep(room, PRIORITIES.miscHauler, {role: 'labTech', other: {localCache: false}})
+                queueCreep(room, PRIORITIES.miscHauler, {role: 'labTech'})
             }
             //Power
             if (room.energyState && level === 8 && room.store(RESOURCE_POWER) && _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0]) {
                 if (!getCreepCount(room, 'powerManager')) {
-                    queueCreep(room, PRIORITIES.miscHauler, {role: 'powerManager', other: {localCache: false}})
+                    queueCreep(room, PRIORITIES.miscHauler, {role: 'powerManager'})
                 }
             }
             //Mineral Harvester
@@ -496,7 +496,7 @@ module.exports.remoteCreepQueue = function (room) {
         }
         // Remote Hauler
         if (getCreepCount(room, 'remoteHarvester') && !room.memory.lowPower) {
-            if (getCreepCount(room, 'remoteHauler') < getCreepCount(room, 'remoteHarvester') * 0.7) {
+            if (getCreepCount(room, 'remoteHauler') < getCreepCount(room, 'remoteHarvester')) {
                 let misc = remoteHives[room.name];
                 queueCreep(room, PRIORITIES.remoteHauler, {role: 'remoteHauler', misc: misc})
             }
@@ -521,8 +521,7 @@ module.exports.globalCreepQueue = function () {
         queueGlobalCreep(PRIORITIES.secondary, {
             role: 'longbow',
             operation: 'marauding',
-            military: true,
-            other: {localCache: false}
+            military: true
         });
     }
     // Targets
