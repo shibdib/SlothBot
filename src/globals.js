@@ -24,6 +24,9 @@ let globals = function () {
     }
     global.LAYOUT_VERSION = 1.52;
 
+    global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
+    global.STATUS_COOLDOWN = 180; // Seconds between console status reports
+
     // Energy income breakdown
     global.ROOM_ENERGY_ALLOTMENT = {
         'store': 0.2,
@@ -32,6 +35,10 @@ let globals = function () {
         'walls': 0.2,
         'other': 0.3
     };
+
+    // Pathfinder Cache Sizes
+    global.PATH_CACHE_SIZE = 1500;
+    global.ROUTE_CACHE_SIZE = 100;
 
     // Reaction
     global.TIER_3_BOOSTS = [RESOURCE_CATALYZED_GHODIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ACID, RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE];

@@ -25,7 +25,7 @@ class Log {
 
         // This sets the default logging level if it's not already defined.
         // You can change this to a different default logging level.
-        Memory.loggingLevel = Memory.loggingLevel || 3;
+        DESIRED_LOGGING_LEVEL = DESIRED_LOGGING_LEVEL || 3;
     }
 
     /**
@@ -37,7 +37,7 @@ class Log {
      **/
     setLogLevel(newLevel) {
         if(this.LOGGING_LEVEL.hasOwnProperty(newLevel.name)) {
-            Memory.loggingLevel = newLevel.value;
+            DESIRED_LOGGING_LEVEL = newLevel.value;
         } else {
             this.w('Attempted to set an invalid logging level, ignoring.');
         }
@@ -105,7 +105,7 @@ class Log {
      * then leave this alone. Use the functions above this.
      **/
     cprint(message, logLevel, color = '#ffffff') {
-        if(logLevel.value <= Memory.loggingLevel) {
+        if(logLevel.value <= DESIRED_LOGGING_LEVEL) {
             console.log(`<span style="color: ${color}">${message}</span>`);
         }
     }
