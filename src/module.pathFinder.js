@@ -14,8 +14,6 @@ const creepMatrixCache = {};
 const hostileMatrixCache = {};
 const skMatrixCache = {};
 let tempAvoidRooms = [];
-let routeCache = {};
-let pathCache = {};
 
 function shibMove(creep, heading, options = {}) {
     if (creep.borderCheck()) return;
@@ -640,34 +638,34 @@ function positionAtDirection(origin, direction) {
 
 function cacheRoute(from, to, route) {
     let key = from + '_' + to;
-    let cache;
-    cache = routeCache;
+    let cache = Memory._routeCache || {};
     if (cache instanceof Array) cache = {};
     let tick = Game.time;
     cache[key] = {
         route: JSON.stringify(route),
         uses: 1,
-        tick: tick
+        tick: tick,
+        created: tick
     };
-    routeCache = cache;
+    Memory._routeCache = cache;
 }
 
 function getRoute(from, to) {
     let cache;
-    cache = routeCache;
+    cache = Memory._routeCache;
     if (cache) {
         let cachedRoute = cache[from + '_' + to];
         if (cachedRoute) {
             cachedRoute.uses += 1;
-            routeCache = cache;
+            cachedRoute.tick = Game.time;
+            Memory._routeCache = cache;
             return JSON.parse(cachedRoute.route);
         }
     }
 }
 
 function cachePath(creep, from, to, path) {
-    //Don't store short paths
-    if (path.length < 5) return;
+    if (path.length <= 3) return;
     //Store path based off move weight
     let options = getMoveWeight(creep);
     let weight = 3;
@@ -677,22 +675,21 @@ function cachePath(creep, from, to, path) {
         weight = 2;
     }
     let key = getPathKey(from, to, weight);
-    let cache;
-    if (creep.memory.other && creep.memory.other.localCache) cache = creep.memory.other.localPathCache || {}; else cache = pathCache;
+    let cache = Memory._pathCache || {};
     if (cache instanceof Array) cache = {};
     let tick = Game.time;
     cache[key] = {
         path: path,
         uses: 1,
-        tick: tick
+        tick: tick,
+        created: tick
     };
-    if (creep.memory.other && creep.memory.other.localCache) creep.memory.other.localPathCache = cache; else pathCache = cache;
+    Memory._pathCache = cache;
 }
 
 function getPath(creep, from, to) {
-    let cache;
-    if (creep.memory.other && creep.memory.other.localPathCache && creep.memory.other.localPathCache[getPathKey(from, to)]) return creep.memory.other.localPathCache[getPathKey(from, to)].path; else if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._pathCache || {}; else cache = pathCache;
-    if (!cache) return;
+    let cache = Memory._pathCache || {};
+    //if (creep.memory.other && creep.memory.other.localPathCache && creep.memory.other.localPathCache[getPathKey(from, to)]) return creep.memory.other.localPathCache[getPathKey(from, to)].path; else if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._pathCache || {}; else cache = pathCache;
     //Store path based off move weight
     let options = getMoveWeight(creep);
     let weight = 3;
@@ -704,7 +701,8 @@ function getPath(creep, from, to) {
     let cachedPath = cache[getPathKey(from, to, weight)];
     if (cachedPath) {
         cachedPath.uses += 1;
-        pathCache = cache;
+        cachedPath.tick = Game.time;
+        Memory._pathCache = cache;
         return cachedPath.path;
     }
 }
