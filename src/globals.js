@@ -22,10 +22,12 @@ let globals = function () {
             console.log('No custom config found loading config.js');
         }
     }
-    global.LAYOUT_VERSION = 1.52;
+    global.LAYOUT_VERSION = 1.53;
 
     global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
     global.STATUS_COOLDOWN = 180; // Seconds between console status reports
+    global.ROOM_ABANDON_THRESHOLD = 7500; // If bucket is consistently below this, abandon your lowest room
+    global.SIGN_CLEANER = true; // Clean room signs away with explorers
 
     // Energy income breakdown
     global.ROOM_ENERGY_ALLOTMENT = {
@@ -521,22 +523,8 @@ let globals = function () {
         if (val > max) return max;
         return val;
     };
-    global.adjustedCPULimit = function adjustedCPULimit(limit, bucket, target = BUCKET_MAX * 0.5, maxCpuPerTick = 495) {
-        var multiplier = 1;
-        if (bucket < target) {
-            multiplier = Math.sin(Math.PI * bucket / (2 * target));
-        }
-        if (bucket > target) {
-            // Thanks @Deign for support with the sine function below
-            multiplier = 2 + Math.sin((Math.PI * (bucket - BUCKET_MAX)) / (2 * (BUCKET_MAX - target)));
-            // take care of our 10 CPU folks, to dip into their bucket reserves more...
-            // help them burn through excess bucket above the target.
-            if (limit === 10 && multiplier > 1.5)
-                multiplier += 1;
-        }
 
-        return clamp(Math.round(limit * 0.2), Math.round(limit * multiplier), maxCpuPerTick);
-    };
+    global.CPU_TASK_LIMITS = {};
 
     global.TEN_CPU = Game.cpu.limit === 20 || Game.shard.name === 'shard3';
 

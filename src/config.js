@@ -9,7 +9,7 @@
 // Use this to modify how your overlord bot runs
 
 global.COMBAT_SERVER = []; // Insert the Game.shard.name of servers you'd like to declare everyone hostile
-global.HOSTILES = []; // Manually set players as hostile
+global.HOSTILES = ['Sergey']; // Manually set players as hostile
 global.MANUAL_FRIENDS = []; // Manually set players as friends (overrides COMBAT_SERVER)
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
 global.ATTACK_LOCALS = true; // Attacks targets within range of the next entry
