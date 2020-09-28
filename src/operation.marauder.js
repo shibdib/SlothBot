@@ -45,6 +45,7 @@ Creep.prototype.marauding = function () {
         if (this.room.name === this.memory.other.destination) {
             if ((!this.room.hostileCreeps.length && !this.room.hostileStructures.length) || !this.canIWin() || (!this.moveToHostileConstructionSites() && !this.handleMilitaryCreep())) {
                 highCommand.generateThreat(this);
+                this.scorchedEarth();
                 if (!this.memory.other.onScene) this.memory.other.onScene = Game.time;
                 // If on target and cant win find a new target
                 if (this.memory.other.onScene + 100 < Game.time || !this.canIWin()) {

@@ -128,7 +128,7 @@ function auxiliaryOperations() {
         // Commodity Mining
         let commodityRooms = _.filter(Memory.roomCache, (r) => r.commodity && r.closestRange <= 8 && !r.user);
         let commodityMining = _.filter(Memory.targetRooms, (target) => target && target.type === 'commodity').length || 0;
-        if (commodityRooms.length && !commodityMining) {
+        if (commodityRooms.length && commodityMining < 2) {
             for (let commodityRoom of commodityRooms) {
                 if (Memory.auxiliaryTargets[commodityRoom.name]) continue;
                 let cache = Memory.auxiliaryTargets || {};
@@ -241,21 +241,27 @@ function operationRequests() {
         }
         // Harass Enemies
         if (capableRooms) {
-            let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => HARASS_ATTACKS && r.user && r.user !== MY_USERNAME && !checkForNap(r.user) && (_.includes(Memory._nuisance, r.user) || _.includes(Memory._enemies, r.user)) && !Memory.targetRooms[r.name] && !Memory.auxiliaryTargets[r.name] && !r.sk && (!r.isHighway || r.power || r.commodity) && !r.level && r.closestRange <= LOCAL_SPHERE * 3), 'closestRange');
-            if (!enemyHarass.length) enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !checkForNap(r.user) && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !Memory.auxiliaryTargets[r.name] && !r.sk && (!r.isHighway || r.power || r.commodity) && !r.level && r.closestRange <= LOCAL_SPHERE && (ATTACK_LOCALS || POKE_NEUTRALS)), 'closestRange');
-            for (let target of enemyHarass) {
-                if (Memory.targetRooms[target.name]) continue;
-                let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
-                if (lastOperation + ATTACK_COOLDOWN > Game.time) continue;
-                let cache = Memory.targetRooms || {};
-                let tick = Game.time;
-                cache[target.name] = {
-                    tick: tick,
-                    type: 'attack'
-                };
-                Memory.targetRooms = cache;
-                log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
-                break;
+            if (HARASS_ATTACKS) {
+                let potentials = _.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !Memory.targetRooms[r.name] && !Memory.auxiliaryTargets[r.name] && !checkForNap(r.user) && r.closestRange <= LOCAL_SPHERE * 3 && !_.includes(FRIENDLIES, r.user) && r.level);
+                if (potentials.length) {
+                    let enemyHarass = _.sortBy(_.filter(potentials, (r) => _.includes(Memory._nuisance, r.user) || _.includes(Memory._enemies, r.user)), 'closestRange');
+                    if (!enemyHarass.length && ATTACK_LOCALS) enemyHarass = _.sortBy(potentials, 'closestRange');
+                    for (let target of enemyHarass) {
+                        if (Memory.targetRooms[target.name]) continue;
+                        let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
+                        if (lastOperation + ATTACK_COOLDOWN > Game.time) continue;
+                        let cache = Memory.targetRooms || {};
+                        let tick = Game.time;
+                        cache[target.name] = {
+                            tick: tick,
+                            type: 'rangers'
+                        };
+                        if (!target.towers) cache[target.name].type = 'hold';
+                        Memory.targetRooms = cache;
+                        log.a(_.capitalize(cache[target.name].type) + ' operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+                        break;
+                    }
+                }
             }
             // SIEGES
             if (Memory._enemies.length && SIEGE_ENABLED) {

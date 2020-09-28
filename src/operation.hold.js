@@ -52,7 +52,7 @@ function levelManager(creep) {
     }
     let towers = _.filter(creep.room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10 && c.isActive());
     let armedEnemies = _.filter(creep.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && c.owner.username === c.room.controller.owner.username);
-    let armedOwners = _.filter(_.union(_.pluck(armedEnemies, 'owner.username'), [creep.room.controller.owner.username]), (o) => !_.includes(FRIENDLIES, o));
+    let armedOwners = _.filter(_.union(_.pluck(creep.room.hostileCreeps, 'owner.username'), [creep.room.controller.owner.username]), (o) => !_.includes(FRIENDLIES, o) && o !=='Invader');
     if (armedOwners.length > 1) {
         delete Memory.targetRooms[creep.memory.destination];
         log.a('Canceling operation in ' + roomLink(creep.memory.destination) + ' as there is a 3rd party present.', 'HIGH COMMAND: ');

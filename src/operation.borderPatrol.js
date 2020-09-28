@@ -51,8 +51,8 @@ Creep.prototype.borderPatrol = function () {
 };
 
 function offDuty(creep) {
-    if (!creep.findDefensivePosition() && !creep.borderCheck()) {
+    if (!creep.healAllyCreeps() && !creep.findDefensivePosition() && !creep.borderCheck()) {
         let center = new RoomPosition(25, 25, creep.room.name);
-        if (creep.pos.getRangeTo(center) > 20) creep.shibMove(center, {range: 18}); else creep.idleFor(creep.pos.getRangeTo(creep.pos.findClosestByRange(FIND_EXIT)) - 4);
+        if (creep.pos.getRangeTo(center) > 10) creep.shibMove(center, {range: 8}); else creep.idleFor(creep.pos.getRangeTo(creep.pos.findClosestByRange(FIND_EXIT)) - 4);
     }
 }
