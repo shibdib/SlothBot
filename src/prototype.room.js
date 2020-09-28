@@ -59,7 +59,7 @@ Object.defineProperty(Room.prototype, 'deposits', {
     get: function () {
         // If we dont have the value stored locally
         if (!this._deposits) {
-            this._deposits = this.find(FIND_DEPOSITS)[0];
+            this._deposits = this.find(FIND_DEPOSITS);
         }
         // return the locally stored value
         return this._deposits;
@@ -236,7 +236,7 @@ Object.defineProperty(Room.prototype, 'ruins', {
 Object.defineProperty(Room.prototype, 'level', {
     get: function () {
         if (!this._level) {
-            this._level = this.controller.level;
+            this._level = getLevel(this);
         }
         return this._level;
     },
@@ -297,22 +297,27 @@ function getRoomResource(room, resource, unused = false) {
 Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     let room = Game.rooms[this.name];
-    let nonCombats, mineral, sk, power, portal, user, level, closestRange, owner,
-        reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange;
+    let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation,
+        reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions;
     if (room) {
+        if (Memory.roomCache[room.name]) lastOperation = Memory.roomCache[room.name].lastOperation;
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
-        // Get range to nearest room of yours
-        closestRange = this.findClosestOwnedRoom(true);
         // Get special rooms via name
         //let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
         let cache = Memory.roomCache || {};
         let sources = room.sources;
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) && !e.getActiveBodyparts(RANGED_ATTACK) && (e.getActiveBodyparts(WORK) || e.getActiveBodyparts(CARRY))));
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)[0]) sk = true;
-        let isHighway = !room.controller && !sk && !room.sources.length;
-        if (!isHighway) isHighway = undefined;
         if (room.controller) {
+            // Check if obstructed
+            let adjacent = _.filter(Game.map.describeExits(room.name));
+            for (let neighbor of adjacent) {
+                if (!room.controller.pos.findClosestByPath(Game.map.findExit(room.name, neighbor))) {
+                    obstructions = true;
+                    break;
+                }
+            }
             safemode = room.controller.safeMode;
             if (room.controller.owner) {
                 owner = room.controller.owner.username;
@@ -332,13 +337,15 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 reservation = room.controller.reservation.username;
                 user = room.controller.reservation.username;
             } else {
-                let roomPlanner = require('module.roomPlanner');
-                mineral = room.mineral.mineralType;
-                if (sources.length === 2) {
-                    hubCheck = roomPlanner.hubCheck(this);
-                    sourceRange = 0;
-                    for (let source of sources) {
-                        sourceRange += source.pos.getRangeTo(_.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER));
+                if (room.controller.pos.countOpenTerrainAround()) {
+                    let roomPlanner = require('module.roomPlanner');
+                    mineral = room.mineral.mineralType;
+                    if (sources.length === 2) {
+                        hubCheck = roomPlanner.hubCheck(this);
+                        sourceRange = 0;
+                        for (let source of sources) {
+                            sourceRange += source.pos.getRangeTo(_.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER));
+                        }
                     }
                 }
             }
@@ -359,11 +366,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         } else {
             portal = undefined;
         }
+        let deposit = _.filter(room.deposits, (d) => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20))[0];
         // Deposit info
-        if (room.deposits) {
-            if (room.deposits.ticksToDecay > 4500) {
-                commodity = room.deposits.pos.countOpenTerrainAround();
-            }
+        if (deposit) {
+            commodity = true;
         }
         // Store power info
         power = _.filter(room.structures, (e) => e && e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
@@ -387,10 +393,12 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             safemode: safemode,
             portal: portal,
             power: power,
-            isHighway: isHighway,
-            closestRange: closestRange,
+            isHighway: !room.controller && !sk && !room.sources.length,
+            closestRange: this.findClosestOwnedRoom(true),
             hubCheck: hubCheck,
             sourceRange: sourceRange,
+            obstructions: obstructions,
+            lastOperation: lastOperation,
             invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,
             towers: _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10).length,
             structures: _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR).length

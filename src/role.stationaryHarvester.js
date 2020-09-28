@@ -180,7 +180,7 @@ function harvestDepositContainer(source, creep) {
         if (!source.memory.containerPos) {
             let site = source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.room.controller)})[0];
             if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 2 && !creep.pos.isNearTo(creep.room.controller)) {
-                source.memory.containerPos = JSON.stringify(creep.pos);
+                source.memory.containerPos = JSON.stringify(findBestContainerPos(source));
             } else if (site) {
                 if (creep.pos.getRangeTo(site) > 0) creep.shibMove(site, {range: 0});
                 source.memory.containerPos = JSON.stringify(site.pos);
@@ -204,11 +204,14 @@ function extensionBuilder(creep) {
         return creep.shibMove(container, {range: 0});
     } else {
         let count = 0;
+        let otherSource = _.filter(creep.room.sources, (s) => s.id !== creep.memory.source)[0];
+        if (!otherSource.memory.dominant) source.memory.dominant = true;
         for (let xOff = -1; xOff <= 1; xOff++) {
             for (let yOff = -1; yOff <= 1; yOff++) {
                 if (xOff !== 0 || yOff !== 0) {
                     let pos = new RoomPosition(container.x + xOff, container.y + yOff, container.roomName);
-                    if (pos.checkForWall() || pos.checkForConstructionSites() || pos.checkForObstacleStructure() || pos.isExit() || pos.isNearTo(creep.room.controller)) continue;
+                    if (pos.checkForWall() || pos.checkForConstructionSites() || pos.checkForObstacleStructure()
+                        || pos.isExit() || pos.isNearTo(creep.room.controller) || (!source.memory.dominant && pos.getRangeTo(otherSource) <= 2)) continue;
                     count++;
                     if ((!creep.memory.linkID && count < 3) || (creep.memory.linkID && count < 2)) continue;
                     pos.createConstructionSite(STRUCTURE_EXTENSION)
@@ -218,4 +221,23 @@ function extensionBuilder(creep) {
         creep.memory.extensionBuilt = true;
         creep.memory.storedLevel = creep.room.controller.level;
     }
+}
+
+function findBestContainerPos(source) {
+    let bestPos, bestCount;
+    let otherSource = _.filter(source.room.sources, (s) => s.id !== source.id)[0];
+    if (!otherSource.memory.dominant) source.memory.dominant = true;
+    for (let xOff = -1; xOff <= 1; xOff++) {
+        for (let yOff = -1; yOff <= 1; yOff++) {
+            if (xOff !== 0 || yOff !== 0) {
+                let pos = new RoomPosition(source.pos.x + xOff, source.pos.y + yOff, source.pos.roomName);
+                if (pos.checkForWall()) continue;
+                if (!bestCount || pos.countOpenTerrainAround() > bestCount) {
+                    bestCount = pos.countOpenTerrainAround();
+                    bestPos = pos;
+                }
+            }
+        }
+    }
+    return bestPos;
 }

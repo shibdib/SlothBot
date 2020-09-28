@@ -7,6 +7,7 @@
 
 let praiseSupplied = {};
 module.exports.linkControl = function (room) {
+    if (room.level < 5) return;
     let links = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && !s.cooldown && s.energy >= 100 && s.id !== s.room.memory.controllerLink && s.id !== s.room.memory.hubLink));
     let hubLink = Game.getObjectById(room.memory.hubLink);
     let controllerLink = Game.getObjectById(room.memory.controllerLink);

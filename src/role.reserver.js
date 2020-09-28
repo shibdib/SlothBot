@@ -21,6 +21,7 @@ module.exports.role = function (creep) {
                 case OK:
                     if (!creep.memory.signed) {
                         let signs = RESERVE_ROOM_SIGNS;
+                        if (SIGN_CLEANER) signs = [''];
                         creep.signController(creep.room.controller, _.sample(signs));
                         creep.memory.signed = true;
                     }

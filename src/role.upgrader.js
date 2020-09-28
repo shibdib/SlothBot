@@ -13,7 +13,7 @@ module.exports.role = function (creep) {
     //INITIAL CHECKS
     if (creep.tryToBoost(['upgrade']) || creep.wrongRoom()) return;
     // Handle yelling
-    //herald(creep);
+    herald(creep);
     let container = Game.getObjectById(creep.room.memory.controllerContainer);
     let link = Game.getObjectById(creep.room.memory.controllerLink);
     if (creep.memory.other.inPosition) {
@@ -77,8 +77,7 @@ module.exports.role = function (creep) {
         } else if (container && container.store[RESOURCE_ENERGY]) {
             creep.withdrawResource(container);
         } else if (!creep.locateEnergy(25)) {
-            let source = creep.pos.getClosestSource();
-            if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
+            creep.idleFor(15);
         }
     }
 };
@@ -119,6 +118,7 @@ function herald(creep) {
         if (!creep.memory.signed) {
             let signs = OWNED_ROOM_SIGNS;
             let addition = '';
+            if (SIGN_CLEANER) signs = [''];
             if (Game.shard.name === 'treecafe' && creep.room.controller.level >= 4) addition = ' @pvp@';
             switch (creep.signController(creep.room.controller, _.sample(signs) + addition)) {
                 default:

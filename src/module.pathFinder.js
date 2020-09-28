@@ -91,32 +91,7 @@ function shibMove(creep, heading, options = {}) {
     pathInfo.targetRoom = targetRoom(heading);
     //Clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
-        let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y &&
-            c.memory.role !== 'Reserver' && c.memory.role !== 'powerAttacker' && c.memory.role !== 'stationaryHarvester')[0];
-        if (bumpCreep && Math.random() > 0.5) {
-            if (!creep.memory.trailer) {
-                if (bumpCreep.getActiveBodyparts(MOVE)) {
-                    bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
-                } else {
-                    creep.pull(bumpCreep);
-                    creep.move(creep.pos.getDirectionTo(bumpCreep));
-                }
-                bumpCreep.say(ICONS.traffic, true)
-                pathInfo.pathPosTime = 0;
-            } else {
-                bumpCreep.moveRandom();
-                bumpCreep.say(ICONS.traffic, true)
-                pathInfo.pathPosTime = 0;
-            }
-        } else {
-            delete pathInfo.path;
-            pathInfo.pathPosTime = 0;
-            options.ignoreCreeps = false;
-            options.freshMatrix = true;
-            options.useCache = false;
-            creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
-            if (Math.random() > 0.9) return creep.moveRandom();
-        }
+        creepBumping(creep, pathInfo, options);
     }
     //Handle getting stuck in rooms on multi rooms pathing
     if (pathInfo.route && pathInfo.route.length) {
@@ -321,6 +296,8 @@ function findRoute(origin, destination, options = {}) {
                 if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].towers) return 256;
                 // If room is under attack
                 if (Memory.roomCache[roomName] && Memory.roomCache[roomName].threatLevel >= 2) return 100;
+                // If room has observed obstructions
+                if (Memory.roomCache[roomName] && Memory.roomCache[roomName].obstructions) return 200;
                 // SK rooms are avoided if not being mined
                 if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].mined + 50 < Game.time) return 30;
                 // Friendly Rooms
@@ -335,7 +312,7 @@ function findRoute(origin, destination, options = {}) {
                 if (Memory.roomCache[roomName].isHighway) return 8;
             } else
                 // Unknown rooms have a slightly higher weight
-            if (!Memory.roomCache[roomName]) return 15;
+            if (!Memory.roomCache[roomName]) return 25;
             return 12;
         }
     });
@@ -355,6 +332,34 @@ function findRoute(origin, destination, options = {}) {
 }
 
 //FUNCTIONS
+function creepBumping(creep, pathInfo, options) {
+    let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y)[0];
+    if (bumpCreep && Math.random() > 0.5) {
+        if (!creep.memory.trailer) {
+            if (bumpCreep.getActiveBodyparts(MOVE)) {
+                bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
+            } else {
+                creep.pull(bumpCreep);
+                creep.move(creep.pos.getDirectionTo(bumpCreep));
+            }
+            bumpCreep.say(ICONS.traffic, true)
+            pathInfo.pathPosTime = 0;
+        } else {
+            bumpCreep.moveRandom();
+            bumpCreep.say(ICONS.traffic, true)
+            pathInfo.pathPosTime = 0;
+        }
+    } else {
+        delete pathInfo.path;
+        pathInfo.pathPosTime = 0;
+        options.ignoreCreeps = false;
+        options.freshMatrix = true;
+        options.useCache = false;
+        creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
+        if (Math.random() > 0.9) return creep.moveRandom();
+    }
+}
+
 function normalizePos(destination) {
     if (!(destination instanceof RoomPosition)) {
         if (destination) {

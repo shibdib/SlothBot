@@ -14,7 +14,10 @@ let reactionAmount = REACTION_AMOUNT;
 let runOnce, globalOrders, lastPriceAdjust, spendingMoney;
 if (Memory._banker) spendingMoney = Memory._banker.spendingAccount; else spendingMoney = 0;
 
+let lastRun;
 module.exports.terminalControl = function (room) {
+    if (!room.terminal || room.terminal.cooldown || room.memory.lowPower || lastRun + 10 > Game.time) return;
+    lastRun = Game.time;
     Memory.saleTerminal = Memory.saleTerminal || {};
     let myOrders = Game.market.orders;
     // Things that don't need to be run for every terminal
@@ -260,7 +263,7 @@ function baseMineralOnDemandBuys(terminal, globalOrders) {
         if (stored < target) {
             let buyAmount = target - stored;
             if (Game.market.credits < CREDIT_BUFFER) _.floor(buyAmount *= (Game.market.credits / CREDIT_BUFFER));
-            let sellOrder = _.min(globalOrders.filter(order => order.resourceType === mineral && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName)), 'price');
+            let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName)), 'price');
             if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.floor(spendingMoney / sellOrder.price);
             if (sellOrder.id && buyAmount >= 50) {
                 if (buyAmount > sellOrder.amount) buyAmount = sellOrder.amount;
@@ -369,7 +372,7 @@ function balanceResources(terminal) {
     // Balance Energy
     if (!Memory.roomCache[terminal.room.name].threatLevel && !terminal.room.nukes.length) {
         // Find needy terminals
-        let needyTerminal = _.min(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.energy < terminal.room.energy * 0.85 && !r.room.memory.praiseRoom && r.store.getFreeCapacity()), '.room.energy');
+        let needyTerminal = _.min(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.energyState < 2 && r.room.energy < terminal.room.energy * 0.85 && !r.room.memory.praiseRoom && r.store.getFreeCapacity()), '.room.energy');
         if (needyTerminal.id) {
             // Determine how much you can move
             let availableAmount = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;

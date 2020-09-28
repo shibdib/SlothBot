@@ -18,9 +18,9 @@ module.exports.role = function role(creep) {
     // Set destination
     if (!creep.memory.destination) {
         if (creep.memory.overlord === creep.room.name) {
-            creep.memory.destination = _.sample(_.filter(JSON.parse(creep.memory.misc), (r) => Memory.roomCache[r] && !Memory.roomCache[r].threatLevel && !Memory.roomCache[r].invaderCore && (!Memory.roomCache[r].sk || Game.rooms[creep.memory.overlord].level >= 7)));
+            creep.memory.destination = _.sample(_.filter(JSON.parse(creep.memory.misc), (r) => Memory.roomCache[r] && !Memory.roomCache[r].threatLevel && !Memory.roomCache[r].obstructions && !Memory.roomCache[r].invaderCore && (!Memory.roomCache[r].sk || Game.rooms[creep.memory.overlord].level >= 7)));
         } else {
-            creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
+            return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
         }
     }
     // Remove bad desto
@@ -40,13 +40,13 @@ module.exports.role = function role(creep) {
     }
     // Work
     if (creep.memory.working === true) {
-        if (!remoteRoads(creep)) Memory.roomCache[creep.room.name].roadsBuilt = true;
         if (creep.memory.constructionSite || creep.constructionWork()) {
             if (!Game.getObjectById(creep.memory.constructionSite)) return creep.memory.constructionSite = undefined;
             creep.builderFunction();
         } else {
+            if (!remoteRoads(creep)) Memory.roomCache[creep.room.name].roadsBuilt = true;
             creep.memory.destination = undefined;
-            if (creep.memory.overlord === creep.room.name) creep.idleFor(5);
+            if (creep.memory.overlord === creep.room.name) creep.idleFor(15);
         }
     } else {
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
@@ -78,12 +78,6 @@ module.exports.role = function role(creep) {
 
 function remoteRoads(creep) {
     if (creep.room.name !== creep.memory.destination || creep.room.constructionSites.length > 3) return false;
-    // Prevent spamming this function
-    if (creep.memory.other.lastChecked === creep.room.name) {
-        creep.memory.other.lastChecked = undefined;
-        return creep.idleFor(3);
-    }
-    creep.memory.other.lastChecked = creep.room.name;
     let sources = creep.room.sources;
     let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
     let homeExit = creep.room.find(goHome);

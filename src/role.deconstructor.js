@@ -10,13 +10,12 @@
  */
 
 module.exports.role = function (creep) {
-    switch (creep.memory.operation) {
-        case 'hold':
-        case 'clean':
-            creep.holdRoom();
-            break;
-        case 'siege':
-            creep.siegeRoom();
-            break;
+    if (creep.tryToBoost(['dismantle'])) return;
+    if (creep.memory.destination) {
+        if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
+        if (!creep.scorchedEarth()) {
+            creep.room.cacheRoomIntel(true);
+            creep.memory.recycle = true;
+        }
     }
 };

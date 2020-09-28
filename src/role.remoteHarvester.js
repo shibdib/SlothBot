@@ -70,8 +70,8 @@ module.exports.role = function (creep) {
                 creep.room.cacheRoomIntel(true);
                 return creep.memory.recycle = true;
             }
-            //If source is set mine
-            if (!creep.memory.source && !creep.findSource()) return creep.idleFor(25);
+            //If source is set mine (Handles not being able to reach sources)
+            if (!creep.memory.source && !creep.findSource() && !creep.scorchedEarth()) return creep.idleFor(25);
         }
         //Harvest
         if (creep.memory.source) {
@@ -118,7 +118,6 @@ function harvestDepositContainer(source, creep) {
         case OK:
             let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(source) === 1});
             if (container) {
-                Memory.roomCache[creep.room.name].builderRequested = undefined;
                 return container.id;
             } else {
                 let site = source.pos.findInRange(creep.room.constructionSites, 3, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
@@ -128,7 +127,6 @@ function harvestDepositContainer(source, creep) {
                 } else if (!site && creep.pos.checkForWall()) {
                     findContainerSpot(creep.room, source.pos);
                 } else if (site && site.pos.getRangeTo(source) === 1) {
-                    Memory.roomCache[creep.room.name].builderRequested = true;
                     creep.memory.containerSite = site.id;
                     if (creep.store[RESOURCE_ENERGY] && creep.memory.containerSite) {
                         let site = Game.getObjectById(creep.memory.containerSite);

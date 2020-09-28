@@ -9,6 +9,7 @@
  * Created by Bob on 7/12/2017.
  */
 
+let wallCheck;
 module.exports.role = function (creep) {
     creep.room.cacheRoomIntel();
     creep.say(_.sample(EXPLORER_SPAM), true);
@@ -38,6 +39,7 @@ module.exports.role = function (creep) {
                     target = _.sample(adjacent);
                     if (Game.map.getRoomStatus(target).status !== Game.map.getRoomStatus(creep.memory.overlord).status) return creep.moveRandom();
                 }
+                if (!creep.pos.findClosestByPath(Game.map.findExit(creep.room.name, target))) return creep.moveRandom();
             } catch {
                 target = _.sample(adjacent);
             }
@@ -48,16 +50,30 @@ module.exports.role = function (creep) {
         if (creep.pos.roomName === creep.memory.destination) {
             // Sign the controller
             if (creep.room.controller && (!creep.room.controller.owner || creep.room.controller.level < 3) && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
-                // If already signed continue
-                if (creep.room.controller.sign && creep.room.controller.sign.username === MY_USERNAME) return creep.memory.destinationReached = true;
-                // Else sign
-                switch (creep.signController(creep.room.controller, _.sample(EXPLORED_ROOM_SIGNS))) {
-                    case ERR_NOT_IN_RANGE:
-                        // If you cant reach the controller continue else move to it
-                        if (!creep.room.controller.pos.countOpenTerrainAround()) return creep.memory.destinationReached = true;
-                        creep.shibMove(creep.room.controller);
+                if (!creep.moveToHostileConstructionSites(false, true)) {
+                    if (!SIGN_CLEANER) {
+                        // If already signed continue
+                        if (creep.room.controller.sign && creep.room.controller.sign.username === MY_USERNAME) return creep.memory.destinationReached = true;
+                        // Else sign
+                        switch (creep.signController(creep.room.controller, _.sample(EXPLORED_ROOM_SIGNS))) {
+                            case ERR_NOT_IN_RANGE:
+                                // If you cant reach the controller continue else move to it
+                                if (!creep.room.controller.pos.countOpenTerrainAround() || Memory.roomCache[creep.room.name].obstructions) return creep.memory.destinationReached = true;
+                                creep.shibMove(creep.room.controller);
+                        }
+                    } else {
+                        // If already cleaned continue
+                        if (!creep.room.controller.sign) return creep.memory.destinationReached = true;
+                        // Else clean signs
+                        switch (creep.signController(creep.room.controller, '')) {
+                            case ERR_NOT_IN_RANGE:
+                                // If you cant reach the controller continue else move to it
+                                if (!creep.room.controller.pos.countOpenTerrainAround() || Memory.roomCache[creep.room.name].obstructions) return creep.memory.destinationReached = true;
+                                creep.shibMove(creep.room.controller);
+                        }
+                    }
                 }
-            } else if (!creep.moveToHostileConstructionSites(true)) {
+            } else if (!creep.moveToHostileConstructionSites(false, true)) {
                 creep.memory.destinationReached = true;
             }
         } else {

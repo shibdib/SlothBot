@@ -7,7 +7,7 @@
 
 module.exports.factoryControl = function (room) {
     // Check for factory
-    if (room.factory && !room.nukes.length) {
+    if (room.factory && !room.nukes.length && !room.memory.lowPower) {
         // If factory is set to produce do so
         if (room.factory.memory.producing && !room.factory.cooldown) {
             room.factory.say(room.factory.memory.producing);

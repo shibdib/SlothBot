@@ -38,6 +38,37 @@ module.exports.memHack = function () {
     LAST_MEMORY_TICK = Game.time;
 }
 
+// Set Task CPU Limits
+module.exports.CPULimits = function () {
+    let totalLimit = Game.cpu.limit;
+    CPU_TASK_LIMITS['roomLimit'] = adjustedCPULimit(totalLimit * 0.85, Game.cpu.bucket, 7000);
+    if (Memory._threatList && Memory._threatList.length) {
+        CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.05, Game.cpu.bucket, 5000);
+        CPU_TASK_LIMITS['hiveTasks'] = adjustedCPULimit(totalLimit * 0.10, Game.cpu.bucket, BUCKET_MAX);
+    } else {
+        CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.02, Game.cpu.bucket, 5000);
+        CPU_TASK_LIMITS['hiveTasks'] = adjustedCPULimit(totalLimit * 0.13, Game.cpu.bucket, BUCKET_MAX);
+    }
+}
+
+// CPU Limit Tool
+adjustedCPULimit = function adjustedCPULimit(limit, bucket, target = BUCKET_MAX * 0.7, maxCpuPerTick = Game.cpu.limit * 1.5) {
+    var multiplier = 1;
+    if (bucket < target) {
+        multiplier = Math.sin(Math.PI * bucket / (2 * target));
+    }
+    if (bucket > target) {
+        // Thanks @Deign for support with the sine function below
+        multiplier = 2 + Math.sin((Math.PI * (bucket - BUCKET_MAX)) / (2 * (BUCKET_MAX - target)));
+        // take care of our 10 CPU folks, to dip into their bucket reserves more...
+        // help them burn through excess bucket above the target.
+        if (limit === 10 && multiplier > 1.5)
+            multiplier += 1;
+    }
+
+    return clamp(Math.round(limit * 0.2), Math.round(limit * multiplier), maxCpuPerTick);
+};
+
 // Status console
 let lastStatus = _.round(new Date().getTime() / 1000, 2);
 module.exports.status = function () {
@@ -104,40 +135,5 @@ module.exports.status = function () {
             log.a('--DIPLOMATIC INFO FAILED--', ' ');
         }
         return log.a('---------------------------------------------------------------------------', ' ');
-    }
-};
-
-// Abandon a room
-module.exports.abandon = function (room) {
-    if (!Game.rooms[room] || !Game.rooms[room].memory.bunkerHub) return log.e(room + ' does not appear to be owned by you.');
-    let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
-    if (overlordFor.length) {
-        for (let key in overlordFor) {
-            overlordFor[key].memory.recycle = true;
-        }
-    }
-    for (let key in Game.rooms[room].structures) {
-        Game.rooms[room].structures[key].destroy();
-    }
-    for (let key in Game.rooms[room].constructionSites) {
-        Game.rooms[room].constructionSites[key].remove();
-    }
-    let noClaim = Memory.noClaim || [];
-    noClaim.push(room);
-    delete Game.rooms[room].memory;
-    Game.rooms[room].cacheRoomIntel(true);
-    Memory.roomCache[room].noClaim = Game.time + 999999999999;
-    Game.rooms[room].controller.unclaim();
-};
-
-// Get nukes in range
-module.exports.nukes = function (target) {
-    let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown);
-    if (target) nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, target) <= 10);
-    if (!nukes.length && !target) return log.a('No nukes available');
-    if (!nukes.length && target) return log.a('No nukes available in range of ' + target);
-    for (let key in nukes) {
-        if (target) log.a(nukes[key].room.name + ' has a nuclear missile available that is in range of ' + target);
-        if (!target) log.a(nukes[key].room.name + ' has a nuclear missile available.')
     }
 };

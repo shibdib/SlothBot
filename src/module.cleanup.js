@@ -15,6 +15,7 @@ module.exports.cleanup = function () {
         cleanConstructionSites();
         cleanRoomIntel();
         cleanStructureMemory();
+        cleanStructures();
     }
     if (Game.time % EST_TICKS_PER_DAY === 0) {
         delete Memory._pathCache;
@@ -126,5 +127,11 @@ function cleanStructureMemory() {
                 }
             }
         }
+    }
+}
+
+function cleanStructures() {
+    for (let structure of _.filter(Game.structures)) {
+        if (structure.room.controller && (!structure.room.controller.owner || structure.room.controller.owner.username !== MY_USERNAME) && !structure.isActive()) structure.destroy();
     }
 }

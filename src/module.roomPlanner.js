@@ -13,24 +13,29 @@ let minCut = require('util.minCut');
 let storedLayouts = {};
 let rampartSpots = {};
 
+let lastRun = 0;
 module.exports.buildRoom = function (room) {
+    let cooldown = 150;
+    if (room.level !== room.controller.level) cooldown = 5;
+    if (lastRun + cooldown > Game.time) return;
     if (room.memory.bunkerHub) {
         // Remove old memory
         room.memory.layout = undefined;
         if (room.memory.layoutVersion === LAYOUT_VERSION && storedLayouts[room.name]) {
             if (Memory.myRooms.length === 1 || room.controller.level >= 4) {
-                return buildFromLayout(room);
+                buildFromLayout(room);
             } else {
-                return newClaimBuild(room);
+                newClaimBuild(room);
             }
         } else {
-            return updateLayout(room);
+            updateLayout(room);
         }
     } else if (!room.memory.praiseRoom) {
         findHub(room);
     } else if (room.memory.praiseRoom) {
         praiseRoom(room);
     }
+    lastRun = Game.time;
 };
 
 module.exports.hubCheck = function (room) {
@@ -64,17 +69,11 @@ function buildFromLayout(room) {
         }
     }
     let built;
-    for (let structure of shuffle(filter)) {
+    for (let structure of filter) {
         let pos = new RoomPosition(structure.x, structure.y, room.name);
         if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER && structure.structureType !== STRUCTURE_TERMINAL)) continue;
         if (level === extensionLevel && structure.structureType === STRUCTURE_EXTENSION) continue;
         if (_.filter(room.constructionSites, (s) => s.structureType === structure.structureType && s.progress < s.progressTotal * 0.99).length) continue;
-        // Special case labs
-        if (structure.structureType === STRUCTURE_LAB) {
-            if (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB).length && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB).length && !pos.isNearTo(_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB)[0])) continue;
-            if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB).length === 1 && !pos.isNearTo(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0])) continue;
-            if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB).length === 2 && pos.findInRange(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB), 2).length < 2) continue;
-        }
         if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
             if (pos.createConstructionSite(structure.structureType) === OK) {
                 built = true;
@@ -103,9 +102,9 @@ function buildFromLayout(room) {
         }
     }
     // Labs if not in plan
-    let labs = _.filter(layout, (s) => s.structureType === STRUCTURE_LAB)[0];
-    if (!labs && level >= 6) {
-        let built = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB).length;
+    let labs = _.filter(layout, (s) => s.structureType === STRUCTURE_LAB).length;
+    if (labs < 3 && level >= 6) {
+        let built = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB).length - labs;
         let inBuild = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB)[0];
         if (!room.memory.labHub) {
             findLabHub(room);
