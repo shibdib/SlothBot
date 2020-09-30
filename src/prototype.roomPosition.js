@@ -59,13 +59,14 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
     }
 };
 
-RoomPosition.prototype.countOpenTerrainAround = function () {
+RoomPosition.prototype.countOpenTerrainAround = function (borderBuild = undefined) {
     let impassible = 0;
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
             if (xOff !== 0 || yOff !== 0) {
                 let pos = new RoomPosition(this.x + xOff, this.y + yOff, this.roomName);
                 if (pos.checkForImpassible() || (pos.checkForCreep() && !pos.checkForCreep().getActiveBodyparts(MOVE))) impassible += 1;
+                if (borderBuild && pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) < 2) impassible += 1;
             }
         }
     }

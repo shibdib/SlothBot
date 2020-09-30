@@ -500,22 +500,31 @@ Room.prototype.invaderCheck = function () {
     }
 };
 
-Room.prototype.findClosestOwnedRoom = function (range = false, safePath = false, minLevel = 1) {
-    let distance = 0;
-    let closest;
-    for (let key of Memory.myRooms) {
-        let room = Game.rooms[key];
-        if (!room || room.controller.level < minLevel) continue;
-        let range = Game.map.findRoute(this, room).length;
-        if (safePath) range = this.shibRoute(room).length - 1;
-        if (!distance) {
-            distance = range;
-            closest = room.name;
-        } else if (range < distance) {
-            distance = range;
-            closest = room.name;
+let closestCache = {};
+Room.prototype.findClosestOwnedRoom = function (range = false, minLevel = 1) {
+    if (!closestCache.length || !closestCache[this.name] || closestCache.tick + 1000 < Game.time) {
+        closestCache[this.name] = {};
+        closestCache.tick = Game.time;
+        let distance = 0;
+        let closest;
+        for (let key of Memory.myRooms) {
+            let room = Game.rooms[key];
+            if (!room || room.controller.level < minLevel) continue;
+            let range = Game.map.findRoute(this, room).length;
+            if (!distance) {
+                distance = range;
+                closest = room.name;
+            } else if (range < distance) {
+                distance = range;
+                closest = room.name;
+            }
         }
+        closestCache[this.name].closest = closest;
+        closestCache[this.name].distance = distance;
+        if (!range) return closest;
+        return distance;
+    } else {
+        if (!range) return closestCache[this.name].closest;
+        return closestCache[this.name].distance;
     }
-    if (!range) return closest;
-    return distance;
 };

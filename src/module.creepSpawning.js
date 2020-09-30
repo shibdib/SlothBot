@@ -138,7 +138,7 @@ module.exports.roomStartup = function (room) {
         queueCreep(room, 1 + getCreepCount(room, 'drone'), {role: 'drone'})
     }
     if (getCreepCount(room, 'stationaryHarvester') < 2) {
-        queueCreep(room, 1, {role: 'stationaryHarvester'})
+        queueCreep(room, 3, {role: 'stationaryHarvester'})
     }
     if (getCreepCount(room, 'hauler') < 2) {
         queueCreep(room, 2, {role: 'hauler'})
@@ -359,9 +359,10 @@ module.exports.remoteCreepQueue = function (room) {
         return room.memory.turtleMode = Game.time;
     }
     //Remotes
+    let remotes;
     if (!room.memory.turtleMode && remoteHives[room.name] && !Memory.roomCache[room.name].responseNeeded) {
         room.memory.spawnBorderPatrol = undefined;
-        let remotes = JSON.parse(remoteHives[room.name]);
+        remotes = JSON.parse(remoteHives[room.name]);
         let skMining;
         for (let keys in shuffle(remotes)) {
             let remoteName = remotes[keys];
@@ -418,7 +419,7 @@ module.exports.remoteCreepQueue = function (room) {
                     }
                 }
                 if (level >= 4 && !Memory.roomCache[remoteName].obstructions && (!Memory.roomCache[remoteName].reservationExpires || Game.time > Memory.roomCache[remoteName].reservationExpires) && Memory.roomCache[remoteName].sources < 3) {
-                    let amount = Memory.roomCache[remoteName].reserverCap || 1;
+                    let amount = Memory.roomCache[remoteName].reserverCap + 1 || 1;
                     if (getCreepCount(room, 'reserver', remoteName) < amount) {
                         queueCreep(room, PRIORITIES.reserver, {role: 'reserver', destination: remoteName})
                     }
@@ -431,17 +432,18 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
         }
-        // Remote Hauler
-        if (getCreepCount(room, 'remoteHarvester') && !room.memory.lowPower) {
-            if (getCreepCount(room, 'remoteHauler') < getCreepCount(room, 'remoteHarvester')) {
-                let misc = remoteHives[room.name];
-                queueCreep(room, PRIORITIES.remoteHauler, {role: 'remoteHauler', misc: misc})
-            }
-        }
-        // Remote Road Builder
-        if (!room.memory.turtleMode && getCreepCount(room, 'roadBuilder') < 2) {
+        if (remotes) {
             let misc = remoteHives[room.name];
-            queueCreep(room, PRIORITIES.roadBuilder, {role: 'roadBuilder', misc: misc})
+            // Remote Hauler
+            if (getCreepCount(room, 'remoteHarvester') && !room.memory.lowPower) {
+                if (getCreepCount(room, 'remoteHauler') < getCreepCount(room, 'remoteHarvester') * 0.8) {
+                    queueCreep(room, PRIORITIES.remoteHauler, {role: 'remoteHauler', misc: misc})
+                }
+            }
+            // Remote Road Builder
+            if (getCreepCount(room, 'roadBuilder') < remotes.length * 0.5) {
+                queueCreep(room, PRIORITIES.roadBuilder, {role: 'roadBuilder', misc: misc})
+            }
         }
     }
 };
@@ -546,6 +548,14 @@ module.exports.globalCreepQueue = function () {
                 if ((longbow < opLevel + 1 || (holdLongbowTTL && holdLongbowTTL < 300 && longbow < opLevel + 2))) {
                     queueGlobalCreep(priority, {
                         role: 'longbow',
+                        destination: key,
+                        operation: 'hold',
+                        military: true
+                    })
+                }
+                if (!getCreepCount(undefined, 'attacker', key)) {
+                    queueGlobalCreep(priority, {
+                        role: 'attacker',
                         destination: key,
                         operation: 'hold',
                         military: true

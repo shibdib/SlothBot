@@ -161,7 +161,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             deficitExemption = true;
             claim = _.floor((energyAmount * 0.50) / BODYPART_COST[CLAIM]) || 1;
             if (claim > 25) claim = 25;
-            if (level >= 7) move = claim * 0.5; else move = claim;
+            if (level >= 6) {
+                claim = _.floor((energyAmount * 0.66) / BODYPART_COST[CLAIM]) || 1;
+                move = claim * 0.5;
+            } else move = claim;
             break;
         case 'fuelTruck':
             carry = 20;

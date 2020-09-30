@@ -9,8 +9,8 @@ let lastRun;
 module.exports.claimNewRoom = function () {
     let limit = Game.gcl.level;
     if (Memory.cpuTracking.claimLimiter) limit -= Memory.cpuTracking.claimLimiter;
-    if (lastRun + 1000 > Game.time || limit <= Memory.myRooms.length ||
-        _.filter(Memory.myRooms, (r) => Game.rooms[r].memory["buildersNeeded"]).length > 2 || _.filter(Memory.auxiliaryTargets, (t) => t.type === 'claimScout' || t.type === 'claim')[0]) return;
+    if (lastRun + 750 > Game.time || limit <= Memory.myRooms.length ||
+        _.filter(Memory.myRooms, (r) => Game.rooms[r].memory["buildersNeeded"]).length > 2 || _.filter(Memory.auxiliaryTargets, (t) => t && t.type === 'claimScout' || t.type === 'claim')[0]) return;
     lastRun = Game.time;
     let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 3000 < Game.time) && r.hubCheck && r.closestRange <= 12 &&
         Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status && !r.obstructions);

@@ -232,8 +232,8 @@ function findBestContainerPos(source) {
             if (xOff !== 0 || yOff !== 0) {
                 let pos = new RoomPosition(source.pos.x + xOff, source.pos.y + yOff, source.pos.roomName);
                 if (pos.checkForWall()) continue;
-                if (!bestCount || pos.countOpenTerrainAround() > bestCount) {
-                    bestCount = pos.countOpenTerrainAround();
+                if (!bestCount || pos.countOpenTerrainAround(true) > bestCount) {
+                    bestCount = pos.countOpenTerrainAround(true);
                     bestPos = pos;
                 }
             }

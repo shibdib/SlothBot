@@ -431,6 +431,7 @@ function findHub(room, hubCheck = undefined) {
     let pos;
     if (!room.memory.typeSearch) room.memory.typeSearch = 1;
     let spawn = _.filter(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN)[0];
+    if (room.structures.length) _.filter(room.structures, (s) => s.structureType !== STRUCTURE_SPAWN).forEach((s) => s.destroy());
     primary:
         for (let i = 1; i < 2000; i++) {
             let searched = [];
