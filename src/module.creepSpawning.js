@@ -457,7 +457,9 @@ module.exports.globalCreepQueue = function () {
     let auxiliaryTargets = Memory.auxiliaryTargets;
     let operations = Object.assign(targetRooms, auxiliaryTargets);
     //Marauder
-    if (POKE_ATTACKS && getCreepCount(undefined, 'longbow', undefined, 'marauding') < 2) {
+    let marauderCount = _.size(Memory.myRooms);
+    if (marauderCount > 5) marauderCount = 5;
+    if (POKE_ATTACKS && getCreepCount(undefined, 'longbow', undefined, 'marauding') < marauderCount) {
         queueGlobalCreep(PRIORITIES.secondary, {
             role: 'longbow',
             operation: 'marauding',
