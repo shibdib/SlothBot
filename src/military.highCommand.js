@@ -117,7 +117,7 @@ function auxiliaryOperations() {
                         tick: tick,
                         type: 'power',
                         level: 1,
-                        priority: 1
+                        priority: 3
                     };
                     Memory.auxiliaryTargets = cache;
                     log.a('Mining operation planned for ' + roomLink(powerRoom.name) + ' suspected power bank location, Nearest Room - ' + powerRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
@@ -137,7 +137,7 @@ function auxiliaryOperations() {
                     tick: tick,
                     type: 'commodity',
                     level: 1,
-                    priority: 1
+                    priority: 3
                 };
                 Memory.auxiliaryTargets = cache;
                 log.a('Mining operation planned for ' + roomLink(commodityRoom.name) + ' suspected commodity deposit location, Nearest Room - ' + commodityRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
@@ -213,7 +213,7 @@ function operationRequests() {
                 cache[target.name] = {
                     tick: Game.time,
                     type: 'hold',
-                    level: 1,
+                    level: 0,
                     priority: 1
                 };
                 Memory.targetRooms = cache;

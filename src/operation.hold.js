@@ -15,20 +15,20 @@ Creep.prototype.holdRoom = function () {
     this.attackInRange();
     if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
     levelManager(this);
-    if (this.memory.role === 'longbow') {
+    if (this.memory.role !== 'deconstructor') {
         highCommand.generateThreat(this);
         // Handle target room
         if (this.room.name === this.memory.destination && Memory.targetRooms[this.memory.destination]) {
             highCommand.operationSustainability(this.room);
             Memory.targetRooms[this.room.name].claimAttacker = !this.room.controller.upgradeBlocked && (!this.room.controller.ticksToDowngrade || this.room.controller.level > 1 || this.room.controller.ticksToDowngrade > this.ticksToLive) && this.room.controller.pos.countOpenTerrainAround() > 0;
-            Memory.targetRooms[this.room.name].cleaner = this.room.structures.length > 0;
+            Memory.targetRooms[this.room.name].cleaner = _.filter(this.room.structures, (c) => c.structureType !== STRUCTURE_CONTROLLER && c.owner).length > 0;
         } else if (!Memory.targetRooms[this.memory.destination]) {
             return this.memory.recycle = true;
         }
         if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
         if (!this.canIWin(6)) return this.shibKite(7);
         if (!this.handleMilitaryCreep(false, false, true)) this.scorchedEarth();
-    } else if (this.memory.role === 'deconstructor') {
+    } else {
         if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
         if (!this.handleMilitaryCreep(false, false, true)) this.scorchedEarth();
     }

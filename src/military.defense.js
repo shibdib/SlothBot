@@ -21,10 +21,10 @@ module.exports.controller = function (room) {
     room.invaderCheck();
 
     // Handle nuke defense
-    if (Game.time % 5 === 0) handleNukeAttack(room);
+    if (Game.time % 100 === 0) handleNukeAttack(room);
 
     // Check if you should safemode
-    if (Memory.roomCache[room.name].threatLevel) safeModeManager(room);
+    if (Memory.roomCache[room.name].threatLevel > 2) safeModeManager(room);
 
     // Abandon hopeless rooms
     if (Game.time % 100 === 0 && Memory.roomCache[room.name].threatLevel) unSavableCheck(room);
@@ -36,7 +36,7 @@ module.exports.controller = function (room) {
     rampartManager(room, structures);
 
     // Early Warning System
-    earlyWarning(room);
+    if (Game.time % 25 === 0) earlyWarning(room);
 
     // Send an email on a player attack with details of attack
     if (Memory.roomCache[room.name].threatLevel && !Memory.roomCache[room.name].alertEmail && Memory.roomCache[room.name].threatLevel >= 4) {
@@ -117,7 +117,6 @@ function earlyWarning(room) {
     if (adjacent) {
         Memory.roomCache[room.name].threatLevel = Memory.roomCache[adjacent].threatLevel;
         Memory.roomCache[room.name].tickDetected = Game.time;
-        log.a(roomLink(room.name) + ' has gone to threat level ' + Memory.roomCache[adjacent].threatLevel + ' due to a triggering of the early warning system in ' + roomLink(adjacent) + '.', 'DEFENSE COMMAND');
     }
 }
 

@@ -213,6 +213,18 @@ function nukeTarget(room) {
 function forwardObserver(room) {
     let highCommand = require('military.highCommand');
     highCommand.operationSustainability(room);
+    // Safemode
+    if (room.controller.safeMode) {
+        let cache = Memory.targetRooms || {};
+        let tick = Game.time;
+        cache[room.name] = {
+            tick: tick,
+            type: 'pending',
+            dDay: tick + room.controller.safeMode,
+        };
+        Memory.targetRooms = cache;
+        return;
+    }
     //Type specific stuff
     switch (Memory.targetRooms[room.name].type) {
         case 'hold':
@@ -226,18 +238,26 @@ function forwardObserver(room) {
             Memory.targetRooms[room.name].claimAttacker = !room.controller.upgradeBlocked && (!room.controller.ticksToDowngrade || room.controller.ticksToDowngrade > 1000);
             break;
     }
-    let armedEnemies = _.filter(room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
-    if (armedEnemies.length) {
-        if (Memory.targetRooms[room.name].oldPriority) Memory.targetRooms[room.name].priority = Memory.targetRooms[room.name].oldPriority;
-        Memory.targetRooms[room.name].level = 2;
-    } else if (room.hostileCreeps.length || Memory.targetRooms[room.name].type === 'guard') {
-        if (Memory.targetRooms[room.name].oldPriority) Memory.targetRooms[room.name].priority = Memory.targetRooms[room.name].oldPriority;
+    let towers = _.filter(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10 && c.isActive());
+    let armedEnemies = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && c.owner.username === c.room.controller.owner.username);
+    let armedOwners = _.filter(_.union(_.pluck(room.hostileCreeps, 'owner.username'), [room.controller.owner.username]), (o) => !_.includes(FRIENDLIES, o) && o !== 'Invader');
+    if (armedOwners.length > 1) {
+        delete Memory.targetRooms[room.name];
+        log.a('Canceling operation in ' + roomLink(room.name) + ' as there is a 3rd party present.', 'HIGH COMMAND: ');
+        room.cacheRoomIntel(true);
+    } else if (towers.length && Memory.targetRooms[room.name].type !== 'siegeGroup' && Memory.targetRooms[room.name].type !== 'drain') {
+        delete Memory.targetRooms[room.name];
+        log.a('Canceling operation in ' + roomLink(room.name) + ' as we cannot hold it due to towers.', 'HIGH COMMAND: ');
+        room.cacheRoomIntel(true);
+    } else if (armedEnemies.length) {
+        Memory.targetRooms[room.name].level = armedEnemies.length + 1;
+    } else if (room.hostileCreeps.length) {
         Memory.targetRooms[room.name].level = 1;
     } else {
-        if (Memory.targetRooms[room.name].type !== 'hold') {
-            if (!Memory.targetRooms[room.name].oldPriority) Memory.targetRooms[room.name].oldPriority = Memory.targetRooms[room.name].priority;
-            Memory.targetRooms[room.name].priority = 3;
-        }
         Memory.targetRooms[room.name].level = 0;
     }
+    let range = room.findClosestOwnedRoom(true);
+    let priority;
+    if (range <= LOCAL_SPHERE) priority = 1; else if (range <= LOCAL_SPHERE * 1.25) priority = 2; else if (range <= LOCAL_SPHERE * 2) priority = 3; else priority = 4;
+    Memory.targetRooms[room.name].priority = priority;
 }
