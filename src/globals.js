@@ -73,7 +73,7 @@ let globals = function () {
         repairer: 7,
         // Haulers
         hauler: 1,
-        miscHauler: 5,
+        miscHauler: 3,
         // Remotes
         remoteHarvester: 3,
         remoteHauler: 4,
@@ -88,7 +88,7 @@ let globals = function () {
         // SK
         SKWorker: 5,
         // Military
-        priority: 3,
+        priority: 4,
         urgent: 5,
         high: 7,
         medium: 9,
@@ -133,7 +133,6 @@ let globals = function () {
     global.ROOM_CREEP_CPU_OBJECT = {};
     global.ROOM_SOURCE_SPACE = {};
     global.ROOM_CONTROLLER_SPACE = {};
-    global.OWNED_MINERALS = [];
 
     global.ICONS = {
         [STRUCTURE_CONTROLLER]: "\uD83C\uDFF0"
@@ -244,15 +243,15 @@ let globals = function () {
     global.RCL_7_EXTENSIONS = 50;
     global.RCL_8_EXTENSIONS = 60;
 
-    global.EST_SEC_PER_TICK = Memory.tickLength || 3; // time between ticks is currently averaging ~4.84 seconds (as of 2017/05/07)
+    if (Memory.tickInfo) global.EST_SEC_PER_TICK = Memory.tickInfo.tickLength; else global.EST_SEC_PER_TICK = 2.5; // time between ticks is currently averaging ~4.84 seconds (as of 2017/05/07)
     global.EST_TICKS_PER_MIN = Math.ceil(60 / EST_SEC_PER_TICK); // 60s
     global.EST_TICKS_PER_DAY = Math.ceil(86400 / EST_SEC_PER_TICK); // 24h * 60m * 60s = 86400s
 
     global.toStr = (obj) => JSON.stringify(obj, null, 2); // shortcut to stringify an object (idea credit: warinternal, from the Screeps Slack)
 
     // Upkeep costs
-    global.RAMPART_UPKEEP	= RAMPART_DECAY_AMOUNT / REPAIR_POWER / RAMPART_DECAY_TIME;
-    global.ROAD_UPKEEP		= ROAD_DECAY_AMOUNT / REPAIR_POWER /  ROAD_DECAY_TIME;
+    global.RAMPART_UPKEEP = RAMPART_DECAY_AMOUNT / REPAIR_POWER / RAMPART_DECAY_TIME;
+    global.ROAD_UPKEEP = ROAD_DECAY_AMOUNT / REPAIR_POWER / ROAD_DECAY_TIME;
     global.CONTAINER_UPKEEP = CONTAINER_DECAY / REPAIR_POWER / CONTAINER_DECAY_TIME_OWNED;
     global.REMOTE_CONTAINER_UPKEEP = CONTAINER_DECAY / REPAIR_POWER / CONTAINER_DECAY_TIME;
 
