@@ -134,10 +134,9 @@ function extensionFiller(creep) {
 function harvestDepositLink(creep) {
     creep.memory.linkAttempt = true;
     if (creep.room.memory.praiseRoom) return;
-    let container = Game.getObjectById(creep.memory.containerID);
-    if (!container || (!creep.room.memory.controllerLink && !creep.room.memory.hubLink)) return;
     let source = Game.getObjectById(creep.memory.source);
-    let link = _.filter(container.pos.findInRange(creep.room.structures, 1), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0] || _.filter(creep.pos.findInRange(creep.room.structures, 1), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
+    if (!source.memory.containerPos || (!creep.room.memory.controllerLink && !creep.room.memory.hubLink)) return;
+    let link = _.filter(source.pos.findInRange(FIND_MY_STRUCTURES, 2), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0] || _.filter(creep.pos.findInRange(FIND_MY_STRUCTURES, 1), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
     if (link) {
         if (!link.isActive()) return link.destroy();
         if (!link.pos.checkForRampart() && !link.pos.checkForConstructionSites()) link.pos.createConstructionSite(STRUCTURE_RAMPART);
@@ -148,15 +147,15 @@ function harvestDepositLink(creep) {
             return link.id;
         }
     } else {
-        let container = Game.getObjectById(creep.memory.containerID);
-        let inBuild = _.filter(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
-        if (!inBuild && container) {
+        let inBuild = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_LINK)[0];
+        if (!inBuild && source.memory.containerPos) {
             let otherHarvester = _.filter(creep.room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && !c.memory.linkID && c.memory.containerID && c.id !== creep.id)[0];
             if (otherHarvester) {
                 let hub = new RoomPosition(creep.room.memory.bunkerHub.x, creep.room.memory.bunkerHub.y, creep.room.name);
                 if (otherHarvester.pos.getRangeTo(hub) > creep.pos.getRangeTo(hub)) return;
             }
-            let zoneTerrain = creep.room.lookForAtArea(LOOK_TERRAIN, container.pos.y - 1, container.pos.x - 1, container.pos.y + 1, container.pos.x + 1, true);
+            let storedSite = JSON.parse(source.memory.containerPos);
+            let zoneTerrain = creep.room.lookForAtArea(LOOK_TERRAIN, storedSite.y - 1, storedSite.x - 1, storedSite.y + 1, storedSite.x + 1, true);
             for (let key in zoneTerrain) {
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, creep.room.name);
                 if (position.checkForAllStructure().length > 0 || position.getRangeTo(creep.room.controller) < 3) continue;

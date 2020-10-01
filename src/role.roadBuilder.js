@@ -39,7 +39,8 @@ module.exports.role = function role(creep) {
         creep.memory.harvest = undefined;
     }
     // Work
-    if (creep.memory.working === true) {
+    if (creep.memory.working) {
+        creep.say(1)
         if (creep.memory.constructionSite || creep.constructionWork()) {
             if (!Game.getObjectById(creep.memory.constructionSite)) return creep.memory.constructionSite = undefined;
             creep.builderFunction();

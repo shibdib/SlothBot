@@ -119,6 +119,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             if (attack > 45) attack = 45; else if (rangedAttack > 45) rangedAttack = 45;
             move = _.floor((energyAmount * 0.2) / BODYPART_COST[MOVE]) || 1;
             if (move > 5) move = 5;
+            if (getLevel(room) < 3) {
+                attack = 1;
+                move = 1;
+            }
             break;
         case 'longbow':
             deficitExemption = true;

@@ -18,10 +18,10 @@ Creep.prototype.marauding = function () {
     this.healInRange();
     // Set squad leader
     if (!this.memory.squadLeader || !Game.getObjectById(this.memory.squadLeader)) {
-        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.operation === 'marauder' && c.memory.squadLeader);
-        if (!squadLeader.length) this.memory.squadLeader = this.id; else this.memory.squadLeader = squadLeader[0].id;
+        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.operation === 'marauder' && c.memory.squadLeader === c.id)[0];
+        if (!squadLeader) this.memory.squadLeader = this.id; else this.memory.squadLeader = squadLeader.id;
     }
-    if (!this.memory.squadLeader) {
+    if (this.memory.squadLeader === this.id) {
         // Set a target
         if (!this.memory.other.destination) {
             let roomName = this.room.name;

@@ -185,7 +185,7 @@ module.exports.essentialCreepQueue = function (room) {
     // Upgrader
     // Determine amount
     let number = 1;
-    if (level < 7) {
+    if (level < 7 && !_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL)[0]) {
         if (level >= 5) number = 2;
         else if (room.memory.controllerContainer) number = Game.getObjectById(room.memory.controllerContainer).pos.countOpenTerrainAround();
         else number = (8 - level);
