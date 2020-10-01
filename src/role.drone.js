@@ -10,7 +10,6 @@
  */
 
 module.exports.role = function role(creep) {
-    creep.opportunisticFill();
     if (creep.shibKite()) return true;
     //Invader detection
     if (creep.fleeHome()) return;
@@ -48,7 +47,7 @@ module.exports.role = function role(creep) {
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
-        } else if (creep.room.controller && creep.room.controller.level < 3) {
+        } else if (!creep.room.storage) {
             creep.memory.harvest = true;
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
             if (source) {
