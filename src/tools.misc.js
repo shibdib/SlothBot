@@ -1,10 +1,15 @@
 // Get Tick Length
 const tickLengthArray = [];
 module.exports.tickLength = function () {
+    if (!Memory.tickInfo) {
+        Memory.tickInfo = {};
+        Memory.lastTick = undefined;
+        Memory.tickLength = undefined;
+    }
     let d = new Date();
     let seconds = _.round(d.getTime() / 1000, 2);
-    let lastTick = Memory.lastTick || seconds;
-    Memory.lastTick = seconds;
+    let lastTick = Memory.tickInfo.lastTick || seconds;
+    Memory.tickInfo.lastTick = seconds;
     let tickLength = seconds - lastTick;
     if (tickLengthArray.length < 50) {
         tickLengthArray.push(tickLength)
@@ -12,7 +17,7 @@ module.exports.tickLength = function () {
         tickLengthArray.shift();
         tickLengthArray.push(tickLength)
     }
-    Memory.tickLength = average(tickLengthArray);
+    Memory.tickInfo.tickLength = average(tickLengthArray);
 }
 
 // Handle cleaning memory for respawn
