@@ -19,15 +19,25 @@ module.exports.buildRoom = function (room) {
     if (room.level !== room.controller.level) cooldown = 5;
     if (lastRun + cooldown > Game.time) return;
     if (room.memory.bunkerHub) {
-        // Remove old memory
+        // Clear hub search memory entries
+        room.memory.typeSearch = undefined;
+        room.memory.newHubSearch = undefined;
         room.memory.layout = undefined;
-        if (room.memory.layoutVersion === LAYOUT_VERSION && storedLayouts[room.name]) {
+        if (!room.memory.bunkerHub.layoutVersion) {
+            room.memory.bunkerHub.layoutVersion = room.memory.layoutVersion;
+            room.memory.layoutVersion = undefined;
+        }
+        if (room.memory.bunkerHub.layoutVersion === LAYOUT_VERSION && storedLayouts[room.name]) {
             if (Memory.myRooms.length === 1 || room.controller.level >= 4) {
                 buildFromLayout(room);
             } else {
                 newClaimBuild(room);
             }
         } else {
+            if (!room.memory.bunkerHub.bunkerVersion) {
+                room.memory.bunkerHub.bunkerVersion = 1;
+                room.memory.bunkerVersion = undefined;
+            }
             updateLayout(room);
         }
     } else if (!room.memory.praiseRoom) {
@@ -43,7 +53,10 @@ module.exports.hubCheck = function (room) {
 };
 
 function buildFromLayout(room) {
-    if (!room.memory.bunkerVersion) room.memory.bunkerVersion = 1;
+    if (!room.memory.bunkerHub.bunkerVersion) {
+        room.memory.bunkerHub.bunkerVersion = 1;
+        room.memory.bunkerVersion = undefined;
+    }
     let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
     if (Memory.myRooms.length === 1 && !_.filter(Game.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0]) {
         return hub.createConstructionSite(STRUCTURE_SPAWN);
@@ -511,8 +524,8 @@ function findHub(room, hubCheck = undefined) {
                     room.memory.bunkerHub.y = pos.y;
                     room.memory.hubSearch = undefined;
                     storedLayouts[room.name] = JSON.stringify(layout);
-                    room.memory.layoutVersion = LAYOUT_VERSION;
-                    room.memory.bunkerVersion = layoutVersion;
+                    room.memory.bunkerHub.layoutVersion = LAYOUT_VERSION;
+                    room.memory.bunkerHub.bunkerVersion = layoutVersion;
                     return true;
                 }
             }
@@ -622,7 +635,7 @@ function praiseRoom(room) {
 
 function updateLayout(room) {
     let buildTemplate;
-    let layoutVersion = room.memory.bunkerVersion;
+    let layoutVersion = room.memory.bunkerHub.bunkerVersion;
     for (let i = 0; i < layouts.allLayouts.length; i++) {
         if (layouts.allLayouts[i][0]['layout'] === layoutVersion) {
             buildTemplate = layouts.allLayouts[i];
@@ -652,7 +665,7 @@ function updateLayout(room) {
             layout.push(structure);
         }
     }
-    room.memory.layoutVersion = LAYOUT_VERSION;
+    room.memory.bunkerHub.layoutVersion = LAYOUT_VERSION;
     storedLayouts[room.name] = JSON.stringify(layout);
 }
 

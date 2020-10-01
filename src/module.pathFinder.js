@@ -434,15 +434,17 @@ function addTerrainToMatrix(roomName, type) {
     return matrix;
 }
 
-structureCount = {};
-siteCount = {};
+let structureMatrixTick = {};
+let structureCount = {};
+let siteCount = {};
 
 function getStructureMatrix(roomName, matrix, options) {
     let room = Game.rooms[roomName];
     let type = 1;
     if (options.ignoreRoads) type = 2; else if (options.offRoad) type = 3;
-    if (!structureMatrixCache[roomName + type] || (!room.memory.structureMatrixTick || Game.time > room.memory.structureMatrixTick + 10000 || structureCount[roomName] !== room.structures.length || siteCount[roomName] !== room.constructionSites.length)) {
-        room.memory.structureMatrixTick = Game.time;
+    if (!structureMatrixCache[roomName + type] || (!structureMatrixTick[room.name] || Game.time > structureMatrixTick[room.name] + 10000 || structureCount[roomName] !== room.structures.length || siteCount[roomName] !== room.constructionSites.length)) {
+        room.memory.structureMatrixTick = undefined;
+        structureMatrixTick[room.name] = Game.time;
         structureCount[roomName] = room.structures.length;
         siteCount[roomName] = room.constructionSites.length;
         structureMatrixCache[roomName + type] = addStructuresToMatrix(room, matrix, type).serialize();
@@ -491,10 +493,12 @@ function addStructuresToMatrix(room, matrix, type) {
     return matrix;
 }
 
+let creepMatrixTick = {};
 function getCreepMatrix(roomName, creep, matrix) {
     let room = Game.rooms[roomName];
-    if (!creepMatrixCache[roomName] || (!room.memory.creepMatrixTick || Game.time !== room.memory.creepMatrixTick)) {
-        room.memory.creepMatrixTick = Game.time;
+    if (!creepMatrixCache[roomName] || (!creepMatrixTick[room.name] || Game.time !== creepMatrixTick[room.name])) {
+        room.memory.creepMatrixTick = undefined;
+        creepMatrixTick[room.name] = Game.time;
         creepMatrixCache[roomName] = addCreepsToMatrix(room, matrix, creep).serialize();
     }
     return PathFinder.CostMatrix.deserialize(creepMatrixCache[roomName]);
@@ -513,10 +517,12 @@ function addCreepsToMatrix(room, matrix, creep = undefined) {
     return matrix;
 }
 
+let hostileMatrixTick = {};
 function getHostileMatrix(roomName, matrix) {
     let room = Game.rooms[roomName];
-    if (!hostileMatrixCache[roomName] || (!room.memory.hostileMatrixTick || Game.time !== room.memory.hostileMatrixTick)) {
-        room.memory.hostileMatrixTick = Game.time;
+    if (!hostileMatrixCache[roomName] || (!hostileMatrixTick[room.name] || Game.time !== hostileMatrixTick[room.name])) {
+        room.memory.hostileMatrixTick = undefined;
+        hostileMatrixTick[room.name] = Game.time;
         hostileMatrixCache[roomName] = addHostilesToMatrix(room, matrix).serialize();
     }
     return PathFinder.CostMatrix.deserialize(hostileMatrixCache[roomName]);
@@ -546,11 +552,13 @@ function addHostilesToMatrix(room, matrix) {
     return matrix;
 }
 
+let skMatrixTick = {};
 function getSKMatrix(roomName, matrix) {
     let room = Game.rooms[roomName];
     if (!Memory.roomCache[roomName] || !Memory.roomCache[roomName].sk) return matrix;
-    if (!skMatrixCache[room.name] || (!room.memory.skMatrixTick || Game.time !== room.memory.skMatrixTick + 5)) {
-        room.memory.skMatrixTick = Game.time;
+    if (!skMatrixCache[room.name] || (!skMatrixTick[room.name] || Game.time !== skMatrixTick[room.name] + 5)) {
+        room.memory.skMatrixTick = undefined;
+        skMatrixTick[room.name] = Game.time;
         skMatrixCache[room.name] = addSksToMatrix(room, matrix).serialize();
     }
     return PathFinder.CostMatrix.deserialize(skMatrixCache[roomName]);

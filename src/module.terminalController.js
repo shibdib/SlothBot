@@ -258,7 +258,7 @@ function baseMineralOnDemandBuys(terminal, globalOrders) {
     for (let mineral of shuffle(BASE_MINERALS)) {
         // Don't buy minerals you can mine
         let target = reactionAmount * 0.8;
-        if (_.includes(OWNED_MINERALS, mineral)) target = 150;
+        if (_.includes(Memory.ownedMinerals, mineral)) target = 150;
         let stored = terminal.room.store(mineral) || 0;
         if (stored < target) {
             let buyAmount = target - stored;

@@ -618,6 +618,7 @@ Creep.prototype.towTruck = function () {
         }
     } else {
         this.say('Towing!', true);
+        this.memory.energyDestination = undefined;
         if (this.fatigue) return true;
         let trailer = Game.getObjectById(this.memory.trailer);
         if (trailer) {
@@ -804,7 +805,7 @@ Creep.prototype.renewalCheck = function (cutoff = ((this.body.length * 3) + 50),
 };
 
 Creep.prototype.tryToBoost = function (boosts) {
-    if (this.memory.boostAttempt || this.room.memory.lowPower) return false;
+    if (this.memory.boostAttempt) return false;
     if (!this.memory.boosts) this.memory.boosts = {};
     // Figure out what boosts to get, try to use the most powerful
     if (!this.memory.boosts.requestedBoosts) {
@@ -915,7 +916,6 @@ Creep.prototype.tryToBoost = function (boosts) {
                 }
             }
         }
-        return true;
     } else {
         if (Game.getObjectById(this.memory.boosts.boostLab)) {
             Game.getObjectById(this.memory.boosts.boostLab).memory = undefined;
@@ -923,6 +923,7 @@ Creep.prototype.tryToBoost = function (boosts) {
         this.memory.boosts = undefined;
         return this.memory.boostAttempt = true;
     }
+    return true;
 };
 
 Creep.prototype.recycleCreep = function () {

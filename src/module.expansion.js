@@ -43,7 +43,7 @@ module.exports.claimNewRoom = function () {
             // Source range
             baseScore -= Memory.roomCache[name].sourceRange;
             // If it's a new mineral add to the score
-            if (worthyRooms[key].mineral && !_.includes(OWNED_MINERALS, worthyRooms[key].mineral)) baseScore += 1000;
+            if (worthyRooms[key].mineral && !_.includes(Memory.ownedMinerals, worthyRooms[key].mineral)) baseScore += 1000;
             // Check if it's near any owned rooms
             let avoidRooms = _.filter(Memory.roomCache, (r) => r.level);
             for (let avoidKey in avoidRooms) {

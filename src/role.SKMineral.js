@@ -31,9 +31,10 @@ module.exports.role = function (creep) {
         if (creep.memory.source) {
             if (creep.memory.extractor) {
                 if (!creep.memory.mineralStore) {
-                    let currentMinerals = OWNED_MINERALS || [];
+                    let currentMinerals = Memory.ownedMinerals || [];
                     currentMinerals.push(creep.room.mineral.mineralType);
-                    OWNED_MINERALS = _.uniq(currentMinerals);
+                    Memory.ownedMinerals = _.uniq(currentMinerals);
+                    creep.memory.mineralStore = true;
                 }
                 let extractor = Game.getObjectById(creep.memory.extractor);
                 if (!extractor) return creep.memory.recycle = true;

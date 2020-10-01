@@ -75,10 +75,8 @@ module.exports.overlordMind = function (room, CPULimit) {
     // Get income
     if (!ROOM_ENERGY_PER_TICK[room.name] || Game.time % 5 === 0) {
         let income = 0;
-        let inRoomHarvesters = _.filter(Game.creeps, (c) => c.memory.overlord === room.name && c.memory.role === 'stationaryHarvester');
-        let remoteHarvesters = _.filter(Game.creeps, (c) => c.memory.overlord === room.name && (c.memory.role === 'remoteHarvester'));
-        inRoomHarvesters.forEach((h) => income += h.getActiveBodyparts(WORK) * HARVEST_POWER);
-        remoteHarvesters.forEach((h) => income += (h.getActiveBodyparts(WORK) * HARVEST_POWER) * 0.7);
+        let harvesters = _.filter(Game.creeps, (c) => c.memory.overlord === room.name && (c.memory.role === 'stationaryHarvester' || c.memory.role === 'remoteHarvester'));
+        harvesters.forEach((h) => income += h.getActiveBodyparts(WORK) * HARVEST_POWER);
         ROOM_ENERGY_PER_TICK[room.name] = income;
     }
 
@@ -274,7 +272,16 @@ function cacheRoomItems(room) {
     if (!ROOM_CONTROLLER_SPACE[room.name]) {
         ROOM_CONTROLLER_SPACE[room.name] = room.controller.pos.countOpenTerrainAround();
     }
-    let currentMinerals = OWNED_MINERALS || [];
+    let currentMinerals = Memory.ownedMinerals || [];
     currentMinerals.push(room.mineral.mineralType);
-    OWNED_MINERALS = _.uniq(currentMinerals);
+    Memory.ownedMinerals = _.uniq(currentMinerals);
+    // Stats
+    let stats = room.memory.stats || {};
+    // Store ticks on rcl upgrade
+    if (!stats.levelInfo) stats.levelInfo = {};
+    if (!stats.levelInfo[room.controller.level]) stats.levelInfo[room.controller.level] = Game.time;
+    // Store ticks with a threat level
+    if (Memory.roomCache[room.name].threatLevel >= 3) if (!stats.underAttack) stats.underAttack = 1; else stats.underAttack += 1;
+    room.memory.stats = stats;
+
 }
