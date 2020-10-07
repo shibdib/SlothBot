@@ -276,6 +276,25 @@ function baseMineralOnDemandBuys(terminal, globalOrders) {
             }
         }
     }
+    if (spendingMoney > 0 && BUY_THESE_BOOSTS && BUY_THESE_BOOSTS.length) {
+        for (let mineral of shuffle(BUY_THESE_BOOSTS)) {
+            let stored = terminal.room.store(mineral) || 0;
+            if (stored < BOOST_AMOUNT) {
+                let buyAmount = BOOST_AMOUNT - stored;
+                let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName)), 'price');
+                if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.floor(spendingMoney / sellOrder.price);
+                if (sellOrder.id && buyAmount >= 50) {
+                    if (buyAmount > sellOrder.amount) buyAmount = sellOrder.amount;
+                    if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
+                        log.w("Bought " + buyAmount + " " + mineral + " for " + (sellOrder.price * buyAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
+                        spendingMoney -= (sellOrder.price * buyAmount);
+                        log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
+                        return true;
+                    }
+                }
+            }
+        }
+    }
 }
 
 function buyPower(terminal, globalOrders) {

@@ -14,7 +14,7 @@ module.exports.role = function (creep) {
         if (!_.sum(creep.store)) return creep.memory.hauling = undefined;
         // Perform opportunistic filling
         creep.opportunisticFill();
-        creep.haulerDelivery();
+        if (!creep.haulerDelivery()) creep.idleFor(10)
     } else if (creep.towTruck()) {
         return true;
     } else if (creep.room.storage && droppedResources(creep)) {

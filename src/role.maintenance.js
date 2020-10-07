@@ -21,6 +21,7 @@ module.exports.role = function role(creep) {
         creep.memory.source = undefined;
         creep.memory.harvest = undefined;
     }
+    if (creep.wrongRoom()) return;
     // Work
     if (creep.memory.working === true) {
         if (creep.memory.constructionSite || creep.constructionWork()) {

@@ -316,6 +316,7 @@ function manageAttacks() {
                 if (totalCountFiltered > COMBAT_LIMIT + 1) {
                     log.a('Canceling scouting in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
+                    continue;
                 } else {
                     if (!_.filter(Game.creeps, (c) => c.my && c.memory.role === 'scout' && c.memory.destination === key).length) staleMulti = 0.25;
                 }
@@ -324,7 +325,7 @@ function manageAttacks() {
             case 'harass':
             case 'rangers':
             case 'drain':
-                if (totalCountFiltered > COMBAT_LIMIT + 1 || !capableRooms) {
+                if (totalCountFiltered > COMBAT_LIMIT + 1 || (!capableRooms && totalCountFiltered > (COMBAT_LIMIT + 1) * 0.5)) {
                     log.a('Canceling operation in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     totalCountFiltered--;
@@ -334,8 +335,8 @@ function manageAttacks() {
                 break;
             // Manage Holds
             case 'hold':
-                staleMulti = 10;
-                break;
+                staleMulti = 100;
+                continue;
             // Manage Nukes
             case 'nukes':
                 continue;
@@ -380,7 +381,7 @@ function manageAttacks() {
             case 'claimScout':
             case 'claim':
                 delete Memory.targetRooms[key];
-                break;
+                continue;
         }
         if (!Memory.targetRooms[key]) continue;
         // Cancel stale ops with no kills
@@ -391,7 +392,7 @@ function manageAttacks() {
             continue;
         }
         // Remove far rooms
-        if (Memory.roomCache[key] && Memory.roomCache[key].closestRange > LOCAL_SPHERE * 3) {
+        if (Memory.roomCache[key] && Memory.roomCache[key].closestRange > LOCAL_SPHERE * 4) {
             delete Memory.targetRooms[key];
             log.a('Canceling operation in ' + roomLink(key) + ' as it is too far away.', 'HIGH COMMAND: ');
             continue;
@@ -421,7 +422,7 @@ function manageAttacks() {
             }
         }
         // Remove rooms where we're getting wrecked
-        if (Memory.targetRooms[key].tick + (1500 * staleMulti) && Memory.targetRooms[key].friendlyDead) {
+        if (Memory.targetRooms[key].tick + 750 && Memory.targetRooms[key].friendlyDead) {
             let alliedLosses = Memory.targetRooms[key].friendlyDead;
             let enemyLosses = Memory.targetRooms[key].enemyDead || 1000;
             if (alliedLosses * staleMulti > enemyLosses) {

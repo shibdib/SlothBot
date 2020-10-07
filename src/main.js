@@ -39,15 +39,16 @@ module.exports.loop = function () {
         return Memory.cpuTracking = tracking;
     } else
         // Track bucket to determine if rooms need to be dropped
-    if (!Memory.lastPixelGenerated || Memory.lastPixelGenerated + 10000 < Game.time) {
+    if ((!Memory.lastPixelGenerated || Memory.lastPixelGenerated + 10000 < Game.time) && _.size(Memory.myRooms) > 3) {
         let tracking = Memory.cpuTracking || {};
         if (Game.cpu.bucket < ROOM_ABANDON_THRESHOLD) {
             if (!tracking.badCounter) tracking.badCounter = 1; else tracking.badCounter += 1;
         } else if (Game.time % 10 === 0) if (tracking.badCounter) tracking.badCounter -= 1;
         // If we hit the 1000 threshold abandon worst room to save cpu
-        if (tracking.badCounter >= 1000) {
+        if (tracking.badCounter >= 5000) {
             let lowRoom = _.sortBy(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my), '.controller.level')[0];
             log.e(roomLink(lowRoom.name) + ' is being abandoned due to CPU Bucket issues.');
+            Game.notify(roomLink(lowRoom.name) + ' is being abandoned due to CPU Bucket issues.');
             abandon(lowRoom.name);
             tracking.badCounter = 500;
             if (!tracking.claimLimiter) tracking.claimLimiter = 1; else tracking.claimLimiter += 1;

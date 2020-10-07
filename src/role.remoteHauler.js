@@ -28,6 +28,7 @@ module.exports.role = function (creep) {
             // If carrying minerals deposit in terminal or storage
             if (_.sum(creep.store) > creep.store[RESOURCE_ENERGY]) creep.memory.storageDestination = creep.room.terminal.id || creep.room.storage.id;
             if (creep.memory.storageDestination) {
+                if (creep.memory.storageDestination === 'con') return creep.shibMove(creep.room.controller);
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
                 for (const resourceType in creep.store) {
                     switch (creep.transfer(storageItem, resourceType)) {
@@ -110,7 +111,7 @@ function dropOff(creep) {
     }
     //Controller
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
-    if (controllerContainer && ((!praiseSupplied[creep.room.name] && Math.random() > 0.49) || creep.room.energyState) && (!controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5)) {
+    if (controllerContainer && (!praiseSupplied[creep.room.name] || creep.room.energyState) && (!controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5)) {
         praiseSupplied[creep.room.name] = true;
         creep.memory.storageDestination = controllerContainer.id;
         return true;
@@ -124,6 +125,8 @@ function dropOff(creep) {
     if (creep.haulerDelivery()) {
         praiseSupplied[creep.room.name] = undefined;
         return true;
+    } else if (!creep.room.storage) {
+        creep.memory.storageDestination = 'con';
     } else creep.idleFor(5);
 }
 

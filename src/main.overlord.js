@@ -262,6 +262,7 @@ function lowPowerCheck(room) {
 }
 
 function cacheRoomItems(room) {
+    room.cacheRoomIntel();
     // Cache number of spaces around sources for things
     if (!ROOM_SOURCE_SPACE[room.name]) {
         let spaces = 0;

@@ -26,7 +26,7 @@ let globals = function () {
 
     global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
     global.STATUS_COOLDOWN = 180; // Seconds between console status reports
-    global.ROOM_ABANDON_THRESHOLD = 7500; // If bucket is consistently below this, abandon your lowest room
+    global.ROOM_ABANDON_THRESHOLD = 5000; // If bucket is consistently below this, abandon your lowest room
     global.SIGN_CLEANER = true; // Clean room signs away with explorers
 
     // Energy income breakdown

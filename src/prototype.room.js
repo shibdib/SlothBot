@@ -276,7 +276,7 @@ function getRoomResource(room, resource, unused = false) {
     } else {
         _.filter(room.structures, (s) => s.store && s.store.getUsedCapacity(resource) && (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_CONTAINER)).forEach((s) => count += s.store.getUsedCapacity(resource));
     }
-    _.filter(room.creeps, (c) => c.store[resource]).forEach((c) => count += c.store[resource]);
+    if (!unused || resource !== RESOURCE_ENERGY) _.filter(room.creeps, (c) => c.store[resource]).forEach((c) => count += c.store[resource]);
     _.filter(room.droppedResources, (r) => r.resourceType === resource).forEach((r) => count += r.amount);
     return count;
 }
@@ -300,7 +300,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             // Check if obstructed
             let adjacent = _.filter(Game.map.describeExits(room.name));
             for (let neighbor of adjacent) {
-                if (!room.controller.pos.findClosestByPath(Game.map.findExit(room.name, neighbor))) {
+                if (!room.mineral.pos.findClosestByPath(Game.map.findExit(room.name, neighbor))) {
                     obstructions = true;
                     break;
                 }
@@ -361,7 +361,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         // Store power info
         power = _.filter(room.structures, (e) => e && e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
         if (power.length && power[0].pos.countOpenTerrainAround() > 1) power = Game.time + power[0].ticksToDecay; else power = undefined;
-        if (!user && nonCombats.length >= 2) {
+        // Handle user check for unclaimed
+        if (!user && _.filter(room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username))[0]) {
+            user = _.filter(room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username))[0].owner.username;
+        } else if (!user && nonCombats.length >= 2) {
             user = nonCombats[0].owner.username;
         }
         let key = room.name;
@@ -387,7 +390,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             obstructions: obstructions,
             lastOperation: lastOperation,
             invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,
-            towers: _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10).length,
+            towers: _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10 && s.isActive()).length,
             structures: _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR).length
         };
         Memory.ncpArray = _.uniq(ncpArray);
@@ -399,6 +402,8 @@ let invaderAlert = {};
 Room.prototype.invaderCheck = function () {
     if (Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 10 > Game.time && !Memory.roomCache[this.name].threatLevel) return;
     if (!Memory.roomCache || !Memory.roomCache[this.name]) this.cacheRoomIntel();
+    let controllingEntity = Memory.roomCache[this.name].owner || Memory.roomCache[this.name].reservation;
+    if (controllingEntity && controllingEntity !== MY_USERNAME) return false;
     // No hostile detected
     if (!this.hostileCreeps.length) {
         let waitOut = 15;

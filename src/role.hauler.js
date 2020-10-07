@@ -11,7 +11,7 @@ module.exports.role = function (creep) {
     // If hauling do things
     if (creep.store[RESOURCE_ENERGY]) {
         if (!_.sum(creep.store)) return creep.memory.hauling = undefined;
-        creep.haulerDelivery();
+        if (!creep.haulerDelivery()) creep.idleFor(10)
         // Perform opportunistic filling
         creep.opportunisticFill();
     } else if (creep.memory.energyDestination || creep.locateEnergy()) {

@@ -26,19 +26,13 @@ Creep.prototype.marauding = function () {
         if (!this.memory.other.destination) {
             let roomName = this.room.name;
             let filtered = _.filter(Memory.roomCache, (r) => r.name !== roomName && !_.includes(this.memory.other.visited, r.name) && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.safemode && !r.isHighway);
-            let target = _.sortBy(_.filter(filtered, (r) => _.includes(Memory._enemies, r.user) && r.level && !r.towers), function (r) {
-                Game.map.getRoomLinearDistance(roomName, r.name);
-            })[0] || _.sortBy(_.filter(filtered, (r) => _.includes(Memory._enemies, r.user) && !r.level), function (r) {
-                Game.map.getRoomLinearDistance(roomName, r.name);
-            })[0] || _.sortBy(_.filter(filtered, (r) => _.includes(Memory._threatList, r.user) && r.level && !r.towers), function (r) {
-                Game.map.getRoomLinearDistance(roomName, r.name);
-            })[0] || _.sortBy(_.filter(filtered, (r) => _.includes(Memory._threatList, r.user) && !r.level), function (r) {
-                Game.map.getRoomLinearDistance(roomName, r.name);
-            })[0] || _.sortBy(_.filter(filtered, (r) => r.level && !r.towers && NEW_SPAWN_DENIAL), function (r) {
-                Game.map.getRoomLinearDistance(roomName, r.name);
-            })[0] || _.sortBy(_.filter(filtered, (r) => !r.level && POKE_NEUTRALS), function (r) {
-                Game.map.getRoomLinearDistance(roomName, r.name);
-            })[0];
+            let target = shuffle(_.filter(filtered, (r) => _.includes(Memory._enemies, r.user) && r.level && !r.towers))[0]
+                || shuffle(_.filter(filtered, (r) => _.includes(Memory._threatList, r.user) && r.level && !r.towers))[0]
+                || shuffle(_.filter(filtered, (r) => NEW_SPAWN_DENIAL && !_.includes(FRIENDLIES, r.user) && r.level && !r.towers))[0]
+                || shuffle(_.filter(filtered, (r) => ATTACK_LOCALS && !_.includes(FRIENDLIES, r.user) && !r.towers))[0]
+                || shuffle(_.filter(filtered, (r) => _.includes(Memory._threatList, r.user) && !r.level))[0]
+                || shuffle(_.filter(filtered, (r) => r.level && !r.towers && NEW_SPAWN_DENIAL))[0]
+                || shuffle(_.filter(filtered, (r) => !r.level && POKE_NEUTRALS))[0];
             if (target) {
                 this.memory.other.destination = target.name;
             } else if (!this.handleMilitaryCreep()) {

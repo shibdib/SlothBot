@@ -122,9 +122,10 @@ function earlyWarning(room) {
 
 function unSavableCheck(room) {
     // Abandon Bad Rooms
-    let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
+    if (_.size(Memory.myRooms) === 1) return false;
+    let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= 10 && s.isActive());
     let badCount = room.memory.badCount || 0;
-    let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)));
+    let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)));
     if (hostiles.length && !towers.length && !room.controller.safeMode) {
         room.memory.badCount = badCount + 1;
         if (room.memory.badCount > room.controller.level * 2.5) {

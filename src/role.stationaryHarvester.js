@@ -10,6 +10,12 @@
  */
 
 module.exports.role = function (creep) {
+    // Handle replacing old harv
+    if (creep.memory.replace && Game.getObjectById(creep.memory.replace)) {
+        if (creep.pos.getRangeTo(Game.getObjectById(creep.memory.replace)) <= 4) {
+            Game.getObjectById(creep.memory.replace).memory.recycle = true;
+        }
+    } else creep.memory.replace = undefined;
     //If source is set harvest
     if (creep.memory.source) {
         //Find container
@@ -27,13 +33,16 @@ module.exports.role = function (creep) {
         // Build container
         if (!creep.memory.containerID && !extensionFiller(creep) && _.sum(creep.store) === creep.store.getCapacity()) {
             let dropped = creep.pos.lookFor(LOOK_RESOURCES)[0];
-            if (dropped && dropped.amount >= 500) {
+            if (dropped && dropped.amount >= 700) {
                 let site = creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
                 if (site) {
                     return creep.build(site);
                 } else {
+                    creep.memory.needHauler = true;
                     creep.idleFor(5);
                 }
+            } else {
+                creep.memory.needHauler = undefined;
             }
         }
         let source = Game.getObjectById(creep.memory.source);
@@ -55,19 +64,19 @@ module.exports.role = function (creep) {
     } else {
         if (!creep.findSource()) {
             let oldestHarvester = _.min(_.filter(creep.room.creeps, (c) => c.memory && c.memory.role === "stationaryHarvester"), "ticksToLive") || _.filter(creep.room.creeps, (c) => c.memory && c.memory.role === "stationaryHarvester" && c.memory.other.reboot)[0];
-            creep.shibMove(oldestHarvester);
-            if (creep.pos.getRangeTo(oldestHarvester) <= 2) {
-                oldestHarvester.memory.recycle = true;
-            }
+            if (oldestHarvester.ticksToLive > 1000) return creep.memory.recycle = true;
+            creep.shibMove(oldestHarvester, {range: 0});
+            creep.memory.source = oldestHarvester.memory.source;
+            creep.memory.replace = oldestHarvester.id;
         }
     }
 };
 
 function depositEnergy(creep) {
     //Attempt to build extensions
-    if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level) extensionBuilder(creep);
+    if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level || Math.random() > 0.99) extensionBuilder(creep);
     //Check if there is extensions
-    if (!creep.memory.extensionsFound) extensionFinder(creep);
+    if (!creep.memory.extensionsFound || Math.random() > 0.98) extensionFinder(creep);
     //Fill extensions if you have any stored
     if (creep.memory.extensions && extensionFiller(creep)) return;
     let container = Game.getObjectById(creep.memory.containerID);
@@ -87,10 +96,14 @@ function depositEnergy(creep) {
     } else if (!creep.memory.linkAttempt) {
         creep.memory.linkID = harvestDepositLink(creep)
     } else if (container) {
+        creep.memory.needHauler = undefined;
         if (container.hits < container.hitsMax * 0.5) {
             return creep.repair(container);
         } else if (_.sum(container.store) >= 1900) {
-            if (container.hits < container.hitsMax) creep.repair(container); else creep.idleFor(20);
+            if (container.hits < container.hitsMax) creep.repair(container); else {
+                creep.memory.needHauler = true;
+                creep.idleFor(20);
+            }
         }
     } else {
         creep.memory.containerID = undefined;

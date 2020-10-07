@@ -25,7 +25,9 @@ let memCleaned;
 module.exports.cleanMemory = function () {
     if (!memCleaned && !_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my && (r.memory.bunkerHub || r.memory.praiseRoom)).length) {
         for (let key in Memory) delete Memory[key];
+        Memory.spawnIn = Game.time;
     }
+    if (!Memory.spawnIn) Memory.spawnIn = Game.time - 5000;
     memCleaned = true;
 }
 

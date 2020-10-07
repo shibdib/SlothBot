@@ -211,6 +211,7 @@ function nukeTarget(room) {
 
 // Observer tasks
 function forwardObserver(room) {
+    if (!Memory.targetRooms[room.name]) return false;
     let highCommand = require('military.highCommand');
     highCommand.operationSustainability(room);
     // Safemode
@@ -244,7 +245,7 @@ function forwardObserver(room) {
     if (armedOwners.length > 1) {
         delete Memory.targetRooms[room.name];
         log.a('Canceling operation in ' + roomLink(room.name) + ' as there is a 3rd party present.', 'HIGH COMMAND: ');
-        room.cacheRoomIntel(true);
+        return room.cacheRoomIntel(true);
     } else if (towers.length && Memory.targetRooms[room.name].type !== 'siegeGroup' && Memory.targetRooms[room.name].type !== 'drain') {
         delete Memory.targetRooms[room.name];
         log.a('Canceling operation in ' + roomLink(room.name) + ' as we cannot hold it due to towers.', 'HIGH COMMAND: ');

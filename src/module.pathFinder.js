@@ -25,7 +25,8 @@ function shibMove(creep, heading, options = {}) {
         ignoreStructures: false,
         maxRooms: 1,
         ignoreRoads: false,
-        offRoad: false
+        offRoad: false,
+        confirmPath: false
     });
     // Clear bad tow creeps
     if (creep.memory.towCreep && (!Game.getObjectById(creep.memory.towCreep) || Game.getObjectById(creep.memory.towCreep).pos.roomName !== creep.pos.roomName)) creep.memory.towCreep = undefined;
@@ -137,7 +138,7 @@ function shibMove(creep, heading, options = {}) {
             delete pathInfo.path;
         }
     } else {
-        shibPath(creep, heading, pathInfo, origin, target, options);
+        return shibPath(creep, heading, pathInfo, origin, target, options);
     }
 }
 
@@ -248,6 +249,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 }
             }
         }
+        if (options.confirmPath && ret.path && !ret.incomplete) return true;
         pathInfo.path = serializePath(creep.pos, ret.path);
         let nextDirection = parseInt(pathInfo.path[0], 10);
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
@@ -333,7 +335,7 @@ function findRoute(origin, destination, options = {}) {
 
 //FUNCTIONS
 function creepBumping(creep, pathInfo, options) {
-    let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y)[0];
+    let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory.other || !c.memory.other.noBump || pathInfo.pathPosTime >= STATE_STUCK * 3))[0];
     if (bumpCreep && Math.random() > 0.5) {
         if (!creep.memory.trailer) {
             if (bumpCreep.getActiveBodyparts(MOVE)) {
@@ -479,9 +481,9 @@ function addStructuresToMatrix(room, matrix, type) {
         matrix.set(site.pos.x, site.pos.y, 256);
     }
     //Stationary creeps
-    let stationaryCreeps = _.filter(room.creeps, (c) => c.my && (!c.getActiveBodyparts(MOVE) || c.memory.role === 'stationaryHarvester' || c.memory.role === 'upgrader' || c.memory.role === 'reserver' || c.memory.role === 'remoteHarvester' || c.memory.role === 'praiseUpgrader'));
+    let stationaryCreeps = _.filter(room.creeps, (c) => c.my && (_.filter(c.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(c.body, (p) => p.type === MOVE).length || c.memory.role === 'stationaryHarvester' || c.memory.role === 'upgrader' || c.memory.role === 'reserver' || c.memory.role === 'remoteHarvester' || c.memory.role === 'praiseUpgrader'));
     for (let site of stationaryCreeps) {
-        matrix.set(site.pos.x, site.pos.y, 75);
+        matrix.set(site.pos.x, site.pos.y, 125);
     }
     //Sources
     for (let source of room.sources) {

@@ -140,7 +140,7 @@ module.exports.roomStartup = function (room) {
     if (getCreepCount(room, 'stationaryHarvester') < 2) {
         queueCreep(room, 3, {role: 'stationaryHarvester'})
     }
-    if (getCreepCount(room, 'hauler') < 2) {
+    if (getCreepCount(room, 'stationaryHarvester') && getCreepCount(room, 'hauler') < 2) {
         queueCreep(room, 2, {role: 'hauler'})
     }
     if (getCreepCount(room, 'explorer') < 2) {
@@ -156,9 +156,9 @@ module.exports.essentialCreepQueue = function (room) {
     if (creepTTL[room.name]) roomCreepTTL = creepTTL[room.name];
     //Harvesters
     if (!getCreepCount(room, 'stationaryHarvester')) {
-        queueCreep(room, 1, {role: 'stationaryHarvester', other: {reboot: true}});
-    } else if (getCreepCount(room, 'stationaryHarvester') < 2 || (roomCreepTTL['stationaryHarvester'] < 100 && getCreepCount(room, 'stationaryHarvester') === 2)) {
-        queueCreep(room, 1, {role: 'stationaryHarvester'});
+        queueCreep(room, 1, {role: 'stationaryHarvester', other: {noBump: true, reboot: true}});
+    } else if (getCreepCount(room, 'stationaryHarvester') < room.sources.length || (roomCreepTTL['stationaryHarvester'] < 100 && getCreepCount(room, 'stationaryHarvester') === room.sources.length)) {
+        queueCreep(room, 1, {role: 'stationaryHarvester', other: {noBump: true}});
     }
     //Haulers
     let count = 1;
@@ -166,11 +166,17 @@ module.exports.essentialCreepQueue = function (room) {
     if (getCreepCount(room, 'hauler') < count) {
         queueCreep(room, -1, {role: 'hauler', other: {reboot: true}});
     } else if (roomCreepTTL['hauler'] < 100 && getCreepCount(room, 'hauler') === count) {
-        queueCreep(room, 1, {role: 'hauler'});
+        queueCreep(room, 1, {
+            role: 'hauler',
+            other: {reboot: getCreepCount(room, 'stationaryHarvester') < room.sources.length}
+        });
     }
     //Filler
-    if (getCreepCount(room, 'filler') < 1 && _.filter(room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && c.memory.linkAttempt && !c.memory.linkID)[0]) {
-        queueCreep(room, PRIORITIES.hauler - 1, {role: 'filler'})
+    if (getCreepCount(room, 'filler') < _.filter(room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && c.memory.linkAttempt && !c.memory.linkID).length + _.filter(room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && c.memory.needHauler).length) {
+        queueCreep(room, PRIORITIES.hauler - 1, {
+            role: 'filler',
+            other: {reboot: getCreepCount(room, 'stationaryHarvester') < room.sources.length}
+        })
     }
     // Local Responder
     if (Memory.roomCache[room.name].threatLevel >= 2) {
@@ -184,18 +190,18 @@ module.exports.essentialCreepQueue = function (room) {
     }
     // Upgrader
     // Determine amount
-    let number = 1;
-    if (level < 7 && !_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL)[0]) {
-        if (level >= 5) number = 2;
-        else if (room.memory.controllerContainer) number = Game.getObjectById(room.memory.controllerContainer).pos.countOpenTerrainAround();
-        else number = (8 - level);
-    }
+    let number = 0;
+    if (level === 8) number = 1;
+    else if (room.memory.controllerContainer) {
+        if (room.storage) number += _.floor(room.energy / 7500) || 1; else number += _.floor(room.energy / 250) || 1;
+    } else number = (8 - level);
+    if (level > 3 && number > 5) number = 5;
     if (getCreepCount(room, 'upgrader') < number) {
         //If room is about to downgrade get a creep out asap
         let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.progress > room.controller.progressTotal || Memory.roomCache[room.name].threatLevel >= 3 || room.memory.lowPower;
         queueCreep(room, PRIORITIES.upgrader, {
             role: 'upgrader',
-            other: {reboot: reboot}
+            other: {noBump: true, reboot: reboot}
         })
     }
 };
@@ -205,9 +211,10 @@ module.exports.miscCreepQueue = function (room) {
     let level = getLevel(room);
     //Drones
     if (room.constructionSites.length) {
-        let number = 1;
+        let number = 2;
         let nonRoads = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL)[0];
-        if (nonRoads && (level < 6 || room.energyState)) number = 10 - level;
+        if (nonRoads) number += _.floor(room.energy / 100);
+        if (number > 6) number = 6;
         if (getCreepCount(room, 'drone') < number) {
             queueCreep(room, PRIORITIES.drone + getCreepCount(room, 'drone'), {role: 'drone'})
         }
@@ -239,7 +246,7 @@ module.exports.miscCreepQueue = function (room) {
                 if (extractor && !getCreepCount(room, 'mineralHarvester')) {
                     queueCreep(room, PRIORITIES.mineralHarvester, {
                         role: 'mineralHarvester',
-                        other: {assignedMineral: room.mineral.id}
+                        other: {noBump: true, assignedMineral: room.mineral.id}
                     })
                 }
             }
@@ -261,7 +268,7 @@ module.exports.miscCreepQueue = function (room) {
             }
             if (level >= 6 && room.energyState) {
                 // Energy Supplies
-                let needEnergy = _.sample(_.filter(safeToSupport, ((r) => r !== room.name && !Game.rooms[r].energyState && !Game.rooms[r].memory.praiseRoom && Game.map.getRoomLinearDistance(r, room.name) < 6 && !Game.rooms[r].terminal)));
+                let needEnergy = _.sample(_.filter(safeToSupport, ((r) => r !== room.name && !Game.rooms[r].energyState && Game.rooms[r].level < 6 && !Game.rooms[r].memory.praiseRoom && Game.map.getRoomLinearDistance(r, room.name) < 6 && !Game.rooms[r].terminal)));
                 if (needEnergy) {
                     if (!getCreepCount(room, 'fuelTruck', needEnergy)) {
                         queueCreep(room, PRIORITIES.fuelTruck, {role: 'fuelTruck', destination: needEnergy});
@@ -574,7 +581,7 @@ module.exports.globalCreepQueue = function () {
                     }
                 }
                 if (operations[key].cleaner) {
-                    if (!getCreepCount(undefined, 'deconstructor', key)) {
+                    if (getCreepCount(undefined, 'deconstructor', key) < 2) {
                         queueGlobalCreep(priority, {
                             role: 'deconstructor',
                             destination: key,
@@ -855,7 +862,7 @@ function displayQueue(room) {
         if (!roles[i]) break;
         let mil = '';
         if (military[i]) mil = '*';
-        let cost = global.UNIT_COST(generator.bodyGenerator(level - 1, roles[i], room));
+        let cost = global.UNIT_COST(generator.bodyGenerator(level, roles[i], room));
         displayText(room, 35, 2 + i, _.capitalize(roles[i]) + mil + ': Cost - ' + room.energyAvailable + '/' + cost + ' Age - ' + (Game.time - tickQueued[i]));
     }
 }

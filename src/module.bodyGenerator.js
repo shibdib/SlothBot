@@ -56,12 +56,13 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
                 move = work + carry;
                 break;
             } else if (!room.memory.controllerContainer) {
-                work = _.floor((energyAmount * _.random(0.3, 0.5)) / BODYPART_COST[WORK]) || 1;
-                carry = 1;
+                work = _.floor((energyAmount * 0.3) / BODYPART_COST[WORK]) || 1;
+                carry = _.floor((energyAmount * 0.2) / BODYPART_COST[CARRY]) || 1;
                 move = work + carry;
                 break;
             } else {
-                work = _.floor((energyAmount * _.random(0.5, 0.7)) / BODYPART_COST[WORK]) || 1;
+                deficitExemption = true;
+                work = _.floor((energyAmount - 100) / BODYPART_COST[WORK]) || 1;
                 if (work > 48) work = 48;
                 if (level === 8 && room.energyState) work = 15; else if (level === 8) work = 1;
                 //work *= deficit;
@@ -77,14 +78,14 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
         case 'hauler':
         case 'expediter':
             deficitExemption = true;
-            carry = _.floor((energyAmount * 0.25) / BODYPART_COST[CARRY]) || 1;
+            carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
             if (carry > 20) carry = 20;
             move = _.ceil(carry / 2);
             if (!room.memory.roadsBuilt) move = carry;
             break;
         case 'stationaryHarvester':
             deficitExemption = true;
-            work = _.floor((energyAmount * 0.50) / BODYPART_COST[WORK]) || 1;
+            work = _.floor((energyAmount - 50) / BODYPART_COST[WORK]) || 1;
             // 6 Is the cap
             if (work > 6) work = 6;
             carry = 1;
@@ -184,11 +185,16 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             break;
         case 'remoteHauler':
             deficitExemption = true;
-            carry = _.floor((energyAmount * 0.40) / BODYPART_COST[CARRY]) || 1;
-            if (level <= 6 && carry > 24) carry = 24; else if (level > 6 && carry > 30) carry = 30;
-            if (room.energyState && carry > 12) carry = 12;
             if (Math.random() > 0.7) work = 1; else work = 0;
-            if (level < 6) move = carry + work; else move = _.ceil((carry + work) / 2);
+            if (level < 6) {
+                carry = _.floor(((energyAmount - (work * BODYPART_COST[WORK])) * 0.50) / BODYPART_COST[CARRY]) || 1;
+                if (carry > 29) carry = 24;
+                move = carry + work;
+            } else {
+                carry = _.floor(((energyAmount - (work * BODYPART_COST[WORK])) * 0.66) / BODYPART_COST[CARRY]) || 1;
+                if (carry > 29) carry = 29;
+                move = _.ceil((carry + work) / 2);
+            }
             break;
         case 'roadBuilder':
             work = _.floor((energyAmount * _.random(0.2, 0.5)) / BODYPART_COST[WORK]) || 1;
@@ -231,7 +237,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             carry = 25;
             move = 25;
     }
-    if (!deficitExemption) {
+    if (!deficitExemption && room.storage) {
         work *= deficit;
         attack *= deficit;
         rangedAttack *= deficit;

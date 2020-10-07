@@ -16,7 +16,9 @@ module.exports.role = function role(creep) {
     // Handle remote drones
     if (creep.memory.destination && creep.room.name !== creep.memory.destination) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
-    }
+        // Handle lost guys
+    } else if (!creep.memory.destination && creep.wrongRoom()) return;
+
     // Checks
     if (!creep.store[RESOURCE_ENERGY]) {
         creep.memory.working = undefined;
