@@ -17,8 +17,7 @@ global.LOCAL_SPHERE = 2; // Range that rooms consider local via linear distance
 global.NEW_SPAWN_DENIAL = true; // Crush new spawns immediately
 global.POKE_ATTACKS = true; // Small cheap annoying attacks
 global.POKE_NEUTRALS = true; // Poke everyone
-global.HARASS_ATTACKS = true; // Larger disrupting attacks
-global.SIEGE_ENABLED = true; //Attack owned rooms with towers
+global.OFFENSIVE_OPERATIONS = true; // Offensive Combat
 global.NCP_HOSTILE = true; // Always attack users of open source bots
 global.ATTACK_COOLDOWN = 4500; //Time between attacks on a room
 

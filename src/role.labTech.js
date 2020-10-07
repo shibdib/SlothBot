@@ -374,11 +374,9 @@ function emptyFactory(creep) {
             }
         }
     } else if (disabledFactory) {
-        for (let storedResource of Object.keys(disabledFactory.store)) {
-            creep.memory.resourceNeeded = storedResource;
-            creep.memory.withdrawFrom = disabledFactory.id;
-            creep.memory.empty = true;
-            return true;
-        }
+        creep.memory.resourceNeeded = Object.keys(disabledFactory.store)[0];
+        creep.memory.withdrawFrom = disabledFactory.id;
+        creep.memory.empty = true;
+        return true;
     }
 }

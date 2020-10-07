@@ -1032,6 +1032,7 @@ Creep.prototype.abilityPower = function () {
 
 Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = false) {
     let enemy, filter;
+    this.room.cacheRoomIntel();
     let worthwhileStructures = this.room.hostileStructures.length > 0;
     if (!this.room.hostileCreeps.length && !worthwhileStructures) return undefined;
     if (this.memory.target && Game.getObjectById(this.memory.target) && Math.random() > 0.10 && !this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK)) return Game.getObjectById(this.memory.target);

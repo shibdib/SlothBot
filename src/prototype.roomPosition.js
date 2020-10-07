@@ -199,9 +199,9 @@ function getCachedTargetDistance(origin, target) {
             distanceCache = cache;
             return cachedDistance.distance;
         }
-        return;
+
     } else {
-        return;
+
     }
 }
 

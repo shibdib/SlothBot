@@ -83,42 +83,26 @@ function operationPlanner(room, creep = undefined) {
             dDay = tick + room.controller.safeMode;
         } // If room is owned
         else if (controller.owner) {
-            // Do not siege non enemies unless close
-            if (!_.includes(Memory._enemies, controller.owner.username) && range > LOCAL_SPHERE && controller.owner.username !== 'Invader') {
-                delete Memory.targetRooms[room.name];
-                log.a('Abandoning attack on room ' + roomLink(room.name) + ' as they do not meet the required ' +
-                    'threat level for a siege', 'OPERATION PLANNER: ');
-                return memory.recycle;
-            }
-            // Handle MAD
-            if (Memory.MAD && _.includes(Memory.MAD, controller.owner.username) && nukeTarget(room)) {
-                type = 'nuke';
-                dDay = tick + NUKE_LAND_TIME;
-                Memory.MAD = _.filter(Memory.MAD, (u) => u !== controller.owner.username);
-            } else
-            // If owned room has no towers
             if (!towers.length) {
                 type = 'hold';
-            } // If owned room has tower
-            else if (SIEGE_ENABLED && maxLevel >= 7) {
+            }
+            // (50/50 we try a direct attack or rangers)
+            if (Math.random() > 0.5) {
                 if (maxLevel >= 7) {
-                    //TODO: Redo non MAD nuke threshold
-                    if (towers.length >= 3 && nukeTarget(room)) {
+                    // Handle MAD
+                    if (Memory.MAD && _.includes(Memory.MAD, controller.owner.username) && nukeTarget(room)) {
                         type = 'nuke';
                         dDay = tick + NUKE_LAND_TIME;
+                        Memory.MAD = _.filter(Memory.MAD, (u) => u !== controller.owner.username);
                     } else if (towers.length >= 3) {
                         type = 'drain';
                     } else if (towers.length) {
                         type = 'siegeGroup';
                     }
+                } else {
+                    type = 'drain';
                 }
             } else {
-                type = 'drain';
-            }
-            // If the room is unowned
-        } else if (!controller.owner) {
-            // If other creeps are present
-            if (otherCreeps.length) {
                 type = 'rangers';
             }
         } else {

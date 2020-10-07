@@ -389,10 +389,8 @@ function rampartBuilder(room, layout) {
         }
     } else if (rampartSpots[room.name]) {
         let buildPositions = JSON.parse(rampartSpots[room.name]);
-        let posArray = [];
         for (let rampartPos of buildPositions) {
             let pos = new RoomPosition(rampartPos.x, rampartPos.y, room.name);
-            posArray.push(pos);
             if (room.controller.level >= 2) {
                 // Handle tunnels
                 if (pos.checkForWall()) {
@@ -708,7 +706,7 @@ function abandonRoom(room) {
     delete Game.rooms[room].memory;
     if (Memory.roomCache[room.name]) Memory.roomCache[room.name].noClaim = Game.time;
     Game.rooms[room].controller.unclaim();
-};
+}
 
 function difference(num1, num2) {
     return (num1 > num2) ? num1 - num2 : num2 - num1
@@ -828,7 +826,7 @@ function getRoad(room, from, to) {
     if (cachedPath) {
         return cachedPath.path;
     } else {
-        return;
+
     }
 }
 
