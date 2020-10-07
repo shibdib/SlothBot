@@ -22,8 +22,8 @@ Creep.prototype.rangersRoom = function () {
     if (this.memory.squadLeader === this.id) {
         // Handle room targets
         if (!this.memory.harassTargets || !this.memory.harassTargets.length) {
-            this.memory.harassTargets = _.filter(shuffle(_.filter(Game.map.describeExits(this.memory.destination), (e) => !Memory.roomCache[e] ||
-                (!Memory.roomCache[e].towers && (!Memory.roomCache[e].owner || !_.includes(FRIENDLIES, !Memory.roomCache[e].owner))))));
+            this.memory.harassTargets = _.filter(shuffle(_.filter(Game.map.describeExits(this.memory.destination), (e) => _.size(Game.map.describeExits(e)) > 1 && (!Memory.roomCache[e] ||
+                (!Memory.roomCache[e].towers && (!Memory.roomCache[e].owner || !_.includes(FRIENDLIES, !Memory.roomCache[e].owner)))))));
         }
         if (!this.memory.currentTarget) {
             this.memory.currentTarget = _.first(this.memory.harassTargets);
