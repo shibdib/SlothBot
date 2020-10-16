@@ -52,7 +52,11 @@ module.exports.role = function (creep) {
                 else creep.shibMove(source);
                 break;
             case ERR_NOT_ENOUGH_RESOURCES:
-                creep.idleFor(source.ticksToRegeneration + 1);
+                if (container && creep.store[RESOURCE_ENERGY]) {
+                    creep.repair(container);
+                } else {
+                    creep.idleFor(source.ticksToRegeneration + 1);
+                }
                 break;
             case OK:
                 if (container && container.store[RESOURCE_ENERGY] > 10 && (creep.memory.linkID || creep.memory.extensions) && Game.time % 3 === 0)
@@ -244,8 +248,8 @@ function findBestContainerPos(source) {
             if (xOff !== 0 || yOff !== 0) {
                 let pos = new RoomPosition(source.pos.x + xOff, source.pos.y + yOff, source.pos.roomName);
                 if (pos.checkForWall()) continue;
-                if (!bestCount || pos.countOpenTerrainAround(true) > bestCount) {
-                    bestCount = pos.countOpenTerrainAround(true);
+                if (!bestCount || pos.countOpenTerrainAround(true, true) > bestCount) {
+                    bestCount = pos.countOpenTerrainAround(true, true);
                     bestPos = pos;
                 }
             }

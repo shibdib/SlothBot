@@ -13,7 +13,13 @@ module.exports.role = function (creep) {
     //Invader detection
     if (creep.fleeHome()) return;
     //Initial Move
-    if (creep.pos.roomName !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination, {range: 23}));
+    if (creep.pos.roomName !== creep.memory.destination) {
+        if (creep.room.routeSafe(creep.memory.destination)) {
+            return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination, {range: 23}));
+        } else {
+            return creep.goToHub();
+        }
+    }
     //Reserver
     if (creep.memory.inPlace) {
         if (!creep.room.controller.reservation || creep.room.controller.reservation.username === MY_USERNAME) {
@@ -21,7 +27,6 @@ module.exports.role = function (creep) {
                 case OK:
                     if (!creep.memory.signed) {
                         let signs = RESERVE_ROOM_SIGNS;
-                        if (SIGN_CLEANER) signs = [''];
                         creep.signController(creep.room.controller, _.sample(signs));
                         creep.memory.signed = true;
                     }

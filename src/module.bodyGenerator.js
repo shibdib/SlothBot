@@ -21,6 +21,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
     else if (deficit < 0.25) deficit = 0.25;
     let energyAmount = room.energyCapacityAvailable;
     if (reboot) energyAmount = room.energyAvailable;
+    if (energyAmount > room.energyCapacityAvailable) energyAmount = room.energyCapacityAvailable;
     switch (role) {
         // Explorer/Scout
         case 'explorer':
@@ -61,7 +62,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
                 move = work + carry;
                 break;
             } else {
-                deficitExemption = true;
                 work = _.floor((energyAmount - 100) / BODYPART_COST[WORK]) || 1;
                 if (work > 48) work = 48;
                 if (level === 8 && room.energyState) work = 15; else if (level === 8) work = 1;
@@ -79,7 +79,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
         case 'expediter':
             deficitExemption = true;
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
-            if (carry > 20) carry = 20;
+            if (carry > 10) carry = 10;
             move = _.ceil(carry / 2);
             if (!room.memory.roadsBuilt) move = carry;
             break;
@@ -87,7 +87,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             deficitExemption = true;
             work = _.floor((energyAmount - 50) / BODYPART_COST[WORK]) || 1;
             // 6 Is the cap
-            if (work > 6) work = 6;
+            if (work > 7) work = 7;
             carry = 1;
             break;
         case 'mineralHarvester':
@@ -98,18 +98,29 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
         // Military
         case 'attacker':
             deficitExemption = true;
-            tough = _.floor((energyAmount * 0.15) / BODYPART_COST[TOUGH]) || 1;
-            if (tough > 7) tough = 7;
-            attack = _.floor((energyAmount * 0.35) / BODYPART_COST[ATTACK]) || 1;
-            if (attack > 17) attack = 17;
+            tough = _.floor((energyAmount * 0.05) / BODYPART_COST[TOUGH]) || 1;
+            if (tough > 5) tough = 5;
+            attack = _.floor((energyAmount * 0.45) / BODYPART_COST[ATTACK]) || 1;
+            if (attack > 20) attack = 20;
             move = tough + attack;
             break;
         case 'healer':
+            deficitExemption = true;
+            heal = _.floor(energyAmount / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
+            if (heal > 25) heal = 25;
+            move = heal;
+            break;
+        case 'medic':
+            deficitExemption = true;
+            heal = _.floor(energyAmount / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
+            if (heal > 4) heal = 4;
+            move = heal;
+            break;
         case 'drainer':
             deficitExemption = true;
-            tough = _.floor((energyAmount * 0.1) / BODYPART_COST[TOUGH]) || 1;
+            tough = _.floor((energyAmount * 0.1) / (BODYPART_COST[TOUGH] + BODYPART_COST[MOVE])) || 1;
             if (tough > 4) tough = 4;
-            heal = _.floor((energyAmount * 0.4) / BODYPART_COST[HEAL]) || 1;
+            heal = _.floor((energyAmount * 0.9) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE])) || 1;
             if (heal > 20) heal = 20;
             if (role === 'drainer') work = 1; else work = 0;
             move = tough + heal + work;
@@ -127,10 +138,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             break;
         case 'longbow':
             deficitExemption = true;
-            rangedAttack = _.ceil((energyAmount * 0.25) / BODYPART_COST[RANGED_ATTACK]) || 1;
-            if (rangedAttack > 19) rangedAttack = 19;
-            heal = _.ceil((energyAmount * 0.2) / BODYPART_COST[HEAL]);
-            if (heal > 6) heal = 6;
+            rangedAttack = _.floor((energyAmount * 0.6) / (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE])) || 1;
+            if (rangedAttack > 17) rangedAttack = 15;
+            heal = _.floor((energyAmount * 0.4) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
+            if (heal > 8) heal = 8;
             move = heal + rangedAttack;
             break;
         case 'poke':
@@ -139,7 +150,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             move = 1;
             break;
         case 'deconstructor':
-            work = _.floor((energyAmount * 0.5) / BODYPART_COST[WORK]) || 1;
+            work = _.floor(energyAmount / (BODYPART_COST[WORK] + BODYPART_COST[MOVE])) || 1;
             if (work > 25) work = 25;
             move = work;
             break;
@@ -164,10 +175,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             break;
         case 'reserver':
             deficitExemption = true;
-            claim = _.floor((energyAmount * 0.50) / BODYPART_COST[CLAIM]) || 1;
+            claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
             if (claim > 25) claim = 25;
             if (level >= 6) {
-                claim = _.floor((energyAmount * 0.66) / BODYPART_COST[CLAIM]) || 1;
+                claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
                 move = claim * 0.5;
             } else move = claim;
             break;
@@ -178,30 +189,23 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
         case 'remoteHarvester':
             deficitExemption = true;
             work = _.floor((energyAmount * 0.4) / BODYPART_COST[WORK]) || 1;
-            if (work > 10) work = 10;
-            if (room.energyState && work > 5) work = 5;
+            if (work > 7) work = 7;
             carry = 1;
-            if (room.memory.roadsBuilt || level >= 6) move = work / 2; else move = work;
+            if (room.memory.roadsBuilt) move = work / 2; else move = work;
             break;
         case 'remoteHauler':
             deficitExemption = true;
             if (Math.random() > 0.7) work = 1; else work = 0;
-            if (level < 6) {
-                carry = _.floor(((energyAmount - (work * BODYPART_COST[WORK])) * 0.50) / BODYPART_COST[CARRY]) || 1;
-                if (carry > 29) carry = 24;
-                move = carry + work;
-            } else {
-                carry = _.floor(((energyAmount - (work * BODYPART_COST[WORK])) * 0.66) / BODYPART_COST[CARRY]) || 1;
-                if (carry > 29) carry = 29;
-                move = _.ceil((carry + work) / 2);
-            }
+            carry = _.floor(((energyAmount - (work * BODYPART_COST[WORK])) * 0.50) / BODYPART_COST[CARRY]) || 1;
+            if (carry > 16) carry = 16;
+            if (room.memory.roadsBuilt) move = (carry + work) / 2; else move = carry + work;
             break;
         case 'roadBuilder':
             work = _.floor((energyAmount * _.random(0.2, 0.5)) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
             carry = _.floor((energyAmount * _.random(0.2, 0.5)) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
-            move = work + carry;
+            move = carry + work;
             break;
         case 'commodityMiner':
             work = _.floor((energyAmount * _.random(0.2, 0.5)) / BODYPART_COST[WORK]) || 1;
@@ -252,14 +256,13 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
     for (let i = 0; i < work; i++) body.push(WORK)
     for (let i = 0; i < carry; i++) body.push(CARRY)
     for (let i = 0; i < claim; i++) body.push(CLAIM)
-    let attackArray = [];
-    for (let i = 0; i < rangedAttack; i++) attackArray.push(RANGED_ATTACK)
-    for (let i = 0; i < attack; i++) attackArray.push(ATTACK)
+    for (let i = 0; i < rangedAttack; i++) body.push(RANGED_ATTACK)
+    for (let i = 0; i < attack; i++) body.push(ATTACK)
     let moveArray = [];
     for (let i = 0; i < move; i++) moveArray.push(MOVE)
     let healArray = [];
     for (let i = 0; i < heal; i++) healArray.push(HEAL)
     let toughArray = [];
     for (let i = 0; i < tough; i++) toughArray.push(TOUGH)
-    return toughArray.concat(shuffle(body), moveArray, attackArray, healArray);
+    return toughArray.concat(shuffle(body), moveArray, healArray);
 };

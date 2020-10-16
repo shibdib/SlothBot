@@ -59,19 +59,63 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
     }
 };
 
-RoomPosition.prototype.countOpenTerrainAround = function (borderBuild = undefined) {
+/**
+ * Counts open terrain around a POS
+ *
+ * @param {boolean} borderBuild - Check if the pos is within 2 of an exit
+ * @param {boolean} ignore - Ignore all obstructions besides walls
+ * @returns {number}
+ */
+RoomPosition.prototype.countOpenTerrainAround = function (borderBuild = undefined, ignore = undefined) {
     let impassible = 0;
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
             if (xOff !== 0 || yOff !== 0) {
                 let pos = new RoomPosition(this.x + xOff, this.y + yOff, this.roomName);
-                if (pos.checkForImpassible() || (pos.checkForCreep() && !pos.checkForCreep().getActiveBodyparts(MOVE))) impassible += 1;
+                if (ignore && pos.checkForWall()) impassible += 1;
+                else if (pos.checkForImpassible() || (pos.checkForCreep() && !pos.checkForCreep().getActiveBodyparts(MOVE))) impassible += 1;
                 if (borderBuild && pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) <= 2) impassible += 1;
             }
         }
     }
     return 8 - impassible;
 };
+
+/**
+ * Find an adjacent position that matches the range to the target
+ *
+ * @param {object} target - The target in question
+ * @param {number} range - The range it should be
+ * @returns {object} RoomPosition
+ */
+RoomPosition.prototype.getAdjacentPositionAtRange = function (target, range = 3) {
+    for (let xOff = -1; xOff <= 1; xOff++) {
+        for (let yOff = -1; yOff <= 1; yOff++) {
+            if (xOff !== 0 || yOff !== 0) {
+                let pos = new RoomPosition(this.x + xOff, this.y + yOff, this.roomName);
+                if (!pos.checkForImpassible() && pos.getRangeTo(target) === range) return pos;
+            }
+        }
+    }
+};
+
+
+/**
+ * Find position at direction
+ *
+ * @param {number} direction - The direction
+ * @returns {object} RoomPosition
+ */
+RoomPosition.prototype.positionAtDirection = function (direction) {
+    let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
+    let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
+    let x = this.x + offsetX[direction];
+    let y = this.y + offsetY[direction];
+    if (x > 49 || x < 0 || y > 49 || y < 0 || !x || !y) {
+        return;
+    }
+    return new RoomPosition(x, y, this.roomName);
+}
 
 RoomPosition.prototype.checkForWall = function () {
     return Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) === 1;

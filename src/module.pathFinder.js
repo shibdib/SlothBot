@@ -6,7 +6,7 @@
  */
 
 const DEFAULT_MAXOPS = 10000;
-const STATE_STUCK = 4;
+const STATE_STUCK = 2;
 
 const terrainMatrixCache = {};
 const structureMatrixCache = {};
@@ -77,7 +77,7 @@ function shibMove(creep, heading, options = {}) {
         let direction = creep.pos.getDirectionTo(heading);
         return creep.move(direction);
     }
-    if (!heading instanceof RoomPosition) if (creep.room.name !== heading.room.name) return creep.shibMove(new RoomPosition(25, 25, heading.room.name), {range: 24});
+    if (!heading instanceof RoomPosition && creep.room.name !== heading.room.name) return creep.shibMove(new RoomPosition(25, 25, heading.room.name), {range: 24});
     let origin = normalizePos(creep);
     let target = normalizePos(heading);
     // Make sure origin and target are good
@@ -86,12 +86,18 @@ function shibMove(creep, heading, options = {}) {
     if (!creep.memory._shibMove || (creep.memory._shibMove.path && (creep.memory._shibMove.path.length < 1 || !creep.memory._shibMove.path))) creep.memory._shibMove = {};
     if (creep.memory._shibMove && ((creep.memory._shibMove.path && creep.memory._shibMove.path.length < 1) || !creep.memory._shibMove.path)) creep.memory._shibMove = {};
     // Check if target moved
-    if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y || creep.memory._shibMove.target.roomName !== target.roomName)) creep.memory._shibMove = {};
+    if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y || creep.memory._shibMove.target.roomName !== target.roomName)) {
+        // If the target is still in the general area and we have a ways to go, don't repath
+        let storedPos = new RoomPosition(creep.memory._shibMove.target.x, creep.memory._shibMove.target.y, creep.memory._shibMove.target.roomName);
+        let currentTargetPos = new RoomPosition(target.x, target.y, target.roomName);
+        if (creep.pos.getRangeTo(currentTargetPos) <= 5 || currentTargetPos.getRangeTo(storedPos) >= 3) creep.memory._shibMove = {};
+    }
     // Set var
     let pathInfo = creep.memory._shibMove;
     pathInfo.targetRoom = targetRoom(heading);
     //Clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
+        if (pathInfo.pathPosTime >= STATE_STUCK * 5) structureMatrixCache[creep.room.name] = undefined;
         creepBumping(creep, pathInfo, options);
     }
     //Handle getting stuck in rooms on multi rooms pathing
@@ -112,13 +118,20 @@ function shibMove(creep, heading, options = {}) {
     }
     //Execute path if target is valid and path is set
     if (pathInfo.path) {
-        if (pathInfo.newPos && pathInfo.newPos.x === creep.pos.x && pathInfo.newPos.y === creep.pos.y && pathInfo.newPos.roomName === creep.pos.roomName) pathInfo.path = pathInfo.path.slice(1);
-        if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName) {
-            pathInfo.pathPosTime++;
-        } else {
-            pathInfo.pathPos = creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName;
-            pathInfo.pathPosTime = 0;
+        // Check if room is impassible
+        if (pathInfo.route && pathInfo.route.length > 1 && pathInfo.routeCheck !== creep.room.name) {
+            pathInfo.routeCheck = creep.room.name;
+            if (pathInfo.route[0] === creep.room.name) {
+                if (!creep.pos.findClosestByPath(creep.room.findExitTo(pathInfo.route[1]))) {
+                    Memory.roomCache[creep.room.name].tempAvoid = Game.time;
+                    if (!Memory.roomCache[pathInfo.route[1]]) Memory.roomCache[pathInfo.route[1]] = {};
+                    Memory.roomCache[pathInfo.route[1]].tempAvoid = Game.time;
+                    log.e(creep.name + ' in ' + roomLink(creep.room.name) + ' has committed suicide due to a pathing error.', 'PATHFINDING:');
+                    return creep.suicide();
+                }
+            }
         }
+        if (pathInfo.newPos && pathInfo.newPos.x === creep.pos.x && pathInfo.newPos.y === creep.pos.y && pathInfo.newPos.roomName === creep.pos.roomName) pathInfo.path = pathInfo.path.slice(1);
         let nextDirection = parseInt(pathInfo.path[0], 10);
         if (nextDirection && pathInfo.newPos) {
             pathInfo.newPos = positionAtDirection(origin, nextDirection);
@@ -134,6 +147,12 @@ function shibMove(creep, heading, options = {}) {
                     creep.idleFor(10);
                     break;
             }
+            if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName) {
+                pathInfo.pathPosTime++;
+            } else {
+                pathInfo.pathPos = creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName;
+                pathInfo.pathPosTime = 0;
+            }
         } else {
             delete pathInfo.path;
         }
@@ -146,7 +165,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     let cached, closestPortal, closestDistance;
     if (!Memory.roomCache[creep.room.name]) creep.room.cacheRoomIntel(true);
     if (!target) return creep.moveRandom();
-    if (options.useCache && !Memory.roomCache[creep.room.name].responseNeeded) cached = getPath(creep, origin, target);
+    if (options.useCache && !Memory.roomCache[creep.room.name].threatLevel) cached = getPath(creep, origin, target);
     if (cached && options.ignoreCreeps) {
         pathInfo.findAttempt = undefined;
         creep.memory.badPathing = undefined;
@@ -162,7 +181,8 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         });
         return creep.move(nextDirection);
     } else {
-        let roomDistance = Game.map.findRoute(origin.roomName, target.roomName).length;
+        let roomDistance = 0;
+        if (origin.roomName !== target.roomName) roomDistance = Game.map.findRoute(origin.roomName, target.roomName).length
         pathInfo.usingCached = undefined;
         let originRoomName = origin.roomName;
         let destRoomName = target.roomName;
@@ -294,27 +314,32 @@ function findRoute(origin, destination, options = {}) {
             // Check for avoid flagged rooms
             if (Memory.avoidRooms && _.includes(_.union(Memory.avoidRooms, tempAvoidRooms), roomName)) return 254;
             if (Memory.roomCache && Memory.roomCache[roomName]) {
+                // Temp avoid
+                if (Memory.roomCache[roomName].tempAvoid) {
+                    if (Memory.roomCache[roomName].tempAvoid + 3000 > Game.time) return 256; else delete Memory.roomCache[roomName].tempAvoid;
+                }
+                // Highway
+                if (Memory.roomCache[roomName].isHighway) return 8;
                 // Avoid strongholds
                 if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].towers) return 256;
-                // If room is under attack
-                if (Memory.roomCache[roomName] && Memory.roomCache[roomName].threatLevel >= 2) return 100;
-                // If room has observed obstructions
-                if (Memory.roomCache[roomName] && Memory.roomCache[roomName].obstructions) return 200;
-                // SK rooms are avoided if not being mined
-                if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].mined + 50 < Game.time) return 30;
-                // Friendly Rooms
-                if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 10;
                 // Avoid rooms owned by others
                 if (Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner)) {
                     if (Memory.roomCache[roomName].towers) return 256; else return 125;
                 }
+                // If room has observed obstructions
+                if (Memory.roomCache[roomName] && Memory.roomCache[roomName].obstructions) return 200;
+                // If room is under attack
+                if (Memory.roomCache[roomName] && Memory.roomCache[roomName].hostilePower > Memory.roomCache[roomName].friendlyPower && Memory.roomCache[roomName].tickDetected + 150 > Game.time) return 100;
+                // SK rooms are avoided if not being mined
+                if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].mined + 50 < Game.time) return 50;
+                // Friendly Rooms
+                if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 10;
                 // Avoid rooms reserved by others
-                if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 15;
-                // Highway
-                if (Memory.roomCache[roomName].isHighway) return 8;
+                if (Memory.roomCache[roomName].reservation && !_.includes(FRIENDLIES, Memory.roomCache[roomName].reservation)) return 35;
+                if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 25;
             } else
                 // Unknown rooms have a slightly higher weight
-            if (!Memory.roomCache[roomName]) return 25;
+            if (!Memory.roomCache[roomName]) return 20;
             return 12;
         }
     });
@@ -337,7 +362,7 @@ function findRoute(origin, destination, options = {}) {
 function creepBumping(creep, pathInfo, options) {
     let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory.other || !c.memory.other.noBump || pathInfo.pathPosTime >= STATE_STUCK * 3))[0];
     if (bumpCreep && Math.random() > 0.5) {
-        if (!creep.memory.trailer) {
+        if (!creep.memory.trailer && creep.pos.isNearTo(Game.getObjectById(creep.memory.trailer))) {
             if (bumpCreep.getActiveBodyparts(MOVE)) {
                 bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
             } else {
@@ -538,17 +563,15 @@ function addHostilesToMatrix(room, matrix) {
         let range = 6;
         if (!enemyCreeps[key].getActiveBodyparts(RANGED_ATTACK)) range = 3;
         let avoidZone = enemyCreeps[key].room.lookForAtArea(LOOK_TERRAIN, enemyCreeps[key].pos.y - range, enemyCreeps[key].pos.x - range, enemyCreeps[key].pos.y + range, enemyCreeps[key].pos.x + range, true);
-        for (let key in avoidZone) {
+        for (let pos of avoidZone) {
             let position;
             try {
-                position = new RoomPosition(avoidZone[key].x, avoidZone[key].y, room.name);
+                position = new RoomPosition(pos.x, pos.y, room.name);
             } catch (e) {
                 continue;
             }
-            if (!position || matrix.get(position.x, position.y)) continue;
-            if (!position.checkForWall()) {
-                matrix.set(position.x, position.y, 150)
-            }
+            if (!position || (matrix.get(position.x, position.y) && matrix.get(position.x, position.y) >= 25)) continue;
+            matrix.set(position.x, position.y, 25)
         }
     }
     return matrix;
@@ -765,6 +788,14 @@ Creep.prototype.shibRoute = function (destination, options) {
 Room.prototype.shibRoute = function (destination, options) {
     return findRoute(this.name, destination, options);
 };
+Room.prototype.routeSafe = function (destination = this.name, maxThreat = 2, maxHeat = 500) {
+    let safe = true;
+    let route = findRoute(this.name, destination);
+    if (route && route.length) route.forEach(function (r) {
+        if (Memory.roomCache[r] && (Memory.roomCache[r].threatLevel >= maxThreat || Memory.roomCache[r].roomHeat >= maxHeat)) return safe = false;
+    })
+    return safe;
+};
 RoomPosition.prototype.shibMove = function (destination, options) {
     return shibMove(this, destination, options);
 };
@@ -780,13 +811,16 @@ Creep.prototype.shibKite = function (fleeRange = 6, target = undefined) {
     if (!avoid || !avoid.length) return false;
     // If in a rampart you're safe
     if (this.pos.checkForRampart()) return true;
+    this.say('!!RUN!!', true);
+    // Border hump if it's safe and nearby
+    let closestExit = this.pos.findClosestByRange(FIND_EXIT);
+    if (this.pos.getRangeTo(closestExit) <= 5) return this.shibMove(closestExit, {range: 0});
     this.memory._shibMove = undefined;
-    let avoidance = _.map(this.pos.findInRange(avoid, fleeRange + 1),
-        (c) => {
-            return {pos: c.pos, range: fleeRange + 1};
-        });
+    let avoidance = _.map(this.pos.findInRange(avoid, fleeRange + 1), (c) => {
+        return {pos: c.pos, range: fleeRange + 1};
+    });
+    let options = getMoveWeight(this, {});
     let creep = this;
-    let options = getMoveWeight(creep, {});
     let ret = PathFinder.search(this.pos, avoidance, {
         flee: true,
         swampCost: 75,
@@ -801,9 +835,10 @@ Creep.prototype.shibKite = function (fleeRange = 6, target = undefined) {
         }
     });
     if (ret.path.length > 0) {
-        if (this.memory.squadLeader === true) {
+        if (this.memory.squadLeader === this.id) {
             this.memory.squadKite = this.pos.getDirectionTo(ret.path[0]);
         }
+        this.memory.lastKite = this.pos.getDirectionTo(ret.path[0]);
         this.move(this.pos.getDirectionTo(ret.path[0]));
         return true;
     } else {

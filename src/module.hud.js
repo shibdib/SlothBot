@@ -133,14 +133,41 @@ module.exports.hud = function () {
             y++;
         }
     }
+    // Map Hud
     try {
+        // Target Rooms
         if (Memory.targetRooms) {
             for (let room of Object.keys(Memory.targetRooms)) {
                 if (!Memory.targetRooms[room]) continue;
-                Game.map.visual.text(_.capitalize(Memory.targetRooms[room].type), new RoomPosition(25,25,room), {color: '#ff0000', fontSize: 10});
+                Game.map.visual.text(_.capitalize(Memory.targetRooms[room].type), new RoomPosition(2, 47, room), {
+                    color: '#ff0000',
+                    fontSize: 4,
+                    align: 'left'
+                });
             }
         }
+        // My rooms
+        for (let room of Memory.myRooms) {
+            Game.map.visual.text(_.capitalize(Game.rooms[room].mineral.mineralType), new RoomPosition(48, 48, room), {
+                color: '#01a218',
+                fontSize: 4
+            });
+            Game.map.visual.text('Energy: ' + Game.rooms[room].energy, new RoomPosition(2, 2, room), {
+                color: '#989212',
+                fontSize: 3,
+                align: 'left'
+            });
+            Game.map.visual.text('Creeps: ' + Game.rooms[room].creeps.length, new RoomPosition(2, 5, room), {
+                color: '#989212',
+                fontSize: 3,
+                align: 'left'
+            });
+            Game.map.visual.text('Threat Level: ' + (Memory.roomCache[room].threatLevel || 0), new RoomPosition(2, 8, room), {
+                color: '#989212',
+                fontSize: 3,
+                align: 'left'
+            });
+        }
     } catch (e) {
-
     }
 };

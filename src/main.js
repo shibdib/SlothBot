@@ -45,7 +45,7 @@ module.exports.loop = function () {
             if (!tracking.badCounter) tracking.badCounter = 1; else tracking.badCounter += 1;
         } else if (Game.time % 10 === 0) if (tracking.badCounter) tracking.badCounter -= 1;
         // If we hit the 1000 threshold abandon worst room to save cpu
-        if (tracking.badCounter >= 5000) {
+        if (tracking.badCounter >= 1000) {
             let lowRoom = _.sortBy(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my), '.controller.level')[0];
             log.e(roomLink(lowRoom.name) + ' is being abandoned due to CPU Bucket issues.');
             Game.notify(roomLink(lowRoom.name) + ' is being abandoned due to CPU Bucket issues.');
@@ -76,7 +76,7 @@ module.exports.loop = function () {
     if (Memory.myRooms && Memory.myRooms.length) hive.hiveMind();
 
     // Pixel Gen
-    if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name) && Game.resources[PIXEL] < PIXEL_BUFFER * 2 && Game.cpu.bucket >= 7500) {
+    if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name) && Game.cpu.bucket >= 7500) {
         Game.cpu.generatePixel();
         log.a('Pixel Generated.');
         Memory.lastPixelGenerated = Game.time;

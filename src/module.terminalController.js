@@ -14,10 +14,10 @@ let reactionAmount = REACTION_AMOUNT;
 let runOnce, globalOrders, lastPriceAdjust, spendingMoney;
 if (Memory._banker) spendingMoney = Memory._banker.spendingAccount; else spendingMoney = 0;
 
-let lastRun;
 module.exports.terminalControl = function (room) {
+    let lastRun = room.memory.lastTerminalTick || 0;
     if (!room.terminal || room.terminal.cooldown || room.memory.lowPower || lastRun + 10 > Game.time) return;
-    lastRun = Game.time;
+    room.memory.lastTerminalTick = Game.time;
     Memory.saleTerminal = Memory.saleTerminal || {};
     let myOrders = Game.market.orders;
     // Things that don't need to be run for every terminal
@@ -28,6 +28,8 @@ module.exports.terminalControl = function (room) {
         }
         // Track profits
         profitCheck();
+        // Check for diplomatic changes based on trade
+        tradeDiplomacyTracker();
         // Tweak reaction amount if broke
         if (Game.market.credits < CREDIT_BUFFER) reactionAmount = REACTION_AMOUNT * 0.5; else reactionAmount = REACTION_AMOUNT;
         // Get global orders
@@ -78,9 +80,9 @@ module.exports.terminalControl = function (room) {
             //Buy Power
             if (buyPower(room.terminal, globalOrders)) return;
         }
-        //Dump Excess
-        if (fillBuyOrders(room.terminal, globalOrders)) return;
     }
+    //Dump Excess
+    if (fillBuyOrders(room.terminal, globalOrders)) return;
     //Disperse Minerals and Boosts
     if (balanceResources(room.terminal)) return;
     //Buy minerals if needed
@@ -349,6 +351,10 @@ function fillBuyOrders(terminal, globalOrders) {
         if (_.includes(ALL_BOOSTS, resourceType)) {
             keepAmount = BOOST_AMOUNT;
         }
+        // Sell commodities (Keep 1000)
+        if (_.includes(ALL_COMMODITIES, resourceType)) {
+            keepAmount = 1000;
+        }
         // Get amount
         let sellAmount = terminal.room.store(resourceType) - keepAmount;
         if (sellAmount > terminal.store[resourceType]) sellAmount = terminal.store[resourceType];
@@ -361,9 +367,9 @@ function fillBuyOrders(terminal, globalOrders) {
                 if (sellAmount * buyer.price >= 5) {
                     switch (Game.market.deal(buyer.id, sellAmount, terminal.pos.roomName)) {
                         case OK:
-                            log.w(terminal.pos.roomName + " Sell Off Completed - " + resourceType + " for " + (buyer.price * sellAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
+                            if (sellAmount * buyer.price > 250) log.w(terminal.pos.roomName + " Sell Off Completed - " + sellAmount + " " + resourceType + " for " + (buyer.price * sellAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
                             spendingMoney += ((buyer.price * sellAmount) * 0.75);
-                            log.w("New spending account amount - " + spendingMoney, "Market: ");
+                            if (sellAmount * buyer.price > 250) log.w("New spending account amount - " + spendingMoney, "Market: ");
                             return true;
                     }
                 }
@@ -586,4 +592,34 @@ function profitCheck(force = false) {
         }
     }
     Memory._banker = profitTracking;
+}
+
+let lastCheckedIncoming = Game.time;
+
+function tradeDiplomacyTracker() {
+    let incoming = _.filter(Game.market.incomingTransactions, (t) => t && t.time > lastCheckedIncoming);
+    if (incoming.length) {
+        for (let trade of incoming) {
+            if (trade.sender && trade.sender.username) {
+                let multi = 1000;
+                if (_.includes(TIER_1_BOOSTS, trade.resourceType) || _.includes(COMPRESSED_COMMODITIES, trade.resourceType)) multi = 750;
+                else if (_.includes(TIER_2_BOOSTS, trade.resourceType)) multi = 500;
+                else if (_.includes(TIER_3_BOOSTS, trade.resourceType) || trade.resourceType === RESOURCE_POWER) multi = 200;
+                let increase = trade.amount / multi;
+                if (Memory._userList[trade.sender.username]) {
+                    Memory._userList[trade.sender.username].standing += increase;
+                    if (Memory._userList[trade.sender.username].standing > 50) Memory._userList[trade.sender.username].standing = 50;
+                    Memory._userList[trade.sender.username].lastChange = Game.time;
+                } else {
+                    let cache = Memory._userList || {};
+                    cache[trade.sender.username] = {};
+                    cache[trade.sender.username]['standing'] = increase;
+                    cache[trade.sender.username]['lastChange'] = Game.time;
+                    log.w(trade.sender.username + ' is now considered a friend due to trade.');
+                    Memory._userList = cache;
+                }
+            }
+        }
+        lastCheckedIncoming = _.max(incoming, 'time').time;
+    }
 }

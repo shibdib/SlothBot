@@ -157,15 +157,6 @@ Object.defineProperty(PowerCreep.prototype, 'isFull', {
 });
 
 PowerCreep.prototype.reportDamage = function () {
-    if (this.hits === this.hitsMax) {
-        this.memory.healsPlease = undefined;
-        this.memory.healsInbound = undefined;
-    } else if (!this.getActiveBodyparts(HEAL)) {
-        this.memory.healsPlease = true;
-    } else {
-        this.heal(this);
-    }
-    if (this.memory.healsInbound && !Game.getObjectById(this.memory.healsInbound)) this.memory.healsInbound = undefined;
     if (!this.memory._lastHits) return this.memory._lastHits = this.hits;
     if (this.hits < this.memory._lastHits) {
         this.memory.underAttack = true;
@@ -175,25 +166,25 @@ PowerCreep.prototype.reportDamage = function () {
             for (let key in nearbyCreeps) {
                 let user = nearbyCreeps[key];
                 if (user === MY_USERNAME) continue;
-                let cache = Memory._badBoyList || {};
-                let threatRating;
+                let cache = Memory._userList || {};
+                let standing;
                 if (cache[user]) {
                     if (cache[user].lastAction + 10 > Game.time) return true;
                     log.e(this.name + ' has taken damage in ' + this.room.name + '. Adjusting threat rating for ' + user);
                     if (_.includes(FRIENDLIES, user)) {
-                        threatRating = cache[user]['threatRating'] + 0.1;
+                        standing = cache[user]['standing'] + 0.1;
                     } else {
-                        threatRating = cache[user]['threatRating'] + 0.5;
+                        standing = cache[user]['standing'] + 0.5;
                     }
                 } else {
                     if (_.includes(FRIENDLIES, user)) {
-                        threatRating = 2.5;
+                        standing = 2.5;
                     } else {
-                        threatRating = 50;
+                        standing = 50;
                     }
                 }
                 cache[user] = {
-                    threatRating: threatRating,
+                    standing: standing,
                     lastAction: Game.time,
                 };
                 Memory._badBoyList = cache;

@@ -93,7 +93,8 @@ function deliverResource(creep) {
             else if (_.includes(BASE_MINERALS, resourceType) && creep.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = creep.room.storage;
             else if (_.includes(COMPRESSED_COMMODITIES, resourceType) && creep.room.terminal.store[resourceType] >= 10000) storeTarget = creep.room.storage;
             else if (_.includes(ALL_COMMODITIES, resourceType)) storeTarget = creep.room.terminal;
-            else if (_.includes(_.union(TIER_3_BOOSTS, LAB_PRIORITY), resourceType)) storeTarget = creep.room.storage;
+            else if (_.includes(ALL_BOOSTS, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT) storeTarget = creep.room.storage;
+            else if (_.includes(ALL_BOOSTS, resourceType)) storeTarget = creep.room.terminal;
             else if (!_.includes(BASE_MINERALS, resourceType) && !_.includes(ALL_COMMODITIES, resourceType) && creep.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = creep.room.storage;
         }
         switch (creep.transfer(storeTarget, resourceType)) {
@@ -300,8 +301,10 @@ function storageControl(creep) {
         for (let resourceType of maxResource) {
             let amountNeeded = 0;
             // Storage cases
-            if (_.includes(_.union(BASE_MINERALS, ALL_BOOSTS), resourceType) && !_.includes(TIER_3_BOOSTS, resourceType) && creep.room.storage.store[resourceType] > (REACTION_AMOUNT * 1.1) + creep.store.getFreeCapacity(resourceType)) {
+            if (_.includes(BASE_MINERALS) && creep.room.storage.store[resourceType] > REACTION_AMOUNT) {
                 amountNeeded = creep.room.storage.store[resourceType] - REACTION_AMOUNT;
+            } else if (_.includes(ALL_BOOSTS) && creep.room.storage.store[resourceType] > BOOST_AMOUNT) {
+                amountNeeded = creep.room.storage.store[resourceType] - BOOST_AMOUNT;
             } else if (resourceType === RESOURCE_ENERGY && creep.room.terminal.store[resourceType] < TERMINAL_ENERGY_BUFFER) {
                 amountNeeded = TERMINAL_ENERGY_BUFFER - creep.room.terminal.store[resourceType];
             } else if (resourceType === RESOURCE_ENERGY && creep.room.storage.store[resourceType] > ENERGY_AMOUNT * 1.1) {

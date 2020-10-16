@@ -14,21 +14,22 @@ module.exports.role = function role(creep) {
     //Invader detection
     if (creep.fleeHome()) return;
     // Handle remote drones
-    if (creep.memory.destination && creep.room.name !== creep.memory.destination) {
+    if (!creep.memory.destination) creep.memory.destination = creep.memory.overlord;
+    if (creep.memory.destination && creep.room.name !== creep.memory.destination && !creep.memory.remoteMining) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
-        // Handle lost guys
-    } else if (!creep.memory.destination && creep.wrongRoom()) return;
-
+    }
     // Checks
     if (!creep.store[RESOURCE_ENERGY]) {
         creep.memory.working = undefined;
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
     }
-    if (creep.isFull && creep.memory.task !== 'harvest') {
+    if (creep.isFull && !creep.memory.working && creep.memory.task !== 'harvest') {
         creep.memory.working = true;
         creep.memory.source = undefined;
         creep.memory.harvest = undefined;
+        creep.memory.remoteMining = undefined;
+        return;
     }
     // If harvester needed harvest
     if (harvest(creep)) return;
@@ -49,7 +50,7 @@ module.exports.role = function role(creep) {
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
-        } else if (!creep.room.storage) {
+        } else {
             creep.memory.harvest = true;
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
             if (source) {
@@ -58,11 +59,6 @@ module.exports.role = function role(creep) {
                 switch (creep.harvest(source)) {
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(source);
-                        if (Math.random() >= 0.9) {
-                            creep.memory.harvest = undefined;
-                            creep.memory.source = undefined;
-                            return;
-                        }
                         break;
                     case ERR_NOT_ENOUGH_RESOURCES:
                         creep.idleFor(source.ticksToRegeneration * 0.5);
@@ -72,8 +68,12 @@ module.exports.role = function role(creep) {
                         break;
                 }
             } else {
-                delete creep.memory.harvest;
-                creep.idleFor(5);
+                if (creep.memory.remoteMining || findRemoteSource(creep)) {
+                    if (creep.memory.remoteMining !== creep.room.name) return creep.shibMove(new RoomPosition(25, 25, creep.memory.remoteMining), {range: 24});
+                } else {
+                    delete creep.memory.harvest;
+                    creep.idleFor(5);
+                }
             }
         }
     }
@@ -111,8 +111,7 @@ function harvest(creep) {
 
 function building(creep) {
     if (creep.memory.task && creep.memory.task !== 'build' && creep.memory.task !== 'repair') return;
-    let upgrader = _.filter(creep.room.creeps, (c) => c.my && c.memory && ((c.memory.role === 'drone' && c.memory.task === 'upgrade') || c.memory.role === 'upgrader' || c.memory.role === 'remoteUpgrader' || c.memory.role === 'praiseUpgrader'));
-    if ((creep.memory.task === 'build' || creep.memory.task === 'repair') || ((upgrader.length || creep.room.controller.upgradeBlocked) && (creep.memory.constructionSite || creep.constructionWork()))) {
+    if (creep.room.controller.ticksToDowngrade > CONTROLLER_DOWNGRADE[creep.room.controller.level] * 0.9 && ((creep.memory.task === 'build' || creep.memory.task === 'repair') || (creep.memory.constructionSite || creep.constructionWork()))) {
         creep.say('Build!', true);
         creep.builderFunction();
         return true;
@@ -168,4 +167,13 @@ function upgrading(creep) {
             creep.shibMove(creep.room.controller, {range: 3});
     }
     return true;
+}
+
+function findRemoteSource(creep) {
+    let adjacent = _.filter(Game.map.describeExits(creep.pos.roomName), (r) => !Memory.roomCache[r] ||
+        ((!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && !Memory.roomCache[r].sk && Memory.roomCache[r].sources));
+    if (adjacent.length) {
+        creep.memory.remoteMining = _.sample(adjacent);
+        return true;
+    }
 }

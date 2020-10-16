@@ -40,7 +40,7 @@ function operationPlanner(room, creep = undefined) {
     // Cache intel
     room.cacheRoomIntel(true);
     // Operation cooldown per room
-    if (Memory.roomCache[room.name] && !Memory.roomCache[room.name].manual && Memory.roomCache[room.name].lastOperation && Memory.roomCache[room.name].lastOperation + ATTACK_COOLDOWN > Game.time) {
+    if (Memory.roomCache[room.name] && !Memory.roomCache[room.name].manual && Memory.roomCache[room.name].lastOperation && Memory.roomCache[room.name].lastOperation + ATTACK_COOLDOWN > Game.time && !Memory.targetRooms[room.name].manual) {
         delete Memory.targetRooms[room.name];
         if (creep) return creep.memory.role = 'explorer';
     }
@@ -225,7 +225,8 @@ function forwardObserver(room) {
     }
     let towers = _.filter(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10 && c.isActive());
     let armedEnemies = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && c.owner.username === c.room.controller.owner.username);
-    let armedOwners = _.filter(_.union(_.pluck(room.hostileCreeps, 'owner.username'), [room.controller.owner.username]), (o) => !_.includes(FRIENDLIES, o) && o !== 'Invader');
+    let armedOwners = _.filter(_.pluck(room.hostileCreeps, 'owner.username'), (o) => !_.includes(FRIENDLIES, o) && o !== 'Invader');
+    if (room.controller && room.controller.owner) armedOwners = _.union(armedOwners, [room.controller.owner.username])
     if (armedOwners.length > 1) {
         delete Memory.targetRooms[room.name];
         log.a('Canceling operation in ' + roomLink(room.name) + ' as there is a 3rd party present.', 'HIGH COMMAND: ');

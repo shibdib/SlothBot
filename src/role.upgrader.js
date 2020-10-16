@@ -10,8 +10,10 @@
  */
 
 module.exports.role = function (creep) {
+    // Boost only if room is energy rich
+    if (creep.room.energyState && creep.tryToBoost(['upgrade'])) return;
     //INITIAL CHECKS
-    if (creep.tryToBoost(['upgrade']) || creep.wrongRoom()) return;
+    if (creep.wrongRoom()) return;
     // Handle yelling
     herald(creep);
     // Set and check container and link
@@ -25,6 +27,18 @@ module.exports.role = function (creep) {
         } else if (container && container.store[RESOURCE_ENERGY]) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) creep.memory.other.inPosition = undefined;
         }
+        if (Math.random() > 0.99) creep.memory.onContainer = undefined;
+        if (!creep.memory.onContainer) {
+            if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
+                if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
+                return creep.shibMove(container, {range: 0});
+            } else if (!creep.pos.getRangeTo(container)) {
+                creep.memory.onContainer = true;
+            } else if (container) {
+                if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
+                return creep.shibMove(container, {range: 1});
+            }
+        }
         creep.upgradeController(Game.rooms[creep.memory.overlord].controller)
     } else {
         if (creep.isFull) creep.memory.working = true;
@@ -33,16 +47,6 @@ module.exports.role = function (creep) {
         if (creep.memory.working) {
             switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
                 case OK:
-                    if (Math.random() > 0.99) creep.memory.onContainer = undefined;
-                    if (!creep.memory.onContainer) {
-                        if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
-                            if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
-                            return creep.shibMove(container, {range: 0});
-                        } else if (container) {
-                            if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
-                            return creep.shibMove(container, {range: 1});
-                        }
-                    }
                     if (container && container.store[RESOURCE_ENERGY]) {
                         creep.withdrawResource(container);
                     } else if (link && link.energy) {
@@ -94,7 +98,7 @@ function herald(creep) {
             sentence = sentence.concat(['This', 'Room', 'Is', 'In', 'Low', 'Power', 'Mode', 'For', ((creep.room.memory.lowPower + 10000) - Game.time), 'Ticks']);
         } else {
             if (Memory.LOANalliance) sentence = sentence.concat([Memory.LOANalliance, '-']);
-            if (Memory.roomCache[creep.room.name].responseNeeded) {
+            if (Memory.roomCache[creep.room.name].threatLevel) {
                 if (Memory.roomCache[creep.room.name].threatLevel === 1) sentence = sentence.concat(['FPCON', 'ALPHA']);
                 if (Memory.roomCache[creep.room.name].threatLevel === 2) sentence = sentence.concat(['FPCON', 'BRAVO']);
                 if (Memory.roomCache[creep.room.name].threatLevel === 3) sentence = sentence.concat(['FPCON', 'CHARLIE']);
@@ -108,9 +112,9 @@ function herald(creep) {
                 sentence = sentence.concat(['-', 'THREAT', 'LIST', '-']);
                 sentence = sentence.concat(Memory._badBoyArray);
             }
-            if (Memory._friendsArray && Memory._friendsArray.length > 1) {
+            if (Memory._friendArray && Memory._friendArray.length > 1) {
                 sentence = sentence.concat(['-', 'FRIENDS', 'LIST', '-']);
-                sentence = sentence.concat(Memory._friendsArray);
+                sentence = sentence.concat(FRIENDLIES);
             }
             if (Memory.ncpArray && Memory.ncpArray.length > 1) {
                 sentence = sentence.concat(['-', 'KNOWN', 'NCP', 'LIST', '-']);
@@ -122,10 +126,9 @@ function herald(creep) {
         if (!creep.memory.signed) {
             let signs = OWNED_ROOM_SIGNS;
             let addition = '';
-            if (SIGN_CLEANER) signs = [''];
             if (Game.shard.name === 'treecafe' && creep.room.controller.level >= 4) addition = ' @pvp@';
             switch (creep.signController(creep.room.controller, _.sample(signs) + addition)) {
-                default:
+                case OK:
                     creep.memory.signed = true;
                     break;
             }

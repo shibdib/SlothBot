@@ -31,6 +31,7 @@ module.exports.hiveMind = function () {
         try {
             minionController(currentCreep);
         } catch (e) {
+            log.e('Error with ' + currentCreep.name + ' in ' + roomLink(currentCreep.room.name));
             log.e(e.stack);
             Game.notify(e.stack);
         }
@@ -38,7 +39,7 @@ module.exports.hiveMind = function () {
     } while ((militaryCreepCPU < CPU_TASK_LIMITS['military'] || Game.cpu.bucket > 2000) && count < totalCreeps)
 
     // Hive/global function loop
-    let hiveFunctions = shuffle([diplomacy.diplomacyOverlord, highCommand.highCommand, labs.labManager, expansion.claimNewRoom, spawning.globalCreepQueue, power.powerControl]);
+    let hiveFunctions = shuffle([highCommand.highCommand, labs.labManager, expansion.claimNewRoom, spawning.globalCreepQueue, power.powerControl]);
     let functionCount = hiveFunctions.length;
     count = 0;
     let hiveTaskCurrentCPU = Game.cpu.getUsed();
@@ -51,6 +52,7 @@ module.exports.hiveMind = function () {
         try {
             currentFunction();
         } catch (e) {
+            log.e('Error with a hive function');
             log.e(e.stack);
             Game.notify(e.stack);
         }
@@ -113,13 +115,16 @@ function minionController(minion) {
     let memoryRole = minion.memory.role;
     let start = Game.cpu.getUsed();
     try {
-        let creepRole = require('role.' + memoryRole);
         // Report intel chance
         if (minion.room.name !== minion.memory.overlord && Math.random() > 0.5) {
             minion.room.invaderCheck();
             minion.room.cacheRoomIntel();
         }
-        creepRole.role(minion);
+        // Squad pair members dont act here
+        if (!minion.memory.squadLeader || minion.memory.squadLeader === minion.id || minion.memory.operation !== 'borderPatrol' || (minion.memory.squadLeader && !Game.getObjectById(minion.memory.squadLeader))) {
+            let creepRole = require('role.' + memoryRole);
+            creepRole.role(minion);
+        }
         let used = Game.cpu.getUsed() - start;
         let cpuUsageArray = CREEP_CPU_ARRAY[minion.name] || [];
         if (cpuUsageArray.length < 50) {

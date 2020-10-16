@@ -113,7 +113,7 @@ function safeModeManager(room) {
 }
 
 function earlyWarning(room) {
-    let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel >= 3 && Memory.roomCache[r].threatLevel > Memory.roomCache[room.name].threatLevel)[0];
+    let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel >= 4 && Memory.roomCache[r].threatLevel > Memory.roomCache[room.name].threatLevel)[0];
     if (adjacent) {
         Memory.roomCache[room.name].threatLevel = Memory.roomCache[adjacent].threatLevel;
         Memory.roomCache[room.name].tickDetected = Game.time;
@@ -151,17 +151,17 @@ function addThreat(room) {
     if (neutrals.length) {
         for (let user of neutrals) {
             if (user === MY_USERNAME || _.includes(FRIENDLIES, user)) continue;
-            let cache = Memory._badBoyList || {};
-            let threatRating;
+            let cache = Memory._userList || {};
+            let standing;
             if (cache[user]) {
-                threatRating = cache[user]['threatRating'] + 0.25;
-                if (threatRating >= 1500) threatRating = 1500;
+                standing = cache[user]['standing'] + 0.25;
+                if (standing >= 1500) standing = 1500;
             } else if (!cache[user]) {
-                threatRating = 25;
+                standing = 25;
                 log.e(roomLink(room.name) + ' has detected a neutral.' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
             }
             cache[user] = {
-                threatRating: threatRating,
+                standing: standing,
                 lastAction: Game.time,
             };
             Memory._badBoyList = cache;

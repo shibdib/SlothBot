@@ -13,11 +13,11 @@ let wallCheck;
 module.exports.role = function (creep) {
     creep.room.cacheRoomIntel();
     creep.say(_.sample(EXPLORER_SPAM), true);
-    let sectorScout = creep.memory.other.sectorScout;
+    if (creep.room.hostileCreeps.length && creep.shibKite()) return creep.memory.destination = undefined;
     // Set destination
     if (!creep.memory.destination) {
         let portal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL)[0];
-        if (!sectorScout && portal && !portal.destination.shard && !creep.memory.usedPortal && (creep.memory.other.portalJump || Math.random() > 0.5)) {
+        if (portal && !portal.destination.shard && !creep.memory.usedPortal && (creep.memory.other.portalJump || Math.random() > 0.5)) {
             if (!creep.memory.other.portalJump) {
                 creep.memory.other.portalJump = portal.destination.roomName;
                 log.a(creep.name + ' has found a portal in ' + roomLink(creep.room.name) + ' and is taking it.')
@@ -63,7 +63,7 @@ module.exports.role = function (creep) {
                         }
                     } else {
                         // If already cleaned continue
-                        if (!creep.room.controller.sign) return creep.memory.destinationReached = true;
+                        if (!creep.room.controller.sign || creep.room.controller.sign.username === MY_USERNAME) return creep.memory.destinationReached = true;
                         // Else clean signs
                         switch (creep.signController(creep.room.controller, '')) {
                             case ERR_NOT_IN_RANGE:

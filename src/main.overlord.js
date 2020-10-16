@@ -44,6 +44,7 @@ module.exports.overlordMind = function (room, CPULimit) {
         try {
             minionController(currentCreep);
         } catch (e) {
+            log.e('Error with ' + currentCreep.name + ' in ' + roomLink(currentCreep.room.name));
             log.e(e.stack);
             Game.notify(e.stack);
         }
@@ -52,7 +53,7 @@ module.exports.overlordMind = function (room, CPULimit) {
     let spareCpu = (CPULimit * 0.9) - roomCreepCPU;
 
     // Room function loop
-    let overlordFunctions = shuffle([state.setRoomState, links.linkControl, terminals.terminalControl, planner.buildRoom, observers.observerControl, factory.factoryControl, creepSpawning, lowPowerCheck, spawning.processBuildQueue]);
+    let overlordFunctions = shuffle([state.setRoomState, links.linkControl, terminals.terminalControl, planner.buildRoom, observers.observerControl, factory.factoryControl, creepSpawning, lowPowerCheck]);
     let functionCount = overlordFunctions.length;
     count = 0;
     let overlordTaskCurrentCPU = Game.cpu.getUsed();
@@ -65,6 +66,7 @@ module.exports.overlordMind = function (room, CPULimit) {
         try {
             currentFunction(room);
         } catch (e) {
+            log.e('Error with overlord function');
             log.e(e.stack);
             Game.notify(e.stack);
         }
@@ -112,6 +114,7 @@ module.exports.overlordMind = function (room, CPULimit) {
 
 let errorCount = {};
 function minionController(minion) {
+    if (minion.room.hostileCreeps.length && minion.shibKite()) return;
     // Set last managed tick
     minion.memory.lastManaged = Game.time;
     // If bucket gets real low kill remotes
@@ -235,6 +238,7 @@ function creepSpawning(room) {
             Game.notify(e.stack);
         }
     }
+    spawning.processBuildQueue(room);
 }
 
 function lowPowerCheck(room) {

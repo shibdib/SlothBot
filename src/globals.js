@@ -26,7 +26,7 @@ let globals = function () {
 
     global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
     global.STATUS_COOLDOWN = 180; // Seconds between console status reports
-    global.ROOM_ABANDON_THRESHOLD = 5000; // If bucket is consistently below this, abandon your lowest room
+    global.ROOM_ABANDON_THRESHOLD = 7250; // If bucket is consistently below this, abandon your lowest room
     global.SIGN_CLEANER = true; // Clean room signs away with explorers
 
     // Energy income breakdown
@@ -75,13 +75,13 @@ let globals = function () {
         hauler: 1,
         miscHauler: 3,
         // Remotes
-        remoteHarvester: 3,
-        remoteHauler: 4,
+        remoteHarvester: 4,
+        remoteHauler: 3,
         remoteUpgrader: 7,
-        roadBuilder: 4,
-        assistPioneer: 6,
+        roadBuilder: 6,
+        assistPioneer: 3,
         fuelTruck: 7,
-        reserver: 3,
+        reserver: 4,
         borderPatrol: 3,
         // Power
         Power: 6,
@@ -219,6 +219,7 @@ let globals = function () {
         , hospital: "\ud83c\udfe5"
         , courier: "\ud83d\ude90"
         , power: "\u26a1"
+        , medical: "\u2695"
     };
 
     global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p.type || p]);
@@ -422,7 +423,7 @@ let globals = function () {
                     for (let iL = (LOANdataKeys.length - 1); iL >= 0; iL--) {
                         if (LOANdata[LOANdataKeys[iL]].indexOf(myUsername) >= 0) {
                             //console.log("Player",myUsername,"found in alliance",LOANdataKeys[iL]);
-                            let disavowed = ['BADuser1', 'Zenga'];
+                            let disavowed = [];
                             global.LOANlist = LOANdata[LOANdataKeys[iL]];
                             global.LOANlist = global.LOANlist.filter(function (uname) {
                                 return disavowed.indexOf(uname) < 0;

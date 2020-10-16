@@ -18,15 +18,17 @@ module.exports.role = function role(creep) {
     // Set destination
     if (!creep.memory.destination) {
         if (creep.memory.overlord === creep.room.name) {
-            creep.memory.destination = _.sample(_.filter(JSON.parse(creep.memory.misc), (r) => Memory.roomCache[r] && !Memory.roomCache[r].threatLevel && !Memory.roomCache[r].obstructions && !Memory.roomCache[r].invaderCore && (!Memory.roomCache[r].sk || Game.rooms[creep.memory.overlord].level >= 7)));
+            creep.memory.destination = _.sample(_.filter(JSON.parse(creep.memory.misc), (r) => r && Memory.roomCache[r] && creep.room.routeSafe(r) && !Memory.roomCache[r].obstructions && !Memory.roomCache[r].invaderCore && (!Memory.roomCache[r].sk || Game.rooms[creep.memory.overlord].level >= 7)));
         } else {
-            return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
+            creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
         }
+        return;
     }
     // Remove bad desto
     if (Memory.roomCache[creep.memory.destination] && Memory.roomCache[creep.memory.destination].user && Memory.roomCache[creep.memory.destination].user !== MY_USERNAME) creep.memory.destination = undefined;
     // Handle movement
-    if (creep.memory.destination && creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
+    if (creep.pos.roomName !== creep.memory.destination && creep.room.routeSafe(creep.memory.destination)) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination, {range: 23}));
+    if (!creep.room.routeSafe(creep.memory.destination)) return creep.goToHub();
     // Checks
     if (!creep.store[RESOURCE_ENERGY]) {
         creep.memory.working = undefined;
@@ -40,7 +42,6 @@ module.exports.role = function role(creep) {
     }
     // Work
     if (creep.memory.working) {
-        creep.say(1)
         if (creep.memory.constructionSite || creep.constructionWork()) {
             if (!Game.getObjectById(creep.memory.constructionSite)) return creep.memory.constructionSite = undefined;
             creep.builderFunction();

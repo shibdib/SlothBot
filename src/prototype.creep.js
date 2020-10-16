@@ -194,13 +194,6 @@ Creep.prototype.constructionWork = function () {
         this.memory.targetHits = site.hitsMax * 0.65;
         return true;
     }
-    site = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5), 'hits');
-    if (site.id) {
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        this.memory.targetHits = site.hitsMax * 0.65;
-        return true;
-    }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_CONTAINER);
     if (site.length > 0) {
         site = _.max(site, 'progress');
@@ -212,6 +205,13 @@ Creep.prototype.constructionWork = function () {
     if (site.length > 0) {
         this.memory.constructionSite = site[0].id;
         this.memory.task = 'build';
+        return true;
+    }
+    site = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5), 'hits');
+    if (site.id) {
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'repair';
+        this.memory.targetHits = site.hitsMax * 0.65;
         return true;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_WALL);
@@ -244,8 +244,13 @@ Creep.prototype.constructionWork = function () {
 Creep.prototype.opportunisticFill = function () {
     if (!this.store[RESOURCE_ENERGY]) return false;
     // Fill nearby energy structures as you pass
-    let energyStructures = this.pos.findInRangeStructures(this.room.structures, 1, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER]);
-    if (energyStructures.length) this.transfer(_.sample(energyStructures), RESOURCE_ENERGY)
+    let energyStructures = _.filter(this.pos.findInRangeStructures(this.room.structures, 1, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER]), (s) => s.store.getFreeCapacity(RESOURCE_ENERGY));
+    if (energyStructures.length) {
+        this.transfer(_.sample(energyStructures), RESOURCE_ENERGY)
+        return true;
+    } else {
+        return false;
+    }
 }
 
 Creep.prototype.withdrawResource = function (destination = undefined, amount = undefined) {
@@ -253,7 +258,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
     if (amount && amount < 0) return this.memory.hauling = true;
     if (this.memory.energyDestination) {
         let energyItem = Game.getObjectById(this.memory.energyDestination);
-        if (!energyItem || energyItem.room.name !== this.room.name) return this.memory.energyDestination = undefined;
+        if (!energyItem) return this.memory.energyDestination = undefined;
         if (_.sum(energyItem.store)) {
             if (amount && energyItem.store[RESOURCE_ENERGY] < amount) amount = energyItem.store[RESOURCE_ENERGY];
             switch (this.withdraw(energyItem, RESOURCE_ENERGY, amount)) {
@@ -374,11 +379,16 @@ Creep.prototype.locateEnergy = function () {
         this.memory.findEnergyCountdown = undefined;
         return true;
     }
+    // Storage
+    if (this.room.storage && this.room.storage.store[RESOURCE_ENERGY] && this.memory.role !== 'filler') {
+        this.memory.energyDestination = this.room.storage.id;
+        return true;
+    }
     if (this.memory.role !== 'hauler' || (this.memory.findEnergyCountdown >= this.room.controller.level) || this.room.creeps.length <= 3) {
         // Container
         let container = this.pos.findClosestByRange(this.room.structures, {
             filter: (s) => s.structureType === STRUCTURE_CONTAINER && (this.room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= this.room.controller.level)
-                && s.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * this.store.getFreeCapacity()
+                && s.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)
         });
         if (container) {
             this.memory.energyDestination = container.id;
@@ -388,7 +398,7 @@ Creep.prototype.locateEnergy = function () {
         //Links
         let links = this.pos.findClosestByRange(this.room.structures, {
             filter: (s) => s.structureType === STRUCTURE_LINK && this.room.memory.controllerLink !== s.id
-                && s.energy >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * this.store.getFreeCapacity()
+                && s.energy >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)
         });
         if (links) {
             this.memory.energyDestination = links.id;
@@ -398,24 +408,19 @@ Creep.prototype.locateEnergy = function () {
         //Take straight from remoteHaulers/fuel truck at low level who have nowhere to drop
         if (this.room.controller && this.room.controller.level < 3) {
             let hauler = this.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination && c.memory.idle
-                && c.store[RESOURCE_ENERGY] >= (this.room.creeps.filter((c2) => c2.my && c2.memory.energyDestination === c.id && c2.id !== this.id).length + 1) * this.store.getFreeCapacity()));
+                && c.store[RESOURCE_ENERGY] >= (this.room.creeps.filter((c2) => c2.my && c2.memory.energyDestination === c.id && c2.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)));
             if (hauler) {
                 this.memory.energyDestination = hauler.id;
                 return true;
             }
         }
     }
-    // Storage
-    if (this.room.storage && this.room.storage.store[RESOURCE_ENERGY]) {
-        this.memory.energyDestination = this.room.storage.id;
-        return true;
-    }
     // Terminal
-    if (this.room.terminal && this.room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
+    if (this.room.terminal && this.room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER && this.memory.role !== 'filler') {
         this.memory.energyDestination = this.room.terminal.id;
         return true;
     }
-    if (!this.memory.findEnergyCountdown) this.memory.findEnergyCountdown = 1; else this.memory.findEnergyCountdown += 1;
+    if (!this.memory.findEnergyCountdown && this.memory.role === 'hauler') this.memory.findEnergyCountdown = 1; else this.memory.findEnergyCountdown += 1;
     return false;
 };
 
@@ -463,30 +468,24 @@ Creep.prototype.haulerDelivery = function () {
             return true;
         }
     }
+    // Fillers fill storage first
+    if (this.room.storage && this.memory.role === 'filler') {
+        this.memory.storageDestination = this.room.storage.id;
+        return true;
+    }
     // Spawns/Extensions
     let target = _.sample(_.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) &&
-        !_.includes(_.map(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination), 'memory.storageDestination'), s.id) && s.store.getFreeCapacity(RESOURCE_ENERGY)
+        !_.includes(_.map(_.filter(this.room.creeps, (c) => c.my && c.store[RESOURCE_ENERGY] && c.memory.storageDestination), 'memory.storageDestination'), s.id) && s.store.getFreeCapacity(RESOURCE_ENERGY)
         && (!this.room.memory.sourceExtension || !_.includes(JSON.parse(this.room.memory.sourceExtension), s.id))));
     if (target) {
         this.memory.storageDestination = target.id;
         return true;
     }
-    let terminal = this.room.terminal;
-    if (!terminal || !terminal.my) terminal = undefined;
-    let storage = this.room.storage;
-    if (!storage || !storage.my) storage = undefined;
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
     if (this.room.controller.level >= 6) {
-        if (!this.room.memory.controllerLink && controllerContainer && !controllerContainer.store[RESOURCE_ENERGY]) {
-            let remoteHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.overlord === this.memory.overlord && c.memory.role === 'remoteHauler')[0];
-            if (!remoteHaulers || Math.random() > 0.5) {
-                this.memory.storageDestination = controllerContainer.id;
-                return true;
-            }
-        }
         //Terminal low
-        if (terminal && this.memory.withdrawID !== terminal.id && terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER) {
-            this.memory.storageDestination = terminal.id;
+        if (this.room.terminal && this.memory.withdrawID !== this.room.terminal.id && this.room.terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER) {
+            this.memory.storageDestination = this.room.terminal.id;
             return true;
         }
         //Labs
@@ -518,18 +517,25 @@ Creep.prototype.haulerDelivery = function () {
         return true;
     }
     //Controller
-    if ((!storage || storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.25) && controllerContainer && (!controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5)) {
+    if ((!this.room.storage || this.room.storage.store[RESOURCE_ENERGY]) && controllerContainer && (!controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5)) {
         this.memory.storageDestination = controllerContainer.id;
         return true;
     }
     //Storage
-    if (storage && this.memory.withdrawID !== storage.id && _.sum(storage.store) < storage.store.getCapacity()) {
-        this.memory.storageDestination = storage.id;
+    if (this.room.storage && (this.memory.role !== 'hauler' || this.memory.withdrawID !== this.room.storage.id) && _.sum(this.room.storage.store) < this.room.storage.store.getCapacity()) {
+        this.memory.storageDestination = this.room.storage.id;
         return true;
     }
     // Top off container
-    if (controllerContainer && (!controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5)) {
+    if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > CONTAINER_CAPACITY * 0.5) {
         this.memory.storageDestination = controllerContainer.id;
+        return true;
+    }
+    // Spawns/Extensions
+    target = _.sample(_.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) &&
+        !_.includes(_.map(_.filter(this.room.creeps, (c) => c.my && c.store[RESOURCE_ENERGY] && c.memory.storageDestination), 'memory.storageDestination'), s.id) && s.store.getFreeCapacity(RESOURCE_ENERGY)));
+    if (target) {
+        this.memory.storageDestination = target.id;
         return true;
     }
 };
@@ -595,7 +601,7 @@ Creep.prototype.builderFunction = function () {
     }
 };
 
-Creep.prototype.goToHub = function (destination, idleTime = 10) {
+Creep.prototype.goToHub = function (destination = this.memory.overlord, idleTime = 10) {
     let hub = new RoomPosition(25, 25, destination);
     if (this.pos.getRangeTo(hub) <= 15) {
         this.idleFor(idleTime);
@@ -652,7 +658,7 @@ Creep.prototype.towTruck = function () {
                 return false;
             } else
                 // Clear trailer if destination reached or no longer exists
-            if (!towDestination || trailer.memory.towRange === trailer.pos.getRangeTo(towDestination)) {
+            if (!towDestination || trailer.memory.towRange >= trailer.pos.getRangeTo(towDestination)) {
                 this.memory.trailer = undefined;
                 trailer.memory._shibMove = undefined;
                 trailer.memory.towCreep = undefined;
@@ -1264,7 +1270,7 @@ Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, o
     if (!this.room.find(FIND_CONSTRUCTION_SITES).length || (creepCheck && this.room.hostileCreeps.length)) return false;
     // Friendly room
     if (this.room.controller && ((this.room.controller.owner && _.includes(FRIENDLIES, this.room.controller.owner.username)) || (this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation.username)) || this.room.controller.safeMode)) return false;
-    let constructionSite = this.pos.findClosestByRange(FIND_CONSTRUCTION_SITES, {filter: (s) => !s.pos.checkForRampart() && !s.pos.checkForWall() && !_.includes(FRIENDLIES, s.owner.username) && !s.my && (!onlyInBuild || s.progress)});
+    let constructionSite = this.pos.findClosestByRange(FIND_CONSTRUCTION_SITES, {filter: (s) => !s.pos.checkForImpassible() && !_.includes(FRIENDLIES, s.owner.username) && !s.my && (!onlyInBuild || s.progress)});
     if (constructionSite) {
         if (constructionSite.pos.x === this.pos.x && constructionSite.pos.y === this.pos.y) return this.moveRandom();
         this.shibMove(constructionSite, {range: 0, ignoreCreeps: false});
@@ -1390,18 +1396,95 @@ Creep.prototype.flee = function (target, range = 6) {
     return true;
 };
 
+Creep.prototype.pairFighting = function (partner, target = this.findClosestEnemy()) {
+    if (!target) return false;
+    let range = this.pos.getRangeTo(target);
+    let partnerRange = partner.pos.getRangeTo(target);
+    let lastRange = this.memory.lastRange || range;
+    this.memory.lastRange = range;
+    let allies = this.pos.findInRange(this.room.friendlyCreeps, 4, {filter: (c) => !c.my});
+    // Handle healing
+    if (this.hits < this.hitsMax || partner.hits < partner.hitsMax) {
+        if (this.hits === this.hitsMax && partner.hits < partner.hitsMax) this.heal(partner);
+        else if (partner.hits === partner.hitsMax && this.hits < this.hitsMax) partner.heal(this);
+        else if (this.hits < partner.hits) {
+            this.heal(this);
+            partner.heal(this);
+        } else if (partner.hits < this.hits) {
+            this.heal(partner);
+            partner.heal(partner);
+        }
+    }
+
+    if (range <= 3) {
+        let moveRange = 0;
+        if (target instanceof Creep) {
+            let rmaTargets = this.pos.findInRange(this.room.hostileCreeps, 2);
+            if ((rmaTargets.length > 1 || range === 1) && !allies.length) {
+                this.say('BIG PEW!', true);
+                partner.say('BIG PEW!', true);
+                this.rangedMassAttack();
+                partner.rangedMassAttack();
+            } else {
+                this.say('PEW!', true);
+                partner.say('PEW!', true);
+                this.rangedAttack(target);
+                partner.rangedAttack(target);
+            }
+            // Handle melee attackers
+            if (target.getActiveBodyparts(ATTACK)) {
+                moveRange = 3;
+                if (range <= 3 && this.abilityPower().defense < target.abilityPower().attack) {
+                    this.shibKite(3);
+                    if (partner.pos.positionAtDirection(this.memory.lastKite) && !partner.pos.positionAtDirection(this.memory.lastKite).checkForImpassible()) return partner.move(this.memory.lastKite); else return partner.shibMove(this, {range: 0});
+                }
+            }
+            this.shibMove(target, {range: moveRange, ignoreCreeps: false});
+            let partnerSpot = this.pos.getAdjacentPositionAtRange(target, range) || this.pos;
+            partner.shibMove(partnerSpot, {range: 0});
+        } else {
+            if (range <= 3) {
+                this.say('PEW!', true);
+                partner.say('PEW!', true);
+                this.rangedAttack(target);
+                partner.rangedAttack(target);
+            }
+            this.shibMove(target, {range: 3, ignoreCreeps: false});
+            if (range !== partnerRange) {
+                let partnerSpot = this.pos.getAdjacentPositionAtRange(target, range) || this.pos;
+                partner.shibMove(partnerSpot, {range: 0});
+            }
+        }
+        return true;
+    } else {
+        // If closing range do not advance
+        if (target instanceof Creep && target.getActiveBodyparts(ATTACK) && range === 4 && lastRange === 6) {
+            if (range !== partnerRange) {
+                let partnerSpot = this.pos.getAdjacentPositionAtRange(target, range) || this.pos;
+                partner.shibMove(partnerSpot, {range: 0});
+            }
+            return true;
+        }
+        // Otherwise move to attack
+        let moveRange = 2;
+        if (target instanceof Creep && !target.getActiveBodyparts(ATTACK)) moveRange = 3; else if (range >= lastRange) moveRange = 1;
+        this.shibMove(target, {range: moveRange, ignoreCreeps: false});
+        partner.shibMove(this, {range: 0});
+        return true;
+    }
+};
+
 Creep.prototype.fightRanged = function (target) {
     let range = this.pos.getRangeTo(target);
     let lastRange = this.memory.lastRange || range;
     this.memory.lastRange = range;
     let targets = this.pos.findInRange(this.room.hostileCreeps, 3);
     let allies = this.pos.findInRange(this.room.friendlyCreeps, 4, {filter: (c) => !c.my});
-    let partner = this.pos.findInRange(this.room.friendlyCreeps, 4, {filter: (c) => c.my && c.memory.role === 'longbow' && c.hits >= c.hitsMax * 0.5 && c.id !== this.id})[0];
     let moveTarget = target;
     let inRangeRampart = this.pos.findClosestByPath(this.room.structures, {filter: (r) => r.my && r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && !r.pos.checkForConstructionSites() && (!r.pos.checkForCreep() || (r.pos.x === this.pos.x && r.pos.y === this.pos.y)) && r.my && r.pos.getRangeTo(target) <= 3});
     if (inRangeRampart) moveTarget = inRangeRampart;
     if (range <= 3) {
-        let moveRange = 1;
+        let moveRange = 0;
         if (target instanceof Creep) {
             let rmaTargets = this.pos.findInRange(this.room.hostileCreeps, 2);
             if ((rmaTargets.length > 1 || range === 1) && !allies.length) {
@@ -1423,15 +1506,7 @@ Creep.prototype.fightRanged = function (target) {
             if (inRangeRampart) {
                 this.shibMove(inRangeRampart, {range: 0, ignoreCreeps: false});
             } else {
-                if (!partner) {
-                    this.shibMove(target, {range: moveRange, ignoreCreeps: false});
-                } else {
-                    if (this.getActiveBodyparts(HEAL) && this.pos.getRangeTo(partner) <= 1 && this.hits / this.hitsMax > partner.hits / partner.hitsMax) this.heal(partner);
-                    if (target && (target.getActiveBodyparts(ATTACK) || target.getActiveBodyparts(RANGED_ATTACK))) this.shibMove(partner, {
-                        range: 1,
-                        ignoreCreeps: false
-                    }); else this.shibMove(target, {range: 0, ignoreCreeps: false});
-                }
+                this.shibMove(target, {range: moveRange, ignoreCreeps: false});
             }
         } else {
             this.say('PEW!', true);
@@ -1463,33 +1538,34 @@ Creep.prototype.fightRanged = function (target) {
 };
 
 Creep.prototype.attackInRange = function () {
-    if (!this.getActiveBodyparts(RANGED_ATTACK)) return false;
+    // If no targets return
+    if (!this.room.hostileCreeps.length && !this.room.hostileStructures.length) return false;
+    // Check for targets in range
     let hostile;
-    let leader = Game.getObjectById(this.memory.leader);
-    if (leader) hostile = Game.getObjectById(leader.memory.target) || Game.getObjectById(leader.memory.scorchedTarget) || this.findClosestEnemy(false);
-    if (!hostile || hostile.pos.getRangeTo(this) > 3) hostile = this.findClosestEnemy(false);
-    let targets = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) && !_.includes(FRIENDLIES, c.owner.username)) || c.owner.username === 'Invader' || c.owner.username === 'Source Keeper'});
-    let allies = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my});
-    if (!hostile && targets.length) hostile = this.pos.findClosestByRange(targets);
-    let range = this.pos.getRangeTo(hostile);
-    if (range <= 3) {
+    if (this.getActiveBodyparts(RANGED_ATTACK)) hostile = this.pos.findInRange(this.room.hostileCreeps, 3)[0] || this.pos.findInRange(this.room.hostileStructures, 3)[0];
+    else if (this.getActiveBodyparts(ATTACK)) hostile = this.pos.findInRange(this.room.hostileCreeps, 1)[0] || this.pos.findInRange(this.room.hostileStructures, 1)[0];
+    else if (this.getActiveBodyparts(WORK)) hostile = this.pos.findInRange(this.room.hostileStructures, 1)[0];
+    if (!hostile) return false;
+    if (this.getActiveBodyparts(RANGED_ATTACK)) {
+        let leader = Game.getObjectById(this.memory.squadLeader);
+        if (leader && leader.memory.target && this.pos.getRangeTo(Game.getObjectById(leader.memory.target)) <= 3) hostile = Game.getObjectById(leader.memory.target);
+        let targets = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => (!_.includes(FRIENDLIES, c.owner.username)) || c.owner.username === 'Invader' || c.owner.username === 'Source Keeper'});
+        let allies = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my});
+        let range = this.pos.getRangeTo(hostile);
         if (targets.length > 1 && !allies.length) {
             this.rangedMassAttack();
         } else {
             if (range <= 1 && !allies.length) this.rangedMassAttack();
             if (range > 1) this.rangedAttack(hostile);
         }
-        return true;
+    } else if (this.getActiveBodyparts(ATTACK)) {
+        let leader = Game.getObjectById(this.memory.squadLeader);
+        if (leader && leader.memory.target && this.pos.isNearTo(Game.getObjectById(leader.memory.target))) hostile = Game.getObjectById(leader.memory.target);
+        this.attack(hostile);
     } else {
-        let injured = _.min(this.pos.findInRange(_.filter(this.room.creeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)), 3), 'hits');
-        if (injured && this.getActiveBodyparts(HEAL) && this.hits === this.hitsMax) {
-            this.rangedHeal(injured);
-        } else {
-            let opportunity = _.min(_.filter(this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'})), 'hits');
-            if (opportunity) this.rangedAttack(opportunity);
-            if (targets.length > 1 && !allies.length) this.rangedMassAttack();
-        }
+        this.dismantle(hostile);
     }
+    return true;
 };
 
 Creep.prototype.moveToStaging = function () {
@@ -1681,28 +1757,16 @@ PowerCreep.prototype.moveRandom = function (onPath) {
 };
 
 Creep.prototype.borderHump = function () {
-    let damagedDrainer = _.min(_.filter(this.room.creeps, (creep) => creep.memory && creep.memory.role === 'drainer' && creep.id !== this.id && this.pos.getRangeTo(creep) <= 5 && creep.hits < creep.hitsMax), 'hits');
+    let exit = this.pos.findClosestByRange(FIND_EXIT);
     if (this.hits < this.hitsMax * 0.9 && !this.getActiveBodyparts(TOUGH) && this.room.name === this.memory.destination) {
-        this.memory.noDrain = 0;
-        let exit = this.pos.findClosestByRange(FIND_EXIT);
+        if (this.pos.getRangeTo(exit) <= 4) Memory.roomCache[this.room.name].noDrain = undefined;
         return this.shibMove(exit, {ignoreCreeps: false, range: 0});
-    } else if (damagedDrainer.id) {
-        this.memory.noDrain = 0;
-        this.heal(damagedDrainer);
-        this.shibMove(damagedDrainer, {range: 1})
     } else if (this.hits === this.hitsMax && this.room.name === this.memory.destination) {
-        let noDrainCount = this.memory.noDrain || 0;
-        this.memory.noDrain = noDrainCount + 1;
+        let noDrainCount = Memory.roomCache[this.room.name].noDrain || 0;
+        Memory.roomCache[this.room.name].noDrain = noDrainCount + 1;
         // If room is not drainable mark as such and recycle
-        if (this.memory.noDrain >= 15) {
-            let cache = Memory.targetRooms || {};
-            cache[this.room.name] = {
-                tick: Game.time,
-                type: 'attack',
-                priority: 1,
-            };
-            Memory.targetRooms = cache;
-            this.room.cacheRoomIntel(true);
+        if (Memory.roomCache[this.room.name].noDrain >= 15) {
+            delete Memory.targetRooms[this.room.name]
             Memory.roomCache[this.room.name].noDrain = true;
             this.memory.recycle = true;
         }
@@ -1716,8 +1780,6 @@ Creep.prototype.borderHump = function () {
 Creep.prototype.fleeHome = function (force = false) {
     if (this.room.controller && this.room.controller.owner && this.room.controller.owner.username === MY_USERNAME && !this.memory.runCooldown) return false;
     if (this.hits < this.hitsMax) force = true;
-    this.room.cacheRoomIntel();
-    this.room.invaderCheck();
     if (!force && !this.memory.runCooldown && (this.hits === this.hitsMax || (!Memory.roomCache[this.room.name].lastCombat || Memory.roomCache[this.room.name].lastCombat + 10 < Game.time))) return false;
     if (!this.memory.ranFrom) this.memory.ranFrom = this.room.name;
     let cooldown = this.memory.runCooldown || Game.time + 50;
@@ -1756,7 +1818,7 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     }
     let alliedPower = 0;
     let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL)) && this.pos.getRangeTo(c) <= range);
-    if (inbound) armedFriendlies = _.union(armedFriendlies, _.filter(Game.creeps, (c) => c.my && c.room.name !== this.room.name && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL)) && c.memory.destination && c.memory.destination === this.room.name))
+    if (inbound) armedFriendlies = _.filter(Game.creeps, (c) => c.my && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL)) && ((c.memory.destination && c.memory.destination === this.room.name) || (c.memory.other && c.memory.other.responseTarget === this.room.name)));
     for (let i = 0; i < armedFriendlies.length; i++) {
         if (armedFriendlies[i].getActiveBodyparts(HEAL)) alliedPower += armedFriendlies[i].abilityPower().defense;
         alliedPower += armedFriendlies[i].abilityPower().attack;

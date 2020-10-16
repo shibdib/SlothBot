@@ -13,8 +13,8 @@ let minCut = require('util.minCut');
 let storedLayouts = {};
 let rampartSpots = {};
 
-let lastRun = 0;
 module.exports.buildRoom = function (room) {
+    let lastRun = room.memory.lastRoomBuildTick || 0;
     let cooldown = 50;
     if (room.level !== room.controller.level) cooldown = 5;
     if (lastRun + cooldown > Game.time) return;
@@ -45,7 +45,7 @@ module.exports.buildRoom = function (room) {
     } else if (room.memory.praiseRoom) {
         praiseRoom(room);
     }
-    lastRun = Game.time;
+    room.memory.lastRoomBuildTick = Game.time;
 };
 
 module.exports.hubCheck = function (room) {
@@ -131,8 +131,8 @@ function buildFromLayout(room) {
         mineralBuilder(room);
     }
     // Roads
-    if (!_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD && s.progress < s.progressTotal * 0.95).length) {
-        roadBuilder(room, layout);
+    if (room.controller.level >= 3 && _.size(room.constructionSites) < 5) {
+        if (!roadBuilder(room, layout)) room.memory.roadsBuilt = true;
     }
     // Cleanup
     let noRoad = _.filter(room.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) && s.pos.checkForRoad());
@@ -147,7 +147,7 @@ function buildFromLayout(room) {
 }
 
 function hubBuilder(room, hub, layout) {
-    if (room.controller.level >= 5 || room.memory.hubLink) {
+    if (room.controller.level >= 5 && ((room.memory.remoteSourceCount < 4 || room.controller.level >= 7) || room.memory.hubLink)) {
         if (room.memory.hubLinkLocation) {
             let pos = new RoomPosition(room.memory.hubLinkLocation.x, room.memory.hubLinkLocation.y, room.name);
             if (pos.checkForAllStructure()[0]) {
@@ -198,7 +198,7 @@ function controllerBuilder(room) {
         } else {
             room.memory.controllerContainer = controllerContainer.id;
         }
-    } else if (room.controller.level >= 7) {
+    } else if (room.controller.level >= 5 && ((room.memory.remoteSourceCount >= 4 || room.controller.level >= 7) || room.memory.controllerLink)) {
         let controllerLink = _.filter(room.controller.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!controllerLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
@@ -273,75 +273,72 @@ function labBuilder(room, labs, hub) {
 }
 
 function roadBuilder(room, layout) {
-    if (room.controller.level >= 3 && _.size(room.constructionSites) < 5) {
-        if (room.controller.level >= 4) {
-            let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);
-            for (let structure of filter) {
-                let pos = new RoomPosition(structure.x, structure.y, room.name);
-                if (!pos.checkForRoad() && !pos.checkForConstructionSites() && !pos.checkForImpassible() && !pos.checkForWall()) {
-                    if (pos.createConstructionSite(STRUCTURE_ROAD) === OK) {
-                        return;
-                    }
+    if (room.controller.level >= 4) {
+        let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);
+        for (let structure of filter) {
+            let pos = new RoomPosition(structure.x, structure.y, room.name);
+            if (!pos.checkForRoad() && !pos.checkForConstructionSites() && !pos.checkForImpassible() && !pos.checkForWall()) {
+                if (pos.createConstructionSite(STRUCTURE_ROAD) === OK) {
+                    return true;
                 }
-            }
-        }
-        if (!room.constructionSites.length) {
-            let spawn = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
-            // Source Roads
-            for (let source of room.sources) {
-                let harvester = _.filter(room.creeps, (s) => s.my && s.memory.role === 'stationaryHarvester' && s.memory.containerID && s.memory.source === source.id)[0];
-                if (harvester) {
-                    let container = Game.getObjectById(harvester.memory.containerID);
-                    if (container && buildRoadFromTo(room, spawn, container)) {
-                        return;
-                    }
-                }
-            }
-            // Controller Road
-            let container = Game.getObjectById(room.memory.controllerContainer);
-            if (container && buildRoadFromTo(room, spawn, container)) {
-                return;
-            }
-            // Neighboring Roads
-            let neighboring = Game.map.describeExits(spawn.pos.roomName);
-            if (neighboring) {
-                if (neighboring['1']) {
-                    let exits = spawn.room.find(FIND_EXIT_TOP);
-                    let middle = _.round(exits.length / 2);
-                    if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
-                        return;
-                    }
-                }
-                if (neighboring['3']) {
-                    let exits = spawn.room.find(FIND_EXIT_RIGHT);
-                    let middle = _.round(exits.length / 2);
-                    if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
-                        return;
-                    }
-                }
-                if (neighboring['5']) {
-                    let exits = spawn.room.find(FIND_EXIT_BOTTOM);
-                    let middle = _.round(exits.length / 2);
-                    if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
-                        return;
-                    }
-                }
-                if (neighboring['7']) {
-                    let exits = spawn.room.find(FIND_EXIT_LEFT);
-                    let middle = _.round(exits.length / 2);
-                    if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
-                        return;
-                    }
-                }
-            }
-            // Mineral Roads/Harvester
-            if (room.controller.level >= 6) {
-                let container = Game.getObjectById(room.memory.extractorContainer);
-                let spawn = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
-                buildRoadFromTo(room, spawn, container);
             }
         }
     }
+    let spawn = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
+    // Source Roads
+    for (let source of room.sources) {
+        let harvester = _.filter(room.creeps, (s) => s.my && s.memory.role === 'stationaryHarvester' && s.memory.containerID && s.memory.source === source.id)[0];
+        if (harvester) {
+            let container = Game.getObjectById(harvester.memory.containerID);
+            if (container && buildRoadFromTo(room, spawn, container)) {
+                return true;
+            }
+        }
+    }
+    // Controller Road
+    let container = Game.getObjectById(room.memory.controllerContainer);
+    if (container && buildRoadFromTo(room, spawn, container)) {
+        return true;
+    }
+    // Neighboring Roads
+    let neighboring = Game.map.describeExits(spawn.pos.roomName);
+    if (neighboring) {
+        if (neighboring['1']) {
+            let exits = spawn.room.find(FIND_EXIT_TOP);
+            let middle = _.round(exits.length / 2);
+            if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
+                return true;
+            }
+        }
+        if (neighboring['3']) {
+            let exits = spawn.room.find(FIND_EXIT_RIGHT);
+            let middle = _.round(exits.length / 2);
+            if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
+                return true;
+            }
+        }
+        if (neighboring['5']) {
+            let exits = spawn.room.find(FIND_EXIT_BOTTOM);
+            let middle = _.round(exits.length / 2);
+            if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
+                return true;
+            }
+        }
+        if (neighboring['7']) {
+            let exits = spawn.room.find(FIND_EXIT_LEFT);
+            let middle = _.round(exits.length / 2);
+            if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
+                return true;
+            }
+        }
+    }
+    // Mineral Roads/Harvester
+    if (room.controller.level >= 6) {
+        let container = Game.getObjectById(room.memory.extractorContainer);
+        let spawn = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
+        if (container && spawn && buildRoadFromTo(room, spawn, container)) return true;
+    }
+    return false;
 }
 
 function rampartBuilder(room, layout) {
@@ -792,16 +789,13 @@ function buildRoad(position, room) {
     if (room.constructionSites.length >= 10 || position.checkForImpassible(true) || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length > 2) {
         return false;
     } else if (position.checkForRoad()) {
-        room.memory.roadsBuilt = true;
         return false;
     } else if (room.controller.level < 5 && position.checkForSwamp()) {
         if (position.createConstructionSite(STRUCTURE_ROAD) === OK) {
-            room.memory.roadsBuilt = undefined;
             return true;
         }
     } else {
         if (position.createConstructionSite(STRUCTURE_ROAD) === OK) {
-            room.memory.roadsBuilt = undefined;
             return true;
         }
     }
