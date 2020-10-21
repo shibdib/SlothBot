@@ -7,11 +7,13 @@
 
 module.exports.claimNewRoom = function () {
     let lastRun = Memory.lastExpansionAttemptTick || 0;
+    Memory.lastExpansionAttemptTick = Game.time;
     let limit = Game.gcl.level;
+    // Special novice/respawn zone cases
+    if (Game.map.getRoomStatus(Memory.myRooms[0]).status === 'novice') limit = 3;
     if (Memory.cpuTracking.claimLimiter) limit -= Memory.cpuTracking.claimLimiter;
     if (lastRun + 750 > Game.time || limit <= Memory.myRooms.length || Memory.spawnIn + 7500 > Game.time ||
         _.filter(Memory.myRooms, (r) => Game.rooms[r].memory["buildersNeeded"]).length > 2 || _.filter(Memory.auxiliaryTargets, (t) => t && (t.type === 'claimScout' || t.type === 'claim'))[0]) return;
-    Memory.lastExpansionAttemptTick = Game.time;
     let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 3000 < Game.time) && r.hubCheck && r.closestRange <= 12 &&
         Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status && !r.obstructions);
     if (worthyRooms.length > 0) {
@@ -25,7 +27,7 @@ module.exports.claimNewRoom = function () {
                 let avoidRooms = _.filter(Memory.roomCache, (r) => r.level);
                 for (let avoidKey in avoidRooms) {
                     let avoidName = avoidRooms[avoidKey].name;
-                    let distance = Game.map.getRoomLinearDistance(name, avoidName);
+                    let distance = Game.map.findRoute(name, avoidName).length;
                     if (distance <= 1) continue worthy; else if (distance < 3) baseScore -= 150; else if (baseScore < 6) baseScore += 100; else baseScore -= 350;
                 }
                 // Remote access
@@ -51,8 +53,8 @@ module.exports.claimNewRoom = function () {
                 // Source range
                 baseScore -= Memory.roomCache[name].sourceRange;
                 // If it's a new mineral add to the score
-                if (worthyRooms[key].mineral && !_.includes(Memory.ownedMinerals, worthyRooms[key].mineral)) baseScore += 1000;
-                worthyRooms[key].claimValue = baseScore;
+                if (worthyRooms[key].mineral && !_.includes(Memory.ownedMinerals, worthyRooms[key].mineral)) baseScore += 1500;
+                worthyRooms[key]["claimValue"] = baseScore;
                 possibles[key] = worthyRooms[key];
             }
         let claimTarget = _.max(possibles, 'claimValue').name;
@@ -61,11 +63,11 @@ module.exports.claimNewRoom = function () {
             let tick = Game.time;
             cache[claimTarget] = {
                 tick: tick,
-                type: 'claimScout',
+                type: 'claim',
                 priority: 1
             };
             Memory.auxiliaryTargets = cache;
-            log.a('Claim Scout Mission For ' + claimTarget + ' Initiated.', 'EXPANSION CONTROL: ');
+            log.a('Claim Mission For ' + roomLink(claimTarget) + ' Initiated.', 'EXPANSION CONTROL: ');
         }
     }
 };

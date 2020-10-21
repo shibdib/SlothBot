@@ -96,7 +96,7 @@ Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
         if (!this._energyState) {
             this._energyState = 0;
-            if (this.energy >= ENERGY_AMOUNT * 2.5) {
+            if (this.energy >= ENERGY_AMOUNT * 2) {
                 this._energyState = 2;
             } else if (this.energy >= ENERGY_AMOUNT * 0.9) {
                 this._energyState = 1;
@@ -111,8 +111,7 @@ Object.defineProperty(Room.prototype, 'energyState', {
 Object.defineProperty(Room.prototype, 'hostileStructures', {
     get: function () {
         if (!this._hostileStructures) {
-            this._hostileStructures = _.filter(this.structures, (s) => !s.my && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER &&
-                s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_KEEPER_LAIR && (s.owner || s.structureType !== STRUCTURE_TERMINAL) && (!s.owner || !_.includes(FRIENDLIES, s.owner)));
+            this._hostileStructures = _.filter(this.structures, (s) => !s.my && s.owner && s.structureType !== STRUCTURE_KEEPER_LAIR && !_.includes(FRIENDLIES, s.owner));
         }
         return this._hostileStructures;
     },
@@ -411,7 +410,8 @@ Room.prototype.invaderCheck = function () {
         let waitOut = 15;
         if (Memory.roomCache[this.name].threatLevel > 3) waitOut = 50;
         // Clear if no waitOut or if not one of your rooms
-        let reduction = _.ceil((Game.time - previousCheck) / 5);
+        let friendlyArmed = _.filter(this.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)).length || 1;
+        let reduction = _.ceil((Game.time - previousCheck) / 5) * friendlyArmed;
         if (Memory.roomCache[this.name].tickDetected + waitOut < Game.time || Memory.roomCache[this.name].user !== MY_USERNAME) {
             Memory.roomCache[this.name].threatLevel = undefined;
             let roomHeat = (Memory.roomCache[this.name].roomHeat - reduction) || 0;

@@ -83,7 +83,7 @@ function harvest(creep) {
     let spawn = _.filter(creep.room.structures, (c) => c.my && c.structureType === STRUCTURE_SPAWN)[0];
     let drone = _.filter(creep.room.creeps, (c) => c.my && c.memory && c.memory.role === 'drone' && c.id !== creep.id)[0];
     let harvester = _.filter(creep.room.creeps, (c) => c.my && c.memory && c.memory.role === 'drone' && c.memory.task === 'harvest')[0];
-    if ((!spawn && !harvester && drone && !creep.locateEnergy()) || creep.memory.task === 'harvest') {
+    if ((creep.room.controller.owner && !spawn && !harvester && drone && !creep.locateEnergy()) || creep.memory.task === 'harvest') {
         if (!drone) return creep.memory.task = undefined;
         let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
         if (source) {

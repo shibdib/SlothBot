@@ -16,6 +16,10 @@ module.exports.role = function (creep) {
     if (creep.memory.operation === 'claimClear') return creep.claimClear();
     //Initial move
     if (!creep.memory.destinationReached) {
+        if (Game.gcl.level <= Memory.myRooms.length) {
+            delete Memory.auxiliaryTargets[creep.room.name];
+            return creep.memory.recycle = true;
+        }
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 17});
         if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     } else {

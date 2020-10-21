@@ -30,12 +30,11 @@ StructureObserver.prototype.operationPlanner = function (room) {
 function operationPlanner(room, creep = undefined) {
     // If room is no longer a target
     if (!Memory.targetRooms[room.name] && creep) return creep.memory.role = 'explorer';
-    // Handle claim scout missions
-    if (Memory.targetRooms[room.name] && Memory.targetRooms[room.name].type === 'claimScout') return claimScout(room);
     // Handle forward observer
     if (Memory.targetRooms[room.name] && Memory.targetRooms[room.name].type !== 'attack' && Memory.targetRooms[room.name].type !== 'scout') {
-        if (creep) creep.moveToHostileConstructionSites(false, true);
-        return forwardObserver(room);
+        forwardObserver(room);
+        if (creep && !creep.moveToHostileConstructionSites(false, true)) creep.idleFor(15);
+        return;
     }
     // Cache intel
     room.cacheRoomIntel(true);
@@ -124,29 +123,6 @@ function operationPlanner(room, creep = undefined) {
         delete Memory.targetRooms[room.name];
     }
     if (creep) return creep.memory.role = 'explorer';
-}
-
-function claimScout(room) {
-    let roomPlanner = require('module.roomPlanner');
-    room.cacheRoomIntel(true);
-    delete Memory.targetRooms[room.name];
-    delete Memory.auxiliaryTargets[room.name];
-    // Make sure it's not super far away
-    let range = room.findClosestOwnedRoom(true);
-    // Determine if room is still suitable
-    if (room.controller && !room.controller.owner && !room.controller.reservation && !room.hostileCreeps.length && room.controller.pos.countOpenTerrainAround() && roomPlanner.hubCheck(room)) {
-        Memory.auxiliaryTargets[room.name] = {
-            tick: Game.time,
-            type: 'claim'
-        };
-        room.memory = undefined;
-        log.i(room.name + ' - Has been marked for claiming');
-        Game.notify(room.name + ' - Has been marked for claiming');
-    } else {
-        let noClaim = Memory.noClaim || [];
-        noClaim.push(room.name);
-        Memory.noClaim = noClaim;
-    }
 }
 
 function nukeTarget(room) {

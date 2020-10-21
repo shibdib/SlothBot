@@ -355,10 +355,10 @@ function rampartBuilder(room, layout) {
         // structures
         for (let structure of layout) {
             rect_array.push({
-                x1: structure.x - 1,
-                y1: structure.y - 1,
-                x2: structure.x + 1,
-                y2: structure.y + 1
+                x1: structure.x - 3,
+                y1: structure.y - 3,
+                x2: structure.x + 3,
+                y2: structure.y + 3
             });
         }
         // Sources
@@ -378,11 +378,18 @@ function rampartBuilder(room, layout) {
             y2: room.controller.pos.y + 1
         });
         let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
+        // Clean up boundaries
+        for (let key in rect_array) {
+            if (rect_array[key].x1 < bounds.x1) rect_array[key].x1 = 2;
+            if (rect_array[key].y1 < bounds.y1) rect_array[key].y1 = 2;
+            if (rect_array[key].x2 > bounds.x2) rect_array[key].x2 = 47;
+            if (rect_array[key].y2 > bounds.y2) rect_array[key].y2 = 47;
+        }
         try {
             rampartSpots[room.name] = JSON.stringify(minCut.GetCutTiles(room.name, rect_array, bounds));
         } catch (e) {
             log.e('MinCut Error in room ' + room.name);
-            log.e(e);
+            log.e(e.stack);
         }
     } else if (rampartSpots[room.name]) {
         let buildPositions = JSON.parse(rampartSpots[room.name]);

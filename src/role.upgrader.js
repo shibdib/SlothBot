@@ -16,6 +16,8 @@ module.exports.role = function (creep) {
     if (creep.wrongRoom()) return;
     // Handle yelling
     herald(creep);
+    // If you upgrade, just return
+    if (creep.store[RESOURCE_ENERGY] && creep.upgradeController(creep.room.controller) === OK && Math.random() > 0.05) return;
     // Set and check container and link
     let container = Game.getObjectById(creep.room.memory.controllerContainer);
     if (!container) creep.room.memory.controllerContainer = undefined;
@@ -70,10 +72,10 @@ module.exports.role = function (creep) {
             if (container && !creep.memory.onContainer) {
                 if ((!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
                     if (!container.pos.getRangeTo(creep)) creep.memory.onContainer = true;
-                    return creep.shibMove(container, {range: 0});
+                    creep.shibMove(container, {range: 0});
                 } else {
                     if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
-                    return creep.shibMove(container, {range: 1});
+                    creep.shibMove(container, {range: 1});
                 }
             } else if (creep.memory.onContainer) {
                 if (link && link.energy) {
@@ -82,6 +84,7 @@ module.exports.role = function (creep) {
                     creep.withdrawResource(container);
                 }
             }
+            creep.upgradeController(creep.room.controller);
         } else if (container && container.store[RESOURCE_ENERGY]) {
             creep.withdrawResource(container);
         } else if (!creep.locateEnergy(25)) {

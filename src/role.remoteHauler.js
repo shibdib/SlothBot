@@ -63,7 +63,9 @@ module.exports.role = function (creep) {
             if (creep.towTruck()) return;
             // Handle Finding A Harvester In Need, if none exists go home and idle
             let remoteHarvester = _.filter(Game.creeps, (harv) => _.includes(JSON.parse(creep.memory.misc), harv.room.name) && creep.room.routeSafe(harv.room.name) && harv.memory.energyAmount &&
-                _.sum(_.filter(Game.creeps, (c) => c.memory.assignment === harv.memory.needHauler), '.store.getFreeCapacity(RESOURCE_ENERGY)') + creep.store.getFreeCapacity(RESOURCE_ENERGY) < harv.memory.energyAmount);
+                (_.sum(_.filter(Game.creeps, (c) => c.memory.assignment === harv.memory.needHauler), function (h) {
+                    return h.store.getFreeCapacity()
+                }) + creep.store.getFreeCapacity()) <= harv.memory.energyAmount);
             if (remoteHarvester.length) {
                 creep.memory.assignment = _.min(remoteHarvester, function (t) {
                     if (!Game.getObjectById(t.memory.source)) return;
@@ -75,7 +77,7 @@ module.exports.role = function (creep) {
         }
     }
 };
-
+_.sum(_.filter(Game.creeps, (c) => c.memory.assignment === '5f87f20bb68549004bf9df10'), '.store.getFreeCapacity(RESOURCE_ENERGY)')
 // Remote Hauler Drop Off
 function dropOff(creep) {
     buildLinks(creep);
@@ -109,7 +111,7 @@ function dropOff(creep) {
     }
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     //Controller
-    if (controllerContainer && (!creep.room.storage || creep.room.energyState || !controllerContainer.store[RESOURCE_ENERGY]) && (!controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5)) {
+    if (controllerContainer && (!creep.room.storage || creep.room.energyState || !controllerContainer.store[RESOURCE_ENERGY]) && (!creep.room.storage || !controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5)) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     } else if (creep.room.storage && creep.room.storage.store.getFreeCapacity()) {
@@ -119,8 +121,6 @@ function dropOff(creep) {
     // Else fill spawns/extensions
     if (creep.haulerDelivery()) {
         return true;
-    } else if (!creep.room.storage) {
-        creep.memory.storageDestination = 'con';
     } else creep.idleFor(5);
 }
 

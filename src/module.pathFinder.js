@@ -360,7 +360,7 @@ function findRoute(origin, destination, options = {}) {
 
 //FUNCTIONS
 function creepBumping(creep, pathInfo, options) {
-    let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory.other || !c.memory.other.noBump || pathInfo.pathPosTime >= STATE_STUCK * 3))[0];
+    let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y)[0];
     if (bumpCreep && Math.random() > 0.5) {
         if (!creep.memory.trailer && creep.pos.isNearTo(Game.getObjectById(creep.memory.trailer))) {
             if (bumpCreep.getActiveBodyparts(MOVE)) {
