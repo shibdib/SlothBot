@@ -121,7 +121,7 @@ function minionController(minion) {
             minion.room.cacheRoomIntel();
         }
         // Squad pair members dont act here
-        if (!minion.memory.squadLeader || minion.memory.squadLeader === minion.id || minion.memory.operation !== 'borderPatrol' || (minion.memory.squadLeader && !Game.getObjectById(minion.memory.squadLeader))) {
+        if (!minion.memory.squadLeader || minion.memory.squadLeader === minion.id || (minion.memory.squadLeader && !Game.getObjectById(minion.memory.squadLeader))) {
             let creepRole = require('role.' + memoryRole);
             creepRole.role(minion);
         }
@@ -133,7 +133,7 @@ function minionController(minion) {
             cpuUsageArray.shift();
             cpuUsageArray.push(used);
             if (average(cpuUsageArray) > 7.5 && minion.memory.role !== 'claimer') {
-                minion.suicide();
+                //minion.suicide();
                 if (minion.memory.military && minion.memory.destination && (Memory.targetRooms[minion.memory.destination] || Memory.auxiliaryTargets[minion.memory.destination])) {
                     delete Memory.targetRooms[minion.memory.destination];
                     delete Memory.auxiliaryTargets[minion.memory.destination];

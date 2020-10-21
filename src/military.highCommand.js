@@ -642,9 +642,8 @@ function getInRangeResponsePower(roomName, range) {
     return inRangePower;
 }
 
-module.exports.operationSustainability = function (room, operationRoom = undefined) {
-    let operation = Memory.targetRooms[room.name];
-    if (operationRoom) operation = Memory.targetRooms[operationRoom];
+module.exports.operationSustainability = function (room, operationRoom = room.name) {
+    let operation = Memory.targetRooms[operationRoom];
     // Switch to pending if safemode
     if (room.controller && room.controller.safeMode) {
         let cache = Memory.targetRooms || {};

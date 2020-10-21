@@ -85,9 +85,14 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             break;
         case 'stationaryHarvester':
             deficitExemption = true;
-            work = _.floor((energyAmount - 50) / BODYPART_COST[WORK]) || 1;
-            // 6 Is the cap
-            if (work > 7) work = 7;
+            if (room.energyState) {
+                work = _.floor((energyAmount - 50) / (BODYPART_COST[WORK] + (BODYPART_COST[MOVE] * 0.5))) || 1;
+                if (work > 7) work = 7;
+                move = work * 0.5;
+            } else {
+                work = _.floor((energyAmount - 50) / BODYPART_COST[WORK]) || 1;
+                if (work > 7) work = 7;
+            }
             carry = 1;
             break;
         case 'mineralHarvester':
@@ -127,13 +132,13 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             break;
         case 'defender':
             deficitExemption = true;
-            if (Math.random() > 0.49 || level < 5) attack = _.floor((energyAmount * 0.75) / BODYPART_COST[ATTACK]) || 1; else rangedAttack = _.floor((energyAmount * 0.75) / BODYPART_COST[RANGED_ATTACK]) || 1;
-            if (attack > 45) attack = 45; else if (rangedAttack > 45) rangedAttack = 45;
-            move = _.floor((energyAmount * 0.2) / BODYPART_COST[MOVE]) || 1;
-            if (move > 5) move = 5;
             if (getLevel(room) < 3) {
                 attack = 1;
                 move = 1;
+            } else {
+                if (Math.random() > 0.49 || level < 5) attack = _.floor(energyAmount / (BODYPART_COST[ATTACK] + (BODYPART_COST[MOVE] * 0.5))) || 1; else rangedAttack = _.floor(energyAmount / (BODYPART_COST[RANGED_ATTACK] + (BODYPART_COST[MOVE] * 0.5))) || 1;
+                if (attack > 32) attack = 32; else if (rangedAttack > 32) rangedAttack = 32;
+                if (attack) move = attack * 0.5; else if (rangedAttack) move = rangedAttack * 0.5;
             }
             break;
         case 'longbow':

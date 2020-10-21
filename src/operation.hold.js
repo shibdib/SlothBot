@@ -11,65 +11,56 @@ Creep.prototype.holdRoom = function () {
     let sentence = ['Please', 'Abandon'];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
-    // If military action required do that
-    this.attackInRange();
-    if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
     // Set heal buddy
     if (!this.memory.squadLeader || !Game.getObjectById(this.memory.squadLeader)) {
-        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.squadLeader === c.id && c.memory.operation === 'hold' && !c.memory.buddyAssigned)[0];
+        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.squadLeader === c.id && c.memory.operation === 'hold' && c.memory.destination === this.memory.destination && !c.memory.buddyAssigned)[0];
         if (!squadLeader && this.memory.role === 'longbow') this.memory.squadLeader = this.id; else if (squadLeader) this.memory.squadLeader = squadLeader.id;
     }
     if (this.memory.squadLeader === this.id) {
-        // Clear kite if needed
-        this.memory.squadKite = undefined;
-        // Handle buddy checks
-        let buddy = _.filter(Game.creeps, (c) => c.my && c.memory.squadLeader === this.id && c.id !== this.id)[0];
-        if (buddy) {
-            this.memory.buddyAssigned = buddy.id;
-            if (buddy.room.name === this.room.name && !buddy.pos.isNearTo(this)) return this.shibMove(buddy);
-            if (this.hits === this.hitsMax && buddy.hits < buddy.hitsMax) this.heal(buddy);
+        hud(this);
+        // Sustainability
+        if (this.room.name === this.memory.destination) {
+            levelManager(this);
+            highCommand.operationSustainability(this.room);
+        }
+        // Attack in range
+        this.attackInRange();
+        // Handle healing
+        this.healInRange();
+        // Handle partner checks
+        let partner = Game.getObjectById(this.memory.buddyAssigned) || _.filter(Game.creeps, (c) => c.my && c.memory.squadLeader === this.id && c.id !== this.id)[0];
+        if (partner) {
+            this.memory.buddyAssigned = partner.id;
+            // Attack in range
+            partner.attackInRange();
+            // Handle healing
+            partner.healInRange();
+            // If in same room but apart move to each other
+            if (partner.room.name === this.room.name && !partner.pos.isNearTo(this)) {
+                partner.shibMove(this, {range: 0});
+                if (this.canIWin(10)) return this.handleMilitaryCreep(); else return this.shibKite();
+            } // Handle separate rooms
+            else if (partner.room.name !== this.room.name) {
+                if (this.canIWin(10)) this.handleMilitaryCreep(); else this.shibKite();
+                if (partner.canIWin(5)) partner.shibMove(this); else partner.shibKite();
+            } // Handle next to each other
+            else if (partner.pos.isNearTo(this)) {
+                partner.shibMove(this, {range: 0});
+                // Move to response room if needed
+                if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 22});
+                // Handle flee
+                if (this.memory.runCooldown || (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK))) {
+                    this.fleeHome(true);
+                    return partner.shibMove(this, {range: 0});
+                }
+                // Handle winnable fights
+                if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(10) && (this.pairFighting(partner) || this.scorchedEarth())) {
+                    return;
+                }
+            }
         } else {
             this.memory.buddyAssigned = undefined;
-        }
-        // Handle target room
-        if (this.room.name === this.memory.destination && Memory.targetRooms[this.memory.destination]) {
-            levelManager(this);
-            highCommand.generateThreat(this);
-            highCommand.operationSustainability(this.room);
-            if (this.room.controller.owner) Memory.targetRooms[this.room.name].claimAttacker = !this.room.controller.upgradeBlocked && (!this.room.controller.ticksToDowngrade || this.room.controller.level > 1 || this.room.controller.ticksToDowngrade > this.ticksToLive || this.room.controller.reservation) && this.room.controller.pos.countOpenTerrainAround() > 0;
-            Memory.targetRooms[this.room.name].cleaner = _.filter(this.room.structures, (c) => c.structureType !== STRUCTURE_CONTROLLER).length > 0;
-        } else if (!Memory.targetRooms[this.memory.destination]) {
-            return this.memory.recycle = true;
-        }
-        if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
-        if (!this.canIWin(6)) return this.shibKite(7);
-        if (!this.handleMilitaryCreep(false, false, true)) this.scorchedEarth();
-    } else {
-        // Set leader and move to them
-        let leader = Game.getObjectById(this.memory.squadLeader);
-        if (!leader) {
-            this.goToHub();
-            return this.memory.squadLeader = undefined;
-        }
-        // Clean leader
-        if (leader.memory.squadLeader !== leader.id) return this.memory.squadLeader = leader.memory.squadLeader;
-        if (leader.memory.idle && this.pos.isNearTo(leader)) return this.memory.idle = leader.memory.idle;
-        if (this.room.name === leader.room.name) {
-            let moveRange = 0;
-            let ignore = true;
-            if (this.pos.x === 0 || this.pos.x === 49 || this.pos.y === 0 || this.pos.y === 49 || this.pos.getRangeTo(leader) > 2) {
-                moveRange = 1;
-                ignore = false;
-            }
-            this.shibMove(leader, {range: moveRange, ignoreCreeps: ignore, ignoreRoads: true});
-            // Kite with leader
-            if (this.pos.isNearTo(leader)) {
-                if (this.hits === this.hitsMax && leader.hits < leader.hitsMax) this.heal(leader);
-                if (leader.memory.squadKite) this.move(leader.memory.squadKite);
-            }
-        } else {
-            if (!this.canIWin(5)) return this.shibKite();
-            this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
+            if (this.canIWin(50) && this.handleMilitaryCreep()) return; else return this.goToHub();
         }
     }
 };
@@ -105,5 +96,27 @@ function levelManager(creep) {
         Memory.targetRooms[creep.memory.destination].level = 2;
     } else {
         Memory.targetRooms[creep.memory.destination].level = 1;
+    }
+}
+
+function hud(creep) {
+    try {
+        let response = creep.memory.destination || creep.room.name;
+        Game.map.visual.text('HOLD', new RoomPosition(17, 3, response), {
+            color: '#d68000',
+            fontSize: 3,
+            align: 'left'
+        });
+        if (response !== creep.room.name && creep.memory._shibMove && creep.memory._shibMove.route) {
+            let route = [];
+            for (let routeRoom of creep.memory._shibMove.route) {
+                if (routeRoom === creep.room.name) route.push(new RoomPosition(creep.pos.x, creep.pos.y, routeRoom));
+                else route.push(new RoomPosition(25, 25, routeRoom));
+            }
+            for (let posNumber = 0; posNumber++; posNumber < route.length) {
+                Game.map.visual.line(route[posNumber], route[posNumber + 1])
+            }
+        }
+    } catch (e) {
     }
 }
