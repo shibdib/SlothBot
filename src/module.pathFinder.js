@@ -481,7 +481,7 @@ function getStructureMatrix(roomName, matrix, options) {
 
 function addStructuresToMatrix(room, matrix, type) {
     if (!room) return matrix;
-    let roadCost = type === 3 ? 1 : type === 2 ? 1 : 1;
+    let roadCost = type === 3 ? 10 : type === 2 ? 5 : 1;
     for (let structure of room.structures) {
         if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
@@ -495,7 +495,7 @@ function addStructuresToMatrix(room, matrix, type) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
         } else if (structure instanceof StructureRoad && (!structure.pos.checkForRampart() || structure.pos.checkForRampart().my || structure.pos.checkForRampart().isPublic)) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost);
-        } else if (structure instanceof StructureContainer) {
+        } else if (structure instanceof Source) {
             matrix.set(structure.pos.x, structure.pos.y, 45);
         } else {
             matrix.set(structure.pos.x, structure.pos.y, 256);

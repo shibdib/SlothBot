@@ -23,7 +23,7 @@ module.exports.role = function role(creep) {
     }
     if (creep.wrongRoom()) return;
     // Work
-    if (creep.memory.working === true) {
+    if (creep.memory.working) {
         if (!Memory.roomCache[creep.room.name].threatLevel && !creep.room.nukes.length && (creep.memory.constructionSite || creep.constructionWork())) {
             creep.builderFunction();
         } else {
@@ -38,6 +38,24 @@ module.exports.role = function role(creep) {
         }
     }
 };
+
+Creep.prototype.getEnergy =
+    function (useContainer, useSource, useStorage, getDrops) {
+        /** @type {StructureContainer} */
+        if (Game.getObjectById(this.memory.energyItem)) {
+            let energyTarget = Game.getObjectById(this.memory.energyItem);
+            if (this.withdraw(energyTarget) == ERR_NOT_IN_RANGE) {
+                this.moveTo(energyTarget);
+            }
+        } else {
+            let container;
+            if (container == undefined && useStorage) {
+                if (this.room.storage.store[RESOURCE_ENERGY]) {
+                    return this.memory.energyItem = this.room.storage.id;
+                }
+            }
+        }
+    };
 
 function wallMaintainer(creep) {
     if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget) || Memory.roomCache[creep.room.name].threatLevel || creep.room.memory.nuke) {

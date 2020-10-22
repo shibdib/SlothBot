@@ -47,34 +47,31 @@ Creep.prototype.marauding = function () {
             } // Handle next to each other
             else if (partner.pos.isNearTo(this)) {
                 partner.shibMove(this, {range: 0});
-                // Move to response room if needed
-                if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 22});
-                // Handle flee
-                if (this.memory.runCooldown || (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK))) {
-                    this.fleeHome(true);
-                    return partner.shibMove(this, {range: 0});
-                }
-                if (this.room.name === this.memory.other.destination) {
-                    Memory.roomCache[this.room.name].lastMarauder = Game.time;
-                    if ((!this.room.hostileCreeps.length && !this.room.hostileStructures.length) || !this.canIWin(15) || !this.pairFighting(partner)) {
-                        highCommand.generateThreat(this);
-                        this.scorchedEarth();
-                        if (!this.memory.other.onScene) this.memory.other.onScene = Game.time;
-                        // If on target and cant win find a new target
-                        if (this.memory.other.onScene + 25 < Game.time || !this.canIWin()) {
-                            this.room.cacheRoomIntel(true);
-                            this.memory.other.visited.push(this.memory.other.destination);
-                            this.memory.other.destination = undefined;
-                            this.memory.other.onScene = undefined;
-                            this.memory.awaitingTarget = true;
-                            this.shibKite();
-                        }
-                    }
-                }
             }
         } else {
             this.memory.buddyAssigned = undefined;
-            if (this.canIWin(50) && this.handleMilitaryCreep()) return; else return this.goToHub();
+            if (this.canIWin(50) && this.handleMilitaryCreep()) return;
+        }
+        // Handle flee
+        if (this.memory.runCooldown || (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK))) return this.fleeHome(true);
+        // Move if needed
+        if (this.memory.other.destination && this.room.name !== this.memory.other.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.other.destination), {range: 22});
+        if (this.room.name === this.memory.other.destination || !this.memory.other.destination) {
+            Memory.roomCache[this.room.name].lastMarauder = Game.time;
+            if ((!this.room.hostileCreeps.length && !this.room.hostileStructures.length) || !this.canIWin(15) || !this.pairFighting(partner)) {
+                highCommand.generateThreat(this);
+                this.scorchedEarth();
+                if (!this.memory.other.onScene) this.memory.other.onScene = Game.time;
+                // If on target and cant win find a new target
+                if (this.memory.other.onScene + 25 < Game.time || !this.canIWin()) {
+                    this.room.cacheRoomIntel(true);
+                    this.memory.other.visited.push(this.memory.other.destination);
+                    this.memory.other.destination = undefined;
+                    this.memory.other.onScene = undefined;
+                    this.memory.awaitingTarget = true;
+                    this.shibKite();
+                }
+            }
         }
     }
 };

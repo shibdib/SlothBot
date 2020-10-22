@@ -244,7 +244,7 @@ Creep.prototype.constructionWork = function () {
 Creep.prototype.opportunisticFill = function () {
     if (!this.store[RESOURCE_ENERGY] || Math.random() < 0.02) return false;
     // Fill nearby energy structures as you pass
-    let energyStructures = _.filter(this.pos.findInRangeStructures(this.room.structures, 1, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER]), (s) => s.store.getFreeCapacity(RESOURCE_ENERGY));
+    let energyStructures = _.filter(this.pos.findInRangeStructures(this.room.structures, 1, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN]), (s) => s.store.getFreeCapacity(RESOURCE_ENERGY));
     if (energyStructures.length) {
         this.transfer(_.sample(energyStructures), RESOURCE_ENERGY)
         return true;
@@ -1538,9 +1538,9 @@ Creep.prototype.fightRanged = function (target) {
         if (target instanceof Creep && !target.getActiveBodyparts(ATTACK)) moveRange = 1; else if (range >= lastRange) moveRange = 1;
         if (inRangeRampart) moveRange = 0;
         if (this.pos.findInRange(FIND_CREEPS, 1).length > 0) {
-            this.shibMove(moveTarget, {ignoreCreeps: false, range: moveRange, ignoreRoads: true});
+            this.shibMove(moveTarget, {ignoreCreeps: false, range: moveRange});
         } else {
-            this.shibMove(moveTarget, {ignoreCreeps: false, range: moveRange, ignoreRoads: true});
+            this.shibMove(moveTarget, {ignoreCreeps: false, range: moveRange});
         }
         return true;
     }
