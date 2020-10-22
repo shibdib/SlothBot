@@ -18,15 +18,17 @@ module.exports.role = function role(creep) {
     // Set destination
     if (!creep.memory.destination) {
         if (creep.memory.overlord === creep.room.name) {
-            creep.memory.destination = _.sample(_.filter(JSON.parse(creep.memory.misc), (r) => Memory.roomCache[r] && !Memory.roomCache[r].threatLevel && !Memory.roomCache[r].invaderCore && (!Memory.roomCache[r].sk || Game.rooms[creep.memory.overlord].level >= 7)));
+            creep.memory.destination = _.sample(_.filter(JSON.parse(creep.memory.misc), (r) => r && Memory.roomCache[r] && creep.room.routeSafe(r) && !Memory.roomCache[r].obstructions && !Memory.roomCache[r].invaderCore && (!Memory.roomCache[r].sk || Game.rooms[creep.memory.overlord].level >= 7)));
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
         }
+        return;
     }
     // Remove bad desto
     if (Memory.roomCache[creep.memory.destination] && Memory.roomCache[creep.memory.destination].user && Memory.roomCache[creep.memory.destination].user !== MY_USERNAME) creep.memory.destination = undefined;
     // Handle movement
-    if (creep.memory.destination && creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
+    if (creep.pos.roomName !== creep.memory.destination && creep.room.routeSafe(creep.memory.destination)) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination, {range: 23}));
+    if (!creep.room.routeSafe(creep.memory.destination)) return creep.goToHub();
     // Checks
     if (!creep.store[RESOURCE_ENERGY]) {
         creep.memory.working = undefined;
@@ -39,14 +41,14 @@ module.exports.role = function role(creep) {
         creep.memory.harvest = undefined;
     }
     // Work
-    if (creep.memory.working === true) {
-        if (!remoteRoads(creep)) Memory.roomCache[creep.room.name].roadsBuilt = true;
+    if (creep.memory.working) {
         if (creep.memory.constructionSite || creep.constructionWork()) {
             if (!Game.getObjectById(creep.memory.constructionSite)) return creep.memory.constructionSite = undefined;
             creep.builderFunction();
         } else {
+            if (!remoteRoads(creep)) Memory.roomCache[creep.room.name].roadsBuilt = true;
             creep.memory.destination = undefined;
-            if (creep.memory.overlord === creep.room.name) creep.idleFor(5);
+            if (creep.memory.overlord === creep.room.name) creep.idleFor(15);
         }
     } else {
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
@@ -78,12 +80,6 @@ module.exports.role = function role(creep) {
 
 function remoteRoads(creep) {
     if (creep.room.name !== creep.memory.destination || creep.room.constructionSites.length > 3) return false;
-    // Prevent spamming this function
-    if (creep.memory.other.lastChecked === creep.room.name) {
-        creep.memory.other.lastChecked = undefined;
-        return creep.idleFor(50);
-    }
-    creep.memory.other.lastChecked = creep.room.name;
     let sources = creep.room.sources;
     let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
     let homeExit = creep.room.find(goHome);
@@ -153,19 +149,10 @@ function buildRoadFromTo(room, start, end) {
                 for (let structures of room.structures) {
                     if (_.includes(OBSTACLE_OBJECT_TYPES, structures.structureType)) {
                         costMatrix.set(structures.pos.x, structures.pos.y, 256);
-                    }
-                    if (structures.structureType === STRUCTURE_CONTAINER) {
-                        costMatrix.set(structures.pos.x, structures.pos.y, 150);
-                    }
-                }
-                for (let site of room.constructionSites) {
-                    if (site.structureType === STRUCTURE_ROAD) {
-                        costMatrix.set(site.pos.x, site.pos.y, 1);
-                    }
-                }
-                for (let road of room.structures) {
-                    if (road.structureType === STRUCTURE_ROAD) {
-                        costMatrix.set(road.pos.x, road.pos.y, 1);
+                    } else if (structures.structureType === STRUCTURE_ROAD) {
+                        costMatrix.set(structures.pos.x, structures.pos.y, 1);
+                    } else if (structures.structureType === STRUCTURE_CONTAINER) {
+                        costMatrix.set(structures.pos.x, structures.pos.y, 71);
                     }
                 }
             },

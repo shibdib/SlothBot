@@ -21,10 +21,10 @@ module.exports.controller = function (room) {
     room.invaderCheck();
 
     // Handle nuke defense
-    if (Game.time % 5 === 0) handleNukeAttack(room);
+    if (Game.time % 100 === 0) handleNukeAttack(room);
 
     // Check if you should safemode
-    if (Memory.roomCache[room.name].threatLevel) safeModeManager(room);
+    if (Memory.roomCache[room.name].threatLevel > 2) safeModeManager(room);
 
     // Abandon hopeless rooms
     if (Game.time % 100 === 0 && Memory.roomCache[room.name].threatLevel) unSavableCheck(room);
@@ -36,7 +36,7 @@ module.exports.controller = function (room) {
     rampartManager(room, structures);
 
     // Early Warning System
-    earlyWarning(room);
+    if (Game.time % 25 === 0) earlyWarning(room);
 
     // Send an email on a player attack with details of attack
     if (Memory.roomCache[room.name].threatLevel && !Memory.roomCache[room.name].alertEmail && Memory.roomCache[room.name].threatLevel >= 4) {
@@ -92,8 +92,8 @@ function rampartManager(room, structures) {
 function safeModeManager(room) {
     // Ensure camping enemies continue to gain threat even if no creeps present.
     addThreat(room);
-    let controller = room.controller;
-    if (!room.hostileCreeps.length || controller.safeMode || controller.safeModeCooldown || !controller.safeModeAvailable || controller.ticksToDowngrade) {
+    let armedHostiles = _.filter(room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK));
+    if (!armedHostiles.length || room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable) {
         structureCount[room.name] = undefined;
         return;
     }
@@ -113,19 +113,19 @@ function safeModeManager(room) {
 }
 
 function earlyWarning(room) {
-    let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel >= 3 && Memory.roomCache[r].threatLevel > Memory.roomCache[room.name].threatLevel && !Memory.roomCache[r].sk && !Memory.roomCache[r].isHighway)[0];
+    let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel >= 4 && Memory.roomCache[r].threatLevel > Memory.roomCache[room.name].threatLevel)[0];
     if (adjacent) {
         Memory.roomCache[room.name].threatLevel = Memory.roomCache[adjacent].threatLevel;
         Memory.roomCache[room.name].tickDetected = Game.time;
-        //log.a(roomLink(room.name) + ' has gone to threat level ' + Memory.roomCache[adjacent].threatLevel + ' due to a triggering of the early warning system in ' + roomLink(adjacent) + '.', 'DEFENSE COMMAND');
     }
 }
 
 function unSavableCheck(room) {
     // Abandon Bad Rooms
-    let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
+    if (_.size(Memory.myRooms) === 1) return false;
+    let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= 10 && s.isActive());
     let badCount = room.memory.badCount || 0;
-    let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)));
+    let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)));
     if (hostiles.length && !towers.length && !room.controller.safeMode) {
         room.memory.badCount = badCount + 1;
         if (room.memory.badCount > room.controller.level * 2.5) {
@@ -151,17 +151,17 @@ function addThreat(room) {
     if (neutrals.length) {
         for (let user of neutrals) {
             if (user === MY_USERNAME || _.includes(FRIENDLIES, user)) continue;
-            let cache = Memory._badBoyList || {};
-            let threatRating;
+            let cache = Memory._userList || {};
+            let standing;
             if (cache[user]) {
-                threatRating = cache[user]['threatRating'] + 0.25;
-                if (threatRating >= 1500) threatRating = 1500;
+                standing = cache[user]['standing'] + 0.25;
+                if (standing >= 1500) standing = 1500;
             } else if (!cache[user]) {
-                threatRating = 25;
+                standing = 25;
                 log.e(roomLink(room.name) + ' has detected a neutral.' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
             }
             cache[user] = {
-                threatRating: threatRating,
+                standing: standing,
                 lastAction: Game.time,
             };
             Memory._badBoyList = cache;

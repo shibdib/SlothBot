@@ -11,6 +11,6 @@ Creep.prototype.swarmRoom = function () {
         let sentence = ['Swarm', 'In', 'Progress'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
-        this.handleMilitaryCreep(true);
+        this.handleMilitaryCreep();
     }
 };

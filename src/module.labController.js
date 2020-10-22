@@ -10,14 +10,15 @@
  */
 
 module.exports.labManager = function () {
-    let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
-    for (let room of myRooms) {
-        if (room.controller.level < 6 || room.nukes.length || room.memory.lowPower) continue;
-        room.memory.reactionRoom = true;
-        let lab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
-        if (lab && room.terminal && Math.random() >= 0.5) cleanLabs(room);
-        if (lab && room.terminal && room.memory.reactionRoom && Game.time % 10 === 0) manageBoostProduction(room);
-        if (lab && room.terminal && room.memory.reactionRoom && Game.time % 2 === 0) manageActiveLabs(room);
+    let myRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].controller.level >= 6 && !Game.rooms[r].nukes.length && !Game.rooms[r].memory.lowPower && _.filter(Game.rooms[r].structures, (s) => s.structureType === STRUCTURE_LAB)[0]);
+    if (myRooms.length) {
+        if (Game.time % 33 === 0) {
+            for (let room of myRooms) {
+                manageBoostProduction(Game.rooms[room]);
+            }
+        }
+        if (Game.time % 100 === 0) cleanLabs();
+        if (Game.time % 2 === 0) manageActiveLabs();
     }
 };
 
@@ -78,12 +79,12 @@ function manageBoostProduction(room) {
     }
 }
 
-function manageActiveLabs(room) {
-    let activeLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.cooldown && s.memory.active && s.memory.creating && !s.memory.itemNeeded);
+function manageActiveLabs() {
+    let activeLabs = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && !s.cooldown && s.memory.active && s.memory.creating && !s.memory.itemNeeded);
     if (activeLabs.length) {
         active:
             for (let key in activeLabs) {
-                let hub = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === activeLabs[key].memory.creating && s.memory.active && s.pos.roomName === activeLabs[key].pos.roomName);
+                let hub = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.room.name === activeLabs[key].room.name && s.memory.creating === activeLabs[key].memory.creating && s.memory.active);
                 let outputLab = Game.getObjectById(_.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id')[0]);
                 if (!outputLab) {
                     for (let id in hub) {
@@ -167,18 +168,18 @@ function checkForInputs(room, boost) {
     return boost;
 }
 
-function cleanLabs(room) {
-    let boostLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.neededBoost);
+function cleanLabs() {
+    let boostLabs = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.neededBoost);
     for (let key in boostLabs) {
         let boostLab = boostLabs[key];
         if (boostLab.memory && (!boostLab.memory.requested || boostLab.memory.requested + 150 < Game.time || !Game.getObjectById(boostLab.memory.requestor))) {
             boostLab.memory = undefined;
         }
     }
-    let reactionLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating);
+    let reactionLabs = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating);
     for (let key in reactionLabs) {
         let reactionLab = reactionLabs[key];
-        let reactionHub = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating === reactionLab.memory.creating);
+        let reactionHub = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.room.name === reactionLab.room.name && s.memory.active && s.memory.creating === reactionLab.memory.creating);
         if (reactionHub.length < 3 || reactionLab.pos.findInRange(reactionHub, 2).length < 3) {
             reactionLab.memory = undefined;
         }

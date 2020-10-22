@@ -15,6 +15,7 @@ module.exports.cleanup = function () {
         cleanConstructionSites();
         cleanRoomIntel();
         cleanStructureMemory();
+        cleanStructures();
     }
     if (Game.time % EST_TICKS_PER_DAY === 0) {
         delete Memory._pathCache;
@@ -39,38 +40,39 @@ module.exports.cleanup = function () {
     }
 };
 
+// Clean path cache by removing paths that haven't been used in 2500 ticks or fall below the average use count
 function cleanPathCacheByUsage() {
-    if (Memory._pathCache) { //1500 entries ~= 100kB
-        if (_.size(Memory._pathCache) > (Memory.myRooms.length * 100)) {
-            let sorted = _.sortBy(Memory._pathCache, 'uses');
-            let overage = (_.size(Memory._pathCache) - Memory.myRooms.length * 100) + 50;
-            log.i('Cleaning Path cache (Over max size by ' + overage + ')...');
-            Memory._pathCache = _.slice(sorted, overage, _.size(Memory._pathCache));
+    if (Memory._pathCache && _.size(Memory._pathCache) > PATH_CACHE_SIZE) {
+        let initial = _.size(Memory._pathCache);
+        let averageUses = average(_.pluck(Memory._pathCache, 'uses'));
+        for (let key in Memory._pathCache) {
+            if (_.size(Memory._pathCache) < PATH_CACHE_SIZE - (PATH_CACHE_SIZE * 0.10)) break;
+            if (Memory._pathCache[key].uses < averageUses || Memory._pathCache[key].tick + 2500 < Game.time) delete Memory._pathCache[key];
         }
+        if (initial !== _.size(Memory._pathCache)) log.i('Cleaning Path cache (Deleted ' + (initial - _.size(Memory._pathCache)) + ')...');
     }
 }
 
+// Clean route cache by removing routes that haven't been used in 2500 ticks or fall below the average use count
 function cleanRouteCacheByUsage() {
-    if (Memory._routeCache && _.size(Memory._routeCache) > (Memory.myRooms.length * 20)) { //1500 entries ~= 100kB
-        let sorted = _.sortBy(Memory._routeCache, 'uses');
-        let overage = (_.size(Memory._routeCache) - (Memory.myRooms.length * 20)) + 5;
-        log.i('Cleaning Route cache (Over max size by ' + overage + ')...');
-        Memory._routeCache = _.slice(sorted, overage, _.size(Memory._routeCache));
+    if (Memory._routeCache && _.size(Memory._routeCache) > ROUTE_CACHE_SIZE) {
+        let initial = _.size(Memory._routeCache);
+        let averageUses = average(_.pluck(Memory._routeCache, 'uses'));
+        for (let key in Memory._routeCache) {
+            if (_.size(Memory._routeCache) < ROUTE_CACHE_SIZE - (ROUTE_CACHE_SIZE * 0.10)) break;
+            if (Memory._routeCache[key].uses < averageUses || Memory._routeCache[key].tick + 2500 < Game.time) delete Memory._routeCache[key];
+        }
+        if (initial !== _.size(Memory._routeCache)) log.i('Cleaning Route cache (Deleted ' + (initial - _.size(Memory._routeCache)) + ')...');
     }
 }
 
 function cleanRouteCacheByAge() {
     if (Memory._routeCache) { //1500 entries ~= 100kB
-        let originalCount = Memory._routeCache.length;
-        let cache = Memory._routeCache;
-        for (let key in cache) {
-            if (cache[key].tick + 6000 < Game.time) {
-                delete cache[key];
-            }
+        let initial = _.size(Memory._routeCache);
+        for (let key in Memory._routeCache) {
+            if (Memory._routeCache[key].created + 5000 < Game.time) delete Memory._routeCache[key];
         }
-        let prunedCount = originalCount - cache.length;
-        if (prunedCount) log.i('Cleaning Route cache (Removed ' + prunedCount + ' old routes.)');
-        Memory._routeCache = cache;
+        if (initial !== _.size(Memory._routeCache)) log.i('Cleaning Route cache of old routes (Deleted ' + (initial - _.size(Memory._routeCache)) + ')...');
     }
 }
 
@@ -93,7 +95,7 @@ function cleanDistanceCacheByUsage() {
 function cleanConstructionSites() {
     for (let key in Game.constructionSites) {
         if (Math.random() > 0.5 && (!Game.constructionSites[key].room || !Game.constructionSites[key].pos.findClosestByRange(FIND_MY_CREEPS)) &&
-            Game.constructionSites[key].structureType !== STRUCTURE_SPAWN && Game.constructionSites[key].structureType !== STRUCTURE_EXTENSION && Game.constructionSites[key].structureType !== STRUCTURE_CONTAINER) {
+            Game.constructionSites[key].structureType !== STRUCTURE_SPAWN && Game.constructionSites[key].structureType !== STRUCTURE_EXTENSION && Game.constructionSites[key].structureType !== STRUCTURE_CONTAINER && Game.constructionSites[key].structureType !== STRUCTURE_ROAD) {
             Game.constructionSites[key].remove();
         }
     }
@@ -125,5 +127,11 @@ function cleanStructureMemory() {
                 }
             }
         }
+    }
+}
+
+function cleanStructures() {
+    for (let structure of _.filter(Game.structures)) {
+        if (structure.room.controller && (!structure.room.controller.owner || structure.room.controller.owner.username !== MY_USERNAME) && !structure.isActive()) structure.destroy();
     }
 }

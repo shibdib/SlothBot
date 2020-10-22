@@ -14,82 +14,74 @@ let spawning = require('module.creepSpawning');
 let state = require('module.roomState');
 let planner = require('module.roomPlanner');
 let diplomacy = require('module.diplomacy');
-let storedLevel = {};
 
 module.exports.overlordMind = function (room, CPULimit) {
     if (!room) return;
+
+    // Cache globals
+    cacheRoomItems(room);
+
     let mindStart = Game.cpu.getUsed();
-    let cpuBucket = Game.cpu.bucket;
 
     // Handle auto spawn placement
     if (Memory.myRooms.length === 1 && !_.filter(Game.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0]) {
         planner.buildRoom(room);
     }
 
+    // Defense controller always runs
+    defense.controller(room);
+
+    // Manage creeps
+    let count = 0;
+    let roomCreepCPU = 0;
+    let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military && !r.spawning));
+    let totalCreeps = roomCreeps.length
+    do {
+        let currentCreep = _.first(roomCreeps);
+        if (!currentCreep) break;
+        roomCreeps = _.rest(roomCreeps);
+        count++;
+        try {
+            minionController(currentCreep);
+        } catch (e) {
+            log.e('Error with ' + currentCreep.name + ' in ' + roomLink(currentCreep.room.name));
+            log.e(e.stack);
+            Game.notify(e.stack);
+        }
+        if (CREEP_CPU_ARRAY[currentCreep.name]) roomCreepCPU += average(CREEP_CPU_ARRAY[currentCreep.name]);
+    } while ((roomCreepCPU < CPULimit * 0.9 || Game.cpu.bucket > 7000) && count < totalCreeps)
+    let spareCpu = (CPULimit * 0.9) - roomCreepCPU;
+
+    // Room function loop
+    let overlordFunctions = shuffle([state.setRoomState, links.linkControl, terminals.terminalControl, planner.buildRoom, observers.observerControl, factory.factoryControl, creepSpawning, lowPowerCheck]);
+    let functionCount = overlordFunctions.length;
+    count = 0;
+    let overlordTaskCurrentCPU = Game.cpu.getUsed();
+    let overlordTaskTotalCPU = 0;
+    do {
+        let currentFunction = _.first(overlordFunctions);
+        if (!currentFunction) break;
+        overlordFunctions = _.rest(overlordFunctions);
+        count++;
+        try {
+            currentFunction(room);
+        } catch (e) {
+            log.e('Error with overlord function');
+            log.e(e.stack);
+            Game.notify(e.stack);
+        }
+        overlordTaskCurrentCPU = Game.cpu.getUsed() - overlordTaskCurrentCPU;
+        overlordTaskTotalCPU += overlordTaskCurrentCPU;
+    } while ((overlordTaskTotalCPU < (CPULimit * 0.1) + (spareCpu * 0.9) || Game.cpu.bucket > 9500) && count < functionCount)
+
     // Get income
     if (!ROOM_ENERGY_PER_TICK[room.name] || Game.time % 5 === 0) {
         let income = 0;
-        let inRoomHarvesters = _.filter(Game.creeps, (c) => c.memory.overlord === room.name && c.memory.role === 'stationaryHarvester');
-        let remoteHarvesters = _.filter(Game.creeps, (c) => c.memory.overlord === room.name && (c.memory.role === 'remoteHarvester'));
-        inRoomHarvesters.forEach((h) => income += h.getActiveBodyparts(WORK) * HARVEST_POWER);
-        remoteHarvesters.forEach((h) => income += (h.getActiveBodyparts(WORK) * HARVEST_POWER) * 0.7);
+        let harvesters = _.filter(Game.creeps, (c) => c.memory.overlord === room.name && (c.memory.role === 'stationaryHarvester' || c.memory.role === 'remoteHarvester'));
+        harvesters.forEach((h) => income += h.getActiveBodyparts(WORK) * HARVEST_POWER);
         ROOM_ENERGY_PER_TICK[room.name] = income;
     }
 
-    // Cache globals
-    cacheRoomItems(room);
-
-    // Set room state
-    state.setRoomState(room);
-
-    // Handle Defense
-    defense.controller(room);
-
-    // Potential low power mode
-    if (room.level === 8) {
-        let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD)[0];
-        if (room.memory.lowPower) {
-            if (room.memory.lowPower + 10000 < Game.time || inBuild || Memory.roomCache[room.name].threatLevel > 2) {
-                log.a(room.name + ' is no longer in a low power state.');
-                room.memory.lowPower = undefined;
-                room.memory.lastLowPower = Game.time;
-            }
-        } else if (!room.memory.lastLowPower || room.memory.lastLowPower + 12500 < Game.time) {
-            let maxLevelRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8 && !r.constructionSites.length);
-            let lowPowerRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8 && r.memory.lowPower);
-            if (maxLevelRooms.length >= 3 && lowPowerRooms.length < maxLevelRooms.length * 0.5 && Math.random() > 0.8 && !inBuild && (!Memory.saleTerminal.room || room.name !== Memory.saleTerminal.room) && (Game.cpu.bucket < 9000 && (!Memory.lastPixelGenerated || Memory.lastPixelGenerated + 10000 < Game.time))) {
-                log.a(room.name + ' has entered a low power state for 10000 ticks.');
-                room.memory.lowPower = Game.time;
-            }
-        }
-    } else {
-        room.memory.lowPower = undefined;
-    }
-
-    // Manage creeps
-    let roomCreeps = _.sortBy(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military && !r.spawning), '.memory.lastManaged');
-    // Worker minions
-    for (let key in roomCreeps) {
-        try {
-            if ((Game.cpu.getUsed() - mindStart) > CPULimit * 0.9) break;
-            minionController(roomCreeps[key]);
-        } catch (e) {
-            log.e(roomCreeps[key].name + ' in room ' + roomCreeps[key].room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
-    }
-
-    //Build Room
-    if ((!room.memory.bunkerHub && !room.memory.praiseRoom) || (getLevel(room) !== room.controller.level && Game.time % 25 === 0) || (Game.time % 100 === 0 && Math.random() > 0.5)) {
-        try {
-            planner.buildRoom(room);
-        } catch (e) {
-            log.e('Room Building for room ' + room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
-    }
     // Silence Alerts
     if (Game.time % 2500 === 0) {
         for (let building of room.structures) {
@@ -97,96 +89,7 @@ module.exports.overlordMind = function (room, CPULimit) {
         }
     }
 
-    //CPU Check
-    if ((Game.cpu.getUsed() - mindStart) > CPULimit) return;
-
-    // Manage creep spawning
-    if (Game.time % 5 === 0 || room.memory.praiseRoom) {
-        if (room.memory.praiseRoom) {
-            spawning.praiseCreepQueue(room);
-        } else if (getLevel(room) < 2) {
-            spawning.roomStartup(room);
-        } else {
-            try {
-                spawning.essentialCreepQueue(room);
-            } catch (e) {
-                log.e('Essential Queueing for room ' + room.name + ' experienced an error');
-                log.e(e.stack);
-                Game.notify(e.stack);
-            }
-            try {
-                if (!room.memory.lowPower) spawning.miscCreepQueue(room);
-            } catch (e) {
-                log.e('Misc Queueing for room ' + room.name + ' experienced an error');
-                log.e(e.stack);
-                Game.notify(e.stack);
-            }
-            if (cpuBucket >= 5000) {
-                try {
-                    spawning.remoteCreepQueue(room);
-                } catch (e) {
-                    log.e('Remote Creep Queuing for room ' + room.name + ' experienced an error');
-                    log.e(e.stack);
-                    Game.notify(e.stack);
-                }
-            }
-        }
-    }
-
-    // Observer Control
-    if (room.level === 8 && cpuBucket >= 2000 && !room.memory.lowPower) {
-        try {
-            observers.observerControl(room);
-        } catch (e) {
-            log.e('Observer Control for room ' + room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
-    }
-
-    // Factory Control
-    if (room.level >= 7 && cpuBucket >= 2000 && !room.memory.lowPower) {
-        try {
-            factory.factoryControl(room);
-        } catch (e) {
-            log.e('Factory Control for room ' + room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
-    }
-
-    //CPU Check
-    if ((Game.cpu.getUsed() - mindStart) > CPULimit) return;
-
-    // Handle Links
-    if (room.level >= 5) {
-        try {
-            links.linkControl(room);
-        } catch (e) {
-            log.e('Link Control for room ' + room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
-    }
-
-    // Handle Terminals
-    if (room.terminal && room.level >= 6 && !room.terminal.cooldown && Game.time % 5 === 0 && !room.memory.lowPower) {
-        try {
-            terminals.terminalControl(room);
-        } catch (e) {
-            log.e('Terminal Control for room ' + room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
-    }
-
     // Store Data
-    storedLevel[room.name] = room.controller.level;
-    if (room.controller.level >= 6) {
-        let currentMinerals = OWNED_MINERALS || [];
-        currentMinerals.push(room.mineral.mineralType);
-        OWNED_MINERALS = _.uniq(currentMinerals);
-    }
     let used = Game.cpu.getUsed() - mindStart;
     let cpuUsageArray = ROOM_CPU_ARRAY[room.name] || [];
     if (cpuUsageArray.length < 50) {
@@ -211,6 +114,7 @@ module.exports.overlordMind = function (room, CPULimit) {
 
 let errorCount = {};
 function minionController(minion) {
+    if (minion.room.hostileCreeps.length && minion.shibKite()) return;
     // Set last managed tick
     minion.memory.lastManaged = Game.time;
     // If bucket gets real low kill remotes
@@ -220,7 +124,10 @@ function minionController(minion) {
     // If on portal or border move
     if (minion.portalCheck() || minion.borderCheck()) return;
     // Disable notifications
-    if (minion.ticksToLive > 1490) minion.notifyWhenAttacked(false);
+    if (!minion.memory.notifyDisabled) {
+        minion.memory.notifyDisabled = true;
+        minion.notifyWhenAttacked(false);
+    }
     // Handle nuke flee
     if (minion.memory.fleeNukeTime && minion.fleeNukeRoom()) return;
     // If idle sleep
@@ -303,7 +210,63 @@ function minionController(minion) {
     }
 }
 
+function creepSpawning(room) {
+    if (room.memory.praiseRoom) {
+        spawning.praiseCreepQueue(room);
+    } else if (getLevel(room) < 2) {
+        spawning.roomStartup(room);
+    } else {
+        try {
+            spawning.essentialCreepQueue(room);
+        } catch (e) {
+            log.e('Essential Queueing for room ' + room.name + ' experienced an error');
+            log.e(e.stack);
+            Game.notify(e.stack);
+        }
+        try {
+            if (!room.memory.lowPower) spawning.miscCreepQueue(room);
+        } catch (e) {
+            log.e('Misc Queueing for room ' + room.name + ' experienced an error');
+            log.e(e.stack);
+            Game.notify(e.stack);
+        }
+        try {
+            spawning.remoteCreepQueue(room);
+        } catch (e) {
+            log.e('Remote Creep Queuing for room ' + room.name + ' experienced an error');
+            log.e(e.stack);
+            Game.notify(e.stack);
+        }
+    }
+    spawning.processBuildQueue(room);
+}
+
+function lowPowerCheck(room) {
+    return room.memory.lowPower = undefined;
+    // Potential low power mode
+    if (room.level === 8) {
+        let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD)[0];
+        if (room.memory.lowPower) {
+            if (room.memory.lowPower + 10000 < Game.time || inBuild || Memory.roomCache[room.name].threatLevel > 2) {
+                log.a(room.name + ' is no longer in a low power state.');
+                room.memory.lowPower = undefined;
+                room.memory.lastLowPower = Game.time;
+            }
+        } else if (!room.memory.lastLowPower || room.memory.lastLowPower + 12500 < Game.time) {
+            let maxLevelRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8 && !r.constructionSites.length);
+            let lowPowerRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8 && r.memory.lowPower);
+            if (maxLevelRooms.length >= 3 && lowPowerRooms.length < maxLevelRooms.length * 0.5 && Math.random() > 0.8 && !inBuild && (!Memory.saleTerminal.room || room.name !== Memory.saleTerminal.room) && (Game.cpu.bucket < 9000 && (!Memory.lastPixelGenerated || Memory.lastPixelGenerated + 10000 < Game.time))) {
+                log.a(room.name + ' has entered a low power state for 10000 ticks.');
+                room.memory.lowPower = Game.time;
+            }
+        }
+    } else {
+        room.memory.lowPower = undefined;
+    }
+}
+
 function cacheRoomItems(room) {
+    room.cacheRoomIntel();
     // Cache number of spaces around sources for things
     if (!ROOM_SOURCE_SPACE[room.name]) {
         let spaces = 0;
@@ -314,4 +277,16 @@ function cacheRoomItems(room) {
     if (!ROOM_CONTROLLER_SPACE[room.name]) {
         ROOM_CONTROLLER_SPACE[room.name] = room.controller.pos.countOpenTerrainAround();
     }
+    let currentMinerals = Memory.ownedMinerals || [];
+    currentMinerals.push(room.mineral.mineralType);
+    Memory.ownedMinerals = _.uniq(currentMinerals);
+    // Stats
+    let stats = room.memory.stats || {};
+    // Store ticks on rcl upgrade
+    if (!stats.levelInfo) stats.levelInfo = {};
+    if (!stats.levelInfo[room.controller.level]) stats.levelInfo[room.controller.level] = Game.time;
+    // Store ticks with a threat level
+    if (Memory.roomCache[room.name].threatLevel >= 3) if (!stats.underAttack) stats.underAttack = 1; else stats.underAttack += 1;
+    room.memory.stats = stats;
+
 }

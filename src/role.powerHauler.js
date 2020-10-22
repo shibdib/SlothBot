@@ -27,8 +27,9 @@ module.exports.role = function (creep) {
             creep.memory.recycle = true;
         }
     } else {
-        if (creep.room.name !== creep.memory.overlord) {
-            return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
+        creep.memory.closestRoom = creep.memory.closestRoom || creep.room.findClosestOwnedRoom(false, 6);
+        if (creep.room.name !== creep.memory.closestRoom) {
+            return creep.shibMove(new RoomPosition(25, 25, creep.memory.closestRoom), {range: 23});
         } else {
             let deliver = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.power < s.store.getFreeCapacity(RESOURCE_POWER))[0] || creep.room.terminal || creep.room.storage;
             if (deliver) {

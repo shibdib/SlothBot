@@ -17,8 +17,7 @@ global.LOCAL_SPHERE = 2; // Range that rooms consider local via linear distance
 global.NEW_SPAWN_DENIAL = true; // Crush new spawns immediately
 global.POKE_ATTACKS = true; // Small cheap annoying attacks
 global.POKE_NEUTRALS = true; // Poke everyone
-global.HARASS_ATTACKS = true; // Larger disrupting attacks
-global.SIEGE_ENABLED = true; //Attack owned rooms with towers
+global.OFFENSIVE_OPERATIONS = true; // Offensive Combat
 global.NCP_HOSTILE = true; // Always attack users of open source bots
 global.ATTACK_COOLDOWN = 4500; //Time between attacks on a room
 
@@ -30,7 +29,7 @@ global.ATTACK_ROOM_SIGNS = ["~~ALL YOUR BASE BELONG TO ME~~"];
 global.EXPLORER_SPAM = ['HI', 'Hello', 'Beep', 'Boop', 'Aloha', 'Shibby!'];
 
 // Attack limits (Too high and your CPU is screwed, hard coded for non subs)
-global.COMBAT_LIMIT = 1;
+global.COMBAT_LIMIT = 3;
 
 // Wall and rampart target amounts
 global.BARRIER_TARGET_HIT_POINTS = {
@@ -45,7 +44,9 @@ global.BARRIER_TARGET_HIT_POINTS = {
 };
 
 // The boosts you want labs to focus on first (resources permitted)
-global.LAB_PRIORITY = [RESOURCE_GHODIUM_HYDRIDE, RESOURCE_GHODIUM, RESOURCE_CATALYZED_GHODIUM_ACID];
+global.LAB_PRIORITY = [RESOURCE_GHODIUM_ACID, RESOURCE_GHODIUM_HYDRIDE, RESOURCE_GHODIUM, RESOURCE_KEANIUM_ALKALIDE, RESOURCE_LEMERGIUM_ACID];
+// If credits permit, buy these boosts
+global.BUY_THESE_BOOSTS = [RESOURCE_GHODIUM_ACID, RESOURCE_KEANIUM_ALKALIDE, RESOURCE_LEMERGIUM_ACID];
 
 // Amount targets (Advanced)
 global.PIXEL_BUFFER = 500; // Sell any pixels above this amount
@@ -71,4 +72,4 @@ global.GHODIUM_MARKET_BASELINE = 1.100;
 global.BASE_MINERALS_MARKET_BASELINE = 0.100;
 
 // Room stuff
-global.BUILD_PRAISE_ROOMS = true;
+global.BUILD_PRAISE_ROOMS = false;

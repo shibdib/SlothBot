@@ -22,7 +22,12 @@ let globals = function () {
             console.log('No custom config found loading config.js');
         }
     }
-    global.LAYOUT_VERSION = 1.52;
+    global.LAYOUT_VERSION = 1.53;
+
+    global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
+    global.STATUS_COOLDOWN = 180; // Seconds between console status reports
+    global.ROOM_ABANDON_THRESHOLD = 7250; // If bucket is consistently below this, abandon your lowest room
+    global.SIGN_CLEANER = true; // Clean room signs away with explorers
 
     // Energy income breakdown
     global.ROOM_ENERGY_ALLOTMENT = {
@@ -32,6 +37,10 @@ let globals = function () {
         'walls': 0.2,
         'other': 0.3
     };
+
+    // Pathfinder Cache Sizes
+    global.PATH_CACHE_SIZE = 1500;
+    global.ROUTE_CACHE_SIZE = 100;
 
     // Reaction
     global.TIER_3_BOOSTS = [RESOURCE_CATALYZED_GHODIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ACID, RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE];
@@ -64,13 +73,12 @@ let globals = function () {
         repairer: 7,
         // Haulers
         hauler: 1,
-        miscHauler: 5,
+        miscHauler: 3,
         // Remotes
-        remoteUtility: 6,
-        remoteHarvester: 3,
-        remoteHauler: 4,
+        remoteHarvester: 4,
+        remoteHauler: 3,
         remoteUpgrader: 7,
-        roadBuilder: 7,
+        roadBuilder: 6,
         assistPioneer: 3,
         fuelTruck: 7,
         reserver: 4,
@@ -80,7 +88,7 @@ let globals = function () {
         // SK
         SKWorker: 5,
         // Military
-        priority: 3,
+        priority: 4,
         urgent: 5,
         high: 7,
         medium: 9,
@@ -97,6 +105,7 @@ let globals = function () {
         0: {
             stationaryHarvester: [WORK, WORK, CARRY, MOVE],
             drone: [MOVE, MOVE, CARRY, WORK],
+            maintenance: [MOVE, MOVE, CARRY, WORK],
             waller: [MOVE, MOVE, CARRY, WORK],
             upgrader: [MOVE, MOVE, CARRY, WORK],
             praiseUpgrader: [MOVE, CARRY, WORK],
@@ -124,7 +133,6 @@ let globals = function () {
     global.ROOM_CREEP_CPU_OBJECT = {};
     global.ROOM_SOURCE_SPACE = {};
     global.ROOM_CONTROLLER_SPACE = {};
-    global.OWNED_MINERALS = [];
 
     global.ICONS = {
         [STRUCTURE_CONTROLLER]: "\uD83C\uDFF0"
@@ -211,6 +219,7 @@ let globals = function () {
         , hospital: "\ud83c\udfe5"
         , courier: "\ud83d\ude90"
         , power: "\u26a1"
+        , medical: "\u2695"
     };
 
     global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p.type || p]);
@@ -235,11 +244,17 @@ let globals = function () {
     global.RCL_7_EXTENSIONS = 50;
     global.RCL_8_EXTENSIONS = 60;
 
-    global.EST_SEC_PER_TICK = Memory.tickLength || 3; // time between ticks is currently averaging ~4.84 seconds (as of 2017/05/07)
+    if (Memory.tickInfo) global.EST_SEC_PER_TICK = Memory.tickInfo.tickLength; else global.EST_SEC_PER_TICK = 2.5; // time between ticks is currently averaging ~4.84 seconds (as of 2017/05/07)
     global.EST_TICKS_PER_MIN = Math.ceil(60 / EST_SEC_PER_TICK); // 60s
     global.EST_TICKS_PER_DAY = Math.ceil(86400 / EST_SEC_PER_TICK); // 24h * 60m * 60s = 86400s
 
     global.toStr = (obj) => JSON.stringify(obj, null, 2); // shortcut to stringify an object (idea credit: warinternal, from the Screeps Slack)
+
+    // Upkeep costs
+    global.RAMPART_UPKEEP = RAMPART_DECAY_AMOUNT / REPAIR_POWER / RAMPART_DECAY_TIME;
+    global.ROAD_UPKEEP = ROAD_DECAY_AMOUNT / REPAIR_POWER / ROAD_DECAY_TIME;
+    global.CONTAINER_UPKEEP = CONTAINER_DECAY / REPAIR_POWER / CONTAINER_DECAY_TIME_OWNED;
+    global.REMOTE_CONTAINER_UPKEEP = CONTAINER_DECAY / REPAIR_POWER / CONTAINER_DECAY_TIME;
 
     // Boost Components
     global.BOOST_COMPONENTS = {
@@ -408,7 +423,7 @@ let globals = function () {
                     for (let iL = (LOANdataKeys.length - 1); iL >= 0; iL--) {
                         if (LOANdata[LOANdataKeys[iL]].indexOf(myUsername) >= 0) {
                             //console.log("Player",myUsername,"found in alliance",LOANdataKeys[iL]);
-                            let disavowed = ['BADuser1', 'Zenga'];
+                            let disavowed = [];
                             global.LOANlist = LOANdata[LOANdataKeys[iL]];
                             global.LOANlist = global.LOANlist.filter(function (uname) {
                                 return disavowed.indexOf(uname) < 0;
@@ -507,22 +522,8 @@ let globals = function () {
         if (val > max) return max;
         return val;
     };
-    global.adjustedCPULimit = function adjustedCPULimit(limit, bucket, target = BUCKET_MAX * 0.5, maxCpuPerTick = 495) {
-        var multiplier = 1;
-        if (bucket < target) {
-            multiplier = Math.sin(Math.PI * bucket / (2 * target));
-        }
-        if (bucket > target) {
-            // Thanks @Deign for support with the sine function below
-            multiplier = 2 + Math.sin((Math.PI * (bucket - BUCKET_MAX)) / (2 * (BUCKET_MAX - target)));
-            // take care of our 10 CPU folks, to dip into their bucket reserves more...
-            // help them burn through excess bucket above the target.
-            if (limit === 10 && multiplier > 1.5)
-                multiplier += 1;
-        }
 
-        return clamp(Math.round(limit * 0.2), Math.round(limit * multiplier), maxCpuPerTick);
-    };
+    global.CPU_TASK_LIMITS = {};
 
     global.TEN_CPU = Game.cpu.limit === 20 || Game.shard.name === 'shard3';
 

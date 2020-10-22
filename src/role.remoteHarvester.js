@@ -10,8 +10,6 @@
  */
 
 module.exports.role = function (creep) {
-    //Invader detection
-    if (creep.fleeHome()) return;
     // SK Safety
     if (creep.skSafety()) return;
     // If you're in place just harvest
@@ -23,28 +21,31 @@ module.exports.role = function (creep) {
         }
         let source = Game.getObjectById(creep.memory.source);
         let container = Game.getObjectById(creep.memory.containerID);
-        // Handle requesting a hauler
-        if (container && _.sum(container.store) >= 150 * Game.rooms[creep.memory.overlord].level) {
-            creep.memory.needHauler = container.id;
-        } else if (!container && creep.pos.checkForEnergy() && creep.pos.checkForEnergy().energy >= 150 * Game.rooms[creep.memory.overlord].level) {
-            creep.memory.needHauler = creep.pos.checkForEnergy().id;
-        } else {
-            creep.memory.needHauler = undefined;
-        }
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(source);
                 break;
             case ERR_NOT_ENOUGH_RESOURCES:
-                creep.idleFor(source.ticksToRegeneration + 1);
+                if (container && creep.store[RESOURCE_ENERGY]) {
+                    creep.repair(container);
+                } else {
+                    creep.idleFor(source.ticksToRegeneration + 1);
+                }
                 break;
             case OK:
-                /**if (creep.memory.haulerID && Game.time % 50 === 0) {
-                    if (!Array.isArray(creep.memory.haulerID)) creep.memory.haulerID = [creep.memory.haulerID];
-                    creep.memory.haulerID = _.remove(creep.memory.haulerID, function (n) {
-                        return Game.getObjectById(n);
-                    });
-                }**/
+                // Handle requesting a hauler
+                let amount = 0;
+                let target = undefined;
+                if (container) {
+                    target = container.id;
+                    amount = container.store.getUsedCapacity(RESOURCE_ENERGY);
+                } else if (creep.pos.checkForEnergy()) {
+                    target = creep.pos.checkForEnergy().id;
+                    amount = creep.pos.checkForEnergy().energy;
+                }
+                creep.memory.needHauler = target;
+                creep.memory.energyAmount = amount;
+                // Handle container
                 if (container) {
                     if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.7) return creep.repair(container);
                     if (_.sum(container.store) >= 1980) {
@@ -60,22 +61,35 @@ module.exports.role = function (creep) {
                 break;
         }
     } else {
-        //Set destination reached
-        creep.memory.destinationReached = creep.pos.roomName === creep.memory.destination;
-        //Initial move
-        if (!creep.memory.destinationReached) {
-            creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
+        //Initial Move
+        if (creep.pos.roomName !== creep.memory.destination) {
+            if (creep.room.routeSafe(creep.memory.destination)) {
+                return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination, {range: 23}));
+            } else {
+                return creep.goToHub();
+            }
         } else {
             //Suicide and cache intel if room is reserved/owned by someone else
             if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username !== MY_USERNAME) || creep.room.controller.owner)) {
                 creep.room.cacheRoomIntel(true);
                 return creep.memory.recycle = true;
             }
-            //If source is set mine
-            if (!creep.memory.source) creep.findSource();
+            //If source is set mine (Handles not being able to reach sources)
+            if (!creep.memory.source && !creep.findSource() && !creep.scorchedEarth()) return creep.idleFor(25);
         }
         //Harvest
         if (creep.memory.source) {
+            let source = Game.getObjectById(creep.memory.source);
+            // Set the travel range in the source memory
+            if (!creep.memory.setTravelRange) {
+                let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
+                let homeExit = creep.room.find(goHome);
+                let homeMiddle = _.round(homeExit.length / 2);
+                let distanceToExit = source.pos.findPathTo(homeExit[homeMiddle]).length
+                let roomRange = Game.map.findRoute(creep.room.name, creep.memory.overlord).length;
+                if (roomRange > 1) source.memory.travelRange = distanceToExit + (roomRange * 40); else source.memory.travelRange = distanceToExit + 10;
+                creep.memory.setTravelRange = true;
+            }
             if (!creep.memory.containerID || !Game.getObjectById(creep.memory.containerID)) {
                 creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
             }
@@ -88,7 +102,6 @@ module.exports.role = function (creep) {
                     creep.memory.onContainer = true;
                 }
             }
-            let source = Game.getObjectById(creep.memory.source);
             switch (creep.harvest(source)) {
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(source);
@@ -115,11 +128,10 @@ module.exports.role = function (creep) {
 };
 
 function harvestDepositContainer(source, creep) {
-    switch (creep.harvest(Game.getObjectById(creep.memory.source))) {
+    switch (creep.harvest(source)) {
         case OK:
             let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(source) === 1});
             if (container) {
-                Memory.roomCache[creep.room.name].builderRequested = undefined;
                 return container.id;
             } else {
                 let site = source.pos.findInRange(creep.room.constructionSites, 3, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
@@ -129,7 +141,6 @@ function harvestDepositContainer(source, creep) {
                 } else if (!site && creep.pos.checkForWall()) {
                     findContainerSpot(creep.room, source.pos);
                 } else if (site && site.pos.getRangeTo(source) === 1) {
-                    Memory.roomCache[creep.room.name].builderRequested = true;
                     creep.memory.containerSite = site.id;
                     if (creep.store[RESOURCE_ENERGY] && creep.memory.containerSite) {
                         let site = Game.getObjectById(creep.memory.containerSite);
@@ -146,10 +157,10 @@ function harvestDepositContainer(source, creep) {
             }
             break;
         case ERR_NOT_IN_RANGE:
-            creep.shibMove(Game.getObjectById(creep.memory.source));
+            creep.shibMove(source);
             break;
         case ERR_NOT_ENOUGH_RESOURCES:
-            creep.idleFor(Game.getObjectById(creep.memory.source).ticksToRegeneration + 1)
+            creep.idleFor(source.ticksToRegeneration + 1)
     }
 }
 

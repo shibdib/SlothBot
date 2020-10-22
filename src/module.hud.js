@@ -30,7 +30,7 @@ module.exports.hud = function () {
         }
     }
     progressPerTick = average(GCL_PROGRESS_ARRAY);
-    let secondsToUpgrade = _.round(((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick) * Memory.tickLength);
+    let secondsToUpgrade = _.round(((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick) * Memory.tickInfo.tickLength);
     let ticksToUpgrade = _.round((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick);
     let displayTime;
     if (secondsToUpgrade < 60) displayTime = secondsToUpgrade + ' Seconds';
@@ -57,7 +57,7 @@ module.exports.hud = function () {
         displayText(room, 0, 1, paused + ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks. Bucket- ' + Game.cpu.bucket);
         //Safemode
         if (room.controller.safeMode) {
-            let secondsToNoSafe = room.controller.safeMode * Memory.tickLength;
+            let secondsToNoSafe = room.controller.safeMode * Memory.tickInfo.tickLength;
             let displayTime;
             if (secondsToNoSafe < 60) displayTime = secondsToNoSafe + ' Seconds';
             if (secondsToNoSafe >= 86400) displayTime = _.round(secondsToNoSafe / 86400, 2) + ' Days';
@@ -83,7 +83,7 @@ module.exports.hud = function () {
                     }
                 }
                 progressPerTick = average(siteInfo['progressArray']);
-                let secondsToUpgrade = _.round(((site.progressTotal - site.progress) / progressPerTick) * Memory.tickLength);
+                let secondsToUpgrade = _.round(((site.progressTotal - site.progress) / progressPerTick) * Memory.tickInfo.tickLength);
                 let ticksToUpgrade = _.round((site.progressTotal - site.progress) / progressPerTick);
                 let displayTime;
                 if (secondsToUpgrade < 60) displayTime = secondsToUpgrade + ' Seconds';
@@ -114,7 +114,7 @@ module.exports.hud = function () {
                 }
             }
             progressPerTick = average(RCL_PROGRESS[room.name]);
-            let secondsToUpgrade = _.round(((room.controller.progressTotal - room.controller.progress) / progressPerTick) * Memory.tickLength);
+            let secondsToUpgrade = _.round(((room.controller.progressTotal - room.controller.progress) / progressPerTick) * Memory.tickInfo.tickLength);
             let ticksToUpgrade = _.round((room.controller.progressTotal - room.controller.progress) / progressPerTick);
             let displayTime;
             if (secondsToUpgrade < 60) displayTime = secondsToUpgrade + ' Seconds';
@@ -132,5 +132,42 @@ module.exports.hud = function () {
             displayText(room, 0, y, ICONS.crossedSword + ' RESPONSE NEEDED: Threat Level ' + Memory.roomCache[room.name].threatLevel);
             y++;
         }
+    }
+    // Map Hud
+    try {
+        // Target Rooms
+        if (Memory.targetRooms) {
+            for (let room of Object.keys(Memory.targetRooms)) {
+                if (!Memory.targetRooms[room]) continue;
+                Game.map.visual.text(_.capitalize(Memory.targetRooms[room].type), new RoomPosition(2, 47, room), {
+                    color: '#ff0000',
+                    fontSize: 4,
+                    align: 'left'
+                });
+            }
+        }
+        // My rooms
+        for (let room of Memory.myRooms) {
+            Game.map.visual.text(_.capitalize(Game.rooms[room].mineral.mineralType), new RoomPosition(48, 48, room), {
+                color: '#01a218',
+                fontSize: 4
+            });
+            Game.map.visual.text('Energy: ' + Game.rooms[room].energy, new RoomPosition(2, 2, room), {
+                color: '#989212',
+                fontSize: 3,
+                align: 'left'
+            });
+            Game.map.visual.text('Creeps: ' + Game.rooms[room].creeps.length, new RoomPosition(2, 5, room), {
+                color: '#989212',
+                fontSize: 3,
+                align: 'left'
+            });
+            Game.map.visual.text('Threat Level: ' + (Memory.roomCache[room].threatLevel || 0), new RoomPosition(2, 8, room), {
+                color: '#989212',
+                fontSize: 3,
+                align: 'left'
+            });
+        }
+    } catch (e) {
     }
 };

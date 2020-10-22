@@ -16,11 +16,9 @@ require('module.pathFinder');
 // Operations
 require("operation.scout");
 require("operation.drain");
-require("operation.siege");
 require("operation.siegeGroup");
 require("operation.marauder");
 require("operation.guard");
 require("operation.hold");
-require("operation.rangers");
 require("operation.claimClear");
 require("operation.borderPatrol");
