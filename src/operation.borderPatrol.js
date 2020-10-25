@@ -32,7 +32,8 @@ Creep.prototype.borderPatrol = function () {
             // If in same room but apart move to each other
             if (partner.room.name === this.room.name && !partner.pos.isNearTo(this)) {
                 partner.shibMove(this, {range: 0});
-                if (this.canIWin(10)) return this.handleMilitaryCreep(); else return this.shibKite();
+                if (!this.canIWin(10)) this.shibKite();
+                return;
             } // Handle separate rooms
             else if (partner.room.name !== this.room.name) {
                 if (this.canIWin(10)) this.handleMilitaryCreep(); else this.shibKite();
