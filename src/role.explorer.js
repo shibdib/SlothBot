@@ -55,7 +55,7 @@ module.exports.role = function (creep) {
                 if (!creep.moveToHostileConstructionSites(false, true)) {
                     if (!SIGN_CLEANER) {
                         // If already signed continue
-                        if (creep.room.controller.sign && creep.room.controller.sign.username === MY_USERNAME) return creep.memory.destinationReached = true;
+                        if (creep.room.controller.sign && (creep.room.controller.sign.username === MY_USERNAME || creep.room.controller.sign.username === 'Screeps')) return creep.memory.destinationReached = true;
                         // Else sign
                         switch (creep.signController(creep.room.controller, _.sample(EXPLORED_ROOM_SIGNS))) {
                             case ERR_NOT_IN_RANGE:
@@ -65,7 +65,7 @@ module.exports.role = function (creep) {
                         }
                     } else {
                         // If already cleaned continue
-                        if (!creep.room.controller.sign || creep.room.controller.sign.username === MY_USERNAME) return creep.memory.destinationReached = true;
+                        if (!creep.room.controller.sign || creep.room.controller.sign.username === MY_USERNAME || creep.room.controller.sign.username === 'Screeps') return creep.memory.destinationReached = true;
                         // Else clean signs
                         switch (creep.signController(creep.room.controller, '')) {
                             case ERR_NOT_IN_RANGE:

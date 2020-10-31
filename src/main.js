@@ -31,7 +31,7 @@ module.exports.loop = function () {
             log.e('On CPU Cooldown For ' + countDown + ' more ticks. Current Bucket ' + Game.cpu.bucket);
             return;
         }
-    } else if (Game.cpu.bucket < Game.cpu.limit * 10) {
+    } else if (Game.cpu.bucket < 1000) {
         let tracking = Memory.cpuTracking || {};
         tracking.cooldown = Game.time;
         if (!tracking.badCounter) tracking.badCounter = 5; else tracking.badCounter += 15;
