@@ -304,6 +304,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                     break;
                 }
             }
+            if (!obstructions && !room.mineral.pos.findClosestByPath(_.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER))) obstructions = true;
             safemode = room.controller.safeMode;
             if (room.controller.owner) {
                 owner = room.controller.owner.username;

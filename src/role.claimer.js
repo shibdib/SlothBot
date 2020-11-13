@@ -26,6 +26,11 @@ module.exports.role = function (creep) {
         if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;
         if (creep.room.controller) {
             if (creep.room.controller.owner) return creep.memory.recycle = true;
+            if (!creep.pos.findClosestByPath(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER))) {
+                Memory.roomCache[creep.room.name].obstructions = true;
+                Memory.auxiliaryTargets[creep.room.name] = undefined;
+                return creep.memory.recycle = true;
+            }
             if (!creep.memory.signed) {
                 switch (creep.signController(creep.room.controller, _.sample(OWNED_ROOM_SIGNS))) {
                     case ERR_NOT_IN_RANGE:
