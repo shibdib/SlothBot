@@ -142,6 +142,18 @@ module.exports.status = function () {
         } catch (e) {
             log.a('--DIPLOMATIC INFO FAILED--', ' ');
         }
+        log.a('--CPU INFO--', ' ');
+        try {
+            if (_.size(CREEP_ROLE_CPU)) {
+                log.a('--CREEP ROLE INFO--', ' ');
+                let sorted = _.sortBy(CREEP_ROLE_CPU)
+                for (let role of Object.keys(CREEP_ROLE_CPU)) {
+                    log.e(role + ': ' + CREEP_ROLE_CPU[role], ' ')
+                }
+            }
+        } catch (e) {
+            log.a('--CREEP ROLE INFO FAILED--', ' ');
+        }
         return log.a('---------------------------------------------------------------------------', ' ');
     }
 };

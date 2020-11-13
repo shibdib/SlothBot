@@ -748,7 +748,7 @@ function getPath(creep, from, to) {
 function getMoveWeight(creep, options = {}) {
     // Handle PC
     if (creep.className) {
-        options.ignoreRoads = true;
+        options.offRoad = true;
         return options;
     }
     let move = creep.getActiveBodyparts(MOVE);

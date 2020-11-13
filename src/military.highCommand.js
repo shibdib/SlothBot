@@ -182,7 +182,7 @@ function operationRequests() {
     if (totalCountFiltered <= targetLimit) {
         // New Spawn Denial/No towers
         if (NEW_SPAWN_DENIAL) {
-            let newSpawns = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && ((Memory.roomCache[r.name].lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !r.towers && r.structures && r.owner && !checkForNap(r.owner) && !_.includes(FRIENDLIES, r.owner) && r.owner !== 'Invader' && !r.safemode && r.closestRange <= LOCAL_SPHERE * 3), function (t) {
+            let newSpawns = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !r.towers && r.structures && r.owner && !checkForNap(r.owner) && !_.includes(FRIENDLIES, r.owner) && r.owner !== 'Invader' && !r.safemode && r.closestRange <= LOCAL_SPHERE * 3), function (t) {
                 return t.closestRange
             });
             if (newSpawns[0]) {
@@ -199,7 +199,7 @@ function operationRequests() {
             }
         }
         // Kill strongholds
-        let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.sk && r.towers && r.closestRange <= 3 && ((Memory.roomCache[r.name].lastOperation || 0) + ATTACK_COOLDOWN < Game.time)), function (t) {
+        let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.sk && r.towers && r.closestRange <= 3 && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time)), function (t) {
             return t.closestRange
         });
         if (stronghold[0]) {
@@ -215,7 +215,7 @@ function operationRequests() {
         // Direct Room Attacks
         if (OFFENSIVE_OPERATIONS) {
             // Reserved room attacks
-            let reservedTarget = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.reservation && ((Memory.roomCache[r.name].lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user)), function (t) {
+            let reservedTarget = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.reservation && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user)), function (t) {
                 return t.closestRange
             })[0]
             if (reservedTarget) {

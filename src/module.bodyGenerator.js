@@ -179,11 +179,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             move = 2;
             break;
         case 'reserver':
-            deficitExemption = true;
             claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
-            if (claim > 25) claim = 25;
+            if (claim > 6) claim = 6;
             if (level >= 6) {
                 claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
+                if (claim > 6) claim = 6;
                 move = claim * 0.5;
             } else move = claim;
             break;
@@ -221,10 +221,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             break;
         case 'SKAttacker':
             deficitExemption = true;
-            attack = 16;
-            rangedAttack = 1;
+            attack = 17;
             heal = 8;
-            move = attack + heal + rangedAttack;
+            move = attack + heal;
             break;
         case 'SKMineral':
             work = 14;
@@ -269,5 +268,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
     for (let i = 0; i < heal; i++) healArray.push(HEAL)
     let toughArray = [];
     for (let i = 0; i < tough; i++) toughArray.push(TOUGH)
+    if (role === 'SKAttacker') return toughArray.concat(moveArray, shuffle(body), healArray);
     return toughArray.concat(shuffle(body), moveArray, healArray);
 };

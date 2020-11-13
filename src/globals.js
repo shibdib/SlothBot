@@ -64,25 +64,25 @@ let globals = function () {
 
     global.PRIORITIES = {
         // Harvesters
-        stationaryHarvester: 2,
+        stationaryHarvester: 1,
         // Workers=
-        drone: 3,
-        waller: 3,
-        upgrader: 4,
+        drone: 2,
+        waller: 2,
+        upgrader: 3,
         mineralHarvester: 7,
         repairer: 7,
         // Haulers
         hauler: 1,
         miscHauler: 3,
         // Remotes
-        remoteHarvester: 4,
-        remoteHauler: 3,
+        remoteHarvester: 5,
+        remoteHauler: 4,
         remoteUpgrader: 7,
         roadBuilder: 6,
         assistPioneer: 3,
         fuelTruck: 7,
-        reserver: 4,
-        borderPatrol: 3,
+        reserver: 6,
+        borderPatrol: 4,
         // Power
         Power: 6,
         // SK
@@ -103,7 +103,7 @@ let globals = function () {
 
     global.SPAWN = {
         0: {
-            stationaryHarvester: [WORK, WORK, CARRY, MOVE],
+            stationaryHarvester: [WORK, WORK, MOVE],
             drone: [MOVE, MOVE, CARRY, WORK],
             maintenance: [MOVE, MOVE, CARRY, WORK],
             waller: [MOVE, MOVE, CARRY, WORK],
@@ -126,6 +126,7 @@ let globals = function () {
     global.CREEP_CPU_ARRAY = {};
     global.ROOM_CPU_ARRAY = {};
     global.CREEP_ROLE_CPU_ARRAY = {};
+    global.CREEP_ROLE_CPU = {};
     global.ROOM_TASK_CPU_ARRAY = {};
     global.ROOM_ENERGY_INCOME_ARRAY = {};
     global.ROOM_ENERGY_PER_TICK = {};

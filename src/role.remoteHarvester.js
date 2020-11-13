@@ -14,11 +14,6 @@ module.exports.role = function (creep) {
     if (creep.skSafety()) return;
     // If you're in place just harvest
     if (creep.memory.onContainer) {
-        //Suicide and cache intel if room is reserved/owned by someone else
-        if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username !== MY_USERNAME) || creep.room.controller.owner)) {
-            creep.room.cacheRoomIntel(true);
-            return creep.memory.recycle = true;
-        }
         let source = Game.getObjectById(creep.memory.source);
         let container = Game.getObjectById(creep.memory.containerID);
         switch (creep.harvest(source)) {
@@ -47,14 +42,13 @@ module.exports.role = function (creep) {
                 creep.memory.energyAmount = amount;
                 // Handle container
                 if (container) {
-                    if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.7) return creep.repair(container);
-                    if (_.sum(container.store) >= 1980) {
-                        if (container.hits < container.hitsMax) creep.repair(container); else creep.idleFor(20);
-                    }
-                    if (Math.random() > 0.8) creep.memory.onContainer = undefined;
+                    if (Math.random() > 0.98) return creep.memory.onContainer = undefined;
+                    else if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.4) return creep.repair(container);
+                    else if (_.sum(container.store) >= 2000) creep.idleFor(20);
+                    else if (_.sum(container.store) >= 1500 && container.hits < container.hitsMax) creep.repair(container);
                 } else {
                     creep.memory.containerID = undefined;
-                    if (creep.pos.checkForConstructionSites() && creep.pos.checkForEnergy() && creep.pos.checkForEnergy().energy >= 1000) {
+                    if (creep.pos.checkForConstructionSites() && creep.pos.checkForEnergy() && creep.pos.checkForEnergy().energy >= 500) {
                         creep.build(creep.pos.checkForConstructionSites());
                     }
                 }

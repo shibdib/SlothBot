@@ -361,8 +361,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         power = _.filter(room.structures, (e) => e && e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
         if (power.length && power[0].pos.countOpenTerrainAround() > 1) power = Game.time + power[0].ticksToDecay; else power = undefined;
         // Handle user check for unclaimed
-        if (!user && _.filter(room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username))[0]) {
-            user = _.filter(room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username))[0].owner.username;
+        if (!user && _.filter(room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username) && s.owner.username !== 'Source Keeper')[0]) {
+            user = _.filter(room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username) && s.owner.username !== 'Source Keeper')[0].owner.username;
         } else if (!user && nonCombats.length >= 2) {
             user = nonCombats[0].owner.username;
         }

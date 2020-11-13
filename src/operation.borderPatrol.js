@@ -22,32 +22,26 @@ Creep.prototype.borderPatrol = function () {
         // Handle healing
         this.healInRange();
         // Handle partner checks
-        let partner = _.filter(Game.creeps, (c) => c.my && c.memory.squadLeader === this.id && c.id !== this.id)[0];
+        let partner = Game.getObjectById(this.memory.buddyAssigned) || _.filter(Game.creeps, (c) => c.my && c.memory.squadLeader === this.id && c.id !== this.id)[0];
         if (partner) {
             this.memory.buddyAssigned = partner.id;
             // Attack in range
             partner.attackInRange();
             // Handle healing
             partner.healInRange();
-            // If in same room but apart move to each other
-            if (partner.room.name === this.room.name && !partner.pos.isNearTo(this)) {
-                partner.shibMove(this, {range: 0});
-                if (!this.canIWin(10)) this.shibKite();
-                return;
-            } // Handle separate rooms
-            else if (partner.room.name !== this.room.name) {
-                if (this.canIWin(10)) this.handleMilitaryCreep(); else this.shibKite();
-                if (partner.canIWin(5)) partner.shibMove(this); else partner.shibKite();
-                return
-            } // Handle next to each other
-            else if (partner.pos.isNearTo(this)) {
+            // Handle next to each other
+            if (partner.pos.isNearTo(this)) {
+                // Handle idling
+                if (this.memory.awaitingOrders && this.memory.offDuty && !this.room.hostileCreeps.length) {
+                    return offDuty(this, partner);
+                }
+                this.memory.offDuty = undefined;
                 // Handle flee
-                if (this.memory.runCooldown || (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK))) {
+                if (this.memory.runCooldown) {
                     this.fleeHome(true);
                     return partner.shibMove(this, {range: 0});
-                }
-                // Handle winnable fights
-                if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(10) && this.pairFighting(partner)) {
+                } // Handle winnable fights
+                else if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(10) && this.pairFighting(partner)) {
                     this.memory.onTarget = undefined;
                     this.memory.other.responseTarget = this.room.name;
                     this.memory.awaitingOrders = undefined;
@@ -88,9 +82,16 @@ Creep.prototype.borderPatrol = function () {
                         this.memory.onTarget = undefined;
                     }
                 } else {
-                    offDuty(this);
-                    return partner.shibMove(this, {range: 0});
+                    this.memory.offDuty = true;
                 }
+            } // If in same room but apart move to each other
+            else if (partner.room.name === this.room.name && !partner.pos.isNearTo(this)) {
+                partner.shibMove(this, {range: 0});
+                if (!this.canIWin(10)) this.shibKite();
+            } // Handle separate rooms
+            else if (partner.room.name !== this.room.name) {
+                if (this.canIWin(10)) this.handleMilitaryCreep(); else this.shibKite();
+                if (partner.canIWin(5)) partner.shibMove(this); else partner.shibKite();
             }
         } else {
             this.memory.buddyAssigned = undefined;
@@ -99,7 +100,7 @@ Creep.prototype.borderPatrol = function () {
     }
 };
 
-function offDuty(creep) {
+function offDuty(creep, partner = undefined) {
     if (!creep.healAllyCreeps()) {
         let latestAttack = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat > 0 && Game.map.getRoomLinearDistance(r.name, creep.memory.overlord) <= 2 && !r.threatLevel), 'roomHeat');
         if (latestAttack && latestAttack.name && latestAttack.name !== creep.room.name) {
@@ -107,11 +108,11 @@ function offDuty(creep) {
         } else if (!latestAttack && creep.room.name !== creep.memory.overlord) {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 8})
         }
-        let center = new RoomPosition(25, 25, creep.room.name);
-        if (creep.pos.getRangeTo(center) > 10) {
-            return creep.shibMove(center, {range: 8});
-        } else {
-            return creep.idleFor(3);
+        if (!partner || partner.pos.isNearTo(creep)) {
+            if (partner) partner.idleFor(10)
+            return creep.idleFor(10);
+        } else if (partner) {
+            return partner.shibMove(this, {range: 0});
         }
     }
 }

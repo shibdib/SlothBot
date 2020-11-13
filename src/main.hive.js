@@ -13,6 +13,7 @@ let spawning = require('module.creepSpawning');
 let expansion = require('module.expansion');
 let diplomacy = require('module.diplomacy');
 let hud = require('module.hud');
+let tools = require('tools.cpuTracker');
 
 module.exports.hiveMind = function () {
     // Diplomacy must run
@@ -96,6 +97,7 @@ module.exports.hiveMind = function () {
 
 let errorCount = {};
 function minionController(minion) {
+    let start = Game.cpu.getUsed();
     // If on portal move
     if (minion.portalCheck() || minion.borderCheck()) return;
     // Disable notifications
@@ -113,7 +115,6 @@ function minionController(minion) {
     if (minion.memory.fleeNukeTime && minion.fleeNukeRoom(minion.memory.fleeNukeRoom)) return;
     // Set role
     let memoryRole = minion.memory.role;
-    let start = Game.cpu.getUsed();
     try {
         // Report intel chance
         if (minion.room.name !== minion.memory.overlord && Math.random() > 0.5) {
@@ -125,47 +126,6 @@ function minionController(minion) {
             let creepRole = require('role.' + memoryRole);
             creepRole.role(minion);
         }
-        let used = Game.cpu.getUsed() - start;
-        let cpuUsageArray = CREEP_CPU_ARRAY[minion.name] || [];
-        if (cpuUsageArray.length < 50) {
-            cpuUsageArray.push(used)
-        } else {
-            cpuUsageArray.shift();
-            cpuUsageArray.push(used);
-            if (average(cpuUsageArray) > 7.5 && minion.memory.role !== 'claimer') {
-                //minion.suicide();
-                if (minion.memory.military && minion.memory.destination && (Memory.targetRooms[minion.memory.destination] || Memory.auxiliaryTargets[minion.memory.destination])) {
-                    delete Memory.targetRooms[minion.memory.destination];
-                    delete Memory.auxiliaryTargets[minion.memory.destination];
-                }
-                log.e(minion.name + ' was killed for overusing CPU in room ' + roomLink(minion.room.name));
-            }
-        }
-        CREEP_CPU_ARRAY[minion.name] = cpuUsageArray;
-        cpuUsageArray = CREEP_ROLE_CPU_ARRAY[minion.role] || [];
-        if (cpuUsageArray.length < 50) {
-            cpuUsageArray.push(used)
-        } else {
-            cpuUsageArray.shift();
-            cpuUsageArray.push(used);
-        }
-        CREEP_ROLE_CPU_ARRAY[minion.role] = cpuUsageArray;
-        let roomCreepCpu = ROOM_CREEP_CPU_OBJECT['military'] || {};
-        cpuUsageArray = roomCreepCpu[minion.name] || [];
-        if (cpuUsageArray.length < 50) {
-            cpuUsageArray.push(used)
-        } else {
-            cpuUsageArray.shift();
-            cpuUsageArray.push(used);
-        }
-        roomCreepCpu[minion.name] = cpuUsageArray;
-        ROOM_CREEP_CPU_OBJECT['military'] = roomCreepCpu;
-        minion.room.visual.text(
-            _.round(average(cpuUsageArray), 2),
-            minion.pos.x,
-            minion.pos.y,
-            {opacity: 0.8, font: 0.4, stroke: '#000000', strokeWidth: 0.05}
-        );
     } catch (e) {
         if (!errorCount[minion.name]) errorCount[minion.name] = 1; else errorCount[minion.name] += 1;
         if (errorCount[minion.name] < 10) {
@@ -182,4 +142,6 @@ function minionController(minion) {
             //minion.memory.recycle = true;
         }
     }
+    // Store CPU usage
+    tools.creepCPU(minion, start);
 }

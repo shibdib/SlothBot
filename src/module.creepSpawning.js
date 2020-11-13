@@ -44,7 +44,7 @@ module.exports.processBuildQueue = function (room) {
         let range = LOCAL_SPHERE * 2;
         if (room.energyState) range = LOCAL_SPHERE * 4;
         // Only build global queue if you have energy
-        if (_.size(globalQueue) && room.energyState && !Memory.roomCache[room.name].threatLevel && _.inRange(level, maxLevel - 1, maxLevel + 1)) {
+        if (_.size(globalQueue) && !Memory.roomCache[room.name].threatLevel && _.inRange(level, maxLevel - 1, maxLevel + 1)) {
             let distanceFilteredGlobal = _.filter(globalQueue, (q) => q.role === 'scout' || !q.destination || Memory.auxiliaryTargets[q.destination] ||
                 Game.map.getRoomLinearDistance(q.destination, room.name) < range || (Memory.roomCache[q.destination] && Memory.roomCache[q.destination].owner === MY_USERNAME));
             queue = _.sortBy(Object.assign({}, distanceFilteredGlobal, roomQueue[room.name]), 'priority');
@@ -338,7 +338,7 @@ module.exports.remoteCreepQueue = function (room) {
         // Find rooms around you using roomCache with remote possibilities
         let sourceCount = 0;
         let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && !Memory.roomCache[r].isHighway && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
-            (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && !Memory.roomCache[r].owner && !Memory.roomCache[r].level);
+            (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME || Memory.roomCache[r].user === 'Source Keeper') && !Memory.roomCache[r].owner && !Memory.roomCache[r].level);
         // Handle SK middle room
         /**
          if (level >= 7 && _.filter(adjacent, (r) => Memory.roomCache[r] && Memory.roomCache[r].sk).length) {
@@ -448,7 +448,10 @@ module.exports.remoteCreepQueue = function (room) {
                 if (level >= 4 && !Memory.roomCache[remoteName].obstructions && (!Memory.roomCache[remoteName].reservationExpires || Game.time > Memory.roomCache[remoteName].reservationExpires) && Memory.roomCache[remoteName].sources < 3) {
                     let amount = Memory.roomCache[remoteName].reserverCap + 1 || 1;
                     if (getCreepCount(room, 'reserver', remoteName) < amount) {
-                        queueCreep(room, PRIORITIES.reserver, {role: 'reserver', destination: remoteName})
+                        queueCreep(room, PRIORITIES.reserver + getCreepCount(room, 'reserver', remoteName), {
+                            role: 'reserver',
+                            destination: remoteName
+                        })
                     }
                 }
                 // Handle middle room case with mineral
@@ -461,7 +464,7 @@ module.exports.remoteCreepQueue = function (room) {
         }
         if (getCreepCount(room, 'remoteHarvester')) {
             // Remote Hauler
-            if (getCreepCount(room, 'remoteHauler') < getCreepCount(room, 'remoteHarvester') * 1.25) {
+            if (getCreepCount(room, 'remoteHauler') < getCreepCount(room, 'remoteHarvester') * 0.7) {
                 queueCreep(room, PRIORITIES.remoteHauler + getCreepCount(room, 'remoteHauler') * 0.5, {
                     role: 'remoteHauler',
                     misc: remoteHives[room.name]
@@ -766,7 +769,7 @@ function displayQueue(room) {
     let range = LOCAL_SPHERE * 2;
     if (room.energyState) range = LOCAL_SPHERE * 4;
     // Only build global queue if you have energy
-    if (_.size(globalQueue) && room.energyState && !Memory.roomCache[room.name].threatLevel && _.inRange(level, maxLevel - 1, maxLevel + 1)) {
+    if (_.size(globalQueue) && !Memory.roomCache[room.name].threatLevel && _.inRange(level, maxLevel - 1, maxLevel + 1)) {
         let distanceFilteredGlobal = _.filter(globalQueue, (q) => q.role === 'scout' || !q.destination || Memory.auxiliaryTargets[q.destination] ||
             Game.map.getRoomLinearDistance(q.destination, room.name) < range || (Memory.roomCache[q.destination] && Memory.roomCache[q.destination].owner === MY_USERNAME));
         queue = _.sortBy(Object.assign({}, distanceFilteredGlobal, roomQueue[room.name]), 'priority');

@@ -11,7 +11,9 @@
 
 module.exports.role = function role(creep) {
     if (creep.shibKite()) return true;
-    //Invader detection
+    // Trailer at low level
+    if (creep.room.controller && creep.room.controller.level < 3 && creep.towTruck()) return true;
+    // Invader detection
     if (creep.fleeHome()) return;
     // Handle remote drones
     if (!creep.memory.destination) creep.memory.destination = creep.memory.overlord;
