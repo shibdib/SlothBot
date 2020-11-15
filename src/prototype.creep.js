@@ -128,6 +128,7 @@ Creep.prototype.skSafety = function () {
 
 Creep.prototype.constructionWork = function () {
     let construction = this.room.constructionSites;
+    let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax && !_.filter(this.room.creeps, (c) => c.my && c.memory.constructionSite === s.id).length);
     let site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
     if (site.length) {
         site = this.pos.findClosestByRange(site);
@@ -135,7 +136,7 @@ Creep.prototype.constructionWork = function () {
         this.memory.task = 'build';
         return true;
     }
-    site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000 && !_.filter(this.room.creeps, (c) => c.my && c.memory.constructionSite === s.id).length);
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
@@ -186,9 +187,9 @@ Creep.prototype.constructionWork = function () {
         this.memory.task = 'build';
         return true;
     }
-    let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax);
-    site = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.5), 'hits');
-    if (site.id) {
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.5);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         this.memory.targetHits = site.hitsMax * 0.65;
@@ -201,14 +202,16 @@ Creep.prototype.constructionWork = function () {
         this.memory.task = 'build';
         return true;
     }
-    site = shuffle(_.filter(construction, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART));
+    site = _.filter(construction, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
     if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
         this.memory.task = 'build';
         return true;
     }
-    site = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5), 'hits');
-    if (site.id) {
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         this.memory.targetHits = site.hitsMax * 0.65;

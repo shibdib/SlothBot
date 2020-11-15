@@ -380,10 +380,10 @@ function rampartBuilder(room, layout) {
         let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
         // Clean up boundaries
         for (let key in rect_array) {
-            if (rect_array[key].x1 < bounds.x1) rect_array[key].x1 = 2;
-            if (rect_array[key].y1 < bounds.y1) rect_array[key].y1 = 2;
-            if (rect_array[key].x2 > bounds.x2) rect_array[key].x2 = 47;
-            if (rect_array[key].y2 > bounds.y2) rect_array[key].y2 = 47;
+            if (rect_array[key].x1 < 2) rect_array[key].x1 = 2;
+            if (rect_array[key].y1 < 2) rect_array[key].y1 = 2;
+            if (rect_array[key].x2 > 47) rect_array[key].x2 = 47;
+            if (rect_array[key].y2 > 47) rect_array[key].y2 = 47;
         }
         try {
             rampartSpots[room.name] = JSON.stringify(minCut.GetCutTiles(room.name, rect_array, bounds));
@@ -425,6 +425,8 @@ function rampartBuilder(room, layout) {
             /**else if (!pos.checkForObstacleStructure() && !pos.checkForRoad() &&
              !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD && s.progress < s.progressTotal * 0.95).length) pos.createConstructionSite(STRUCTURE_ROAD);**/
         }
+        // Protected Structures
+        _.filter(room.structures, (s) => protectedStructureTypes.includes(s.structureType) && !s.pos.checkForRampart() && !s.pos.checkForConstructionSites()).forEach((s) => s.pos.createConstructionSite(STRUCTURE_RAMPART))
     }
 }
 
@@ -839,7 +841,7 @@ function getPosKey(pos) {
     return pos.x + 'x' + pos.y;
 }
 
-let protectedStructures = [
+let protectedStructureTypes = [
     STRUCTURE_SPAWN,
     STRUCTURE_STORAGE,
     STRUCTURE_TOWER,

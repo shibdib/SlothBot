@@ -156,7 +156,10 @@ module.exports.roomStartup = function (room) {
     if (getCreepCount(room, 'stationaryHarvester') && !getCreepCount(room, 'hauler')) {
         queueCreep(room, 2, {role: 'hauler'})
     }
-    if (getCreepCount(room, 'explorer') < 2) {
+    if (Memory.roomCache[room.name].threatLevel && !getCreepCount(room, 'defender')) {
+        queueCreep(room, 2, {role: 'defender'})
+    }
+    if (Memory.maxLevel < 8 && getCreepCount(room, 'explorer') < 2) {
         queueCreep(room, 4, {role: 'explorer'})
     }
 };
@@ -179,7 +182,7 @@ module.exports.essentialCreepQueue = function (room) {
     }
     //Haulers
     if (getCreepCount(room, 'stationaryHarvester')) {
-        if (getCreepCount(room, 'hauler') < 2 || (getCreepTTL(room, 'hauler') < 100 && getCreepCount(room, 'hauler') === 2)) {
+        if (!getCreepCount(room, 'hauler') || (getCreepTTL(room, 'hauler') < 100 && getCreepCount(room, 'hauler') === 1)) {
             queueCreep(room, PRIORITIES.hauler + getCreepCount(room, 'hauler'), {
                 role: 'hauler',
                 other: {reboot: getCreepCount(room, 'hauler') < 1 || room.friendlyCreeps.length < 5}
@@ -243,8 +246,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     // Maintenance
-    let count = 1;
-    if (getCreepCount(room, 'maintenance') < count + room.energyState) {
+    if (getCreepCount(room, 'maintenance') < 2) {
         queueCreep(room, PRIORITIES.drone, {role: 'maintenance'})
     }
     // If no conflict detected
@@ -272,7 +274,7 @@ module.exports.miscCreepQueue = function (room) {
             }
         }
         //Pre observer spawn explorers
-        if (level < 8 && getCreepCount(room, 'explorer') < 3) {
+        if (Memory.maxLevel < 8 && getCreepCount(room, 'explorer') < 3) {
             queueCreep(room, PRIORITIES.explorer, {role: 'explorer', military: true})
         }
         // Assist room
@@ -355,7 +357,7 @@ module.exports.remoteCreepQueue = function (room) {
         }
         if (adjacent.length) adjacent.forEach((r) => sourceCount += Memory.roomCache[r].sources || 1);
         // Handle less than desired
-        if (sourceCount < 6) {
+        if (sourceCount < 4) {
             let secondary = [];
             for (let adjacentRoom of adjacent) {
                 let secondaryAdjacent = _.filter(Game.map.describeExits(adjacentRoom), (r) => Memory.roomCache[r] && Memory.roomCache[r].sources && (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
@@ -366,7 +368,7 @@ module.exports.remoteCreepQueue = function (room) {
                 secondary.forEach((r) => sourceCount += Memory.roomCache[r].sources || 1);
                 adjacent = adjacent.concat(secondary);
             }
-            if (sourceCount < 6) {
+            if (sourceCount < 4) {
                 for (let adjacentRoom of adjacent) {
                     let secondaryAdjacent = _.filter(Game.map.describeExits(adjacentRoom), (r) => Memory.roomCache[r] && Memory.roomCache[r].sources && (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
                         !Memory.roomCache[r].owner && !Memory.roomCache[r].sk && Game.map.findRoute(room.name, r).length <= 2);
