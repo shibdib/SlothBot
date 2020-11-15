@@ -26,6 +26,7 @@ module.exports.role = function (creep) {
         if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;
         if (creep.room.controller) {
             if (creep.room.controller.owner) {
+                cleanRoom(creep.room, creep.room.structures);
                 creep.room.cacheRoomIntel(true);
                 return creep.memory.recycle = true;
             }
@@ -57,7 +58,6 @@ module.exports.role = function (creep) {
                     case OK:
                         Memory.auxiliaryTargets[creep.room.name] = undefined;
                         Memory.myRooms.push(creep.room.name);
-                        cleanRoom(creep.room, creep.room.structures);
                         let praiseRoom = _.filter(Memory.myRooms, (r) => Game.rooms[r].memory.praiseRoom);
                         if (!praiseRoom.length && Memory.myRooms.length >= 5 && BUILD_PRAISE_ROOMS) {
                             creep.room.memory.praiseRoom = true;
