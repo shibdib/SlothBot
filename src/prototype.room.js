@@ -122,7 +122,11 @@ Object.defineProperty(Room.prototype, 'hostileStructures', {
 Object.defineProperty(Room.prototype, 'droppedResources', {
     get: function () {
         if (!this._droppedResources) {
-            this._droppedResources = this.find(FIND_DROPPED_RESOURCES);
+            if (!this.hostileCreeps.length) {
+                this._droppedResources = this.find(FIND_DROPPED_RESOURCES);
+            } else {
+                this._droppedResources = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
+            }
         }
         return this._droppedResources;
     },
@@ -133,7 +137,11 @@ Object.defineProperty(Room.prototype, 'droppedResources', {
 Object.defineProperty(Room.prototype, 'droppedEnergy', {
     get: function () {
         if (!this._droppedEnergy) {
-            this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY});
+            if (!this.hostileCreeps.length) {
+                this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY});
+            } else {
+                this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
+            }
         }
         return this._droppedEnergy;
     },
@@ -200,7 +208,11 @@ Object.defineProperty(Room.prototype, 'constructionSites', {
 Object.defineProperty(Room.prototype, 'tombstones', {
     get: function () {
         if (!this._tombstones) {
-            this._tombstones = this.find(FIND_TOMBSTONES);
+            if (!this.hostileCreeps.length) {
+                this._tombstones = this.find(FIND_TOMBSTONES);
+            } else {
+                this._tombstones = this.find(FIND_TOMBSTONES, {filter: (r) => r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
+            }
         }
         return this._tombstones;
     },
@@ -211,7 +223,11 @@ Object.defineProperty(Room.prototype, 'tombstones', {
 Object.defineProperty(Room.prototype, 'ruins', {
     get: function () {
         if (!this._ruins) {
-            this._ruins = this.find(FIND_RUINS);
+            if (!this.hostileCreeps.length) {
+                this._ruins = this.find(FIND_RUINS);
+            } else {
+                this._ruins = this.find(FIND_RUINS, {filter: (r) => r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
+            }
         }
         return this._ruins;
     },
@@ -283,7 +299,7 @@ function getRoomResource(room, resource, unused = false) {
 Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     let room = Game.rooms[this.name];
-    let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation,
+    let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, robbery,
         reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions;
     if (room) {
         if (Memory.roomCache[room.name]) lastOperation = Memory.roomCache[room.name].lastOperation;
@@ -362,11 +378,14 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         power = _.filter(room.structures, (e) => e && e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
         if (power.length && power[0].pos.countOpenTerrainAround() > 1) power = Game.time + power[0].ticksToDecay; else power = undefined;
         // Handle user check for unclaimed
-        if (!user && _.filter(room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username) && s.owner.username !== 'Source Keeper')[0]) {
-            user = _.filter(room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username) && s.owner.username !== 'Source Keeper')[0].owner.username;
-        } else if (!user && nonCombats.length >= 2) {
+        if (!user && nonCombats.length >= 2) {
             user = nonCombats[0].owner.username;
         }
+        // Get closest
+        let closestRange = this.findClosestOwnedRoom(true);
+        // Handle robbery check
+        if ((!user || user === MY_USERNAME) && closestRange <= 3 && room.structures.length && _.filter(room.structures, (t) => t.structureType !== STRUCTURE_CONTAINER && t.structureType !== STRUCTURE_NUKER &&
+            t.store && !t.pos.checkForRampart() && t.store.getUsedCapacity()).length) robbery = true;
         let key = room.name;
         cache[key] = {
             cached: Game.time,
@@ -383,8 +402,9 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             safemode: safemode,
             portal: portal,
             power: power,
+            robbery: robbery,
             isHighway: !room.controller && !sk && !room.sources.length,
-            closestRange: this.findClosestOwnedRoom(true),
+            closestRange: closestRange,
             hubCheck: hubCheck,
             sourceRange: sourceRange,
             obstructions: obstructions,

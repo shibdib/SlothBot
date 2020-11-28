@@ -31,15 +31,17 @@ module.exports.loop = function () {
             log.e('On CPU Cooldown For ' + countDown + ' more ticks. Current Bucket ' + Game.cpu.bucket);
             return;
         }
-    } else if (Game.cpu.bucket < 1000) {
+    }
+    Memory.cpuTracking = {};
+    /** else if (Game.cpu.bucket < 1000) {
         let tracking = Memory.cpuTracking || {};
         tracking.cooldown = Game.time;
         if (!tracking.badCounter) tracking.badCounter = 5; else tracking.badCounter += 15;
         log.e('Skipping tick ' + Game.time + ' due to lack of CPU.');
         return Memory.cpuTracking = tracking;
     } else
-        // Track bucket to determine if rooms need to be dropped
-    if ((!Memory.lastPixelGenerated || Memory.lastPixelGenerated + 10000 < Game.time) && _.size(Memory.myRooms) > 3) {
+     // Track bucket to determine if rooms need to be dropped
+     if ((!Memory.lastPixelGenerated || Memory.lastPixelGenerated + 10000 < Game.time) && _.size(Memory.myRooms) > 3) {
         let tracking = Memory.cpuTracking || {};
         if (Game.cpu.bucket < ROOM_ABANDON_THRESHOLD) {
             if (!tracking.badCounter) tracking.badCounter = 1; else tracking.badCounter += 1;
@@ -54,7 +56,7 @@ module.exports.loop = function () {
             if (!tracking.claimLimiter) tracking.claimLimiter = 1; else tracking.claimLimiter += 1;
         } else if (!tracking.badCounter && tracking.claimLimiter) tracking.claimLimiter -= 1;
         Memory.cpuTracking = tracking;
-    } else if (!Memory.cpuTracking) Memory.cpuTracking = {};
+    } else if (!Memory.cpuTracking) Memory.cpuTracking = {};**/
 
     // Update allies
     populateLOANlist();
@@ -76,7 +78,7 @@ module.exports.loop = function () {
     if (Memory.myRooms && Memory.myRooms.length) hive.hiveMind();
 
     // Pixel Gen
-    if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name) && Game.cpu.bucket >= 7500) {
+    if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name) && Game.cpu.bucket >= 10000 && Memory.lastPixelGenerated + 150 < Game.time) {
         Game.cpu.generatePixel();
         log.a('Pixel Generated.');
         Memory.lastPixelGenerated = Game.time;

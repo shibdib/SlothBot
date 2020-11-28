@@ -7,6 +7,7 @@
 
 const DEFAULT_MAXOPS = 10000;
 const STATE_STUCK = 2;
+const FLEE_RANGE = 4;
 
 const terrainMatrixCache = {};
 const structureMatrixCache = {};
@@ -86,7 +87,7 @@ function shibMove(creep, heading, options = {}) {
     if (!creep.memory._shibMove || (creep.memory._shibMove.path && (creep.memory._shibMove.path.length < 1 || !creep.memory._shibMove.path))) creep.memory._shibMove = {};
     if (creep.memory._shibMove && ((creep.memory._shibMove.path && creep.memory._shibMove.path.length < 1) || !creep.memory._shibMove.path)) creep.memory._shibMove = {};
     // Check if target moved
-    if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y || creep.memory._shibMove.target.roomName !== target.roomName)) {
+    if (creep.memory._shibMove.target && (target instanceof Creep || target instanceof PowerCreep) && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y)) {
         // If the target is still in the general area and we have a ways to go, don't repath
         let storedPos = new RoomPosition(creep.memory._shibMove.target.x, creep.memory._shibMove.target.y, creep.memory._shibMove.target.roomName);
         let currentTargetPos = new RoomPosition(target.x, target.y, target.roomName);
@@ -157,7 +158,7 @@ function shibMove(creep, heading, options = {}) {
             delete pathInfo.path;
         }
     } else {
-        return shibPath(creep, heading, pathInfo, origin, target, options);
+        shibPath(creep, heading, pathInfo, origin, target, options);
     }
 }
 
@@ -236,16 +237,16 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             maxRooms: options.maxRooms,
             roomCallback: callback,
         });
+        if (creep.name === 'remoteHarvester_E38N46_T3_29') console.log(JSON.stringify(ret))
         if (ret.incomplete) {
-            if (roomDistance === 0) return creep.idleFor(1);
             target = new RoomPosition(25, 25, target.roomName);
             options.range = 23;
-            if (!pathInfo.findAttempt) {
+            if (!pathInfo.findAttempt && roomDistance) {
                 options.useFindRoute = true;
                 options.maxRooms = 16;
                 pathInfo.findAttempt = true;
                 options.maxOps = 50000;
-                //console.log("<font color='#ff0000'>PATHING ERROR: Creep " + creep.name + " could not find a path from " + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + " retrying.</font>");
+                //log.e("PATHING ERROR: Creep " + creep.name + " could not find a path from " + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + " retrying.");
                 return shibPath(creep, heading, pathInfo, origin, target, options);
             } else if (pathInfo.findAttempt) {
                 if (!creep.memory.badPathing) creep.memory.badPathing = 1;
@@ -495,7 +496,7 @@ function addStructuresToMatrix(room, matrix, type) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
         } else if (structure instanceof StructureRoad && (!structure.pos.checkForRampart() || structure.pos.checkForRampart().my || structure.pos.checkForRampart().isPublic)) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost);
-        } else if (structure instanceof Source) {
+        } else if (structure instanceof StructureContainer) {
             matrix.set(structure.pos.x, structure.pos.y, 45);
         } else {
             matrix.set(structure.pos.x, structure.pos.y, 256);
@@ -561,7 +562,6 @@ function addHostilesToMatrix(room, matrix) {
     for (let key in enemyCreeps) {
         matrix.set(enemyCreeps[key].pos.x, enemyCreeps[key].pos.y, 0xff);
         let range = 6;
-        if (!enemyCreeps[key].getActiveBodyparts(RANGED_ATTACK)) range = 3;
         let avoidZone = enemyCreeps[key].room.lookForAtArea(LOOK_TERRAIN, enemyCreeps[key].pos.y - range, enemyCreeps[key].pos.x - range, enemyCreeps[key].pos.y + range, enemyCreeps[key].pos.x + range, true);
         for (let pos of avoidZone) {
             let position;
@@ -570,8 +570,9 @@ function addHostilesToMatrix(room, matrix) {
             } catch (e) {
                 continue;
             }
-            if (!position || (matrix.get(position.x, position.y) && matrix.get(position.x, position.y) >= 25)) continue;
-            matrix.set(position.x, position.y, 25)
+            let weight = 10 * ((range + 1) - position.getRangeTo(enemyCreeps[key]));
+            if (!position || (matrix.get(position.x, position.y) && matrix.get(position.x, position.y) >= weight)) continue;
+            matrix.set(position.x, position.y, weight)
         }
     }
     return matrix;
@@ -605,10 +606,8 @@ function addSksToMatrix(room, matrix) {
                         continue;
                     }
                     if (position && !position.checkForWall()) {
-                        let rating = 220;
-                        let range = position.getRangeTo(sk);
-                        if (range === 4) rating = 150; else if (range === 3) rating = 175; else if (range === 2) rating = 200;
-                        matrix.set(position.x, position.y, rating)
+                        let weight = 40 * (5 - position.getRangeTo(sk));
+                        matrix.set(position.x, position.y, weight)
                     }
                 }
             }
@@ -625,10 +624,8 @@ function addSksToMatrix(room, matrix) {
                         continue;
                     }
                     if (position && !position.checkForWall()) {
-                        let rating = 200;
-                        let range = position.getRangeTo(lair);
-                        if (range === 4) rating = 100; else if (range === 3) rating = 125; else if (range === 2) rating = 150;
-                        matrix.set(position.x, position.y, rating)
+                        let weight = 40 * (5 - position.getRangeTo(lair));
+                        matrix.set(position.x, position.y, weight)
                     }
                 }
             }
@@ -801,7 +798,7 @@ RoomPosition.prototype.shibMove = function (destination, options) {
 };
 
 
-Creep.prototype.shibKite = function (fleeRange = 6, target = undefined) {
+Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined) {
     if (!this.getActiveBodyparts(MOVE) || (this.room.controller && this.room.controller.safeMode)) return false;
     let avoid = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange + 1) || this.pos.findInRange(this.room.structures, fleeRange + 1, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0] || target;
     if ((this.memory.destination === this.room.name || this.memory.other.responseTarget === this.room.name) && Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) {
@@ -816,7 +813,7 @@ Creep.prototype.shibKite = function (fleeRange = 6, target = undefined) {
     let closestExit = this.pos.findClosestByRange(FIND_EXIT);
     if (this.pos.getRangeTo(closestExit) <= 5) return this.shibMove(closestExit, {range: 0});
     this.memory._shibMove = undefined;
-    let avoidance = _.map(this.pos.findInRange(avoid, fleeRange + 1), (c) => {
+    let avoidance = _.map(avoid, (c) => {
         return {pos: c.pos, range: fleeRange + 1};
     });
     let options = getMoveWeight(this, {});
@@ -842,7 +839,6 @@ Creep.prototype.shibKite = function (fleeRange = 6, target = undefined) {
         this.move(this.pos.getDirectionTo(ret.path[0]));
         return true;
     } else {
-        this.idleFor(fleeRange - 3);
-        return true;
+        return false;
     }
 };

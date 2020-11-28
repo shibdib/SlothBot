@@ -19,11 +19,6 @@ Creep.prototype.marauding = function () {
         hud(this);
         // Set visited
         if (!this.memory.other.visited) this.memory.other.visited = [];
-        // Sustainability
-        if (this.room.name === this.memory.destination) {
-            levelManager(this);
-            highCommand.operationSustainability(this.room);
-        }
         // Attack in range
         this.attackInRange();
         // Handle healing

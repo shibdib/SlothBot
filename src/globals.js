@@ -529,6 +529,80 @@ let globals = function () {
     global.TEN_CPU = Game.cpu.limit === 20 || Game.shard.name === 'shard3';
 
     global.log = new Log();
+
+
+    global.floodFill = function (roomName) {
+
+        const room = Game.rooms[roomName];
+
+        const walls = room.find(FIND_STRUCTURES, {
+                filter: structure => [STRUCTURE_WALL, STRUCTURE_RAMPART].includes(structure.structureType)
+            }
+        );
+
+        const terrain = new Room.Terrain(roomName);
+
+        const startTime = Game.cpu.getUsed();
+
+        const matrix = new PathFinder.CostMatrix();
+
+        walls.forEach(wall => {
+            matrix.set(wall.pos.x, wall.pos.y, 255);
+        });
+
+        const queue = [];
+        for (let i = 0; i < 49; i++) {
+            if (terrain.get(i, 0) !== TERRAIN_MASK_WALL) {
+                matrix.set(i, 0, 1);
+                queue.push([i, 0]);
+            }
+            if (terrain.get(i, 49) !== TERRAIN_MASK_WALL) {
+                matrix.set(i, 49, 1);
+                queue.push([i, 49]);
+            }
+            if (terrain.get(0, i) !== TERRAIN_MASK_WALL) {
+                matrix.set(0, i, 1);
+                queue.push([0, i]);
+            }
+            if (terrain.get(49, i) !== TERRAIN_MASK_WALL) {
+                matrix.set(49, i, 1);
+                queue.push([49, i]);
+            }
+        }
+
+        while (queue.length > 0) {
+            const length = queue.length;
+            for (let i = 0; i < length; i++) {
+                const [x, y] = queue[i];
+
+                for (let dx = x - 1; dx <= x + 1; dx++) {
+                    for (let dy = y - 1; dy <= y + 1; dy++) {
+                        if (
+                            dx > 0 && dx < 49 && dy > 0 && dy < 49 &&
+                            matrix.get(dx, dy) === 0 &&
+                            (terrain.get(dx, dy) & TERRAIN_MASK_WALL) === 0
+                        ) {
+                            matrix.set(dx, dy, 1);
+                            queue.push([dx, dy]);
+                        }
+                    }
+                }
+            }
+            queue.splice(0, length);
+        }
+
+        console.log('cpu used:', Game.cpu.getUsed() - startTime);
+
+        const visual = new RoomVisual(roomName);
+        for (let x = 1; x < 49; x++) {
+            for (let y = 1; y < 49; y++) {
+                if (matrix.get(x, y) === 1) {
+                    visual.circle();
+                    visual.circle(x, y, {radius: 0.2, fill: 'white', opacity: 0.6});
+                }
+            }
+        }
+    };
 };
 
 module.exports = globals;

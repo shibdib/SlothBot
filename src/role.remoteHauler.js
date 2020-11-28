@@ -23,11 +23,7 @@ module.exports.role = function (creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling) {
-        // Perform opportunistic road repair
-        creep.repairRoad();
         if (creep.pos.roomName === creep.memory.overlord) {
-            // If carrying minerals deposit in terminal or storage
-            if (_.sum(creep.store) > creep.store[RESOURCE_ENERGY]) creep.memory.storageDestination = creep.room.terminal.id || creep.room.storage.id;
             if (creep.memory.storageDestination) {
                 if (creep.memory.storageDestination === 'con') return creep.shibMove(creep.room.controller);
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
@@ -45,28 +41,46 @@ module.exports.role = function (creep) {
                     }
                 }
             } else {
-                dropOff(creep)
+                // If carrying minerals deposit in terminal or storage
+                if (_.sum(creep.store) > creep.store[RESOURCE_ENERGY]) creep.memory.storageDestination = creep.room.terminal.id || creep.room.storage.id;
+                else dropOff(creep)
             }
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
         }
     } else {
-        if (creep.memory.assignment) {
-            let assignment = Game.getObjectById(creep.memory.assignment);
-            if (assignment && creep.room.routeSafe(assignment.pos.roomName)) {
-                creep.withdrawResource(assignment);
-            } else {
-                creep.memory.assignment = undefined;
+        if (creep.memory.misc) {
+            let harvester = Game.getObjectById(creep.memory.misc);
+            if (!harvester) return creep.memory.misc = undefined;
+            if (creep.room.routeSafe(harvester.pos.roomName)) {
+                creep.withdrawResource(Game.getObjectById(harvester.memory.needHauler));
             }
         } else {
-            // Tow Truck
-            if (creep.towTruck()) return;
-            // Handle Finding A Harvester In Need, if none exists go home and idle
-            let remoteHarvester = _.filter(Game.creeps, (harv) => _.includes(JSON.parse(creep.memory.misc), harv.room.name) && creep.room.routeSafe(harv.room.name) && harv.memory.energyAmount &&
-                (_.sum(_.filter(Game.creeps, (c) => c.memory.assignment === harv.memory.needHauler), function (h) {
+            let harvesters = _.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && c.memory.carryAmountNeeded);
+            if (harvesters.length) {
+                for (let h of harvesters) {
+                    let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === h.id);
+                    let current = 0;
+                    if (assignedHaulers.length) {
+                        assignedHaulers.forEach((c) => current += c.store.getCapacity())
+                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 4) continue;
+                    }
+                    return creep.memory.misc = h.id
+                }
+            }
+            creep.idleFor(10);
+        }
+    }
+};
+
+/**
+ *
+ // Handle Finding A Harvester In Need, if none exists go home and idle
+ let remoteHarvester = _.filter(Game.creeps, (harv) => _.includes(JSON.parse(creep.memory.misc), harv.room.name) && creep.room.routeSafe(harv.room.name) && harv.memory.energyAmount &&
+ (_.sum(_.filter(Game.creeps, (c) => c.memory.assignment === harv.memory.needHauler), function (h) {
                     return h.store.getFreeCapacity()
                 }) + creep.store.getFreeCapacity()) <= harv.memory.energyAmount);
-            if (remoteHarvester.length) {
+ if (remoteHarvester.length) {
                 creep.memory.assignment = _.min(remoteHarvester, function (t) {
                     if (!Game.getObjectById(t.memory.source)) return;
                     return Game.getObjectById(t.memory.source).memory.travelRange
@@ -74,10 +88,8 @@ module.exports.role = function (creep) {
             } else {
                 creep.goToHub();
             }
-        }
-    }
-};
-_.sum(_.filter(Game.creeps, (c) => c.memory.assignment === '5f87f20bb68549004bf9df10'), '.store.getFreeCapacity(RESOURCE_ENERGY)')
+ */
+
 // Remote Hauler Drop Off
 function dropOff(creep) {
     buildLinks(creep);
@@ -111,7 +123,7 @@ function dropOff(creep) {
     }
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     //Controller
-    if (controllerContainer && (!creep.room.storage || creep.room.energyState || !controllerContainer.store[RESOURCE_ENERGY]) && (!creep.room.storage || !controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5)) {
+    if (controllerContainer && controllerContainer.store.getFreeCapacity() && (!creep.room.storage || creep.room.energyState || !controllerContainer.store[RESOURCE_ENERGY]) && (!creep.room.storage || !controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5)) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     } else if (creep.room.storage && creep.room.storage.store.getFreeCapacity()) {

@@ -67,7 +67,6 @@ module.exports.role = function (creep) {
 
 function skDeposit(creep) {
     if (creep.pos.roomName === creep.memory.overlord) {
-        if (creep.renewalCheck()) return;
         if (creep.room.storage) {
             for (const resourceType in creep.store) {
                 switch (creep.transfer(creep.room.storage, resourceType)) {

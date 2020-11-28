@@ -24,10 +24,10 @@ module.exports.controller = function (room) {
     if (Game.time % 100 === 0) handleNukeAttack(room);
 
     // Check if you should safemode
-    if (Memory.roomCache[room.name].threatLevel > 2) safeModeManager(room);
+    if (Game.time % 100 === 0 && Memory.roomCache[room.name].threatLevel > 2 && room.level >= Memory.maxLevel - 1) safeModeManager(room);
 
     // Abandon hopeless rooms
-    if (Game.time % 100 === 0 && Memory.roomCache[room.name].threatLevel) unSavableCheck(room);
+    if (Memory.roomCache[room.name].threatLevel) unSavableCheck(room);
 
     // Tower control
     towers.towerControl(room);
@@ -45,6 +45,7 @@ module.exports.controller = function (room) {
         if (!playerHostile || !playerHostile.length) return;
         let hostileOwners = [];
         for (let hostile of playerHostile) hostileOwners.push(hostile.owner.username)
+        hostileOwners = _.uniq(hostileOwners);
         Game.notify('----------------------');
         Game.notify(room.name + ' - Enemy detected, room is now in FPCON DELTA.');
         Game.notify('----------------------');
@@ -60,7 +61,7 @@ module.exports.controller = function (room) {
         log.a('Hostile Owners - ' + hostileOwners.toString());
         log.a('----------------------');
         let nukeTargets = Memory.MAD || [];
-        playerHostile.forEach((p) => nukeTargets.push(p.owner.username))
+        hostileOwners.forEach((p) => nukeTargets.push(p))
         Memory.MAD = _.uniq(nukeTargets);
     }
 
@@ -97,9 +98,9 @@ function safeModeManager(room) {
         structureCount[room.name] = undefined;
         return;
     }
-    let worthyCount = structureCount[room.name] || _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
+    let worthyCount = structureCount[room.name] || _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD).length;
     structureCount[room.name] = worthyCount;
-    let structureLost = worthyCount > _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
+    let structureLost = worthyCount > _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD).length;
     let damagedCritical = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TOWER) && s.hits < s.hitsMax).length > 0;
     let towers = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_TOWER && s.energy > 10)).length > 0;
     if (structureLost || damagedCritical || !towers) {
@@ -122,7 +123,7 @@ function earlyWarning(room) {
 
 function unSavableCheck(room) {
     // Abandon Bad Rooms
-    if (_.size(Memory.myRooms) === 1) return false;
+    if (_.size(Memory.myRooms) === 1 || _.size(Memory.myRooms) < Game.gcl.level) return false;
     let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= 10 && s.isActive());
     let badCount = room.memory.badCount || 0;
     let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)));

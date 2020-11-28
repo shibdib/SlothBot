@@ -5,13 +5,15 @@ module.exports = function (grunt) {
 
     grunt.loadNpmTasks('grunt-screeps');
 
-    if (host !== 'mmo') {
+    if (host !== 'mmo' && !options.token) {
+        let port = 21025;
+        if (options.port) port = options.port;
         grunt.initConfig({
             screeps: {
                 options: {
                     server: {
                         host: options.host,
-                        port: 21025,
+                        port: port,
                         http: true
                     },
                     email: options.email,
@@ -28,10 +30,10 @@ module.exports = function (grunt) {
         grunt.initConfig({
             screeps: {
                 options: {
-                    email: options.email,
-                    password: options.password,
+                    token: options.token,
                     branch: options.branch,
-                    ptr: options.ptr
+                    ptr: options.ptr,
+                    season: options.season
                 },
                 dist: {
                     src: ['src/*.js']

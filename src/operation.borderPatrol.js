@@ -32,7 +32,7 @@ Creep.prototype.borderPatrol = function () {
             // Handle next to each other
             if (partner.pos.isNearTo(this)) {
                 // Handle idling
-                if (this.memory.awaitingOrders && this.memory.offDuty && !this.room.hostileCreeps.length) {
+                if (this.memory.awaitingOrders && this.memory.offDuty && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) {
                     return offDuty(this, partner);
                 }
                 this.memory.offDuty = undefined;
@@ -101,7 +101,7 @@ Creep.prototype.borderPatrol = function () {
 };
 
 function offDuty(creep, partner = undefined) {
-    if (!creep.healAllyCreeps()) {
+    if (!creep.healCreeps()) {
         let latestAttack = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat > 0 && Game.map.getRoomLinearDistance(r.name, creep.memory.overlord) <= 2 && !r.threatLevel), 'roomHeat');
         if (latestAttack && latestAttack.name && latestAttack.name !== creep.room.name) {
             return creep.shibMove(new RoomPosition(25, 25, latestAttack.name), {range: 8})

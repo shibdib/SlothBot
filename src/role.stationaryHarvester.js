@@ -10,60 +10,71 @@
  */
 
 module.exports.role = function (creep) {
-    // Handle replacing old harv
-    if (creep.memory.replace && Game.getObjectById(creep.memory.replace)) {
-        if (creep.pos.getRangeTo(Game.getObjectById(creep.memory.replace)) <= 4) {
-            Game.getObjectById(creep.memory.replace).memory.recycle = true;
-        }
-    } else creep.memory.replace = undefined;
     //If source is set harvest
     if (creep.memory.source) {
-        //Find container
-        if (!creep.memory.containerAttempt && !creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
-        let container = Game.getObjectById(creep.memory.containerID);
-        //Make sure you're on the container
-        if (!creep.memory.onContainer && (container || Game.getObjectById(creep.memory.source).memory.containerPos)) {
-            let spot = container || new RoomPosition(JSON.parse(Game.getObjectById(creep.memory.source).memory.containerPos).x, JSON.parse(Game.getObjectById(creep.memory.source).memory.containerPos).y, creep.room.name);
-            if (spot && creep.pos.getRangeTo(spot)) {
-                return creep.shibMove(spot, {range: 0});
-            } else {
-                creep.memory.onContainer = true;
+        // If in place harvest
+        if (creep.memory.onContainer) {
+            let source = Game.getObjectById(creep.memory.source);
+            switch (creep.harvest(source)) {
+                case ERR_NOT_IN_RANGE:
+                    if (Game.getObjectById(creep.memory.containerID)) creep.shibMove(Game.getObjectById(creep.memory.containerID), {range: 0});
+                    else creep.shibMove(source);
+                    break;
+                case ERR_NOT_ENOUGH_RESOURCES:
+                    if (Game.getObjectById(creep.memory.containerID) && creep.store[RESOURCE_ENERGY]) {
+                        creep.repair(Game.getObjectById(creep.memory.containerID));
+                    } else {
+                        creep.idleFor(source.ticksToRegeneration + 1);
+                    }
+                    break;
+                case OK:
+                    let harvestPower = creep.memory.harvestPower || _.filter(creep.body, (b) => b.type === WORK).length * HARVEST_POWER;
+                    if (Game.time % (creep.store.getCapacity() / harvestPower)) {
+                        let container = Game.getObjectById(creep.memory.containerID);
+                        creep.memory.harvestPower = harvestPower;
+                        if ((creep.memory.linkID || creep.memory.extensions) && container && container.store[RESOURCE_ENERGY])
+                            creep.withdraw(container, RESOURCE_ENERGY);
+                        if (_.sum(creep.store) === creep.store.getCapacity())
+                            return depositEnergy(creep);
+                    }
+                    break;
             }
-        }
-        // Build container
-        if (!creep.memory.containerID && !extensionFiller(creep) && _.sum(creep.store) === creep.store.getCapacity()) {
-            let dropped = creep.pos.lookFor(LOOK_RESOURCES)[0];
-            if (dropped && dropped.amount >= 700) {
-                let site = creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
-                if (site) {
-                    return creep.build(site);
-                } else {
-                    creep.memory.needHauler = true;
-                    creep.idleFor(5);
+        } else {
+            // Handle replacing old harv
+            if (creep.memory.replace && Game.getObjectById(creep.memory.replace)) {
+                if (creep.pos.getRangeTo(Game.getObjectById(creep.memory.replace)) <= 4) {
+                    Game.getObjectById(creep.memory.replace).memory.recycle = true;
                 }
-            } else {
-                creep.memory.needHauler = undefined;
+            } else creep.memory.replace = undefined;
+            //Find container
+            if (!creep.memory.containerAttempt && !creep.memory.containerID) {
+                return creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
             }
-        }
-        let source = Game.getObjectById(creep.memory.source);
-        switch (creep.harvest(source)) {
-            case ERR_NOT_IN_RANGE:
-                if (container) creep.shibMove(container, {range: 0});
-                else creep.shibMove(source);
-                break;
-            case ERR_NOT_ENOUGH_RESOURCES:
-                if (container && creep.store[RESOURCE_ENERGY]) {
-                    creep.repair(container);
+            let container = Game.getObjectById(creep.memory.containerID);
+            //Make sure you're on the container
+            if (!creep.memory.onContainer && (container || Game.getObjectById(creep.memory.source).memory.containerPos)) {
+                let spot = container || new RoomPosition(JSON.parse(Game.getObjectById(creep.memory.source).memory.containerPos).x, JSON.parse(Game.getObjectById(creep.memory.source).memory.containerPos).y, creep.room.name);
+                if (spot && creep.pos.getRangeTo(spot)) {
+                    return creep.shibMove(spot, {range: 0});
                 } else {
-                    creep.idleFor(source.ticksToRegeneration + 1);
+                    creep.memory.onContainer = true;
                 }
-                break;
-            case OK:
-                if (container && container.store[RESOURCE_ENERGY] > 10 && (creep.memory.linkID || creep.memory.extensions) && Game.time % 3 === 0)
-                    creep.withdraw(container, RESOURCE_ENERGY);
-                if (_.sum(creep.store) === creep.store.getCapacity())
-                    return depositEnergy(creep);
-                break;
+            }
+            // Build container
+            if (!creep.memory.containerID && !extensionFiller(creep) && _.sum(creep.store) === creep.store.getCapacity()) {
+                let dropped = creep.pos.lookFor(LOOK_RESOURCES)[0];
+                if (dropped && dropped.amount >= 700) {
+                    let site = creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
+                    if (site) {
+                        return creep.build(site);
+                    } else {
+                        creep.memory.needHauler = true;
+                        creep.idleFor(5);
+                    }
+                } else {
+                    creep.memory.needHauler = undefined;
+                }
+            }
         }
     } else {
         if (!creep.findSource()) {
@@ -80,7 +91,7 @@ function depositEnergy(creep) {
     //Attempt to build extensions
     if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level || Math.random() > 0.99) extensionBuilder(creep);
     //Check if there is extensions
-    if (!creep.memory.extensionsFound || Math.random() > 0.98) extensionFinder(creep);
+    extensionFinder(creep);
     //Fill extensions if you have any stored
     if (creep.memory.extensions && extensionFiller(creep)) return;
     let container = Game.getObjectById(creep.memory.containerID);
@@ -94,7 +105,7 @@ function depositEnergy(creep) {
         }
         if (link.energy < link.energyCapacity) {
             creep.transfer(link, RESOURCE_ENERGY);
-        } else if (container && _.sum(container.store) >= 1900) {
+        } else if (container && _.sum(container.store) >= 1900 && !extensionFiller(creep)) {
             creep.idleFor(20);
         }
     } else if (!creep.memory.linkAttempt) {
@@ -116,23 +127,23 @@ function depositEnergy(creep) {
 }
 
 function extensionFinder(creep) {
-    creep.memory.extensionsFound = true;
-    let container = Game.getObjectById(creep.memory.containerID) || creep;
-    if (container) {
-        let extension = container.pos.findInRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION), 1);
-        if (extension.length) {
-            for (let s of extension) {
-                if (creep.room.controller.level >= 4 && !s.pos.checkForRampart() && !s.pos.checkForConstructionSites()) s.pos.createConstructionSite(STRUCTURE_RAMPART);
+    if (!creep.memory.extensionsFound || Math.random() > 0.99) {
+        creep.memory.extensionsFound = true;
+        let container = Game.getObjectById(creep.memory.containerID) || creep;
+        if (container) {
+            let extension = container.pos.findInRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION), 1);
+            if (extension.length) {
+                let sourceExtensions = creep.room.memory.sourceExtension || '[]';
+                creep.room.memory.sourceExtension = JSON.stringify(_.union(JSON.parse(sourceExtensions), _.pluck(extension, 'id')));
+                creep.memory.extensions = JSON.stringify(_.pluck(extension, 'id'));
             }
-            let sourceExtensions = creep.room.memory.sourceExtension || '[]';
-            creep.room.memory.sourceExtension = JSON.stringify(_.union(JSON.parse(sourceExtensions), _.pluck(extension, 'id')));
-            creep.memory.extensions = JSON.stringify(_.pluck(extension, 'id'));
         }
     }
+    return false;
 }
 
 function extensionFiller(creep) {
-    if (!creep.memory.extensions) return false;
+    if (!creep.memory.extensions) return extensionFinder(creep);
     let rawExtension = JSON.parse(creep.memory.extensions);
     for (let id of rawExtension) {
         let extension = Game.getObjectById(id);
@@ -186,27 +197,27 @@ function harvestDepositLink(creep) {
 }
 
 function harvestDepositContainer(source, creep) {
+    creep.memory.containerAttempt = true;
     let container = source.pos.findInRange(creep.room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.room.controller)})[0];
     if (container) {
         if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
         if (!source.memory.containerPos) source.memory.containerPos = JSON.stringify(container.pos);
-        creep.memory.containerAttempt = true;
         return container.id;
     } else {
         if (!source.memory.containerPos) {
             let site = source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.room.controller)})[0];
-            if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 2 && !creep.pos.isNearTo(creep.room.controller)) {
+            if (!site && creep.room.controller.level >= 2) {
                 source.memory.containerPos = JSON.stringify(findBestContainerPos(source));
             } else if (site) {
                 if (creep.pos.getRangeTo(site) > 0) creep.shibMove(site, {range: 0});
                 source.memory.containerPos = JSON.stringify(site.pos);
-                creep.memory.containerAttempt = true;
+            } else if (!creep.pos.isNearTo(source)) {
+                creep.shibMove(source);
             }
         } else if (creep.room.controller.level >= 3) {
             let storedSite = JSON.parse(source.memory.containerPos);
             let containerSite = new RoomPosition(storedSite.x, storedSite.y, storedSite.roomName);
             if (!containerSite.checkForConstructionSites()) containerSite.createConstructionSite(STRUCTURE_CONTAINER);
-            creep.memory.containerAttempt = true;
         }
     }
 }

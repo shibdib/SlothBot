@@ -228,7 +228,7 @@ var util_mincut = {
 
         }
         // ********************** Visualisierung
-        if (true) {
+        if (1 > 2) {
             let visual = new RoomVisual(roomname);
             let x = 0;
             let y = 0;
@@ -381,7 +381,7 @@ var util_mincut = {
         if (true && positions.length > 0) {
             let visual = new RoomVisual(roomname);
             for (let i = positions.length - 1; i >= 0; i--) {
-                visual.circle(positions[i].x, positions[i].y, {radius: 0.5, fill: '#ff7722', opacity: 0.9});
+                //visual.circle(positions[i].x, positions[i].y, {radius: 0.5, fill: '#ff7722', opacity: 0.9});
             }
         }
         return positions;

@@ -14,6 +14,7 @@ module.exports.role = function (creep) {
     if (creep.memory.operation === 'borderPatrol') return creep.borderPatrol();
     // Responder Mode
     if (creep.memory.other.responseTarget || !creep.memory.operation) {
+        if (creep.memory.other.responseTarget) return creep.guardRoom();
         if (creep.hits < creep.hitsMax) creep.heal(creep);
         creep.say(ICONS.respond, true);
         if (creep.room.memory.towerTarget && Game.getObjectById(creep.room.memory.towerTarget)) {

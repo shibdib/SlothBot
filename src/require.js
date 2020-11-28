@@ -7,6 +7,7 @@
 
 require("globals")();
 require("prototype.creep");
+require("prototype.creepCombat");
 require("prototype.powerCreep");
 require("prototype.roomPosition");
 require("prototype.roomObject");

@@ -126,6 +126,8 @@ function manageMarauders(marauders) {
             else marauder.memory.other.destination = _.sample(targets).name
             marauder.memory.awaitingTarget = undefined;
             log.a(marauder.name + ' re-tasked to attack ' + roomLink(marauder.memory.other.destination) + ' from ' + roomLink(marauder.room.name), 'MARAUDING:');
+        } else {
+            marauder.memory.other.visited = [];
         }
     }
 }
@@ -166,6 +168,21 @@ function auxiliaryOperations() {
             Memory.auxiliaryTargets = cache;
             log.a('Mining operation planned for ' + roomLink(commodityRooms[0].name) + ' suspected commodity deposit location, Nearest Room - ' + commodityRooms[0].closestRange + ' rooms away', 'HIGH COMMAND: ');
         }
+    }
+    // Robbery
+    let robberyRooms = _.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.robbery);
+    let robberyOperations = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'robbery').length || 0;
+    if (robberyRooms.length && robberyOperations < 2) {
+        let cache = Memory.auxiliaryTargets || {};
+        let tick = Game.time;
+        cache[robberyRooms[0].name] = {
+            tick: tick,
+            type: 'robbery',
+            level: 1,
+            priority: 3
+        };
+        Memory.auxiliaryTargets = cache;
+        log.a('Robbery operation planned for ' + roomLink(robberyRooms[0].name) + ', Nearest Room - ' + robberyRooms[0].closestRange + ' rooms away', 'HIGH COMMAND: ');
     }
 }
 
@@ -469,6 +486,7 @@ function manageAuxiliary() {
                 if (Game.gcl.level === Memory.myRooms.length) delete Memory.auxiliaryTargets[key];
                 break;
             case 'clean':
+            case 'robbery':
                 break;
         }
         if (!Memory.auxiliaryTargets[key]) continue;
@@ -595,6 +613,11 @@ function manualAttacks() {
                 type: 'claim'
             };
         }
+        // Abandon a room
+        if (_.startsWith(name, 'abandon')) {
+            abandon(Game.flags[name].pos.roomName)
+            return Game.flags[name].remove();
+        }
         if (cache[Game.flags[name].pos.roomName]) {
             let op = cache[Game.flags[name].pos.roomName];
             op.tick = Game.time;
@@ -702,4 +725,27 @@ module.exports.generateThreat = function (creep) {
         lastAction: Game.time,
     };
     Memory._badBoyList = cache;
+};
+
+// Abandon a room
+abandon = function (room) {
+    if (!Game.rooms[room]) return log.e(room + ' does not appear to be owned by you.');
+    let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
+    if (overlordFor.length) {
+        for (let key in overlordFor) {
+            overlordFor[key].memory.recycle = true;
+        }
+    }
+    for (let key in Game.rooms[room].structures) {
+        Game.rooms[room].structures[key].destroy();
+    }
+    for (let key in Game.rooms[room].constructionSites) {
+        Game.rooms[room].constructionSites[key].remove();
+    }
+    let noClaim = Memory.noClaim || [];
+    noClaim.push(room);
+    delete Game.rooms[room].memory;
+    Game.rooms[room].cacheRoomIntel(true);
+    Memory.roomCache[room].noClaim = Game.time + 999999999999;
+    Game.rooms[room].controller.unclaim();
 };

@@ -12,8 +12,9 @@
  * @param {string} role - The creeps role.
  * @param {object} room - The spawning room.
  * @param {string} reboot - If we need the body with whatever energy available.
+ * @param {string} misc - Special info.
  */
-module.exports.bodyGenerator = function (level, role, room = undefined, reboot = undefined) {
+module.exports.bodyGenerator = function (level, role, room = undefined, reboot = undefined, misc = undefined) {
     let body = [];
     let work, claim, carry, move, tough, attack, rangedAttack, heal, deficitExemption;
     let deficit = room.energy / (ENERGY_AMOUNT * 1.5);
@@ -35,12 +36,16 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
         case 'praiseMineral':
         case 'drone':
         case 'waller':
-        case 'maintenance':
             if (room.nukes.length) deficitExemption = true;
             work = _.floor((energyAmount * 0.3) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
             carry = _.floor((energyAmount * 0.2) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
+            move = work + carry;
+            break;
+        case 'maintenance':
+            work = 1
+            carry = 1;
             move = work + carry;
             break;
         case 'praiseUpgrader':
@@ -51,7 +56,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             move = 1;
             break;
         case 'upgrader':
-            if (level !== room.controller.level || room.nukes.length) {
+            if (room.nukes.length) {
                 work = 1;
                 carry = 1;
                 move = work + carry;
@@ -87,13 +92,12 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             deficitExemption = true;
             if (room.energyState) {
                 work = _.floor((energyAmount - 50) / (BODYPART_COST[WORK] + (BODYPART_COST[MOVE] * 0.5))) || 1;
-                if (work > 7) work = 7;
-                move = work * 0.5;
             } else {
                 work = _.floor((energyAmount - 50) / BODYPART_COST[WORK]) || 1;
-                if (work > 7) work = 7;
             }
+            if (work > 5) work = 5;
             carry = 1;
+            if (level >= 7) carry = 2;
             break;
         case 'mineralHarvester':
             work = _.floor((energyAmount * 0.75) / BODYPART_COST[WORK]) || 1;
@@ -173,6 +177,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             if (claim > 25) claim = 25;
             move = claim;
             break;
+        case 'robber':
+            carry = _.floor((energyAmount * 0.50) / BODYPART_COST[CARRY]) || 1;
+            if (carry > 16) carry = 16;
+            move = carry;
+            break;
         // Remote
         case 'claimer':
             claim = 1;
@@ -194,16 +203,19 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
         case 'remoteHarvester':
             deficitExemption = true;
             work = _.floor((energyAmount * 0.4) / BODYPART_COST[WORK]) || 1;
-            if (work > 7) work = 7;
+            if (work > 6) work = 6;
             carry = 1;
             if (room.memory.roadsBuilt) move = work / 2; else move = work;
             break;
         case 'remoteHauler':
             deficitExemption = true;
-            if (Math.random() > 0.7) work = 1; else work = 0;
-            carry = _.floor(((energyAmount - (work * BODYPART_COST[WORK])) * 0.50) / BODYPART_COST[CARRY]) || 1;
-            if (carry > 16) carry = 16;
-            if (room.memory.roadsBuilt) move = (carry + work) / 2; else move = carry + work;
+            let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === misc);
+            let current = 0;
+            if (assignedHaulers.length) assignedHaulers.forEach((c) => current += c.store.getCapacity())
+            carry = _.floor((energyAmount * 0.50) / BODYPART_COST[CARRY]) || 1;
+            if (Game.getObjectById(misc)) if ((carry * 50) > (Game.getObjectById(misc).memory.carryAmountNeeded - current)) carry = _.ceil((Game.getObjectById(misc).memory.carryAmountNeeded - current) / 50)
+            if (carry > 25) carry = 25;
+            if (room.memory.roadsBuilt) move = carry / 2; else move = carry;
             break;
         case 'roadBuilder':
             work = _.floor((energyAmount * _.random(0.2, 0.5)) / BODYPART_COST[WORK]) || 1;
