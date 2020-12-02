@@ -32,7 +32,7 @@ function levelManager(creep) {
             Memory.targetRooms[creep.memory.destination].level = 2;
         } else if (enemyCreeps.length) {
             Memory.targetRooms[creep.memory.destination].level = 1;
-        } else {
+        } else if (Game.shard.name !== 'shardSeason' || !creep.room.find(FIND_SCORE_COLLECTORS)[0]) {
             Memory.targetRooms[creep.memory.destination].level = 0;
         }
     }

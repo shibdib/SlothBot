@@ -300,9 +300,20 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     let room = Game.rooms[this.name];
     let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, robbery,
-        reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions;
+        reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions, seasonResource,
+        seasonCollector;
     if (room) {
         if (Memory.roomCache[room.name]) lastOperation = Memory.roomCache[room.name].lastOperation;
+        // Check for season resource
+        if (Game.shard.name === 'shardSeason') {
+            let container = room.find(FIND_SCORE_CONTAINERS)[0];
+            let collector = room.find(FIND_SCORE_COLLECTORS)[0];
+            if (container) seasonResource = Game.time + container.ticksToDecay;
+            // If collector is reachable, mark as 1 else mark as 2
+            if (collector) {
+                if (collector.pos.findClosestByPath(FIND_EXIT)) seasonCollector = 1; else seasonCollector = 2;
+            }
+        }
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
         // Get special rooms via name
@@ -321,7 +332,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 }
             }
             if (!obstructions && !room.mineral.pos.findClosestByPath(_.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER))) obstructions = true;
-            safemode = room.controller.safeMode;
+            if (room.controller.safeMode) safemode = room.controller.safeMode + Game.time;
             if (room.controller.owner) {
                 owner = room.controller.owner.username;
                 user = room.controller.owner.username;
@@ -409,6 +420,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             sourceRange: sourceRange,
             obstructions: obstructions,
             lastOperation: lastOperation,
+            seasonResource: seasonResource,
+            seasonCollector: seasonCollector,
             invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,
             towers: _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10 && s.isActive()).length,
             structures: _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR).length

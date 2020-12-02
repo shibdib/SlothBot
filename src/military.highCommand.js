@@ -138,35 +138,84 @@ function auxiliaryOperations() {
     if (maxLevel >= 6) {
         // Power Mining
         if (maxLevel >= 8 && (!Memory.saleTerminal.room || Game.rooms[Memory.saleTerminal.room].store[RESOURCE_POWER] < REACTION_AMOUNT)) {
-            let powerRooms = _.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.power && r.power + 1500 >= Game.time && r.closestRange <= 8);
+            let powerRoom = _.min(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.power && r.power + 1500 >= Game.time && r.closestRange <= 8), 'closestRange');
             let powerMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'power').length || 0;
-            if (powerRooms.length && !powerMining) {
+            if (powerRoom && !powerMining) {
                 let cache = Memory.auxiliaryTargets || {};
                 let tick = Game.time;
-                cache[powerRooms[0].name] = {
+                cache[powerRoom.name] = {
                     tick: tick,
                     type: 'power',
                     level: 1,
                     priority: 3
                 };
                 Memory.auxiliaryTargets = cache;
-                log.a('Mining operation planned for ' + roomLink(powerRooms[0].name) + ' suspected power bank location, Nearest Room - ' + powerRooms[0].closestRange + ' rooms away', 'HIGH COMMAND: ');
+                log.a('Mining operation planned for ' + roomLink(powerRoom.name) + ' suspected power bank location, Nearest Room - ' + powerRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
             }
         }
         // Commodity Mining
-        let commodityRooms = _.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.commodity && r.closestRange <= 8 && !r.user);
+        let commodityRoom = _.min(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.commodity && r.closestRange <= 8 && (!r.user || r.user === MY_USERNAME)), 'closestRange');
         let commodityMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'commodity').length || 0;
-        if (commodityRooms.length && commodityMining < 2) {
+        if (commodityRoom && commodityMining < 2) {
             let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;
-            cache[commodityRooms[0].name] = {
+            cache[commodityRoom.name] = {
                 tick: tick,
                 type: 'commodity',
                 level: 1,
                 priority: 3
             };
             Memory.auxiliaryTargets = cache;
-            log.a('Mining operation planned for ' + roomLink(commodityRooms[0].name) + ' suspected commodity deposit location, Nearest Room - ' + commodityRooms[0].closestRange + ' rooms away', 'HIGH COMMAND: ');
+            log.a('Mining operation planned for ' + roomLink(commodityRoom.name) + ' suspected commodity deposit location, Nearest Room - ' + commodityRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
+        }
+    }
+    // Seasonal score collection
+    if (Game.shard.name === 'shardSeason') {
+        let scoreCollector = _.min(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.seasonCollector === 1 && (!r.user || r.user === MY_USERNAME) && !r.owner), 'closestRange');
+        // Score collection
+        if (maxLevel >= 4 || scoreCollector.name) {
+            let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.seasonResource > Game.time && r.closestRange <= r.seasonResource / 50 && (!r.user || r.user === MY_USERNAME)), 'closestRange');
+            let scoreMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'score').length || 0;
+            if (scoreRoom && scoreMining < 5) {
+                let cache = Memory.auxiliaryTargets || {};
+                let tick = Game.time;
+                cache[scoreRoom.name] = {
+                    tick: tick,
+                    type: 'score',
+                    level: 1,
+                    priority: 1
+                };
+                Memory.auxiliaryTargets = cache;
+                log.a('Score Claiming operation planned for ' + roomLink(scoreRoom.name) + ' suspected score container location, Nearest Room - ' + scoreRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
+            }
+        }
+        // Collector clearing
+        let pendingCollector = _.min(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.seasonCollector === 2 && (!r.user || r.user === MY_USERNAME)), 'closestRange');
+        let scoreCleaning = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'scoreCleaner').length || 0;
+        if (!scoreCleaning && pendingCollector.name && (!scoreCollector.name || scoreCollector.closestRoom > pendingCollector.closestRoom)) {
+            let cache = Memory.auxiliaryTargets || {};
+            let tick = Game.time;
+            cache[pendingCollector.name] = {
+                tick: tick,
+                type: 'scoreCleaner',
+                level: 1,
+                priority: 1
+            };
+            Memory.auxiliaryTargets = cache;
+            log.a('Score cleaning operation planned for ' + roomLink(pendingCollector.name) + ' to clear walls, Nearest Room - ' + pendingCollector.closestRange + ' rooms away', 'HIGH COMMAND: ');
+        }
+        // Collector Guard
+        else if (scoreCollector.name && !Memory.targetRooms[scoreCollector.name]) {
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[pendingCollector.name] = {
+                tick: tick,
+                type: 'guard',
+                level: 1,
+                priority: 1
+            };
+            Memory.targetRooms = cache;
+            log.a('Score guard operation planned for ' + roomLink(pendingCollector.name) + ', Nearest Room - ' + pendingCollector.closestRange + ' rooms away', 'HIGH COMMAND: ');
         }
     }
     // Robbery
@@ -199,7 +248,8 @@ function operationRequests() {
     if (totalCountFiltered <= targetLimit) {
         // New Spawn Denial/No towers
         if (NEW_SPAWN_DENIAL) {
-            let newSpawns = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !r.towers && r.structures && r.owner && !checkForNap(r.owner) && !_.includes(FRIENDLIES, r.owner) && r.owner !== 'Invader' && !r.safemode && r.closestRange <= LOCAL_SPHERE * 3), function (t) {
+            let newSpawns = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !r.towers && r.owner && !checkForNap(r.owner) && !_.includes(FRIENDLIES, r.owner) && r.owner !== 'Invader'
+                && (!r.safemode || r.safemode - 500 < Game.time) && r.closestRange <= LOCAL_SPHERE * 3), function (t) {
                 return t.closestRange
             });
             if (newSpawns[0]) {
@@ -483,7 +533,17 @@ function manageAuxiliary() {
             case 'claim':
             case 'claimScout':
             case 'claimClear':
-                if (Game.gcl.level === Memory.myRooms.length) delete Memory.auxiliaryTargets[key];
+                if (Game.gcl.level === Memory.myRooms.length) {
+                    delete Memory.auxiliaryTargets[key];
+                    continue;
+                }
+                break;
+            case 'score':
+                if (!Memory.roomCache[key].seasonResource || Memory.roomCache[key].seasonResource < Game.time) {
+                    log.a('Canceling auxiliary operation in ' + roomLink(key) + ' as the container has expired.', 'HIGH COMMAND: ');
+                    delete Memory.auxiliaryTargets[key];
+                    continue;
+                }
                 break;
             case 'clean':
             case 'robbery':
@@ -716,7 +776,7 @@ module.exports.operationSustainability = function (room, operationRoom = room.na
 module.exports.generateThreat = function (creep) {
     creep.room.cacheRoomIntel();
     let user = Memory.roomCache[creep.room.name].user;
-    if (!user || (_.includes(FRIENDLIES, user))) return;
+    if (_.includes(FRIENDLIES, user)) return;
     let cache = Memory._userList || {};
     let standing = 50;
     if (cache[user] && (cache[user]['standing'] > 50 || _.includes(FRIENDLIES, user))) standing = cache[user]['standing'];

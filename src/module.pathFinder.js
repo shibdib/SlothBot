@@ -27,7 +27,8 @@ function shibMove(creep, heading, options = {}) {
         maxRooms: 1,
         ignoreRoads: false,
         offRoad: false,
-        confirmPath: false
+        confirmPath: false,
+        tunnel: false
     });
     // Clear bad tow creeps
     if (creep.memory.towCreep && (!Game.getObjectById(creep.memory.towCreep) || Game.getObjectById(creep.memory.towCreep).pos.roomName !== creep.pos.roomName)) creep.memory.towCreep = undefined;
@@ -98,7 +99,7 @@ function shibMove(creep, heading, options = {}) {
     pathInfo.targetRoom = targetRoom(heading);
     //Clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
-        if (pathInfo.pathPosTime >= STATE_STUCK * 5) structureMatrixCache[creep.room.name] = undefined;
+        if (pathInfo.pathPosTime >= STATE_STUCK * 2.5) structureMatrixCache[creep.room.name] = undefined;
         creepBumping(creep, pathInfo, options);
     }
     //Handle getting stuck in rooms on multi rooms pathing
@@ -137,6 +138,31 @@ function shibMove(creep, heading, options = {}) {
         if (nextDirection && pathInfo.newPos) {
             pathInfo.newPos = positionAtDirection(origin, nextDirection);
             creep.memory._shibMove = pathInfo;
+            if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName) {
+                // Handle tunneling thru walls/ramps
+                if (options.tunnel && pathInfo.path) {
+                    let nextPos = positionAtDirection(origin, nextDirection);
+                    if (nextPos.checkForBarrierStructure()) {
+                        if (Math.random() > 0.98) return creep.memory._shibMove = undefined;
+                        let barrier = Game.getObjectById(creep.memory.barrierClearing) || nextPos.checkForBarrierStructure();
+                        creep.memory.barrierClearing = barrier.id;
+                        if (creep.getActiveBodyparts(WORK)) {
+                            barrier.say(_.round(barrier.hits / (creep.getActiveBodyparts(WORK) * DISMANTLE_POWER)) + ' ticks.')
+                            return creep.dismantle(barrier);
+                        } else if (creep.getActiveBodyparts(ATTACK)) {
+                            barrier.say(_.round(barrier.hits / (creep.getActiveBodyparts(WORK) * ATTACK_POWER)) + ' ticks.')
+                            return creep.attack(barrier);
+                        } else if (creep.getActiveBodyparts(RANGED_ATTACK)) {
+                            barrier.say(_.round(barrier.hits / (creep.getActiveBodyparts(WORK) * RANGED_ATTACK_POWER)) + ' ticks.')
+                            return creep.rangedAttack(barrier);
+                        }
+                    }
+                }
+                pathInfo.pathPosTime++;
+            } else {
+                pathInfo.pathPos = creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName;
+                pathInfo.pathPosTime = 0;
+            }
             switch (creep.move(nextDirection)) {
                 case OK:
                     break;
@@ -147,12 +173,6 @@ function shibMove(creep, heading, options = {}) {
                 case ERR_BUSY:
                     creep.idleFor(10);
                     break;
-            }
-            if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName) {
-                pathInfo.pathPosTime++;
-            } else {
-                pathInfo.pathPos = creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName;
-                pathInfo.pathPosTime = 0;
             }
         } else {
             delete pathInfo.path;
@@ -166,7 +186,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     let cached, closestPortal, closestDistance;
     if (!Memory.roomCache[creep.room.name]) creep.room.cacheRoomIntel(true);
     if (!target) return creep.moveRandom();
-    if (options.useCache && !Memory.roomCache[creep.room.name].threatLevel) cached = getPath(creep, origin, target);
+    if (options.useCache && !Memory.roomCache[creep.room.name].threatLevel && !options.tunnel) cached = getPath(creep, origin, target);
     if (cached && options.ignoreCreeps) {
         pathInfo.findAttempt = undefined;
         creep.memory.badPathing = undefined;
@@ -237,7 +257,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             maxRooms: options.maxRooms,
             roomCallback: callback,
         });
-        if (creep.name === 'remoteHarvester_E38N46_T3_29') console.log(JSON.stringify(ret))
         if (ret.incomplete) {
             target = new RoomPosition(25, 25, target.roomName);
             options.range = 23;
@@ -361,8 +380,8 @@ function findRoute(origin, destination, options = {}) {
 
 //FUNCTIONS
 function creepBumping(creep, pathInfo, options) {
-    let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y)[0];
-    if (bumpCreep && Math.random() > 0.5) {
+    let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (c.memory.role !== 'upgrader' || pathInfo.pathPosTime >= STATE_STUCK * 2))[0];
+    if (bumpCreep) {
         if (!creep.memory.trailer && creep.pos.isNearTo(Game.getObjectById(creep.memory.trailer))) {
             if (bumpCreep.getActiveBodyparts(MOVE)) {
                 bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
@@ -427,6 +446,7 @@ function getMatrix(roomName, creep, options) {
 function getTerrainMatrix(roomName, options) {
     let type = 1;
     if (options.ignoreRoads) type = 2; else if (options.offRoad) type = 3;
+    if (options.tunnel) type = 4;
     if (!terrainMatrixCache[roomName + type]) {
         terrainMatrixCache[roomName + type] = addTerrainToMatrix(roomName, type).serialize();
     }
@@ -436,8 +456,8 @@ function getTerrainMatrix(roomName, options) {
 function addTerrainToMatrix(roomName, type) {
     let matrix = new PathFinder.CostMatrix();
     let terrain = Game.map.getRoomTerrain(roomName);
-    let plainCost = type === 3 ? 1 : type === 2 ? 1 : 5;
-    let swampCost = type === 3 ? 1 : type === 2 ? 15 : 25;
+    let plainCost = type === 4 ? 0 : type === 3 ? 1 : type === 2 ? 1 : 5;
+    let swampCost = type === 4 ? 0 : type === 3 ? 1 : type === 2 ? 15 : 25;
     for (let y = 0; y < 50; y++) {
         for (let x = 0; x < 50; x++) {
             let tile = terrain.get(x, y);
@@ -470,7 +490,8 @@ function getStructureMatrix(roomName, matrix, options) {
     let room = Game.rooms[roomName];
     let type = 1;
     if (options.ignoreRoads) type = 2; else if (options.offRoad) type = 3;
-    if (!structureMatrixCache[roomName + type] || (!structureMatrixTick[room.name] || Game.time > structureMatrixTick[room.name] + 10000 || structureCount[roomName] !== room.structures.length || siteCount[roomName] !== room.constructionSites.length)) {
+    if (options.tunnel) type = 4;
+    if (!structureMatrixCache[roomName + type] || options.tunnel || (!structureMatrixTick[room.name] || Game.time > structureMatrixTick[room.name] + 10000 || structureCount[roomName] !== room.structures.length || siteCount[roomName] !== room.constructionSites.length)) {
         room.memory.structureMatrixTick = undefined;
         structureMatrixTick[room.name] = Game.time;
         structureCount[roomName] = room.structures.length;
@@ -482,7 +503,7 @@ function getStructureMatrix(roomName, matrix, options) {
 
 function addStructuresToMatrix(room, matrix, type) {
     if (!room) return matrix;
-    let roadCost = type === 3 ? 10 : type === 2 ? 5 : 1;
+    let roadCost = type === 4 ? 0 : type === 3 ? 10 : type === 2 ? 5 : 1;
     for (let structure of room.structures) {
         if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
@@ -517,6 +538,16 @@ function addStructuresToMatrix(room, matrix, type) {
     }
     if (room.mineral) {
         matrix.set(room.mineral.pos.x, room.mineral.pos.y, 256);
+    }
+    // Handle tunnel/finding lowest wall/ramp path
+    if (type === 4) {
+        let barriers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
+        if (barriers.length) {
+            let maxHp = _.max(barriers, 'hits').hits;
+            for (let s of barriers) {
+                matrix.set(s.pos.x, s.pos.y, (s.hits / maxHp) * 100);
+            }
+        }
     }
     return matrix;
 }
@@ -636,14 +667,13 @@ function addSksToMatrix(room, matrix) {
 
 function serializePath(startPos, path, color = _.sample(["orange", "blue", "green", "red", "yellow", "black", "gray", "purple"])) {
     let serializedPath = "";
-    let lastPosition = startPos;
     for (let position of path) {
-        if (position.roomName === lastPosition.roomName) {
+        if (position.roomName === startPos.roomName) {
             new RoomVisual(position.roomName)
-                .line(position, lastPosition, {color: color, lineStyle: "dashed"});
-            serializedPath += lastPosition.getDirectionTo(position);
+                .line(position, startPos, {color: color, lineStyle: "dashed"});
+            serializedPath += startPos.getDirectionTo(position);
         }
-        lastPosition = position;
+        startPos = position;
     }
     return serializedPath;
 }

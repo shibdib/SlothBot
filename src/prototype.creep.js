@@ -676,6 +676,7 @@ Creep.prototype.towTruck = function () {
                     this.move(this.pos.getDirectionTo(trailer));
                 } else {
                     trailer.memory._shibMove = undefined;
+                    if (!trailer.pos.isNearTo(this)) return this.memory._shibMove = undefined;
                     this.shibMove(towDestination, {range: trailer.memory.towRange});
                 }
                 return true;

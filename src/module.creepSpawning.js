@@ -47,7 +47,7 @@ module.exports.processBuildQueue = function (room) {
         let auxiliaryTargets = _.filter(globalQueue, (q) => q.role === 'scout' || Memory.auxiliaryTargets[q.destination] ||
             (Memory.roomCache[q.destination] && Memory.roomCache[q.destination].owner === MY_USERNAME));
         // Only build global queue if you have energy
-        if (room.energyState && _.size(globalQueue) && !Memory.roomCache[room.name].threatLevel && _.inRange(level, maxLevel - 1, maxLevel + 1)) {
+        if ((room.energyState || Game.shard.name === 'shardSeason') && _.size(globalQueue) && !Memory.roomCache[room.name].threatLevel && _.inRange(level, maxLevel - 1, maxLevel + 1)) {
             let distanceFilteredGlobal = _.filter(globalQueue, (q) => q.role === 'scout' || !q.destination || Memory.auxiliaryTargets[q.destination] ||
                 Game.map.getRoomLinearDistance(q.destination, room.name) < range || (Memory.roomCache[q.destination] && Memory.roomCache[q.destination].owner === MY_USERNAME));
             queue = _.sortBy(Object.assign({}, distanceFilteredGlobal, roomQueue[room.name]), 'priority');
@@ -191,7 +191,7 @@ module.exports.essentialCreepQueue = function (room) {
     }
     //Haulers
     if (getCreepCount(room, 'stationaryHarvester')) {
-        if (!getCreepCount(room, 'hauler') || (getCreepTTL(room, 'hauler') < 250 && getCreepCount(room, 'hauler') === 1)) {
+        if (getCreepCount(room, 'hauler') < 2 || (getCreepTTL(room, 'hauler') < 250 && getCreepCount(room, 'hauler') === 2)) {
             queueCreep(room, PRIORITIES.hauler + getCreepCount(room, 'hauler'), {
                 role: 'hauler',
                 other: {reboot: getCreepCount(room, 'hauler') < 1 || room.friendlyCreeps.length < 5}
@@ -224,7 +224,6 @@ module.exports.essentialCreepQueue = function (room) {
         if (room.storage) number += _.floor(room.energy / 12000) || 1; else number += _.floor(room.energy / 250) || 1;
     } else number = (7 - level);
     if (room.memory.controllerLink && number > 2) number = 2; else if (level >= 3 && number > 3) number = 3;
-    if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL)[0]) number = 1;
     if (getCreepCount(room, 'upgrader') < number) {
         //If room is about to downgrade get a creep out asap
         let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.progress > room.controller.progressTotal || Memory.roomCache[room.name].threatLevel >= 3 || room.memory.lowPower;
@@ -245,8 +244,8 @@ module.exports.miscCreepQueue = function (room) {
         let number = 0;
         if (room.storage) {
             number += _.floor(room.energy / 250);
-            if (number > 6) number = 6;
-        } else number = 6;
+            if (number > 8) number = 8;
+        } else number = 10;
         if (getCreepCount(room, 'drone') < number) {
             queueCreep(room, PRIORITIES.drone + getCreepCount(room, 'drone'), {
                 role: 'drone',
@@ -261,6 +260,13 @@ module.exports.miscCreepQueue = function (room) {
     // Waller
     if (getCreepCount(room, 'waller') < 1 + room.energyState) {
         queueCreep(room, PRIORITIES.drone, {role: 'waller'})
+    }
+    // Score delivery
+    if (Game.shard.name === 'shardSeason' && room.store[RESOURCE_SCORE]) {
+        let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.seasonCollector === 1 && (!r.user || r.user === MY_USERNAME)), 'closestRange');
+        if (scoreRoom.name) {
+            queueCreep(room, PRIORITIES.drone, {role: 'scoreHauler'})
+        }
     }
     // If no conflict detected
     if (!room.nukes.length && !Memory.roomCache[room.name].threatLevel) {
@@ -287,7 +293,7 @@ module.exports.miscCreepQueue = function (room) {
             }
         }
         //Pre observer spawn explorers
-        if (Memory.maxLevel < 8 && getCreepCount(room, 'explorer') < 2) {
+        if (Memory.maxLevel < 8 && getCreepCount(room, 'explorer') < 3) {
             queueCreep(room, PRIORITIES.explorer, {role: 'explorer'})
         }
         // Assist room
@@ -566,6 +572,17 @@ module.exports.globalCreepQueue = function () {
         // Some backwards checking
         if (operations[key].targetRoom) return operations[key] = undefined;
         switch (operations[key].type) {
+            // Scoring
+            case 'score':
+                if (!getCreepCount(undefined, 'scoreHauler', key)) {
+                    queueGlobalCreep(priority, {role: 'scoreHauler', destination: key, military: true});
+                }
+                break;
+            case 'scoreCleaner':
+                if (getCreepCount(undefined, 'deconstructor', key) < 3) {
+                    queueGlobalCreep(priority, {role: 'deconstructor', destination: key, military: true});
+                }
+                break;
             // Claiming
             case 'claim':
                 if (!getCreepCount(undefined, 'claimer', key)) {

@@ -122,23 +122,23 @@ function buildFromLayout(room) {
     }
     // Labs if not in plan
     let labs = _.filter(layout, (s) => s.structureType === STRUCTURE_LAB).length;
-    if (labs < 3 && room.controller.level >= 6) {
+    if (labs < 3 && room.level >= 6) {
         labBuilder(room, labs, hub);
     }
     // Hub
     hubBuilder(room, hub, layout);
     // Bunker Ramparts
-    if (room.level >= 3 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length <= 3) {
+    if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length <= 3) {
         rampartBuilder(room, layout);
     }
     // Controller
     controllerBuilder(room);
     // Mineral
-    if (room.controller.level >= 6) {
+    if (room.level >= 6) {
         mineralBuilder(room);
     }
     // Roads
-    if (room.controller.level >= 3 && _.size(room.constructionSites) < 5 && room.controller.level === room.level) {
+    if (room.level >= 3 && _.size(room.constructionSites) < 5) {
         if (!roadBuilder(room, layout)) room.memory.roadsBuilt = true;
     }
     // Cleanup
@@ -461,8 +461,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
                 for (let structure of _.filter(JSON.parse(storedLayouts[room.name]), (s) => s.structureType === STRUCTURE_TOWER)) {
                     let pos = new RoomPosition(structure.x, structure.y, room.name);
                     if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
-                        if (!pos.checkForRampart()) pos.createConstructionSite(STRUCTURE_RAMPART);
-                        else if (pos.createConstructionSite(structure.structureType) === OK) {
+                        if (pos.createConstructionSite(structure.structureType) === OK) {
                             break;
                         }
                     }

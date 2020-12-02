@@ -109,7 +109,7 @@ module.exports.overlordMind = function (room, CPULimit) {
             for (let key in TASK_CPU_ARRAY[room.name]) {
                 log.e(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(TASK_CPU_ARRAY[room.name][key]), 2));
             }
-            if (cpuOverCount >= 10) {
+            if (cpuOverCount >= 10 && Game.cpu.bucket < 8000) {
                 room.memory.cpuOverage = undefined;
                 room.memory.noRemote = Game.time + 10000;
                 _.filter(Game.creeps, (c) => c.my && c.memory.overlord === room.name && c.room.name !== room.name && !c.memory.military).forEach((k) => k.suicide());
@@ -184,10 +184,9 @@ function minionController(minion) {
 }
 
 function creepSpawning(room) {
-    if (room.memory.praiseRoom) {
-        spawning.praiseCreepQueue(room);
-    } else if (getLevel(room) < 2) {
+    if (getLevel(room) < 2) {
         spawning.roomStartup(room);
+        spawning.remoteCreepQueue(room);
     } else {
         try {
             spawning.essentialCreepQueue(room);

@@ -328,7 +328,7 @@ function buyEnergy(terminal, globalOrders) {
     if (terminal.room.energy < ENERGY_AMOUNT && spendingMoney) {
         let sellOrder = _.min(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName)), 'price');
         if (sellOrder.price) {
-            let buyAmount = 5000;
+            let buyAmount = (ENERGY_AMOUNT * 2) - terminal.room.energy;
             if (buyAmount > sellOrder.amount) buyAmount = sellOrder.amount;
             if (buyAmount * sellOrder.price > spendingMoney) buyAmount = _.round(spendingMoney / sellOrder.price);
             if (buyAmount >= 500 && Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
@@ -348,10 +348,6 @@ function fillBuyOrders(terminal, globalOrders) {
     for (let resourceType of sortedKeys) {
         if (resourceType === RESOURCE_ENERGY) continue;
         let keepAmount = DUMP_AMOUNT * 0.75;
-        // Send all of these
-        if (Game.market.credits < CREDIT_BUFFER * 0.5) {
-            keepAmount = 0;
-        }
         // Keep boost amount
         if (_.includes(ALL_BOOSTS, resourceType)) {
             keepAmount = BOOST_AMOUNT;

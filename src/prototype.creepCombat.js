@@ -133,6 +133,14 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
             }
         }
     }
+    // If you just need to kill barriers do that
+    if (barriers) {
+        enemy = this.findClosestBarrier();
+        if (enemy) {
+            this.memory.target = enemy.id;
+            return enemy;
+        }
+    }
     return false;
 };
 
@@ -213,7 +221,7 @@ Creep.prototype.attackHostile = function (hostile) {
                         this.shibKite(6);
                     }
                 } else {
-                    this.shibMove(moveTarget, {ignoreCreeps: false, range: 1});
+                    this.shibMove(moveTarget, {ignoreCreeps: false, range: 0});
                 }
                 return true;
         }

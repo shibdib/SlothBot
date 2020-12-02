@@ -256,6 +256,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             deficitExemption = true;
             carry = 25;
             move = 25;
+        case 'scoreHauler':
+            deficitExemption = true;
+            carry = _.floor((energyAmount * 0.4) / BODYPART_COST[CARRY]) || 1;
+            if (carry > 12) carry = 12;
+            move = carry;
     }
     if (!deficitExemption && room.storage) {
         work *= deficit;

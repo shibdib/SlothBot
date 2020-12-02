@@ -34,8 +34,7 @@ module.exports.role = function (creep) {
             // Use try/catch for private servers that don't support this
             try {
                 let [EW, NS] = target.match(/\d+/g);
-                let isAlleyRoom = EW % 10 == 0 || NS % 10 == 0;
-                if (!isAlleyRoom && Game.map.getRoomStatus(target).status !== Game.map.getRoomStatus(creep.memory.overlord).status) {
+                if (Game.map.getRoomStatus(target).status !== Game.map.getRoomStatus(creep.memory.overlord).status) {
                     target = _.sample(adjacent);
                     if (Game.map.getRoomStatus(target).status !== Game.map.getRoomStatus(creep.memory.overlord).status) return creep.moveRandom();
                 }
