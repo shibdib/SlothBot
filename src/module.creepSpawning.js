@@ -287,7 +287,7 @@ module.exports.miscCreepQueue = function (room) {
             }
         }
         //Pre observer spawn explorers
-        if (Memory.maxLevel < 8 && _.filter(Game.creeps, (c) => c.my && c.memory.role === 'explorer') < 3) {
+        if (Memory.maxLevel < 8 && _.filter(Game.creeps, (c) => c.my && c.memory.role === 'explorer').length < 8) {
             queueCreep(room, PRIORITIES.explorer, {role: 'explorer'})
         }
         // Assist room

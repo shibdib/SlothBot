@@ -160,6 +160,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             move = 1;
             break;
         case 'deconstructor':
+            deficitExemption = true;
             work = _.floor(energyAmount / (BODYPART_COST[WORK] + BODYPART_COST[MOVE])) || 1;
             if (work > 25) work = 25;
             move = work;
