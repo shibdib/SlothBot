@@ -65,8 +65,8 @@ Creep.prototype.marauding = function () {
                     this.memory.other.destination = undefined;
                     this.memory.other.onScene = undefined;
                     this.memory.awaitingTarget = true;
-                    this.shibKite();
                 }
+                if (!this.shibKite()) this.findDefensivePosition();
             }
         }
     }

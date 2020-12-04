@@ -27,7 +27,7 @@ module.exports.controller = function (room) {
     if (Game.time % 100 === 0 && Memory.roomCache[room.name].threatLevel > 2 && room.level >= Memory.maxLevel - 1) safeModeManager(room);
 
     // Abandon hopeless rooms
-    if (Memory.roomCache[room.name].threatLevel) unSavableCheck(room);
+    //if (Memory.roomCache[room.name].threatLevel) unSavableCheck(room);
 
     // Tower control
     towers.towerControl(room);

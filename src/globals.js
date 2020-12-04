@@ -13,6 +13,7 @@ let globals = function () {
     try {
         require(Game.shard.name);
         console.log('Loaded config for ' + Game.shard.name);
+        if (_.includes(COMBAT_SERVER, Game.shard.name)) console.log('Combat Server Mode Active - All Players Considered Hostile');
     } catch (e) {
         try {
             require(Memory.customConfig);
@@ -134,6 +135,7 @@ let globals = function () {
     global.ROOM_CREEP_CPU_OBJECT = {};
     global.ROOM_SOURCE_SPACE = {};
     global.ROOM_CONTROLLER_SPACE = {};
+    global.VISUAL_CACHE = {};
 
     global.ICONS = {
         [STRUCTURE_CONTROLLER]: "\uD83C\uDFF0"

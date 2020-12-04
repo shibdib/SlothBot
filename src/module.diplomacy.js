@@ -71,7 +71,7 @@ function threatManager() {
     Memory._enemies = _.union(Memory._enemies, HOSTILES);
     Memory._threatList = _.union(Memory._threatList, HOSTILES);
     // If Not Standard/S+ Server everyone except manually specified are hostile
-    if (_.includes(COMBAT_SERVER, Game.shard.name)) Memory._enemies = _.filter(_.pluck(Memory.roomCache, 'user'), (p) => !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME && !_.includes(FRIENDLIES, p));
+    if (_.includes(COMBAT_SERVER, Game.shard.name)) Memory._enemies = _.filter(Object.keys(Memory._userList), (p) => p !== '' && p !== 'undefined' && !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME && !_.includes(FRIENDLIES, p));
     // NCP's are always hostile (Also clean NCP array)
     if (NCP_HOSTILE && Memory.ncpArray && Memory.ncpArray.length) {
         if (Math.random() > 0.5) _.remove(Memory.ncpArray, (u) => !_.includes(_.pluck(Memory.roomCache, 'user'), u));

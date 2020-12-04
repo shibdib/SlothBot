@@ -47,9 +47,10 @@ module.exports.role = function (creep) {
                 creep.shibMove(container);
                 break;
         }
-    } else if (creep.memory.energyDestination || creep.locateEnergy()) {
+    } else if (!creep.memory.cooldown && (creep.memory.energyDestination || creep.locateEnergy())) {
         creep.withdrawResource()
     } else {
+        creep.memory.cooldown = undefined;
         creep.idleFor(10)
     }
 };

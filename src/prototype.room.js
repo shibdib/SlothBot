@@ -299,9 +299,9 @@ function getRoomResource(room, resource, unused = false) {
 Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     let room = Game.rooms[this.name];
-    let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, robbery,
+    let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, robbery, towers,
         reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions, seasonResource,
-        seasonCollector;
+        seasonCollector, swarm;
     if (room) {
         if (Memory.roomCache[room.name]) lastOperation = Memory.roomCache[room.name].lastOperation;
         // Check for season resource
@@ -347,6 +347,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 }
                 let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
                 if (spawn) spawnLocation = JSON.stringify(spawn.pos);
+                towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10 && s.isActive());
+                if (towers.length === 1 && !towers[0].pos.checkForRampart() && towers[0].pos.findClosestByPath(FIND_EXIT)) swarm = true;
             } else if (room.controller.reservation) {
                 reservation = room.controller.reservation.username;
                 user = room.controller.reservation.username;
@@ -398,6 +400,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         if ((!user || user === MY_USERNAME) && closestRange <= 3 && room.structures.length && _.filter(room.structures, (t) => t.structureType !== STRUCTURE_CONTAINER && t.structureType !== STRUCTURE_NUKER &&
             t.store && !t.pos.checkForRampart() && t.store.getUsedCapacity()).length) robbery = true;
         let key = room.name;
+        let towerCount = 0;
+        if (towers) towerCount = towers.length;
         cache[key] = {
             cached: Game.time,
             name: room.name,
@@ -423,7 +427,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             seasonResource: seasonResource,
             seasonCollector: seasonCollector,
             invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,
-            towers: _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10 && s.isActive()).length,
+            towers: towerCount,
+            swarm: swarm,
             structures: _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR).length
         };
         Memory.ncpArray = _.uniq(ncpArray);

@@ -56,7 +56,25 @@ module.exports.claimNewRoom = function () {
                 // Source range
                 baseScore -= Memory.roomCache[name].sourceRange;
                 // If it's a new mineral add to the score
-                if (worthyRooms[key].mineral && !_.includes(Memory.ownedMinerals, worthyRooms[key].mineral)) baseScore += 1500;
+                if (worthyRooms[key].mineral && !_.includes(Memory.ownedMinerals, worthyRooms[key].mineral)) {
+                    switch (worthyRooms[key].mineral) {
+                        case RESOURCE_OXYGEN:
+                            baseScore += 1500;
+                            break;
+                        case RESOURCE_HYDROGEN:
+                            baseScore += 1500;
+                            break;
+                        case RESOURCE_LEMERGIUM:
+                            baseScore += 750;
+                            break;
+                        case RESOURCE_KEANIUM:
+                            baseScore += 500;
+                            break;
+                        default:
+                            baseScore += 200;
+                            break;
+                    }
+                } else baseScore -= 500;
                 worthyRooms[key]["claimValue"] = baseScore;
                 possibles[key] = worthyRooms[key];
             }

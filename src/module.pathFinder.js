@@ -41,6 +41,19 @@ function shibMove(creep, heading, options = {}) {
             stroke: 'black'
         });
     }
+    // Handle heals before moving
+    if (creep.hits < creep.hitsMax && creep.memory.destination && creep.memory.destination !== creep.room.name) {
+        let partner = Game.getObjectById(creep.memory.buddyAssigned);
+        if (creep.getActiveBodyparts(HEAL) || (partner && partner.getActiveBodyparts(HEAL))) {
+            creep.heal(creep);
+            creep.shibKite();
+            if (partner) {
+                partner.shibMove(creep);
+                partner.healInRange();
+            }
+            return;
+        }
+    }
     // If stuck in room, move
     if (creep.memory._shibMove && creep.memory._shibMove.routeReset) {
         if (creep.memory._shibMove.lastRoom !== creep.room.name) {
@@ -380,7 +393,7 @@ function findRoute(origin, destination, options = {}) {
 
 //FUNCTIONS
 function creepBumping(creep, pathInfo, options) {
-    let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (c.memory.role !== 'upgrader' || pathInfo.pathPosTime >= STATE_STUCK * 2))[0];
+    let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && ((!c.memory.other || !c.memory.other.noBump) || pathInfo.pathPosTime >= STATE_STUCK * 2))[0];
     if (bumpCreep) {
         if (!creep.memory.trailer && creep.pos.isNearTo(Game.getObjectById(creep.memory.trailer))) {
             if (bumpCreep.getActiveBodyparts(MOVE)) {
@@ -490,6 +503,7 @@ function getStructureMatrix(roomName, matrix, options) {
     let room = Game.rooms[roomName];
     let type = 1;
     if (options.ignoreRoads) type = 2; else if (options.offRoad) type = 3;
+    if (Memory.roomCache[roomName] && Memory.roomCache[roomName].user && Memory.roomCache[roomName].user !== MY_USERNAME) type = 1;
     if (options.tunnel) type = 4;
     if (!structureMatrixCache[roomName + type] || options.tunnel || (!structureMatrixTick[room.name] || Game.time > structureMatrixTick[room.name] + 10000 || structureCount[roomName] !== room.structures.length || siteCount[roomName] !== room.constructionSites.length)) {
         room.memory.structureMatrixTick = undefined;
@@ -839,6 +853,7 @@ Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined)
     // If in a rampart you're safe
     if (this.pos.checkForRampart()) return true;
     this.say('!!RUN!!', true);
+    this.memory.kiteRoom = this.memory.room;
     // Border hump if it's safe and nearby
     let closestExit = this.pos.findClosestByRange(FIND_EXIT);
     if (this.pos.getRangeTo(closestExit) <= 5) return this.shibMove(closestExit, {range: 0});

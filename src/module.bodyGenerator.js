@@ -56,6 +56,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             move = 1;
             break;
         case 'upgrader':
+            deficitExemption = true;
             if (room.nukes.length) {
                 work = 1;
                 carry = 1;
@@ -259,7 +260,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
         case 'scoreHauler':
             deficitExemption = true;
             carry = _.floor((energyAmount * 0.4) / BODYPART_COST[CARRY]) || 1;
-            if (carry > 12) carry = 12;
+            if (carry > 20) carry = 20;
             move = carry;
     }
     if (!deficitExemption && room.storage) {

@@ -263,40 +263,38 @@ Creep.prototype.locateEnergy = function () {
         this.memory.findEnergyCountdown = undefined;
         return true;
     }
+    // Container
+    let container = this.pos.findClosestByRange(this.room.structures, {
+        filter: (s) => s.structureType === STRUCTURE_CONTAINER && (this.room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= this.room.controller.level)
+            && s.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)
+    });
+    if (container) {
+        this.memory.energyDestination = container.id;
+        this.memory.findEnergyCountdown = undefined;
+        return true;
+    }
     // Storage
-    if (this.room.storage && this.room.storage.store[RESOURCE_ENERGY] && this.memory.role !== 'filler') {
+    if (this.room.storage && this.room.storage.store[RESOURCE_ENERGY]) {
         this.memory.energyDestination = this.room.storage.id;
         return true;
     }
-    if (this.memory.role !== 'hauler' || (this.memory.findEnergyCountdown >= this.room.controller.level) || this.room.creeps.length <= 3 || !this.room.storage) {
-        // Container
-        let container = this.pos.findClosestByRange(this.room.structures, {
-            filter: (s) => s.structureType === STRUCTURE_CONTAINER && (this.room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= this.room.controller.level)
-                && s.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)
-        });
-        if (container) {
-            this.memory.energyDestination = container.id;
-            this.memory.findEnergyCountdown = undefined;
+    //Links
+    let links = this.pos.findClosestByRange(this.room.structures, {
+        filter: (s) => s.structureType === STRUCTURE_LINK && this.room.memory.controllerLink !== s.id
+            && s.energy >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)
+    });
+    if (links) {
+        this.memory.energyDestination = links.id;
+        this.memory.findEnergyCountdown = undefined;
+        return true;
+    }
+    //Take straight from remoteHaulers/fuel truck at low level who have nowhere to drop
+    if (this.room.controller && this.room.controller.level < 3) {
+        let hauler = this.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination && c.memory.idle
+            && c.store[RESOURCE_ENERGY] >= (this.room.creeps.filter((c2) => c2.my && c2.memory.energyDestination === c.id && c2.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)));
+        if (hauler) {
+            this.memory.energyDestination = hauler.id;
             return true;
-        }
-        //Links
-        let links = this.pos.findClosestByRange(this.room.structures, {
-            filter: (s) => s.structureType === STRUCTURE_LINK && this.room.memory.controllerLink !== s.id
-                && s.energy >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)
-        });
-        if (links) {
-            this.memory.energyDestination = links.id;
-            this.memory.findEnergyCountdown = undefined;
-            return true;
-        }
-        //Take straight from remoteHaulers/fuel truck at low level who have nowhere to drop
-        if (this.room.controller && this.room.controller.level < 3) {
-            let hauler = this.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination && c.memory.idle
-                && c.store[RESOURCE_ENERGY] >= (this.room.creeps.filter((c2) => c2.my && c2.memory.energyDestination === c.id && c2.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)));
-            if (hauler) {
-                this.memory.energyDestination = hauler.id;
-                return true;
-            }
         }
     }
     // Terminal
@@ -336,6 +334,7 @@ Creep.prototype.haulerDelivery = function () {
             for (const resourceType in this.store) {
                 switch (this.transfer(storageItem, resourceType)) {
                     case OK:
+                        delete this.memory.storageDestination;
                         return true;
                     case ERR_NOT_IN_RANGE:
                         if (Math.random() > 0.98) {
@@ -368,14 +367,9 @@ Creep.prototype.haulerDelivery = function () {
             return true;
         }
     }
-    // Fillers fill storage first
-    if (this.room.storage && this.memory.role === 'filler') {
-        this.memory.storageDestination = this.room.storage.id;
-        return true;
-    }
     // Spawns/Extensions
-    let target = _.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.store.getFreeCapacity(RESOURCE_ENERGY) &&
-        _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.store.getFreeCapacity(RESOURCE_ENERGY));
+    let target = _.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION)
+        && s.store.getFreeCapacity(RESOURCE_ENERGY) && _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.store.getFreeCapacity(RESOURCE_ENERGY));
     if (target.length) {
         this.memory.storageDestination = this.pos.findClosestByRange(target).id;
         return true;
@@ -420,21 +414,15 @@ Creep.prototype.haulerDelivery = function () {
         this.memory.storageDestination = controllerContainer.id;
         return true;
     }
-    //Storage
-    if (this.room.storage && (this.memory.role !== 'hauler' || this.memory.withdrawID !== this.room.storage.id) && _.sum(this.room.storage.store) < this.room.storage.store.getCapacity()) {
-        this.memory.storageDestination = this.room.storage.id;
-        return true;
-    }
     // Top off container
     if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > CONTAINER_CAPACITY * 0.5) {
         this.memory.storageDestination = controllerContainer.id;
         return true;
     }
-    // Spawns/Extensions
-    target = _.sample(_.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) &&
-        !_.includes(_.map(_.filter(this.room.creeps, (c) => c.my && c.store[RESOURCE_ENERGY] && c.memory.storageDestination), 'memory.storageDestination'), s.id) && s.store.getFreeCapacity(RESOURCE_ENERGY)));
-    if (target) {
-        this.memory.storageDestination = target.id;
+    //Storage
+    if (this.room.storage && _.sum(this.room.storage.store) < this.room.storage.store.getCapacity()) {
+        this.memory.storageDestination = this.room.storage.id;
+        if (this.memory.role === 'hauler') this.memory.cooldown = true;
         return true;
     }
 };
@@ -699,6 +687,8 @@ Creep.prototype.portalCheck = function () {
 
 Creep.prototype.borderCheck = function () {
     let thisPos = this.pos;
+    this.attackInRange();
+    this.healInRange();
     let x = thisPos.x;
     let y = thisPos.y;
     if (x === 0 || y === 0 || x === 49 || y === 49) {

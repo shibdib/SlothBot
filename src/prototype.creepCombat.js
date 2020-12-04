@@ -380,7 +380,6 @@ Creep.prototype.pairFighting = function (partner, target = this.findClosestEnemy
             partner.heal(partner);
         }
     }
-
     if (range <= 3) {
         let moveRange = 0;
         if (target instanceof Creep) {
@@ -414,7 +413,7 @@ Creep.prototype.pairFighting = function (partner, target = this.findClosestEnemy
                 this.rangedAttack(target);
                 partner.rangedAttack(target);
             }
-            this.shibMove(target, {range: 3, ignoreCreeps: false});
+            this.shibMove(target, {range: 1, ignoreCreeps: false});
             if (range !== partnerRange) {
                 let partnerSpot = this.pos.getAdjacentPositionAtRange(target, range) || this.pos;
                 partner.shibMove(partnerSpot, {range: 0});

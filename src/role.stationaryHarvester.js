@@ -110,6 +110,8 @@ function depositEnergy(creep) {
         }
     } else if (!creep.memory.linkAttempt) {
         creep.memory.linkID = harvestDepositLink(creep)
+    } else if (creep.memory.linkTest) {
+        linkTest(creep);
     } else if (container) {
         creep.memory.needHauler = undefined;
         if (container.hits < container.hitsMax * 0.5) {
@@ -187,12 +189,24 @@ function harvestDepositLink(creep) {
             let zoneTerrain = creep.room.lookForAtArea(LOOK_TERRAIN, storedSite.y - 1, storedSite.x - 1, storedSite.y + 1, storedSite.x + 1, true);
             for (let key in zoneTerrain) {
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, creep.room.name);
+                if (source.memory.badLink && JSON.parse(source.memory.badLink).x === position.x && JSON.parse(source.memory.badLink).y === position.y) continue;
                 if (position.checkForAllStructure().length > 0 || position.getRangeTo(creep.room.controller) < 3) continue;
-                try {
-                    position.createConstructionSite(STRUCTURE_LINK);
-                } catch (e) {
-                }
+                if (position.createConstructionSite(STRUCTURE_LINK) === OK) return creep.memory.linkTest = true;
             }
+        }
+    }
+}
+
+function linkTest(creep) {
+    creep.memory.linkTest = undefined;
+    if (!creep.pos.findClosestByPath(FIND_MY_SPAWNS)) {
+        let inBuild = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_LINK && s.pos.isNearTo(creep))[0];
+        let source = Game.getObjectById(creep.memory.source);
+        if (inBuild) {
+            creep.memory.linkAttempt = undefined;
+            creep.memory.linkID = undefined;
+            source.memory.badLink = JSON.stringify(inBuild.pos);
+            inBuild.remove();
         }
     }
 }

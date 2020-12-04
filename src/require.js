@@ -23,3 +23,4 @@ require("operation.guard");
 require("operation.hold");
 require("operation.claimClear");
 require("operation.borderPatrol");
+require("operation.swarm");

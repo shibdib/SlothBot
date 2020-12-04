@@ -6,15 +6,14 @@
  */
 
 module.exports.role = function (creep) {
-    creep.memory.hauling = _.sum(creep.store) > 0;
     // Handle being spawned to gather
     if (creep.memory.destination) {
         if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
         if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
         //Initial move
-        if (!creep.memory.destinationReached && !creep.memory.hauling) {
+        if (!creep.memory.destinationReached && !_.sum(creep.store) > 0) {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
-        } else if (!creep.memory.hauling) {
+        } else if (!_.sum(creep.store) > 0) {
             let score = creep.room.find(FIND_SCORE_CONTAINERS)[0];
             if (score) {
                 switch (creep.withdraw(score, RESOURCE_SCORE)) {
@@ -30,6 +29,7 @@ module.exports.role = function (creep) {
                 creep.memory.recycle = true;
             }
         } else {
+            if (creep.pos.roomName === creep.memory.destination && !creep.room.find(FIND_SCORE_CONTAINERS)[0]) Memory.auxiliaryTargets[creep.room.name] = undefined;
             let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.seasonCollector === 1 && (!r.user || r.user === MY_USERNAME)), 'closestRange');
             if (scoreRoom.name) creep.memory.closestRoom = scoreRoom.name; else creep.memory.closestRoom = creep.memory.closestRoom || creep.room.findClosestOwnedRoom(false, 4);
             if (creep.room.name !== creep.memory.closestRoom) {

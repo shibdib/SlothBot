@@ -40,9 +40,6 @@ module.exports.role = function (creep) {
             case 'hold':
                 creep.holdRoom();
                 break;
-            case 'rangers':
-                creep.rangersRoom();
-                break;
         }
     }
 };

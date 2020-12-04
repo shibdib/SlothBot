@@ -8,7 +8,7 @@
 let highCommand = require('military.highCommand');
 
 Creep.prototype.holdRoom = function () {
-    let sentence = ['Please', 'Abandon'];
+    let sentence = ['Coming', 'For', 'That', 'Booty', this.memory.destination];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Set heal buddy
@@ -20,6 +20,9 @@ Creep.prototype.holdRoom = function () {
         hud(this);
         // Sustainability
         if (this.room.name === this.memory.destination) {
+            let sentence = ['Please', 'Abandon'];
+            let word = Game.time % sentence.length;
+            this.say(sentence[word], true);
             levelManager(this);
             highCommand.operationSustainability(this.room);
         }
@@ -35,25 +38,18 @@ Creep.prototype.holdRoom = function () {
             partner.attackInRange();
             // Handle healing
             partner.healInRange();
+            partner.shibMove(this, {range: 0});
             // If in same room but apart move to each other
             if (partner.room.name === this.room.name && !partner.pos.isNearTo(this)) {
-                partner.shibMove(this, {range: 0});
                 if (!this.canIWin(10)) this.shibKite();
-                return;
             } // Handle separate rooms
             else if (partner.room.name !== this.room.name) {
                 if (this.canIWin(10)) this.handleMilitaryCreep(); else this.shibKite();
                 if (partner.canIWin(5)) partner.shibMove(this); else partner.shibKite();
             } // Handle next to each other
             else if (partner.pos.isNearTo(this)) {
-                partner.shibMove(this, {range: 0});
                 // Move to response room if needed
                 if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 22});
-                // Handle flee
-                if (this.memory.runCooldown || (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK))) {
-                    this.fleeHome(true);
-                    return partner.shibMove(this, {range: 0});
-                }
                 // Handle winnable fights
                 if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(10) && (this.pairFighting(partner) || this.scorchedEarth())) {
                     return;
@@ -82,6 +78,7 @@ function levelManager(creep) {
         creep.memory.recycle = true;
         return;
     }
+    let otherRooms = _.filter(Memory.roomCache, (r) => r.name !== creep.room.name && r.owner === Memory.roomCache[creep.room.name].owner)[0]
     let towers = _.filter(creep.room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10 && c.isActive());
     let armedEnemies = _.filter(creep.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, c.owner.username));
     let armedOwners = _.filter(_.union(_.pluck(armedEnemies, 'owner.username'), [Memory.roomCache[creep.room.name].user]), (o) => !_.includes(FRIENDLIES, o) && o !== 'Invader');
@@ -95,8 +92,13 @@ function levelManager(creep) {
         creep.room.cacheRoomIntel(true);
     } else if (armedEnemies.length) {
         Memory.targetRooms[creep.memory.destination].level = 2;
-    } else {
+        Memory.targetRooms[creep.memory.destination].claimAttacker = undefined;
+    } else if (otherRooms) {
         Memory.targetRooms[creep.memory.destination].level = 1;
+        Memory.targetRooms[creep.memory.destination].claimAttacker = true;
+    } else {
+        Memory.targetRooms[creep.memory.destination].level = 0;
+        Memory.targetRooms[creep.memory.destination].claimAttacker = true;
     }
 }
 

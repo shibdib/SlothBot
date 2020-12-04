@@ -7,6 +7,14 @@
 
 let highCommand = require('military.highCommand');
 module.exports.role = function (creep) {
+    // Swarm
+    if (creep.memory.operation) {
+        switch (creep.memory.operation) {
+            case 'swarm':
+                creep.swarmRoom();
+                return;
+        }
+    }
     // Hud
     hud(creep);
     // Set visited
@@ -27,13 +35,13 @@ module.exports.role = function (creep) {
             if (!creep.memory.other.onScene) creep.memory.other.onScene = Game.time;
             // If on target and cant win find a new target
             if (creep.memory.other.onScene + 25 < Game.time || !creep.canIWin()) {
-                creep.room.cacheRoomIntel(true);
+                creep.room.cacheRoomIntel();
                 creep.memory.other.visited.push(creep.memory.other.destination);
                 creep.memory.other.destination = undefined;
                 creep.memory.other.onScene = undefined;
                 creep.memory.awaitingTarget = true;
-                creep.shibKite();
             }
+            if (!creep.shibKite()) creep.findDefensivePosition();
         }
     }
 };
