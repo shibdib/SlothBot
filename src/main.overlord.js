@@ -105,7 +105,7 @@ module.exports.overlordMind = function (room, CPULimit) {
             for (let key in TASK_CPU_ARRAY[room.name]) {
                 log.e(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(TASK_CPU_ARRAY[room.name][key]), 2));
             }
-            Game.notify(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
+            //Game.notify(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
             for (let key in TASK_CPU_ARRAY[room.name]) {
                 log.e(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(TASK_CPU_ARRAY[room.name][key]), 2));
             }
@@ -113,7 +113,7 @@ module.exports.overlordMind = function (room, CPULimit) {
                 room.memory.cpuOverage = undefined;
                 room.memory.noRemote = Game.time + 10000;
                 _.filter(Game.creeps, (c) => c.my && c.memory.overlord === room.name && c.room.name !== room.name && !c.memory.military).forEach((k) => k.suicide());
-                Game.notify(room.name + ' remote spawning has been disabled.');
+                //Game.notify(room.name + ' remote spawning has been disabled.');
                 log.e(room.name + ' remote spawning has been disabled.');
             }
         } else if (Game.time % 150 === 0) {
