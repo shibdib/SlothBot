@@ -256,6 +256,16 @@ Creep.prototype.locateEnergy = function () {
             return true;
         }
     }
+    // Extra Full Container
+    let fullContainer = this.pos.findClosestByRange(this.room.structures, {
+        filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id && s.store[RESOURCE_ENERGY] > CONTAINER_CAPACITY * 0.75 &&
+            !this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length
+    });
+    if (fullContainer) {
+        this.memory.energyDestination = fullContainer.id;
+        this.memory.findEnergyCountdown = undefined;
+        return true;
+    }
     // Links
     let hubLink = Game.getObjectById(this.room.memory.hubLink);
     if (hubLink && hubLink.energy && (hubLink.energy >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubLink.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5))) {

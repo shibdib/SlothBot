@@ -32,8 +32,6 @@ module.exports.role = function (creep) {
                     if (Game.time % (creep.store.getCapacity() / harvestPower)) {
                         let container = Game.getObjectById(creep.memory.containerID);
                         creep.memory.harvestPower = harvestPower;
-                        if ((creep.memory.linkID || creep.memory.extensions) && container && container.store[RESOURCE_ENERGY])
-                            creep.withdraw(container, RESOURCE_ENERGY);
                         if (_.sum(creep.store) === creep.store.getCapacity())
                             return depositEnergy(creep);
                     }
@@ -87,6 +85,9 @@ module.exports.role = function (creep) {
     }
 };
 
+// Rotate between link and container if we don't have a hub and controller link
+let linkContainerRotate;
+
 function depositEnergy(creep) {
     //Attempt to build extensions
     if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level || Math.random() > 0.99) extensionBuilder(creep);
@@ -102,8 +103,13 @@ function depositEnergy(creep) {
             if (container.hits < container.hitsMax * 0.5) {
                 return creep.repair(container);
             }
+            if (linkContainerRotate && (!creep.room.memory.hubLink || !creep.room.memory.controllerLink) && _.sum(container.store) < CONTAINER_CAPACITY * 0.75) {
+                linkContainerRotate = undefined;
+                return creep.transfer(container, RESOURCE_ENERGY);
+            }
         }
         if (link.energy < link.energyCapacity) {
+            linkContainerRotate = true;
             creep.transfer(link, RESOURCE_ENERGY);
         } else if (container && _.sum(container.store) >= 1900 && !extensionFiller(creep)) {
             creep.idleFor(20);

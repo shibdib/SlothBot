@@ -154,7 +154,7 @@ function buildFromLayout(room) {
 }
 
 function hubBuilder(room, hub, layout) {
-    if (room.controller.level >= 5 && ((room.memory.remoteSourceCount < 4 || room.controller.level >= 7) || room.memory.hubLink)) {
+    if (room.controller.level >= 7 && ((room.memory.remoteSourceCount < 4 || room.controller.level >= 7) || room.memory.hubLink)) {
         if (room.memory.hubLinkLocation) {
             let pos = new RoomPosition(room.memory.hubLinkLocation.x, room.memory.hubLinkLocation.y, room.name);
             if (pos.checkForAllStructure()[0]) {
@@ -205,7 +205,7 @@ function controllerBuilder(room) {
         } else {
             room.memory.controllerContainer = controllerContainer.id;
         }
-    } else if (room.controller.level >= 7 || room.memory.controllerLink) {
+    } else if (room.controller.level >= 5 && ((room.memory.remoteSourceCount >= 4 || room.controller.level >= 7) || room.memory.controllerLink)) {
         let controllerLink = _.filter(room.controller.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!controllerLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
