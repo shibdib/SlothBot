@@ -6,7 +6,7 @@
  */
 let generator = require('module.bodyGenerator');
 let roomQueue = {};
-let nextPoke;
+let nextPoke, BORDER_PATROL_NEEDED;
 let globalQueue = {};
 let energyOrder = {};
 let orderStored = {};
@@ -193,8 +193,8 @@ module.exports.essentialCreepQueue = function (room) {
     }
     //Haulers
     if (getCreepCount(room, 'stationaryHarvester')) {
-        let amount = 2;
-        if (!room.memory.hubLink) amount = 3;
+        let amount = 1;
+        if (!room.memory.hubLink) amount = 2;
         if (getCreepCount(room, 'hauler') < amount || (getCreepTTL(room, 'hauler') < 250 && getCreepCount(room, 'hauler') === amount)) {
             queueCreep(room, PRIORITIES.hauler + getCreepCount(room, 'hauler'), {
                 role: 'hauler',
@@ -336,19 +336,6 @@ module.exports.miscCreepQueue = function (room) {
             nextPoke = Game.time + (_.random(450, 2000));
             queueCreep(room, PRIORITIES.secondary, {role: 'poke', operation: 'marauding', military: true})
         }
-    } // Border Patrol
-    if (room.memory.spawnBorderPatrol) {
-        let priority = PRIORITIES.borderPatrol;
-        if (getCreepCount(room, 'longbow', undefined, 'borderPatrol') < 2) {
-            queueCreep(room, priority, {
-                role: 'longbow',
-                operation: 'borderPatrol',
-                military: true,
-                other: {}
-            });
-        }
-    } else if (roomQueue[room.name] && roomQueue[room.name]['longbow']) {
-        delete roomQueue[room.name]['longbow'];
     }
 };
 
@@ -437,7 +424,7 @@ module.exports.remoteCreepQueue = function (room) {
                     }
                     continue;
                 }
-                room.memory.spawnBorderPatrol = remoteName;
+                BORDER_PATROL_NEEDED = true;
                 continue;
             }
             // Handle rooms in between being under attack
@@ -497,7 +484,7 @@ module.exports.remoteCreepQueue = function (room) {
                 let current = 0;
                 if (assignedHaulers.length) {
                     assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                    if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 3) continue;
+                    if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 2) continue;
                 }
                 queueCreep(room, PRIORITIES.remoteHauler + getCreepCount(room, 'remoteHauler') * 0.5, {
                     role: 'remoteHauler',
@@ -537,10 +524,20 @@ module.exports.globalCreepQueue = function () {
         }
         //Marauder
         if (OFFENSIVE_OPERATIONS) {
-            if (getCreepCount(undefined, 'longbow', undefined, 'marauding') < _.size(Memory.myRooms) * 2) {
+            if (getCreepCount(undefined, 'longbow', undefined, 'marauding') < 6) {
                 queueGlobalCreep(_.sample([PRIORITIES.secondary, PRIORITIES.secondary, PRIORITIES.secondary, PRIORITIES.medium, PRIORITIES.high]), {
                     role: 'longbow',
                     operation: 'marauding',
+                    military: true
+                });
+            }
+        }
+        //Border Patrol
+        if (BORDER_PATROL_NEEDED) {
+            if (getCreepCount(undefined, 'longbow', undefined, 'borderPatrol') < 4) {
+                queueGlobalCreep(PRIORITIES.high, {
+                    role: 'longbow',
+                    operation: 'borderPatrol',
                     military: true
                 });
             }

@@ -42,7 +42,7 @@ function manageResponseForces() {
         for (let creep of _.filter(activeResponders, (c) => c.memory.responseTarget === ownedRoomAttack)) {
             friendlyResponsePower += creep.combatPower;
         }
-        for (let creep of _.sortBy(_.filter(idleResponders, (c) => Game.map.getRoomLinearDistance(c.memory.overlord, ownedRoomAttack) <= 5), function (c) {
+        for (let creep of _.sortBy(_.filter(idleResponders, (c) => Game.map.getRoomLinearDistance(c.memory.overlord, ownedRoomAttack) <= 8), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, ownedRoomAttack);
         })) {
             Memory.roomCache[ownedRoomAttack].responseDispatched = Game.time;
@@ -55,7 +55,7 @@ function manageResponseForces() {
             if (creep.room.name !== ownedRoomAttack) log.a(creep.name + ' reassigned to assist in the defense of ' + roomLink(ownedRoomAttack) + ' from ' + roomLink(creep.room.name));
         }
     } else if (responseTargets && responseTargets.name) {
-        for (let creep of _.sortBy(_.filter(idleResponders, (c) => Game.map.getRoomLinearDistance(c.memory.overlord, responseTargets.name) <= 3), function (c) {
+        for (let creep of _.sortBy(_.filter(idleResponders, (c) => Game.map.getRoomLinearDistance(c.memory.overlord, responseTargets.name) <= 8), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, responseTargets.name);
         })) {
             Memory.roomCache[responseTargets.name].responseDispatched = Game.time;
@@ -68,7 +68,7 @@ function manageResponseForces() {
             if (creep.room.name !== responseTargets.name) log.a(creep.name + ' responding to ' + roomLink(responseTargets.name) + ' from ' + roomLink(creep.room.name));
         }
     } else if (invaderCore) {
-        for (let creep of _.sortBy(_.filter(idleResponders, (c) => Game.map.getRoomLinearDistance(c.memory.overlord, invaderCore) <= 3), function (c) {
+        for (let creep of _.sortBy(_.filter(idleResponders, (c) => Game.map.getRoomLinearDistance(c.memory.overlord, invaderCore) <= 8), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, invaderCore);
         })) {
             Memory.roomCache[invaderCore].responseDispatched = Game.time;
@@ -81,7 +81,7 @@ function manageResponseForces() {
             if (creep.room.name !== invaderCore) log.a(creep.name + ' reassigned to deal with invader core in ' + roomLink(invaderCore) + ' from ' + roomLink(creep.room.name));
         }
     } else if (unarmedVisitors) {
-        for (let creep of _.sortBy(_.filter(idleResponders, (c) => Game.map.getRoomLinearDistance(c.memory.overlord, unarmedVisitors) <= 2), function (c) {
+        for (let creep of _.sortBy(_.filter(idleResponders, (c) => Game.map.getRoomLinearDistance(c.memory.overlord, unarmedVisitors) <= 3), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, unarmedVisitors);
         })) {
             Memory.roomCache[unarmedVisitors].responseDispatched = Game.time;

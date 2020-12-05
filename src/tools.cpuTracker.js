@@ -20,7 +20,9 @@ module.exports.creepCPU = function (minion, cpuUsed) {
     } else {
         cpuUsageArray.shift();
         cpuUsageArray.push(used);
-        if (average(cpuUsageArray) > 3 && minion.memory.role !== 'claimer') {
+        let cpuCap = 1.5;
+        if (minion.memory.military) cpuCap = 3;
+        if (average(cpuUsageArray) > cpuCap) {
             minion.suicide();
             log.e(minion.name + ' was killed for overusing CPU in room ' + roomLink(minion.room.name));
         }
