@@ -31,6 +31,8 @@ module.exports.role = function (creep) {
                     let harvestPower = creep.memory.harvestPower || _.filter(creep.body, (b) => b.type === WORK).length * HARVEST_POWER;
                     if (Game.time % (creep.store.getCapacity() / harvestPower)) {
                         let container = Game.getObjectById(creep.memory.containerID);
+                        if (container && creep.room.memory.hubLink && creep.room.memory.controllerLink && container.store[RESOURCE_ENERGY] > 10 && (creep.memory.linkID || creep.memory.extensions))
+                            creep.withdraw(container, RESOURCE_ENERGY);
                         creep.memory.harvestPower = harvestPower;
                         if (_.sum(creep.store) === creep.store.getCapacity())
                             return depositEnergy(creep);
