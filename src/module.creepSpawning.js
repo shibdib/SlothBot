@@ -570,7 +570,7 @@ module.exports.globalCreepQueue = function () {
                 }
                 break;
             case 'scoreCleaner':
-                if (getCreepCount(undefined, 'deconstructor', key) < 3) {
+                if (!getCreepCount(undefined, 'deconstructor', key)) {
                     queueGlobalCreep(priority, {role: 'deconstructor', destination: key, military: true});
                 }
                 break;
