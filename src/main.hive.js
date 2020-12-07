@@ -16,33 +16,10 @@ let hud = require('module.hud');
 let tools = require('tools.cpuTracker');
 
 module.exports.hiveMind = function () {
-    // Diplomacy must run
-    diplomacy.diplomacyOverlord();
-
-    // Military creep loop
-    let count = 0;
-    let militaryCreepCPU = 0;
-    let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => (r.memory.military || !r.memory.overlord) && !r.spawning));
-    let totalCreeps = militaryCreeps.length
-    do {
-        let currentCreep = _.first(militaryCreeps);
-        if (!currentCreep) break;
-        militaryCreeps = _.rest(militaryCreeps);
-        count++;
-        try {
-            minionController(currentCreep);
-        } catch (e) {
-            log.e('Error with ' + currentCreep.name + ' in ' + roomLink(currentCreep.room.name));
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
-        if (CREEP_CPU_ARRAY[currentCreep.name]) militaryCreepCPU += average(CREEP_CPU_ARRAY[currentCreep.name]);
-    } while ((militaryCreepCPU < CPU_TASK_LIMITS['military'] || Game.cpu.bucket > 2000) && count < totalCreeps)
-
     // Hive/global function loop
-    let hiveFunctions = shuffle([highCommand.highCommand, labs.labManager, expansion.claimNewRoom, spawning.globalCreepQueue, power.powerControl]);
+    let hiveFunctions = _.union([diplomacy.diplomacyOverlord()], shuffle([highCommand.highCommand, labs.labManager, expansion.claimNewRoom, spawning.globalCreepQueue, power.powerControl, hud.hud()]));
     let functionCount = hiveFunctions.length;
-    count = 0;
+    let count = 0;
     let hiveTaskCurrentCPU = Game.cpu.getUsed();
     let hiveTaskTotalCPU = 0;
     do {
@@ -60,6 +37,26 @@ module.exports.hiveMind = function () {
         hiveTaskCurrentCPU = Game.cpu.getUsed() - hiveTaskCurrentCPU;
         hiveTaskTotalCPU += hiveTaskCurrentCPU;
     } while ((hiveTaskTotalCPU < CPU_TASK_LIMITS['hiveTasks'] || Game.cpu.bucket > 9500) && count < functionCount)
+
+    // Military creep loop
+    count = 0;
+    let militaryCreepCPU = 0;
+    let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => (r.memory.military || !r.memory.overlord) && !r.spawning));
+    let totalCreeps = militaryCreeps.length
+    do {
+        let currentCreep = _.first(militaryCreeps);
+        if (!currentCreep) break;
+        militaryCreeps = _.rest(militaryCreeps);
+        count++;
+        try {
+            minionController(currentCreep);
+        } catch (e) {
+            log.e('Error with ' + currentCreep.name + ' in ' + roomLink(currentCreep.room.name));
+            log.e(e.stack);
+            Game.notify(e.stack);
+        }
+        if (CREEP_CPU_ARRAY[currentCreep.name]) militaryCreepCPU += average(CREEP_CPU_ARRAY[currentCreep.name]);
+    } while ((militaryCreepCPU < CPU_TASK_LIMITS['military'] || Game.cpu.bucket > 2000) && count < totalCreeps)
 
     // Overlord loop
     count = 0;
@@ -82,17 +79,6 @@ module.exports.hiveMind = function () {
         overlordCurrentCPU = Game.cpu.getUsed() - overlordCurrentCPU;
         overlordTotalCPU += overlordCurrentCPU;
     } while ((overlordTotalCPU < CPU_TASK_LIMITS['roomLimit'] || Game.cpu.bucket > 7000) && count < _.size(Memory.myRooms))
-
-    //Room HUD (If CPU Allows)
-    if (Game.cpu.bucket > 1000) {
-        try {
-            hud.hud();
-        } catch (e) {
-            log.e('Room HUD experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
-    }
 };
 
 let errorCount = {};
