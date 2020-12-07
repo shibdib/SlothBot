@@ -404,10 +404,11 @@ function rampartBuilder(room, layout = undefined, count = false) {
         }));
         let buildPositions = [];
         spots.forEach((p) => buildPositions.push(new RoomPosition(p.x, p.y, room.name)));
-        for (let pos of buildPositions) {
-            if (room.controller.level >= 2) {
-                // Handle tunnels
-                if (pos.checkForWall()) {
+        if (room.level >= 4) {
+            for (let pos of buildPositions) {
+                // Controller Barriers
+                if (pos.isNearTo(room.controller) && !pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
+                else if (pos.checkForWall()) {
                     for (let xOff = -1; xOff <= 1; xOff++) {
                         for (let yOff = -1; yOff <= 1; yOff++) {
                             if (xOff !== 0 || yOff !== 0) {
@@ -416,7 +417,8 @@ function rampartBuilder(room, layout = undefined, count = false) {
                             }
                         }
                     }
-                } else if (!pos.isNearTo(room.controller) && !pos.isNearTo(room.mineral) && !pos.isNearTo(pos.findClosestByRange(FIND_SOURCES)) &&
+                } // Handle tunnels
+                else if (!pos.isNearTo(room.controller) && !pos.isNearTo(room.mineral) && !pos.isNearTo(pos.findClosestByRange(FIND_SOURCES)) &&
                     ((isEven(pos.x) && isOdd(pos.y)) || (isOdd(pos.x) && isEven(pos.y))) && !pos.checkForBuiltWall() && !pos.checkForConstructionSites() &&
                     pos.isNearTo(pos.findClosestByRange(_.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART)))) {
                     if (pos.checkForRampart() && !pos.checkForAllStructure()[0]) pos.checkForRampart().destroy();
@@ -431,8 +433,6 @@ function rampartBuilder(room, layout = undefined, count = false) {
                 } else if (pos.checkForBuiltWall() && pos.checkForRoad()) {
                     pos.checkForRoad().destroy();
                 }
-            } else if (pos.isNearTo(room.controller)) {
-                if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
             }
         }
         // Protected Structures

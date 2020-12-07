@@ -76,7 +76,7 @@ module.exports.role = function (creep) {
                     if (roomRange > 1) total = distanceToExit + (roomRange * 40);
                     source.memory.travelRange = total;
                 }
-                creep.memory.carryAmountNeeded = _.round(((source.memory.travelRange) / creep.getActiveBodyparts(WORK)) * 100);
+                creep.memory.carryAmountNeeded = _.round(((source.memory.travelRange) / 5) * 100);
             }
             if (!creep.memory.containerID || !Game.getObjectById(creep.memory.containerID)) {
                 creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);

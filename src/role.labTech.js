@@ -12,6 +12,11 @@
 module.exports.role = function (creep) {
     //INITIAL CHECKS
     if (creep.wrongRoom()) return;
+    // Hauler mode
+    if (creep.memory.haulerMode && creep.memory.haulerMode + 50 > Game.time) {
+        let haulerRole = require('role.hauler');
+        return haulerRole.role(creep);
+    }
     creep.say(ICONS.reaction, true);
     // Deliver
     if (_.sum(creep.store)) return deliverResource(creep);
@@ -39,7 +44,8 @@ module.exports.role = function (creep) {
     if (terminalControl(creep)) return;
     // Handle storage goods
     if (storageControl(creep)) return;
-    creep.idleFor(20);
+    // If nothing to do, be a hauler for 50 ticks
+    creep.memory.haulerMode = Game.time;
 };
 
 // Get item
@@ -276,7 +282,7 @@ function terminalControl(creep) {
             }
             if (amountNeeded > creep.store.getFreeCapacity(resourceType)) amountNeeded = creep.store.getFreeCapacity(resourceType);
             if (amountNeeded > creep.room.terminal.store[resourceType]) amountNeeded = creep.room.terminal.store[resourceType];
-            if (amountNeeded) {
+            if (amountNeeded >= 10) {
                 creep.say('BANKER', true);
                 switch (creep.withdraw(creep.room.terminal, resourceType, amountNeeded)) {
                     case OK:
@@ -317,7 +323,7 @@ function storageControl(creep) {
             } else if (resourceType === RESOURCE_POWER) {
                 amountNeeded = 20000;
             }
-            if (amountNeeded) {
+            if (amountNeeded >= 10) {
                 if (amountNeeded > creep.store.getFreeCapacity(resourceType)) amountNeeded = creep.store.getFreeCapacity(resourceType);
                 if (amountNeeded > creep.room.storage.store[resourceType]) amountNeeded = creep.room.storage.store[resourceType];
                 creep.say('STORAGE', true);

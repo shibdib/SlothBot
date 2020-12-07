@@ -470,7 +470,7 @@ function balanceResources(terminal) {
                     log.a('Balancing ' + available + ' ' + resource + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
                     return true;
             }
-        } else if (terminal.room.name !== Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].terminal.store.getFreeCapacity()) {
+        } else if (Game.shard.name !== 'shardSeason' && terminal.room.name !== Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].terminal.store.getFreeCapacity()) {
             switch (terminal.send(resource, available, Memory.saleTerminal.room)) {
                 case OK:
                     log.a('Sent ' + available + ' ' + resource + ' To ' + roomLink(Memory.saleTerminal.room) + ' From ' + roomLink(terminal.room.name) + ' to stockpile.', "Market: ");

@@ -107,7 +107,7 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
 
 Creep.prototype.findMineral = function () {
     const mineral = this.room.mineral;
-    if (mineral && !_.filter(Game.creeps, (c) => c.id !== this.id && c.memory.source === mineral.id).length) {
+    if (mineral) {
         this.memory.source = mineral.id;
         return mineral;
     }
@@ -665,7 +665,7 @@ Creep.prototype.towTruck = function () {
             } else
                 // Move trailer
             if (this.pull(trailer) === ERR_NOT_IN_RANGE) {
-                trailer.memory._shibMove = undefined;
+                if (Math.random() > 0.75) this.memory._shibMove = undefined;
                 this.shibMove(trailer);
                 return true;
             } else {

@@ -11,13 +11,11 @@
 
 module.exports.role = function (creep) {
     // Boost only if room is energy rich
-    if (creep.room.energyState && creep.tryToBoost(['upgrade'])) return;
-    //INITIAL CHECKS
-    if (creep.wrongRoom()) return;
+    if (creep.tryToBoost(['upgrade'])) return;
     // Handle yelling
     herald(creep);
     // If you upgrade, just return
-    if (creep.store[RESOURCE_ENERGY] && creep.upgradeController(creep.room.controller) === OK && Math.random() > 0.05) return;
+    //if (creep.store[RESOURCE_ENERGY] && creep.upgradeController(creep.room.controller) === OK) return;
     // Set and check container and link
     let container = Game.getObjectById(creep.room.memory.controllerContainer);
     if (!container) creep.room.memory.controllerContainer = undefined;
@@ -46,6 +44,7 @@ module.exports.role = function (creep) {
         if (creep.isFull) creep.memory.working = true;
         if (!creep.store[RESOURCE_ENERGY]) delete creep.memory.working;
         creep.memory.other.inPosition = creep.memory.other.stationary && (!link || creep.pos.isNearTo(link)) && (!container || creep.pos.isNearTo(container)) && creep.pos.getRangeTo(creep.room.controller) <= 3;
+        if (!creep.memory.other.inPosition && link && container) creep.shibMove([link, container])
         if (creep.memory.working) {
             switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
                 case OK:
@@ -72,10 +71,13 @@ module.exports.role = function (creep) {
             if (container && !creep.memory.onContainer) {
                 if ((!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
                     if (!container.pos.getRangeTo(creep)) creep.memory.onContainer = true;
-                    creep.shibMove(container, {range: 0});
+                    else creep.shibMove(container, {range: 0});
+                } else if (link && container) {
+                    if (container.pos.isNearTo(creep) && link.pos.isNearTo(creep)) creep.memory.onContainer = true;
+                    else creep.shibMove([link, container])
                 } else {
                     if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
-                    creep.shibMove(container, {range: 1});
+                    else creep.shibMove(container, {range: 1});
                 }
             } else if (creep.memory.onContainer) {
                 if (link && link.energy) {

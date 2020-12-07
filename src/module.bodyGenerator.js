@@ -85,20 +85,17 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
         case 'expediter':
             deficitExemption = true;
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
-            if (carry > 10) carry = 10;
+            if (carry > 6) carry = 6;
             move = _.ceil(carry / 2);
             if (!room.memory.roadsBuilt) move = carry;
             break;
         case 'stationaryHarvester':
             deficitExemption = true;
-            if (room.energyState) {
-                work = _.floor((energyAmount - 50) / (BODYPART_COST[WORK] + (BODYPART_COST[MOVE] * 0.5))) || 1;
-            } else {
-                work = _.floor((energyAmount - 50) / BODYPART_COST[WORK]) || 1;
-            }
+            work = _.floor((energyAmount - 50) / (BODYPART_COST[WORK] + (BODYPART_COST[MOVE] * 0.5))) || 1;
             if (work > 5) work = 5;
             carry = 1;
             if (level >= 7) carry = 2;
+            move = work * 0.5;
             break;
         case 'mineralHarvester':
             work = _.floor((energyAmount * 0.75) / BODYPART_COST[WORK]) || 1;
@@ -132,7 +129,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             if (tough > 4) tough = 4;
             heal = _.floor((energyAmount * 0.9) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE])) || 1;
             if (heal > 20) heal = 20;
-            if (role === 'drainer') work = 1; else work = 0;
+            work = 1;
             move = tough + heal + work;
             break;
         case 'defender':
@@ -215,8 +212,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             let current = 0;
             if (assignedHaulers.length) assignedHaulers.forEach((c) => current += c.store.getCapacity())
             carry = _.floor((energyAmount * 0.50) / BODYPART_COST[CARRY]) || 1;
+            if (carry > 8) carry = 8;
             if (Game.getObjectById(misc)) if ((carry * 50) > (Game.getObjectById(misc).memory.carryAmountNeeded - current)) carry = _.ceil((Game.getObjectById(misc).memory.carryAmountNeeded - current) / 50)
-            if (carry > 25) carry = 25;
             if (room.memory.roadsBuilt) move = carry / 2; else move = carry;
             break;
         case 'roadBuilder':
@@ -226,6 +223,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             if (carry > 10) carry = 10;
             move = carry + work;
             break;
+        case 'SKMineral':
         case 'commodityMiner':
             work = _.floor((energyAmount * _.random(0.2, 0.5)) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
@@ -238,11 +236,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             attack = 17;
             heal = 8;
             move = attack + heal;
-            break;
-        case 'SKMineral':
-            work = 14;
-            carry = 10;
-            move = 12;
             break;
         case 'powerAttacker':
             deficitExemption = true;
@@ -258,10 +251,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             deficitExemption = true;
             carry = 25;
             move = 25;
+            break;
         case 'scoreHauler':
-            deficitExemption = true;
             carry = _.floor((energyAmount * 0.4) / BODYPART_COST[CARRY]) || 1;
-            if (carry > 20) carry = 20;
+            if (carry > 8) carry = 8;
             move = carry;
     }
     if (!deficitExemption && room.storage) {

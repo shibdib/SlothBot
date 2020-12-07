@@ -30,6 +30,12 @@ function shibMove(creep, heading, options = {}) {
         confirmPath: false,
         tunnel: false
     });
+    // Handle multi heading
+    if (Array.isArray(heading)) {
+        heading = findMultiHeadingPos(heading, options.range);
+        if (!heading) return false;
+        options.range = 0;
+    }
     // Clear bad tow creeps
     if (creep.memory.towCreep && (!Game.getObjectById(creep.memory.towCreep) || Game.getObjectById(creep.memory.towCreep).pos.roomName !== creep.pos.roomName)) creep.memory.towCreep = undefined;
     // Handle fatigue
@@ -115,6 +121,7 @@ function shibMove(creep, heading, options = {}) {
         if (pathInfo.pathPosTime >= STATE_STUCK * 2.5) structureMatrixCache[creep.room.name] = undefined;
         creepBumping(creep, pathInfo, options);
     }
+    if (creep.id === '5fcd20431286bb78d5576538') console.log(12345)
     //Handle getting stuck in rooms on multi rooms pathing
     if (pathInfo.route && pathInfo.route.length) {
         if (!creep.memory._shibMove.lastRoom || creep.memory.lastRoom !== creep.room.name) {
@@ -809,6 +816,25 @@ function getMoveWeight(creep, options = {}) {
     return options;
 }
 
+function findMultiHeadingPos(heading, range) {
+    let positions = [];
+    for (let target of heading) {
+        let inRange = target.room.lookForAtArea(LOOK_TERRAIN, target.pos.y - range, target.pos.x - range, target.pos.y + range, target.pos.x + range, true);
+        for (let pos of inRange) {
+            let position = new RoomPosition(pos.x, pos.y, heading[0].room.name);
+            if (position.checkForWall() || position.checkForImpassible()) continue;
+            positions.push({x: position.x, y: position.y, t: target.id});
+        }
+    }
+    let goodPos;
+    positions.forEach(function (p) {
+        if (_.filter(positions, (o) => o.t !== p.t && o.x === p.x && o.y === p.y)[0]) {
+            goodPos = _.filter(positions, (o) => o.t !== p.t && o.x === p.x && o.y === p.y)[0];
+        }
+    })
+    if (goodPos) return new RoomPosition(goodPos.x, goodPos.y, heading[0].room.name); else return undefined;
+}
+
 function getPathKey(from, to, weight) {
     return getPosKey(from) + '$' + getPosKey(to) + '$' + weight;
 }
@@ -829,12 +855,19 @@ Creep.prototype.shibRoute = function (destination, options) {
 Room.prototype.shibRoute = function (destination, options) {
     return findRoute(this.name, destination, options);
 };
+
+let routeSafetyCache = {};
 Room.prototype.routeSafe = function (destination = this.name, maxThreat = 2, maxHeat = 500) {
+    if (routeSafetyCache[this.name + '.' + destination] && routeSafetyCache[this.name + '.' + destination].expire > Game.time) return routeSafetyCache[this.name + '.' + destination].status;
     let safe = true;
     let route = findRoute(this.name, destination);
     if (route && route.length) route.forEach(function (r) {
         if (Memory.roomCache[r] && (Memory.roomCache[r].threatLevel >= maxThreat || Memory.roomCache[r].roomHeat >= maxHeat)) return safe = false;
     })
+    let cache = routeSafetyCache[this.name + '.' + destination] || {};
+    cache.status = safe;
+    cache.expire = Game.time + 100;
+    routeSafetyCache[this.name + '.' + destination] = cache;
     return safe;
 };
 RoomPosition.prototype.shibMove = function (destination, options) {
