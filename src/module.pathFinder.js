@@ -107,11 +107,8 @@ function shibMove(creep, heading, options = {}) {
     if (!creep.memory._shibMove || (creep.memory._shibMove.path && (creep.memory._shibMove.path.length < 1 || !creep.memory._shibMove.path))) creep.memory._shibMove = {};
     if (creep.memory._shibMove && ((creep.memory._shibMove.path && creep.memory._shibMove.path.length < 1) || !creep.memory._shibMove.path)) creep.memory._shibMove = {};
     // Check if target moved
-    if (creep.memory._shibMove.target && (target instanceof Creep || target instanceof PowerCreep) && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y)) {
-        // If the target is still in the general area and we have a ways to go, don't repath
-        let storedPos = new RoomPosition(creep.memory._shibMove.target.x, creep.memory._shibMove.target.y, creep.memory._shibMove.target.roomName);
-        let currentTargetPos = new RoomPosition(target.x, target.y, target.roomName);
-        if (creep.pos.getRangeTo(currentTargetPos) <= 5 || currentTargetPos.getRangeTo(storedPos) >= 3) creep.memory._shibMove = {};
+    if (creep.memory._shibMove.target && (heading instanceof Creep || heading instanceof PowerCreep) && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y)) {
+        creep.memory._shibMove.path = undefined;
     }
     // Set var
     let pathInfo = creep.memory._shibMove;
@@ -121,7 +118,6 @@ function shibMove(creep, heading, options = {}) {
         if (pathInfo.pathPosTime >= STATE_STUCK * 2.5) structureMatrixCache[creep.room.name] = undefined;
         creepBumping(creep, pathInfo, options);
     }
-    if (creep.id === '5fcd20431286bb78d5576538') console.log(12345)
     //Handle getting stuck in rooms on multi rooms pathing
     if (pathInfo.route && pathInfo.route.length) {
         if (!creep.memory._shibMove.lastRoom || creep.memory.lastRoom !== creep.room.name) {
@@ -458,7 +454,7 @@ function getMatrix(roomName, creep, options) {
     let matrix = getTerrainMatrix(roomName, options);
     if (!options.ignoreStructures) matrix = getStructureMatrix(roomName, matrix, options);
     if (!options.ignoreCreeps) matrix = getCreepMatrix(roomName, creep, matrix);
-    if (room && room.hostileCreeps.length) matrix = getHostileMatrix(roomName, matrix);
+    if (room && room.hostileCreeps.length && !creep.getActiveBodyparts(ATTACK) && !creep.getActiveBodyparts(RANGED_ATTACK)) matrix = getHostileMatrix(roomName, matrix);
     matrix = getSKMatrix(roomName, matrix);
     return matrix;
 }
@@ -649,7 +645,7 @@ function addSksToMatrix(room, matrix) {
         if (sks.length) {
             for (let sk of sks) {
                 matrix.set(sk.pos.x, sk.pos.y, 256);
-                let sites = sk.room.lookForAtArea(LOOK_TERRAIN, sk.pos.y - 4, sk.pos.x - 4, sk.pos.y + 4, sk.pos.x + 4, true);
+                let sites = sk.room.lookForAtArea(LOOK_TERRAIN, sk.pos.y - 5, sk.pos.x - 5, sk.pos.y + 5, sk.pos.x + 5, true);
                 for (let site of sites) {
                     let position;
                     try {
@@ -658,7 +654,7 @@ function addSksToMatrix(room, matrix) {
                         continue;
                     }
                     if (position && !position.checkForWall()) {
-                        let weight = 40 * (5 - position.getRangeTo(sk));
+                        let weight = 40 * (6 - position.getRangeTo(sk));
                         matrix.set(position.x, position.y, weight)
                     }
                 }

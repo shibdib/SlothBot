@@ -55,7 +55,7 @@ function threatManager() {
     }
     // Store in array for herald
     if (_.size(Memory._userList)) {
-        for (let user in _.uniq(Memory._userList)) {
+        for (let user in Memory._userList) {
             if (Memory._userList[user].standing > 0) {
                 let length = 10 - (Memory._userList[user].standing.toString().length + 1);
                 let display = user.substring(0, length) + '-' + Memory._userList[user].standing;

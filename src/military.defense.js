@@ -33,7 +33,7 @@ module.exports.controller = function (room) {
     towers.towerControl(room);
 
     //Manage Ramparts for Allies
-    rampartManager(room, structures);
+    if (Game.shard.name !== 'shardSeason') rampartManager(room, structures);
 
     // Early Warning System
     if (Game.time % 25 === 0) earlyWarning(room);

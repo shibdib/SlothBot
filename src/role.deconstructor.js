@@ -15,9 +15,10 @@ module.exports.role = function (creep) {
         if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
         if (Memory.auxiliaryTargets[creep.memory.destination] && Memory.auxiliaryTargets[creep.memory.destination].type === 'scoreCleaner') {
             let collector = creep.room.find(FIND_SCORE_COLLECTORS)[0];
-            if (creep.memory.collectorClear) return creep.shibMove(collector, {tunnel: true, ignoreCreeps: false});
+            Memory.auxiliaryTargets[creep.memory.destination].guard = creep.room.hostileCreeps.length > 0;
+            if (creep.memory.attackCollector) return creep.shibMove(collector, {tunnel: true, ignoreCreeps: false});
             if (!collector.pos.findClosestByPath(FIND_EXIT)) {
-                creep.memory.collectorClear = true;
+                creep.memory.attackCollector = true;
             } else {
                 Memory.auxiliaryTargets[creep.memory.destination] = undefined;
                 creep.room.cacheRoomIntel(true);

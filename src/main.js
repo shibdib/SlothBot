@@ -77,13 +77,6 @@ module.exports.loop = function () {
     //Hive Mind
     if (Memory.myRooms && Memory.myRooms.length) hive.hiveMind();
 
-    // Pixel Gen
-    if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name) && Game.cpu.bucket >= 10000 && Memory.lastPixelGenerated + 150 < Game.time) {
-        Game.cpu.generatePixel();
-        log.a('Pixel Generated.');
-        Memory.lastPixelGenerated = Game.time;
-    }
-
 };
 
 // Abandon a room

@@ -9,95 +9,34 @@ Creep.prototype.borderPatrol = function () {
     let sentence = [ICONS.border, 'Border', 'Patrol'];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
-    // Set heal partner
-    if (!this.memory.squadLeader || !Game.getObjectById(this.memory.squadLeader)) {
-        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.squadLeader === c.id && c.memory.operation === 'borderPatrol' && !c.memory.buddyAssigned)[0];
-        if (!squadLeader && this.memory.role === 'longbow') this.memory.squadLeader = this.id; else if (squadLeader) this.memory.squadLeader = squadLeader.id;
-    }
-    // Handle squad leader
-    if (this.memory.squadLeader === this.id) {
-        hud(this);
-        // Attack in range
-        this.attackInRange();
-        // Handle healing
-        this.healInRange();
-        // Handle partner checks
-        let partner = Game.getObjectById(this.memory.buddyAssigned) || _.filter(Game.creeps, (c) => c.my && c.memory.squadLeader === this.id && c.id !== this.id)[0];
-        if (partner) {
-            this.memory.buddyAssigned = partner.id;
-            // Attack in range
-            partner.attackInRange();
-            // Handle healing
-            partner.healInRange();
-            // Handle next to each other
-            if (partner.pos.isNearTo(this)) {
-                // Handle idling
-                if (this.memory.awaitingOrders && this.memory.offDuty && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) {
-                    return offDuty(this, partner);
-                }
-                this.memory.offDuty = undefined;
-                // Handle flee
-                if (this.memory.runCooldown) {
-                    this.fleeHome(true);
-                    return partner.shibMove(this, {range: 0});
-                } // Handle winnable fights
-                else if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(10) && this.pairFighting(partner)) {
-                    this.memory.onTarget = undefined;
-                    this.memory.other.responseTarget = this.room.name;
-                    this.memory.awaitingOrders = undefined;
-                } // Move to response target
-                else if (this.memory.other.responseTarget && this.room.name !== this.memory.other.responseTarget) {
-                    this.shibMove(new RoomPosition(25, 25, this.memory.other.responseTarget), {range: 22});
-                    return partner.shibMove(this, {range: 0});
-                } // If room is hopeless head home
-                else if (this.room.hostileCreeps.length && !this.canIWin(50, true)) {
-                    if (!this.canIWin(5)) {
-                        this.shibKite();
-                        if (!partner.pos.positionAtDirection(this.memory.lastKite).checkForImpassible()) return partner.move(this.memory.lastKite); else return partner.shibMove(this, {range: 0});
-                    }
-                    if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget) this.memory.other.responseTarget = undefined;
-                    this.goToHub();
-                    return partner.shibMove(this, {range: 0});
-                } // If room is winnable but waiting on help, kite
-                else if (this.room.hostileCreeps.length && !this.canIWin(7)) {
-                    if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget) this.memory.other.responseTarget = undefined;
-                    this.shibKite(8);
-                    if (!partner.pos.positionAtDirection(this.memory.lastKite).checkForImpassible()) return partner.move(this.memory.lastKite); else return partner.shibMove(this, {range: 0});
-                } // Handle idle
-                else if (!this.memory.awaitingOrders) {
-                    // Check neighbors
-                    let adjacent = _.filter(Game.map.describeExits(this.pos.roomName), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel &&
-                        Memory.roomCache[r].user === MY_USERNAME && Memory.roomCache[r].hostilePower < (Memory.roomCache[r].friendlyPower + Memory.roomCache[this.room.name].friendlyPower))[0];
-                    if (adjacent) {
-                        return this.memory.other.responseTarget = adjacent;
-                    }
-                    // If on target, be available to respond
-                    if (!this.memory.onTarget) this.memory.onTarget = Game.time;
-                    // Don't idle in SK rooms, go home
-                    if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) return this.memory.other.responseTarget = this.memory.overlord;
-                    // Idle in target rooms for 5 ticks then check if adjacent rooms need help or mark yourself ready to respond
-                    if (this.memory.onTarget + 5 <= Game.time) {
-                        this.memory.other.responseTarget = undefined;
-                        this.memory.awaitingOrders = true;
-                        this.memory.onTarget = undefined;
-                    }
-                } else {
-                    this.memory.offDuty = true;
-                }
-            } // If in same room but apart move to each other
-            else if (partner.room.name === this.room.name && !partner.pos.isNearTo(this)) {
-                partner.shibMove(this, {range: 0});
-                if (!this.canIWin(10)) this.shibKite();
-            } // Handle separate rooms
-            else if (partner.room.name !== this.room.name) {
-                if (this.canIWin(10)) this.handleMilitaryCreep(); else this.shibKite();
-                if (partner.canIWin(5)) partner.shibMove(this); else partner.shibKite();
+    hud(this);
+    // Attack in range
+    this.attackInRange();
+    // Handle healing
+    this.healInRange();
+    if (!this.memory.other.responseTarget) {
+        // Check neighbors
+        let adjacent = _.filter(Game.map.describeExits(this.pos.roomName), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel)[0];
+        if (adjacent) {
+            return this.memory.other.responseTarget = adjacent;
+        }
+        if (!this.memory.awaitingOrders) {
+            // If on target, be available to respond
+            if (!this.memory.onTarget) this.memory.onTarget = Game.time;
+            // Don't idle in SK rooms, go home
+            if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) return this.memory.other.responseTarget = this.memory.overlord;
+            // Idle in target rooms for 25 ticks then check if adjacent rooms need help or mark yourself ready to respond
+            if (this.memory.onTarget + 25 <= Game.time) {
+                this.memory.other.responseTarget = undefined;
+                this.memory.awaitingOrders = true;
+                this.memory.onTarget = undefined;
             }
-        } else {
-            this.memory.buddyAssigned = undefined;
-            if (this.canIWin(50) && this.handleMilitaryCreep()) return; else return this.goToHub();
         }
     }
+    if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(50) && this.handleMilitaryCreep()) return;
+    if (this.memory.other.responseTarget && this.room.name !== this.memory.other.responseTarget) return this.shibMove(new RoomPosition(25, 25, this.memory.other.responseTarget), {range: 24});
+    if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) this.memory.other.responseTarget = undefined;
+    if (!this.memory.other.responseTarget) this.goToHub();
 };
 
 function offDuty(creep, partner = undefined) {

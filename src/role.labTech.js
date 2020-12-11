@@ -13,7 +13,7 @@ module.exports.role = function (creep) {
     //INITIAL CHECKS
     if (creep.wrongRoom()) return;
     // Hauler mode
-    if (creep.memory.haulerMode && creep.memory.haulerMode + 50 > Game.time) {
+    if (creep.memory.haulerMode && creep.memory.haulerMode + 100 > Game.time) {
         let haulerRole = require('role.hauler');
         return haulerRole.role(creep);
     }

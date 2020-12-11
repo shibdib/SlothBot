@@ -378,7 +378,7 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
     // Spawns/Extensions
-    let target = _.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION)
+    let target = _.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && (!s.room.memory.sourceExtensions || !_.includes(s.id, s.room.memory.sourceExtensions))
         && s.store.getFreeCapacity(RESOURCE_ENERGY) && _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.store.getFreeCapacity(RESOURCE_ENERGY));
     if (target.length) {
         this.memory.storageDestination = this.pos.findClosestByRange(target).id;

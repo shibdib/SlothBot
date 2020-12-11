@@ -17,7 +17,8 @@ let tools = require('tools.cpuTracker');
 
 module.exports.hiveMind = function () {
     // Hive/global function loop
-    let hiveFunctions = _.union([diplomacy.diplomacyOverlord()], shuffle([highCommand.highCommand, labs.labManager, expansion.claimNewRoom, spawning.globalCreepQueue, power.powerControl, hud.hud()]));
+    diplomacy.diplomacyOverlord()
+    let hiveFunctions = shuffle([highCommand.highCommand, labs.labManager, expansion.claimNewRoom, spawning.globalCreepQueue, power.powerControl, hud.hud]);
     let functionCount = hiveFunctions.length;
     let count = 0;
     let hiveTaskCurrentCPU = Game.cpu.getUsed();

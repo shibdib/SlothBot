@@ -6,15 +6,13 @@
  */
 
 module.exports.claimNewRoom = function () {
-    let lastRun = Memory.lastExpansionAttemptTick || 0;
+    if (Math.random() < 0.9) return;
     let limit = Game.gcl.level;
     // Special novice/respawn zone cases
     if (Game.map.getRoomStatus(Memory.myRooms[0]).status === 'novice') limit = 3;
-    if (Memory.cpuTracking.claimLimiter) limit -= Memory.cpuTracking.claimLimiter;
-    if (lastRun + 100 > Game.time || limit <= Memory.myRooms.length || Memory.spawnIn + 7500 > Game.time ||
+    if (limit <= Memory.myRooms.length || Memory.spawnIn + 7500 > Game.time ||
         _.filter(Memory.myRooms, (r) => Game.rooms[r].memory["buildersNeeded"]).length >= _.filter(Memory.myRooms, (r) => !Game.rooms[r].memory["buildersNeeded"]).length ||
         _.filter(Memory.auxiliaryTargets, (t) => t && (t.type === 'claimScout' || t.type === 'claim'))[0]) return;
-    Memory.lastExpansionAttemptTick = Game.time;
     let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 3000 < Game.time) && r.hubCheck && r.closestRange <= 12 &&
         Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status && !r.obstructions);
     if (worthyRooms.length > 0) {

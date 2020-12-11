@@ -56,7 +56,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             move = 1;
             break;
         case 'upgrader':
-            deficitExemption = true;
             if (room.nukes.length) {
                 work = 1;
                 carry = 1;
@@ -85,9 +84,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
         case 'expediter':
             deficitExemption = true;
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
-            if (carry > 6) carry = 6;
-            move = _.ceil(carry / 2);
-            if (!room.memory.roadsBuilt) move = carry;
+            if (carry > 10) carry = 10;
+            if (!room.memory.roadsBuilt) move = carry; else move = _.ceil(carry / 2);
             break;
         case 'stationaryHarvester':
             deficitExemption = true;
@@ -134,7 +132,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             break;
         case 'defender':
             deficitExemption = true;
-            if (getLevel(room) < 3) {
+            if (room.level < 3) {
                 attack = 1;
                 move = 1;
             } else {
@@ -188,10 +186,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             break;
         case 'reserver':
             claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
-            if (claim > 6) claim = 6;
             if (level >= 6) {
                 claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
-                if (claim > 6) claim = 6;
                 move = claim * 0.5;
             } else move = claim;
             break;
@@ -233,8 +229,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             break;
         case 'SKAttacker':
             deficitExemption = true;
-            attack = 17;
-            heal = 8;
+            attack = 19;
+            heal = 6;
             move = attack + heal;
             break;
         case 'powerAttacker':

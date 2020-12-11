@@ -108,7 +108,8 @@ module.exports.status = function () {
         try {
             let targetRooms = Memory.targetRooms;
             let auxiliaryTargets = Memory.auxiliaryTargets;
-            let operations = Object.assign(targetRooms, auxiliaryTargets);
+            let blank = {};
+            let operations = Object.assign(blank, targetRooms, auxiliaryTargets);
             if (operations && _.size(operations)) {
                 log.a('--OPERATION INFO--', ' ');
                 for (let key in operations) {

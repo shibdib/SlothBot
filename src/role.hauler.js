@@ -27,16 +27,6 @@ module.exports.role = function (creep) {
             if (!_.sum(creep.store)) return creep.memory.hauling = undefined;
             if (!creep.opportunisticFill() && !creep.haulerDelivery()) creep.idleFor(5)
         }
-    } else if (Game.shard.name === 'shardSeason' && creep.room.find(FIND_SCORE_CONTAINERS)[0]) {
-        creep.say('SCORE!', true)
-        let container = creep.room.find(FIND_SCORE_CONTAINERS)[0];
-        switch (creep.withdraw(container, RESOURCE_SCORE)) {
-            case OK:
-                break;
-            case ERR_NOT_IN_RANGE:
-                creep.shibMove(container);
-                break;
-        }
     } else if (Game.shard.name === 'shardSeason' && creep.room.storage && _.filter(creep.room.structures, (s) => s.store && s.store[RESOURCE_SCORE] && s.structureType !== STRUCTURE_STORAGE)[0]) {
         creep.say('SCORE!', true)
         let container = _.filter(creep.room.structures, (s) => s.store && s.store[RESOURCE_SCORE] && s.structureType !== STRUCTURE_STORAGE)[0];

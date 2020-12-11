@@ -13,7 +13,7 @@ module.exports.role = function (creep) {
     // Border Patrol
     if (creep.memory.operation === 'borderPatrol') return creep.borderPatrol();
     // Responder Mode
-    if (creep.memory.other.responseTarget || !creep.memory.operation) {
+    if (creep.memory.other && creep.memory.other.responseTarget) {
         if (creep.memory.other.responseTarget) return creep.guardRoom();
         if (creep.hits < creep.hitsMax) creep.heal(creep);
         creep.say(ICONS.respond, true);
@@ -40,6 +40,12 @@ module.exports.role = function (creep) {
             case 'hold':
                 creep.holdRoom();
                 break;
+        }
+    } else if (creep.memory.destination) {
+        if (creep.room.name !== creep.memory.destination) {
+            return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22}); //to move to any room}
+        } else {
+            creep.handleMilitaryCreep();
         }
     }
 };

@@ -16,7 +16,6 @@ let rampartSpots = {};
 module.exports.buildRoom = function (room) {
     let lastRun = room.memory.lastRoomBuildTick || 0;
     let cooldown = 50;
-    if (room.level !== room.controller.level) cooldown = 5;
     if (lastRun + cooldown > Game.time) return;
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
         // Clear hub search memory entries

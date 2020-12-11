@@ -172,6 +172,24 @@ Creep.prototype.handleMilitaryCreep = function (barrier = true, rampart = true, 
         hostile = hostile.pos.checkForRampart();
         this.memory.target = hostile.id;
     }
+    // Pair up
+    if (hostile && this.room.friendlyCreeps.length > 1) {
+        let friend = Game.getObjectById(this.memory.friendPair) || _.filter(this.room.friendlyCreeps, (c) => c.my && c.id !== this.id && c.memory.role === 'longbow' && !c.memory.friendPair)[0];
+        if (friend && friend.room.name === this.room.name) {
+            this.memory.friendPair = friend.id;
+            friend.memory.friendPair = this.id;
+            if (this.memory.friendPairAlpha) return;
+            friend.memory.friendPairAlpha = true;
+        }
+        if (!friend || friend.room.name !== this.room.name || (friend && !this.pairFighting(friend))) {
+            this.memory.friendPair = undefined;
+            this.memory.friendPairAlpha = undefined;
+            if (friend) {
+                friend.memory.friendPair = undefined;
+                friend.memory.friendPairAlpha = undefined;
+            }
+        }
+    }
     // Flee home if you have no parts
     if ((!this.getActiveBodyparts(HEAL) || this.getActiveBodyparts(HEAL) === 1) && !this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK)) return this.fleeHome(true);
     // If target fight

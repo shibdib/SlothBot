@@ -200,7 +200,7 @@ function forwardObserver(room) {
             break;
     }
     let towers = _.filter(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10 && c.isActive());
-    let armedEnemies = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && c.owner.username === c.room.controller.owner.username);
+    let armedEnemies = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && c.owner && c.owner.username === c.room.controller.owner.username);
     let armedOwners = _.filter(_.pluck(room.hostileCreeps, 'owner.username'), (o) => !_.includes(FRIENDLIES, o) && o !== 'Invader');
     if (room.controller && room.controller.owner) armedOwners = _.union(armedOwners, [room.controller.owner.username])
     if (armedOwners.length > 1) {

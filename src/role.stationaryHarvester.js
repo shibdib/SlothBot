@@ -31,7 +31,7 @@ module.exports.role = function (creep) {
                     let harvestPower = creep.memory.harvestPower || _.filter(creep.body, (b) => b.type === WORK).length * HARVEST_POWER;
                     if (Game.time % (creep.store.getCapacity() / harvestPower)) {
                         let container = Game.getObjectById(creep.memory.containerID);
-                        if (container && creep.room.memory.hubLink && creep.room.memory.controllerLink && container.store[RESOURCE_ENERGY] > 10 && (creep.memory.linkID || creep.memory.extensions))
+                        if (container && ((creep.room.memory.hubLink && creep.room.memory.controllerLink) || creep.room.energyState) && container.store[RESOURCE_ENERGY] && (creep.memory.linkID || creep.memory.extensions))
                             creep.withdraw(container, RESOURCE_ENERGY);
                         creep.memory.harvestPower = harvestPower;
                         if (_.sum(creep.store) === creep.store.getCapacity())
@@ -105,7 +105,7 @@ function depositEnergy(creep) {
             if (container.hits < container.hitsMax * 0.5) {
                 return creep.repair(container);
             }
-            if (linkContainerRotate && (!creep.room.memory.hubLink || !creep.room.memory.controllerLink) && _.sum(container.store) < CONTAINER_CAPACITY * 0.75) {
+            if (linkContainerRotate && !creep.room.energyState && (!creep.room.memory.hubLink || !creep.room.memory.controllerLink) && _.sum(container.store) < CONTAINER_CAPACITY * 0.75) {
                 linkContainerRotate = undefined;
                 return creep.transfer(container, RESOURCE_ENERGY);
             }
@@ -144,8 +144,9 @@ function extensionFinder(creep) {
         if (container) {
             let extension = container.pos.findInRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION), 1);
             if (extension.length) {
-                let sourceExtensions = creep.room.memory.sourceExtension || '[]';
-                creep.room.memory.sourceExtension = JSON.stringify(_.union(JSON.parse(sourceExtensions), _.pluck(extension, 'id')));
+                creep.room.memory.sourceExtension = undefined;
+                let sourceExtensions = creep.room.memory.sourceExtensions || [];
+                creep.room.memory.sourceExtensions = _.union(sourceExtensions, _.pluck(extension, 'id'));
                 creep.memory.extensions = JSON.stringify(_.pluck(extension, 'id'));
             }
         }

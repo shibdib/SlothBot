@@ -68,7 +68,7 @@ module.exports.role = function (creep) {
                     return creep.memory.misc = h.id
                 }
             }
-            creep.idleFor(10);
+            if (creep.ticksToLive < CREEP_LIFE_TIME * 0.5) creep.memory.recycle = true;
         }
     }
 };
@@ -123,7 +123,7 @@ function dropOff(creep) {
     }
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     //Controller
-    if (controllerContainer && controllerContainer.store.getFreeCapacity() && (!creep.room.storage || creep.room.energyState || !controllerContainer.store[RESOURCE_ENERGY]) && (!creep.room.storage || !controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5)) {
+    if (controllerContainer && controllerContainer.store.getFreeCapacity() && (!creep.room.storage || creep.room.energyState)) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     } else if (creep.room.storage && creep.room.storage.store.getFreeCapacity()) {
