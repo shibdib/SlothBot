@@ -11,17 +11,16 @@
  * @param {int} level - Room energy level.
  * @param {string} role - The creeps role.
  * @param {object} room - The spawning room.
- * @param {string} reboot - If we need the body with whatever energy available.
- * @param {string} misc - Special info.
+ * @param {object} creepInfo - Overall queue object.
  */
-module.exports.bodyGenerator = function (level, role, room = undefined, reboot = undefined, misc = undefined) {
+module.exports.bodyGenerator = function (level, role, room = undefined, creepInfo = undefined) {
     let body = [];
     let work, claim, carry, move, tough, attack, rangedAttack, heal, deficitExemption;
     let deficit = room.energy / (ENERGY_AMOUNT * 1.5);
     if (deficit > 1 || !room.storage) deficit = 1;
     else if (deficit < 0.25) deficit = 0.25;
     let energyAmount = room.energyCapacityAvailable;
-    if (reboot) energyAmount = room.energyAvailable;
+    if (creepInfo.other.reboot || room.creeps.length < 4) energyAmount = room.energyAvailable;
     if (energyAmount > room.energyCapacityAvailable) energyAmount = room.energyCapacityAvailable;
     switch (role) {
         // Explorer/Scout
@@ -89,16 +88,16 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             break;
         case 'stationaryHarvester':
             deficitExemption = true;
-            work = _.floor((energyAmount - 50) / (BODYPART_COST[WORK] + (BODYPART_COST[MOVE] * 0.5))) || 1;
+            work = _.floor((energyAmount - 50) / (BODYPART_COST[WORK] + BODYPART_COST[MOVE])) || 1;
             if (work > 5) work = 5;
             carry = 1;
             if (level >= 7) carry = 2;
             move = work * 0.5;
             break;
         case 'mineralHarvester':
-            work = _.floor((energyAmount * 0.75) / BODYPART_COST[WORK]) || 1;
-            // 50 Is the cap
-            if (work > 50) work = 50;
+            work = _.floor((energyAmount - 50) / (BODYPART_COST[WORK] + BODYPART_COST[MOVE])) || 1;
+            if (work > 30) work = 30;
+            move = work * 0.5;
             break;
         // Military
         case 'attacker':
@@ -154,30 +153,17 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             if (Math.random() > 0.5) rangedAttack = 1; else attack = 1;
             move = 1;
             break;
+        case 'siegeEngine':
         case 'deconstructor':
             deficitExemption = true;
             work = _.floor(energyAmount / (BODYPART_COST[WORK] + BODYPART_COST[MOVE])) || 1;
             if (work > 25) work = 25;
             move = work;
             break;
-        case 'siegeEngine':
-            tough = _.floor((energyAmount * 0.15) / BODYPART_COST[TOUGH]) || 1;
-            if (tough > 7) tough = 7;
-            attack = _.floor((energyAmount * 0.30) / BODYPART_COST[ATTACK]) || 1;
-            if (attack > 15) attack = 15;
-            rangedAttack = _.floor((energyAmount * 0.05) / BODYPART_COST[RANGED_ATTACK]);
-            if (rangedAttack > 2) rangedAttack = 2;
-            move = tough + attack + rangedAttack;
-            break;
         case 'claimAttacker':
             claim = _.floor((energyAmount * 0.40) / BODYPART_COST[CLAIM]) || 1;
             if (claim > 25) claim = 25;
             move = claim;
-            break;
-        case 'robber':
-            carry = _.floor((energyAmount * 0.50) / BODYPART_COST[CARRY]) || 1;
-            if (carry > 16) carry = 16;
-            move = carry;
             break;
         // Remote
         case 'claimer':
@@ -191,10 +177,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
                 move = claim * 0.5;
             } else move = claim;
             break;
-        case 'fuelTruck':
-            carry = 20;
-            move = 20;
-            break;
         case 'remoteHarvester':
             deficitExemption = true;
             work = _.floor((energyAmount * 0.4) / BODYPART_COST[WORK]) || 1;
@@ -204,21 +186,15 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             break;
         case 'remoteHauler':
             deficitExemption = true;
-            let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === misc);
+            let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creepInfo.misc);
             let current = 0;
             if (assignedHaulers.length) assignedHaulers.forEach((c) => current += c.store.getCapacity())
             carry = _.floor((energyAmount * 0.50) / BODYPART_COST[CARRY]) || 1;
             if (carry > 8) carry = 8;
-            if (Game.getObjectById(misc)) if ((carry * 50) > (Game.getObjectById(misc).memory.carryAmountNeeded - current)) carry = _.ceil((Game.getObjectById(misc).memory.carryAmountNeeded - current) / 50)
+            if (Game.getObjectById(creepInfo.misc)) if ((carry * 50) > (Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded - current)) carry = _.ceil((Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded - current) / 50)
             if (room.memory.roadsBuilt) move = carry / 2; else move = carry;
             break;
         case 'roadBuilder':
-            work = _.floor((energyAmount * _.random(0.2, 0.5)) / BODYPART_COST[WORK]) || 1;
-            if (work > 15) work = 15;
-            carry = _.floor((energyAmount * _.random(0.2, 0.5)) / BODYPART_COST[CARRY]) || 1;
-            if (carry > 10) carry = 10;
-            move = carry + work;
-            break;
         case 'SKMineral':
         case 'commodityMiner':
             work = _.floor((energyAmount * _.random(0.2, 0.5)) / BODYPART_COST[WORK]) || 1;
@@ -243,14 +219,19 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
             heal = 16;
             move = 16;
             break;
+        case 'fuelTruck':
+        case 'robber':
         case 'powerHauler':
-            deficitExemption = true;
-            carry = 25;
-            move = 25;
+            carry = _.floor((energyAmount * 0.4) / BODYPART_COST[CARRY]) || 1;
+            if (carry > 10) carry = 10;
+            move = carry;
             break;
         case 'scoreHauler':
-            carry = _.floor((energyAmount * 0.4) / BODYPART_COST[CARRY]) || 1;
-            if (carry > 8) carry = 8;
+            deficitExemption = true;
+            carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
+            if (creepInfo.misc && carry > 25) {
+                carry = 25;
+            } else if (carry > 10) carry = 10;
             move = carry;
     }
     if (!deficitExemption && room.storage) {
@@ -278,4 +259,40 @@ module.exports.bodyGenerator = function (level, role, room = undefined, reboot =
     for (let i = 0; i < tough; i++) toughArray.push(TOUGH)
     if (role === 'SKAttacker') return toughArray.concat(moveArray, shuffle(body), healArray);
     return toughArray.concat(shuffle(body), moveArray, healArray);
+};
+
+abilityPower = function (body) {
+    let meleePower = 0;
+    let rangedPower = 0;
+    let healPower = 0;
+    for (let part of body) {
+        if (!part.hits) continue;
+        if (part.boost) {
+            if (part.type === ATTACK) {
+                meleePower += ATTACK_POWER * BOOSTS[part.type][part.boost]['attack'];
+            } else if (part.type === RANGED_ATTACK) {
+                rangedPower += RANGED_ATTACK_POWER * BOOSTS[part.type][part.boost]['rangedAttack'];
+            } else if (part.type === HEAL) {
+                healPower += HEAL_POWER * BOOSTS[part.type][part.boost]['heal'];
+            } else if (part.type === TOUGH) {
+                healPower += HEAL_POWER * (1 - BOOSTS[part.type][part.boost]['damage']);
+            }
+        } else {
+            if (part.type === ATTACK) {
+                meleePower += ATTACK_POWER;
+            } else if (part.type === RANGED_ATTACK) {
+                rangedPower += RANGED_ATTACK_POWER;
+            } else if (part.type === HEAL) {
+                healPower += HEAL_POWER;
+            }
+        }
+    }
+    return {
+        attack: meleePower + rangedPower,
+        meleeAttack: meleePower,
+        rangedAttack: rangedPower,
+        defense: healPower,
+        melee: meleePower,
+        ranged: rangedPower
+    };
 };

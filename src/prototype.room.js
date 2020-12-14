@@ -311,14 +311,17 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             if (container) seasonResource = Game.time + container.ticksToDecay;
             // If collector is reachable, mark as 1 else mark as 2
             if (collector) {
-                if (collector.pos.findClosestByPath(FIND_EXIT)) seasonCollector = 1; else seasonCollector = 2;
+                if (collector.pos.countOpenTerrainAround()) seasonCollector = 1; else seasonCollector = 2;
             }
         }
+        // Minerals
+        if (room.mineral) mineral = room.mineral.mineralType;
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
         let cache = Memory.roomCache || {};
         let sources = room.sources;
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) && !e.getActiveBodyparts(RANGED_ATTACK) && (e.getActiveBodyparts(WORK) || e.getActiveBodyparts(CARRY))));
+        let combatCreeps = _.filter(room.creeps, (e) => e.getActiveBodyparts(ATTACK) || e.getActiveBodyparts(RANGED_ATTACK));
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)[0]) sk = true;
         if (room.controller) {
             // Check if obstructed
@@ -352,7 +355,6 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             } else {
                 if (room.controller.pos.countOpenTerrainAround()) {
                     let roomPlanner = require('module.roomPlanner');
-                    mineral = room.mineral.mineralType;
                     if (sources.length === 2) {
                         hubCheck = roomPlanner.hubCheck(this);
                         sourceRange = 0;
@@ -427,7 +429,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,
             towers: towerCount,
             swarm: swarm,
-            structures: structures
+            structures: structures,
+            hostile: combatCreeps.length > 0 || towerCount
         };
         Memory.ncpArray = _.uniq(ncpArray);
         Memory.roomCache = cache;
@@ -531,12 +534,25 @@ Room.prototype.findClosestOwnedRoom = function (range = false, minLevel = 1) {
         for (let key of Memory.myRooms) {
             let room = Game.rooms[key];
             if (!room || room.controller.level < minLevel) continue;
-            let range = Game.map.findRoute(this, room).length;
+            // Handle absurd distances
+            let path = Game.map.getRoomLinearDistance(key, this.name);
+            if (path >= 20) {
+                let currentRoom = this.name;
+                let closestPortal = _.sortBy(_.filter(Memory.roomCache, (r) => r.portal), function (f) {
+                    Game.map.getRoomLinearDistance(f.name, currentRoom)
+                });
+                let closest = closestPortal.length - 1;
+                if (closestPortal[closest]) {
+                    let portalDestination = JSON.parse(Memory.roomCache[closestPortal[closest].name].portal)[0].destination.roomName || JSON.parse(Memory.roomCache[closestPortal[closest].name].portal)[0].destination.room;
+                    if (Memory.roomCache[portalDestination]) path = Game.map.getRoomLinearDistance(closestPortal[closest].name, currentRoom) + Memory.roomCache[portalDestination].closestRange;
+                }
+            }
+            if (!path) continue;
             if (!distance) {
-                distance = range;
+                distance = path;
                 closest = room.name;
-            } else if (range < distance) {
-                distance = range;
+            } else if (path < distance) {
+                distance = path;
                 closest = room.name;
             }
         }

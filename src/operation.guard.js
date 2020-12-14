@@ -14,7 +14,23 @@ Creep.prototype.guardRoom = function () {
     this.attackInRange();
     if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
     if (this.room.name !== destination) return this.shibMove(new RoomPosition(25, 25, destination), {range: 24});
-    if (!this.handleMilitaryCreep() && !this.findDefensivePosition(this)) this.goToHub(destination);
+    let guardLocation, guardRange;
+    if (Game.shard.name === 'shardSeason') {
+        guardLocation = this.room.find(FIND_SCORE_COLLECTORS)[0];
+        if (guardLocation) {
+            let sentence = ['Contact', MY_USERNAME, 'For', 'Access'];
+            let word = Game.time % sentence.length;
+            this.say(sentence[word], true);
+        }
+        guardRange = 8;
+    }
+    if (!this.handleMilitaryCreep(false, true, false, false, guardLocation, guardRange)) {
+        if (!guardLocation) {
+            if (this.findDefensivePosition(this)) this.goToHub(destination);
+        } else {
+            this.shibMove(guardLocation, {range: guardRange})
+        }
+    }
     levelManager(this);
 };
 

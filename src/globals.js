@@ -463,6 +463,15 @@ let globals = function () {
         return array;
     };
 
+    global.getResourceTotal = function (resource) {
+        let amount = 0;
+        for (let roomName of Memory.myRooms) {
+            let room = Game.rooms[roomName];
+            amount += room.store(resource);
+        }
+        return amount;
+    }
+
     global.getLevel = function (room) {
         let energy = room.energyCapacityAvailable;
         let energyLevel = 0;

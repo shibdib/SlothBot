@@ -13,43 +13,35 @@ module.exports.creepCPU = function (minion, cpuUsed) {
         global.CREEP_ROLE_CPU_ARRAY = {};
         lastCreepTick = Game.time;
     }
+    // Track individual creep cpu
     let used = Game.cpu.getUsed() - cpuUsed;
     let cpuUsageArray = CREEP_CPU_ARRAY[minion.name] || [];
-    if (cpuUsageArray.length < 50) {
+    if (cpuUsageArray.length < 100) {
         cpuUsageArray.push(used)
     } else {
         cpuUsageArray.shift();
         cpuUsageArray.push(used);
-        let cpuCap = 1.5;
-        if (minion.memory.military) cpuCap = 3;
-        if (average(cpuUsageArray) > cpuCap) {
+        let cpuCap = 2.5;
+        if (minion.memory.military) cpuCap = 4;
+        if (_.round(average(cpuUsageArray), 2) > cpuCap) {
             minion.suicide();
             log.e(minion.name + ' was killed for overusing CPU in room ' + roomLink(minion.room.name));
         }
     }
-    CREEP_CPU_ARRAY[minion.name] = cpuUsageArray;
-    cpuUsageArray = CREEP_ROLE_CPU_ARRAY[minion.memory.role] || [];
-    if (cpuUsageArray.length < 50) {
-        cpuUsageArray.push(used)
-    } else {
-        cpuUsageArray.shift();
-        cpuUsageArray.push(used);
-    }
-    CREEP_ROLE_CPU_ARRAY[minion.memory.role] = cpuUsageArray;
-    let roomCreepCpu = ROOM_CREEP_CPU_OBJECT[minion.memory.overlord] || {};
-    cpuUsageArray = roomCreepCpu[minion.name] || [];
-    if (cpuUsageArray.length < 50) {
-        cpuUsageArray.push(used)
-    } else {
-        cpuUsageArray.shift();
-        cpuUsageArray.push(used);
-    }
-    roomCreepCpu[minion.name] = cpuUsageArray;
-    ROOM_CREEP_CPU_OBJECT[minion.memory.overlord] = roomCreepCpu;
     minion.room.visual.text(
         _.round(average(cpuUsageArray), 2),
         minion.pos.x,
         minion.pos.y,
         {opacity: 0.8, font: 0.4, stroke: '#000000', strokeWidth: 0.05}
     );
+    // Track creep role cpu
+    CREEP_CPU_ARRAY[minion.name] = cpuUsageArray;
+    let cpuRoleUsageArray = CREEP_ROLE_CPU_ARRAY[minion.memory.role] || [];
+    if (cpuRoleUsageArray.length < 100) {
+        cpuRoleUsageArray.push(used)
+    } else {
+        cpuRoleUsageArray.shift();
+        cpuRoleUsageArray.push(used);
+    }
+    CREEP_ROLE_CPU_ARRAY[minion.memory.role] = cpuUsageArray;
 }

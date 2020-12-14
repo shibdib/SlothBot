@@ -23,35 +23,36 @@ module.exports.role = function (creep) {
     // Get resource
     if (creep.memory.resourceNeeded) return getResource(creep);
     // Empty labs
-    if (emptyLab(creep)) return;
-    //If creep needs boosts do that first
-    if (boostDelivery(creep)) return;
-    // Tow Truck
-    if (creep.towTruck()) return;
-    // Handle dropped goodies
-    if (droppedResources(creep)) return;
-    // Check nuker for ghodium
-    if (nukeSupplies(creep)) return;
-    // Get lab orders
-    if (labSupplies(creep)) return;
-    // Empty mineral harvester container
-    if (mineralHauler(creep)) return;
-    // Empty factories
-    if (emptyFactory(creep)) return;
-    // Get factory orders
-    if (factorySupplies(creep)) return;
-    // Handle terminal goods
-    if (terminalControl(creep)) return;
-    // Handle storage goods
-    if (storageControl(creep)) return;
+    if (emptyLab(creep)
+        //If creep needs boosts do that first
+        || boostDelivery(creep)
+        // Tow Truck
+        || creep.towTruck()
+        // Handle dropped goodies
+        || droppedResources(creep)
+        // Check nuker for ghodium
+        || nukeSupplies(creep)
+        // Get lab orders
+        || labSupplies(creep)
+        // Empty mineral harvester container
+        || mineralHauler(creep)
+        // Empty factories
+        || emptyFactory(creep)
+        // Get factory orders
+        || factorySupplies(creep)
+        // Handle terminal goods
+        || terminalControl(creep)
+        // Handle storage goods
+        || storageControl(creep)) return;
     // If nothing to do, be a hauler for 50 ticks
     creep.memory.haulerMode = Game.time;
 };
 
 // Get item
 function getResource(creep) {
-    let storageSite = creep.room.terminal;
+    let storageSite;
     if (creep.room.storage.store[creep.memory.resourceNeeded]) storageSite = creep.room.storage;
+    if (creep.room.terminal.store[creep.memory.resourceNeeded]) storageSite = creep.room.terminal;
     let stockedLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === creep.memory.resourceNeeded && s.mineralType !== s.memory.itemNeeded && s.mineralType !== s.memory.neededBoost)[0];
     let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[creep.memory.resourceNeeded] && creep.memory.resourceNeeded !== RESOURCE_ENERGY)[0];
     if (container) storageSite = container;
@@ -60,7 +61,7 @@ function getResource(creep) {
     creep.say(creep.memory.resourceNeeded, true);
     let amount;
     if (creep.memory.deliverTo && Game.getObjectById(creep.memory.deliverTo).amount) amount = Game.getObjectById(creep.memory.deliverTo).amount;
-    if (storageSite.store[creep.memory.resourceNeeded]) {
+    if (storageSite && storageSite.store[creep.memory.resourceNeeded]) {
         switch (creep.withdraw(storageSite, creep.memory.resourceNeeded, amount)) {
             case OK:
                 creep.memory.resourceNeeded = undefined;

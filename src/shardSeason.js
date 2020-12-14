@@ -8,14 +8,15 @@
 // BACKUP THIS FILE BETWEEN UPDATES!!!!!!!
 // Use this to modify how your overlord bot runs
 
-global.COMBAT_SERVER = ['shardSeason']; // Insert the Game.shard.name of servers you'd like to declare everyone hostile
+global.COMBAT_SERVER = []; // Insert the Game.shard.name of servers you'd like to declare everyone hostile
 global.HOSTILES = []; // Manually set players as hostile
-global.MANUAL_FRIENDS = []; // Manually set players as friends (overrides COMBAT_SERVER)
+global.MANUAL_FRIENDS = ['Christinayo', 'Telemac', 'SirFrump', 'bigmac0815', 'rysade', 'Cub']; // Manually set players as friends (overrides COMBAT_SERVER)
+global.RAMPART_ACCESS = false // Allow friends and allies access thru ramparts
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
 global.ATTACK_LOCALS = true; // Attacks targets within range of the next entry
 global.LOCAL_SPHERE = 3; // Range that rooms consider local via linear distance
 global.NEW_SPAWN_DENIAL = true; // Crush new spawns immediately
-global.POKE_ATTACKS = false; // Small cheap annoying attacks
+global.POKE_ATTACKS = true; // Small cheap annoying attacks
 global.POKE_NEUTRALS = true; // Poke everyone
 global.OFFENSIVE_OPERATIONS = true; // Offensive Combat
 global.NCP_HOSTILE = true; // Always attack users of open source bots
@@ -52,7 +53,7 @@ global.BUY_THESE_BOOSTS = [RESOURCE_GHODIUM_ACID, RESOURCE_KEANIUM_ALKALIDE, RES
 global.PIXEL_BUFFER = 500; // Sell any pixels above this amount
 global.BUY_ENERGY = true; // If true it will buy energy at anything below the baseline energy price if a room isn't considered in surplus
 global.CREDIT_BUFFER = 10000; // Stay above
-global.ENERGY_AMOUNT = (TERMINAL_CAPACITY * 0.1 + STORAGE_CAPACITY * 0.025); // Aim for this amount in a room
+global.ENERGY_AMOUNT = (TERMINAL_CAPACITY * 0.1 + STORAGE_CAPACITY * 0.1); // Aim for this amount in a room
 global.FACTORY_CUTOFF = ENERGY_AMOUNT * 0.5; // Amount needed for a factory to be active
 global.MINERAL_TRADE_AMOUNT = (TERMINAL_CAPACITY * 0.015 + STORAGE_CAPACITY * 0.015);  // Hold this much of a mineral before selling
 global.BOOST_TRADE_AMOUNT = (TERMINAL_CAPACITY * 0.01 + STORAGE_CAPACITY * 0.01);  // Hold this much of a mineral before selling

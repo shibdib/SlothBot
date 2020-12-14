@@ -190,7 +190,7 @@ RoomPosition.prototype.checkForImpassible = function (ignoreWall = false) {
 };
 
 RoomPosition.prototype.isExit = function () {
-    return this.x <= 1 || this.x >= 48 || this.y <= 1 || this.y >= 48;
+    return this.x < 1 || this.x > 48 || this.y < 1 || this.y > 48;
 };
 
 RoomPosition.prototype.isValid = function () {
@@ -210,7 +210,6 @@ RoomPosition.prototype.buildRoomPosition = function (direction, distance) {
 RoomPosition.prototype.rangeToTarget = function (target) {
     if (!target) return;
     // Distance cache fails hard on MMO
-    delete Memory._distanceCache;
     if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') {
         return this.getRangeTo(target);
     }
@@ -243,9 +242,6 @@ function getCachedTargetDistance(origin, target) {
             distanceCache = cache;
             return cachedDistance.distance;
         }
-
-    } else {
-
     }
 }
 

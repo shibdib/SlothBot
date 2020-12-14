@@ -15,7 +15,7 @@ module.exports.role = function (creep) {
     // Handle yelling
     herald(creep);
     // If you upgrade, just return
-    //if (creep.store[RESOURCE_ENERGY] && creep.upgradeController(creep.room.controller) === OK) return;
+    if (creep.store[RESOURCE_ENERGY] && creep.upgradeController(creep.room.controller) === OK) return;
     // Set and check container and link
     let container = Game.getObjectById(creep.room.memory.controllerContainer);
     if (!container) creep.room.memory.controllerContainer = undefined;
@@ -43,7 +43,7 @@ module.exports.role = function (creep) {
     } else {
         if (creep.isFull) creep.memory.working = true;
         if (!creep.store[RESOURCE_ENERGY]) delete creep.memory.working;
-        creep.memory.other.inPosition = creep.memory.other.stationary && (!link || creep.pos.isNearTo(link)) && (!container || creep.pos.isNearTo(container)) && creep.pos.getRangeTo(creep.room.controller) <= 3;
+        if (link || container) creep.memory.other.inPosition = (!link || creep.pos.isNearTo(link)) && (!container || creep.pos.isNearTo(container)) && creep.pos.getRangeTo(creep.room.controller) <= 3;
         if (!creep.memory.other.inPosition && link && container) creep.shibMove([link, container])
         if (creep.memory.working) {
             switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {

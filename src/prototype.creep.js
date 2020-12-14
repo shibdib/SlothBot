@@ -642,40 +642,51 @@ Creep.prototype.towTruck = function () {
             return false;
         }
     } else {
-        this.say('Towing!', true);
-        this.memory.energyDestination = undefined;
         if (this.fatigue) return true;
         let trailer = Game.getObjectById(this.memory.trailer);
         if (trailer) {
+            if (!trailer.memory.towDestination) return this.memory.trailer = undefined;
+            this.say('Towing!', true);
+            if (trailer.pos.isExit() && trailer.pos.isNearTo(this)) {
+                this.pull(trailer);
+                trailer.move(this);
+                return this.moveRandom();
+            }
             let towDestination;
-            if (trailer.memory.towDestination && trailer.memory.towDestination.x) towDestination = new RoomPosition(trailer.memory.towDestination.x, trailer.memory.towDestination.y, this.room.name); else if (Game.getObjectById(trailer.memory.towDestination)) towDestination = Game.getObjectById(trailer.memory.towDestination).pos;
+            if (trailer.memory.towDestination && trailer.memory.towDestination.x) {
+                towDestination = new RoomPosition(trailer.memory.towDestination.x, trailer.memory.towDestination.y, trailer.memory.towDestination.roomName);
+            } else if (Game.getObjectById(trailer.memory.towDestination)) {
+                towDestination = Game.getObjectById(trailer.memory.towDestination).pos;
+            }
             // Handle case of desto being occupied
-            if (trailer.memory.towRange === 0 && this.pos.isNearTo(towDestination) && towDestination.checkForCreep() && towDestination.checkForCreep().id !== this.id) {
-                trailer.memory.towRange = 1;
+            if (trailer.memory.towOptions && trailer.memory.towOptions.range === 0 && this.pos.isNearTo(towDestination) && towDestination.checkForCreep() && towDestination.checkForCreep().id !== this.id) {
+                trailer.memory.towOptions.range = 1;
             }
             // Handle towing timeout
-            if (this.memory.towStart + 125 < Game.time || !towDestination || trailer.memory.towRange >= trailer.pos.getRangeTo(towDestination)) {
+            if (this.memory.towStart + 125 < Game.time || !towDestination || trailer.memory.towOptions.range >= trailer.pos.getRangeTo(towDestination)) {
+                this.memory.towStart = undefined;
                 this.memory.trailer = undefined;
                 trailer.memory._shibMove = undefined;
                 trailer.memory.towCreep = undefined;
                 trailer.memory.towDestination = undefined;
                 trailer.memory.towToObject = undefined;
-                trailer.memory.towRange = undefined;
+                trailer.memory.towOptions = undefined;
                 return false;
             } else
                 // Move trailer
             if (this.pull(trailer) === ERR_NOT_IN_RANGE) {
-                if (Math.random() > 0.75) this.memory._shibMove = undefined;
+                if (!this.memory.lastRangeToTrailer) this.memory.lastRangeToTrailer = trailer.pos.getRangeTo(this);
+                else if (this.memory.lastRangeToTrailer < trailer.pos.getRangeTo(this)) this.memory._shibMove = undefined;
                 this.shibMove(trailer);
                 return true;
             } else {
                 trailer.move(this);
-                if (!towDestination || this.pos.getRangeTo(towDestination) === trailer.memory.towRange) {
+                if (!towDestination || this.pos.getRangeTo(towDestination) === trailer.memory.towOptions.range) {
                     this.move(this.pos.getDirectionTo(trailer));
                 } else {
                     trailer.memory._shibMove = undefined;
                     if (!trailer.pos.isNearTo(this)) return this.memory._shibMove = undefined;
-                    this.shibMove(towDestination, {range: trailer.memory.towRange});
+                    this.shibMove(towDestination, trailer.memory.towOptions);
                 }
                 return true;
             }
@@ -685,6 +696,7 @@ Creep.prototype.towTruck = function () {
 
 Creep.prototype.portalCheck = function () {
     if (!this.pos.checkForPortal()) return false;
+    this.memory.usedPortal = this.room.name;
     if (!positionAtDirection(this.pos, LEFT).checkForPortal()) return this.move(LEFT);
     if (!positionAtDirection(this.pos, RIGHT).checkForPortal()) return this.move(RIGHT);
     if (!positionAtDirection(this.pos, TOP).checkForPortal()) return this.move(TOP);
@@ -699,6 +711,11 @@ Creep.prototype.borderCheck = function () {
     let thisPos = this.pos;
     this.attackInRange();
     this.healInRange();
+    let trailer = Game.getObjectById(this.memory.trailer);
+    if (trailer) {
+        this.pull(trailer);
+        trailer.move(this);
+    }
     let x = thisPos.x;
     let y = thisPos.y;
     if (x === 0 || y === 0 || x === 49 || y === 49) {
@@ -713,11 +730,11 @@ Creep.prototype.borderCheck = function () {
                 pathInfo.pathPosTime = 0;
             }
             let nextDirection = parseInt(pathInfo.path[0], 10);
-            if (nextDirection && pathInfo.newPos && positionAtDirection(origin, nextDirection) && !positionAtDirection(origin, nextDirection).checkForImpassible()) {
-                pathInfo.newPos = positionAtDirection(origin, nextDirection);
-                this.memory._shibMove = pathInfo;
+            pathInfo.newPos = positionAtDirection(origin, nextDirection);
+            if (nextDirection && pathInfo.newPos && !positionAtDirection(origin, nextDirection).checkForImpassible()) {
                 switch (this.move(nextDirection)) {
                     case OK:
+                        pathInfo.pathPosTime = 0;
                         break;
                     case ERR_TIRED:
                         break;
@@ -727,7 +744,8 @@ Creep.prototype.borderCheck = function () {
                         creep.idleFor(10);
                         break;
                 }
-                return true;
+                this.memory._shibMove = pathInfo;
+                return;
             } else {
                 delete pathInfo.path;
             }
@@ -919,10 +937,9 @@ Creep.prototype.recycleCreep = function () {
     this.healInRange();
     this.attackInRange();
     let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
-    if (!this.memory.overlord) this.memory.overlord = Memory.myRooms[0];
     if (!spawn) {
-        this.memory.closestRoom = this.memory.closestRoom || this.room.findClosestOwnedRoom(false);
-        return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 23});
+        this.memory.closestRoom = this.memory.closestRoom || this.room.findClosestOwnedRoom();
+        return this.shibMove(new RoomPosition(25, 25, this.memory.closestRoom), {range: 23});
     }
     if (this.store.getUsedCapacity()) {
         let deliver = this.room.terminal || this.room.storage || _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store.getFreeCapacity());
@@ -939,7 +956,6 @@ Creep.prototype.recycleCreep = function () {
         }
     }
     // Clear role to queue replacement if needed
-    this.memory.role = undefined;
     switch (spawn.recycleCreep(this)) {
         case OK:
             log.a('Creep - ' + this.name + ' successfully recycled in ' + this.room.name, 'RECYCLING:');

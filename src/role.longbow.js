@@ -43,7 +43,7 @@ module.exports.role = function (creep) {
         }
     } else if (creep.memory.destination) {
         if (creep.room.name !== creep.memory.destination) {
-            return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22}); //to move to any room}
+            return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22});
         } else {
             creep.handleMilitaryCreep();
         }

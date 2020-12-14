@@ -140,28 +140,32 @@ function nukeTarget(room) {
             let invaderCore = _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE && s.effects[EFFECT_COLLAPSE_TIMER] < NUKE_LAND_TIME && (!s.pos.checkForRampart() || s.pos.checkForRampart().hits < nukes.length * 7500000))[0];
             if (clusteredTower) {
                 if (clusteredTower.pos.checkForRampart()) nukesNeeded = _.ceil(clusteredTower.pos.checkForRampart().hits / 10000000);
-                launched += 1;
-                nuke.launchNuke(clusteredTower.pos);
-                log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredTower.pos.roomName) + ' ' + clusteredTower.pos.x + '.' + clusteredTower.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
-                Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredTower.pos.roomName) + ' ' + clusteredTower.pos.x + '.' + clusteredTower.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                if (nuke.launchNuke(clusteredTower.pos) === OK) {
+                    launched += 1;
+                    log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredTower.pos.roomName) + ' ' + clusteredTower.pos.x + '.' + clusteredTower.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                    Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredTower.pos.roomName) + ' ' + clusteredTower.pos.x + '.' + clusteredTower.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                }
             } else if (clusteredSpawns) {
                 if (clusteredSpawns.pos.checkForRampart()) nukesNeeded = _.ceil(clusteredSpawns.pos.checkForRampart().hits / 10000000);
-                launched += 1;
-                nuke.launchNuke(clusteredSpawns.pos);
-                log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredSpawns.pos.roomName) + ' ' + clusteredSpawns.pos.x + '.' + clusteredSpawns.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
-                Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredSpawns.pos.roomName) + ' ' + clusteredSpawns.pos.x + '.' + clusteredSpawns.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                if (nuke.launchNuke(clusteredSpawns.pos) === OK) {
+                    launched += 1;
+                    log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredSpawns.pos.roomName) + ' ' + clusteredSpawns.pos.x + '.' + clusteredSpawns.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                    Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredSpawns.pos.roomName) + ' ' + clusteredSpawns.pos.x + '.' + clusteredSpawns.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                }
             } else if (terminal) {
                 if (terminal.pos.checkForRampart()) nukesNeeded = _.ceil(terminal.pos.checkForRampart().hits / 10000000);
-                launched += 1;
-                nuke.launchNuke(room.terminal.pos);
-                log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(room.terminal.pos.roomName) + ' ' + room.terminal.pos.x + '.' + room.terminal.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
-                Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(room.terminal.pos.roomName) + ' ' + room.terminal.pos.x + '.' + room.terminal.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                if (nuke.launchNuke(terminal.pos) === OK) {
+                    launched += 1;
+                    log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(terminal.pos.roomName) + ' ' + terminal.pos.x + '.' + terminal.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                    Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(terminal.pos.roomName) + ' ' + terminal.pos.x + '.' + terminal.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                }
             } else if (invaderCore) {
                 if (invaderCore.pos.checkForRampart()) nukesNeeded = _.ceil(invaderCore.pos.checkForRampart().hits / 10000000);
-                launched += 1;
-                nuke.launchNuke(invaderCore.pos);
-                log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(invaderCore.pos.roomName) + ' ' + invaderCore.pos.x + '.' + invaderCore.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
-                Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(invaderCore.pos.roomName) + ' ' + invaderCore.pos.x + '.' + invaderCore.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                if (nuke.launchNuke(invaderCore.pos) === OK) {
+                    launched += 1;
+                    log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(invaderCore.pos.roomName) + ' ' + invaderCore.pos.x + '.' + invaderCore.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                    Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(invaderCore.pos.roomName) + ' ' + invaderCore.pos.x + '.' + invaderCore.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                }
             }
         }
         return true;
@@ -221,5 +225,5 @@ function forwardObserver(room) {
     let range = room.findClosestOwnedRoom(true);
     let priority;
     if (range <= LOCAL_SPHERE) priority = 1; else if (range <= LOCAL_SPHERE * 1.25) priority = 2; else if (range <= LOCAL_SPHERE * 2) priority = 3; else priority = 4;
-    Memory.targetRooms[room.name].priority = priority;
+    if (Memory.targetRooms[room.name]) Memory.targetRooms[room.name].priority = priority;
 }

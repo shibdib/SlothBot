@@ -75,7 +75,7 @@ module.exports.terminalControl = function (room) {
         return;
     }
     //Buy Energy
-    if (buyEnergy(room.terminal, globalOrders)) return;
+    if (BUY_ENERGY && buyEnergy(room.terminal, globalOrders)) return;
     if (room.energyState) {
         //Send energy to rooms under siege
         if (emergencyEnergy(room.terminal)) return;

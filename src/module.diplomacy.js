@@ -79,10 +79,10 @@ function threatManager() {
         Memory._threatList = _.union(Memory._threatList, Memory.ncpArray);
     }
     // Clean up lists
-    Memory._badBoyArray = _.uniq(_.filter(Memory._badBoyArray, (p) => p !== null && p !== undefined));
-    Memory._enemies = _.uniq(_.filter(Memory._enemies, (p) => p !== null && p !== undefined));
-    Memory._nuisance = _.uniq(_.filter(Memory._nuisance, (p) => p !== null && p !== undefined));
-    Memory._threatList = _.uniq(_.filter(Memory._threatList, (p) => p !== null && p !== undefined));
+    Memory._badBoyArray = _.uniq(_.filter(Memory._badBoyArray, (p) => p !== null && p !== undefined && p !== 'undefined'));
+    Memory._enemies = _.uniq(_.filter(Memory._enemies, (p) => p !== null && p !== undefined && p !== 'undefined'));
+    Memory._nuisance = _.uniq(_.filter(Memory._nuisance, (p) => p !== null && p !== undefined && p !== 'undefined'));
+    Memory._threatList = _.uniq(_.filter(Memory._threatList, (p) => p !== null && p !== undefined && p !== 'undefined'));
 }
 
 module.exports.trackThreat = function (creep) {
