@@ -342,7 +342,7 @@ module.exports.miscCreepQueue = function (room) {
             }
             //Border Patrol
             if (room.memory.borderPatrol) {
-                if (getCreepCount(room, 'longbow', undefined, 'borderPatrol') < 2) {
+                if (!getCreepCount(room, 'longbow', undefined, 'borderPatrol')) {
                     queueCreep(room, PRIORITIES.high, {
                         role: 'longbow',
                         operation: 'borderPatrol',
@@ -370,7 +370,8 @@ module.exports.remoteCreepQueue = function (room) {
         // Find rooms around you using roomCache with remote possibilities
         let sourceCount = 0;
         let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && !Memory.roomCache[r].isHighway && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
-            (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME || Memory.roomCache[r].user === 'Source Keeper' || Memory.roomCache[r].user === 'Invader') && (!Memory.roomCache[r].owner || Memory.roomCache[r].invaderCore) && !Memory.roomCache[r].level);
+            (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME || Memory.roomCache[r].user === 'Source Keeper' || Memory.roomCache[r].user === 'Invader') &&
+            (!Memory.roomCache[r].owner || Memory.roomCache[r].invaderCore) && !Memory.roomCache[r].level);
         // Handle SK middle room
         /**
          if (level >= 7 && _.filter(adjacent, (r) => Memory.roomCache[r] && Memory.roomCache[r].sk).length) {
@@ -387,21 +388,23 @@ module.exports.remoteCreepQueue = function (room) {
         }
         if (adjacent.length) adjacent.forEach((r) => sourceCount += Memory.roomCache[r].sources || 1);
         // Handle less than desired
-        if (sourceCount < 5) {
+        if (sourceCount < 8) {
             let secondary = [];
             for (let adjacentRoom of adjacent) {
-                let secondaryAdjacent = _.filter(Game.map.describeExits(adjacentRoom), (r) => Memory.roomCache[r] && Memory.roomCache[r].sources && (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
-                    !Memory.roomCache[r].owner && !Memory.roomCache[r].sk && Game.map.getRoomLinearDistance(room.name, r) <= 1);
+                let secondaryAdjacent = _.filter(Game.map.describeExits(adjacentRoom), (r) => Memory.roomCache[r] && Memory.roomCache[r].sources &&
+                    (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
+                    !Memory.roomCache[r].owner && !Memory.roomCache[r].sk && Memory.roomCache[r].closestRoom === room.name && _.filter(Memory.roomCache[r].sourceRating, (s) => s <= 150).length);
                 if (secondaryAdjacent.length) secondary = secondary.concat(secondaryAdjacent);
             }
             if (secondary.length) {
                 secondary.forEach((r) => sourceCount += Memory.roomCache[r].sources || 1);
                 adjacent = adjacent.concat(secondary);
             }
-            if (sourceCount < 3) {
+            if (sourceCount < 8) {
                 for (let adjacentRoom of adjacent) {
-                    let secondaryAdjacent = _.filter(Game.map.describeExits(adjacentRoom), (r) => Memory.roomCache[r] && Memory.roomCache[r].sources && (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
-                        !Memory.roomCache[r].owner && !Memory.roomCache[r].sk && Game.map.findRoute(room.name, r).length <= 2);
+                    let secondaryAdjacent = _.filter(Game.map.describeExits(adjacentRoom), (r) => Memory.roomCache[r] &&
+                        Memory.roomCache[r].sources && (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
+                        !Memory.roomCache[r].owner && !Memory.roomCache[r].sk && Memory.roomCache[r].closestRoom === room.name && _.filter(Memory.roomCache[r].sourceRating, (s) => s <= 150).length);
                     if (secondaryAdjacent.length) secondary = secondary.concat(secondaryAdjacent);
                 }
                 if (secondary.length) adjacent = adjacent.concat(secondary);
@@ -466,7 +469,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             } else if (!Memory.roomCache[remoteName] || !Memory.roomCache[remoteName].sk) {
                 if (!invaderCoreReserved) {
-                    let sourceCount = Memory.roomCache[remoteName].sources || 1;
+                    let sourceCount = _.filter(Memory.roomCache[remoteName].sourceRating, (s) => s <= 125).length || 0;
                     if (getCreepCount(room, 'remoteHarvester', remoteName) < sourceCount) {
                         queueCreep(room, PRIORITIES.remoteHarvester, {
                             role: 'remoteHarvester',

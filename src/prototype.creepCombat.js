@@ -646,6 +646,14 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
         if (armedFriendlies[i].getActiveBodyparts(HEAL)) alliedPower += armedFriendlies[i].abilityPower().defense;
         alliedPower += armedFriendlies[i].abilityPower().attack;
     }
+    let hostileTowers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && !_.includes(FRIENDLIES, s.owner.username));
+    for (let i = 0; i < hostileTowers.length; i++) {
+        hostilePower += 150;
+    }
+    let friendlyTowers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && _.includes(FRIENDLIES, s.owner.username));
+    for (let i = 0; i < friendlyTowers.length; i++) {
+        alliedPower += 150;
+    }
     if (!Memory.roomCache[this.room.name]) this.room.cacheRoomIntel(true);
     Memory.roomCache[this.room.name].hostilePower = hostilePower;
     Memory.roomCache[this.room.name].friendlyPower = alliedPower;

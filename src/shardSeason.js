@@ -10,7 +10,7 @@
 
 global.COMBAT_SERVER = []; // Insert the Game.shard.name of servers you'd like to declare everyone hostile
 global.HOSTILES = []; // Manually set players as hostile
-global.MANUAL_FRIENDS = ['Christinayo', 'Telemac', 'SirFrump', 'bigmac0815', 'rysade', 'Cub']; // Manually set players as friends (overrides COMBAT_SERVER)
+global.MANUAL_FRIENDS = ['Christinayo', 'Telemac', 'SirFrump', 'bigmac0815', 'rysade', 'Cub', 'Kanduras', 'TehFiend']; // Manually set players as friends (overrides COMBAT_SERVER)
 global.RAMPART_ACCESS = false // Allow friends and allies access thru ramparts
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
 global.ATTACK_LOCALS = true; // Attacks targets within range of the next entry

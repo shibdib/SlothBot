@@ -122,7 +122,7 @@ function dropOff(creep) {
     }
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     //Controller
-    if (controllerContainer && controllerContainer.store.getFreeCapacity() > CONTAINER_CAPACITY * 0.5 && (!creep.room.storage || creep.room.storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.4)) {
+    if (controllerContainer && controllerContainer.store.getFreeCapacity() > CONTAINER_CAPACITY * 0.5 && (!creep.room.storage || creep.room.storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.4 || Math.random() > 0.55)) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     } else if (creep.room.storage && creep.room.storage.store.getFreeCapacity()) {

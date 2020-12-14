@@ -169,7 +169,7 @@ function auxiliaryOperations() {
     }
     // Seasonal score collection
     if (Game.shard.name === 'shardSeason') {
-        let scoreCollector = _.min(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.seasonCollector === 1 && (!r.user || r.user === MY_USERNAME)), 'closestRange');
+        let scoreCollector = _.min(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.seasonCollector === 1), 'closestRange');
         // Score collection
         if (maxLevel >= 4 || scoreCollector.name) {
             let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.seasonResource > Game.time && r.closestRange <= r.seasonResource / 50 && !r.hostile), 'closestRange');
@@ -189,9 +189,8 @@ function auxiliaryOperations() {
         }
         // Collector clearing
         let pendingCollector = _.min(_.filter(Memory.roomCache, (r) => r.seasonCollector === 2 && !Memory.auxiliaryTargets[r.name] && (!r.user || r.user === MY_USERNAME)), 'closestRange');
-        let activeCollector = _.min(_.filter(Memory.roomCache, (r) => r.seasonCollector === 1 && !Memory.targetRooms[r.name]), 'closestRange');
         let scoreCleaning = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'scoreCleaner').length || 0;
-        if (scoreCleaning < 2 && pendingCollector.name && (!scoreCollector.name || scoreCollector.closestRoom > pendingCollector.closestRoom)) {
+        if (scoreCleaning < 2 && pendingCollector.name && (!scoreCollector.name || scoreCollector.closestRange > pendingCollector.closestRange)) {
             let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;
             cache[pendingCollector.name] = {
@@ -204,17 +203,17 @@ function auxiliaryOperations() {
             log.a('Score cleaning operation planned for ' + roomLink(pendingCollector.name) + ' to clear walls, Nearest Room - ' + pendingCollector.closestRange + ' rooms away', 'HIGH COMMAND: ');
         }
         // Collector Guard
-        else if (activeCollector.name) {
+        else if (scoreCollector.name && !Memory.targetRooms[scoreCollector.name]) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
-            cache[activeCollector.name] = {
+            cache[scoreCollector.name] = {
                 tick: tick,
                 type: 'guard',
                 level: 1,
                 priority: PRIORITIES.secondary
             };
             Memory.targetRooms = cache;
-            log.a('Score guard operation planned for ' + roomLink(activeCollector.name) + ', Nearest Room - ' + activeCollector.closestRange + ' rooms away', 'HIGH COMMAND: ');
+            log.a('Score guard operation planned for ' + roomLink(scoreCollector.name) + ', Nearest Room - ' + scoreCollector.closestRange + ' rooms away', 'HIGH COMMAND: ');
         }
     }
     // Robbery

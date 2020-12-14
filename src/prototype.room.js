@@ -301,7 +301,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     let room = Game.rooms[this.name];
     let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, robbery, towers,
         reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions, seasonResource,
-        seasonCollector, swarm, structures, towerCount;
+        seasonCollector, swarm, structures, towerCount, sourceRating;
     if (room) {
         if (Memory.roomCache[room.name]) lastOperation = Memory.roomCache[room.name].lastOperation;
         // Check for season resource
@@ -395,6 +395,21 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         }
         // Get closest
         let closestRange = this.findClosestOwnedRoom(true);
+        // Handle rating sources for remotes
+        if (closestRange <= 3 && sources.length && !sk) {
+            sourceRating = {};
+            for (let source of this.sources) {
+                let closest = this.findClosestOwnedRoom();
+                let goHome = Game.map.findExit(this.name, closest);
+                let homeExit = this.find(goHome);
+                let homeMiddle = _.round(homeExit.length / 2);
+                let distanceToExit = source.pos.findPathTo(homeExit[homeMiddle]).length
+                let roomRange = Game.map.findRoute(this.name, closest).length - 1;
+                let total = distanceToExit + distanceToExit + 20;
+                if (roomRange) total = distanceToExit + (roomRange * 50) + 25;
+                sourceRating[source.id] = total;
+            }
+        }
         // Handle robbery check
         if ((!user || user === MY_USERNAME) && closestRange <= 3 && room.structures.length && _.filter(room.structures, (t) => t.structureType !== STRUCTURE_CONTAINER && t.structureType !== STRUCTURE_NUKER &&
             t.store && !t.pos.checkForRampart() && t.store.getUsedCapacity()).length) robbery = true;
@@ -420,6 +435,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             robbery: robbery,
             isHighway: !room.controller && !sk && !room.sources.length,
             closestRange: closestRange,
+            closestRoom: this.findClosestOwnedRoom(),
             hubCheck: hubCheck,
             sourceRange: sourceRange,
             obstructions: obstructions,
@@ -430,7 +446,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             towers: towerCount,
             swarm: swarm,
             structures: structures,
-            hostile: combatCreeps.length > 0 || towerCount
+            hostile: combatCreeps.length > 0 || towerCount,
+            sourceRating: sourceRating
         };
         Memory.ncpArray = _.uniq(ncpArray);
         Memory.roomCache = cache;

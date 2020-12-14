@@ -18,7 +18,7 @@ module.exports.role = function role(creep) {
     // Set destination
     if (!creep.memory.destination) {
         if (creep.memory.overlord === creep.room.name) {
-            creep.memory.destination = _.sample(_.filter(JSON.parse(creep.memory.misc), (r) => r && Memory.roomCache[r] && creep.room.routeSafe(r) && !Memory.roomCache[r].obstructions && !Memory.roomCache[r].invaderCore && (!Memory.roomCache[r].sk || Game.rooms[creep.memory.overlord].level >= 7)));
+            creep.memory.destination = _.sample(_.pluck(_.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && c.memory.onContainer), 'room.name'));
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
         }
