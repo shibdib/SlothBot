@@ -96,7 +96,9 @@ Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
         if (!this._energyState) {
             this._energyState = 0;
-            if (this.energy >= ENERGY_AMOUNT * 2) {
+            if (this.energy >= ENERGY_AMOUNT * 3) {
+                this._energyState = 3;
+            } else if (this.energy >= ENERGY_AMOUNT * 2) {
                 this._energyState = 2;
             } else if (this.energy >= ENERGY_AMOUNT * 0.9) {
                 this._energyState = 1;
@@ -299,7 +301,7 @@ function getRoomResource(room, resource, unused = false) {
 Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     let room = Game.rooms[this.name];
-    let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, robbery, towers,
+    let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, towers,
         reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions, seasonResource,
         seasonCollector, swarm, structures, towerCount, sourceRating;
     if (room) {
@@ -321,7 +323,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         let cache = Memory.roomCache || {};
         let sources = room.sources;
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) && !e.getActiveBodyparts(RANGED_ATTACK) && (e.getActiveBodyparts(WORK) || e.getActiveBodyparts(CARRY))));
-        let combatCreeps = _.filter(room.creeps, (e) => e.getActiveBodyparts(ATTACK) || e.getActiveBodyparts(RANGED_ATTACK));
+        let combatCreeps = _.filter(room.hostileCreeps, (e) => e.getActiveBodyparts(ATTACK) || e.getActiveBodyparts(RANGED_ATTACK));
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)[0]) sk = true;
         if (room.controller) {
             // Check if obstructed
@@ -410,9 +412,6 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 sourceRating[source.id] = total;
             }
         }
-        // Handle robbery check
-        if ((!user || user === MY_USERNAME) && closestRange <= 3 && room.structures.length && _.filter(room.structures, (t) => t.structureType !== STRUCTURE_CONTAINER && t.structureType !== STRUCTURE_NUKER &&
-            t.store && !t.pos.checkForRampart() && t.store.getUsedCapacity()).length) robbery = true;
         let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR);
         if (towers) towerCount = towers.length;
         if (worthyStructures) structures = worthyStructures.length
@@ -432,7 +431,6 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             safemode: safemode,
             portal: portal,
             power: power,
-            robbery: robbery,
             isHighway: !room.controller && !sk && !room.sources.length,
             closestRange: closestRange,
             closestRoom: this.findClosestOwnedRoom(),
@@ -552,7 +550,7 @@ Room.prototype.findClosestOwnedRoom = function (range = false, minLevel = 1) {
             let room = Game.rooms[key];
             if (!room || room.controller.level < minLevel) continue;
             // Handle absurd distances
-            let path = Game.map.getRoomLinearDistance(key, this.name);
+            let path = Game.map.findRoute(key, this.name).length;
             if (path >= 20) {
                 let currentRoom = this.name;
                 let closestPortal = _.sortBy(_.filter(Memory.roomCache, (r) => r.portal), function (f) {

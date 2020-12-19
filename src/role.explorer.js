@@ -10,8 +10,9 @@
  */
 
 module.exports.role = function (creep) {
+    creep.say(ICONS.eye, true);
+    Game.map.visual.text(ICONS.eye, creep.pos, {color: '#FF0000', fontSize: 2});
     creep.room.cacheRoomIntel();
-    creep.say(_.sample(EXPLORER_SPAM), true);
     // Set destination
     if (!creep.memory.destination) {
         let portal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL)[0];

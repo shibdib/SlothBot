@@ -117,8 +117,6 @@ module.exports.trackThreat = function (creep) {
     // Handle damage
     if (!creep.memory._lastHits) return creep.memory._lastHits = creep.hits;
     if (creep.hits < creep.memory._lastHits) {
-        creep.room.invaderCheck();
-        creep.room.cacheRoomIntel();
         Memory.roomCache[creep.room.name].lastCombat = Game.time;
         if (creep.room.controller && ((creep.room.controller.owner && creep.room.controller.owner.username !== MY_USERNAME) || (creep.room.controller.reservation && creep.room.controller.reservation.username !== MY_USERNAME)) && creep.memory.destination !== creep.room.name) return false;
         let nearbyCreeps = _.uniq(_.pluck(_.filter(creep.room.creeps, (c) => ((c.getActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(creep) <= 3) || (c.getActiveBodyparts(ATTACK) && c.pos.isNearTo(creep))) && c.owner.username !== MY_USERNAME), 'owner.username'));

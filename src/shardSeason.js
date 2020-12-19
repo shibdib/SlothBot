@@ -10,7 +10,7 @@
 
 global.COMBAT_SERVER = []; // Insert the Game.shard.name of servers you'd like to declare everyone hostile
 global.HOSTILES = []; // Manually set players as hostile
-global.MANUAL_FRIENDS = ['Christinayo', 'Telemac', 'SirFrump', 'bigmac0815', 'rysade', 'Cub', 'Kanduras', 'TehFiend']; // Manually set players as friends (overrides COMBAT_SERVER)
+global.MANUAL_FRIENDS = ['Christinayo', 'Telemac', 'SirFrump', 'bigmac0815', 'rysade', 'Kanduras', 'TehFiend', 'Keidence', 'Trepidimous']; // Manually set players as friends (overrides COMBAT_SERVER)
 global.RAMPART_ACCESS = false // Allow friends and allies access thru ramparts
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
 global.ATTACK_LOCALS = true; // Attacks targets within range of the next entry
@@ -45,7 +45,7 @@ global.BARRIER_TARGET_HIT_POINTS = {
 };
 
 // The boosts you want labs to focus on first (resources permitted)
-global.LAB_PRIORITY = [RESOURCE_GHODIUM_ACID, RESOURCE_GHODIUM_HYDRIDE, RESOURCE_GHODIUM, RESOURCE_KEANIUM_ALKALIDE, RESOURCE_LEMERGIUM_ACID];
+global.LAB_PRIORITY = [RESOURCE_ZYNTHIUM_HYDRIDE, RESOURCE_ZYNTHIUM_ACID, RESOURCE_GHODIUM_ACID, RESOURCE_GHODIUM_HYDRIDE, RESOURCE_GHODIUM, RESOURCE_KEANIUM_ALKALIDE, RESOURCE_LEMERGIUM_ACID];
 // If credits permit, buy these boosts
 global.BUY_THESE_BOOSTS = [RESOURCE_GHODIUM_ACID, RESOURCE_KEANIUM_ALKALIDE, RESOURCE_LEMERGIUM_ACID];
 

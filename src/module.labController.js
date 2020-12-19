@@ -119,7 +119,7 @@ function manageActiveLabs() {
                         case OK:
                             // Check if we already have enough
                             let cutOff = BOOST_AMOUNT;
-                            if (_.includes(LAB_PRIORITY, outputLab.memory.creating)) cutOff = BOOST_AMOUNT * 2.5;
+                            if (_.includes(LAB_PRIORITY, outputLab.memory.creating)) cutOff = BOOST_AMOUNT * 5;
                             if (outputLab.room.store(outputLab.memory.creating) + outputLab.store[outputLab.memory.creating] > cutOff) {
                                 log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
                                 for (let id in creators) {

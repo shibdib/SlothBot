@@ -131,12 +131,14 @@ module.exports.overlordMind = function (room, CPULimit) {
 let errorCount = {};
 function minionController(minion) {
     let cpuUsed = Game.cpu.getUsed();
-    // Track Threat
-    diplomacy.trackThreat(minion);
     // Set last managed tick
     minion.memory.lastManaged = Game.time;
-    // If minion has been flagged to recycle do so
-    if (minion.memory.recycle) {
+    // Track Threat
+    diplomacy.trackThreat(minion);
+    if (minion.portalCheck() || minion.borderCheck()) {
+        return tools.creepCPU(minion, cpuUsed);
+    } // If minion has been flagged to recycle do so
+    else if (minion.memory.recycle) {
         minion.recycleCreep();
         return tools.creepCPU(minion, cpuUsed);
     } // If it needs to kite do so
@@ -144,9 +146,6 @@ function minionController(minion) {
         return tools.creepCPU(minion, cpuUsed);
     } // If idle sleep
     else if (minion.idle) {
-        return tools.creepCPU(minion, cpuUsed);
-    } // If on portal or border move
-    else if (minion.portalCheck() || minion.borderCheck()) {
         return tools.creepCPU(minion, cpuUsed);
     } // Handle nuke flee
     else if (minion.memory.fleeNukeTime && minion.fleeNukeRoom()) return;
@@ -173,10 +172,10 @@ function minionController(minion) {
             }
         } else if (errorCount[minion.name] >= 50) {
             if (errorCount[minion.name] === 50) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been killed.');
-            minion.suicide();
+            //minion.suicide();
         } else {
-            if (errorCount[minion.name] === 10) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been marked for recycling due to hitting the error cap.');
-            minion.memory.recycle = true;
+            if (errorCount[minion.name] >= 10) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been marked for recycling due to hitting the error cap.');
+            //minion.memory.recycle = true;
         }
     }
     // Store CPU usage

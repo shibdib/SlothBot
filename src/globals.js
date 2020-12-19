@@ -222,6 +222,8 @@ let globals = function () {
         , courier: "\ud83d\ude90"
         , power: "\u26a1"
         , medical: "\u2695"
+        , eye: "\ud83d\udc40"
+        , santa: "\ud83c\udf85"
     };
 
     global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p.type || p]);

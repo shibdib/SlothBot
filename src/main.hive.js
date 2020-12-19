@@ -100,14 +100,12 @@ function minionController(minion) {
     diplomacy.trackThreat(minion);
     // Handle nuke flee
     if (minion.memory.fleeNukeTime && minion.fleeNukeRoom(minion.memory.fleeNukeRoom)) return;
+    // Report intel chance
+    minion.room.invaderCheck();
+    minion.room.cacheRoomIntel();
     // Set role
     let memoryRole = minion.memory.role;
     try {
-        // Report intel chance
-        if (minion.room.name !== minion.memory.overlord && Math.random() > 0.5) {
-            minion.room.invaderCheck();
-            minion.room.cacheRoomIntel();
-        }
         // Squad pair members dont act here
         if (!minion.memory.squadLeader || minion.memory.squadLeader === minion.id || (minion.memory.squadLeader && !Game.getObjectById(minion.memory.squadLeader))) {
             let creepRole = require('role.' + memoryRole);
@@ -118,6 +116,7 @@ function minionController(minion) {
         if (errorCount[minion.name] < 10) {
             if (errorCount[minion.name] === 1) {
                 log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name));
+                log.e(e);
                 log.e(e.stack);
                 Game.notify(e.stack);
             }

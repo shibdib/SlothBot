@@ -29,9 +29,6 @@ function shibMove(creep, heading, options = {}) {
         });
     }
 
-    // Border Check
-    if (creep.borderCheck()) return;
-
     // Default options
     _.defaults(options, {
         useCache: true,
@@ -44,7 +41,8 @@ function shibMove(creep, heading, options = {}) {
         offRoad: false,
         confirmPath: false,
         tunnel: false,
-        showMatrix: false
+        showMatrix: false,
+        getNextDirection: false
     });
 
     // If tunneling up the ops
@@ -142,16 +140,21 @@ function shibMove(creep, heading, options = {}) {
     if (!origin || !target) return;
 
     // Check if target moved
-    if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y)) {
-        if (creep.memory._shibMove.path && creep.memory._shibMove.path.length && (heading instanceof Creep || heading instanceof PowerCreep)) {
-            let oldPos = new RoomPosition(creep.memory._shibMove.target.x, creep.memory._shibMove.target.y, creep.memory._shibMove.target.roomName);
-            creep.memory._shibMove.path.concat(oldPos.getDirectionTo(heading));
+    if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y || creep.memory._shibMove.target.roomName !== target.roomName)) {
+        if (heading instanceof Creep || heading instanceof PowerCreep) {
+            if (creep.memory._shibMove.path && creep.memory._shibMove.path.length && creep.memory._shibMove.target.roomName !== target.roomName) {
+                //let oldPos = new RoomPosition(creep.memory._shibMove.target.x, creep.memory._shibMove.target.y, creep.memory._shibMove.target.roomName);
+                //creep.memory._shibMove.path.concat(oldPos.getDirectionTo(heading));
+                creep.memory._shibMove.path = undefined;
+            }
+        } else {
+            return creep.memory._shibMove = undefined;
         }
     }
 
     // Set var
     let pathInfo = creep.memory._shibMove;
-    pathInfo.targetRoom = targetRoom(heading);
+    pathInfo.targetRoom = target.roomName;
 
     //Clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
@@ -160,7 +163,7 @@ function shibMove(creep, heading, options = {}) {
     }
 
     //Execute path if target is valid and path is set
-    if (pathInfo.path && pathInfo.path.length) {
+    if (pathInfo.path && pathInfo.path.length && !options.getPath) {
         if (pathInfo.newPos && pathInfo.newPos.x === creep.pos.x && pathInfo.newPos.y === creep.pos.y && pathInfo.newPos.roomName === creep.pos.roomName) pathInfo.path = pathInfo.path.slice(1);
         let nextDirection = parseInt(pathInfo.path[0], 10);
         if (nextDirection && pathInfo.newPos) {
@@ -186,6 +189,8 @@ function shibMove(creep, heading, options = {}) {
             }
             switch (creep.move(nextDirection)) {
                 case OK:
+                    creep.memory._shibMove.lastMoveTick = Game.time;
+                    creep.memory._shibMove.lastDirection = nextDirection;
                     break;
                 case ERR_TIRED:
                     break;
@@ -265,6 +270,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
             maxOps: options.maxOps,
             maxRooms: options.maxRooms,
+            heuristicWeight: 1,
             roomCallback: callback,
         });
         if (ret.incomplete) {
@@ -312,6 +318,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         if (options.ignoreCreeps && !options.ignoreStructures) cachePath(creep, origin, target, pathInfo.path);
         delete pathInfo.findAttempt;
         delete creep.memory.badPathing;
+        if (options.getPath) return creep.memory.getPath = pathInfo.path;
         creep.memory._shibMove = pathInfo;
         switch (creep.move(nextDirection)) {
             case OK:
@@ -461,17 +468,6 @@ function normalizePos(destination) {
         }
     }
     return destination;
-}
-
-function targetRoom(destination) {
-    if (!(destination instanceof RoomPosition)) {
-        if (destination) {
-            return destination.pos.roomName;
-        } else {
-            return;
-        }
-    }
-    return destination.roomName;
 }
 
 function checkAvoid(roomName) {

@@ -12,6 +12,8 @@
 module.exports.role = function (creep) {
     // Border Patrol
     if (creep.memory.operation === 'borderPatrol') return creep.borderPatrol();
+    creep.attackInRange();
+    creep.healInRange();
     // Responder Mode
     if (creep.memory.other && creep.memory.other.responseTarget) {
         if (creep.memory.other.responseTarget) return creep.guardRoom();

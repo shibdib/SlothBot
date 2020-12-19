@@ -6,9 +6,6 @@
  */
 
 Creep.prototype.scoutRoom = function () {
-    let sentence = [MY_USERNAME, 'Scout', 'Drone', 'For', this.memory.destination];
-    let word = Game.time % sentence.length;
-    this.say(sentence[word], true);
     // Handle edge case where room is overlord
     if (this.memory.destination === this.memory.overlord) {
         delete Memory.targetRooms[this.room.name];
@@ -179,7 +176,7 @@ function forwardObserver(room) {
     let highCommand = require('military.highCommand');
     highCommand.operationSustainability(room);
     // Safemode
-    if (room.controller.safeMode) {
+    if (room.controller && room.controller.safeMode) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[room.name] = {

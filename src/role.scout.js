@@ -3,6 +3,8 @@
  */
 
 module.exports.role = function (creep) {
+    creep.say(ICONS.eye, true);
+    Game.map.visual.text(ICONS.eye, creep.pos, {color: '#FF0000', fontSize: 2});
     creep.scoutRoom();
     hud(creep);
 };

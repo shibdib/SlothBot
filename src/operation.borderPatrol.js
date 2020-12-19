@@ -16,7 +16,7 @@ Creep.prototype.borderPatrol = function () {
     this.healInRange();
     if (!this.memory.other.responseTarget) {
         // Check neighbors
-        let adjacent = _.filter(Game.map.describeExits(this.pos.roomName), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel)[0];
+        let adjacent = _.filter(Game.map.describeExits(this.pos.roomName), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel)[0] || _.filter(Game.map.describeExits(this.pos.roomName), (r) => Memory.roomCache[r] && Memory.roomCache[r].roomHeat)[0];
         if (adjacent) {
             return this.memory.other.responseTarget = adjacent;
         }

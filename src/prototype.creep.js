@@ -136,7 +136,7 @@ Creep.prototype.skSafety = function () {
     }
 }
 
-Creep.prototype.withdrawResource = function (destination = undefined, amount = undefined) {
+Creep.prototype.withdrawResource = function (destination = undefined, resourceType = RESOURCE_ENERGY, amount = undefined) {
     if (destination) this.memory.energyDestination = destination.id;
     if (amount && amount < 0) return this.memory.hauling = true;
     if (this.memory.energyDestination) {
@@ -144,8 +144,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
         if (!energyItem) return this.memory.energyDestination = undefined;
         if (energyItem.pos.roomName !== this.room.name) return this.shibMove(energyItem);
         if (_.sum(energyItem.store)) {
-            if (amount && energyItem.store[RESOURCE_ENERGY] < amount) amount = energyItem.store[RESOURCE_ENERGY];
-            switch (this.withdraw(energyItem, RESOURCE_ENERGY, amount)) {
+            switch (this.withdraw(energyItem, resourceType, amount)) {
                 case OK:
                     this.memory.withdrawID = energyItem.id;
                     this.memory.energyDestination = undefined;
@@ -166,7 +165,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
                             this.memory._shibMove = undefined;
                             break;
                         case ERR_INVALID_TARGET:
-                            switch (energyItem.transfer(this, RESOURCE_ENERGY, amount)) {
+                            switch (energyItem.transfer(this, resourceType, amount)) {
                                 case OK:
                                     this.memory.withdrawID = energyItem.id;
                                     this.memory.energyDestination = undefined;

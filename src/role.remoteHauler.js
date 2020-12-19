@@ -53,7 +53,16 @@ module.exports.role = function (creep) {
             let harvester = Game.getObjectById(creep.memory.misc);
             if (!harvester) return creep.memory.misc = undefined;
             if (creep.room.routeSafe(harvester.pos.roomName)) {
-                creep.withdrawResource(Game.getObjectById(harvester.memory.needHauler));
+                if (Game.getObjectById(harvester.memory.needHauler)) {
+                    if (Game.getObjectById(harvester.memory.needHauler).store && _.sum(Game.getObjectById(harvester.memory.needHauler).store) > Game.getObjectById(harvester.memory.needHauler).store[RESOURCE_ENERGY]) {
+                        let resource = _.filter(Object.keys(Game.getObjectById(harvester.memory.needHauler).store), (r) => r !== RESOURCE_ENERGY)[0];
+                        creep.withdrawResource(Game.getObjectById(harvester.memory.needHauler), resource);
+                    } else {
+                        creep.withdrawResource(Game.getObjectById(harvester.memory.needHauler));
+                    }
+                } else {
+                    creep.shibMove(harvester);
+                }
             }
         } else {
             let harvesters = _.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && c.memory.carryAmountNeeded);
@@ -122,7 +131,7 @@ function dropOff(creep) {
     }
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     //Controller
-    if (controllerContainer && controllerContainer.store.getFreeCapacity() > CONTAINER_CAPACITY * 0.5 && (!creep.room.storage || creep.room.storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.4 || Math.random() > 0.55)) {
+    if (controllerContainer && controllerContainer.store.getFreeCapacity() > CONTAINER_CAPACITY * 0.5 && (!creep.room.storage || Math.random() > 0.75 || (Math.random() > 0.2 && creep.room.energyState))) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     } else if (creep.room.storage && creep.room.storage.store.getFreeCapacity()) {
