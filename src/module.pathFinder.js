@@ -129,10 +129,10 @@ function shibMove(creep, heading, options = {}) {
         return false;
     } else if (rangeToDestination === 1) {
         let direction = creep.pos.getDirectionTo(heading);
+        creep.memory.towDestination = undefined;
+        creep.memory._shibMove = undefined;
         return creep.move(direction);
     }
-
-    if (!heading instanceof RoomPosition && creep.room.name !== heading.room.name) return creep.shibMove(new RoomPosition(25, 25, heading.room.name), {range: 24});
 
     // Make sure origin and target are good
     let origin = normalizePos(creep);
@@ -140,7 +140,7 @@ function shibMove(creep, heading, options = {}) {
     if (!origin || !target) return;
 
     // Check if target moved
-    if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y || creep.memory._shibMove.target.roomName !== target.roomName)) {
+    if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y || creep.memory._shibMove.target.roomName !== target.roomName) && creep.room.name === target.roomName) {
         if (heading instanceof Creep || heading instanceof PowerCreep) {
             if (creep.memory._shibMove.path && creep.memory._shibMove.path.length && creep.memory._shibMove.target.roomName !== target.roomName) {
                 //let oldPos = new RoomPosition(creep.memory._shibMove.target.x, creep.memory._shibMove.target.y, creep.memory._shibMove.target.roomName);

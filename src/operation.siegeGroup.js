@@ -11,6 +11,8 @@ Creep.prototype.siegeGroupRoom = function () {
     let sentence = [ICONS.respond];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
+    // Handle Boosts
+    if (this.tryToBoost(['heal', 'ranged'])) return;
     // Set heal partner
     if (!this.memory.squadLeader || !Game.getObjectById(this.memory.squadLeader)) {
         let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.squadLeader === c.id && c.memory.operation === 'siegeGroup' && c.memory.destination === this.memory.destination && !c.memory.buddyAssigned)[0];
@@ -25,14 +27,10 @@ Creep.prototype.siegeGroupRoom = function () {
         this.attackInRange();
         // Handle healing
         this.healInRange();
-        // Handle Boosts
-        if (this.tryToBoost(['heal', 'rangedAttack'])) return;
         // Handle partner checks
         let partner = _.filter(Game.creeps, (c) => c.my && c.memory.squadLeader === this.id && c.id !== this.id)[0];
         if (partner) {
             this.memory.buddyAssigned = partner.id;
-            // Handle Boosts
-            if (partner.tryToBoost(['heal', 'rangedAttack'])) return this.shibKite();
             // Attack in range
             partner.attackInRange();
             // Handle healing
@@ -41,7 +39,6 @@ Creep.prototype.siegeGroupRoom = function () {
             if (partner.room.name === this.room.name && !partner.pos.isNearTo(this)) {
                 partner.shibMove(this, {range: 0});
                 if (!this.canIWin(10)) this.shibKite();
-                return;
             } // Handle separate rooms
             else if (partner.room.name !== this.room.name) {
                 if (this.canIWin(10)) this.handleMilitaryCreep(); else this.shibKite();

@@ -42,6 +42,9 @@ module.exports.role = function (creep) {
             case 'hold':
                 creep.holdRoom();
                 break;
+            case 'siegeGroup':
+                creep.siegeGroupRoom();
+                break;
         }
     } else if (creep.memory.destination) {
         if (creep.room.name !== creep.memory.destination) {

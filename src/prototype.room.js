@@ -34,7 +34,6 @@ Object.defineProperty(Room.prototype, 'sources', {
         if (!this._sources) {
             this._sources = this.find(FIND_SOURCES);
         }
-        this.memory.sourceIds = undefined;
         // return the locally stored value
         return this._sources;
     },

@@ -476,7 +476,7 @@ function manageAttacks() {
             continue;
         }
         // Remove far rooms
-        if (Memory.roomCache[key] && Memory.roomCache[key].closestRange > LOCAL_SPHERE * 4) {
+        if (Memory.roomCache[key] && Memory.roomCache[key].closestRange > LOCAL_SPHERE * 4 && type !== 'guard' && !Memory.roomCache[key].manual) {
             delete Memory.targetRooms[key];
             log.a('Canceling operation in ' + roomLink(key) + ' as it is too far away.', 'HIGH COMMAND: ');
             continue;

@@ -36,7 +36,8 @@ module.exports.role = function (creep) {
             } else if (creep.room.name !== creep.memory.closestRoom) {
                 return creep.shibMove(new RoomPosition(25, 25, creep.memory.closestRoom), {range: 23});
             } else {
-                let deliver = creep.room.storage;
+                let container = creep.room.find(FIND_SCORE_COLLECTORS)[0];
+                let deliver = container || creep.room.storage;
                 if (deliver) {
                     switch (creep.transfer(deliver, RESOURCE_SCORE)) {
                         case OK:

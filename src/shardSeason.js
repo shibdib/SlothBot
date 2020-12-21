@@ -13,12 +13,12 @@ global.HOSTILES = []; // Manually set players as hostile
 global.MANUAL_FRIENDS = ['Christinayo', 'Telemac', 'SirFrump', 'bigmac0815', 'rysade', 'Kanduras', 'TehFiend', 'Keidence', 'Trepidimous']; // Manually set players as friends (overrides COMBAT_SERVER)
 global.RAMPART_ACCESS = false // Allow friends and allies access thru ramparts
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
-global.ATTACK_LOCALS = true; // Attacks targets within range of the next entry
+global.ATTACK_LOCALS = false; // Attacks targets within range of the next entry
 global.LOCAL_SPHERE = 3; // Range that rooms consider local via linear distance
 global.NEW_SPAWN_DENIAL = true; // Crush new spawns immediately
-global.POKE_ATTACKS = true; // Small cheap annoying attacks
-global.POKE_NEUTRALS = true; // Poke everyone
-global.OFFENSIVE_OPERATIONS = true; // Offensive Combat
+global.POKE_ATTACKS = false; // Small cheap annoying attacks
+global.POKE_NEUTRALS = false; // Poke everyone
+global.OFFENSIVE_OPERATIONS = false; // Offensive Combat
 global.NCP_HOSTILE = true; // Always attack users of open source bots
 global.ATTACK_COOLDOWN = 4500; //Time between attacks on a room
 

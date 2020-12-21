@@ -44,7 +44,7 @@ module.exports.processBuildQueue = function (room) {
         if (room.energyState) range = LOCAL_SPHERE * 4;
         // Global queue, if far away or lacking energy it's low priority
         let combatQueue = globalQueue;
-        if (_.size(combatQueue) && !Memory.roomCache[room.name].threatLevel && _.inRange(room.level, Memory.maxLevel - 1, Memory.maxLevel + 1)) {
+        if (_.size(combatQueue) && !Memory.roomCache[room.name].threatLevel && (room.level >= 7 || room.level === Memory.maxLevel)) {
             Object.keys(combatQueue).forEach(function (q) {
                 if (!combatQueue[q].destination || combatQueue[q].manual || combatQueue[q].operation === 'test' || Memory.auxiliaryTargets[combatQueue[q].destination] || (Memory.roomCache[combatQueue[q].destination] && Memory.roomCache[combatQueue[q].destination].owner === MY_USERNAME)) return;
                 let distance = Game.map.getRoomLinearDistance(combatQueue[q].destination, room.name);
@@ -174,6 +174,9 @@ module.exports.roomStartup = function (room) {
 
 //Essential creeps
 module.exports.essentialCreepQueue = function (room) {
+    let minContainer = _.min(room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_CONTAINER), function (s) {
+        return s.store.getUsedCapacity(RESOURCE_ENERGY);
+    })
     //Static room info
     let level = getLevel(room);
     //Harvesters
@@ -192,7 +195,7 @@ module.exports.essentialCreepQueue = function (room) {
     //Haulers
     if (getCreepCount(room, 'stationaryHarvester')) {
         let amount = 2;
-        if (room.memory.hubLink) amount = 1;
+        //if (room.memory.hubLink) amount = 1;
         if (getCreepCount(room, 'hauler') < amount || (getCreepTTL(room, 'hauler') < 250 && getCreepCount(room, 'hauler') === amount)) {
             queueCreep(room, PRIORITIES.hauler + getCreepCount(room, 'hauler'), {
                 role: 'hauler',
