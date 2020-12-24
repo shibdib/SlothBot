@@ -21,7 +21,7 @@ module.exports.setRoomState = function (room) {
         let energyIncomeArray = [];
         // Backwards compatibility
         if (ROOM_ENERGY_INCOME_ARRAY[room.name])
-            energyIncomeArray = JSON.parse(ROOM_ENERGY_INCOME_ARRAY[room.name]);
+            energyIncomeArray = ROOM_ENERGY_INCOME_ARRAY[room.name];
         if (energyIncomeArray.length < 50) {
             energyIncomeArray.push(energyInRoom - last);
         } else {
@@ -29,7 +29,7 @@ module.exports.setRoomState = function (room) {
             energyIncomeArray.push(energyInRoom - last);
         }
         room.memory.energyPositive = average(energyIncomeArray) > 0;
-        ROOM_ENERGY_INCOME_ARRAY[room.name] = JSON.stringify(energyIncomeArray);
+        ROOM_ENERGY_INCOME_ARRAY[room.name] = energyIncomeArray;
     }
 };
 

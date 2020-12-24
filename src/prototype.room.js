@@ -258,6 +258,19 @@ Object.defineProperty(Room.prototype, 'energy', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'energyIncome', {
+    get: function () {
+        if (!this._energyIncome && ROOM_ENERGY_INCOME_ARRAY[this.name]) {
+            this._energyIncome = _.round(average(ROOM_ENERGY_INCOME_ARRAY[this.name]), 0);
+        } else if (!ROOM_ENERGY_INCOME_ARRAY[this.name]) {
+            this._energyIncome = 0;
+        }
+        return this._energyIncome;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'factory', {
     get: function () {
         if (!this._factory) {

@@ -18,7 +18,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
     let work, claim, carry, move, tough, attack, rangedAttack, heal, deficitExemption;
     let deficit = room.energy / (ENERGY_AMOUNT * 1.5);
     if (deficit > 1 || !room.storage) deficit = 1;
-    else if (deficit < 0.25) deficit = 0.25;
+    else if (deficit < 0.1) deficit = 0.1;
     let energyAmount = room.energyCapacityAvailable;
     if (creepInfo.other.reboot || room.creeps.length < 4) energyAmount = room.energyAvailable;
     if (energyAmount > room.energyCapacityAvailable) energyAmount = room.energyCapacityAvailable;
@@ -74,13 +74,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
                 carry = 1;
                 break;
             }
-        case 'courier':
         case 'powerManager':
-        case 'foreman':
         case 'labTech':
-        case 'filler':
         case 'hauler':
-        case 'expediter':
             deficitExemption = true;
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;

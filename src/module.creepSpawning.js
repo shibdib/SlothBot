@@ -215,13 +215,10 @@ module.exports.essentialCreepQueue = function (room) {
     }
     // Upgrader
     // Determine amount
-    let number = 0;
-    let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
+    let number;
     if (level === 8) number = 1;
-    else if (controllerContainer) {
-        if (room.storage) number += _.floor(room.energy / 10000) || 1; else number += _.floor(room.energy / 250) || 1;
-    } else number = (7 - level);
-    if (room.memory.controllerLink && number > 2) number = 2; else if (level >= 3 && number > 4) number = 4;
+    else number = ((room.energyIncome - 10) / 15);
+    if (room.memory.controllerLink && number > 2) number = 2; else if (level >= 3 && number > 4) number = 4; else if (number < 1) number = 1;
     if (getCreepCount(room, 'upgrader') < number) {
         //If room is about to downgrade get a creep out asap
         let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.progress > room.controller.progressTotal || Memory.roomCache[room.name].threatLevel >= 3 || room.memory.lowPower;
@@ -288,7 +285,7 @@ module.exports.miscCreepQueue = function (room) {
             }
         }
         //Pre observer spawn explorers
-        if (Memory.maxLevel < 8 && _.filter(Game.creeps, (c) => c.my && c.memory.role === 'explorer').length < 8) {
+        if (Memory.maxLevel < 8 && !getCreepCount(room, 'explorer')) {
             queueCreep(room, PRIORITIES.explorer, {role: 'explorer'})
         }
         // Portal explorers
@@ -326,15 +323,8 @@ module.exports.miscCreepQueue = function (room) {
                 }
             }
             if (room.energyState && (Memory.maxLevel === room.level || room.energyState === 2)) {
-                // Energy Supplies
-                let needEnergy = _.sample(_.filter(safeToSupport, ((r) => r !== room.name && Game.rooms[r].energyState < room.energyState && (!Game.rooms[r].terminal < 6 || !room.terminal))));
-                if (needEnergy) {
-                    if (!getCreepCount(room, 'fuelTruck', needEnergy)) {
-                        queueCreep(room, PRIORITIES.fuelTruck, {role: 'fuelTruck', destination: needEnergy});
-                    }
-                }
                 // Power Level
-                let upgraderRequested = _.sample(_.filter(safeToSupport, ((r) => r !== room.name && Game.rooms[r].controller.level <= 3)));
+                let upgraderRequested = _.sample(_.filter(safeToSupport, ((r) => r !== room.name && Game.rooms[r].controller.level <= 5)));
                 if (upgraderRequested) {
                     if (!getCreepCount(room, 'remoteUpgrader', upgraderRequested)) {
                         queueCreep(room, PRIORITIES.remoteUpgrader, {
@@ -375,7 +365,7 @@ module.exports.remoteCreepQueue = function (room) {
         let sourceCount = 0;
         let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && !Memory.roomCache[r].isHighway && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
             (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME || Memory.roomCache[r].user === 'Source Keeper' || Memory.roomCache[r].user === 'Invader') &&
-            (!Memory.roomCache[r].owner || Memory.roomCache[r].invaderCore) && !Memory.roomCache[r].level && _.filter(Memory.roomCache[r].sourceRating, (s) => s <= 100).length);
+            (!Memory.roomCache[r].owner || Memory.roomCache[r].invaderCore) && !Memory.roomCache[r].level && _.filter(Memory.roomCache[r].sourceRating, (s) => s <= 150).length);
         // Handle SK middle room
         /**
          if (level >= 7 && _.filter(adjacent, (r) => Memory.roomCache[r] && Memory.roomCache[r].sk).length) {
@@ -397,7 +387,7 @@ module.exports.remoteCreepQueue = function (room) {
             for (let adjacentRoom of adjacent) {
                 let secondaryAdjacent = _.filter(Game.map.describeExits(adjacentRoom), (r) => Memory.roomCache[r] && Memory.roomCache[r].sources &&
                     (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
-                    !Memory.roomCache[r].owner && !Memory.roomCache[r].sk && Memory.roomCache[r].closestRoom === room.name && _.filter(Memory.roomCache[r].sourceRating, (s) => s <= 100).length);
+                    !Memory.roomCache[r].owner && !Memory.roomCache[r].sk && Memory.roomCache[r].closestRoom === room.name && _.filter(Memory.roomCache[r].sourceRating, (s) => s <= 150).length);
                 if (secondaryAdjacent.length) secondary = secondary.concat(secondaryAdjacent);
             }
             if (secondary.length) {
@@ -408,7 +398,7 @@ module.exports.remoteCreepQueue = function (room) {
                 for (let adjacentRoom of adjacent) {
                     let secondaryAdjacent = _.filter(Game.map.describeExits(adjacentRoom), (r) => Memory.roomCache[r] &&
                         Memory.roomCache[r].sources && (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
-                        !Memory.roomCache[r].owner && !Memory.roomCache[r].sk && Memory.roomCache[r].closestRoom === room.name && _.filter(Memory.roomCache[r].sourceRating, (s) => s <= 100).length);
+                        !Memory.roomCache[r].owner && !Memory.roomCache[r].sk && Memory.roomCache[r].closestRoom === room.name && _.filter(Memory.roomCache[r].sourceRating, (s) => s <= 150).length);
                     if (secondaryAdjacent.length) secondary = secondary.concat(secondaryAdjacent);
                 }
                 if (secondary.length) adjacent = adjacent.concat(secondary);
@@ -473,7 +463,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             } else if (!Memory.roomCache[remoteName] || !Memory.roomCache[remoteName].sk) {
                 if (!invaderCoreReserved && room.energyState < 3) {
-                    let sourceCount = _.filter(Memory.roomCache[remoteName].sourceRating, (s) => s <= 100).length || 0;
+                    let sourceCount = _.filter(Memory.roomCache[remoteName].sourceRating, (s) => s <= 150).length || 0;
                     if (getCreepCount(room, 'remoteHarvester', remoteName) < sourceCount) {
                         queueCreep(room, PRIORITIES.remoteHarvester, {
                             role: 'remoteHarvester',

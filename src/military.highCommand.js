@@ -552,7 +552,7 @@ function manageAuxiliary() {
                 }
                 break;
             case 'score':
-                if (!Memory.roomCache[key].seasonResource || Memory.roomCache[key].seasonResource < Game.time) {
+                if (!Memory.roomCache[key] || !Memory.roomCache[key].seasonResource || Memory.roomCache[key].seasonResource < Game.time) {
                     log.a('Canceling auxiliary operation in ' + roomLink(key) + ' as the container has expired.', 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
                     continue;
