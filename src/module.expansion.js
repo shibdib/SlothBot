@@ -10,9 +10,7 @@ module.exports.claimNewRoom = function () {
     let limit = Game.gcl.level;
     // Special novice/respawn zone cases
     if (Game.map.getRoomStatus(Memory.myRooms[0]).status === 'novice') limit = 3;
-    if (limit <= Memory.myRooms.length || Memory.spawnIn + 7500 > Game.time ||
-        _.filter(Memory.myRooms, (r) => Game.rooms[r].memory["buildersNeeded"]).length >= _.filter(Memory.myRooms, (r) => !Game.rooms[r].memory["buildersNeeded"]).length ||
-        _.filter(Memory.auxiliaryTargets, (t) => t && (t.type === 'claimScout' || t.type === 'claim'))[0]) return;
+    if (limit <= Memory.myRooms.length || Memory.spawnIn + 7500 > Game.time || Memory.minLevel < 3 || _.filter(Memory.auxiliaryTargets, (t) => t && (t.type === 'claimScout' || t.type === 'claim'))[0]) return;
     let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 3000 < Game.time) && r.hubCheck && r.closestRange <= 12 &&
         Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status && !r.obstructions);
     if (worthyRooms.length > 0) {

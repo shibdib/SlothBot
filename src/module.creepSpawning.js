@@ -218,7 +218,7 @@ module.exports.essentialCreepQueue = function (room) {
     let number;
     if (level === 8) number = 1;
     else number = ((room.energyIncome - 10) / 15);
-    if (room.memory.controllerLink && number > 2) number = 2; else if (level >= 3 && number > 4) number = 4; else if (number < 1) number = 1;
+    if (room.memory.controllerLink && number > 2) number = 2; else if (level >= 3 && number > 4) number = 4; else if (level <= 3) number = 4; else if (number < 1) number = 1;
     if (getCreepCount(room, 'upgrader') < number) {
         //If room is about to downgrade get a creep out asap
         let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.progress > room.controller.progressTotal || Memory.roomCache[room.name].threatLevel >= 3 || room.memory.lowPower;
