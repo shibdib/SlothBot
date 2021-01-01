@@ -138,6 +138,7 @@ RoomPosition.prototype.checkForBuiltWall = function () {
 };
 
 RoomPosition.prototype.checkForPortal = function () {
+    if (Memory.roomCache[this.roomName] && !Memory.roomCache[this.roomName].portal) return;
     return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_PORTAL)[0];
 };
 

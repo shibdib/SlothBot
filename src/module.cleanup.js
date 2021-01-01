@@ -10,7 +10,7 @@ module.exports.cleanup = function () {
     if (Game.time % 100 === 0) {
         cleanPathCacheByUsage(); //clean path and distance caches
         cleanDistanceCacheByUsage();
-        cleanRouteCacheByAge();
+        //cleanRouteCacheByAge();
         cleanRouteCacheByUsage();
         cleanConstructionSites();
         cleanRoomIntel();
@@ -40,14 +40,14 @@ module.exports.cleanup = function () {
     }
 };
 
-// Clean path cache by removing paths that haven't been used in 2500 ticks or fall below the average use count
+// Clean path cache by removing paths that haven't been used in 1000 ticks or fall below the average use count
 function cleanPathCacheByUsage() {
     if (Memory._pathCache && _.size(Memory._pathCache) > PATH_CACHE_SIZE) {
+        if (_.size(Memory._pathCache) > PATH_CACHE_SIZE * 2) return Memory._pathCache = {};
         let initial = _.size(Memory._pathCache);
-        let averageUses = average(_.pluck(Memory._pathCache, 'uses'));
         for (let key in Memory._pathCache) {
             if (_.size(Memory._pathCache) < PATH_CACHE_SIZE - (PATH_CACHE_SIZE * 0.10)) break;
-            if (Memory._pathCache[key].uses < averageUses || Memory._pathCache[key].tick + 2500 < Game.time) delete Memory._pathCache[key];
+            if (Memory._pathCache[key].tick + 1000 < Game.time) delete Memory._pathCache[key];
         }
         if (initial !== _.size(Memory._pathCache)) log.i('Cleaning Path cache (Deleted ' + (initial - _.size(Memory._pathCache)) + ')...');
     }

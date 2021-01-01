@@ -131,53 +131,52 @@ module.exports.overlordMind = function (room, CPULimit) {
 let errorCount = {};
 function minionController(minion) {
     let cpuUsed = Game.cpu.getUsed();
-    // Set last managed tick
-    minion.memory.lastManaged = Game.time;
-    // Track Threat
-    diplomacy.trackThreat(minion);
-    if (minion.portalCheck() || minion.borderCheck()) {
-        return tools.creepCPU(minion, cpuUsed);
-    } // If minion has been flagged to recycle do so
-    else if (minion.memory.recycle) {
-        minion.recycleCreep();
-        return tools.creepCPU(minion, cpuUsed);
-    } // If it needs to kite do so
-    else if (minion.room.hostileCreeps.length && minion.shibKite()) {
-        return tools.creepCPU(minion, cpuUsed);
-    } // If idle sleep
-    else if (minion.idle) {
-        return tools.creepCPU(minion, cpuUsed);
-    } // Handle nuke flee
-    else if (minion.memory.fleeNukeTime && minion.fleeNukeRoom()) return;
-    // Disable notifications
-    if (!minion.memory.notifyDisabled) {
-        minion.memory.notifyDisabled = true;
-        minion.notifyWhenAttacked(false);
-    }
-    // Report intel chance
-    minion.room.invaderCheck();
-    minion.room.cacheRoomIntel();
-    try {
-        // Set role
-        let memoryRole = minion.memory.role;
-        let creepRole = require('role.' + memoryRole);
-        creepRole.role(minion);
-    } catch (e) {
-        if (!errorCount[minion.name]) errorCount[minion.name] = 1; else errorCount[minion.name] += 1;
-        if (errorCount[minion.name] < 10) {
-            if (errorCount[minion.name] === 1) {
-                log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name));
-                log.e(e);
-                log.e(e.stack);
-                Game.notify(e);
-                Game.notify(e.stack);
+    while (true) {
+        // If minion has been flagged to recycle do so
+        if (minion.memory.recycle) {
+            minion.recycleCreep();
+            break;
+        }
+        // Set last managed tick
+        minion.memory.lastManaged = Game.time;
+        // Track Threat
+        diplomacy.trackThreat(minion);
+        // Handle edge cases
+        if (minion.idle
+            || minion.portalCheck() || minion.borderCheck()
+            || (minion.room.hostileCreeps.length && minion.shibKite())
+            || (minion.memory.fleeNukeTime && minion.fleeNukeRoom())) {
+            break;
+        }
+        // Disable notifications
+        if (!minion.memory.notifyDisabled) {
+            minion.memory.notifyDisabled = true;
+            minion.notifyWhenAttacked(false);
+        }
+        // Report intel chance
+        minion.room.invaderCheck();
+        minion.room.cacheRoomIntel();
+        try {
+            // Run role
+            require('role.' + minion.memory.role).role(minion);
+            break;
+        } catch (e) {
+            if (!errorCount[minion.name]) errorCount[minion.name] = 1; else errorCount[minion.name] += 1;
+            if (errorCount[minion.name] < 10) {
+                if (errorCount[minion.name] === 1) {
+                    log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name));
+                    log.e(e);
+                    log.e(e.stack);
+                    Game.notify(e);
+                    Game.notify(e.stack);
+                }
+            } else if (errorCount[minion.name] >= 50) {
+                if (errorCount[minion.name] === 50) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been killed.');
+                minion.suicide();
+            } else {
+                if (errorCount[minion.name] >= 10) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been marked for recycling due to hitting the error cap.');
+                minion.memory.recycle = true;
             }
-        } else if (errorCount[minion.name] >= 50) {
-            if (errorCount[minion.name] === 50) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been killed.');
-            //minion.suicide();
-        } else {
-            if (errorCount[minion.name] >= 10) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been marked for recycling due to hitting the error cap.');
-            //minion.memory.recycle = true;
         }
     }
     // Store CPU usage

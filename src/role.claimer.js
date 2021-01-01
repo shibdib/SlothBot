@@ -59,11 +59,6 @@ module.exports.role = function (creep) {
                         Memory.auxiliaryTargets[creep.room.name] = undefined;
                         Memory.targetRooms[creep.room.name] = undefined;
                         Memory.myRooms.push(creep.room.name);
-                        let praiseRoom = _.filter(Memory.myRooms, (r) => Game.rooms[r].memory.praiseRoom);
-                        if (!praiseRoom.length && Memory.myRooms.length >= 5 && BUILD_PRAISE_ROOMS) {
-                            creep.room.memory.praiseRoom = true;
-                            creep.room.memory.bunkerHub = undefined;
-                        }
                 }
             }
         }

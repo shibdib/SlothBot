@@ -83,11 +83,23 @@ module.exports.role = function (creep) {
         } else {
             if (!creep.memory.closestRoom) {
                 let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => r.seasonCollector === 1 && Game.map.getRoomLinearDistance(r.name, creep.room.name) <= (creep.ticksToLive / 55) && !r.hostile && !_.includes(Memory.nonCombatRooms, r.name)), 'closestRange');
-                if (scoreRoom.name) creep.memory.closestRoom = scoreRoom.name;
+                if (scoreRoom.name) creep.memory.closestRoom = scoreRoom.name; else {
+                    if (creep.room.storage) {
+                        switch (creep.transfer(creep.room.storage, RESOURCE_SCORE)) {
+                            case OK:
+                                creep.memory.recycle = true;
+                                break;
+                            case ERR_NOT_IN_RANGE:
+                                creep.shibMove(creep.room.storage);
+                                break;
+                        }
+                    }
+                }
             } else if (creep.room.name !== creep.memory.closestRoom) {
                 return creep.shibMove(new RoomPosition(25, 25, creep.memory.closestRoom), {range: 23});
             } else {
-                let deliver = creep.room.find(FIND_SCORE_COLLECTORS)[0];
+                let container = creep.room.find(FIND_SCORE_COLLECTORS)[0];
+                let deliver = container || creep.room.storage;
                 if (deliver) {
                     switch (creep.transfer(deliver, RESOURCE_SCORE)) {
                         case OK:

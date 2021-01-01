@@ -5,7 +5,7 @@
  * Project - Overlord-Bot (Screeps)
  */
 
-const DEFAULT_MAXOPS = 500;
+const DEFAULT_MAXOPS = 1500;
 const STATE_STUCK = 2;
 const FLEE_RANGE = 4;
 
@@ -14,6 +14,7 @@ const structureMatrixCache = {};
 const creepMatrixCache = {};
 const hostileMatrixCache = {};
 const skMatrixCache = {};
+let globalPathCache = {};
 let tempAvoidRooms = [];
 
 function shibMove(creep, heading, options = {}) {
@@ -226,6 +227,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             radius: 0.55,
             stroke: 'red'
         });
+        creep.say('Cached');
         return creep.move(nextDirection);
     } else {
         let roomDistance = 0;
@@ -793,7 +795,8 @@ function cachePath(creep, from, to, path) {
         weight = 2;
     }
     let key = getPathKey(from, to, weight);
-    let cache = Memory._pathCache || {};
+    let cache;
+    if (path.length >= 20) cache = Memory._pathCache; else cache = globalPathCache;
     if (cache instanceof Array) cache = {};
     let tick = Game.time;
     cache[key] = {
@@ -802,7 +805,7 @@ function cachePath(creep, from, to, path) {
         tick: tick,
         created: tick
     };
-    Memory._pathCache = cache;
+    if (path.length >= 20) Memory._pathCache = cache; else globalPathCache = cache;
 }
 
 function getPath(creep, from, to) {
@@ -815,13 +818,22 @@ function getPath(creep, from, to) {
     } else if (options.ignoreRoads) {
         weight = 2;
     }
-    let cachedPath = cache[getPathKey(from, to, weight)];
+    let cachedPath = cache[getPathKey(from, to, weight)] || globalPathCache[getPathKey(from, to, weight)];
+    // Check for the path reversed
+    if (!cachedPath) {
+        cachedPath = cache[getPathKey(to, from, weight)] || globalPathCache[getPathKey(to, from, weight)]
+        if (cachedPath) cachedPath.path = reverseString(cachedPath.path);
+    }
     if (cachedPath) {
         cachedPath.uses += 1;
         cachedPath.tick = Game.time;
         Memory._pathCache = cache;
         return cachedPath.path;
     }
+}
+
+function reverseString(str) {
+    return str.split('').reverse().join('');
 }
 
 function getMoveWeight(creep, options = {}) {
