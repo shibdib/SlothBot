@@ -875,8 +875,7 @@ Creep.prototype.recycleCreep = function () {
     this.attackInRange();
     let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
     if (!spawn) {
-        this.memory.closestRoom = this.memory.closestRoom || this.room.findClosestOwnedRoom();
-        return this.shibMove(new RoomPosition(25, 25, this.memory.closestRoom), {range: 23});
+        return this.suicide();
     }
     if (this.store.getUsedCapacity()) {
         let deliver = this.room.terminal || this.room.storage || _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store.getFreeCapacity());

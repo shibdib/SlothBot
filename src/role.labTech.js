@@ -51,13 +51,15 @@ module.exports.role = function (creep) {
 // Get item
 function getResource(creep) {
     let storageSite;
-    if (creep.room.storage.store[creep.memory.resourceNeeded]) storageSite = creep.room.storage;
     if (creep.room.terminal.store[creep.memory.resourceNeeded]) storageSite = creep.room.terminal;
+    if (creep.room.storage.store[creep.memory.resourceNeeded]) storageSite = creep.room.storage;
+    if (creep.memory.withdrawFrom) {
+        if (!Game.getObjectById(creep.memory.withdrawFrom) || !Game.getObjectById(creep.memory.withdrawFrom).store[creep.memory.resourceNeeded]) creep.memory.withdrawFrom = undefined; else storageSite = Game.getObjectById(creep.memory.withdrawFrom);
+    }
     let stockedLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === creep.memory.resourceNeeded && s.mineralType !== s.memory.itemNeeded && s.mineralType !== s.memory.neededBoost)[0];
     let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[creep.memory.resourceNeeded] && creep.memory.resourceNeeded !== RESOURCE_ENERGY)[0];
     if (container) storageSite = container;
     if (stockedLab) storageSite = stockedLab;
-    if (creep.memory.withdrawFrom) storageSite = Game.getObjectById(creep.memory.withdrawFrom);
     creep.say(creep.memory.resourceNeeded, true);
     let amount;
     if (creep.memory.deliverTo && Game.getObjectById(creep.memory.deliverTo).amount) amount = Game.getObjectById(creep.memory.deliverTo).amount;

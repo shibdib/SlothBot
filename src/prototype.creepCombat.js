@@ -91,7 +91,7 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
     }
     // Cores
     filter = {filter: (c) => c.structureType === STRUCTURE_INVADER_CORE};
-    enemy = this.pos.findClosestByRange(hostileStructures, filter);
+    enemy = this.pos.findClosestByRange(this.room.structures, filter);
     if (enemy) {
         this.memory.target = enemy.id;
         return enemy;

@@ -19,7 +19,7 @@ module.exports.buildRoom = function (room) {
     if (lastRun + cooldown > Game.time) return;
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
         if (room.memory.bunkerHub.layoutVersion === LAYOUT_VERSION && storedLayouts[room.name]) {
-            if (Memory.myRooms.length === 1 || room.controller.level >= 4) {
+            if (Memory.myRooms.length === 1 || room.controller.level >= 3) {
                 buildFromLayout(room);
             } else {
                 newClaimBuild(room);
@@ -439,11 +439,13 @@ function rampartBuilder(room, layout = undefined, count = false) {
                     wallReplacement.destroy();
                 }
             } else {
-                for (let structure of _.filter(JSON.parse(storedLayouts[room.name]), (s) => s.structureType === STRUCTURE_TOWER)) {
-                    let pos = new RoomPosition(structure.x, structure.y, room.name);
-                    if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
-                        if (pos.createConstructionSite(structure.structureType) === OK) {
-                            break;
+                if (JSON.parse(storedLayouts[room.name])) {
+                    for (let structure of _.filter(JSON.parse(storedLayouts[room.name]), (s) => s.structureType === STRUCTURE_TOWER)) {
+                        let pos = new RoomPosition(structure.x, structure.y, room.name);
+                        if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
+                            if (pos.createConstructionSite(structure.structureType) === OK) {
+                                break;
+                            }
                         }
                     }
                 }

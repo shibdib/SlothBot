@@ -13,6 +13,7 @@ module.exports.towerControl = function (room) {
     let repairTower = Game.getObjectById(roomRepairTower[room.name]) || _.max(_.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > s.energyCapacity * 0.15), 'energy');
     if (!hostileCreeps.length && repairTower) {
         room.memory.towerTarget = undefined;
+        room.memory.dangerousAttack = undefined;
         room.memory.spawnDefenders = undefined;
         // Randomly clear repair tower to rotate it
         if (Math.random() > 0.95) roomRepairTower[room.name] = undefined; else roomRepairTower[room.name] = repairTower.id;
@@ -86,7 +87,7 @@ module.exports.towerControl = function (room) {
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;
             } // If the potential attack exists, set target and wait
-            else if (potentialAttack > healPower && nearStructures) {
+            else if (potentialAttack > healPower) {
                 room.memory.towerTarget = hostileCreeps[i].id;
                 break;
             } // If you can damage it and it's not border humping attack it. Always attack invaders
@@ -98,6 +99,7 @@ module.exports.towerControl = function (room) {
             else {
                 let nearbyRampart = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)), 3)[0] && s.hits < 50000 * s.room.controller.level), 'hits');
                 if (nearbyRampart.id) for (let tower of towers) tower.repair(nearbyRampart);
+                if (potentialAttack < healPower) room.memory.dangerousAttack = true;
                 room.memory.towerTarget = undefined;
             }
         }

@@ -325,7 +325,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             if (container) seasonResource = Game.time + container.ticksToDecay;
             // If collector is reachable, mark as 1 else mark as 2
             if (collector) {
-                if (collector.pos.countOpenTerrainAround()) seasonCollector = 1; else seasonCollector = 2;
+                if (collector.pos.countOpenTerrainAround() || collector.pos.findClosestByPath(FIND_EXIT)) seasonCollector = 1; else seasonCollector = 2;
             }
         }
         // Minerals
@@ -410,7 +410,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         // Get closest
         let closestRange = this.findClosestOwnedRoom(true);
         // Handle rating sources for remotes
-        if (closestRange <= 3 && sources.length && !sk) {
+        if (closestRange <= 3 && sources.length) {
             sourceRating = {};
             for (let source of this.sources) {
                 let closest = this.findClosestOwnedRoom();
@@ -553,9 +553,9 @@ Room.prototype.invaderCheck = function () {
 
 let closestCache = {};
 Room.prototype.findClosestOwnedRoom = function (range = false, minLevel = 1) {
-    if (!closestCache.length || !closestCache[this.name] || closestCache.tick + 1000 < Game.time) {
+    if (!closestCache.length || !closestCache[this.name] || closestCache[this.name].tick + 1000 < Game.time) {
         closestCache[this.name] = {};
-        closestCache.tick = Game.time;
+        closestCache[this.name].tick = Game.time;
         let distance = 0;
         let closest;
         for (let key of Memory.myRooms) {
@@ -583,6 +583,8 @@ Room.prototype.findClosestOwnedRoom = function (range = false, minLevel = 1) {
                 closest = room.name;
             }
         }
+        if (!closest) closest = _.sample(Game.spawns).room.name;
+        if (!distance) distance = Game.map.getRoomLinearDistance(this.name, closest);
         closestCache[this.name].closest = closest;
         closestCache[this.name].distance = distance;
         if (!range) return closest;

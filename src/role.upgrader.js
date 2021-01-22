@@ -113,14 +113,6 @@ function herald(creep) {
             } else {
                 sentence = sentence.concat(['FPCON', 'NORMAL']);
             }
-            if (Memory._badBoyArray && Memory._badBoyArray.length) {
-                sentence = sentence.concat(['-', 'THREAT', 'LIST', '-']);
-                sentence = sentence.concat(Memory._badBoyArray);
-            }
-            if (Memory._friendArray && Memory._friendArray.length > 1) {
-                sentence = sentence.concat(['-', 'FRIENDS', 'LIST', '-']);
-                sentence = sentence.concat(FRIENDLIES);
-            }
             if (Memory.ncpArray && Memory.ncpArray.length > 1) {
                 sentence = sentence.concat(['-', 'KNOWN', 'NCP', 'LIST', '-']);
                 sentence = sentence.concat(Memory.ncpArray);

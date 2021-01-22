@@ -25,7 +25,7 @@ module.exports.claimNewRoom = function () {
                 for (let avoidKey in avoidRooms) {
                     let avoidName = avoidRooms[avoidKey].name;
                     let distance = Game.map.findRoute(name, avoidName).length;
-                    if (distance <= 2) continue worthy; else if (distance === 3) baseScore += 500; else if (baseScore < 6) baseScore += 100; else baseScore -= 350;
+                    if (distance <= 2) continue worthy; else if (distance === 3) baseScore += 500; else if (distance < 6) baseScore += 100; else if (distance > 20) continue worthy; else baseScore -= 350;
                 }
                 // Remote access
                 let neighboring = Game.map.describeExits(name);

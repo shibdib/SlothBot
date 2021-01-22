@@ -227,7 +227,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             radius: 0.55,
             stroke: 'red'
         });
-        creep.say('Cached');
         return creep.move(nextDirection);
     } else {
         let roomDistance = 0;
@@ -786,6 +785,7 @@ function deleteRoute(from, to) {
 
 function cachePath(creep, from, to, path) {
     if (!path || !path.length) return;
+    Memory._pathCache = undefined;
     //Store path based off move weight
     let options = getMoveWeight(creep);
     let weight = 3;
@@ -795,8 +795,7 @@ function cachePath(creep, from, to, path) {
         weight = 2;
     }
     let key = getPathKey(from, to, weight);
-    let cache;
-    if (path.length >= 20) cache = Memory._pathCache; else cache = globalPathCache;
+    let cache = globalPathCache;
     if (cache instanceof Array) cache = {};
     let tick = Game.time;
     cache[key] = {
@@ -805,11 +804,11 @@ function cachePath(creep, from, to, path) {
         tick: tick,
         created: tick
     };
-    if (path.length >= 20) Memory._pathCache = cache; else globalPathCache = cache;
+    globalPathCache = cache;
 }
 
 function getPath(creep, from, to) {
-    let cache = Memory._pathCache || {};
+    let cache = globalPathCache;
     //Store path based off move weight
     let options = getMoveWeight(creep);
     let weight = 3;
@@ -818,16 +817,16 @@ function getPath(creep, from, to) {
     } else if (options.ignoreRoads) {
         weight = 2;
     }
-    let cachedPath = cache[getPathKey(from, to, weight)] || globalPathCache[getPathKey(from, to, weight)];
+    let cachedPath = cache[getPathKey(from, to, weight)];
     // Check for the path reversed
-    if (!cachedPath) {
-        cachedPath = cache[getPathKey(to, from, weight)] || globalPathCache[getPathKey(to, from, weight)]
-        if (cachedPath) cachedPath.path = reverseString(cachedPath.path);
+    if (!cachedPath && cache[getPathKey(to, from, weight)]) {
+        cachedPath = cache[getPathKey(to, from, weight)];
+        cachedPath.path = reverseString(cachedPath.path);
     }
     if (cachedPath) {
         cachedPath.uses += 1;
         cachedPath.tick = Game.time;
-        Memory._pathCache = cache;
+        globalPathCache = cache;
         return cachedPath.path;
     }
 }

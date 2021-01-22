@@ -227,9 +227,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             let neededCarry = _.ceil(room.store[RESOURCE_SCORE] / 50);
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
             if (carry > neededCarry && room.store[RESOURCE_SCORE]) carry = neededCarry;
-            if (creepInfo.misc && carry > 25) {
-                carry = 25;
-            } else if (carry > 10) carry = 10;
+            if (carry > 10) carry = 10;
             move = carry;
     }
     if (!deficitExemption && room.storage) {

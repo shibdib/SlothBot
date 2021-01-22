@@ -67,18 +67,18 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
  * @returns {number}
  */
 RoomPosition.prototype.countOpenTerrainAround = function (borderBuild = undefined, ignore = undefined) {
-    let impassible = 0;
+    let openTerrain = 8;
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
             if (xOff !== 0 || yOff !== 0) {
                 let pos = new RoomPosition(this.x + xOff, this.y + yOff, this.roomName);
-                if (ignore && pos.checkForWall()) impassible += 1;
-                else if (pos.checkForImpassible() || (pos.checkForCreep() && !pos.checkForCreep().getActiveBodyparts(MOVE))) impassible += 1;
-                if (borderBuild && pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) <= 2) impassible += 1;
+                if (ignore && pos.checkForWall()) openTerrain--;
+                else if (pos.checkForImpassible(undefined, true) || (pos.checkForCreep() && !pos.checkForCreep().getActiveBodyparts(MOVE))) openTerrain--;
+                if (borderBuild && pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) <= 2) openTerrain--;
             }
         }
     }
-    return 8 - impassible;
+    return openTerrain;
 };
 
 /**
@@ -182,11 +182,11 @@ RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
     }
 };
 
-RoomPosition.prototype.checkForImpassible = function (ignoreWall = false) {
+RoomPosition.prototype.checkForImpassible = function (ignoreWall = false, ignoreCreep = false) {
     if (ignoreWall) {
-        if (this.checkForObstacleStructure() || this.checkForCreep()) return true;
+        if (this.checkForObstacleStructure() || (!ignoreCreep && this.checkForCreep())) return true;
     } else {
-        if (this.checkForObstacleStructure() || this.checkForWall() || this.checkForCreep()) return true;
+        if (this.checkForObstacleStructure() || this.checkForWall() || (!ignoreCreep && this.checkForCreep())) return true;
     }
 };
 

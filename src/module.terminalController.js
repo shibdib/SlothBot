@@ -427,6 +427,14 @@ function balanceResources(terminal) {
     let sortedKeys = Object.keys(terminal.store).sort(function (a, b) {
         return terminal.store[a] - terminal.store[b]
     });
+    // Season, locate closest to collector room
+    let scoreStorage;
+    if (Game.shard.name === 'shardSeason') {
+        let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => r.seasonCollector === 1 && !r.hostile && !_.includes(Memory.nonCombatRooms, r.name)), 'closestRange');
+        if (scoreRoom && scoreRoom.name && Game.rooms[scoreRoom.name]) {
+            scoreStorage = Game.rooms[scoreRoom.name].findClosestOwnedRoom(false, 6);
+        }
+    }
     for (let resource of sortedKeys) {
         // Energy balance handled elsewhere
         if (resource === RESOURCE_ENERGY) continue;
@@ -434,6 +442,16 @@ function balanceResources(terminal) {
         // Send all of these
         if (_.includes(ALL_COMMODITIES, resource) || resource === RESOURCE_OPS || resource === RESOURCE_POWER) {
             keepAmount = 0;
+        }
+        // Handle score
+        if (Game.shard.name === 'shardSeason' && resource === RESOURCE_SCORE) {
+            if (terminal.room.name === scoreStorage) continue;
+            switch (terminal.send(resource, terminal.store[RESOURCE_SCORE], scoreStorage)) {
+                case OK:
+                    log.a('Sending ' + terminal.store[RESOURCE_SCORE] + ' ' + resource + ' To ' + roomLink(scoreStorage) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                    return true;
+            }
+            continue;
         }
         // Keep boost amount
         if (_.includes(ALL_BOOSTS, resource)) {

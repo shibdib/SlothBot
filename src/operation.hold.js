@@ -44,12 +44,9 @@ Creep.prototype.holdRoom = function () {
                 if (!this.canIWin(10)) this.shibKite();
             } // Handle separate rooms
             else if (partner.room.name !== this.room.name) {
-                if (this.canIWin(10)) this.handleMilitaryCreep(); else this.shibKite();
                 if (partner.canIWin(5)) partner.shibMove(this); else partner.shibKite();
             } // Handle next to each other
             else if (partner.pos.isNearTo(this)) {
-                // Move to response room if needed
-                if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 22});
                 // Handle winnable fights
                 if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(10) && (this.pairFighting(partner) || this.scorchedEarth())) {
                     return;
@@ -57,8 +54,10 @@ Creep.prototype.holdRoom = function () {
             }
         } else {
             this.memory.buddyAssigned = undefined;
-            if (this.canIWin(50) && this.handleMilitaryCreep()) return; else return this.goToHub();
+            this.handleMilitaryCreep();
         }
+        // Move to response room if needed
+        if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 22});
     }
 };
 
@@ -82,6 +81,7 @@ function levelManager(creep) {
     let towers = _.filter(creep.room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10 && c.isActive());
     let armedEnemies = _.filter(creep.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, c.owner.username));
     let armedOwners = _.filter(_.union(_.pluck(armedEnemies, 'owner.username'), [Memory.roomCache[creep.room.name].user]), (o) => !_.includes(FRIENDLIES, o) && o !== 'Invader');
+    Memory.targetRooms[creep.memory.destination].claimAttacker = undefined;
     if (armedOwners.length > 1) {
         delete Memory.targetRooms[creep.memory.destination];
         log.a('Canceling operation in ' + roomLink(creep.memory.destination) + ' as there is a 3rd party present.', 'HIGH COMMAND: ');
@@ -92,13 +92,10 @@ function levelManager(creep) {
         creep.room.cacheRoomIntel(true);
     } else if (armedEnemies.length) {
         Memory.targetRooms[creep.memory.destination].level = 2;
-        Memory.targetRooms[creep.memory.destination].claimAttacker = undefined;
     } else if (otherRooms) {
         Memory.targetRooms[creep.memory.destination].level = 1;
-        Memory.targetRooms[creep.memory.destination].claimAttacker = true;
     } else {
         Memory.targetRooms[creep.memory.destination].level = 0;
-        Memory.targetRooms[creep.memory.destination].claimAttacker = true;
     }
 }
 

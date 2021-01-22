@@ -40,7 +40,7 @@ let globals = function () {
     };
 
     // Pathfinder Cache Sizes
-    global.PATH_CACHE_SIZE = 5000;
+    global.PATH_CACHE_SIZE = 1000;
     global.ROUTE_CACHE_SIZE = 200;
 
     // Reaction
