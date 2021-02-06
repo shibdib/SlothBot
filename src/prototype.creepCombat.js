@@ -212,7 +212,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         if (this.healCreeps()) return true;
     }
     // If no target or heals stomp sites
-    return !!this.moveToHostileConstructionSites();
+    return this.moveToHostileConstructionSites();
 };
 
 Creep.prototype.attackHostile = function (hostile) {
@@ -524,7 +524,7 @@ Creep.prototype.fightRanged = function (target) {
 
 Creep.prototype.attackInRange = function () {
     // If no targets return
-    let hostileStructures = _.filter(this.room.hostileStructures, (s) => s.structureType !== STRUCTURE_POWER_BANK);
+    let hostileStructures = _.filter(this.room.hostileStructures, (s) => s.structureType !== STRUCTURE_POWER_BANK && s.structureType !== STRUCTURE_CONTROLLER);
     if (!this.room.hostileCreeps.length && !hostileStructures.length) return false;
     // Check for targets in range
     let hostile;
@@ -606,7 +606,7 @@ Creep.prototype.fleeHome = function (force = false) {
     if (!force && !this.memory.runCooldown && (this.hits === this.hitsMax || (!Memory.roomCache[this.room.name].lastCombat || Memory.roomCache[this.room.name].lastCombat + 10 < Game.time))) return false;
     if (!this.memory.ranFrom) this.memory.ranFrom = this.room.name;
     let cooldown = this.memory.runCooldown || Game.time + 50;
-    let closest = this.memory.fleeDestination || this.room.findClosestOwnedRoom(false);
+    let closest = this.memory.fleeDestination || this.room.findClosestOwnedRoom(false, 3);
     this.memory.fleeDestination = closest;
     if (this.room.name !== closest) {
         this.say('RUN!', true);

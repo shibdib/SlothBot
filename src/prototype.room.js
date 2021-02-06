@@ -91,6 +91,17 @@ Object.defineProperty(Room.prototype, 'structures', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'needyExtensions', {
+    get: function () {
+        if (!this._needyExtensions) {
+            this._needyExtensions = _.filter(this.find(FIND_STRUCTURES), (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.pos.isNearTo(_.filter(this.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester')));
+        }
+        return this._needyExtensions;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
         if (!this._energyState) {
@@ -112,7 +123,7 @@ Object.defineProperty(Room.prototype, 'energyState', {
 Object.defineProperty(Room.prototype, 'hostileStructures', {
     get: function () {
         if (!this._hostileStructures) {
-            this._hostileStructures = _.filter(this.structures, (s) => !s.my && s.owner && s.structureType !== STRUCTURE_KEEPER_LAIR && !_.includes(FRIENDLIES, s.owner));
+            this._hostileStructures = _.filter(this.structures, (s) => !s.my && s.owner && ![STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR].includes(s.structureType) && !_.includes(FRIENDLIES, s.owner));
         }
         return this._hostileStructures;
     },
@@ -250,7 +261,7 @@ Object.defineProperty(Room.prototype, 'level', {
 Object.defineProperty(Room.prototype, 'energy', {
     get: function () {
         if (!this._energy) {
-            this._energy = getRoomResource(this, RESOURCE_ENERGY, true);
+            this._energy = getRoomResource(this, RESOURCE_ENERGY, true) + (getRoomResource(this, RESOURCE_BATTERY, true) * 10);
         }
         return this._energy;
     },
@@ -511,7 +522,7 @@ Room.prototype.invaderCheck = function () {
         }
         Memory.roomCache[this.name].hostilePower = hostileCombatPower || 1;
         Memory.roomCache[this.name].friendlyPower = alliedCombatPower;
-        let armedInvader = _.filter(this.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL) || c.getActiveBodyparts(WORK) >= 6 || c.getActiveBodyparts(CLAIM));
+        let armedInvader = _.filter(this.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL) || c.getActiveBodyparts(WORK) >= 4 || c.getActiveBodyparts(CLAIM));
         Memory.roomCache[this.name].tickDetected = Game.time;
         if (!Memory.roomCache[this.name].numberOfHostiles || Memory.roomCache[this.name].numberOfHostiles < this.hostileCreeps.length) {
             Memory.roomCache[this.name].numberOfHostiles = this.hostileCreeps.length || 1;

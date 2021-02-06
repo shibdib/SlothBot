@@ -105,8 +105,8 @@ function cleanRoomIntel() {
     if (Memory.roomCache) {
         let startLength = _.size(Memory.roomCache);
         for (let key in Memory.roomCache) {
-            let cutoff = 3000;
-            if (Memory.roomCache[key].important) cutoff = 5000;
+            let cutoff = 15000;
+            if (Memory.roomCache[key].important) cutoff = 20000;
             if (Memory.roomCache[key].cached + cutoff < Game.time) delete Memory.roomCache[key];
         }
         if (startLength > _.size(Memory.roomCache)) log.d('CleanUp: Room Cache now has ' + _.size(Memory.roomCache) + ' entries.')

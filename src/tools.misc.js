@@ -48,13 +48,13 @@ module.exports.memHack = function () {
 // Set Task CPU Limits
 module.exports.CPULimits = function () {
     let totalLimit = Game.cpu.limit;
-    CPU_TASK_LIMITS['roomLimit'] = adjustedCPULimit(totalLimit * 0.85, Game.cpu.bucket, 7000);
+    CPU_TASK_LIMITS['roomLimit'] = adjustedCPULimit(totalLimit * 0.75, Game.cpu.bucket, 8000);
     if (Memory._threatList && Memory._threatList.length) {
-        CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.05, Game.cpu.bucket, 5000);
+        CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.02, Game.cpu.bucket, 7000);
         CPU_TASK_LIMITS['hiveTasks'] = adjustedCPULimit(totalLimit * 0.10, Game.cpu.bucket, BUCKET_MAX);
     } else {
-        CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.02, Game.cpu.bucket, 5000);
-        CPU_TASK_LIMITS['hiveTasks'] = adjustedCPULimit(totalLimit * 0.13, Game.cpu.bucket, BUCKET_MAX);
+        CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.01, Game.cpu.bucket, 5000);
+        CPU_TASK_LIMITS['hiveTasks'] = adjustedCPULimit(totalLimit * 0.10, Game.cpu.bucket, BUCKET_MAX);
     }
 }
 
@@ -142,17 +142,6 @@ module.exports.status = function () {
             }
         } catch (e) {
             log.a('--DIPLOMATIC INFO FAILED--', ' ');
-        }
-        log.a('--CPU INFO--', ' ');
-        try {
-            if (_.size(CREEP_ROLE_CPU)) {
-                log.a('--CREEP ROLE INFO--', ' ');
-                for (let role of Object.keys(CREEP_ROLE_CPU)) {
-                    log.e(role + ': ' + CREEP_ROLE_CPU[role] + ' (x' + _.filter(Game.creeps, (c) => c.my && c.memory.role === role).length + ')', ' ')
-                }
-            }
-        } catch (e) {
-            log.a('--CREEP ROLE INFO FAILED--', ' ');
         }
         return log.a('---------------------------------------------------------------------------', ' ');
     }

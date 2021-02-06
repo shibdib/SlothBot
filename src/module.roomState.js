@@ -6,7 +6,7 @@
  */
 
 module.exports.setRoomState = function (room) {
-    if (Game.time % 10 === 0) {
+    if (Game.time % 2 === 0) {
         // Set Energy Needs
         let energyInRoom = room.energy;
         //Delete old memory
@@ -22,7 +22,7 @@ module.exports.setRoomState = function (room) {
         // Backwards compatibility
         if (ROOM_ENERGY_INCOME_ARRAY[room.name])
             energyIncomeArray = ROOM_ENERGY_INCOME_ARRAY[room.name];
-        if (energyIncomeArray.length < 50) {
+        if (energyIncomeArray.length < 250) {
             energyIncomeArray.push(energyInRoom - last);
         } else {
             energyIncomeArray.shift();
@@ -34,5 +34,5 @@ module.exports.setRoomState = function (room) {
 };
 
 function requestBuilders(room) {
-    room.memory.buildersNeeded = !_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length || !_.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER).length;
+    room.memory.buildersNeeded = !_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length;
 }

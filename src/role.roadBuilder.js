@@ -16,13 +16,9 @@ module.exports.role = function role(creep) {
     // SK Safety
     if (creep.skSafety()) return;
     // Set destination
-    if (!creep.memory.destination) {
-        if (creep.memory.overlord === creep.room.name) {
-            let harvesterLocation = _.sample(_.pluck(_.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && c.memory.onContainer), 'room.name'));
-            if (harvesterLocation) creep.memory.destination = harvesterLocation; else creep.memory.destination = _.sample(JSON.parse(creep.memory.misc));
-        } else {
-            creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
-        }
+    if (!creep.memory.destination || !Game.map.getRoomTerrain(creep.memory.destination) || !creep.room.routeSafe(creep.memory.destination)) {
+        let harvesterLocation = _.sample(_.pluck(_.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester'), 'room.name'));
+        if (harvesterLocation) creep.memory.destination = harvesterLocation; else creep.memory.destination = _.sample(creep.memory.misc);
         return;
     }
     // Remove bad desto

@@ -19,13 +19,14 @@ module.exports.controller = function (room) {
 
     // Check for invaders and request help
     room.invaderCheck();
+    room.cacheRoomIntel();
 
     if (Game.time % 100 === 0) {
         // Handle nuke defense
         handleNukeAttack(room);
 
         // Abandon hopeless rooms
-        unSavableCheck(room);
+        if (Game.shard.name !== 'swc') unSavableCheck(room);
     }
 
     // Check if you should safemode

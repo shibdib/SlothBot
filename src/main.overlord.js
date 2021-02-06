@@ -54,18 +54,26 @@ module.exports.overlordMind = function (room, CPULimit) {
     let spareCpu = (CPULimit * 0.9) - roomCreepCPU;
 
     // Room function loop
-    let overlordFunctions = shuffle([state.setRoomState, links.linkControl, terminals.terminalControl, planner.buildRoom, observers.observerControl, factory.factoryControl, creepSpawning, lowPowerCheck]);
+    let overlordFunctions = shuffle([{name: 'roomState', f: state.setRoomState}, {
+        name: 'links',
+        f: links.linkControl
+    }, {name: 'terminals', f: terminals.terminalControl}, {name: 'roomBuilder', f: planner.buildRoom},
+        {name: 'observers', f: observers.observerControl}, {
+            name: 'factories',
+            f: factory.factoryControl
+        }, {name: 'spawning', f: creepSpawning}]);
     let functionCount = overlordFunctions.length;
     count = 0;
     let overlordTaskCurrentCPU = Game.cpu.getUsed();
     let overlordTaskTotalCPU = 0;
     do {
+        let taskCpu = Game.cpu.getUsed();
         let currentFunction = _.first(overlordFunctions);
         if (!currentFunction) break;
         overlordFunctions = _.rest(overlordFunctions);
         count++;
         try {
-            currentFunction(room);
+            currentFunction.f(room);
         } catch (e) {
             log.e('Error with overlord function');
             log.e(e.stack);
@@ -73,6 +81,7 @@ module.exports.overlordMind = function (room, CPULimit) {
         }
         overlordTaskCurrentCPU = Game.cpu.getUsed() - overlordTaskCurrentCPU;
         overlordTaskTotalCPU += overlordTaskCurrentCPU;
+        tools.taskCPU(currentFunction.name, Game.cpu.getUsed() - taskCpu);
     } while ((overlordTaskTotalCPU < (CPULimit * 0.1) + (spareCpu * 0.9) || Game.cpu.bucket > 9500) && count < functionCount)
 
     // Get income
@@ -98,7 +107,7 @@ module.exports.overlordMind = function (room, CPULimit) {
     } else {
         cpuUsageArray.shift();
         cpuUsageArray.push(used);
-        if (average(cpuUsageArray) > 15 && Game.time % 150 === 0) {
+        if (Game.time % 150 === 0 && average(cpuUsageArray) > 15) {
             let cpuOverCount = room.memory.cpuOverage || 0;
             room.memory.cpuOverage = cpuOverCount + 1;
             log.e(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
@@ -154,8 +163,10 @@ function minionController(minion) {
             minion.notifyWhenAttacked(false);
         }
         // Report intel chance
-        minion.room.invaderCheck();
-        minion.room.cacheRoomIntel();
+        if (minion.room.name !== minion.memory.overlord) {
+            minion.room.invaderCheck();
+            minion.room.cacheRoomIntel();
+        }
         try {
             // Run role
             require('role.' + minion.memory.role).role(minion);
@@ -184,7 +195,7 @@ function minionController(minion) {
 }
 
 function creepSpawning(room) {
-    if (getLevel(room) < 2) {
+    if (room.level < 2) {
         spawning.roomStartup(room);
         spawning.remoteCreepQueue(room);
     } else {
@@ -211,30 +222,6 @@ function creepSpawning(room) {
         }
     }
     spawning.processBuildQueue(room);
-}
-
-function lowPowerCheck(room) {
-    return room.memory.lowPower = undefined;
-    // Potential low power mode
-    if (room.level === 8) {
-        let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD)[0];
-        if (room.memory.lowPower) {
-            if (room.memory.lowPower + 10000 < Game.time || inBuild || Memory.roomCache[room.name].threatLevel > 2) {
-                log.a(room.name + ' is no longer in a low power state.');
-                room.memory.lowPower = undefined;
-                room.memory.lastLowPower = Game.time;
-            }
-        } else if (!room.memory.lastLowPower || room.memory.lastLowPower + 12500 < Game.time) {
-            let maxLevelRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8 && !r.constructionSites.length);
-            let lowPowerRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8 && r.memory.lowPower);
-            if (maxLevelRooms.length >= 3 && lowPowerRooms.length < maxLevelRooms.length * 0.5 && Math.random() > 0.8 && !inBuild && (!Memory.saleTerminal.room || room.name !== Memory.saleTerminal.room) && (Game.cpu.bucket < 9000 && (!Memory.lastPixelGenerated || Memory.lastPixelGenerated + 10000 < Game.time))) {
-                log.a(room.name + ' has entered a low power state for 10000 ticks.');
-                room.memory.lowPower = Game.time;
-            }
-        }
-    } else {
-        room.memory.lowPower = undefined;
-    }
 }
 
 function cacheRoomItems(room) {

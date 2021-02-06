@@ -16,13 +16,13 @@ if (Memory._banker) spendingMoney = Memory._banker.spendingAccount; else spendin
 
 module.exports.terminalControl = function (room) {
     let lastRun = room.memory.lastTerminalTick || 0;
-    if (!room.terminal || room.terminal.cooldown || room.memory.lowPower || lastRun + 10 > Game.time) return;
+    if (!room.terminal || room.terminal.cooldown || lastRun + 25 > Game.time) return;
+    room.memory.lastTerminalTick = Game.time;
     // Handle season stuff
     if (Game.shard.name === 'shardSeason') {
         balanceResources(room.terminal);
         return;
     }
-    room.memory.lastTerminalTick = Game.time;
     Memory.saleTerminal = Memory.saleTerminal || {};
     let myOrders = Game.market.orders;
     // Things that don't need to be run for every terminal

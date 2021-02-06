@@ -16,20 +16,30 @@ let hud = require('module.hud');
 let tools = require('tools.cpuTracker');
 
 module.exports.hiveMind = function () {
+    // Timing
+    if (!Memory.tickCooldowns) Memory.tickCooldowns = {};
     // Hive/global function loop
     diplomacy.diplomacyOverlord()
-    let hiveFunctions = shuffle([highCommand.highCommand, labs.labManager, expansion.claimNewRoom, spawning.globalCreepQueue, power.powerControl, hud.hud]);
+    let hiveFunctions = shuffle([{name: 'highCommand', f: highCommand.highCommand}, {
+        name: 'labs',
+        f: labs.labManager
+    }, {name: 'expansion', f: expansion.claimNewRoom},
+        {name: 'globalQueue', f: spawning.globalCreepQueue}, {name: 'power', f: power.powerControl}, {
+            name: 'hub',
+            f: hud.hud
+        }]);
     let functionCount = hiveFunctions.length;
     let count = 0;
     let hiveTaskCurrentCPU = Game.cpu.getUsed();
     let hiveTaskTotalCPU = 0;
     do {
+        let taskCpu = Game.cpu.getUsed();
         let currentFunction = _.first(hiveFunctions);
         if (!currentFunction) break;
         hiveFunctions = _.rest(hiveFunctions);
         count++;
         try {
-            currentFunction();
+            currentFunction.f();
         } catch (e) {
             log.e('Error with a hive function');
             log.e(e.stack);
@@ -37,8 +47,8 @@ module.exports.hiveMind = function () {
         }
         hiveTaskCurrentCPU = Game.cpu.getUsed() - hiveTaskCurrentCPU;
         hiveTaskTotalCPU += hiveTaskCurrentCPU;
+        tools.taskCPU(currentFunction.name, Game.cpu.getUsed() - taskCpu);
     } while ((hiveTaskTotalCPU < CPU_TASK_LIMITS['hiveTasks'] || Game.cpu.bucket > 9500) && count < functionCount)
-
     // Military creep loop
     count = 0;
     let militaryCreepCPU = 0;

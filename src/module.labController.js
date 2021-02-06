@@ -10,6 +10,8 @@
  */
 
 module.exports.labManager = function () {
+    if (Memory.tickCooldowns.labManagerTick + 3 > Game.time) return;
+    Memory.tickCooldowns.labManagerTick = Game.time;
     let myRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].controller.level >= 6 && !Game.rooms[r].nukes.length && !Game.rooms[r].memory.lowPower && _.filter(Game.rooms[r].structures, (s) => s.structureType === STRUCTURE_LAB)[0]);
     if (myRooms.length) {
         if (Game.time % 33 === 0) {

@@ -197,24 +197,20 @@ function forwardObserver(room) {
                 return;
             }
             // Request unClaimer if room level is too high
-            Memory.targetRooms[room.name].claimAttacker = !room.controller.upgradeBlocked && (!room.controller.ticksToDowngrade || room.controller.ticksToDowngrade > 1000);
+            if (room.hostileStructures.length) Memory.targetRooms[room.name].cleaner = true;
+            Memory.targetRooms[room.name].claimAttacker = undefined;
+            if (room.controller && room.controller.owner && (!room.controller.upgradeBlocked || room.controller.upgradeBlocked < CREEP_CLAIM_LIFE_TIME)) Memory.targetRooms[room.name].claimAttacker = true;
             break;
     }
     let towers = _.filter(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10 && c.isActive());
-    let armedEnemies = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && c.owner && c.owner.username === c.room.controller.owner.username);
-    let armedOwners = _.filter(_.pluck(room.hostileCreeps, 'owner.username'), (o) => !_.includes(FRIENDLIES, o) && o !== 'Invader');
-    if (room.controller && room.controller.owner) armedOwners = _.union(armedOwners, [room.controller.owner.username])
-    if (armedOwners.length > 1) {
+    let armedEnemies = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, c.owner.username));
+    if (towers.length) {
         delete Memory.targetRooms[room.name];
-        log.a('Canceling operation in ' + roomLink(room.name) + ' as there is a 3rd party present.', 'HIGH COMMAND: ');
-        return room.cacheRoomIntel(true);
-    } else if (towers.length && Memory.targetRooms[room.name].type !== 'siegeGroup' && Memory.targetRooms[room.name].type !== 'drain') {
-        delete Memory.targetRooms[room.name];
-        log.a('Canceling operation in ' + roomLink(room.name) + ' as we cannot hold it due to towers.', 'HIGH COMMAND: ');
-        room.cacheRoomIntel(true);
+        log.a('Canceling operation in ' + roomLink(room.name) + '.', 'HIGH COMMAND: ');
+        return creep.room.cacheRoomIntel(true);
     } else if (armedEnemies.length) {
-        Memory.targetRooms[room.name].level = armedEnemies.length + 1;
-    } else if (room.hostileCreeps.length) {
+        Memory.targetRooms[room.name].level = 2;
+    } else if (otherRooms) {
         Memory.targetRooms[room.name].level = 1;
     } else {
         Memory.targetRooms[room.name].level = 0;

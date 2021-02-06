@@ -134,7 +134,7 @@ function buildFromLayout(room) {
 }
 
 function hubBuilder(room, hub, layout) {
-    if (room.controller.level >= 7 && ((room.memory.remoteSourceCount < 4 || room.controller.level >= 7) || room.memory.hubLink)) {
+    if (room.controller.level >= 7) {
         if (room.memory.hubLinkLocation) {
             let pos = new RoomPosition(room.memory.hubLinkLocation.x, room.memory.hubLinkLocation.y, room.name);
             if (pos.checkForAllStructure()[0]) {
@@ -383,7 +383,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
         }));
         let buildPositions = [];
         spots.forEach((p) => buildPositions.push(new RoomPosition(p.x, p.y, room.name)));
-        if (room.level >= 4) {
+        if (room.level >= 3) {
             for (let pos of buildPositions) {
                 // Controller Barriers
                 if (pos.isNearTo(room.controller) && !pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
@@ -544,7 +544,7 @@ function findHub(room, hubCheck = undefined) {
             room.memory.bunkerHub.bunkerVersion = layoutVersion;
             return true;
         } else {
-            abandonRoom(room.name);
+            //abandonRoom(room.name);
             if (Memory.roomCache && Memory.roomCache[room.name]) Memory.roomCache[room.name].noClaim = true;
             log.a(room.name + ' has been abandoned due to being unable to find a suitable layout.');
             return false;
@@ -560,7 +560,7 @@ function findHub(room, hubCheck = undefined) {
                 searched.push(clean);
                 if (hubSearch >= layouts.layoutArray.length * 2500 && !room.memory.bunkerHub) {
                     if (hubCheck) return false;
-                    abandonRoom(room.name);
+                    //abandonRoom(room.name);
                     if (Memory.roomCache && Memory.roomCache[room.name]) Memory.roomCache[room.name].noClaim = true;
                     log.a(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
                     return false;

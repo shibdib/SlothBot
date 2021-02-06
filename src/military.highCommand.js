@@ -6,7 +6,8 @@
  */
 
 module.exports.highCommand = function () {
-    Memory.lastHighCommandTick = undefined;
+    if (Memory.tickCooldowns.highCommandTick + 10 > Game.time) return;
+    Memory.tickCooldowns.highCommandTick = Game.time;
     if (!Memory.nonCombatRooms) Memory.nonCombatRooms = [];
     if (!Memory.targetRooms) Memory.targetRooms = {};
     if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
@@ -137,7 +138,7 @@ function auxiliaryOperations() {
     let initialFilter = _.filter(Memory.roomCache, (r) => r.name && !Memory.auxiliaryTargets[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && Game.map.getRoomLinearDistance(_.sample(Game.spawns).room.name, r.name) <= 12 && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !r.hostile);
     if (maxLevel >= 6) {
         // Power Mining
-        if (maxLevel >= 7 && (!Memory.saleTerminal || !Memory.saleTerminal.room || Game.rooms[Memory.saleTerminal.room].store[RESOURCE_POWER] < REACTION_AMOUNT)) {
+        if (getResourceTotal(RESOURCE_POWER) < 10000 && maxLevel >= 7 && (!Memory.saleTerminal || !Memory.saleTerminal.room || Game.rooms[Memory.saleTerminal.room].store[RESOURCE_POWER] < REACTION_AMOUNT)) {
             let powerRoom = _.min(_.filter(initialFilter, (r) => r.power && r.power + 1500 >= Game.time && r.closestRange <= 8), 'closestRange');
             let powerMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'power').length || 0;
             if (powerRoom.name && !powerMining) {
@@ -468,6 +469,7 @@ function manageAttacks() {
                 delete Memory.targetRooms[key];
                 continue;
         }
+        if (Memory.targetRooms[key].manual) staleMulti = 999999;
         if (!Memory.targetRooms[key]) continue;
         // Cancel stale ops with no kills
         if ((Memory.targetRooms[key].tick + (2500 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) ||
@@ -477,7 +479,7 @@ function manageAttacks() {
             continue;
         }
         // Remove far rooms
-        if (Memory.roomCache[key] && Memory.roomCache[key].closestRange > LOCAL_SPHERE * 4 && type !== 'guard' && !Memory.roomCache[key].manual) {
+        if (Memory.roomCache[key] && Memory.roomCache[key].closestRange > LOCAL_SPHERE * 4 && type !== 'guard' && !Memory.targetRooms[key].manual) {
             delete Memory.targetRooms[key];
             log.a('Canceling operation in ' + roomLink(key) + ' as it is too far away.', 'HIGH COMMAND: ');
             continue;
@@ -510,7 +512,7 @@ function manageAttacks() {
         if (Memory.targetRooms[key].tick + 750 && Memory.targetRooms[key].friendlyDead) {
             let alliedLosses = Memory.targetRooms[key].friendlyDead;
             let enemyLosses = Memory.targetRooms[key].enemyDead || 1000;
-            if (alliedLosses * staleMulti > enemyLosses) {
+            if (alliedLosses > (enemyLosses + 10) * staleMulti) {
                 delete Memory.targetRooms[key];
                 log.a('Canceling operation in ' + roomLink(key) + ' due to heavy casualties.', 'HIGH COMMAND: ');
             }

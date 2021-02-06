@@ -6,7 +6,8 @@
  */
 
 module.exports.claimNewRoom = function () {
-    if (Math.random() < 0.9) return;
+    if (Memory.tickCooldowns.expansionTick + 150 > Game.time) return;
+    Memory.tickCooldowns.expansionTick = Game.time;
     let limit = Game.gcl.level;
     // Special novice/respawn zone cases
     if (Game.map.getRoomStatus(Memory.myRooms[0]).status === 'novice') limit = 3;

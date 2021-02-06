@@ -99,6 +99,35 @@ RoomPosition.prototype.getAdjacentPositionAtRange = function (target, range = 3)
     }
 };
 
+/**
+ * Check if a position is protected in the bunker
+ *
+ * @returns {boolean}
+ */
+RoomPosition.prototype.isInBunker = function () {
+    let room = Game.rooms[this.roomName];
+    if (!room.memory.bunkerHub) return false;
+    let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+    let path = PathFinder.search(
+        this, {pos: hub, range: 1},
+        {
+            plainCost: 1,
+            swampCost: 1,
+            roomCallback: function () {
+                if (!room) return;
+                let costs = new PathFinder.CostMatrix;
+                room.find(FIND_STRUCTURES).forEach(function (s) {
+                    if (OBSTACLE_OBJECT_TYPES.includes(s.structureType) || s.structureType === STRUCTURE_RAMPART) {
+                        costs.set(s.pos.x, s.pos.y, 255);
+                    }
+                });
+                return costs;
+            },
+        }
+    );
+    return !path.incomplete;
+};
+
 
 /**
  * Find position at direction

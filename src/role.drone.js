@@ -10,27 +10,23 @@
  */
 
 module.exports.role = function role(creep) {
-    if (creep.shibKite()) return true;
     // Trailer at low level
     if (creep.room.controller && creep.room.controller.level < 3 && creep.towTruck()) return true;
-    // Invader detection
-    if (creep.fleeHome()) return;
     // Handle remote drones
     if (!creep.memory.destination) creep.memory.destination = creep.memory.overlord;
     if (creep.memory.destination && creep.room.name !== creep.memory.destination && !creep.memory.remoteMining) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
     }
     // Checks
-    if (creep.isFull) creep.memory.working = true;
-    else if (!creep.store.getUsedCapacity(RESOURCE_ENERGY)) creep.memory.working = false;
-    // If harvester needed harvest
-    if (harvest(creep)) return;
-    // Work
-    if (creep.memory.working === true) {
+    if (creep.isFull) {
         creep.memory.source = undefined;
         creep.memory.harvest = undefined;
         creep.memory.remoteMining = undefined;
         creep.memory.source = undefined;
+        creep.memory.working = true;
+    } else if (!creep.store[RESOURCE_ENERGY]) creep.memory.working = false;
+    // Work
+    if (creep.memory.working === true) {
         // If haulers needed haul
         if (hauling(creep)) return;
         // If builder needed build
@@ -89,16 +85,13 @@ function harvest(creep) {
             switch (creep.harvest(source)) {
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(source);
-                    if (Math.random() >= 0.9) {
-                        creep.memory.harvest = undefined;
-                        creep.memory.source = undefined;
-                    }
-                    return true;
+                    break;
                 case ERR_NOT_ENOUGH_RESOURCES:
                     creep.memory.source = undefined;
+                    creep.memory.harvest = undefined;
                     break;
                 case OK:
-                    return true;
+                    break;
             }
         }
         return true;
@@ -107,8 +100,7 @@ function harvest(creep) {
 
 function building(creep) {
     if (creep.memory.task && creep.memory.task !== 'build' && creep.memory.task !== 'repair') return;
-    let upgradeNeeded = (creep.room.controller.level < 1 || creep.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[creep.room.controller.level] * 0.9) && !creep.room.controller.upgradeBlocked
-    if (!upgradeNeeded && ((creep.memory.task === 'build' || creep.memory.task === 'repair') || (creep.memory.constructionSite || creep.constructionWork()))) {
+    if ((creep.memory.task === 'build' || creep.memory.task === 'repair') || (creep.memory.constructionSite || creep.constructionWork())) {
         creep.say('Build!', true);
         creep.builderFunction();
         return true;
@@ -132,10 +124,6 @@ function hauling(creep) {
                     delete creep.memory._shibMove;
                     break;
                 case ERR_NOT_IN_RANGE:
-                    if (storageItem.structureType !== STRUCTURE_TOWER) {
-                        let adjacentStructure = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
-                        if (adjacentStructure.length > 0) creep.transfer(adjacentStructure[0], RESOURCE_ENERGY);
-                    }
                     creep.shibMove(storageItem);
                     break;
                 case ERR_FULL || ERR_INVALID_TARGET:

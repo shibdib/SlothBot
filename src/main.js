@@ -89,3 +89,18 @@ nukes = function (target) {
         if (!target) log.a(nukes[key].room.name + ' has a nuclear missile available.')
     }
 };
+
+cpuUsage = function () {
+    if (_.size(CREEP_ROLE_CPU)) {
+        log.a('--CREEP ROLE INFO--', ' ');
+        for (let role of Object.keys(CREEP_ROLE_CPU)) {
+            log.e(role + ': ' + CREEP_ROLE_CPU[role] + ' (x' + _.filter(Game.creeps, (c) => c.my && c.memory.role === role).length + ')', ' ')
+        }
+    }
+    if (_.size(ROOM_TASK_CPU_ARRAY)) {
+        log.a('--TASK INFO--', ' ');
+        for (let task of Object.keys(ROOM_TASK_CPU_ARRAY)) {
+            log.e(task + ': ' + average(ROOM_TASK_CPU_ARRAY[task]), ' ')
+        }
+    }
+}

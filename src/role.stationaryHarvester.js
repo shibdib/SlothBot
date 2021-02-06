@@ -14,6 +14,7 @@ module.exports.role = function (creep) {
     if (creep.memory.source) {
         // If in place harvest
         if (creep.memory.onContainer) {
+            if (Math.random() > 0.98) creep.memory.onContainer = undefined;
             let source = Game.getObjectById(creep.memory.source);
             switch (creep.harvest(source)) {
                 case ERR_NOT_IN_RANGE:
@@ -99,12 +100,9 @@ function depositEnergy(creep) {
     if (creep.memory.extensions && extensionFiller(creep)) return;
     let container = Game.getObjectById(creep.memory.containerID);
     let link = Game.getObjectById(creep.memory.linkID);
+    if (container && container.hits < container.hitsMax * 0.5) return creep.repair(container);
     if (link) {
         if (container) {
-            if (container.pos.getRangeTo(link) > 1) return link.destroy();
-            if (container.hits < container.hitsMax * 0.5) {
-                return creep.repair(container);
-            }
             if (linkContainerRotate && !creep.room.energyState && (!creep.room.memory.hubLink || !creep.room.memory.controllerLink) && _.sum(container.store) < CONTAINER_CAPACITY * 0.75) {
                 linkContainerRotate = undefined;
                 return creep.transfer(container, RESOURCE_ENERGY);
@@ -122,9 +120,7 @@ function depositEnergy(creep) {
         linkTest(creep);
     } else if (container) {
         creep.memory.needHauler = undefined;
-        if (container.hits < container.hitsMax * 0.5) {
-            return creep.repair(container);
-        } else if (_.sum(container.store) >= 1900) {
+        if (_.sum(container.store) >= 1900) {
             if (container.hits < container.hitsMax) creep.repair(container); else {
                 creep.memory.needHauler = true;
                 creep.idleFor(20);
@@ -148,6 +144,10 @@ function extensionFinder(creep) {
                 let sourceExtensions = creep.room.memory.sourceExtensions || [];
                 creep.room.memory.sourceExtensions = _.union(sourceExtensions, _.pluck(extension, 'id'));
                 creep.memory.extensions = JSON.stringify(_.pluck(extension, 'id'));
+                // Ramparts if outside bunker
+                extension.forEach(function (e) {
+                    if (!e.pos.isInBunker()) e.pos.createConstructionSite(STRUCTURE_RAMPART);
+                })
             }
         }
     }
