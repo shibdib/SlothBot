@@ -202,6 +202,7 @@ function forwardObserver(room) {
             if (room.controller && room.controller.owner && (!room.controller.upgradeBlocked || room.controller.upgradeBlocked < CREEP_CLAIM_LIFE_TIME)) Memory.targetRooms[room.name].claimAttacker = true;
             break;
     }
+    let otherRooms = _.filter(Memory.roomCache, (r) => r.name !== room.name && r.owner === Memory.roomCache[room.name].owner)[0]
     let towers = _.filter(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10 && c.isActive());
     let armedEnemies = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, c.owner.username));
     if (towers.length) {
@@ -210,7 +211,7 @@ function forwardObserver(room) {
         return creep.room.cacheRoomIntel(true);
     } else if (armedEnemies.length) {
         Memory.targetRooms[room.name].level = 2;
-    } else if (otherRooms) {
+    } else if (otherRooms || room.hostileCreeps.length) {
         Memory.targetRooms[room.name].level = 1;
     } else {
         Memory.targetRooms[room.name].level = 0;

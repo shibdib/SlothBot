@@ -10,9 +10,16 @@
  */
 'use strict';
 
-Room.prototype.constructionSites = function () {
-    return _.filter(Game.constructionSites, (s) => s.pos.roomName === this.name);
-};
+Object.defineProperty(Room.prototype, 'constructionSites', {
+    get: function () {
+        if (!this._constructionSites) {
+            this._constructionSites = _.filter(Game.constructionSites, (s) => s.pos.roomName === this.name);
+        }
+        return this._constructionSites;
+    },
+    enumerable: false,
+    configurable: true
+});
 
 Object.defineProperty(Room.prototype, 'user', {
     get: function () {
@@ -430,9 +437,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 let homeMiddle = _.round(homeExit.length / 2);
                 let distanceToExit = source.pos.findPathTo(homeExit[homeMiddle]).length
                 let roomRange = Game.map.findRoute(this.name, closest).length - 1;
-                let total = distanceToExit + distanceToExit + 20;
-                if (roomRange) total = distanceToExit + (roomRange * 50) + 25;
-                sourceRating[source.id] = total;
+                sourceRating[source.id] = distanceToExit + (roomRange * 50);
             }
         }
         let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR);

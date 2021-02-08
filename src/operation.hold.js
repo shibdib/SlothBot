@@ -49,7 +49,7 @@ function levelManager(creep) {
         return creep.room.cacheRoomIntel(true);
     } else if (armedEnemies.length) {
         Memory.targetRooms[creep.memory.destination].level = 2;
-    } else if (otherRooms) {
+    } else if (otherRooms || creep.room.hostileCreeps.length) {
         Memory.targetRooms[creep.memory.destination].level = 1;
     } else {
         Memory.targetRooms[creep.memory.destination].level = 0;

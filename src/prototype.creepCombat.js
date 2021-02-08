@@ -285,9 +285,8 @@ Creep.prototype.healInRange = function () {
 
 Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, onlyInBuild = true) {
     // No sites
-    if (!this.room.find(FIND_CONSTRUCTION_SITES).length || (creepCheck && this.room.hostileCreeps.length)) return false;
+    if (!this.room.constructionSites.length || (creepCheck && this.room.hostileCreeps.length) || _.includes(FRIENDLIES, Memory.roomCache[this.room.name].user)) return false;
     // Friendly room
-    if (this.room.controller && ((this.room.controller.owner && _.includes(FRIENDLIES, this.room.controller.owner.username)) || (this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation.username)) || this.room.controller.safeMode)) return false;
     let constructionSite = Game.getObjectById(this.memory.stompSite) || this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => !_.includes(FRIENDLIES, s.owner.username) && (!onlyInBuild || s.progress)});
     if (constructionSite) {
         this.memory.stompSite = constructionSite.id;

@@ -307,7 +307,6 @@ module.exports.miscCreepQueue = function (room) {
                 queueCreep(room, PRIORITIES.explorer, {
                     role: 'explorer',
                     destination: destination,
-                    military: true,
                     other: {portalForce: destination}
                 })
             }

@@ -104,6 +104,7 @@ module.exports.role = function (creep) {
 // Remote Hauler Drop Off
 function dropOff(creep) {
     buildLinks(creep);
+    if (creep.memory.dropOffLink && Game.getObjectById(creep.memory.dropOffLink)) return creep.memory.storageDestination = creep.memory.dropOffLink;
     // Lab
     let lab = creep.pos.findClosestByRange(creep.room.structures, {
         filter: (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive()
@@ -158,14 +159,15 @@ function buildLinks(creep) {
         let hubLink = Game.getObjectById(creep.room.memory.hubLink);
         let allLinks = _.filter(creep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LINK);
         let closestLink = creep.pos.findClosestByRange(allLinks);
+        let closestRange = creep.pos.getRangeTo(closestLink);
         let inBuildLink = _.filter(creep.room.constructionSites, (s) => s.my && s.structureType === STRUCTURE_LINK)[0];
-        if (!inBuildLink && controllerLink && hubLink && allLinks.length < 6 && creep.pos.getRangeTo(closestLink) > 10) {
+        if (!inBuildLink && controllerLink && hubLink && allLinks.length < 6 && closestRange > 8) {
             let hub = new RoomPosition(creep.room.memory.bunkerHub.x, creep.room.memory.bunkerHub.y, creep.room.name);
             if (creep.pos.getRangeTo(hub) >= 18) {
                 let buildPos = new RoomPosition(creep.pos.x + getRandomInt(-2, 2), creep.pos.y + getRandomInt(-2, 2), creep.room.name);
                 buildPos.createConstructionSite(STRUCTURE_LINK);
             }
-        }
+        } else if (closestRange < 8) creep.memory.dropOffLink = closestLink.id;
     }
     creep.memory.linkAttempt = true;
 }

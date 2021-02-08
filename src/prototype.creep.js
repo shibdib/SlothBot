@@ -26,11 +26,7 @@ Object.defineProperty(Creep.prototype, "idle", {
         this.say(_.sample([ICONS.wait23, ICONS.wait21, ICONS.wait19, ICONS.wait17, ICONS.wait13, ICONS.wait11, ICONS.wait7, ICONS.wait10, ICONS.wait3, ICONS.wait1]), true);
         if ((this.pos.checkForRoad() || this.pos.checkForContainer()) && this.memory.role !== 'stationaryHarvester' && this.memory.role !== 'mineralHarvester' && this.memory.role !== 'remoteHarvester') {
             this.moveRandom();
-        } else if (this.pos.getRangeTo(this.pos.findClosestByRange(_.filter(this.room.structures, (s) => ![STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD].includes(s.structureType)))) === 1 && this.memory.role !== 'stationaryHarvester' && this.memory.role !== 'mineralHarvester' && this.memory.role !== 'remoteHarvester') {
-            this.moveRandom();
         } else if (this.pos.getRangeTo(this.pos.findClosestByRange(FIND_SOURCES)) === 1 && this.memory.role !== 'stationaryHarvester' && this.memory.role !== 'mineralHarvester' && this.memory.role !== 'remoteHarvester') {
-            this.moveRandom();
-        } else if (this.pos.getRangeTo(this.pos.findClosestByRange(FIND_MINERALS)) === 1 && this.memory.role !== 'stationaryHarvester' && this.memory.role !== 'mineralHarvester' && this.memory.role !== 'remoteHarvester') {
             this.moveRandom();
         } else if (!this.pos.checkForRampart() && this.pos.getRangeTo(this.pos.findClosestByRange(FIND_EXIT)) <= 1) {
             this.moveRandom();
