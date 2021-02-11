@@ -445,6 +445,10 @@ function manageAttacks() {
                     Memory.targetRooms = cache;
                 }
                 continue;
+            // Manage Harass
+            case 'harass':
+                staleMulti = 3;
+                break;
             // Manage Guard
             case 'guard':
                 staleMulti = 10;
@@ -769,7 +773,7 @@ module.exports.operationSustainability = function (room, operationRoom = room.na
     }
     let friendlyForces = _.filter(room.creeps, (c) => c.memory && c.memory.military);
     let enemyForces = _.filter(room.creeps, (c) => !c.memory);
-    if (friendlyForces.length === 1 && friendlyForces[0].hits < friendlyForces[0].hitsMax * 0.14 && enemyForces.length && !_.includes(trackedFriendly, friendlyForces[0].id)) {
+    if (friendlyForces.length === 1 && friendlyForces[0].hits < friendlyForces[0].hitsMax * 0.15 && enemyForces.length && !_.includes(trackedFriendly, friendlyForces[0].id)) {
         friendlyDead = friendlyDead + UNIT_COST(friendlyForces[0].body);
         trackedFriendly.push(friendlyForces[0].id);
     }
