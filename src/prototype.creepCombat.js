@@ -647,11 +647,11 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     }
     let hostileTowers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && !_.includes(FRIENDLIES, s.owner.username));
     for (let i = 0; i < hostileTowers.length; i++) {
-        hostilePower += 150;
+        hostilePower += TOWER_POWER_FROM_RANGE(hostileTowers[i].pos.getRangeTo(this), TOWER_POWER_ATTACK);
     }
     let friendlyTowers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && _.includes(FRIENDLIES, s.owner.username));
     for (let i = 0; i < friendlyTowers.length; i++) {
-        alliedPower += 150;
+        alliedPower += TOWER_POWER_FROM_RANGE(friendlyTowers[i].pos.getRangeTo(this), TOWER_POWER_ATTACK);
     }
     if (!Memory.roomCache[this.room.name]) this.room.cacheRoomIntel(true);
     Memory.roomCache[this.room.name].hostilePower = hostilePower;
@@ -686,3 +686,4 @@ Creep.prototype.findDefensivePosition = function (target = this) {
     }
     return false;
 };
+

@@ -26,7 +26,7 @@ module.exports.claimNewRoom = function () {
                 for (let avoidKey in avoidRooms) {
                     let avoidName = avoidRooms[avoidKey].name;
                     let distance = Game.map.findRoute(name, avoidName).length;
-                    if (distance <= 2) continue worthy; else if (distance === 3) baseScore += 500; else if (distance < 6) baseScore += 100; else if (distance > 20) continue worthy; else baseScore -= 350;
+                    if (distance <= 2) baseScore -= 2500; else if (distance === 3) baseScore += 500; else if (distance < 6) baseScore += 100; else if (distance > 20) continue worthy; else baseScore -= 350;
                 }
                 // Remote access
                 let neighboring = Game.map.describeExits(name);
@@ -38,7 +38,7 @@ module.exports.claimNewRoom = function () {
                 if (neighboring['7'] && Memory.roomCache[neighboring['7']] && !Memory.roomCache[neighboring['7']].user) sourceCount += Memory.roomCache[neighboring['7']].sources;
                 baseScore += (sourceCount * 200);
                 // Prioritize fortress rooms if enemies exist
-                if (Memory._enemies && Memory._enemies.length && _.size(Game.map.describeExits(name) < 2)) baseScore += 500;
+                if (Memory._enemies && Memory._enemies.length && _.size(Game.map.describeExits(name) < 2)) baseScore += 1000;
                 // Swamps suck
                 let terrain = Game.map.getRoomTerrain(name);
                 let terrainScore = 0;
@@ -72,6 +72,8 @@ module.exports.claimNewRoom = function () {
                             break;
                     }
                 } else baseScore -= 500;
+                // Prioritize your sector
+                if (sameSectorCheck(name, worthyRooms[key].closestRoom)) baseScore += 1000; else baseScore -= 500;
                 worthyRooms[key]["claimValue"] = baseScore;
                 possibles[key] = worthyRooms[key];
             }

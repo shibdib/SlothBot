@@ -506,9 +506,8 @@ module.exports.remoteCreepQueue = function (room) {
                 let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creep.id);
                 let current = 0;
                 if (assignedHaulers.length) {
-                    continue;
-                    //assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                    //if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= (CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.controller.level] + 1)) continue;
+                    assignedHaulers.forEach((c) => current += c.store.getCapacity())
+                    if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 2) continue;
                 }
                 queueCreep(room, PRIORITIES.remoteHauler + getCreepCount(room, 'remoteHauler') * 0.5, {
                     role: 'remoteHauler',
@@ -636,8 +635,12 @@ module.exports.globalCreepQueue = function () {
             case 'claim':
                 if (!getCreepCount(undefined, 'claimer', key)) {
                     queueGlobalCreep(PRIORITIES.claimer, {role: 'claimer', destination: key, military: true});
-                } else if (getCreepCount(undefined, 'drone', key) < 4) {
-                    queueGlobalCreep(PRIORITIES.claimer, {role: 'drone', destination: key, military: true});
+                } else if (getCreepCount(undefined, 'drone', key) < 8) {
+                    queueGlobalCreep(PRIORITIES.claimer + getCreepCount(undefined, 'drone', key), {
+                        role: 'drone',
+                        destination: key,
+                        military: true
+                    });
                 }
                 break;
             // Scout ops
@@ -649,12 +652,12 @@ module.exports.globalCreepQueue = function () {
                 break;
             case 'commodity': // Commodity Mining
                 if (!getCreepCount(undefined, 'commodityMiner', key)) {
-                    queueGlobalCreep(PRIORITIES.Power, {role: 'commodityMiner', destination: key, military: true})
+                    queueGlobalCreep(priority, {role: 'commodityMiner', destination: key, military: true})
                 }
                 break;
             case 'robbery': // Robbery
                 if (getCreepCount(undefined, 'robber', key) < 2) {
-                    queueGlobalCreep(PRIORITIES.Power, {role: 'robber', destination: key, military: true})
+                    queueGlobalCreep(priority, {role: 'robber', destination: key, military: true})
                 }
                 break;
             case 'power': // Power Mining
@@ -667,13 +670,33 @@ module.exports.globalCreepQueue = function () {
                     powerAttackerTTL = creepTTL[key]['powerAttacker'] || undefined;
                 }
                 if (!operations[key].complete && (powerHealer < powerAttacker + 1 || (powerHealerTTL && powerHealerTTL < 450 && powerHealer < (powerAttacker + 1) + 1))) {
-                    queueGlobalCreep(PRIORITIES.Power, {role: 'powerHealer', destination: key, military: true})
+                    queueGlobalCreep(priority, {role: 'powerHealer', destination: key, military: true})
                 }
                 if (!operations[key].complete && (powerAttacker < powerSpace || (powerAttackerTTL && powerAttackerTTL < 450 && powerAttacker < powerSpace + 1))) {
-                    queueGlobalCreep(PRIORITIES.Power - 1, {role: 'powerAttacker', destination: key, military: true})
+                    queueGlobalCreep(priority - 1, {role: 'powerAttacker', destination: key, military: true})
                 }
                 if (operations[key].hauler && getCreepCount(undefined, 'powerHauler', key) < operations[key].hauler) {
-                    queueGlobalCreep(PRIORITIES.Power - 1, {role: 'powerHauler', destination: key, military: true})
+                    queueGlobalCreep(priority - 1, {role: 'powerHauler', destination: key, military: true})
+                }
+                break;
+            case 'harass': // Harass Room
+                if (getCreepCount(undefined, 'longbow', key) < opLevel) {
+                    queueGlobalCreep(priority + getCreepCount(undefined, 'longbow', key), {
+                        role: 'longbow',
+                        destination: key,
+                        operation: 'harass',
+                        military: true
+                    })
+                }
+                if (operations[key].claimAttacker) {
+                    if (!getCreepCount(undefined, 'claimAttacker', key)) {
+                        queueGlobalCreep(priority + 1, {
+                            role: 'claimAttacker',
+                            destination: key,
+                            operation: 'harass',
+                            military: true
+                        })
+                    }
                 }
                 break;
             case 'hold': // Hold Room

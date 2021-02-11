@@ -49,7 +49,7 @@ module.exports.role = function (creep) {
                 } else dropOff(creep)
             }
         } else {
-            creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
+            creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 24});
         }
     } else {
         // Remote haulers will opportunistically pickup score
@@ -88,9 +88,8 @@ module.exports.role = function (creep) {
                     let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === h.id);
                     let current = 0;
                     if (assignedHaulers.length) {
-                        continue;
-                        //assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                        //if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= (CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][Game.rooms[creep.memory.overlord].controller.level] + 1)) continue;
+                        assignedHaulers.forEach((c) => current += c.store.getCapacity())
+                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 2) continue;
                     }
                     return creep.memory.misc = h.id
                 }
@@ -135,7 +134,7 @@ function dropOff(creep) {
     }
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     //Controller
-    if (controllerContainer && Math.random() > (controllerContainer.store.getUsedCapacity() / CONTAINER_CAPACITY) && Math.random() > (0.7 / (creep.room.energyState + 1))) {
+    if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) && Math.random() < creep.room.energy / ENERGY_AMOUNT) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     } else if (creep.room.terminal && creep.room.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 5) {

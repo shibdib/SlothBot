@@ -302,6 +302,17 @@ let globals = function () {
         [RESOURCE_UTRIUM_LEMERGITE]: [RESOURCE_UTRIUM, RESOURCE_LEMERGIUM]
     };
 
+    global.TOWER_POWER_FROM_RANGE = function (dist, power) {
+        if (dist <= TOWER_OPTIMAL_RANGE) {
+            return power
+        }
+        if (dist >= TOWER_FALLOFF_RANGE) {
+            return power * (1 - TOWER_FALLOFF);
+        }
+        let towerFalloffPerTile = TOWER_FALLOFF / (TOWER_FALLOFF_RANGE - TOWER_OPTIMAL_RANGE)
+        return Math.round(power * (1 - (dist - TOWER_OPTIMAL_RANGE) * towerFalloffPerTile))
+    }
+
     // Boost Uses
     global.BOOST_USE = {
         'attack': [RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_UTRIUM_ACID, RESOURCE_UTRIUM_HYDRIDE],
@@ -542,6 +553,15 @@ let globals = function () {
 
     global.log = new Log();
 
+    global.sameSectorCheck = function (roomA, roomB) {
+        let [EW, NS] = roomA.match(/\d+/g);
+        let roomAEWInt = EW.toString()[0];
+        let roomANSInt = NS.toString()[0];
+        let [EW2, NS2] = roomB.match(/\d+/g);
+        let roomBEWInt = EW2.toString()[0];
+        let roomBNSInt = NS2.toString()[0];
+        return roomAEWInt === roomBEWInt && roomANSInt === roomBNSInt;
+    }
 
     global.floodFill = function (roomName) {
 

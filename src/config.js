@@ -13,6 +13,7 @@ global.HOSTILES = []; // Manually set players as hostile
 global.MANUAL_FRIENDS = []; // Manually set players as friends (overrides COMBAT_SERVER)
 global.RAMPART_ACCESS = false // Allow friends and allies access thru ramparts
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
+global.HOLD_SECTOR = false; // Attack rooms in sectors you have rooms (ignores local sphere)
 global.ATTACK_LOCALS = true; // Attacks targets within range of the next entry
 global.LOCAL_SPHERE = 2; // Range that rooms consider local via linear distance
 global.NEW_SPAWN_DENIAL = true; // Crush new spawns immediately

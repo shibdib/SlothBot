@@ -579,7 +579,7 @@ Room.prototype.findClosestOwnedRoom = function (range = false, minLevel = 1) {
             if (!room || room.controller.level < minLevel) continue;
             // Handle absurd distances
             let path = Game.map.findRoute(key, this.name).length;
-            if (path >= 20) {
+            if (path >= (CREEP_LIFE_TIME / 50)) {
                 let currentRoom = this.name;
                 let closestPortal = _.sortBy(_.filter(Memory.roomCache, (r) => r.portal), function (f) {
                     Game.map.getRoomLinearDistance(f.name, currentRoom)

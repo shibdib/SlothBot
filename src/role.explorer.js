@@ -26,10 +26,10 @@ module.exports.role = function (creep) {
             return creep.moveTo(portal);
         } else {
             let adjacent = Game.map.describeExits(creep.pos.roomName);
-            let possibles, target;
-            // If there's unexplored prioritize else pick a random adjacent
-            possibles = _.filter(adjacent, (r) => !Memory.roomCache[r]) || _.min(adjacent, (r) => Memory.roomCache[r].cached);
-            if (possibles.length && Math.random() > 0.2) target = _.sample(possibles); else target = _.sample(adjacent);
+            let target;
+            // If there's unexplored prioritize else pick the oldest intel
+            let possible = _.filter(adjacent, (r) => !Memory.roomCache[r])[0] || _.min(adjacent, (r) => Memory.roomCache[r].cached);
+            if (possible && Math.random() > 0.05) target = possible; else target = _.sample(adjacent);
             try {
                 let [EW, NS] = target.match(/\d+/g);
                 let isAlleyRoom = EW % 10 == 0 || NS % 10 == 0;

@@ -151,6 +151,17 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             move = 1;
             break;
         case 'siegeEngine':
+            if (level < 7) return;
+            if (level === 7) {
+                heal = 16;
+                rangedAttack = 4;
+                move = 20;
+            } else {
+                heal = 20;
+                rangedAttack = 5;
+                move = 25;
+            }
+            break;
         case 'deconstructor':
             deficitExemption = true;
             work = _.floor(energyAmount / (BODYPART_COST[WORK] + BODYPART_COST[MOVE])) || 1;
