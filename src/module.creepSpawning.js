@@ -402,8 +402,10 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteSources = [];
             remotes.forEach(function (r) {
                 let sourceRating = Memory.roomCache[r].sourceRating;
-                for (const [key, value] of Object.entries(sourceRating)) {
-                    remoteSources.push({'room': r, 'id': key, 'score': value});
+                if (sourceRating) {
+                    for (const [key, value] of Object.entries(sourceRating)) {
+                        remoteSources.push({'room': r, 'id': key, 'score': value});
+                    }
                 }
             })
             remoteHives[room.name] = JSON.stringify(_.sortBy(remoteSources, 'score'));

@@ -37,6 +37,9 @@ module.exports.role = function (creep) {
             case 'hold':
                 creep.holdRoom();
                 break;
+            case 'harass':
+                creep.harass();
+                break;
             case 'siegeGroup':
                 creep.siegeGroupRoom();
                 break;

@@ -22,11 +22,11 @@ module.exports.claimNewRoom = function () {
                 // All rooms start at 5000
                 let baseScore = 5000;
                 // Check if it's near any owned rooms
-                let avoidRooms = _.filter(Memory.roomCache, (r) => r.level);
+                let avoidRooms = _.filter(Memory.roomCache, (r) => r.level && _.includes(FRIENDLIES, r.owner));
                 for (let avoidKey in avoidRooms) {
                     let avoidName = avoidRooms[avoidKey].name;
                     let distance = Game.map.findRoute(name, avoidName).length;
-                    if (distance <= 2) baseScore -= 2500; else if (distance === 3) baseScore += 500; else if (distance < 6) baseScore += 100; else if (distance > 20) continue worthy; else baseScore -= 350;
+                    if (distance <= 2) continue worthy; else if (distance === 3) baseScore += 500; else if (distance < 6) baseScore += 100; else if (distance > 20) continue worthy; else baseScore -= 350;
                 }
                 // Remote access
                 let neighboring = Game.map.describeExits(name);

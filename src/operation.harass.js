@@ -25,21 +25,8 @@ Creep.prototype.harass = function () {
     } else if (this.memory.squadLeader && this.memory.squadLeader !== this.id) return;
     let partner = _.filter(Game.creeps, (c) => c.my && c.memory.squadLeader === this.id && c.id !== this.id)[0];
     if (partner) {
-        // Attack in range
-        partner.attackInRange();
-        // Handle healing
-        partner.healInRange();
-        // If in same room but apart move to each other
-        if (partner.room.name === this.room.name && !partner.pos.isNearTo(this)) {
-            partner.shibMove(this, {range: 0});
-            if (!this.canIWin(10)) this.shibKite();
-        } // Handle separate rooms
-        else if (partner.room.name !== this.room.name) {
-            if (partner.canIWin(5)) partner.shibMove(this); else partner.shibKite();
-        } // Handle next to each other
-        else if (partner.pos.isNearTo(this)) {
-            partner.shibMove(this, {range: 0});
-        }
+        // Move
+        partner.shibMove(this, {range: 0});
     }
     if (this.room.name === this.memory.destination || !this.memory.destination) {
         let sentence = ['Contact', MY_USERNAME, 'For', 'A', 'Diplomatic', 'Resolution'];

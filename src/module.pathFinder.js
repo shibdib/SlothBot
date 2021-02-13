@@ -340,8 +340,6 @@ function findRoute(origin, destination, options = {}) {
         if (portalRoom) {
             portal = portalRoom.name;
             destination = portalRoom.name;
-        } else if (roomDistance > CREEP_LIFE_TIME / 50) {
-            return undefined;
         }
     }
     let route;

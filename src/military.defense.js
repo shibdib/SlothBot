@@ -30,7 +30,7 @@ module.exports.controller = function (room) {
     }
 
     // Check if you should safemode
-    if (Memory.roomCache[room.name].threatLevel > 2 && room.level >= Memory.maxLevel - 2) safeModeManager(room);
+    if (Memory.roomCache[room.name].threatLevel > 2) safeModeManager(room);
 
     // Tower control
     towers.towerControl(room);

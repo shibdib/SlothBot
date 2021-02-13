@@ -269,7 +269,7 @@ function operationRequests() {
         // Direct Room Attacks
         if (OFFENSIVE_OPERATIONS) {
             // Reserved room attacks
-            let reservedTarget = _.sortBy(_.filter(initialFilter, (r) => r.reservation && r.owner !== 'Invader' && (_.includes(Memory._enemies, r.user) || (r.closestRange <= LOCAL_SPHERE && ATTACK_LOCALS) || (HOLD_SECTOR && sameSectorCheck(r.name, r.closestRoom)))), function (t) {
+            let reservedTarget = _.sortBy(_.filter(initialFilter, (r) => r.user && r.user !== 'Invader' && !r.towers && (_.includes(Memory._enemies, r.user) || (r.closestRange <= LOCAL_SPHERE && ATTACK_LOCALS) || (HOLD_SECTOR && sameSectorCheck(r.name, r.closestRoom)))), function (t) {
                 return t.closestRange
             })[0]
             if (reservedTarget) {
