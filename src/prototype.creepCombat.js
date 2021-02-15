@@ -41,7 +41,7 @@ Creep.prototype.abilityPower = function () {
 
 Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = false, guardLocation = undefined, guardRange) {
     let enemy, filter;
-    let hostileStructures = _.filter(this.room.hostileStructures, (s) => (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange) && s.structureType !== STRUCTURE_POWER_BANK);
+    let hostileStructures = _.filter(this.room.hostileStructures, (s) => !guardLocation || s.pos.getRangeTo(guardLocation) < guardRange);
     let structures = _.filter(this.room.structures, (s) => (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange) && s.structureType !== STRUCTURE_POWER_BANK);
     let hostileCreeps = _.filter(this.room.hostileCreeps, (s) => (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange));
     if (this.memory.target) {
@@ -124,7 +124,7 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
     }
     // If friendly room leave other structures alone
     if (hostileRoom) {
-        filter = {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD && c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART && c.structureType !== STRUCTURE_CONTAINER && c.structureType !== STRUCTURE_POWER_BANK && c.structureType !== STRUCTURE_KEEPER_LAIR && c.structureType !== STRUCTURE_EXTRACTOR && c.structureType !== STRUCTURE_PORTAL};
+        filter = {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD && c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART && c.structureType !== STRUCTURE_CONTAINER && c.structureType !== STRUCTURE_POWER_BANK && c.structureType !== STRUCTURE_KEEPER_LAIR && c.structureType !== STRUCTURE_PORTAL};
         if (!barriersPresent) enemy = this.pos.findClosestByRange(structures, filter); else enemy = this.pos.findClosestByPath(structures, filter);
         if (enemy) {
             this.memory.target = enemy.id;

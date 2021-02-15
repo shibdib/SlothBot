@@ -29,16 +29,14 @@ Creep.prototype.harass = function () {
         partner.shibMove(this, {range: 0});
     }
     if (this.room.name === this.memory.destination || !this.memory.destination) {
-        let sentence = ['Contact', MY_USERNAME, 'For', 'A', 'Diplomatic', 'Resolution'];
-        let word = Game.time % sentence.length;
-        this.say(sentence[word], true);
+        this.say(['Contact', MY_USERNAME, 'For', 'A', 'Diplomatic', 'Resolution'][Game.time % 6], true);
         highCommand.generateThreat(this);
         highCommand.operationSustainability(this.room);
         if (!this.room.hostileCreeps.length && !this.room.hostileStructures.length) {
             this.scorchedEarth();
             if (!this.shibKite()) this.findDefensivePosition();
         }
-        let armedEnemies = _.filter(creep.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, c.owner.username));
+        let armedEnemies = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, c.owner.username));
         if (armedEnemies.length) Memory.targetRooms[this.memory.destination].level = 2; else {
             if (this.room.controller && (this.room.controller.owner || this.room.controller.reservation)) Memory.targetRooms[this.memory.destination].claimAttacker = true;
         }

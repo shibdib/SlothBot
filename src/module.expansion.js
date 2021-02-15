@@ -19,14 +19,15 @@ module.exports.claimNewRoom = function () {
         worthy:
             for (let key in worthyRooms) {
                 let name = worthyRooms[key].name;
-                // All rooms start at 5000
-                let baseScore = 5000;
+                // All rooms start at 10000
+                let baseScore = 10000;
                 // Check if it's near any owned rooms
                 let avoidRooms = _.filter(Memory.roomCache, (r) => r.level && _.includes(FRIENDLIES, r.owner));
                 for (let avoidKey in avoidRooms) {
                     let avoidName = avoidRooms[avoidKey].name;
-                    let distance = Game.map.findRoute(name, avoidName).length;
-                    if (distance <= 2) continue worthy; else if (distance === 3) baseScore += 500; else if (distance < 6) baseScore += 100; else if (distance > 20) continue worthy; else baseScore -= 350;
+                    let distance = Game.map.getRoomLinearDistance(name, avoidName)
+                    if (distance <= 2) distance = Game.map.findRoute(name, avoidName).length;
+                    if (distance <= 2) continue worthy; else if (distance === 3) baseScore += 1000; else if (distance < 6) baseScore += 100; else if (distance > 20) continue worthy; else baseScore -= 1000;
                 }
                 // Remote access
                 let neighboring = Game.map.describeExits(name);
@@ -36,7 +37,7 @@ module.exports.claimNewRoom = function () {
                 if (neighboring['3'] && Memory.roomCache[neighboring['3']] && !Memory.roomCache[neighboring['3']].user) sourceCount += Memory.roomCache[neighboring['3']].sources;
                 if (neighboring['5'] && Memory.roomCache[neighboring['5']] && !Memory.roomCache[neighboring['5']].user) sourceCount += Memory.roomCache[neighboring['5']].sources;
                 if (neighboring['7'] && Memory.roomCache[neighboring['7']] && !Memory.roomCache[neighboring['7']].user) sourceCount += Memory.roomCache[neighboring['7']].sources;
-                baseScore += (sourceCount * 200);
+                baseScore += (sourceCount * 250);
                 // Prioritize fortress rooms if enemies exist
                 if (Memory._enemies && Memory._enemies.length && _.size(Game.map.describeExits(name) < 2)) baseScore += 1000;
                 // Swamps suck
@@ -45,13 +46,12 @@ module.exports.claimNewRoom = function () {
                 for (let y = 0; y < 50; y++) {
                     for (let x = 0; x < 50; x++) {
                         let tile = terrain.get(x, y);
-                        if (tile === TERRAIN_MASK_WALL) terrainScore += 0.25;
                         if (tile === TERRAIN_MASK_SWAMP) terrainScore += 25;
                     }
                 }
                 baseScore -= terrainScore;
                 // Source range
-                baseScore -= Memory.roomCache[name].sourceRange;
+                baseScore -= Memory.roomCache[name].sourceRange * 10;
                 // If it's a new mineral add to the score
                 if (worthyRooms[key].mineral && !_.includes(Memory.ownedMinerals, worthyRooms[key].mineral)) {
                     switch (worthyRooms[key].mineral) {
@@ -73,7 +73,7 @@ module.exports.claimNewRoom = function () {
                     }
                 } else baseScore -= 500;
                 // Prioritize your sector
-                if (sameSectorCheck(name, worthyRooms[key].closestRoom)) baseScore += 1000; else baseScore -= 500;
+                if (sameSectorCheck(name, worthyRooms[key].closestRoom)) baseScore += 2000; else baseScore -= 500;
                 worthyRooms[key]["claimValue"] = baseScore;
                 possibles[key] = worthyRooms[key];
             }

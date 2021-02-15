@@ -425,7 +425,18 @@ module.exports.remoteCreepQueue = function (room) {
             let invaderCoreReserved;
             if (Memory.roomCache[remoteName] && Memory.roomCache[remoteName].reservation === 'Invader') invaderCoreReserved = true;
             if (!invaderCoreReserved && Memory.roomCache[remoteName] && Memory.roomCache[remoteName].reservation && Memory.roomCache[remoteName].reservation !== MY_USERNAME) continue;
-            // Handle invaders  || Memory.roomCache[remoteName].roomHeat > 150
+            // If heat is high set a guard order
+            if (Memory.roomCache[remoteName].roomHeat > 500 && (!Memory.targetRooms || !Memory.targetRooms[remoteName])) {
+                let cache = Memory.targetRooms || {};
+                cache[remoteName] = {
+                    tick: Game.time,
+                    priority: 1,
+                    level: 1,
+                    type: 'guard',
+                }
+                Memory.targetRooms = cache;
+            }
+            // Handle invaders
             if ((Memory.roomCache[remoteName].invaderCore || Memory.roomCache[remoteName].threatLevel || invaderCoreReserved) && !Memory.roomCache[remoteName].sk) {
                 if (Memory.roomCache[remoteName].invaderTTL && Memory.roomCache[remoteName].invaderTTL < Game.time) {
                     if (!getCreepCount(undefined, 'scout', remoteName)) {
@@ -508,6 +519,7 @@ module.exports.remoteCreepQueue = function (room) {
                 let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creep.id);
                 let current = 0;
                 if (assignedHaulers.length) {
+                    continue;
                     assignedHaulers.forEach((c) => current += c.store.getCapacity())
                     if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 2) continue;
                 }

@@ -15,6 +15,7 @@ module.exports.role = function (creep) {
     // Check if empty
     creep.memory.hauling = _.sum(creep.store) > 0;
     if (!creep.memory.hauling) {
+        if (safemodeGeneration(creep)) return;
         creep.memory.storageDestination = undefined;
         creep.memory.energyDestination = undefined;
     } else {
@@ -88,6 +89,7 @@ module.exports.role = function (creep) {
                     let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === h.id);
                     let current = 0;
                     if (assignedHaulers.length) {
+                        continue;
                         assignedHaulers.forEach((c) => current += c.store.getCapacity())
                         if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 2) continue;
                     }
@@ -169,4 +171,36 @@ function buildLinks(creep) {
         } else if (closestRange < 8) creep.memory.dropOffLink = closestLink.id;
     }
     creep.memory.linkAttempt = true;
+}
+
+// Generate safemode
+function safemodeGeneration(creep) {
+    if (creep.room.name !== creep.memory.overlord || creep.store.getFreeCapacity() < 1000 || creep.room.store(RESOURCE_GHODIUM) < 1000) return false;
+    if (!creep.room.controller.safeModeAvailable) {
+        if (creep.store.getUsedCapacity(RESOURCE_GHODIUM) < 1000) {
+            let ghodiumStorage = _.filter(creep.room.structures, (s) => s.store && s.store[RESOURCE_GHODIUM])[0];
+            if (ghodiumStorage) {
+                switch (creep.transfer(ghodiumStorage, RESOURCE_GHODIUM)) {
+                    case OK:
+                        creep.memory.storageDestination = undefined;
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(ghodiumStorage);
+                        break;
+                    case ERR_FULL:
+                    case ERR_NOT_ENOUGH_RESOURCES:
+                        creep.memory._shibMove = undefined;
+                        creep.memory.storageDestination = undefined;
+                        break;
+                }
+            }
+        } else {
+            switch (creep.generateSafeMode(creep.room.controller)) {
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(creep.room.controller);
+                    break;
+            }
+        }
+        return true;
+    }
 }

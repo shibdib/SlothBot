@@ -375,18 +375,18 @@ function factorySupplies(creep) {
 
 // Empty Factory
 function emptyFactory(creep) {
-    let needyFactory = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_FACTORY && s.memory.producing && s.store[s.memory.producing] >= 250)[0];
+    if (!creep.room.factory) return false;
     let disabledFactory = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_FACTORY && !s.memory.producing)[0];
-    if (needyFactory) {
-        for (let storedResource of Object.keys(needyFactory.store)) {
-            if (!_.includes(Object.keys(COMMODITIES[needyFactory.memory.producing].components), storedResource)) {
+    if (creep.room.factory.memory.producing && creep.room.factory.store.getUsedCapacity()) {
+        for (let storedResource of Object.keys(creep.room.factory.store)) {
+            if (!_.includes(Object.keys(COMMODITIES[creep.room.factory.memory.producing].components), storedResource)) {
                 creep.memory.resourceNeeded = storedResource;
-                creep.memory.withdrawFrom = needyFactory.id;
+                creep.memory.withdrawFrom = creep.room.factory.id;
                 creep.memory.empty = true;
                 return true;
             }
         }
-    } else if (disabledFactory) {
+    } else if (!creep.room.factory.memory.producing) {
         creep.memory.resourceNeeded = Object.keys(disabledFactory.store)[0];
         creep.memory.withdrawFrom = disabledFactory.id;
         creep.memory.empty = true;

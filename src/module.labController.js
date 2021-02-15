@@ -36,6 +36,8 @@ function manageBoostProduction(room) {
         // Check if we already have enough
         let cutOff = REACTION_AMOUNT;
         if (_.includes(LAB_PRIORITY, boostList[key])) cutOff = REACTION_AMOUNT * 2.5;
+        // Ghodium special case, always have 1k
+        if (boostList[key] === RESOURCE_GHODIUM && cutOff < 1000) cutOff = 1000;
         if (room.store(boostList[key]) >= cutOff) continue;
         // Only one hub per output
         if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === boostList[key]).length) continue;
@@ -119,6 +121,8 @@ function manageActiveLabs() {
                         case OK:
                             // Check if we already have enough
                             let cutOff = BOOST_AMOUNT;
+                            // Ghodium special case, always have 1k
+                            if (outputLab.memory.creating === RESOURCE_GHODIUM && cutOff < 1000) cutOff = 1000;
                             if (_.includes(LAB_PRIORITY, outputLab.memory.creating)) cutOff = BOOST_AMOUNT * 5;
                             if (outputLab.room.store(outputLab.memory.creating) + outputLab.store[outputLab.memory.creating] > cutOff) {
                                 log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');

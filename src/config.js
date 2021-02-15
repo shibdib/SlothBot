@@ -30,9 +30,6 @@ global.EXPLORED_ROOM_SIGNS = ["Automated Exploration Occurred Here", "Just sayin
 global.ATTACK_ROOM_SIGNS = ["~~ALL YOUR BASE BELONG TO ME~~"];
 global.EXPLORER_SPAM = ['HI', 'Hello', 'Beep', 'Boop', 'Aloha', 'Shibby!'];
 
-// Attack limits (Too high and your CPU is screwed, hard coded for non subs)
-global.COMBAT_LIMIT = 3;
-
 // Wall and rampart target amounts
 global.BARRIER_TARGET_HIT_POINTS = {
     1: 1000,

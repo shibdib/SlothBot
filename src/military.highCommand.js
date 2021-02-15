@@ -5,8 +5,11 @@
  * Project - Overlord-Bot (Screeps)
  */
 
+let OPERATION_LIMIT;
+
 module.exports.highCommand = function () {
     if (Memory.tickCooldowns.highCommandTick + 10 > Game.time) return;
+    if (Game.cpu.bucket < BUCKET_MAX * 0.9) OPERATION_LIMIT = 1; else OPERATION_LIMIT = Memory.myRooms.length * 3;
     Memory.tickCooldowns.highCommandTick = Game.time;
     if (!Memory.nonCombatRooms) Memory.nonCombatRooms = [];
     if (!Memory.targetRooms) Memory.targetRooms = {};
@@ -227,7 +230,7 @@ function operationRequests() {
     let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target && target.type !== 'guard' && target.type !== 'pending').length || 0;
     let capableRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].energyState).length > 0;
     // Set limit
-    let targetLimit = COMBAT_LIMIT;
+    let targetLimit = OPERATION_LIMIT;
     if (TEN_CPU) targetLimit = 1;
     if (!capableRooms) targetLimit = 1;
     if (totalCountFiltered <= targetLimit) {
@@ -372,13 +375,14 @@ function manageAttacks() {
             continue;
         }
         let type = Memory.targetRooms[key].type;
+        let level = Memory.targetRooms[key].level || 0;
         // Special Conditions
         switch (type) {
             // Manage Scouts
             case 'scout':
             case 'attack':
                 // Clear scouts first if over limit
-                if (totalCountFiltered > COMBAT_LIMIT + 1) {
+                if (totalCountFiltered > OPERATION_LIMIT + 1) {
                     log.a('Canceling scouting in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     continue;
@@ -451,7 +455,7 @@ function manageAttacks() {
                 break;
             // Manage Guard
             case 'guard':
-                staleMulti = 10;
+                staleMulti = 10 * (level + 1);
                 break;
             // Remove auxiliary
             case 'power':
@@ -468,7 +472,7 @@ function manageAttacks() {
         if (Memory.targetRooms[key].manual) staleMulti = 999999;
         if (!Memory.targetRooms[key]) continue;
         // Cancel stale ops with no kills
-        if ((Memory.targetRooms[key].tick + (2500 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) ||
+        if ((Memory.targetRooms[key].tick + (1500 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) ||
             (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + (2500 * staleMulti) < Game.time)) {
             delete Memory.targetRooms[key];
             log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
