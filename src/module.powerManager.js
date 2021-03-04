@@ -10,8 +10,6 @@
  */
 
 module.exports.powerControl = function () {
-    if (Memory.tickCooldowns.powerControlTick + 20 > Game.time) return;
-    Memory.tickCooldowns.powerControlTick = Game.time;
     let powerSpawns = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.power >= 1 && s.energy >= 50);
     if (powerSpawns.length) {
         for (let powerSpawn of powerSpawns) {

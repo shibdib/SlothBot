@@ -67,11 +67,11 @@ module.exports.towerControl = function (room) {
             // Determine heal power only if room isn't safeMode
             let healPower = 0;
             if (!room.controller.safeMode) {
-                let inRangeMeleeHealers = _.filter(hostileCreeps, (s) => s.pos.getRangeTo(hostileCreeps[i]) === 1 && s.getActiveBodyparts(HEAL));
-                let inRangeRangedHealers = _.filter(hostileCreeps, (s) => s.pos.getRangeTo(hostileCreeps[i]) > 1 && s.pos.getRangeTo(hostileCreeps[i]) < 4 && s.getActiveBodyparts(HEAL));
-                if (inRangeMeleeHealers.length) inRangeMeleeHealers.forEach((c) => healPower += c.abilityPower().defense);
-                if (inRangeRangedHealers.length) inRangeRangedHealers.forEach((c) => healPower += c.abilityPower().defense);
-                healPower += hostileCreeps[i].abilityPower().defense;
+                let inRangeMeleeHealers = _.filter(hostileCreeps, (s) => s.pos.isNearTo(hostileCreeps[i]) && s.getActiveBodyparts(HEAL));
+                let inRangeRangedHealers = _.filter(hostileCreeps, (s) => !s.pos.isNearTo(hostileCreeps[i]) && s.pos.getRangeTo(hostileCreeps[i]) < 4 && s.getActiveBodyparts(HEAL));
+                if (inRangeMeleeHealers.length) inRangeMeleeHealers.forEach((c) => healPower += c.abilityPower().heal);
+                if (inRangeRangedHealers.length) inRangeRangedHealers.forEach((c) => healPower += c.abilityPower().rangedHeal);
+                healPower += hostileCreeps[i].abilityPower().heal;
             }
             // If attack power is less than heal power, spawn defenders
             if (healPower > attackPower) room.memory.spawnDefenders = true;
@@ -82,13 +82,9 @@ module.exports.towerControl = function (room) {
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;
             } // If it can be hurt and is near structures kill it
-            else if (attackPower > healPower && nearStructures) {
+            else if (nearStructures) {
                 room.memory.towerTarget = hostileCreeps[i].id;
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
-                break;
-            } // If the potential attack exists, set target and wait
-            else if (potentialAttack > healPower) {
-                room.memory.towerTarget = hostileCreeps[i].id;
                 break;
             } // If you can damage it and it's not border humping attack it. Always attack invaders
             else if (attackPower * 0.6 >= healPower && ((hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT)) >= 6) || hostileCreeps[i].owner.username === 'Invader')) {
@@ -99,7 +95,7 @@ module.exports.towerControl = function (room) {
             else {
                 let nearbyRampart = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)), 3)[0] && s.hits < 50000 * s.room.controller.level), 'hits');
                 if (nearbyRampart.id) for (let tower of towers) tower.repair(nearbyRampart);
-                if (potentialAttack < healPower) room.memory.dangerousAttack = true;
+                if (potentialAttack < healPower) room.memory.dangerousAttack = true; else room.memory.towerTarget = hostileCreeps[i].id;
                 room.memory.towerTarget = undefined;
             }
         }

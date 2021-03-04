@@ -55,9 +55,19 @@ module.exports.role = function (creep) {
     } else {
         // Remote haulers will opportunistically pickup score
         if (Game.shard.name === 'shardSeason') {
-            let score = creep.room.find(FIND_SCORE_CONTAINERS)[0];
-            if (score) {
+            /** season 1
+             let score = creep.room.find(FIND_SCORE_CONTAINERS)[0];
+             if (score) {
                 switch (creep.withdraw(score, RESOURCE_SCORE)) {
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(score);
+                }
+                return;
+            }**/
+                // Season 2
+            let score = creep.room.find(FIND_SYMBOL_CONTAINERS)[0];
+            if (score && (_.includes(Memory.ownedSymbols, score.resourceType) || Game.rooms[creep.memory.overlord].storage)) {
+                switch (creep.withdraw(score, score.resourceType)) {
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(score);
                 }
@@ -89,9 +99,9 @@ module.exports.role = function (creep) {
                     let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === h.id);
                     let current = 0;
                     if (assignedHaulers.length) {
-                        continue;
+                        if (Game.rooms[creep.memory.overlord].level >= 7) continue;
                         assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 2) continue;
+                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 3) continue;
                     }
                     return creep.memory.misc = h.id
                 }
@@ -136,7 +146,7 @@ function dropOff(creep) {
     }
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     //Controller
-    if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) && Math.random() < creep.room.energy / ENERGY_AMOUNT) {
+    if (!creep.room.terminal && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) && Math.random() < 0.5) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     } else if (creep.room.terminal && creep.room.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 5) {

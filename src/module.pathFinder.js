@@ -21,16 +21,6 @@ let tempAvoidRooms = [];
 function shibMove(creep, heading, options = {}) {
     if (!creep.memory._shibMove) creep.memory._shibMove = {};
 
-    // Handle fatigue
-    if (!creep.className && creep.getActiveBodyparts(MOVE) && (creep.fatigue > 0 || !heading)) {
-        if (!creep.memory.military) creep.idleFor(1);
-        return creep.room.visual.circle(creep.pos, {
-            fill: 'transparent',
-            radius: 0.55,
-            stroke: 'black'
-        });
-    }
-
     // Default options
     _.defaults(options, {
         useCache: true,
@@ -46,6 +36,23 @@ function shibMove(creep, heading, options = {}) {
         showMatrix: false,
         getNextDirection: false
     });
+
+    // Handle fatigue
+    if (!creep.className && creep.getActiveBodyparts(MOVE) && (creep.fatigue > 0 || !heading)) {
+        if (!creep.memory.military) creep.idleFor(1);
+        return creep.room.visual.circle(creep.pos, {
+            fill: 'transparent',
+            radius: 0.55,
+            stroke: 'black'
+        });
+    }
+
+    // Handle tow being set
+    if (creep.memory.towDestination && creep.memory.towCreep) {
+        let towCreep = Game.getObjectById(creep.memory.towCreep);
+        if (!towCreep || !towCreep.memory.trailer) creep.memory.towCreep = undefined;
+        return;
+    }
 
     // If tunneling up the ops
     if (options.tunnel) options.maxOps = 7000;
@@ -71,9 +78,14 @@ function shibMove(creep, heading, options = {}) {
 
     // Handle multi heading
     if (Array.isArray(heading)) {
-        heading = findMultiHeadingPos(heading, options.range);
-        if (!heading) return false;
-        options.range = 0;
+        let multiHeading = findMultiHeadingPos(heading, options.range);
+        if (!multiHeading) {
+            options.range = 1;
+            heading = heading[0];
+        } else {
+            options.range = 0;
+            heading = multiHeading;
+        }
     }
 
     // Clear bad tow creeps
@@ -106,9 +118,6 @@ function shibMove(creep, heading, options = {}) {
             creep.memory.towOptions = options;
         } else if (heading.id && creep.getActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {
             creep.memory.towDestination = undefined;
-        }
-        if (creep.memory.towDestination && creep.memory.towCreep && (!creep.getActiveBodyparts(MOVE) || !Game.getObjectById(creep.memory.towCreep).pos.isNearTo(creep))) {
-            return;
         }
     }
 
@@ -146,7 +155,7 @@ function shibMove(creep, heading, options = {}) {
     pathInfo.targetRoom = target.roomName;
 
     //Clear path if stuck
-    if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
+    if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && !options.tunnel) {
         if (Math.random() > 0.8) structureMatrixCache[creep.room.name] = undefined;
         creepBumping(creep, pathInfo, options);
     }
@@ -193,7 +202,7 @@ function shibMove(creep, heading, options = {}) {
             delete pathInfo.path;
         }
     } else {
-        shibPath(creep, heading, pathInfo, origin, target, options);
+        return shibPath(creep, heading, pathInfo, origin, target, options);
     }
 }
 
@@ -258,7 +267,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             }
         }
         let callback = (roomName) => {
-            if (allowedRooms && !_.includes(allowedRooms, roomName)) return false;
+            //if (allowedRooms && !_.includes(allowedRooms, roomName)) return false;
             if (checkAvoid(roomName) && roomName !== target.roomName && roomName !== origin.roomName) return false;
             return getMatrix(roomName, creep, options);
         };
@@ -303,7 +312,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 }
             }
         }
-        if (options.confirmPath && ret.path && !ret.incomplete) return ret.path;
+        if (options.confirmPath && ret.path && !ret.incomplete) return ret.path; else if (options.confirmPath && ret.incomplete) return false;
         pathInfo.path = serializePath(creep.pos, ret.path);
         let nextDirection = parseInt(pathInfo.path[0], 10);
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
@@ -541,7 +550,7 @@ function getStructureMatrix(roomName, matrix, options) {
 
 function addStructuresToMatrix(room, matrix, type, options) {
     if (!room) return matrix;
-    let roadCost = type === 4 ? 0 : type === 3 ? 6 : type === 2 ? 3 : 1;
+    let roadCost = type === 4 ? 0 : type === 3 ? 2 : type === 2 ? 2 : 1;
     for (let structure of room.structures) {
         if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
             matrix.set(structure.pos.x, structure.pos.y, 256);

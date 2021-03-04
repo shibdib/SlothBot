@@ -175,9 +175,10 @@ function auxiliaryOperations() {
     }
     // Seasonal score collection
     if (Game.shard.name === 'shardSeason') {
-        let scoreCollector = _.min(_.filter(initialFilter, (r) => r.seasonCollector === 1), 'closestRange');
-        // Score collection
-        if (maxLevel >= 4 || scoreCollector.name) {
+        /** Season 1
+         let scoreCollector = _.min(_.filter(initialFilter, (r) => r.seasonCollector === 1), 'closestRange');
+         // Score collection
+         if (maxLevel >= 4 || scoreCollector.name) {
             let scoreRoom = _.min(_.filter(initialFilter, (r) => r.seasonResource > Game.time && r.closestRange <= r.seasonResource / 50 && r.reservation !== MY_USERNAME), 'closestRange');
             let scoreMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'score').length || 0;
             if (scoreRoom.name && scoreMining < 10 && getResourceTotal(RESOURCE_SCORE) < 100000) {
@@ -193,10 +194,10 @@ function auxiliaryOperations() {
                 log.a('Score Claiming operation planned for ' + roomLink(scoreRoom.name) + ' suspected score container location, Nearest Room - ' + scoreRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
             }
         }
-        // Collector clearing
-        let pendingCollector = _.min(_.filter(initialFilter, (r) => r.seasonCollector === 2 && (!r.user || r.user === MY_USERNAME)), 'closestRange');
-        let scoreCleaning = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'scoreCleaner').length || 0;
-        if (scoreCleaning < 2 && pendingCollector.name && (!scoreCollector.name || scoreCollector.closestRange > pendingCollector.closestRange)) {
+         // Collector clearing
+         let pendingCollector = _.min(_.filter(initialFilter, (r) => r.seasonCollector === 2 && (!r.user || r.user === MY_USERNAME)), 'closestRange');
+         let scoreCleaning = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'scoreCleaner').length || 0;
+         if (scoreCleaning < 2 && pendingCollector.name && (!scoreCollector.name || scoreCollector.closestRange > pendingCollector.closestRange)) {
             let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;
             cache[pendingCollector.name] = {
@@ -208,8 +209,8 @@ function auxiliaryOperations() {
             Memory.auxiliaryTargets = cache;
             log.a('Score cleaning operation planned for ' + roomLink(pendingCollector.name) + ' to clear walls, Nearest Room - ' + pendingCollector.closestRange + ' rooms away', 'HIGH COMMAND: ');
         }
-        // Collector Guard
-        else if (scoreCollector.name && !Memory.targetRooms[scoreCollector.name]) {
+         // Collector Guard
+         else if (scoreCollector.name && !Memory.targetRooms[scoreCollector.name]) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[scoreCollector.name] = {
@@ -220,6 +221,22 @@ function auxiliaryOperations() {
             };
             Memory.targetRooms = cache;
             log.a('Score guard operation planned for ' + roomLink(scoreCollector.name) + ', Nearest Room - ' + scoreCollector.closestRange + ' rooms away', 'HIGH COMMAND: ');
+        }**/
+        if (maxLevel >= 4) {
+            let scoreRoom = _.min(_.filter(initialFilter, (r) => r.seasonResource > Game.time && r.closestRange <= r.seasonResource / 50 && r.reservation !== MY_USERNAME), 'closestRange');
+            let scoreMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'score').length || 0;
+            if (scoreRoom.name && scoreMining < 10) {
+                let cache = Memory.auxiliaryTargets || {};
+                let tick = Game.time;
+                cache[scoreRoom.name] = {
+                    tick: tick,
+                    type: 'score',
+                    level: 1,
+                    priority: PRIORITIES.secondary
+                };
+                Memory.auxiliaryTargets = cache;
+                log.a('Resource Claiming operation planned for ' + roomLink(scoreRoom.name) + ' suspected score container location, Nearest Room - ' + scoreRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
+            }
         }
     }
 }
@@ -455,7 +472,7 @@ function manageAttacks() {
                 break;
             // Manage Guard
             case 'guard':
-                staleMulti = 10 * (level + 1);
+                staleMulti = 5 * (level + 1);
                 break;
             // Remove auxiliary
             case 'power':
@@ -559,12 +576,15 @@ function manageAuxiliary() {
                     log.a('Canceling auxiliary operation in ' + roomLink(key) + ' as the container has expired.', 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
                     continue;
-                } else if (getResourceTotal(RESOURCE_SCORE) > 100000) {
+                }/** Season 1
+             else if (getResourceTotal(RESOURCE_SCORE) > 100000) {
                     log.a('Canceling auxiliary operation in ' + roomLink(key) + ' as we hit our stored score cap.', 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
                     continue;
-                }
+                }**/
                 break;
+            case 'scoreCleaner':
+                continue;
             case 'clean':
             case 'robbery':
                 delete Memory.auxiliaryTargets[key];
@@ -703,6 +723,10 @@ function manualAttacks() {
         } else if (_.startsWith(name, 'claim')) {
             cache[Game.flags[name].pos.roomName] = {
                 type: 'claim'
+            };
+        } else if (_.startsWith(name, 'scoreCleaner')) {
+            cache[Game.flags[name].pos.roomName] = {
+                type: 'scoreCleaner'
             };
         }
         // Abandon a room

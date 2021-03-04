@@ -68,7 +68,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             } else {
                 work = _.floor((energyAmount - 100) / BODYPART_COST[WORK]) || 1;
                 if (work > 48) work = 48;
-                if (level === 8 && room.energyState) work = 15; else if (level === 8) work = 1;
+                if (level === 8) work = 15;
                 //work *= deficit;
                 move = 1;
                 carry = 1;
@@ -191,7 +191,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             work = _.floor((energyAmount * 0.5) / BODYPART_COST[WORK]) || 1;
             if (work > 6) work = 6;
             carry = 1;
-            if (room.memory.roadsBuilt) move = work / 2; else move = work;
+            if (room.level >= 6) move = work / 2; else move = work;
             break;
         case 'remoteHauler':
             deficitExemption = true;
@@ -201,6 +201,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             carry = _.floor((energyAmount * 0.50) / BODYPART_COST[CARRY]) || 1;
             if (room.level >= 6 && carry > 32) carry = 32; else if (room.level < 6 && carry > 25) carry = 25;
             if (Game.getObjectById(creepInfo.misc)) if ((carry * 50) > (Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded - current)) carry = _.ceil((Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded - current) / 50)
+            if (room.level < 7) carry = carry * 0.33;
             if (room.level >= 6) move = carry / 2; else move = carry;
             break;
         case 'roadBuilder':
@@ -234,13 +235,20 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
             move = carry;
             break;
-        case 'scoreHauler':
+        /**case 'scoreHauler':
+         deficitExemption = true;
+         let neededCarry = _.ceil(room.store[RESOURCE_SCORE] / 50);
+         carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
+         if (carry > neededCarry && room.store[RESOURCE_SCORE]) carry = neededCarry;
+         if (carry > 10) carry = 10;
+         move = carry;
+         break;**/
+        case 'symbolHauler':
             deficitExemption = true;
-            let neededCarry = _.ceil(room.store[RESOURCE_SCORE] / 50);
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
-            if (carry > neededCarry && room.store[RESOURCE_SCORE]) carry = neededCarry;
-            if (carry > 10) carry = 10;
+            if (carry > 16) carry = 16;
             move = carry;
+            break;
     }
     if (!deficitExemption && room.storage) {
         work *= deficit;

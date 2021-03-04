@@ -46,7 +46,8 @@ function wallMaintainer(creep) {
         if (Memory.roomCache[creep.room.name].threatLevel) {
             hostileBarrier = _.min(_.filter(barrierStructures, (s) => s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)), 5)[0]), 'hits');
         }
-        let barriers = _.filter(barrierStructures, (s) => s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level] || s.room.energyState);
+        let barriers = _.filter(barrierStructures, (s) => s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level]);
+        if (!barriers) barriers = barrierStructures;
         let barrier = _.min(barriers, 'hits');
         let site = _.filter(creep.room.constructionSites, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL))[0];
         if (!hostileBarrier && barriers.length && barrier.hits < 2000) {

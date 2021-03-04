@@ -7,6 +7,7 @@ Creep.prototype.abilityPower = function () {
     let meleePower = 0;
     let rangedPower = 0;
     let healPower = 0;
+    let rangedHealPower = 0;
     for (let part of this.body) {
         if (!part.hits) continue;
         if (part.boost) {
@@ -16,6 +17,7 @@ Creep.prototype.abilityPower = function () {
                 rangedPower += RANGED_ATTACK_POWER * BOOSTS[part.type][part.boost]['rangedAttack'];
             } else if (part.type === HEAL) {
                 healPower += HEAL_POWER * BOOSTS[part.type][part.boost]['heal'];
+                rangedHealPower += RANGED_HEAL_POWER * BOOSTS[part.type][part.boost]['heal'];
             } else if (part.type === TOUGH) {
                 healPower += HEAL_POWER * (1 - BOOSTS[part.type][part.boost]['damage']);
             }
@@ -33,7 +35,8 @@ Creep.prototype.abilityPower = function () {
         attack: meleePower + rangedPower,
         meleeAttack: meleePower,
         rangedAttack: rangedPower,
-        defense: healPower,
+        heal: healPower,
+        rangedHeal: rangedHealPower,
         melee: meleePower,
         ranged: rangedPower
     };
@@ -419,7 +422,7 @@ Creep.prototype.pairFighting = function (partner, target = this.findClosestEnemy
             // Handle melee attackers
             if (target.getActiveBodyparts(ATTACK)) {
                 moveRange = 3;
-                if (range <= 3 && this.abilityPower().defense < target.abilityPower().attack) {
+                if (range <= 3 && this.abilityPower().heal < target.abilityPower().attack) {
                     this.shibKite(3);
                     if (partner.pos.positionAtDirection(this.memory.lastKite) && !partner.pos.positionAtDirection(this.memory.lastKite).checkForImpassible()) return partner.move(this.memory.lastKite); else return partner.shibMove(this, {range: 0});
                 }
@@ -482,7 +485,7 @@ Creep.prototype.fightRanged = function (target) {
             // Handle melee attackers
             if (target.getActiveBodyparts(ATTACK)) {
                 moveRange = 3;
-                if (range < 3 && !this.pos.checkForRampart() && this.abilityPower().defense < target.abilityPower().attack) {
+                if (range < 3 && !this.pos.checkForRampart() && this.abilityPower().heal < target.abilityPower().attack) {
                     this.say('PEW!', true);
                     this.rangedAttack(target);
                     return this.shibKite(3);
@@ -633,8 +636,7 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     let armedHostiles = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL)) && this.pos.getRangeTo(c) <= range);
     for (let i = 0; i < armedHostiles.length; i++) {
         if (armedHostiles[i].getActiveBodyparts(HEAL)) {
-            hostilePower += armedHostiles[i].abilityPower().defense;
-            healPower += armedHostiles[i].abilityPower().defense;
+            healPower += armedHostiles[i].abilityPower().heal;
         }
         if (!this.getActiveBodyparts(RANGED_ATTACK)) hostilePower += armedHostiles[i].abilityPower().attack; else if (armedHostiles[i].getActiveBodyparts(RANGED_ATTACK)) hostilePower += armedHostiles[i].abilityPower().rangedAttack;
     }
@@ -642,7 +644,6 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL)) && this.pos.getRangeTo(c) <= range);
     if (inbound) armedFriendlies = _.filter(Game.creeps, (c) => c.my && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL)) && ((c.memory.destination && c.memory.destination === this.room.name) || (c.memory.other && c.memory.other.responseTarget === this.room.name)));
     for (let i = 0; i < armedFriendlies.length; i++) {
-        if (armedFriendlies[i].getActiveBodyparts(HEAL)) alliedPower += armedFriendlies[i].abilityPower().defense;
         alliedPower += armedFriendlies[i].abilityPower().attack;
     }
     let hostileTowers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && !_.includes(FRIENDLIES, s.owner.username));

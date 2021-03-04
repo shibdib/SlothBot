@@ -24,7 +24,7 @@ module.exports.labManager = function () {
 
 function manageBoostProduction(room) {
     let hub;
-    let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active);
+    let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.isActive());
     for (let lab of availableLabs) {
         hub = lab.pos.findInRange(room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_LAB && !s.memory.active});
         if (hub.length >= 3) break;
@@ -38,7 +38,7 @@ function manageBoostProduction(room) {
         if (_.includes(LAB_PRIORITY, boostList[key])) cutOff = REACTION_AMOUNT * 2.5;
         // Ghodium special case, always have 1k
         if (boostList[key] === RESOURCE_GHODIUM && cutOff < 1000) cutOff = 1000;
-        if (room.store(boostList[key]) >= cutOff) continue;
+        if (room.store(boostList[key], true) >= cutOff) continue;
         // Only one hub per output
         if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === boostList[key]).length) continue;
         // Check for inputs
@@ -103,8 +103,8 @@ function manageActiveLabs() {
                 let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
                 let creatorOne = Game.getObjectById(creators[0]);
                 let creatorTwo = Game.getObjectById(creators[1]);
-                //If any don't exist reset
-                if (!outputLab || !creatorOne || !creatorTwo) {
+                // If any don't exist reset
+                if (!outputLab || !creatorOne || !creatorTwo || !outputLab.isActive() || !creatorOne.isActive() || !creatorTwo.isActive()) {
                     log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a lab error (2).');
                     for (let id in creators) {
                         creators[id].memory = undefined;

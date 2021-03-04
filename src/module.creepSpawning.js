@@ -46,9 +46,15 @@ module.exports.processBuildQueue = function (room) {
         let combatQueue = globalQueue;
         if (_.size(combatQueue) && !Memory.roomCache[room.name].threatLevel && (room.level >= Memory.maxLevel - 1)) {
             Object.keys(combatQueue).forEach(function (q) {
-                if (!combatQueue[q].destination || combatQueue[q].manual || combatQueue[q].operation === 'test' || Memory.auxiliaryTargets[combatQueue[q].destination] || (Memory.roomCache[combatQueue[q].destination] && Memory.roomCache[combatQueue[q].destination].owner === MY_USERNAME)) return;
-                let distance = Game.map.getRoomLinearDistance(combatQueue[q].destination, room.name);
-                if (distance > range) combatQueue[q].priority = PRIORITIES.secondary;
+                if (combatQueue[q].manual || (combatQueue[q].destination && Memory.auxiliaryTargets[combatQueue[q].destination])) return;
+                if (!room.energyState) {
+                    delete combatQueue[q];
+                    return;
+                }
+                if (combatQueue[q].destination) {
+                    let distance = Game.map.getRoomLinearDistance(combatQueue[q].destination, room.name);
+                    if (distance > range) combatQueue[q].priority = PRIORITIES.secondary;
+                }
             })
             queue = _.sortBy(Object.assign({}, combatQueue, roomQueue[room.name]), 'priority');
         } else if (_.size(roomQueue[room.name])) {
@@ -146,7 +152,7 @@ module.exports.processBuildQueue = function (room) {
 //First Room Startup
 module.exports.roomStartup = function (room) {
     if (getCreepCount(room, 'drone') < 12) {
-        queueCreep(room, 1 + getCreepCount(room, 'drone'), {
+        queueCreep(room, 1 + getCreepCount(room, 'drone') * 0.25, {
             role: 'drone',
             other: {reboot: room.friendlyCreeps.length <= 3}
         })
@@ -163,6 +169,9 @@ module.exports.roomStartup = function (room) {
     }
     if (getCreepCount(room, 'stationaryHarvester') && !getCreepCount(room, 'hauler')) {
         queueCreep(room, 3, {role: 'hauler'})
+    }
+    if (getCreepCount(room, 'upgrader') < 5) {
+        queueCreep(room, 4, {role: 'upgrader'})
     }
     if (Memory.roomCache[room.name].threatLevel && !getCreepCount(room, 'defender')) {
         queueCreep(room, 2, {role: 'defender'})
@@ -219,11 +228,11 @@ module.exports.essentialCreepQueue = function (room) {
     // Upgrader
     // Determine amount
     let number;
-    if (level < 3) {
-        if (Game.getObjectById(room.memory.controllerContainer)) number = Game.getObjectById(room.memory.controllerContainer).pos.countOpenTerrainAround(); else number = 5;
-    } else if (level === 8) number = 1;
-    else if (!room.storage) number = 3;
-    else number = 1 + room.energyState;
+    if (level < 8) {
+        let container = Game.getObjectById(room.memory.controllerContainer);
+        if (container) number = 2 + room.energyState;
+        else number = 5;
+    } else number = 1;
     if (getCreepCount(room, 'upgrader') < number) {
         //If room is about to downgrade get a creep out asap
         let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.progress > room.controller.progressTotal || Memory.roomCache[room.name].threatLevel >= 3 || room.memory.lowPower;
@@ -251,6 +260,12 @@ module.exports.miscCreepQueue = function (room) {
             })
         }
     }
+    // Upgrader drone
+    if (room.energy > ENERGY_AMOUNT * 0.5 && !getCreepCount(room, 'drone')) {
+        queueCreep(room, PRIORITIES.drone, {
+            role: 'drone'
+        })
+    }
     // Maintenance
     if (!getCreepCount(room, 'maintenance')) {
         queueCreep(room, PRIORITIES.drone, {role: 'maintenance'})
@@ -262,7 +277,8 @@ module.exports.miscCreepQueue = function (room) {
     // If no conflict detected
     if (!room.nukes.length && !Memory.roomCache[room.name].threatLevel) {
         // Score delivery
-        if (Game.shard.name === 'shardSeason' && room.store(RESOURCE_SCORE)) {
+        /** Season 1
+         if (Game.shard.name === 'shardSeason' && room.store(RESOURCE_SCORE)) {
             let number = 2;
             let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => r.seasonCollector === 1 && !r.hostile && !_.includes(Memory.nonCombatRooms, r.name)), 'closestRange');
             if (scoreRoom && scoreRoom.name && Game.rooms[scoreRoom.name]) {
@@ -272,6 +288,17 @@ module.exports.miscCreepQueue = function (room) {
                     misc: true
                 })
             }
+        }**/
+        let decoderAvailable;
+        if (Game.shard.name === 'shardSeason' && Memory.ownedSymbols.length) {
+            Memory.ownedSymbols.forEach(function (s) {
+                if (room.store(s)) decoderAvailable = s;
+            })
+            if (decoderAvailable && !getCreepCount(room, 'symbolHauler')) queueCreep(room, PRIORITIES.miscHauler + getCreepCount(room, 'symbolHauler'), {
+                role: 'symbolHauler',
+                misc: true,
+                other: {resourceType: decoderAvailable}
+            })
         }
         if (level >= 6) {
             //LabTech
@@ -296,7 +323,7 @@ module.exports.miscCreepQueue = function (room) {
             }
         }
         //Pre observer spawn explorers
-        if (Memory.maxLevel < 8 && !getCreepCount(room, 'explorer')) {
+        if (Memory.maxLevel < 8 && (!getCreepCount(room, 'explorer') || getCreepCount(undefined, 'explorer') < 3)) {
             queueCreep(room, PRIORITIES.explorer, {role: 'explorer'})
         }
         // Portal explorers
@@ -338,7 +365,7 @@ module.exports.miscCreepQueue = function (room) {
             }
             //Border Patrol
             if (room.memory.borderPatrol) {
-                if (!getCreepCount(room, 'longbow', undefined, 'borderPatrol')) {
+                if (!getCreepCount(undefined, 'longbow', room.memory.borderPatrol, 'borderPatrol')) {
                     queueCreep(room, PRIORITIES.high, {
                         role: 'longbow',
                         operation: 'borderPatrol',
@@ -425,19 +452,12 @@ module.exports.remoteCreepQueue = function (room) {
             let invaderCoreReserved;
             if (Memory.roomCache[remoteName] && Memory.roomCache[remoteName].reservation === 'Invader') invaderCoreReserved = true;
             if (!invaderCoreReserved && Memory.roomCache[remoteName] && Memory.roomCache[remoteName].reservation && Memory.roomCache[remoteName].reservation !== MY_USERNAME) continue;
-            // If heat is high set a guard order
-            if (Memory.roomCache[remoteName].roomHeat > 500 && (!Memory.targetRooms || !Memory.targetRooms[remoteName])) {
-                let cache = Memory.targetRooms || {};
-                cache[remoteName] = {
-                    tick: Game.time,
-                    priority: 1,
-                    level: 1,
-                    type: 'guard',
-                }
-                Memory.targetRooms = cache;
+            // If heat is high skip
+            if (Memory.roomCache[remoteName].roomHeat > 250) {
+                continue;
             }
             // Handle invaders
-            if ((Memory.roomCache[remoteName].invaderCore || Memory.roomCache[remoteName].threatLevel || invaderCoreReserved) && !Memory.roomCache[remoteName].sk) {
+            if ((Memory.roomCache[remoteName].invaderCore || Memory.roomCache[remoteName].threatLevel > 1 || invaderCoreReserved) && !Memory.roomCache[remoteName].sk) {
                 if (Memory.roomCache[remoteName].invaderTTL && Memory.roomCache[remoteName].invaderTTL < Game.time) {
                     if (!getCreepCount(undefined, 'scout', remoteName)) {
                         queueCreep(room, PRIORITIES.high, {role: 'scout', destination: remoteName})
@@ -519,9 +539,9 @@ module.exports.remoteCreepQueue = function (room) {
                 let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creep.id);
                 let current = 0;
                 if (assignedHaulers.length) {
-                    continue;
+                    if (room.level >= 7) continue;
                     assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                    if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 2) continue;
+                    if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 3) continue;
                 }
                 queueCreep(room, PRIORITIES.remoteHauler + getCreepCount(room, 'remoteHauler') * 0.5, {
                     role: 'remoteHauler',
@@ -632,9 +652,9 @@ module.exports.globalCreepQueue = function () {
                 break;
             // Scoring
             case 'score':
-                if (!getCreepCount(undefined, 'scoreHauler', key)) {
-                    queueGlobalCreep(priority + getCreepCount(undefined, 'scoreHauler', key), {
-                        role: 'scoreHauler',
+                if (!getCreepCount(undefined, 'symbolHauler', key)) {
+                    queueGlobalCreep(priority + getCreepCount(undefined, 'symbolHauler', key), {
+                        role: 'symbolHauler',
                         destination: key,
                         military: true
                     });
@@ -923,9 +943,15 @@ function displayQueue(room) {
     let combatQueue = globalQueue;
     if (_.size(combatQueue) && !Memory.roomCache[room.name].threatLevel && (room.level >= Memory.maxLevel - 1)) {
         Object.keys(combatQueue).forEach(function (q) {
-            if (!combatQueue[q].destination || combatQueue[q].manual || combatQueue[q].operation === 'test' || Memory.auxiliaryTargets[combatQueue[q].destination] || (Memory.roomCache[combatQueue[q].destination] && Memory.roomCache[combatQueue[q].destination].owner === MY_USERNAME)) return;
-            let distance = Game.map.getRoomLinearDistance(combatQueue[q].destination, room.name);
-            if (distance > range) combatQueue[q].priority = PRIORITIES.secondary;
+            if (combatQueue[q].manual || (combatQueue[q].destination && Memory.auxiliaryTargets[combatQueue[q].destination])) return;
+            if (!room.energyState) {
+                delete combatQueue[q];
+                return;
+            }
+            if (combatQueue[q].destination) {
+                let distance = Game.map.getRoomLinearDistance(combatQueue[q].destination, room.name);
+                if (distance > range) combatQueue[q].priority = PRIORITIES.secondary;
+            }
         })
         queue = _.sortBy(Object.assign({}, combatQueue, roomQueue[room.name]), 'priority');
     } else if (_.size(roomQueue[room.name])) {

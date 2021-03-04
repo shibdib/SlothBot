@@ -18,9 +18,7 @@ let tools = require('tools.cpuTracker');
 
 module.exports.overlordMind = function (room, CPULimit) {
     if (!room) return;
-
-    // Cache globals
-    cacheRoomItems(room);
+    room.cacheRoomIntel();
 
     let mindStart = Game.cpu.getUsed();
 
@@ -183,10 +181,10 @@ function minionController(minion) {
                 }
             } else if (errorCount[minion.name] >= 50) {
                 if (errorCount[minion.name] === 50) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been killed.');
-                minion.suicide();
+                //minion.suicide();
             } else {
                 if (errorCount[minion.name] >= 10) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been marked for recycling due to hitting the error cap.');
-                minion.memory.recycle = true;
+                //minion.memory.recycle = true;
             }
         }
     }
@@ -222,30 +220,4 @@ function creepSpawning(room) {
         }
     }
     spawning.processBuildQueue(room);
-}
-
-function cacheRoomItems(room) {
-    room.cacheRoomIntel();
-    // Cache number of spaces around sources for things
-    if (!ROOM_SOURCE_SPACE[room.name]) {
-        let spaces = 0;
-        for (let source of room.sources) spaces += source.pos.countOpenTerrainAround();
-        ROOM_SOURCE_SPACE[room.name] = spaces;
-    }
-    // Cache number of spaces around sources for things
-    if (!ROOM_CONTROLLER_SPACE[room.name]) {
-        ROOM_CONTROLLER_SPACE[room.name] = room.controller.pos.countOpenTerrainAround();
-    }
-    let currentMinerals = Memory.ownedMinerals || [];
-    currentMinerals.push(room.mineral.mineralType);
-    Memory.ownedMinerals = _.uniq(currentMinerals);
-    // Stats
-    let stats = room.memory.stats || {};
-    // Store ticks on rcl upgrade
-    if (!stats.levelInfo) stats.levelInfo = {};
-    if (!stats.levelInfo[room.controller.level]) stats.levelInfo[room.controller.level] = Game.time;
-    // Store ticks with a threat level
-    if (Memory.roomCache[room.name].threatLevel >= 3) if (!stats.underAttack) stats.underAttack = 1; else stats.underAttack += 1;
-    room.memory.stats = stats;
-
 }

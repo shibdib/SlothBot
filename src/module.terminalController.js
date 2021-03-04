@@ -429,12 +429,13 @@ function balanceResources(terminal) {
     });
     // Season, locate closest to collector room
     let scoreStorage;
-    if (Game.shard.name === 'shardSeason') {
+    /** Season 1
+     if (Game.shard.name === 'shardSeason') {
         let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => r.seasonCollector === 1 && !r.hostile && !_.includes(Memory.nonCombatRooms, r.name)), 'closestRange');
         if (scoreRoom && scoreRoom.name && Game.rooms[scoreRoom.name]) {
             scoreStorage = Game.rooms[scoreRoom.name].findClosestOwnedRoom(false, 6);
         }
-    }
+    }**/
     for (let resource of sortedKeys) {
         // Energy balance handled elsewhere
         if (resource === RESOURCE_ENERGY) continue;
@@ -444,7 +445,8 @@ function balanceResources(terminal) {
             keepAmount = 0;
         }
         // Handle score
-        if (Game.shard.name === 'shardSeason' && resource === RESOURCE_SCORE) {
+        /** Season 1
+         if (Game.shard.name === 'shardSeason' && resource === RESOURCE_SCORE) {
             if (terminal.room.name === scoreStorage) continue;
             switch (terminal.send(resource, terminal.store[RESOURCE_SCORE], scoreStorage)) {
                 case OK:
@@ -452,6 +454,17 @@ function balanceResources(terminal) {
                     return true;
             }
             continue;
+        }**/
+        if (Game.shard.name === 'shardSeason' && _.includes(SYMBOLS, resource)) {
+            if (terminal.room.decoder.resourceType === resource) continue;
+            // Find room with decoder
+            let needyTerminal = _.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.decoder.resourceType === resource && r.store.getFreeCapacity())[0];
+            if (!needyTerminal) continue;
+            switch (terminal.send(resource, terminal.store[resource], needyTerminal.room.name)) {
+                case OK:
+                    log.a('Sending ' + terminal.store[resource] + ' ' + resource + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                    return true;
+            }
         }
         // Keep boost amount
         if (_.includes(ALL_BOOSTS, resource)) {

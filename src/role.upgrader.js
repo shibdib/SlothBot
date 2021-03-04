@@ -27,7 +27,10 @@ module.exports.role = function (creep) {
         } else if (container && container.store[RESOURCE_ENERGY]) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) creep.memory.other.inPosition = undefined;
         }
-        if (Math.random() > 0.99) creep.memory.onContainer = undefined;
+        if (Math.random() > 0.99) {
+            creep.memory.onContainer = undefined;
+            creep.memory.other.inPosition = undefined;
+        }
         if (!creep.memory.onContainer) {
             if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
                 if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites()) container.pos.createConstructionSite(STRUCTURE_RAMPART);

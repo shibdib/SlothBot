@@ -199,7 +199,8 @@ function forwardObserver(room) {
             // Request unClaimer if room level is too high
             if (room.hostileStructures.length) Memory.targetRooms[room.name].cleaner = true;
             Memory.targetRooms[room.name].claimAttacker = undefined;
-            if (room.controller && room.controller.owner && (!room.controller.upgradeBlocked || room.controller.upgradeBlocked < CREEP_CLAIM_LIFE_TIME)) Memory.targetRooms[room.name].claimAttacker = true;
+            if (room.controller && room.controller.owner && (!room.controller.upgradeBlocked || room.controller.upgradeBlocked < CREEP_CLAIM_LIFE_TIME) && room.controller.pos.countOpenTerrainAround()) Memory.targetRooms[room.name].claimAttacker = true;
+            else Memory.targetRooms[room.name].claimAttacker = false;
             break;
     }
     let otherRooms = _.filter(Memory.roomCache, (r) => r.name !== room.name && r.owner === Memory.roomCache[room.name].owner)[0]

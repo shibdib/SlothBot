@@ -138,11 +138,10 @@ function unSavableCheck(room) {
     if (Memory.roomCache[room.name].threatLevel > 2) {
         // Abandon Bad Rooms
         if (_.size(Memory.myRooms) === 1 || room.controller.safeMode) return false;
-        let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= 10 && s.isActive());
         let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)));
-        if (hostiles.length && !towers.length) {
+        if (hostiles.length && room.energy < ENERGY_AMOUNT * 0.025 && _.size(Memory.myRooms) === Game.gcl.level) {
             room.memory.badCount = badCount + 1;
-            if (room.memory.badCount > room.controller.level * 2.5) {
+            if (room.memory.badCount > room.controller.level * 100) {
                 let hostileOwners = [];
                 for (let hostile of room.hostileCreeps) hostileOwners.push(hostile.owner.username)
                 abandonOverrun(room);

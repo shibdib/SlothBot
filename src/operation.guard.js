@@ -15,7 +15,8 @@ Creep.prototype.guardRoom = function () {
     if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
     if (this.room.name !== destination) return this.shibMove(new RoomPosition(25, 25, destination), {range: 24});
     let guardLocation, guardRange;
-    if (Game.shard.name === 'shardSeason') {
+    /** Season 1
+     if (Game.shard.name === 'shardSeason') {
         guardLocation = this.room.find(FIND_SCORE_COLLECTORS)[0];
         if (guardLocation) {
             let sentence = ['Contact', MY_USERNAME, 'For', 'Access'];
@@ -23,7 +24,7 @@ Creep.prototype.guardRoom = function () {
             this.say(sentence[word], true);
         }
         guardRange = 8;
-    }
+    } **/
     if (!this.handleMilitaryCreep(false, true, false, false, guardLocation, guardRange)) {
         if (!guardLocation) {
             if (this.findDefensivePosition(this)) this.goToHub(destination);
@@ -48,7 +49,7 @@ function levelManager(creep) {
             Memory.targetRooms[creep.memory.destination].level = 2;
         } else if (enemyCreeps.length) {
             Memory.targetRooms[creep.memory.destination].level = 1;
-        } else if ((Game.shard.name !== 'shardSeason' || !creep.room.find(FIND_SCORE_COLLECTORS)[0]) && !Memory.targetRooms[creep.memory.destination].manual) {
+        } else if (!Memory.targetRooms[creep.memory.destination].manual) {
             Memory.targetRooms[creep.memory.destination].level = 0;
         }
     }

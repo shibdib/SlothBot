@@ -55,7 +55,8 @@ function levelManager(creep) {
         Memory.targetRooms[creep.memory.destination].level = 0;
     }
     if (creep.room.hostileStructures.length) Memory.targetRooms[creep.memory.destination].cleaner = true;
-    if (creep.room.controller && creep.room.controller.owner && (!creep.room.controller.upgradeBlocked || creep.room.controller.upgradeBlocked < CREEP_CLAIM_LIFE_TIME)) Memory.targetRooms[creep.memory.destination].claimAttacker = true;
+    if (creep.room.controller && creep.room.controller.owner && (!creep.room.controller.upgradeBlocked || creep.room.controller.upgradeBlocked < CREEP_CLAIM_LIFE_TIME) && creep.room.controller.pos.countOpenTerrainAround()) Memory.targetRooms[creep.memory.destination].claimAttacker = true;
+    else Memory.targetRooms[creep.memory.destination].claimAttacker = false;
 }
 
 function hud(creep) {

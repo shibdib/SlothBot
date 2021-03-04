@@ -53,7 +53,7 @@ module.exports.claimNewRoom = function () {
                 // Source range
                 baseScore -= Memory.roomCache[name].sourceRange * 10;
                 // If it's a new mineral add to the score
-                if (worthyRooms[key].mineral && !_.includes(Memory.ownedMinerals, worthyRooms[key].mineral)) {
+                if (!_.includes(Memory.ownedMinerals, worthyRooms[key].mineral)) {
                     switch (worthyRooms[key].mineral) {
                         case RESOURCE_OXYGEN:
                             baseScore += 1500;
@@ -72,6 +72,10 @@ module.exports.claimNewRoom = function () {
                             break;
                     }
                 } else baseScore -= 500;
+                // Prioritize other symbols on SEASON 2 ruleset
+                if (Game.shard.name === 'shardSeason') {
+                    if (!_.includes(Memory.ownedSymbols, worthyRooms[key].seasonDecoder)) baseScore += 2000; else baseScore -= 2500;
+                }
                 // Prioritize your sector
                 if (sameSectorCheck(name, worthyRooms[key].closestRoom)) baseScore += 2000; else baseScore -= 500;
                 worthyRooms[key]["claimValue"] = baseScore;

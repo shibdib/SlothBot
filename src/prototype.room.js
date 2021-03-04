@@ -10,6 +10,18 @@
  */
 'use strict';
 
+Object.defineProperty(Room.prototype, 'decoder', {
+    get: function () {
+        if (Game.shard.name !== 'shardSeason') return undefined;
+        if (!this._decoder) {
+            this._decoder = this.find(FIND_SYMBOL_DECODERS)[0];
+        }
+        return this._decoder;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'constructionSites', {
     get: function () {
         if (!this._constructionSites) {
@@ -101,7 +113,7 @@ Object.defineProperty(Room.prototype, 'structures', {
 Object.defineProperty(Room.prototype, 'needyExtensions', {
     get: function () {
         if (!this._needyExtensions) {
-            this._needyExtensions = _.filter(this.find(FIND_STRUCTURES), (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.pos.isNearTo(_.filter(this.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester')));
+            this._needyExtensions = _.filter(this.find(FIND_STRUCTURES), (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && !s.pos.isNearTo(_.filter(this.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester')));
         }
         return this._needyExtensions;
     },
@@ -333,17 +345,25 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     let room = Game.rooms[this.name];
     let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, towers,
         reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions, seasonResource,
+        seasonDecoder,
         seasonCollector, swarm, structures, towerCount, sourceRating;
     if (room) {
         if (Memory.roomCache[room.name]) lastOperation = Memory.roomCache[room.name].lastOperation;
         // Check for season resource
         if (Game.shard.name === 'shardSeason') {
-            let container = room.find(FIND_SCORE_CONTAINERS)[0];
-            let collector = room.find(FIND_SCORE_COLLECTORS)[0];
-            if (container) seasonResource = Game.time + container.ticksToDecay;
-            // If collector is reachable, mark as 1 else mark as 2
-            if (collector) {
+            /** Season 1
+             let container = room.find(FIND_SCORE_CONTAINERS)[0];
+             let collector = room.find(FIND_SCORE_COLLECTORS)[0];
+             if (container) seasonResource = Game.time + container.ticksToDecay;
+             // If collector is reachable, mark as 1 else mark as 2
+             if (collector) {
                 if (collector.pos.countOpenTerrainAround() || collector.pos.findClosestByPath(FIND_EXIT)) seasonCollector = 1; else seasonCollector = 2;
+            }**/
+                // Season 2
+            let container = room.find(FIND_SYMBOL_CONTAINERS)[0];
+            if (container) seasonResource = Game.time + container.ticksToDecay;
+            if (this.decoder) {
+                seasonDecoder = this.decoder.resourceType;
             }
         }
         // Minerals
@@ -468,6 +488,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             lastOperation: lastOperation,
             seasonResource: seasonResource,
             seasonCollector: seasonCollector,
+            seasonDecoder: seasonDecoder,
             invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,
             towers: towerCount,
             swarm: swarm,

@@ -7,7 +7,11 @@
 
 module.exports.role = function (creep) {
     //INITIAL CHECKS
-    if (Game.time % 50 === 0 && creep.wrongRoom()) return;
+    // Hauler mode
+    if ((creep.memory.haulerMode && creep.memory.haulerMode + 25 > Game.time) || creep.store[RESOURCE_ENERGY]) {
+        let haulerRole = require('role.hauler');
+        return haulerRole.role(creep);
+    }
     creep.say(ICONS.power, true);
     let powerSpawn = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0];
     if (!powerSpawn) return creep.memory.recycle;
@@ -67,6 +71,7 @@ module.exports.role = function (creep) {
                 return true;
         }
     } else {
-        creep.idleFor(25);
+        // If nothing to do, be a hauler for 50 ticks
+        creep.memory.haulerMode = Game.time;
     }
 };
