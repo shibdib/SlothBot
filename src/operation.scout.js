@@ -6,9 +6,6 @@
  */
 
 Creep.prototype.scoutRoom = function () {
-    let sentence = [MY_USERNAME, 'Scout', 'Drone', 'For', this.memory.destination];
-    let word = Game.time % sentence.length;
-    this.say(sentence[word], true);
     // Handle edge case where room is overlord
     if (this.memory.destination === this.memory.overlord) {
         delete Memory.targetRooms[this.room.name];
@@ -128,7 +125,7 @@ function operationPlanner(room, creep = undefined) {
 function nukeTarget(room) {
     if (Memory.maxLevel < 8) return false;
     let inboundNukes = room.nukes;
-    let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, room.name) <= 10);
+    let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, room.name) <= 10);
     if (!inboundNukes && nukes.length) {
         let launched = 0;
         let nukesNeeded;
@@ -140,28 +137,32 @@ function nukeTarget(room) {
             let invaderCore = _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE && s.effects[EFFECT_COLLAPSE_TIMER] < NUKE_LAND_TIME && (!s.pos.checkForRampart() || s.pos.checkForRampart().hits < nukes.length * 7500000))[0];
             if (clusteredTower) {
                 if (clusteredTower.pos.checkForRampart()) nukesNeeded = _.ceil(clusteredTower.pos.checkForRampart().hits / 10000000);
-                launched += 1;
-                nuke.launchNuke(clusteredTower.pos);
-                log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredTower.pos.roomName) + ' ' + clusteredTower.pos.x + '.' + clusteredTower.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
-                Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredTower.pos.roomName) + ' ' + clusteredTower.pos.x + '.' + clusteredTower.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                if (nuke.launchNuke(clusteredTower.pos) === OK) {
+                    launched += 1;
+                    log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredTower.pos.roomName) + ' ' + clusteredTower.pos.x + '.' + clusteredTower.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                    Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredTower.pos.roomName) + ' ' + clusteredTower.pos.x + '.' + clusteredTower.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                }
             } else if (clusteredSpawns) {
                 if (clusteredSpawns.pos.checkForRampart()) nukesNeeded = _.ceil(clusteredSpawns.pos.checkForRampart().hits / 10000000);
-                launched += 1;
-                nuke.launchNuke(clusteredSpawns.pos);
-                log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredSpawns.pos.roomName) + ' ' + clusteredSpawns.pos.x + '.' + clusteredSpawns.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
-                Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredSpawns.pos.roomName) + ' ' + clusteredSpawns.pos.x + '.' + clusteredSpawns.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                if (nuke.launchNuke(clusteredSpawns.pos) === OK) {
+                    launched += 1;
+                    log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredSpawns.pos.roomName) + ' ' + clusteredSpawns.pos.x + '.' + clusteredSpawns.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                    Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(clusteredSpawns.pos.roomName) + ' ' + clusteredSpawns.pos.x + '.' + clusteredSpawns.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                }
             } else if (terminal) {
                 if (terminal.pos.checkForRampart()) nukesNeeded = _.ceil(terminal.pos.checkForRampart().hits / 10000000);
-                launched += 1;
-                nuke.launchNuke(room.terminal.pos);
-                log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(room.terminal.pos.roomName) + ' ' + room.terminal.pos.x + '.' + room.terminal.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
-                Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(room.terminal.pos.roomName) + ' ' + room.terminal.pos.x + '.' + room.terminal.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                if (nuke.launchNuke(terminal.pos) === OK) {
+                    launched += 1;
+                    log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(terminal.pos.roomName) + ' ' + terminal.pos.x + '.' + terminal.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                    Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(terminal.pos.roomName) + ' ' + terminal.pos.x + '.' + terminal.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                }
             } else if (invaderCore) {
                 if (invaderCore.pos.checkForRampart()) nukesNeeded = _.ceil(invaderCore.pos.checkForRampart().hits / 10000000);
-                launched += 1;
-                nuke.launchNuke(invaderCore.pos);
-                log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(invaderCore.pos.roomName) + ' ' + invaderCore.pos.x + '.' + invaderCore.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
-                Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(invaderCore.pos.roomName) + ' ' + invaderCore.pos.x + '.' + invaderCore.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                if (nuke.launchNuke(invaderCore.pos) === OK) {
+                    launched += 1;
+                    log.a('NUCLEAR LAUNCH DETECTED - ' + roomLink(invaderCore.pos.roomName) + ' ' + invaderCore.pos.x + '.' + invaderCore.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                    Game.notify('NUCLEAR LAUNCH DETECTED - ' + roomLink(invaderCore.pos.roomName) + ' ' + invaderCore.pos.x + '.' + invaderCore.pos.y + ' has a nuke inbound from ' + roomLink(nuke.room.name) + ' and will impact in 50,000 ticks.');
+                }
             }
         }
         return true;
@@ -175,7 +176,7 @@ function forwardObserver(room) {
     let highCommand = require('military.highCommand');
     highCommand.operationSustainability(room);
     // Safemode
-    if (room.controller.safeMode) {
+    if (room.controller && room.controller.safeMode) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[room.name] = {
@@ -196,24 +197,22 @@ function forwardObserver(room) {
                 return;
             }
             // Request unClaimer if room level is too high
-            Memory.targetRooms[room.name].claimAttacker = !room.controller.upgradeBlocked && (!room.controller.ticksToDowngrade || room.controller.ticksToDowngrade > 1000);
+            if (room.hostileStructures.length) Memory.targetRooms[room.name].cleaner = true;
+            Memory.targetRooms[room.name].claimAttacker = undefined;
+            if (room.controller && room.controller.owner && (!room.controller.upgradeBlocked || room.controller.upgradeBlocked < CREEP_CLAIM_LIFE_TIME) && room.controller.pos.countOpenTerrainAround()) Memory.targetRooms[room.name].claimAttacker = true;
+            else Memory.targetRooms[room.name].claimAttacker = false;
             break;
     }
-    let towers = _.filter(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10 && c.isActive());
-    let armedEnemies = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && c.owner.username === c.room.controller.owner.username);
-    let armedOwners = _.filter(_.pluck(room.hostileCreeps, 'owner.username'), (o) => !_.includes(FRIENDLIES, o) && o !== 'Invader');
-    if (room.controller && room.controller.owner) armedOwners = _.union(armedOwners, [room.controller.owner.username])
-    if (armedOwners.length > 1) {
+    let otherRooms = _.filter(Memory.roomCache, (r) => r.name !== room.name && r.owner === Memory.roomCache[room.name].owner)[0]
+    let towers = _.filter(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.store[RESOURCE_ENERGY] > 10 && c.isActive());
+    let armedEnemies = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, c.owner.username));
+    if (towers.length) {
         delete Memory.targetRooms[room.name];
-        log.a('Canceling operation in ' + roomLink(room.name) + ' as there is a 3rd party present.', 'HIGH COMMAND: ');
-        return room.cacheRoomIntel(true);
-    } else if (towers.length && Memory.targetRooms[room.name].type !== 'siegeGroup' && Memory.targetRooms[room.name].type !== 'drain') {
-        delete Memory.targetRooms[room.name];
-        log.a('Canceling operation in ' + roomLink(room.name) + ' as we cannot hold it due to towers.', 'HIGH COMMAND: ');
-        room.cacheRoomIntel(true);
+        log.a('Canceling operation in ' + roomLink(room.name) + '.', 'HIGH COMMAND: ');
+        return creep.room.cacheRoomIntel(true);
     } else if (armedEnemies.length) {
-        Memory.targetRooms[room.name].level = armedEnemies.length + 1;
-    } else if (room.hostileCreeps.length) {
+        Memory.targetRooms[room.name].level = 2;
+    } else if (otherRooms || room.hostileCreeps.length) {
         Memory.targetRooms[room.name].level = 1;
     } else {
         Memory.targetRooms[room.name].level = 0;
@@ -221,5 +220,5 @@ function forwardObserver(room) {
     let range = room.findClosestOwnedRoom(true);
     let priority;
     if (range <= LOCAL_SPHERE) priority = 1; else if (range <= LOCAL_SPHERE * 1.25) priority = 2; else if (range <= LOCAL_SPHERE * 2) priority = 3; else priority = 4;
-    Memory.targetRooms[room.name].priority = priority;
+    if (Memory.targetRooms[room.name]) Memory.targetRooms[room.name].priority = priority;
 }

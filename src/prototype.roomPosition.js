@@ -67,18 +67,18 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
  * @returns {number}
  */
 RoomPosition.prototype.countOpenTerrainAround = function (borderBuild = undefined, ignore = undefined) {
-    let impassible = 0;
+    let openTerrain = 8;
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
             if (xOff !== 0 || yOff !== 0) {
                 let pos = new RoomPosition(this.x + xOff, this.y + yOff, this.roomName);
-                if (ignore && pos.checkForWall()) impassible += 1;
-                else if (pos.checkForImpassible() || (pos.checkForCreep() && !pos.checkForCreep().getActiveBodyparts(MOVE))) impassible += 1;
-                if (borderBuild && pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) <= 2) impassible += 1;
+                if (ignore && pos.checkForWall()) openTerrain--;
+                else if (pos.checkForImpassible(undefined, true) || (pos.checkForCreep() && !pos.checkForCreep().getActiveBodyparts(MOVE))) openTerrain--;
+                if (borderBuild && pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) <= 2) openTerrain--;
             }
         }
     }
-    return 8 - impassible;
+    return openTerrain;
 };
 
 /**
@@ -97,6 +97,35 @@ RoomPosition.prototype.getAdjacentPositionAtRange = function (target, range = 3)
             }
         }
     }
+};
+
+/**
+ * Check if a position is protected in the bunker
+ *
+ * @returns {boolean}
+ */
+RoomPosition.prototype.isInBunker = function () {
+    let room = Game.rooms[this.roomName];
+    if (!room.memory.bunkerHub) return false;
+    let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+    let path = PathFinder.search(
+        this, {pos: hub, range: 1},
+        {
+            plainCost: 1,
+            swampCost: 1,
+            roomCallback: function () {
+                if (!room) return;
+                let costs = new PathFinder.CostMatrix;
+                room.find(FIND_STRUCTURES).forEach(function (s) {
+                    if (OBSTACLE_OBJECT_TYPES.includes(s.structureType) || s.structureType === STRUCTURE_RAMPART) {
+                        costs.set(s.pos.x, s.pos.y, 255);
+                    }
+                });
+                return costs;
+            },
+        }
+    );
+    return !path.incomplete;
 };
 
 
@@ -138,6 +167,7 @@ RoomPosition.prototype.checkForBuiltWall = function () {
 };
 
 RoomPosition.prototype.checkForPortal = function () {
+    if (Memory.roomCache[this.roomName] && !Memory.roomCache[this.roomName].portal) return;
     return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_PORTAL)[0];
 };
 
@@ -181,16 +211,16 @@ RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
     }
 };
 
-RoomPosition.prototype.checkForImpassible = function (ignoreWall = false) {
+RoomPosition.prototype.checkForImpassible = function (ignoreWall = false, ignoreCreep = false) {
     if (ignoreWall) {
-        if (this.checkForObstacleStructure() || this.checkForCreep()) return true;
+        if (this.checkForObstacleStructure() || (!ignoreCreep && this.checkForCreep())) return true;
     } else {
-        if (this.checkForObstacleStructure() || this.checkForWall() || this.checkForCreep()) return true;
+        if (this.checkForObstacleStructure() || this.checkForWall() || (!ignoreCreep && this.checkForCreep())) return true;
     }
 };
 
 RoomPosition.prototype.isExit = function () {
-    return this.x <= 1 || this.x >= 48 || this.y <= 1 || this.y >= 48;
+    return this.x < 1 || this.x > 48 || this.y < 1 || this.y > 48;
 };
 
 RoomPosition.prototype.isValid = function () {
@@ -210,7 +240,6 @@ RoomPosition.prototype.buildRoomPosition = function (direction, distance) {
 RoomPosition.prototype.rangeToTarget = function (target) {
     if (!target) return;
     // Distance cache fails hard on MMO
-    delete Memory._distanceCache;
     if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') {
         return this.getRangeTo(target);
     }
@@ -243,9 +272,6 @@ function getCachedTargetDistance(origin, target) {
             distanceCache = cache;
             return cachedDistance.distance;
         }
-
-    } else {
-
     }
 }
 

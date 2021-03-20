@@ -26,6 +26,7 @@ module.exports.role = function (creep) {
                 break;
         }
     } else {
+        if (creep.memory.destination && creep.memory.destination !== creep.room.name) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22});
         if (!creep.handleMilitaryCreep()) creep.findDefensivePosition(creep);
     }
 };

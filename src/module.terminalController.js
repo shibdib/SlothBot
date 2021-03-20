@@ -16,8 +16,13 @@ if (Memory._banker) spendingMoney = Memory._banker.spendingAccount; else spendin
 
 module.exports.terminalControl = function (room) {
     let lastRun = room.memory.lastTerminalTick || 0;
-    if (!room.terminal || room.terminal.cooldown || room.memory.lowPower || lastRun + 10 > Game.time) return;
+    if (!room.terminal || room.terminal.cooldown || lastRun + 25 > Game.time) return;
     room.memory.lastTerminalTick = Game.time;
+    // Handle season stuff
+    if (Game.shard.name === 'shardSeason') {
+        balanceResources(room.terminal);
+        return;
+    }
     Memory.saleTerminal = Memory.saleTerminal || {};
     let myOrders = Game.market.orders;
     // Things that don't need to be run for every terminal
@@ -70,7 +75,7 @@ module.exports.terminalControl = function (room) {
         return;
     }
     //Buy Energy
-    if (buyEnergy(room.terminal, globalOrders)) return;
+    if (BUY_ENERGY && buyEnergy(room.terminal, globalOrders)) return;
     if (room.energyState) {
         //Send energy to rooms under siege
         if (emergencyEnergy(room.terminal)) return;
@@ -323,7 +328,7 @@ function buyEnergy(terminal, globalOrders) {
     if (terminal.room.energy < ENERGY_AMOUNT && spendingMoney) {
         let sellOrder = _.min(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName)), 'price');
         if (sellOrder.price) {
-            let buyAmount = 5000;
+            let buyAmount = (ENERGY_AMOUNT * 2) - terminal.room.energy;
             if (buyAmount > sellOrder.amount) buyAmount = sellOrder.amount;
             if (buyAmount * sellOrder.price > spendingMoney) buyAmount = _.round(spendingMoney / sellOrder.price);
             if (buyAmount >= 500 && Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
@@ -343,10 +348,6 @@ function fillBuyOrders(terminal, globalOrders) {
     for (let resourceType of sortedKeys) {
         if (resourceType === RESOURCE_ENERGY) continue;
         let keepAmount = DUMP_AMOUNT * 0.75;
-        // Send all of these
-        if (Game.market.credits < CREDIT_BUFFER * 0.5) {
-            keepAmount = 0;
-        }
         // Keep boost amount
         if (_.includes(ALL_BOOSTS, resourceType)) {
             keepAmount = BOOST_AMOUNT;
@@ -397,7 +398,8 @@ function balanceResources(terminal) {
     // Balance Energy
     if (!Memory.roomCache[terminal.room.name].threatLevel && !terminal.room.nukes.length) {
         // Find needy terminals
-        let needyTerminal = _.min(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.energyState < 2 && r.room.energy < terminal.room.energy * 0.85 && !r.room.memory.praiseRoom && r.store.getFreeCapacity()), '.room.energy');
+        let needyTerminal = _.min(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && !r.room.energyState && Game.map.getRoomLinearDistance(r.room.name, terminal.room.name) <= 3
+            && r.room.energy < terminal.room.energy * 0.85 && !r.room.memory.praiseRoom && r.store.getFreeCapacity()), '.room.energy');
         if (needyTerminal.id) {
             // Determine how much you can move
             let availableAmount = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
@@ -426,6 +428,15 @@ function balanceResources(terminal) {
     let sortedKeys = Object.keys(terminal.store).sort(function (a, b) {
         return terminal.store[a] - terminal.store[b]
     });
+    // Season, locate closest to collector room
+    let scoreStorage;
+    /** Season 1
+     if (Game.shard.name === 'shardSeason') {
+        let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => r.seasonCollector === 1 && !r.hostile && !_.includes(Memory.nonCombatRooms, r.name)), 'closestRange');
+        if (scoreRoom && scoreRoom.name && Game.rooms[scoreRoom.name]) {
+            scoreStorage = Game.rooms[scoreRoom.name].findClosestOwnedRoom(false, 6);
+        }
+    }**/
     for (let resource of sortedKeys) {
         // Energy balance handled elsewhere
         if (resource === RESOURCE_ENERGY) continue;
@@ -433,6 +444,28 @@ function balanceResources(terminal) {
         // Send all of these
         if (_.includes(ALL_COMMODITIES, resource) || resource === RESOURCE_OPS || resource === RESOURCE_POWER) {
             keepAmount = 0;
+        }
+        // Handle score
+        /** Season 1
+         if (Game.shard.name === 'shardSeason' && resource === RESOURCE_SCORE) {
+            if (terminal.room.name === scoreStorage) continue;
+            switch (terminal.send(resource, terminal.store[RESOURCE_SCORE], scoreStorage)) {
+                case OK:
+                    log.a('Sending ' + terminal.store[RESOURCE_SCORE] + ' ' + resource + ' To ' + roomLink(scoreStorage) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                    return true;
+            }
+            continue;
+        }**/
+        if (Game.shard.name === 'shardSeason' && _.includes(SYMBOLS, resource)) {
+            if (terminal.room.decoder.resourceType === resource) continue;
+            // Find room with decoder
+            let needyTerminal = _.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.decoder.resourceType === resource && r.store.getFreeCapacity())[0];
+            if (!needyTerminal) continue;
+            switch (terminal.send(resource, terminal.store[resource], needyTerminal.room.name)) {
+                case OK:
+                    log.a('Sending ' + terminal.store[resource] + ' ' + resource + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                    return true;
+            }
         }
         // Keep boost amount
         if (_.includes(ALL_BOOSTS, resource)) {
@@ -458,7 +491,8 @@ function balanceResources(terminal) {
         if (available > terminal.store[resource]) available = terminal.store[resource];
         if (available <= keepAmount * 0.1 || available < 100) continue;
         // Find room in need
-        let needyTerminal = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && !r.room.nukes.length && r.room.name !== terminal.room.name && r.room.store(resource) < keepAmount && !r.room.memory.praiseRoom && r.store.getFreeCapacity()), function (s) {
+        let needyTerminal = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && !r.room.nukes.length && r.room.name !== terminal.room.name && Game.map.getRoomLinearDistance(r.room.name, terminal.room.name) <= 3
+            && r.room.store(resource) < keepAmount && r.store.getFreeCapacity()), function (s) {
             s.room.store(resource);
         })[0];
         if (needyTerminal) {
@@ -469,7 +503,7 @@ function balanceResources(terminal) {
                     log.a('Balancing ' + available + ' ' + resource + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
                     return true;
             }
-        } else if (terminal.room.name !== Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].terminal.store.getFreeCapacity()) {
+        } else if (Game.shard.name !== 'shardSeason' && terminal.room.name !== Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].terminal.store.getFreeCapacity()) {
             switch (terminal.send(resource, available, Memory.saleTerminal.room)) {
                 case OK:
                     log.a('Sent ' + available + ' ' + resource + ' To ' + roomLink(Memory.saleTerminal.room) + ' From ' + roomLink(terminal.room.name) + ' to stockpile.', "Market: ");

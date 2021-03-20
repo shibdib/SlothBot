@@ -16,19 +16,15 @@ module.exports.role = function role(creep) {
     // SK Safety
     if (creep.skSafety()) return;
     // Set destination
-    if (!creep.memory.destination) {
-        if (creep.memory.overlord === creep.room.name) {
-            creep.memory.destination = _.sample(_.filter(JSON.parse(creep.memory.misc), (r) => r && Memory.roomCache[r] && creep.room.routeSafe(r) && !Memory.roomCache[r].obstructions && !Memory.roomCache[r].invaderCore && (!Memory.roomCache[r].sk || Game.rooms[creep.memory.overlord].level >= 7)));
-        } else {
-            creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
-        }
+    if (!creep.memory.destination || !Game.map.getRoomTerrain(creep.memory.destination) || !creep.room.routeSafe(creep.memory.destination)) {
+        let harvesterLocation = _.sample(_.pluck(_.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester'), 'room.name'));
+        if (harvesterLocation) creep.memory.destination = harvesterLocation; else creep.memory.destination = _.sample(creep.memory.misc);
         return;
     }
     // Remove bad desto
-    if (Memory.roomCache[creep.memory.destination] && Memory.roomCache[creep.memory.destination].user && Memory.roomCache[creep.memory.destination].user !== MY_USERNAME) creep.memory.destination = undefined;
+    if ((Memory.roomCache[creep.memory.destination] && Memory.roomCache[creep.memory.destination].user && Memory.roomCache[creep.memory.destination].user !== MY_USERNAME) || !Memory.roomCache[creep.memory.destination]) return creep.memory.destination = undefined;
     // Handle movement
-    if (creep.pos.roomName !== creep.memory.destination && creep.room.routeSafe(creep.memory.destination)) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination, {range: 23}));
-    if (!creep.room.routeSafe(creep.memory.destination)) return creep.goToHub();
+    if (creep.pos.roomName !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination, {range: 23}));
     // Checks
     if (!creep.store[RESOURCE_ENERGY]) {
         creep.memory.working = undefined;

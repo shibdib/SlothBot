@@ -10,9 +10,28 @@
  */
 'use strict';
 
-Room.prototype.constructionSites = function () {
-    return _.filter(Game.constructionSites, (s) => s.pos.roomName === this.name);
-};
+Object.defineProperty(Room.prototype, 'decoder', {
+    get: function () {
+        if (Game.shard.name !== 'shardSeason') return undefined;
+        if (!this._decoder) {
+            this._decoder = this.find(FIND_SYMBOL_DECODERS)[0];
+        }
+        return this._decoder;
+    },
+    enumerable: false,
+    configurable: true
+});
+
+Object.defineProperty(Room.prototype, 'constructionSites', {
+    get: function () {
+        if (!this._constructionSites) {
+            this._constructionSites = _.filter(Game.constructionSites, (s) => s.pos.roomName === this.name);
+        }
+        return this._constructionSites;
+    },
+    enumerable: false,
+    configurable: true
+});
 
 Object.defineProperty(Room.prototype, 'user', {
     get: function () {
@@ -34,7 +53,6 @@ Object.defineProperty(Room.prototype, 'sources', {
         if (!this._sources) {
             this._sources = this.find(FIND_SOURCES);
         }
-        this.memory.sourceIds = undefined;
         // return the locally stored value
         return this._sources;
     },
@@ -92,11 +110,24 @@ Object.defineProperty(Room.prototype, 'structures', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'needyExtensions', {
+    get: function () {
+        if (!this._needyExtensions) {
+            this._needyExtensions = _.filter(this.find(FIND_STRUCTURES), (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && !s.pos.isNearTo(_.filter(this.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester')));
+        }
+        return this._needyExtensions;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
         if (!this._energyState) {
             this._energyState = 0;
-            if (this.energy >= ENERGY_AMOUNT * 2) {
+            if (this.energy >= ENERGY_AMOUNT * 3) {
+                this._energyState = 3;
+            } else if (this.energy >= ENERGY_AMOUNT * 2) {
                 this._energyState = 2;
             } else if (this.energy >= ENERGY_AMOUNT * 0.9) {
                 this._energyState = 1;
@@ -111,7 +142,7 @@ Object.defineProperty(Room.prototype, 'energyState', {
 Object.defineProperty(Room.prototype, 'hostileStructures', {
     get: function () {
         if (!this._hostileStructures) {
-            this._hostileStructures = _.filter(this.structures, (s) => !s.my && s.owner && s.structureType !== STRUCTURE_KEEPER_LAIR && !_.includes(FRIENDLIES, s.owner));
+            this._hostileStructures = _.filter(this.structures, (s) => !s.my && s.owner && ![STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_POWER_BANK].includes(s.structureType) && !_.includes(FRIENDLIES, s.owner));
         }
         return this._hostileStructures;
     },
@@ -122,7 +153,11 @@ Object.defineProperty(Room.prototype, 'hostileStructures', {
 Object.defineProperty(Room.prototype, 'droppedResources', {
     get: function () {
         if (!this._droppedResources) {
-            this._droppedResources = this.find(FIND_DROPPED_RESOURCES);
+            if (!this.hostileCreeps.length) {
+                this._droppedResources = this.find(FIND_DROPPED_RESOURCES);
+            } else {
+                this._droppedResources = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
+            }
         }
         return this._droppedResources;
     },
@@ -133,7 +168,11 @@ Object.defineProperty(Room.prototype, 'droppedResources', {
 Object.defineProperty(Room.prototype, 'droppedEnergy', {
     get: function () {
         if (!this._droppedEnergy) {
-            this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY});
+            if (!this.hostileCreeps.length) {
+                this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY});
+            } else {
+                this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
+            }
         }
         return this._droppedEnergy;
     },
@@ -200,7 +239,11 @@ Object.defineProperty(Room.prototype, 'constructionSites', {
 Object.defineProperty(Room.prototype, 'tombstones', {
     get: function () {
         if (!this._tombstones) {
-            this._tombstones = this.find(FIND_TOMBSTONES);
+            if (!this.hostileCreeps.length) {
+                this._tombstones = this.find(FIND_TOMBSTONES);
+            } else {
+                this._tombstones = this.find(FIND_TOMBSTONES, {filter: (r) => r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
+            }
         }
         return this._tombstones;
     },
@@ -211,7 +254,11 @@ Object.defineProperty(Room.prototype, 'tombstones', {
 Object.defineProperty(Room.prototype, 'ruins', {
     get: function () {
         if (!this._ruins) {
-            this._ruins = this.find(FIND_RUINS);
+            if (!this.hostileCreeps.length) {
+                this._ruins = this.find(FIND_RUINS);
+            } else {
+                this._ruins = this.find(FIND_RUINS, {filter: (r) => r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
+            }
         }
         return this._ruins;
     },
@@ -233,9 +280,22 @@ Object.defineProperty(Room.prototype, 'level', {
 Object.defineProperty(Room.prototype, 'energy', {
     get: function () {
         if (!this._energy) {
-            this._energy = getRoomResource(this, RESOURCE_ENERGY, true);
+            this._energy = getRoomResource(this, RESOURCE_ENERGY, true) + (getRoomResource(this, RESOURCE_BATTERY, true) * 10);
         }
         return this._energy;
+    },
+    enumerable: false,
+    configurable: true
+});
+
+Object.defineProperty(Room.prototype, 'energyIncome', {
+    get: function () {
+        if (!this._energyIncome && ROOM_ENERGY_INCOME_ARRAY[this.name]) {
+            this._energyIncome = _.round(average(ROOM_ENERGY_INCOME_ARRAY[this.name]), 0);
+        } else if (!ROOM_ENERGY_INCOME_ARRAY[this.name]) {
+            this._energyIncome = 0;
+        }
+        return this._energyIncome;
     },
     enumerable: false,
     configurable: true
@@ -283,17 +343,40 @@ function getRoomResource(room, resource, unused = false) {
 Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     let room = Game.rooms[this.name];
-    let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation,
-        reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions;
+    let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, towers,
+        reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions, seasonResource,
+        seasonResourceType,
+        seasonDecoder, seasonCollector, swarm, structures, towerCount, sourceRating;
     if (room) {
         if (Memory.roomCache[room.name]) lastOperation = Memory.roomCache[room.name].lastOperation;
+        // Check for season resource
+        if (Game.shard.name === 'shardSeason') {
+            /** Season 1
+             let container = room.find(FIND_SCORE_CONTAINERS)[0];
+             let collector = room.find(FIND_SCORE_COLLECTORS)[0];
+             if (container) seasonResource = Game.time + container.ticksToDecay;
+             // If collector is reachable, mark as 1 else mark as 2
+             if (collector) {
+                if (collector.pos.countOpenTerrainAround() || collector.pos.findClosestByPath(FIND_EXIT)) seasonCollector = 1; else seasonCollector = 2;
+            }**/
+                // Season 2
+            let container = room.find(FIND_SYMBOL_CONTAINERS)[0];
+            if (container) {
+                seasonResource = Game.time + container.ticksToDecay;
+                seasonResourceType = container.resourceType;
+            }
+            if (this.decoder) {
+                seasonDecoder = this.decoder.resourceType;
+            }
+        }
+        // Minerals
+        if (room.mineral) mineral = room.mineral.mineralType;
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
-        // Get special rooms via name
-        //let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
         let cache = Memory.roomCache || {};
         let sources = room.sources;
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) && !e.getActiveBodyparts(RANGED_ATTACK) && (e.getActiveBodyparts(WORK) || e.getActiveBodyparts(CARRY))));
+        let combatCreeps = _.filter(room.hostileCreeps, (e) => e.getActiveBodyparts(ATTACK) || e.getActiveBodyparts(RANGED_ATTACK));
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)[0]) sk = true;
         if (room.controller) {
             // Check if obstructed
@@ -304,7 +387,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                     break;
                 }
             }
-            safemode = room.controller.safeMode;
+            if (room.controller.safeMode) safemode = room.controller.safeMode + Game.time;
             if (room.controller.owner) {
                 owner = room.controller.owner.username;
                 user = room.controller.owner.username;
@@ -319,18 +402,19 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 }
                 let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
                 if (spawn) spawnLocation = JSON.stringify(spawn.pos);
+                towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] > 10 && s.isActive());
+                if (towers.length === 1 && !towers[0].pos.checkForRampart() && towers[0].pos.findClosestByPath(FIND_EXIT)) swarm = true;
             } else if (room.controller.reservation) {
                 reservation = room.controller.reservation.username;
                 user = room.controller.reservation.username;
             } else {
                 if (room.controller.pos.countOpenTerrainAround()) {
                     let roomPlanner = require('module.roomPlanner');
-                    mineral = room.mineral.mineralType;
                     if (sources.length === 2) {
                         hubCheck = roomPlanner.hubCheck(this);
                         sourceRange = 0;
                         for (let source of sources) {
-                            sourceRange += source.pos.getRangeTo(_.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER));
+                            sourceRange += source.pos.getRangeTo(_.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER)[0]);
                         }
                     }
                 }
@@ -361,13 +445,29 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         power = _.filter(room.structures, (e) => e && e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
         if (power.length && power[0].pos.countOpenTerrainAround() > 1) power = Game.time + power[0].ticksToDecay; else power = undefined;
         // Handle user check for unclaimed
-        if (!user && _.filter(room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username))[0]) {
-            user = _.filter(room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username))[0].owner.username;
-        } else if (!user && nonCombats.length >= 2) {
+        if (!user && nonCombats.length >= 2) {
             user = nonCombats[0].owner.username;
         }
-        let key = room.name;
-        cache[key] = {
+        // Get closest
+        let closestRange = this.findClosestOwnedRoom(true);
+        // Handle rating sources for remotes
+        if (closestRange <= 3 && sources.length) {
+            sourceRating = {};
+            for (let source of this.sources) {
+                let closest = this.findClosestOwnedRoom();
+                let goHome = Game.map.findExit(this.name, closest);
+                let homeExit = this.find(goHome);
+                let homeMiddle = _.round(homeExit.length / 2);
+                let distanceToExit = source.pos.findPathTo(homeExit[homeMiddle]).length
+                let roomRange = Game.map.findRoute(this.name, closest).length - 1;
+                sourceRating[source.id] = distanceToExit + (roomRange * 50);
+            }
+        }
+        let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR);
+        if (towers) towerCount = towers.length;
+        if (worthyStructures) structures = worthyStructures.length
+        cache[this.name] = cache[this.name] || {};
+        cache[this.name] = {
             cached: Game.time,
             name: room.name,
             sources: sources.length,
@@ -383,14 +483,22 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             portal: portal,
             power: power,
             isHighway: !room.controller && !sk && !room.sources.length,
-            closestRange: this.findClosestOwnedRoom(true),
+            closestRange: closestRange,
+            closestRoom: this.findClosestOwnedRoom(),
             hubCheck: hubCheck,
             sourceRange: sourceRange,
             obstructions: obstructions,
             lastOperation: lastOperation,
+            seasonResource: seasonResource,
+            seasonResourceType: seasonResourceType,
+            seasonCollector: seasonCollector,
+            seasonDecoder: seasonDecoder,
             invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,
-            towers: _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10 && s.isActive()).length,
-            structures: _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR).length
+            towers: towerCount,
+            swarm: swarm,
+            structures: structures,
+            hostile: combatCreeps.length > 0 || towerCount,
+            sourceRating: sourceRating
         };
         Memory.ncpArray = _.uniq(ncpArray);
         Memory.roomCache = cache;
@@ -407,11 +515,14 @@ Room.prototype.invaderCheck = function () {
     if (controllingEntity && controllingEntity !== MY_USERNAME) return false;
     // No hostile detected
     if (!this.hostileCreeps.length) {
+        // Room heat is capped at 1000
+        if (Memory.roomCache[this.name].roomHeat > 1000) Memory.roomCache[this.name].roomHeat = 1000;
         let waitOut = 15;
         if (Memory.roomCache[this.name].threatLevel > 3) waitOut = 50;
         // Clear if no waitOut or if not one of your rooms
         let friendlyArmed = _.filter(this.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)).length || 1;
         let reduction = _.ceil((Game.time - previousCheck) / 5) * friendlyArmed;
+        if (Memory.roomCache[this.name].lastPlayerSighting + 500 > Game.time) reduction *= 25;
         if (Memory.roomCache[this.name].tickDetected + waitOut < Game.time || Memory.roomCache[this.name].user !== MY_USERNAME) {
             Memory.roomCache[this.name].threatLevel = undefined;
             let roomHeat = (Memory.roomCache[this.name].roomHeat - reduction) || 0;
@@ -422,6 +533,8 @@ Room.prototype.invaderCheck = function () {
             }
             Memory.roomCache[this.name].numberOfHostiles = undefined;
             Memory.roomCache[this.name].alertEmail = undefined;
+            Memory.roomCache[this.name].friendlyPower = undefined;
+            Memory.roomCache[this.name].hostilePower = undefined;
             Memory.roomCache[this.name].requestingSupport = undefined;
             Memory.roomCache[this.name].invaderTTL = undefined;
         }
@@ -439,7 +552,7 @@ Room.prototype.invaderCheck = function () {
         }
         Memory.roomCache[this.name].hostilePower = hostileCombatPower || 1;
         Memory.roomCache[this.name].friendlyPower = alliedCombatPower;
-        let armedInvader = _.filter(this.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL) || c.getActiveBodyparts(WORK) >= 6 || c.getActiveBodyparts(CLAIM));
+        let armedInvader = _.filter(this.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL) || c.getActiveBodyparts(WORK) >= 4 || c.getActiveBodyparts(CLAIM));
         Memory.roomCache[this.name].tickDetected = Game.time;
         if (!Memory.roomCache[this.name].numberOfHostiles || Memory.roomCache[this.name].numberOfHostiles < this.hostileCreeps.length) {
             Memory.roomCache[this.name].numberOfHostiles = this.hostileCreeps.length || 1;
@@ -469,11 +582,11 @@ Room.prototype.invaderCheck = function () {
         } else if (armedInvader.length === 1 && this.hostileCreeps[0].owner.username !== 'Invader' && hostileCombatPower) {
             Memory.roomCache[this.name].threatLevel = 3;
             let roomHeat = Memory.roomCache[this.name].roomHeat || 0;
-            Memory.roomCache[this.name].roomHeat = roomHeat + (this.hostileCreeps.length * 5);
+            Memory.roomCache[this.name].roomHeat = roomHeat + (_.sum(this.hostileCreeps, 'body.length') * 0.25);
         } else if (armedInvader.length > 1 && (this.hostileCreeps[0].owner.username !== 'Invader' || ownerArray.length > 1) && hostileCombatPower) {
             Memory.roomCache[this.name].threatLevel = 4;
             let roomHeat = Memory.roomCache[this.name].roomHeat || 0;
-            Memory.roomCache[this.name].roomHeat = roomHeat + (this.hostileCreeps.length * 5);
+            Memory.roomCache[this.name].roomHeat = roomHeat + (_.sum(this.hostileCreeps, 'body.length') * 0.25);
         }
         return Memory.roomCache[this.name].threatLevel > 0;
     }
@@ -481,23 +594,38 @@ Room.prototype.invaderCheck = function () {
 
 let closestCache = {};
 Room.prototype.findClosestOwnedRoom = function (range = false, minLevel = 1) {
-    if (!closestCache.length || !closestCache[this.name] || closestCache.tick + 1000 < Game.time) {
+    if (!closestCache.length || !closestCache[this.name] || closestCache[this.name].tick + 1000 < Game.time) {
         closestCache[this.name] = {};
-        closestCache.tick = Game.time;
+        closestCache[this.name].tick = Game.time;
         let distance = 0;
         let closest;
         for (let key of Memory.myRooms) {
             let room = Game.rooms[key];
             if (!room || room.controller.level < minLevel) continue;
-            let range = Game.map.findRoute(this, room).length;
+            // Handle absurd distances
+            let path = Game.map.findRoute(key, this.name).length;
+            if (path >= (CREEP_LIFE_TIME / 50)) {
+                let currentRoom = this.name;
+                let closestPortal = _.sortBy(_.filter(Memory.roomCache, (r) => r.portal), function (f) {
+                    Game.map.getRoomLinearDistance(f.name, currentRoom)
+                });
+                let closest = closestPortal.length - 1;
+                if (closestPortal[closest]) {
+                    let portalDestination = JSON.parse(Memory.roomCache[closestPortal[closest].name].portal)[0].destination.roomName || JSON.parse(Memory.roomCache[closestPortal[closest].name].portal)[0].destination.room;
+                    if (Memory.roomCache[portalDestination]) path = Game.map.getRoomLinearDistance(closestPortal[closest].name, currentRoom) + Memory.roomCache[portalDestination].closestRange;
+                }
+            }
+            if (!path) continue;
             if (!distance) {
-                distance = range;
+                distance = path;
                 closest = room.name;
-            } else if (range < distance) {
-                distance = range;
+            } else if (path < distance) {
+                distance = path;
                 closest = room.name;
             }
         }
+        if (!closest) closest = _.sample(Game.spawns).room.name;
+        if (!distance) distance = Game.map.getRoomLinearDistance(this.name, closest);
         closestCache[this.name].closest = closest;
         closestCache[this.name].distance = distance;
         if (!range) return closest;

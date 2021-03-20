@@ -5,9 +5,10 @@
  * Project - Overlord-Bot (Screeps)
  */
 
+let controllerAlternator;
 module.exports.linkControl = function (room) {
     if (room.level < 5) return;
-    let links = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && !s.cooldown && s.energy >= 100 && s.id !== s.room.memory.controllerLink && s.id !== s.room.memory.hubLink));
+    let links = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && !s.cooldown && s.store[RESOURCE_ENERGY] >= 100 && s.id !== s.room.memory.controllerLink && s.id !== s.room.memory.hubLink));
     let hubLink = Game.getObjectById(room.memory.hubLink);
     let controllerLink = Game.getObjectById(room.memory.controllerLink);
     if (!controllerLink) {
@@ -19,16 +20,20 @@ module.exports.linkControl = function (room) {
     for (let link of links) {
         let upgrader = _.filter(link.room.creeps, (c) => c.memory && c.memory.role === 'upgrader')[0];
         // Controller link if conditions met
-        if (upgrader && ((controllerLink && controllerLink.energy < 50 && Math.random() > 0.5) || (room.energyState && controllerLink && controllerLink.energy < 350))) {
+        if (upgrader && (controllerLink && controllerLink.store[RESOURCE_ENERGY] < 50 && !controllerAlternator)) {
+            controllerAlternator = true;
             link.transferEnergy(controllerLink);
-        } else if (hubLink && hubLink.energy < 400) {
+        } else if (hubLink && hubLink.store[RESOURCE_ENERGY] < 400) {
+            controllerAlternator = undefined;
             link.transferEnergy(hubLink);
-        } else if (controllerLink && controllerLink.energy < 200) {
+        } else if (controllerLink && controllerLink.store[RESOURCE_ENERGY] < 200) {
+            controllerAlternator = true;
             link.transferEnergy(controllerLink);
-        } else if (hubLink && hubLink.energy < 750) {
+        } else if (hubLink && hubLink.store[RESOURCE_ENERGY] < 750) {
+            controllerAlternator = undefined;
             link.transferEnergy(hubLink);
-        } else if (_.filter(links, (l) => l.id !== link.id && l.energy < l.energyCapacity * 0.5 && l.energy < link.energy)[0]) {
-            link.transferEnergy(_.filter(links, (l) => l.id !== link.id && l.energy < l.energyCapacity * 0.5)[0], link.energy * 0.5);
+        } else if (_.filter(links, (l) => l.id !== link.id && l.store[RESOURCE_ENERGY] < LINK_CAPACITY * 0.5 && l.store[RESOURCE_ENERGY] < link.store[RESOURCE_ENERGY])[0]) {
+            link.transferEnergy(_.filter(links, (l) => l.id !== link.id && l.store.getFreeCapacity(RESOURCE_ENERGY))[0], link.store[RESOURCE_ENERGY] * 0.5);
         }
     }
 };

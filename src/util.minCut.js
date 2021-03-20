@@ -228,7 +228,7 @@ var util_mincut = {
 
         }
         // ********************** Visualisierung
-        if (true) {
+        if (1 > 2) {
             let visual = new RoomVisual(roomname);
             let x = 0;
             let y = 0;

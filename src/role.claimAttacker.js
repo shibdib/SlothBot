@@ -16,8 +16,7 @@ module.exports.role = function (creep) {
         switch (creep.attackController(creep.room.controller)) {
             case OK:
                 if (!creep.memory.signed) {
-                    let signs = ATTACK_ROOM_SIGNS;
-                    creep.signController(creep.room.controller, _.sample(signs));
+                    creep.signController(creep.room.controller, _.sample(ATTACK_ROOM_SIGNS));
                     creep.memory.signed = true;
                 }
                 break;
@@ -29,8 +28,7 @@ module.exports.role = function (creep) {
         switch (creep.reserveController(creep.room.controller)) {
             case OK:
                 if (!creep.memory.signed) {
-                    let signs = ATTACK_ROOM_SIGNS;
-                    creep.signController(creep.room.controller, _.sample(signs));
+                    creep.signController(creep.room.controller, _.sample(ATTACK_ROOM_SIGNS));
                     creep.memory.signed = true;
                 }
                 break;

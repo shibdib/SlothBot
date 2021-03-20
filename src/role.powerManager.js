@@ -7,14 +7,18 @@
 
 module.exports.role = function (creep) {
     //INITIAL CHECKS
-    if (Game.time % 50 === 0 && creep.wrongRoom()) return;
+    // Hauler mode
+    if ((creep.memory.haulerMode && creep.memory.haulerMode + 25 > Game.time) || creep.store[RESOURCE_ENERGY]) {
+        let haulerRole = require('role.hauler');
+        return haulerRole.role(creep);
+    }
     creep.say(ICONS.power, true);
     let powerSpawn = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0];
     if (!powerSpawn) return creep.memory.recycle;
     let powerSource, energySource;
     if (creep.room.storage.store[RESOURCE_POWER]) powerSource = creep.room.storage; else if (creep.room.terminal.store[RESOURCE_POWER]) powerSource = creep.room.terminal;
     if (creep.room.storage.store[RESOURCE_ENERGY]) energySource = creep.room.storage; else if (creep.room.terminal.store[RESOURCE_ENERGY]) energySource = creep.room.terminal;
-    if (creep.store[RESOURCE_ENERGY] && powerSpawn.energy < powerSpawn.energyCapacity) {
+    if (creep.store[RESOURCE_ENERGY] && powerSpawn.store[RESOURCE_ENERGY] < POWER_SPAWN_ENERGY_CAPACITY) {
         switch (creep.transfer(powerSpawn, RESOURCE_ENERGY)) {
             case OK:
                 return true;
@@ -50,7 +54,7 @@ module.exports.role = function (creep) {
         }
     } else if (creep.memory.energyDestination) {
         creep.withdrawResource();
-    } else if (energySource && powerSpawn.energy < 1000) {
+    } else if (energySource && powerSpawn.store[RESOURCE_ENERGY] < 1000) {
         switch (creep.withdraw(energySource, RESOURCE_ENERGY)) {
             case OK:
                 return true;
@@ -67,6 +71,7 @@ module.exports.role = function (creep) {
                 return true;
         }
     } else {
-        creep.idleFor(25);
+        // If nothing to do, be a hauler for 50 ticks
+        creep.memory.haulerMode = Game.time;
     }
 };

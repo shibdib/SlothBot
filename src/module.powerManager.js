@@ -10,7 +10,7 @@
  */
 
 module.exports.powerControl = function () {
-    let powerSpawns = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.power >= 1 && s.energy >= 50);
+    let powerSpawns = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.store[RESOURCE_POWER] >= 1 && s.store[RESOURCE_ENERGY] >= 50);
     if (powerSpawns.length) {
         for (let powerSpawn of powerSpawns) {
             powerSpawn.processPower();
@@ -52,10 +52,10 @@ module.exports.powerControl = function () {
                     if (!powerCreep.level && !sparePowerLevels) {
                         powerCreep.delete();
                     } else if (!powerCreep.spawnCooldownTime || powerCreep.spawnCooldownTime < Date.now()) {
-                        let spawn = _.filter(Game.structures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN)[0];
+                        let spawn = _.filter(Game.structures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN && s.isActive())[0];
                         if (spawn) {
                             log.a('Spawned an operator in ' + roomLink(spawn.room.name));
-                            powerCreep.spawn(spawn)
+                            powerCreep.spawn(spawn);
                         }
                     }
                 }

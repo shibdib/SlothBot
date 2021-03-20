@@ -13,6 +13,7 @@ let globals = function () {
     try {
         require(Game.shard.name);
         console.log('Loaded config for ' + Game.shard.name);
+        if (_.includes(COMBAT_SERVER, Game.shard.name)) console.log('Combat Server Mode Active - All Players Considered Hostile');
     } catch (e) {
         try {
             require(Memory.customConfig);
@@ -27,7 +28,7 @@ let globals = function () {
     global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
     global.STATUS_COOLDOWN = 180; // Seconds between console status reports
     global.ROOM_ABANDON_THRESHOLD = 7250; // If bucket is consistently below this, abandon your lowest room
-    global.SIGN_CLEANER = true; // Clean room signs away with explorers
+    global.SIGN_CLEANER = false; // Clean room signs away with explorers
 
     // Energy income breakdown
     global.ROOM_ENERGY_ALLOTMENT = {
@@ -39,15 +40,15 @@ let globals = function () {
     };
 
     // Pathfinder Cache Sizes
-    global.PATH_CACHE_SIZE = 1500;
-    global.ROUTE_CACHE_SIZE = 100;
+    global.PATH_CACHE_SIZE = 1000;
+    global.ROUTE_CACHE_SIZE = 200;
 
     // Reaction
     global.TIER_3_BOOSTS = [RESOURCE_CATALYZED_GHODIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ACID, RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE];
     global.TIER_2_BOOSTS = [RESOURCE_GHODIUM_ALKALIDE, RESOURCE_GHODIUM_ACID, RESOURCE_ZYNTHIUM_ACID, RESOURCE_ZYNTHIUM_ALKALIDE, RESOURCE_LEMERGIUM_ALKALIDE, RESOURCE_LEMERGIUM_ACID, RESOURCE_KEANIUM_ACID, RESOURCE_KEANIUM_ALKALIDE, RESOURCE_UTRIUM_ALKALIDE, RESOURCE_UTRIUM_ACID];
     global.TIER_1_BOOSTS = [RESOURCE_GHODIUM_HYDRIDE, RESOURCE_GHODIUM_OXIDE, RESOURCE_ZYNTHIUM_HYDRIDE, RESOURCE_ZYNTHIUM_OXIDE, RESOURCE_LEMERGIUM_OXIDE, RESOURCE_LEMERGIUM_HYDRIDE, RESOURCE_KEANIUM_OXIDE, RESOURCE_KEANIUM_HYDRIDE, RESOURCE_UTRIUM_HYDRIDE, RESOURCE_UTRIUM_OXIDE];
-    global.BASE_COMPOUNDS = [RESOURCE_GHODIUM, RESOURCE_ZYNTHIUM_KEANITE, RESOURCE_UTRIUM_LEMERGITE, RESOURCE_HYDROXIDE];
-    global.BASE_MINERALS = [RESOURCE_HYDROGEN, RESOURCE_OXYGEN, RESOURCE_UTRIUM, RESOURCE_LEMERGIUM, RESOURCE_KEANIUM, RESOURCE_ZYNTHIUM, RESOURCE_CATALYST, RESOURCE_GHODIUM];
+    global.BASE_COMPOUNDS = [RESOURCE_GHODIUM, RESOURCE_ZYNTHIUM_KEANITE, RESOURCE_UTRIUM_LEMERGITE, RESOURCE_HYDROXIDE, RESOURCE_GHODIUM];
+    global.BASE_MINERALS = [RESOURCE_HYDROGEN, RESOURCE_OXYGEN, RESOURCE_UTRIUM, RESOURCE_LEMERGIUM, RESOURCE_KEANIUM, RESOURCE_ZYNTHIUM, RESOURCE_CATALYST];
     global.ALL_BOOSTS = _.union(TIER_3_BOOSTS, TIER_2_BOOSTS, TIER_1_BOOSTS, BASE_COMPOUNDS);
 
     // Commodities
@@ -64,25 +65,24 @@ let globals = function () {
 
     global.PRIORITIES = {
         // Harvesters
-        stationaryHarvester: 2,
-        // Workers=
-        drone: 3,
-        waller: 3,
-        upgrader: 4,
+        stationaryHarvester: 1,
+        // Workers
+        drone: 2,
+        waller: 6,
+        upgrader: 3,
         mineralHarvester: 7,
         repairer: 7,
         // Haulers
         hauler: 1,
-        miscHauler: 3,
+        miscHauler: 2,
         // Remotes
-        remoteHarvester: 4,
-        remoteHauler: 3,
+        remoteHarvester: 5,
+        remoteHauler: 4,
         remoteUpgrader: 7,
         roadBuilder: 6,
         assistPioneer: 3,
         fuelTruck: 7,
-        reserver: 4,
-        borderPatrol: 3,
+        reserver: 6,
         // Power
         Power: 6,
         // SK
@@ -103,7 +103,7 @@ let globals = function () {
 
     global.SPAWN = {
         0: {
-            stationaryHarvester: [WORK, WORK, CARRY, MOVE],
+            stationaryHarvester: [WORK, WORK, MOVE],
             drone: [MOVE, MOVE, CARRY, WORK],
             maintenance: [MOVE, MOVE, CARRY, WORK],
             waller: [MOVE, MOVE, CARRY, WORK],
@@ -126,6 +126,7 @@ let globals = function () {
     global.CREEP_CPU_ARRAY = {};
     global.ROOM_CPU_ARRAY = {};
     global.CREEP_ROLE_CPU_ARRAY = {};
+    global.CREEP_ROLE_CPU = {};
     global.ROOM_TASK_CPU_ARRAY = {};
     global.ROOM_ENERGY_INCOME_ARRAY = {};
     global.ROOM_ENERGY_PER_TICK = {};
@@ -133,6 +134,7 @@ let globals = function () {
     global.ROOM_CREEP_CPU_OBJECT = {};
     global.ROOM_SOURCE_SPACE = {};
     global.ROOM_CONTROLLER_SPACE = {};
+    global.VISUAL_CACHE = {};
 
     global.ICONS = {
         [STRUCTURE_CONTROLLER]: "\uD83C\uDFF0"
@@ -220,6 +222,8 @@ let globals = function () {
         , courier: "\ud83d\ude90"
         , power: "\u26a1"
         , medical: "\u2695"
+        , eye: "\ud83d\udc40"
+        , santa: "\ud83c\udf85"
     };
 
     global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p.type || p]);
@@ -297,6 +301,17 @@ let globals = function () {
         [RESOURCE_ZYNTHIUM_KEANITE]: [RESOURCE_ZYNTHIUM, RESOURCE_KEANIUM],
         [RESOURCE_UTRIUM_LEMERGITE]: [RESOURCE_UTRIUM, RESOURCE_LEMERGIUM]
     };
+
+    global.TOWER_POWER_FROM_RANGE = function (dist, power) {
+        if (dist <= TOWER_OPTIMAL_RANGE) {
+            return power
+        }
+        if (dist >= TOWER_FALLOFF_RANGE) {
+            return power * (1 - TOWER_FALLOFF);
+        }
+        let towerFalloffPerTile = TOWER_FALLOFF / (TOWER_FALLOFF_RANGE - TOWER_OPTIMAL_RANGE)
+        return Math.round(power * (1 - (dist - TOWER_OPTIMAL_RANGE) * towerFalloffPerTile))
+    }
 
     // Boost Uses
     global.BOOST_USE = {
@@ -461,6 +476,15 @@ let globals = function () {
         return array;
     };
 
+    global.getResourceTotal = function (resource) {
+        let amount = 0;
+        for (let roomName of Memory.myRooms) {
+            let room = Game.rooms[roomName];
+            amount += room.store(resource);
+        }
+        return amount;
+    }
+
     global.getLevel = function (room) {
         let energy = room.energyCapacityAvailable;
         let energyLevel = 0;
@@ -528,6 +552,89 @@ let globals = function () {
     global.TEN_CPU = Game.cpu.limit === 20 || Game.shard.name === 'shard3';
 
     global.log = new Log();
+
+    global.sameSectorCheck = function (roomA, roomB) {
+        let [EW, NS] = roomA.match(/\d+/g);
+        let roomAEWInt = EW.toString()[0];
+        let roomANSInt = NS.toString()[0];
+        let [EW2, NS2] = roomB.match(/\d+/g);
+        let roomBEWInt = EW2.toString()[0];
+        let roomBNSInt = NS2.toString()[0];
+        return roomAEWInt === roomBEWInt && roomANSInt === roomBNSInt;
+    }
+
+    global.floodFill = function (roomName) {
+
+        const room = Game.rooms[roomName];
+
+        const walls = room.find(FIND_STRUCTURES, {
+                filter: structure => [STRUCTURE_WALL, STRUCTURE_RAMPART].includes(structure.structureType)
+            }
+        );
+
+        const terrain = new Room.Terrain(roomName);
+
+        const startTime = Game.cpu.getUsed();
+
+        const matrix = new PathFinder.CostMatrix();
+
+        walls.forEach(wall => {
+            matrix.set(wall.pos.x, wall.pos.y, 255);
+        });
+
+        const queue = [];
+        for (let i = 0; i < 49; i++) {
+            if (terrain.get(i, 0) !== TERRAIN_MASK_WALL) {
+                matrix.set(i, 0, 1);
+                queue.push([i, 0]);
+            }
+            if (terrain.get(i, 49) !== TERRAIN_MASK_WALL) {
+                matrix.set(i, 49, 1);
+                queue.push([i, 49]);
+            }
+            if (terrain.get(0, i) !== TERRAIN_MASK_WALL) {
+                matrix.set(0, i, 1);
+                queue.push([0, i]);
+            }
+            if (terrain.get(49, i) !== TERRAIN_MASK_WALL) {
+                matrix.set(49, i, 1);
+                queue.push([49, i]);
+            }
+        }
+
+        while (queue.length > 0) {
+            const length = queue.length;
+            for (let i = 0; i < length; i++) {
+                const [x, y] = queue[i];
+
+                for (let dx = x - 1; dx <= x + 1; dx++) {
+                    for (let dy = y - 1; dy <= y + 1; dy++) {
+                        if (
+                            dx > 0 && dx < 49 && dy > 0 && dy < 49 &&
+                            matrix.get(dx, dy) === 0 &&
+                            (terrain.get(dx, dy) & TERRAIN_MASK_WALL) === 0
+                        ) {
+                            matrix.set(dx, dy, 1);
+                            queue.push([dx, dy]);
+                        }
+                    }
+                }
+            }
+            queue.splice(0, length);
+        }
+
+        console.log('cpu used:', Game.cpu.getUsed() - startTime);
+
+        const visual = new RoomVisual(roomName);
+        for (let x = 1; x < 49; x++) {
+            for (let y = 1; y < 49; y++) {
+                if (matrix.get(x, y) === 1) {
+                    visual.circle();
+                    visual.circle(x, y, {radius: 0.2, fill: 'white', opacity: 0.6});
+                }
+            }
+        }
+    };
 };
 
 module.exports = globals;

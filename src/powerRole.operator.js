@@ -33,7 +33,7 @@ module.exports.role = function (powerCreep) {
         }
     }
     // Store ops to sell in terminal
-    if (powerCreep.store[RESOURCE_OPS] && powerCreep.room.terminal && (_.size(powerCreep.powers) === 1 || powerCreep.store[RESOURCE_OPS] >= powerCreep.store.getCapacity() * 0.6)) {
+    if (powerCreep.store[RESOURCE_OPS] && powerCreep.room.terminal && (_.size(powerCreep.powers) === 1 || powerCreep.store[RESOURCE_OPS] >= powerCreep.store.getCapacity() * 0.6) && powerCreep.room.terminal.store.getFreeCapacity()) {
         let amount = powerCreep.store[RESOURCE_OPS] - powerCreep.store.getCapacity() * 0.5;
         if (_.size(powerCreep.powers) === 1) amount = powerCreep.store[RESOURCE_OPS];
         switch (powerCreep.transfer(powerCreep.room.terminal, RESOURCE_OPS, amount)) {
@@ -60,7 +60,7 @@ module.exports.role = function (powerCreep) {
     if (!powerCreep.level) return powerCreep.idleFor(10);
     // Handle room assignment
     if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom !== powerCreep.room.name) {
-        return powerCreep.shibMove(new RoomPosition(25, 25, powerCreep.memory.destinationRoom), {range: 17})
+        return powerCreep.shibMove(new RoomPosition(25, 25, powerCreep.memory.destinationRoom), {range: 24})
     } else if (!powerCreep.memory.destinationRoom) {
         powerCreep.memory.destinationRoom = _.filter(Memory.myRooms, (r) => !_.filter(Game.powerCreeps, (c) => c.memory.destinationRoom === r).length && Game.rooms[r].controller.level === 8)[0];
     }

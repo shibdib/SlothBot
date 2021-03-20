@@ -19,11 +19,15 @@ module.exports.factoryControl = function (room) {
             }
             // Check if it's still good to produce
             if (room.factory.memory.producing !== RESOURCE_ENERGY) {
+                if (room.factory.memory.producing === RESOURCE_BATTERY && room.store(RESOURCE_ENERGY) < ENERGY_AMOUNT) {
+                    log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to falling below the energy target.', ' FACTORY CONTROL:');
+                    return delete room.factory.memory.producing;
+                }
                 if (!_.includes(COMPRESSED_COMMODITIES, room.factory.memory.producing) && room.store(room.factory.memory.producing) > REACTION_AMOUNT) {
                     log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to hitting the production cap.', ' FACTORY CONTROL:');
                     return delete room.factory.memory.producing;
                 }
-                if (room.energy < FACTORY_CUTOFF * 0.9) {
+                if (room.energy < FACTORY_CUTOFF * 0.8) {
                     log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to being low on energy.', ' FACTORY CONTROL:');
                     return delete room.factory.memory.producing;
                 }
@@ -36,13 +40,16 @@ module.exports.factoryControl = function (room) {
                         }
                     }
                 }
-            } else if (room.energy > ENERGY_AMOUNT || room.store(RESOURCE_BATTERY) < 50) {
+            } else if (room.store(RESOURCE_ENERGY) > ENERGY_AMOUNT * 1.5 || room.store(RESOURCE_BATTERY) < 50) {
                 return delete room.factory.memory.producing;
             }
-        } else if (Game.time % 25 === 0) {
+        } else if (!room.factory.memory.producing && room.store(RESOURCE_ENERGY) < ENERGY_AMOUNT && room.store(RESOURCE_BATTERY) >= 50) {
+            log.a('Converting ' + RESOURCE_BATTERY + ' to ENERGY in ' + roomLink(room.name), ' FACTORY CONTROL:');
+            return room.factory.memory.producing = RESOURCE_ENERGY;
+        } else if (room.energy >= FACTORY_CUTOFF && Game.time % 25 === 0) {
             // If nothing is set to produce, every 25 ticks check and see if anything should be
-            if (!room.factory.memory.producing && room.energyState) {
-                if (room.energy > ENERGY_AMOUNT * 1.5) {
+            if (!room.factory.memory.producing) {
+                if (room.energyState > 1) {
                     log.a('Producing ' + RESOURCE_BATTERY + ' in ' + roomLink(room.name), ' FACTORY CONTROL:');
                     return room.factory.memory.producing = RESOURCE_BATTERY;
                 } else {
@@ -82,9 +89,6 @@ module.exports.factoryControl = function (room) {
                         }
                     }
                 }
-            } else if (!room.factory.memory.producing && !room.energyState && room.store(RESOURCE_BATTERY) >= 50) {
-                log.a('Converting ' + RESOURCE_BATTERY + ' to ENERGY in ' + roomLink(room.name), ' FACTORY CONTROL:');
-                return room.factory.memory.producing = RESOURCE_ENERGY;
             }
         }
     }

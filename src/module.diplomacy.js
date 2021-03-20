@@ -11,11 +11,14 @@ module.exports.diplomacyOverlord = function () {
     friendlyListManagement();
     //Manage threats
     if (Game.time % 5 === 0 && Memory._userList) threatManager();
+    //Manage symbol list for seasonal
+    if (Game.shard.name === 'shardSeason' && Game.time % 1000 === 0) {
+        Memory.ownedSymbols = _.uniq(_.pluck(_.filter(Memory.roomCache, (r) => r.owner && _.includes(FRIENDLIES, r.owner) && r.closestRange < 15 && r.level >= 7), 'seasonDecoder'));
+    }
 };
 
 function threatManager() {
     Memory._badBoyArray = [];
-    Memory._friendArray = [];
     Memory._enemies = [];
     Memory._threats = [];
     Memory._nuisance = [];
@@ -53,25 +56,11 @@ function threatManager() {
             Memory._threatList.push(key);
         }
     }
-    // Store in array for herald
-    if (_.size(Memory._userList)) {
-        for (let user in _.uniq(Memory._userList)) {
-            if (Memory._userList[user].standing > 0) {
-                let length = 10 - (Memory._userList[user].standing.toString().length + 1);
-                let display = user.substring(0, length) + '-' + Memory._userList[user].standing;
-                Memory._friendArray.push(display);
-            } else if (Memory._userList[user].standing < 0) {
-                let length = 10 - (Memory._userList[user].standing.toString().length + 1);
-                let display = user.substring(0, length) + '-' + Memory._userList[user].standing;
-                Memory._badBoyArray.push(display);
-            }
-        }
-    }
     // Add manual enemies
     Memory._enemies = _.union(Memory._enemies, HOSTILES);
     Memory._threatList = _.union(Memory._threatList, HOSTILES);
     // If Not Standard/S+ Server everyone except manually specified are hostile
-    if (_.includes(COMBAT_SERVER, Game.shard.name)) Memory._enemies = _.filter(_.pluck(Memory.roomCache, 'user'), (p) => !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME && !_.includes(FRIENDLIES, p));
+    if (_.includes(COMBAT_SERVER, Game.shard.name)) Memory._enemies = _.filter(Object.keys(Memory._userList), (p) => p !== '' && p !== 'undefined' && !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME && !_.includes(FRIENDLIES, p));
     // NCP's are always hostile (Also clean NCP array)
     if (NCP_HOSTILE && Memory.ncpArray && Memory.ncpArray.length) {
         if (Math.random() > 0.5) _.remove(Memory.ncpArray, (u) => !_.includes(_.pluck(Memory.roomCache, 'user'), u));
@@ -79,10 +68,10 @@ function threatManager() {
         Memory._threatList = _.union(Memory._threatList, Memory.ncpArray);
     }
     // Clean up lists
-    Memory._badBoyArray = _.uniq(_.filter(Memory._badBoyArray, (p) => p !== null && p !== undefined));
-    Memory._enemies = _.uniq(_.filter(Memory._enemies, (p) => p !== null && p !== undefined));
-    Memory._nuisance = _.uniq(_.filter(Memory._nuisance, (p) => p !== null && p !== undefined));
-    Memory._threatList = _.uniq(_.filter(Memory._threatList, (p) => p !== null && p !== undefined));
+    Memory._badBoyArray = _.uniq(_.filter(Memory._badBoyArray, (p) => p !== null && p !== undefined && p !== 'undefined'));
+    Memory._enemies = _.uniq(_.filter(Memory._enemies, (p) => p !== null && p !== undefined && p !== 'undefined'));
+    Memory._nuisance = _.uniq(_.filter(Memory._nuisance, (p) => p !== null && p !== undefined && p !== 'undefined'));
+    Memory._threatList = _.uniq(_.filter(Memory._threatList, (p) => p !== null && p !== undefined && p !== 'undefined'));
 }
 
 module.exports.trackThreat = function (creep) {
@@ -117,14 +106,17 @@ module.exports.trackThreat = function (creep) {
     // Handle damage
     if (!creep.memory._lastHits) return creep.memory._lastHits = creep.hits;
     if (creep.hits < creep.memory._lastHits) {
-        creep.room.invaderCheck();
-        creep.room.cacheRoomIntel();
+        if (!Memory.roomCache[creep.room.name]) creep.room.cacheRoomIntel();
         Memory.roomCache[creep.room.name].lastCombat = Game.time;
         if (creep.room.controller && ((creep.room.controller.owner && creep.room.controller.owner.username !== MY_USERNAME) || (creep.room.controller.reservation && creep.room.controller.reservation.username !== MY_USERNAME)) && creep.memory.destination !== creep.room.name) return false;
         let nearbyCreeps = _.uniq(_.pluck(_.filter(creep.room.creeps, (c) => ((c.getActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(creep) <= 3) || (c.getActiveBodyparts(ATTACK) && c.pos.isNearTo(creep))) && c.owner.username !== MY_USERNAME), 'owner.username'));
         if (nearbyCreeps.length) {
             for (let user of nearbyCreeps) {
-                if (user === MY_USERNAME || user === 'Source Keeper' || user === 'Invader') continue;
+                if (user === 'Source Keeper') {
+                    Memory.roomCache[creep.room.name].pathingPenalty = true;
+                    continue;
+                }
+                if (user === MY_USERNAME || user === 'Invader') continue;
                 // Handle taking damage near allies with other hostiles
                 if (nearbyCreeps.length > 1 && _.includes(FRIENDLIES, user)) continue;
                 let cache = Memory._userList || {};

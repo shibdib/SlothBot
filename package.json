@@ -3,8 +3,10 @@
   "version": "0.0.1",
   "dependencies": {
     "grunt": "latest",
-    "grunt-screeps": "latest",
     "nodejs": "latest",
-    "screeps-api": "latest"
+    "screeps-api": "^1.13.0"
+  },
+  "devDependencies": {
+    "grunt-screeps": "github:psy3727/grunt-screeps#season-updates"
   }
 }

@@ -11,25 +11,26 @@
 
 module.exports.role = function (creep) {
     // Boost only if room is energy rich
-    if (creep.room.energyState && creep.tryToBoost(['upgrade'])) return;
-    //INITIAL CHECKS
-    if (creep.wrongRoom()) return;
+    if (creep.tryToBoost(['upgrade'])) return;
     // Handle yelling
     herald(creep);
     // If you upgrade, just return
-    if (creep.store[RESOURCE_ENERGY] && creep.upgradeController(creep.room.controller) === OK && Math.random() > 0.05) return;
+    if (creep.store[RESOURCE_ENERGY] && creep.upgradeController(creep.room.controller) === OK) return;
     // Set and check container and link
     let container = Game.getObjectById(creep.room.memory.controllerContainer);
     if (!container) creep.room.memory.controllerContainer = undefined;
     let link = Game.getObjectById(creep.room.memory.controllerLink);
     if (!link) creep.room.memory.controllerLink = undefined;
     if (creep.memory.other.inPosition) {
-        if (link && link.energy) {
+        if (link && link.store[RESOURCE_ENERGY]) {
             if (creep.withdraw(link, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) creep.memory.other.inPosition = undefined;
         } else if (container && container.store[RESOURCE_ENERGY]) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) creep.memory.other.inPosition = undefined;
         }
-        if (Math.random() > 0.99) creep.memory.onContainer = undefined;
+        if (Math.random() > 0.99) {
+            creep.memory.onContainer = undefined;
+            creep.memory.other.inPosition = undefined;
+        }
         if (!creep.memory.onContainer) {
             if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
                 if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
@@ -45,20 +46,21 @@ module.exports.role = function (creep) {
     } else {
         if (creep.isFull) creep.memory.working = true;
         if (!creep.store[RESOURCE_ENERGY]) delete creep.memory.working;
-        creep.memory.other.inPosition = creep.memory.other.stationary && (!link || creep.pos.isNearTo(link)) && (!container || creep.pos.isNearTo(container)) && creep.pos.getRangeTo(creep.room.controller) <= 3;
+        if (link || container) creep.memory.other.inPosition = (!link || creep.pos.isNearTo(link)) && (!container || creep.pos.isNearTo(container)) && creep.pos.getRangeTo(creep.room.controller) <= 3;
+        if (!creep.memory.other.inPosition && link && container) creep.shibMove([link, container])
         if (creep.memory.working) {
             switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
                 case OK:
                     if (container && container.store[RESOURCE_ENERGY]) {
                         creep.withdrawResource(container);
-                    } else if (link && link.energy) {
+                    } else if (link && link.store[RESOURCE_ENERGY]) {
                         creep.withdrawResource(link);
                     }
                     return;
                 case ERR_NOT_IN_RANGE:
                     if (container && container.store[RESOURCE_ENERGY]) {
                         creep.withdrawResource(container);
-                    } else if (link && link.energy) {
+                    } else if (link && link.store[RESOURCE_ENERGY]) {
                         creep.withdrawResource(link);
                     } else {
                         return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
@@ -70,15 +72,19 @@ module.exports.role = function (creep) {
         } else if (creep.memory.other.stationary || (creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE))) {
             creep.memory.other.stationary = true;
             if (container && !creep.memory.onContainer) {
-                if ((!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
+                let containerCreep = container.pos.checkForCreep();
+                if ((!containerCreep || !containerCreep.memory || containerCreep.memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
                     if (!container.pos.getRangeTo(creep)) creep.memory.onContainer = true;
-                    creep.shibMove(container, {range: 0});
+                    else creep.shibMove(container, {range: 0});
+                } else if (link && container) {
+                    if (container.pos.isNearTo(creep) && link.pos.isNearTo(creep)) creep.memory.onContainer = true;
+                    else creep.shibMove([link, container])
                 } else {
                     if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
-                    creep.shibMove(container, {range: 1});
+                    else creep.shibMove(container, {range: 1});
                 }
             } else if (creep.memory.onContainer) {
-                if (link && link.energy) {
+                if (link && link.store[RESOURCE_ENERGY]) {
                     creep.withdrawResource(link);
                 } else if (container && container.store[RESOURCE_ENERGY]) {
                     creep.withdrawResource(container);
@@ -110,14 +116,6 @@ function herald(creep) {
                 sentence = sentence.concat(['LAST', 'ATTACK', Game.time - Memory.roomCache[creep.room.name].lastPlayerSighting, 'TICKS', 'AGO']);
             } else {
                 sentence = sentence.concat(['FPCON', 'NORMAL']);
-            }
-            if (Memory._badBoyArray && Memory._badBoyArray.length) {
-                sentence = sentence.concat(['-', 'THREAT', 'LIST', '-']);
-                sentence = sentence.concat(Memory._badBoyArray);
-            }
-            if (Memory._friendArray && Memory._friendArray.length > 1) {
-                sentence = sentence.concat(['-', 'FRIENDS', 'LIST', '-']);
-                sentence = sentence.concat(FRIENDLIES);
             }
             if (Memory.ncpArray && Memory.ncpArray.length > 1) {
                 sentence = sentence.concat(['-', 'KNOWN', 'NCP', 'LIST', '-']);

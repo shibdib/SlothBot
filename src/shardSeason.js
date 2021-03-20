@@ -10,22 +10,22 @@
 
 global.COMBAT_SERVER = []; // Insert the Game.shard.name of servers you'd like to declare everyone hostile
 global.HOSTILES = []; // Manually set players as hostile
-global.MANUAL_FRIENDS = []; // Manually set players as friends (overrides COMBAT_SERVER)
-global.RAMPART_ACCESS = false // Allow friends and allies access thru ramparts
+global.MANUAL_FRIENDS = ['mawif']; // Manually set players as friends (overrides COMBAT_SERVER)
+global.RAMPART_ACCESS = true // Allow friends and allies access thru ramparts
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
-global.HOLD_SECTOR = false; // Attack rooms in sectors you have rooms (ignores local sphere)
+global.HOLD_SECTOR = true; // Attack rooms in sectors you have rooms (ignores local sphere)
 global.ATTACK_LOCALS = true; // Attacks targets within range of the next entry
-global.LOCAL_SPHERE = 2; // Range that rooms consider local via linear distance
+global.LOCAL_SPHERE = 1; // Range that rooms consider local via linear distance
 global.NEW_SPAWN_DENIAL = true; // Crush new spawns immediately
 global.POKE_ATTACKS = true; // Small cheap annoying attacks
-global.POKE_NEUTRALS = true; // Poke everyone
+global.POKE_NEUTRALS = false; // Poke everyone
 global.OFFENSIVE_OPERATIONS = true; // Offensive Combat
-global.NCP_HOSTILE = true; // Always attack users of open source bots
+global.NCP_HOSTILE = false; // Always attack users of open source bots
 global.ATTACK_COOLDOWN = 4500; //Time between attacks on a room
 
 // Signing and whatnot
-global.OWNED_ROOM_SIGNS = ["~~~NO ENTRY~~~", "Full Auto Overlord Bot"];
-global.RESERVE_ROOM_SIGNS = ["~~This is a restricted area, violators will be attacked~~", "~~Exclusion Zone~~"];
+global.OWNED_ROOM_SIGNS = ["~~~#Overlord-Bot Operating Here~~~"];
+global.RESERVE_ROOM_SIGNS = ["~~MINING OPERATION~~", "~~Exclusion Zone~~"];
 global.EXPLORED_ROOM_SIGNS = ["Automated Exploration Occurred Here", "Just saying Hi!", "We Know", "Intel gathered, enter at your own risk."];
 global.ATTACK_ROOM_SIGNS = ["~~ALL YOUR BASE BELONG TO ME~~"];
 global.EXPLORER_SPAM = ['HI', 'Hello', 'Beep', 'Boop', 'Aloha', 'Shibby!'];
@@ -45,13 +45,13 @@ global.BARRIER_TARGET_HIT_POINTS = {
 // The boosts you want labs to focus on first (resources permitted)
 global.LAB_PRIORITY = [RESOURCE_GHODIUM_ACID, RESOURCE_GHODIUM_HYDRIDE, RESOURCE_GHODIUM, RESOURCE_KEANIUM_ALKALIDE, RESOURCE_LEMERGIUM_ACID];
 // If credits permit, buy these boosts
-global.BUY_THESE_BOOSTS = [RESOURCE_GHODIUM_ACID, RESOURCE_KEANIUM_ALKALIDE, RESOURCE_LEMERGIUM_ACID];
+global.BUY_THESE_BOOSTS = [];
 
 // Amount targets (Advanced)
 global.PIXEL_BUFFER = 500; // Sell any pixels above this amount
-global.BUY_ENERGY = true; // If true it will buy energy at anything below the baseline energy price if a room isn't considered in surplus
+global.BUY_ENERGY = false; // If true it will buy energy at anything below the baseline energy price if a room isn't considered in surplus
 global.CREDIT_BUFFER = 10000; // Stay above
-global.ENERGY_AMOUNT = (TERMINAL_CAPACITY * 0.1 + STORAGE_CAPACITY * 0.1); // Aim for this amount in a room
+global.ENERGY_AMOUNT = 500000; // Aim for this amount in a room
 global.FACTORY_CUTOFF = ENERGY_AMOUNT * 0.5; // Amount needed for a factory to be active
 global.MINERAL_TRADE_AMOUNT = (TERMINAL_CAPACITY * 0.015 + STORAGE_CAPACITY * 0.015);  // Hold this much of a mineral before selling
 global.BOOST_TRADE_AMOUNT = (TERMINAL_CAPACITY * 0.01 + STORAGE_CAPACITY * 0.01);  // Hold this much of a mineral before selling

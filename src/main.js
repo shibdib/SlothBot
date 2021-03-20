@@ -31,30 +31,8 @@ module.exports.loop = function () {
             log.e('On CPU Cooldown For ' + countDown + ' more ticks. Current Bucket ' + Game.cpu.bucket);
             return;
         }
-    } else if (Game.cpu.bucket < Game.cpu.limit * 10) {
-        let tracking = Memory.cpuTracking || {};
-        tracking.cooldown = Game.time;
-        if (!tracking.badCounter) tracking.badCounter = 5; else tracking.badCounter += 15;
-        log.e('Skipping tick ' + Game.time + ' due to lack of CPU.');
-        return Memory.cpuTracking = tracking;
-    } else
-        // Track bucket to determine if rooms need to be dropped
-    if ((!Memory.lastPixelGenerated || Memory.lastPixelGenerated + 10000 < Game.time) && _.size(Memory.myRooms) > 3) {
-        let tracking = Memory.cpuTracking || {};
-        if (Game.cpu.bucket < ROOM_ABANDON_THRESHOLD) {
-            if (!tracking.badCounter) tracking.badCounter = 1; else tracking.badCounter += 1;
-        } else if (Game.time % 10 === 0) if (tracking.badCounter) tracking.badCounter -= 1;
-        // If we hit the 1000 threshold abandon worst room to save cpu
-        if (tracking.badCounter >= 1000) {
-            let lowRoom = _.sortBy(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my), '.controller.level')[0];
-            log.e(roomLink(lowRoom.name) + ' is being abandoned due to CPU Bucket issues.');
-            Game.notify(roomLink(lowRoom.name) + ' is being abandoned due to CPU Bucket issues.');
-            abandon(lowRoom.name);
-            tracking.badCounter = 500;
-            if (!tracking.claimLimiter) tracking.claimLimiter = 1; else tracking.claimLimiter += 1;
-        } else if (!tracking.badCounter && tracking.claimLimiter) tracking.claimLimiter -= 1;
-        Memory.cpuTracking = tracking;
-    } else if (!Memory.cpuTracking) Memory.cpuTracking = {};
+    }
+    Memory.cpuTracking = {};
 
     // Update allies
     populateLOANlist();
@@ -74,13 +52,6 @@ module.exports.loop = function () {
 
     //Hive Mind
     if (Memory.myRooms && Memory.myRooms.length) hive.hiveMind();
-
-    // Pixel Gen
-    if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name) && Game.cpu.bucket >= 7500) {
-        Game.cpu.generatePixel();
-        log.a('Pixel Generated.');
-        Memory.lastPixelGenerated = Game.time;
-    }
 
 };
 
@@ -109,8 +80,8 @@ abandon = function (room) {
 
 // Get nukes in range
 nukes = function (target) {
-    let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown);
-    if (target) nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, target) <= 10);
+    let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown);
+    if (target) nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, target) <= 10);
     if (!nukes.length && !target) return log.a('No nukes available');
     if (!nukes.length && target) return log.a('No nukes available in range of ' + target);
     for (let key in nukes) {
@@ -118,3 +89,18 @@ nukes = function (target) {
         if (!target) log.a(nukes[key].room.name + ' has a nuclear missile available.')
     }
 };
+
+cpuUsage = function () {
+    if (_.size(CREEP_ROLE_CPU)) {
+        log.a('--CREEP ROLE INFO--', ' ');
+        for (let role of Object.keys(CREEP_ROLE_CPU)) {
+            log.e(role + ': ' + CREEP_ROLE_CPU[role] + ' (x' + _.filter(Game.creeps, (c) => c.my && c.memory.role === role).length + ')', ' ')
+        }
+    }
+    if (_.size(ROOM_TASK_CPU_ARRAY)) {
+        log.a('--TASK INFO--', ' ');
+        for (let task of Object.keys(ROOM_TASK_CPU_ARRAY)) {
+            log.e(task + ': ' + average(ROOM_TASK_CPU_ARRAY[task]), ' ')
+        }
+    }
+}

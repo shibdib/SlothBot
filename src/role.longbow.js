@@ -10,15 +10,14 @@
  */
 
 module.exports.role = function (creep) {
+    creep.attackInRange();
+    creep.healInRange();
     // Border Patrol
     if (creep.memory.operation === 'borderPatrol') return creep.borderPatrol();
     // Responder Mode
-    if (creep.memory.other.responseTarget || !creep.memory.operation) {
-        if (creep.hits < creep.hitsMax) creep.heal(creep);
+    if (creep.memory.other && creep.memory.other.responseTarget) {
+        if (creep.memory.other.responseTarget) return creep.guardRoom();
         creep.say(ICONS.respond, true);
-        if (creep.room.memory.towerTarget && Game.getObjectById(creep.room.memory.towerTarget)) {
-            return creep.fightRanged(Game.getObjectById(creep.room.memory.towerTarget));
-        }
         if (!creep.handleMilitaryCreep(false, true)) {
             if (creep.room.name !== creep.memory.other.responseTarget) {
                 return creep.shibMove(new RoomPosition(25, 25, creep.memory.other.responseTarget), {range: 18}); //to move to any room}
@@ -27,7 +26,6 @@ module.exports.role = function (creep) {
             }
         }
         if (creep.memory.awaitingOrders) return creep.memory.other.responseTarget = undefined;
-        if (creep.ticksToLive < 750) creep.memory.operation = 'borderPatrol';
     } else if (creep.memory.operation) {
         switch (creep.memory.operation) {
             case 'marauding':
@@ -39,9 +37,18 @@ module.exports.role = function (creep) {
             case 'hold':
                 creep.holdRoom();
                 break;
-            case 'rangers':
-                creep.rangersRoom();
+            case 'harass':
+                creep.harass();
                 break;
+            case 'siegeGroup':
+                creep.siegeGroupRoom();
+                break;
+        }
+    } else if (creep.memory.destination) {
+        if (creep.room.name !== creep.memory.destination) {
+            return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22});
+        } else {
+            creep.handleMilitaryCreep();
         }
     }
 };

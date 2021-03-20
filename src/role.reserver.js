@@ -10,16 +10,6 @@
  */
 
 module.exports.role = function (creep) {
-    //Invader detection
-    if (creep.fleeHome()) return;
-    //Initial Move
-    if (creep.pos.roomName !== creep.memory.destination) {
-        if (creep.room.routeSafe(creep.memory.destination)) {
-            return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination, {range: 23}));
-        } else {
-            return creep.goToHub();
-        }
-    }
     //Reserver
     if (creep.memory.inPlace) {
         if (!creep.room.controller.reservation || creep.room.controller.reservation.username === MY_USERNAME) {
@@ -29,6 +19,7 @@ module.exports.role = function (creep) {
                         let signs = RESERVE_ROOM_SIGNS;
                         creep.signController(creep.room.controller, _.sample(signs));
                         creep.memory.signed = true;
+                        if (!Memory.roomCache[creep.room.name].reserverCap) Memory.roomCache[creep.room.name].reserverCap = creep.room.controller.pos.countOpenTerrainAround();
                     }
                     let ticks;
                     if (creep.room.controller.reservation && creep.room.controller.reservation.username === MY_USERNAME) {
@@ -37,7 +28,6 @@ module.exports.role = function (creep) {
                         ticks = 0;
                     }
                     Memory.roomCache[creep.room.name].reservationExpires = Game.time + ticks - 2000;
-                    if (!Memory.roomCache[creep.room.name].reserverCap) Memory.roomCache[creep.room.name].reserverCap = creep.room.controller.pos.countOpenTerrainAround();
                     break;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(creep.room.controller);
@@ -57,6 +47,14 @@ module.exports.role = function (creep) {
             }
         }
     } else {
+        //Initial Move
+        if (creep.pos.roomName !== creep.memory.destination) {
+            if (creep.room.routeSafe(creep.memory.destination)) {
+                return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination, {range: 23}));
+            } else {
+                return creep.goToHub();
+            }
+        }
         if (!creep.pos.isNearTo(creep.room.controller)) creep.shibMove(creep.room.controller); else creep.memory.inPlace = true;
     }
 };

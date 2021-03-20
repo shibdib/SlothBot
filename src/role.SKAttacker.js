@@ -38,6 +38,7 @@ module.exports.role = function (creep) {
                 case ERR_NO_BODYPART:
                     break;
                 case OK:
+                    Memory.roomCache[creep.room.name].mined = Game.time;
                     break;
             }
         } else {

@@ -10,13 +10,12 @@
  */
 
 module.exports.role = function role(creep) {
-    creep.say('Maintainer', true);
+    if (creep.tryToBoost(['build'])) return;
+    creep.say(ICONS.castle, true);
     if (creep.wrongRoom()) return;
     // Checks
     if (!creep.store[RESOURCE_ENERGY]) {
-        creep.memory.wallWork = undefined;
         creep.memory.working = undefined;
-        creep.memory.constructionSite = undefined;
     }
     if (creep.isFull && creep.memory.task !== 'harvest') {
         creep.memory.working = true;
@@ -25,14 +24,8 @@ module.exports.role = function role(creep) {
     }
     // Work
     if (creep.memory.working) {
-        if (!creep.memory.wallWork && !Memory.roomCache[creep.room.name].threatLevel && !creep.room.nukes.length && (creep.memory.constructionSite || creep.constructionWork())) {
-            creep.builderFunction();
-        } else {
-            creep.memory.wallWork = true;
-            wallMaintainer(creep);
-        }
+        wallMaintainer(creep);
     } else {
-        creep.memory.task = undefined;
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.withdrawResource();
         } else {
@@ -44,18 +37,23 @@ module.exports.role = function role(creep) {
 function wallMaintainer(creep) {
     if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget) || Memory.roomCache[creep.room.name].threatLevel || creep.room.memory.nuke) {
         let nukeSite, nukeRampart;
+        let barrierStructures = _.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL));
         if (creep.room.memory.nuke) {
             nukeSite = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5)[0];
-            nukeRampart = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5), 'hits');
+            nukeRampart = _.min(_.filter(barrierStructures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5), 'hits');
         }
-        let hostileBarrier = _.min(_.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)), 3)[0]), 'hits');
-        let barriers = _.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level] || s.room.energyState));
+        let hostileBarrier;
+        if (Memory.roomCache[creep.room.name].threatLevel) {
+            hostileBarrier = _.min(_.filter(barrierStructures, (s) => s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)), 5)[0]), 'hits');
+        }
+        let barriers = _.filter(barrierStructures, (s) => s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level]);
+        if (!barriers) barriers = barrierStructures;
         let barrier = _.min(barriers, 'hits');
         let site = _.filter(creep.room.constructionSites, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL))[0];
-        if (!hostileBarrier.id && barriers.length && barrier.hits < 2000) {
+        if (!hostileBarrier && barriers.length && barrier.hits < 2000) {
             creep.memory.currentTarget = barrier.id;
             creep.shibMove(barrier, {range: 3})
-        } else if (hostileBarrier.id) {
+        } else if (hostileBarrier) {
             creep.memory.currentTarget = hostileBarrier.id;
         } else if (nukeSite) {
             creep.say(ICONS.nuke, true);
@@ -83,7 +81,6 @@ function wallMaintainer(creep) {
     }
     let target = Game.getObjectById(creep.memory.currentTarget);
     if (target) {
-        creep.say(ICONS.castle, true);
         if (!creep.memory.targetWallHits) {
             if (target.hits < 10000) {
                 creep.memory.targetWallHits = 25000;

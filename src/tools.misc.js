@@ -48,13 +48,13 @@ module.exports.memHack = function () {
 // Set Task CPU Limits
 module.exports.CPULimits = function () {
     let totalLimit = Game.cpu.limit;
-    CPU_TASK_LIMITS['roomLimit'] = adjustedCPULimit(totalLimit * 0.85, Game.cpu.bucket, 7000);
+    CPU_TASK_LIMITS['roomLimit'] = adjustedCPULimit(totalLimit * 0.75, Game.cpu.bucket, 8000);
     if (Memory._threatList && Memory._threatList.length) {
-        CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.05, Game.cpu.bucket, 5000);
+        CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.02, Game.cpu.bucket, 7000);
         CPU_TASK_LIMITS['hiveTasks'] = adjustedCPULimit(totalLimit * 0.10, Game.cpu.bucket, BUCKET_MAX);
     } else {
-        CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.02, Game.cpu.bucket, 5000);
-        CPU_TASK_LIMITS['hiveTasks'] = adjustedCPULimit(totalLimit * 0.13, Game.cpu.bucket, BUCKET_MAX);
+        CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.01, Game.cpu.bucket, 5000);
+        CPU_TASK_LIMITS['hiveTasks'] = adjustedCPULimit(totalLimit * 0.10, Game.cpu.bucket, BUCKET_MAX);
     }
 }
 
@@ -100,7 +100,7 @@ module.exports.status = function () {
                 }
                 let lowPowerText = '';
                 if (activeRoom.memory.lowPower) lowPowerText = ' [LOW POWER]';
-                log.e(roomLink(activeRoom.name) + lowPowerText + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + ((_.round(activeRoom.controller.progress / activeRoom.controller.progressTotal, 2)) * 100) + '% | Energy Available - ' + activeRoom.energy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(ROOM_ENERGY_INCOME_ARRAY[activeRoom.name])), 0) + ' ' + marauderText + '| Creep Count: ' + _.size(roomCreeps), ' ');
+                log.e(roomLink(activeRoom.name) + lowPowerText + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + ((_.round(activeRoom.controller.progress / activeRoom.controller.progressTotal, 2)) * 100) + '% | Energy Available - ' + activeRoom.energy + ' | Avg. Energy Income - ' + activeRoom.energyIncome + ' ' + marauderText + '| Creep Count: ' + _.size(roomCreeps), ' ');
             }
         } catch (e) {
             log.a('--ROOM INFO FAILED--', ' ');
@@ -108,7 +108,8 @@ module.exports.status = function () {
         try {
             let targetRooms = Memory.targetRooms;
             let auxiliaryTargets = Memory.auxiliaryTargets;
-            let operations = Object.assign(targetRooms, auxiliaryTargets);
+            let blank = {};
+            let operations = Object.assign(blank, targetRooms, auxiliaryTargets);
             if (operations && _.size(operations)) {
                 log.a('--OPERATION INFO--', ' ');
                 for (let key in operations) {

@@ -56,6 +56,20 @@ PowerCreep.prototype.idleFor = function (ticks = 0) {
     }
 };
 
+PowerCreep.prototype.moveRandom = function (onPath) {
+    let start = Math.ceil(Math.random() * 8);
+    let direction = 0;
+    for (let i = start; i < start + 8; i++) {
+        direction = ((i - 1) % 8) + 1;
+        let pos = this.pos.getAdjacentPosition(direction);
+        if (!pos || pos.isExit() || pos.checkForWall() || pos.checkForObstacleStructure() || pos.checkForCreep()) {
+            continue;
+        }
+        break;
+    }
+    this.move(direction);
+};
+
 PowerCreep.prototype.borderCheck = function () {
     let thisPos = this.pos;
     let x = thisPos.x;
@@ -63,8 +77,7 @@ PowerCreep.prototype.borderCheck = function () {
     if (x === 0 || y === 0 || x === 49 || y === 49) {
         if (x === 0 && y === 0) {
             return this.move(BOTTOM_RIGHT);
-        }
-        else if (x === 0 && y === 49) {
+        } else if (x === 0 && y === 49) {
             return this.move(TOP_RIGHT);
         }
         else if (x === 49 && y === 0) {
