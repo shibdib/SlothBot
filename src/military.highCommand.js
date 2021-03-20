@@ -223,7 +223,7 @@ function auxiliaryOperations() {
             log.a('Score guard operation planned for ' + roomLink(scoreCollector.name) + ', Nearest Room - ' + scoreCollector.closestRange + ' rooms away', 'HIGH COMMAND: ');
         }**/
         if (maxLevel >= 4) {
-            let scoreRoom = _.min(_.filter(initialFilter, (r) => r.seasonResource > Game.time && r.closestRange <= r.seasonResource / 50 && r.reservation !== MY_USERNAME), 'closestRange');
+            let scoreRoom = _.min(_.filter(initialFilter, (r) => r.seasonResource > Game.time && r.closestRange <= r.seasonResource / 50 && r.reservation !== MY_USERNAME && getResourceTotal(r.seasonResourceType) < 10000), 'closestRange');
             let scoreMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'score').length || 0;
             if (scoreRoom.name && scoreMining < 10) {
                 let cache = Memory.auxiliaryTargets || {};
@@ -582,6 +582,11 @@ function manageAuxiliary() {
                     delete Memory.auxiliaryTargets[key];
                     continue;
                 }**/
+                if (getResourceTotal(Memory.roomCache[key].seasonResourceType) > 10000) {
+                    log.a('Canceling auxiliary operation in ' + roomLink(key) + ' as we hit our stored score cap for.' + Memory.roomCache[key].seasonResource, 'HIGH COMMAND: ');
+                    delete Memory.auxiliaryTargets[key];
+                    continue;
+                }
                 break;
             case 'scoreCleaner':
                 continue;
@@ -748,7 +753,7 @@ function manualAttacks() {
 }
 
 function nukeFlag(flag) {
-    let nuker = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, flag.pos.roomName) <= 10)[0];
+    let nuker = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, flag.pos.roomName) <= 10)[0];
     if (!nuker) {
         log.e('Nuke request for room ' + flag.pos.roomName + ' denied, no nukes found in-range.');
         flag.remove();

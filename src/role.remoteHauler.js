@@ -99,9 +99,9 @@ module.exports.role = function (creep) {
                     let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === h.id);
                     let current = 0;
                     if (assignedHaulers.length) {
-                        if (Game.rooms[creep.memory.overlord].level >= 7) continue;
+                        if (Game.rooms[creep.memory.overlord].level >= 8) continue;
                         assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 3) continue;
+                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 2) continue;
                     }
                     return creep.memory.misc = h.id
                 }
@@ -118,7 +118,7 @@ function dropOff(creep) {
     if (creep.memory.dropOffLink && Game.getObjectById(creep.memory.dropOffLink)) return creep.memory.storageDestination = creep.memory.dropOffLink;
     // Lab
     let lab = creep.pos.findClosestByRange(creep.room.structures, {
-        filter: (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive()
+        filter: (s) => s.structureType === STRUCTURE_LAB && s.store.getFreeCapacity(RESOURCE_ENERGY) && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive()
     });
     if (lab) {
         creep.memory.storageDestination = lab.id;
@@ -128,7 +128,7 @@ function dropOff(creep) {
     let towerCutoff = 0.65;
     if (Memory.roomCache[creep.room.name].threatLevel) towerCutoff = 0.99;
     let tower = creep.pos.findClosestByRange(creep.room.structures, {
-        filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * towerCutoff
+        filter: (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * towerCutoff
     });
     if (tower) {
         creep.memory.storageDestination = tower.id;

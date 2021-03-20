@@ -22,7 +22,7 @@ module.exports.role = function (creep) {
     let link = Game.getObjectById(creep.room.memory.controllerLink);
     if (!link) creep.room.memory.controllerLink = undefined;
     if (creep.memory.other.inPosition) {
-        if (link && link.energy) {
+        if (link && link.store[RESOURCE_ENERGY]) {
             if (creep.withdraw(link, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) creep.memory.other.inPosition = undefined;
         } else if (container && container.store[RESOURCE_ENERGY]) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) creep.memory.other.inPosition = undefined;
@@ -53,14 +53,14 @@ module.exports.role = function (creep) {
                 case OK:
                     if (container && container.store[RESOURCE_ENERGY]) {
                         creep.withdrawResource(container);
-                    } else if (link && link.energy) {
+                    } else if (link && link.store[RESOURCE_ENERGY]) {
                         creep.withdrawResource(link);
                     }
                     return;
                 case ERR_NOT_IN_RANGE:
                     if (container && container.store[RESOURCE_ENERGY]) {
                         creep.withdrawResource(container);
-                    } else if (link && link.energy) {
+                    } else if (link && link.store[RESOURCE_ENERGY]) {
                         creep.withdrawResource(link);
                     } else {
                         return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
@@ -84,7 +84,7 @@ module.exports.role = function (creep) {
                     else creep.shibMove(container, {range: 1});
                 }
             } else if (creep.memory.onContainer) {
-                if (link && link.energy) {
+                if (link && link.store[RESOURCE_ENERGY]) {
                     creep.withdrawResource(link);
                 } else if (container && container.store[RESOURCE_ENERGY]) {
                     creep.withdrawResource(container);

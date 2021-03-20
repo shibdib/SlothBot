@@ -76,7 +76,7 @@ module.exports.processBuildQueue = function (room) {
             body = generator.bodyGenerator(level, role, room, topPriority);
             if (!body || !body.length) continue;
             // Add a distance sanity check for claim parts
-            if (topPriority.destination && (Game.map.findRoute(topPriority.destination, room.name).length > 23 || (_.includes(body, CLAIM) && Game.map.findRoute(topPriority.destination, room.name).length > 12))) continue;
+            if (topPriority.destination && (Game.map.findRoute(topPriority.destination, room.name).length > 23 || (_.includes(body, CLAIM) && Game.map.findRoute(topPriority.destination, room.name).length > 10))) continue;
             // Stop loop if we just can't afford it yet
             cost = global.UNIT_COST(body);
             if (cost > room.energyAvailable && cost <= room.energyCapacityAvailable) return;
@@ -261,7 +261,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     // Upgrader drone
-    if (room.energy > ENERGY_AMOUNT * 0.5 && !getCreepCount(room, 'drone')) {
+    if (room.level < 7 && room.energy > ENERGY_AMOUNT * 0.5 && !getCreepCount(room, 'drone')) {
         queueCreep(room, PRIORITIES.drone, {
             role: 'drone'
         })
@@ -365,7 +365,7 @@ module.exports.miscCreepQueue = function (room) {
             }
             //Border Patrol
             if (room.memory.borderPatrol) {
-                if (!getCreepCount(undefined, 'longbow', room.memory.borderPatrol, 'borderPatrol')) {
+                if (!getCreepCount(room, 'longbow', undefined, 'borderPatrol') && !getCreepCount(undefined, 'longbow', room.memory.borderPatrol, 'borderPatrol')) {
                     queueCreep(room, PRIORITIES.high, {
                         role: 'longbow',
                         operation: 'borderPatrol',
@@ -383,6 +383,7 @@ module.exports.miscCreepQueue = function (room) {
 //Remote creeps
 let centerRoom = {};
 module.exports.remoteCreepQueue = function (room) {
+    room.memory.borderPatrol = undefined;
     if (!Memory.roomCache) Memory.roomCache = {};
     if (!remoteHives[room.name] || Math.random() > 0.5) {
         // Clean old Remotes
@@ -539,9 +540,9 @@ module.exports.remoteCreepQueue = function (room) {
                 let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creep.id);
                 let current = 0;
                 if (assignedHaulers.length) {
-                    if (room.level >= 7) continue;
+                    if (room.level >= 8) continue;
                     assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                    if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 3) continue;
+                    if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 2) continue;
                 }
                 queueCreep(room, PRIORITIES.remoteHauler + getCreepCount(room, 'remoteHauler') * 0.5, {
                     role: 'remoteHauler',

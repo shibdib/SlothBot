@@ -113,7 +113,7 @@ function safeModeManager(room) {
             }
         }
     }
-    let towers = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_TOWER && s.energy > 10)).length > 0;
+    let towers = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] > 10)).length > 0;
     // If attacks occurred and we have no towers or the defense is ineffective safemode
     if ((!towers || room.memory.dangerousAttack) && keyAttack) {
         if (room.controller.activateSafeMode() === OK) {

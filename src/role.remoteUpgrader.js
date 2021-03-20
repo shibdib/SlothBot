@@ -23,7 +23,7 @@ module.exports.role = function (creep) {
         if (creep.upgradeController(Game.rooms[creep.memory.destination].controller) === ERR_NOT_IN_RANGE) creep.shibMove(Game.rooms[creep.memory.destination].controller, {range: 3});
         if (container && creep.pos.getRangeTo(container) <= 1 && container.store[RESOURCE_ENERGY] > 0) creep.withdraw(container, RESOURCE_ENERGY);
         if (terminal && creep.pos.getRangeTo(terminal) <= 1 && terminal.store[RESOURCE_ENERGY] > 0) creep.withdraw(terminal, RESOURCE_ENERGY);
-        if (link && creep.pos.getRangeTo(link) <= 1 && link.energy > 0) creep.withdraw(link, RESOURCE_ENERGY);
+        if (link && creep.pos.getRangeTo(link) <= 1 && link.store[RESOURCE_ENERGY]) creep.withdraw(link, RESOURCE_ENERGY);
     } else {
         if (creep.memory.energyDestination) {
             creep.withdrawResource();

@@ -7,14 +7,12 @@
 
 module.exports.claimNewRoom = function () {
     if (Memory.tickCooldowns.expansionTick + 150 > Game.time) return;
+    let claimTarget = Memory.nextClaim;
     Memory.tickCooldowns.expansionTick = Game.time;
-    let limit = Game.gcl.level;
-    // Special novice/respawn zone cases
-    if (Game.map.getRoomStatus(Memory.myRooms[0]).status === 'novice') limit = 3;
-    if (limit <= Memory.myRooms.length || Memory.spawnIn + 7500 > Game.time || Memory.minLevel < 3 || _.filter(Memory.auxiliaryTargets, (t) => t && (t.type === 'claimScout' || t.type === 'claim'))[0]) return;
-    let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 3000 < Game.time) && r.hubCheck && r.closestRange <= 12 &&
-        Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status && !r.obstructions);
-    if (worthyRooms.length > 0) {
+    if (!claimTarget) {
+        let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 3000 < Game.time) && r.hubCheck && r.closestRange <= 12 &&
+            Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status && !r.obstructions);
+        if (!worthyRooms.length) return;
         let possibles = {};
         worthy:
             for (let key in worthyRooms) {
@@ -74,15 +72,27 @@ module.exports.claimNewRoom = function () {
                 } else baseScore -= 500;
                 // Prioritize other symbols on SEASON 2 ruleset
                 if (Game.shard.name === 'shardSeason') {
-                    if (!_.includes(Memory.ownedSymbols, worthyRooms[key].seasonDecoder)) baseScore += 2000; else baseScore -= 2500;
+                    let symbolAccess = _.uniq(_.pluck(_.filter(Memory.roomCache, (r) => r.owner && _.includes(FRIENDLIES, r.owner) && r.closestRange < 15), 'seasonDecoder'));
+                    if (_.includes(symbolAccess, worthyRooms[key].seasonDecoder)) continue;
                 }
                 // Prioritize your sector
                 if (sameSectorCheck(name, worthyRooms[key].closestRoom)) baseScore += 2000; else baseScore -= 500;
                 worthyRooms[key]["claimValue"] = baseScore;
                 possibles[key] = worthyRooms[key];
             }
-        let claimTarget = _.max(possibles, 'claimValue').name;
-        if (claimTarget) {
+        claimTarget = _.max(possibles, 'claimValue').name;
+    }
+    if (claimTarget) {
+        let limit = Game.gcl.level;
+        // Special novice/respawn zone cases
+        if (Game.map.getRoomStatus(Memory.myRooms[0]).status === 'novice') limit = 3;
+        if (limit <= Memory.myRooms.length || Memory.spawnIn + 7500 > Game.time || Memory.minLevel < 3 || _.filter(Memory.auxiliaryTargets, (t) => t && (t.type === 'claimScout' || t.type === 'claim'))[0]) {
+            if (Memory.nextClaim !== claimTarget) {
+                log.a('Next claim target set to ' + roomLink(claimTarget) + ' once available.', 'EXPANSION CONTROL: ');
+                Memory.nextClaim = claimTarget;
+            }
+        } else {
+            Memory.nextClaim = undefined;
             let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;
             cache[claimTarget] = {

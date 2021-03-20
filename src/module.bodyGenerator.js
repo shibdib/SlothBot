@@ -201,7 +201,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             carry = _.floor((energyAmount * 0.50) / BODYPART_COST[CARRY]) || 1;
             if (room.level >= 6 && carry > 32) carry = 32; else if (room.level < 6 && carry > 25) carry = 25;
             if (Game.getObjectById(creepInfo.misc)) if ((carry * 50) > (Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded - current)) carry = _.ceil((Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded - current) / 50)
-            if (room.level < 7) carry = carry * 0.33;
+            if (room.level < 8) carry = carry * 0.5;
             if (room.level >= 6) move = carry / 2; else move = carry;
             break;
         case 'roadBuilder':

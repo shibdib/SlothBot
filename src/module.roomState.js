@@ -44,12 +44,6 @@ module.exports.setRoomState = function (room) {
         let currentMinerals = Memory.ownedMinerals || [];
         currentMinerals.push(room.mineral.mineralType);
         Memory.ownedMinerals = _.uniq(currentMinerals);
-        // SEASON 2 store room symbol
-        if (Game.shard.name === 'shardSeason') {
-            let currentSymbols = Memory.ownedSymbols || [];
-            currentSymbols.push(room.decoder.resourceType);
-            Memory.ownedSymbols = _.uniq(currentSymbols);
-        }
         // Stats
         let stats = room.memory.stats || {};
         // Store ticks on rcl upgrade

@@ -11,6 +11,10 @@ module.exports.diplomacyOverlord = function () {
     friendlyListManagement();
     //Manage threats
     if (Game.time % 5 === 0 && Memory._userList) threatManager();
+    //Manage symbol list for seasonal
+    if (Game.shard.name === 'shardSeason' && Game.time % 1000 === 0) {
+        Memory.ownedSymbols = _.uniq(_.pluck(_.filter(Memory.roomCache, (r) => r.owner && _.includes(FRIENDLIES, r.owner) && r.closestRange < 15 && r.level >= 7), 'seasonDecoder'));
+    }
 };
 
 function threatManager() {
@@ -102,13 +106,17 @@ module.exports.trackThreat = function (creep) {
     // Handle damage
     if (!creep.memory._lastHits) return creep.memory._lastHits = creep.hits;
     if (creep.hits < creep.memory._lastHits) {
-        if (!Memory.roomCache[creep.room.name]) return;
+        if (!Memory.roomCache[creep.room.name]) creep.room.cacheRoomIntel();
         Memory.roomCache[creep.room.name].lastCombat = Game.time;
         if (creep.room.controller && ((creep.room.controller.owner && creep.room.controller.owner.username !== MY_USERNAME) || (creep.room.controller.reservation && creep.room.controller.reservation.username !== MY_USERNAME)) && creep.memory.destination !== creep.room.name) return false;
         let nearbyCreeps = _.uniq(_.pluck(_.filter(creep.room.creeps, (c) => ((c.getActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(creep) <= 3) || (c.getActiveBodyparts(ATTACK) && c.pos.isNearTo(creep))) && c.owner.username !== MY_USERNAME), 'owner.username'));
         if (nearbyCreeps.length) {
             for (let user of nearbyCreeps) {
-                if (user === MY_USERNAME || user === 'Source Keeper' || user === 'Invader') continue;
+                if (user === 'Source Keeper') {
+                    Memory.roomCache[creep.room.name].pathingPenalty = true;
+                    continue;
+                }
+                if (user === MY_USERNAME || user === 'Invader') continue;
                 // Handle taking damage near allies with other hostiles
                 if (nearbyCreeps.length > 1 && _.includes(FRIENDLIES, user)) continue;
                 let cache = Memory._userList || {};

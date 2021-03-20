@@ -22,10 +22,9 @@ module.exports.role = function role(creep) {
         return;
     }
     // Remove bad desto
-    if (Memory.roomCache[creep.memory.destination] && Memory.roomCache[creep.memory.destination].user && Memory.roomCache[creep.memory.destination].user !== MY_USERNAME) creep.memory.destination = undefined;
+    if ((Memory.roomCache[creep.memory.destination] && Memory.roomCache[creep.memory.destination].user && Memory.roomCache[creep.memory.destination].user !== MY_USERNAME) || !Memory.roomCache[creep.memory.destination]) return creep.memory.destination = undefined;
     // Handle movement
-    if (creep.pos.roomName !== creep.memory.destination && creep.room.routeSafe(creep.memory.destination)) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination, {range: 23}));
-    if (!creep.room.routeSafe(creep.memory.destination)) return creep.goToHub();
+    if (creep.pos.roomName !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination, {range: 23}));
     // Checks
     if (!creep.store[RESOURCE_ENERGY]) {
         creep.memory.working = undefined;

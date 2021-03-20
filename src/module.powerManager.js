@@ -10,7 +10,7 @@
  */
 
 module.exports.powerControl = function () {
-    let powerSpawns = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.power >= 1 && s.energy >= 50);
+    let powerSpawns = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.store[RESOURCE_POWER] >= 1 && s.store[RESOURCE_ENERGY] >= 50);
     if (powerSpawns.length) {
         for (let powerSpawn of powerSpawns) {
             powerSpawn.processPower();

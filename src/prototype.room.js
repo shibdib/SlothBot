@@ -345,8 +345,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     let room = Game.rooms[this.name];
     let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, towers,
         reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions, seasonResource,
-        seasonDecoder,
-        seasonCollector, swarm, structures, towerCount, sourceRating;
+        seasonResourceType,
+        seasonDecoder, seasonCollector, swarm, structures, towerCount, sourceRating;
     if (room) {
         if (Memory.roomCache[room.name]) lastOperation = Memory.roomCache[room.name].lastOperation;
         // Check for season resource
@@ -361,7 +361,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             }**/
                 // Season 2
             let container = room.find(FIND_SYMBOL_CONTAINERS)[0];
-            if (container) seasonResource = Game.time + container.ticksToDecay;
+            if (container) {
+                seasonResource = Game.time + container.ticksToDecay;
+                seasonResourceType = container.resourceType;
+            }
             if (this.decoder) {
                 seasonDecoder = this.decoder.resourceType;
             }
@@ -399,7 +402,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 }
                 let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
                 if (spawn) spawnLocation = JSON.stringify(spawn.pos);
-                towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10 && s.isActive());
+                towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] > 10 && s.isActive());
                 if (towers.length === 1 && !towers[0].pos.checkForRampart() && towers[0].pos.findClosestByPath(FIND_EXIT)) swarm = true;
             } else if (room.controller.reservation) {
                 reservation = room.controller.reservation.username;
@@ -487,6 +490,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             obstructions: obstructions,
             lastOperation: lastOperation,
             seasonResource: seasonResource,
+            seasonResourceType: seasonResourceType,
             seasonCollector: seasonCollector,
             seasonDecoder: seasonDecoder,
             invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,

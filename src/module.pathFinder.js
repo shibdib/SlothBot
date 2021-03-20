@@ -166,7 +166,6 @@ function shibMove(creep, heading, options = {}) {
         let nextDirection = parseInt(pathInfo.path[0], 10);
         if (nextDirection && pathInfo.newPos) {
             pathInfo.newPos = positionAtDirection(origin, nextDirection);
-            creep.memory._shibMove = pathInfo;
             if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName) {
                 // Handle tunneling thru walls/ramps
                 if (options.tunnel && pathInfo.path) {
@@ -185,6 +184,7 @@ function shibMove(creep, heading, options = {}) {
                 pathInfo.pathPos = creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName;
                 pathInfo.pathPosTime = 0;
             }
+            creep.memory._shibMove = pathInfo;
             switch (creep.move(nextDirection)) {
                 case OK:
                     creep.memory._shibMove.lastMoveTick = Game.time;
@@ -196,7 +196,7 @@ function shibMove(creep, heading, options = {}) {
                     break;
                 case ERR_BUSY:
                     creep.idleFor(10);
-                    break;
+                    return;
             }
         } else {
             delete pathInfo.path;
@@ -388,6 +388,8 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
                 if (Memory.roomCache[roomName].tempAvoid) {
                     if (Memory.roomCache[roomName].tempAvoid + 3000 > Game.time) return 256; else delete Memory.roomCache[roomName].tempAvoid;
                 }
+                // Pathing Penalty Rooms
+                if (Memory.roomCache[roomName].pathingPenalty) return 150;
                 // Highway
                 if (Memory.roomCache[roomName].isHighway) return 8;
                 // Avoid strongholds
@@ -401,7 +403,7 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
                 // If room is under attack
                 if (Memory.roomCache[roomName] && Memory.roomCache[roomName].hostilePower > Memory.roomCache[roomName].friendlyPower && Memory.roomCache[roomName].tickDetected + 150 > Game.time) return 100;
                 // SK rooms are avoided if not being mined
-                if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].mined + 50 < Game.time) return 50;
+                if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].mined + 150 < Game.time) return 50;
                 // Friendly Rooms
                 if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 10;
                 // Avoid rooms reserved by others
@@ -480,7 +482,7 @@ function getMatrix(roomName, creep, options) {
     let room = Game.rooms[roomName];
     let matrix = getTerrainMatrix(roomName, options);
     if (!options.ignoreStructures) matrix = getStructureMatrix(roomName, matrix, options);
-    if (!options.ignoreCreeps) matrix = getCreepMatrix(roomName, creep, matrix, options);
+    if (room && !options.ignoreCreeps) matrix = getCreepMatrix(roomName, creep, matrix, options);
     if (room && room.hostileCreeps.length && !creep.getActiveBodyparts(ATTACK) && !creep.getActiveBodyparts(RANGED_ATTACK)) matrix = getHostileMatrix(roomName, matrix, options);
     matrix = getSKMatrix(roomName, matrix, options);
     return matrix;
@@ -517,7 +519,7 @@ function addTerrainToMatrix(roomName, type, options) {
     let left = ((_.get(exits, LEFT, undefined) === undefined) ? 1 : 0);
     for (let y = top; y <= bottom; ++y) {
         for (let x = left; x <= right; x += ((y % 49 === 0) ? 1 : 49)) {
-            if (matrix.get(x, y) < 0x03 && Game.map.getRoomTerrain(roomName).get(x, y) !== TERRAIN_MASK_WALL) {
+            if (matrix.get(x, y) < 0x03 && terrain.get(x, y) !== TERRAIN_MASK_WALL) {
                 matrix.set(x, y, 0x03);
             }
         }

@@ -108,7 +108,7 @@ function depositEnergy(creep) {
                 return creep.transfer(container, RESOURCE_ENERGY);
             }
         }
-        if (link.energy < link.energyCapacity) {
+        if (link.store[RESOURCE_ENERGY] < LINK_CAPACITY) {
             linkContainerRotate = true;
             creep.transfer(link, RESOURCE_ENERGY);
         } else if (container && _.sum(container.store) >= 1900 && !extensionFiller(creep)) {
@@ -163,7 +163,7 @@ function extensionFiller(creep) {
             creep.memory.extensionsFound = undefined;
             return creep.memory.extensions = undefined;
         }
-        if (extension.energy < extension.energyCapacity) {
+        if (extension.store[RESOURCE_ENERGY] < EXTENSION_ENERGY_CAPACITY[creep.room.controller.level]) {
             creep.transfer(extension, RESOURCE_ENERGY);
             return true;
         }

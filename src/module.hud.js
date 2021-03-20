@@ -151,6 +151,14 @@ module.exports.hud = function () {
                 });
             }
         }
+        // Claim Target
+        if (Memory.nextClaim) {
+            Game.map.visual.text('Next Claim', new RoomPosition(5, 25, Memory.nextClaim), {
+                color: '#989212',
+                fontSize: 9,
+                align: 'left'
+            });
+        }
         // My rooms
         for (let room of Memory.myRooms) {
             Game.map.visual.text(_.capitalize(Game.rooms[room].mineral.mineralType), new RoomPosition(48, 48, room), {

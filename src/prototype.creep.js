@@ -246,7 +246,7 @@ Creep.prototype.locateEnergy = function () {
     }
     // Links
     let hubLink = Game.getObjectById(this.room.memory.hubLink);
-    if (hubLink && hubLink.energy && (hubLink.energy >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubLink.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5))) {
+    if (hubLink && hubLink.store[RESOURCE_ENERGY] && (hubLink.store[RESOURCE_ENERGY] >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubLink.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5))) {
         this.memory.energyDestination = hubLink.id;
         this.memory.findEnergyCountdown = undefined;
         return true;
@@ -271,7 +271,7 @@ Creep.prototype.locateEnergy = function () {
     //Links
     let links = this.pos.findClosestByRange(this.room.structures, {
         filter: (s) => s.structureType === STRUCTURE_LINK && this.room.memory.controllerLink !== s.id
-            && s.energy >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)
+            && s.store[RESOURCE_ENERGY] >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)
     });
     if (links) {
         this.memory.energyDestination = links.id;
@@ -331,13 +331,13 @@ Creep.prototype.haulerDelivery = function () {
     }
     //Tower
     if (Memory.roomCache[this.room.name].threatLevel) {
-        let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.85)[0];
+        let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.85)[0];
         if (tower) {
             this.memory.storageDestination = tower.id;
             return true;
         }
     } else {
-        let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.2)[0];
+        let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.2)[0];
         if (tower) {
             this.memory.storageDestination = tower.id;
             return true;
@@ -357,21 +357,21 @@ Creep.prototype.haulerDelivery = function () {
             return true;
         }
         //Labs
-        let lab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity &&
-            _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy)[0];
+        let lab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.store[RESOURCE_ENERGY] < LAB_ENERGY_CAPACITY &&
+            _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < LAB_ENERGY_CAPACITY - s.store[RESOURCE_ENERGY])[0];
         if (lab) {
             this.memory.storageDestination = lab.id;
             return true;
         }
         if (this.room.controller.level >= 8) {
             //Nuke
-            let nuke = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy < s.energyCapacity)[0];
+            let nuke = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_NUKER && s.store[RESOURCE_ENERGY] < NUKER_ENERGY_CAPACITY)[0];
             if (nuke && this.room.energy >= ENERGY_AMOUNT * 0.5) {
                 this.memory.storageDestination = nuke.id;
                 return true;
             }
             //Power Spawn
-            let power = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.energy < s.energyCapacity)[0];
+            let power = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.store.getFreeCapacity(RESOURCE_ENERGY))[0];
             if (power) {
                 this.memory.storageDestination = power.id;
                 return true;
@@ -379,7 +379,7 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
     //Top off towers
-    let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.9)[0];
+    let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.9)[0];
     if (tower) {
         this.memory.storageDestination = tower.id;
         return true;
@@ -696,7 +696,9 @@ Creep.prototype.borderCheck = function () {
             if (nextDirection && pathInfo.newPos && !positionAtDirection(origin, nextDirection).checkForImpassible()) {
                 switch (this.move(nextDirection)) {
                     case OK:
-                        pathInfo.pathPosTime = 0;
+                        this.memory._shibMove.pathPosTime = 0;
+                        this.memory._shibMove.lastMoveTick = Game.time;
+                        this.memory._shibMove.lastDirection = nextDirection;
                         break;
                     case ERR_TIRED:
                         break;
@@ -836,7 +838,7 @@ Creep.prototype.tryToBoost = function (boosts) {
             }
             // Find a lab to boost the creep if none exist, idle.
             if (!this.memory.boosts.boostLab || !Game.getObjectById(this.memory.boosts.boostLab).memory.neededBoost) {
-                let lab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.isActive() && s.energy > 0 &&
+                let lab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.isActive() && s.store[RESOURCE_ENERGY] > 0 &&
                     (s.mineralType === requestedBoost || !s.memory.creating) &&
                     (!s.memory.neededBoost || s.memory.neededBoost === requestedBoost))[0];
                 if (lab) {
@@ -864,7 +866,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                     this.say(ICONS.boost);
                     this.shibMove(lab);
                     return true;
-                } else if (lab.mineralType === lab.memory.neededBoost && lab.energy && lab.mineralAmount >= this.memory.boosts.requestedBoosts[requestedBoost]['amount']) {
+                } else if (lab.mineralType === lab.memory.neededBoost && lab.store[RESOURCE_ENERGY] && lab.mineralAmount >= this.memory.boosts.requestedBoosts[requestedBoost]['amount']) {
                     switch (lab.boostCreep(this)) {
                         case OK:
                             if (lab.memory.creating) lab.memory.neededBoost = undefined; else lab.memory = undefined;

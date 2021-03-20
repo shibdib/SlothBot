@@ -17,7 +17,7 @@ Creep.prototype.drainRoom = function () {
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
         this.scorchedEarth();
-        let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy >= 10);
+        let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= 10);
         if (!towers.length) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;

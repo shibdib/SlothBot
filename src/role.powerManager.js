@@ -18,7 +18,7 @@ module.exports.role = function (creep) {
     let powerSource, energySource;
     if (creep.room.storage.store[RESOURCE_POWER]) powerSource = creep.room.storage; else if (creep.room.terminal.store[RESOURCE_POWER]) powerSource = creep.room.terminal;
     if (creep.room.storage.store[RESOURCE_ENERGY]) energySource = creep.room.storage; else if (creep.room.terminal.store[RESOURCE_ENERGY]) energySource = creep.room.terminal;
-    if (creep.store[RESOURCE_ENERGY] && powerSpawn.energy < powerSpawn.energyCapacity) {
+    if (creep.store[RESOURCE_ENERGY] && powerSpawn.store[RESOURCE_ENERGY] < POWER_SPAWN_ENERGY_CAPACITY) {
         switch (creep.transfer(powerSpawn, RESOURCE_ENERGY)) {
             case OK:
                 return true;
@@ -54,7 +54,7 @@ module.exports.role = function (creep) {
         }
     } else if (creep.memory.energyDestination) {
         creep.withdrawResource();
-    } else if (energySource && powerSpawn.energy < 1000) {
+    } else if (energySource && powerSpawn.store[RESOURCE_ENERGY] < 1000) {
         switch (creep.withdraw(energySource, RESOURCE_ENERGY)) {
             case OK:
                 return true;
