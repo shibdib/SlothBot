@@ -90,7 +90,7 @@ module.exports.claimNewRoom = function () {
             if (Memory.nextClaim !== claimTarget) {
                 log.a('Next claim target set to ' + roomLink(claimTarget) + ' once available.', 'EXPANSION CONTROL: ');
                 Memory.nextClaim = claimTarget;
-            }
+            } else if (!Memory.roomCache[claimTarget] || Memory.roomCache[claimTarget].owner) Memory.nextClaim = undefined;
         } else {
             Memory.nextClaim = undefined;
             let cache = Memory.auxiliaryTargets || {};
