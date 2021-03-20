@@ -40,7 +40,7 @@ function manageBoostProduction(room) {
         if (boostList[key] === RESOURCE_GHODIUM && cutOff < 1000) cutOff = 1000;
         if (room.store(boostList[key], true) >= cutOff) continue;
         // Only one hub per output
-        if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === boostList[key]).length) continue;
+        //if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === boostList[key]).length) continue;
         // Check for inputs
         if (!checkForInputs(room, boostList[key])) continue;
         boost = boostList[key];
@@ -120,7 +120,7 @@ function manageActiveLabs() {
                     switch (outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]))) {
                         case OK:
                             // Check if we already have enough
-                            let cutOff = BOOST_AMOUNT;
+                            let cutOff = BOOST_AMOUNT * 1.5;
                             // Ghodium special case, always have 1k
                             if (outputLab.memory.creating === RESOURCE_GHODIUM && cutOff < 1000) cutOff = 1000;
                             if (_.includes(LAB_PRIORITY, outputLab.memory.creating)) cutOff = BOOST_AMOUNT * 5;
