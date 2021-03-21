@@ -396,9 +396,9 @@ function fillBuyOrders(terminal, globalOrders) {
 
 function balanceResources(terminal) {
     // Balance Energy
-    if (!Memory.roomCache[terminal.room.name].threatLevel && !terminal.room.nukes.length) {
+    if (!Memory.roomCache[terminal.room.name].threatLevel && !terminal.room.nukes.length && terminal.room.energyState) {
         // Find needy terminals
-        let needyTerminal = _.min(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && !r.room.energyState && Game.map.getRoomLinearDistance(r.room.name, terminal.room.name) <= 3
+        let needyTerminal = _.min(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.energy < ENERGY_AMOUNT * 0.15 && Game.map.getRoomLinearDistance(r.room.name, terminal.room.name) <= 3
             && r.room.energy < terminal.room.energy * 0.85 && !r.room.memory.praiseRoom && r.store.getFreeCapacity()), '.room.energy');
         if (needyTerminal.id) {
             // Determine how much you can move
@@ -410,15 +410,6 @@ function balanceResources(terminal) {
                 switch (terminal.send(RESOURCE_ENERGY, requestedAmount, needyTerminal.room.name)) {
                     case OK:
                         log.a('Balancing ' + requestedAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
-                        return true;
-                }
-            }
-        } else if (terminal.room.memory.praiseRoom) {
-            let availableAmount = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
-            if (availableAmount >= 1000) {
-                switch (terminal.send(RESOURCE_ENERGY, availableAmount, Memory.saleTerminal.room)) {
-                    case OK:
-                        log.a('Sent ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(Memory.saleTerminal.room) + ' From ' + roomLink(terminal.room.name) + ' to stockpile.', "Market: ");
                         return true;
                 }
             }
