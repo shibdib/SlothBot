@@ -249,7 +249,7 @@ module.exports.essentialCreepQueue = function (room) {
 module.exports.miscCreepQueue = function (room) {
     let level = getLevel(room);
     //Drones
-    if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL)[0]) {
+    if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL)[0]) {
         let number = 0;
         if (room.storage) number += _.floor(room.energy / 5000) || 1; else number = 6;
         if (number > 10 - level) number = 10 - level;

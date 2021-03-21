@@ -445,15 +445,19 @@ function rampartBuilder(room, layout = undefined, count = false) {
                     wallReplacement.destroy();
                 }
             } else {
-                if (JSON.parse(storedLayouts[room.name])) {
-                    for (let structure of _.filter(JSON.parse(storedLayouts[room.name]), (s) => s.structureType === STRUCTURE_TOWER)) {
-                        let pos = new RoomPosition(structure.x, structure.y, room.name);
-                        if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
-                            if (pos.createConstructionSite(structure.structureType) === OK) {
-                                break;
+                try {
+                    if (JSON.parse(storedLayouts[room.name])) {
+                        for (let structure of _.filter(JSON.parse(storedLayouts[room.name]), (s) => s.structureType === STRUCTURE_TOWER)) {
+                            let pos = new RoomPosition(structure.x, structure.y, room.name);
+                            if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
+                                if (pos.createConstructionSite(structure.structureType) === OK) {
+                                    break;
+                                }
                             }
                         }
                     }
+                } catch (e) {
+
                 }
             }
         }
