@@ -8,7 +8,8 @@ For discussion or support join the **#overlord-bot** channel on slack.
 _This was made as a way for me to learn JS, so excuse any horrible practices you may encounter. Slowly refactoring the really ugly stuff._
 
 ##Current Features
-- Supports both subscriptions and 10 CPU accounts
+- Supports both subscriptions and non sub accounts
+- Supports the season shard
 - Automated Room Building
 - Automated Room Claiming
 - Automated Room Defense
