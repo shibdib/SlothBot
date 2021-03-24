@@ -13,7 +13,7 @@ module.exports.diplomacyOverlord = function () {
     if (Game.time % 5 === 0 && Memory._userList) threatManager();
     //Manage symbol list for seasonal
     if (Game.shard.name === 'shardSeason' && Game.time % 1000 === 0) {
-        Memory.ownedSymbols = _.uniq(_.pluck(_.filter(Memory.roomCache, (r) => r.owner && _.includes(FRIENDLIES, r.owner) && r.closestRange < 15 && r.level >= 7), 'seasonDecoder'));
+        Memory.ownedSymbols = _.uniq(_.pluck(_.filter(Memory.roomCache, (r) => r.owner && _.includes(FRIENDLIES, r.owner) && r.closestRange < 15 && r.level >= SEASON_RCL_CUTOFF), 'seasonDecoder'));
     }
 };
 

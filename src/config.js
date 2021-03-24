@@ -23,6 +23,9 @@ global.OFFENSIVE_OPERATIONS = true; // Offensive Combat
 global.NCP_HOSTILE = true; // Always attack users of open source bots
 global.ATTACK_COOLDOWN = 4500; //Time between attacks on a room
 
+// Seasonal Specific
+global.SEASON_RCL_CUTOFF = 8; // Only score in rooms greater than or equal to this
+
 // Signing and whatnot
 global.OWNED_ROOM_SIGNS = ["~~~NO ENTRY~~~", "Full Auto Overlord Bot"];
 global.RESERVE_ROOM_SIGNS = ["~~This is a restricted area, violators will be attacked~~", "~~Exclusion Zone~~"];
