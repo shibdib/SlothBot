@@ -160,14 +160,10 @@ function manageActiveLabs() {
 }
 
 function checkForInputs(room, boost) {
-    let storage = room.storage;
-    let terminal = room.terminal;
     let components = BOOST_COMPONENTS[boost];
     if (!components || !components.length) return undefined;
     for (let input of shuffle(components)) {
-        let storageAmount = storage.store[input] || 0;
-        let terminalAmount = terminal.store[input] || 0;
-        if (storageAmount + terminalAmount < 100) return false;
+        if (room.store(input, true) < 25) return false;
     }
     return boost;
 }
