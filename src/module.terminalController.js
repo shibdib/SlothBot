@@ -264,8 +264,8 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
 function baseMineralOnDemandBuys(terminal, globalOrders) {
     for (let mineral of shuffle(BASE_MINERALS)) {
         // Don't buy minerals you can mine
+        if (_.includes(Memory.ownedMinerals, mineral)) continue;
         let target = reactionAmount * 0.8;
-        if (_.includes(Memory.ownedMinerals, mineral)) target = 150;
         let stored = terminal.room.store(mineral) || 0;
         if (stored < target) {
             let buyAmount = target - stored;
@@ -489,6 +489,7 @@ function balanceResources(terminal) {
         if (needyTerminal) {
             let neededAmount = (keepAmount - needyTerminal.room.store(resource));
             if (neededAmount < available) available = neededAmount;
+            if (available <= 25) continue;
             switch (terminal.send(resource, available, needyTerminal.room.name)) {
                 case OK:
                     log.a('Balancing ' + available + ' ' + resource + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");

@@ -230,7 +230,7 @@ module.exports.essentialCreepQueue = function (room) {
     let number;
     if (level < 8) {
         let container = Game.getObjectById(room.memory.controllerContainer);
-        if (container) number = 2 + room.energyState;
+        if (container) number = 3 + room.energyState;
         else number = 5;
     } else number = 1;
     if (getCreepCount(room, 'upgrader') < number) {
@@ -365,7 +365,7 @@ module.exports.miscCreepQueue = function (room) {
             }
             //Border Patrol
             if (room.memory.borderPatrol) {
-                if (!getCreepCount(room, 'longbow', undefined, 'borderPatrol') && !getCreepCount(undefined, 'longbow', room.memory.borderPatrol, 'borderPatrol')) {
+                if (!getCreepCount(room, 'longbow', undefined, 'borderPatrol')) {
                     queueCreep(room, PRIORITIES.high, {
                         role: 'longbow',
                         operation: 'borderPatrol',
