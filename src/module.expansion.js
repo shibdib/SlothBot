@@ -8,6 +8,7 @@
 module.exports.claimNewRoom = function () {
     if (Memory.tickCooldowns.expansionTick + 150 > Game.time) return;
     let claimTarget = Memory.nextClaim;
+    if (Math.random() > 0.75) claimTarget = undefined;
     Memory.tickCooldowns.expansionTick = Game.time;
     if (!claimTarget) {
         let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 3000 < Game.time) && r.hubCheck && r.closestRange <= 12 &&
