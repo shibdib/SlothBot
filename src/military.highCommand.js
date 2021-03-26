@@ -139,7 +139,7 @@ function manageMarauders(marauders) {
 function auxiliaryOperations() {
     let maxLevel = Memory.maxLevel;
     let initialFilter = _.filter(Memory.roomCache, (r) => r.name && !Memory.auxiliaryTargets[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && Game.map.getRoomLinearDistance(_.sample(Game.spawns).room.name, r.name) <= 12 && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !r.hostile);
-    if (maxLevel >= 6) {
+    if (Game.shard.name !== 'shardSeason' && maxLevel >= 6) {
         // Power Mining
         if (getResourceTotal(RESOURCE_POWER) < 10000 && maxLevel >= 7) {
             let powerRoom = _.min(_.filter(initialFilter, (r) => r.power && r.power + 1500 >= Game.time && r.closestRange <= 8), 'closestRange');
@@ -223,7 +223,8 @@ function auxiliaryOperations() {
             log.a('Score guard operation planned for ' + roomLink(scoreCollector.name) + ', Nearest Room - ' + scoreCollector.closestRange + ' rooms away', 'HIGH COMMAND: ');
         }**/
         if (maxLevel >= 4) {
-            let scoreRoom = _.min(_.filter(initialFilter, (r) => r.seasonResource > Game.time && r.closestRange <= r.seasonResource / 50 && r.reservation !== MY_USERNAME && getResourceTotal(r.seasonResourceType) < 10000), 'closestRange');
+            let scoreRoom = _.min(_.filter(initialFilter, (r) => r.seasonResource > Game.time && r.closestRange <= r.seasonResource / 50 && r.reservation !== MY_USERNAME &&
+                ((Memory.ownedSymbols && Memory.ownedSymbols.includes(r.seasonResourceType) && getResourceTotal(r.seasonResourceType) < 25000) || getResourceTotal(r.seasonResourceType) < 2500)), 'closestRange');
             let scoreMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'score').length || 0;
             if (scoreRoom.name && scoreMining < 10) {
                 let cache = Memory.auxiliaryTargets || {};
@@ -576,13 +577,16 @@ function manageAuxiliary() {
                     log.a('Canceling auxiliary operation in ' + roomLink(key) + ' as the container has expired.', 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
                     continue;
-                }/** Season 1
-             else if (getResourceTotal(RESOURCE_SCORE) > 100000) {
+                }
+                /** Season 1
+                 else if (getResourceTotal(RESOURCE_SCORE) > 100000) {
                     log.a('Canceling auxiliary operation in ' + roomLink(key) + ' as we hit our stored score cap.', 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
                     continue;
                 }**/
-                if (getResourceTotal(Memory.roomCache[key].seasonResourceType) > 10000) {
+                let cutOff = 2500;
+                if (Memory.ownedSymbols && Memory.ownedSymbols.includes(Memory.roomCache[key].seasonResourceType)) cutOff = 25000;
+                if (getResourceTotal(Memory.roomCache[key].seasonResourceType) > cutOff) {
                     log.a('Canceling auxiliary operation in ' + roomLink(key) + ' as we hit our stored score cap for.' + Memory.roomCache[key].seasonResource, 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
                     continue;

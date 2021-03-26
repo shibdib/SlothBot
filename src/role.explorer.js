@@ -13,6 +13,11 @@ module.exports.role = function (creep) {
     creep.say(ICONS.eye, true);
     Game.map.visual.text(ICONS.eye, creep.pos, {color: '#FF0000', fontSize: 2});
     creep.room.cacheRoomIntel();
+    // Handle season highway wall
+    if (Memory.roomCache[creep.room.name].isHighway && Game.shard.name === 'shardSeason') {
+        let noPath = _.filter(Game.map.describeExits(creep.room.name), (r) => !creep.pos.findClosestByPath(Game.map.findExit(creep.room.name, r)))[0];
+        if (!noPath) Memory.roomCache[creep.room.name].seasonHighwayPath = true;
+    }
     // Set destination
     if (!creep.memory.destination) {
         let portal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL)[0];

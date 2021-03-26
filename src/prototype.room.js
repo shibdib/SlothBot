@@ -344,11 +344,14 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     let room = Game.rooms[this.name];
     let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, towers,
-        reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions, seasonResource,
-        seasonResourceType,
-        seasonDecoder, seasonCollector, swarm, structures, towerCount, sourceRating;
+        reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions, seasonResource, isHighway,
+        seasonResourceType, seasonDecoder, seasonCollector, seasonHighwayPath, swarm, structures, towerCount,
+        sourceRating;
     if (room) {
-        if (Memory.roomCache[room.name]) lastOperation = Memory.roomCache[room.name].lastOperation;
+        if (Memory.roomCache[room.name]) {
+            seasonHighwayPath = Memory.roomCache[room.name].seasonHighwayPath;
+            lastOperation = Memory.roomCache[room.name].lastOperation;
+        }
         // Check for season resource
         if (Game.shard.name === 'shardSeason') {
             /** Season 1
@@ -463,6 +466,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 sourceRating[source.id] = distanceToExit + (roomRange * 50);
             }
         }
+        let isHighway = !room.controller && !sk && !room.sources.length;
         let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR);
         if (towers) towerCount = towers.length;
         if (worthyStructures) structures = worthyStructures.length
@@ -482,7 +486,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             safemode: safemode,
             portal: portal,
             power: power,
-            isHighway: !room.controller && !sk && !room.sources.length,
+            isHighway: isHighway,
             closestRange: closestRange,
             closestRoom: this.findClosestOwnedRoom(),
             hubCheck: hubCheck,
@@ -492,6 +496,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             seasonResource: seasonResource,
             seasonResourceType: seasonResourceType,
             seasonCollector: seasonCollector,
+            seasonHighwayPath: seasonHighwayPath,
             seasonDecoder: seasonDecoder,
             invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,
             towers: towerCount,

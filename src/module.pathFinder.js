@@ -369,7 +369,7 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
     if (portalRoom) portalRoute = pathFunction(origin, portalRoom.name, roomDistance)
     if (portalRoute) start = JSON.parse(Memory.roomCache[portalRoom.name].portal)[0].destination.roomName; else start = origin;
     let routeSearch = Game.map.findRoute(start, destination, {
-        routeCallback: function (roomName) {
+        routeCallback: function (roomName, fromRoomName) {
             // Skip origin/destination
             if (roomName === origin || roomName === destination) return 1;
             // Regex highway check
@@ -384,6 +384,10 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
             // Check for avoid flagged rooms
             if (Memory.avoidRooms && _.includes(_.union(Memory.avoidRooms, tempAvoidRooms), roomName)) return 254;
             if (Memory.roomCache && Memory.roomCache[roomName]) {
+                // Season check for barrier highway
+                if (Game.shard.name === 'shardSeason' && !sameSectorCheck(origin, destination) && Memory.roomCache[roomName].isHighway) {
+                    if (Memory.roomCache[roomName].seasonHighwayPath) return 1; else return 255;
+                }
                 // Temp avoid
                 if (Memory.roomCache[roomName].tempAvoid) {
                     if (Memory.roomCache[roomName].tempAvoid + 3000 > Game.time) return 256; else delete Memory.roomCache[roomName].tempAvoid;
@@ -391,7 +395,7 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
                 // Pathing Penalty Rooms
                 if (Memory.roomCache[roomName].pathingPenalty) return 150;
                 // Highway
-                if (Memory.roomCache[roomName].isHighway) return 8;
+                if (Memory.roomCache[roomName].isHighway) return 5;
                 // Avoid strongholds
                 if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].towers) return 256;
                 // Avoid rooms owned by others

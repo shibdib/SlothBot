@@ -13,7 +13,7 @@ module.exports.cleanup = function () {
         //cleanRouteCacheByAge();
         cleanRouteCacheByUsage();
         cleanConstructionSites();
-        cleanRoomIntel();
+        //cleanRoomIntel();
         cleanStructureMemory();
         cleanStructures();
     }
