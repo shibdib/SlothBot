@@ -86,7 +86,7 @@ function manageActiveLabs() {
     if (activeLabs.length) {
         active:
             for (let key in activeLabs) {
-                let hub = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.room.name === activeLabs[key].room.name && s.memory.creating === activeLabs[key].memory.creating && s.memory.active && s.pos.isNearTo(activeLabs[key]));
+                let hub = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.room.name === activeLabs[key].room.name && s.memory.creating === activeLabs[key].memory.creating && s.memory.active && s.pos.getRangeTo(activeLabs[key]) <= 2);
                 let outputLab = Game.getObjectById(_.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id')[0]);
                 if (!outputLab) {
                     for (let id in hub) {
