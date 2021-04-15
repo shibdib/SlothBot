@@ -14,6 +14,7 @@ Creep.prototype.borderPatrol = function () {
     this.attackInRange();
     // Handle healing
     this.healInRange();
+    if (!this.canIWin(4)) return this.shibKite();
     if (!this.memory.other.responseTarget) {
         // Check neighbors
         let adjacent = _.filter(Game.map.describeExits(this.pos.roomName), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel)[0] || _.filter(Game.map.describeExits(this.pos.roomName), (r) => Memory.roomCache[r] && Memory.roomCache[r].roomHeat)[0];

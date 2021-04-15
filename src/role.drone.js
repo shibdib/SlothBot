@@ -17,6 +17,8 @@ module.exports.role = function role(creep) {
     if (creep.memory.destination && creep.room.name !== creep.memory.destination && !creep.memory.remoteMining) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
     }
+    // If no work parts, useless so suicide
+    if (!creep.getActiveBodyparts(WORK)) return creep.suicide();
     // Checks
     if (creep.isFull) {
         creep.memory.source = undefined;

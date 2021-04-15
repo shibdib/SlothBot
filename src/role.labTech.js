@@ -13,7 +13,7 @@ module.exports.role = function (creep) {
     //INITIAL CHECKS
     if (creep.wrongRoom()) return;
     // Hauler mode
-    if ((creep.memory.haulerMode && creep.memory.haulerMode + 25 > Game.time) || creep.store[RESOURCE_ENERGY]) {
+    if ((creep.memory.haulerMode && creep.memory.haulerMode + 25 > Game.time)) {
         let haulerRole = require('role.hauler');
         return haulerRole.role(creep);
     }
@@ -53,7 +53,7 @@ function getResource(creep) {
     let storageSite;
     if (creep.room.terminal && creep.room.terminal.store[creep.memory.resourceNeeded]) storageSite = creep.room.terminal;
     if (creep.room.storage && creep.room.storage.store[creep.memory.resourceNeeded]) storageSite = creep.room.storage;
-    if (creep.room.factory && creep.room.factory.store[creep.memory.resourceNeeded]) storageSite = creep.room.factory;
+    if (creep.room.factory && creep.room.factory.store[creep.memory.resourceNeeded] && creep.memory.deliverTo !== creep.room.factory.id) storageSite = creep.room.factory;
     if (creep.memory.withdrawFrom) {
         if (!Game.getObjectById(creep.memory.withdrawFrom) || !Game.getObjectById(creep.memory.withdrawFrom).store[creep.memory.resourceNeeded]) creep.memory.withdrawFrom = undefined; else storageSite = Game.getObjectById(creep.memory.withdrawFrom);
     }

@@ -246,7 +246,7 @@ Creep.prototype.locateEnergy = function () {
     }
     // Links
     let hubLink = Game.getObjectById(this.room.memory.hubLink);
-    if (hubLink && hubLink.store[RESOURCE_ENERGY] && (hubLink.store[RESOURCE_ENERGY] >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubLink.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5))) {
+    if (hubLink && hubLink.store[RESOURCE_ENERGY]) {
         this.memory.energyDestination = hubLink.id;
         this.memory.findEnergyCountdown = undefined;
         return true;
@@ -331,7 +331,7 @@ Creep.prototype.haulerDelivery = function () {
     }
     //Tower
     if (Memory.roomCache[this.room.name].threatLevel) {
-        let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.85)[0];
+        let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.75)[0];
         if (tower) {
             this.memory.storageDestination = tower.id;
             return true;

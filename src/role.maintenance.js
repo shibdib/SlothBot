@@ -102,5 +102,7 @@ function wallMaintainer(creep) {
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(target, {range: 3})
         }
+    } else {
+        creep.idleFor(25);
     }
 }

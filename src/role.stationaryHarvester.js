@@ -179,7 +179,7 @@ function harvestDepositLink(creep) {
     let link = _.filter(source.pos.findInRange(FIND_MY_STRUCTURES, 2), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0] || _.filter(creep.pos.findInRange(FIND_MY_STRUCTURES, 1), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
     if (link) {
         if (!link.isActive()) return link.destroy();
-        if (!link.pos.checkForRampart() && !link.pos.checkForConstructionSites()) link.pos.createConstructionSite(STRUCTURE_RAMPART);
+        if (!link.pos.checkForRampart() && !link.pos.checkForConstructionSites() && !link.pos.isInBunker()) link.pos.createConstructionSite(STRUCTURE_RAMPART);
         if (creep.pos.getRangeTo(link) <= 1) {
             return link.id;
         } else if (creep.pos.getRangeTo(link) <= 3) {
@@ -224,7 +224,7 @@ function harvestDepositContainer(source, creep) {
     creep.memory.containerAttempt = true;
     let container = source.pos.findInRange(creep.room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.room.controller)})[0];
     if (container) {
-        if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
+        if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites() && !container.pos.isInBunker()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
         if (!source.memory.containerPos) source.memory.containerPos = JSON.stringify(container.pos);
         return container.id;
     } else {

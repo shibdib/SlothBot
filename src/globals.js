@@ -27,10 +27,12 @@ let globals = function () {
 
     global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
     global.STATUS_COOLDOWN = 180; // Seconds between console status reports
-    global.ROOM_ABANDON_THRESHOLD = 7250; // If bucket is consistently below this, abandon your lowest room
+    global.ROOM_ABANDON_THRESHOLD = 9900; // If bucket is consistently below this, abandon your lowest room
     global.SIGN_CLEANER = false; // Clean room signs away with explorers
+    global.AVOID_ALLIED_SECTORS = true; // Dont claim rooms in allied sectors
+    global.REMOTE_SOURCE_SCORE = 75; // Set the score for remote sources to be mined (higher means more sources but further)
 
-    // Energy income breakdown
+    // Energy income breakdown (Not used atm)
     global.ROOM_ENERGY_ALLOTMENT = {
         'store': 0.2,
         'upgrade': 0.55,

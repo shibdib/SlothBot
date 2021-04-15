@@ -226,7 +226,7 @@ function auxiliaryOperations() {
             let scoreRoom = _.min(_.filter(initialFilter, (r) => r.seasonResource > Game.time && r.closestRange <= r.seasonResource / 50 && r.reservation !== MY_USERNAME &&
                 ((Memory.ownedSymbols && Memory.ownedSymbols.includes(r.seasonResourceType) && getResourceTotal(r.seasonResourceType) < 25000) || getResourceTotal(r.seasonResourceType) < 2500)), 'closestRange');
             let scoreMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'score').length || 0;
-            if (scoreRoom.name && scoreMining < 10) {
+            if (scoreRoom.name && scoreMining < 3) {
                 let cache = Memory.auxiliaryTargets || {};
                 let tick = Game.time;
                 cache[scoreRoom.name] = {
@@ -237,6 +237,20 @@ function auxiliaryOperations() {
                 };
                 Memory.auxiliaryTargets = cache;
                 log.a('Resource Claiming operation planned for ' + roomLink(scoreRoom.name) + ' suspected score container location, Nearest Room - ' + scoreRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
+            }
+            // Guard highway cracks
+            let highwayCracks = _.min(_.filter(Memory.roomCache, (r) => r.seasonHighwayPath && r.closestRange < 7 && !Memory.targetRooms[r.name]), 'closestRange');
+            if (highwayCracks.name) {
+                let cache = Memory.targetRooms || {};
+                let tick = Game.time;
+                cache[highwayCracks.name] = {
+                    tick: tick,
+                    type: 'guard',
+                    level: 1,
+                    priority: PRIORITIES.secondary
+                };
+                Memory.targetRooms = cache;
+                log.a('Highway Guard operation planned for ' + roomLink(highwayCracks.name) + ', Nearest Room - ' + highwayCracks.closestRange + ' rooms away', 'HIGH COMMAND: ');
             }
         }
     }
@@ -737,6 +751,12 @@ function manualAttacks() {
             cache[Game.flags[name].pos.roomName] = {
                 type: 'scoreCleaner'
             };
+        }
+        // Season alley flagging
+        if (_.startsWith(name, 'alley')) {
+            if (!Memory.roomCache[Game.flags[name].pos.roomName]) Memory.roomCache[Game.flags[name].pos.roomName] = {};
+            Memory.roomCache[Game.flags[name].pos.roomName].seasonHighwayPath = true;
+            return Game.flags[name].remove();
         }
         // Abandon a room
         if (_.startsWith(name, 'abandon')) {

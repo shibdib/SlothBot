@@ -341,7 +341,7 @@ function getRoomResource(room, resource, unused = false) {
 }
 
 Room.prototype.cacheRoomIntel = function (force = false) {
-    if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
+    if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + (CREEP_LIFE_TIME * 0.5) > Game.time) return;
     let room = Game.rooms[this.name];
     let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, towers,
         reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions, seasonResource, isHighway,

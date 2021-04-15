@@ -27,6 +27,8 @@ module.exports.claimNewRoom = function () {
                     let distance = Game.map.getRoomLinearDistance(name, avoidName)
                     if (distance <= 2) distance = Game.map.findRoute(name, avoidName).length;
                     if (distance <= 2) continue worthy; else if (distance === 3) baseScore += 1000; else if (distance < 6) baseScore += 100; else if (distance > 20) continue worthy; else baseScore -= 1000;
+                    // Sector check for allies
+                    if (AVOID_ALLIED_SECTORS && sameSectorCheck(name, avoidName)) continue worthy;
                 }
                 // Remote access
                 let neighboring = Game.map.describeExits(name);
@@ -87,6 +89,7 @@ module.exports.claimNewRoom = function () {
         let limit = Game.gcl.level;
         // Special novice/respawn zone cases
         if (Game.map.getRoomStatus(Memory.myRooms[0]).status === 'novice') limit = 3;
+        if (Game.cpu.bucket < BUCKET_MAX) limit = 1;
         if (limit <= Memory.myRooms.length || Memory.spawnIn + 7500 > Game.time || Memory.minLevel < 3 || _.filter(Memory.auxiliaryTargets, (t) => t && (t.type === 'claimScout' || t.type === 'claim'))[0]) {
             if (Memory.nextClaim !== claimTarget) {
                 log.a('Next claim target set to ' + roomLink(claimTarget) + ' once available.', 'EXPANSION CONTROL: ');

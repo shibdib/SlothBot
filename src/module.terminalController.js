@@ -77,8 +77,6 @@ module.exports.terminalControl = function (room) {
     //Buy Energy
     if (BUY_ENERGY && buyEnergy(room.terminal, globalOrders)) return;
     if (room.energyState) {
-        //Send energy to rooms under siege
-        if (emergencyEnergy(room.terminal)) return;
         if (room.name === Memory.saleTerminal.room && spendingMoney > 0) {
             //Buy resources being sold at below market value
             //if (dealFinder(room.terminal, globalOrders)) return;
@@ -86,6 +84,8 @@ module.exports.terminalControl = function (room) {
             if (buyPower(room.terminal, globalOrders)) return;
         }
     }
+    //Send energy to rooms under siege
+    if (emergencyEnergy(room.terminal)) return;
     //Dump Excess
     if (fillBuyOrders(room.terminal, globalOrders)) return;
     //Disperse Minerals and Boosts
@@ -468,8 +468,7 @@ function balanceResources(terminal) {
         }
         // Keep reaction amount
         if (_.includes(BASE_MINERALS, resource)) {
-            let lab = _.filter(terminal.room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
-            if (lab) keepAmount = REACTION_AMOUNT; else keepAmount = 0;
+            keepAmount = REACTION_AMOUNT;
         }
         // Keep 5000 compressed
         if (_.includes(COMPRESSED_COMMODITIES, resource)) {
@@ -482,7 +481,7 @@ function balanceResources(terminal) {
         if (available > terminal.store[resource]) available = terminal.store[resource];
         if (available <= keepAmount * 0.1 || available < 100) continue;
         // Find room in need
-        let needyTerminal = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && !r.room.nukes.length && r.room.name !== terminal.room.name && r.room.store(resource) < 25 && Game.map.getRoomLinearDistance(r.room.name, terminal.room.name) <= 3
+        let needyTerminal = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && !r.room.nukes.length && r.room.name !== terminal.room.name && r.room.store(resource) < 25 && Game.map.getRoomLinearDistance(r.room.name, terminal.room.name) <= 10
             && r.store.getFreeCapacity()), function (s) {
             s.room.store(resource);
         })[0];
@@ -522,11 +521,11 @@ function emergencyEnergy(terminal) {
                     return true;
             }
         }
-    } else if (Memory.roomCache[terminal.room.name].requestingSupport && terminal.room.energy < ENERGY_AMOUNT * 2 && Game.market.credits >= CREDIT_BUFFER * 0.25) {
+    } else if ((Memory.roomCache[terminal.room.name].requestingSupport || terminal.room.nukes.length) && terminal.room.energy < ENERGY_AMOUNT * 0.5 && Game.market.credits >= CREDIT_BUFFER * 0.25) {
         let sellOrder = _.min(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY && order.type === ORDER_SELL && order.remainingAmount >= 10000), 'price');
         if (sellOrder.id && sellOrder.price * 10000 < Game.market.credits * 0.1) {
             if (Game.market.deal(sellOrder.id, 10000, terminal.pos.roomName) === OK) {
-                log.w("Bought " + 10000 + " " + RESOURCE_ENERGY + " for " + (sellOrder.price * 10000) + " credits", "Market: ");
+                log.w('Siege Supplies ' + roomLink(terminal.room.name) + " Bought " + 10000 + " " + RESOURCE_ENERGY + " for " + (sellOrder.price * 10000) + " credits", "Market: ");
                 return true;
             }
         }

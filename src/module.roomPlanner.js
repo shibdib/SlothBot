@@ -194,7 +194,7 @@ function controllerBuilder(room) {
                 break;
             }
         } else {
-            if (!controllerLink.pos.checkForRampart()) controllerLink.pos.createConstructionSite(STRUCTURE_RAMPART);
+            if (!controllerLink.pos.checkForRampart() && !controllerLink.pos.isInBunker()) controllerLink.pos.createConstructionSite(STRUCTURE_RAMPART);
             room.memory.controllerLink = controllerLink.id;
         }
     }
@@ -905,7 +905,5 @@ let protectedStructureTypes = [
     STRUCTURE_POWER_SPAWN,
     STRUCTURE_TERMINAL,
     STRUCTURE_NUKER,
-    STRUCTURE_OBSERVER,
-    STRUCTURE_LINK,
-    STRUCTURE_LAB
+    STRUCTURE_OBSERVER
 ];

@@ -31,13 +31,11 @@ module.exports.factoryControl = function (room) {
                     log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to being low on energy.', ' FACTORY CONTROL:');
                     return delete room.factory.memory.producing;
                 }
-                if (Math.random() > 0.5) {
-                    for (let neededResource of Object.keys(COMMODITIES[room.factory.memory.producing].components)) {
-                        if (room.store(neededResource) < COMMODITIES[room.factory.memory.producing].components[neededResource] ||
-                            _.includes(BASE_MINERALS, neededResource) && room.store(neededResource) < REACTION_AMOUNT * 0.3) {
-                            log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to a shortage of ' + neededResource, ' FACTORY CONTROL:');
-                            return delete room.factory.memory.producing;
-                        }
+                for (let neededResource of Object.keys(COMMODITIES[room.factory.memory.producing].components)) {
+                    if (room.store(neededResource) < COMMODITIES[room.factory.memory.producing].components[neededResource] ||
+                        _.includes(BASE_MINERALS, neededResource) && room.store(neededResource) < REACTION_AMOUNT * 0.7) {
+                        log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to a shortage of ' + neededResource, ' FACTORY CONTROL:');
+                        return delete room.factory.memory.producing;
                     }
                 }
             } else if (room.store(RESOURCE_ENERGY) > ENERGY_AMOUNT * 1.5 || room.store(RESOURCE_BATTERY) < 50) {

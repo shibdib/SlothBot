@@ -35,24 +35,13 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         case 'praiseMineral':
         case 'drone':
         case 'waller':
-            deficitExemption = true;
+        case 'maintenance':
+            if (role === 'drone') deficitExemption = true;
             work = _.floor((energyAmount * 0.25) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
             carry = _.floor((energyAmount * 0.2) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
             move = work + carry;
-            break;
-        case 'maintenance':
-            work = 1;
-            carry = 1;
-            move = work + carry;
-            break;
-        case 'praiseUpgrader':
-            deficitExemption = true;
-            work = _.floor(((energyAmount * 0.70) - 100) / BODYPART_COST[WORK]) || 1;
-            if (work > 10) work = 10;
-            carry = 1;
-            move = 1;
             break;
         case 'upgrader':
             if (room.nukes.length) {
@@ -69,7 +58,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
                 work = _.floor((energyAmount - 100) / BODYPART_COST[WORK]) || 1;
                 if (work > 48) work = 48;
                 if (level === 8) work = 15;
-                //work *= deficit;
                 move = 1;
                 carry = 1;
                 break;
@@ -132,7 +120,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
                 attack = 1;
                 move = 1;
             } else {
-                if (Math.random() > 0.49 || level < 5) attack = _.floor(energyAmount / (BODYPART_COST[ATTACK] + (BODYPART_COST[MOVE] * 0.5))) || 1; else rangedAttack = _.floor(energyAmount / (BODYPART_COST[RANGED_ATTACK] + (BODYPART_COST[MOVE] * 0.5))) || 1;
+                if (Math.random() > 0.49 || level < 5) attack = _.floor(energyAmount / (BODYPART_COST[ATTACK] + (BODYPART_COST[MOVE] * 0.3))) || 1; else rangedAttack = _.floor(energyAmount / (BODYPART_COST[RANGED_ATTACK] + (BODYPART_COST[MOVE] * 0.3))) || 1;
                 if (attack > 32) attack = 32; else if (rangedAttack > 32) rangedAttack = 32;
                 if (attack) move = attack * 0.5; else if (rangedAttack) move = rangedAttack * 0.5;
             }
@@ -180,6 +168,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             move = 2;
             break;
         case 'reserver':
+            deficitExemption = true;
             claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
             if (level >= 6) {
                 claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
@@ -201,7 +190,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             carry = _.floor((energyAmount * 0.50) / BODYPART_COST[CARRY]) || 1;
             if (room.level >= 6 && carry > 32) carry = 32; else if (room.level < 6 && carry > 25) carry = 25;
             if (Game.getObjectById(creepInfo.misc)) if ((carry * 50) > (Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded - current)) carry = _.ceil((Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded - current) / 50)
-            if (room.level < 8) carry = carry * 0.5;
+            if (room.level < 7) carry = carry * 0.5;
             if (room.level >= 6) move = carry / 2; else move = carry;
             break;
         case 'roadBuilder':

@@ -7,7 +7,7 @@
 
 const DEFAULT_MAXOPS = 5000;
 const STATE_STUCK = 2;
-const FLEE_RANGE = 4;
+const FLEE_RANGE = 3;
 
 const terrainMatrixCache = {};
 const structureMatrixCache = {};
@@ -55,7 +55,7 @@ function shibMove(creep, heading, options = {}) {
     }
 
     // If tunneling up the ops
-    if (options.tunnel) options.maxOps = 7000;
+    if (options.tunnel) options.maxOps = 15000;
 
     // Show matrix
     if (options.showMatrix) return getMatrix(creep.room.name, creep, options)
@@ -238,6 +238,8 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         pathInfo.usingCached = undefined;
         let allowedRooms = pathInfo.route || options.route;
         if (roomDistance) {
+            options.maxRooms = 25;
+            options.maxOps = DEFAULT_MAXOPS * 2;
             let route = findRoute(origin.roomName, target.roomName, options);
             if (portal) {
                 creep.memory.portal = portal;
@@ -247,7 +249,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 if (!_.includes(route, creep.room.name)) route.unshift(creep.room.name);
                 allowedRooms = route;
                 pathInfo.route = route;
-                options.maxRooms = route.length + 2
             } else {
                 let exitDir = Game.map.findExit(origin.roomName, pathInfo.targetRoom);
                 if (exitDir === ERR_NO_PATH) {
@@ -262,7 +263,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 delete pathInfo.path;
                 options.useFindRoute = false;
                 options.range = 0;
-                options.maxRooms = 1;
                 return shibPath(creep, target, pathInfo, origin, target, options);
             }
         }
@@ -281,11 +281,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             options.range = 23;
             if (!pathInfo.findAttempt && roomDistance) {
                 options.useFindRoute = true;
-                options.maxRooms = 16;
                 pathInfo.findAttempt = true;
-                let ops = (DEFAULT_MAXOPS + 500) * (roomDistance + 1);
-                if (ops > 7500) ops = 7500;
-                options.maxOps = (DEFAULT_MAXOPS + 500) * ops;
                 if (origin.roomName !== target.roomName) deleteRoute(origin.roomName, target.roomName);
                 creep.memory._pathCache = undefined;
                 //log.e("PATHING ERROR: Creep " + creep.name + " could not find a path from " + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + " retrying.");
@@ -375,6 +371,8 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
             // Regex highway check
             let [EW, NS] = roomName.match(/\d+/g);
             let isAlleyRoom = EW % 10 == 0 || NS % 10 == 0;
+            [EW, NS] = fromRoomName.match(/\d+/g);
+            let comingFromAlley = EW % 10 == 0 || NS % 10 == 0;
             // Add a check for novice/respawn
             if (!isAlleyRoom && Game.map.getRoomStatus(roomName).status !== Game.map.getRoomStatus(origin).status) return 256;
             // room is too far out of the way
@@ -385,8 +383,8 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
             if (Memory.avoidRooms && _.includes(_.union(Memory.avoidRooms, tempAvoidRooms), roomName)) return 254;
             if (Memory.roomCache && Memory.roomCache[roomName]) {
                 // Season check for barrier highway
-                if (Game.shard.name === 'shardSeason' && !sameSectorCheck(origin, destination) && Memory.roomCache[roomName].isHighway) {
-                    if (Memory.roomCache[roomName].seasonHighwayPath) return 1; else return 255;
+                if (Game.shard.name === 'shardSeason' && !sameSectorCheck(origin, destination) && isAlleyRoom) {
+                    if (Memory.roomCache[roomName].seasonHighwayPath) return 1; else return 256;
                 }
                 // Temp avoid
                 if (Memory.roomCache[roomName].tempAvoid) {
@@ -494,8 +492,7 @@ function getMatrix(roomName, creep, options) {
 
 function getTerrainMatrix(roomName, options) {
     let type = 1;
-    if (options.ignoreRoads) type = 2; else if (options.offRoad) type = 3;
-    if (options.tunnel) type = 4;
+    if (options.ignoreRoads) type = 2; else if (options.offRoad || options.tunnel) type = 3;
     if (!terrainMatrixCache[roomName + type] || options.showMatrix) {
         terrainMatrixCache[roomName + type] = addTerrainToMatrix(roomName, type, options).serialize();
     }
@@ -556,7 +553,7 @@ function getStructureMatrix(roomName, matrix, options) {
 
 function addStructuresToMatrix(room, matrix, type, options) {
     if (!room) return matrix;
-    let roadCost = type === 4 ? 0 : type === 3 ? 2 : type === 2 ? 2 : 1;
+    let roadCost = type === 4 ? 1 : type === 3 ? 2 : type === 2 ? 2 : 1;
     for (let structure of room.structures) {
         if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
@@ -598,7 +595,7 @@ function addStructuresToMatrix(room, matrix, type, options) {
         if (barriers.length) {
             let maxHp = _.max(barriers, 'hits').hits;
             for (let s of barriers) {
-                matrix.set(s.pos.x, s.pos.y, _.floor((s.hits / maxHp) * 100));
+                matrix.set(s.pos.x, s.pos.y, _.floor((s.hits / maxHp) * 50));
                 if (options.showMatrix) new RoomVisual(room.name).text(_.floor((s.hits / maxHp) * 100), s.pos.x, s.pos.y, {
                     color: 'white',
                     font: 0.4

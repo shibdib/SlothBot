@@ -99,7 +99,6 @@ module.exports.role = function (creep) {
                     let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === h.id);
                     let current = 0;
                     if (assignedHaulers.length) {
-                        if (Game.rooms[creep.memory.overlord].level >= 8) continue;
                         assignedHaulers.forEach((c) => current += c.store.getCapacity())
                         if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 2) continue;
                     }
