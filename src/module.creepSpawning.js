@@ -552,7 +552,7 @@ module.exports.remoteCreepQueue = function (room) {
             // Remote Hauler (determined based on range)
             let harvesters = _.filter(Game.creeps, (c) => c.my && c.memory.overlord === room.name && c.memory.role === 'remoteHarvester' && c.memory.carryAmountNeeded && !Memory.roomCache[c.memory.destination].threatLevel);
             for (let creep of harvesters) {
-                let assignedHaulers = _.filter(Game.creeps, (c) => c.my && (c.memory.misc === creep.id || !c.memory.misc || !Game.getObjectById(c.memory.misc)));
+                let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creep.id);
                 let current = 0;
                 if (assignedHaulers.length) {
                     assignedHaulers.forEach((c) => current += c.store.getCapacity())
