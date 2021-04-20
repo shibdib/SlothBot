@@ -184,13 +184,15 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             break;
         case 'remoteHauler':
             deficitExemption = true;
-            let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creepInfo.misc);
-            let current = 0;
-            if (assignedHaulers.length) assignedHaulers.forEach((c) => current += c.store.getCapacity())
             carry = _.floor((energyAmount * 0.50) / BODYPART_COST[CARRY]) || 1;
-            if (room.level >= 6 && carry > 32) carry = 32; else if (room.level < 6 && carry > 25) carry = 25;
-            if (Game.getObjectById(creepInfo.misc)) if ((carry * 50) > (Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded - current)) carry = _.ceil((Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded - current) / 50)
-            if (room.level < 7) carry = carry * 0.5;
+            if (Game.getObjectById(creepInfo.misc)) {
+                let harvesterAmountNeeded = Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded;
+                let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creepInfo.misc);
+                let current = 0;
+                if (assignedHaulers.length) assignedHaulers.forEach((c) => current += c.store.getCapacity())
+                if ((carry * CARRY_CAPACITY) > harvesterAmountNeeded - current) carry = _.ceil((harvesterAmountNeeded - current) / CARRY_CAPACITY)
+            }
+            if (room.level >= 6 && carry > 32) carry = 32; else if (room.level < 5 && carry > 25) carry = 25;
             if (room.level >= 6) move = carry / 2; else move = carry;
             break;
         case 'roadBuilder':

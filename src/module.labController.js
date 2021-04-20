@@ -16,9 +16,8 @@ module.exports.labManager = function () {
             for (let room of myRooms) {
                 manageBoostProduction(Game.rooms[room]);
             }
-        }
-        if (Game.time % 100 === 0) cleanLabs();
-        if (Game.time % 2 === 0) manageActiveLabs();
+        } else if (Game.time % 100 === 0) cleanLabs();
+        else if (Game.time % 5 === 0) manageActiveLabs();
     }
 };
 

@@ -267,7 +267,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             }
         }
         let callback = (roomName) => {
-            //if (allowedRooms && !_.includes(allowedRooms, roomName)) return false;
+            if (allowedRooms && !_.includes(allowedRooms, roomName)) return false;
             if (checkAvoid(roomName) && roomName !== target.roomName && roomName !== origin.roomName) return false;
             return getMatrix(roomName, creep, options);
         };
@@ -375,8 +375,6 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
             let comingFromAlley = EW % 10 == 0 || NS % 10 == 0;
             // Add a check for novice/respawn
             if (!isAlleyRoom && Game.map.getRoomStatus(roomName).status !== Game.map.getRoomStatus(origin).status) return 256;
-            // room is too far out of the way
-            if (Game.map.getRoomLinearDistance(origin, roomName) > Game.map.getRoomLinearDistance(origin, destination) + 4) return 256;
             // My rooms
             if (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) return 1;
             // Check for avoid flagged rooms

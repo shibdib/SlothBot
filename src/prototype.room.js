@@ -512,14 +512,15 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 
 let invaderAlert = {};
 Room.prototype.invaderCheck = function () {
-    if (Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 5 > Game.time && !Memory.roomCache[this.name].threatLevel) return;
-    if (!Memory.roomCache || !Memory.roomCache[this.name]) this.cacheRoomIntel();
+    if (!Memory.roomCache || !Memory.roomCache[this.name]) return this.cacheRoomIntel();
+    if (Memory.roomCache[this.name].lastInvaderCheck + 5 > Game.time && !Memory.roomCache[this.name].threatLevel) return;
     let previousCheck = Memory.roomCache[this.name].lastInvaderCheck || Game.time;
     Memory.roomCache[this.name].lastInvaderCheck = Game.time;
-    let controllingEntity = Memory.roomCache[this.name].owner || Memory.roomCache[this.name].reservation;
+    let controllingEntity = Memory.roomCache[this.name].user;
     if (controllingEntity && controllingEntity !== MY_USERNAME) return false;
     // No hostile detected
     if (!this.hostileCreeps.length) {
+        if (!Memory.roomCache[this.name].roomHeat && !Memory.roomCache[this.name].threatLevel) return false;
         // Room heat is capped at 1000
         if (Memory.roomCache[this.name].roomHeat > 1000) Memory.roomCache[this.name].roomHeat = 1000;
         let waitOut = 15;

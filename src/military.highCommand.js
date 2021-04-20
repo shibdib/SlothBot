@@ -6,30 +6,31 @@
  */
 
 let OPERATION_LIMIT;
+let lastTick = 0;
 
 module.exports.highCommand = function () {
-    if (Memory.tickCooldowns.highCommandTick + 10 > Game.time) return;
-    if (Game.cpu.bucket < BUCKET_MAX * 0.9) OPERATION_LIMIT = 1; else OPERATION_LIMIT = Memory.myRooms.length * 3;
-    Memory.tickCooldowns.highCommandTick = Game.time;
+    if (lastTick + 10 > Game.time) return;
+    if (Game.cpu.bucket < BUCKET_MAX) OPERATION_LIMIT = 1; else OPERATION_LIMIT = Memory.myRooms.length * 3;
+    lastTick = Game.time;
     if (!Memory.nonCombatRooms) Memory.nonCombatRooms = [];
     if (!Memory.targetRooms) Memory.targetRooms = {};
     if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
     // Manage dispatching responders
     manageResponseForces();
-    // Auxiliary
-    if (Math.random() > 0.75) auxiliaryOperations();
-    // Request scouting for new operations
-    if (Memory.maxLevel >= 2 && Math.random() > 0.85) operationRequests();
     // Manage marauders needing tasking
     let marauders = _.filter(Game.creeps, (c) => c.my && c.memory.operation === 'marauding' && c.memory.awaitingTarget);
     if (marauders.length) manageMarauders(marauders);
+    // Auxiliary
+    if (Math.random() > 0.75) auxiliaryOperations();
+    // Request scouting for new operations
+    else if (Memory.maxLevel >= 2 && Math.random() > 0.85) operationRequests();
     // Manage old operations
-    if (Math.random() > 0.85) {
+    else if (Math.random() > 0.5) {
         manageAttacks();
         manageAuxiliary();
     }
     // Check for flags
-    if (_.size(Game.flags)) manualAttacks();
+    else if (_.size(Game.flags)) manualAttacks();
 };
 
 function manageResponseForces() {

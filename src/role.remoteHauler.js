@@ -100,7 +100,7 @@ module.exports.role = function (creep) {
                     let current = 0;
                     if (assignedHaulers.length) {
                         assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 2) continue;
+                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 3) continue;
                     }
                     return creep.memory.misc = h.id
                 }
@@ -145,11 +145,11 @@ function dropOff(creep) {
     }
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     //Controller
-    if (!creep.room.terminal && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) && Math.random() < 0.5) {
+    if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) && Math.random() < (controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) / CONTAINER_CAPACITY) + 0.2) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     } else if (creep.room.terminal && creep.room.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 5) {
-        creep.memory.storageDestination = creep.room.storage.id;
+        creep.memory.storageDestination = creep.room.terminal.id;
         return true;
     } else if (creep.room.storage && creep.room.storage.store.getFreeCapacity()) {
         creep.memory.storageDestination = creep.room.storage.id;

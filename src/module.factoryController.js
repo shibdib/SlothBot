@@ -4,8 +4,12 @@
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
  */
+let tickTracker = {};
 
 module.exports.factoryControl = function (room) {
+    let lastRun = tickTracker[room.name] || 0;
+    if (lastRun + 25 > Game.time) return;
+    tickTracker[room.name] = Game.time;
     // Check for factory
     if (room.factory && !room.nukes.length && !room.memory.lowPower) {
         // If factory is set to produce do so

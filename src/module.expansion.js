@@ -4,12 +4,13 @@
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
  */
+let lastTick = 0;
 
 module.exports.claimNewRoom = function () {
-    if (Memory.tickCooldowns.expansionTick + 150 > Game.time) return;
+    if (lastTick + 1000 > Game.time) return;
     let claimTarget = Memory.nextClaim;
     if (Math.random() > 0.75) claimTarget = undefined;
-    Memory.tickCooldowns.expansionTick = Game.time;
+    lastTick = Game.time;
     if (!claimTarget) {
         let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 3000 < Game.time) && r.hubCheck && r.closestRange <= 12 &&
             Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status && !r.obstructions);

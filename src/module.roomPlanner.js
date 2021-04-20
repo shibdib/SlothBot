@@ -12,10 +12,11 @@ let layouts = require('module.roomLayouts');
 let minCut = require('util.minCut');
 let storedLayouts = {};
 let rampartSpots = {};
+let tickTracker = {};
 
 module.exports.buildRoom = function (room) {
-    let lastRun = room.memory.lastRoomBuildTick || 0;
-    let cooldown = 50;
+    let lastRun = tickTracker[room.name] || 0;
+    let cooldown = 500;
     if (lastRun + cooldown > Game.time) return;
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
         updateLayout(room);
@@ -29,7 +30,7 @@ module.exports.buildRoom = function (room) {
     } else if (room.memory.praiseRoom) {
         praiseRoom(room);
     }
-    room.memory.lastRoomBuildTick = Game.time;
+    tickTracker[room.name] = Game.time;
 };
 
 function buildFromLayout(room) {
@@ -39,7 +40,7 @@ function buildFromLayout(room) {
     }
     let layout = JSON.parse(storedLayouts[room.name]);
     let extensionLevel = getLevel(room);
-    let filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_TOWER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_LINK && s.structureType !== STRUCTURE_LAB);
+    let filter;
     // Handle a rebuild
     let builtSpawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
     let builtTower = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER)[0];

@@ -10,7 +10,7 @@
  */
 let observedRooms = {};
 module.exports.observerControl = function (room) {
-    if (room.level !== 8 || room.memory.lowPower) return;
+    if (room.level !== 8) return;
     let observer = _.filter(room.structures, (s) => s.structureType === STRUCTURE_OBSERVER)[0];
     if (observer) {
         if (observedRooms[room.name] && Game.rooms[observedRooms[room.name]]) {

@@ -12,12 +12,13 @@
 let tradeAmount = MINERAL_TRADE_AMOUNT;
 let reactionAmount = REACTION_AMOUNT;
 let runOnce, globalOrders, lastPriceAdjust, spendingMoney;
+let tickTracker = {};
 if (Memory._banker) spendingMoney = Memory._banker.spendingAccount; else spendingMoney = 0;
 
 module.exports.terminalControl = function (room) {
-    let lastRun = room.memory.lastTerminalTick || 0;
-    if (!room.terminal || room.terminal.cooldown || lastRun + 25 > Game.time) return;
-    room.memory.lastTerminalTick = Game.time;
+    let lastRun = tickTracker[room.name] || 0;
+    if (!room.terminal || room.terminal.cooldown || lastRun + 250 > Game.time) return;
+    tickTracker[room.name] = Game.time;
     // Handle season stuff
     if (Game.shard.name === 'shardSeason') {
         balanceResources(room.terminal);

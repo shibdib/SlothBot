@@ -17,7 +17,7 @@ let tools = require('tools.cpuTracker');
 
 module.exports.hiveMind = function () {
     // Timing
-    if (!Memory.tickCooldowns) Memory.tickCooldowns = {};
+    Memory.tickCooldowns = undefined;
     // Hive/global function loop
     diplomacy.diplomacyOverlord()
     let hiveFunctions = shuffle([{name: 'highCommand', f: highCommand.highCommand}, {

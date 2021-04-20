@@ -34,6 +34,7 @@ module.exports.processBuildQueue = function (room) {
         lastBuilt[room.name] = Game.time;
         return;
     }
+    if (!_.size(globalQueue) && !_.size(roomQueue[room.name])) return false;
     // Check for free spawns
     let availableSpawn = _.filter(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning && s.isActive())[0];
     if (availableSpawn) {
@@ -498,12 +499,15 @@ module.exports.remoteCreepQueue = function (room) {
             if (!room.routeSafe(remoteName)) continue;
             // Handle SK
             if (Memory.roomCache[remoteName].sk && room.level >= 7 && !Memory.roomCache[remoteName].invaderCore) {
-                if (!getCreepCount(undefined, 'SKAttacker', remoteName)) {
-                    queueCreep(room, PRIORITIES.SKWorker + 1, {role: 'SKAttacker', destination: remoteName})
+                if (getCreepCount(undefined, 'SKAttacker', remoteName) < 2) {
+                    queueCreep(room, PRIORITIES.SKWorker + 1 + getCreepCount(undefined, 'SKAttacker', remoteName), {
+                        role: 'SKAttacker',
+                        destination: remoteName
+                    })
                 }
                 let harvester = _.filter(Game.creeps, (c) => c.my && c.memory.other && c.memory.other.source === source.id)[0];
                 if (getCreepCount(undefined, 'SKAttacker', remoteName) && !harvester && source.score <= 100) {
-                    queueCreep(room, PRIORITIES.remoteHarvester, {
+                    queueCreep(room, PRIORITIES.SKWorker, {
                         role: 'remoteHarvester',
                         destination: remoteName,
                         other: {source: source.id}
@@ -556,7 +560,7 @@ module.exports.remoteCreepQueue = function (room) {
                 let current = 0;
                 if (assignedHaulers.length) {
                     assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                    if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 2) continue;
+                    if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= 3) continue;
                 }
                 queueCreep(room, PRIORITIES.remoteHauler + getCreepCount(room, 'remoteHauler') * 0.5, {
                     role: 'remoteHauler',
@@ -597,9 +601,10 @@ module.exports.remoteCreepQueue = function (room) {
 };
 
 //Military creeps
+let lastGlobalTick = 0;
 module.exports.globalCreepQueue = function () {
-    if (Memory.tickCooldowns.globalQueueTick + 15 > Game.time) return;
-    Memory.tickCooldowns.globalQueueTick = Game.time;
+    if (lastGlobalTick + 15 > Game.time) return;
+    lastGlobalTick = Game.time;
     let blank = {};
     let operations = Object.assign(blank, Memory.targetRooms, Memory.auxiliaryTargets);
     //Marauder

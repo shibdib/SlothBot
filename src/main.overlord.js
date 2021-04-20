@@ -100,7 +100,7 @@ module.exports.overlordMind = function (room, CPULimit) {
     // Store Data
     let used = Game.cpu.getUsed() - mindStart;
     let cpuUsageArray = ROOM_CPU_ARRAY[room.name] || [];
-    if (cpuUsageArray.length < 50) {
+    if (cpuUsageArray.length < 250) {
         cpuUsageArray.push(used)
     } else {
         cpuUsageArray.shift();
@@ -192,7 +192,12 @@ function minionController(minion) {
     tools.creepCPU(minion, cpuUsed);
 }
 
+let tickTracker = {};
 function creepSpawning(room) {
+    spawning.processBuildQueue(room);
+    let lastRun = tickTracker[room.name] || 0;
+    if (lastRun + 10 > Game.time) return;
+    tickTracker[room.name] = Game.time;
     if (room.level < 2) {
         spawning.roomStartup(room);
         spawning.remoteCreepQueue(room);
@@ -219,5 +224,4 @@ function creepSpawning(room) {
             Game.notify(e.stack);
         }
     }
-    spawning.processBuildQueue(room);
 }
