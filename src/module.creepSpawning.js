@@ -385,6 +385,7 @@ module.exports.miscCreepQueue = function (room) {
 
 //Remote creeps
 let centerRoom = {};
+let activeSK = {};
 module.exports.remoteCreepQueue = function (room) {
     room.memory.borderPatrol = undefined;
     if (!Memory.roomCache) Memory.roomCache = {};
@@ -495,27 +496,32 @@ module.exports.remoteCreepQueue = function (room) {
             if (!invaderCoreReserved && Memory.roomCache[remoteName] && Memory.roomCache[remoteName].reservation && Memory.roomCache[remoteName].reservation !== MY_USERNAME) continue;
             // Handle rooms that can't be reached safely
             if (!room.routeSafe(remoteName)) continue;
-            // Handle SK
-            if (Memory.roomCache[remoteName].sk && room.level >= 7 && !Memory.roomCache[remoteName].invaderCore) {
-                if (!getCreepCount(undefined, 'SKAttacker', remoteName)) {
-                    queueCreep(room, PRIORITIES.SKWorker + 1 + getCreepCount(undefined, 'SKAttacker', remoteName), {
+            // Handle SK (Do not do regular remotes if sk mining).
+            if (Memory.roomCache[remoteName].sk && room.level >= 7) {
+                if (Memory.roomCache[remoteName].invaderCore) {
+                    activeSK[room.name] = undefined;
+                    continue;
+                }
+                activeSK[room.name] = true;
+                if (!getCreepCount(undefined, 'SKAttacker', remoteName) || (getCreepTTL(remoteName, 'SKAttacker') < 100 && getCreepCount(undefined, 'attacker', remoteName) === 1)) {
+                    queueCreep(room, PRIORITIES.remoteHarvester + 1, {
                         role: 'SKAttacker',
                         destination: remoteName
                     })
                 }
                 let harvester = _.filter(Game.creeps, (c) => c.my && c.memory.other && c.memory.other.source === source.id)[0];
-                if (getCreepCount(undefined, 'SKAttacker', remoteName) && !harvester && source.score <= 100) {
-                    queueCreep(room, PRIORITIES.SKWorker, {
+                if (getCreepCount(undefined, 'SKAttacker', remoteName) && !harvester) {
+                    queueCreep(room, PRIORITIES.remoteHarvester, {
                         role: 'remoteHarvester',
                         destination: remoteName,
-                        other: {source: source.id}
+                        other: {source: source.id, SK: true}
                     })
                 }
                 if (getCreepCount(undefined, 'SKAttacker', remoteName) && !getCreepCount(undefined, 'SKMineral', remoteName) && (!Memory.roomCache[remoteName].mineralCooldown || Memory.roomCache[remoteName].mineralCooldown < Game.time)) {
                     queueCreep(room, PRIORITIES.SKWorker, {role: 'SKMineral', destination: remoteName})
                 }
             } else if (!Memory.roomCache[remoteName].sk) {
-                if (!invaderCoreReserved && source.score <= REMOTE_SOURCE_SCORE) {
+                if (!invaderCoreReserved && source.score <= REMOTE_SOURCE_SCORE && !activeSK[room.name]) {
                     let harvester = _.filter(Game.creeps, (c) => c.my && c.memory.other && c.memory.other.source === source.id)[0];
                     if (!harvester) {
                         queueCreep(room, PRIORITIES.remoteHarvester + getCreepCount(room, 'remoteHarvester'), {

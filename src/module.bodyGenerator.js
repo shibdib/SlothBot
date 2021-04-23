@@ -180,7 +180,12 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         case 'remoteHarvester':
             deficitExemption = true;
             work = _.floor((energyAmount * 0.5) / BODYPART_COST[WORK]) || 1;
-            if (work > 7) work = 7;
+            // SK
+            if (creepInfo.other && creepInfo.other.SK && work > SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) work = (SOURCE_ENERGY_KEEPER_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 4;
+            // Reserved
+            else if (Memory.roomCache[creepInfo.destination] && Memory.roomCache[creepInfo.destination].reservation === MY_USERNAME && work > SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) work = SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME);
+            // Neutral
+            else if (work > SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) work = SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME);
             carry = 1;
             if (room.level >= 6) move = work / 2; else move = work;
             break;
