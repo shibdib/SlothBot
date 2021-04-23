@@ -514,7 +514,7 @@ module.exports.remoteCreepQueue = function (room) {
                     queueCreep(room, PRIORITIES.remoteHarvester, {
                         role: 'remoteHarvester',
                         destination: remoteName,
-                        other: {source: source.id, SK: true}
+                        other: {noBump: true, source: source.id, SK: true}
                     })
                 }
                 if (getCreepCount(undefined, 'SKAttacker', remoteName) && !getCreepCount(undefined, 'SKMineral', remoteName) && (!Memory.roomCache[remoteName].mineralCooldown || Memory.roomCache[remoteName].mineralCooldown < Game.time)) {
@@ -527,7 +527,7 @@ module.exports.remoteCreepQueue = function (room) {
                         queueCreep(room, PRIORITIES.remoteHarvester + getCreepCount(room, 'remoteHarvester'), {
                             role: 'remoteHarvester',
                             destination: remoteName,
-                            other: {source: source.id}
+                            other: {noBump: true, source: source.id}
                         })
                     }
                 }
