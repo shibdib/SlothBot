@@ -25,6 +25,14 @@ Object.defineProperty(StructureLab.prototype, 'memory', {
     enumerable: false,
 });
 
+let isActive = OwnedStructure.prototype.isActive;
+OwnedStructure.prototype.isActive = function () {
+    if (this.room.memory && this.room.memory.stats && this.room.memory.stats.highestRCL && this.room.memory.stats.highestRCL === (this.room.controller.level || 0)) {
+        return true;
+    }
+    return isActive.call(this);
+}
+
 Object.defineProperty(StructureFactory.prototype, 'memory', {
     get: function () {
         if (this.room.memory._structureMemory === undefined || !this.room.memory._structureMemory) {
