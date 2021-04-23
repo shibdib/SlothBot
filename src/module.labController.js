@@ -48,36 +48,33 @@ function manageBoostProduction(room) {
     if (!boost) return;
     let componentOne = BOOST_COMPONENTS[boost][0];
     let componentTwo = BOOST_COMPONENTS[boost][1];
-    for (let labID in hub) {
-        let one = _.filter(hub, (h) => h.memory.itemNeeded === componentOne)[0];
-        let two = _.filter(hub, (h) => h.memory.itemNeeded === componentTwo)[0];
-        if (!one) {
-            hub[labID].memory = {
-                itemNeeded: componentOne,
-                creating: boost,
-                room: hub[labID].pos.roomName,
-                id: hub[labID].id,
-                active: true
-            };
-        } else if (!two) {
-            hub[labID].memory = {
-                itemNeeded: componentTwo,
-                creating: boost,
-                room: hub[labID].pos.roomName,
-                id: hub[labID].id,
-                active: true
-            };
-        } else if (one && two) {
-            hub[labID].memory = {
-                creating: boost,
-                room: hub[labID].pos.roomName,
-                id: hub[labID].id,
-                active: true
-            };
-            log.a(room.name + ' queued ' + boost + ' for creation.');
-            break;
-        }
-    }
+    // Set component 1
+    hub[0].memory = {
+        itemNeeded: componentOne,
+        creating: boost,
+        room: room.name,
+        id: hub[0].id,
+        targetLab: hub[2].id,
+        active: true
+    };
+    // Set component 2
+    hub[1].memory = {
+        itemNeeded: componentTwo,
+        creating: boost,
+        room: room.name,
+        id: hub[1].id,
+        targetLab: hub[2].id,
+        active: true
+    };
+    // Set target
+    hub[2].memory = {
+        creating: boost,
+        room: room.name,
+        id: hub[2].id,
+        targetLab: hub[2].id,
+        active: true
+    };
+    log.a(room.name + ' queued ' + boost + ' for creation.');
 }
 
 function manageActiveLabs() {
@@ -85,7 +82,7 @@ function manageActiveLabs() {
     if (activeLabs.length) {
         active:
             for (let key in activeLabs) {
-                let hub = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.room.name === activeLabs[key].room.name && s.memory.creating === activeLabs[key].memory.creating && s.memory.active && s.pos.getRangeTo(activeLabs[key]) <= 2);
+                let hub = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.room.name === activeLabs[key].room.name && s.memory.targetLab === activeLabs[key].memory.targetLab && s.memory.active);
                 let outputLab = Game.getObjectById(_.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id')[0]);
                 if (!outputLab) {
                     for (let id in hub) {
@@ -182,5 +179,9 @@ function cleanLabs() {
         if (reactionHub.length < 3 || reactionLab.pos.findInRange(reactionHub, 2).length < 3) {
             reactionLab.memory = undefined;
         }
+    }
+    let oldLabs = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating && !s.memory.targetLab);
+    for (let lab of oldLabs) {
+        lab.memory = undefined;
     }
 }
