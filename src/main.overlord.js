@@ -79,7 +79,7 @@ module.exports.overlordMind = function (room, CPULimit) {
         }
         overlordTaskCurrentCPU = Game.cpu.getUsed() - overlordTaskCurrentCPU;
         overlordTaskTotalCPU += overlordTaskCurrentCPU;
-        tools.taskCPU(currentFunction.name, Game.cpu.getUsed() - taskCpu);
+        tools.taskCPU(currentFunction.name, Game.cpu.getUsed() - taskCpu, room.name);
     } while ((overlordTaskTotalCPU < (CPULimit * 0.1) + (spareCpu * 0.9) || Game.cpu.bucket > 9500) && count < functionCount)
 
     // Get income
@@ -114,7 +114,7 @@ module.exports.overlordMind = function (room, CPULimit) {
             }
             //Game.notify(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
             for (let key in TASK_CPU_ARRAY[room.name]) {
-                log.e(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(TASK_CPU_ARRAY[room.name][key]), 2));
+                //Game.notify(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(TASK_CPU_ARRAY[room.name][key]), 2));
             }
             if (cpuOverCount >= 10 && Game.cpu.bucket < 8000) {
                 room.memory.cpuOverage = undefined;

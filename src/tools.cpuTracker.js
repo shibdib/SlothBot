@@ -46,7 +46,7 @@ module.exports.creepCPU = function (minion, cpuUsed) {
     CREEP_ROLE_CPU_ARRAY[minion.memory.role] = cpuUsageArray;
 }
 
-module.exports.taskCPU = function (task, cpuUsed) {
+module.exports.taskCPU = function (task, cpuUsed, roomName) {
     // Track individual creep cpu
     let cpuUsageArray = ROOM_TASK_CPU_ARRAY[task] || [];
     if (cpuUsageArray.length < 100) {
@@ -57,4 +57,6 @@ module.exports.taskCPU = function (task, cpuUsed) {
     }
     // Track creep role cpu
     ROOM_TASK_CPU_ARRAY[task] = cpuUsageArray;
+    if (!TASK_CPU_ARRAY[roomName]) TASK_CPU_ARRAY[roomName] = {};
+    TASK_CPU_ARRAY[roomName][task] = cpuUsageArray;
 }
