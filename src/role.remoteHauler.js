@@ -104,46 +104,30 @@ module.exports.role = function (creep) {
                     }
                     return creep.memory.misc = h.id
                 }
-            } else {
-                creep.idleFor(15);
             }
+            creep.idleFor(25);
         }
     }
 };
 
 // Remote Hauler Drop Off
 function dropOff(creep) {
+    // Handle border links
     buildLinks(creep);
-    // Lab
-    let lab = creep.pos.findClosestByRange(creep.room.structures, {
-        filter: (s) => s.structureType === STRUCTURE_LAB && s.store.getFreeCapacity(RESOURCE_ENERGY) && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive()
-    });
-    if (lab) {
-        creep.memory.storageDestination = lab.id;
-        return true;
+    if (!creep.memory.borderLinkAttempt && !creep.memory.borderLink) {
+        let borderLink = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_LINK && s.isActive() && creep.pos.getRangeTo(s) <= 8 && s.id !== s.room.memory.hubLink);
+        if (borderLink) creep.memory.borderLink = borderLink.id;
+        creep.memory.borderLinkAttempt = true;
+    } else if (creep.memory.borderLink) {
+        let borderLink = Game.getObjectById(creep.memory.borderLink);
+        if (borderLink && (!borderLink.cooldown || borderLink.cooldown < 5) && borderLink.store.getFreeCapacity(RESOURCE_ENERGY)) {
+            creep.memory.borderLink = borderLink.id;
+            creep.memory.storageDestination = borderLink.id;
+            return true;
+        }
     }
-    //Tower
-    let towerCutoff = 0.65;
-    if (Memory.roomCache[creep.room.name].threatLevel) towerCutoff = 0.99;
-    let tower = creep.pos.findClosestByRange(creep.room.structures, {
-        filter: (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * towerCutoff
-    });
-    if (tower) {
-        creep.memory.storageDestination = tower.id;
-        return true;
-    }
-    let nuke = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER && s.store.getFreeCapacity(RESOURCE_ENERGY))[0];
-    if (nuke) {
-        creep.memory.storageDestination = nuke.id;
-        return true;
-    }
-    let closestLink = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_LINK && s.store.getFreeCapacity(RESOURCE_ENERGY) && s.isActive() && creep.pos.getRangeTo(s) <= 6 && (!s.cooldown || s.cooldown < 5)});
-    if (closestLink) {
-        creep.memory.storageDestination = closestLink.id;
-        return true;
-    }
-    let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     //Controller
+    let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) && Math.random() < (controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) / CONTAINER_CAPACITY) + 0.2) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
