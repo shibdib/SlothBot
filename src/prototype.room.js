@@ -113,7 +113,7 @@ Object.defineProperty(Room.prototype, 'structures', {
 Object.defineProperty(Room.prototype, 'needyExtensions', {
     get: function () {
         if (!this._needyExtensions) {
-            this._needyExtensions = _.filter(this.find(FIND_STRUCTURES), (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && !s.pos.isNearTo(_.filter(this.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester')));
+            this._needyExtensions = _.filter(this.find(FIND_STRUCTURES), (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
         }
         return this._needyExtensions;
     },
