@@ -74,7 +74,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         case 'stationaryHarvester':
             deficitExemption = true;
             work = _.floor((energyAmount - 50) / (BODYPART_COST[WORK] + BODYPART_COST[MOVE])) || 1;
-            if (work > 5) work = 5;
+            let powerCreep = _.filter(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === room.name && c.powers[PWR_REGEN_SOURCE])[0];
+            if (powerCreep) {
+                work = (SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME);
+            } else if (work > 6) work = 6;
             carry = 1;
             if (level >= 7) carry = 2;
             move = work * 0.5;
@@ -168,7 +171,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             move = 2;
             break;
         case 'reserver':
-            deficitExemption = true;
             claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
             if (level >= 6) {
                 claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
@@ -178,7 +180,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         case 'remoteHarvester':
             deficitExemption = true;
             work = _.floor((energyAmount * 0.5) / BODYPART_COST[WORK]) || 1;
-            if (work > 6) work = 6;
+            if (work > 7) work = 7;
             carry = 1;
             if (room.level >= 6) move = work / 2; else move = work;
             break;
