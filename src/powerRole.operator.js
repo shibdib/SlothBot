@@ -62,15 +62,15 @@ module.exports.role = function (powerCreep) {
     if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom !== powerCreep.room.name) {
         return powerCreep.shibMove(new RoomPosition(25, 25, powerCreep.memory.destinationRoom), {range: 24})
     } else if (!powerCreep.memory.destinationRoom) {
-        powerCreep.memory.destinationRoom = _.filter(Memory.myRooms, (r) => !_.filter(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === r).length && Game.rooms[r].controller.level === 8)[0];
+        powerCreep.memory.destinationRoom = _.find(Memory.myRooms, (r) => !_.find(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === r) && Game.rooms[r].controller.level === 8);
     }
     // Handle owned rooms
     if (powerCreep.room.controller.owner && powerCreep.room.controller.owner.username === MY_USERNAME) {
-        let targetSpawn = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.spawning && s.spawning.remainingTime >= 15 && (!s.effects || !s.effects.length))[0];
-        let targetTower = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_TOWER && (!s.effects || !s.effects.length))[0];
-        let targetFactory = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_FACTORY && (!s.effects || !s.effects.length))[0];
-        let targetSource = _.filter(powerCreep.room.sources, (s) => !s.effects || !s.effects.length || s.effects.length < 25)[0];
-        let targetLab = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LAB && s.memory.creating && !s.memory.itemNeeded && (!s.effects || !s.effects.length))[0];
+        let targetSpawn = _.find(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.spawning && s.spawning.remainingTime >= 15 && (!s.effects || !s.effects.length));
+        let targetTower = _.find(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_TOWER && (!s.effects || !s.effects.length));
+        let targetFactory = _.find(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_FACTORY && (!s.effects || !s.effects.length));
+        let targetSource = _.find(powerCreep.room.sources, (s) => !s.effects || !s.effects.length || s.effects.ticksRemaining < 25);
+        let targetLab = _.find(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LAB && s.memory.creating && !s.memory.itemNeeded && (!s.effects || !s.effects.length));
         // Enable power
         if (!powerCreep.room.controller.isPowerEnabled) {
             switch (powerCreep.enableRoom(powerCreep.room.controller)) {
