@@ -24,7 +24,7 @@ module.exports.role = function (creep) {
                 case ERR_NOT_ENOUGH_RESOURCES:
                     if (Game.getObjectById(creep.memory.containerID) && creep.store[RESOURCE_ENERGY]) {
                         creep.repair(Game.getObjectById(creep.memory.containerID));
-                    } else {
+                    } else if (!source.effects) {
                         creep.idleFor(source.ticksToRegeneration + 1);
                     }
                     break;
