@@ -27,11 +27,8 @@ module.exports.role = function (creep) {
             if (!creep.haulerDelivery()) creep.idleFor(5)
         }
     } else {
-        if (!creep.memory.cooldown && (creep.memory.energyDestination || creep.locateEnergy())) {
+        if (creep.memory.energyDestination || creep.locateEnergy()) {
             creep.withdrawResource()
-        } else {
-            creep.memory.cooldown = undefined;
-            creep.idleFor(10)
         }
     }
 };
