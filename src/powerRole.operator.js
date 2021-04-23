@@ -62,15 +62,14 @@ module.exports.role = function (powerCreep) {
     if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom !== powerCreep.room.name) {
         return powerCreep.shibMove(new RoomPosition(25, 25, powerCreep.memory.destinationRoom), {range: 24})
     } else if (!powerCreep.memory.destinationRoom) {
-        powerCreep.memory.destinationRoom = _.filter(Memory.myRooms, (r) => !_.filter(Game.powerCreeps, (c) => c.memory.destinationRoom === r).length && Game.rooms[r].controller.level === 8)[0];
+        powerCreep.memory.destinationRoom = _.filter(Memory.myRooms, (r) => !_.filter(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === r).length && Game.rooms[r].controller.level === 8)[0];
     }
     // Handle owned rooms
     if (powerCreep.room.controller.owner && powerCreep.room.controller.owner.username === MY_USERNAME) {
         let targetSpawn = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.spawning && s.spawning.remainingTime >= 15 && (!s.effects || !s.effects.length))[0];
         let targetTower = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_TOWER && (!s.effects || !s.effects.length))[0];
-        let targetObserver = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_OBSERVER && (!s.effects || !s.effects.length))[0];
         let targetFactory = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_FACTORY && (!s.effects || !s.effects.length))[0];
-        let targetSource = _.filter(powerCreep.room.sources, (s) => !s.effects || !s.effects.length)[0];
+        let targetSource = _.filter(powerCreep.room.sources, (s) => !s.effects || !s.effects.length || s.effects.length < 25)[0];
         let targetLab = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LAB && s.memory.creating && !s.memory.itemNeeded && (!s.effects || !s.effects.length))[0];
         // Enable power
         if (!powerCreep.room.controller.isPowerEnabled) {
@@ -117,11 +116,6 @@ module.exports.role = function (powerCreep) {
             powerCreep.say('FACTORY', true);
             return abilitySwitch(powerCreep, PWR_OPERATE_FACTORY, targetFactory);
         }
-            /**
-             // Boost Observer
-             else if (targetObserver && powerCreep.powers[PWR_OPERATE_OBSERVER] && !powerCreep.powers[PWR_OPERATE_OBSERVER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_OBSERVER].ops) {
-            abilitySwitch(powerCreep, PWR_OPERATE_OBSERVER, targetObserver);
-        }**/
         // Boost Lab
         else if (targetLab && powerCreep.powers[PWR_OPERATE_LAB] && !powerCreep.powers[PWR_OPERATE_LAB].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_LAB].ops) {
             powerCreep.say('LAB', true);
@@ -146,7 +140,7 @@ function upgradePowers(powerCreep) {
     let sparePowerLevels = Game.gpl.level - _.size(Game.powerCreeps);
     if (sparePowerLevels === 0 || powerCreep.level === 25) return;
     // Ops
-    if (!powerCreep.powers[PWR_GENERATE_OPS] || (powerCreep.level >= 2 && powerCreep.powers[PWR_GENERATE_OPS].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_GENERATE_OPS].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_GENERATE_OPS].level < 4)) {
+    if (!powerCreep.powers[PWR_GENERATE_OPS] || (powerCreep.level >= 2 && powerCreep.powers[PWR_GENERATE_OPS].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_GENERATE_OPS].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_GENERATE_OPS].level < 4) || (powerCreep.level >= 22 && powerCreep.powers[PWR_GENERATE_OPS].level < 5)) {
         return upgradeSwitch(powerCreep, PWR_GENERATE_OPS)
     }
     // Source
@@ -157,12 +151,8 @@ function upgradePowers(powerCreep) {
     else if (!powerCreep.powers[PWR_OPERATE_EXTENSION] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 4)) {
         return upgradeSwitch(powerCreep, PWR_OPERATE_EXTENSION)
     }
-    // Spawn
-    else if (!powerCreep.powers[PWR_OPERATE_SPAWN] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 3)) {
-        return upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)
-    }
     // Lab
-    else if (!powerCreep.powers[PWR_OPERATE_LAB] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_LAB].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_LAB].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_OPERATE_LAB].level < 4)) {
+    else if (!powerCreep.powers[PWR_OPERATE_LAB] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_LAB].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_LAB].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_OPERATE_LAB].level < 4) || (powerCreep.level >= 22 && powerCreep.powers[PWR_OPERATE_LAB].level < 5)) {
         return upgradeSwitch(powerCreep, PWR_OPERATE_LAB)
     }
     // Factory
