@@ -116,16 +116,16 @@ Creep.prototype.findMineral = function () {
 Creep.prototype.skSafety = function () {
     if (Memory.roomCache[this.room.name] && !Memory.roomCache[this.room.name].sk) return false;
     // handle safe SK movement
-    let range = 4;
+    let range = 6;
     if (this.memory.destination && this.memory.destination === this.room.name) range = 8;
     let lair = this.pos.findInRange(this.room.structures, range, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
     if (lair) {
         let SK = this.pos.findInRange(this.room.creeps, range, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
         if (SK) {
-            this.shibKite(6);
+            this.shibKite(7);
             return true;
-        } else if (lair.ticksToSpawn <= 20) {
-            this.shibMove(this.pos.findClosestByRange(Game.map.findExit(this.room.name, this.memory.overlord)), {range: 2});
+        } else if (lair.ticksToSpawn <= 15) {
+            this.shibKite(7, lair);
             return true;
         }
         // Handle invader cores in sk
