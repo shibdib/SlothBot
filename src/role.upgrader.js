@@ -127,7 +127,7 @@ function herald(creep) {
         if (!creep.memory.signed) {
             let signs = OWNED_ROOM_SIGNS;
             let addition = '';
-            if (Game.shard.name === 'treecafe' && creep.room.controller.level >= 4) addition = ' @pvp@';
+            if (Game.shard.name === 'treecafe' && creep.room.energyState) addition = ' @pvp@';
             switch (creep.signController(creep.room.controller, _.sample(signs) + addition)) {
                 case OK:
                     creep.memory.signed = true;
