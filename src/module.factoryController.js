@@ -74,10 +74,7 @@ module.exports.factoryControl = function (room) {
                         if (!COMMODITIES[commodity] || (room.store(commodity) >= DUMP_AMOUNT * 0.9 && !_.includes(COMPRESSED_COMMODITIES, commodity))) continue;
                         if (commodity === RESOURCE_BATTERY) continue;
                         // Handle levels
-                        if (COMMODITIES[commodity].level) {
-                            let powerCreep = _.filter(room.powerCreeps, (p) => p.my && p.powers[PWR_OPERATE_FACTORY] && p.powers[PWR_OPERATE_FACTORY].level === COMMODITIES[commodity].level)[0];
-                            if (!powerCreep) continue;
-                        }
+                        if (COMMODITIES[commodity].level && room.factory.level !== COMMODITIES[commodity].level && room.factory.level) continue;
                         let enough;
                         for (let neededResource of Object.keys(COMMODITIES[commodity].components)) {
                             enough = false;
