@@ -459,7 +459,7 @@ module.exports.remoteCreepQueue = function (room) {
                 continue;
             }
             // If it's being heavily camped just skip it
-            if (Memory.roomCache[remoteName].threatLevel >= 2) continue;
+            if (Memory.roomCache[remoteName].threatLevel >= 3) continue;
             // Handle invaders
             if ((Memory.roomCache[remoteName].invaderCore || Memory.roomCache[remoteName].threatLevel || invaderCoreReserved || (Memory.roomCache[remoteName].user && !_.includes(FRIENDLIES, Memory.roomCache[remoteName].user))) && !Memory.roomCache[remoteName].sk) {
                 if (Memory.roomCache[remoteName].invaderTTL && Memory.roomCache[remoteName].invaderTTL < Game.time) {
@@ -498,7 +498,7 @@ module.exports.remoteCreepQueue = function (room) {
             if (!room.routeSafe(remoteName)) continue;
             // Handle SK (Do not do regular remotes if sk mining).
             if (Memory.roomCache[remoteName].sk && room.level >= 7) {
-                if (Memory.roomCache[remoteName].invaderCore) {
+                if (Memory.roomCache[remoteName].invaderCore || Memory.roomCache[remoteName].threatLevel >= 2) {
                     activeSK[room.name] = undefined;
                     continue;
                 }
