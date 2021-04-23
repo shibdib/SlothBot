@@ -8,6 +8,7 @@
 /**
  * Created by rober on 5/16/2017.
  */
+let LAST_POWER_CREEP_SPAWN = 0;
 
 module.exports.powerControl = function () {
     let powerSpawns = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.store[RESOURCE_POWER] >= 1 && s.store[RESOURCE_ENERGY] >= 50);
@@ -20,11 +21,10 @@ module.exports.powerControl = function () {
     if (Game.gpl.level) {
         let sparePowerLevels = Game.gpl.level - (_.size(Game.powerCreeps) + _.sum(Game.powerCreeps, 'level'));
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8);
-        if (_.size(Game.powerCreeps)) _.filter(Game.powerCreeps, (c) => c.level).forEach((c) => sparePowerLevels -= c.level);
-        if (sparePowerLevels > 1 && _.size(Game.powerCreeps) < myRooms.length && (!global.LAST_POWER_CREEP_SPAWN || global.LAST_POWER_CREEP_SPAWN + 100 < Game.time)) {
-            global.LAST_POWER_CREEP_SPAWN = Game.time;
+        if (sparePowerLevels > 1 && _.size(Game.powerCreeps) < myRooms.length && LAST_POWER_CREEP_SPAWN + 100 < Game.time) {
             let name = 'operator_' + _.random(1, 99);
             log.a('Created an operator named ' + name);
+            LAST_POWER_CREEP_SPAWN = Game.time;
             PowerCreep.create(name, POWER_CLASS.OPERATOR);
         } else if (_.size(Game.powerCreeps)) {
             let powerCreeps = _.filter(Game.powerCreeps, (c) => c.my);

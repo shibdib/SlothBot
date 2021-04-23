@@ -21,7 +21,7 @@ module.exports.role = function (powerCreep) {
     // Get Ops from terminal
     if (powerCreep.room.store(RESOURCE_OPS) && _.size(powerCreep.powers) > 1 && powerCreep.store[RESOURCE_OPS] < powerCreep.store.getCapacity(RESOURCE_OPS) * 0.5) {
         let store;
-        if (powerCreep.room.storage.store[RESOURCE_OPS]) store = powerCreep.room.storage; else if (powerCreep.room.terminal.store[RESOURCE_OPS]) store = powerCreep.room.terminal;
+        if (powerCreep.room.storage && powerCreep.room.storage.store[RESOURCE_OPS]) store = powerCreep.room.storage; else if (powerCreep.room.terminal && powerCreep.room.terminal.store[RESOURCE_OPS]) store = powerCreep.room.terminal;
         if (store) {
             switch (powerCreep.withdraw(store, RESOURCE_OPS)) {
                 case OK:
@@ -86,6 +86,11 @@ module.exports.role = function (powerCreep) {
             powerCreep.say('TOWER', true);
             return abilitySwitch(powerCreep, PWR_OPERATE_TOWER, targetTower);
         }
+        // Boost Sources
+        else if (targetSource && powerCreep.powers[PWR_REGEN_SOURCE] && !powerCreep.powers[PWR_REGEN_SOURCE].cooldown) {
+            powerCreep.say('SOURCE', true);
+            return abilitySwitch(powerCreep, PWR_REGEN_SOURCE, targetSource);
+        }
         // Fill extensions
         else if (powerCreep.powers[PWR_OPERATE_EXTENSION] && !powerCreep.powers[PWR_OPERATE_EXTENSION].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_EXTENSION].ops &&
             1 - (powerCreep.room.energyAvailable / powerCreep.room.energyCapacityAvailable) > 0.2 &&
@@ -102,24 +107,19 @@ module.exports.role = function (powerCreep) {
             powerCreep.say('SPAWN', true);
             return abilitySwitch(powerCreep, PWR_OPERATE_SPAWN, targetSpawn);
         }
-        // Boost Sources
-        else if (targetSource && powerCreep.powers[PWR_REGEN_SOURCE] && !powerCreep.powers[PWR_REGEN_SOURCE].cooldown) {
-            powerCreep.say('SOURCE', true);
-            return abilitySwitch(powerCreep, PWR_REGEN_SOURCE, targetSource);
-        }
         // Boost Mineral
         else if (powerCreep.room.mineral && !powerCreep.room.mineral.ticksToRegeneration && powerCreep.powers[PWR_REGEN_MINERAL] && !powerCreep.powers[PWR_REGEN_MINERAL].cooldown && (!powerCreep.room.mineral.effects || !powerCreep.room.mineral.effects.length)) {
             powerCreep.say('MINERAL', true);
             return abilitySwitch(powerCreep, PWR_REGEN_MINERAL, powerCreep.room.mineral);
         }
         // Boost Factory
-        else if (targetFactory && targetFactory.memory.producing && powerCreep.powers[PWR_OPERATE_FACTORY] && !powerCreep.powers[PWR_OPERATE_FACTORY].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_FACTORY].ops && powerCreep.powers[PWR_OPERATE_FACTORY].level === COMMODITIES[targetFactory.memory.producing].level) {
+        else if (targetFactory && powerCreep.powers[PWR_OPERATE_FACTORY] && !powerCreep.powers[PWR_OPERATE_FACTORY].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_FACTORY].ops) {
             powerCreep.say('FACTORY', true);
             return abilitySwitch(powerCreep, PWR_OPERATE_FACTORY, targetFactory);
         }
             /**
              // Boost Observer
-         else if (targetObserver && powerCreep.powers[PWR_OPERATE_OBSERVER] && !powerCreep.powers[PWR_OPERATE_OBSERVER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_OBSERVER].ops) {
+             else if (targetObserver && powerCreep.powers[PWR_OPERATE_OBSERVER] && !powerCreep.powers[PWR_OPERATE_OBSERVER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_OBSERVER].ops) {
             abilitySwitch(powerCreep, PWR_OPERATE_OBSERVER, targetObserver);
         }**/
         // Boost Lab
@@ -136,8 +136,7 @@ module.exports.role = function (powerCreep) {
                     powerCreep.shibMove(powerCreep.room.terminal);
                     return;
             }
-        }
-        else {
+        } else {
             powerCreep.idleFor(5);
         }
     }
@@ -145,95 +144,38 @@ module.exports.role = function (powerCreep) {
 
 function upgradePowers(powerCreep) {
     let sparePowerLevels = Game.gpl.level - _.size(Game.powerCreeps);
-    if (_.size(Game.powerCreeps)) _.filter(Game.powerCreeps, (c) => c.level).forEach((c) => sparePowerLevels -= c.level);
-    if (sparePowerLevels === 0) return;
-    // Always have generate ops
-    if (!powerCreep.powers[PWR_GENERATE_OPS]) {
-        upgradeSwitch(powerCreep, PWR_GENERATE_OPS)
+    if (sparePowerLevels === 0 || powerCreep.level === 25) return;
+    // Ops
+    if (!powerCreep.powers[PWR_GENERATE_OPS] || (powerCreep.level >= 2 && powerCreep.powers[PWR_GENERATE_OPS].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_GENERATE_OPS].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_GENERATE_OPS].level < 4)) {
+        return upgradeSwitch(powerCreep, PWR_GENERATE_OPS)
     }
-    else if (powerCreep.level >= 7 && powerCreep.powers[PWR_GENERATE_OPS].level < 3) {
-        upgradeSwitch(powerCreep, PWR_GENERATE_OPS)
+    // Source
+    else if (powerCreep.level >= 10 && (!powerCreep.powers[PWR_REGEN_SOURCE] || powerCreep.powers[PWR_REGEN_SOURCE].level < 3 || (powerCreep.level >= 14 && powerCreep.powers[PWR_REGEN_SOURCE].level < 4) || (powerCreep.level >= 22 && powerCreep.powers[PWR_REGEN_SOURCE].level < 5))) {
+        return upgradeSwitch(powerCreep, PWR_REGEN_SOURCE)
     }
-    else if (powerCreep.level >= 14 && powerCreep.powers[PWR_GENERATE_OPS].level < 4) {
-        upgradeSwitch(powerCreep, PWR_GENERATE_OPS)
+    // Extensions
+    else if (!powerCreep.powers[PWR_OPERATE_EXTENSION] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 4)) {
+        return upgradeSwitch(powerCreep, PWR_OPERATE_EXTENSION)
     }
-    else if (powerCreep.level >= 22 && powerCreep.powers[PWR_GENERATE_OPS].level < 5) {
-        upgradeSwitch(powerCreep, PWR_GENERATE_OPS)
+    // Spawn
+    else if (!powerCreep.powers[PWR_OPERATE_SPAWN] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 3)) {
+        return upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)
     }
-    // Operate Factor
-    else if (!powerCreep.powers[PWR_OPERATE_FACTORY]) {
-        upgradeSwitch(powerCreep, PWR_OPERATE_FACTORY)
+    // Lab
+    else if (!powerCreep.powers[PWR_OPERATE_LAB] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_LAB].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_LAB].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_OPERATE_LAB].level < 4)) {
+        return upgradeSwitch(powerCreep, PWR_OPERATE_LAB)
     }
-     // Operate Spawn
-     else if (!powerCreep.powers[PWR_OPERATE_SPAWN]) {
-        upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)
+    // Factory
+    else if (!powerCreep.powers[PWR_OPERATE_FACTORY] || (powerCreep.powers[PWR_OPERATE_FACTORY] && powerCreep.powers[PWR_OPERATE_FACTORY].level === 1 && _.filter(Game.powerCreeps, (c) => c.my && c.id !== powerCreep.id && c.powers[PWR_OPERATE_FACTORY] && c.powers[PWR_OPERATE_FACTORY].level === 1)[0] && !_.filter(Game.powerCreeps, (c) => c.my && c.id !== powerCreep.id && c.powers[PWR_OPERATE_FACTORY] && c.powers[PWR_OPERATE_FACTORY].level === 2)[0])) {
+        return upgradeSwitch(powerCreep, PWR_OPERATE_FACTORY)
     }
-    // Operate Extension
-    else if (!powerCreep.powers[PWR_OPERATE_EXTENSION]) {
-        upgradeSwitch(powerCreep, PWR_OPERATE_EXTENSION)
+    // Tower
+    else if (!powerCreep.powers[PWR_OPERATE_TOWER] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_TOWER].level < 2)) {
+        return upgradeSwitch(powerCreep, PWR_OPERATE_TOWER)
     }
-    // Operate Tower
-    else if (!powerCreep.powers[PWR_OPERATE_TOWER]) {
-        upgradeSwitch(powerCreep, PWR_OPERATE_TOWER)
-    }
-    // Operate Lab
-    else if (!powerCreep.powers[PWR_OPERATE_LAB]) {
-        upgradeSwitch(powerCreep, PWR_OPERATE_LAB)
-    }
-    // Second Tier of upgrades (check if new one needs to be spawned
-    let worthyRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8);
-    if (_.size(Game.powerCreeps) >= 2 || worthyRooms.length < 2) {
-        // Regen Source
-        if (powerCreep.level >= 10 && !powerCreep.powers[PWR_REGEN_SOURCE]) {
-            upgradeSwitch(powerCreep, PWR_REGEN_SOURCE)
-        }
-        // Regen Mineral
-        else if (powerCreep.level >= 10 && !powerCreep.powers[PWR_REGEN_MINERAL]) {
-            upgradeSwitch(powerCreep, PWR_REGEN_MINERAL)
-        } else if (powerCreep.level >= 2 && powerCreep.powers[PWR_GENERATE_OPS].level < 2) {
-            upgradeSwitch(powerCreep, PWR_GENERATE_OPS)
-        } else if (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 2) {
-            upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)
-        } else if (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 2) {
-            upgradeSwitch(powerCreep, PWR_OPERATE_EXTENSION)
-        } else if (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_TOWER].level < 2) {
-            upgradeSwitch(powerCreep, PWR_OPERATE_TOWER)
-        } else if (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_LAB].level < 2) {
-            upgradeSwitch(powerCreep, PWR_OPERATE_LAB)
-        }
-        if (_.size(Game.powerCreeps) >= 3 || worthyRooms.length < 3) {
-            if (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 3) {
-                upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)
-            } else if (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 3) {
-                upgradeSwitch(powerCreep, PWR_OPERATE_EXTENSION)
-            } else if (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_TOWER].level < 3) {
-                upgradeSwitch(powerCreep, PWR_OPERATE_TOWER)
-            } else if (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_LAB].level < 3) {
-                upgradeSwitch(powerCreep, PWR_OPERATE_LAB)
-            }
-            if (_.size(Game.powerCreeps) >= 4 || worthyRooms.length < 4) {
-                if (powerCreep.level >= 14 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 4) {
-                    upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)
-                } else if (powerCreep.level >= 14 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 4) {
-                    upgradeSwitch(powerCreep, PWR_OPERATE_EXTENSION)
-                } else if (powerCreep.level >= 14 && powerCreep.powers[PWR_OPERATE_TOWER].level < 4) {
-                    upgradeSwitch(powerCreep, PWR_OPERATE_TOWER)
-                } else if (powerCreep.level >= 14 && powerCreep.powers[PWR_OPERATE_LAB].level < 4) {
-                    upgradeSwitch(powerCreep, PWR_OPERATE_LAB)
-                }
-                if (_.size(Game.powerCreeps) >= 5 || worthyRooms.length < 5) {
-                    if (powerCreep.level >= 22 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 5) {
-                        upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)
-                    } else if (powerCreep.level >= 22 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 5) {
-                        upgradeSwitch(powerCreep, PWR_OPERATE_EXTENSION)
-                    } else if (powerCreep.level >= 22 && powerCreep.powers[PWR_OPERATE_TOWER].level < 5) {
-                        upgradeSwitch(powerCreep, PWR_OPERATE_TOWER)
-                    } else if (powerCreep.level >= 22 && powerCreep.powers[PWR_OPERATE_LAB].level < 5) {
-                        upgradeSwitch(powerCreep, PWR_OPERATE_LAB)
-                    }
-                }
-            }
-        }
+    // Mineral
+    else if (powerCreep.level >= 10 && (!powerCreep.powers[PWR_REGEN_MINERAL] || powerCreep.powers[PWR_REGEN_MINERAL].level < 3)) {
+        return upgradeSwitch(powerCreep, PWR_REGEN_MINERAL)
     }
 }
 
