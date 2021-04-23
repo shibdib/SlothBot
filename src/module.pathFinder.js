@@ -720,7 +720,7 @@ function addSksToMatrix(room, matrix, options) {
                     } catch (e) {
                         continue;
                     }
-                    if (position && !position.checkForWall()) {
+                    if (position && !position.checkForWall() && !position.checkForRoad()) {
                         let weight = 40 * (5 - position.getRangeTo(lair));
                         matrix.set(position.x, position.y, weight)
                     }
