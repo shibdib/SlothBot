@@ -459,7 +459,7 @@ module.exports.remoteCreepQueue = function (room) {
                 continue;
             }
             // If it's being heavily camped just skip it
-            if (Memory.roomCache[remoteName].threatLevel >= 3) continue;
+            if (Memory.roomCache[remoteName].threatLevel >= 2) continue;
             // Handle invaders
             if ((Memory.roomCache[remoteName].invaderCore || Memory.roomCache[remoteName].threatLevel || invaderCoreReserved || (Memory.roomCache[remoteName].user && !_.includes(FRIENDLIES, Memory.roomCache[remoteName].user))) && !Memory.roomCache[remoteName].sk) {
                 if (Memory.roomCache[remoteName].invaderTTL && Memory.roomCache[remoteName].invaderTTL < Game.time) {
@@ -503,7 +503,7 @@ module.exports.remoteCreepQueue = function (room) {
                     continue;
                 }
                 activeSK[room.name] = true;
-                if (!getCreepCount(undefined, 'SKAttacker', remoteName) || (getCreepTTL(remoteName, 'SKAttacker') < 100 && getCreepCount(undefined, 'attacker', remoteName) === 1)) {
+                if (!getCreepCount(undefined, 'SKAttacker', remoteName) || (getCreepTTL(remoteName, 'SKAttacker') < 200 && getCreepCount(undefined, 'SKAttacker', remoteName) === 1)) {
                     queueCreep(room, PRIORITIES.remoteHarvester + 1, {
                         role: 'SKAttacker',
                         destination: remoteName
