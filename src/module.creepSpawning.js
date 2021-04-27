@@ -49,10 +49,8 @@ module.exports.processBuildQueue = function (room) {
             Object.keys(combatQueue).forEach(function (q) {
                 if (combatQueue[q].manual || (combatQueue[q].destination && Memory.auxiliaryTargets[combatQueue[q].destination])) return;
                 if (!room.energyState) {
-                    delete combatQueue[q];
-                    return;
-                }
-                if (combatQueue[q].destination) {
+                    combatQueue[q].priority = PRIORITIES.secondary;
+                } else if (combatQueue[q].destination) {
                     let distance = Game.map.getRoomLinearDistance(combatQueue[q].destination, room.name);
                     if (distance > range) combatQueue[q].priority = PRIORITIES.secondary;
                 }
@@ -77,7 +75,7 @@ module.exports.processBuildQueue = function (room) {
             body = generator.bodyGenerator(level, role, room, topPriority);
             if (!body || !body.length) continue;
             // Add a distance sanity check for claim parts
-            if (topPriority.destination && (Game.map.findRoute(topPriority.destination, room.name).length > 23 || (_.includes(body, CLAIM) && Game.map.findRoute(topPriority.destination, room.name).length > 10))) continue;
+            if (topPriority.destination && (Game.map.findRoute(topPriority.destination, room.name).length > 23 || (_.includes(body, CLAIM) && Game.map.findRoute(topPriority.destination, room.name).length > 12))) continue;
             // Stop loop if we just can't afford it yet
             cost = global.UNIT_COST(body);
             if (cost > room.energyAvailable && cost <= room.energyCapacityAvailable) return;
@@ -231,7 +229,7 @@ module.exports.essentialCreepQueue = function (room) {
     // Upgrader
     // Determine amount
     let number;
-    if (level < 8 && !room.memory.spawnDefenders) {
+    if (room.controller.level < 8 && !room.memory.spawnDefenders) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         if (container && room.storage) number = 3 * (room.energy / ENERGY_AMOUNT);
         else number = 3;
@@ -497,7 +495,7 @@ module.exports.remoteCreepQueue = function (room) {
             // Handle rooms that can't be reached safely
             if (!room.routeSafe(remoteName)) continue;
             // Handle SK (Do not do regular remotes if sk mining).
-            if (Memory.roomCache[remoteName].sk && room.level >= 7) {
+            if (Memory.roomCache[remoteName].sk && room.level >= 9) {
                 if (Memory.roomCache[remoteName].invaderCore || Memory.roomCache[remoteName].threatLevel >= 2) {
                     activeSK[room.name] = undefined;
                     continue;
