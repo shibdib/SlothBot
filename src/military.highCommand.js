@@ -140,7 +140,7 @@ function manageMarauders(marauders) {
 function auxiliaryOperations() {
     let maxLevel = Memory.maxLevel;
     let initialFilter = _.filter(Memory.roomCache, (r) => r.name && !Memory.auxiliaryTargets[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && Game.map.getRoomLinearDistance(_.sample(Game.spawns).room.name, r.name) <= 12 && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !r.hostile);
-    if (Game.shard.name !== 'shardSeason' && maxLevel >= 6) {
+    if (maxLevel >= 6) {
         // Power Mining
         if (getResourceTotal(RESOURCE_POWER) < 10000 && maxLevel >= 7) {
             let powerRoom = _.min(_.filter(initialFilter, (r) => r.power && r.power + 1500 >= Game.time && r.closestRange <= 8), 'closestRange');
