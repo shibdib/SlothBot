@@ -173,7 +173,6 @@ function extensionFiller(creep) {
 
 function harvestDepositLink(creep) {
     creep.memory.linkAttempt = true;
-    if (creep.room.memory.praiseRoom) return;
     let source = Game.getObjectById(creep.memory.source);
     if (!source.memory.containerPos || (!creep.room.memory.controllerLink && !creep.room.memory.hubLink)) return;
     let link = _.filter(source.pos.findInRange(FIND_MY_STRUCTURES, 2), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0] || _.filter(creep.pos.findInRange(FIND_MY_STRUCTURES, 1), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
