@@ -44,7 +44,7 @@ module.exports.towerControl = function (room) {
             let barriers = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 10000), 'hits');
             if (barriers.id) {
                 return repairTower.repair(barriers);
-            } else if (repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.7 && repairTower.room.energyState) {
+            } else if (repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.7 && repairTower.room.energy > 50000) {
                 let lowestRampart = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level] * 0.5), 'hits');
                 if (lowestRampart) {
                     return repairTower.repair(lowestRampart);
@@ -82,12 +82,12 @@ module.exports.towerControl = function (room) {
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;
             } // If it can be hurt and is near structures kill it
-            else if (nearStructures) {
+            else if (attackPower > healPower && nearStructures) {
                 room.memory.towerTarget = hostileCreeps[i].id;
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;
             } // If you can damage it and it's not border humping attack it. Always attack invaders
-            else if (attackPower >= healPower && ((hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT)) >= ((hostileCreeps[i].hits + healPower) / attackPower)) || hostileCreeps[i].owner.username === 'Invader')) {
+            else if (attackPower > healPower && ((hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT)) >= ((hostileCreeps[i].hits + healPower) / attackPower)) || hostileCreeps[i].owner.username === 'Invader')) {
                 room.memory.towerTarget = hostileCreeps[i].id;
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;
