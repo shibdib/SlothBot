@@ -65,7 +65,7 @@ module.exports.role = function (creep) {
                             creep.shibMove(pickup);
                             break;
                     }
-                }
+                } else creep.idleFor(50);
             }
         }
     }
