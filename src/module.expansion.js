@@ -13,7 +13,7 @@ module.exports.claimNewRoom = function () {
     lastTick = Game.time;
     if (!claimTarget) {
         let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 3000 < Game.time) && r.hubCheck && r.closestRange <= 12 &&
-            Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status && !r.obstructions);
+            Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status && !r.obstructions && !r.owner && !r.reservation);
         if (!worthyRooms.length) return;
         let possibles = {};
         worthy:
