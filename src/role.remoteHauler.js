@@ -157,8 +157,7 @@ function buildLinks(creep) {
         if (!inBuildLink && controllerLink && hubLink && allLinks.length < 6 && closestRange > 8) {
             let hub = new RoomPosition(creep.room.memory.bunkerHub.x, creep.room.memory.bunkerHub.y, creep.room.name);
             if (creep.pos.getRangeTo(hub) >= 18) {
-                let buildPos = new RoomPosition(creep.pos.x + getRandomInt(-2, 2), creep.pos.y + getRandomInt(-2, 2), creep.room.name);
-                buildPos.createConstructionSite(STRUCTURE_LINK);
+                creep.pos.createConstructionSite(STRUCTURE_LINK);
             }
         } else if (closestRange < 8) creep.memory.dropOffLink = closestLink.id;
     }
