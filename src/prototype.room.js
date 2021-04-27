@@ -600,7 +600,7 @@ Room.prototype.invaderCheck = function () {
 
 let closestCache = {};
 Room.prototype.findClosestOwnedRoom = function (range = false, minLevel = 1) {
-    if (!closestCache.length || !closestCache[this.name] || closestCache[this.name].tick + 1000 < Game.time) {
+    if (!closestCache.length || !closestCache[this.name] || closestCache[this.name].tick + 5000 < Game.time) {
         closestCache[this.name] = {};
         closestCache[this.name].tick = Game.time;
         let distance = 0;
