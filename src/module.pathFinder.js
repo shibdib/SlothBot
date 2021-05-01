@@ -208,7 +208,7 @@ function shibMove(creep, heading, options = {}) {
 
 function shibPath(creep, heading, pathInfo, origin, target, options) {
     let cached;
-    if (!Memory.roomCache[creep.room.name]) creep.room.cacheRoomIntel(true);
+    if (!Memory.roomCache[creep.room.name]) creep.room.cacheRoomIntel(true, creep);
     if (!target) return creep.moveRandom();
     if (options.useCache && !Memory.roomCache[creep.room.name].threatLevel && !options.tunnel) cached = getPath(creep, origin, target);
     if (cached && options.ignoreCreeps) {
@@ -435,7 +435,7 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
 //FUNCTIONS
 function creepBumping(creep, pathInfo, options) {
     if (!pathInfo.newPos) return creep.moveRandom();
-    let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y)[0];
+    let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory.other || !c.memory.other.noBump))[0];
     if (bumpCreep) {
         if (!creep.memory.trailer && creep.pos.isNearTo(Game.getObjectById(creep.memory.trailer))) {
             if (bumpCreep.getActiveBodyparts(MOVE)) {
