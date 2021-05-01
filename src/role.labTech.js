@@ -17,12 +17,12 @@ module.exports.role = function (creep) {
     if (_.sum(creep.store)) return deliverResource(creep);
     // Get resource
     if (creep.memory.resourceNeeded) return getResource(creep);
-    // Empty labs
-    if (emptyLab(creep)
+    // Tow Truck
+    if (creep.towTruck()
+        // Empty labs
+        || emptyLab(creep)
         //If creep needs boosts do that first
         || boostDelivery(creep)
-        // Tow Truck
-        || creep.towTruck()
         // Handle dropped goodies
         || droppedResources(creep)
         // Check nuker for ghodium
@@ -132,7 +132,7 @@ function deliverResource(creep) {
                 creep.memory.deliverTo = undefined;
                 creep.memory.storeTarget = undefined;
                 creep.memory.deliveryResource = undefined;
-                creep.drop(resourceType);
+                creep.drop(creep.memory.deliveryResource);
                 return true;
         }
     }
@@ -292,7 +292,6 @@ function terminalControl(creep) {
             if (amountNeeded > creep.store.getFreeCapacity(resourceType)) amountNeeded = creep.store.getFreeCapacity(resourceType);
             if (amountNeeded > creep.room.terminal.store[resourceType]) amountNeeded = creep.room.terminal.store[resourceType];
             if (amountNeeded >= 10) {
-                creep.say(12)
                 creep.memory.resourceNeeded = resourceType;
                 creep.memory.storageSite = creep.room.terminal.id;
                 creep.memory.amountNeeded = amountNeeded;
@@ -331,7 +330,6 @@ function storageControl(creep) {
                 amountNeeded = 20000;
             }
             if (amountNeeded >= 10) {
-                creep.say(1)
                 if (amountNeeded > creep.store.getFreeCapacity(resourceType)) amountNeeded = creep.store.getFreeCapacity(resourceType);
                 if (amountNeeded > creep.room.storage.store[resourceType]) amountNeeded = creep.room.storage.store[resourceType];
                 creep.memory.resourceNeeded = resourceType;

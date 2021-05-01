@@ -46,74 +46,51 @@ function manageBoostProduction(room) {
         break;
     }
     if (!boost) return;
-    let componentOne = BOOST_COMPONENTS[boost][0];
-    let componentTwo = BOOST_COMPONENTS[boost][1];
-    // Set component 1
-    hub[0].memory = {
-        itemNeeded: componentOne,
-        creating: boost,
-        room: room.name,
-        id: hub[0].id,
-        targetLab: hub[2].id,
-        active: true
-    };
-    // Set component 2
-    hub[1].memory = {
-        itemNeeded: componentTwo,
-        creating: boost,
-        room: room.name,
-        id: hub[1].id,
-        targetLab: hub[2].id,
-        active: true
-    };
-    // Set target
-    hub[2].memory = {
-        creating: boost,
-        room: room.name,
-        id: hub[2].id,
-        targetLab: hub[2].id,
-        active: true
-    };
+    let count = 0;
+    let hubId = _.random(1, 999999999);
+    for (let lab of hub) {
+        lab.memory = {
+            creating: boost,
+            room: room.name,
+            id: hub[0].id,
+            targetLab: hubId,
+            active: true
+        };
+        if (count < 2) lab.memory.itemNeeded = BOOST_COMPONENTS[boost][count];
+        count++;
+    }
     log.a(room.name + ' queued ' + boost + ' for creation.');
 }
 
 function manageActiveLabs() {
-    let activeLabs = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && !s.cooldown && s.memory.active && s.memory.creating && !s.memory.itemNeeded);
+    let activeLabs = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && !s.cooldown && s.memory.active && s.memory.creating && !s.memory.itemNeeded && !s.memory.paused);
     if (activeLabs.length) {
         active:
             for (let key in activeLabs) {
                 let hub = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.room.name === activeLabs[key].room.name && s.memory.targetLab === activeLabs[key].memory.targetLab && s.memory.active);
-                let outputLab = Game.getObjectById(_.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id')[0]);
-                if (!outputLab) {
+                let outputLabs = _.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id');
+                if (!outputLabs.length) {
                     for (let id in hub) {
                         hub[id].memory = undefined;
                     }
                     continue;
                 }
-                if (outputLab.memory.creating) {
-                    for (let lab of hub) {
-                        if (lab.memory.itemNeeded) lab.lineTo(outputLab);
-                    }
-                    outputLab.say(outputLab.memory.creating);
-                }
                 let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
                 let creatorOne = Game.getObjectById(creators[0]);
                 let creatorTwo = Game.getObjectById(creators[1]);
                 // If any don't exist reset
-                if (!outputLab || !creatorOne || !creatorTwo || !outputLab.isActive() || !creatorOne.isActive() || !creatorTwo.isActive()) {
-                    log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a lab error (2).');
-                    for (let id in creators) {
-                        creators[id].memory = undefined;
+                if (!creatorOne || !creatorTwo) {
+                    for (let id in hub) {
+                        hub[id].memory = undefined;
                     }
-                    outputLab.memory = undefined;
                     continue
                 }
                 //Clean bad boosting
-                if (outputLab.memory.neededBoost && outputLab.memory.neededBoost !== outputLab.memory.creating) outputLab.memory.neededBoost = undefined;
                 if (creatorOne.memory.neededBoost && creatorOne.memory.neededBoost !== creatorOne.memory.itemNeeded) creatorOne.memory.neededBoost = undefined;
                 if (creatorTwo.memory.neededBoost && creatorTwo.memory.neededBoost !== creatorTwo.memory.itemNeeded) creatorTwo.memory.neededBoost = undefined;
-                if (outputLab.memory.creating) {
-                    switch (outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]))) {
+                for (let outputLab of outputLabs) {
+                    outputLab = Game.getObjectById(outputLab);
+                    switch (outputLab.runReaction(creatorOne, creatorTwo)) {
                         case OK:
                             // Check if we already have enough
                             let cutOff = BOOST_AMOUNT * 1.5;
@@ -126,7 +103,7 @@ function manageActiveLabs() {
                                     creators[id].memory = undefined;
                                 }
                                 outputLab.memory = undefined;
-                                continue;
+                                return;
                             }
                             continue;
                         case ERR_NOT_ENOUGH_RESOURCES:
@@ -139,16 +116,16 @@ function manageActiveLabs() {
                                         creators[id].memory = undefined;
                                     }
                                     outputLab.memory = undefined;
-                                    continue active;
+                                    return;
                                 }
                             }
                             continue;
                         case ERR_NOT_IN_RANGE:
                             log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a range issue. Lab IDs ' + outputLab.id + ', ' + creators[0] + ', ' + creators[1]);
-                            for (let id in creators) {
-                                creators[id].memory = undefined;
+                            for (let id in hub) {
+                                hub[id].memory = undefined;
                             }
-                            outputLab.memory = undefined;
+                            return;
                     }
                 }
             }

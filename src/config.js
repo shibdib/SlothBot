@@ -59,7 +59,7 @@ global.FACTORY_CUTOFF = ENERGY_AMOUNT * 0.5; // Amount needed for a factory to b
 global.MINERAL_TRADE_AMOUNT = (TERMINAL_CAPACITY * 0.015 + STORAGE_CAPACITY * 0.015);  // Hold this much of a mineral before selling
 global.BOOST_TRADE_AMOUNT = (TERMINAL_CAPACITY * 0.01 + STORAGE_CAPACITY * 0.01);  // Hold this much of a mineral before selling
 global.TERMINAL_ENERGY_BUFFER = 10000; // Keep this much in terminal (Needed for trade)
-global.REACTION_AMOUNT = (TERMINAL_CAPACITY * 0.005 + STORAGE_CAPACITY * 0.005); // Minimum amount for base reaction minerals and power
+global.REACTION_AMOUNT = (TERMINAL_CAPACITY * 0.02) + (STORAGE_CAPACITY * 0.02); // Minimum amount for base reaction minerals and power
 global.BOOST_AMOUNT = (TERMINAL_CAPACITY * 0.005 + STORAGE_CAPACITY * 0.005); // Try to have this much of all applicable boosts
 global.DUMP_AMOUNT = TERMINAL_CAPACITY * 0.1; // Fills buys (of if overflowing it will offload to other terminals)
 
