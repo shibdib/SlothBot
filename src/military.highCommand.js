@@ -10,7 +10,8 @@ let lastTick = 0;
 
 module.exports.highCommand = function () {
     if (lastTick + 10 > Game.time) return;
-    if (Game.cpu.bucket < BUCKET_MAX) OPERATION_LIMIT = 1; else OPERATION_LIMIT = Memory.myRooms.length * 3;
+    let capableRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].energyState);
+    if (Game.cpu.bucket < BUCKET_MAX) OPERATION_LIMIT = 1; else OPERATION_LIMIT = capableRooms.length + 1;
     lastTick = Game.time;
     if (!Memory.nonCombatRooms) Memory.nonCombatRooms = [];
     if (!Memory.targetRooms) Memory.targetRooms = {};
@@ -227,7 +228,7 @@ function auxiliaryOperations() {
             let scoreRoom = _.min(_.filter(initialFilter, (r) => r.seasonResource > Game.time && r.closestRange <= r.seasonResource / 50 && r.reservation !== MY_USERNAME &&
                 ((Memory.ownedSymbols && Memory.ownedSymbols.includes(r.seasonResourceType) && getResourceTotal(r.seasonResourceType) < 25000) || getResourceTotal(r.seasonResourceType) < 2500)), 'closestRange');
             let scoreMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'score').length || 0;
-            if (scoreRoom.name && scoreMining < 3) {
+            if (scoreRoom.name && scoreMining < 10) {
                 let cache = Memory.auxiliaryTargets || {};
                 let tick = Game.time;
                 cache[scoreRoom.name] = {
@@ -261,12 +262,7 @@ function operationRequests() {
     if (!Memory._enemies || !Memory._enemies.length) Memory._enemies = [];
     if (!Memory._nuisance || !Memory._nuisance.length) Memory._nuisance = [];
     let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target && target.type !== 'guard' && target.type !== 'pending').length || 0;
-    let capableRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].energyState).length > 0;
-    // Set limit
-    let targetLimit = OPERATION_LIMIT;
-    if (TEN_CPU) targetLimit = 1;
-    if (!capableRooms) targetLimit = 1;
-    if (totalCountFiltered <= targetLimit) {
+    if (totalCountFiltered <= OPERATION_LIMIT) {
         let initialFilter = _.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !checkForNap(r.user) && !_.includes(FRIENDLIES, r.user) && (!r.safemode || r.safemode - 500 < Game.time));
         // Kill strongholds
         let stronghold = _.sortBy(_.filter(initialFilter, (r) => r.sk && r.towers && r.towers < 3 && r.closestRange <= 5), function (t) {
@@ -337,7 +333,7 @@ function operationRequests() {
                     Memory.roomCache[swarmTargets[0].name].lastOperation = Game.time;
                     log.a('Swarm operation planned for ' + roomLink(swarmTargets[0].name) + ' owned by ' + swarmTargets[0].user + ' (Nearest Friendly Room - ' + swarmTargets[0].closestRange + ' rooms away)', 'HIGH COMMAND: ');
                 }
-            } else if (capableRooms && (!Memory.lastSiege || Memory.lastSiege + ATTACK_COOLDOWN < Game.time) && !_.filter(Memory.targetRooms, (target) => target && (target.type === 'siegeGroup' || target.type === 'drain')).length) {
+            } else if ((!Memory.lastSiege || Memory.lastSiege + ATTACK_COOLDOWN < Game.time) && !_.filter(Memory.targetRooms, (target) => target && (target.type === 'siegeGroup' || target.type === 'drain')).length) {
                 let siegeTarget = _.sortBy(_.filter(initialFilter, (r) => r.owner && (_.includes(Memory._enemies, r.user) || (r.closestRange <= LOCAL_SPHERE && ATTACK_LOCALS) || (HOLD_SECTOR && sameSectorCheck(r.name, r.closestRoom))) && r.towers < 3), function (t) {
                     return t.level
                 })[0];
@@ -484,6 +480,11 @@ function manageAttacks() {
                 continue;
             // Manage Harass
             case 'harass':
+                if (totalCountFiltered > OPERATION_LIMIT + 1) {
+                    log.a('Canceling harass in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
+                    delete Memory.targetRooms[key];
+                    continue;
+                }
                 staleMulti = 3;
                 break;
             // Manage Guard
@@ -853,7 +854,7 @@ module.exports.operationSustainability = function (room, operationRoom = room.na
 };
 
 module.exports.generateThreat = function (creep) {
-    creep.room.cacheRoomIntel();
+    creep.room.cacheRoomIntel(false, creep);
     let user = Memory.roomCache[creep.room.name].user;
     if (_.includes(FRIENDLIES, user)) return;
     let cache = Memory._userList || {};
