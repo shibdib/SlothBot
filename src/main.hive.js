@@ -112,7 +112,7 @@ function minionController(minion) {
     if (minion.memory.fleeNukeTime && minion.fleeNukeRoom(minion.memory.fleeNukeRoom)) return;
     // Report intel chance
     minion.room.invaderCheck();
-    minion.room.cacheRoomIntel();
+    minion.room.cacheRoomIntel(false, minion);
     // Set role
     let memoryRole = minion.memory.role;
     try {

@@ -39,7 +39,7 @@ module.exports.role = function (creep) {
         if (creep.pos.roomName !== creep.memory.destination && !creep.memory.hauling) {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
         } else if (!creep.memory.hauling && !score) {
-            creep.room.cacheRoomIntel(true);
+            creep.room.cacheRoomIntel(true, creep);
             Memory.auxiliaryTargets[creep.room.name] = undefined;
             creep.memory.destination = undefined;
         }

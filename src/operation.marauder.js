@@ -23,7 +23,7 @@ Creep.prototype.marauding = function () {
             if (!this.memory.other.onScene) this.memory.other.onScene = Game.time;
             // If on target and cant win find a new target
             if (this.memory.other.onScene + 25 < Game.time || !this.canIWin()) {
-                this.room.cacheRoomIntel(true);
+                this.room.cacheRoomIntel(true, this);
                 if (!this.memory.other.visited) this.memory.other.visited = [];
                 if (this.memory.other.destination) this.memory.other.visited.push(this.memory.other.destination);
                 this.memory.other.destination = undefined;

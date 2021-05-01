@@ -130,7 +130,7 @@ Creep.prototype.skSafety = function () {
         }
         // Handle invader cores in sk
         if (_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0]) {
-            this.room.cacheRoomIntel(true);
+            this.room.cacheRoomIntel(true, this);
             return this.memory.recycle = true;
         }
     }
@@ -610,7 +610,7 @@ Creep.prototype.towTruck = function () {
         if (this.fatigue) return true;
         let trailer = Game.getObjectById(this.memory.trailer);
         if (trailer) {
-            if (trailer.fatigue) return true;
+            if (trailer.fatigue && trailer.pos.isNearTo(this)) return true;
             if (!trailer.memory.towDestination) return this.memory.trailer = undefined;
             this.say('Towing!', true);
             if (trailer.pos.isExit() && trailer.pos.isNearTo(this)) {
@@ -804,7 +804,6 @@ Creep.prototype.tryToBoost = function (boosts) {
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
                     break;
             }
-            let count = 0;
             for (let boost of BOOST_USE[boostType]) {
                 if (this.room.store(boost) >= boostNeeded) {
                     available[boost] = {
@@ -812,14 +811,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                         'amount': boostNeeded
                     };
                     break;
-                } else if (count === 2 && this.room.store(boost) >= boostNeeded * 0.5 && boostNeeded * 0.5 >= 30) {
-                    available[boost] = {
-                        'boost': boost,
-                        'amount': boostNeeded * 0.5
-                    };
-                    break;
                 }
-                count++;
             }
         }
         this.memory.boosts.requestedBoosts = available;
@@ -829,23 +821,29 @@ Creep.prototype.tryToBoost = function (boosts) {
             let boostInRoom = this.room.store(requestedBoost);
             if (boostInRoom < this.memory.boosts.requestedBoosts[requestedBoost]['amount']) {
                 let lab = Game.getObjectById(this.memory.boosts.boostLab);
-                if (lab) lab.memory = undefined;
+                if (lab.memory.creating) {
+                    lab.memory.paused = undefined;
+                    lab.memory.neededBoost = undefined;
+                } else lab.memory = undefined;
                 this.memory.boosts = undefined;
                 return true;
             }
             // Find a lab to boost the creep if none exist, idle.
             if (!this.memory.boosts.boostLab || !Game.getObjectById(this.memory.boosts.boostLab).memory.neededBoost) {
                 let lab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.isActive() && s.store[RESOURCE_ENERGY] > 0 &&
-                    (s.mineralType === requestedBoost || !s.memory.creating) &&
-                    (!s.memory.neededBoost || s.memory.neededBoost === requestedBoost))[0];
+                    (s.mineralType === requestedBoost || !s.memory.creating || s.memory.paused) &&
+                    (!s.memory.neededBoost || s.memory.neededBoost === requestedBoost))[0] ||
+                    _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.isActive() && s.store[RESOURCE_ENERGY] > 0 &&
+                        s.memory.creating && !s.memory.itemNeeded && !s.memory.neededBoost)[0];
                 if (lab) {
+                    if (lab.memory.creating) lab.memory.paused = true;
                     this.memory.boosts.boostLab = lab.id;
                     lab.memory.neededBoost = requestedBoost;
                     lab.memory.amount = this.memory.boosts.requestedBoosts[requestedBoost]['amount'];
                     lab.memory.active = true;
                     lab.memory.requestor = this.id;
                     lab.memory.requested = Game.time;
-                } else if (!this.memory.boosts.labTimeout || this.memory.boosts.labTimeout < 10) {
+                } else if (!this.memory.boosts.labTimeout || this.memory.boosts.labTimeout < 5) {
                     if (!this.memory.boosts.labTimeout) this.memory.boosts.labTimeout = 1; else this.memory.boosts.labTimeout += 1;
                     this.idleFor(5);
                     return true;
@@ -866,7 +864,13 @@ Creep.prototype.tryToBoost = function (boosts) {
                 } else if (lab.mineralType === lab.memory.neededBoost && lab.store[RESOURCE_ENERGY] && lab.mineralAmount >= this.memory.boosts.requestedBoosts[requestedBoost]['amount']) {
                     switch (lab.boostCreep(this)) {
                         case OK:
-                            if (lab.memory.creating) lab.memory.neededBoost = undefined; else lab.memory = undefined;
+                            let otherCreep = _.find(this.room.creeps, (c) => c.my && c.id !== this.id && c.memory.boosts && c.memory.boosts.boostLab === this.memory.boosts.boostLab);
+                            if (!otherCreep) {
+                                if (lab.memory.creating) {
+                                    lab.memory.paused = undefined;
+                                    lab.memory.neededBoost = undefined;
+                                } else lab.memory = undefined;
+                            }
                             this.memory.boosts.requestedBoosts = _.filter(this.memory.boosts.requestedBoosts, (b) => b['boost'] !== requestedBoost);
                             this.say(ICONS.greenCheck);
                             return true;

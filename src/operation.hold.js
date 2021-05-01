@@ -46,7 +46,7 @@ function levelManager(creep) {
     if (towers.length) {
         delete Memory.targetRooms[creep.memory.destination];
         log.a('Canceling operation in ' + roomLink(creep.memory.destination) + '.', 'HIGH COMMAND: ');
-        return creep.room.cacheRoomIntel(true);
+        return creep.room.cacheRoomIntel(true, creep);
     } else if (armedEnemies.length) {
         Memory.targetRooms[creep.memory.destination].level = 2;
     } else if (otherRooms || creep.room.hostileCreeps.length) {

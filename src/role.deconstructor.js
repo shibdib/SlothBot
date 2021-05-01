@@ -31,11 +31,11 @@ module.exports.role = function (creep) {
                 creep.memory.attackCollector = true;
             } else {
                 Memory.auxiliaryTargets[creep.memory.destination] = undefined;
-                creep.room.cacheRoomIntel(true);
+                creep.room.cacheRoomIntel(true, creep);
             }**/
         } else {
             if (!creep.scorchedEarth()) {
-                creep.room.cacheRoomIntel(true);
+                creep.room.cacheRoomIntel(true, creep);
                 creep.memory.recycle = true;
             }
         }

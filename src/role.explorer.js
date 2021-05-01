@@ -12,14 +12,16 @@
 module.exports.role = function (creep) {
     creep.say(ICONS.eye, true);
     Game.map.visual.text(ICONS.eye, creep.pos, {color: '#FF0000', fontSize: 2});
-    creep.room.cacheRoomIntel();
     // Set destination
     if (!creep.memory.destination) {
-        let portal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL)[0];
-        if (portal && !portal.destination.shard && !creep.memory.usedPortal && (creep.memory.other.portalJump || Math.random() > 0.5 || creep.memory.other.portalForce)) {
+        let portal = Game.getObjectById(creep.memory.portal) || shuffle(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL))[0];
+        if (portal && (!Game.cpu.shardLimits || Game.cpu.shardLimits[portal.destination.shard] > 0) && !creep.memory.usedPortal && (creep.memory.other.portalJump || Math.random() > 0.5 || creep.memory.other.portalForce)) {
             if (!creep.memory.other.portalJump) {
-                creep.memory.other.portalJump = portal.destination.roomName;
-                log.a(creep.name + ' has found a portal in ' + roomLink(creep.room.name) + ' and is taking it.')
+                let roomName;
+                if (portal.destination.shard) roomName = portal.destination.room.name; else roomName = portal.destination.roomName;
+                creep.memory.other.portalJump = roomName;
+                if (!creep.memory.portal) log.a(creep.name + ' has found a portal in ' + roomLink(creep.room.name) + ' and is taking it.')
+                creep.memory.portal = portal.id;
             } else if (creep.memory.other.portalJump === creep.room.name) {
                 return creep.memory.usedPortal = true;
             }

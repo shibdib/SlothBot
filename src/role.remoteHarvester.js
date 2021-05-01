@@ -69,7 +69,7 @@ module.exports.role = function (creep) {
                 case OK:
                     //Suicide and cache intel if room is reserved/owned by someone else
                     if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username !== MY_USERNAME) || creep.room.controller.owner)) {
-                        creep.room.cacheRoomIntel(true);
+                        creep.room.cacheRoomIntel(true, creep);
                         return creep.memory.recycle = true;
                     }
                     // Set the travel range in the source memory

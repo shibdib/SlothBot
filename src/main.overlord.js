@@ -163,7 +163,7 @@ function minionController(minion) {
         // Report intel chance
         if (minion.room.name !== minion.memory.overlord) {
             minion.room.invaderCheck();
-            minion.room.cacheRoomIntel();
+            minion.room.cacheRoomIntel(false, minion);
         }
         try {
             // Run role

@@ -14,7 +14,7 @@ module.exports.role = function (creep) {
         // Handle invader cores in sk
         let core = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0];
         if (core) {
-            creep.room.cacheRoomIntel(true);
+            creep.room.cacheRoomIntel(true, creep);
             return creep.memory.recycle = true;
         }
         let invaders = _.filter(creep.room.creeps, (c) => c.owner.username === 'Invader');

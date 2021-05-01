@@ -340,7 +340,7 @@ function getRoomResource(room, resource, unused = false) {
     return count;
 }
 
-Room.prototype.cacheRoomIntel = function (force = false) {
+Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + (CREEP_LIFE_TIME * 0.5) > Game.time) return;
     let room = Game.rooms[this.name];
     let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, towers,
@@ -364,6 +364,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             }**/
                 // Season 2
             let container = room.find(FIND_SYMBOL_CONTAINERS)[0];
+            if (creep) container = creep.pos.findClosestByPath(container);
             if (container) {
                 seasonResource = Game.time + container.ticksToDecay;
                 seasonResourceType = container.resourceType;
@@ -439,14 +440,16 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         } else {
             portal = undefined;
         }
-        let deposit = _.filter(room.deposits, (d) => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20))[0];
-        // Deposit info
-        if (deposit) {
-            commodity = true;
+        if (creep) {
+            let deposit = creep.pos.findClosestByPath(_.filter(room.deposits, (d) => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20)));
+            // Deposit info
+            if (deposit) {
+                commodity = true;
+            }
+            // Store power info
+            power = creep.pos.findClosestByPath(_.filter(room.structures, (e) => e && e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000));
+            if (power) power = Game.time + power.ticksToDecay; else power = undefined;
         }
-        // Store power info
-        power = _.filter(room.structures, (e) => e && e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
-        if (power.length && power[0].pos.countOpenTerrainAround() > 1) power = Game.time + power[0].ticksToDecay; else power = undefined;
         // Handle user check for unclaimed
         if (!user && nonCombats.length >= 2) {
             user = nonCombats[0].owner.username;
@@ -467,13 +470,14 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             }
         }
         let isHighway = !room.controller && !sk && !room.sources.length;
-        let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR);
+        let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR && s.structureType !== STRUCTURE_PORTAL);
         if (towers) towerCount = towers.length;
         if (worthyStructures) structures = worthyStructures.length
         cache[this.name] = cache[this.name] || {};
         cache[this.name] = {
             cached: Game.time,
             name: room.name,
+            shardName: Game.shard.name,
             sources: sources.length,
             mineral: mineral,
             commodity: commodity,
@@ -579,17 +583,15 @@ Room.prototype.invaderCheck = function () {
             }
         }
         // Determine threat level
-        if (!armedInvader.length && (!this.controller || !this.controller.safeMode)) {
-            Memory.roomCache[this.name].threatLevel = 0;
-        } else if ((this.hostileCreeps.length === 1 && this.hostileCreeps[0].owner.username === 'Invader') || (this.controller && this.controller.safeMode)) {
+        if ((this.hostileCreeps.length && (this.hostileCreeps[0].owner.username === 'Invader' || !armedInvader.length)) || (this.controller && this.controller.safeMode)) {
             Memory.roomCache[this.name].threatLevel = 1;
-        } else if (this.hostileCreeps.length > 1 && this.hostileCreeps[0].owner.username === 'Invader' && ownerArray.length === 1 && hostileCombatPower) {
+        } else if (this.hostileCreeps.length > 1 && this.hostileCreeps[0].owner.username === 'Invader' && ownerArray.length === 1) {
             Memory.roomCache[this.name].threatLevel = 2;
         } else if (armedInvader.length === 1 && this.hostileCreeps[0].owner.username !== 'Invader' && hostileCombatPower) {
             Memory.roomCache[this.name].threatLevel = 3;
             let roomHeat = Memory.roomCache[this.name].roomHeat || 0;
             Memory.roomCache[this.name].roomHeat = roomHeat + (_.sum(this.hostileCreeps, 'body.length') * 0.25);
-        } else if (armedInvader.length > 1 && (this.hostileCreeps[0].owner.username !== 'Invader' || ownerArray.length > 1) && hostileCombatPower) {
+        } else if (armedInvader.length > 1 && (this.hostileCreeps[0].owner.username !== 'Invader' || ownerArray.length > 1)) {
             Memory.roomCache[this.name].threatLevel = 4;
             let roomHeat = Memory.roomCache[this.name].roomHeat || 0;
             Memory.roomCache[this.name].roomHeat = roomHeat + (_.sum(this.hostileCreeps, 'body.length') * 0.25);
@@ -603,7 +605,7 @@ Room.prototype.findClosestOwnedRoom = function (range = false, minLevel = 1) {
     if (!closestCache.length || !closestCache[this.name] || closestCache[this.name].tick + 5000 < Game.time) {
         closestCache[this.name] = {};
         closestCache[this.name].tick = Game.time;
-        let distance = 0;
+        let distance = 99;
         let closest;
         for (let key of Memory.myRooms) {
             let room = Game.rooms[key];
@@ -631,7 +633,7 @@ Room.prototype.findClosestOwnedRoom = function (range = false, minLevel = 1) {
             }
         }
         if (!closest) closest = _.sample(Game.spawns).room.name;
-        if (!distance) distance = Game.map.getRoomLinearDistance(this.name, closest);
+        if (!distance && closest) distance = Game.map.getRoomLinearDistance(this.name, closest);
         closestCache[this.name].closest = closest;
         closestCache[this.name].distance = distance;
         if (!range) return closest;

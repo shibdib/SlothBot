@@ -25,7 +25,7 @@ module.exports.role = function (creep) {
         if (creep.room.controller) {
             if (creep.room.controller.owner) {
                 cleanRoom(creep.room, creep.room.structures);
-                creep.room.cacheRoomIntel(true);
+                creep.room.cacheRoomIntel(true, creep);
                 return creep.memory.recycle = true;
             }
             if (!creep.pos.findClosestByPath(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER))) {
@@ -39,7 +39,7 @@ module.exports.role = function (creep) {
                         creep.shibMove(creep.room.controller);
                         break;
                     case OK:
-                        creep.room.cacheRoomIntel(true);
+                        creep.room.cacheRoomIntel(true, creep);
                         creep.memory.signed = true;
                 }
             } else {

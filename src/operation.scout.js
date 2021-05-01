@@ -209,7 +209,7 @@ function forwardObserver(room) {
     if (towers.length) {
         delete Memory.targetRooms[room.name];
         log.a('Canceling operation in ' + roomLink(room.name) + '.', 'HIGH COMMAND: ');
-        return creep.room.cacheRoomIntel(true);
+        return room.cacheRoomIntel(true);
     } else if (armedEnemies.length) {
         Memory.targetRooms[room.name].level = 2;
     } else if (otherRooms || room.hostileCreeps.length) {
