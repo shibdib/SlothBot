@@ -29,6 +29,7 @@ module.exports.role = function role(creep) {
     } else if (!creep.store[RESOURCE_ENERGY]) creep.memory.working = false;
     // Work
     if (creep.memory.working === true) {
+        creep.memory.other.noBump = true;
         // If haulers needed haul
         if (hauling(creep)) return;
         // If builder needed build
@@ -37,6 +38,7 @@ module.exports.role = function role(creep) {
         if (upgrading(creep)) return;
         //creep.idleFor(15);
     } else {
+        creep.memory.other.noBump = undefined;
         creep.memory.working = undefined;
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
