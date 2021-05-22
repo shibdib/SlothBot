@@ -13,7 +13,6 @@ Creep.prototype.harass = function () {
         this.memory.destination = undefined;
         return;
     }
-    this.healInRange();
     if (this.room.name === this.memory.destination) {
         this.say(['Contact', MY_USERNAME, 'For', 'A', 'Diplomatic', 'Resolution'][Game.time % 6], true);
         highCommand.generateThreat(this);
@@ -24,7 +23,6 @@ Creep.prototype.harass = function () {
         if (this.canIWin(50)) {
             if (!this.handleMilitaryCreep() && !this.scorchedEarth()) this.findDefensivePosition();
         } else {
-            this.attackInRange();
             this.shibKite();
         }
     } else {

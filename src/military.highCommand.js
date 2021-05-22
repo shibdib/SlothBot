@@ -12,7 +12,7 @@ module.exports.highCommand = function () {
     if (lastTick + 10 > Game.time) return;
     lastTick = Game.time;
     let capableRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].energyState);
-    if (Game.cpu.bucket < BUCKET_MAX * 0.8) OPERATION_LIMIT = 1; else OPERATION_LIMIT = capableRooms.length + 1;
+    OPERATION_LIMIT = capableRooms.length + 1;
     if (!Memory.nonCombatRooms) Memory.nonCombatRooms = [];
     if (!Memory.targetRooms) Memory.targetRooms = {};
     if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
@@ -397,6 +397,7 @@ function operationRequests() {
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
     let maxLevel = Memory.maxLevel;
+    let cutoff = _.size(Memory.myRooms) * 2;
     let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target && target.type !== 'attack' && target.type !== 'scout' && target.type !== 'guard').length || 0;
     let siegeCountFiltered = _.filter(Memory.targetRooms, (target) => target && (target.type === 'siege' || target.type === 'siegeGroup' || target.type === 'drain')).length || 0;
     let staleMulti = 1;
@@ -424,7 +425,7 @@ function manageAttacks() {
             case 'scout':
             case 'attack':
                 // Clear scouts first if over limit
-                if (totalCountFiltered > OPERATION_LIMIT + 1) {
+                if (totalCountFiltered > cutoff) {
                     log.a('Canceling scouting in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     continue;
@@ -493,7 +494,7 @@ function manageAttacks() {
                 continue;
             // Manage Harass
             case 'harass':
-                if (totalCountFiltered > OPERATION_LIMIT + 1) {
+                if (totalCountFiltered > cutoff) {
                     log.a('Canceling harass in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     continue;

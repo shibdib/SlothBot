@@ -13,8 +13,6 @@ Creep.prototype.holdRoom = function () {
     this.say(sentence[word], true);
     // Move to response room if needed
     if (this.room.name !== this.memory.destination) {
-        this.attackInRange();
-        this.healInRange();
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
     } else {
         let sentence = ['Please', 'Abandon'];

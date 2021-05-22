@@ -11,8 +11,6 @@ Creep.prototype.guardRoom = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // If military action required do that
-    this.attackInRange();
-    if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
     if (this.room.name !== destination) return this.shibMove(new RoomPosition(25, 25, destination), {range: 24});
     let guardLocation, guardRange;
     /** Season 1
@@ -25,12 +23,11 @@ Creep.prototype.guardRoom = function () {
         }
         guardRange = 8;
     } **/
-    if (!this.handleMilitaryCreep(false, true, false, false, guardLocation, guardRange)) {
-        if (!guardLocation) {
-            if (this.findDefensivePosition(this)) this.goToHub(destination);
-        } else {
-            this.shibMove(guardLocation, {range: guardRange})
-        }
+    // Handle combat
+    if (this.canIWin(50)) {
+        if (!this.handleMilitaryCreep()) this.findDefensivePosition();
+    } else {
+        this.shibKite();
     }
     levelManager(this);
 };

@@ -503,19 +503,13 @@ Creep.prototype.fightRanged = function (target) {
 
 Creep.prototype.attackInRange = function () {
     // If no targets return
-    let hostileStructures = _.filter(this.room.hostileStructures, (s) => s.structureType !== STRUCTURE_POWER_BANK && s.structureType !== STRUCTURE_CONTROLLER);
-    if (!this.room.hostileCreeps.length && !hostileStructures.length) return false;
+    if (!this.room.hostileCreeps.length && !this.room.hostileStructures.length) return false;
     // Check for targets in range
     let hostile;
-    try {
-        if (this.getActiveBodyparts(RANGED_ATTACK)) hostile = _.find(this.room.lookForAtArea(LOOK_CREEPS, this.pos.y - 3, this.pos.x - 3, this.pos.y + 3, this.pos.x + 3, true), (c) => !FRIENDLIES.includes(c.creep.owner.username)) || _.find(this.room.lookForAtArea(LOOK_STRUCTURES, this.pos.y - 3, this.pos.x - 3, this.pos.y + 3, this.pos.x + 3, true), (s) => s.structure.owner && !FRIENDLIES.includes(s.structure.owner.username));
-    } catch (e) {
-        if (this.getActiveBodyparts(RANGED_ATTACK)) hostile = this.pos.findInRange(this.room.hostileCreeps, 3)[0] || this.pos.findInRange(this.room.hostileStructures, 3)[0];
-    }
+    if (this.getActiveBodyparts(RANGED_ATTACK)) hostile = this.pos.findInRange(this.room.hostileCreeps, 3)[0] || this.pos.findInRange(this.room.hostileStructures, 3)[0];
     if (this.getActiveBodyparts(ATTACK)) hostile = this.pos.findInRange(this.room.hostileCreeps, 1)[0] || this.pos.findInRange(this.room.hostileStructures, 1)[0];
     if (!hostile) return false;
     if (this.getActiveBodyparts(RANGED_ATTACK)) {
-        this.rangedAttack(hostile);
     } else if (this.getActiveBodyparts(ATTACK)) {
         this.attack(hostile);
     } else {
@@ -665,7 +659,7 @@ Creep.prototype.findDefensivePosition = function (target = this) {
         }
         return true;
     } else {
-        this.idleFor(5);
+        if (this.pos.getRangeTo(new RoomPosition(25, 25, this.room.name)) <= 12) this.idleFor(5); else this.shibMove(new RoomPosition(25, 25, this.room.name), {range: 12})
     }
     return false;
 };

@@ -461,11 +461,14 @@ module.exports.remoteCreepQueue = function (room) {
                     if (invaderCoreReserved && !getCreepCount(undefined, 'attacker', remoteName)) {
                         queueCreep(room, PRIORITIES.high, {
                             role: 'attacker',
+                            military: true,
                             destination: remoteName
                         })
                     } else if (!getCreepCount(undefined, 'longbow', remoteName)) {
                         queueCreep(room, PRIORITIES.high, {
                             role: 'longbow',
+                            military: true,
+                            operation: 'guard',
                             other: {
                                 responseTarget: remoteName
                             }
