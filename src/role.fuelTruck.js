@@ -14,7 +14,7 @@ module.exports.role = function (creep) {
     if (creep.room.name !== creep.memory.destination) {
         if (!creep.isFull) {
             if (creep.room.name === creep.memory.overlord) {
-                if (creep.ticksToLive < 500) return creep.memory.recycle = true;
+                if (creep.ticksToLive < 500) return creep.suicide();
                 if (creep.memory.energyDestination) {
                     creep.withdrawResource();
                 } else {

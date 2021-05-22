@@ -10,8 +10,8 @@
  */
 
 module.exports.role = function (creep) {
-    creep.attackInRange();
-    creep.healInRange();
+    // Handle flee
+    if (creep.memory.runCooldown || (!creep.getActiveBodyparts(RANGED_ATTACK) && !creep.getActiveBodyparts(ATTACK))) return creep.fleeHome(true);
     // Border Patrol
     if (creep.memory.operation === 'borderPatrol') return creep.borderPatrol();
     // Responder Mode
@@ -20,6 +20,8 @@ module.exports.role = function (creep) {
         creep.say(ICONS.respond, true);
         if (!creep.handleMilitaryCreep(false, true)) {
             if (creep.room.name !== creep.memory.other.responseTarget) {
+                creep.attackInRange();
+                creep.healInRange();
                 return creep.shibMove(new RoomPosition(25, 25, creep.memory.other.responseTarget), {range: 18}); //to move to any room}
             } else {
                 creep.findDefensivePosition(creep);
@@ -28,9 +30,6 @@ module.exports.role = function (creep) {
         if (creep.memory.awaitingOrders) return creep.memory.other.responseTarget = undefined;
     } else if (creep.memory.operation) {
         switch (creep.memory.operation) {
-            case 'marauding':
-                creep.marauding();
-                break;
             case 'guard':
                 creep.guardRoom();
                 break;
@@ -46,6 +45,8 @@ module.exports.role = function (creep) {
         }
     } else if (creep.memory.destination) {
         if (creep.room.name !== creep.memory.destination) {
+            creep.attackInRange();
+            creep.healInRange();
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22});
         } else {
             creep.handleMilitaryCreep();

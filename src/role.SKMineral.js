@@ -9,39 +9,30 @@
  * Created by Bob on 7/12/2017.
  */
 module.exports.role = function (creep) {
-    if (creep.shibKite() || creep.fleeHome()) return true;
-    //Initial move
-    if (!_.sum(creep.store)) creep.memory.harvesting = true;
-    if (creep.pos.roomName !== creep.memory.destination && !creep.memory.hauling) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
-    // SK Safety
-    if (creep.skSafety()) return;
-    if (creep.isFull || !creep.memory.harvesting) {
-        delete creep.memory.harvesting;
-        creep.memory.hauling = true;
+    if (creep.isFull) {
         return skDeposit(creep);
     } else {
-        delete creep.memory.hauling;
-        // Check if mineral depleted
-        if (creep.memory.source && Game.getObjectById(creep.memory.source) && Game.getObjectById(creep.memory.source).mineralAmount === 0) {
-            log.a(creep.room.name + ' supply of ' + Game.getObjectById(creep.memory.source).mineralType + ' has been depleted. Regen in ' + Game.getObjectById(creep.memory.source).ticksToRegeneration);
-            Memory.roomCache[creep.room.name].mineralCooldown = Game.time + Game.getObjectById(creep.memory.source).ticksToRegeneration;
-            return creep.memory.recycle = true;
-        }
+        if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
         if (creep.memory.source) {
             if (creep.memory.extractor) {
-                if (!creep.memory.mineralStore) {
-                    let currentMinerals = Memory.ownedMinerals || [];
-                    currentMinerals.push(creep.room.mineral.mineralType);
-                    Memory.ownedMinerals = _.uniq(currentMinerals);
-                    creep.memory.mineralStore = true;
-                }
                 let extractor = Game.getObjectById(creep.memory.extractor);
-                if (!extractor) return creep.memory.recycle = true;
-                if (extractor.cooldown && extractor.pos.getRangeTo(creep) < 2) {
+                if (extractor.cooldown && extractor.pos.isNearTo(creep)) {
                     creep.idleFor(extractor.cooldown - 1)
                 } else {
                     let mineral = Game.getObjectById(creep.memory.source);
                     switch (creep.harvest(mineral)) {
+                        case OK:
+                            // Store mineral as owned
+                            let currentMinerals = Memory.ownedMinerals || [];
+                            currentMinerals.push(creep.room.mineral.mineralType);
+                            Memory.ownedMinerals = _.uniq(currentMinerals);
+                            // Check if mineral depleted
+                            if (mineral.mineralAmount === 0) {
+                                log.a(creep.room.name + ' supply of ' + mineral.mineralType + ' has been depleted. Regen in ' + mineral.ticksToRegeneration);
+                                Memory.roomCache[creep.room.name].mineralCooldown = Game.time + mineral.ticksToRegeneration;
+                                return creep.suicide();
+                            }
+                            break;
                         case ERR_NOT_IN_RANGE:
                             creep.shibMove(mineral);
                             break;
@@ -51,11 +42,9 @@ module.exports.role = function (creep) {
                     }
                 }
             } else {
-                let extractor = creep.room.structures.filter((s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
+                let extractor = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR);
                 if (extractor) {
                     creep.memory.extractor = extractor.id;
-                } else {
-                    creep.memory.recycle = true;
                 }
             }
         } else {
@@ -66,21 +55,23 @@ module.exports.role = function (creep) {
 
 function skDeposit(creep) {
     if (creep.pos.roomName === creep.memory.overlord) {
-        if (creep.room.storage) {
+        let store = creep.room.terminal || creep.room.storage;
+        if (store) {
             for (const resourceType in creep.store) {
-                switch (creep.transfer(creep.room.storage, resourceType)) {
+                switch (creep.transfer(store, resourceType)) {
                     case OK:
                         break;
                     case ERR_NOT_IN_RANGE:
-                        creep.shibMove(creep.room.storage);
+                        creep.shibMove(store);
                         break;
                     case ERR_FULL:
-                        delete creep.memory.storageDestination;
                         break;
                 }
             }
         }
     } else {
-        return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 19});
+        let closest = creep.memory.closestRoom || creep.room.findClosestOwnedRoom(false, 4);
+        creep.memory.closestRoom = closest;
+        return creep.shibMove(new RoomPosition(25, 25, closest), {range: 23});
     }
 }

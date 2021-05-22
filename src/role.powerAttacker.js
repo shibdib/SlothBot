@@ -7,7 +7,7 @@
 
 module.exports.role = function (creep) {
     creep.memory.destinationReached = creep.pos.roomName === creep.memory.destination;
-    if (!Memory.auxiliaryTargets[creep.memory.destination]) return creep.memory.recycle = true;
+    if (!Memory.auxiliaryTargets[creep.memory.destination]) return creep.suicide();
     //Initial move
     if (!creep.memory.destinationReached) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});

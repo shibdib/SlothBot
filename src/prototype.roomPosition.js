@@ -163,25 +163,25 @@ RoomPosition.prototype.checkForPlain = function () {
 };
 
 RoomPosition.prototype.checkForBuiltWall = function () {
-    return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_WALL)[0];
+    return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_WALL);
 };
 
 RoomPosition.prototype.checkForPortal = function () {
-    if (Memory.roomCache[this.roomName] && !Memory.roomCache[this.roomName].portal) return;
-    return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_PORTAL)[0];
+    if (Memory.roomCache[this.roomName] && !Memory.roomCache[this.roomName].portal) return false;
+    return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_PORTAL);
 };
 
 RoomPosition.prototype.checkForRampart = function () {
-    return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART)[0];
+    return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART);
 };
 
 RoomPosition.prototype.checkForBarrierStructure = function () {
-    return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL)[0];
+    return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
 };
 
 RoomPosition.prototype.checkForObstacleStructure = function () {
     let obstacle = this.lookFor(LOOK_STRUCTURES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
-    if (!obstacle) obstacle = _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART && !s.my && !s.isPublic)[0];
+    if (!obstacle) obstacle = _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART && (!s.my || !s.isPublic));
     if (!obstacle) obstacle = this.lookFor(LOOK_CONSTRUCTION_SITES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
     return obstacle;
 };

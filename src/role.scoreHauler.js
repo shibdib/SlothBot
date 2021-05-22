@@ -72,7 +72,7 @@ module.exports.role = function (creep) {
                     }
                 } else {
                     let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => r.seasonResource > Game.time && r.closestRange <= 8), 'closestRange');
-                    if (scoreRoom.name) creep.memory.destination = scoreRoom.name; else creep.memory.recycle = true;
+                    if (scoreRoom.name) creep.memory.destination = scoreRoom.name; else creep.suicide();
                 }
             }
         }

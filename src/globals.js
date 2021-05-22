@@ -8,7 +8,6 @@
 let Log = require('logger');
 
 let globals = function () {
-
     // Try to load a private server config otherwise load the default
     try {
         require(Game.shard.name);
@@ -25,12 +24,14 @@ let globals = function () {
     }
     global.LAYOUT_VERSION = 1.53;
 
+    global.PIXEL_GENERATION = true; //Generate Pixels?
     global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
     global.STATUS_COOLDOWN = 180; // Seconds between console status reports
     global.ROOM_ABANDON_THRESHOLD = 9900; // If bucket is consistently below this, abandon your lowest room
     global.SIGN_CLEANER = false; // Clean room signs away with explorers
     global.AVOID_ALLIED_SECTORS = true; // Dont claim rooms in allied sectors
-    global.REMOTE_SOURCE_SCORE = 75; // Set the score for remote sources to be mined (higher means more sources but further)
+    global.REMOTE_SOURCE_SCORE = 50; // Set the score for remote sources to be mined (higher means more sources but further)
+    global.AVOID_ATTACKING_ALLIANCES = true;
 
     // Energy income breakdown (Not used atm)
     global.ROOM_ENERGY_ALLOTMENT = {
@@ -41,9 +42,46 @@ let globals = function () {
         'other': 0.3
     };
 
+    // Amount targets (Advanced)
+    // Aim for this amount at each room level
+    global.ENERGY_AMOUNT = {
+        undefined: 1,
+        0: 1,
+        1: 1,
+        2: 1,
+        3: 1000,
+        4: 15000,
+        5: 25000,
+        6: 50000,
+        7: 100000,
+        8: 500000
+    };
+    global.PIXEL_BUFFER = 500; // Sell any pixels above this amount
+    global.BUY_ENERGY = false; // If true it will buy energy at anything below the baseline energy price if a room isn't considered in surplus
+    global.CREDIT_BUFFER = 10000; // Stay above
+    global.FACTORY_CUTOFF = ENERGY_AMOUNT * 0.5; // Amount needed for a factory to be active
+    global.MINERAL_TRADE_AMOUNT = (TERMINAL_CAPACITY * 0.015 + STORAGE_CAPACITY * 0.015);  // Hold this much of a mineral before selling
+    global.BOOST_TRADE_AMOUNT = (TERMINAL_CAPACITY * 0.01 + STORAGE_CAPACITY * 0.01);  // Hold this much of a mineral before selling
+    global.TERMINAL_ENERGY_BUFFER = 10000; // Keep this much in terminal (Needed for trade)
+    global.REACTION_AMOUNT = 10000; // Minimum amount for base reaction minerals and power
+    global.BOOST_AMOUNT = (TERMINAL_CAPACITY * 0.005 + STORAGE_CAPACITY * 0.005); // Try to have this much of all applicable boosts
+    global.DUMP_AMOUNT = TERMINAL_CAPACITY * 0.1; // Fills buys (of if overflowing it will offload to other terminals)
+
     // Pathfinder Cache Sizes
     global.PATH_CACHE_SIZE = 1000;
     global.ROUTE_CACHE_SIZE = 200;
+
+    // Wall and rampart target amounts
+    global.BARRIER_TARGET_HIT_POINTS = {
+        1: 1000,
+        2: 10000,
+        3: 25000,
+        4: 100000,
+        5: 300000,
+        6: 500000,
+        7: 750000,
+        8: 1000000
+    };
 
     // Reaction
     global.TIER_3_BOOSTS = [RESOURCE_CATALYZED_GHODIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ACID, RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE];
@@ -69,20 +107,18 @@ let globals = function () {
         // Harvesters
         stationaryHarvester: 1,
         // Workers
-        drone: 2,
-        waller: 6,
-        upgrader: 3,
+        drone: 6,
+        upgrader: 5,
         mineralHarvester: 7,
-        repairer: 7,
         // Haulers
         hauler: 1,
         miscHauler: 2,
         // Remotes
-        remoteHarvester: 5,
-        remoteHauler: 4,
+        remoteHarvester: 4,
+        remoteHauler: 3,
         remoteUpgrader: 7,
         roadBuilder: 6,
-        assistPioneer: 3,
+        assistPioneer: 4,
         fuelTruck: 7,
         reserver: 6,
         // Power
@@ -100,7 +136,6 @@ let globals = function () {
         // Misc
         claimer: 3,
         explorer: 2,
-        jerk: 2,
     };
 
     global.SPAWN = {
@@ -136,6 +171,8 @@ let globals = function () {
     global.ROOM_CREEP_CPU_OBJECT = {};
     global.ROOM_SOURCE_SPACE = {};
     global.ROOM_CONTROLLER_SPACE = {};
+    global.ROOM_HARVESTER_EXTENSTIONS = {};
+    global.ALLY_HELP_REQUESTS = {};
     global.VISUAL_CACHE = {};
 
     global.ICONS = {

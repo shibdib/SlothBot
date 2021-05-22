@@ -75,6 +75,7 @@ function threatManager() {
 }
 
 module.exports.trackThreat = function (creep) {
+    if (!creep.room.hostileCreeps.length) return;
     // Handle enemies being attacked
     if (creep.room.hostileCreeps.length) {
         // Store usernames
@@ -159,11 +160,11 @@ module.exports.trackThreat = function (creep) {
     }
     creep.memory._lastHits = creep.hits;
     // Handle hostile creeps in owned rooms
-    if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === MY_USERNAME) {
-        let neutrals = _.uniq(_.pluck(_.filter(creep.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper'), 'owner.username'));
+    if (creep.room.hostileCreeps.length && Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === MY_USERNAME) {
+        let neutrals = _.uniq(_.pluck(creep.room.hostileCreeps, 'owner.username'));
         if (neutrals.length) {
             for (let user of neutrals) {
-                if (user === MY_USERNAME || _.includes(FRIENDLIES, user) || Memory.roomCache[creep.room.name].isHighway) continue;
+                if ([MY_USERNAME, 'Invader', 'Source Keeper'].includes(user) || FRIENDLIES.includes(user) || Memory.roomCache[creep.room.name].isHighway) continue;
                 let cache = Memory._userList || {};
                 if (cache[user] && cache[user].lastAction + 50 > Game.time) continue;
                 let standing;

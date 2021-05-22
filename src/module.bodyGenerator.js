@@ -16,12 +16,11 @@
 module.exports.bodyGenerator = function (level, role, room = undefined, creepInfo = undefined) {
     let body = [];
     let work, claim, carry, move, tough, attack, rangedAttack, heal, deficitExemption;
-    let deficit = room.energy / (ENERGY_AMOUNT * 1.5);
+    let deficit = room.energy / (ENERGY_AMOUNT[room.level || 1] * 1.5);
     if (deficit > 1 || !room.storage) deficit = 1;
     else if (deficit < 0.1) deficit = 0.1;
     let energyAmount = room.energyCapacityAvailable;
     if (creepInfo.other.reboot || room.creeps.length < 4) energyAmount = room.energyAvailable;
-    if (energyAmount > room.energyCapacityAvailable) energyAmount = room.energyCapacityAvailable;
     switch (role) {
         // Explorer/Scout
         case 'explorer':
@@ -32,18 +31,25 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             break;
         // General Creeps
         case 'remoteUpgrader':
-        case 'praiseMineral':
         case 'drone':
         case 'waller':
-        case 'maintenance':
-            if (role === 'drone') deficitExemption = true;
-            work = _.floor((energyAmount * 0.25) / BODYPART_COST[WORK]) || 1;
+        case 'roadBuilder':
+            deficitExemption = true;
+            work = _.floor((energyAmount * 0.3) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
             carry = _.floor((energyAmount * 0.2) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
             move = work + carry;
             break;
+        case 'maintenance':
+            work = _.floor((energyAmount * 0.05) / BODYPART_COST[WORK]) || 1;
+            if (work > 15) work = 15;
+            carry = _.floor((energyAmount * 0.05) / BODYPART_COST[CARRY]) || 1;
+            if (carry > 10) carry = 10;
+            move = work + carry;
+            break;
         case 'upgrader':
+            deficitExemption = true;
             if (room.nukes.length) {
                 work = 1;
                 carry = 1;
@@ -68,24 +74,24 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         case 'shuttle':
             deficitExemption = true;
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
-            if (carry > 16) carry = 16;
+            if (carry > level * 2) carry = level * 2;
             if (!room.memory.roadsBuilt) move = carry; else move = _.ceil(carry / 2);
             break;
         case 'stationaryHarvester':
             deficitExemption = true;
-            work = _.floor((energyAmount - 50) / (BODYPART_COST[WORK] + BODYPART_COST[MOVE])) || 1;
-            let powerCreep = _.filter(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === room.name && c.powers[PWR_REGEN_SOURCE])[0];
+            work = _.floor((energyAmount - (BODYPART_COST[MOVE] + BODYPART_COST[CARRY])) / BODYPART_COST[WORK]) || 1;
+            let powerCreep = _.find(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === room.name && c.powers[PWR_REGEN_SOURCE]);
             if (powerCreep) {
                 work = (SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME);
             } else if (work > 6) work = 6;
             carry = 1;
             if (level >= 7) carry = 2;
-            move = work * 0.5;
+            move = 1;
             break;
         case 'mineralHarvester':
-            work = _.floor((energyAmount - 50) / (BODYPART_COST[WORK] + BODYPART_COST[MOVE])) || 1;
+            work = _.floor((energyAmount - (BODYPART_COST[MOVE] + BODYPART_COST[CARRY])) / BODYPART_COST[WORK]) || 1;
             if (work > 30) work = 30;
-            move = work * 0.5;
+            move = 1;
             break;
         // Military
         case 'attacker':
@@ -187,22 +193,23 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             // Neutral
             else if (work > SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) work = SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME);
             carry = 1;
-            if (room.level >= 6) move = work / 2; else move = work;
+            if (room.level >= 5) move = work / 2; else move = work;
             break;
         case 'remoteHauler':
             deficitExemption = true;
-            carry = _.floor((energyAmount * 0.50) / BODYPART_COST[CARRY]) || 1;
+            if (level < 5) carry = _.floor((energyAmount * 0.50) / BODYPART_COST[CARRY]) || 1; else {
+                carry = _.floor((energyAmount * 0.7) / BODYPART_COST[CARRY]) || 1;
+            }
             if (Game.getObjectById(creepInfo.misc)) {
-                let harvesterAmountNeeded = Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded;
+                let harvesterAmountNeeded = _.round(Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded, -2);
                 let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creepInfo.misc);
                 let current = 0;
                 if (assignedHaulers.length) assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                if ((carry * CARRY_CAPACITY) > harvesterAmountNeeded - current) carry = _.ceil((harvesterAmountNeeded - current) / CARRY_CAPACITY)
+                if ((carry * CARRY_CAPACITY) > harvesterAmountNeeded - current) carry = _.ceil((harvesterAmountNeeded - current) / CARRY_CAPACITY) || 1
             }
-            if (room.level >= 6 && carry > 32) carry = 32; else if (room.level < 5 && carry > 25) carry = 25;
-            if (room.level >= 6) move = carry / 2; else move = carry;
+            if (room.level >= 5 && carry > 32) carry = 32; else if (carry > 25) carry = 25; else if (room.level >= 5 && carry < 5) carry = 5; else if (carry < 1) carry = 1;
+            if (room.level >= 5) move = carry / 2; else move = carry;
             break;
-        case 'roadBuilder':
         case 'SKMineral':
         case 'commodityMiner':
             work = _.floor((energyAmount * _.random(0.2, 0.5)) / BODYPART_COST[WORK]) || 1;

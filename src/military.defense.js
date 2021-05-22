@@ -36,7 +36,7 @@ module.exports.controller = function (room) {
     towers.towerControl(room);
 
     //Manage Ramparts for Allies
-    if (RAMPART_ACCESS) rampartManager(room, structures);
+    if (RAMPART_ACCESS && FRIENDLIES.length) rampartManager(room, structures);
 
     // Early Warning System
     if (Game.time % 25 === 0) earlyWarning(room);
@@ -79,18 +79,25 @@ module.exports.controller = function (room) {
 //Functions
 
 function rampartManager(room, structures) {
+    let enemies = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
+    // Open all if no enemies
+    if (!enemies.length) {
+        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic).forEach((rampart) => rampart.setPublic(true));
+        return;
+    }
+    // Handle ramparts near enemies
     let allies = _.filter(room.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my);
-    // Check if allies are in the room
     if (allies.length) {
-        let enemies = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
-        // Open ramparts
-        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic && !s.pos.checkForObstacleStructure() && s.pos.getRangeTo(s.pos.findClosestByRange(allies)) <= 1 && (!enemies.length || s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) > 2)).forEach((rampart) => rampart.setPublic(true));
         // Close ramparts
-        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && (s.pos.getRangeTo(s.pos.findClosestByRange(allies)) > 1 || (enemies.length && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) <= 2))).forEach((rampart) => rampart.setPublic(false));
+        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) <= 2).forEach((rampart) => rampart.setPublic(false));
+        // Open ramparts
+        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) > 2).forEach((rampart) => rampart.setPublic(true));
     } else if (room.hostileCreeps.length) {
         // Close public ones
         _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic).forEach((rampart) => rampart.setPublic(false));
     }
+    // Close ones protecting stuff
+    _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && s.pos.checkForObstacleStructure()).forEach((rampart) => rampart.setPublic(true));
 }
 
 function safeModeManager(room) {
@@ -139,7 +146,7 @@ function unSavableCheck(room) {
         // Abandon Bad Rooms
         if (_.size(Memory.myRooms) === 1 || room.controller.safeMode) return false;
         let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)));
-        if (hostiles.length && room.energy < ENERGY_AMOUNT * 0.025 && _.size(Memory.myRooms) === Game.gcl.level) {
+        if (hostiles.length && room.energy < ENERGY_AMOUNT[room.level] * 0.025 && _.size(Memory.myRooms) === Game.gcl.level) {
             room.memory.badCount = badCount + 1;
             if (room.memory.badCount > room.controller.level * 100) {
                 let hostileOwners = [];
@@ -187,7 +194,7 @@ abandonOverrun = function (room) {
     let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room.name);
     if (overlordFor.length) {
         for (let key in overlordFor) {
-            overlordFor[key].memory.recycle = true;
+            overlordFor[key].suicide();
         }
     }
     for (let key in room.structures) {

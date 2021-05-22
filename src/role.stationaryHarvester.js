@@ -14,15 +14,16 @@ module.exports.role = function (creep) {
     if (creep.memory.source) {
         // If in place harvest
         if (creep.memory.onContainer) {
-            if (Math.random() > 0.98) creep.memory.onContainer = undefined;
+            if (Math.random() > 0.98) return creep.memory.onContainer = undefined;
+            let container = Game.getObjectById(creep.memory.containerID);
             let source = Game.getObjectById(creep.memory.source);
             switch (creep.harvest(source)) {
                 case ERR_NOT_IN_RANGE:
-                    if (Game.getObjectById(creep.memory.containerID)) creep.shibMove(Game.getObjectById(creep.memory.containerID), {range: 0});
+                    if (container) creep.shibMove(Game.getObjectById(creep.memory.containerID), {range: 0});
                     else creep.shibMove(source);
                     break;
                 case ERR_NOT_ENOUGH_RESOURCES:
-                    if (Game.getObjectById(creep.memory.containerID) && creep.store[RESOURCE_ENERGY]) {
+                    if (container && creep.store[RESOURCE_ENERGY]) {
                         creep.repair(Game.getObjectById(creep.memory.containerID));
                     } else if (!source.effects) {
                         creep.idleFor(source.ticksToRegeneration + 1);
@@ -31,8 +32,7 @@ module.exports.role = function (creep) {
                 case OK:
                     let harvestPower = creep.memory.harvestPower || _.filter(creep.body, (b) => b.type === WORK).length * HARVEST_POWER;
                     if (Game.time % (creep.store.getCapacity() / harvestPower)) {
-                        let container = Game.getObjectById(creep.memory.containerID);
-                        if (container && ((creep.room.memory.hubLink && creep.room.memory.controllerLink) || creep.room.energyState) && container.store[RESOURCE_ENERGY] && (creep.memory.linkID || creep.memory.extensions))
+                        if (container && container.store[RESOURCE_ENERGY] && (creep.memory.linkID || creep.memory.extensions))
                             creep.withdraw(container, RESOURCE_ENERGY);
                         creep.memory.harvestPower = harvestPower;
                         if (_.sum(creep.store) === creep.store.getCapacity())
@@ -41,19 +41,11 @@ module.exports.role = function (creep) {
                     break;
             }
         } else {
-            // Handle replacing old harv
-            if (creep.memory.replace && Game.getObjectById(creep.memory.replace)) {
-                if (creep.pos.getRangeTo(Game.getObjectById(creep.memory.replace)) <= 4) {
-                    Game.getObjectById(creep.memory.replace).memory.recycle = true;
-                }
-            } else creep.memory.replace = undefined;
             //Find container
-            if (!creep.memory.containerAttempt && !creep.memory.containerID) {
-                return creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
-            }
+            if (!creep.memory.containerAttempt && !creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
             let container = Game.getObjectById(creep.memory.containerID);
             //Make sure you're on the container
-            if (!creep.memory.onContainer && (container || Game.getObjectById(creep.memory.source).memory.containerPos)) {
+            if (container || Game.getObjectById(creep.memory.source).memory.containerPos) {
                 let spot = container || new RoomPosition(JSON.parse(Game.getObjectById(creep.memory.source).memory.containerPos).x, JSON.parse(Game.getObjectById(creep.memory.source).memory.containerPos).y, creep.room.name);
                 if (spot && creep.pos.getRangeTo(spot)) {
                     return creep.shibMove(spot, {range: 0});
@@ -79,11 +71,12 @@ module.exports.role = function (creep) {
         }
     } else {
         if (!creep.findSource()) {
-            let oldestHarvester = _.min(_.filter(creep.room.creeps, (c) => c.memory && c.memory.role === "stationaryHarvester"), "ticksToLive") || _.filter(creep.room.creeps, (c) => c.memory && c.memory.role === "stationaryHarvester" && c.memory.other.reboot)[0];
-            if (oldestHarvester.ticksToLive > 1000) return creep.memory.recycle = true;
-            creep.shibMove(oldestHarvester, {range: 0});
-            creep.memory.source = oldestHarvester.memory.source;
-            creep.memory.replace = oldestHarvester.id;
+            let oldestHarvester = _.min(_.filter(creep.room.creeps, (c) => c.memory && c.ticksToLive < 500 && c.memory.role === "stationaryHarvester"), "ticksToLive") || _.find(creep.room.creeps, (c) => c.memory && c.memory.role === "stationaryHarvester" && c.memory.other.reboot);
+            if (!oldestHarvester || !oldestHarvester.id) return creep.suicide();
+            else {
+                creep.memory.source = oldestHarvester.memory.source;
+                oldestHarvester.suicide();
+            }
         }
     }
 };
@@ -92,26 +85,18 @@ module.exports.role = function (creep) {
 let linkContainerRotate;
 
 function depositEnergy(creep) {
-    //Attempt to build extensions
-    if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level || Math.random() > 0.99) extensionBuilder(creep);
-    //Check if there is extensions
-    extensionFinder(creep);
-    //Fill extensions if you have any stored
-    if (creep.memory.extensions && extensionFiller(creep)) return;
+    // Attempt to build extensions
+    if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level) extensionBuilder(creep);
+    // Fill nearby
+    if (extensionFiller(creep)) return;
     let container = Game.getObjectById(creep.memory.containerID);
-    let link = Game.getObjectById(creep.memory.linkID);
     if (container && container.hits < container.hitsMax * 0.5) return creep.repair(container);
-    if (link) {
-        if (container) {
-            if (linkContainerRotate && !creep.room.energyState && (!creep.room.memory.hubLink || !creep.room.memory.controllerLink) && _.sum(container.store) < CONTAINER_CAPACITY * 0.75) {
-                linkContainerRotate = undefined;
-                return creep.transfer(container, RESOURCE_ENERGY);
-            }
-        }
+    if (creep.memory.linkID) {
+        let link = Game.getObjectById(creep.memory.linkID);
         if (link.store[RESOURCE_ENERGY] < LINK_CAPACITY) {
             linkContainerRotate = true;
             creep.transfer(link, RESOURCE_ENERGY);
-        } else if (container && _.sum(container.store) >= 1900 && !extensionFiller(creep)) {
+        } else if (container && _.sum(container.store) >= 1900) {
             creep.idleFor(20);
         }
     } else if (!creep.memory.linkAttempt) {
@@ -132,49 +117,24 @@ function depositEnergy(creep) {
     }
 }
 
-function extensionFinder(creep) {
-    let source = Game.getObjectById(creep.memory.source);
-    if ((!creep.memory.extensionsFound || Math.random() > 0.99) && source && creep.pos.isNearTo(source)) {
-        creep.memory.extensionsFound = true;
-        let container = Game.getObjectById(creep.memory.containerID) || creep;
-        if (container) {
-            let extension = container.pos.findInRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION), 1);
-            if (extension.length) {
-                creep.room.memory.sourceExtension = undefined;
-                let sourceExtensions = creep.room.memory.sourceExtensions || [];
-                creep.room.memory.sourceExtensions = _.union(sourceExtensions, _.pluck(extension, 'id'));
-                creep.memory.extensions = JSON.stringify(_.pluck(extension, 'id'));
-                // Ramparts if outside bunker
-                extension.forEach(function (e) {
-                    if (!e.pos.isInBunker()) e.pos.createConstructionSite(STRUCTURE_RAMPART);
-                })
-            }
-        }
-    }
-    return false;
-}
+let found;
 
 function extensionFiller(creep) {
-    if (!creep.memory.extensions) return extensionFinder(creep);
-    let rawExtension = JSON.parse(creep.memory.extensions);
-    for (let id of rawExtension) {
-        let extension = Game.getObjectById(id);
-        if (!extension) {
-            creep.memory.extensionsFound = undefined;
-            return creep.memory.extensions = undefined;
-        }
-        if (extension.store[RESOURCE_ENERGY] < EXTENSION_ENERGY_CAPACITY[creep.room.controller.level]) {
-            creep.transfer(extension, RESOURCE_ENERGY);
-            return true;
-        }
+    if (!ROOM_HARVESTER_EXTENSTIONS[creep.room.name] || !found) {
+        found = true;
+        let container = Game.getObjectById(creep.memory.containerID) || creep;
+        let extension = container.pos.findInRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION), 1);
+        let sourceExtensions = ROOM_HARVESTER_EXTENSTIONS[creep.room.name] || [];
+        ROOM_HARVESTER_EXTENSTIONS[creep.room.name] = _.union(sourceExtensions, _.pluck(extension, 'id'));
+    } else {
+        if (creep.opportunisticFill()) return true;
     }
-    return false;
 }
 
 function harvestDepositLink(creep) {
     creep.memory.linkAttempt = true;
     let source = Game.getObjectById(creep.memory.source);
-    if (!source.memory.containerPos || (!creep.room.memory.controllerLink && !creep.room.memory.hubLink)) return;
+    if (!source.memory.containerPos || (!Game.getObjectById(creep.room.memory.controllerLink) && !Game.getObjectById(creep.room.memory.hubLink))) return;
     let link = _.filter(source.pos.findInRange(FIND_MY_STRUCTURES, 2), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0] || _.filter(creep.pos.findInRange(FIND_MY_STRUCTURES, 1), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
     if (link) {
         if (!link.isActive()) return link.destroy();

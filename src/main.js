@@ -61,7 +61,7 @@ abandon = function (room) {
     let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
     if (overlordFor.length) {
         for (let key in overlordFor) {
-            overlordFor[key].memory.recycle = true;
+            overlordFor[key].suicide();
         }
     }
     for (let key in Game.rooms[room].structures) {

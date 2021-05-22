@@ -12,11 +12,20 @@ Creep.prototype.holdRoom = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Move to response room if needed
-    if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23}); else {
-        this.handleMilitaryCreep();
+    if (this.room.name !== this.memory.destination) {
+        this.attackInRange();
+        this.healInRange();
+        return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
+    } else {
         let sentence = ['Please', 'Abandon'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
+        // Handle combat
+        if (this.canIWin(50)) {
+            if (!this.handleMilitaryCreep() && !this.scorchedEarth()) this.findDefensivePosition();
+        } else {
+            this.shibKite();
+        }
         levelManager(this);
         highCommand.operationSustainability(this.room);
     }
@@ -35,7 +44,7 @@ function levelManager(creep) {
             dDay: tick + creep.room.controller.safeMode,
         };
         Memory.targetRooms = cache;
-        creep.memory.recycle = true;
+        creep.suicide();
         return;
     }
     let otherRooms = _.filter(Memory.roomCache, (r) => r.name !== creep.room.name && r.owner === Memory.roomCache[creep.room.name].owner)[0]

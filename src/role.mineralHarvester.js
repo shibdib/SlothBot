@@ -15,7 +15,7 @@ module.exports.role = function (creep) {
     // Check if mineral depleted
     if (creep.memory.other.assignedMineral && Game.getObjectById(creep.memory.other.assignedMineral).mineralAmount === 0) {
         log.a(creep.room.name + ' supply of ' + Game.getObjectById(creep.memory.other.assignedMineral).mineralType + ' has been depleted.');
-        return creep.memory.recycle = true;
+        return creep.suicide();
     }
     if (creep.memory.extractor) {
         if (!creep.memory.onContainer) {
@@ -27,7 +27,6 @@ module.exports.role = function (creep) {
             }
         } else if (Math.random() > 0.9) creep.memory.onContainer = undefined;
         let extractor = Game.getObjectById(creep.memory.extractor);
-        if (!extractor) return creep.memory.recycle = true;
         if (Game.getObjectById(creep.room.memory.extractorContainer) && _.sum(Game.getObjectById(creep.room.memory.extractorContainer).store) === 2000 && !creep.pos.getRangeTo(Game.getObjectById(creep.room.memory.extractorContainer))) return creep.idleFor(25);
         if (extractor.cooldown && extractor.pos.getRangeTo(creep) < 2) {
             creep.idleFor(extractor.cooldown - 1)
@@ -47,7 +46,7 @@ module.exports.role = function (creep) {
         if (extractor) {
             creep.memory.extractor = extractor.id;
         } else {
-            creep.memory.recycle = true;
+            creep.suicide();
         }
     }
 };

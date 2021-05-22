@@ -10,13 +10,13 @@
  */
 
 module.exports.labManager = function () {
-    let myRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].controller.level >= 6 && !Game.rooms[r].nukes.length && !Game.rooms[r].memory.lowPower && _.filter(Game.rooms[r].structures, (s) => s.structureType === STRUCTURE_LAB)[0]);
+    let myRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].controller.level >= 6 && !Game.rooms[r].nukes.length && _.find(Game.rooms[r].structures, (s) => s.structureType === STRUCTURE_LAB));
     if (myRooms.length) {
-        if (Game.time % 33 === 0) {
+        if (Game.time % 52 === 0) {
             for (let room of myRooms) {
                 manageBoostProduction(Game.rooms[room]);
             }
-        } else if (Game.time % 100 === 0) cleanLabs();
+        } else if (Game.time % 101 === 0) cleanLabs();
         else if (Game.time % 5 === 0) manageActiveLabs();
     }
 };

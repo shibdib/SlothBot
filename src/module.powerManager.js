@@ -52,7 +52,7 @@ module.exports.powerControl = function () {
                     if (!powerCreep.level && !sparePowerLevels) {
                         powerCreep.delete();
                     } else if (!powerCreep.spawnCooldownTime || powerCreep.spawnCooldownTime < Date.now()) {
-                        let spawn = _.filter(Game.structures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN && s.isActive())[0];
+                        let spawn = _.find(Game.structures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN && s.isActive());
                         if (spawn) {
                             log.a('Spawned an operator in ' + roomLink(spawn.room.name));
                             powerCreep.spawn(spawn);

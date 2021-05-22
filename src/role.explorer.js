@@ -14,7 +14,7 @@ module.exports.role = function (creep) {
     Game.map.visual.text(ICONS.eye, creep.pos, {color: '#FF0000', fontSize: 2});
     // Set destination
     if (!creep.memory.destination) {
-        let portal = Game.getObjectById(creep.memory.portal) || shuffle(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL))[0];
+        let portal = Game.getObjectById(creep.memory.portal) || creep.pos.findClosestByRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL));
         if (portal && (!Game.cpu.shardLimits || Game.cpu.shardLimits[portal.destination.shard] > 0) && !creep.memory.usedPortal && (creep.memory.other.portalJump || Math.random() > 0.5 || creep.memory.other.portalForce)) {
             if (!creep.memory.other.portalJump) {
                 let roomName;
@@ -27,31 +27,16 @@ module.exports.role = function (creep) {
             }
             return creep.moveTo(portal);
         } else {
-            let adjacent = Game.map.describeExits(creep.pos.roomName);
-            let target;
+            let adjacent = _.filter(_.map(Game.map.describeExits(creep.pos.roomName)), (r) => Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(creep.memory.overlord).status);
             // If there's unexplored prioritize else pick the oldest intel
-            let possible = _.filter(adjacent, (r) => !Memory.roomCache[r])[0] || _.min(adjacent, (r) => Memory.roomCache[r].cached);
-            if (possible && Math.random() > 0.05) target = possible; else target = _.sample(adjacent);
-            try {
-                let [EW, NS] = target.match(/\d+/g);
-                let isAlleyRoom = EW % 10 == 0 || NS % 10 == 0;
-                if (!isAlleyRoom && Game.map.getRoomStatus(target).status !== Game.map.getRoomStatus(creep.memory.overlord).status) {
-                    target = _.sample(adjacent);
-                    if (Game.map.getRoomStatus(target).status !== Game.map.getRoomStatus(creep.memory.overlord).status) return creep.moveRandom();
-                }
-                if (!creep.pos.findClosestByPath(Game.map.findExit(creep.room.name, target))) return creep.moveRandom();
-            } catch {
-                target = _.sample(adjacent);
-            }
-            creep.memory.destination = target;
+            let target = _.filter(adjacent, (r) => !Memory.roomCache[r])[0] || _.min(adjacent, (r) => Memory.roomCache[r].cached);
+            if (target) creep.memory.destination = target; else creep.idleFor(25);
         }
     } else if (creep.pos.roomName === creep.memory.destination) {
-        if (creep.memory.destinationReached) {
-            creep.memory.destination = undefined;
-            return creep.memory.destinationReached = undefined;
-        }
-        // Sign the controller
-        if (creep.room.controller && (!creep.room.controller.owner || creep.room.controller.level < 3) && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
+        creep.memory.destination = undefined;
+        /**
+         // Sign the controller
+         if (creep.room.controller && (!creep.room.controller.owner || creep.room.controller.level < 3) && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
             if (!creep.moveToHostileConstructionSites(false, true)) {
                 if (!SIGN_CLEANER) {
                     // If already signed continue
@@ -77,8 +62,8 @@ module.exports.role = function (creep) {
             }
         } else if (!creep.moveToHostileConstructionSites(false, true)) {
             creep.memory.destination = undefined;
-        }
+        }**/
     } else {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
     }
 };

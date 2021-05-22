@@ -11,7 +11,7 @@
 
 module.exports.role = function (creep) {
     if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22});
-    if (creep.room.controller.upgradeBlocked > creep.ticksToLive) creep.memory.recycle = true;
+    if (creep.room.controller.upgradeBlocked > creep.ticksToLive) creep.suicide();
     if (creep.room.controller && (creep.room.controller.owner || creep.room.controller.reservation)) {
         switch (creep.attackController(creep.room.controller)) {
             case OK:

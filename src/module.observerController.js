@@ -11,7 +11,7 @@
 let observedRooms = {};
 module.exports.observerControl = function (room) {
     if (room.level !== 8) return;
-    let observer = _.filter(room.structures, (s) => s.structureType === STRUCTURE_OBSERVER)[0];
+    let observer = _.find(room.structures, (s) => s.structureType === STRUCTURE_OBSERVER);
     if (observer) {
         if (observedRooms[room.name] && Game.rooms[observedRooms[room.name]]) {
             Game.rooms[observedRooms[room.name]].cacheRoomIntel();

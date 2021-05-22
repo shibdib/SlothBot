@@ -32,16 +32,14 @@ module.exports.claimNewRoom = function () {
                     if (AVOID_ALLIED_SECTORS && sameSectorCheck(name, avoidName)) continue worthy;
                 }
                 // Remote access
-                let neighboring = Game.map.describeExits(name);
-                if (!neighboring) continue;
+                let neighboring = _.map(Game.map.describeExits(name));
                 let sourceCount = 0;
-                if (neighboring['1'] && Memory.roomCache[neighboring['1']] && !Memory.roomCache[neighboring['1']].user) sourceCount += Memory.roomCache[neighboring['1']].sources;
-                if (neighboring['3'] && Memory.roomCache[neighboring['3']] && !Memory.roomCache[neighboring['3']].user) sourceCount += Memory.roomCache[neighboring['3']].sources;
-                if (neighboring['5'] && Memory.roomCache[neighboring['5']] && !Memory.roomCache[neighboring['5']].user) sourceCount += Memory.roomCache[neighboring['5']].sources;
-                if (neighboring['7'] && Memory.roomCache[neighboring['7']] && !Memory.roomCache[neighboring['7']].user) sourceCount += Memory.roomCache[neighboring['7']].sources;
+                neighboring.forEach(function (r) {
+                    if (Memory.roomCache[r] && !Memory.roomCache[r].user) sourceCount += Memory.roomCache[r].sources;
+                })
+                // No remotes is a big negative
+                if (!sourceCount) continue;
                 baseScore += (sourceCount * 250);
-                // Prioritize fortress rooms if enemies exist
-                if (Memory._enemies && Memory._enemies.length && _.size(Game.map.describeExits(name) < 2)) baseScore += 1000;
                 // Swamps suck
                 let terrain = Game.map.getRoomTerrain(name);
                 let terrainScore = 0;

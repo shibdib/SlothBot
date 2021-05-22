@@ -15,7 +15,7 @@ module.exports.role = function (creep) {
         let core = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0];
         if (core) {
             creep.room.cacheRoomIntel(true, creep);
-            return creep.memory.recycle = true;
+            return creep.suicide();
         }
         let invaders = _.filter(creep.room.creeps, (c) => c.owner.username === 'Invader');
         if (invaders.length > 1) {
@@ -31,7 +31,7 @@ module.exports.role = function (creep) {
                 case ERR_NOT_IN_RANGE:
                     if (creep.hits < creep.hitsMax) {
                         creep.heal(creep);
-                        if (creep.hits < creep.hitsMax * 0.8 && creep.pos.getRangeTo(sourceKeeper) <= 7) return;
+                        if (creep.hits < creep.hitsMax * 0.8 && creep.pos.getRangeTo(sourceKeeper) > 7) return;
                     }
                     creep.shibMove(sourceKeeper);
                     break;

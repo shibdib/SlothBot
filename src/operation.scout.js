@@ -9,7 +9,7 @@ Creep.prototype.scoutRoom = function () {
     // Handle edge case where room is overlord
     if (this.memory.destination === this.memory.overlord) {
         delete Memory.targetRooms[this.room.name];
-        return this.memory.recycle = true;
+        return this.suicide();
     }
     if (this.room.name !== this.memory.destination) {
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {

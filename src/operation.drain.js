@@ -9,7 +9,7 @@ let highCommand = require('military.highCommand');
 
 Creep.prototype.drainRoom = function () {
     // If room is no longer a target
-    if (!Memory.targetRooms[this.memory.destination]) return this.memory.recycle = true;
+    if (!Memory.targetRooms[this.memory.destination]) return this.suicide();
     // Handle healing
     this.healInRange();
     if (this.room.name === this.memory.destination) {
@@ -55,7 +55,7 @@ borderHump = function (creep) {
         if (Memory.roomCache[creep.room.name].noDrain >= 15) {
             delete Memory.targetRooms[creep.room.name]
             Memory.roomCache[creep.room.name].noDrain = true;
-            creep.memory.recycle = true;
+            creep.suicide();
         }
         creep.heal(creep);
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 15})

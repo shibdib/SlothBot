@@ -24,7 +24,7 @@ module.exports.role = function (creep) {
             }
         } else {
             Memory.auxiliaryTargets[creep.room.name] = undefined;
-            creep.memory.recycle = true;
+            creep.suicide();
         }
     } else {
         creep.memory.closestRoom = creep.memory.closestRoom || creep.room.findClosestOwnedRoom(false, 6);

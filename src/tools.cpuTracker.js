@@ -24,12 +24,16 @@ module.exports.creepCPU = function (minion, cpuUsed) {
         let cpuCap = 2.5;
         if (minion.memory.military) cpuCap = 4;
         if (_.round(average(cpuUsageArray), 2) > cpuCap) {
-            minion.suicide();
-            log.e(minion.name + ' was killed for overusing CPU in room ' + roomLink(minion.room.name));
+            // purge the max to avoid weird outliers
+            cpuUsageArray = _.pull(cpuUsageArray, _.max(cpuUsageArray))
+            if (_.round(average(cpuUsageArray), 2) > cpuCap) {
+                minion.suicide();
+                log.e(minion.name + ' was killed for overusing CPU in room ' + roomLink(minion.room.name));
+            }
         }
     }
     minion.room.visual.text(
-        _.round(average(cpuUsageArray), 2),
+        _.round(used, 2) + '/' + _.round(average(cpuUsageArray), 2),
         minion.pos.x,
         minion.pos.y,
         {opacity: 0.8, font: 0.4, stroke: '#000000', strokeWidth: 0.05}

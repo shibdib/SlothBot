@@ -46,7 +46,8 @@ module.exports.role = function role(creep) {
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
-        } else {
+        } else if (creep.room.level < 4) {
+            creep.memory.other.noBump = true;
             creep.memory.harvest = true;
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
             if (source) {
@@ -114,9 +115,9 @@ function building(creep) {
 function hauling(creep) {
     if (creep.memory.task && creep.memory.task !== 'haul') return;
     if (!creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME) return false;
-    let haulers = _.filter(creep.room.creeps, (c) => c.my && c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler' || c.memory.role === 'filler'));
+    let haulers = _.filter(creep.room.creeps, (c) => c.my && c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler' || c.memory.role === 'shuttle')).length < 2;
     let needyTower = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.1).length > 0;
-    if (creep.memory.task === 'haul' || (creep.isFull && (!haulers.length || needyTower) && !creep.memory.task && (creep.room.energyAvailable < creep.room.energyCapacityAvailable || needyTower))) {
+    if (creep.memory.task === 'haul' || (creep.room.level <= 4 && creep.isFull && (haulers || needyTower) && !creep.memory.task && (creep.room.energyAvailable < creep.room.energyCapacityAvailable || needyTower))) {
         creep.memory.task = 'haul';
         creep.say('Haul!', true);
         if (creep.memory.storageDestination || creep.haulerDelivery()) {

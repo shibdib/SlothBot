@@ -10,7 +10,7 @@ module.exports.role = function (creep) {
     //Invader detection
     if (creep.fleeHome()) return;
     if (Memory.auxiliaryTargets[creep.memory.destination] && creep.room.name !== creep.memory.destination && !_.sum(creep.store)) {
-        if (creep.ticksToLive < 200) return creep.memory.recycle = true;
+        if (creep.ticksToLive < 200) return creep.suicide();
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22, offRoad: true});
     } else if (creep.memory.deposit && !creep.isFull) {
         let deposit = Game.getObjectById(creep.memory.deposit);
@@ -56,7 +56,7 @@ module.exports.role = function (creep) {
         } else {
             creep.room.cacheRoomIntel(true, creep);
             Memory.auxiliaryTargets[creep.memory.destination] = undefined;
-            creep.memory.recycle = true;
+            creep.suicide();
         }
     }
 };

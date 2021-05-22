@@ -13,12 +13,12 @@ module.exports.linkControl = function (room) {
     let controllerLink = Game.getObjectById(room.memory.controllerLink);
     if (!controllerLink) {
         delete room.memory.controllerLink;
-        let potential = _.filter(links, (s) => s.pos.findInRange(room.structures, 2, {filter: (f) => f.structureType === STRUCTURE_CONTROLLER})[0])[0];
+        let potential = _.find(links, (s) => s.pos.findInRange(room.structures, 2, {filter: (f) => f.structureType === STRUCTURE_CONTROLLER})[0]);
         if (potential) room.memory.controllerLink = potential.id;
     }
     if (!hubLink) delete room.memory.hubLink;
     for (let link of links) {
-        let upgrader = _.filter(link.room.creeps, (c) => c.memory && c.memory.role === 'upgrader')[0];
+        let upgrader = _.find(link.room.creeps, (c) => c.memory && c.memory.role === 'upgrader');
         // Controller link if conditions met
         if (upgrader && (controllerLink && controllerLink.store[RESOURCE_ENERGY] < 50 && !controllerAlternator)) {
             controllerAlternator = true;
@@ -32,7 +32,7 @@ module.exports.linkControl = function (room) {
         } else if (hubLink && hubLink.store[RESOURCE_ENERGY] < 750) {
             controllerAlternator = undefined;
             link.transferEnergy(hubLink);
-        } else if (_.filter(links, (l) => l.id !== link.id && l.store[RESOURCE_ENERGY] < LINK_CAPACITY * 0.5 && l.store[RESOURCE_ENERGY] < link.store[RESOURCE_ENERGY])[0]) {
+        } else if (link.store[RESOURCE_ENERGY] > LINK_CAPACITY * 0.98 && _.find(links, (l) => l.id !== link.id && l.store[RESOURCE_ENERGY] < LINK_CAPACITY * 0.5 && l.store[RESOURCE_ENERGY] < link.store[RESOURCE_ENERGY])) {
             link.transferEnergy(_.filter(links, (l) => l.id !== link.id && l.store.getFreeCapacity(RESOURCE_ENERGY))[0], link.store[RESOURCE_ENERGY] * 0.5);
         }
     }
