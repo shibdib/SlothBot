@@ -25,7 +25,9 @@ Creep.prototype.guardRoom = function () {
     } **/
     // Handle combat
     if (this.canIWin(50)) {
-        if (!this.handleMilitaryCreep()) this.findDefensivePosition();
+        if (this.room.hostileCreeps.length) {
+            this.handleMilitaryCreep()
+        } else this.findDefensivePosition();
     } else {
         this.shibKite();
     }
@@ -41,7 +43,7 @@ function levelManager(creep) {
     }
     if (Memory.targetRooms[creep.memory.destination]) {
         let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
-        let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
+        let armedEnemies = _.filter(enemyCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
         if (armedEnemies.length) {
             Memory.targetRooms[creep.memory.destination].level = 2;
         } else if (enemyCreeps.length) {

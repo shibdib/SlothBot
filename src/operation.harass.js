@@ -21,7 +21,9 @@ Creep.prototype.harass = function () {
         if (this.room.hostileCreeps.length) Memory.targetRooms[this.memory.other.target].level = 2; else Memory.targetRooms[this.memory.other.target].level = 1;
         // Handle combat
         if (this.canIWin(50)) {
-            if (!this.handleMilitaryCreep() && !this.scorchedEarth()) this.findDefensivePosition();
+            if (this.room.hostileCreeps.length) {
+                this.handleMilitaryCreep()
+            } else if (!this.scorchedEarth()) this.findDefensivePosition();
         } else {
             this.shibKite();
         }

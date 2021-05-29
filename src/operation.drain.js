@@ -45,7 +45,7 @@ Creep.prototype.drainRoom = function () {
 
 borderHump = function (creep) {
     let exit = creep.pos.findClosestByRange(FIND_EXIT);
-    if (creep.hits < creep.hitsMax * 0.9 && !creep.getActiveBodyparts(TOUGH) && creep.room.name === creep.memory.destination) {
+    if (creep.hits < creep.hitsMax * 0.9 && !creep.hasActiveBodyparts(TOUGH) && creep.room.name === creep.memory.destination) {
         if (creep.pos.getRangeTo(exit) <= 4) Memory.roomCache[creep.room.name].noDrain = undefined;
         return creep.shibMove(exit, {ignoreCreeps: false, range: 0});
     } else if (creep.hits === creep.hitsMax && creep.room.name === creep.memory.destination) {

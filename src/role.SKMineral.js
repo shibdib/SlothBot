@@ -54,7 +54,7 @@ module.exports.role = function (creep) {
 };
 
 function skDeposit(creep) {
-    if (creep.pos.roomName === creep.memory.overlord) {
+    if (creep.pos.roomName === creep.memory.closestRoom) {
         let store = creep.room.terminal || creep.room.storage;
         if (store) {
             for (const resourceType in creep.store) {

@@ -24,13 +24,13 @@ let globals = function () {
     }
     global.LAYOUT_VERSION = 1.53;
 
-    global.PIXEL_GENERATION = true; //Generate Pixels?
+    global.PIXEL_GENERATION = false; //Generate Pixels?
     global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
     global.STATUS_COOLDOWN = 180; // Seconds between console status reports
     global.ROOM_ABANDON_THRESHOLD = 9900; // If bucket is consistently below this, abandon your lowest room
     global.SIGN_CLEANER = false; // Clean room signs away with explorers
     global.AVOID_ALLIED_SECTORS = true; // Dont claim rooms in allied sectors
-    global.REMOTE_SOURCE_SCORE = 50; // Set the score for remote sources to be mined (higher means more sources but further)
+    global.REMOTE_SOURCE_SCORE = 100; // Set the score for remote sources to be mined (higher means more sources but further)
     global.AVOID_ATTACKING_ALLIANCES = true;
 
     // Energy income breakdown (Not used atm)
@@ -57,7 +57,8 @@ let globals = function () {
         8: 500000
     };
     global.PIXEL_BUFFER = 500; // Sell any pixels above this amount
-    global.BUY_ENERGY = false; // If true it will buy energy at anything below the baseline energy price if a room isn't considered in surplus
+    global.BUY_ENERGY = true; // If true it will buy energy at anything below the baseline energy price if a room isn't considered in surplus
+    global.BUY_ENERGY_CREDIT_BUFFER = 1000000; // Stay above this to buy energy
     global.CREDIT_BUFFER = 10000; // Stay above
     global.FACTORY_CUTOFF = ENERGY_AMOUNT * 0.5; // Amount needed for a factory to be active
     global.MINERAL_TRADE_AMOUNT = (TERMINAL_CAPACITY * 0.015 + STORAGE_CAPACITY * 0.015);  // Hold this much of a mineral before selling
@@ -68,8 +69,8 @@ let globals = function () {
     global.DUMP_AMOUNT = TERMINAL_CAPACITY * 0.1; // Fills buys (of if overflowing it will offload to other terminals)
 
     // Pathfinder Cache Sizes
-    global.PATH_CACHE_SIZE = 1000;
-    global.ROUTE_CACHE_SIZE = 200;
+    global.PATH_CACHE_SIZE = 10000;
+    global.ROUTE_CACHE_SIZE = 500;
 
     // Wall and rampart target amounts
     global.BARRIER_TARGET_HIT_POINTS = {
@@ -105,7 +106,7 @@ let globals = function () {
 
     global.PRIORITIES = {
         // Harvesters
-        stationaryHarvester: 1,
+        stationaryHarvester: 2,
         // Workers
         drone: 6,
         upgrader: 5,
@@ -166,7 +167,6 @@ let globals = function () {
     global.CREEP_ROLE_CPU = {};
     global.ROOM_TASK_CPU_ARRAY = {};
     global.ROOM_ENERGY_INCOME_ARRAY = {};
-    global.ROOM_ENERGY_PER_TICK = {};
     global.TASK_CPU_ARRAY = {};
     global.ROOM_CREEP_CPU_OBJECT = {};
     global.ROOM_SOURCE_SPACE = {};

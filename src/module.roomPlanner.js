@@ -16,7 +16,7 @@ let tickTracker = {};
 
 module.exports.buildRoom = function (room) {
     let lastRun = tickTracker[room.name] || 0;
-    let cooldown = 1500;
+    let cooldown = 500;
     if (room.level < room.controller.level) cooldown = 100;
     if (lastRun + cooldown > Game.time) return;
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {

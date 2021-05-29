@@ -23,10 +23,6 @@ Creep.prototype.siegeGroupRoom = function () {
     if (this.memory.squadLeader === this.id) {
         // Sustainability
         if (this.room.name === this.memory.destination) highCommand.operationSustainability(this.room);
-        // Attack in range
-        this.attackInRange();
-        // Handle healing
-        this.healInRange();
         // Handle partner checks
         let partner = _.filter(Game.creeps, (c) => c.my && c.memory.squadLeader === this.id && c.id !== this.id)[0];
         if (partner) {

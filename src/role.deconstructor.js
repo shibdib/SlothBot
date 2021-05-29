@@ -47,12 +47,8 @@ function barrierCleaning(creep) {
     let barrier = Game.getObjectById(creep.memory.barrierClearing);
     if (!barrier) return creep.memory.barrierClearing = undefined;
     if (creep.pos.isNearTo(barrier)) {
-        if (creep.getActiveBodyparts(WORK)) {
+        if (creep.hasActiveBodyparts(WORK)) {
             return creep.dismantle(barrier);
-        } else if (creep.getActiveBodyparts(ATTACK)) {
-            return creep.attack(barrier);
-        } else if (creep.getActiveBodyparts(RANGED_ATTACK)) {
-            return creep.rangedAttack(barrier);
         }
     } else creep.shibMove(barrier);
 }

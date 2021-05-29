@@ -12,12 +12,13 @@
 module.exports.labManager = function () {
     let myRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].controller.level >= 6 && !Game.rooms[r].nukes.length && _.find(Game.rooms[r].structures, (s) => s.structureType === STRUCTURE_LAB));
     if (myRooms.length) {
-        if (Game.time % 52 === 0) {
+        if (Game.time % 100 === 0) cleanLabs();
+        if (Game.time % 100 === 0) {
             for (let room of myRooms) {
                 manageBoostProduction(Game.rooms[room]);
             }
-        } else if (Game.time % 101 === 0) cleanLabs();
-        else if (Game.time % 5 === 0) manageActiveLabs();
+        }
+        if (Game.time % 5 === 0) manageActiveLabs();
     }
 };
 
@@ -34,9 +35,9 @@ function manageBoostProduction(room) {
     for (let key in boostList) {
         // Check if we already have enough
         let cutOff = REACTION_AMOUNT;
+        // Ghodium special case, always have SAFE_MODE_COST
+        if (boostList[key] === RESOURCE_GHODIUM && cutOff < SAFE_MODE_COST) cutOff = SAFE_MODE_COST;
         if (_.includes(LAB_PRIORITY, boostList[key])) cutOff = REACTION_AMOUNT * 2.5;
-        // Ghodium special case, always have 1k
-        if (boostList[key] === RESOURCE_GHODIUM && cutOff < 1000) cutOff = 1000;
         if (room.store(boostList[key], true) >= cutOff) continue;
         // Only one hub per output
         //if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === boostList[key]).length) continue;
@@ -65,70 +66,67 @@ function manageBoostProduction(room) {
 function manageActiveLabs() {
     let activeLabs = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && !s.cooldown && s.memory.active && s.memory.creating && !s.memory.itemNeeded && !s.memory.paused);
     if (activeLabs.length) {
-        active:
-            for (let key in activeLabs) {
-                let hub = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.room.name === activeLabs[key].room.name && s.memory.targetLab === activeLabs[key].memory.targetLab && s.memory.active);
-                let outputLabs = _.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id');
-                if (!outputLabs.length) {
-                    for (let id in hub) {
-                        hub[id].memory = undefined;
-                    }
-                    continue;
+        for (let key in activeLabs) {
+            let hub = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.room.name === activeLabs[key].room.name && s.memory.targetLab === activeLabs[key].memory.targetLab && s.memory.active);
+            let outputLabs = _.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id');
+            if (!outputLabs.length || hub.length < 3) {
+                for (let id in hub) {
+                    hub[id].memory = undefined;
                 }
-                let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
-                let creatorOne = Game.getObjectById(creators[0]);
-                let creatorTwo = Game.getObjectById(creators[1]);
-                // If any don't exist reset
-                if (!creatorOne || !creatorTwo) {
-                    for (let id in hub) {
-                        hub[id].memory = undefined;
-                    }
-                    continue
+                continue;
+            }
+            let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
+            let creatorOne = Game.getObjectById(creators[0]);
+            let creatorTwo = Game.getObjectById(creators[1]);
+            // If any don't exist reset
+            if (!creatorOne || !creatorTwo) {
+                for (let id in hub) {
+                    hub[id].memory = undefined;
                 }
-                //Clean bad boosting
-                if (creatorOne.memory.neededBoost && creatorOne.memory.neededBoost !== creatorOne.memory.itemNeeded) creatorOne.memory.neededBoost = undefined;
-                if (creatorTwo.memory.neededBoost && creatorTwo.memory.neededBoost !== creatorTwo.memory.itemNeeded) creatorTwo.memory.neededBoost = undefined;
-                for (let outputLab of outputLabs) {
-                    outputLab = Game.getObjectById(outputLab);
-                    switch (outputLab.runReaction(creatorOne, creatorTwo)) {
-                        case OK:
-                            // Check if we already have enough
-                            let cutOff = BOOST_AMOUNT * 1.5;
-                            // Ghodium special case, always have 1k
-                            if (outputLab.memory.creating === RESOURCE_GHODIUM && cutOff < 1000) cutOff = 1000;
-                            if (_.includes(LAB_PRIORITY, outputLab.memory.creating)) cutOff = BOOST_AMOUNT * 5;
-                            if (outputLab.room.store(outputLab.memory.creating) + outputLab.store[outputLab.memory.creating] > cutOff) {
-                                log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
-                                for (let id in creators) {
-                                    creators[id].memory = undefined;
-                                }
-                                outputLab.memory = undefined;
-                                return;
-                            }
-                            continue;
-                        case ERR_NOT_ENOUGH_RESOURCES:
-                            for (let id in creators) {
-                                let lab = Game.getObjectById(creators[id]);
-                                let total = lab.room.store(lab.memory.itemNeeded, true) + lab.store[lab.memory.itemNeeded];
-                                if (total < 10) {
-                                    log.a(outputLab.room.name + ' is no longer producing ' + lab.memory.creating + ' due to a shortage of ' + lab.memory.itemNeeded);
-                                    for (let id in creators) {
-                                        creators[id].memory = undefined;
-                                    }
-                                    outputLab.memory = undefined;
-                                    return;
-                                }
-                            }
-                            continue;
-                        case ERR_NOT_IN_RANGE:
-                            log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a range issue. Lab IDs ' + outputLab.id + ', ' + creators[0] + ', ' + creators[1]);
+                continue
+            }
+            //Clean bad boosting
+            if (creatorOne.memory.neededBoost && creatorOne.memory.neededBoost !== creatorOne.memory.itemNeeded) creatorOne.memory.neededBoost = undefined;
+            if (creatorTwo.memory.neededBoost && creatorTwo.memory.neededBoost !== creatorTwo.memory.itemNeeded) creatorTwo.memory.neededBoost = undefined;
+            for (let outputLab of outputLabs) {
+                outputLab = Game.getObjectById(outputLab);
+                switch (outputLab.runReaction(creatorOne, creatorTwo)) {
+                    case OK:
+                        // Check if we already have enough
+                        let cutOff = BOOST_AMOUNT * 1.5;
+                        // Ghodium special case, always have 1k
+                        if (outputLab.memory.creating === RESOURCE_GHODIUM && cutOff < 1000) cutOff = 1000;
+                        if (_.includes(LAB_PRIORITY, outputLab.memory.creating)) cutOff = BOOST_AMOUNT * 5;
+                        if (outputLab.room.store(outputLab.memory.creating) + outputLab.store[outputLab.memory.creating] > cutOff) {
+                            log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
                             for (let id in hub) {
                                 hub[id].memory = undefined;
                             }
                             return;
-                    }
+                        }
+                        continue;
+                    case ERR_NOT_ENOUGH_RESOURCES:
+                        for (let id in creators) {
+                            let lab = Game.getObjectById(creators[id]);
+                            let total = lab.room.store(lab.memory.itemNeeded, true) + lab.store[lab.memory.itemNeeded];
+                            if (total < 10) {
+                                log.a(outputLab.room.name + ' is no longer producing ' + lab.memory.creating + ' due to a shortage of ' + lab.memory.itemNeeded);
+                                for (let id in hub) {
+                                    hub[id].memory = undefined;
+                                }
+                                return;
+                            }
+                        }
+                        continue;
+                    case ERR_NOT_IN_RANGE:
+                        log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a range issue. Lab IDs ' + outputLab.id + ', ' + creators[0] + ', ' + creators[1]);
+                        for (let id in hub) {
+                            hub[id].memory = undefined;
+                        }
+                        return;
                 }
             }
+        }
     }
 }
 
@@ -150,11 +148,12 @@ function cleanLabs() {
         }
     }
     let reactionLabs = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating);
-    for (let key in reactionLabs) {
-        let reactionLab = reactionLabs[key];
-        let reactionHub = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.room.name === reactionLab.room.name && s.memory.active && s.memory.creating === reactionLab.memory.creating);
-        if (reactionHub.length < 3 || reactionLab.pos.findInRange(reactionHub, 2).length < 3) {
-            reactionLab.memory = undefined;
+    for (let lab of reactionLabs) {
+        let reactionHub = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.room.name === lab.room.name && s.memory.targetLab === lab.memory.targetLab);
+        if (reactionHub.length < 3 || lab.pos.findInRange(reactionHub, 1).length < 3) {
+            reactionHub.forEach(function (l) {
+                l.memory = undefined;
+            })
         }
     }
     let oldLabs = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating && !s.memory.targetLab);

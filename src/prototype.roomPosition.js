@@ -73,7 +73,7 @@ RoomPosition.prototype.countOpenTerrainAround = function (borderBuild = undefine
             if (xOff !== 0 || yOff !== 0) {
                 let pos = new RoomPosition(this.x + xOff, this.y + yOff, this.roomName);
                 if (ignore && pos.checkForWall()) openTerrain--;
-                else if (pos.checkForImpassible(undefined, true) || (pos.checkForCreep() && !pos.checkForCreep().getActiveBodyparts(MOVE))) openTerrain--;
+                else if (pos.checkForImpassible(undefined, true) || (pos.checkForCreep() && !pos.checkForCreep().hasActiveBodyparts(MOVE))) openTerrain--;
                 if (borderBuild && pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) <= 2) openTerrain--;
             }
         }
@@ -181,7 +181,7 @@ RoomPosition.prototype.checkForBarrierStructure = function () {
 
 RoomPosition.prototype.checkForObstacleStructure = function () {
     let obstacle = this.lookFor(LOOK_STRUCTURES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
-    if (!obstacle) obstacle = _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART && (!s.my || !s.isPublic));
+    if (!obstacle) obstacle = _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART && !s.my && !s.isPublic);
     if (!obstacle) obstacle = this.lookFor(LOOK_CONSTRUCTION_SITES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
     return obstacle;
 };
@@ -218,6 +218,11 @@ RoomPosition.prototype.checkForImpassible = function (ignoreWall = false, ignore
         if (this.checkForObstacleStructure() || this.checkForWall() || (!ignoreCreep && this.checkForCreep())) return true;
     }
 };
+
+RoomPosition.prototype.findFirstInRange = function (lookUp, range) {
+    return _.find(lookUp, (o) => this.inRangeTo(o, range));
+};
+
 
 RoomPosition.prototype.isExit = function () {
     return this.x < 1 || this.x > 48 || this.y < 1 || this.y > 48;

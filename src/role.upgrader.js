@@ -14,40 +14,27 @@ module.exports.role = function (creep) {
     if (creep.tryToBoost(['upgrade'])) return;
     // Handle yelling
     herald(creep);
-    // If you upgrade, just return
-    if (creep.store[RESOURCE_ENERGY] && creep.upgradeController(creep.room.controller) === OK) return;
     // Set and check container and link
     let container = Game.getObjectById(creep.room.memory.controllerContainer);
     if (!container) creep.room.memory.controllerContainer = undefined;
     let link = Game.getObjectById(creep.room.memory.controllerLink);
     if (!link) creep.room.memory.controllerLink = undefined;
-    if (creep.memory.other.inPosition) {
+    if (creep.memory.other.stationary || (creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE))) {
+        creep.memory.other.stationary = true;
         if (link && link.store[RESOURCE_ENERGY]) {
-            if (creep.withdraw(link, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) creep.memory.other.inPosition = undefined;
+            creep.withdrawResource(link);
         } else if (container && container.store[RESOURCE_ENERGY]) {
-            if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) creep.memory.other.inPosition = undefined;
+            creep.withdrawResource(container);
         }
-        if (Math.random() > 0.99) {
-            creep.memory.onContainer = undefined;
-            creep.memory.other.inPosition = undefined;
+        switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
+            case OK:
+                return;
+            case ERR_NOT_IN_RANGE:
+                return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
         }
-        if (!creep.memory.onContainer) {
-            if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
-                if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
-                return creep.shibMove(container, {range: 0});
-            } else if (!creep.pos.getRangeTo(container)) {
-                creep.memory.onContainer = true;
-            } else if (container) {
-                if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
-                return creep.shibMove(container, {range: 1});
-            }
-        }
-        creep.upgradeController(Game.rooms[creep.memory.overlord].controller)
     } else {
         if (creep.isFull) creep.memory.working = true;
         if (!creep.store[RESOURCE_ENERGY]) delete creep.memory.working;
-        if (link || container) creep.memory.other.inPosition = (!link || creep.pos.isNearTo(link)) && (!container || creep.pos.isNearTo(container)) && creep.pos.getRangeTo(creep.room.controller) <= 3;
-        if (!creep.memory.other.inPosition && link && container) creep.shibMove([link, container])
         if (creep.memory.working) {
             switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
                 case OK:
@@ -66,31 +53,8 @@ module.exports.role = function (creep) {
                         return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
                     }
             }
-        }
-        if (creep.memory.energyDestination) {
+        } else if (creep.memory.energyDestination) {
             creep.withdrawResource();
-        } else if (creep.memory.other.stationary || (creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE))) {
-            creep.memory.other.stationary = true;
-            if (container && !creep.memory.onContainer) {
-                let containerCreep = container.pos.checkForCreep();
-                if ((!containerCreep || !containerCreep.memory || containerCreep.memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
-                    if (!container.pos.getRangeTo(creep)) creep.memory.onContainer = true;
-                    else creep.shibMove(container, {range: 0});
-                } else if (link && container) {
-                    if (container.pos.isNearTo(creep) && link.pos.isNearTo(creep)) creep.memory.onContainer = true;
-                    else creep.shibMove([link, container])
-                } else {
-                    if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
-                    else creep.shibMove(container, {range: 1});
-                }
-            } else if (creep.memory.onContainer) {
-                if (link && link.store[RESOURCE_ENERGY]) {
-                    creep.withdrawResource(link);
-                } else if (container && container.store[RESOURCE_ENERGY]) {
-                    creep.withdrawResource(container);
-                }
-            }
-            creep.upgradeController(creep.room.controller);
         } else if (container && container.store[RESOURCE_ENERGY]) {
             creep.withdrawResource(container);
         } else if (!creep.locateEnergy(25)) {

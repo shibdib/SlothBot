@@ -20,11 +20,13 @@ Creep.prototype.holdRoom = function () {
         this.say(sentence[word], true);
         // Handle combat
         if (this.canIWin(50)) {
-            if (!this.handleMilitaryCreep() && !this.scorchedEarth()) this.findDefensivePosition();
+            if (this.room.hostileCreeps.length) {
+                this.handleMilitaryCreep()
+            } else if (!this.scorchedEarth()) this.findDefensivePosition();
         } else {
             this.shibKite();
         }
-        levelManager(this);
+        if (Game.time % 5 === 0) levelManager(this);
         highCommand.operationSustainability(this.room);
     }
 };
@@ -34,56 +36,11 @@ function levelManager(creep) {
     if (!creep.room.controller || (!creep.room.controller.owner && !creep.room.controller.reservation) || (!creep.room.creeps.length && !creep.room.structures.length)) return delete Memory.targetRooms[creep.memory.destination];
     // Safemode
     if (creep.room.controller.safeMode) {
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
-        cache[creep.room.name] = {
-            tick: tick,
-            type: 'pending',
-            dDay: tick + creep.room.controller.safeMode,
-        };
-        Memory.targetRooms = cache;
+        Memory.targetRooms[creep.memory.destination] = undefined;
         creep.suicide();
         return;
-    }
-    let otherRooms = _.filter(Memory.roomCache, (r) => r.name !== creep.room.name && r.owner === Memory.roomCache[creep.room.name].owner)[0]
-    let towers = _.filter(creep.room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.store[RESOURCE_ENERGY] > 10 && c.isActive());
-    let armedEnemies = _.filter(creep.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, c.owner.username));
-    let armedOwners = _.filter(_.union(_.pluck(armedEnemies, 'owner.username'), [Memory.roomCache[creep.room.name].user]), (o) => !_.includes(FRIENDLIES, o) && o !== 'Invader');
-    Memory.targetRooms[creep.memory.destination].claimAttacker = undefined;
-    if (towers.length) {
-        delete Memory.targetRooms[creep.memory.destination];
-        log.a('Canceling operation in ' + roomLink(creep.memory.destination) + '.', 'HIGH COMMAND: ');
-        return creep.room.cacheRoomIntel(true, creep);
-    } else if (armedEnemies.length) {
-        Memory.targetRooms[creep.memory.destination].level = 2;
-    } else if (otherRooms || creep.room.hostileCreeps.length) {
-        Memory.targetRooms[creep.memory.destination].level = 1;
-    } else {
-        Memory.targetRooms[creep.memory.destination].level = 0;
-    }
-    if (creep.room.hostileStructures.length) Memory.targetRooms[creep.memory.destination].cleaner = true;
-    if (creep.room.controller && creep.room.controller.owner && (!creep.room.controller.upgradeBlocked || creep.room.controller.upgradeBlocked < CREEP_CLAIM_LIFE_TIME) && creep.room.controller.pos.countOpenTerrainAround()) Memory.targetRooms[creep.memory.destination].claimAttacker = true;
-    else Memory.targetRooms[creep.memory.destination].claimAttacker = false;
-}
-
-function hud(creep) {
-    try {
-        let response = creep.memory.destination || creep.room.name;
-        Game.map.visual.text('HOLD', new RoomPosition(17, 3, response), {
-            color: '#d68000',
-            fontSize: 3,
-            align: 'left'
-        });
-        if (response !== creep.room.name && creep.memory._shibMove && creep.memory._shibMove.route) {
-            let route = [];
-            for (let routeRoom of creep.memory._shibMove.route) {
-                if (routeRoom === creep.room.name) route.push(new RoomPosition(creep.pos.x, creep.pos.y, routeRoom));
-                else route.push(new RoomPosition(25, 25, routeRoom));
-            }
-            for (let posNumber = 0; posNumber++; posNumber < route.length) {
-                Game.map.visual.line(route[posNumber], route[posNumber + 1])
-            }
-        }
-    } catch (e) {
-    }
+    } else if (creep.room.hostileCreeps.length) Memory.targetRooms[creep.memory.destination].level = 2;
+    else Memory.targetRooms[creep.memory.destination].level = 1;
+    Memory.targetRooms[creep.memory.destination].cleaner = creep.room.hostileStructures.length > 0;
+    Memory.targetRooms[creep.memory.destination].claimAttacker = creep.room.controller && creep.room.controller.owner && (!creep.room.controller.upgradeBlocked || creep.room.controller.upgradeBlocked < CREEP_CLAIM_LIFE_TIME);
 }

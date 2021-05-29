@@ -37,20 +37,18 @@ module.exports.role = function role(creep) {
 function wallMaintainer(creep) {
     if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget) || Memory.roomCache[creep.room.name].threatLevel || creep.room.memory.nuke) {
         let nukeSite, nukeRampart;
-        let barrierStructures = _.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL));
+        let barrierStructures = _.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (s.room.energyState || s.hits < BARRIER_TARGET_HIT_POINTS[s.room.level]));
         if (creep.room.memory.nuke) {
             nukeSite = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5)[0];
             nukeRampart = _.min(_.filter(barrierStructures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5), 'hits');
         }
         let hostileBarrier;
         if (Memory.roomCache[creep.room.name].threatLevel) {
-            hostileBarrier = _.min(_.filter(barrierStructures, (s) => s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)), 5)[0]), 'hits');
+            hostileBarrier = _.min(_.filter(barrierStructures, (s) => s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)), 5)[0]), 'hits');
         }
-        let barriers = _.filter(barrierStructures, (s) => s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level]);
-        if (!barriers) barriers = barrierStructures;
-        let barrier = _.min(barriers, 'hits');
+        let barrier = _.min(barrierStructures, 'hits');
         let site = _.filter(creep.room.constructionSites, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL))[0];
-        if (!hostileBarrier && barriers.length && barrier.hits < 2000) {
+        if (!hostileBarrier && barrierStructures.length && barrier.hits < 2000) {
             creep.memory.currentTarget = barrier.id;
             creep.shibMove(barrier, {range: 3})
         } else if (hostileBarrier) {
@@ -75,7 +73,7 @@ function wallMaintainer(creep) {
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(site, {range: 3})
             }
-        } else if (barriers.length && barrier.id) {
+        } else if (barrier.id) {
             creep.memory.currentTarget = barrier.id;
         }
     }

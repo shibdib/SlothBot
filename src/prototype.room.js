@@ -373,8 +373,8 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         let ncpArray = Memory.ncpArray || [];
         let cache = Memory.roomCache || {};
         let sources = room.sources;
-        nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) && !e.getActiveBodyparts(RANGED_ATTACK) && (e.getActiveBodyparts(WORK) || e.getActiveBodyparts(CARRY))));
-        let combatCreeps = _.filter(room.hostileCreeps, (e) => e.getActiveBodyparts(ATTACK) || e.getActiveBodyparts(RANGED_ATTACK));
+        nonCombats = _.filter(room.creeps, (e) => (!e.hasActiveBodyparts(ATTACK) && !e.hasActiveBodyparts(RANGED_ATTACK) && (e.hasActiveBodyparts(WORK) || e.hasActiveBodyparts(CARRY))));
+        let combatCreeps = _.filter(room.hostileCreeps, (e) => e.hasActiveBodyparts(ATTACK) || e.hasActiveBodyparts(RANGED_ATTACK));
         if (!sk && _.find(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)) sk = true;
         if (room.controller) {
             // Check if obstructed
@@ -453,22 +453,22 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         // Get closest
         let closestRange = this.findClosestOwnedRoom(true);
         // Handle rating sources for remotes
-        if (!sourceRating && closestRange <= 3 && sources.length) {
+        if (!user && !sourceRating && closestRange <= 2 && sources.length) {
             sourceRating = {};
             for (let source of this.sources) {
                 let closest = this.findClosestOwnedRoom();
                 let goHome = Game.map.findExit(this.name, closest);
-                let homeExit = this.find(goHome);
+                let homeExit = creep.room.find(goHome);
                 let homeMiddle = _.round(homeExit.length / 2);
-                let distanceToExit = source.pos.findPathTo(homeExit[homeMiddle]).length
-                let roomRange = Game.map.findRoute(this.name, closest).length - 1;
-                sourceRating[source.id] = distanceToExit + (roomRange * 50);
+                let distanceToExit = source.pos.getRangeTo(homeExit[homeMiddle]);
+                let roomRange = Game.map.findRoute(this.name, closest).length;
+                sourceRating[source.id] = distanceToExit + 20;
+                if (roomRange > 1) sourceRating[source.id] += (roomRange * 40);
             }
         }
         let isHighway = !room.controller && !sk && !room.sources.length;
-        let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR && s.structureType !== STRUCTURE_PORTAL);
         if (towers) towerCount = towers.length;
-        if (worthyStructures) structures = worthyStructures.length
+        structures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR && s.structureType !== STRUCTURE_PORTAL).length
         cache[this.name] = cache[this.name] || {};
         cache[this.name] = {
             cached: Game.time,
@@ -526,7 +526,7 @@ Room.prototype.invaderCheck = function () {
         let waitOut = 15;
         if (Memory.roomCache[this.name].threatLevel > 3) waitOut = 50;
         // Clear if no waitOut or if not one of your rooms
-        let friendlyArmed = _.filter(this.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)).length || 1;
+        let friendlyArmed = _.filter(this.friendlyCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)).length || 1;
         let reduction = _.ceil((Game.time - previousCheck) / 5) * friendlyArmed;
         if (Memory.roomCache[this.name].lastPlayerSighting + 500 > Game.time) reduction *= 25;
         if (Memory.roomCache[this.name].tickDetected + waitOut < Game.time || Memory.roomCache[this.name].user !== MY_USERNAME) {
@@ -547,18 +547,18 @@ Room.prototype.invaderCheck = function () {
         return false;
     } else {
         let hostileCombatPower = 0;
-        let armedHostiles = _.filter(this.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
+        let armedHostiles = _.filter(this.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
         for (let i = 0; i < armedHostiles.length; i++) {
             hostileCombatPower += armedHostiles[i].combatPower;
         }
         let alliedCombatPower = 0;
-        let armedFriendlies = _.filter(this.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
+        let armedFriendlies = _.filter(this.friendlyCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
         for (let i = 0; i < armedFriendlies.length; i++) {
             alliedCombatPower += armedFriendlies[i].combatPower;
         }
         Memory.roomCache[this.name].hostilePower = hostileCombatPower || 1;
         Memory.roomCache[this.name].friendlyPower = alliedCombatPower;
-        let armedInvader = _.filter(this.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL) || c.getActiveBodyparts(WORK) >= 4 || c.getActiveBodyparts(CLAIM));
+        let armedInvader = _.filter(this.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(HEAL) || c.getActiveBodyparts(WORK) >= 4 || c.hasActiveBodyparts(CLAIM));
         Memory.roomCache[this.name].tickDetected = Game.time;
         if (!Memory.roomCache[this.name].numberOfHostiles || Memory.roomCache[this.name].numberOfHostiles < this.hostileCreeps.length) {
             Memory.roomCache[this.name].numberOfHostiles = this.hostileCreeps.length || 1;

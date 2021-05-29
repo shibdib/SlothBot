@@ -10,11 +10,6 @@ Creep.prototype.borderPatrol = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     hud(this);
-    // Attack in range
-    this.attackInRange();
-    // Handle healing
-    this.healInRange();
-    if (!this.canIWin(4)) return this.shibKite();
     if (!this.memory.other.responseTarget) {
         // Check neighbors
         let adjacent = _.filter(Game.map.describeExits(this.pos.roomName), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel)[0] || _.filter(Game.map.describeExits(this.pos.roomName), (r) => Memory.roomCache[r] && Memory.roomCache[r].roomHeat)[0];
@@ -34,8 +29,13 @@ Creep.prototype.borderPatrol = function () {
             }
         }
     }
-    if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(50) && this.handleMilitaryCreep()) return;
     if (this.memory.other.responseTarget && this.room.name !== this.memory.other.responseTarget) return this.shibMove(new RoomPosition(25, 25, this.memory.other.responseTarget), {range: 24});
+    // Handle combat
+    if (this.canIWin(50)) {
+        if (!this.handleMilitaryCreep()) this.findDefensivePosition();
+    } else {
+        this.shibKite();
+    }
     if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) this.memory.other.responseTarget = undefined;
     if (!this.memory.other.responseTarget) this.goToHub();
 };

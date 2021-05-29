@@ -17,7 +17,7 @@ if (Memory._banker) spendingMoney = Memory._banker.spendingAccount; else spendin
 
 module.exports.terminalControl = function (room) {
     let lastRun = tickTracker[room.name] || 0;
-    if (!room.terminal || room.terminal.cooldown || lastRun + 250 > Game.time) return;
+    if (!room.terminal || room.terminal.cooldown || lastRun + 100 > Game.time) return;
     tickTracker[room.name] = Game.time;
     // Handle season stuff
     if (Game.shard.name === 'shardSeason') {
@@ -70,13 +70,8 @@ module.exports.terminalControl = function (room) {
         }
         runOnce = Game.time;
     }
-    // Handle praise room
-    if (room.memory.praiseRoom) {
-        balanceResources(room.terminal);
-        return;
-    }
     //Buy Energy
-    if (BUY_ENERGY && buyEnergy(room.terminal, globalOrders)) return;
+    if (BUY_ENERGY && Game.market.credits > BUY_ENERGY_CREDIT_BUFFER && buyEnergy(room.terminal, globalOrders)) return;
     if (room.energyState) {
         if (room.name === Memory.saleTerminal.room && spendingMoney > 0) {
             //Buy resources being sold at below market value
@@ -361,13 +356,12 @@ function buyPower(terminal, globalOrders) {
 }
 
 function buyEnergy(terminal, globalOrders) {
-    if (terminal.room.energy < ENERGY_AMOUNT[terminal.room.level] * 0.5 && spendingMoney) {
+    if (!terminal.room.energyState) {
         let sellOrder = _.min(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName)), 'price');
         if (sellOrder.price) {
-            let buyAmount = (ENERGY_AMOUNT[terminal.room.level] * 2) - terminal.room.energy;
+            let buyAmount = 10000;
             if (buyAmount > sellOrder.amount) buyAmount = sellOrder.amount;
-            if (buyAmount * sellOrder.price > spendingMoney) buyAmount = _.round(spendingMoney / sellOrder.price);
-            if (buyAmount >= 500 && Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
+            if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
                 log.w("Bought " + buyAmount + " " + sellOrder.resourceType + " for " + (sellOrder.price * buyAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
                 spendingMoney -= (sellOrder.price * buyAmount);
                 log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
@@ -432,14 +426,12 @@ function fillBuyOrders(terminal, globalOrders) {
 }
 
 function balanceResources(terminal) {
-    if (!terminal.room.energyState) return false;
     // Balance Energy
-    if (!Memory.roomCache[terminal.room.name].threatLevel && !terminal.room.nukes.length && terminal.room.energyState > 1) {
+    if (!Memory.roomCache[terminal.room.name].threatLevel && !terminal.room.nukes.length && terminal.room.energyState) {
         // Find needy terminals
-        let needyTerminal = _.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && r.room.energy < ENERGY_AMOUNT[terminal.room.level] * 0.15 && Game.map.getRoomLinearDistance(r.room.name, terminal.room.name) <= 3
-            && r.room.energy < terminal.room.energy * 0.85 && !r.room.memory.praiseRoom && r.store.getFreeCapacity())[0];
+        let needyTerminal = _.find(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && !r.room.energyState && r.store.getFreeCapacity());
         // If no needy terminal check for allied needs
-        if (!needyTerminal && _.size(ALLY_HELP_REQUESTS)) {
+        if (!needyTerminal && _.sortBy(_.filter(ALLY_HELP_REQUESTS), 'priority')) {
             for (let ally of _.filter(ALLY_HELP_REQUESTS)) {
                 needyTerminal = _.find(ally, (r) => r.requestType === 0 && r.resourceType === RESOURCE_ENERGY);
                 if (needyTerminal) {
@@ -464,7 +456,7 @@ function balanceResources(terminal) {
     }
     // Loop resources
     let sortedKeys = Object.keys(terminal.store).sort(function (a, b) {
-        return terminal.store[a] - terminal.store[b]
+        return terminal.store[b] - terminal.store[a]
     });
     // Season, locate closest to collector room
     let scoreStorage;
@@ -506,33 +498,29 @@ function balanceResources(terminal) {
             }
         }
         // Keep boost amount
-        if (_.includes(ALL_BOOSTS, resource)) {
-            keepAmount = BOOST_AMOUNT;
-        }
+        if (ALL_BOOSTS.includes(resource)) keepAmount = BOOST_AMOUNT;
         // Keep 1000 batteries
-        if (resource === RESOURCE_BATTERY) {
-            keepAmount = 1000;
-        }
+        if (resource === RESOURCE_BATTERY) keepAmount = 1000;
         // Keep reaction amount
-        if (_.includes(BASE_MINERALS, resource)) {
-            keepAmount = REACTION_AMOUNT;
-        }
+        if (BASE_MINERALS.includes(resource)) keepAmount = REACTION_AMOUNT;
         // Keep 5000 compressed
-        if (_.includes(COMPRESSED_COMMODITIES, resource)) {
-            keepAmount = 5000;
-        }
-        // Praise empties and nuke room
-        if (terminal.room.memory.praiseRoom || terminal.room.nukes.length) keepAmount = 0;
+        if (COMPRESSED_COMMODITIES.includes(resource)) keepAmount = 5000;
+        // Ghodium special case, always have SAFE_MODE_COST
+        if (resource === RESOURCE_GHODIUM) keepAmount = SAFE_MODE_COST;
+        if (terminal.room.nukes.length) keepAmount = 0;
         // Next resource if we don't have enough to send
         let available = terminal.room.store(resource) - keepAmount;
         if (available > terminal.store[resource]) available = terminal.store[resource];
         if (available <= keepAmount * 0.1 || available < 100) continue;
         // Find room in need
-        let needyTerminal = _.find(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && !r.room.nukes.length && r.room.name !== terminal.room.name && r.room.store(resource) < 25 && Game.map.getRoomLinearDistance(r.room.name, terminal.room.name) <= 10
-            && r.store.getFreeCapacity());
+        let needyTerminal;
+        if (terminal.room.energyState) {
+            needyTerminal = _.find(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && !r.room.nukes.length && r.room.name !== terminal.room.name && r.room.store(resource) < 50 && Game.map.getRoomLinearDistance(r.room.name, terminal.room.name) <= 10
+                && r.store.getFreeCapacity());
+        }
         // If no needy terminal check for allied needs
         if (!needyTerminal && _.size(ALLY_HELP_REQUESTS)) {
-            for (let ally of _.filter(ALLY_HELP_REQUESTS)) {
+            for (let ally of _.sortBy(_.filter(ALLY_HELP_REQUESTS), 'priority')) {
                 needyTerminal = _.find(ally, (r) => r.requestType === 0 && r.resourceType === resource);
                 if (needyTerminal) {
                     needyTerminal = needyTerminal.roomName;

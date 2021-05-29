@@ -205,7 +205,7 @@ function forwardObserver(room) {
     }
     let otherRooms = _.filter(Memory.roomCache, (r) => r.name !== room.name && r.owner === Memory.roomCache[room.name].owner)[0]
     let towers = _.filter(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.store[RESOURCE_ENERGY] > 10 && c.isActive());
-    let armedEnemies = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, c.owner.username));
+    let armedEnemies = _.filter(room.hostileCreeps, (c) => (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, c.owner.username));
     if (towers.length) {
         delete Memory.targetRooms[room.name];
         log.a('Canceling operation in ' + roomLink(room.name) + '.', 'HIGH COMMAND: ');

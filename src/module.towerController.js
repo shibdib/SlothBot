@@ -27,7 +27,8 @@ module.exports.towerControl = function (room) {
                 return repairTower.repair(degrade);
             }
         } // Handle nuke rampart repair
-        else if (room.nukes.length) {
+        /**
+         else if (room.nukes.length) {
             let nukeRampart;
             let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.isActive() && s.store[RESOURCE_ENERGY]);
             let inRangeStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_LINK && s.structureType !== STRUCTURE_LAB && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.pos.checkForRampart() && s.pos.checkForRampart().hits < NUKE_DAMAGE[2] + 15000);
@@ -40,8 +41,9 @@ module.exports.towerControl = function (room) {
                 for (let tower of towers) tower.repair(nukeRampart);
             }
         } // Handle barrier repair
-        else {
-            let barriers = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level] * 0.5)), 'hits');
+         else {
+            let barriers = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) &&
+                ((!repairTower.room.energyState && s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level] * 0.5) || (repairTower.room.energyState && s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level]))), 'hits');
             if (barriers.id) {
                 return repairTower.repair(barriers);
             } else if (repairTower.room.energyState > 1) {
@@ -50,9 +52,14 @@ module.exports.towerControl = function (room) {
                     return repairTower.repair(lowestRampart);
                 }
             }
-        }
+        }**/
     } else if (hostileCreeps.length) {
-        let towers = _.shuffle(_.filter(room.structures, (s) => s && s.structureType === STRUCTURE_TOWER && s.isActive()));
+        let towers = _.shuffle(_.filter(room.structures, (s) => s && s.structureType === STRUCTURE_TOWER && s.isActive() && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST));
+        if (!towers.length) {
+            room.memory.dangerousAttack = true;
+            room.memory.spawnDefenders = true;
+            return;
+        }
         let potentialAttack = 0;
         _.filter(room.friendlyCreeps, (c) => c && c.my && c.memory.military).forEach((c) => potentialAttack += c.abilityPower().attack);
         for (let i = 0; i < hostileCreeps.length; i++) {
@@ -67,8 +74,8 @@ module.exports.towerControl = function (room) {
             // Determine heal power only if room isn't safeMode
             let healPower = 0;
             if (!room.controller.safeMode) {
-                let inRangeMeleeHealers = _.filter(hostileCreeps, (s) => s.pos.isNearTo(hostileCreeps[i]) && s.getActiveBodyparts(HEAL));
-                let inRangeRangedHealers = _.filter(hostileCreeps, (s) => !s.pos.isNearTo(hostileCreeps[i]) && s.pos.getRangeTo(hostileCreeps[i]) < 4 && s.getActiveBodyparts(HEAL));
+                let inRangeMeleeHealers = _.filter(hostileCreeps, (s) => s.pos.isNearTo(hostileCreeps[i]) && s.hasActiveBodyparts(HEAL));
+                let inRangeRangedHealers = _.filter(hostileCreeps, (s) => !s.pos.isNearTo(hostileCreeps[i]) && s.pos.getRangeTo(hostileCreeps[i]) < 4 && s.hasActiveBodyparts(HEAL));
                 if (inRangeMeleeHealers.length) inRangeMeleeHealers.forEach((c) => healPower += c.abilityPower().heal);
                 if (inRangeRangedHealers.length) inRangeRangedHealers.forEach((c) => healPower += c.abilityPower().rangedHeal);
                 healPower += hostileCreeps[i].abilityPower().heal;
@@ -108,7 +115,7 @@ module.exports.towerControl = function (room) {
                 }
             }  // Else if it's near a barrier, repair the barrier
             else {
-                let nearbyRampart = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)), 3)[0] && s.hits < BARRIER_TARGET_HIT_POINTS[room.level]), 'hits');
+                let nearbyRampart = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)), 3)[0] && s.hits < BARRIER_TARGET_HIT_POINTS[room.level]), 'hits');
                 if (nearbyRampart.id) for (let tower of towers) tower.repair(nearbyRampart);
                 if (potentialAttack < healPower) room.memory.dangerousAttack = true; else room.memory.towerTarget = hostileCreeps[i].id;
                 room.memory.towerTarget = undefined;

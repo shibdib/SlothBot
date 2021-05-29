@@ -1,4 +1,6 @@
 module.exports.manager = function () {
+    RawMemory.setActiveSegments([0, 98]);
+
     // Track allied requests
     logRequests();
 
@@ -30,7 +32,8 @@ function makeRequests() {
     for (let room of energyRooms) {
         if (room) {
             let priority = 0.1;
-            if (!Game.rooms[room].energyState) priority = 1 - (Game.rooms[room].energy / ENERGY_AMOUNT[Game.rooms[room].level]);
+            if (Game.rooms[room].memory.spawnDefenders) priority = 1;
+            else if (!Game.rooms[room].energyState) priority = 1 - (Game.rooms[room].energy / ENERGY_AMOUNT[Game.rooms[room].level]);
             requestArray.push(
                 {
                     requestType: 0,
@@ -81,7 +84,7 @@ function makeRequests() {
     }
 
     // Defense requests
-    let defenseRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].memory.spawnDefenders);
+    let defenseRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].memory.dangerousAttack);
     for (let room of defenseRooms) {
         let priority = 0.5;
         if (Memory.roomCache[room].threatLevel === 4) priority = 1;

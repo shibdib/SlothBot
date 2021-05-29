@@ -11,7 +11,7 @@
 
 module.exports.role = function (creep) {
     // If you lost your claim part... die
-    if (!creep.getActiveBodyparts(CLAIM)) creep.suicide();
+    if (!creep.hasActiveBodyparts(CLAIM)) creep.suicide();
     //Check if claim clear op
     if (creep.memory.operation === 'claimClear') return creep.claimClear();
     //Initial move

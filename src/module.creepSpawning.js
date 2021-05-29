@@ -195,10 +195,16 @@ module.exports.essentialCreepQueue = function (room) {
     if (getCreepCount(room, 'stationaryHarvester')) {
         let amount = 1;
         if (room.memory.spawnDefenders) amount = 2;
+        let priority = PRIORITIES.hauler;
+        let reboot;
+        if (!getCreepCount(room, 'hauler') || room.friendlyCreeps.length < 5) {
+            priority = 1;
+            reboot = true;
+        }
         if (getCreepCount(room, 'hauler') < amount || (getCreepTTL(room, 'hauler') < 250 && getCreepCount(room, 'hauler') === amount)) {
-            queueCreep(room, PRIORITIES.hauler, {
+            queueCreep(room, priority, {
                 role: 'hauler',
-                other: {reboot: !getCreepCount(room, 'hauler') || room.friendlyCreeps.length < 5}
+                other: {reboot: reboot}
             });
         }
         if (!getCreepCount(room, 'shuttle') && !room.memory.hubLink) {
@@ -259,7 +265,7 @@ module.exports.miscCreepQueue = function (room) {
         queueCreep(room, PRIORITIES.drone, {role: 'maintenance'})
     }
     // Waller during attacks
-    if (room.memory.spawnDefenders && !getCreepCount(room, 'waller')) {
+    if (getCreepCount(room, 'waller') < room.energyState + 1) {
         queueCreep(room, PRIORITIES.priority, {role: 'waller'})
     }
     // If no conflict detected
@@ -328,6 +334,18 @@ module.exports.miscCreepQueue = function (room) {
         }
         // Assist room
         if (level >= 3) {
+            // Defense
+            let needsDefense = _.find(Memory.myRooms, (r) => Game.rooms[r].memory.dangerousAttack);
+            if (needsDefense) {
+                if (getCreepCount(undefined, 'longbow', needsDefense) < 2) {
+                    queueCreep(room, PRIORITIES.priority, {
+                        role: 'longbow',
+                        destination: needsDefense,
+                        operation: 'guard',
+                        military: true
+                    });
+                }
+            }
             let safeToSupport = _.filter(Memory.myRooms, (r) => !Memory.roomCache[r] || !Memory.roomCache[r].threatLevel);
             let needDrones = _.sample(_.filter(safeToSupport, ((r) => r !== room.name && Game.rooms[r].memory.buildersNeeded)));
             if (needDrones) {
@@ -553,8 +571,7 @@ module.exports.remoteCreepQueue = function (room) {
             for (let creep of harvesters) {
                 let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creep.id);
                 let current = 0;
-                let cap = 4;
-                if (Game.cpu.bucket < BUCKET_MAX) cap = 2;
+                let cap = 1;
                 if (assignedHaulers.length) {
                     assignedHaulers.forEach((c) => current += c.store.getCapacity())
                     if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= cap) continue;
@@ -643,6 +660,16 @@ module.exports.globalCreepQueue = function () {
             case 'test':
                 if (getCreepCount(undefined, 'tester', key) < 4) {
                     queueGlobalCreep(priority, {role: 'tester', destination: key, military: true});
+                }
+                break;
+            // Rebuilding allies
+            case 'rebuild':
+                if (getCreepCount(undefined, 'drone', key) < 5) {
+                    queueGlobalCreep(priority + getCreepCount(undefined, 'drone', key), {
+                        role: 'drone',
+                        destination: key,
+                        military: true
+                    });
                 }
                 break;
             // Scoring
@@ -907,7 +934,7 @@ function determineEnergyOrder(room) {
         let usedIdArray = [];
         for (let x = 0; x < energyStructures.length; x++) {
             let nextClosest;
-            let harvesterExtensions = _.filter(room.structures, (s) => !_.includes(usedIdArray, s.id) && (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.pos.findInRange(harvester, 1).length);
+            let harvesterExtensions = _.filter(room.structures, (s) => !_.includes(usedIdArray, s.id) && (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.pos.findFirstInRange(harvester, 1));
             if (harvesterExtensions.length) {
                 nextClosest = harvesterExtensions[0];
             } else {

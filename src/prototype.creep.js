@@ -10,7 +10,7 @@ Object.defineProperty(Creep.prototype, "idle", {
     configurable: true,
     get: function () {
         if (this.memory.idle === undefined) return 0;
-        if (this.memory.idle <= Game.time || (this.ticksToLive >= 1485 || this.getActiveBodyparts(CLAIM))) {
+        if (this.memory.idle <= Game.time || (this.ticksToLive >= 1485 || this.hasActiveBodyparts(CLAIM))) {
             delete this.idle;
             delete this.memory.idle;
             return 0;
@@ -41,7 +41,7 @@ Object.defineProperty(Creep.prototype, "idle", {
 });
 
 Creep.prototype.idleFor = function (ticks = 0) {
-    if (this.hits < this.hitsMax && this.getActiveBodyparts(HEAL)) return this.heal(this);
+    if (this.hits < this.hitsMax && this.hasActiveBodyparts(HEAL)) return this.heal(this);
     if (ticks > 0) {
         this.idle = Game.time + ticks;
     } else {
@@ -64,8 +64,8 @@ Object.defineProperty(Creep.prototype, 'combatPower', {
     get: function () {
         if (!this._combatPower) {
             let power = 0;
-            if (this.getActiveBodyparts(HEAL)) power += this.abilityPower().heal;
-            if (this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK)) power += this.abilityPower().attack;
+            if (this.hasActiveBodyparts(HEAL)) power += this.abilityPower().heal;
+            if (this.hasActiveBodyparts(ATTACK) || this.hasActiveBodyparts(RANGED_ATTACK)) power += this.abilityPower().attack;
             this._combatPower = power;
         }
         return this._combatPower;
@@ -73,6 +73,35 @@ Object.defineProperty(Creep.prototype, 'combatPower', {
     enumerable: false,
     configurable: true
 });
+
+/**
+ * Creep method optimizations "getActiveBodyparts"
+ */
+Creep.prototype.getActiveBodyparts = function (type) {
+    let count = 0;
+    for (let i = this.body.length; i-- > 0;) {
+        if (this.body[i].hits > 0) {
+            if (this.body[i].type === type) {
+                count++;
+            }
+        } else break;
+    }
+    return count;
+};
+
+/**
+ * Fast check if bodypart exists
+ */
+Creep.prototype.hasActiveBodyparts = function (type) {
+    for (let i = this.body.length; i-- > 0;) {
+        if (this.body[i].hits > 0) {
+            if (this.body[i].type === type) {
+                return true;
+            }
+        } else break;
+    }
+    return false;
+};
 
 Creep.prototype.wrongRoom = function () {
     if (this.memory.overlord && this.pos.roomName !== this.memory.overlord) {
@@ -155,7 +184,7 @@ Creep.prototype.skSafety = function () {
 }
 
 Creep.prototype.opportunisticRepair = function () {
-    if (!this.getActiveBodyparts(WORK)) return false;
+    if (!this.hasActiveBodyparts(WORK)) return false;
     try {
         let object = _.filter(this.room.lookForAtArea(LOOK_STRUCTURES, this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1, true), (s) => [STRUCTURE_ROAD, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_CONTAINER].includes(s.structure.structureType) && s.structure.hits < s.structure.hitsMax * 0.75)
         if (object && object.length) {
@@ -273,7 +302,7 @@ Creep.prototype.locateEnergy = function () {
         }
     }
     // Dismantle hostile
-    if (this.getActiveBodyparts(WORK)) {
+    if (this.hasActiveBodyparts(WORK)) {
         let hostileStructures = _.find(this.room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username));
         if (hostileStructures) {
             switch (this.dismantle(hostileStructures)) {
@@ -892,7 +921,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                             //this.idleFor(5);
                             return true;
                     }
-                }
+                } else this.idleFor(5);
             }
         }
     } else {
@@ -907,7 +936,7 @@ Creep.prototype.tryToBoost = function (boosts) {
 
 Creep.prototype.recycleCreep = function () {
     // If no moves, suicide
-    if (!this.getActiveBodyparts(MOVE)) return this.suicide();
+    if (!this.hasActiveBodyparts(MOVE)) return this.suicide();
     this.healInRange();
     this.attackInRange();
     let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);

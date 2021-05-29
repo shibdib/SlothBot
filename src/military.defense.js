@@ -19,21 +19,20 @@ module.exports.controller = function (room) {
 
     // Check for invaders and request help
     room.invaderCheck();
-    room.cacheRoomIntel();
 
     if (Game.time % 100 === 0) {
         // Handle nuke defense
         handleNukeAttack(room);
 
         // Abandon hopeless rooms
-        if (Game.shard.name !== 'swc') unSavableCheck(room);
+        if (FRIENDLIES.length < 2) unSavableCheck(room);
     }
 
     // Check if you should safemode
     if (Memory.roomCache[room.name].threatLevel > 2) safeModeManager(room);
 
     // Tower control
-    towers.towerControl(room);
+    if (room.hostileCreeps.length || Game.time % 50 === 0) towers.towerControl(room);
 
     //Manage Ramparts for Allies
     if (RAMPART_ACCESS && FRIENDLIES.length) rampartManager(room, structures);
@@ -44,7 +43,7 @@ module.exports.controller = function (room) {
     // Send an email on a player attack with details of attack
     if (Memory.roomCache[room.name].threatLevel && !Memory.roomCache[room.name].alertEmail && Memory.roomCache[room.name].threatLevel >= 4) {
         Memory.roomCache[room.name].alertEmail = true;
-        let playerHostile = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 1) && c.owner.username !== 'Invader');
+        let playerHostile = _.filter(room.hostileCreeps, (c) => (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK) || c.hasActiveBodyparts(CLAIM)) && c.owner.username !== 'Invader');
         if (!playerHostile || !playerHostile.length) return;
         let hostileOwners = [];
         for (let hostile of playerHostile) hostileOwners.push(hostile.owner.username)
@@ -70,7 +69,7 @@ module.exports.controller = function (room) {
 
     // Request assistance
     if (Memory.roomCache[room.name].threatLevel) {
-        if (Memory.roomCache[room.name].threatLevel >= 4 && !room.controller.safeMode) {
+        if (Memory.roomCache[room.name].threatLevel >= 3 && !room.controller.safeMode) {
             Memory.roomCache[room.name].requestingSupport = true;
         }
     }
@@ -89,21 +88,21 @@ function rampartManager(room, structures) {
     let allies = _.filter(room.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my);
     if (allies.length) {
         // Close ramparts
-        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) <= 2).forEach((rampart) => rampart.setPublic(false));
+        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) <= 1).forEach((rampart) => rampart.setPublic(false));
         // Open ramparts
-        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) > 2).forEach((rampart) => rampart.setPublic(true));
+        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) > 1).forEach((rampart) => rampart.setPublic(true));
     } else if (room.hostileCreeps.length) {
         // Close public ones
         _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic).forEach((rampart) => rampart.setPublic(false));
     }
     // Close ones protecting stuff
-    _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && s.pos.checkForObstacleStructure()).forEach((rampart) => rampart.setPublic(true));
+    _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && s.pos.checkForObstacleStructure()).forEach((rampart) => rampart.setPublic(false));
 }
 
 function safeModeManager(room) {
     // Ensure camping enemies continue to gain threat even if no creeps present.
     addThreat(room);
-    let armedHostiles = _.filter(room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK) || c.getActiveBodyparts(CLAIM));
+    let armedHostiles = _.filter(room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK) || c.hasActiveBodyparts(CLAIM));
     if (!armedHostiles.length || room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable) return;
     // Check if any attacks occurred last tick
     let keyAttack;
@@ -145,10 +144,10 @@ function unSavableCheck(room) {
     if (Memory.roomCache[room.name].threatLevel > 2) {
         // Abandon Bad Rooms
         if (_.size(Memory.myRooms) === 1 || room.controller.safeMode) return false;
-        let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)));
+        let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)));
         if (hostiles.length && room.energy < ENERGY_AMOUNT[room.level] * 0.025 && _.size(Memory.myRooms) === Game.gcl.level) {
             room.memory.badCount = badCount + 1;
-            if (room.memory.badCount > room.controller.level * 100) {
+            if (room.memory.badCount > room.controller.level * 10) {
                 let hostileOwners = [];
                 for (let hostile of room.hostileCreeps) hostileOwners.push(hostile.owner.username)
                 abandonOverrun(room);

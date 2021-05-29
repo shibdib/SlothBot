@@ -110,7 +110,7 @@ function manageResponseForces() {
 
 function auxiliaryOperations() {
     let maxLevel = Memory.maxLevel;
-    let initialFilter = _.filter(Memory.roomCache, (r) => r.name && !Memory.auxiliaryTargets[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && Game.map.getRoomLinearDistance(_.sample(Game.spawns).room.name, r.name) <= 12 && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !r.hostile);
+    let initialFilter = _.filter(Memory.roomCache, (r) => r.name && !Memory.auxiliaryTargets[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !r.hostile);
     if (maxLevel >= 6) {
         // Power Mining
         if (getResourceTotal(RESOURCE_POWER) < 10000 && maxLevel >= 8) {
@@ -226,6 +226,20 @@ function auxiliaryOperations() {
             }
         }
     }
+    // Rebuild allies
+    let alliedRoom = _.min(_.filter(initialFilter, (r) => r.owner && r.owner !== MY_USERNAME && FRIENDLIES.includes(r.owner) && r.level > 3 && !r.towers), 'closestRange');
+    if (alliedRoom.name) {
+        let cache = Memory.auxiliaryTargets || {};
+        let tick = Game.time;
+        cache[alliedRoom.name] = {
+            tick: tick,
+            type: 'rebuild',
+            level: 1,
+            priority: PRIORITIES.priority
+        };
+        Memory.auxiliaryTargets = cache;
+        log.a('Rebuild operation planned for ' + roomLink(alliedRoom.name) + ', Nearest Room - ' + commodityRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
+    }
 }
 
 function operationRequests() {
@@ -319,7 +333,7 @@ function operationRequests() {
                     tick: Game.time,
                     type: 'harass',
                     level: 1,
-                    priority: 1
+                    priority: 2
                 };
                 Memory.targetRooms = cache;
                 Memory.roomCache[target.name].lastOperation = Game.time;
@@ -622,6 +636,7 @@ function manageAuxiliary() {
                     continue;
                 }
                 break;
+            case 'rebuild':
             case 'scoreCleaner':
                 continue;
             case 'clean':
@@ -771,6 +786,10 @@ function manualAttacks() {
             cache[Game.flags[name].pos.roomName] = {
                 type: 'scoreCleaner'
             };
+        } else if (_.startsWith(name, 'rebuild')) {
+            cache[Game.flags[name].pos.roomName] = {
+                type: 'rebuild'
+            };
         }
         // Season alley flagging
         if (_.startsWith(name, 'alley')) {
@@ -810,15 +829,19 @@ function nukeFlag(flag) {
 
 function checkForNap(user) {
     // If we have no alliance data return false
-    if (!ALLIANCE_DATA || !NAP_ALLIANCE.length || _.includes(Memory._enemies, user)) return false;
-    let LOANData = JSON.parse(ALLIANCE_DATA);
-    let LOANDataKeys = Object.keys(LOANData);
-    for (let iL = (LOANDataKeys.length - 1); iL >= 0; iL--) {
-        if (LOANDataKeys[LOANDataKeys[iL]] && LOANDataKeys[LOANDataKeys[iL]].indexOf(user) >= 0 && (_.includes(NAP_ALLIANCE, LOANDataKeys[iL]) || AVOID_ATTACKING_ALLIANCES)) {
-            return true;
+    try {
+        if (!ALLIANCE_DATA || !NAP_ALLIANCE.length || _.includes(Memory._enemies, user)) return false;
+        let LOANData = JSON.parse(ALLIANCE_DATA);
+        let LOANDataKeys = Object.keys(LOANData);
+        for (let iL = (LOANDataKeys.length - 1); iL >= 0; iL--) {
+            if (LOANDataKeys[LOANDataKeys[iL]] && LOANDataKeys[LOANDataKeys[iL]].indexOf(user) >= 0 && (_.includes(NAP_ALLIANCE, LOANDataKeys[iL]) || AVOID_ATTACKING_ALLIANCES)) {
+                return true;
+            }
         }
+        return false;
+    } catch (e) {
+        return false;
     }
-    return false;
 }
 
 module.exports.operationSustainability = function (room, operationRoom = room.name) {

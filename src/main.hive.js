@@ -139,9 +139,8 @@ function minionController(minion) {
 }
 
 function disableNotifications() {
-    let needsDisabling = _.find(Game.creeps, (c) => !c.memory.notifyDisabled);
-    if (needsDisabling) {
-        needsDisabling.memory.notifyDisabled = true;
-        needsDisabling.notifyWhenAttacked(false);
-    }
+    _.filter(Game.creeps, (c) => !c.memory.notifyDisabled).forEach(function (c) {
+        c.memory.notifyDisabled = true;
+        c.notifyWhenAttacked(false);
+    });
 }

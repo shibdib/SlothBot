@@ -73,17 +73,17 @@ module.exports.role = function (creep) {
                     }
                     // Set the travel range in the source memory
                     if (!creep.memory.carryAmountNeeded) {
-                        if (!source.memory.travelRange) {
+                        if (!source.memory.travelRange || Math.random() > 0.5) {
                             let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
                             let homeExit = creep.room.find(goHome);
                             let homeMiddle = _.round(homeExit.length / 2);
-                            let distanceToExit = source.pos.findPathTo(homeExit[homeMiddle]).length
+                            let distanceToExit = source.pos.getRangeTo(homeExit[homeMiddle]);
                             let roomRange = Game.map.findRoute(creep.room.name, creep.memory.overlord).length;
-                            let total = distanceToExit + distanceToExit + 20;
-                            if (roomRange > 1) total = distanceToExit + (roomRange * 40);
+                            let total = distanceToExit + 20;
+                            if (roomRange > 1) total += (roomRange * 40);
                             source.memory.travelRange = total;
                         }
-                        creep.memory.carryAmountNeeded = _.round(((source.memory.travelRange) * ((creep.getActiveBodyparts(WORK) + 1) * HARVEST_POWER)) * 2);
+                        creep.memory.carryAmountNeeded = _.round(((source.memory.travelRange) * ((creep.hasActiveBodyparts(WORK) + 1) * HARVEST_POWER)) * 2.2);
                     }
                     if (!creep.memory.containerID || !Game.getObjectById(creep.memory.containerID)) {
                         creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.other.source), creep);

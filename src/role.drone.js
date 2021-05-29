@@ -18,7 +18,7 @@ module.exports.role = function role(creep) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
     }
     // If no work parts, useless so suicide
-    if (!creep.getActiveBodyparts(WORK)) return creep.suicide();
+    if (!creep.hasActiveBodyparts(WORK)) return creep.suicide();
     // Checks
     if (creep.isFull) {
         creep.memory.source = undefined;
@@ -43,14 +43,14 @@ module.exports.role = function role(creep) {
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
         creep.memory.task = undefined;
-        if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
+        if (!creep.memory.harvest && Memory.roomCache[creep.room.name].user === MY_USERNAME && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
-        } else if (creep.room.level < 4) {
+        } else {
             creep.memory.other.noBump = true;
             creep.memory.harvest = true;
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
-            if (source) {
+            if (source && (!Memory.roomCache[creep.room.name].user || Memory.roomCache[creep.room.name].user === MY_USERNAME)) {
                 creep.say('Harvest!', true);
                 creep.memory.source = source.id;
                 switch (creep.harvest(source)) {
@@ -163,7 +163,6 @@ function upgrading(creep) {
 }
 
 function findRemoteSource(creep) {
-    if (creep.room.controller && creep.room.controller.level > 2) return false;
     let adjacent = _.filter(Game.map.describeExits(creep.pos.roomName), (r) => !Memory.roomCache[r] ||
         ((!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && !Memory.roomCache[r].sk && Memory.roomCache[r].sources));
     if (adjacent.length) {

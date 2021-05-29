@@ -80,8 +80,7 @@ module.exports.role = function (creep) {
                 for (let h of harvesters) {
                     let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === h.id);
                     let current = 0;
-                    let cap = 4;
-                    if (Game.cpu.bucket < BUCKET_MAX) cap = 2;
+                    let cap = 1;
                     if (assignedHaulers.length) {
                         assignedHaulers.forEach((c) => current += c.store.getCapacity())
                         if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= cap) continue;
@@ -162,10 +161,10 @@ function buildLinks(creep) {
 // Generate safemode
 let lastCheck;
 function safemodeGeneration(creep) {
-    if (lastCheck + 100 > Game.time || creep.room.name !== creep.memory.overlord || creep.store.getFreeCapacity() < 1000 || creep.room.store(RESOURCE_GHODIUM) < 1000) return false;
+    if (lastCheck + 100 > Game.time || creep.room.name !== creep.memory.overlord || creep.store.getFreeCapacity() < SAFE_MODE_COST || creep.room.store(RESOURCE_GHODIUM) < SAFE_MODE_COST) return false;
     lastCheck = Game.time;
     if (!creep.room.controller.safeModeAvailable) {
-        if (creep.store.getUsedCapacity(RESOURCE_GHODIUM) < 1000) {
+        if (creep.store.getUsedCapacity(RESOURCE_GHODIUM) < SAFE_MODE_COST) {
             let ghodiumStorage = _.filter(creep.room.structures, (s) => s.store && s.store[RESOURCE_GHODIUM])[0];
             if (ghodiumStorage) {
                 switch (creep.transfer(ghodiumStorage, RESOURCE_GHODIUM)) {

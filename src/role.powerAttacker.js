@@ -12,7 +12,7 @@ module.exports.role = function (creep) {
     if (!creep.memory.destinationReached) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
     } else {
-        if (!creep.getActiveBodyparts(ATTACK) || creep.hits < creep.hitsMax * 0.25) return;
+        if (!creep.hasActiveBodyparts(ATTACK) || creep.hits < creep.hitsMax * 0.25) return;
         if (creep.memory.powerBank) {
             let powerBank = Game.getObjectById(creep.memory.powerBank);
             if (!powerBank) {

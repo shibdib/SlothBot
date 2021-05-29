@@ -7,8 +7,8 @@
 
 module.exports.cleanup = function () {
 //CLEANUP
+    if (RawMemory.segments[0] && _.size(RawMemory.segments[0]) > 75000) cleanPathCacheByUsage(); //clean path and distance caches
     if (Game.time % 100 === 0) {
-        cleanPathCacheByUsage(); //clean path and distance caches
         cleanDistanceCacheByUsage();
         //cleanRouteCacheByAge();
         cleanRouteCacheByUsage();
@@ -42,15 +42,19 @@ module.exports.cleanup = function () {
 
 // Clean path cache by removing paths that haven't been used in 1000 ticks or fall below the average use count
 function cleanPathCacheByUsage() {
-    if (Memory._pathCache && _.size(Memory._pathCache) > PATH_CACHE_SIZE) {
-        if (_.size(Memory._pathCache) > PATH_CACHE_SIZE * 2) return Memory._pathCache = {};
-        let initial = _.size(Memory._pathCache);
-        for (let key in Memory._pathCache) {
-            if (_.size(Memory._pathCache) < PATH_CACHE_SIZE - (PATH_CACHE_SIZE * 0.10)) break;
-            if (Memory._pathCache[key].tick + 1000 < Game.time) delete Memory._pathCache[key];
-        }
-        if (initial !== _.size(Memory._pathCache)) log.i('Cleaning Path cache (Deleted ' + (initial - _.size(Memory._pathCache)) + ')...');
+    let paths;
+    try {
+        paths = _.sortBy(JSON.parse(RawMemory.segments[0]), 'uses');
+    } catch (e) {
+        return RawMemory.segments[0] = undefined;
     }
+    let initial = _.size(paths);
+    for (let key in paths) {
+        if (_.size(paths) < 500) break;
+        delete paths[key]
+    }
+    if (initial !== _.size(paths)) log.i('Cleaning Path cache (Deleted Appx. ' + ((initial - _.size(paths)) * 100) + ' KB)...');
+    RawMemory.segments[0] = JSON.stringify(paths);
 }
 
 // Clean route cache by removing routes that haven't been used in 2500 ticks or fall below the average use count

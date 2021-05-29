@@ -27,9 +27,6 @@ module.exports.overlordMind = function (room, CPULimit) {
         planner.buildRoom(room);
     }
 
-    // Defense controller always runs
-    defense.controller(room);
-
     // Manage creeps
     let count = 0;
     let roomCreepCPU = 0;
@@ -60,6 +57,7 @@ module.exports.overlordMind = function (room, CPULimit) {
         {name: 'roomBuilder', f: planner.buildRoom},
         {name: 'observers', f: observers.observerControl},
         {name: 'factories', f: factory.factoryControl},
+        {name: 'defense', f: defense.controller},
         {name: 'spawning', f: creepSpawning}]);
     let functionCount = overlordFunctions.length;
     count = 0;
@@ -83,13 +81,6 @@ module.exports.overlordMind = function (room, CPULimit) {
         tools.taskCPU(currentFunction.name, Game.cpu.getUsed() - taskCpu, room.name);
     } while ((overlordTaskTotalCPU < (CPULimit * 0.1) + (spareCpu * 0.9) || Game.cpu.bucket > 9500) && count < functionCount)
 
-    // Get income
-    if (!ROOM_ENERGY_PER_TICK[room.name] || Game.time % 5 === 0) {
-        let income = 0;
-        let harvesters = _.filter(Game.creeps, (c) => c.memory.overlord === room.name && (c.memory.role === 'stationaryHarvester' || c.memory.role === 'remoteHarvester'));
-        harvesters.forEach((h) => income += h.getActiveBodyparts(WORK) * HARVEST_POWER);
-        ROOM_ENERGY_PER_TICK[room.name] = income;
-    }
 
     // Silence Alerts
     if (Game.time % 2500 === 0) {
