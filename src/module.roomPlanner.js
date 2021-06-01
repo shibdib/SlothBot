@@ -24,9 +24,11 @@ module.exports.buildRoom = function (room) {
             buildFromLayout(room);
             tickTracker[room.name] = Game.time;
         } else {
+            storedLayouts[room.name] = undefined;
             updateLayout(room);
         }
     } else {
+        storedLayouts[room.name] = undefined;
         findHub(room);
     }
 };
@@ -490,7 +492,8 @@ function findHub(room, hubCheck = undefined) {
         layouts:
             for (let buildTemplate of shuffle(layouts.layoutArray)) {
                 layoutVersion = buildTemplate[0]['layout'];
-                let spawnPos = _.sample(_.filter(buildTemplate, (s) => s.type === STRUCTURE_SPAWN)[0].pos);
+                let spawnPos = _.find(buildTemplate, (s) => s.type === STRUCTURE_SPAWN);
+                if (!spawnPos) continue; else spawnPos = spawnPos[0].pos;
                 let yVar, xVar;
                 if (layoutVersion === 1) {
                     yVar = 16;
@@ -508,6 +511,8 @@ function findHub(room, hubCheck = undefined) {
                 if (pos.x < xVar) xOffset *= -1;
                 yOffset = difference(pos.y, yVar);
                 if (pos.y < yVar) yOffset *= -1;
+                let controller = room.controller;
+                let closestSource = pos.findClosestByRange(FIND_SOURCES);
                 for (let type of buildTemplate) {
                     for (let s of type.pos) {
                         let structure = {};
@@ -516,7 +521,7 @@ function findHub(room, hubCheck = undefined) {
                         structure.y = s.y + yOffset;
                         if (structure.x > 48 || structure.x < 2 || structure.y > 48 || structure.y < 2) continue layouts;
                         let structurePos = new RoomPosition(structure.x, structure.y, room.name);
-                        if (type.type !== STRUCTURE_RAMPART && (structurePos.checkIfOutOfBounds() || pos.getRangeTo(room.controller) < 2 || pos.getRangeTo(pos.findClosestByRange(FIND_SOURCES)) < 2 || structurePos.checkForWall())) {
+                        if (type.type !== STRUCTURE_RAMPART && (structurePos.checkIfOutOfBounds() || pos.isNearTo(controller) || pos.isNearTo(closestSource) || structurePos.checkForWall())) {
                             layout = [];
                             continue layouts;
                         }
@@ -573,7 +578,7 @@ function findHub(room, hubCheck = undefined) {
                             structure.y = s.y + yOffset;
                             if (structure.x > 49 || structure.x < 1 || structure.y > 49 || structure.y < 1) continue primary;
                             let structurePos = new RoomPosition(structure.x, structure.y, room.name);
-                            if (type.type !== STRUCTURE_RAMPART && (structurePos.checkIfOutOfBounds() || pos.getRangeTo(controller) < 2 || pos.getRangeTo(closestSource) < 2 || structurePos.checkForWall())) {
+                            if (type.type !== STRUCTURE_RAMPART && (structurePos.checkIfOutOfBounds() || pos.isNearTo(controller) || pos.isNearTo(closestSource) || structurePos.checkForWall())) {
                                 continue primary;
                             }
                             layout.push(structure);
