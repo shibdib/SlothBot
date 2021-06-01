@@ -15,10 +15,14 @@ let rampartSpots = {};
 let tickTracker = {};
 
 module.exports.buildRoom = function (room) {
+    // Run every 500 ticks (100 if missing spawns/ext)
     let lastRun = tickTracker[room.name] || 0;
     let cooldown = 500;
     if (room.level < room.controller.level) cooldown = 100;
     if (lastRun + cooldown > Game.time) return;
+    // Chance on reset to not run (avoid a cpu bomb)
+    if (!lastRun && Math.random() > 0.5) return tickTracker[room.name] = Game.time;
+    ;
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
         if (room.memory.bunkerHub.layoutVersion === LAYOUT_VERSION && storedLayouts[room.name]) {
             buildFromLayout(room);
