@@ -571,7 +571,7 @@ module.exports.remoteCreepQueue = function (room) {
             for (let creep of harvesters) {
                 let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creep.id);
                 let current = 0;
-                let cap = 1;
+                let cap = 4;
                 if (assignedHaulers.length) {
                     assignedHaulers.forEach((c) => current += c.store.getCapacity())
                     if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= cap) continue;
@@ -598,7 +598,7 @@ module.exports.remoteCreepQueue = function (room) {
                     centerRoom[room.name] = center.name;
                 }
             } else {
-                if (getCreepCount(undefined, 'SKMineral', centerRoom[room.name]) < 3 && (!Memory.roomCache[centerRoom[room.name]] || (!Memory.roomCache[centerRoom[room.name]].mineralCooldown || Memory.roomCache[centerRoom[room.name]].mineralCooldown < Game.time))) {
+                if (!getCreepCount(undefined, 'SKMineral', centerRoom[room.name]) && (!Memory.roomCache[centerRoom[room.name]] || (!Memory.roomCache[centerRoom[room.name]].mineralCooldown || Memory.roomCache[centerRoom[room.name]].mineralCooldown < Game.time))) {
                     queueCreep(room, PRIORITIES.medium, {role: 'SKMineral', destination: centerRoom[room.name]})
                 }
             }

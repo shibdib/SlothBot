@@ -66,7 +66,7 @@ module.exports.role = function role(creep) {
                 }
             } else {
                 if (creep.memory.remoteMining || findRemoteSource(creep)) {
-                    if (creep.memory.remoteMining !== creep.room.name) return creep.shibMove(new RoomPosition(25, 25, creep.memory.remoteMining), {range: 24});
+                    if (creep.memory.remoteMining !== creep.room.name) return creep.shibMove(new RoomPosition(25, 25, creep.memory.remoteMining), {range: 24}); else creep.memory.remoteMining = undefined;
                 } else {
                     delete creep.memory.harvest;
                     creep.idleFor(5);

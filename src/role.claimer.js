@@ -39,6 +39,7 @@ module.exports.role = function (creep) {
                         creep.shibMove(creep.room.controller);
                         break;
                     case OK:
+                        creep.room.memory = undefined;
                         creep.room.cacheRoomIntel(true, creep);
                         creep.memory.signed = true;
                 }

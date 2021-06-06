@@ -65,6 +65,11 @@ function shibMove(creep, heading, options = {}) {
 
     // Handle portal
     if (creep.memory.portal) {
+        let portal = creep.memory.portal;
+        if (Game.getObjectById(creep.memory.portal)) {
+            let portalInfo = Game.getObjectById(creep.memory.portal);
+            if (portal instanceof RoomPosition) portal = portal.roomName; else portal = portalInfo.room;
+        }
         if (creep.memory.portal === creep.room.name) {
             let portalStructure = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL);
             return creep.moveTo(portalStructure);
