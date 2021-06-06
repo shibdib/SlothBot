@@ -188,18 +188,12 @@ module.exports.trackThreat = function (creep) {
 function friendlyListManagement() {
 //Alliance List Management
     let doNotAggressArray;
-    let earnedFriends = [];
-    if (Memory._userList && _.filter(Memory._userList, (u) => u.standing > 0)) {
-        for (let user in _.filter(Memory._userList, (u) => u.standing > 0)) {
-            earnedFriends.push(user);
-        }
-    }
     if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name)) {
         doNotAggressArray = LOANlist;
-        doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS, [MY_USERNAME], ['Shibdib'], earnedFriends);
+        doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS, [MY_USERNAME], ['Shibdib']);
     } else {
         doNotAggressArray = [MY_USERNAME, 'Shibdib'];
-        doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS, earnedFriends);
+        doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS);
     }
     global.FRIENDLIES = doNotAggressArray;
 }

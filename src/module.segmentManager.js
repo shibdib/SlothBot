@@ -9,6 +9,7 @@ module.exports.manager = function () {
 }
 
 function logRequests() {
+    if (!LOANcheck) return;
     // Store last tick
     if (RawMemory.foreignSegment) {
         ALLY_HELP_REQUESTS[RawMemory.foreignSegment.username] = JSON.parse(RawMemory.foreignSegment.data);
