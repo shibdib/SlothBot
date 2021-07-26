@@ -38,7 +38,8 @@ module.exports.role = function (creep) {
                     if (Game.map.getRoomStatus(target).status !== Game.map.getRoomStatus(creep.memory.overlord).status) return creep.moveRandom();
                 }
                 if (!creep.pos.findClosestByPath(Game.map.findExit(creep.room.name, target))) return creep.moveRandom();
-            } catch {
+            } catch(e) {
+                log.e(e.stack);
                 target = _.sample(adjacent);
             }
             creep.memory.destination = target;
