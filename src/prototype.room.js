@@ -348,7 +348,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         seasonResourceType,
         seasonDecoder, seasonCollector, swarm, structures, towerCount, sourceRating;
     if (room) {
-        if (Memory.roomCache[room.name]) lastOperation = Memory.roomCache[room.name].lastOperation;
+        if (typeof Memory.roomCache !== 'undefined' && Memory.roomCache[room.name]) lastOperation = Memory.roomCache[room.name].lastOperation;
         // Check for season resource
         if (Game.shard.name === 'shardSeason') {
             /** Season 1
