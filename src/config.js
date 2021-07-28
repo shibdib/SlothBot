@@ -24,10 +24,10 @@ global.NCP_HOSTILE = true; // Always attack users of open source bots
 global.ATTACK_COOLDOWN = 4500; //Time between attacks on a room
 
 // Signing and whatnot
-global.OWNED_ROOM_SIGNS = ["~~~NO ENTRY~~~", "Full Auto Overlord Bot"];
-global.RESERVE_ROOM_SIGNS = ["~~This is a restricted area, violators will be attacked~~", "~~Exclusion Zone~~"];
-global.EXPLORED_ROOM_SIGNS = ["Automated Exploration Occurred Here", "Just saying Hi!", "We Know", "Intel gathered, enter at your own risk."];
-global.ATTACK_ROOM_SIGNS = ["~~ALL YOUR BASE BELONG TO ME~~"];
+global.OWNED_ROOM_SIGNS = ["NO ENTRY"];
+global.RESERVE_ROOM_SIGNS = ["This is a restricted area, violators will be attacked", "Exclusion Zone"];
+global.EXPLORED_ROOM_SIGNS = ["Automated Exploration Occurred Here", "We Know", "Intel gathered, enter at your own risk."];
+global.ATTACK_ROOM_SIGNS = ["ALL YOUR BASE BELONG TO ME"];
 global.EXPLORER_SPAM = ['HI', 'Hello', 'Beep', 'Boop', 'Aloha', 'Shibby!'];
 
 // Wall and rampart target amounts
