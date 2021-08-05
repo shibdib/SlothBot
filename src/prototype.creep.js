@@ -41,6 +41,8 @@ Object.defineProperty(Creep.prototype, "idle", {
 });
 
 Creep.prototype.idleFor = function (ticks = 0) {
+    // No idling in SK rooms
+    if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) return false;
     if (this.hits < this.hitsMax && this.hasActiveBodyparts(HEAL)) return this.heal(this);
     if (ticks > 0) {
         this.idle = Game.time + ticks;
@@ -163,16 +165,16 @@ Creep.prototype.skSafety = function () {
     if (this.room.controller || (Memory.roomCache[this.room.name] && !Memory.roomCache[this.room.name].sk)) return false;
     if (this.hits < this.hitsMax) return this.goToHub();
     // handle safe SK movement
-    let range = 5;
-    if (this.memory.destination && this.memory.destination === this.room.name) range = 6;
+    let range = 6;
+    if (this.memory.destination && this.memory.destination === this.room.name) range = 8;
     let lair = this.pos.findInRange(this.room.structures, range, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
     if (lair) {
         let SK = this.pos.findInRange(this.room.creeps, range, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
         if (SK) {
-            this.shibKite(7);
+            this.shibKite(range + 1, SK);
             return true;
-        } else if (lair.ticksToSpawn <= 15) {
-            this.shibKite(7, lair);
+        } else if (lair.ticksToSpawn <= 25) {
+            this.shibKite(range + 1, lair);
             return true;
         }
         // Handle invader cores in sk
@@ -561,6 +563,52 @@ Creep.prototype.constructionWork = function () {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
+        return true;
+    }
+    site = _.filter(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'repair';
+        return true;
+    }
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'repair';
+        this.memory.targetHits = 12500;
+        return true;
+    }
+    this.memory.constructionSite = undefined;
+    this.memory.task = undefined;
+    return false;
+};
+
+Creep.prototype.repairWork = function () {
+    let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax && !_.filter(this.room.creeps, (c) => c.my && c.memory.constructionSite === s.id).length);
+    let site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'repair';
+        this.memory.targetHits = 12500;
+        return true;
+    }
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.5);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'repair';
+        this.memory.targetHits = site.hitsMax * 0.65;
+        return true;
+    }
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'repair';
+        this.memory.targetHits = site.hitsMax * 0.65;
         return true;
     }
     site = _.filter(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax);

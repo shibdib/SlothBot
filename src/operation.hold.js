@@ -20,7 +20,7 @@ Creep.prototype.holdRoom = function () {
         this.say(sentence[word], true);
         // Handle combat
         if (this.canIWin(50)) {
-            if (this.room.hostileCreeps.length) {
+            if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
                 this.handleMilitaryCreep()
             } else if (!this.scorchedEarth()) this.findDefensivePosition();
         } else {

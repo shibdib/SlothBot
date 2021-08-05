@@ -335,16 +335,20 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     let room = Game.rooms[this.name];
     let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, towers,
         reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions, seasonResource, isHighway,
+        closestRoom,
         seasonResourceType, seasonDecoder, seasonCollector, seasonHighwayPath, swarm, structures, towerCount,
         sourceRating;
     if (room) {
+        // Get closest room
+        closestRoom = this.findClosestOwnedRoom();
         if (Memory.roomCache[room.name]) {
             seasonHighwayPath = Memory.roomCache[room.name].seasonHighwayPath;
             lastOperation = Memory.roomCache[room.name].lastOperation;
-            sk = Memory.roomCache[room.name].sk;
             hubCheck = Memory.roomCache[room.name].hubCheck;
-            sourceRange = Memory.roomCache[room.name].sourceRange;
-            sourceRating = Memory.roomCache[room.name].sourceRating;
+            if (closestRoom === Memory.roomCache[room.name].closestRoom) {
+                sourceRange = Memory.roomCache[room.name].sourceRange;
+                sourceRating = Memory.roomCache[room.name].sourceRating;
+            }
         }
         // Check for season resource
         if (Game.shard.name === 'shardSeason') {
@@ -456,12 +460,11 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         if (!user && !sourceRating && closestRange <= 2 && sources.length) {
             sourceRating = {};
             for (let source of this.sources) {
-                let closest = this.findClosestOwnedRoom();
-                let goHome = Game.map.findExit(this.name, closest);
-                let homeExit = creep.room.find(goHome);
+                let goHome = Game.map.findExit(this.name, closestRoom);
+                let homeExit = this.find(goHome);
                 let homeMiddle = _.round(homeExit.length / 2);
                 let distanceToExit = source.pos.getRangeTo(homeExit[homeMiddle]);
-                let roomRange = Game.map.findRoute(this.name, closest).length;
+                let roomRange = Game.map.findRoute(this.name, closestRoom).length;
                 sourceRating[source.id] = distanceToExit + 20;
                 if (roomRange > 1) sourceRating[source.id] += (roomRange * 40);
             }
@@ -488,7 +491,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             power: power,
             isHighway: isHighway,
             closestRange: closestRange,
-            closestRoom: this.findClosestOwnedRoom(),
+            closestRoom: closestRoom,
             hubCheck: hubCheck,
             sourceRange: sourceRange,
             obstructions: obstructions,

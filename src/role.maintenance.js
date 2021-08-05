@@ -25,7 +25,7 @@ module.exports.role = function role(creep) {
     }
     // Work
     if (creep.memory.working) {
-        if (!creep.memory.wallWork && !Memory.roomCache[creep.room.name].threatLevel && !creep.room.nukes.length && (creep.memory.constructionSite || creep.constructionWork())) {
+        if (!creep.memory.wallWork && !Memory.roomCache[creep.room.name].threatLevel && !creep.room.nukes.length && (creep.memory.constructionSite || creep.repairWork())) {
             creep.builderFunction();
         } else {
             creep.memory.wallWork = true;

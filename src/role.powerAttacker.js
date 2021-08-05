@@ -26,6 +26,7 @@ module.exports.role = function (creep) {
             }
             switch (creep.attack(powerBank)) {
                 case OK:
+                    creep.memory.other = {noBump: true}
                     break;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(powerBank);

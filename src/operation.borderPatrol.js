@@ -10,34 +10,34 @@ Creep.prototype.borderPatrol = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     hud(this);
-    if (!this.memory.other.responseTarget) {
+    if (!this.memory.destination) {
         // Check neighbors
         let adjacent = _.filter(Game.map.describeExits(this.pos.roomName), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel)[0] || _.filter(Game.map.describeExits(this.pos.roomName), (r) => Memory.roomCache[r] && Memory.roomCache[r].roomHeat)[0];
         if (adjacent) {
-            return this.memory.other.responseTarget = adjacent;
+            return this.memory.destination = adjacent;
         }
         if (!this.memory.awaitingOrders) {
             // If on target, be available to respond
             if (!this.memory.onTarget) this.memory.onTarget = Game.time;
             // Don't idle in SK rooms, go home
-            if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) return this.memory.other.responseTarget = this.memory.overlord;
+            if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) return this.memory.destination = this.memory.overlord;
             // Idle in target rooms for 25 ticks then check if adjacent rooms need help or mark yourself ready to respond
             if (this.memory.onTarget + 25 <= Game.time) {
-                this.memory.other.responseTarget = undefined;
+                this.memory.destination = undefined;
                 this.memory.awaitingOrders = true;
                 this.memory.onTarget = undefined;
             }
         }
     }
-    if (this.memory.other.responseTarget && this.room.name !== this.memory.other.responseTarget) return this.shibMove(new RoomPosition(25, 25, this.memory.other.responseTarget), {range: 24});
+    if (this.memory.destination && this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
     // Handle combat
     if (this.canIWin(50)) {
         if (!this.handleMilitaryCreep()) this.findDefensivePosition();
     } else {
         this.shibKite();
     }
-    if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) this.memory.other.responseTarget = undefined;
-    if (!this.memory.other.responseTarget) this.goToHub();
+    if (this.memory.destination && this.room.name === this.memory.destination && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) this.memory.destination = undefined;
+    if (!this.memory.destination) this.goToHub();
 };
 
 function offDuty(creep, partner = undefined) {
@@ -59,8 +59,7 @@ function offDuty(creep, partner = undefined) {
 
 function hud(creep) {
     try {
-        if (!creep.memory.other) return;
-        let response = creep.memory.other.responseTarget || creep.room.name;
+        let response = creep.memory.destination || creep.room.name;
         Game.map.visual.text('BP', new RoomPosition(46, 2, response), {color: '#d68000', fontSize: 3, align: 'left'});
         if (response !== creep.room.name && creep.memory._shibMove && creep.memory._shibMove.route) {
             let route = [];

@@ -14,7 +14,7 @@ module.exports.role = function (creep) {
     // Icon
     creep.say(ICONS.haul2, true);
     // If Hauling
-    if (_.sum(creep.store)) {
+    if (_.sum(creep.store) >= creep.store.getCapacity() * 0.5) {
         creep.memory.assignment = undefined;
         creep.memory.withdrawID = undefined;
         if (creep.memory.storageDestination) {
@@ -121,20 +121,20 @@ function dropOff(creep) {
 
         //Controller
     let controllerContainer = Game.getObjectById(overlord.memory.controllerContainer);
-    if (overlord.terminal && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 2) {
+    if (overlord.terminal && overlord.terminal.store.getFreeCapacity() > _.sum(creep.store) && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 2) {
         creep.memory.storageDestination = overlord.terminal.id;
         return true;
     } else if (overlord.level === overlord.controller.level && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) && Math.random() < (controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) / CONTAINER_CAPACITY)) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
-    } else if (overlord.terminal && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 5) {
+    } else if (overlord.terminal && overlord.terminal.store.getFreeCapacity() > _.sum(creep.store) && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 5) {
         creep.memory.storageDestination = overlord.terminal.id;
         return true;
-    } else if (overlord.storage && overlord.storage.store.getFreeCapacity()) {
+    } else if (overlord.storage && overlord.storage.store.getFreeCapacity() > _.sum(creep.store)) {
         creep.memory.storageDestination = overlord.storage.id;
         return true;
     }
-    // Else fill spawns/extensions
+    // Else move to controller
     creep.shibMove(overlord.controller);
 }
 

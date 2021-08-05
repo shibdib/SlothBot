@@ -48,7 +48,7 @@ module.exports.factoryControl = function (room) {
         } else if (!room.factory.memory.producing && room.store(RESOURCE_ENERGY) < ENERGY_AMOUNT[room.level] && room.store(RESOURCE_BATTERY) >= 50) {
             log.a('Converting ' + RESOURCE_BATTERY + ' to ENERGY in ' + roomLink(room.name), ' FACTORY CONTROL:');
             return room.factory.memory.producing = RESOURCE_ENERGY;
-        } else if (room.energy >= FACTORY_CUTOFF && Game.time % 25 === 0) {
+        } else if (Game.time % 25 === 0) {
             // If nothing is set to produce, every 25 ticks check and see if anything should be
             if (!room.factory.memory.producing) {
                 if (room.energyState > 1) {

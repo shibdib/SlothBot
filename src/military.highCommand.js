@@ -36,34 +36,34 @@ function manageResponseForces() {
     if (!idleResponders.length) return;
     let activeResponders = _.filter(Game.creeps, (c) => c.memory && !c.memory.awaitingOrders && c.memory.operation === 'borderPatrol');
     let ownedRoomAttack = _.findKey(Memory.roomCache, (r) => r.owner && r.owner === MY_USERNAME && r.lastPlayerSighting + 25 > Game.time && (!r.responseDispatched || r.responseDispatched + 20 < Game.time));
-    let invaderCore = _.findKey(Memory.roomCache, (r) => r.closestRange <= 2 && !r.sk && !r.towers && r.invaderCore && !_.find(Game.creeps, (c) => c.my && c.memory.responseTarget === r.name) && (!r.responseDispatched || r.responseDispatched + 100 < Game.time));
+    let invaderCore = _.findKey(Memory.roomCache, (r) => r.closestRange <= 2 && !r.sk && !r.towers && r.invaderCore && !_.find(Game.creeps, (c) => c.my && c.memory.destination === r.name) && (!r.responseDispatched || r.responseDispatched + 100 < Game.time));
     let responseTargets = _.max(_.filter(Memory.roomCache, (r) => r.threatLevel && r.friendlyPower <= r.hostilePower * 1.2 && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE && r.lastInvaderCheck + 550 >= Game.time), '.threatLevel');
     let unarmedVisitors = _.findKey(Memory.roomCache, (r) => r.numberOfHostiles && !r.sk && (!r.user || r.user === MY_USERNAME) && (!r.hostilePower || r.hostilePower <= 5) && r.closestRange <= LOCAL_SPHERE && r.lastInvaderCheck + 550 >= Game.time && (!r.responseDispatched || r.responseDispatched + 100 < Game.time));
     let guard = _.findKey(Memory.targetRooms, (o) => o && o.type === 'guard' && o.level);
     let friendlyResponsePower = 0;
     if (ownedRoomAttack) {
-        for (let creep of _.filter(activeResponders, (c) => c.memory.responseTarget === ownedRoomAttack)) friendlyResponsePower += creep.combatPower;
+        for (let creep of _.filter(activeResponders, (c) => c.memory.destination === ownedRoomAttack)) friendlyResponsePower += creep.combatPower;
         for (let creep of _.sortBy(_.filter(idleResponders, (c) => (!c.memory.other.longRange && Game.map.getRoomLinearDistance(c.memory.overlord, ownedRoomAttack) <= 2) || c.memory.other.longRange), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, ownedRoomAttack);
         })) {
             Memory.roomCache[ownedRoomAttack].responseDispatched = Game.time;
             if (friendlyResponsePower > Memory.roomCache[ownedRoomAttack].hostilePower) break;
             friendlyResponsePower += creep.combatPower;
-            creep.memory.other.responseTarget = ownedRoomAttack;
+            creep.memory.other.destination = ownedRoomAttack;
             creep.memory.awaitingOrders = undefined;
             creep.memory._shibMove = undefined;
             creep.memory.idle = undefined;
             if (creep.room.name !== ownedRoomAttack) log.a(creep.name + ' reassigned to assist in the defense of ' + roomLink(ownedRoomAttack) + ' from ' + roomLink(creep.room.name));
         }
     } else if (responseTargets && responseTargets.name) {
-        for (let creep of _.filter(activeResponders, (c) => c.memory.responseTarget === ownedRoomAttack)) friendlyResponsePower += creep.combatPower;
+        for (let creep of _.filter(activeResponders, (c) => c.memory.destination === ownedRoomAttack)) friendlyResponsePower += creep.combatPower;
         for (let creep of _.sortBy(_.filter(idleResponders, (c) => (!c.memory.other.longRange && Game.map.getRoomLinearDistance(c.memory.overlord, responseTargets.name) <= 2) || c.memory.other.longRange), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, responseTargets.name);
         })) {
             Memory.roomCache[responseTargets.name].responseDispatched = Game.time;
             if (friendlyResponsePower > responseTargets.hostilePower) break;
             friendlyResponsePower += creep.combatPower;
-            creep.memory.other.responseTarget = responseTargets.name;
+            creep.memory.other.destination = responseTargets.name;
             creep.memory.awaitingOrders = undefined;
             creep.memory._shibMove = undefined;
             creep.memory.idle = undefined;
@@ -76,7 +76,7 @@ function manageResponseForces() {
             Memory.roomCache[invaderCore].responseDispatched = Game.time;
             if (friendlyResponsePower) break;
             friendlyResponsePower += creep.combatPower;
-            creep.memory.other.responseTarget = invaderCore;
+            creep.memory.other.destination = invaderCore;
             creep.memory.awaitingOrders = undefined;
             creep.memory._shibMove = undefined;
             creep.memory.idle = undefined;
@@ -89,7 +89,7 @@ function manageResponseForces() {
             Memory.roomCache[unarmedVisitors].responseDispatched = Game.time;
             if (friendlyResponsePower) break;
             friendlyResponsePower += creep.combatPower;
-            creep.memory.other.responseTarget = unarmedVisitors;
+            creep.memory.other.destination = unarmedVisitors;
             creep.memory.awaitingOrders = undefined;
             creep.memory._shibMove = undefined;
             creep.memory.idle = undefined;
@@ -99,7 +99,7 @@ function manageResponseForces() {
         for (let creep of _.sortBy(_.filter(idleResponders, (c) => (!c.memory.other.longRange && Game.map.getRoomLinearDistance(c.memory.overlord, guard) <= 2) || c.memory.other.longRange), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, guard);
         })) {
-            creep.memory.other.responseTarget = guard;
+            creep.memory.other.destination = guard;
             creep.memory.awaitingOrders = undefined;
             creep.memory._shibMove = undefined;
             creep.memory.idle = undefined;
@@ -113,7 +113,7 @@ function auxiliaryOperations() {
     let initialFilter = _.filter(Memory.roomCache, (r) => r.name && !Memory.auxiliaryTargets[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !r.hostile);
     if (maxLevel >= 6) {
         // Power Mining
-        if (getResourceTotal(RESOURCE_POWER) < 10000 && maxLevel >= 8) {
+        if (getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT && maxLevel >= 8) {
             let powerRoom = _.min(_.filter(initialFilter, (r) => r.power && r.power + 1500 >= Game.time && r.closestRange <= 8), 'closestRange');
             let powerMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'power').length || 0;
             if (powerRoom.name && !powerMining) {
@@ -132,7 +132,7 @@ function auxiliaryOperations() {
         // Commodity Mining
         let commodityRoom = _.min(_.filter(initialFilter, (r) => r.commodity && r.closestRange <= 8), 'closestRange');
         let commodityMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'commodity').length || 0;
-        if (commodityRoom.name && commodityMining < 2) {
+        if (commodityRoom.name && commodityMining < 10) {
             let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;
             cache[commodityRoom.name] = {

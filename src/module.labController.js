@@ -35,8 +35,8 @@ function manageBoostProduction(room) {
     for (let key in boostList) {
         // Check if we already have enough
         let cutOff = REACTION_AMOUNT;
-        // Ghodium special case, always have SAFE_MODE_COST
-        if (boostList[key] === RESOURCE_GHODIUM && cutOff < SAFE_MODE_COST) cutOff = SAFE_MODE_COST;
+        // Ghodium special case, always have NUKER_GHODIUM_CAPACITY * 2
+        if (boostList[key] === RESOURCE_GHODIUM && cutOff < NUKER_GHODIUM_CAPACITY * 2) cutOff = NUKER_GHODIUM_CAPACITY * 2;
         if (_.includes(LAB_PRIORITY, boostList[key])) cutOff = REACTION_AMOUNT * 2.5;
         if (room.store(boostList[key], true) >= cutOff) continue;
         // Only one hub per output

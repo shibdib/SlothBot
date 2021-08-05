@@ -35,12 +35,12 @@ module.exports.role = function role(creep) {
 };
 
 function wallMaintainer(creep) {
-    if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget) || Memory.roomCache[creep.room.name].threatLevel || creep.room.memory.nuke) {
+    if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget) || Memory.roomCache[creep.room.name].threatLevel) {
         let nukeSite, nukeRampart;
         let barrierStructures = _.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (s.room.energyState || s.hits < BARRIER_TARGET_HIT_POINTS[s.room.level]));
         if (creep.room.memory.nuke) {
             nukeSite = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5)[0];
-            nukeRampart = _.min(_.filter(barrierStructures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5), 'hits');
+            nukeRampart = _.min(_.filter(barrierStructures, (s) => s.structureType === STRUCTURE_RAMPART && ((s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.hits < 5000100) || s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) === 0)), 'hits');
         }
         let hostileBarrier;
         if (Memory.roomCache[creep.room.name].threatLevel) {

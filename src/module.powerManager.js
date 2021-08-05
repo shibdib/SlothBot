@@ -11,7 +11,7 @@
 let LAST_POWER_CREEP_SPAWN = 0;
 
 module.exports.powerControl = function () {
-    let powerSpawns = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.store[RESOURCE_POWER] >= 1 && s.store[RESOURCE_ENERGY] >= 50);
+    let powerSpawns = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.store[RESOURCE_POWER] && s.store[RESOURCE_ENERGY] >= 50);
     if (powerSpawns.length) {
         for (let powerSpawn of powerSpawns) {
             powerSpawn.processPower();
@@ -20,7 +20,7 @@ module.exports.powerControl = function () {
     // Handle PC spawning
     if (Game.gpl.level) {
         let sparePowerLevels = Game.gpl.level - (_.size(Game.powerCreeps) + _.sum(Game.powerCreeps, 'level'));
-        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8);
+        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 7);
         if (sparePowerLevels > 1 && _.size(Game.powerCreeps) < myRooms.length && LAST_POWER_CREEP_SPAWN + 100 < Game.time) {
             let name = 'operator_' + _.random(1, 99);
             log.a('Created an operator named ' + name);

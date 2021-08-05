@@ -17,12 +17,12 @@ module.exports.towerControl = function (room) {
     if (!hostileCreeps.length && repairTower.id) {
         // Clear repair tower to rotate it
         if (repairTower.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.15) roomRepairTower[room.name] = undefined; else roomRepairTower[room.name] = repairTower.id;
-        let woundedCreep = _.filter(room.friendlyCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)).concat(_.filter(room.powerCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)));
+        let woundedCreep = _.find(room.friendlyCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)) || _.find(room.powerCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
         let degrade = _.find(room.structures, (s) => (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.25) || (s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.2));
         // Handle wounded healing and keep alive of degrading room.structures
-        if (repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.15 && (woundedCreep.length || degrade)) {
-            if (woundedCreep.length > 0) {
-                repairTower.heal(woundedCreep[0]);
+        if (repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.15 && (woundedCreep || degrade)) {
+            if (woundedCreep) {
+                repairTower.heal(woundedCreep);
             } else if (degrade) {
                 return repairTower.repair(degrade);
             }

@@ -85,7 +85,7 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
     // Kill towers then spawns
     if (hostileRoom && structures.length) {
         let nonBarriers = _.find(structures, (s) => ![STRUCTURE_WALL, STRUCTURE_RAMPART].includes(s.structureType));
-        if (!nonBarriers) {
+        if (nonBarriers) {
             filter = {filter: (c) => c.structureType === STRUCTURE_TOWER && (!c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000) && c.isActive()};
             if (!barriersPresent) enemy = this.pos.findClosestByRange(structures, filter); else enemy = this.pos.findClosestByPath(structures, filter);
             if (enemy) {
@@ -613,7 +613,7 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     }
     let alliedPower = 0;
     let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(HEAL)) && this.pos.getRangeTo(c) <= range);
-    if (inbound) armedFriendlies = _.filter(Game.creeps, (c) => c.my && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(HEAL)) && ((c.memory.destination && c.memory.destination === this.room.name) || (c.memory.other && c.memory.other.responseTarget === this.room.name)));
+    if (inbound) armedFriendlies = _.filter(Game.creeps, (c) => c.my && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(HEAL)) && (c.memory.destination && c.memory.destination === this.room.name));
     for (let i = 0; i < armedFriendlies.length; i++) {
         alliedPower += armedFriendlies[i].abilityPower().attack;
     }

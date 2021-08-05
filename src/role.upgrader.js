@@ -21,6 +21,11 @@ module.exports.role = function (creep) {
     if (!link) creep.room.memory.controllerLink = undefined;
     if (creep.memory.other.stationary || (creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE))) {
         creep.memory.other.stationary = true;
+        // Handle sitting on container
+        if (container && (!creep.memory.containerOccupied || !Game.getObjectById(creep.memory.containerOccupied))) {
+            if (container.pos.checkForCreep()) creep.memory.containerOccupied = container.pos.checkForCreep().id; else creep.shibMove(container, {range: 0});
+        }
+        // Handle resource withdraw
         if (link && link.store[RESOURCE_ENERGY]) {
             creep.withdrawResource(link);
         } else if (container && container.store[RESOURCE_ENERGY]) {

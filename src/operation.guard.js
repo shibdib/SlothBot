@@ -6,7 +6,7 @@
  */
 
 Creep.prototype.guardRoom = function () {
-    let destination = this.memory.destination || this.memory.other.responseTarget;
+    let destination = this.memory.destination;
     let sentence = ['Security', 'Guard', 'For', destination];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
@@ -25,7 +25,7 @@ Creep.prototype.guardRoom = function () {
     } **/
     // Handle combat
     if (this.canIWin(50)) {
-        if (this.room.hostileCreeps.length) {
+        if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
             this.handleMilitaryCreep()
         } else this.findDefensivePosition();
     } else {

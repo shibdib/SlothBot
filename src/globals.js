@@ -54,7 +54,7 @@ let globals = function () {
         5: 25000,
         6: 50000,
         7: 100000,
-        8: 500000
+        8: 250000
     };
     global.PIXEL_BUFFER = 500; // Sell any pixels above this amount
     global.BUY_ENERGY = true; // If true it will buy energy at anything below the baseline energy price if a room isn't considered in surplus
@@ -78,10 +78,10 @@ let globals = function () {
         2: 10000,
         3: 25000,
         4: 100000,
-        5: 300000,
-        6: 500000,
-        7: 750000,
-        8: 1000000
+        5: 500000,
+        6: 1000000,
+        7: 2500000,
+        8: 5000000
     };
 
     // Reaction

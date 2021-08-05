@@ -78,6 +78,7 @@ module.exports.role = function role(creep) {
 function remoteRoads(creep) {
     if (creep.room.name !== creep.memory.destination || creep.room.constructionSites.length > 3) return false;
     let sources = creep.room.sources;
+    let skLairs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR);
     let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
     let homeExit = creep.room.find(goHome);
     let homeMiddle = _.round(homeExit.length / 2);
@@ -88,9 +89,15 @@ function remoteRoads(creep) {
             if (buildRoadFromTo(creep.room, container, homeExit[homeMiddle])) return true;
         }
     }
-    for (let key in sources) {
+    // Sources
+    for (let source of sources) {
         if (_.size(Game.constructionSites) >= 70) return false;
-        if (buildRoadFromTo(creep.room, sources[key], homeExit[homeMiddle])) return true;
+        if (buildRoadFromTo(creep.room, source, homeExit[homeMiddle])) return true;
+    }
+    // Lairs
+    for (let lair of skLairs) {
+        if (_.size(Game.constructionSites) >= 70) return false;
+        if (buildRoadFromTo(creep.room, lair, homeExit[homeMiddle])) return true;
     }
     let mineral = creep.room.find(FIND_MINERALS)[0];
     if (mineral && Memory.roomCache[creep.room.name].sources > 2 && buildRoadFromTo(creep.room, mineral, homeExit[homeMiddle])) return true;

@@ -105,7 +105,7 @@ function shibMove(creep, heading, options = {}) {
     // Set these for creeps that can afford them
     if (!creep.className && (!options.ignoreRoads || !options.offRoad)) {
         options = getMoveWeight(creep, options);
-    }
+    } else if (creep.className) options.offRoad = true;
 
     // Request a tow truck if needed
     if (creep.memory.willNeedTow === undefined) creep.memory.willNeedTow = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length;
@@ -398,7 +398,7 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
                 // If room is under attack
                 if (Memory.roomCache[roomName] && Memory.roomCache[roomName].hostilePower > Memory.roomCache[roomName].friendlyPower && Memory.roomCache[roomName].tickDetected + 150 > Game.time) return 100;
                 // SK rooms are avoided if not being mined
-                if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].mined + 150 < Game.time) return 50;
+                if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].mined + 150 < Game.time) return 100;
                 // Avoid rooms reserved by others
                 if (Memory.roomCache[roomName].reservation && !_.includes(FRIENDLIES, Memory.roomCache[roomName].reservation)) return 50;
                 if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 45;
@@ -428,7 +428,7 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
 //FUNCTIONS
 function creepBumping(creep, pathInfo, options) {
     if (!pathInfo.newPos) return creep.moveRandom();
-    let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory.other || !c.memory.other.noBump))[0];
+    let bumpCreep = _.find(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory.other || !c.memory.other.noBump));
     if (bumpCreep) {
         if (!creep.memory.trailer && creep.pos.isNearTo(Game.getObjectById(creep.memory.trailer))) {
             if (bumpCreep.hasActiveBodyparts(MOVE)) {
@@ -929,18 +929,12 @@ RoomPosition.prototype.shibMove = function (destination, options) {
 
 Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined) {
     if (!this.hasActiveBodyparts(MOVE) || (this.room.controller && this.room.controller.safeMode)) return false;
-    let avoid = _.filter(this.room.hostileCreeps, (c) => (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange + 1) || this.pos.findInRange(this.room.structures, fleeRange + 1, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0] || target;
-    if ((this.memory.destination === this.room.name || this.memory.other.responseTarget === this.room.name) && Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) {
-        let sk = _.filter(this.room.creeps, (c) => c.owner.username === 'Source Keeper' && this.pos.getRangeTo(c) <= fleeRange + 1);
-        avoid = _.union(avoid, sk);
-    }
-    if (!avoid || !avoid.length) return false;
     // If in a rampart you're safe
     if (this.pos.checkForRampart()) return true;
+    let avoid = _.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange + 1).concat(this.pos.findInRange(this.room.structures, fleeRange + 1, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})) || target;
+    if (!avoid || !avoid.length) return false;
     this.say('!!RUN!!', true);
     this.memory.kiteRoom = this.memory.room;
-    this.attackInRange();
-    this.healInRange();
     // Border hump if it's safe and nearby
     let closestExit = this.pos.findClosestByRange(FIND_EXIT);
     if (this.pos.getRangeTo(closestExit) <= 5) return this.shibMove(closestExit, {range: 0});

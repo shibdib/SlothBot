@@ -46,7 +46,7 @@ module.exports.role = function (powerCreep) {
     }
     // Handle renewal
     if (powerCreep.ticksToLive <= 1000) {
-        let spawn = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN)[0] || _.filter(powerCreep.room.structures, (s) => s.structureType === STRUCTURE_POWER_BANK)[0];
+        let spawn = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN)[0] || _.filter(powerCreep.room.structures, (s) => s.structureType === STRUCTURE_POWER_BANK)[0] || _.filter(Game.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0];
         if (spawn) {
             switch (powerCreep.renew(spawn)) {
                 case OK:
@@ -62,7 +62,7 @@ module.exports.role = function (powerCreep) {
     if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom !== powerCreep.room.name) {
         return powerCreep.shibMove(new RoomPosition(25, 25, powerCreep.memory.destinationRoom), {range: 24})
     } else if (!powerCreep.memory.destinationRoom) {
-        powerCreep.memory.destinationRoom = _.find(Memory.myRooms, (r) => !_.find(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === r) && Game.rooms[r].controller.level === 8);
+        powerCreep.memory.destinationRoom = _.find(Memory.myRooms, (r) => !_.find(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === r) && Game.rooms[r].controller.level === 8) || _.find(Memory.myRooms, (r) => !_.find(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === r) && Game.rooms[r].controller.level === 7);
     }
     // Handle owned rooms
     if (powerCreep.room.controller.owner && powerCreep.room.controller.owner.username === MY_USERNAME) {
@@ -138,7 +138,8 @@ module.exports.role = function (powerCreep) {
 
 function upgradePowers(powerCreep) {
     let sparePowerLevels = Game.gpl.level - _.size(Game.powerCreeps);
-    if (sparePowerLevels === 0 || powerCreep.level === 25) return;
+    let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8);
+    if (sparePowerLevels === 0 || powerCreep.level === 25 || _.size(Game.powerCreeps) < myRooms.length || _.min(Game.powerCreeps, 'level').id !== powerCreep.id) return;
     // Ops
     if (!powerCreep.powers[PWR_GENERATE_OPS] || (powerCreep.level >= 2 && powerCreep.powers[PWR_GENERATE_OPS].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_GENERATE_OPS].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_GENERATE_OPS].level < 4) || (powerCreep.level >= 22 && powerCreep.powers[PWR_GENERATE_OPS].level < 5)) {
         return upgradeSwitch(powerCreep, PWR_GENERATE_OPS)

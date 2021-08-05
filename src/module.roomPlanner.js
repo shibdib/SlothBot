@@ -15,18 +15,27 @@ let rampartSpots = {};
 let tickTracker = {};
 
 module.exports.buildRoom = function (room) {
-    // Run every 500 ticks (100 if missing spawns/ext)
-    let lastRun = tickTracker[room.name] || 0;
-    let cooldown = 500;
-    if (room.level < room.controller.level) cooldown = 100;
-    if (lastRun + cooldown > Game.time) return;
-    // Chance on reset to not run (avoid a cpu bomb)
-    if (!lastRun && Math.random() > 0.5) return tickTracker[room.name] = Game.time;
-    ;
+    let lastRun = tickTracker[room.name] || {};
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
         if (room.memory.bunkerHub.layoutVersion === LAYOUT_VERSION && storedLayouts[room.name]) {
-            buildFromLayout(room);
-            tickTracker[room.name] = Game.time;
+            // Run every 250 ticks (100 if missing spawns/ext)
+            let cooldown = 250;
+            if (room.level < room.controller.level) cooldown = 100;
+            if ((lastRun.layout || 0) + cooldown < Game.time) {
+                // Chance on reset to not run (avoid a cpu bomb)
+                if (!lastRun.layout && Math.random() > 0.5) {
+                    lastRun.layout = Game.time;
+                    tickTracker[room.name] = lastRun;
+                    return;
+                }
+                buildFromLayout(room);
+                lastRun.layout = Game.time;
+                tickTracker[room.name] = lastRun;
+            } else if ((lastRun.auxiliary || 0) + 50 < Game.time) {
+                auxiliaryBuilding(room)
+                lastRun.auxiliary = Game.time;
+                tickTracker[room.name] = lastRun;
+            }
         } else {
             storedLayouts[room.name] = undefined;
             updateLayout(room);
@@ -110,6 +119,11 @@ function buildFromLayout(room) {
     if (labs < 3 && room.level >= 6) {
         labBuilder(room, labs, hub);
     }
+}
+
+function auxiliaryBuilding(room) {
+    let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+    let layout = JSON.parse(storedLayouts[room.name]);
     // Hub
     hubBuilder(room, hub, layout);
     // Bunker Ramparts

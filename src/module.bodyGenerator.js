@@ -34,9 +34,14 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         case 'drone':
         case 'waller':
         case 'roadBuilder':
-        case 'maintenance':
-            deficitExemption = true;
             work = _.floor((energyAmount * 0.3) / BODYPART_COST[WORK]) || 1;
+            if (work > 15) work = 15;
+            carry = _.floor((energyAmount * 0.2) / BODYPART_COST[CARRY]) || 1;
+            if (carry > 10) carry = 10;
+            move = work + carry;
+            break;
+        case 'maintenance':
+            work = _.floor((energyAmount * 0.025) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
             carry = _.floor((energyAmount * 0.2) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
@@ -78,8 +83,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             if (powerCreep) {
                 work = (SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME);
             } else if (work > 6) work = 6;
-            carry = 1;
-            if (level >= 7) carry = 2;
+            carry = _.ceil(EXTENSION_ENERGY_CAPACITY[room.controller.level] / CARRY_CAPACITY);
             move = 1;
             break;
         case 'mineralHarvester':
@@ -195,13 +199,15 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
                 carry = _.floor((energyAmount * 0.7) / BODYPART_COST[CARRY]) || 1;
             }
             if (Game.getObjectById(creepInfo.misc)) {
-                let harvesterAmountNeeded = _.round(Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded, -2);
+                let harvesterAmountNeeded = Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded;
                 let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creepInfo.misc);
                 let current = 0;
                 if (assignedHaulers.length) assignedHaulers.forEach((c) => current += c.store.getCapacity())
                 if ((carry * CARRY_CAPACITY) > harvesterAmountNeeded - current) carry = _.ceil((harvesterAmountNeeded - current) / CARRY_CAPACITY) || 1
             }
-            if (room.level >= 5 && carry > 32) carry = 32; else if (carry > 25) carry = 25; else if (room.level >= 5 && carry < 5) carry = 5; else if (carry < 1) carry = 1;
+            // Max 32 at 5+, else 25, always have 1
+            if (room.level >= 5 && carry > 32) carry = 32; else if (carry > 25) carry = 25; else if (carry < 1) carry = 1;
+            // Set move
             if (room.level >= 5) move = carry / 2; else move = carry;
             break;
         case 'SKMineral':

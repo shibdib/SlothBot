@@ -271,6 +271,7 @@ function terminalControl(creep) {
             return creep.room.terminal.store[a] - creep.room.terminal.store[b]
         })[_.size(creep.room.terminal.store) - 1];
         creep.memory.storageSite = creep.room.terminal.id;
+        return true;
     }
     // Handle moving to storage
     else if (_.sum(creep.room.storage.store) < creep.room.storage.store.getCapacity()) {

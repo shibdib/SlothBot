@@ -75,12 +75,27 @@ function makeRequests() {
                     {
                         requestType: 0,
                         resourceType: boost,
-                        maxAmount: BOOST_AMOUNT,
+                        maxAmount: BOOST_AMOUNT - Game.rooms[room].store(boost),
                         roomName: room,
                         priority: 0.5
                     }
                 )
             }
+        }
+    }
+
+    // Ghodium requests
+    for (let room of terminalRooms) {
+        if (Game.rooms[room].store(RESOURCE_GHODIUM) < NUKER_GHODIUM_CAPACITY) {
+            requestArray.push(
+                {
+                    requestType: 0,
+                    resourceType: RESOURCE_GHODIUM,
+                    maxAmount: NUKER_GHODIUM_CAPACITY - Game.rooms[room].store(RESOURCE_GHODIUM),
+                    roomName: room,
+                    priority: 0.5
+                }
+            )
         }
     }
 
