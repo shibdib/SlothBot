@@ -36,7 +36,7 @@ module.exports.role = function role(creep) {
         if (building(creep)) return;
         // If praiser needed praise
         if (upgrading(creep)) return;
-        //creep.idleFor(15);
+        creep.idleFor(10);
     } else {
         creep.memory.other.noBump = undefined;
         creep.memory.working = undefined;

@@ -177,7 +177,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         case 'reserver':
             claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
             if (level >= 6) {
-                claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
+                claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.2))) || 1;
                 move = claim * 0.5;
             } else move = claim;
             break;
@@ -187,9 +187,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             // SK
             if (creepInfo.other && creepInfo.other.SK && work > SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) work = (SOURCE_ENERGY_KEEPER_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 4;
             // Reserved
-            else if (Memory.roomCache[creepInfo.destination] && Memory.roomCache[creepInfo.destination].reservation === MY_USERNAME && work > SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) work = SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME);
+            else if (Memory.roomCache[creepInfo.destination] && Memory.roomCache[creepInfo.destination].reservation === MY_USERNAME && work > (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1) work = (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
             // Neutral
-            else if (work > SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) work = SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME);
+            else if (work > (SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1) work = (SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
             carry = 1;
             if (room.level >= 5) move = work / 2; else move = work;
             break;

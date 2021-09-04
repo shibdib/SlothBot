@@ -245,8 +245,9 @@ module.exports.miscCreepQueue = function (room) {
     miscTick[room.name] = Game.time;
     let level = getLevel(room);
     //Drones
-    if (room.constructionSites.length && _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD)) {
-        let number = 10 - room.controller.level;
+    if (room.constructionSites.length && _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL)) {
+        let number = 1;
+        if (_.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD)) number = 10 - room.controller.level;
         let drones = _.filter(room.creeps, (c) => c.my && c.memory.role === 'drone');
         if (drones.length < number) {
             queueCreep(room, PRIORITIES.drone, {
@@ -561,7 +562,7 @@ module.exports.remoteCreepQueue = function (room) {
             for (let creep of harvesters) {
                 let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creep.id);
                 let current = 0;
-                let cap = 4;
+                let cap = 3;
                 if (assignedHaulers.length) {
                     assignedHaulers.forEach((c) => current += c.store.getCapacity())
                     if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= cap) continue;

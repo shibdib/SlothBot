@@ -44,11 +44,11 @@ module.exports.terminalControl = function (room) {
         if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name)) sellPixels(globalOrders);
         // Update prices
         if ((lastPriceAdjust || 0) + 100 < Game.time) {
-            pricingUpdateSell(globalOrders, myOrders);
+            pricingUpdate(globalOrders, myOrders);
             lastPriceAdjust = Game.time;
         }
         // Cleanup broken or old orders
-        if (Math.random() > 0.75) {
+        if (Math.random() > 0.25) {
             orderCleanup(myOrders);
             // Handle Sell Orders
             manageOrders(myOrders);
@@ -75,21 +75,21 @@ module.exports.terminalControl = function (room) {
     if (room.energyState) {
         if (room.name === Memory.saleTerminal.room && spendingMoney > 0) {
             //Buy resources being sold at below market value
-            //if (dealFinder(room.terminal, globalOrders)) return;
+            if (dealFinder(room.terminal, globalOrders)) return;
             //Buy Power
             if (buyPower(room.terminal, globalOrders)) return;
+            //Buy minerals if needed
+            if (placeBuyOrders(room.terminal, globalOrders, myOrders)) return;
         }
     }
     //Send energy to rooms under siege
     if (emergencyEnergy(room.terminal)) return;
-    //Dump Excess
-    if (fillBuyOrders(room.terminal, globalOrders)) return;
     //Disperse Minerals and Boosts
     if (balanceResources(room.terminal)) return;
-    //Buy minerals if needed
-    if (placeBuyOrders(room.terminal, globalOrders, myOrders)) return;
     // Place sell orders
     placeSellOrders(room.terminal, globalOrders, myOrders);
+    //Dump Excess
+    if (fillBuyOrders(room.terminal, globalOrders)) return;
 };
 
 function orderCleanup(myOrders) {
@@ -102,9 +102,17 @@ function orderCleanup(myOrders) {
             }
         }
         if (order.type === ORDER_BUY) {
+            // Only sale terminal room buys
+            if (Memory.saleTerminal && order.roomName !== Memory.saleTerminal.room) {
+                if (Game.market.cancelOrder(order.id) === OK) {
+                    log.e("Order Cancelled: " + order.id + " as it is not the market room.", 'MARKET: ');
+                    continue;
+                }
+            }
+            // Super broke
             if (Game.market.credits < 50) {
                 if (Game.market.cancelOrder(order.id) === OK) {
-                    log.e("Order Cancelled: " + order.id + " due to low credits", 'MARKET: ');
+                    log.e("Order Cancelled: " + order.id + " due to low credits.", 'MARKET: ');
                     continue;
                 }
             }
@@ -160,7 +168,7 @@ function orderCleanup(myOrders) {
     }
 }
 
-function pricingUpdateSell(globalOrders, myOrders) {
+function pricingUpdate(globalOrders, myOrders) {
     for (let key in myOrders) {
         let order = myOrders[key];
         if (order.type === ORDER_SELL) {
@@ -180,6 +188,25 @@ function pricingUpdateSell(globalOrders, myOrders) {
             if (currentPrice !== newPrice && cost <= availableCash) {
                 if (Game.market.changeOrderPrice(order.id, newPrice) === OK) {
                     log.w("Sell order price change " + order.id + " new/old " + newPrice + "/" + order.price + " Resource - " + order.resourceType, "Market: ");
+                }
+            }
+        } else {
+            let currentPrice = order.price;
+            let newPrice = currentPrice;
+            let competitorOrder = _.max(globalOrders.filter(o => !_.includes(Memory.myRooms, o.roomName) && o.resourceType === order.resourceType && o.type === ORDER_BUY), 'price');
+            if (competitorOrder.id) {
+                newPrice = competitorOrder.price + 0.001;
+            } else if (latestMarketHistory(order.resourceType)) {
+                newPrice = latestMarketHistory(order.resourceType)['avgPrice'];
+            }
+            let cost = 0;
+            if (currentPrice < newPrice) {
+                cost = (newPrice - currentPrice) * order.remainingAmount * 0.05;
+            }
+            let availableCash = Game.market.credits - CREDIT_BUFFER;
+            if (currentPrice !== newPrice && cost <= availableCash) {
+                if (Game.market.changeOrderPrice(order.id, newPrice) === OK) {
+                    log.w("Buy order price change " + order.id + " new/old " + newPrice + "/" + order.price + " Resource - " + order.resourceType, "Market: ");
                 }
             }
         }
@@ -254,18 +281,17 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
 function placeBuyOrders(terminal, globalOrders, myOrders) {
     for (let mineral of shuffle(BASE_MINERALS)) {
         // Don't buy minerals you can mine
-        if (Memory.ownedMinerals.includes(mineral)) continue;
-        let target = reactionAmount * 0.9;
-        let stored = terminal.room.store(mineral) || 0;
+        let target = reactionAmount * (_.size(Memory.myRooms));
+        let stored = getResourceTotal(mineral) || 0;
         if (stored < target) {
             let buyAmount = target - stored;
-            // If you have energy just buy it otherwise buy orders
-            if (terminal.room.energyState) {
-                if (Game.market.credits < CREDIT_BUFFER) _.floor(buyAmount *= (Game.market.credits / CREDIT_BUFFER));
+            // If not on mmo just buy it
+            if (!['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
                 let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName)), 'price');
                 if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.floor(spendingMoney / sellOrder.price);
                 if (sellOrder.id && buyAmount >= 50) {
                     if (buyAmount > sellOrder.amount) buyAmount = sellOrder.amount;
+                    if (buyAmount > 2500) buyAmount = 2500;
                     if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
                         log.w("Bought " + buyAmount + " " + mineral + " for " + (sellOrder.price * buyAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
                         spendingMoney -= (sellOrder.price * buyAmount);
@@ -275,7 +301,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
                 }
             } else {
                 // Avoid Duplicates
-                if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === mineral && o.type === ORDER_BUY).length) continue;
+                if (_.filter(myOrders, (o) => o.resourceType === mineral && o.type === ORDER_BUY).length) continue;
                 let price = 0.5;
                 let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === mineral && order.type === ORDER_BUY), 'price');
                 if (competitorOrder.id) {
@@ -292,36 +318,21 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
     }
     if (spendingMoney > BUY_ENERGY_CREDIT_BUFFER && BUY_THESE_BOOSTS && BUY_THESE_BOOSTS.length) {
         for (let mineral of shuffle(BUY_THESE_BOOSTS)) {
-            let stored = terminal.room.store(mineral) || 0;
-            if (stored < BOOST_AMOUNT) {
+            let stored = getResourceTotal(mineral) || 0;
+            if (stored < BOOST_AMOUNT * (_.size(Memory.myRooms))) {
                 let buyAmount = BOOST_AMOUNT - stored;
-                // If you have energy just buy it otherwise buy orders
-                if (terminal.room.energyState) {
-                    let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName)), 'price');
-                    if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.floor(spendingMoney / sellOrder.price);
-                    if (sellOrder.id && buyAmount >= 50) {
-                        if (buyAmount > sellOrder.amount) buyAmount = sellOrder.amount;
-                        if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
-                            log.w("Bought " + buyAmount + " " + mineral + " for " + (sellOrder.price * buyAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
-                            spendingMoney -= (sellOrder.price * buyAmount);
-                            log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
-                            return true;
-                        }
-                    }
-                } else {
-                    // Avoid Duplicates
-                    if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === mineral && o.type === ORDER_BUY).length) continue;
-                    let price = 0.5;
-                    let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === mineral && order.type === ORDER_BUY), 'price');
-                    if (competitorOrder.id) {
-                        price = competitorOrder.price - 0.001;
-                    } else if (latestMarketHistory(mineral)) {
-                        price = latestMarketHistory(mineral)['avgPrice'] + 0.001;
-                    }
-                    if (Game.market.createOrder(ORDER_BUY, mineral, price, buyAmount, terminal.pos.roomName) === OK) {
-                        log.w("New Buy Order: " + mineral + " at/per " + price + ' in ' + roomLink(terminal.room.name), "Market: ");
-                        return true;
-                    }
+                // Avoid Duplicates
+                if (_.filter(myOrders, (o) => o.resourceType === mineral && o.type === ORDER_BUY).length) continue;
+                let price = 0.5;
+                let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === mineral && order.type === ORDER_BUY), 'price');
+                if (competitorOrder.id) {
+                    price = competitorOrder.price - 0.001;
+                } else if (latestMarketHistory(mineral)) {
+                    price = latestMarketHistory(mineral)['avgPrice'] + 0.001;
+                }
+                if (Game.market.createOrder(ORDER_BUY, mineral, price, buyAmount, terminal.pos.roomName) === OK) {
+                    log.w("New Buy Order: " + mineral + " at/per " + price + ' in ' + roomLink(terminal.room.name), "Market: ");
+                    return true;
                 }
             }
         }
@@ -366,20 +377,15 @@ function buyEnergy(terminal, globalOrders) {
 }
 
 function fillBuyOrders(terminal, globalOrders) {
-    if (Game.market.credits >= CREDIT_BUFFER) return false;
     let sortedKeys = Object.keys(terminal.store).sort(function (a, b) {
         return terminal.store[a] - terminal.store[b]
     });
     for (let resourceType of sortedKeys) {
         if (resourceType === RESOURCE_ENERGY) continue;
-        let keepAmount = DUMP_AMOUNT * 0.75;
-        // Keep boost amount
-        if (_.includes(ALL_BOOSTS, resourceType)) {
-            keepAmount = BOOST_AMOUNT;
-        }
-        // Sell commodities (Keep 1000)
+        let keepAmount = DUMP_AMOUNT;
+        // Sell commodities
         if (_.includes(ALL_COMMODITIES, resourceType)) {
-            keepAmount = 1000;
+            keepAmount = REACTION_AMOUNT * 2;
         }
         // Get amount
         let sellAmount = terminal.room.store(resourceType) - keepAmount;
@@ -578,12 +584,14 @@ function dealFinder(terminal, globalOrders) {
         let buyAmount = sellOrder.amount;
         if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.round(buyAmount * ((spendingMoney) / (sellOrder.price * buyAmount)));
         if (sellOrder.id && buyAmount >= 500) {
-            if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
+            log.w("DEAL DEAL DEAL " + sellOrder.resourceType + " for " + sellOrder.price + " credits (DEAL FOUND!!) last seen at " + latestMarketHistory(sellOrder.resourceType)['avgPrice'], "Market: ");
+            /**
+             if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
                 log.w("Bought " + buyAmount + sellOrder.resourceType + " for " + (sellOrder.price * buyAmount) + " credits (DEAL FOUND!!) in " + roomLink(terminal.room.name), "Market: ");
                 spendingMoney -= (sellOrder.price * buyAmount);
                 log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
                 return true;
-            }
+            }**/
         }
     }
 }

@@ -53,8 +53,7 @@ function shibMove(creep, heading, options = {}) {
         let towCreep = Game.getObjectById(creep.memory.towCreep);
         if (!towCreep) {
             creep.memory.towCreep = undefined;
-        }
-        return;
+        } else if (creep.pos.isNearTo(towCreep)) return;
     }
 
     // If tunneling up the ops
@@ -116,7 +115,6 @@ function shibMove(creep, heading, options = {}) {
         } else if (heading.id && creep.hasActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {
             creep.memory.towDestination = undefined;
         }
-        return;
     }
 
     // Make sure origin and target are good

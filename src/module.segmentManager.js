@@ -11,7 +11,7 @@ module.exports.manager = function () {
 function logRequests() {
     if (!LOANcheck) return;
     // Store last tick
-    if (RawMemory.foreignSegment) {
+    if (RawMemory.foreignSegment && FRIENDLIES.includes(RawMemory.foreignSegment.username) && RawMemory.foreignSegment.id === 98) {
         ALLY_HELP_REQUESTS[RawMemory.foreignSegment.username] = JSON.parse(RawMemory.foreignSegment.data);
     }
     // Lookup and store for review next tick
@@ -34,12 +34,12 @@ function makeRequests() {
         if (room) {
             let priority = 0.1;
             if (Game.rooms[room].memory.spawnDefenders) priority = 1;
-            else if (!Game.rooms[room].energyState) priority = 1 - (Game.rooms[room].energy / ENERGY_AMOUNT[Game.rooms[room].level]);
+            else if (!Game.rooms[room].energyState) priority = _.round(1 - (Game.rooms[room].energy / ENERGY_AMOUNT[Game.rooms[room].level]), 2);
             requestArray.push(
                 {
                     requestType: 0,
                     resourceType: RESOURCE_ENERGY,
-                    maxAmount: 10000,
+                    maxAmount: ENERGY_AMOUNT[Game.rooms[room].level] - Game.rooms[room].energy,
                     roomName: room,
                     priority: priority
                 }
@@ -47,37 +47,31 @@ function makeRequests() {
         }
     }
 
-    // Base requests
-    let terminalRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].terminal);
-    for (let room of terminalRooms) {
+    // Base mineral requests && Boost requests
+    if (Memory.saleTerminal) {
         for (let resource of BASE_MINERALS) {
-            if (!Memory.ownedMinerals.includes(resource) && Game.rooms[room].store(resource) < REACTION_AMOUNT * 2) {
+            if (Game.rooms[Memory.saleTerminal.room].store(resource) < REACTION_AMOUNT * 3) {
                 let priority = 0.1;
-                if (Game.rooms[room].store(resource) < REACTION_AMOUNT) priority = 1 - (Game.rooms[room].store(resource) / REACTION_AMOUNT);
                 requestArray.push(
                     {
                         requestType: 0,
                         resourceType: resource,
-                        maxAmount: REACTION_AMOUNT,
-                        roomName: room,
+                        maxAmount: (REACTION_AMOUNT * 3) - Game.rooms[Memory.saleTerminal.room].store(resource),
+                        roomName: Memory.saleTerminal.room,
                         priority: priority
                     }
                 )
             }
         }
-    }
-
-    // Boost requests
-    for (let room of terminalRooms) {
         for (let boost of BUY_THESE_BOOSTS) {
-            if (Game.rooms[room].store(boost) < BOOST_AMOUNT) {
+            if (Game.rooms[Memory.saleTerminal.room].store(boost) < BOOST_AMOUNT * 3) {
                 requestArray.push(
                     {
                         requestType: 0,
                         resourceType: boost,
-                        maxAmount: BOOST_AMOUNT - Game.rooms[room].store(boost),
-                        roomName: room,
-                        priority: 0.5
+                        maxAmount: (BOOST_AMOUNT * 3) - Game.rooms[Memory.saleTerminal.room].store(boost),
+                        roomName: Memory.saleTerminal.room,
+                        priority: 0.1
                     }
                 )
             }
@@ -85,6 +79,7 @@ function makeRequests() {
     }
 
     // Ghodium requests
+    let terminalRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].terminal);
     for (let room of terminalRooms) {
         if (Game.rooms[room].store(RESOURCE_GHODIUM) < NUKER_GHODIUM_CAPACITY) {
             requestArray.push(
@@ -102,7 +97,7 @@ function makeRequests() {
     // Defense requests
     let defenseRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].memory.dangerousAttack);
     for (let room of defenseRooms) {
-        let priority = 0.5;
+        let priority = 0.25;
         if (Memory.roomCache[room].threatLevel === 4) priority = 1;
         requestArray.push(
             {

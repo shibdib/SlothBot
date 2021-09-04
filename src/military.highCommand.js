@@ -605,6 +605,13 @@ function manageAuxiliary() {
                     delete Memory.roomCache[key];
                 }
                 break;
+            case 'rebuild':
+                if (Memory.roomCache[key].towers || !Memory.roomCache[key].owner || !FRIENDLIES.includes(Memory.roomCache[key].owner)) {
+                    log.a('Canceling rebuild operation in ' + roomLink(key) + ' as we are no longer needed.', 'HIGH COMMAND: ');
+                    delete Memory.auxiliaryTargets[key];
+                    delete Memory.roomCache[key];
+                }
+                break;
             case 'commodity':
                 if (maxLevel < 6) delete Memory.auxiliaryTargets[key];
                 break;
@@ -636,7 +643,6 @@ function manageAuxiliary() {
                     continue;
                 }
                 break;
-            case 'rebuild':
             case 'scoreCleaner':
                 continue;
             case 'clean':
