@@ -191,7 +191,7 @@ function harvestDepositContainer(source, creep) {
             } else if (!creep.pos.isNearTo(source)) {
                 creep.shibMove(source);
             }
-        } else if (creep.room.memory.controllerContainer) {
+        } else if (creep.room.memory.controllerContainer && creep.room.level >= 4) {
             let storedSite = JSON.parse(source.memory.containerPos);
             let containerSite = new RoomPosition(storedSite.x, storedSite.y, storedSite.roomName);
             if (!containerSite.checkForConstructionSites()) containerSite.createConstructionSite(STRUCTURE_CONTAINER);

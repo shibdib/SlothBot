@@ -30,7 +30,7 @@ let globals = function () {
     global.ROOM_ABANDON_THRESHOLD = 9900; // If bucket is consistently below this, abandon your lowest room
     global.SIGN_CLEANER = false; // Clean room signs away with explorers
     global.AVOID_ALLIED_SECTORS = true; // Dont claim rooms in allied sectors
-    global.REMOTE_SOURCE_SCORE = 100; // Set the score for remote sources to be mined (higher means more sources but further)
+    global.REMOTE_SOURCE_SCORE = 200; // Set the score for remote sources to be mined (higher means more sources but further)
     global.AVOID_ATTACKING_ALLIANCES = true;
 
     // Energy income breakdown (Not used atm)
@@ -118,7 +118,7 @@ let globals = function () {
         remoteHarvester: 4,
         remoteHauler: 3,
         remoteUpgrader: 7,
-        roadBuilder: 6,
+        roadBuilder: 11,
         assistPioneer: 4,
         fuelTruck: 7,
         reserver: 6,

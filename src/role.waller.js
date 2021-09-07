@@ -73,6 +73,7 @@ function wallMaintainer(creep) {
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(site, {range: 3})
             }
+            return true;
         } else if (barrier.id) {
             creep.memory.currentTarget = barrier.id;
         }

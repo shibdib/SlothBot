@@ -7,7 +7,7 @@
 let tools = require('tools.cpuTracker');
 
 const DEFAULT_MAXOPS = 2500;
-const STATE_STUCK = 2;
+const STATE_STUCK = 1;
 const FLEE_RANGE = 3;
 
 const terrainMatrixCache = {};

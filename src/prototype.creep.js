@@ -269,6 +269,22 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
 };
 
 Creep.prototype.locateEnergy = function () {
+    // Take from remote haulers pre storage
+    if (!this.room.storage && this.memory.role !== 'hauler' && this.memory.role !== 'shuttle') {
+        let hauler = _.find(this.room.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination);
+        if (hauler) {
+            this.memory.energyDestination = hauler.id;
+            this.memory.findEnergyCountdown = undefined;
+            return true;
+        }
+        // Fuel Trucks
+        let fuelTruck = _.find(this.room.creeps, (c) => c.my && c.memory.role === 'fuelTruck' && c.memory.destination === c.room.name && c.store[RESOURCE_ENERGY]);
+        if (fuelTruck && this.memory.role !== 'fuelTruck') {
+            this.memory.energyDestination = fuelTruck.id;
+            this.memory.findEnergyCountdown = undefined;
+            return true;
+        }
+    }
     // Links
     let hubLink = Game.getObjectById(this.room.memory.hubLink);
     if (hubLink && hubLink.store[RESOURCE_ENERGY]) {
@@ -312,22 +328,6 @@ Creep.prototype.locateEnergy = function () {
                     this.shibMove(hostileStructures);
             }
             this.say('DISMANTLE', true);
-            this.memory.findEnergyCountdown = undefined;
-            return true;
-        }
-    }
-    // Take from remote haulers pre storage
-    if (!this.room.storage && this.memory.role !== 'hauler' && this.memory.role !== 'shuttle') {
-        let hauler = _.find(this.room.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination);
-        if (hauler) {
-            this.memory.energyDestination = hauler.id;
-            this.memory.findEnergyCountdown = undefined;
-            return true;
-        }
-        // Fuel Trucks
-        let fuelTruck = _.find(this.room.creeps, (c) => c.my && c.memory.role === 'fuelTruck' && c.memory.destination === c.room.name && c.store[RESOURCE_ENERGY]);
-        if (fuelTruck && this.memory.role !== 'fuelTruck') {
-            this.memory.energyDestination = fuelTruck.id;
             this.memory.findEnergyCountdown = undefined;
             return true;
         }

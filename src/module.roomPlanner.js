@@ -492,12 +492,13 @@ function findHub(room, hubCheck = undefined) {
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) return;
     if (!hubCheck) {
         if (room.memory.hubAttempt) room.memory.hubAttempt += 1; else room.memory.hubAttempt = 1;
-        if (room.memory.hubAttempt > 5) {
+        if (room.memory.hubAttempt > 25) {
             if (hubCheck) return false;
             abandonRoom(room.name);
             if (Memory.roomCache && Memory.roomCache[room.name]) Memory.roomCache[room.name].noClaim = true;
             return log.a(room.name + ' has been abandoned due to being unable to find a suitable layout.');
         }
+        console.log(room.memory.hubAttempt)
     }
     if (room.structures.length) _.filter(room.structures, (s) => !s.owner || s.owner.username !== MY_USERNAME).forEach((s) => s.destroy());
     let pos, xOffset, yOffset, layoutVersion;
@@ -510,8 +511,8 @@ function findHub(room, hubCheck = undefined) {
         layouts:
             for (let buildTemplate of shuffle(layouts.layoutArray)) {
                 layoutVersion = buildTemplate[0]['layout'];
-                let spawnPos = _.find(buildTemplate, (s) => s.type === STRUCTURE_SPAWN);
-                if (!spawnPos) continue; else spawnPos = spawnPos[0].pos;
+                let spawnPos = _.filter(buildTemplate, (s) => s.type === STRUCTURE_SPAWN);
+                if (!spawnPos[0]) continue; else spawnPos = spawnPos[0].pos[0];
                 let yVar, xVar;
                 if (layoutVersion === 1) {
                     yVar = 16;

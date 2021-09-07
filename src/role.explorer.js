@@ -33,7 +33,9 @@ module.exports.role = function (creep) {
             if (target) creep.memory.destination = target; else creep.idleFor(25);
         }
     } else if (creep.pos.roomName === creep.memory.destination) {
-        creep.memory.destination = undefined;
+        if (!creep.moveToHostileConstructionSites(false, true)) {
+            creep.memory.destination = undefined;
+        }
         /**
          // Sign the controller
          if (creep.room.controller && (!creep.room.controller.owner || creep.room.controller.level < 3) && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
