@@ -455,8 +455,8 @@ let globals = function () {
                 global.LOANcheck = true;
                 Memory.lastLOANtime = Game.time;
                 if (RawMemory.foreignSegment.data == null) {
-                    global.LOANlist = [];
-                    Memory.LOANalliance = "";
+                    if (Memory.friendList) global.LOANlist = Memory.friendList; else global.LOANlist = [];
+                    if (!Memory.LOANalliance) Memory.LOANalliance = '';
                     global.ALLIANCE_DATA = undefined;
                     return false;
                 } else {
@@ -473,6 +473,7 @@ let globals = function () {
                                 return disavowed.indexOf(uname) < 0;
                             });
                             global.LOANlist.concat(MANUAL_FRIENDS);
+                            Memory.friendList = global.LOANlist;
                             Memory.LOANalliance = LOANdataKeys[iL].toString();
                             return true;
                         }
@@ -484,6 +485,7 @@ let globals = function () {
         } else {
             global.LOANcheck = true;
             global.LOANlist = [];
+            global.LOANlist.concat(MANUAL_FRIENDS);
             Memory.LOANalliance = "";
             global.ALLIANCE_DATA = undefined;
             return false;
