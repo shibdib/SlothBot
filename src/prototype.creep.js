@@ -271,7 +271,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
 Creep.prototype.locateEnergy = function () {
     // Take from remote haulers pre storage
     if (!this.room.storage && this.memory.role !== 'hauler' && this.memory.role !== 'shuttle') {
-        let hauler = _.find(this.room.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.isNearTo(c.room.controller));
+        let hauler = _.find(this.room.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 3);
         if (hauler) {
             this.memory.energyDestination = hauler.id;
             this.memory.findEnergyCountdown = undefined;

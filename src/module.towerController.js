@@ -84,7 +84,7 @@ module.exports.towerControl = function (room) {
             if (healPower > attackPower) room.memory.spawnDefenders = true;
             let nearStructures = hostileCreeps[i].pos.findInRange(room.structures, 3, {filter: (s) => ![STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_CONTROLLER, STRUCTURE_WALL, STRUCTURE_RAMPART].includes(s.structureType)}).length > 0;
             // If the creep can be killed before it runs away do so
-            if ((hostileCreeps[i].hits + healPower) - attackPower <= attackPower * hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT))) {
+            if (!healPower || (hostileCreeps[i].hits + healPower) - attackPower <= attackPower * hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT))) {
                 room.memory.towerTarget = hostileCreeps[i].id;
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;

@@ -80,10 +80,9 @@ module.exports.role = function (creep) {
                 for (let h of harvesters) {
                     let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === h.id);
                     let current = 0;
-                    let cap = 3;
                     if (assignedHaulers.length) {
                         assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= cap) continue;
+                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= REMOTE_HAULER_CAP) continue;
                     }
                     return creep.memory.misc = h.id
                 }

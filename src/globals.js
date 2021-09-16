@@ -31,6 +31,7 @@ let globals = function () {
     global.SIGN_CLEANER = false; // Clean room signs away with explorers
     global.AVOID_ALLIED_SECTORS = true; // Dont claim rooms in allied sectors
     global.REMOTE_SOURCE_SCORE = 200; // Set the score for remote sources to be mined (higher means more sources but further)
+    global.REMOTE_HAULER_CAP = 2; // Max number of haulers per harv
     global.AVOID_ATTACKING_ALLIANCES = true;
 
     // Energy income breakdown (Not used atm)

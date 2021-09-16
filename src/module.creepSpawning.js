@@ -554,10 +554,9 @@ module.exports.remoteCreepQueue = function (room) {
                 for (let creep of harvesters) {
                     let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creep.id);
                     let current = 0;
-                    let cap = 3;
                     if (assignedHaulers.length) {
                         assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= cap) continue;
+                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= REMOTE_HAULER_CAP) continue;
                     }
                     queueCreep(room, PRIORITIES.remoteHauler + assignedHaulers.length, {
                         role: 'remoteHauler',
