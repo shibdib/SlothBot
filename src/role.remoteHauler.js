@@ -94,6 +94,7 @@ module.exports.role = function (creep) {
 
 // Remote Hauler Drop Off
 function dropOff(creep) {
+    if (creep.memory.overlord !== creep.room.name) return creep.wrongRoom();
     let overlord = Game.rooms[creep.memory.overlord];
     // If carrying minerals deposit in terminal or storage
     if (_.sum(creep.store) > creep.store[RESOURCE_ENERGY]) {

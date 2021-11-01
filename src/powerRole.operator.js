@@ -137,9 +137,10 @@ module.exports.role = function (powerCreep) {
 };
 
 function upgradePowers(powerCreep) {
-    let sparePowerLevels = Game.gpl.level - _.size(Game.powerCreeps);
+    let sparePowerLevels = Game.gpl.level - (_.size(Game.powerCreeps) + _.sum(Game.powerCreeps, 'level'));
     let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8);
-    if (sparePowerLevels === 0 || powerCreep.level === 25 || _.size(Game.powerCreeps) < myRooms.length || _.min(Game.powerCreeps, 'level').id !== powerCreep.id) return;
+    let lowestOperator = _.min(Game.powerCreeps, 'level')
+    if (sparePowerLevels === 0 || powerCreep.level === 25 || lowestOperator.id !== powerCreep.id || (_.size(Game.powerCreeps) < myRooms.length && powerCreep.level >= 11)) return;
     // Ops
     if (!powerCreep.powers[PWR_GENERATE_OPS] || (powerCreep.level >= 2 && powerCreep.powers[PWR_GENERATE_OPS].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_GENERATE_OPS].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_GENERATE_OPS].level < 4) || (powerCreep.level >= 22 && powerCreep.powers[PWR_GENERATE_OPS].level < 5)) {
         return upgradeSwitch(powerCreep, PWR_GENERATE_OPS)
@@ -147,6 +148,14 @@ function upgradePowers(powerCreep) {
     // Source
     else if (powerCreep.level >= 10 && (!powerCreep.powers[PWR_REGEN_SOURCE] || powerCreep.powers[PWR_REGEN_SOURCE].level < 3 || (powerCreep.level >= 14 && powerCreep.powers[PWR_REGEN_SOURCE].level < 4) || (powerCreep.level >= 22 && powerCreep.powers[PWR_REGEN_SOURCE].level < 5))) {
         return upgradeSwitch(powerCreep, PWR_REGEN_SOURCE)
+    }
+    // Tower
+    else if (!powerCreep.powers[PWR_OPERATE_TOWER] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_TOWER].level < 2)) {
+        return upgradeSwitch(powerCreep, PWR_OPERATE_TOWER)
+    }
+    // Mineral
+    else if (powerCreep.level >= 10 && (!powerCreep.powers[PWR_REGEN_MINERAL] || powerCreep.powers[PWR_REGEN_MINERAL].level < 3)) {
+        return upgradeSwitch(powerCreep, PWR_REGEN_MINERAL)
     }
     // Extensions
     else if (!powerCreep.powers[PWR_OPERATE_EXTENSION] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 4)) {
@@ -159,14 +168,6 @@ function upgradePowers(powerCreep) {
     // Factory
     else if (!powerCreep.powers[PWR_OPERATE_FACTORY] || (powerCreep.powers[PWR_OPERATE_FACTORY] && powerCreep.powers[PWR_OPERATE_FACTORY].level === 1 && _.filter(Game.powerCreeps, (c) => c.my && c.id !== powerCreep.id && c.powers[PWR_OPERATE_FACTORY] && c.powers[PWR_OPERATE_FACTORY].level === 1)[0] && !_.filter(Game.powerCreeps, (c) => c.my && c.id !== powerCreep.id && c.powers[PWR_OPERATE_FACTORY] && c.powers[PWR_OPERATE_FACTORY].level === 2)[0])) {
         return upgradeSwitch(powerCreep, PWR_OPERATE_FACTORY)
-    }
-    // Tower
-    else if (!powerCreep.powers[PWR_OPERATE_TOWER] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_TOWER].level < 2)) {
-        return upgradeSwitch(powerCreep, PWR_OPERATE_TOWER)
-    }
-    // Mineral
-    else if (powerCreep.level >= 10 && (!powerCreep.powers[PWR_REGEN_MINERAL] || powerCreep.powers[PWR_REGEN_MINERAL].level < 3)) {
-        return upgradeSwitch(powerCreep, PWR_REGEN_MINERAL)
     }
 }
 

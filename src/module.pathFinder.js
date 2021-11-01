@@ -474,7 +474,7 @@ function getMatrix(roomName, creep, options) {
     let matrix = getTerrainMatrix(roomName, options);
     if (!options.ignoreStructures) matrix = getStructureMatrix(roomName, matrix, options);
     if (room && !options.ignoreCreeps) matrix = getCreepMatrix(roomName, creep, matrix, options);
-    if (room && room.hostileCreeps.length && !creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) matrix = getHostileMatrix(roomName, matrix, options);
+    if (room && room.hostileCreeps.length && (creep.className || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)))) matrix = getHostileMatrix(roomName, matrix, options);
     matrix = getSKMatrix(roomName, matrix, options);
     return matrix;
 }

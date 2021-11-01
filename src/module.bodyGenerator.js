@@ -16,7 +16,7 @@
 module.exports.bodyGenerator = function (level, role, room = undefined, creepInfo = undefined) {
     let body = [];
     let work, claim, carry, move, tough, attack, rangedAttack, heal, deficitExemption;
-    let deficit = room.energy / (ENERGY_AMOUNT[room.level || 1] * 1.5);
+    let deficit = room.energy / (ENERGY_AMOUNT[room.level || 1] * 2.5);
     if (deficit > 1 || !room.storage) deficit = 1;
     else if (deficit < 0.1) deficit = 0.1;
     let energyAmount = room.energyCapacityAvailable;

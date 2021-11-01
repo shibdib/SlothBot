@@ -123,7 +123,7 @@ function auxiliaryOperations() {
                     tick: tick,
                     type: 'power',
                     level: 1,
-                    priority: PRIORITIES.secondary
+                    priority: PRIORITIES.urgent
                 };
                 Memory.auxiliaryTargets = cache;
                 log.a('Mining operation planned for ' + roomLink(powerRoom.name) + ' suspected power bank location, Nearest Room - ' + powerRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');

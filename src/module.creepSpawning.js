@@ -556,7 +556,7 @@ module.exports.remoteCreepQueue = function (room) {
                     let current = 0;
                     if (assignedHaulers.length) {
                         assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= REMOTE_HAULER_CAP) continue;
+                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= REMOTE_HAULER_CAP || creep.memory.carryAmountNeeded - current < 150) continue;
                     }
                     queueCreep(room, PRIORITIES.remoteHauler + assignedHaulers.length, {
                         role: 'remoteHauler',

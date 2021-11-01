@@ -425,11 +425,12 @@ function fillBuyOrders(terminal, globalOrders) {
     }
 }
 
+let usedTerminals = {};
 function balanceResources(terminal) {
     // Balance Energy
     if (!Memory.roomCache[terminal.room.name].threatLevel && !terminal.room.nukes.length && terminal.room.energyState) {
         // Find needy terminals
-        let needyTerminal = _.find(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && !r.room.energyState && r.store.getFreeCapacity());
+        let needyTerminal = _.find(Game.structures, (r) => r.room.name !== terminal.room.name && r.room.energyState < terminal.room.energyState && r.structureType === STRUCTURE_TERMINAL && (!usedTerminals[r.room.name] || usedTerminals[r.room.name].tick !== Game.time) && r.store.getFreeCapacity() && Game.market.calcTransactionCost(15000, terminal.room.name, r.room.name) < 1500);
         // If no needy terminal check for allied needs
         if (!needyTerminal && _.sortBy(_.filter(ALLY_HELP_REQUESTS), 'priority')) {
             for (let ally of _.filter(ALLY_HELP_REQUESTS)) {
@@ -450,6 +451,8 @@ function balanceResources(terminal) {
             switch (terminal.send(RESOURCE_ENERGY, requestedAmount, needyTerminal)) {
                 case OK:
                     log.a('Balancing ' + requestedAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyTerminal) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                    usedTerminals[needyTerminal] = {tick: Game.time};
+                    usedTerminals[terminal.room.name] = {tick: Game.time};
                     return true;
             }
         }
@@ -489,11 +492,13 @@ function balanceResources(terminal) {
         if (Game.shard.name === 'shardSeason' && _.includes(SYMBOLS, resource)) {
             if (terminal.room.decoder.resourceType === resource) continue;
             // Find room with decoder
-            let needyTerminal = _.find(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.decoder.resourceType === resource && r.store.getFreeCapacity());
+            let needyTerminal = _.find(Game.structures, (r) => (!usedTerminals[r.room.name] || usedTerminals[r.room.name].tick !== Game.time) && r.structureType === STRUCTURE_TERMINAL && r.room.decoder.resourceType === resource && r.store.getFreeCapacity() && Game.market.calcTransactionCost(5000, terminal.room.name, r.room.name) < terminal.room.energy * 0.01);
             if (!needyTerminal) continue;
             switch (terminal.send(resource, terminal.store[resource], needyTerminal.room.name)) {
                 case OK:
                     log.a('Sending ' + terminal.store[resource] + ' ' + resource + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                    usedTerminals[needyTerminal.room.name] = {tick: Game.time};
+                    usedTerminals[terminal.room.name] = {tick: Game.time};
                     return true;
             }
         }
@@ -515,7 +520,7 @@ function balanceResources(terminal) {
         // Find room in need
         let needyTerminal;
         if (terminal.room.energyState) {
-            needyTerminal = _.find(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && !r.room.nukes.length && r.room.name !== terminal.room.name && r.room.store(resource) < 50 && Game.map.getRoomLinearDistance(r.room.name, terminal.room.name) <= 10
+            needyTerminal = _.find(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && !r.room.nukes.length && r.room.name !== terminal.room.name && r.room.store(resource) < keepAmount && Game.market.calcTransactionCost(5000, terminal.room.name, r.room.name) < terminal.room.energy * 0.01
                 && r.store.getFreeCapacity());
         }
         // If no needy terminal check for allied needs
@@ -537,12 +542,15 @@ function balanceResources(terminal) {
             switch (terminal.send(resource, available, needyTerminal)) {
                 case OK:
                     log.a('Balancing ' + available + ' ' + resource + ' To ' + roomLink(needyTerminal) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                    usedTerminals[needyTerminal] = {tick: Game.time};
+                    usedTerminals[terminal.room.name] = {tick: Game.time};
                     return true;
             }
         } else if (Game.shard.name !== 'shardSeason' && terminal.room.name !== Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].terminal.store.getFreeCapacity()) {
             switch (terminal.send(resource, available, Memory.saleTerminal.room)) {
                 case OK:
                     log.a('Sent ' + available + ' ' + resource + ' To ' + roomLink(Memory.saleTerminal.room) + ' From ' + roomLink(terminal.room.name) + ' to stockpile.', "Market: ");
+                    usedTerminals[terminal.room.name] = {tick: Game.time};
                     return true;
             }
         }
