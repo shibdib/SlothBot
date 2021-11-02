@@ -145,14 +145,14 @@ function orderCleanup(myOrders) {
                 }
             }
         } else {
-            if (order.resourceType !== RESOURCE_ENERGY) {
+            if (order.resourceType !== RESOURCE_ENERGY && order.resourceType !== RESOURCE_BATTERY) {
                 if (!order.amount) {
                     if (Game.market.cancelOrder(order.id) === OK) {
                         log.e("Order Cancelled: " + order.id + " - Not enough resources remaining in terminal.", 'MARKET: ');
                         continue;
                     }
                 }
-            } else if (Game.rooms[order.roomName].energy < ENERGY_AMOUNT[Game.rooms[order.roomName].level]) {
+            } else if (Game.rooms[order.roomName].energyState <= 2) {
                 if (Game.market.cancelOrder(order.id) === OK) {
                     log.e("Order Cancelled: " + order.id + " - Cancel sale of energy as we have a shortage in the room.", 'MARKET: ');
                     continue;
@@ -242,7 +242,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         // Avoid Duplicates
         if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
         // Energy
-        if (resourceType === RESOURCE_ENERGY && terminal.room.energyState >= 2) sellAmount = terminal.room.energy - ENERGY_AMOUNT[terminal.room.level] * 2; else if (terminal.room.energyState < 2) continue;
+        if (resourceType === RESOURCE_ENERGY && terminal.room.energyState > 2) sellAmount = terminal.room.energy - ENERGY_AMOUNT[terminal.room.level] * 2; else if (terminal.room.energyState <= 2) continue;
         // Handle minerals
         if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS, BASE_COMMODITIES), resourceType)) {
             let mineralCutoff = REACTION_AMOUNT;
@@ -250,7 +250,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
             sellAmount = terminal.room.store(resourceType) - mineralCutoff;
         }
         // Handle commodities
-        if (resourceType === RESOURCE_BATTERY) sellAmount = terminal.room.store(resourceType) - 1000;
+        if (resourceType === RESOURCE_BATTERY && terminal.room.energyState > 2) sellAmount = terminal.room.store(resourceType); else if (terminal.room.energyState <= 2) continue;
         if (_.includes(COMPRESSED_COMMODITIES, resourceType)) sellAmount = terminal.room.store(resourceType) - REACTION_AMOUNT * 0.5;
         if (_.includes(REGIONAL_0_COMMODITIES, resourceType)) sellAmount = terminal.room.store(resourceType) - REACTION_AMOUNT * 0.5;
         if (_.includes(_.union(REGIONAL_1_COMMODITIES, REGIONAL_2_COMMODITIES, REGIONAL_3_COMMODITIES, REGIONAL_4_COMMODITIES, REGIONAL_5_COMMODITIES), resourceType)) sellAmount = terminal.room.store(resourceType);
