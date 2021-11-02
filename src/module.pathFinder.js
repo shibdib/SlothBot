@@ -38,6 +38,9 @@ function shibMove(creep, heading, options = {}) {
         getNextDirection: false
     });
 
+    // Store source keeper
+    if (creep.memory.keeper) options.ignoreKeeper = creep.memory.keeper;
+
     // Handle fatigue
     if (!creep.className && (creep.fatigue > 0 || !heading)) {
         if (!creep.memory.military) creep.idleFor(1);
@@ -681,6 +684,7 @@ function getSKMatrix(roomName, matrix = undefined, options) {
 function addSksToMatrix(room, matrix, options) {
     if (room && Memory.roomCache[room.name] && Memory.roomCache[room.name].sk) {
         let sks = room.find(FIND_CREEPS, {filter: (c) => c.owner.username === 'Source Keeper'});
+        if (options.ignoreKeeper) sks = _.filter(sks, (c) => c.id !== options.ignoreKeeper)
         let lairs = room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn < 25});
         if (sks.length) {
             for (let sk of sks) {

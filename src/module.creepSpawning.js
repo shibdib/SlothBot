@@ -434,7 +434,7 @@ module.exports.remoteCreepQueue = function (room) {
         }
     }
     //Remotes
-    let remotes;
+    let remotes, skMining;
     if (remoteHives[room.name] && JSON.parse(remoteHives[room.name]).length) {
         remotes = JSON.parse(remoteHives[room.name]);
         for (let source of remotes) {
@@ -486,6 +486,8 @@ module.exports.remoteCreepQueue = function (room) {
             if (Memory.roomCache[remoteName] && Memory.roomCache[remoteName].reservation && Memory.roomCache[remoteName].reservation !== MY_USERNAME) continue;
             // Handle rooms that can't be reached safely
             if (!room.routeSafe(remoteName)) continue;
+            // If SK mining don't do anything else
+            if (!skMining && room.level >= 7 && _.find(remotes, (r) => Memory.roomCache[r.room].sk && !Memory.roomCache[r.room].invaderCore && !Memory.roomCache[r.room].threatLevel)) skMining = true;
             // Handle SK
             if (Memory.roomCache[remoteName].sk && room.level >= 7) {
                 if (Memory.roomCache[remoteName].invaderCore || Memory.roomCache[remoteName].threatLevel >= 2) {
@@ -511,6 +513,11 @@ module.exports.remoteCreepQueue = function (room) {
                     queueCreep(room, PRIORITIES.SKWorker, {role: 'SKMineral', destination: remoteName})
                 }
             } else if (!Memory.roomCache[remoteName].sk) {
+                let multi = room.energy / (ENERGY_AMOUNT[room.level || 1] * 2);
+                if (!room.storage) multi = 1;
+                else if (multi < 0.1) multi = 0.1;
+                let score = REMOTE_SOURCE_SCORE * multi;
+                if (skMining) score = REMOTE_SOURCE_SCORE * (multi * 0.7);
                 if (source.score <= REMOTE_SOURCE_SCORE) {
                     let harvester = _.filter(Game.creeps, (c) => c.my && c.memory.other && c.memory.other.source === source.id)[0];
                     if (!harvester) {

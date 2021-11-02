@@ -11,7 +11,7 @@
 
 module.exports.role = function (creep) {
     // SK Safety
-    if (creep.skSafety()) return;
+    if (creep.skSafety()) return creep.memory.onContainer = undefined;
     // If you're in place just harvest
     if (creep.memory.onContainer) {
         if (Math.random() > 0.98) return creep.memory.onContainer = undefined;

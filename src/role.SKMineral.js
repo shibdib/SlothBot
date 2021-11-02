@@ -20,18 +20,18 @@ module.exports.role = function (creep) {
                     creep.idleFor(extractor.cooldown - 1)
                 } else {
                     let mineral = Game.getObjectById(creep.memory.source);
+                    // Check if mineral depleted
+                    if (mineral.mineralAmount === 0) {
+                        log.a(creep.room.name + ' supply of ' + mineral.mineralType + ' has been depleted. Regen in ' + mineral.ticksToRegeneration);
+                        Memory.roomCache[creep.room.name].mineralCooldown = Game.time + mineral.ticksToRegeneration;
+                        return creep.suicide();
+                    }
                     switch (creep.harvest(mineral)) {
                         case OK:
                             // Store mineral as owned
                             let currentMinerals = Memory.ownedMinerals || [];
                             currentMinerals.push(creep.room.mineral.mineralType);
                             Memory.ownedMinerals = _.uniq(currentMinerals);
-                            // Check if mineral depleted
-                            if (mineral.mineralAmount === 0) {
-                                log.a(creep.room.name + ' supply of ' + mineral.mineralType + ' has been depleted. Regen in ' + mineral.ticksToRegeneration);
-                                Memory.roomCache[creep.room.name].mineralCooldown = Game.time + mineral.ticksToRegeneration;
-                                return creep.suicide();
-                            }
                             break;
                         case ERR_NOT_IN_RANGE:
                             creep.shibMove(mineral);

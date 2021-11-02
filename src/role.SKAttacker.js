@@ -27,6 +27,7 @@ module.exports.role = function (creep) {
         let sourceKeeper = creep.pos.findClosestByRange(creep.pos.findInRange(creep.room.hostileCreeps, 30, {filter: (c) => (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(HEAL))})) ||
             creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper'});
         if (sourceKeeper) {
+            creep.memory.keeper = sourceKeeper.id;
             switch (creep.attack(sourceKeeper)) {
                 case ERR_NOT_IN_RANGE:
                     if (creep.hits < creep.hitsMax) {

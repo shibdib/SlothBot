@@ -19,26 +19,26 @@ module.exports.role = function (creep) {
     if (creep.memory.resourceNeeded) return getResource(creep);
     // Tow Truck
     if (creep.towTruck()
-        // Empty labs
-        || emptyLab(creep)
         //If creep needs boosts do that first
         || boostDelivery(creep)
-        // Handle dropped goodies
-        || droppedResources(creep)
-        // Check nuker for ghodium
-        || nukeSupplies(creep)
-        // Get lab orders
-        || labSupplies(creep)
-        // Empty mineral harvester container
-        || mineralHauler(creep)
-        // Get factory orders
-        || factorySupplies(creep)
         // Handle terminal goods
         || terminalControl(creep)
         // Handle storage goods
         || storageControl(creep)
+        // Check nuker for ghodium
+        || nukeSupplies(creep)
+        // Empty labs
+        || emptyLab(creep)
         // Empty factories
-        || emptyFactory(creep)) return;
+        || emptyFactory(creep)
+        // Handle dropped goodies
+        || droppedResources(creep)
+        // Get lab orders
+        || labSupplies(creep)
+        // Get factory orders
+        || factorySupplies(creep)
+        // Empty mineral harvester container
+        || mineralHauler(creep)) return;
     // If nothing to do, idle
     creep.idleFor(50);
 };
@@ -402,7 +402,7 @@ function emptyFactory(creep) {
     if (!creep.room.factory) return false;
     if (creep.room.factory.memory.producing && creep.room.factory.store.getUsedCapacity()) {
         for (let storedResource of Object.keys(creep.room.factory.store)) {
-            if (!_.includes(Object.keys(COMMODITIES[creep.room.factory.memory.producing].components), storedResource)) {
+            if (!Object.keys(COMMODITIES[creep.room.factory.memory.producing].components).includes(storedResource)) {
                 creep.memory.resourceNeeded = storedResource;
                 creep.memory.withdrawFrom = creep.room.factory.id;
                 creep.memory.empty = true;
