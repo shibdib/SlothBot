@@ -116,7 +116,7 @@ function auxiliaryOperations() {
         if (getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT && maxLevel >= 8) {
             let powerRoom = _.min(_.filter(initialFilter, (r) => r.power && r.power + 1500 >= Game.time && r.closestRange <= 8), 'closestRange');
             let powerMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'power').length || 0;
-            if (powerRoom.name && !powerMining) {
+            if (powerRoom.name && powerMining < 2) {
                 let cache = Memory.auxiliaryTargets || {};
                 let tick = Game.time;
                 cache[powerRoom.name] = {
@@ -132,7 +132,7 @@ function auxiliaryOperations() {
         // Commodity Mining
         let commodityRoom = _.min(_.filter(initialFilter, (r) => r.commodity && r.closestRange <= 8), 'closestRange');
         let commodityMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'commodity').length || 0;
-        if (commodityRoom.name && commodityMining < 10) {
+        if (commodityRoom.name && commodityMining < 3) {
             let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;
             cache[commodityRoom.name] = {

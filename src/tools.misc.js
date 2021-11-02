@@ -118,7 +118,7 @@ module.exports.status = function () {
                     let type = operations[key].type;
                     if (type === 'scout' || type === 'attack') continue;
                     let priority = 'Routine';
-                    if (operations[key].priority === 3) priority = 'Increased'; else if (operations[key].priority === 2) priority = 'High'; else if (operations[key].priority === 1) priority = 'Urgent';
+                    if (operations[key].priority === 11) priority = 'Secondary'; else if (operations[key].priority === 2) priority = 'High'; else if (operations[key].priority === 1) priority = 'Urgent';
                     if (operations[key].enemyDead || operations[key].friendlyDead) {
                         log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + roomLink(key) + ' | Enemy KIA - ' + operations[key].trackedEnemy.length + '/' + operations[key].enemyDead + ' | Friendly KIA - ' + operations[key].trackedFriendly.length + '/' + operations[key].friendlyDead, ' ');
                     } else if (operations[key].type === 'pending') {
