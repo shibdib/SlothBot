@@ -430,7 +430,8 @@ function balanceResources(terminal) {
     // Balance Energy
     if (!Memory.roomCache[terminal.room.name].threatLevel && !terminal.room.nukes.length && terminal.room.energyState) {
         // Find needy terminals
-        let needyTerminal = _.find(Game.structures, (r) => r.room.name !== terminal.room.name && r.room.energyState < terminal.room.energyState && r.structureType === STRUCTURE_TERMINAL && (!usedTerminals[r.room.name] || usedTerminals[r.room.name].tick !== Game.time) && r.store.getFreeCapacity() && Game.market.calcTransactionCost(15000, terminal.room.name, r.room.name) < 1500);
+        let needyTerminal = _.find(Game.structures, (r) => r.room.name !== terminal.room.name && r.room.energyState < terminal.room.energyState && r.structureType === STRUCTURE_TERMINAL && (!r.room.store[RESOURCE_BATTERY] || !r.room.factory) &&
+            (!usedTerminals[r.room.name] || usedTerminals[r.room.name].tick !== Game.time) && r.store.getFreeCapacity() && Game.market.calcTransactionCost(15000, terminal.room.name, r.room.name) < 1500);
         // If no needy terminal check for allied needs
         if (!needyTerminal && _.sortBy(_.filter(ALLY_HELP_REQUESTS), 'priority')) {
             for (let ally of _.filter(ALLY_HELP_REQUESTS)) {
@@ -444,13 +445,24 @@ function balanceResources(terminal) {
             needyTerminal = needyTerminal.room.name;
         }
         if (needyTerminal) {
-            // Determine how much you can move
-            let availableAmount = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
-            let requestedAmount = 15000;
-            if (requestedAmount > availableAmount) requestedAmount = availableAmount;
-            switch (terminal.send(RESOURCE_ENERGY, requestedAmount, needyTerminal)) {
+            let requestedAmount, resource;
+            // Send batteries if possible
+            if (terminal.store[RESOURCE_BATTERY] && Game.rooms[needyTerminal].factory) {
+                // Determine how much you can move
+                resource = RESOURCE_BATTERY;
+                let availableAmount = terminal.store[RESOURCE_BATTERY];
+                requestedAmount = 500;
+                if (requestedAmount > availableAmount) requestedAmount = availableAmount;
+            } else {
+                // Determine how much you can move
+                resource = RESOURCE_ENERGY;
+                let availableAmount = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
+                requestedAmount = 15000;
+                if (requestedAmount > availableAmount) requestedAmount = availableAmount;
+            }
+            switch (terminal.send(resource, requestedAmount, needyTerminal)) {
                 case OK:
-                    log.a('Balancing ' + requestedAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyTerminal) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                    log.a('Balancing ' + requestedAmount + ' ' + resource + ' To ' + roomLink(needyTerminal) + ' From ' + roomLink(terminal.room.name), "Market: ");
                     usedTerminals[needyTerminal] = {tick: Game.time};
                     usedTerminals[terminal.room.name] = {tick: Game.time};
                     return true;

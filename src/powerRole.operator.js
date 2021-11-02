@@ -149,6 +149,10 @@ function upgradePowers(powerCreep) {
     else if (powerCreep.level >= 10 && (!powerCreep.powers[PWR_REGEN_SOURCE] || powerCreep.powers[PWR_REGEN_SOURCE].level < 3 || (powerCreep.level >= 14 && powerCreep.powers[PWR_REGEN_SOURCE].level < 4) || (powerCreep.level >= 22 && powerCreep.powers[PWR_REGEN_SOURCE].level < 5))) {
         return upgradeSwitch(powerCreep, PWR_REGEN_SOURCE)
     }
+    // Factory
+    else if (!powerCreep.powers[PWR_OPERATE_FACTORY]) {
+        return upgradeSwitch(powerCreep, PWR_OPERATE_FACTORY)
+    }
     // Tower
     else if (!powerCreep.powers[PWR_OPERATE_TOWER] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_TOWER].level < 2)) {
         return upgradeSwitch(powerCreep, PWR_OPERATE_TOWER)
