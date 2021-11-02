@@ -279,7 +279,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
     for (let i = 0; i < heal; i++) healArray.push(HEAL)
     let toughArray = [];
     for (let i = 0; i < tough; i++) toughArray.push(TOUGH)
-    if (role === 'SKAttacker') return toughArray.concat(moveArray, shuffle(body), healArray);
+    if (role === 'SKAttacker' || role === 'powerAttacker') return toughArray.concat(moveArray, shuffle(body), healArray);
     return toughArray.concat(shuffle(body), moveArray, healArray);
 };
 
