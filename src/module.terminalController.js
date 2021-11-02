@@ -277,7 +277,8 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
 function placeBuyOrders(terminal, globalOrders, myOrders) {
     for (let mineral of shuffle(BASE_MINERALS)) {
         // Don't buy minerals you can mine
-        let target = reactionAmount * (_.size(Memory.myRooms));
+        if (Memory.ownedMinerals.includes(mineral)) continue;
+        let target = reactionAmount * 3;
         let stored = getResourceTotal(mineral) || 0;
         if (stored < target) {
             let buyAmount = target - stored;
