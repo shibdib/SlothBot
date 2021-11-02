@@ -6,20 +6,39 @@
  */
 
 let Log = require('logger');
+let activeConfig;
 
 let globals = function () {
     // Try to load a private server config otherwise load the default
     try {
-        require(Game.shard.name);
-        console.log('Loaded config for ' + Game.shard.name);
-        if (_.includes(COMBAT_SERVER, Game.shard.name)) console.log('Combat Server Mode Active - All Players Considered Hostile');
+        if (activeConfig) {
+            require(activeConfig);
+        } else {
+            require(Game.shard.name);
+            activeConfig = Game.shard.name;
+            console.log('Loaded config for ' + Game.shard.name);
+            if (_.includes(COMBAT_SERVER, Game.shard.name)) {
+                console.log('Combat Server Mode Active - All Players Considered Hostile');
+                console.log('Manual Allies (Overrides the above) - ' + JSON.stringify(MANUAL_FRIENDS));
+            } else {
+                console.log('Manual Enemies - ' + JSON.stringify(HOSTILES));
+                console.log('Manual Allies - ' + JSON.stringify(MANUAL_FRIENDS));
+            }
+        }
     } catch (e) {
-        try {
-            require(Memory.customConfig);
-            console.log('Loaded config for ' + Memory.customConfig);
-        } catch (e) {
+        if (activeConfig) {
+            require(activeConfig);
+        } else {
             require('config');
-            console.log('No custom config found loading config.js');
+            activeConfig = 'config';
+            console.log('No custom config found loading default config.js');
+            if (_.includes(COMBAT_SERVER, Game.shard.name)) {
+                console.log('Combat Server Mode Active - All Players Considered Hostile');
+                console.log('Manual Allies (Overrides the above) - ' + JSON.stringify(MANUAL_FRIENDS));
+            } else {
+                console.log('Manual Enemies - ' + JSON.stringify(HOSTILES));
+                console.log('Manual Allies - ' + JSON.stringify(MANUAL_FRIENDS));
+            }
         }
     }
     global.LAYOUT_VERSION = 1.53;
