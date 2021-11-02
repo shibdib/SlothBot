@@ -514,7 +514,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             } else if (!Memory.roomCache[remoteName].sk) {
                 let multi = room.energy / (ENERGY_AMOUNT[room.level || 1] * 2);
-                if (!room.storage) multi = 1;
+                if (!room.storage || multi > 2) multi = 2;
                 else if (multi < 0.1) multi = 0.1;
                 let score = REMOTE_SOURCE_SCORE * multi;
                 if (skMining) score = REMOTE_SOURCE_SCORE * (multi * 0.7);
