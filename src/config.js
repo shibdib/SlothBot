@@ -15,7 +15,6 @@ global.RAMPART_ACCESS = true // Allow friends and allies access thru ramparts
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
 global.HOLD_SECTOR = true; // Attack rooms in sectors you have rooms (ignores local sphere)
 global.ATTACK_LOCALS = true; // Attacks targets within range of the next entry
-global.LOCAL_SPHERE = 2; // Range that rooms consider local via linear distance
 global.NEW_SPAWN_DENIAL = true; // Crush new spawns immediately
 global.OFFENSIVE_OPERATIONS = true; // Offensive Combat
 global.NCP_HOSTILE = true; // Always attack users of open source bots

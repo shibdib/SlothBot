@@ -49,7 +49,7 @@ module.exports.memHack = function () {
 module.exports.CPULimits = function () {
     let totalLimit = Game.cpu.limit;
     CPU_TASK_LIMITS['roomLimit'] = adjustedCPULimit(totalLimit * 0.75, Game.cpu.bucket, 8000);
-    if (Memory._threatList && Memory._threatList.length) {
+    if (Memory._threats && Memory._threats.length) {
         CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.02, Game.cpu.bucket, 7000);
         CPU_TASK_LIMITS['hiveTasks'] = adjustedCPULimit(totalLimit * 0.10, Game.cpu.bucket, BUCKET_MAX);
     } else {
@@ -135,10 +135,9 @@ module.exports.status = function () {
             console.log(e.stack)
         }
         try {
-            if (Memory._badBoyArray && Memory._badBoyArray.length) {
+            if (Memory._enemies && Memory._enemies.length) {
                 log.a('--DIPLOMATIC INFO--', ' ');
                 if (Memory._enemies && Memory._enemies.length) log.e('Current Enemies: ' + Memory._enemies.join(", "), ' ');
-                if (Memory._nuisance && Memory._nuisance.length) log.e('Current Nuisances: ' + Memory._nuisance.join(", "), ' ');
             }
         } catch (e) {
             log.a('--DIPLOMATIC INFO FAILED--', ' ');

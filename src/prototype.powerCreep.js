@@ -169,46 +169,6 @@ Object.defineProperty(PowerCreep.prototype, 'isFull', {
     configurable: true
 });
 
-PowerCreep.prototype.reportDamage = function () {
-    if (!this.memory._lastHits) return this.memory._lastHits = this.hits;
-    if (this.hits < this.memory._lastHits) {
-        this.memory.underAttack = true;
-        if (this.room.controller && ((this.room.controller.owner && this.room.controller.owner.username !== MY_USERNAME) || (this.room.controller.reservation && this.room.controller.reservation.username !== MY_USERNAME)) && this.memory.destination !== this.room.name) return false;
-        let nearbyCreeps = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => c.pos.getRangeTo(this) <= 3 && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.owner.username !== MY_USERNAME), 'owner.username'));
-        if (nearbyCreeps.length) {
-            for (let key in nearbyCreeps) {
-                let user = nearbyCreeps[key];
-                if (user === MY_USERNAME) continue;
-                let cache = Memory._userList || {};
-                let standing;
-                if (cache[user]) {
-                    if (cache[user].lastAction + 10 > Game.time) return true;
-                    log.e(this.name + ' has taken damage in ' + this.room.name + '. Adjusting threat rating for ' + user);
-                    if (_.includes(FRIENDLIES, user)) {
-                        standing = cache[user]['standing'] + 0.1;
-                    } else {
-                        standing = cache[user]['standing'] + 0.5;
-                    }
-                } else {
-                    if (_.includes(FRIENDLIES, user)) {
-                        standing = 2.5;
-                    } else {
-                        standing = 50;
-                    }
-                }
-                cache[user] = {
-                    standing: standing,
-                    lastAction: Game.time,
-                };
-                Memory._badBoyList = cache;
-            }
-        }
-    } else {
-        this.memory.underAttack = undefined;
-    }
-    this.memory._lastHits = this.hits;
-};
-
 
 PowerCreep.prototype.fleeRoom = function (room) {
     if (this.room.name !== room) return this.idleFor(this.memory.fleeNukeTime);

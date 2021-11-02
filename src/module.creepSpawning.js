@@ -29,9 +29,6 @@ module.exports.processBuildQueue = function (room) {
     if (availableSpawn) {
         let body, role, queue, cost, queuedBuild;
         let level = room.level;
-        // Filter ops by range
-        let range = LOCAL_SPHERE * 2;
-        if (room.energyState) range = LOCAL_SPHERE * 4;
         // Global queue, if far away or lacking energy it's low priority
         let combatQueue = globalQueue;
         if (room.level === room.controller.level && _.size(combatQueue) && !Memory.roomCache[room.name].threatLevel && (room.level >= 4)) {
@@ -40,7 +37,7 @@ module.exports.processBuildQueue = function (room) {
                     if (combatQueue[q].priority <= PRIORITIES.priority || (Memory.roomCache[combatQueue[q].destination] && Memory.roomCache[combatQueue[q].destination].closestRoom === room.name)) combatQueue[q].priority = PRIORITIES.secondary; else delete combatQueue[q];
                 } else if (combatQueue[q].destination) {
                     let distance = Game.map.getRoomLinearDistance(combatQueue[q].destination, room.name);
-                    if (distance > range) combatQueue[q].priority = PRIORITIES.secondary;
+                    if (distance > ROOM_INFLUENCE_RANGE) combatQueue[q].priority = PRIORITIES.secondary;
                 }
             })
             queue = _.sortBy(Object.assign({}, combatQueue, roomQueue[room.name]), 'priority');
@@ -261,7 +258,9 @@ module.exports.miscCreepQueue = function (room) {
         queueCreep(room, PRIORITIES.drone + 1, {role: 'maintenance'})
     }
     // Waller
-    if (getCreepCount(room, 'waller') < room.energyState + 1 && room.level >= 3) {
+    let number = 1;
+    if (room.energyState || Memory.roomCache[room.name].threatLevel) number = 2;
+    if (getCreepCount(room, 'waller') < number && room.level >= 3) {
         queueCreep(room, PRIORITIES.drone + 1, {role: 'waller'})
     }
     // If no conflict detected
@@ -383,8 +382,6 @@ module.exports.miscCreepQueue = function (room) {
 };
 
 //Remote creeps
-let centerRoom = {};
-let activeSK = {};
 let remoteTick = {};
 module.exports.remoteCreepQueue = function (room) {
     if (remoteTick[room.name] + 10 > Game.time) return;
@@ -437,6 +434,8 @@ module.exports.remoteCreepQueue = function (room) {
     let remotes, skMining;
     if (remoteHives[room.name] && JSON.parse(remoteHives[room.name]).length) {
         remotes = JSON.parse(remoteHives[room.name]);
+        // Check if SK mining
+        if (room.level >= 7 && _.find(remotes, (r) => Memory.roomCache[r.room].sk && !Memory.roomCache[r.room].invaderCore && !Memory.roomCache[r.room].threatLevel)) skMining = true;
         for (let source of remotes) {
             let remoteName = source.room;
             // If avoid is set continue
@@ -486,15 +485,10 @@ module.exports.remoteCreepQueue = function (room) {
             if (Memory.roomCache[remoteName] && Memory.roomCache[remoteName].reservation && Memory.roomCache[remoteName].reservation !== MY_USERNAME) continue;
             // Handle rooms that can't be reached safely
             if (!room.routeSafe(remoteName)) continue;
-            // If SK mining don't do anything else
-            if (!skMining && room.level >= 7 && _.find(remotes, (r) => Memory.roomCache[r.room].sk && !Memory.roomCache[r.room].invaderCore && !Memory.roomCache[r.room].threatLevel)) skMining = true;
             // Handle SK
             if (Memory.roomCache[remoteName].sk && room.level >= 7) {
-                if (Memory.roomCache[remoteName].invaderCore || Memory.roomCache[remoteName].threatLevel >= 2) {
-                    activeSK[room.name] = undefined;
-                    continue;
-                }
-                activeSK[room.name] = true;
+                // If invader core continue
+                if (Memory.roomCache[remoteName].invaderCore) continue;
                 if (!getCreepCount(undefined, 'SKAttacker', remoteName) || (getCreepTTL(remoteName, 'SKAttacker') < 250 && getCreepCount(undefined, 'SKAttacker', remoteName) === 1)) {
                     queueCreep(room, PRIORITIES.remoteHarvester - 1, {
                         role: 'SKAttacker',
@@ -513,7 +507,7 @@ module.exports.remoteCreepQueue = function (room) {
                     queueCreep(room, PRIORITIES.SKWorker, {role: 'SKMineral', destination: remoteName})
                 }
             } else if (!Memory.roomCache[remoteName].sk) {
-                let multi = room.energy / (ENERGY_AMOUNT[room.level || 1] * 2);
+                let multi = (ENERGY_AMOUNT[room.level || 1] * 2) / room.energy;
                 if (!room.storage || multi > 2) multi = 2;
                 else if (multi < 0.1) multi = 0.1;
                 let score = REMOTE_SOURCE_SCORE * multi;
@@ -946,9 +940,6 @@ function displayQueue(room) {
     room = Game.rooms[room];
     if (!room) return;
     let level = room.level;
-    // Filter ops by range
-    let range = LOCAL_SPHERE * 2;
-    if (room.energyState) range = LOCAL_SPHERE * 4;
     // Global queue, if far away or lacking energy it's low priority
     let combatQueue = globalQueue;
     if (room.level === room.controller.level && _.size(combatQueue) && !Memory.roomCache[room.name].threatLevel && (room.level >= 4)) {
@@ -957,7 +948,7 @@ function displayQueue(room) {
                 if (combatQueue[q].priority <= PRIORITIES.priority || (Memory.roomCache[combatQueue[q].destination] && Memory.roomCache[combatQueue[q].destination].closestRoom === room.name)) combatQueue[q].priority = PRIORITIES.secondary; else delete combatQueue[q];
             } else if (combatQueue[q].destination) {
                 let distance = Game.map.getRoomLinearDistance(combatQueue[q].destination, room.name);
-                if (distance > range) combatQueue[q].priority = PRIORITIES.secondary;
+                if (distance > ROOM_INFLUENCE_RANGE) combatQueue[q].priority = PRIORITIES.secondary;
             }
         })
         queue = _.sortBy(Object.assign({}, combatQueue, roomQueue[room.name]), 'priority');

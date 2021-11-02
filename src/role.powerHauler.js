@@ -23,8 +23,10 @@ module.exports.role = function (creep) {
                     break;
             }
         } else {
-            Memory.auxiliaryTargets[creep.room.name] = undefined;
-            creep.suicide();
+            if (!_.find(creep.room.structures, (s) => s.structureType === STRUCTURE_POWER_BANK)) {
+                Memory.auxiliaryTargets[creep.room.name] = undefined;
+                creep.suicide();
+            }
         }
     } else {
         creep.memory.closestRoom = creep.memory.closestRoom || creep.room.findClosestOwnedRoom(false, 6);

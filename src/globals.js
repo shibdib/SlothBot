@@ -33,6 +33,7 @@ let globals = function () {
     global.REMOTE_SOURCE_SCORE = 200; // Set the score for remote sources to be mined (higher means more sources but further)
     global.REMOTE_HAULER_CAP = 2; // Max number of haulers per harv
     global.AVOID_ATTACKING_ALLIANCES = true;
+    global.ROOM_INFLUENCE_RANGE = 8; // Range that rooms consider local via linear distance
 
     // Energy income breakdown (Not used atm)
     global.ROOM_ENERGY_ALLOTMENT = {

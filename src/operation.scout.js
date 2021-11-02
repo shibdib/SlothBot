@@ -55,7 +55,7 @@ function operationPlanner(room, creep = undefined) {
     // Prioritize based on range
     let range = room.findClosestOwnedRoom(true);
     let priority;
-    if (range <= LOCAL_SPHERE) priority = 1; else if (range <= LOCAL_SPHERE * 1.25) priority = 2; else if (range <= LOCAL_SPHERE * 2) priority = 3; else priority = 4;
+    if (range <= ROOM_INFLUENCE_RANGE * 0.2) priority = 1; else if (range <= ROOM_INFLUENCE_RANGE * 0.5) priority = 2; else if (range <= ROOM_INFLUENCE_RANGE * 0.75) priority = 3; else priority = 4;
     // Plan op based on room comp
     let cache = Memory.targetRooms || {};
     let tick = Game.time;
@@ -219,6 +219,6 @@ function forwardObserver(room) {
     }
     let range = room.findClosestOwnedRoom(true);
     let priority;
-    if (range <= LOCAL_SPHERE) priority = 1; else if (range <= LOCAL_SPHERE * 1.25) priority = 2; else if (range <= LOCAL_SPHERE * 2) priority = 3; else priority = 4;
+    if (range <= ROOM_INFLUENCE_RANGE * 0.2) priority = 1; else if (range <= ROOM_INFLUENCE_RANGE * 0.5) priority = 2; else if (range <= ROOM_INFLUENCE_RANGE * 0.75) priority = 3; else priority = 4;
     if (Memory.targetRooms[room.name]) Memory.targetRooms[room.name].priority = priority;
 }

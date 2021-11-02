@@ -178,6 +178,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
             if (level >= 6) {
                 claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.2))) || 1;
+                if (claim > 20) claim = 20;
                 move = claim * 0.5;
             } else move = claim;
             break;

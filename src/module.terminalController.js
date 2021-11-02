@@ -242,7 +242,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         // Avoid Duplicates
         if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
         // Energy
-        if (resourceType === RESOURCE_ENERGY) sellAmount = terminal.room.energy - ENERGY_AMOUNT[terminal.room.level] * 2;
+        if (resourceType === RESOURCE_ENERGY && terminal.room.energyState >= 2) sellAmount = terminal.room.energy - ENERGY_AMOUNT[terminal.room.level] * 2; else if (terminal.room.energyState < 2) continue;
         // Handle minerals
         if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS, BASE_COMMODITIES), resourceType)) {
             let mineralCutoff = REACTION_AMOUNT;

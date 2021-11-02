@@ -18,60 +18,54 @@ module.exports.diplomacyOverlord = function () {
 };
 
 function threatManager() {
-    Memory._badBoyArray = [];
+    // Clean old arrays
+    Memory._badBoyArray = undefined;
+    Memory._badBoyList = undefined;
+    Memory._nuisance = undefined;
+    Memory._threatList = undefined;
+    // Redeclare every time
     Memory._enemies = [];
     Memory._threats = [];
-    Memory._nuisance = [];
-    Memory._threatList = [];
-    for (let key in Memory._userList) {
-        if (key === MY_USERNAME || !key || key === 'undefined') continue;
-        let user = Memory._userList[key];
+    // Process known users
+    for (let name in Memory._userList) {
+        if (name === MY_USERNAME || !name || name === 'undefined') continue;
+        let user = Memory._userList[name];
         // Handle routine drift
         let currentRating = user.standing;
-        if (user.lastAction + 50 < Game.time || user.lastChange + 250 < Game.time) {
-            // If at 0 continue
-            if (currentRating === 0) continue;
+        if (currentRating === 0) continue;
+        if (user.lastAction + 25 < Game.time && user.lastChange + 100 < Game.time) {
             // Set limits
-            if (currentRating > 50) currentRating = 50; else if (currentRating < -1500) currentRating = -1500;
-            // If user is friendly decrease to 0 else increase enemies to 0
-            if (currentRating > 0) {
+            if (currentRating > 100) currentRating = 100; else if (currentRating < -1000) currentRating = -1000;
+            // If user is friendly decrease to 5 else increase enemies to 0
+            if (currentRating > 5) {
                 currentRating -= 0.25;
-                if (currentRating === 0) log.w(key + ' is no longer considered a friend.');
+                if (currentRating === 0) log.w(name + ' is no longer considered a friend.');
             } else {
                 currentRating += 0.25;
-                if (currentRating === 0) log.w(key + ' is no longer considered a threat.');
+                if (currentRating === 0) log.w(name + ' is no longer considered a threat.');
             }
-            Memory._userList[key].standing = currentRating;
-            Memory._userList[key].lastChange = Game.time;
+            Memory._userList[name].standing = currentRating;
+            Memory._userList[name].lastChange = Game.time;
         }
-        if (currentRating < 0) {
-            Memory._threats.push(key);
+        // Enemies are very bad
+        if (currentRating < -500) {
+            Memory._enemies.push(name);
         }
-        if (currentRating < -500 || (Memory.ncpArray && _.includes(Memory.ncpArray, key))) {
-            Memory._enemies.push(key);
-        } else if (currentRating < -25) {
-            Memory._nuisance.push(key);
-        }
+        // _threats is the master list of baddies
         if (currentRating < -5) {
-            Memory._threatList.push(key);
+            Memory._threats.push(name);
         }
     }
     // Add manual enemies
     Memory._enemies = _.union(Memory._enemies, HOSTILES);
-    Memory._threatList = _.union(Memory._threatList, HOSTILES);
-    // If Not Standard/S+ Server everyone except manually specified are hostile
-    if (_.includes(COMBAT_SERVER, Game.shard.name)) Memory._enemies = _.filter(Object.keys(Memory._userList), (p) => p !== '' && p !== 'undefined' && !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME && !_.includes(FRIENDLIES, p));
-    // NCP's are always hostile (Also clean NCP array)
-    if (NCP_HOSTILE && Memory.ncpArray && Memory.ncpArray.length) {
-        if (Math.random() > 0.5) _.remove(Memory.ncpArray, (u) => !_.includes(_.pluck(Memory.roomCache, 'user'), u));
-        Memory._enemies = _.union(Memory._enemies, Memory.ncpArray);
-        Memory._threatList = _.union(Memory._threatList, Memory.ncpArray);
-    }
+    Memory._threats = _.union(Memory._threats, HOSTILES);
+    // Check shard name for a combat server
+    if (COMBAT_SERVER.includes(Game.shard.name)) Memory._enemies = _.filter(Object.keys(Memory._userList), (p) => p !== '' && p !== 'undefined' && !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME && !_.includes(FRIENDLIES, p));
+    // Randomly clean NCP array
+    if (Memory.ncpArray && Memory.ncpArray.length && Math.random() > 0.) _.remove(Memory.ncpArray, (u) => !_.includes(_.pluck(Memory.roomCache, 'user'), u));
     // Clean up lists
-    Memory._badBoyArray = _.uniq(_.filter(Memory._badBoyArray, (p) => p !== null && p !== undefined && p !== 'undefined'));
+    Memory._threats = _.uniq(_.filter(Memory._threats, (p) => p !== null && p !== undefined && p !== 'undefined'));
     Memory._enemies = _.uniq(_.filter(Memory._enemies, (p) => p !== null && p !== undefined && p !== 'undefined'));
-    Memory._nuisance = _.uniq(_.filter(Memory._nuisance, (p) => p !== null && p !== undefined && p !== 'undefined'));
-    Memory._threatList = _.uniq(_.filter(Memory._threatList, (p) => p !== null && p !== undefined && p !== 'undefined'));
 }
 
 module.exports.trackThreat = function (creep) {
@@ -84,10 +78,11 @@ module.exports.trackThreat = function (creep) {
             let cache = Memory._userList || {};
             cache[user] = {};
             cache[user]['standing'] = 0;
+            cache[user]['lastAction'] = Game.time;
             cache[user]['lastChange'] = Game.time;
             Memory._userList = cache;
         }
-        let enemiesAttacked = _.filter(creep.room.getEventLog(), (e) => e.event === EVENT_ATTACK && Game.getObjectById(e.objectId) && !_.includes(Memory._threatList, Game.getObjectById(e.objectId).owner.username) && Game.getObjectById(e.targetId) && _.includes(Memory._threatList, Game.getObjectById(e.targetId).owner.username));
+        let enemiesAttacked = _.filter(creep.room.getEventLog(), (e) => e.event === EVENT_ATTACK && Game.getObjectById(e.objectId) && !_.includes(Memory._threats, Game.getObjectById(e.objectId).owner.username) && Game.getObjectById(e.targetId) && _.includes(Memory._threatList, Game.getObjectById(e.targetId).owner.username));
         for (let attack of enemiesAttacked) {
             let coopUser = Game.getObjectById(attack.objectId).owner.username;
             let cache = Memory._userList || {};
@@ -98,6 +93,7 @@ module.exports.trackThreat = function (creep) {
                 cache[coopUser] = {};
                 cache[coopUser]['standing'] = 1;
             }
+            cache[coopUser]['lastAction'] = Game.time;
             cache[coopUser]['lastChange'] = Game.time;
             Memory._userList = cache;
         }
@@ -153,8 +149,9 @@ module.exports.trackThreat = function (creep) {
                 cache[user] = {
                     standing: standing,
                     lastAction: Game.time,
+                    lastChange: Game.time
                 };
-                Memory._badBoyList = cache;
+                Memory._userList = cache;
             }
         }
     }
@@ -178,8 +175,9 @@ module.exports.trackThreat = function (creep) {
                 cache[user] = {
                     standing: standing,
                     lastAction: Game.time,
+                    lastChange: Game.time
                 };
-                Memory._badBoyList = cache;
+                Memory._userList = cache;
             }
         }
     }

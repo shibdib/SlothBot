@@ -185,7 +185,7 @@ function addThreat(room) {
                 standing: standing,
                 lastAction: Game.time,
             };
-            Memory._badBoyList = cache;
+            Memory._userList = cache;
         }
     }
 }
