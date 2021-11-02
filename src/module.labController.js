@@ -34,10 +34,10 @@ function manageBoostProduction(room) {
     let boostList = _.union(LAB_PRIORITY, BASE_COMPOUNDS, TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS);
     for (let key in boostList) {
         // Check if we already have enough
-        let cutOff = REACTION_AMOUNT;
+        let cutOff = BOOST_AMOUNT;
         // Ghodium special case, always have NUKER_GHODIUM_CAPACITY * 2
-        if (boostList[key] === RESOURCE_GHODIUM && cutOff < NUKER_GHODIUM_CAPACITY * 2) cutOff = NUKER_GHODIUM_CAPACITY * 2;
-        if (_.includes(LAB_PRIORITY, boostList[key])) cutOff = REACTION_AMOUNT * 2.5;
+        if (boostList[key] === RESOURCE_GHODIUM) cutOff = (NUKER_GHODIUM_CAPACITY * 2.5) + (SAFE_MODE_COST * 1.5);
+        if (_.includes(LAB_PRIORITY, boostList[key])) cutOff = BOOST_AMOUNT * 1.5;
         if (room.store(boostList[key], true) >= cutOff) continue;
         // Only one hub per output
         //if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === boostList[key]).length) continue;
@@ -94,10 +94,10 @@ function manageActiveLabs() {
                     case OK:
                         // Check if we already have enough
                         let cutOff = BOOST_AMOUNT * 1.5;
-                        // Ghodium special case, always have 1k
-                        if (outputLab.memory.creating === RESOURCE_GHODIUM && cutOff < 1000) cutOff = 1000;
-                        if (_.includes(LAB_PRIORITY, outputLab.memory.creating)) cutOff = BOOST_AMOUNT * 5;
-                        if (outputLab.room.store(outputLab.memory.creating) + outputLab.store[outputLab.memory.creating] > cutOff) {
+                        // Ghodium special case, always have NUKER_GHODIUM_CAPACITY * 2
+                        if (outputLab.memory.creating === RESOURCE_GHODIUM) cutOff = (NUKER_GHODIUM_CAPACITY * 5) + (SAFE_MODE_COST * 3);
+                        if (_.includes(LAB_PRIORITY, outputLab.memory.creating)) cutOff = BOOST_AMOUNT * 3;
+                        if (outputLab.room.store(outputLab.memory.creating, true) + outputLab.store[outputLab.memory.creating] > cutOff) {
                             log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
                             for (let id in hub) {
                                 hub[id].memory = undefined;

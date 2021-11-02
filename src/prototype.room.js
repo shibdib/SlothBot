@@ -323,7 +323,7 @@ function getRoomResource(room, resource, unused = false) {
             s.structureType !== STRUCTURE_SPAWN && s.structureType !== STRUCTURE_EXTENSION && s.structureType !== STRUCTURE_LAB).forEach((s) => count += s.store.getUsedCapacity(resource));
         _.filter(room.structures, (s) => resource !== RESOURCE_ENERGY && s.store && s.store.getUsedCapacity(resource) && s.structureType === STRUCTURE_LAB && resource !== s.memory.itemNeeded).forEach((s) => count += s.store.getUsedCapacity(resource));
     } else {
-        _.filter(room.structures, (s) => s.store && s.store.getUsedCapacity(resource) && (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_CONTAINER)).forEach((s) => count += s.store.getUsedCapacity(resource));
+        _.filter(room.structures, (s) => s.store && s.store.getUsedCapacity(resource) && (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_FACTORY)).forEach((s) => count += s.store.getUsedCapacity(resource));
     }
     if (!unused || resource !== RESOURCE_ENERGY) _.filter(room.creeps, (c) => c.store[resource]).forEach((c) => count += c.store[resource]);
     _.filter(room.droppedResources, (r) => r.resourceType === resource).forEach((r) => count += r.amount);

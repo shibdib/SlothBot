@@ -75,7 +75,7 @@ module.exports.factoryControl = function (room) {
                         let enough;
                         for (let neededResource of Object.keys(COMMODITIES[mineral].components)) {
                             enough = false;
-                            if (room.store(neededResource) + room.factory.store[neededResource] < COMMODITIES[mineral].components[neededResource]) break;
+                            if (room.store(neededResource) < COMMODITIES[mineral].components[neededResource]) break;
                             enough = true;
                         }
                         if (enough) {

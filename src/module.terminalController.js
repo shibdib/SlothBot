@@ -522,8 +522,8 @@ function balanceResources(terminal) {
         if (BASE_MINERALS.includes(resource)) keepAmount = REACTION_AMOUNT;
         // Keep 5000 compressed
         if (COMPRESSED_COMMODITIES.includes(resource)) keepAmount = 5000;
-        // Ghodium special case, always have SAFE_MODE_COST
-        if (resource === RESOURCE_GHODIUM) keepAmount = SAFE_MODE_COST;
+        // Ghodium special case, always have SAFE_MODE_COST and NUKER_GHODIUM_CAPACITY
+        if (resource === RESOURCE_GHODIUM) keepAmount = SAFE_MODE_COST + NUKER_GHODIUM_CAPACITY;
         if (terminal.room.nukes.length) keepAmount = 0;
         // Next resource if we don't have enough to send
         let available = terminal.room.store(resource) - keepAmount;
