@@ -290,40 +290,40 @@ function operationRequests() {
         }
     }
     if (totalCountFiltered < OPERATION_LIMIT) {
-        let initialFilter = _.filter(Memory.roomCache, (r) => r.closestRange <= ROOM_INFLUENCE_RANGE && _.includes(Memory._threats, r.user) && !Memory.targetRooms[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !checkForNap(r.user) && !_.includes(FRIENDLIES, r.user) && (!r.safemode || r.safemode - 500 < Game.time));
         // Kill strongholds
-        let stronghold = _.sortBy(_.filter(initialFilter, (r) => r.sk && r.towers && r.towers < 3 && r.closestRange <= 5), function (t) {
+        let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => r.closestRange <= ROOM_INFLUENCE_RANGE && r.sk && r.towers && r.towers < 3 && r.closestRange <= 5), function (t) {
             return t.closestRange
-        });
-        if (stronghold[0] && Memory.maxLevel >= 7) {
+        })[0];
+        if (stronghold && Memory.maxLevel >= 7) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
-            cache[stronghold[0].name] = {
+            cache[stronghold.name] = {
                 tick: tick,
                 type: 'siegeGroup',
                 level: 1
             };
             Memory.targetRooms = cache;
-            return log.a('Stronghold attack operation planned for ' + roomLink(stronghold[0].name) + ' SUSPECTED INVADER STRONGHOLD (Nearest Friendly Room - ' + stronghold[0].closestRange + ' rooms away)', 'HIGH COMMAND: ');
+            return log.a('Stronghold attack operation planned for ' + roomLink(stronghold.name) + ' SUSPECTED INVADER STRONGHOLD (Nearest Friendly Room - ' + stronghold.closestRange + ' rooms away)', 'HIGH COMMAND: ');
         }
         // Direct Room Attacks
         if (OFFENSIVE_OPERATIONS) {
+            let initialFilter = _.filter(Memory.roomCache, (r) => r.closestRange <= ROOM_INFLUENCE_RANGE && r.user && !_.includes(FRIENDLIES, r.user) && _.includes(Memory._threats, r.user) && !Memory.targetRooms[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !checkForNap(r.user) && (!r.safemode || r.safemode - 500 < Game.time));
             // New Spawn Denial/No towers
             let newSpawns = _.sortBy(_.filter(initialFilter, (r) => !r.towers && r.owner && r.owner !== 'Invader'
                 && (!r.safemode || r.safemode - 500 < Game.time)), function (t) {
                 return t.closestRange
-            });
-            if (newSpawns[0]) {
+            })[0];
+            if (newSpawns) {
                 let cache = Memory.targetRooms || {};
-                cache[newSpawns[0].name] = {
+                cache[newSpawns.name] = {
                     tick: Game.time,
                     type: 'hold',
                     level: 0,
                     priority: 1
                 };
                 Memory.targetRooms = cache;
-                Memory.roomCache[newSpawns[0].name].lastOperation = Game.time;
-                return log.a('Hold operation planned for ' + roomLink(newSpawns[0].name) + ' owned by ' + newSpawns[0].user + ' (Nearest Friendly Room - ' + newSpawns[0].closestRange + ' rooms away)', 'HIGH COMMAND: ');
+                Memory.roomCache[newSpawns.name].lastOperation = Game.time;
+                return log.a('Hold operation planned for ' + roomLink(newSpawns.name) + ' owned by ' + newSpawns.user + ' (Nearest Friendly Room - ' + newSpawns.closestRange + ' rooms away)', 'HIGH COMMAND: ');
             }
             // Harass attacks
             let target = _.sortBy(_.filter(initialFilter, (r) => r.owner && r.owner !== 'Invader'), function (t) {
@@ -345,19 +345,19 @@ function operationRequests() {
             if (Memory.maxLevel < 7) {
                 let swarmTargets = _.sortBy(_.filter(initialFilter, (r) => r.swarm && r.owner && r.owner !== 'Invader' && _.includes(Memory._enemies, r.user) && r.towers === 1), function (t) {
                     return t.closestRange
-                });
+                })[0];
                 let swarmCount = _.find(Memory.targetRooms, (target) => target && target.type === 'swarm');
-                if (swarmTargets[0] && !swarmCount) {
+                if (swarmTargets && !swarmCount) {
                     let cache = Memory.targetRooms || {};
-                    cache[swarmTargets[0].name] = {
+                    cache[swarmTargets.name] = {
                         tick: Game.time,
                         type: 'swarm',
                         level: 0,
                         priority: 1
                     };
                     Memory.targetRooms = cache;
-                    Memory.roomCache[swarmTargets[0].name].lastOperation = Game.time;
-                    return log.a('Swarm operation planned for ' + roomLink(swarmTargets[0].name) + ' owned by ' + swarmTargets[0].user + ' (Nearest Friendly Room - ' + swarmTargets[0].closestRange + ' rooms away)', 'HIGH COMMAND: ');
+                    Memory.roomCache[swarmTargets.name].lastOperation = Game.time;
+                    return log.a('Swarm operation planned for ' + roomLink(swarmTargets.name) + ' owned by ' + swarmTargets.user + ' (Nearest Friendly Room - ' + swarmTargets.closestRange + ' rooms away)', 'HIGH COMMAND: ');
                 }
             } else if ((!Memory.lastSiege || Memory.lastSiege + ATTACK_COOLDOWN < Game.time) && !_.filter(Memory.targetRooms, (target) => target && (target.type === 'siegeGroup' || target.type === 'drain')).length) {
                 let siegeTarget = _.sortBy(_.filter(initialFilter, (r) => r.owner && _.includes(Memory._enemies, r.user) && r.towers < 3), function (t) {

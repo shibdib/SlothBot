@@ -546,7 +546,7 @@ function balanceEnergy(terminal) {
         if (needyTerminal) {
             let requestedAmount, resource;
             // Send batteries if possible
-            if (terminal.store[RESOURCE_BATTERY] && Game.rooms[needyTerminal].factory) {
+            if (terminal.room.factory && Game.rooms[needyTerminal].factory) {
                 // Determine how much you can move
                 resource = RESOURCE_BATTERY;
                 let availableAmount = terminal.store[RESOURCE_BATTERY];
@@ -559,17 +559,19 @@ function balanceEnergy(terminal) {
                 requestedAmount = 15000;
                 if (requestedAmount > availableAmount) requestedAmount = availableAmount;
             }
-            switch (terminal.send(resource, requestedAmount, needyTerminal)) {
-                case OK:
-                    log.a('Balancing ' + requestedAmount + ' ' + resource + ' To ' + roomLink(needyTerminal) + ' From ' + roomLink(terminal.room.name), "Market: ");
-                    usedTerminals[needyTerminal] = {tick: Game.time};
-                    usedTerminals[terminal.room.name] = {tick: Game.time};
-                    return true;
+            if (requestedAmount) {
+                switch (terminal.send(resource, requestedAmount, needyTerminal)) {
+                    case OK:
+                        log.a('Balancing ' + requestedAmount + ' ' + resource + ' To ' + roomLink(needyTerminal) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                        usedTerminals[needyTerminal] = {tick: Game.time};
+                        usedTerminals[terminal.room.name] = {tick: Game.time};
+                        return true;
+                }
             }
         } else if (terminal.room.energyState > 2 && terminal.room.name !== Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].terminal.store.getFreeCapacity()) {
             let requestedAmount, resource;
             // Send batteries if possible
-            if (terminal.store[RESOURCE_BATTERY]) {
+            if (terminal.room.factory) {
                 // Determine how much you can move
                 resource = RESOURCE_BATTERY;
                 let availableAmount = terminal.store[RESOURCE_BATTERY];
@@ -582,11 +584,13 @@ function balanceEnergy(terminal) {
                 requestedAmount = 15000;
                 if (requestedAmount > availableAmount) requestedAmount = availableAmount;
             }
-            switch (terminal.send(resource, requestedAmount, Memory.saleTerminal.room)) {
-                case OK:
-                    log.a('Sent ' + requestedAmount + ' ' + resource + ' To ' + roomLink(Memory.saleTerminal.room) + ' From ' + roomLink(terminal.room.name) + ' to stockpile.', "Market: ");
-                    usedTerminals[terminal.room.name] = {tick: Game.time};
-                    return true;
+            if (requestedAmount) {
+                switch (terminal.send(resource, requestedAmount, Memory.saleTerminal.room)) {
+                    case OK:
+                        log.a('Sent ' + requestedAmount + ' ' + resource + ' To ' + roomLink(Memory.saleTerminal.room) + ' From ' + roomLink(terminal.room.name) + ' to stockpile.', "Market: ");
+                        usedTerminals[terminal.room.name] = {tick: Game.time};
+                        return true;
+                }
             }
         }
     }
