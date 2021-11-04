@@ -54,7 +54,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
                 carry = 1;
                 move = work + carry;
                 break;
-            } else if (!room.memory.controllerContainer) {
+            } else if (!room.memory.controllerContainer && room.level < 5) {
                 work = _.floor((energyAmount * 0.3) / BODYPART_COST[WORK]) || 1;
                 carry = _.floor((energyAmount * 0.2) / BODYPART_COST[CARRY]) || 1;
                 move = work + carry;
@@ -280,7 +280,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
     let toughArray = [];
     for (let i = 0; i < tough; i++) toughArray.push(TOUGH)
     if (role === 'SKAttacker' || role === 'powerAttacker') return toughArray.concat(moveArray, shuffle(body), healArray);
-    return toughArray.concat(shuffle(body), moveArray, healArray);
+    else return toughArray.concat(shuffle(body), moveArray, healArray);
 };
 
 abilityPower = function (body) {

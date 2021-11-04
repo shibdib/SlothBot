@@ -113,7 +113,7 @@ module.exports.processBuildQueue = function (room) {
                         energyOrder[availableSpawn.room.name] = undefined;
                         return;
                     default:
-                        availableSpawn.say(availableSpawn.spawnCreep(body, name, {
+                        let error = availableSpawn.spawnCreep(body, name, {
                             memory: {
                                 born: Game.time,
                                 role: role,
@@ -126,7 +126,8 @@ module.exports.processBuildQueue = function (room) {
                                 misc: queuedBuild.misc
                             },
                             energyStructures: energyStructures
-                        }))
+                        });
+                        log.e('Spawn error in ' + availableSpawn.room.name + ' code ' + error + '. Name - ' + name + '. Body - ' + body);
                         return;
                 }
             }
