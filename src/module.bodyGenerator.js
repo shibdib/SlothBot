@@ -176,6 +176,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             break;
         case 'reserver':
             claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
+            if (claim > 20) claim = 20;
             if (level >= 6) {
                 claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.2))) || 1;
                 if (claim > 20) claim = 20;
@@ -239,6 +240,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         case 'robber':
         case 'powerHauler':
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
+            if (carry > 25) carry = 25;
             move = carry;
             break;
         /**case 'scoreHauler':
