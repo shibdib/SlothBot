@@ -228,7 +228,7 @@ function auxiliaryOperations() {
     }
     // Rebuild allies
     let alliedRoom = _.min(_.filter(initialFilter, (r) => r.owner && r.owner !== MY_USERNAME && FRIENDLIES.includes(r.owner) && r.level > 3 && !r.towers), 'closestRange');
-    if (alliedRoom.name) {
+    if (2 < 1 && alliedRoom.name) {
         let cache = Memory.auxiliaryTargets || {};
         let tick = Game.time;
         cache[alliedRoom.name] = {
