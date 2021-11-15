@@ -33,11 +33,14 @@ module.exports.processBuildQueue = function (room) {
         let combatQueue = globalQueue;
         if (room.level === room.controller.level && _.size(combatQueue) && !Memory.roomCache[room.name].threatLevel && (room.level >= 4)) {
             Object.keys(combatQueue).forEach(function (q) {
-                if (!room.energyState && !combatQueue[q].manual) {
+                // If you're the closest room, bump up priority
+                if (Memory.roomCache[combatQueue[q].destination].closestRoom === room.name) {
+                    combatQueue[q].priority *= 0.5;
+                } else if (!room.energyState && !combatQueue[q].manual) {
                     if (combatQueue[q].priority <= PRIORITIES.priority || (Memory.roomCache[combatQueue[q].destination] && Memory.roomCache[combatQueue[q].destination].closestRoom === room.name)) combatQueue[q].priority = PRIORITIES.secondary; else delete combatQueue[q];
                 } else if (combatQueue[q].destination) {
                     let distance = Game.map.getRoomLinearDistance(combatQueue[q].destination, room.name);
-                    if (distance > ROOM_INFLUENCE_RANGE) combatQueue[q].priority = PRIORITIES.secondary;
+                    if (distance > ROOM_INFLUENCE_RANGE) delete combatQueue[q]; else if (distance > ROOM_INFLUENCE_RANGE * 0.25) combatQueue[q].priority = PRIORITIES.secondary;
                 }
             })
             queue = _.sortBy(Object.assign({}, combatQueue, roomQueue[room.name]), 'priority');
@@ -694,7 +697,8 @@ module.exports.globalCreepQueue = function () {
                 }
                 break;
             case 'commodity': // Commodity Mining
-                if (!getCreepCount(undefined, 'commodityMiner', key)) {
+                let commoditySpace = operations[key].space || 2;
+                if (getCreepCount(undefined, 'commodityMiner', key) < commoditySpace) {
                     queueGlobalCreep(priority, {role: 'commodityMiner', destination: key, military: true})
                 }
                 break;

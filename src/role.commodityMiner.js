@@ -14,6 +14,7 @@ module.exports.role = function (creep) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22, offRoad: true});
     } else if (creep.memory.deposit && !creep.isFull) {
         let deposit = Game.getObjectById(creep.memory.deposit);
+        if (!Memory.auxiliaryTargets[creep.memory.destination].space) Memory.auxiliaryTargets[creep.memory.destination].space = deposit.pos.countOpenTerrainAround();
         if (!deposit) return creep.memory.deposit = undefined;
         if (deposit.lastCooldown >= 25 || creep.ticksToLive < 200) return creep.memory.deposit = undefined;
         switch (creep.harvest(deposit)) {

@@ -248,7 +248,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         }
         // Handle commodities
         if (_.includes(COMPRESSED_COMMODITIES, resourceType)) sellAmount = terminal.room.store(resourceType) - 3000;
-        if (_.includes(REGIONAL_0_COMMODITIES, resourceType)) sellAmount = terminal.room.store(resourceType) - 1000;
+        if (_.includes(REGIONAL_0_COMMODITIES, resourceType)) sellAmount = terminal.room.store(resourceType) - 500;
         if (_.includes(_.union(REGIONAL_1_COMMODITIES, REGIONAL_2_COMMODITIES, REGIONAL_3_COMMODITIES, REGIONAL_4_COMMODITIES, REGIONAL_5_COMMODITIES), resourceType)) sellAmount = terminal.room.store(resourceType);
         // Handle boosts
         if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS, [RESOURCE_POWER]), resourceType)) sellAmount = terminal.room.store(resourceType) - BOOST_TRADE_AMOUNT;
@@ -466,9 +466,13 @@ function balanceResources(terminal) {
         // Energy balance handled elsewhere
         if (resource === RESOURCE_ENERGY) continue;
         let keepAmount = reactionAmount;
-        // Send all of these
-        if (_.includes(ALL_COMMODITIES, resource) || resource === RESOURCE_OPS || resource === RESOURCE_POWER) {
+        let needyTerminal;
+        // Send all of these to the sale room
+        if ((ALL_COMMODITIES.includes(resource) && !COMPRESSED_COMMODITIES.includes(resource)) || resource === RESOURCE_OPS || resource === RESOURCE_POWER) {
             keepAmount = 0;
+            if (terminal.room.name !== Memory.saleTerminal.room) {
+                if (Game.rooms[Memory.saleTerminal.room].terminal.store.getFreeCapacity()) needyTerminal = Memory.saleTerminal.room; else continue;
+            } else continue;
         }
         // Keep boost amount
         if (ALL_BOOSTS.includes(resource)) keepAmount = BOOST_AMOUNT;
@@ -486,22 +490,23 @@ function balanceResources(terminal) {
         if (available > terminal.store[resource]) available = terminal.store[resource];
         if (available <= keepAmount * 0.1 || available < 100) continue;
         // Find room in need
-        let needyTerminal;
-        if (terminal.room.energyState) {
-            needyTerminal = _.find(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && !r.room.nukes.length && r.room.name !== terminal.room.name && r.room.store(resource) < keepAmount && Game.market.calcTransactionCost(5000, terminal.room.name, r.room.name) < terminal.room.energy * 0.01
-                && r.store.getFreeCapacity());
-        }
-        // If no needy terminal check for allied needs
-        if (!needyTerminal && _.size(ALLY_HELP_REQUESTS)) {
-            for (let ally of _.sortBy(_.filter(ALLY_HELP_REQUESTS), 'priority')) {
-                needyTerminal = _.find(ally, (r) => r.requestType === 0 && r.resourceType === resource);
-                if (needyTerminal) {
-                    needyTerminal = needyTerminal.roomName;
-                    break;
-                }
+        if (!needyTerminal) {
+            if (terminal.room.energyState) {
+                needyTerminal = _.find(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && !r.room.nukes.length && r.room.name !== terminal.room.name && r.room.store(resource) < keepAmount && Game.market.calcTransactionCost(5000, terminal.room.name, r.room.name) < terminal.room.energy * 0.01
+                    && r.store.getFreeCapacity());
             }
-        } else if (needyTerminal) {
-            needyTerminal = needyTerminal.room.name;
+            // If no needy terminal check for allied needs
+            if (!needyTerminal && _.size(ALLY_HELP_REQUESTS)) {
+                for (let ally of _.sortBy(_.filter(ALLY_HELP_REQUESTS), 'priority')) {
+                    needyTerminal = _.find(ally, (r) => r.requestType === 0 && r.resourceType === resource);
+                    if (needyTerminal) {
+                        needyTerminal = needyTerminal.roomName;
+                        break;
+                    }
+                }
+            } else if (needyTerminal) {
+                needyTerminal = needyTerminal.room.name;
+            }
         }
         if (needyTerminal) {
             let neededAmount = 5000;

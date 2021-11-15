@@ -83,7 +83,7 @@ module.exports.factoryControl = function (room) {
                             return room.factory.memory.producing = mineral;
                         }
                     }
-                    for (let commodity of shuffle(ALL_COMMODITIES)) {
+                    for (let commodity of ALL_COMMODITIES) {
                         // If a base continue
                         if (!COMMODITIES[commodity] || (room.store(commodity) >= DUMP_AMOUNT * 0.9 && !_.includes(COMPRESSED_COMMODITIES, commodity))) continue;
                         if (commodity === RESOURCE_BATTERY) continue;
