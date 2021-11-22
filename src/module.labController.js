@@ -24,7 +24,7 @@ module.exports.labManager = function () {
 
 function manageBoostProduction(room) {
     let hub;
-    let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.isActive());
+    let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && !s.memory.neededBoost && s.isActive());
     for (let lab of availableLabs) {
         hub = lab.pos.findInRange(room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_LAB && !s.memory.active});
         if (hub.length >= 3) break;
