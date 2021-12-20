@@ -8,9 +8,9 @@
 // BACKUP THIS FILE BETWEEN UPDATES!!!!!!!
 // Use this to modify how your o☺erlord bot runs
 
-global.COMBAT_SERVER = []; // Insert the Game.shard.name of servers you'd like to declare everyone hostile
-global.HOSTILES = ['QzarSTB', 'Saruss', 'Sergey', 'BarryOSeven']; // Manually set players as hostile
-global.MANUAL_FRIENDS = ['Yoner', 'Robalian', 'slowmotionghost', 'Modus']; // Manually set players as friends (overrides COMBAT_SERVER)
+global.COMBAT_SERVER = ['swc']; // Insert the Game.shard.name of servers you'd like to declare everyone hostile
+global.HOSTILES = []; // Manually set players as hostile
+global.MANUAL_FRIENDS = ['Bulletproof', 'Saruss', 'MarvinTMB', 'Robalian', 'Shibdib', 'Bycrome', 'Mirroar']; // Manually set players as friends (overrides COMBAT_SERVER)
 global.RAMPART_ACCESS = true // Allow friends and allies access thru ramparts
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
 global.HOLD_SECTOR = true; // Attack rooms in sectors you have rooms (ignores local sphere)

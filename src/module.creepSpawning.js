@@ -34,7 +34,7 @@ module.exports.processBuildQueue = function (room) {
         if (room.level === room.controller.level && _.size(combatQueue) && !Memory.roomCache[room.name].threatLevel && (room.level >= 4)) {
             Object.keys(combatQueue).forEach(function (q) {
                 // If you're the closest room, bump up priority
-                if (Memory.roomCache[combatQueue[q].destination].closestRoom === room.name) {
+                if (Memory.roomCache[combatQueue[q].destination] && Memory.roomCache[combatQueue[q].destination].closestRoom === room.name) {
                     combatQueue[q].priority *= 0.5;
                 } else if (!room.energyState && !combatQueue[q].manual) {
                     if (combatQueue[q].priority <= PRIORITIES.priority || (Memory.roomCache[combatQueue[q].destination] && Memory.roomCache[combatQueue[q].destination].closestRoom === room.name)) combatQueue[q].priority = PRIORITIES.secondary; else delete combatQueue[q];
@@ -226,11 +226,11 @@ module.exports.essentialCreepQueue = function (room) {
     if (room.controller.level < 8 && !room.memory.spawnDefenders && room.level === room.controller.level) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         if (container && room.storage) number = 2 * (room.energy / ENERGY_AMOUNT[room.level]);
-        else if (room.energy < 3500 || !container) number = 3; else number = container.pos.countOpenTerrainAround(false, true)
+        else if (room.energy < 3500 || !container) number = 3; else number = container.pos.countOpenTerrainAround(false, true) - 1;
     }
     if (getCreepCount(room, 'upgrader') < number) {
         //If room is about to downgrade get a creep out asap
-        let priority = PRIORITIES.upgrader + (getCreepCount(room, 'upgrader') * 5);
+        let priority = PRIORITIES.upgrader;
         if (reboot) priority = 2;
         queueCreep(room, priority, {
             role: 'upgrader',
@@ -317,7 +317,7 @@ module.exports.miscCreepQueue = function (room) {
             }
         }
         //Pre observer spawn explorers
-        if (Memory.maxLevel < 8 && !getCreepCount(room, 'explorer')) {
+        if (Memory.maxLevel < 8 && getCreepCount(room, 'explorer') < 4) { 
             queueCreep(room, PRIORITIES.explorer, {role: 'explorer'})
         }
         // Portal explorers

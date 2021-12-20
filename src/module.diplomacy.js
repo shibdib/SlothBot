@@ -8,7 +8,7 @@
 module.exports.diplomacyOverlord = function () {
     if (!Memory._userList) Memory._userList = {};
     //Manage friendlies
-    global.FRIENDLIES = _.union(LOANlist, [MY_USERNAME], ['Shibdib']);
+    global.FRIENDLIES = _.union(LOANlist, [MY_USERNAME], ['Shibdib'], MANUAL_FRIENDS);
     //Manage threats
     if (Game.time % 5 === 0 && Memory._userList) threatManager();
     //Manage symbol list for seasonal
@@ -60,7 +60,10 @@ function threatManager() {
     Memory._enemies = _.union(Memory._enemies, HOSTILES);
     Memory._threats = _.union(Memory._threats, HOSTILES);
     // Check shard name for a combat server
-    if (COMBAT_SERVER.includes(Game.shard.name)) Memory._enemies = _.filter(Object.keys(Memory._userList), (p) => p !== '' && p !== 'undefined' && !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME && !_.includes(FRIENDLIES, p));
+    if (COMBAT_SERVER.includes(Game.shard.name)) {
+        Memory._enemies = _.filter(Object.keys(Memory._userList), (p) => p !== '' && p !== 'undefined' && !_.includes(FRIENDLIES, p));
+        Memory._threats = Memory._enemies;
+    }
     // Randomly clean NCP array
     if (Memory.ncpArray && Memory.ncpArray.length && Math.random() > 0.) _.remove(Memory.ncpArray, (u) => !_.includes(_.pluck(Memory.roomCache, 'user'), u));
     // Clean up lists
