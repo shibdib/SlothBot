@@ -29,7 +29,8 @@ module.exports.role = function (creep) {
         } else {
             let adjacent = _.filter(_.map(Game.map.describeExits(creep.pos.roomName)), (r) => Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(creep.memory.overlord).status);
             // If there's unexplored prioritize else pick the oldest intel
-            let target = _.filter(adjacent, (r) => !Memory.roomCache[r])[0] || _.min(adjacent, (r) => Memory.roomCache[r].cached);
+            let target = _.sample(_.filter(adjacent, (r) => !Memory.roomCache[r])) || _.min(adjacent, (r) => Memory.roomCache[r].cached);
+            if (Math.random() > 0.9) target = _.sample(_.filter(adjacent));
             if (target) creep.memory.destination = target; else creep.idleFor(25);
         }
     } else if (creep.pos.roomName === creep.memory.destination) {

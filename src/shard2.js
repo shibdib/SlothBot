@@ -21,6 +21,15 @@ global.POKE_NEUTRALS = true; // Poke everyone
 global.OFFENSIVE_OPERATIONS = true; // Offensive Combat
 global.NCP_HOSTILE = true; // Always attack users of open source bots
 global.ATTACK_COOLDOWN = 4500; // Time between attacks on a room
+global.STATUS_COOLDOWN = 180; // Seconds between console status reports
+global.ROOM_ABANDON_THRESHOLD = 9900; // If bucket is consistently below this, abandon your lowest room
+global.SIGN_CLEANER = false; // Clean room signs away with explorers
+global.AVOID_ALLIED_SECTORS = true; // Dont claim rooms in allied sectors
+global.REMOTE_SOURCE_SCORE = 200; // Set the score for remote sources to be mined (higher means more sources but further)
+global.REMOTE_SOURCE_TARGET = 6; // The number of remote sources a room looks to have
+global.REMOTE_HAULER_CAP = 2; // Max number of haulers per harv
+global.AVOID_ATTACKING_ALLIANCES = true;
+global.ROOM_INFLUENCE_RANGE = 12; // Range that rooms consider local via linear distance
 
 // Seasonal Specific
 global.SEASON_RCL_CUTOFF = 8; // Only score in rooms greater than or equal to this

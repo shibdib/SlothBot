@@ -45,14 +45,6 @@ let globals = function () {
 
     global.PIXEL_GENERATION = false; //Generate Pixels?
     global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
-    global.STATUS_COOLDOWN = 180; // Seconds between console status reports
-    global.ROOM_ABANDON_THRESHOLD = 9900; // If bucket is consistently below this, abandon your lowest room
-    global.SIGN_CLEANER = false; // Clean room signs away with explorers
-    global.AVOID_ALLIED_SECTORS = true; // Dont claim rooms in allied sectors
-    global.REMOTE_SOURCE_SCORE = 200; // Set the score for remote sources to be mined (higher means more sources but further)
-    global.REMOTE_HAULER_CAP = 2; // Max number of haulers per harv
-    global.AVOID_ATTACKING_ALLIANCES = true;
-    global.ROOM_INFLUENCE_RANGE = 8; // Range that rooms consider local via linear distance
 
     // Energy income breakdown (Not used atm)
     global.ROOM_ENERGY_ALLOTMENT = {
@@ -129,7 +121,7 @@ let globals = function () {
         // Harvesters
         stationaryHarvester: 2,
         // Workers
-        drone: 6,
+        drone: 3,
         upgrader: 5,
         mineralHarvester: 7,
         // Haulers

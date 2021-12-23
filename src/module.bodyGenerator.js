@@ -48,7 +48,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             move = work + carry;
             break;
         case 'upgrader':
-            if (!room.terminal) deficitExemption = true;
             if (room.nukes.length) {
                 work = 1;
                 carry = 1;
@@ -73,7 +72,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         case 'shuttle':
             deficitExemption = true;
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
-            if (carry > level * 2) carry = level * 2;
+            if (carry > level * 3) carry = level * 3;
             if (!room.memory.roadsBuilt) move = carry; else move = _.ceil(carry / 2);
             break;
         case 'stationaryHarvester':
@@ -198,8 +197,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             break;
         case 'remoteHauler':
             deficitExemption = true;
-            if (level < 4) carry = _.floor((energyAmount * 0.50) / BODYPART_COST[CARRY]) || 1; else {
-                carry = _.floor((energyAmount * 0.7) / BODYPART_COST[CARRY]) || 1;
+            if (level < 5) carry = _.floor((energyAmount * 0.50) / BODYPART_COST[CARRY]) || 1; else {
+                carry = _.floor((energyAmount * 0.6) / BODYPART_COST[CARRY]) || 1;
             }
             if (Game.getObjectById(creepInfo.misc)) {
                 let harvesterAmountNeeded = Game.getObjectById(creepInfo.misc).memory.carryAmountNeeded;
@@ -209,9 +208,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
                 if ((carry * CARRY_CAPACITY) > harvesterAmountNeeded - current) carry = _.ceil((harvesterAmountNeeded - current) / CARRY_CAPACITY) || 1
             }
             // Max 32 at 5+, else 25, always have 1
-            if (room.level >= 4 && carry > 32) carry = 32; else if (carry > 25) carry = 25; else if (carry < 1) carry = 1;
+            if (room.level >= 5 && carry > 32) carry = 32; else if (carry > 25) carry = 25; else if (carry < 1) carry = 1;
             // Set move
-            if (room.level >= 4) move = carry / 2; else move = carry;
+            if (room.level >= 5) move = carry / 2; else move = carry;
             break;
         case 'SKMineral':
         case 'commodityMiner':

@@ -20,7 +20,13 @@ let globalRouteCache = {};
 let tempAvoidRooms = [];
 
 function shibMove(creep, heading, options = {}) {
-    if (!creep.memory._shibMove) creep.memory._shibMove = {};
+
+    // Make sure origin and target are good
+    let origin = normalizePos(creep);
+    let target = normalizePos(heading);
+    if (!origin || !target) return;
+
+    if (!creep.memory._shibMove || creep.memory._shibMove.targetRoom !== target.roomName || creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y) creep.memory._shibMove = {};
 
     // Default options
     _.defaults(options, {
@@ -119,11 +125,6 @@ function shibMove(creep, heading, options = {}) {
             creep.memory.towDestination = undefined;
         }
     }
-
-    // Make sure origin and target are good
-    let origin = normalizePos(creep);
-    let target = normalizePos(heading);
-    if (!origin || !target) return;
 
     // Check if target moved
     if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y || creep.memory._shibMove.target.roomName !== target.roomName) && creep.room.name === target.roomName) {
@@ -553,7 +554,7 @@ function addStructuresToMatrix(room, matrix, type, options) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureController) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
-        } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic) && !structure.pos.checkForObstacleStructure()) {
+        } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic || FRIENDLIES.includes(structure.owner.username)) && !structure.pos.checkForObstacleStructure()) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
         } else if (structure instanceof StructureRampart && (!structure.my || !structure.isPublic || structure.pos.checkForObstacleStructure())) {
             matrix.set(structure.pos.x, structure.pos.y, 256);

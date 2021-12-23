@@ -404,7 +404,7 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
     // Spawns/Extensions
-    let energyStructure = _.find(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.store.getFreeCapacity(RESOURCE_ENERGY) && (!ROOM_HARVESTER_EXTENSTIONS[s.room.name] || !ROOM_HARVESTER_EXTENSTIONS[s.room.name].includes(s.id)))
+    let energyStructure = _.sample(_.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.store.getFreeCapacity(RESOURCE_ENERGY) && (!ROOM_HARVESTER_EXTENSTIONS[s.room.name] || !ROOM_HARVESTER_EXTENSTIONS[s.room.name].includes(s.id))))
     if (energyStructure) {
         this.memory.storageDestination = energyStructure.id;
         return true;

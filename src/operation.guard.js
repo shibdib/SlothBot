@@ -11,7 +11,10 @@ Creep.prototype.guardRoom = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // If military action required do that
-    if (this.room.name !== destination) return this.shibMove(new RoomPosition(25, 25, destination), {range: 24});
+    if (this.room.name !== destination) {
+        if (this.room.hostileCreeps.length && this.canIWin(50)) return this.handleMilitaryCreep();
+        return this.shibMove(new RoomPosition(25, 25, destination), {range: 24});
+    }
     let guardLocation, guardRange;
     /** Season 1
      if (Game.shard.name === 'shardSeason') {
