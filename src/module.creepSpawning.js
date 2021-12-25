@@ -214,7 +214,7 @@ module.exports.essentialCreepQueue = function (room) {
         }
     }
     // Local Responder
-    if (room.memory.spawnDefenders) {
+    if (room.memory.spawnDefenders || room.memory.defenseCooldown > Game.time) {
         if (getCreepCount(room, 'defender') < Memory.roomCache[room.name].numberOfHostiles || (getCreepTTL(room.name, 'defender') < 100 && getCreepCount(room, 'defender') === Memory.roomCache[room.name].numberOfHostiles)) {
             queueCreep(room, PRIORITIES.priority, {
                 role: 'defender',
@@ -288,7 +288,8 @@ module.exports.miscCreepQueue = function (room) {
             }
         }**/
         let decoderAvailable;
-        if (Game.shard.name === 'shardSeason' && Memory.ownedSymbols.length) {
+        if (Game.shard.name === 'shardSeason' && Memory.ownedSymbols.length && (!room.memory.defenseCooldown || room.memory.defenseCooldown < Game.time)) {
+            room.memory.defenseCooldown = undefined;
             shuffle(Memory.ownedSymbols).forEach(function (s) {
                 if (room.store(s)) decoderAvailable = s;
             })
@@ -339,7 +340,7 @@ module.exports.miscCreepQueue = function (room) {
         // Assist room
         if (level >= 3) {
             // Defense
-            let needsDefense = _.find(Memory.myRooms, (r) => Game.rooms[r].memory.dangerousAttack);
+            let needsDefense = _.find(Memory.myRooms, (r) => Game.rooms[r].memory.dangerousAttack || Game.rooms[r].memory.defenseCooldown > Game.time);
             if (needsDefense) {
                 if (getCreepCount(undefined, 'longbow', needsDefense) < 2) {
                     queueCreep(room, PRIORITIES.priority, {

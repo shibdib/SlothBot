@@ -95,7 +95,7 @@ function makeRequests() {
     }
 
     // Defense requests
-    let defenseRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].memory.dangerousAttack);
+    let defenseRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].memory.dangerousAttack || Game.rooms[r].memory.defenseCooldown > Game.time);
     for (let room of defenseRooms) {
         let priority = 0.25;
         if (Memory.roomCache[room].threatLevel === 4) priority = 1;

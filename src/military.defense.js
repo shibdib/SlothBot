@@ -29,7 +29,7 @@ module.exports.controller = function (room) {
     }
 
     // Check if you should safemode
-    if (Memory.roomCache[room.name].threatLevel > 2) safeModeManager(room);
+    if (Memory.roomCache[room.name].threatLevel > 2 || room.controller.safemode) safeModeManager(room);
 
     // Tower control
     let woundedCreep = _.find(room.friendlyCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)) || _.find(room.powerCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
@@ -103,31 +103,40 @@ function rampartManager(room, structures) {
 function safeModeManager(room) {
     // Ensure camping enemies continue to gain threat even if no creeps present.
     addThreat(room);
-    let armedHostiles = _.filter(room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK) || c.hasActiveBodyparts(CLAIM));
-    if (!armedHostiles.length || room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable) return;
-    // Check if any attacks occurred last tick
-    let keyAttack;
-    let attackEvents = _.filter(room.getEventLog(), (e) => e.event === EVENT_ATTACK);
-    if (attackEvents[0]) {
-        for (let attack of attackEvents) {
-            let attackedObject = Game.getObjectById(attack.data.targetId);
-            if (attackedObject instanceof Creep) {
-                keyAttack = true;
-                break;
-            } else if (attackedObject instanceof Structure && !_.includes([STRUCTURE_ROAD, STRUCTURE_WALL, STRUCTURE_RAMPART], attackedObject.structureType)) {
-                keyAttack = true;
-                break;
+    // Handle an active safemode
+    if (room.controller.safemode) {
+        // Setup guards for when the safemode ends
+        if (room.controller.safemode < 750) {
+            let endingTick = Game.time + room.controller.safemode;
+            room.memory.defenseCooldown = endingTick + 2500;
+        }
+    } else {
+        let armedHostiles = _.filter(room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK) || c.hasActiveBodyparts(CLAIM));
+        if (!armedHostiles.length || room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable) return;
+        // Check if any attacks occurred last tick
+        let keyAttack;
+        let attackEvents = _.filter(room.getEventLog(), (e) => e.event === EVENT_ATTACK);
+        if (attackEvents[0]) {
+            for (let attack of attackEvents) {
+                let attackedObject = Game.getObjectById(attack.data.targetId);
+                if (attackedObject instanceof Creep) {
+                    keyAttack = true;
+                    break;
+                } else if (attackedObject instanceof Structure && !_.includes([STRUCTURE_ROAD, STRUCTURE_WALL, STRUCTURE_RAMPART], attackedObject.structureType)) {
+                    keyAttack = true;
+                    break;
+                }
             }
         }
-    }
-    let towers = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] > 10)).length > 0;
-    // If attacks occurred and we have no towers or the defense is ineffective safemode
-    if ((!towers || room.memory.dangerousAttack) && keyAttack) {
-        if (room.controller.activateSafeMode() === OK) {
-            let ownerArray = [];
-            room.hostileCreeps.forEach((c) => ownerArray.push(c.owner.username));
-            log.a(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString(), 'DEFENSE COMMAND');
-            Game.notify(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString());
+        let towers = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] > 10)).length > 0;
+        // If attacks occurred and we have no towers or the defense is ineffective safemode
+        if ((!towers || room.memory.dangerousAttack) && keyAttack) {
+            if (room.controller.activateSafeMode() === OK) {
+                let ownerArray = [];
+                room.hostileCreeps.forEach((c) => ownerArray.push(c.owner.username));
+                log.a(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString(), 'DEFENSE COMMAND');
+                Game.notify(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString());
+            }
         }
     }
 }

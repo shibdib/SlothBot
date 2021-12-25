@@ -48,6 +48,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             move = work + carry;
             break;
         case 'upgrader':
+            if (room.memory.controllerLink) deficitExemption = true;
             if (room.nukes.length) {
                 work = 1;
                 carry = 1;
