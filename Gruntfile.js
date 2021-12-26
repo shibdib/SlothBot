@@ -1,6 +1,6 @@
 module.exports = function (grunt) {
     let config = require('./.auth.json');
-    let host = 'swc';
+    let host = grunt.option('host');
     let options = config[host];
 
     grunt.loadNpmTasks('grunt-screeps');

@@ -58,7 +58,7 @@ module.exports.role = function role(creep) {
                         creep.shibMove(source);
                         break;
                     case ERR_NOT_ENOUGH_RESOURCES:
-                        creep.idleFor(source.ticksToRegeneration * 0.5);
+                        creep.idleFor(5);
                         creep.memory.source = undefined;
                         break;
                     case OK:

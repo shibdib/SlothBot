@@ -44,7 +44,7 @@ Creep.prototype.abilityPower = function () {
 
 Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = false, guardLocation = undefined, guardRange) {
     let enemy, filter;
-    let hostileStructures = _.find(this.room.hostileStructures, (s) => s.structureType !== STRUCTURE_RAMPART && (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange));
+    let hostileStructures = _.find(this.room.hostileStructures, (s) => (!s.owner || !FRIENDLIES.includes(s.owner.username)) && s.structureType !== STRUCTURE_RAMPART && (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange));
     let hostileCreeps = _.filter(this.room.hostileCreeps, (s) => (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange) && !s.pos.checkForRampart()) || _.filter(this.room.hostileCreeps, (s) => (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange));
     if (!hostileCreeps.length && !hostileStructures) return undefined;
     if (this.memory.target) {
@@ -66,7 +66,8 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
     let barriersPresent = _.find(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
     let hostileRoom = Memory.roomCache[this.room.name].user && !_.includes(FRIENDLIES, Memory.roomCache[this.room.name].user);
     if (this.room.controller && (this.room.controller.owner || this.room.controller.reservation)) {
-        let owner = this.room.controller.owner || this.room.controller.reservation;
+        let owner;
+        if (this.room.controller.owner) owner = this.room.controller.owner.username; else owner = this.room.controller.reservation.username;
         hostileRoom = !FRIENDLIES.includes(owner);
     }
     // Find armed creeps to kill (Outside Ramps)
