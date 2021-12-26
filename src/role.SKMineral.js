@@ -13,6 +13,7 @@ module.exports.role = function (creep) {
         return skDeposit(creep);
     } else {
         if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
+        if (creep.skSafety()) return;
         if (creep.memory.source) {
             if (creep.memory.extractor) {
                 let extractor = Game.getObjectById(creep.memory.extractor);
@@ -28,10 +29,6 @@ module.exports.role = function (creep) {
                     }
                     switch (creep.harvest(mineral)) {
                         case OK:
-                            // Store mineral as owned
-                            let currentMinerals = Memory.ownedMinerals || [];
-                            currentMinerals.push(creep.room.mineral.mineralType);
-                            Memory.ownedMinerals = _.uniq(currentMinerals);
                             break;
                         case ERR_NOT_IN_RANGE:
                             creep.shibMove(mineral);
@@ -45,6 +42,10 @@ module.exports.role = function (creep) {
                 let extractor = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR);
                 if (extractor) {
                     creep.memory.extractor = extractor.id;
+                    // Store mineral as owned
+                    let harvestableMinerals = Memory.harvestableMinerals || [];
+                    harvestableMinerals.push(creep.room.mineral.mineralType);
+                    Memory.harvestableMinerals = _.uniq(harvestableMinerals);
                 }
             }
         } else {

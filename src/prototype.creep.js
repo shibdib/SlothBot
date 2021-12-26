@@ -167,9 +167,9 @@ Creep.prototype.skSafety = function () {
     // handle safe SK movement
     let range = 6;
     if (this.memory.destination && this.memory.destination === this.room.name) range = 8;
-    let lair = this.pos.findInRange(this.room.structures, range, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
+    let lair = this.pos.findClosestByRange(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.pos.getRangeTo(this) <= range});
     if (lair) {
-        let SK = this.pos.findInRange(this.room.creeps, range, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
+        let SK = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper' && c.pos.getRangeTo(this) <= range});
         if (SK) {
             this.shibKite(range + 1, SK);
             return true;
@@ -270,7 +270,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
 
 Creep.prototype.locateEnergy = function () {
     // Take from remote haulers pre storage
-    if (!this.room.storage && this.memory.role !== 'hauler' && this.memory.role !== 'shuttle') {
+    if (!this.room.storage && this.memory.role !== 'hauler' && this.memory.role !== 'shuttle' && this.memory.role !== 'remoteHauler') {
         let hauler = _.find(this.room.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 3);
         if (hauler) {
             this.memory.energyDestination = hauler.id;

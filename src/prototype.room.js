@@ -529,8 +529,7 @@ Room.prototype.invaderCheck = function () {
         let waitOut = 15;
         if (Memory.roomCache[this.name].threatLevel > 3) waitOut = 50;
         // Clear if no waitOut or if not one of your rooms
-        let friendlyArmed = _.filter(this.friendlyCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)).length || 1;
-        let reduction = _.ceil((Game.time - previousCheck) / 5) * friendlyArmed;
+        let reduction = _.ceil((Game.time - previousCheck) / 5) * this.friendlyCreeps.length;
         if (Memory.roomCache[this.name].lastPlayerSighting + 500 > Game.time) reduction *= 25;
         if (Memory.roomCache[this.name].tickDetected + waitOut < Game.time || Memory.roomCache[this.name].user !== MY_USERNAME) {
             Memory.roomCache[this.name].threatLevel = undefined;

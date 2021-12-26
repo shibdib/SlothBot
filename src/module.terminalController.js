@@ -284,7 +284,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
 function placeBuyOrders(terminal, globalOrders, myOrders) {
     for (let mineral of shuffle(BASE_MINERALS)) {
         // Don't buy minerals you can mine
-        if (Memory.ownedMinerals.includes(mineral)) continue;
+        if (Memory.harvestableMinerals.includes(mineral)) continue;
         let target = reactionAmount * 3;
         let stored = getResourceTotal(mineral) || 0;
         if (stored < target) {
@@ -692,13 +692,18 @@ function profitCheck(force = false) {
         let lastCredit = profitTracking.lastTotalAmount || Game.market.credits;
         profitTracking.lastTotalAmount = Game.market.credits;
         let hourChange = Game.market.credits - lastCredit;
+        // Private servers spending is anything greater than the buffer
+        if (!['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
+            spendingMoney = Game.market.credits - CREDIT_BUFFER;
+            log.w("New spending account amount (HOURLY UPDATE) - " + spendingMoney, "Market: ");
+        }
         // Spending account is capped at 150k
-        if (Game.market.credits > 150000 && spendingMoney > 150000) {
+        else if (Game.market.credits > 150000 && spendingMoney > 150000) {
             spendingMoney = 150000;
             log.w("New spending account amount (HOURLY UPDATE) - " + spendingMoney, "Market: ");
-        } else
-            // Add 80% of profits for the hour to spending account
-        if (hourChange > 0) {
+        }
+        // Add 80% of profits for the hour to spending account
+        else if (hourChange > 0) {
             spendingMoney += (hourChange * 0.8);
             log.w("New spending account amount (HOURLY UPDATE) - " + spendingMoney, "Market: ");
         } else {

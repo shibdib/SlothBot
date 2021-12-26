@@ -6,7 +6,7 @@
  */
 
 module.exports.setRoomState = function (room) {
-    if (Game.time % 2 === 0) {
+    if (Game.time % 5 === 0) {
         // Set Energy Needs
         let energyInRoom = room.energy;
         //Delete old memory
@@ -44,6 +44,12 @@ module.exports.setRoomState = function (room) {
         let currentMinerals = Memory.ownedMinerals || [];
         currentMinerals.push(room.mineral.mineralType);
         Memory.ownedMinerals = _.uniq(currentMinerals);
+        if (room.level > 6) {
+            if (Math.random() > 0.95) Memory.harvestableMinerals = undefined;
+            let harvestableMinerals = Memory.harvestableMinerals || [];
+            harvestableMinerals.push(room.mineral.mineralType);
+            Memory.harvestableMinerals = _.uniq(harvestableMinerals);
+        }
         // Stats
         let stats = room.memory.stats || {};
         // Store ticks on rcl upgrade

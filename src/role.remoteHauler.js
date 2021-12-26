@@ -10,7 +10,6 @@
  */
 
 module.exports.role = function (creep) {
-    if (creep.skSafety()) return;
     // Icon
     creep.say(ICONS.haul2, true);
     // If Hauling
@@ -38,6 +37,7 @@ module.exports.role = function (creep) {
             dropOff(creep)
         }
     } else {
+        if (creep.skSafety()) return;
         if (safemodeGeneration(creep)) return;
         creep.memory.storageDestination = undefined;
         // Remote haulers will opportunistically pickup score
@@ -61,21 +61,28 @@ module.exports.role = function (creep) {
                 return;
             }
         }
-        if (creep.room.droppedEnergy[0] && _.max(creep.room.droppedEnergy, 'amount').amount > creep.store.getFreeCapacity() * 0.8) creep.memory.energyDestination = _.max(creep.room.droppedEnergy, 'amount').id;
+        // If have energy target get it
         if (creep.memory.energyDestination) return creep.withdrawResource();
-        if (creep.memory.misc) {
+        // If you know what room to go to and not already there go to it
+        else if (creep.memory.assignedRoom && creep.room.name !== creep.memory.assignedRoom) return creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom), {range: 17});
+        // If in the assigned room, look for energy
+        else if (creep.memory.assignedRoom && creep.room.name === creep.memory.assignedRoom && creep.locateEnergy()) return true;
+        // Get room assigned based off assigned harv, otherwise find a harv
+        else if (creep.memory.misc) {
             let harvester = Game.getObjectById(creep.memory.misc);
-            if (!harvester) return creep.memory.misc = undefined;
+            if (!harvester) {
+                creep.memory.assignedRoom = undefined;
+                return creep.memory.misc = undefined;
+            }
+            creep.memory.assignedRoom = harvester.room.name;
             if (creep.room.routeSafe(harvester.pos.roomName)) {
-                if (creep.room.droppedEnergy[0] && _.max(creep.room.droppedEnergy, 'amount').amount > creep.store.getFreeCapacity() * 0.8) {
-                    creep.memory.energyDestination = _.max(creep.room.droppedEnergy, 'amount').id;
-                } else if (Game.getObjectById(harvester.memory.needHauler)) {
+                if (Game.getObjectById(harvester.memory.needHauler)) {
                     creep.memory.energyDestination = harvester.memory.needHauler;
                 } else {
                     creep.shibMove(harvester);
                 }
             } else {
-                if (creep.room.name === creep.memory.overlord || !creep.locateEnergy) creep.idleFor(15);
+                if (creep.room.name === creep.memory.overlord || !creep.locateEnergy()) creep.idleFor(15);
             }
         } else {
             let harvesters = _.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && c.memory.carryAmountNeeded);
