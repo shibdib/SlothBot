@@ -227,7 +227,7 @@ module.exports.essentialCreepQueue = function (room) {
     // Determine amount
     let number = 1;
     let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.progress > room.controller.progressTotal || Memory.roomCache[room.name].threatLevel >= 3 || room.memory.spawnDefenders;
-    if (room.controller.level < 8 && !room.memory.spawnDefenders && room.level === room.controller.level) {
+    if (room.controller.level < 7 && !room.memory.spawnDefenders && room.level === room.controller.level) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         let spaceAround = container.pos.countOpenTerrainAround(false, true);
         if (container && room.storage) number = 2 * (room.energy / ENERGY_AMOUNT[room.level]);

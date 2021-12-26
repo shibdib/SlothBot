@@ -216,6 +216,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             break;
         case 'SKMineral':
         case 'commodityMiner':
+            deficitExemption = true;
             work = _.floor((energyAmount * _.random(0.2, 0.5)) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
             carry = _.floor((energyAmount * _.random(0.2, 0.5)) / BODYPART_COST[CARRY]) || 1;

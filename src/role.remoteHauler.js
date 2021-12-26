@@ -61,12 +61,15 @@ module.exports.role = function (creep) {
                 return;
             }
         }
+        if (creep.room.droppedEnergy[0] && _.max(creep.room.droppedEnergy, 'amount').amount > creep.store.getFreeCapacity() * 0.8) creep.memory.energyDestination = _.max(creep.room.droppedEnergy, 'amount').id;
         if (creep.memory.energyDestination) return creep.withdrawResource();
         if (creep.memory.misc) {
             let harvester = Game.getObjectById(creep.memory.misc);
             if (!harvester) return creep.memory.misc = undefined;
             if (creep.room.routeSafe(harvester.pos.roomName)) {
-                if (Game.getObjectById(harvester.memory.needHauler)) {
+                if (creep.room.droppedEnergy[0] && _.max(creep.room.droppedEnergy, 'amount').amount > creep.store.getFreeCapacity() * 0.8) {
+                    creep.memory.energyDestination = _.max(creep.room.droppedEnergy, 'amount').id;
+                } else if (Game.getObjectById(harvester.memory.needHauler)) {
                     creep.memory.energyDestination = harvester.memory.needHauler;
                 } else {
                     creep.shibMove(harvester);

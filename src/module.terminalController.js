@@ -72,7 +72,7 @@ module.exports.terminalControl = function (room) {
     if (BUY_ENERGY && Game.market.credits > BUY_ENERGY_CREDIT_BUFFER && ((lastEnergyPurchase || 0) + 1000 < Game.time || spendingMoney > 100000) && buyEnergy(room.terminal, globalOrders)) return;
     if (room.name === Memory.saleTerminal.room) {
         // Place sell orders
-        placeSellOrders(room.terminal, globalOrders, myOrders);
+        if (!['swc', 'botarena'].includes(Game.shard.name)) placeSellOrders(room.terminal, globalOrders, myOrders);
         if (spendingMoney > 0) {
             // Place buy orders
             placeBuyOrders(room.terminal, globalOrders, myOrders);
@@ -153,6 +153,13 @@ function orderCleanup(myOrders) {
                 }
             }
         } else {
+            // do no create sell orders on SWC or BA
+            if (['swc', 'botarena'].includes(Game.shard.name)) {
+                if (Game.market.cancelOrder(order.id) === OK) {
+                    log.e("Order Cancelled: " + order.id + " - No selling in BA or SWC.", 'MARKET: ');
+                    continue;
+                }
+            }
             if (Game.rooms[order.roomName].terminal.store[order.resourceType] - order.remainingAmount > 1500) {
                 let amount = Game.rooms[order.roomName].terminal.store[order.resourceType] - order.remainingAmount;
                 if (amount > 0) {
@@ -389,7 +396,7 @@ function fillBuyOrders(terminal, globalOrders) {
         if (sellAmount > terminal.store[resourceType]) sellAmount = terminal.store[resourceType];
         if (sellAmount > 0) {
             let buyer = _.max(globalOrders.filter(order => order.resourceType === resourceType && order.type === ORDER_BUY && order.roomName !== terminal.pos.roomName &&
-                Game.market.calcTransactionCost(500, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
+                Game.market.calcTransactionCost(500, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY] && (!Memory.roomCache[order.roomName] || !HOSTILES.includes(Memory.roomCache[order.roomName].user))), 'price');
             if (buyer.id) {
                 if (buyer.remainingAmount < sellAmount) sellAmount = buyer.remainingAmount;
                 if (Game.market.calcTransactionCost(sellAmount, terminal.room.name, buyer.roomName) > terminal.store[RESOURCE_ENERGY]) sellAmount = _.floor(terminal.store[RESOURCE_ENERGY] / (1 - Math.exp(-Game.map.getRoomLinearDistance(terminal.room.name, buyer.roomName) / 30)));
