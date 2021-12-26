@@ -255,9 +255,9 @@ function operationRequests() {
                 let cache = Memory.targetRooms || {};
                 let priority = PRIORITIES.urgent;
                 if (defenseRequest.priority <= 0.25) priority = PRIORITIES.secondary; else if (defenseRequest.priority <= 0.5) priority = PRIORITIES.medium; else if (defenseRequest.priority <= 0.8) priority = PRIORITIES.high;
-                let totalGuards = _.filter(Memory.targetRooms, (target) => target && target.type === 'guard').length || 0;
+                let totalGuards = _.filter(Memory.targetRooms, (target) => target.type === 'guard').length || 0;
                 let lowestGuard = _.max(_.filter(Object.keys(Memory.targetRooms), (target) => Memory.targetRooms[target].type === 'guard'), 'priority');
-                if (totalGuards > 3 && priority > lowestGuard.priority) continue;
+                if (totalGuards >= 3 && priority >= lowestGuard.priority) continue;
                 cache[defenseRequest.roomName] = {
                     tick: Game.time,
                     type: 'guard',
@@ -503,7 +503,7 @@ function manageAttacks() {
                 break;
             // Manage Guard
             case 'guard':
-                let guardCount = _.filter(Memory.targetRooms, (target) => target && target.type === 'guard').length || 0;
+                let guardCount = _.filter(Memory.targetRooms, (target) => target.type === 'guard').length || 0;
                 if (guardCount > 3) {
                     log.a('Canceling guard in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];

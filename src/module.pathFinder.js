@@ -60,7 +60,7 @@ function shibMove(creep, heading, options = {}) {
     if (creep.memory._shibMove && creep.memory._shibMove.path && creep.memory._shibMove.path.length && creep.memory._shibMove.pathPosTime && creep.memory._shibMove.pathPosTime >= STATE_STUCK && !options.tunnel) {
         if (Math.random() > 0.95) structureMatrixCache[creep.room.name] = undefined;
         creep.memory._shibMove.pathPosTime = 0;
-        return creepBumping(creep, creep.memory._shibMove, options);
+        if (creepBumping(creep, creep.memory._shibMove, options)) return true;
     }
 
     // If a path exists, just execute
@@ -451,11 +451,12 @@ function creepBumping(creep, pathInfo, options) {
             bumpCreep.say(ICONS.traffic, true)
             pathInfo.pathPosTime = 0;
         } else {
-            bumpCreep.moveRandom();
+            bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
             bumpCreep.say(ICONS.traffic, true)
             pathInfo.pathPosTime = 0;
         }
         bumpCreep.memory._shibMove = undefined;
+        return true;
     } else {
         delete pathInfo.path;
         pathInfo.pathPosTime = 0;
@@ -463,7 +464,8 @@ function creepBumping(creep, pathInfo, options) {
         options.freshMatrix = true;
         options.useCache = false;
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
-        if (Math.random() > 0.9) return creep.moveRandom();
+        if (Math.random() > 0.9) creep.moveRandom();
+        return false;
     }
 }
 
