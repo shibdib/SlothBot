@@ -11,8 +11,7 @@ let lastTick = 0;
 module.exports.highCommand = function () {
     if (lastTick + 10 > Game.time) return;
     lastTick = Game.time;
-    let capableRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].energyState);
-    OPERATION_LIMIT = capableRooms.length + 1;
+    OPERATION_LIMIT = 4;
     if (!Memory.nonCombatRooms) Memory.nonCombatRooms = [];
     if (!Memory.targetRooms) Memory.targetRooms = {};
     if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
@@ -257,7 +256,7 @@ function operationRequests() {
                 if (defenseRequest.priority <= 0.25) priority = PRIORITIES.secondary; else if (defenseRequest.priority <= 0.5) priority = PRIORITIES.medium; else if (defenseRequest.priority <= 0.8) priority = PRIORITIES.high;
                 let totalGuards = _.filter(Memory.targetRooms, (target) => target.type === 'guard').length || 0;
                 let lowestGuard = _.max(_.filter(Object.keys(Memory.targetRooms), (target) => Memory.targetRooms[target].type === 'guard'), 'priority');
-                if (totalGuards >= 3 && priority >= lowestGuard.priority) continue;
+                if (totalGuards >= 2 && priority >= lowestGuard.priority) continue;
                 cache[defenseRequest.roomName] = {
                     tick: Game.time,
                     type: 'guard',
@@ -270,31 +269,31 @@ function operationRequests() {
             }
         }
     }
-    // Ally attack request
-    if (_.size(ALLY_HELP_REQUESTS)) {
-        for (let ally of _.filter(ALLY_HELP_REQUESTS)) {
-            let attackRequest = _.find(ally, (r) => r.requestType === 2 && !Memory.targetRooms[r.roomName]);
-            if (attackRequest) {
-                let cache = Memory.targetRooms || {};
-                // Filter long range
-                if (Memory.roomCache[attackRequest.roomName] && Memory.roomCache[attackRequest.roomName].closestRange > ROOM_INFLUENCE_RANGE) continue;
-                // Determine type
-                let type = 'harass';
-                if (Memory.roomCache[attackRequest.roomName] && !Memory.roomCache[attackRequest.roomName].towers) type = 'hold';
-                else if (Memory.roomCache[attackRequest.roomName] && Memory.roomCache[attackRequest.roomName].towers === 1 && Memory.maxLevel >= 7) type = 'siegeGroup';
-                cache[attackRequest.roomName] = {
-                    tick: Game.time,
-                    type: type,
-                    level: 1,
-                    priority: 1
-                };
-                Memory.targetRooms = cache;
-                Memory.roomCache[attackRequest.roomName].lastOperation = Game.time;
-                return log.a('ALLY REQUEST!! Harass operation planned for ' + roomLink(attackRequest.roomName), 'HIGH COMMAND: ');
+    if (totalCountFiltered < OPERATION_LIMIT) {
+        // Ally attack request
+        if (_.size(ALLY_HELP_REQUESTS)) {
+            for (let ally of _.filter(ALLY_HELP_REQUESTS)) {
+                let attackRequest = _.find(ally, (r) => r.requestType === 2 && !Memory.targetRooms[r.roomName]);
+                if (attackRequest) {
+                    let cache = Memory.targetRooms || {};
+                    // Filter long range
+                    if (Memory.roomCache[attackRequest.roomName] && Memory.roomCache[attackRequest.roomName].closestRange > ROOM_INFLUENCE_RANGE) continue;
+                    // Determine type
+                    let type = 'harass';
+                    if (Memory.roomCache[attackRequest.roomName] && !Memory.roomCache[attackRequest.roomName].towers) type = 'hold';
+                    else if (Memory.roomCache[attackRequest.roomName] && Memory.roomCache[attackRequest.roomName].towers === 1 && Memory.maxLevel >= 7) type = 'siegeGroup';
+                    cache[attackRequest.roomName] = {
+                        tick: Game.time,
+                        type: type,
+                        level: 1,
+                        priority: 1
+                    };
+                    Memory.targetRooms = cache;
+                    Memory.roomCache[attackRequest.roomName].lastOperation = Game.time;
+                    return log.a('ALLY REQUEST!! ' + type + ' operation planned for ' + roomLink(attackRequest.roomName), 'HIGH COMMAND: ');
+                }
             }
         }
-    }
-    if (totalCountFiltered < OPERATION_LIMIT) {
         // Kill strongholds
         let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => r.closestRange <= ROOM_INFLUENCE_RANGE && r.sk && r.towers && r.towers < 3 && r.closestRange <= 5), function (t) {
             return t.closestRange
@@ -387,12 +386,10 @@ function operationRequests() {
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
     let maxLevel = Memory.maxLevel;
-    let cutoff = _.size(Memory.myRooms) * 2;
     let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target && target.type !== 'attack' && target.type !== 'scout' && target.type !== 'guard' && target.type !== 'pending').length || 0;
     let siegeCountFiltered = _.filter(Memory.targetRooms, (target) => target && (target.type === 'siege' || target.type === 'siegeGroup' || target.type === 'drain')).length || 0;
     let staleMulti = 1;
-    let sorted = _.sortBy(Memory.targetRooms, 'tick');
-    for (let key in sorted) {
+    for (let key in Memory.targetRooms) {
         try {
             if (!Memory.targetRooms[key] || !key || key === 'undefined') {
                 delete Memory.targetRooms[key];
@@ -416,7 +413,7 @@ function manageAttacks() {
             case 'scout':
             case 'attack':
                 // Clear scouts first if over limit
-                if (totalCountFiltered > cutoff) {
+                if (totalCountFiltered > OPERATION_LIMIT) {
                     log.a('Canceling scouting in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     continue;
@@ -425,7 +422,7 @@ function manageAttacks() {
             // Manage Holds
             case 'hold':
                 staleMulti = 100;
-                if (totalCountFiltered > cutoff) {
+                if (totalCountFiltered > OPERATION_LIMIT) {
                     log.a('Canceling ' + type + ' in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     continue;
@@ -489,7 +486,7 @@ function manageAttacks() {
                 continue;
             // Manage Harass
             case 'harass':
-                if (totalCountFiltered > cutoff) {
+                if (totalCountFiltered > OPERATION_LIMIT) {
                     log.a('Canceling harass in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     continue;
@@ -504,7 +501,7 @@ function manageAttacks() {
             // Manage Guard
             case 'guard':
                 let guardCount = _.filter(Memory.targetRooms, (target) => target.type === 'guard').length || 0;
-                if (guardCount > 3) {
+                if (guardCount > 2) {
                     log.a('Canceling guard in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     continue;
@@ -523,8 +520,7 @@ function manageAttacks() {
                 delete Memory.targetRooms[key];
                 continue;
         }
-        if (Memory.targetRooms[key].manual) staleMulti = 999999;
-        if (!Memory.targetRooms[key]) continue;
+        if (Memory.targetRooms[key].manual) staleMulti = 50;
         // Cancel stale ops with no kills
         if (type !== 'hold' && (Memory.targetRooms[key].tick + (1500 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) ||
             (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + (2500 * staleMulti) < Game.time)) {

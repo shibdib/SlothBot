@@ -21,6 +21,8 @@ module.exports.role = function (creep) {
     if (creep.towTruck()
         //If creep needs boosts do that first
         || boostDelivery(creep)
+        // Empty mineral harvester container
+        || mineralHauler(creep)
         // Handle terminal goods
         || terminalControl(creep)
         // Handle storage goods
@@ -36,9 +38,7 @@ module.exports.role = function (creep) {
         // Get lab orders
         || labSupplies(creep)
         // Get factory orders
-        || factorySupplies(creep)
-        // Empty mineral harvester container
-        || mineralHauler(creep)) return;
+        || factorySupplies(creep)) return;
     // If nothing to do, idle
     creep.idleFor(50);
 };

@@ -452,6 +452,7 @@ function creepBumping(creep, pathInfo, options) {
             pathInfo.pathPosTime = 0;
         } else {
             bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
+            creep.move(creep.pos.getDirectionTo(bumpCreep));
             bumpCreep.say(ICONS.traffic, true)
             pathInfo.pathPosTime = 0;
         }

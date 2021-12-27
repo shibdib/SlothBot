@@ -41,8 +41,9 @@ module.exports.role = function (creep) {
         if (safemodeGeneration(creep)) return;
         creep.memory.storageDestination = undefined;
         // Remote haulers will opportunistically pickup score
-        if (Game.shard.name === 'shardSeason') {
-            /** season 1
+        /**
+         if (Game.shard.name === 'shardSeason') {
+            // season 1
              let score = creep.room.find(FIND_SCORE_CONTAINERS)[0];
              if (score) {
                 switch (creep.withdraw(score, RESOURCE_SCORE)) {
@@ -50,7 +51,7 @@ module.exports.role = function (creep) {
                         creep.shibMove(score);
                 }
                 return;
-            }**/
+            }
                 // Season 2
             let score = creep.room.find(FIND_SYMBOL_CONTAINERS)[0];
             if (score && (_.includes(Memory.ownedSymbols, score.resourceType) || Game.rooms[creep.memory.overlord].storage)) {
@@ -60,11 +61,12 @@ module.exports.role = function (creep) {
                 }
                 return;
             }
-        }
+        }**/
+
         // If have energy target get it
         if (creep.memory.energyDestination) return creep.withdrawResource();
         // If you know what room to go to and not already there go to it
-        else if (creep.memory.assignedRoom && creep.room.name !== creep.memory.assignedRoom) return creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom), {range: 17});
+        else if (creep.memory.assignedRoom && creep.room.name !== creep.memory.assignedRoom) return creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom), {range: 23});
         // If in the assigned room, look for energy
         else if (creep.memory.assignedRoom && creep.room.name === creep.memory.assignedRoom && creep.locateEnergy()) return true;
         // Get room assigned based off assigned harv, otherwise find a harv
@@ -167,10 +169,9 @@ function buildLinks(creep) {
 }
 
 // Generate safemode
-let lastCheck;
 function safemodeGeneration(creep) {
-    if (lastCheck + 100 > Game.time || creep.room.name !== creep.memory.overlord || creep.store.getFreeCapacity() < SAFE_MODE_COST || creep.room.store(RESOURCE_GHODIUM) < SAFE_MODE_COST) return false;
-    lastCheck = Game.time;
+    if (creep.memory.safemodeCheck || creep.room.name !== creep.memory.overlord || creep.store.getFreeCapacity() < SAFE_MODE_COST || creep.room.store(RESOURCE_GHODIUM) < SAFE_MODE_COST) return false;
+    creep.memory.safemodeCheck = true;
     if (!creep.room.controller.safeModeAvailable) {
         if (creep.store.getUsedCapacity(RESOURCE_GHODIUM) < SAFE_MODE_COST) {
             let ghodiumStorage = _.filter(creep.room.structures, (s) => s.store && s.store[RESOURCE_GHODIUM])[0];

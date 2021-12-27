@@ -516,7 +516,7 @@ module.exports.remoteCreepQueue = function (room) {
                 if (getCreepCount(undefined, 'SKAttacker', remoteName) && !getCreepCount(undefined, 'SKMineral', remoteName) && (!Memory.roomCache[remoteName].mineralCooldown || Memory.roomCache[remoteName].mineralCooldown < Game.time)) {
                     queueCreep(room, PRIORITIES.SKWorker, {role: 'SKMineral', destination: remoteName})
                 }
-            } else if (!Memory.roomCache[remoteName].sk) {
+            } else if (!Memory.roomCache[remoteName].sk && !skMining) {
                 let multi = (ENERGY_AMOUNT[room.level || 1] * 2) / room.energy;
                 if (!room.storage || multi > 2) multi = 2;
                 else if (multi < 0.1) multi = 0.1;
