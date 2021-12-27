@@ -12,7 +12,7 @@ module.exports.claimNewRoom = function () {
     if (Math.random() > 0.75) claimTarget = undefined;
     lastTick = Game.time;
     if (!claimTarget) {
-        let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 3000 < Game.time) && r.hubCheck && r.closestRange <= 12 &&
+        let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 10000 < Game.time) && r.hubCheck && r.closestRange <= 12 &&
             Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status && !r.obstructions && !r.owner && !r.reservation);
         if (!worthyRooms.length) return;
         let possibles = {};
@@ -21,15 +21,23 @@ module.exports.claimNewRoom = function () {
                 let name = worthyRooms[key].name;
                 // All rooms start at 10000
                 let baseScore = 10000;
-                // Check if it's near any owned rooms
-                let avoidRooms = _.filter(Memory.roomCache, (r) => r.level && _.includes(FRIENDLIES, r.owner));
-                for (let avoidKey in avoidRooms) {
-                    let avoidName = avoidRooms[avoidKey].name;
+                // Check if it's near any owned friendly rooms
+                let friendlyRooms = _.filter(Memory.roomCache, (r) => r.level && _.includes(FRIENDLIES, r.owner));
+                for (let key in friendlyRooms) {
+                    let avoidName = friendlyRooms[key].name;
                     let distance = Game.map.getRoomLinearDistance(name, avoidName)
                     if (distance <= 2) distance = Game.map.findRoute(name, avoidName).length;
                     if (distance <= 2) continue worthy; else if (distance === 3) baseScore += 1000; else if (distance < 6) baseScore += 100; else if (distance > 20) continue worthy; else baseScore -= 1000;
                     // Sector check for allies
-                    if (AVOID_ALLIED_SECTORS && sameSectorCheck(name, avoidName)) continue worthy;
+                    if (AVOID_ALLIED_SECTORS && sameSectorCheck(name, avoidName)) baseScore -= 750;
+                }
+                // Check if it's near any owned enemy rooms
+                let enemyRooms = _.filter(Memory.roomCache, (r) => r.level && _.includes(HOSTILES, r.owner));
+                for (let key in enemyRooms) {
+                    let avoidName = enemyRooms[key].name;
+                    let distance = Game.map.getRoomLinearDistance(name, avoidName)
+                    if (distance <= 2) distance = Game.map.findRoute(name, avoidName).length;
+                    if (distance <= 2) baseScore -= 2500; else if (distance < 6) baseScore -= 1000;
                 }
                 // Remote access
                 let neighboring = _.map(Game.map.describeExits(name));

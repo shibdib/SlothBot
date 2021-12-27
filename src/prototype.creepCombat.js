@@ -667,7 +667,10 @@ Creep.prototype.findDefensivePosition = function (target = this) {
         }
         return true;
     } else {
-        if (this.pos.getRangeTo(new RoomPosition(25, 25, this.room.name)) <= 12) this.idleFor(5); else this.shibMove(new RoomPosition(25, 25, this.room.name), {range: 12})
+        if (this.pos.getRangeTo(new RoomPosition(25, 25, this.room.name)) <= 12) this.idleFor(5); else this.shibMove(new RoomPosition(25, 25, this.room.name), {
+            range: 12,
+            avoidEnemies: true
+        })
     }
     return false;
 };

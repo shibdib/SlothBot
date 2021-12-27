@@ -229,7 +229,8 @@ module.exports.essentialCreepQueue = function (room) {
     let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.progress > room.controller.progressTotal || Memory.roomCache[room.name].threatLevel >= 3 || room.memory.spawnDefenders;
     if (room.controller.level < 7 && !room.memory.spawnDefenders && room.level === room.controller.level) {
         let container = Game.getObjectById(room.memory.controllerContainer);
-        let spaceAround = container.pos.countOpenTerrainAround(false, true);
+        let spaceAround = 2
+        if (container) spaceAround = container.pos.countOpenTerrainAround(false, true);
         if (container && room.storage) number = 2 * (room.energy / ENERGY_AMOUNT[room.level]);
         if (!container) number = 4; else number = spaceAround;
         if (number > spaceAround) number = spaceAround;
@@ -577,7 +578,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
             // Remote Road Builder
-            if (getCreepCount(room, 'roadBuilder') < _.size(JSON.parse(remoteHives[room.name])) * 0.5) {
+            if (getCreepCount(room, 'roadBuilder') < 2) {
                 queueCreep(room, PRIORITIES.roadBuilder, {
                     role: 'roadBuilder',
                     misc: _.pluck(JSON.parse(remoteHives[room.name]), 'room')

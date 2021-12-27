@@ -84,20 +84,17 @@ module.exports.towerControl = function (room) {
             if (healPower * 2 > attackPower) {
                 room.memory.dangerousAttack = true;
                 room.memory.spawnDefenders = true;
+                room.memory.defenseCooldown = Game.time + 2000;
             }
-            let nearStructures = hostileCreeps[i].pos.findInRange(room.structures, 3, {filter: (s) => ![STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_CONTROLLER, STRUCTURE_WALL, STRUCTURE_RAMPART].includes(s.structureType)}).length > 0;
-            // If the creep can be killed before it runs away do so
-            if (!healPower || (hostileCreeps[i].hits + healPower) - attackPower <= attackPower * hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT))) {
-                room.memory.towerTarget = hostileCreeps[i].id;
-                for (let tower of towers) tower.attack(hostileCreeps[i]);
-                break;
-            } // If it can be hurt and is near structures kill it
-            else if (attackPower > healPower && nearStructures) {
+            let nearStructures = hostileCreeps[i].pos.findInRange(room.structures, 3, {filter: (s) => ![STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_CONTROLLER].includes(s.structureType)}).length > 0;
+            let rangeToExit = hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT)) + 1;
+            // If it can be hurt and is near structures kill it
+            if (attackPower > healPower && nearStructures) {
                 room.memory.towerTarget = hostileCreeps[i].id;
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;
             } // If you can damage it and it's not border humping attack it. Always attack invaders
-            else if (attackPower > healPower && ((hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT)) >= ((hostileCreeps[i].hits + healPower) / attackPower)) || hostileCreeps[i].owner.username === 'Invader')) {
+            else if (attackPower > healPower && ((rangeToExit >= ((hostileCreeps[i].hits + (healPower * rangeToExit)) / attackPower)) || hostileCreeps[i].owner.username === 'Invader')) {
                 room.memory.towerTarget = hostileCreeps[i].id;
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;

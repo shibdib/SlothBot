@@ -43,6 +43,7 @@ function shibMove(creep, heading, options = {}) {
     // Default options
     _.defaults(options, {
         useCache: true,
+        avoidEnemies: false,
         ignoreCreeps: true,
         maxOps: DEFAULT_MAXOPS,
         range: 1,
@@ -490,7 +491,7 @@ function getMatrix(roomName, creep, options) {
     let matrix = getTerrainMatrix(roomName, options);
     if (!options.ignoreStructures) matrix = getStructureMatrix(roomName, matrix, options);
     if (room && !options.ignoreCreeps) matrix = getCreepMatrix(roomName, creep, matrix, options);
-    if (room && room.hostileCreeps.length && (creep.className || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)))) matrix = getHostileMatrix(roomName, matrix, options);
+    if (room && room.hostileCreeps.length && (creep.className || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.avoidEnemies)) matrix = getHostileMatrix(roomName, matrix, options);
     matrix = getSKMatrix(roomName, matrix, options);
     return matrix;
 }
@@ -946,7 +947,7 @@ Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined)
     if (!this.hasActiveBodyparts(MOVE) || (this.room.controller && this.room.controller.safeMode)) return false;
     // If in a rampart you're safe
     if (this.pos.checkForRampart()) return true;
-    let avoid = _.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange + 1).concat(this.pos.findInRange(this.room.structures, fleeRange + 1, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})) || target;
+    let avoid = _.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange + 1).concat(this.pos.findInRange(this.room.structures, fleeRange + 1, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn <= fleeRange + 2})) || target;
     if (!avoid || !avoid.length) return false;
     this.say('!!RUN!!', true);
     this.memory.kiteRoom = this.memory.room;

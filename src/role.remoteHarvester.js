@@ -48,7 +48,6 @@ module.exports.role = function (creep) {
         //Harvest
         if (creep.memory.other.source) {
             let source = Game.getObjectById(creep.memory.other.source);
-            if (!creep.pos.isNearTo(source)) return creep.shibMove(source);
             let container = Game.getObjectById(creep.memory.containerID) || Game.getObjectById(creep.memory.containerSite);
             //Make sure you're on the container
             if (!creep.memory.onContainer && container) {
@@ -57,7 +56,7 @@ module.exports.role = function (creep) {
                 } else {
                     creep.memory.onContainer = true;
                 }
-            }
+            } else if (!creep.pos.isNearTo(source)) return creep.shibMove(source);
             switch (creep.harvest(source)) {
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(source);

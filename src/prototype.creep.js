@@ -167,14 +167,15 @@ Creep.prototype.skSafety = function () {
     // handle safe SK movement
     let range = 6;
     if (this.memory.destination && this.memory.destination === this.room.name) range = 8;
-    let lair = this.pos.findClosestByRange(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.pos.getRangeTo(this) <= range});
-    if (lair) {
-        let SK = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper' && c.pos.getRangeTo(this) <= range});
+    let lair = this.pos.findClosestByRange(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn <= 15 && s.pos.getRangeTo(this) < range});
+    let SK = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper' && c.pos.getRangeTo(this) < range});
+    if (lair || SK) {
+        this.memory.fledSK = Game.time;
         if (SK) {
-            this.shibKite(range + 1, SK);
+            this.shibKite(range + 2, SK);
             return true;
-        } else if (lair.ticksToSpawn <= 25) {
-            this.shibKite(range + 1, lair);
+        } else if (lair) {
+            this.shibKite(range + 2, lair);
             return true;
         }
         // Handle invader cores in sk
@@ -182,6 +183,9 @@ Creep.prototype.skSafety = function () {
             this.room.cacheRoomIntel(true, this);
             return this.suicide();
         }
+    } else if (this.memory.fledSK) {
+        if (this.memory.fledSK + 15 <= Game.time) this.memory.fledSK = undefined; else this.idleFor(16);
+        return true;
     }
 }
 

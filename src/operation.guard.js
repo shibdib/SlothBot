@@ -32,7 +32,7 @@ Creep.prototype.guardRoom = function () {
             this.handleMilitaryCreep()
         } else this.findDefensivePosition();
     } else {
-        this.shibKite();
+        if (!this.findDefensivePosition()) this.shibKite();
     }
     levelManager(this);
 };

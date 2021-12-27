@@ -20,12 +20,12 @@ module.exports.controller = function (room) {
     // Check for invaders and request help
     room.invaderCheck();
 
+    // Abandon hopeless rooms
+    unSavableCheck(room);
+
     if (Game.time % 100 === 0) {
         // Handle nuke defense
         handleNukeAttack(room);
-
-        // Abandon hopeless rooms
-        if (FRIENDLIES.length < 2) unSavableCheck(room);
     }
 
     // Check if you should safemode
@@ -151,24 +151,25 @@ function earlyWarning(room) {
 
 function unSavableCheck(room) {
     let badCount = room.memory.badCount || 0;
-    if (Memory.roomCache[room.name].threatLevel > 2) {
-        // Abandon Bad Rooms
-        if (_.size(Memory.myRooms) === 1 || room.controller.safeMode) return false;
+    let worthwhileStructure = _.find(room.structures, (s) => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType));
+    if ((Memory.roomCache[room.name].threatLevel > 2 || !worthwhileStructure) && _.size(Memory.myRooms) !== 1 && !room.controller.safeMode && !room.controller.safeModeAvailable && room.memory.stats.levelInfo[0] + 2000 < Game.time) {
         let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)));
-        if (hostiles.length && room.energy < ENERGY_AMOUNT[room.level] * 0.025 && _.size(Memory.myRooms) === Game.gcl.level) {
-            room.memory.badCount = badCount + 1;
-            if (room.memory.badCount > room.controller.level * 10) {
-                let hostileOwners = [];
-                for (let hostile of room.hostileCreeps) hostileOwners.push(hostile.owner.username)
-                abandonOverrun(room);
-                room.cacheRoomIntel(true);
-                Memory.roomCache[room.name].noClaim = true;
-                log.a(room.name + ' has been abandoned due to a prolonged enemy presence. (Enemies - ' + _.uniq(hostileOwners).toString() + ')');
-                Game.notify(room.name + ' has been abandoned due to a prolonged enemy presence. (Enemies - ' + _.uniq(hostileOwners).toString() + ')');
-            }
+        // If hostiles add a badCount
+        if (hostiles.length && room.energy < ENERGY_AMOUNT[room.level] * 0.025 && _.size(Memory.myRooms) === Game.gcl.level) room.memory.badCount += 1;
+        // If all worthwhile structures are gone add badCount
+        if (!worthwhileStructure) room.memory.badCount += 0.5;
+        // If badCount is high enough abandon
+        if (room.memory.badCount > room.controller.level * 400) {
+            abandonOverrun(room);
+            room.cacheRoomIntel(true);
+            Memory.roomCache[room.name].noClaim = Game.time;
+            log.a(roomLink(room.name) + ' has been abandoned.');
+            Game.notify(room.name + ' has been abandoned.');
+        } else if (badCount < room.memory.badCount) {
+            log.a(roomLink(room.name) + ' has accrued an abandon point. (' + room.memory.badCount + '/' + room.controller.level * 500 + ')');
         }
-    } else {
-        if (badCount === 0) {
+    } else if (room.memory.badCount) {
+        if (badCount <= 0) {
             room.memory.badCount = undefined;
         } else {
             room.memory.badCount = badCount - 1;
