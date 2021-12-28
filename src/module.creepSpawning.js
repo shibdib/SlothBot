@@ -31,7 +31,7 @@ module.exports.processBuildQueue = function (room) {
         let level = room.level;
         // Global queue, if far away or lacking energy it's low priority
         let combatQueue = globalQueue;
-        if (room.level === room.controller.level && _.size(combatQueue) && !Memory.roomCache[room.name].threatLevel && (room.level >= 4)) {
+        if (room.level === room.controller.level && _.size(combatQueue) && !Memory.roomCache[room.name].threatLevel && (room.level >= 4) && Game.cpu.bucket === BUCKET_MAX) {
             Object.keys(combatQueue).forEach(function (q) {
                 // If energy poor and not urgent, delete
                 if (!room.energyState && combatQueue[q].priority > PRIORITIES.urgent) delete combatQueue[q];
@@ -162,8 +162,8 @@ module.exports.roomStartup = function (room) {
     if (!getCreepCount(room, 'upgrader') || (getCreepCount(room, 'upgrader') < 5 && room.level === room.controller.level)) {
         queueCreep(room, 4 + getCreepCount(room, 'upgrader'), {role: 'upgrader'})
     }
-    if (Memory.roomCache[room.name].threatLevel && !getCreepCount(room, 'defender')) {
-        queueCreep(room, 1, {role: 'defender'})
+    if ((room.memory.spawnDefenders || room.memory.defenseCooldown > Game.time) && !getCreepCount(room, 'defender')) {
+        queueCreep(room, PRIORITIES.defender, {role: 'defender'})
     }
     if (Memory.maxLevel < 8 && getCreepCount(room, 'explorer') < 2) {
         queueCreep(room, 9, {role: 'explorer'})
@@ -215,8 +215,8 @@ module.exports.essentialCreepQueue = function (room) {
     }
     // Local Responder
     if (room.memory.spawnDefenders || room.memory.defenseCooldown > Game.time) {
-        if (getCreepCount(room, 'defender') < Memory.roomCache[room.name].numberOfHostiles || (getCreepTTL(room.name, 'defender') < 100 && getCreepCount(room, 'defender') === Memory.roomCache[room.name].numberOfHostiles)) {
-            queueCreep(room, PRIORITIES.priority, {
+        if (getCreepCount(room, 'defender') < 2 || (getCreepTTL(room.name, 'defender') < 100 && getCreepCount(room, 'defender') === 2)) {
+            queueCreep(room, PRIORITIES.defender, {
                 role: 'defender',
                 destination: room.name,
                 military: true
@@ -234,6 +234,10 @@ module.exports.essentialCreepQueue = function (room) {
         if (container && room.storage) number = 2 * (room.energy / ENERGY_AMOUNT[room.level]);
         if (!container) number = 4; else number = spaceAround;
         if (number > spaceAround) number = spaceAround;
+        let deficit = room.energy / (ENERGY_AMOUNT[room.level || 1] * 2.5);
+        if (deficit > 1 || !room.storage) deficit = 1;
+        else if (deficit < 0.1) deficit = 0.1;
+        number *= deficit;
     }
     if (getCreepCount(room, 'upgrader') < number) {
         //If room is about to downgrade get a creep out asap
@@ -255,7 +259,7 @@ module.exports.miscCreepQueue = function (room) {
     //Drones
     if (room.constructionSites.length && _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL)) {
         let number = 1;
-        if (_.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD)) number = 10 - room.controller.level;
+        if (_.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD)) number = 12 - room.controller.level;
         if (getCreepCount(room, 'drone') < number) {
             queueCreep(room, PRIORITIES.drone + getCreepCount(room, 'drone'), {
                 role: 'drone',
@@ -324,7 +328,7 @@ module.exports.miscCreepQueue = function (room) {
             }
         }
         //Pre observer spawn explorers
-        if (Memory.maxLevel < 8 && getCreepCount(room, 'explorer') < 4) { 
+        if (Memory.maxLevel < 8 && Game.cpu.bucket === BUCKET_MAX && getCreepCount(room, 'explorer') < 4) {
             queueCreep(room, PRIORITIES.explorer, {role: 'explorer'})
         }
         // Portal explorers
@@ -363,7 +367,7 @@ module.exports.miscCreepQueue = function (room) {
                     });
                 }
             }
-            if (room.energyState && (Memory.maxLevel === room.level || room.energyState === 2)) {
+            if (room.energyState && Game.cpu.bucket === BUCKET_MAX && (Memory.maxLevel === room.level || room.energyState === 2)) {
                 // Power Level
                 let upgraderRequested = _.sample(_.filter(safeToSupport, ((r) => r !== room.name && Game.rooms[r].controller.level <= 5 && Game.rooms[r].controller.level < room.level - 2)));
                 if (upgraderRequested) {
@@ -517,7 +521,7 @@ module.exports.remoteCreepQueue = function (room) {
                 if (getCreepCount(undefined, 'SKAttacker', remoteName) && !getCreepCount(undefined, 'SKMineral', remoteName) && (!Memory.roomCache[remoteName].mineralCooldown || Memory.roomCache[remoteName].mineralCooldown < Game.time)) {
                     queueCreep(room, PRIORITIES.SKWorker, {role: 'SKMineral', destination: remoteName})
                 }
-            } else if (!Memory.roomCache[remoteName].sk && !skMining) {
+            } else if (!Memory.roomCache[remoteName].sk && Game.cpu.bucket === BUCKET_MAX) {
                 let multi = (ENERGY_AMOUNT[room.level || 1] * 2) / room.energy;
                 if (!room.storage || multi > 2) multi = 2;
                 else if (multi < 0.1) multi = 0.1;
@@ -567,8 +571,9 @@ module.exports.remoteCreepQueue = function (room) {
                     let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creep.id);
                     let current = 0;
                     if (assignedHaulers.length) {
+                        if (Game.cpu.bucket !== BUCKET_MAX) continue;
                         assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= REMOTE_HAULER_CAP || creep.memory.carryAmountNeeded - current < 150) continue;
+                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= REMOTE_HAULER_CAP || creep.memory.carryAmountNeeded - current < 300) continue;
                     }
                     queueCreep(room, PRIORITIES.remoteHauler + (assignedHaulers.length * 2) + (getCreepCount(room, 'remoteHauler') * 0.5), {
                         role: 'remoteHauler',

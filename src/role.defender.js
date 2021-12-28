@@ -10,5 +10,5 @@
  */
 
 module.exports.role = function (creep) {
-    if (!creep.handleMilitaryCreep() && !creep.findDefensivePosition(creep)) creep.idleFor(creep.pos.getRangeTo(creep.pos.findClosestByRange(FIND_EXIT)) - 4);
+    if (!creep.handleMilitaryCreep() && creep.findDefensivePosition(creep)) creep.idleFor(3);
 };

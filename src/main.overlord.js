@@ -133,11 +133,12 @@ function minionController(minion) {
     while (true) {
         // Set last managed tick
         minion.memory.lastManaged = Game.time;
+        // Handle idle
+        if (minion.idle) break;
         // Track Threat
         diplomacy.trackThreat(minion);
         // Handle edge cases
-        if (minion.idle
-            || minion.portalCheck() || minion.borderCheck()
+        if (minion.portalCheck() || minion.borderCheck()
             || (minion.room.hostileCreeps.length && minion.shibKite())
             || (minion.memory.fleeNukeTime && minion.fleeNukeRoom())) {
             break;

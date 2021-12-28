@@ -17,37 +17,17 @@ module.exports.role = function role(creep) {
     if (creep.memory.destination && creep.room.name !== creep.memory.destination && !creep.memory.remoteMining) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
     }
-    // If no work parts, useless so suicide
-    if (!creep.hasActiveBodyparts(WORK)) return creep.suicide();
     // Checks
-    if (creep.isFull) {
-        creep.memory.source = undefined;
-        creep.memory.harvest = undefined;
-        creep.memory.remoteMining = undefined;
-        creep.memory.source = undefined;
-        creep.memory.working = true;
-    } else if (!creep.store[RESOURCE_ENERGY]) creep.memory.working = false;
-    // Work
-    if (creep.memory.working === true) {
-        creep.memory.other.noBump = true;
-        // If haulers needed haul
-        if (hauling(creep)) return;
-        // If builder needed build
-        if (building(creep)) return;
-        // If praiser needed praise
-        if (upgrading(creep)) return;
-        creep.idleFor(10);
-    } else {
+    if (!creep.memory.working) {
+        if (creep.isFull) return creep.memory.working = true;
         creep.memory.other.noBump = undefined;
         creep.memory.working = undefined;
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
-        creep.memory.task = undefined;
-        if (!creep.memory.harvest && Memory.roomCache[creep.room.name].user === MY_USERNAME && (creep.memory.energyDestination || creep.locateEnergy())) {
+        if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
         } else {
-            creep.memory.other.noBump = true;
             creep.memory.harvest = true;
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
             if (source && (!Memory.roomCache[creep.room.name].user || Memory.roomCache[creep.room.name].user === MY_USERNAME)) {
@@ -58,7 +38,6 @@ module.exports.role = function role(creep) {
                         creep.shibMove(source);
                         break;
                     case ERR_NOT_ENOUGH_RESOURCES:
-                        creep.idleFor(5);
                         creep.memory.source = undefined;
                         break;
                     case OK:
@@ -73,35 +52,22 @@ module.exports.role = function role(creep) {
                 }
             }
         }
+    } else {
+        if (!creep.store[RESOURCE_ENERGY]) creep.memory.working = undefined;
+        creep.memory.source = undefined;
+        creep.memory.harvest = undefined;
+        creep.memory.remoteMining = undefined;
+        creep.memory.source = undefined;
+        creep.memory.other.noBump = true;
+        // If haulers needed haul
+        if (hauling(creep)) return;
+        // If builder needed build
+        if (building(creep)) return;
+        // If praiser needed praise
+        if (upgrading(creep)) return;
+        creep.idleFor(10);
     }
 };
-
-function harvest(creep) {
-    let spawn = _.filter(creep.room.structures, (c) => c.my && c.structureType === STRUCTURE_SPAWN)[0];
-    let drone = _.filter(creep.room.creeps, (c) => c.my && c.memory && c.memory.role === 'drone' && c.id !== creep.id)[0];
-    let harvester = _.filter(creep.room.creeps, (c) => c.my && c.memory && c.memory.role === 'drone' && c.memory.task === 'harvest')[0];
-    if ((creep.room.controller && creep.room.controller.owner && !spawn && !harvester && drone && !creep.locateEnergy()) || creep.memory.task === 'harvest') {
-        if (!drone) return creep.memory.task = undefined;
-        let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
-        if (source) {
-            creep.memory.task = 'harvest';
-            creep.say('Harvest!', true);
-            creep.memory.source = source.id;
-            switch (creep.harvest(source)) {
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(source);
-                    break;
-                case ERR_NOT_ENOUGH_RESOURCES:
-                    creep.memory.source = undefined;
-                    creep.memory.harvest = undefined;
-                    break;
-                case OK:
-                    break;
-            }
-        }
-        return true;
-    }
-}
 
 function building(creep) {
     if (creep.memory.task && creep.memory.task !== 'build' && creep.memory.task !== 'repair') return;

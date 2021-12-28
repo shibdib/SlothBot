@@ -22,20 +22,21 @@ module.exports.role = function (creep) {
     if (creep.memory.other.stationary || (creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE))) {
         creep.memory.other.stationary = true;
         // Handle sitting on container
-        if (container && (!creep.memory.containerOccupied || !Game.getObjectById(creep.memory.containerOccupied))) {
+        if (container && (!creep.memory.containerOccupied || (Math.random() > 0.9 && !Game.getObjectById(creep.memory.containerOccupied)))) {
             if (container.pos.checkForCreep()) creep.memory.containerOccupied = container.pos.checkForCreep().id; else creep.shibMove(container, {range: 0});
-        }
-        // Handle resource withdraw
-        if (link && link.store[RESOURCE_ENERGY]) {
-            creep.withdrawResource(link);
-        } else if (container && container.store[RESOURCE_ENERGY]) {
-            creep.withdrawResource(container);
         }
         switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
             case OK:
                 return;
             case ERR_NOT_IN_RANGE:
                 return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+            case ERR_NOT_ENOUGH_RESOURCES:
+                // Handle resource withdraw
+                if (link && link.store[RESOURCE_ENERGY]) {
+                    creep.withdrawResource(link);
+                } else if (container && container.store[RESOURCE_ENERGY]) {
+                    creep.withdrawResource(container);
+                }
         }
     } else {
         if (creep.isFull) creep.memory.working = true;
@@ -43,19 +44,16 @@ module.exports.role = function (creep) {
         if (creep.memory.working) {
             switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
                 case OK:
-                    if (container && container.store[RESOURCE_ENERGY]) {
-                        creep.withdrawResource(container);
-                    } else if (link && link.store[RESOURCE_ENERGY]) {
-                        creep.withdrawResource(link);
-                    }
                     return;
                 case ERR_NOT_IN_RANGE:
-                    if (container && container.store[RESOURCE_ENERGY]) {
-                        creep.withdrawResource(container);
-                    } else if (link && link.store[RESOURCE_ENERGY]) {
+                    creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+                    return;
+                case ERR_NOT_ENOUGH_RESOURCES:
+                    // Handle resource withdraw
+                    if (link && link.store[RESOURCE_ENERGY]) {
                         creep.withdrawResource(link);
-                    } else {
-                        return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+                    } else if (container && container.store[RESOURCE_ENERGY]) {
+                        creep.withdrawResource(container);
                     }
             }
         } else if (creep.memory.energyDestination) {

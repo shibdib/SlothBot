@@ -16,7 +16,7 @@ module.exports.role = function role(creep) {
     // SK Safety
     if (creep.skSafety()) return;
     // Set destination
-    if (!creep.memory.destination || !Game.map.getRoomTerrain(creep.memory.destination) || !creep.room.routeSafe(creep.memory.destination)) {
+    if (!creep.memory.destination || !creep.room.routeSafe(creep.memory.destination)) {
         let harvesterLocation = _.sample(_.pluck(_.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester'), 'room.name'));
         if (harvesterLocation) creep.memory.destination = harvesterLocation; else creep.memory.destination = _.sample(creep.memory.misc);
         if (harvesterLocation === creep.room.name) creep.memory.destination = creep.memory.overlord;
@@ -27,27 +27,10 @@ module.exports.role = function role(creep) {
     // Handle movement
     if (creep.pos.roomName !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination, {range: 23}));
     // Checks
-    if (!creep.store[RESOURCE_ENERGY]) {
-        creep.memory.working = undefined;
+    if (!creep.memory.working) {
+        if (creep.isFull) return creep.memory.working = true;
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
-    }
-    if (creep.isFull) {
-        creep.memory.working = true;
-        creep.memory.source = undefined;
-        creep.memory.harvest = undefined;
-    }
-    // Work
-    if (creep.memory.working) {
-        if (creep.memory.constructionSite || creep.constructionWork()) {
-            if (!Game.getObjectById(creep.memory.constructionSite)) return creep.memory.constructionSite = undefined;
-            creep.builderFunction();
-        } else {
-            if (!remoteRoads(creep)) Memory.roomCache[creep.room.name].roadsBuilt = true;
-            creep.memory.destination = undefined;
-            if (creep.memory.overlord === creep.room.name) creep.idleFor(15);
-        }
-    } else {
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
@@ -71,6 +54,18 @@ module.exports.role = function role(creep) {
                 delete creep.memory.harvest;
                 delete creep.memory.destination;
             }
+        }
+    } else {
+        if (!creep.store[RESOURCE_ENERGY]) creep.memory.working = undefined;
+        creep.memory.source = undefined;
+        creep.memory.harvest = undefined;
+        if (creep.memory.constructionSite || creep.constructionWork()) {
+            if (!Game.getObjectById(creep.memory.constructionSite)) return creep.memory.constructionSite = undefined;
+            creep.builderFunction();
+        } else {
+            if (!remoteRoads(creep)) Memory.roomCache[creep.room.name].roadsBuilt = true;
+            creep.memory.destination = undefined;
+            if (creep.memory.overlord === creep.room.name) creep.idleFor(15);
         }
     }
 };

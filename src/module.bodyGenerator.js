@@ -49,7 +49,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             move = work + carry;
             break;
         case 'upgrader':
-            if (room.memory.controllerLink) deficitExemption = true;
             if (room.nukes.length) {
                 work = 1;
                 carry = 1;
@@ -124,13 +123,15 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             break;
         case 'defender':
             deficitExemption = true;
+            rangedAttack = 0;
+            attack = 0;
             if (room.level < 3) {
                 attack = 1;
                 move = 1;
             } else {
-                if (Math.random() > 0.49 || level < 5) attack = _.floor(energyAmount / (BODYPART_COST[ATTACK] + (BODYPART_COST[MOVE] * 0.3))) || 1; else rangedAttack = _.floor(energyAmount / (BODYPART_COST[RANGED_ATTACK] + (BODYPART_COST[MOVE] * 0.3))) || 1;
+                if (Math.random() > 0.49 || level < 5) attack = _.floor((energyAmount * 0.45) / BODYPART_COST[ATTACK]) || 1; else rangedAttack = _.floor((energyAmount * 0.45) / BODYPART_COST[RANGED_ATTACK]) || 1;
                 if (attack > 32) attack = 32; else if (rangedAttack > 32) rangedAttack = 32;
-                if (attack) move = attack * 0.5; else if (rangedAttack) move = rangedAttack * 0.5;
+                move = (attack + rangedAttack) * 0.5;
             }
             break;
         case 'longbow':

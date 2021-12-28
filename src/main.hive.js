@@ -102,11 +102,11 @@ module.exports.hiveMind = function () {
 
 let errorCount = {};
 function minionController(minion) {
-    // If idle sleep
-    if (minion.idle) return;
     let start = Game.cpu.getUsed();
+    // If idle sleep
+    if (minion.idle) return tools.creepCPU(minion, start);
     // If on portal move
-    if (minion.portalCheck() || minion.borderCheck()) return;
+    if (minion.portalCheck() || minion.borderCheck()) return tools.creepCPU(minion, start);
     // Track threat
     diplomacy.trackThreat(minion);
     // Report intel chance

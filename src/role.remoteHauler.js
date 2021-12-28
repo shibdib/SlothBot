@@ -170,9 +170,13 @@ function buildLinks(creep) {
 
 // Generate safemode
 function safemodeGeneration(creep) {
-    if (creep.memory.safemodeCheck || creep.room.name !== creep.memory.overlord || creep.store.getFreeCapacity() < SAFE_MODE_COST || creep.room.store(RESOURCE_GHODIUM) < SAFE_MODE_COST) return false;
+    // Only run in your room and if we haven't checked yet
+    if (creep.memory.safemodeCheck || creep.room.name !== creep.memory.overlord) return false;
     creep.memory.safemodeCheck = true;
-    if (!creep.room.controller.safeModeAvailable) {
+    // Check if we can fit it or is it exists
+    if (creep.store.getFreeCapacity() < SAFE_MODE_COST || creep.room.store(RESOURCE_GHODIUM) < SAFE_MODE_COST) return false;
+    // Only do it if we have less than 2 safemodes
+    if (!creep.room.controller.safeModeAvailable || creep.room.controller.safeModeAvailable < 2) {
         if (creep.store.getUsedCapacity(RESOURCE_GHODIUM) < SAFE_MODE_COST) {
             let ghodiumStorage = _.filter(creep.room.structures, (s) => s.store && s.store[RESOURCE_GHODIUM])[0];
             if (ghodiumStorage) {

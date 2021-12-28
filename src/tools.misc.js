@@ -59,7 +59,7 @@ module.exports.CPULimits = function () {
 }
 
 // CPU Limit Tool
-adjustedCPULimit = function adjustedCPULimit(limit, bucket, target = BUCKET_MAX * 0.7, maxCpuPerTick = Game.cpu.limit * 1.5) {
+adjustedCPULimit = function adjustedCPULimit(limit, bucket, target = BUCKET_MAX * 0.8, maxCpuPerTick = Game.cpu.limit * 2) {
     var multiplier = 1;
     if (bucket < target) {
         multiplier = Math.sin(Math.PI * bucket / (2 * target));

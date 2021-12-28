@@ -24,7 +24,7 @@ module.exports.role = function (creep) {
                 }
             }
         } else {
-            creep.opportunisticFill();
+            if (Game.cpu.bucket === BUCKET_MAX) creep.opportunisticFill();
             if (!creep.haulerDelivery()) creep.idleFor(5)
         }
     } else {

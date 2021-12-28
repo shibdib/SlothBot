@@ -274,7 +274,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
 
 Creep.prototype.locateEnergy = function () {
     // Take from remote haulers pre storage
-    if (!this.room.storage && this.memory.role !== 'hauler' && this.memory.role !== 'shuttle' && this.memory.role !== 'remoteHauler') {
+    if (!this.room.storage && this.room.controller && this.room.controller.owner && this.memory.role !== 'hauler' && this.memory.role !== 'shuttle' && this.memory.role !== 'remoteHauler') {
         let hauler = _.find(this.room.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 3);
         if (hauler) {
             this.memory.energyDestination = hauler.id;
@@ -446,11 +446,13 @@ Creep.prototype.haulerDelivery = function () {
         this.memory.storageDestination = tower.id;
         return true;
     }
-    //Controller
+    //Controller container if no link
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && (!controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5)) {
-        this.memory.storageDestination = controllerContainer.id;
-        return true;
+    if (!this.room.memory.controllerLink) {
+        if (controllerContainer && (!controllerContainer.store[RESOURCE_ENERGY] || controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.store.getCapacity() * 0.5)) {
+            this.memory.storageDestination = controllerContainer.id;
+            return true;
+        }
     }
     //Terminal
     if (this.room.terminal && this.room.terminal.store.getFreeCapacity() && this.room.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 5) {
@@ -464,10 +466,18 @@ Creep.prototype.haulerDelivery = function () {
         if (this.memory.role === 'hauler') this.memory.cooldown = true;
         return true;
     }
-    //Top off container
-    if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY)) {
-        this.memory.storageDestination = controllerContainer.id;
-        return true;
+    //Top off container if no controller link otherwise check for a hub link
+    if (!this.room.memory.controllerLink || !this.memory.hubLink) {
+        if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY)) {
+            this.memory.storageDestination = controllerContainer.id;
+            return true;
+        }
+    } else if (this.memory.hubLink) {
+        let hubLink = Game.getObjectById(this.memory.hubLink);
+        if (hubLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY)) {
+            this.memory.storageDestination = hubLink.id;
+            return true;
+        }
     }
 };
 

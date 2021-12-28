@@ -654,7 +654,15 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
 
 Creep.prototype.findDefensivePosition = function (target = this) {
     if (this.id === target.id && this.room.hostileCreeps.length) target = this.pos.findClosestByRange(this.room.hostileCreeps);
-    let bestRampart = target.pos.findClosestByRange(this.room.structures, {filter: (r) => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && !r.pos.checkForConstructionSites() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y)) && (r.my || r.isPublic)});
+    let bestRampart;
+    // If a rampart is assigned probably use it, else find it
+    if (this.memory.assignedRampart && (!this.room.hostileCreeps.length || Math.random() > 0.25)) bestRampart = Game.getObjectById(this.memory.assignedRampart); else {
+        bestRampart = target.pos.findClosestByPath(this.room.structures, {
+            filter: (r) => r.structureType === STRUCTURE_RAMPART &&
+                !r.pos.checkForObstacleStructure() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y)) &&
+                (r.my || r.isPublic) && (!r.room.hostileCreeps.length || target.id === this.id || this.pos.findPathTo(r).length < this.pos.findPathTo(target).length)
+        });
+    }
     if (bestRampart) {
         if (this.memory.assignedRampart !== bestRampart.id) {
             this.memory.assignedRampart = bestRampart.id;
@@ -662,8 +670,6 @@ Creep.prototype.findDefensivePosition = function (target = this) {
         let assigned = Game.getObjectById(this.memory.assignedRampart);
         if (assigned.pos.x !== this.pos.x || assigned.pos.y !== this.pos.y) {
             this.shibMove(assigned, {range: 0});
-        } else {
-            this.idleFor(5);
         }
         return true;
     } else {

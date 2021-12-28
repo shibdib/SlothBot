@@ -6,7 +6,7 @@
  */
 let tools = require('tools.cpuTracker');
 
-const DEFAULT_MAXOPS = 2500;
+const DEFAULT_MAXOPS = 1500;
 const STATE_STUCK = 1;
 const FLEE_RANGE = 3;
 
@@ -660,7 +660,7 @@ function addHostilesToMatrix(room, matrix, options) {
     let enemyCreeps = _.filter(room.hostileCreeps, (c) => !c.className && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)));
     for (let key in enemyCreeps) {
         matrix.set(enemyCreeps[key].pos.x, enemyCreeps[key].pos.y, 0xff);
-        let range = 6;
+        let range = 4;
         let avoidZone = enemyCreeps[key].room.lookForAtArea(LOOK_TERRAIN, enemyCreeps[key].pos.y - range, enemyCreeps[key].pos.x - range, enemyCreeps[key].pos.y + range, enemyCreeps[key].pos.x + range, true);
         for (let pos of avoidZone) {
             let position;
@@ -945,10 +945,10 @@ RoomPosition.prototype.shibMove = function (destination, options) {
 
 Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined) {
     if (!this.hasActiveBodyparts(MOVE) || (this.room.controller && this.room.controller.safeMode)) return false;
-    // If in a rampart you're safe
-    if (this.pos.checkForRampart()) return true;
     let avoid = _.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange + 1).concat(this.pos.findInRange(this.room.structures, fleeRange + 1, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn <= fleeRange + 2})) || target;
     if (!avoid || !avoid.length) return false;
+    // If in a rampart you're safe
+    if (this.pos.checkForRampart()) return true;
     this.say('!!RUN!!', true);
     this.memory.kiteRoom = this.memory.room;
     // Border hump if it's safe and nearby

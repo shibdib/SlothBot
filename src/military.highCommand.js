@@ -500,7 +500,7 @@ function manageAttacks() {
                 break;
             // Manage Guard
             case 'guard':
-                let guardCount = _.filter(Memory.targetRooms, (target) => target.type === 'guard').length || 0;
+                let guardCount = _.filter(Memory.targetRooms, (target) => target && target.type === 'guard').length || 0;
                 if (guardCount > 2) {
                     log.a('Canceling guard in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];

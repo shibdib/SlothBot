@@ -79,7 +79,7 @@ module.exports.role = function (creep) {
                             let distanceToExit = source.pos.getRangeTo(homeExit[homeMiddle]);
                             let roomRange = Game.map.findRoute(creep.room.name, creep.memory.overlord).length;
                             let total = distanceToExit + 20;
-                            if (roomRange > 1) total += (roomRange * 40);
+                            if (roomRange > 1) total += (roomRange * 50);
                             source.memory.travelRange = total;
                         }
                         creep.memory.carryAmountNeeded = _.round((source.memory.travelRange * 2.05) * ((creep.getActiveBodyparts(WORK) + 1) * HARVEST_POWER));

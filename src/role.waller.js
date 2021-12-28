@@ -35,7 +35,7 @@ module.exports.role = function role(creep) {
 };
 
 function wallMaintainer(creep) {
-    if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget) || Memory.roomCache[creep.room.name].threatLevel) {
+    if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget) || (Memory.roomCache[creep.room.name].threatLevel && Math.random() > 0.9)) {
         let nukeSite, nukeRampart;
         let barrierStructures = _.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (s.room.energyState || s.hits < BARRIER_TARGET_HIT_POINTS[s.room.level]));
         if (creep.room.memory.nuke) {

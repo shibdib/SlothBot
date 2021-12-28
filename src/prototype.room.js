@@ -466,7 +466,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
                 let distanceToExit = source.pos.getRangeTo(homeExit[homeMiddle]);
                 let roomRange = Game.map.findRoute(this.name, closestRoom).length;
                 sourceRating[source.id] = distanceToExit + 20;
-                if (roomRange > 1) sourceRating[source.id] += (roomRange * 40);
+                if (roomRange > 1) sourceRating[source.id] += (roomRange * 50);
             }
         }
         let isHighway = !room.controller && !sk && !room.sources.length;

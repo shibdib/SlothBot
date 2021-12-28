@@ -140,6 +140,7 @@ let globals = function () {
         // SK
         SKWorker: 5,
         // Military
+        defender: 2,
         priority: 4,
         urgent: 5,
         high: 7,

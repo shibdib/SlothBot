@@ -8,7 +8,7 @@
 let controllerAlternator;
 module.exports.linkControl = function (room) {
     if (room.level < 5) return;
-    let links = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && !s.cooldown && s.store[RESOURCE_ENERGY] >= 100 && s.id !== s.room.memory.controllerLink && s.id !== s.room.memory.hubLink));
+    let links = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && !s.cooldown && s.store[RESOURCE_ENERGY] >= 100 && s.id !== s.room.memory.controllerLink));
     let hubLink = Game.getObjectById(room.memory.hubLink);
     let controllerLink = Game.getObjectById(room.memory.controllerLink);
     if (!controllerLink) {
@@ -18,9 +18,11 @@ module.exports.linkControl = function (room) {
     }
     if (!hubLink) delete room.memory.hubLink;
     for (let link of links) {
+        // If hublink and room isn't full on energy, send it to the controller link.
+        if (link.id === link.room.memory.hubLink && link.room.energyAvailable !== link.room.energyCapacityAvailable) continue;
         let upgrader = _.find(link.room.creeps, (c) => c.memory && c.memory.role === 'upgrader');
         // Controller link if conditions met
-        if (upgrader && (controllerLink && controllerLink.store[RESOURCE_ENERGY] < 50 && !controllerAlternator)) {
+        if (upgrader && (controllerLink && ((controllerLink.store[RESOURCE_ENERGY] < 50 && !controllerAlternator) || link.id === link.room.memory.hubLink))) {
             controllerAlternator = true;
             link.transferEnergy(controllerLink);
         } else if (hubLink && hubLink.store[RESOURCE_ENERGY] < 400) {
