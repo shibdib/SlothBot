@@ -139,7 +139,7 @@ function minionController(minion) {
         diplomacy.trackThreat(minion);
         // Handle edge cases
         if (minion.portalCheck() || minion.borderCheck()
-            || (minion.room.hostileCreeps.length && minion.shibKite())
+            || (minion.hits < minion.hitsMax && minion.shibKite())
             || (minion.memory.fleeNukeTime && minion.fleeNukeRoom())) {
             break;
         }

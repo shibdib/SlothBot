@@ -465,7 +465,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
             }
         }
         // Protected Structures
-        _.filter(room.structures, (s) => protectedStructureTypes.includes(s.structureType) && !s.pos.checkForRampart() && !s.pos.checkForConstructionSites() && !s.pos.isInBunker()).forEach((s) => s.pos.createConstructionSite(STRUCTURE_RAMPART))
+        _.filter(room.structures, (s) => protectedStructureTypes.includes(s.structureType) && !s.pos.checkForRampart() && !s.pos.checkForConstructionSites() && ([STRUCTURE_SPAWN, STRUCTURE_TOWER].includes(s.structureType) || !s.pos.isInBunker())).forEach((s) => s.pos.createConstructionSite(STRUCTURE_RAMPART))
         // Clean old barriers
         /**
          _.filter(room.structures, (s) => (s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART) && !buildPositions.some(pos => pos.x === s.pos.x && pos.y === s.pos.y) &&

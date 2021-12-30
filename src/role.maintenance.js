@@ -25,6 +25,7 @@ module.exports.role = function role(creep) {
     }
     // Work
     if (creep.memory.working) {
+        creep.memory.other.noBump = true;
         if (!creep.memory.wallWork && !Memory.roomCache[creep.room.name].threatLevel && !creep.room.nukes.length && (creep.memory.constructionSite || creep.repairWork())) {
             creep.builderFunction();
         } else {
@@ -33,6 +34,7 @@ module.exports.role = function role(creep) {
         }
     } else {
         creep.memory.task = undefined;
+        creep.memory.other.noBump = undefined;
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.withdrawResource();
         } else {

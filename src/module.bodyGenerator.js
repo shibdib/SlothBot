@@ -35,6 +35,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         case 'waller':
         case 'roadBuilder':
             if (role === 'drone') deficitExemption = true;
+            if (role === 'waller' && Memory.roomCache[room.name].threatLevel) deficitExemption = true;
             work = _.floor((energyAmount * 0.3) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
             carry = _.floor((energyAmount * 0.2) / BODYPART_COST[CARRY]) || 1;

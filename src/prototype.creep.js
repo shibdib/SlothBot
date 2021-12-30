@@ -534,6 +534,13 @@ Creep.prototype.constructionWork = function () {
         this.memory.targetHits = 12500;
         return true;
     }
+    if (Memory.roomCache[this.room.name].threatLevel) {
+        let hostileBarrier = _.min(_.filter(this.room.structures, (s) => [STRUCTURE_WALL, STRUCTURE_RAMPART].includes(s.structureType) && s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)), 5)[0]), 'hits');
+        this.memory.constructionSite = hostileBarrier.id;
+        this.memory.task = 'repair';
+        this.memory.targetHits = hostileBarrier.hits + 25000;
+        return true;
+    }
     site = _.filter(mySites, (s) => s.structureType === STRUCTURE_SPAWN);
     if (site.length > 0) {
         site = _.max(site, 'progress');

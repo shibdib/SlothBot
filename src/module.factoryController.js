@@ -5,6 +5,7 @@
  * Project - Overlord-Bot (Screeps)
  */
 let tickTracker = {};
+let coolDownTracker = {};
 
 module.exports.factoryControl = function (room) {
     if (!room.factory) return;
@@ -13,7 +14,8 @@ module.exports.factoryControl = function (room) {
         room.factory.say(_.capitalize(room.factory.memory.producing));
     }
     let lastRun = tickTracker[room.name] || 0;
-    if (lastRun + 25 > Game.time) return;
+    let coolDown = coolDownTracker[room.name] || 0;
+    if (lastRun + coolDown > Game.time) return;
     tickTracker[room.name] = Game.time;
     // Check for factory
     if (room.factory && !room.nukes.length && !room.memory.lowPower) {
@@ -31,7 +33,8 @@ module.exports.factoryControl = function (room) {
                             return delete room.factory.memory.producing;
                         } else if (_.includes(COMPRESSED_COMMODITIES, room.factory.memory.producing)) {
                             for (let neededResource of Object.keys(COMMODITIES[room.factory.memory.producing].components)) {
-                                if (BASE_MINERALS.includes(neededResource) && room.store(neededResource) < REACTION_AMOUNT * 0.5) {
+                                if (neededResource === RESOURCE_ENERGY) continue;
+                                if (room.store(neededResource) < REACTION_AMOUNT * 0.5) {
                                     log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' because ' + neededResource + ' fell below the reaction amount.', ' FACTORY CONTROL:');
                                     return delete room.factory.memory.producing;
                                 }
@@ -43,6 +46,7 @@ module.exports.factoryControl = function (room) {
                     } else if (room.store(RESOURCE_ENERGY) > ENERGY_AMOUNT[room.level] * 1.5) {
                         return delete room.factory.memory.producing;
                     }
+                    coolDownTracker[room.name] = COMMODITIES[room.factory.memory.producing].cooldown + 1;
                     return;
                 case -4:
                 case -7:

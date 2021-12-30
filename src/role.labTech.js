@@ -31,16 +31,16 @@ module.exports.role = function (creep) {
         || storageControl(creep)
         // Check nuker for ghodium
         || nukeSupplies(creep)
-        // Empty labs
-        || emptyLab(creep)
-        // Empty factories
-        || emptyFactory(creep)
         // Get lab orders
         || labSupplies(creep)
         // Get factory orders
-        || factorySupplies(creep)) return;
+        || factorySupplies(creep)
+        // Empty labs
+        || emptyLab(creep)
+        // Empty factories
+        || emptyFactory(creep)) return;
     // If nothing to do, idle
-    creep.idleFor(50);
+    creep.idleFor(20);
 };
 
 // Get item
