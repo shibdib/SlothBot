@@ -605,7 +605,7 @@ function manageAuxiliary() {
                     delete Memory.auxiliaryTargets[key];
                     delete Memory.roomCache[key];
                 }
-                break;
+                continue;
             case 'commodity':
                 if (maxLevel < 6) delete Memory.auxiliaryTargets[key];
                 break;

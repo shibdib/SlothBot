@@ -54,7 +54,7 @@ Creep.prototype.idleFor = function (ticks = 0) {
 Object.defineProperty(Creep.prototype, 'isFull', {
     get: function () {
         if (!this._isFull) {
-            this._isFull = _.sum(this.store) >= this.store.getCapacity() * 0.85 || (_.sum(this.store) && this.ticksToLive < 25);
+            this._isFull = _.sum(this.store) >= this.store.getCapacity() * 0.98;
         }
         return this._isFull;
     },
@@ -273,98 +273,133 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
 };
 
 Creep.prototype.locateEnergy = function () {
-    // Take from remote haulers pre storage
-    if (!this.room.storage && this.room.controller && this.room.controller.owner && this.memory.role !== 'hauler' && this.memory.role !== 'shuttle' && this.memory.role !== 'remoteHauler') {
-        let hauler = _.find(this.room.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 3);
-        if (hauler) {
-            this.memory.energyDestination = hauler.id;
-            this.memory.findEnergyCountdown = undefined;
-            return true;
-        }
-        // Fuel Trucks
-        let fuelTruck = _.find(this.room.creeps, (c) => c.my && c.memory.role === 'fuelTruck' && c.memory.destination === c.room.name && c.store[RESOURCE_ENERGY]);
-        if (fuelTruck && this.memory.role !== 'fuelTruck') {
-            this.memory.energyDestination = fuelTruck.id;
-            this.memory.findEnergyCountdown = undefined;
-            return true;
-        }
-    }
-    // Links
-    let hubLink = Game.getObjectById(this.room.memory.hubLink);
-    if (hubLink && hubLink.store[RESOURCE_ENERGY]) {
-        this.memory.energyDestination = hubLink.id;
-        this.memory.findEnergyCountdown = undefined;
-        return true;
-    }
-    //Dropped
-    if (this.room.droppedEnergy.length) {
-        let dropped = _.find(this.room.droppedEnergy, (r) => r.amount >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5));
-        if (dropped) {
-            this.memory.energyDestination = dropped.id;
-            this.memory.findEnergyCountdown = undefined;
-            return true;
-        }
-    }
-    // Tombstone
-    if (this.room.tombstones.length) {
-        let tombstone = _.find(this.room.tombstones, (r) => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY]);
-        if (tombstone) {
-            this.memory.energyDestination = tombstone.id;
-            this.memory.findEnergyCountdown = undefined;
-            return true;
-        }
-    }
-    // Ruin
-    if (this.room.ruins.length) {
-        let ruin = _.find(this.room.ruins, (r) => r.store[RESOURCE_ENERGY]);
-        if (ruin) {
-            this.memory.energyDestination = ruin.id;
-            this.memory.findEnergyCountdown = undefined;
-            return true;
-        }
-    }
-    // Dismantle hostile
-    if (this.hasActiveBodyparts(WORK)) {
-        let hostileStructures = _.find(this.room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username));
-        if (hostileStructures) {
-            switch (this.dismantle(hostileStructures)) {
-                case ERR_NOT_IN_RANGE:
-                    this.shibMove(hostileStructures);
+    // Handle resources in allied rooms
+    if (Memory.roomCache[this.room.name].owner && Memory.roomCache[this.room.name].owner !== MY_USERNAME) {
+        //Dropped
+        if (this.room.droppedEnergy.length) {
+            let dropped = _.find(this.room.droppedEnergy, (r) => r.amount >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5));
+            if (dropped) {
+                this.memory.energyDestination = dropped.id;
+                return true;
             }
-            this.say('DISMANTLE', true);
+        }
+        // Storage
+        if (this.room.storage && this.room.storage.pos.checkForRampart(true) && this.room.storage.store[RESOURCE_ENERGY]) {
+            this.memory.energyDestination = this.room.storage.id;
+            return true;
+        }
+        // Terminal
+        if (this.room.terminal && this.room.terminal.pos.checkForRampart(true) && this.room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
+            this.memory.energyDestination = this.room.terminal.id;
             this.memory.findEnergyCountdown = undefined;
             return true;
         }
-    }
-    // Container
-    if (!this.room.storage || !this.room.storage.store[RESOURCE_ENERGY] || this.memory.role === 'shuttle') {
-        let container = _.max(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && (this.room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= this.room.controller.level)
-            && s.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)), function (c) {
-            return _.sum(c.store);
-        });
-        if (container.id) {
-            this.memory.energyDestination = container.id;
+        // Container
+        if (!this.room.storage || !this.room.storage.store[RESOURCE_ENERGY] || this.memory.role === 'shuttle') {
+            let container = _.max(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.checkForRampart(true)
+                && s.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)), function (c) {
+                return _.sum(c.store);
+            });
+            if (container.id) {
+                this.memory.energyDestination = container.id;
+                this.memory.findEnergyCountdown = undefined;
+                return true;
+            }
+        }
+    } else {
+        // Take from remote haulers pre storage
+        if (!this.room.storage && this.room.controller && this.room.controller.owner && this.memory.role !== 'hauler' && this.memory.role !== 'shuttle' && this.memory.role !== 'remoteHauler') {
+            let hauler = _.find(this.room.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 3);
+            if (hauler) {
+                this.memory.energyDestination = hauler.id;
+                this.memory.findEnergyCountdown = undefined;
+                return true;
+            }
+            // Fuel Trucks
+            let fuelTruck = _.find(this.room.creeps, (c) => c.my && c.memory.role === 'fuelTruck' && c.memory.destination === c.room.name && c.store[RESOURCE_ENERGY]);
+            if (fuelTruck && this.memory.role !== 'fuelTruck') {
+                this.memory.energyDestination = fuelTruck.id;
+                this.memory.findEnergyCountdown = undefined;
+                return true;
+            }
+        }
+        // Links
+        let hubLink = Game.getObjectById(this.room.memory.hubLink);
+        if (hubLink && hubLink.store[RESOURCE_ENERGY]) {
+            this.memory.energyDestination = hubLink.id;
             this.memory.findEnergyCountdown = undefined;
             return true;
         }
+        //Dropped
+        if (this.room.droppedEnergy.length) {
+            let dropped = _.find(this.room.droppedEnergy, (r) => r.amount >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5));
+            if (dropped) {
+                this.memory.energyDestination = dropped.id;
+                this.memory.findEnergyCountdown = undefined;
+                return true;
+            }
+        }
+        // Tombstone
+        if (this.room.tombstones.length) {
+            let tombstone = _.find(this.room.tombstones, (r) => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY]);
+            if (tombstone) {
+                this.memory.energyDestination = tombstone.id;
+                this.memory.findEnergyCountdown = undefined;
+                return true;
+            }
+        }
+        // Ruin
+        if (this.room.ruins.length) {
+            let ruin = _.find(this.room.ruins, (r) => r.store[RESOURCE_ENERGY]);
+            if (ruin) {
+                this.memory.energyDestination = ruin.id;
+                this.memory.findEnergyCountdown = undefined;
+                return true;
+            }
+        }
+        // Dismantle hostile
+        if (this.hasActiveBodyparts(WORK)) {
+            let hostileStructures = _.find(this.room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username));
+            if (hostileStructures) {
+                switch (this.dismantle(hostileStructures)) {
+                    case ERR_NOT_IN_RANGE:
+                        this.shibMove(hostileStructures);
+                }
+                this.say('DISMANTLE', true);
+                this.memory.findEnergyCountdown = undefined;
+                return true;
+            }
+        }
+        // Container
+        if (!this.room.storage || !this.room.storage.store[RESOURCE_ENERGY] || this.memory.role === 'shuttle') {
+            let container = _.max(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && (this.room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= this.room.controller.level)
+                && s.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)), function (c) {
+                return _.sum(c.store);
+            });
+            if (container.id) {
+                this.memory.energyDestination = container.id;
+                this.memory.findEnergyCountdown = undefined;
+                return true;
+            }
+        }
+        // Storage
+        if (this.memory.role !== 'shuttle' && this.room.storage && this.room.storage.store[RESOURCE_ENERGY]) {
+            this.memory.energyDestination = this.room.storage.id;
+            return true;
+        }
+        // Terminal
+        if (this.memory.role !== 'shuttle' && this.room.terminal && this.room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
+            this.memory.energyDestination = this.room.terminal.id;
+            this.memory.findEnergyCountdown = undefined;
+            return true;
+        }
+        // Factory from batteries
+        if (this.room.factory && (!this.room.factory.memory.producing || this.room.factory.memory.producing === RESOURCE_ENERGY) && this.room.factory.store[RESOURCE_ENERGY]) {
+            this.memory.energyDestination = this.room.factory.id;
+        }
+        if (!this.memory.findEnergyCountdown && this.memory.role === 'hauler') this.memory.findEnergyCountdown = 1; else this.memory.findEnergyCountdown += 1;
+        return false;
     }
-    // Storage
-    if (this.memory.role !== 'shuttle' && this.room.storage && this.room.storage.store[RESOURCE_ENERGY]) {
-        this.memory.energyDestination = this.room.storage.id;
-        return true;
-    }
-    // Terminal
-    if (this.memory.role !== 'shuttle' && this.room.terminal && this.room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
-        this.memory.energyDestination = this.room.terminal.id;
-        this.memory.findEnergyCountdown = undefined;
-        return true;
-    }
-    // Factory from batteries
-    if (this.room.factory && (!this.room.factory.memory.producing || this.room.factory.memory.producing === RESOURCE_ENERGY) && this.room.factory.store[RESOURCE_ENERGY]) {
-        this.memory.energyDestination = this.room.factory.id;
-    }
-    if (!this.memory.findEnergyCountdown && this.memory.role === 'hauler') this.memory.findEnergyCountdown = 1; else this.memory.findEnergyCountdown += 1;
-    return false;
 };
 
 Creep.prototype.haulerDelivery = function () {

@@ -171,7 +171,8 @@ RoomPosition.prototype.checkForPortal = function () {
     return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_PORTAL);
 };
 
-RoomPosition.prototype.checkForRampart = function () {
+RoomPosition.prototype.checkForRampart = function (active = undefined) {
+    if (active) return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic);
     return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART);
 };
 

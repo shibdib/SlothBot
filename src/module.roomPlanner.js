@@ -18,39 +18,36 @@ module.exports.buildRoom = function (room) {
     let lastRun = tickTracker[room.name] || {};
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
         if (room.memory.bunkerHub.layoutVersion === LAYOUT_VERSION && storedLayouts[room.name]) {
-            // Run every 250 ticks (100 if missing spawns/ext)
-            let cooldown = 250;
+            // Run every 1000 ticks (100 if missing spawns/ext)
+            let cooldown = 1000;
             if (room.level < room.controller.level) cooldown = 100;
-            if ((lastRun.layout || 0) + cooldown < Game.time) {
-                // Chance on reset to not run (avoid a cpu bomb)
-                if (!lastRun.layout && Math.random() > 0.25) {
-                    lastRun.layout = Game.time;
-                    tickTracker[room.name] = lastRun;
-                    return;
-                }
+            if ((lastRun.layout || 0) + cooldown < Game.time && Math.random() > 0.5) {
                 buildFromLayout(room);
-                lastRun.layout = Game.time;
+                lastRun.layout = Game.time + _.random(10, 250);
                 tickTracker[room.name] = lastRun;
-            } else if ((lastRun.auxiliary || 0) + 50 < Game.time) {
+            } else if ((lastRun.auxiliary || 0) + cooldown < Game.time) {
                 auxiliaryBuilding(room)
-                lastRun.auxiliary = Game.time;
+                lastRun.auxiliary = Game.time + _.random(10, 250);
                 tickTracker[room.name] = lastRun;
             }
         } else {
             storedLayouts[room.name] = undefined;
             updateLayout(room);
+            lastRun.layout = Game.time + _.random(10, 250);
+            lastRun.auxiliary = Game.time + _.random(10, 250);
+            tickTracker[room.name] = lastRun;
         }
     } else {
         storedLayouts[room.name] = undefined;
         findHub(room);
+        lastRun.layout = Game.time + _.random(10, 250);
+        lastRun.auxiliary = Game.time + _.random(10, 250);
+        tickTracker[room.name] = lastRun;
     }
 };
 
 function buildFromLayout(room) {
     let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-    if (Memory.myRooms.length === 1 && !_.filter(Game.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0]) {
-        return hub.createConstructionSite(STRUCTURE_SPAWN);
-    }
     let layout = JSON.parse(storedLayouts[room.name]);
     let filter = [];
     // Handle a rebuild
@@ -393,7 +390,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
             return _.size(JSON.parse(rampartSpots[room.name]));
         }
     } else if (rampartSpots[room.name]) {
-        if (room.level >= 3) {
+        if (room.controller.level >= 3) {
             let spots = JSON.parse(rampartSpots[room.name]);
             if (!spots.length) _.filter(room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).forEach((b) => spots.push({
                 x: b.pos.x,

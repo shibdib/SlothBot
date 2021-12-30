@@ -9,16 +9,17 @@
  * Created by Bob on 6/24/2017.
  */
 
+let MANAGE_TICKS = 15;
 module.exports.labManager = function () {
-    let myRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].controller.level >= 6 && !Game.rooms[r].nukes.length && _.find(Game.rooms[r].structures, (s) => s.structureType === STRUCTURE_LAB));
+    let myRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].level >= 7 && !Game.rooms[r].nukes.length && _.find(Game.rooms[r].structures, (s) => s.structureType === STRUCTURE_LAB));
     if (myRooms.length) {
-        if (Game.time % 100 === 0) cleanLabs();
-        if (Game.time % 100 === 0) {
+        if (Game.time % 500 === 0) cleanLabs();
+        if (Game.time % 275 === 0) {
             for (let room of myRooms) {
                 manageBoostProduction(Game.rooms[room]);
             }
         }
-        if (Game.time % 5 === 0) manageActiveLabs();
+        if (Game.time % MANAGE_TICKS === 0) manageActiveLabs();
     }
 };
 
@@ -60,6 +61,7 @@ function manageBoostProduction(room) {
         if (count < 2) lab.memory.itemNeeded = BOOST_COMPONENTS[boost][count];
         count++;
     }
+    MANAGE_TICKS = REACTION_TIME[boost];
     log.a(room.name + ' queued ' + boost + ' for creation.');
 }
 
@@ -92,6 +94,8 @@ function manageActiveLabs() {
                 outputLab = Game.getObjectById(outputLab);
                 switch (outputLab.runReaction(creatorOne, creatorTwo)) {
                     case OK:
+                        // Set reaction time
+                        if (REACTION_TIME[outputLab.memory.creating] + 1 < MANAGE_TICKS) MANAGE_TICKS = REACTION_TIME[outputLab.memory.creating] + 1;
                         // Check if we already have enough
                         let cutOff = BOOST_AMOUNT * 1.5;
                         // Ghodium special case, always have NUKER_GHODIUM_CAPACITY * 2

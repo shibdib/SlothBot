@@ -74,12 +74,12 @@ let globals = function () {
     global.BUY_ENERGY_CREDIT_BUFFER = 1000000; // Stay above this to buy energy
     global.CREDIT_BUFFER = 10000; // Stay above
     global.FACTORY_CUTOFF = ENERGY_AMOUNT * 0.5; // Amount needed for a factory to be active
-    global.MINERAL_TRADE_AMOUNT = (TERMINAL_CAPACITY * 0.015 + STORAGE_CAPACITY * 0.015);  // Hold this much of a mineral before selling
-    global.BOOST_TRADE_AMOUNT = (TERMINAL_CAPACITY * 0.01 + STORAGE_CAPACITY * 0.01);  // Hold this much of a mineral before selling
+    global.MINERAL_TRADE_AMOUNT = 10000;  // Hold this much of a mineral before selling
+    global.BOOST_TRADE_AMOUNT = 15000;  // Hold this much of a mineral before selling
     global.TERMINAL_ENERGY_BUFFER = 10000; // Keep this much in terminal (Needed for trade)
     global.REACTION_AMOUNT = 10000; // Minimum amount for base reaction minerals and power
-    global.BOOST_AMOUNT = (TERMINAL_CAPACITY * 0.005 + STORAGE_CAPACITY * 0.005); // Try to have this much of all applicable boosts
-    global.DUMP_AMOUNT = TERMINAL_CAPACITY * 0.1; // Fills buys (of if overflowing it will offload to other terminals)
+    global.BOOST_AMOUNT = 20000; // Try to have this much of all applicable boosts
+    global.DUMP_AMOUNT = 40000; // Fills buys (of if overflowing it will offload to other terminals)
 
     // Pathfinder Cache Sizes
     global.PATH_CACHE_SIZE = 10000;
@@ -123,15 +123,15 @@ let globals = function () {
         // Workers
         drone: 3,
         upgrader: 5,
-        mineralHarvester: 7,
+        mineralHarvester: 6,
         // Haulers
         hauler: 1,
         miscHauler: 2,
         // Remotes
-        remoteHarvester: 4,
+        remoteHarvester: 5,
         remoteHauler: 3,
         remoteUpgrader: 7,
-        roadBuilder: 11,
+        roadBuilder: 4,
         assistPioneer: 4,
         fuelTruck: 7,
         reserver: 6,

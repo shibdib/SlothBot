@@ -286,7 +286,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
         // Don't buy minerals you can mine
         if (Memory.harvestableMinerals.includes(mineral)) continue;
         let target = reactionAmount * 3;
-        let stored = getResourceTotal(mineral) || 0;
+        let stored = getResourceTotal(mineral) + (getResourceTotal(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
         if (stored < target) {
             let buyAmount = target - stored;
             // If not on mmo just buy it

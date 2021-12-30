@@ -6,7 +6,7 @@
  */
 let tools = require('tools.cpuTracker');
 
-const DEFAULT_MAXOPS = 1500;
+const DEFAULT_MAXOPS = 2000;
 const STATE_STUCK = 1;
 const FLEE_RANGE = 3;
 
@@ -38,7 +38,7 @@ function shibMove(creep, heading, options = {}) {
     let target = normalizePos(heading);
     if (!origin || !target) return;
 
-    if (!creep.memory._shibMove || creep.memory._shibMove.targetRoom !== target.roomName || creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y) creep.memory._shibMove = {};
+    if (!creep.memory._shibMove || !creep.memory._shibMove.target || creep.memory._shibMove.targetRoom !== target.roomName || creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y) creep.memory._shibMove = {};
 
     // Default options
     _.defaults(options, {
