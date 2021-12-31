@@ -1,25 +1,24 @@
 module.exports = function (grunt) {
-    let config = require('./.auth.json');
     let host = grunt.option('host');
-    let options = config[host];
-
+    let email = grunt.option('email');
+    let pass = grunt.option('pass');
+    let token = grunt.option('token');
     grunt.loadNpmTasks('grunt-screeps');
 
-    if (host !== 'mmo' && !options.token) {
+    if (!token) {
         let port = 21025;
-        if (options.port) port = options.port;
         grunt.initConfig({
             screeps: {
                 options: {
                     server: {
-                        host: options.host,
+                        host: host,
                         port: port,
                         http: true
                     },
-                    email: options.email,
-                    password: options.password,
-                    branch: options.branch,
-                    ptr: options.ptr
+                    email: email,
+                    password: pass,
+                    branch: "default",
+                    ptr: false
                 },
                 dist: {
                     src: ['src/*.js']
@@ -30,10 +29,9 @@ module.exports = function (grunt) {
         grunt.initConfig({
             screeps: {
                 options: {
-                    token: options.token,
-                    branch: options.branch,
-                    ptr: options.ptr,
-                    season: options.season
+                    token: token,
+                    branch: "default",
+                    ptr: false
                 },
                 dist: {
                     src: ['src/*.js']
