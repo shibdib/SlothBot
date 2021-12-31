@@ -581,7 +581,7 @@ function balanceEnergy(terminal) {
         if (needyTerminal) {
             let requestedAmount, resource;
             // Send batteries if possible
-            if (terminal.room.factory && Game.rooms[needyTerminal].factory) {
+            if (terminal.room.factory && Game.rooms[needyTerminal] && Game.rooms[needyTerminal].factory) {
                 // Determine how much you can move
                 resource = RESOURCE_BATTERY;
                 let availableAmount = terminal.store[RESOURCE_BATTERY];

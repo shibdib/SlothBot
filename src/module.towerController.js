@@ -15,48 +15,23 @@ module.exports.towerControl = function (room) {
     // Set a repair tower
     let repairTower = Game.getObjectById(roomRepairTower[room.name]) || _.max(_.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.15), 'energy');
     if (!hostileCreeps.length && repairTower.id) {
-        // Clear repair tower to rotate it
-        if (repairTower.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.15) roomRepairTower[room.name] = undefined; else roomRepairTower[room.name] = repairTower.id;
+        roomRepairTower[room.name] = repairTower.id;
         let woundedCreep = _.find(room.friendlyCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)) || _.find(room.powerCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
         let degrade = _.find(room.structures, (s) => (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.25) || (s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.2));
         // Handle wounded healing and keep alive of degrading room.structures
-        if (repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.15 && (woundedCreep || degrade)) {
+        if (woundedCreep || degrade) {
             if (woundedCreep) {
                 repairTower.heal(woundedCreep);
             } else if (degrade) {
-                return repairTower.repair(degrade);
+                repairTower.repair(degrade);
             }
-        } // Handle nuke rampart repair
-        let barriers = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (repairTower.room.energyState && s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level] * 0.5)), 'hits');
-        if (barriers.id) {
-            return repairTower.repair(barriers);
-        }
-        /**
-         else if (room.nukes.length) {
-            let nukeRampart;
-            let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.isActive() && s.store[RESOURCE_ENERGY]);
-            let inRangeStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_LINK && s.structureType !== STRUCTURE_LAB && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.pos.checkForRampart() && s.pos.checkForRampart().hits < NUKE_DAMAGE[2] + 15000);
-            if (!inRangeStructures.length) inRangeStructures = _.filter(room.structures, (s) => !s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.pos.checkForRampart() && s.pos.checkForRampart().hits < NUKE_DAMAGE[0] + 15000 && (s.pos.checkForRampart().hits + ((towers.length * 500) * (s.pos.findClosestByRange(FIND_NUKES).timeToLand * 0.8))) >= NUKE_DAMAGE[0]);
-            if (inRangeStructures.length) nukeRampart = inRangeStructures[0].pos.checkForRampart();
-            if (nukeRampart) {
-                for (let tower of towers) tower.repair(nukeRampart);
-            } else {
-                nukeRampart = _.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.hits < NUKE_DAMAGE[2] + 15000 && (s.hits + ((towers.length * 500) * (s.pos.findClosestByRange(FIND_NUKES).timeToLand * 0.8))) >= NUKE_DAMAGE[2])[0];
-                for (let tower of towers) tower.repair(nukeRampart);
-            }
-        } // Handle barrier repair
-         else {
-            let barriers = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) &&
-                ((!repairTower.room.energyState && s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level] * 0.5) || (repairTower.room.energyState && s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level]))), 'hits');
+        } // Handle rampart repair
+        else if (repairTower.room.storage && repairTower.room.energyState && (!repairTower.room.memory.defenseCooldown || repairTower.room.memory.defenseCooldown < Game.time)) {
+            let barriers = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level] * 0.2), 'hits');
             if (barriers.id) {
                 return repairTower.repair(barriers);
-            } else if (repairTower.room.energyState > 1) {
-                let lowestRampart = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL)), 'hits');
-                if (lowestRampart) {
-                    return repairTower.repair(lowestRampart);
-                }
             }
-        }**/
+        }
     } else if (hostileCreeps.length) {
         let towers = _.shuffle(_.filter(room.structures, (s) => s && s.structureType === STRUCTURE_TOWER && s.isActive() && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST));
         if (!towers.length) {

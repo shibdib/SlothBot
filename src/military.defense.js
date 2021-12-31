@@ -32,8 +32,9 @@ module.exports.controller = function (room) {
     if (Memory.roomCache[room.name].threatLevel > 2 || room.controller.safemode) safeModeManager(room);
 
     // Tower control
-    let woundedCreep = _.find(room.friendlyCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)) || _.find(room.powerCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
-    if (room.hostileCreeps.length || Game.time % 50 === 0 || woundedCreep) towers.towerControl(room);
+    //let woundedCreep = _.find(room.friendlyCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)) || _.find(room.powerCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
+    //if (room.hostileCreeps.length || Game.time % 50 === 0 || woundedCreep) towers.towerControl(room);
+    towers.towerControl(room);
 
     //Manage Ramparts for Allies
     if (RAMPART_ACCESS && FRIENDLIES.length) rampartManager(room, structures);

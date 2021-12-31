@@ -567,8 +567,10 @@ function addStructuresToMatrix(room, matrix, type, options) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureController) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
-        } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic || FRIENDLIES.includes(structure.owner.username)) && !structure.pos.checkForObstacleStructure()) {
+        } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic) && !structure.pos.checkForObstacleStructure()) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
+        } else if (structure instanceof StructureRampart && (FRIENDLIES.includes(structure.owner.username) && !structure.pos.checkForObstacleStructure())) {
+            matrix.set(structure.pos.x, structure.pos.y, 75);
         } else if (structure instanceof StructureRampart && (!structure.my || !structure.isPublic || structure.pos.checkForObstacleStructure())) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureRoad && (!structure.pos.checkForRampart() || structure.pos.checkForRampart().my || structure.pos.checkForRampart().isPublic)) {

@@ -32,12 +32,11 @@ Creep.prototype.borderPatrol = function () {
     if (this.memory.destination && this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
     // Handle combat
     if (this.canIWin(50)) {
-        if (!this.handleMilitaryCreep()) this.findDefensivePosition();
+        if (this.handleMilitaryCreep()) return;
     } else {
-        this.shibKite();
+        return this.shibKite();
     }
     if (this.memory.destination && this.room.name === this.memory.destination && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) this.memory.destination = undefined;
-    if (!this.memory.destination) this.goToHub();
 };
 
 function offDuty(creep, partner = undefined) {

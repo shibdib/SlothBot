@@ -19,39 +19,16 @@ let lastGlobalSpawn = Game.time;
 //Build Creeps From Queue
 let buildTick = {};
 module.exports.processBuildQueue = function (room) {
-    // Display Queues
-    displayQueue(room.name);
+    // Display/Retrieve Queue
+    let queue = displayQueue(room.name);
+    if (!queue) return;
     if (buildTick[room.name] + 5 > Game.time) return;
     buildTick[room.name] = Game.time;
-    if (!_.size(globalQueue) && !_.size(roomQueue[room.name])) return false;
     // Check for free spawns
     let availableSpawn = _.find(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning && s.isActive());
     if (availableSpawn) {
-        let body, role, queue, cost, queuedBuild;
+        let body, role, cost, queuedBuild;
         let level = room.level;
-        // Global queue, if far away or lacking energy it's low priority
-        let combatQueue = {};
-        if (room.level === room.controller.level && !room.controller.safemode && room.level >= 4 && _.size(globalQueue) && !Memory.roomCache[room.name].threatLevel && Game.cpu.bucket >= BUCKET_MAX * 0.9) {
-            Object.keys(globalQueue).forEach(function (q) {
-                // If energy poor and not urgent, delete
-                if (!room.energyState && globalQueue[q].priority > PRIORITIES.urgent) return;
-                // If you're the closest room, bump up priority
-                else if (Memory.roomCache[globalQueue[q].destination] && Memory.roomCache[globalQueue[q].destination].closestRoom === room.name) {
-                    combatQueue[globalQueue.role] = globalQueue[q];
-                    combatQueue[globalQueue.role].priority *= 0.75;
-                } else if (globalQueue[q].destination) {
-                    let distance = Game.map.getRoomLinearDistance(globalQueue[q].destination, room.name);
-                    if (distance > ROOM_INFLUENCE_RANGE) return; else if (distance > ROOM_INFLUENCE_RANGE * 0.25) {
-                        combatQueue[globalQueue.role] = globalQueue[q];
-                        combatQueue[globalQueue.role].priority = PRIORITIES.secondary;
-                    }
-                }
-            })
-            queue = _.sortBy(Object.assign({}, combatQueue, roomQueue[room.name]), 'priority');
-        } else if (_.size(roomQueue[room.name])) {
-            queue = _.sortBy(Object.assign({}, roomQueue[room.name]), 'priority');
-        }
-        if (!queue) return;
         // Pick build target
         for (let topPriority of queue) {
             role = topPriority.role;
@@ -499,6 +476,7 @@ module.exports.remoteCreepQueue = function (room) {
                 if (!getCreepCount(undefined, 'SKAttacker', remoteName) || (getCreepTTL(remoteName, 'SKAttacker') < 250 && getCreepCount(undefined, 'SKAttacker', remoteName) === 1)) {
                     queueCreep(room, PRIORITIES.remoteHarvester - 1, {
                         role: 'SKAttacker',
+                        military: true,
                         destination: remoteName
                     })
                 }
@@ -656,7 +634,7 @@ module.exports.globalCreepQueue = function () {
             // Rebuilding allies
             case 'rebuild':
                 if (getCreepCount(undefined, 'drone', key) < 5) {
-                    queueGlobalCreep(priority + getCreepCount(undefined, 'drone', key), {
+                    queueGlobalCreep(priority, {
                         role: 'drone',
                         destination: key,
                         military: true
@@ -997,6 +975,7 @@ function displayQueue(room) {
         displayText(room, 35, 2 + i, 'Spawning - ' + _.capitalize(spawningCreep.name.split("_")[0]) + ' - Ticks: ' + spawn.spawning.remainingTime);
         i++;
     }
+    return queue;
 }
 
 function cacheCounts() {
