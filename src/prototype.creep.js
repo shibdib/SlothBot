@@ -172,9 +172,11 @@ Creep.prototype.skSafety = function () {
     if (lair || SK) {
         this.memory.fledSK = Game.time;
         if (SK) {
+            this.say('SK!', true);
             this.shibKite(range + 2, SK);
             return true;
         } else if (lair) {
+            this.say('SK!', true);
             this.shibKite(range + 2, lair);
             return true;
         }
