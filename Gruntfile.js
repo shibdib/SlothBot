@@ -1,4 +1,5 @@
 module.exports = function (grunt) {
+    // Var style - --force --host=xxx --email=xxx --pass=xxx
     let host = grunt.option('host');
     let email = grunt.option('email');
     let pass = grunt.option('pass');

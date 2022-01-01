@@ -47,6 +47,7 @@ module.exports.role = function (creep) {
         if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 17})
         //Harvest
         if (creep.memory.other.source) {
+            creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 17})
             let source = Game.getObjectById(creep.memory.other.source);
             let container = Game.getObjectById(creep.memory.containerID) || Game.getObjectById(creep.memory.containerSite);
             //Make sure you're on the container

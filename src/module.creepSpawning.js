@@ -129,7 +129,7 @@ module.exports.roomStartup = function (room) {
     }
     if (getCreepCount(room, 'stationaryHarvester') < 2) {
         let reboot = !getCreepCount(room, 'stationaryHarvester') || room.friendlyCreeps.length < 5 || undefined;
-        queueCreep(room, 4, {
+        queueCreep(room, 1 + getCreepCount(room, 'stationaryHarvester'), {
             role: 'stationaryHarvester',
             other: {
                 noBump: true,
