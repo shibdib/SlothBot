@@ -94,7 +94,7 @@ module.exports.towerControl = function (room) {
                     for (let tower of towers) tower.repair(nukeRampart);
                 }
             }  // Else if it's near a barrier, repair the barrier
-            else if (room.energyState) {
+            else if (room.energyState && room.storage) {
                 let nearbyRampart = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)), 3)[0] && s.hits < BARRIER_TARGET_HIT_POINTS[room.level]), 'hits');
                 if (nearbyRampart.id) for (let tower of towers) tower.repair(nearbyRampart);
                 if (potentialAttack < healPower) room.memory.dangerousAttack = true; else room.memory.towerTarget = hostileCreeps[i].id;
