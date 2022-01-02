@@ -138,5 +138,17 @@ function findRemoteSource(creep) {
     if (adjacent.length) {
         creep.memory.remoteMining = _.sample(adjacent);
         return true;
+    } else {
+        let possibles = [];
+        _.filter(Game.map.describeExits(creep.pos.roomName)).forEach(function (r) {
+            _.filter(Game.map.describeExits(r)).forEach(function (s) {
+                if (!Memory.roomCache[s] || ((!Memory.roomCache[s].owner || Memory.roomCache[s].owner === MY_USERNAME) &&
+                    (!Memory.roomCache[s].reservation || Memory.roomCache[s].reservation === MY_USERNAME) && !Memory.roomCache[s].sk && Memory.roomCache[s].sources)) return possibles.push(s);
+            })
+        });
+        if (possibles.length) {
+            creep.memory.remoteMining = _.sample(possibles);
+            return true;
+        }
     }
 }

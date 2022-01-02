@@ -649,7 +649,7 @@ let hostileMatrixTick = {};
 function getHostileMatrix(roomName, matrix, options) {
     let room = Game.rooms[roomName];
     if (!room) return matrix;
-    if (!hostileMatrixCache[roomName] || options.showMatrix || (!hostileMatrixTick[room.name] || Game.time !== hostileMatrixTick[room.name])) {
+    if (!hostileMatrixCache[roomName] || options.showMatrix || (!hostileMatrixTick[room.name] || Game.time > hostileMatrixTick[room.name] + 1)) {
         room.memory.hostileMatrixTick = undefined;
         hostileMatrixTick[room.name] = Game.time;
         hostileMatrixCache[roomName] = addHostilesToMatrix(room, matrix, options).serialize();

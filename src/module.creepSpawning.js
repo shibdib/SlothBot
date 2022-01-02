@@ -309,7 +309,7 @@ module.exports.miscCreepQueue = function (room) {
             }
         }
         //Pre observer spawn explorers
-        if (Memory.maxLevel < 8 && Game.cpu.bucket === BUCKET_MAX && getCreepCount(room, 'explorer') < 4) {
+        if (Memory.maxLevel < 8 && Game.cpu.bucket === BUCKET_MAX && getCreepCount(undefined, 'explorer') < 3) {
             queueCreep(room, PRIORITIES.explorer, {role: 'explorer'})
         }
         // Portal explorers
@@ -491,7 +491,7 @@ module.exports.remoteCreepQueue = function (room) {
                 if (getCreepCount(undefined, 'SKAttacker', remoteName) && !getCreepCount(undefined, 'SKMineral', remoteName) && (!Memory.roomCache[remoteName].mineralCooldown || Memory.roomCache[remoteName].mineralCooldown < Game.time)) {
                     queueCreep(room, PRIORITIES.SKWorker, {role: 'SKMineral', destination: remoteName})
                 }
-            } else if (!Memory.roomCache[remoteName].sk && Game.cpu.bucket === BUCKET_MAX) {
+            } else if (!Memory.roomCache[remoteName].sk && (Game.cpu.bucket === BUCKET_MAX || !skMining)) {
                 let multi = (ENERGY_AMOUNT[room.level || 1] * 2) / room.energy;
                 if (!room.storage || multi > 2) multi = 2;
                 else if (multi < 0.1) multi = 0.1;

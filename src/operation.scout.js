@@ -30,7 +30,7 @@ function operationPlanner(room, creep = undefined) {
     // Handle forward observer
     if (Memory.targetRooms[room.name] && Memory.targetRooms[room.name].type !== 'attack' && Memory.targetRooms[room.name].type !== 'scout') {
         forwardObserver(room);
-        if (creep && !creep.moveToHostileConstructionSites(false, true)) creep.idleFor(15);
+        if (creep && !creep.moveToHostileConstructionSites(false, true)) creep.idleFor(25);
         return;
     }
     // Cache intel
