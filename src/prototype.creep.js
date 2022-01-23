@@ -514,6 +514,12 @@ Creep.prototype.haulerDelivery = function () {
             return true;
         }
     }
+    // Spawns/Extensions ignore harvester exts
+    energyStructure = _.sample(_.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.store.getFreeCapacity(RESOURCE_ENERGY)))
+    if (energyStructure) {
+        this.memory.storageDestination = energyStructure.id;
+        return true;
+    }
 };
 
 Creep.prototype.constructionWork = function () {
