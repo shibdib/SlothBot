@@ -26,6 +26,13 @@ Creep.prototype.guardRoom = function () {
         }
         guardRange = 8;
     } **/
+    // Season 4
+    if (Game.shard.name === 'shardSeason') {
+        let reactor = this.room.find(FIND_REACTORS)[0];
+        if (reactor) {
+            if (!reactor.owner || reactor.owner.username !== MY_USERNAME) Memory.targetRooms[this.memory.destination].claimer = true; else Memory.targetRooms[this.memory.destination].claimer = undefined;
+        }
+    }
     // Handle combat
     if (this.canIWin(50)) {
         if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {

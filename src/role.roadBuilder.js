@@ -20,6 +20,8 @@ module.exports.role = function role(creep) {
         let harvesterLocation = _.sample(_.pluck(_.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester'), 'room.name'));
         if (harvesterLocation) creep.memory.destination = harvesterLocation; else creep.memory.destination = _.sample(creep.memory.misc);
         if (harvesterLocation === creep.room.name) creep.memory.destination = creep.memory.overlord;
+        creep.memory.energyDestination = undefined;
+        creep.memory.source = undefined;
         return;
     }
     // Remove bad desto

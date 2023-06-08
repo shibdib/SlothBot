@@ -391,10 +391,10 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
                 }
                 // Temp avoid
                 if (Memory.roomCache[roomName].tempAvoid) {
-                    if (Memory.roomCache[roomName].tempAvoid + 3000 > Game.time) return 256; else delete Memory.roomCache[roomName].tempAvoid;
+                    if (Memory.roomCache[roomName].tempAvoid + 3000 > Game.time) return 250; else delete Memory.roomCache[roomName].tempAvoid;
                 }
                 // Pathing Penalty Rooms
-                if (Memory.roomCache[roomName].pathingPenalty) return 150;
+                if (Memory.roomCache[roomName].pathingPenalty) return 250;
                 // Friendly Rooms
                 if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 5;
                 // Highway
@@ -714,7 +714,7 @@ function addSksToMatrix(room, matrix, options) {
                         continue;
                     }
                     if (position && !position.checkForWall()) {
-                        let weight = 40 * (6 - position.getRangeTo(sk));
+                        let weight = 250;
                         matrix.set(position.x, position.y, weight)
                     }
                 }
@@ -732,7 +732,7 @@ function addSksToMatrix(room, matrix, options) {
                         continue;
                     }
                     if (position && !position.checkForWall() && !position.checkForRoad()) {
-                        let weight = 40 * (5 - position.getRangeTo(lair));
+                        let weight = 175;
                         matrix.set(position.x, position.y, weight)
                     }
                 }

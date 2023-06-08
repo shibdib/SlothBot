@@ -72,7 +72,6 @@ function threatManager() {
 }
 
 module.exports.trackThreat = function (creep) {
-    if (!creep.room.hostileCreeps.length) return;
     // Handle enemies being attacked
     if (creep.room.hostileCreeps.length) {
         // Store usernames

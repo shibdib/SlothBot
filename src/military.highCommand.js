@@ -11,7 +11,7 @@ let lastTick = 0;
 module.exports.highCommand = function () {
     if (lastTick + 10 > Game.time) return;
     lastTick = Game.time;
-    OPERATION_LIMIT = 4;
+    OPERATION_LIMIT = Memory.myRooms.length;
     if (!Memory.nonCombatRooms) Memory.nonCombatRooms = [];
     if (!Memory.targetRooms) Memory.targetRooms = {};
     if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
@@ -22,9 +22,9 @@ module.exports.highCommand = function () {
     // Auxiliary
     if (Math.random() > 0.75) auxiliaryOperations();
     // Request scouting for new operations
-    else if (Memory.maxLevel >= 2 && Math.random() > 0.85) operationRequests();
+    else if (Memory.maxLevel >= 2 && Math.random() > 0.5) operationRequests();
     // Manage old operations
-    else if (Math.random() > 0.5) {
+    else if (Math.random() > 0.2) {
         manageAttacks();
         manageAuxiliary();
     }
@@ -193,6 +193,7 @@ function auxiliaryOperations() {
             Memory.targetRooms = cache;
             log.a('Score guard operation planned for ' + roomLink(scoreCollector.name) + ', Nearest Room - ' + scoreCollector.closestRange + ' rooms away', 'HIGH COMMAND: ');
         }**/
+        /**
         if (maxLevel >= 4) {
             let scoreRoom = _.min(_.filter(initialFilter, (r) => r.seasonResource > Game.time && r.closestRange <= r.seasonResource / 50 && r.reservation !== MY_USERNAME &&
                 ((Memory.ownedSymbols && Memory.ownedSymbols.includes(r.seasonResourceType) && getResourceTotal(r.seasonResourceType) < 25000) || getResourceTotal(r.seasonResourceType) < 2500)), 'closestRange');
@@ -222,6 +223,24 @@ function auxiliaryOperations() {
                 };
                 Memory.targetRooms = cache;
                 log.a('Highway Guard operation planned for ' + roomLink(highwayCracks.name) + ', Nearest Room - ' + highwayCracks.closestRange + ' rooms away', 'HIGH COMMAND: ');
+            }
+        }
+         **/
+        // Reactor Guard
+        let reactorRoom = _.filter(Memory.roomCache, (r) => r.seasonReactor && r.closestRange <= 10);
+        if (reactorRoom.length) {
+            for (let reactor of reactorRoom) {
+                if (Memory.targetRooms[reactor.name]) continue;
+                let cache = Memory.targetRooms || {};
+                let tick = Game.time;
+                cache[reactor.name] = {
+                    tick: tick,
+                    type: 'guard',
+                    level: 1,
+                    priority: PRIORITIES.secondary
+                };
+                Memory.targetRooms = cache;
+                log.a('Reactor guard operation planned for ' + roomLink(reactor.name) + ', Nearest Room - ' + reactor.closestRange + ' rooms away', 'HIGH COMMAND: ');
             }
         }
     }

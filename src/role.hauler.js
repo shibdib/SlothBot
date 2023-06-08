@@ -7,7 +7,7 @@
 
 module.exports.role = function (creep) {
     creep.say(ICONS.haul, true);
-    if (creep.towTruck() || creep.wrongRoom()) return true;
+    if (creep.towTruck() || (Math.random() > 0.7 && creep.wrongRoom())) return true;
     // If hauling do things
     if (_.sum(creep.store)) {
         if (_.sum(creep.store) > creep.store[RESOURCE_ENERGY]) {

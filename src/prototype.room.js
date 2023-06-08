@@ -12,7 +12,7 @@
 
 Object.defineProperty(Room.prototype, 'decoder', {
     get: function () {
-        if (Game.shard.name !== 'shardSeason') return undefined;
+        if (Game.shard.name !== 'shardSeason33') return undefined;
         if (!this._decoder) {
             this._decoder = this.find(FIND_SYMBOL_DECODERS)[0];
         }
@@ -90,7 +90,11 @@ Object.defineProperty(Room.prototype, 'mineral', {
     get: function () {
         // If we dont have the value stored locally
         if (!this._mineral) {
-            this._mineral = this.find(FIND_MINERALS)[0];
+            if (Game.shard.name === 'shardSeason' && RESOURCE_THORIUM) {
+                this._mineral = _.find(this.find(FIND_MINERALS), (m) => m.resourceType !== RESOURCE_THORIUM);
+            } else {
+                this._mineral = this.find(FIND_MINERALS)[0];
+            }
         }
         // return the locally stored value
         return this._mineral;
@@ -336,7 +340,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, towers,
         reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions, seasonResource, isHighway,
         closestRoom,
-        seasonResourceType, seasonDecoder, seasonCollector, seasonHighwayPath, swarm, structures, towerCount,
+        seasonResourceType, seasonDecoder, seasonReactor, seasonReactorOwner, seasonCollector, seasonHighwayPath, swarm, structures, towerCount,
         sourceRating;
     if (room) {
         // Get closest room
@@ -359,7 +363,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
              // If collector is reachable, mark as 1 else mark as 2
              if (collector) {
                 if (collector.pos.countOpenTerrainAround() || collector.pos.findClosestByPath(FIND_EXIT)) seasonCollector = 1; else seasonCollector = 2;
-            }**/
+            }
                 // Season 2
             let container = room.find(FIND_SYMBOL_CONTAINERS)[0];
             if (creep) container = creep.pos.findClosestByPath(container);
@@ -369,6 +373,12 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             }
             if (this.decoder) {
                 seasonDecoder = this.decoder.resourceType;
+            }**/
+            // season 4?
+            let reactor = room.find(FIND_REACTORS)[0];
+            if (reactor) {
+                seasonReactor = reactor.id;
+                if (reactor.owner) seasonReactorOwner = reactor.owner.username;
             }
         }
         // Minerals
@@ -501,6 +511,8 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             seasonCollector: seasonCollector,
             seasonHighwayPath: seasonHighwayPath,
             seasonDecoder: seasonDecoder,
+            seasonReactor: seasonReactor,
+            seasonReactorOwner: seasonReactorOwner,
             invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,
             towers: towerCount,
             swarm: swarm,

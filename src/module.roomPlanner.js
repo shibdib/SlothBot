@@ -20,12 +20,12 @@ module.exports.buildRoom = function (room) {
         if (room.memory.bunkerHub.layoutVersion === LAYOUT_VERSION && storedLayouts[room.name]) {
             // Run every 1000 ticks (100 if missing spawns/ext)
             let cooldown = 1000;
-            if (room.level < room.controller.level) cooldown = 100;
-            if ((lastRun.layout || 0) + cooldown < Game.time && Math.random() > 0.5) {
+            if (room.level < room.controller.level) cooldown = 50;
+            if (((lastRun.layout || 0) + cooldown < Game.time && (Math.random() > 0.5 || room.level < room.controller.level)) || !lastRun.layout) {
                 buildFromLayout(room);
                 lastRun.layout = Game.time + _.random(10, 250);
                 tickTracker[room.name] = lastRun;
-            } else if ((lastRun.auxiliary || 0) + cooldown < Game.time) {
+            } else if (((lastRun.auxiliary || 0) + cooldown < Game.time) || !lastRun.auxiliary) {
                 auxiliaryBuilding(room)
                 lastRun.auxiliary = Game.time + _.random(10, 250);
                 tickTracker[room.name] = lastRun;
@@ -33,8 +33,6 @@ module.exports.buildRoom = function (room) {
         } else {
             storedLayouts[room.name] = undefined;
             updateLayout(room);
-            lastRun.layout = Game.time + _.random(10, 250);
-            lastRun.auxiliary = Game.time + _.random(10, 250);
             tickTracker[room.name] = lastRun;
         }
     } else {
@@ -63,10 +61,8 @@ function buildFromLayout(room) {
             // Build preset layout
             else if (room.controller.level === 8) {
                 filter = _.filter(countCheck, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
-            } else if (room.controller.level === 7) {
+            } else if (room.controller.level === 6 || room.controller.level === 7) {
                 filter = _.filter(countCheck, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
-            } else if (room.controller.level === 6) {
-                filter = _.filter(countCheck, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_LAB);
             } else if (room.controller.level < 6 && room.controller.level >= 3) {
                 filter = _.filter(countCheck, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_LAB);
             }
@@ -220,6 +216,10 @@ function controllerBuilder(room) {
 function mineralBuilder(room) {
     let extractor = _.find(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR);
     if (extractor) {
+        // Destroy thorium extractor when empty
+        if (!extractor.pos.checkForMineral()) {
+            return extractor.destroy();
+        }
         let extractorContainer = _.find(extractor.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
         if (!extractorContainer) {
             let extractorBuild = _.find(extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
@@ -236,11 +236,19 @@ function mineralBuilder(room) {
                 }
             }
         } else {
-            room.memory.extractorContainer = extractorContainer.id;
+            if (Game.shard.name === 'shardSeason' && extractor.resourceType === RESOURCE_THORIUM) {
+                room.memory.thoriumContainer = extractorContainer.id;
+            } else {
+                room.memory.extractorContainer = extractorContainer.id;
+            }
         }
     } else {
-        let mineral = room.mineral;
-        if (!mineral.pos.checkForAllStructure().length && !mineral.pos.checkForConstructionSites()) mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+        if (Game.shard.name === 'shardSeason' && RESOURCE_THORIUM && _.find(room.find(FIND_MINERALS), (m) => m.resourceType === RESOURCE_THORIUM && m.amount)) {
+            let thorium = room.find(this.find(FIND_MINERALS), (m) => m.resourceType === RESOURCE_THORIUM);
+            if (!thorium.pos.checkForAllStructure().length && !thorium.pos.checkForConstructionSites()) thorium.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+        } else {
+            if (!room.mineral.pos.checkForAllStructure().length && !room.mineral.pos.checkForConstructionSites()) room.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+        }
     }
 }
 

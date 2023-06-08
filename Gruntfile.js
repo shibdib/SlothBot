@@ -4,10 +4,11 @@ module.exports = function (grunt) {
     let email = grunt.option('email');
     let pass = grunt.option('pass');
     let token = grunt.option('token');
+    let server = grunt.option('server') || "world";
+    let port = grunt.option('port') || 21025;
     grunt.loadNpmTasks('grunt-screeps');
 
     if (!token) {
-        let port = 21025;
         grunt.initConfig({
             screeps: {
                 options: {
@@ -27,12 +28,14 @@ module.exports = function (grunt) {
             }
         });
     } else {
+        console.log(server)
         grunt.initConfig({
             screeps: {
                 options: {
+                    email: email,
                     token: token,
                     branch: "default",
-                    ptr: false
+                    server: server
                 },
                 dist: {
                     src: ['src/*.js']

@@ -331,7 +331,7 @@ function storageControl(creep) {
     if (_.sum(creep.room.terminal.store) < 0.9 * creep.room.terminal.store.getCapacity()) {
         for (let resourceType of maxResource) {
             //if (Game.shard.name === 'shardSeason' && resourceType === RESOURCE_SCORE) continue;
-            if (Game.shard.name === 'shardSeason' && _.includes(SYMBOLS, resourceType)) continue;
+            //if (Game.shard.name === 'shardSeason' && _.includes(SYMBOLS, resourceType)) continue;
             let amountNeeded = 0;
             // Storage cases
             if (_.includes(BASE_MINERALS, resourceType) && creep.room.storage.store[resourceType] > REACTION_AMOUNT) {

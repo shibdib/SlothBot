@@ -27,7 +27,6 @@ module.exports.hiveMind = function () {
         {name: 'globalQueue', f: spawning.globalCreepQueue},
         {name: 'power', f: power.powerControl},
         {name: 'segments', f: segments.manager},
-        {name: 'disableCreepNotifs', f: disableNotifications},
         {name: 'hud', f: hud.hud}]);
     let functionCount = hiveFunctions.length;
     let count = 0;
@@ -84,6 +83,8 @@ module.exports.hiveMind = function () {
         count++;
         let activeRoom = Game.rooms[currentRoom];
         try {
+            activeRoom.invaderCheck();
+            activeRoom.cacheRoomIntel();
             overlord.overlordMind(activeRoom, CPU_TASK_LIMITS['roomLimit'] / _.size(Memory.myRooms));
         } catch (e) {
             log.e('Overlord Module experienced an error');
@@ -98,6 +99,8 @@ module.exports.hiveMind = function () {
         log.e('Pixel generated on ' + Game.shard.name, 'Note:');
         Game.cpu.generatePixel();
     }
+    // Disable Notifications
+    if (Game.time % 150 === 0) disableNotifications();
 };
 
 let errorCount = {};
@@ -109,9 +112,11 @@ function minionController(minion) {
     if (minion.portalCheck() || minion.borderCheck()) return tools.creepCPU(minion, start);
     // Track threat
     diplomacy.trackThreat(minion);
-    // Report intel chance
-    minion.room.invaderCheck();
-    minion.room.cacheRoomIntel(false, minion);
+    // Report intel chance if not in owned room
+    if (!minion.room.controller || !minion.room.controller.owner || !minion.room.controller.owner.name !== MY_USERNAME) {
+        minion.room.invaderCheck();
+        minion.room.cacheRoomIntel(false, minion);
+    }
     // Set role
     let memoryRole = minion.memory.role;
     try {
@@ -119,6 +124,7 @@ function minionController(minion) {
         if (!minion.memory.squadLeader || minion.memory.squadLeader === minion.id || (minion.memory.squadLeader && !Game.getObjectById(minion.memory.squadLeader))) {
             let creepRole = require('role.' + memoryRole);
             creepRole.role(minion);
+            errorCount[minion.name] = undefined;
         }
     } catch (e) {
         if (!errorCount[minion.name]) errorCount[minion.name] = 1; else errorCount[minion.name] += 1;

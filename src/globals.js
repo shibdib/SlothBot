@@ -133,7 +133,7 @@ let globals = function () {
         remoteHauler: 3,
         remoteUpgrader: 7,
         roadBuilder: 4,
-        assistPioneer: 4,
+        assistPioneer: 5,
         fuelTruck: 7,
         reserver: 6,
         // Power

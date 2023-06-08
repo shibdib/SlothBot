@@ -26,6 +26,8 @@ Creep.prototype.borderPatrol = function () {
                 this.memory.destination = undefined;
                 this.memory.awaitingOrders = true;
                 this.memory.onTarget = undefined;
+            } else {
+                this.idleFor(5);
             }
         }
     }

@@ -4,9 +4,7 @@
   "dependencies": {
     "grunt": "latest",
     "nodejs": "latest",
-    "screeps-api": "^1.13.0"
-  },
-  "devDependencies": {
-    "grunt-screeps": "github:psy3727/grunt-screeps#season-updates"
+    "screeps-api": "latest",
+    "grunt-screeps": "latest"
   }
 }

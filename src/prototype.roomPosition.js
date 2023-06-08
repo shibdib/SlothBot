@@ -191,6 +191,10 @@ RoomPosition.prototype.checkForConstructionSites = function () {
     return this.lookFor(LOOK_CONSTRUCTION_SITES)[0];
 };
 
+RoomPosition.prototype.checkForMineral = function () {
+    return this.lookFor(LOOK_MINERALS)[0];
+};
+
 RoomPosition.prototype.checkForRoad = function () {
     return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_ROAD)[0];
 };

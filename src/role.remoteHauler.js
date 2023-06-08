@@ -145,7 +145,9 @@ function dropOff(creep) {
     } else if (overlord.storage && overlord.storage.store.getFreeCapacity() > _.sum(creep.store)) {
         creep.memory.storageDestination = overlord.storage.id;
         return true;
-    } else if (!creep.haulerDelivery()) creep.shibMove(overlord.controller);
+    }  else if (creep.pos.getRangeTo(overlord.controller) <= 3) {
+        creep.idleFor(5);
+    } else creep.shibMove(overlord.controller);
 }
 
 // Build remote links
