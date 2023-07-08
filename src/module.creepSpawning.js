@@ -171,7 +171,7 @@ module.exports.essentialCreepQueue = function (room) {
     //Haulers
     if (getCreepCount(room, 'stationaryHarvester')) {
         let amount = 1;
-        if (room.memory.spawnDefenders) amount = 2;
+        if (room.memory.spawnDefenders || room.level < 6) amount = 2;
         let priority = PRIORITIES.hauler;
         let reboot;
         if (!getCreepCount(room, 'hauler') || room.friendlyCreeps.length < 5) {
@@ -217,7 +217,7 @@ module.exports.essentialCreepQueue = function (room) {
             if (container.store[RESOURCE_ENERGY] < 500) number = 1;
             else {
                 let space = container.pos.countOpenTerrainAround(false) - 1 || 1;
-                number = 1 + ((container.store[RESOURCE_ENERGY] - 500) / 250);
+                number = 1 + ((container.store[RESOURCE_ENERGY] - 500) / 500);
                 if (number > space) number = space;
             }
         } else number = 6;
@@ -240,22 +240,21 @@ module.exports.miscCreepQueue = function (room) {
     miscTick[room.name] = Game.time;
     let level = getLevel(room);
     //Drones
-    if (!getCreepCount(room, 'drone')) {
-        let number = 1;
-        if (Memory.roomCache[room.name].threatLevel) number = 2;
-        else if (room.constructionSites.length && _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD)) number = 12 - room.controller.level;
-        if (getCreepCount(room, 'drone') < number) {
-            queueCreep(room, PRIORITIES.drone + getCreepCount(room, 'drone'), {
-                role: 'drone',
-                other: {reboot: room.friendlyCreeps.length <= 3}
-            })
-        }
+    let number = 1;
+    if (Memory.roomCache[room.name].threatLevel) number = 3;
+    else if (room.constructionSites.length) number = 10 - room.controller.level;
+    if (getCreepCount(room, 'drone') < number) {
+        queueCreep(room, PRIORITIES.drone + getCreepCount(room, 'drone'), {
+            role: 'drone',
+            other: {reboot: room.friendlyCreeps.length <= 3}
+        })
     }
     // If no conflict detected
     if (!room.nukes.length && !Memory.roomCache[room.name].threatLevel) {
-        // Score delivery
-        /** Season 1
-         if (Game.shard.name === 'shardSeason' && room.store(RESOURCE_SCORE)) {
+        // Seasonal Spawns
+        if (Game.shard.name === "shardSeason") {
+            /** Season 1
+             if (room.store(RESOURCE_SCORE)) {
             let number = 2;
             let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => r.seasonCollector === 1 && !r.hostile && !_.includes(Memory.nonCombatRooms, r.name)), 'closestRange');
             if (scoreRoom && scoreRoom.name && Game.rooms[scoreRoom.name]) {
@@ -266,9 +265,9 @@ module.exports.miscCreepQueue = function (room) {
                 })
             }
         }**/
-        /**
-        let decoderAvailable;
-        if (Game.shard.name === 'shardSeason' && Memory.ownedSymbols.length && (!room.memory.defenseCooldown || room.memory.defenseCooldown < Game.time)) {
+            /**
+             let decoderAvailable;
+             if (Memory.ownedSymbols.length && (!room.memory.defenseCooldown || room.memory.defenseCooldown < Game.time)) {
             room.memory.defenseCooldown = undefined;
             shuffle(Memory.ownedSymbols).forEach(function (s) {
                 if (room.store(s)) decoderAvailable = s;
@@ -280,7 +279,6 @@ module.exports.miscCreepQueue = function (room) {
                 })
             }
         }**/
-        if (Game.shard.name === "shardSeason") {
             let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => r.seasonReactor && r.seasonReactorOwner === MY_USERNAME && !_.includes(Memory.nonCombatRooms, r.name)), 'closestRange');
             let thorium = _.find(room.structures, (s) => s && s.store && s.store[RESOURCE_THORIUM]);
             if (scoreRoom && scoreRoom.name && thorium) {

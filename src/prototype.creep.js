@@ -333,15 +333,6 @@ Creep.prototype.locateEnergy = function () {
             this.memory.findEnergyCountdown = undefined;
             return true;
         }
-        //Dropped
-        if (this.room.droppedEnergy.length) {
-            let dropped = _.find(this.room.droppedEnergy, (r) => r.amount >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5));
-            if (dropped) {
-                this.memory.energyDestination = dropped.id;
-                this.memory.findEnergyCountdown = undefined;
-                return true;
-            }
-        }
         // Tombstone
         if (this.room.tombstones.length) {
             let tombstone = _.find(this.room.tombstones, (r) => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY]);
@@ -375,11 +366,9 @@ Creep.prototype.locateEnergy = function () {
         }
         // Container
         if (!this.room.storage || !this.room.storage.store[RESOURCE_ENERGY] || this.memory.role === 'shuttle') {
-            let container = _.max(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && (this.room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= this.room.controller.level)
-                && s.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)), function (c) {
-                return _.sum(c.store);
-            });
-            if (container.id) {
+            let container = this.pos.findClosestByRange(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && (this.room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= this.room.controller.level)
+                && s.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5)));
+            if (container) {
                 this.memory.energyDestination = container.id;
                 this.memory.findEnergyCountdown = undefined;
                 return true;
@@ -395,6 +384,15 @@ Creep.prototype.locateEnergy = function () {
             this.memory.energyDestination = this.room.terminal.id;
             this.memory.findEnergyCountdown = undefined;
             return true;
+        }
+        //Dropped
+        if (this.room.droppedEnergy.length) {
+            let dropped = _.find(this.room.droppedEnergy, (r) => r.amount >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5));
+            if (dropped) {
+                this.memory.energyDestination = dropped.id;
+                this.memory.findEnergyCountdown = undefined;
+                return true;
+            }
         }
         // Factory from batteries
         if (this.room.factory && (!this.room.factory.memory.producing || this.room.factory.memory.producing === RESOURCE_ENERGY) && this.room.factory.store[RESOURCE_ENERGY]) {

@@ -548,7 +548,7 @@ function getStructureMatrix(roomName, matrix, options) {
         if (structureMatrixCache[roomName + type]) return PathFinder.CostMatrix.deserialize(structureMatrixCache[roomName + type]);
         return matrix;
     }
-    if (!structureMatrixCache[roomName + type] || options.showMatrix || options.tunnel || (!structureMatrixTick[room.name] || Game.time > structureMatrixTick[room.name] + 6000 || structureCount[roomName] !== room.structures.length || siteCount[roomName] !== room.constructionSites.length)) {
+    if (!structureMatrixCache[roomName + type] || options.showMatrix || options.tunnel || (!structureMatrixTick[room.name] || Game.time > structureMatrixTick[room.name] + 3000 || structureCount[roomName] !== room.structures.length || siteCount[roomName] !== room.constructionSites.length)) {
         structureMatrixTick[room.name] = Game.time;
         structureCount[roomName] = room.structures.length;
         siteCount[roomName] = room.constructionSites.length;

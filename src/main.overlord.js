@@ -172,21 +172,19 @@ function minionController(minion) {
     tools.creepCPU(minion, cpuUsed);
 }
 
-let tickTracker = {};
 function creepSpawning(room) {
-    let lastRun = tickTracker[room.name] || 0;
     spawning.processBuildQueue(room);
-    if (lastRun + 5 > Game.time) return;
-    tickTracker[room.name] = Game.time;
     if (room.level < 2) {
         spawning.roomStartup(room);
         spawning.remoteCreepQueue(room);
     } else {
-        let spawnFunctions = shuffle([{name: 'essentialSpawning', f: spawning.essentialCreepQueue},
+        let spawnFunctions = [{name: 'essentialSpawning', f: spawning.essentialCreepQueue},
             {name: 'miscSpawning', f: spawning.miscCreepQueue},
-            {name: 'remoteSpawning', f: spawning.remoteCreepQueue}]);
+            {name: 'remoteSpawning', f: spawning.remoteCreepQueue}];
         try {
-            spawnFunctions[0].f(room);
+            for (let task of spawnFunctions) {
+                task.f(room);
+            }
         } catch (e) {
             log.e(spawnFunctions[0].name + ' for room ' + room.name + ' experienced an error');
             log.e(e.stack);

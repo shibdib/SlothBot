@@ -12,6 +12,8 @@
 module.exports.role = function (creep) {
     // Icon
     creep.say(ICONS.haul2, true);
+    // Check for tow
+    if (creep.towTruck()) return true;
     // If Hauling
     if (_.sum(creep.store) >= creep.store.getCapacity() * 0.5) {
         creep.memory.assignment = undefined;

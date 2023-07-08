@@ -17,7 +17,7 @@ module.exports.towerControl = function (room) {
     if (!hostileCreeps.length && repairTower.id) {
         roomRepairTower[room.name] = repairTower.id;
         let woundedCreep = _.find(room.friendlyCreeps, (c) => c.hits < c.hitsMax) || _.find(room.powerCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
-        let degrade = _.find(room.structures, (s) => (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.25) || (s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.2));
+        let degrade = _.find(room.structures, (s) => (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.25) || (s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.2) || (s.structureType === STRUCTURE_RAMPART && s.hits < 10000));
         // Handle wounded healing and keep alive of degrading room.structures
         if (woundedCreep || degrade) {
             if (woundedCreep) {
