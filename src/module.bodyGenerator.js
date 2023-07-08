@@ -74,7 +74,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         case 'shuttle':
             deficitExemption = true;
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
-            if (carry > level * 2) carry = level * 2;
+            if (carry > level * 3) carry = level * 3;
             if (!room.memory.roadsBuilt) move = carry; else move = _.ceil(carry / 2);
             break;
         case 'stationaryHarvester':

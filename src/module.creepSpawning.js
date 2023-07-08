@@ -206,20 +206,21 @@ module.exports.essentialCreepQueue = function (room) {
     }
     // Upgrader
     // Determine amount
+    // 1 If there's an empty container or special conditions
+    // Else if there's a container it's the space around -1
+    // No container it's 6
     let number = 1;
     let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.progress > room.controller.progressTotal || Memory.roomCache[room.name].threatLevel >= 3 || room.memory.spawnDefenders;
-    let importantBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD).length > 0;
-    if (room.controller.level < 7 && !room.memory.spawnDefenders && room.level === room.controller.level && !importantBuild) {
+    if (room.controller.level < 8 && room.level === room.controller.level && !_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD).length) {
         let container = Game.getObjectById(room.memory.controllerContainer);
-        let spaceAround = 2
-        if (container) spaceAround = container.pos.countOpenTerrainAround(false, true);
-        if (container && room.storage) number = 2 * (room.energy / ENERGY_AMOUNT[room.level]);
-        if (!container) number = 4; else number = spaceAround;
-        if (number > spaceAround) number = spaceAround;
-        let deficit = room.energy / (ENERGY_AMOUNT[room.level || 1] * 2.5);
-        if (deficit > 1 || !room.storage) deficit = 1;
-        else if (deficit < 0.1) deficit = 0.1;
-        number *= deficit;
+        if (container) {
+            if (container.store[RESOURCE_ENERGY] < 500) number = 1;
+            else {
+                let space = container.pos.countOpenTerrainAround(false) - 1 || 1;
+                number = 1 + ((container.store[RESOURCE_ENERGY] - 500) / 250);
+                if (number > space) number = space;
+            }
+        } else number = 6;
     }
     if (getCreepCount(room, 'upgrader') < number) {
         //If room is about to downgrade get a creep out asap
@@ -250,17 +251,6 @@ module.exports.miscCreepQueue = function (room) {
             })
         }
     }
-    /** Drones handle this now
-    // Maintenance
-    if (!getCreepCount(room, 'maintenance') && !getCreepCount(room, 'roadBuilder')) {
-        queueCreep(room, PRIORITIES.drone + 1, {role: 'maintenance'})
-    }
-    // Waller
-    let number = 1;
-    if (Memory.roomCache[room.name].threatLevel) number = 2;
-    if (getCreepCount(room, 'waller') < number && room.level >= 3) {
-        queueCreep(room, PRIORITIES.drone + 1, {role: 'waller'})
-    }**/
     // If no conflict detected
     if (!room.nukes.length && !Memory.roomCache[room.name].threatLevel) {
         // Score delivery

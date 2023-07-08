@@ -163,7 +163,10 @@ Creep.prototype.findMineral = function () {
 
 Creep.prototype.skSafety = function () {
     if (this.room.controller || (Memory.roomCache[this.room.name] && !Memory.roomCache[this.room.name].sk)) return false;
-    if (this.hits < this.hitsMax) return this.goToHub();
+    if (this.hits < this.hitsMax) {
+        this.goToHub();
+        return true;
+    }
     // handle safe SK movement
     let range = 6;
     if (this.memory.destination && this.memory.destination === this.room.name) range = 8;
@@ -760,7 +763,7 @@ Creep.prototype.goToHub = function (destination = this.memory.overlord, idleTime
         this.idleFor(idleTime);
         return false;
     }
-    this.shibMove(hub, {range: 15})
+    this.shibMove(hub, {range: 10})
     return true;
 };
 

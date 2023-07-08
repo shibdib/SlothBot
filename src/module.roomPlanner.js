@@ -128,8 +128,8 @@ function auxiliaryBuilding(room) {
     // Mineral
     if (room.level >= 6) mineralBuilder(room);
     // Roads
-    if (room.level >= 3 && _.size(room.constructionSites) < 5) {
-        if (!roadBuilder(room, layout)) room.memory.roadsBuilt = true;
+    if (room.level >= 2 && _.size(room.constructionSites) < 5) {
+        if (!roadBuilder(room, layout) && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length) room.memory.roadsBuilt = true; else room.memory.roadsBuilt = undefined
     }
     // Cleanup
     let noRoad = _.filter(room.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) && s.pos.checkForRoad());
@@ -336,12 +336,14 @@ function roadBuilder(room, layout) {
         let spawn = _.sample(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN));
         if (container && spawn && buildRoadFromTo(room, spawn, container)) return true;
     }
-    let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD);
-    for (let structure of filter) {
-        let pos = new RoomPosition(structure.x, structure.y, room.name);
-        if (!pos.checkForRoad() && !pos.checkForConstructionSites() && !pos.checkForImpassible() && !pos.checkForWall()) {
-            if (pos.createConstructionSite(STRUCTURE_ROAD) === OK) {
-                return true;
+    if (room.controller.level >= 3) {
+        let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD);
+        for (let structure of filter) {
+            let pos = new RoomPosition(structure.x, structure.y, room.name);
+            if (!pos.checkForRoad() && !pos.checkForConstructionSites() && !pos.checkForImpassible() && !pos.checkForWall()) {
+                if (pos.createConstructionSite(STRUCTURE_ROAD) === OK) {
+                    return true;
+                }
             }
         }
     }
@@ -870,7 +872,7 @@ function buildRampartAround(room, position) {
 }
 
 function buildRoad(position, room) {
-    if (room.constructionSites.length >= 10 || position.checkForImpassible(true) || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length > 2) {
+    if (position.checkForImpassible(true)) {
         return false;
     } else if (position.checkForRoad()) {
         return false;
