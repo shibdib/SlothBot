@@ -22,17 +22,23 @@ module.exports.loop = function () {
     tools.cleanMemory();
     tools.status();
 
-    //Bucket Check
+    //Bucket Cool down Check
     if (Memory.cpuTracking && Memory.cpuTracking.cooldown) {
-        if (Memory.cpuTracking.cooldown + 25 < Game.time) {
+        if (Memory.cpuTracking.cooldown + 25 < Game.time || Game.cpu.bucket > BUCKET_MAX * 0.9) {
             delete Memory.cpuTracking.cooldown;
         } else {
             let countDown = (Memory.cpuTracking.cooldown + 25) - Game.time;
             log.e('On CPU Cooldown For ' + countDown + ' more ticks. Current Bucket ' + Game.cpu.bucket);
             return;
         }
+    } else {
+        if (!Memory.cpuTracking) Memory.cpuTracking = {};
+        if (Game.cpu.bucket < BUCKET_MAX * 0.2) {
+            Memory.cpuTracking.cooldown = Game.time;
+            log.e('CPU Bucket Too Low - Cooldown Initiated');
+            return;
+        }
     }
-    Memory.cpuTracking = {};
 
     // Update allies
     populateLOANlist();
@@ -53,6 +59,11 @@ module.exports.loop = function () {
     //Hive Mind
     if (Memory.myRooms && Memory.myRooms.length) hive.hiveMind();
 
+    // Store last 100 ticks of CPU usage
+    let cpuUsageArray = Memory.cpuTracking.cpuUsageArray || [];
+    cpuUsageArray.push(Game.cpu.getUsed());
+    if (cpuUsageArray.length > 100) cpuUsageArray.shift();
+    Memory.cpuTracking.cpuUsageArray = cpuUsageArray;
 };
 
 // Abandon a room

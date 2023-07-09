@@ -43,8 +43,11 @@ module.exports.processBuildQueue = function (room) {
             }
             body = generator.bodyGenerator(level, role, room, topPriority);
             if (!body || !body.length) continue;
-            // Add a distance sanity check for claim parts
-            if (topPriority.destination && _.includes(body, CLAIM) && Game.map.findRoute(topPriority.destination, room.name).length > 12) continue;
+            // Add a distance sanity checks
+            if (topPriority.destination) {
+                if (_.includes(body, CLAIM) && !availableSpawn.room.routeSafe(topPriority.destination, 500, 1, 12)) continue;
+                else if (!availableSpawn.room.routeSafe(topPriority.destination, 500, 1, 20)) continue;
+            }
             // Stop loop if we just can't afford it yet
             cost = global.UNIT_COST(body);
             if (cost > room.energyAvailable && cost <= room.energyCapacityAvailable) return;
@@ -310,7 +313,7 @@ module.exports.miscCreepQueue = function (room) {
             }
         }
         //Pre observer spawn explorers
-        if (Memory.maxLevel < 8 && Game.cpu.bucket === BUCKET_MAX && getCreepCount(room, 'explorer') < 5) {
+        if (Memory.maxLevel < 8 && getCreepCount(room, 'explorer') < 5) {
             queueCreep(room, PRIORITIES.explorer, {role: 'explorer'})
         }
         // Portal explorers
@@ -441,7 +444,17 @@ module.exports.remoteCreepQueue = function (room) {
                     }
                     continue;
                 }
-                // Handle invader cores with a deconstructor and reserver
+                // Handle invader core
+                if (Memory.roomCache[remoteName].needCleaner) {
+                    if (!getCreepCount(undefined, 'deconstructor', remoteName)) {
+                        queueCreep(room, PRIORITIES.high, {
+                            role: 'deconstructor',
+                            military: true,
+                            destination: remoteName
+                        })
+                    }
+                }
+                // Handle trespassers
                 if (Memory.roomCache[remoteName].invaderCore || (Memory.roomCache[remoteName].user && !_.includes(FRIENDLIES, Memory.roomCache[remoteName].user))) {
                     if (!getCreepCount(undefined, 'attacker', remoteName)) {
                         queueCreep(room, PRIORITIES.high, {
@@ -467,11 +480,21 @@ module.exports.remoteCreepQueue = function (room) {
                 if (room.energyState) room.memory.borderPatrol = remoteName;
                 continue;
             }
+            // Handle wall spammer
+            if (Memory.roomCache[remoteName].needCleaner) {
+                if (!getCreepCount(undefined, 'deconstructor', remoteName)) {
+                    queueCreep(room, PRIORITIES.high, {
+                        role: 'deconstructor',
+                        military: true,
+                        destination: remoteName
+                    })
+                }
+            }
             if (Memory.roomCache[remoteName] && Memory.roomCache[remoteName].reservation && Memory.roomCache[remoteName].reservation !== MY_USERNAME) continue;
             // Handle rooms that can't be reached safely
             if (!room.routeSafe(remoteName)) continue;
             // Handle SK
-            if (Memory.roomCache[remoteName].sk && room.level >= 7) {
+            if (Memory.roomCache[remoteName].sk && room.level >= 7 && !room.memory.noRemote) {
                 // If invader core continue
                 if (Memory.roomCache[remoteName].invaderCore) continue;
                 if (!getCreepCount(undefined, 'SKAttacker', remoteName) || (getCreepTTL(remoteName, 'SKAttacker') < 250 && getCreepCount(undefined, 'SKAttacker', remoteName) === 1)) {
@@ -492,10 +515,11 @@ module.exports.remoteCreepQueue = function (room) {
                 if (getCreepCount(undefined, 'SKAttacker', remoteName) && !getCreepCount(undefined, 'SKMineral', remoteName) && (!Memory.roomCache[remoteName].mineralCooldown || Memory.roomCache[remoteName].mineralCooldown < Game.time)) {
                     queueCreep(room, PRIORITIES.SKWorker, {role: 'SKMineral', destination: remoteName})
                 }
-            } else if (!Memory.roomCache[remoteName].sk && (Game.cpu.bucket === BUCKET_MAX || !skMining)) {
+            } else if (!Memory.roomCache[remoteName].sk && !skMining) {
                 let multi = (ENERGY_AMOUNT[room.level || 1] * 2) / room.energy;
                 if (!room.storage || multi > 2) multi = 2;
                 else if (multi < 0.1) multi = 0.1;
+                if (room.memory.noRemote) multi = 0.1;
                 let score = REMOTE_SOURCE_SCORE * multi;
                 if (skMining) score = REMOTE_SOURCE_SCORE * (multi * 0.7);
                 if (source.score <= REMOTE_SOURCE_SCORE) {
@@ -542,9 +566,8 @@ module.exports.remoteCreepQueue = function (room) {
                     let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.misc === creep.id);
                     let current = 0;
                     if (assignedHaulers.length) {
-                        if (Game.cpu.bucket !== BUCKET_MAX) continue;
                         assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= REMOTE_HAULER_CAP || creep.memory.carryAmountNeeded - current < 300) continue;
+                        if (current >= creep.memory.carryAmountNeeded || creep.memory.carryAmountNeeded - current < 300) continue;
                     }
                     queueCreep(room, PRIORITIES.remoteHauler + (assignedHaulers.length * 2) + getCreepCount(room, 'remoteHauler'), {
                         role: 'remoteHauler',

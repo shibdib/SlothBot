@@ -96,7 +96,6 @@ module.exports.claimNewRoom = function () {
         let limit = Game.gcl.level;
         // Special novice/respawn zone cases
         if (Game.map.getRoomStatus(Memory.myRooms[0]).status === 'novice') limit = 3;
-        if (Game.cpu.bucket < BUCKET_MAX) limit = 1;
         if (limit <= Memory.myRooms.length || Memory.spawnIn + 7500 > Game.time || Memory.minLevel < 3 || _.filter(Memory.auxiliaryTargets, (t) => t && (t.type === 'claimScout' || t.type === 'claim'))[0]) {
             if (Memory.nextClaim !== claimTarget) {
                 log.a('Next claim target set to ' + roomLink(claimTarget) + ' once available.', 'EXPANSION CONTROL: ');

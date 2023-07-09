@@ -10,6 +10,7 @@
  */
 
 module.exports.role = function (creep) {
+    if (creep.tryToBoost(['attack', 'heal'])) return;
     if (creep.room.name === creep.memory.destination) {
         // Handle invader core in sk
         if (creep.room.hostileStructures.length) {

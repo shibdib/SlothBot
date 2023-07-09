@@ -48,11 +48,10 @@ module.exports.hiveMind = function () {
         hiveTaskCurrentCPU = Game.cpu.getUsed() - hiveTaskCurrentCPU;
         hiveTaskTotalCPU += hiveTaskCurrentCPU;
         tools.taskCPU(currentFunction.name, Game.cpu.getUsed() - taskCpu);
-    } while ((hiveTaskTotalCPU < CPU_TASK_LIMITS['hiveTasks'] || Game.cpu.bucket > 9500) && count < functionCount)
+    } while ((hiveTaskTotalCPU < CPU_TASK_LIMITS['hiveTasks']) && count < functionCount)
     // Military creep loop
     let taskCpu = Game.cpu.getUsed();
     count = 0;
-    let militaryCreepCPU = 0;
     let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => (r.memory.military || !r.memory.overlord) && !r.spawning));
     let totalCreeps = militaryCreeps.length
     do {
@@ -67,9 +66,8 @@ module.exports.hiveMind = function () {
             log.e(e.stack);
             Game.notify(e.stack);
         }
-        if (CREEP_CPU_ARRAY[currentCreep.name]) militaryCreepCPU += average(CREEP_CPU_ARRAY[currentCreep.name]);
         tools.taskCPU('globalMinionController', Game.cpu.getUsed() - taskCpu);
-    } while ((militaryCreepCPU < CPU_TASK_LIMITS['military'] || Game.cpu.bucket > 2000) && count < totalCreeps)
+    } while (count < totalCreeps)
 
     // Overlord loop
     count = 0;
@@ -85,7 +83,7 @@ module.exports.hiveMind = function () {
         try {
             activeRoom.invaderCheck();
             activeRoom.cacheRoomIntel();
-            overlord.overlordMind(activeRoom, CPU_TASK_LIMITS['roomLimit'] / _.size(Memory.myRooms));
+            overlord.overlordMind(activeRoom, CPU_TASK_LIMITS['roomLimit'] * 0.9 / _.size(Memory.myRooms));
         } catch (e) {
             log.e('Overlord Module experienced an error');
             log.e(e.stack);
@@ -93,7 +91,7 @@ module.exports.hiveMind = function () {
         }
         overlordCurrentCPU = Game.cpu.getUsed() - overlordCurrentCPU;
         overlordTotalCPU += overlordCurrentCPU;
-    } while ((overlordTotalCPU < CPU_TASK_LIMITS['roomLimit'] || Game.cpu.bucket > 7000) && count < _.size(Memory.myRooms))
+    } while (count < _.size(Memory.myRooms))
     // Pixel
     if (PIXEL_GENERATION && Game.cpu.bucket === PIXEL_CPU_COST && ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
         log.e('Pixel generated on ' + Game.shard.name, 'Note:');

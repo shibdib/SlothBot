@@ -55,6 +55,8 @@ module.exports.role = function (creep) {
                 if (creep.pos.getRangeTo(container) > 0) {
                     return creep.shibMove(container, {range: 0});
                 } else {
+                    // Add a check for walls
+                    Memory.roomCache[creep.room.name].needCleaner = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_WALL).length > 0;
                     creep.memory.onContainer = true;
                 }
             } else if (!creep.pos.isNearTo(source)) return creep.shibMove(source);

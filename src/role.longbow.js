@@ -10,6 +10,7 @@
  */
 
 module.exports.role = function (creep) {
+    if (creep.tryToBoost(['ranged', 'heal'])) return;
     creep.attackInRange();
     creep.healInRange();
     // Handle flee

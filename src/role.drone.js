@@ -10,6 +10,7 @@
  */
 
 module.exports.role = function role(creep) {
+    if (creep.tryToBoost(['build'])) return;
     // Trailer at low level
     if (creep.room.controller && creep.room.controller.level < 3 && creep.towTruck()) return true;
     // Handle remote drones

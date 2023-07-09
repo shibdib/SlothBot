@@ -48,14 +48,9 @@ module.exports.memHack = function () {
 // Set Task CPU Limits
 module.exports.CPULimits = function () {
     let totalLimit = Game.cpu.limit;
-    CPU_TASK_LIMITS['roomLimit'] = adjustedCPULimit(totalLimit * 0.75, Game.cpu.bucket, 8000);
-    if (Memory._threats && Memory._threats.length) {
-        CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.02, Game.cpu.bucket, 7000);
-        CPU_TASK_LIMITS['hiveTasks'] = adjustedCPULimit(totalLimit * 0.10, Game.cpu.bucket, BUCKET_MAX);
-    } else {
-        CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.01, Game.cpu.bucket, 5000);
-        CPU_TASK_LIMITS['hiveTasks'] = adjustedCPULimit(totalLimit * 0.10, Game.cpu.bucket, BUCKET_MAX);
-    }
+    CPU_TASK_LIMITS['roomLimit'] = adjustedCPULimit(totalLimit * 0.9, Game.cpu.bucket, 2500);
+    CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.02, Game.cpu.bucket, 2000);
+    CPU_TASK_LIMITS['hiveTasks'] = adjustedCPULimit(totalLimit * 0.08, Game.cpu.bucket, 2500);
 }
 
 // CPU Limit Tool

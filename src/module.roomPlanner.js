@@ -18,8 +18,8 @@ module.exports.buildRoom = function (room) {
     let lastRun = tickTracker[room.name] || {};
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
         if (room.memory.bunkerHub.layoutVersion === LAYOUT_VERSION && storedLayouts[room.name]) {
-            // Run every 1000 ticks (100 if missing spawns/ext)
-            let cooldown = 1000;
+            // Run every 500 ticks (100 if missing spawns/ext)
+            let cooldown = 500;
             if (room.level < room.controller.level) cooldown = 50;
             if (((lastRun.layout || 0) + cooldown < Game.time && (Math.random() > 0.5 || room.level < room.controller.level)) || !lastRun.layout) {
                 buildFromLayout(room);
@@ -120,9 +120,7 @@ function auxiliaryBuilding(room) {
     // Hub
     hubBuilder(room, hub, layout);
     // Bunker Ramparts
-    if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length <= 3) {
-        rampartBuilder(room, layout);
-    }
+    if (_.size(room.constructionSites) < 5) rampartBuilder(room, layout);
     // Controller
     controllerBuilder(room);
     // Mineral
@@ -363,28 +361,29 @@ function rampartBuilder(room, layout = undefined, count = false) {
         // structures
         for (let structure of layout) {
             rect_array.push({
-                x1: structure.x - 3,
-                y1: structure.y - 3,
-                x2: structure.x + 3,
-                y2: structure.y + 3
+                x1: structure.x - 2,
+                y1: structure.y - 2,
+                x2: structure.x + 2,
+                y2: structure.y + 2
             });
         }
-        // Controller
-        rect_array.push({
+        /**
+         // Controller
+         rect_array.push({
             x1: room.controller.pos.x - 1,
             y1: room.controller.pos.y - 1,
             x2: room.controller.pos.x + 1,
             y2: room.controller.pos.y + 1
         });
-        // Seasonal
-        if (room.decoder) {
+         // Seasonal
+         if (room.decoder) {
             rect_array.push({
                 x1: room.decoder.pos.x - 1,
                 y1: room.decoder.pos.y - 1,
                 x2: room.decoder.pos.x + 1,
                 y2: room.decoder.pos.y + 1
             });
-        }
+        }**/
         let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
         // Clean up boundaries
         for (let key in rect_array) {
@@ -403,7 +402,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
             return _.size(JSON.parse(rampartSpots[room.name]));
         }
     } else if (rampartSpots[room.name]) {
-        if (room.controller.level >= 3) {
+        if (room.level >= 3) {
             let spots = JSON.parse(rampartSpots[room.name]);
             if (!spots.length) _.filter(room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).forEach((b) => spots.push({
                 x: b.pos.x,
@@ -418,8 +417,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
                     towerPos.createConstructionSite(STRUCTURE_TOWER);
                     towerPos = undefined;
                     return;
-                }
-                if ((buildPositions.length < 10 || _.size(Game.map.describeExits(room.name)) < 2) && _.find(room.structures, (s) => s.structureType === STRUCTURE_WALL)) {
+                } else if ((buildPositions.length < 10 || _.size(Game.map.describeExits(room.name)) < 2) && _.find(room.structures, (s) => s.structureType === STRUCTURE_WALL)) {
                     let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
                     let wallReplacement = hub.findClosestByPath(_.filter(room.structures, (s) => s.structureType === STRUCTURE_WALL));
                     if (wallReplacement) {

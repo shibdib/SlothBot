@@ -96,7 +96,7 @@ module.exports.role = function (creep) {
                     let current = 0;
                     if (assignedHaulers.length) {
                         assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                        if (current >= creep.memory.carryAmountNeeded || assignedHaulers.length >= REMOTE_HAULER_CAP) continue;
+                        if (current >= creep.memory.carryAmountNeeded) continue;
                     }
                     return creep.memory.misc = h.id
                 }

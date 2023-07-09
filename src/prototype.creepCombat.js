@@ -294,7 +294,7 @@ Creep.prototype.scorchedEarth = function () {
     let remote = _.find(this.room.creeps, (c) => c.my && (c.memory.role === 'remoteHarvester' || c.memory.role === 'reserver'));
     if ((this.room.user && _.includes(FRIENDLIES, this.room.user)) || remote) return false;
     // Set target
-    let hostile = Game.getObjectById(this.memory.target) || this.findClosestEnemy(true) || _.find(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER) || _.find(this.room.structures, (s) => s.structureType === STRUCTURE_ROAD);
+    let hostile = Game.getObjectById(this.memory.target) || this.findClosestEnemy(true) || _.find(this.room.structures, (s) => s.structureType === STRUCTURE_WALL);
     // If target fight
     if (hostile) {
         this.memory.target = hostile.id;

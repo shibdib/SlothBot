@@ -920,7 +920,7 @@ Creep.prototype.borderCheck = function () {
 };
 
 Creep.prototype.tryToBoost = function (boosts) {
-    if (this.memory.boostAttempt || this.ticksToLive < 500) return false;
+    if (this.memory.boostAttempt || this.ticksToLive < 1000) return false;
     if (!this.memory.boosts) this.memory.boosts = {};
     // Figure out what boosts to get, try to use the most powerful
     if (!this.memory.boosts.requestedBoosts) {

@@ -10,5 +10,6 @@
  */
 
 module.exports.role = function (creep) {
+    if (creep.tryToBoost(['attack'])) return;
     if (!creep.handleMilitaryCreep() && creep.findDefensivePosition(creep)) creep.idleFor(3);
 };
