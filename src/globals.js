@@ -7,6 +7,7 @@
 
 let Log = require('logger');
 let activeConfig;
+let myCreepCache;
 
 let globals = function () {
     // Try to load a private server config otherwise load the default
@@ -142,11 +143,11 @@ let globals = function () {
         SKWorker: 5,
         // Military
         defender: 2,
-        priority: 4,
-        urgent: 5,
-        high: 7,
-        medium: 9,
-        secondary: 11,
+        priority: 3,
+        urgent: 4,
+        high: 5,
+        medium: 6,
+        secondary: 7,
         scout: 3,
         responder: 2,
         // Misc
@@ -186,7 +187,7 @@ let globals = function () {
     global.ROOM_CREEP_CPU_OBJECT = {};
     global.ROOM_SOURCE_SPACE = {};
     global.ROOM_CONTROLLER_SPACE = {};
-    global.ROOM_HARVESTER_EXTENSTIONS = {};
+    global.ROOM_HARVESTER_EXTENSIONS = {};
     global.ALLY_HELP_REQUESTS = {};
     global.VISUAL_CACHE = {};
 

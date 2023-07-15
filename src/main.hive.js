@@ -33,7 +33,6 @@ module.exports.hiveMind = function () {
     let hiveTaskCurrentCPU = Game.cpu.getUsed();
     let hiveTaskTotalCPU = 0;
     do {
-        let taskCpu = Game.cpu.getUsed();
         let currentFunction = _.first(hiveFunctions);
         if (!currentFunction) break;
         hiveFunctions = _.rest(hiveFunctions);
@@ -47,10 +46,8 @@ module.exports.hiveMind = function () {
         }
         hiveTaskCurrentCPU = Game.cpu.getUsed() - hiveTaskCurrentCPU;
         hiveTaskTotalCPU += hiveTaskCurrentCPU;
-        tools.taskCPU(currentFunction.name, Game.cpu.getUsed() - taskCpu);
     } while ((hiveTaskTotalCPU < CPU_TASK_LIMITS['hiveTasks']) && count < functionCount)
     // Military creep loop
-    let taskCpu = Game.cpu.getUsed();
     count = 0;
     let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => (r.memory.military || !r.memory.overlord) && !r.spawning));
     let totalCreeps = militaryCreeps.length
@@ -66,7 +63,6 @@ module.exports.hiveMind = function () {
             log.e(e.stack);
             Game.notify(e.stack);
         }
-        tools.taskCPU('globalMinionController', Game.cpu.getUsed() - taskCpu);
     } while (count < totalCreeps)
 
     // Overlord loop
@@ -103,11 +99,10 @@ module.exports.hiveMind = function () {
 
 let errorCount = {};
 function minionController(minion) {
-    let start = Game.cpu.getUsed();
     // If idle sleep
-    if (minion.idle) return tools.creepCPU(minion, start);
+    if (minion.idle) return;
     // If on portal move
-    if (minion.portalCheck() || minion.borderCheck()) return tools.creepCPU(minion, start);
+    if (minion.portalCheck() || minion.borderCheck()) return;
     // Track threat
     diplomacy.trackThreat(minion);
     // Report intel chance if not in owned room
@@ -138,8 +133,6 @@ function minionController(minion) {
             minion.suicide();
         }
     }
-    // Store CPU usage
-    tools.creepCPU(minion, start);
 }
 
 function disableNotifications() {

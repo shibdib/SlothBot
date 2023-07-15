@@ -28,10 +28,9 @@ module.exports.overlordMind = function (room, CPULimit) {
     }
 
     // Manage creeps
-    let count, taskCpu;
+    let count;
     let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military && !r.spawning));
     for (let creep of roomCreeps) {
-        if (creep.id === "64a9c2705264f33ea8eff022") console.log(1)
         minionController(creep);
     }
 
@@ -49,7 +48,6 @@ module.exports.overlordMind = function (room, CPULimit) {
     let overlordTaskCurrentCPU = Game.cpu.getUsed();
     let overlordTaskTotalCPU = 0;
     do {
-        taskCpu = Game.cpu.getUsed();
         let currentFunction = _.first(overlordFunctions);
         if (!currentFunction) break;
         overlordFunctions = _.rest(overlordFunctions);
@@ -63,7 +61,6 @@ module.exports.overlordMind = function (room, CPULimit) {
         }
         overlordTaskCurrentCPU = Game.cpu.getUsed() - overlordTaskCurrentCPU;
         overlordTaskTotalCPU += overlordTaskCurrentCPU;
-        tools.taskCPU(currentFunction.name, Game.cpu.getUsed() - taskCpu, room.name);
     } while ((overlordTaskTotalCPU < CPULimit) && count < functionCount)
 
 
@@ -114,7 +111,6 @@ module.exports.overlordMind = function (room, CPULimit) {
 
 let errorCount = {};
 function minionController(minion) {
-    let cpuUsed = Game.cpu.getUsed();
     // Set last managed tick
     minion.memory.lastManaged = Game.time;
     // Handle idle
@@ -150,8 +146,6 @@ function minionController(minion) {
             minion.suicide();
         }
     }
-    // Store CPU usage
-    tools.creepCPU(minion, cpuUsed);
 }
 
 function creepSpawning(room) {

@@ -34,38 +34,23 @@ module.exports.role = function (creep) {
             if (target) creep.memory.destination = target; else creep.idleFor(25);
         }
     } else if (creep.pos.roomName === creep.memory.destination) {
+        // Sign the controller
         if (!creep.moveToHostileConstructionSites(false, true)) {
-            creep.memory.destination = undefined;
-        }
-        /**
-         // Sign the controller
-         if (creep.room.controller && (!creep.room.controller.owner || creep.room.controller.level < 3) && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
-            if (!creep.moveToHostileConstructionSites(false, true)) {
-                if (!SIGN_CLEANER) {
-                    // If already signed continue
-                    if (creep.room.controller.sign && (creep.room.controller.sign.username === MY_USERNAME || creep.room.controller.sign.username === 'Screeps')) return creep.memory.destinationReached = true;
-                    // Else sign
+            if (creep.room.controller && !creep.room.controller.owner && !Memory.roomCache[creep.room.name].obstructions) {
+                if ((SIGN_CLEANER || !creep.room.controller.sign) && (!creep.room.controller.sign || (creep.room.controller.sign.username !== MY_USERNAME || Math.random() > 0.75) || creep.room.controller.sign.username !== 'Screeps')) {
+                    // Else sign it
                     switch (creep.signController(creep.room.controller, _.sample(EXPLORED_ROOM_SIGNS))) {
+                        case OK:
+                            creep.memory.destination = undefined;
+                            break;
                         case ERR_NOT_IN_RANGE:
-                            // If you cant reach the controller continue else move to it
-                            if (!creep.room.controller.pos.countOpenTerrainAround() || Memory.roomCache[creep.room.name].obstructions) return creep.memory.destinationReached = true;
                             creep.shibMove(creep.room.controller);
                     }
-                } else {
-                    // If already cleaned continue
-                    if (!creep.room.controller.sign || creep.room.controller.sign.username === MY_USERNAME || creep.room.controller.sign.username === 'Screeps') return creep.memory.destinationReached = true;
-                    // Else clean signs
-                    switch (creep.signController(creep.room.controller, '')) {
-                        case ERR_NOT_IN_RANGE:
-                            // If you cant reach the controller continue else move to it
-                            if (!creep.room.controller.pos.countOpenTerrainAround() || Memory.roomCache[creep.room.name].obstructions) return creep.memory.destinationReached = true;
-                            creep.shibMove(creep.room.controller);
-                    }
+                    return;
                 }
             }
-        } else if (!creep.moveToHostileConstructionSites(false, true)) {
-            creep.memory.destination = undefined;
-        }**/
+        }
+        creep.memory.destination = undefined;
     } else {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
     }

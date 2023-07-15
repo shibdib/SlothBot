@@ -32,6 +32,10 @@ function threatManager() {
         let user = Memory._userList[name];
         // Handle routine drift
         let currentRating = user.standing;
+        // If NCP's are always hostile
+        if (NCP_HOSTILE && Memory.ncpArray && Memory.ncpArray.includes(name)) {
+            currentRating = -1000;
+        }
         if (currentRating === 0) continue;
         if (user.lastAction + 25 < Game.time && user.lastChange + 100 < Game.time) {
             // Set limits
@@ -65,7 +69,7 @@ function threatManager() {
         Memory._threats = Memory._enemies;
     }
     // Randomly clean NCP array
-    if (Memory.ncpArray && Memory.ncpArray.length && Math.random() > 0.) _.remove(Memory.ncpArray, (u) => !_.includes(_.pluck(Memory.roomCache, 'user'), u));
+    if (Memory.ncpArray && Memory.ncpArray.length && Math.random() > 0.9) _.remove(Memory.ncpArray, (u) => !_.includes(_.pluck(Memory.roomCache, 'user'), u));
     // Clean up lists
     Memory._threats = _.uniq(_.filter(Memory._threats, (p) => p !== null && p !== undefined && p !== 'undefined'));
     Memory._enemies = _.uniq(_.filter(Memory._enemies, (p) => p !== null && p !== undefined && p !== 'undefined'));

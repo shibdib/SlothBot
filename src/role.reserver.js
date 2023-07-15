@@ -15,6 +15,7 @@ module.exports.role = function (creep) {
         if (!creep.room.controller.reservation || creep.room.controller.reservation.username === MY_USERNAME) {
             switch (creep.reserveController(creep.room.controller)) {
                 case OK:
+                    creep.memory.other.stationary = true;
                     if (!creep.memory.signed) {
                         let signs = RESERVE_ROOM_SIGNS;
                         creep.signController(creep.room.controller, _.sample(signs));

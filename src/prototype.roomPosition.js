@@ -204,7 +204,8 @@ RoomPosition.prototype.checkForContainer = function () {
 };
 
 RoomPosition.prototype.checkForEnergy = function () {
-    return this.lookFor(LOOK_ENERGY)[0];
+    let energy = this.lookFor(LOOK_ENERGY)[0];
+    if (energy) return energy.amount;
 };
 
 RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {

@@ -33,6 +33,9 @@ module.exports.role = function (creep) {
         } else {
             let mineral = Game.getObjectById(creep.memory.other.assignedMineral);
             switch (creep.harvest(mineral)) {
+                case OK:
+                    creep.memory.other.stationary = true;
+                    break;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(mineral);
                     break;

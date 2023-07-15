@@ -74,7 +74,7 @@ adjustedCPULimit = function adjustedCPULimit(limit, bucket, target = BUCKET_MAX 
 // Status console
 let lastStatus = _.round(new Date().getTime() / 1000, 2);
 module.exports.status = function () {
-    if (lastStatus + STATUS_COOLDOWN < _.round(new Date().getTime() / 1000, 2)) {
+    if (lastStatus + STATUS_COOLDOWN < _.round(new Date().getTime() / 1000, 2) || (!Memory.lastStatus || Memory.lastStatus + 100 < Game.time)) {
         lastStatus = _.round(new Date().getTime() / 1000, 2)
         log.a('---------------------------------------------------------------------------', ' ');
         log.a('--GLOBAL INFO--', ' ');
@@ -137,6 +137,7 @@ module.exports.status = function () {
         } catch (e) {
             log.a('--DIPLOMATIC INFO FAILED--', ' ');
         }
+        Memory.lastStatus = Game.time;
         return log.a('---------------------------------------------------------------------------', ' ');
     }
 };

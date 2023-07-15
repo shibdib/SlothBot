@@ -12,7 +12,8 @@ module.exports.claimNewRoom = function () {
     if (Math.random() > 0.75) claimTarget = undefined;
     lastTick = Game.time;
     if (!claimTarget) {
-        let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim < Game.time) && !r.obstructions && !r.owner && !r.reservation && r.hubCheck && r.closestRange <= 12 &&
+        let worthyRooms = _.filter(Memory.roomCache, (r) => Game.rooms[r.closestRoom] && (!r.noClaim || r.noClaim < Game.time) && !r.obstructions && !r.owner && !r.reservation && r.hubCheck &&
+            Game.rooms[r.closestRoom].routeSafe(r.name, 500, 1, 12) &&
             Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status);
         if (!worthyRooms.length) return;
         let possibles = {};
@@ -29,7 +30,7 @@ module.exports.claimNewRoom = function () {
                     if (distance <= 2) distance = Game.map.findRoute(name, avoidName).length;
                     if (distance <= 2) continue worthy; else if (distance === 3) baseScore += 1000; else if (distance < 6) baseScore += 100; else if (distance > 20) continue worthy; else baseScore -= 1000;
                     // Sector check for allies
-                    if (AVOID_ALLIED_SECTORS && sameSectorCheck(name, avoidName)) baseScore -= 750;
+                    if (AVOID_ALLIED_SECTORS && sameSectorCheck(name, avoidName)) baseScore -= 1500;
                 }
                 // Check if it's near any owned enemy rooms
                 let enemyRooms = _.filter(Memory.roomCache, (r) => r.level && _.includes(HOSTILES, r.owner));
@@ -80,10 +81,15 @@ module.exports.claimNewRoom = function () {
                             break;
                     }
                 } else baseScore -= 500;
-                // Prioritize other symbols on SEASON 2 ruleset
+                // Season stuff
                 if (Game.shard.name === 'shardSeason') {
-                    let symbolAccess = _.uniq(_.pluck(_.filter(Memory.roomCache, (r) => r.owner && _.includes(FRIENDLIES, r.owner) && r.closestRange < 15), 'seasonDecoder'));
-                    if (_.includes(symbolAccess, worthyRooms[key].seasonDecoder)) continue;
+                    // Season 2
+                    /**
+                     let symbolAccess = _.uniq(_.pluck(_.filter(Memory.roomCache, (r) => r.owner && _.includes(FRIENDLIES, r.owner) && r.closestRange < 15), 'seasonDecoder'));
+                     if (_.includes(symbolAccess, worthyRooms[key].seasonDecoder)) continue;
+                     **/
+                    // Season 4
+                    if (Memory.roomCache[name].seasonResource) baseScore += 2000;
                 }
                 // Prioritize your sector
                 if (sameSectorCheck(name, worthyRooms[key].closestRoom)) baseScore += 2000; else baseScore -= 500;

@@ -27,11 +27,16 @@ module.exports.role = function (creep) {
         }
         switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
             case OK:
+                creep.memory.inPlace = true;
                 // Handle resource withdraw
                 if (link && link.store[RESOURCE_ENERGY]) {
                     creep.withdrawResource(link);
                 } else if (container && container.store[RESOURCE_ENERGY]) {
                     creep.withdrawResource(container);
+                } else if (creep.room.memory.secondaryControllerContainer) {
+                    if (Game.getObjectById(creep.room.memory.secondaryControllerContainer).store[RESOURCE_ENERGY]) {
+                        creep.withdrawResource(Game.getObjectById(creep.room.memory.secondaryControllerContainer));
+                    }
                 }
                 return;
             case ERR_NOT_IN_RANGE:
@@ -42,6 +47,10 @@ module.exports.role = function (creep) {
                     creep.withdrawResource(link);
                 } else if (container && container.store[RESOURCE_ENERGY]) {
                     creep.withdrawResource(container);
+                } else if (creep.room.memory.secondaryControllerContainer) {
+                    if (Game.getObjectById(creep.room.memory.secondaryControllerContainer).store[RESOURCE_ENERGY]) {
+                        creep.withdrawResource(Game.getObjectById(creep.room.memory.secondaryControllerContainer));
+                    }
                 }
         }
     } else {

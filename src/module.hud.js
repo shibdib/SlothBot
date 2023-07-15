@@ -90,7 +90,7 @@ module.exports.hud = function () {
         }
     }
     // Map Hud
-    if (1 > 2) {
+    if (3 > 2) {
         try {
             if (VISUAL_CACHE['map'] && Game.time % 25 !== 0) return Game.map.visual.import(VISUAL_CACHE['map']);
             // Target Rooms

@@ -152,7 +152,7 @@ function earlyWarning(room) {
 
 function unSavableCheck(room) {
     let badCount = room.memory.badCount || 0;
-    let worthwhileStructure = _.find(room.structures, (s) => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType));
+    let worthwhileStructure = _.find(room.structures, (s) => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType)) || _.find(room.creeps, (c) => c.my && c.memory.role === 'drone');
     if ((Memory.roomCache[room.name].threatLevel > 2 || !worthwhileStructure) && _.size(Memory.myRooms) !== 1 && !room.controller.safeMode && !room.controller.safeModeAvailable) {
         let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)));
         // If hostiles add a badCount
@@ -160,14 +160,14 @@ function unSavableCheck(room) {
         // If all worthwhile structures are gone add badCount
         if (!worthwhileStructure) room.memory.badCount += 0.5;
         // If badCount is high enough abandon
-        if (room.memory.badCount > room.controller.level * 400) {
+        if (room.memory.badCount > room.controller.level * 500) {
             abandonOverrun(room);
             room.cacheRoomIntel(true);
             Memory.roomCache[room.name].noClaim = Game.time;
             log.a(roomLink(room.name) + ' has been abandoned.');
             Game.notify(room.name + ' has been abandoned.');
         } else if (badCount < room.memory.badCount) {
-            log.a(roomLink(room.name) + ' has accrued an abandon point. (' + room.memory.badCount + '/' + room.controller.level * 500 + ')');
+            if (badCount % 10 === 0) log.a(roomLink(room.name) + ' has accrued an abandon point. (' + badCount + '/' + room.controller.level * 500 + ')');
         }
     } else if (room.memory.badCount) {
         if (badCount <= 0) {

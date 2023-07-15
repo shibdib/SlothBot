@@ -34,7 +34,7 @@ module.exports.towerControl = function (room) {
         }
     } else if (hostileCreeps.length) {
         let towers = _.shuffle(_.filter(room.structures, (s) => s && s.structureType === STRUCTURE_TOWER && s.isActive() && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST));
-        if (!towers.length) {
+        if (!towers.length && !room.controller.safeMode) {
             room.memory.dangerousAttack = true;
             room.memory.spawnDefenders = true;
             return;

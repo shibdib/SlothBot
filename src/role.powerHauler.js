@@ -6,6 +6,11 @@
  */
 
 module.exports.role = function (creep) {
+    // If low TTL return home and recycle
+    if (creep.ticksToLive < 75) {
+        creep.memory.destination = undefined;
+        return creep.recycleCreep();
+    }
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     //Initial move

@@ -11,7 +11,7 @@ let lastTick = 0;
 module.exports.highCommand = function () {
     if (lastTick + 10 > Game.time) return;
     lastTick = Game.time;
-    OPERATION_LIMIT = Memory.myRooms.length;
+    OPERATION_LIMIT = 6;
     if (!Memory.nonCombatRooms) Memory.nonCombatRooms = [];
     if (!Memory.targetRooms) Memory.targetRooms = {};
     if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
@@ -24,7 +24,7 @@ module.exports.highCommand = function () {
     // Request scouting for new operations
     else if (Memory.maxLevel >= 2 && Math.random() > 0.5) operationRequests();
     // Manage old operations
-    else if (Math.random() > 0.2) {
+    else {
         manageAttacks();
         manageAuxiliary();
     }
@@ -36,8 +36,8 @@ function manageResponseForces() {
     let activeResponders = _.filter(Game.creeps, (c) => c.memory && !c.memory.awaitingOrders && c.memory.operation === 'borderPatrol');
     let ownedRoomAttack = _.findKey(Memory.roomCache, (r) => r.owner && r.owner === MY_USERNAME && r.lastPlayerSighting + 25 > Game.time && (!r.responseDispatched || r.responseDispatched + 20 < Game.time));
     let invaderCore = _.findKey(Memory.roomCache, (r) => r.closestRange <= 2 && !r.sk && !r.towers && r.invaderCore && !_.find(Game.creeps, (c) => c.my && c.memory.destination === r.name) && (!r.responseDispatched || r.responseDispatched + 100 < Game.time));
-    let responseTargets = _.max(_.filter(Memory.roomCache, (r) => r.threatLevel && r.friendlyPower <= r.hostilePower * 1.2 && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= ROOM_INFLUENCE_RANGE && r.lastInvaderCheck + 550 >= Game.time), '.threatLevel');
-    let unarmedVisitors = _.findKey(Memory.roomCache, (r) => r.numberOfHostiles && !r.sk && (!r.user || r.user === MY_USERNAME) && (!r.hostilePower || r.hostilePower <= 5) && r.closestRange <= ROOM_INFLUENCE_RANGE && r.lastInvaderCheck + 550 >= Game.time && (!r.responseDispatched || r.responseDispatched + 100 < Game.time));
+    let responseTargets = _.max(_.filter(Memory.roomCache, (r) => r.threatLevel && r.friendlyPower <= r.hostilePower * 1.2 && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= 5 && r.lastInvaderCheck + 550 >= Game.time), '.threatLevel');
+    let unarmedVisitors = _.findKey(Memory.roomCache, (r) => r.numberOfHostiles && !r.sk && (!r.user || r.user === MY_USERNAME) && (!r.hostilePower || r.hostilePower <= 5) && r.closestRange <= 2 && r.lastInvaderCheck + 550 >= Game.time && (!r.responseDispatched || r.responseDispatched + 100 < Game.time));
     let guard = _.findKey(Memory.targetRooms, (o) => o && o.type === 'guard' && o.level);
     let friendlyResponsePower = 0;
     if (ownedRoomAttack) {
@@ -112,7 +112,7 @@ function auxiliaryOperations() {
     let initialFilter = _.filter(Memory.roomCache, (r) => r.name && !Memory.auxiliaryTargets[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !r.hostile);
     if (maxLevel >= 6) {
         // Power Mining
-        if (getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT && maxLevel >= 8) {
+        if (maxLevel >= 8) {
             let powerRoom = _.min(_.filter(initialFilter, (r) => r.power && r.power + 1500 >= Game.time && r.closestRange <= 8), 'closestRange');
             let powerMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'power').length || 0;
             if (powerRoom.name && powerMining < 2) {
@@ -122,7 +122,7 @@ function auxiliaryOperations() {
                     tick: tick,
                     type: 'power',
                     level: 1,
-                    priority: PRIORITIES.urgent
+                    priority: PRIORITIES.medium
                 };
                 Memory.auxiliaryTargets = cache;
                 log.a('Mining operation planned for ' + roomLink(powerRoom.name) + ' suspected power bank location, Nearest Room - ' + powerRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
@@ -138,7 +138,7 @@ function auxiliaryOperations() {
                 tick: tick,
                 type: 'commodity',
                 level: 1,
-                priority: PRIORITIES.secondary
+                priority: PRIORITIES.medium
             };
             Memory.auxiliaryTargets = cache;
             log.a('Mining operation planned for ' + roomLink(commodityRoom.name) + ' suspected commodity deposit location, Nearest Room - ' + commodityRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
@@ -226,8 +226,8 @@ function auxiliaryOperations() {
             }
         }
          **/
-        // Reactor Guard
-        let reactorRoom = _.filter(Memory.roomCache, (r) => r.seasonReactor && r.closestRange <= 10);
+            // Reactor Guard
+        let reactorRoom = _.filter(Memory.roomCache, (r) => !_.includes(Memory.nonCombatRooms, r.name) && r.seasonReactor && r.closestRange <= 5);
         if (reactorRoom.length) {
             for (let reactor of reactorRoom) {
                 if (Memory.targetRooms[reactor.name]) continue;
@@ -237,7 +237,7 @@ function auxiliaryOperations() {
                     tick: tick,
                     type: 'guard',
                     level: 1,
-                    priority: PRIORITIES.secondary
+                    priority: PRIORITIES.medium
                 };
                 Memory.targetRooms = cache;
                 log.a('Reactor guard operation planned for ' + roomLink(reactor.name) + ', Nearest Room - ' + reactor.closestRange + ' rooms away', 'HIGH COMMAND: ');
@@ -246,14 +246,14 @@ function auxiliaryOperations() {
     }
     // Rebuild allies
     let alliedRoom = _.min(_.filter(initialFilter, (r) => r.owner && r.owner !== MY_USERNAME && FRIENDLIES.includes(r.owner) && r.level > 3 && !r.towers), 'closestRange');
-    if (2 < 1 && alliedRoom.name) {
+    if (alliedRoom.name) {
         let cache = Memory.auxiliaryTargets || {};
         let tick = Game.time;
         cache[alliedRoom.name] = {
             tick: tick,
             type: 'rebuild',
             level: 1,
-            priority: PRIORITIES.priority
+            priority: PRIORITIES.high
         };
         Memory.auxiliaryTargets = cache;
         log.a('Rebuild operation planned for ' + roomLink(alliedRoom.name) + ', Nearest Room - ' + commodityRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
@@ -268,11 +268,7 @@ function operationRequests() {
         for (let ally of _.filter(ALLY_HELP_REQUESTS)) {
             let defenseRequest = _.find(ally, (r) => r.requestType === 1 && !Memory.targetRooms[r.roomName]);
             if (defenseRequest) {
-                // Filter long range
-                if (Memory.roomCache[defenseRequest.roomName] && Memory.roomCache[defenseRequest.roomName].closestRange > ROOM_INFLUENCE_RANGE) continue;
                 let cache = Memory.targetRooms || {};
-                let priority = PRIORITIES.urgent;
-                if (defenseRequest.priority <= 0.25) priority = PRIORITIES.secondary; else if (defenseRequest.priority <= 0.5) priority = PRIORITIES.medium; else if (defenseRequest.priority <= 0.8) priority = PRIORITIES.high;
                 let totalGuards = _.filter(Memory.targetRooms, (target) => target.type === 'guard').length || 0;
                 let lowestGuard = _.max(_.filter(Object.keys(Memory.targetRooms), (target) => Memory.targetRooms[target].type === 'guard'), 'priority');
                 if (totalGuards >= 2 && priority >= lowestGuard.priority) continue;
@@ -280,123 +276,118 @@ function operationRequests() {
                     tick: Game.time,
                     type: 'guard',
                     level: 1,
-                    priority: priority
+                    priority: getPriority(Memory.roomCache[defenseRequest.roomName].closestRange)
                 };
                 Memory.targetRooms = cache;
                 if (Memory.roomCache[defenseRequest.roomName]) Memory.roomCache[defenseRequest.roomName].lastOperation = Game.time;
                 return log.a('ALLY REQUEST!! Guard operation planned for ' + roomLink(defenseRequest.roomName), 'HIGH COMMAND: ');
             }
         }
-    }
-    if (totalCountFiltered < OPERATION_LIMIT) {
         // Ally attack request
-        if (_.size(ALLY_HELP_REQUESTS)) {
-            for (let ally of _.filter(ALLY_HELP_REQUESTS)) {
-                let attackRequest = _.find(ally, (r) => r.requestType === 2 && !Memory.targetRooms[r.roomName]);
-                if (attackRequest) {
-                    let cache = Memory.targetRooms || {};
-                    // Filter long range
-                    if (Memory.roomCache[attackRequest.roomName] && Memory.roomCache[attackRequest.roomName].closestRange > ROOM_INFLUENCE_RANGE) continue;
-                    // Determine type
-                    let type = 'harass';
-                    if (Memory.roomCache[attackRequest.roomName] && !Memory.roomCache[attackRequest.roomName].towers) type = 'hold';
-                    else if (Memory.roomCache[attackRequest.roomName] && Memory.roomCache[attackRequest.roomName].towers === 1 && Memory.maxLevel >= 7) type = 'siegeGroup';
-                    cache[attackRequest.roomName] = {
-                        tick: Game.time,
-                        type: type,
-                        level: 1,
-                        priority: 1
-                    };
-                    Memory.targetRooms = cache;
-                    Memory.roomCache[attackRequest.roomName].lastOperation = Game.time;
-                    return log.a('ALLY REQUEST!! ' + type + ' operation planned for ' + roomLink(attackRequest.roomName), 'HIGH COMMAND: ');
-                }
+        for (let ally of _.filter(ALLY_HELP_REQUESTS)) {
+            let attackRequest = _.find(ally, (r) => r.requestType === 2 && !Memory.targetRooms[r.roomName]);
+            if (attackRequest) {
+                let cache = Memory.targetRooms || {};
+                // Determine type
+                let type = 'harass';
+                if (Memory.roomCache[attackRequest.roomName] && !Memory.roomCache[attackRequest.roomName].towers) type = 'hold';
+                else if (Memory.roomCache[attackRequest.roomName] && Memory.roomCache[attackRequest.roomName].towers === 1 && Memory.maxLevel >= 7) type = 'siegeGroup';
+                cache[attackRequest.roomName] = {
+                    tick: Game.time,
+                    type: type,
+                    level: 1,
+                    priority: getPriority(Memory.roomCache[attackRequest.roomName].closestRange)
+                };
+                Memory.targetRooms = cache;
+                Memory.roomCache[attackRequest.roomName].lastOperation = Game.time;
+                return log.a('ALLY REQUEST!! ' + type + ' operation planned for ' + roomLink(attackRequest.roomName), 'HIGH COMMAND: ');
             }
         }
-        // Kill strongholds
-        let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => r.closestRange <= ROOM_INFLUENCE_RANGE && r.sk && r.towers && r.towers < 3 && r.closestRange <= 5), function (t) {
+    }
+    // Kill strongholds
+    let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => r.sk && r.towers && r.towers < 3 && sameSectorCheck(r.closestRoom, r.name)), function (t) {
+        return t.closestRange
+    })[0];
+    if (stronghold && Memory.maxLevel >= 7) {
+        let cache = Memory.targetRooms || {};
+        let tick = Game.time;
+        cache[stronghold.name] = {
+            tick: tick,
+            type: 'siegeGroup',
+            level: 1,
+            priority: getPriority(Memory.roomCache[stronghold.name].closestRange)
+        };
+        Memory.targetRooms = cache;
+        return log.a('Stronghold attack operation planned for ' + roomLink(stronghold.name) + ' SUSPECTED INVADER STRONGHOLD (Nearest Friendly Room - ' + stronghold.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+    }
+    // Direct Room Attacks
+    if (OFFENSIVE_OPERATIONS && _.size(Memory.targetRooms) < OPERATION_LIMIT) {
+        let initialFilter = _.filter(Memory.roomCache, (r) => r.user && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !checkForNap(r.user) && (!r.safemode || r.safemode - 500 < Game.time));
+        // New Spawn Denial/No towers
+        let newSpawns = _.sortBy(_.filter(initialFilter, (r) => (NEW_SPAWN_DENIAL || (HOLD_SECTOR && sameSectorCheck(r.closestRoom, r.name))) && r.owner && !r.towers), function (t) {
             return t.closestRange
         })[0];
-        if (stronghold && Memory.maxLevel >= 7) {
+        if (newSpawns) {
             let cache = Memory.targetRooms || {};
-            let tick = Game.time;
-            cache[stronghold.name] = {
-                tick: tick,
-                type: 'siegeGroup',
-                level: 1
+            cache[newSpawns.name] = {
+                tick: Game.time,
+                type: 'hold',
+                level: 0,
+                priority: PRIORITIES.priority
             };
             Memory.targetRooms = cache;
-            return log.a('Stronghold attack operation planned for ' + roomLink(stronghold.name) + ' SUSPECTED INVADER STRONGHOLD (Nearest Friendly Room - ' + stronghold.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+            Memory.roomCache[newSpawns.name].lastOperation = Game.time;
+            return log.a('Hold operation planned for ' + roomLink(newSpawns.name) + ' owned by ' + newSpawns.user + ' (Nearest Friendly Room - ' + newSpawns.closestRange + ' rooms away)', 'HIGH COMMAND: ');
         }
-        // Direct Room Attacks
-        if (OFFENSIVE_OPERATIONS) {
-            let initialFilter = _.filter(Memory.roomCache, (r) => r.closestRange <= ROOM_INFLUENCE_RANGE && r.user && !_.includes(FRIENDLIES, r.user) && _.includes(Memory._threats, r.user) && !Memory.targetRooms[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !checkForNap(r.user) && (!r.safemode || r.safemode - 500 < Game.time));
-            // New Spawn Denial/No towers
-            let newSpawns = _.sortBy(_.filter(initialFilter, (r) => !r.towers && r.owner && r.owner !== 'Invader'
-                && (!r.safemode || r.safemode - 500 < Game.time)), function (t) {
+        // Harass attacks
+        let target = _.sortBy(_.filter(initialFilter, (r) => r.owner && ((ATTACK_LOCALS && _.includes(Memory._threats, r.user)) || (HOLD_SECTOR && sameSectorCheck(r.closestRoom, r.name)))), function (t) {
+            return t.closestRange
+        })[0]
+        if (target) {
+            let cache = Memory.targetRooms || {};
+            cache[target.name] = {
+                tick: Game.time,
+                type: 'harass',
+                level: 1,
+                priority: getPriority(Memory.roomCache[target.name].closestRange)
+            };
+            Memory.targetRooms = cache;
+            Memory.roomCache[target.name].lastOperation = Game.time;
+            return log.a('Harass operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+        }
+        // SWARM
+        if (Memory.maxLevel < 7) {
+            let swarmTargets = _.sortBy(_.filter(initialFilter, (r) => r.swarm && r.owner && r.towers === 1 && ((ATTACK_LOCALS && _.includes(Memory._enemies, r.user)) || (HOLD_SECTOR && sameSectorCheck(r.closestRoom, r.name)))), function (t) {
                 return t.closestRange
             })[0];
-            if (newSpawns) {
+            let swarmCount = _.find(Memory.targetRooms, (target) => target && target.type === 'swarm');
+            if (swarmTargets && !swarmCount) {
                 let cache = Memory.targetRooms || {};
-                cache[newSpawns.name] = {
+                cache[swarmTargets.name] = {
                     tick: Game.time,
-                    type: 'hold',
+                    type: 'swarm',
                     level: 0,
-                    priority: 1
+                    priority: getPriority(Memory.roomCache[swarmTargets.name].closestRange)
                 };
                 Memory.targetRooms = cache;
-                Memory.roomCache[newSpawns.name].lastOperation = Game.time;
-                return log.a('Hold operation planned for ' + roomLink(newSpawns.name) + ' owned by ' + newSpawns.user + ' (Nearest Friendly Room - ' + newSpawns.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+                Memory.roomCache[swarmTargets.name].lastOperation = Game.time;
+                return log.a('Swarm operation planned for ' + roomLink(swarmTargets.name) + ' owned by ' + swarmTargets.user + ' (Nearest Friendly Room - ' + swarmTargets.closestRange + ' rooms away)', 'HIGH COMMAND: ');
             }
-            // Harass attacks
-            let target = _.sortBy(_.filter(initialFilter, (r) => r.owner && r.owner !== 'Invader' && !r.reservation), function (t) {
-                return t.closestRange
-            })[0]
-            if (target) {
+        } else if ((!Memory.lastSiege || Memory.lastSiege + ATTACK_COOLDOWN < Game.time) && !_.filter(Memory.targetRooms, (target) => target && (target.type === 'siegeGroup' || target.type === 'drain')).length) {
+            let siegeTarget = _.sortBy(_.filter(initialFilter, (r) => r.owner && r.towers < 3 && ((ATTACK_LOCALS && _.includes(Memory._enemies, r.user)) || (HOLD_SECTOR && sameSectorCheck(r.closestRoom, r.name)))), function (t) {
+                return t.level
+            })[0];
+            if (siegeTarget) {
                 let cache = Memory.targetRooms || {};
-                cache[target.name] = {
+                let type = 'siegeGroup';
+                Memory.lastSiege = Game.time;
+                cache[siegeTarget.name] = {
                     tick: Game.time,
-                    type: 'harass',
-                    level: 1,
-                    priority: 2
+                    type: type,
+                    priority: getPriority(Memory.roomCache[siegeTarget.name].closestRange)
                 };
                 Memory.targetRooms = cache;
-                Memory.roomCache[target.name].lastOperation = Game.time;
-                return log.a('Harass operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
-            }
-            // SWARM
-            if (Memory.maxLevel < 7) {
-                let swarmTargets = _.sortBy(_.filter(initialFilter, (r) => r.swarm && r.owner && r.owner !== 'Invader' && _.includes(Memory._enemies, r.user) && r.towers === 1), function (t) {
-                    return t.closestRange
-                })[0];
-                let swarmCount = _.find(Memory.targetRooms, (target) => target && target.type === 'swarm');
-                if (swarmTargets && !swarmCount) {
-                    let cache = Memory.targetRooms || {};
-                    cache[swarmTargets.name] = {
-                        tick: Game.time,
-                        type: 'swarm',
-                        level: 0,
-                        priority: 1
-                    };
-                    Memory.targetRooms = cache;
-                    Memory.roomCache[swarmTargets.name].lastOperation = Game.time;
-                    return log.a('Swarm operation planned for ' + roomLink(swarmTargets.name) + ' owned by ' + swarmTargets.user + ' (Nearest Friendly Room - ' + swarmTargets.closestRange + ' rooms away)', 'HIGH COMMAND: ');
-                }
-            } else if ((!Memory.lastSiege || Memory.lastSiege + ATTACK_COOLDOWN < Game.time) && !_.filter(Memory.targetRooms, (target) => target && (target.type === 'siegeGroup' || target.type === 'drain')).length) {
-                let siegeTarget = _.sortBy(_.filter(initialFilter, (r) => r.owner && _.includes(Memory._enemies, r.user) && r.towers < 3), function (t) {
-                    return t.level
-                })[0];
-                if (siegeTarget) {
-                    let cache = Memory.targetRooms || {};
-                    let type = 'siegeGroup';
-                    Memory.lastSiege = Game.time;
-                    cache[siegeTarget.name] = {
-                        tick: Game.time,
-                        type: type
-                    };
-                    Memory.targetRooms = cache;
-                    return log.a(_.capitalize(type) + ' operation planned for ' + roomLink(siegeTarget.name) + ' owned by ' + siegeTarget.user + ' (Nearest Friendly Room - ' + siegeTarget.closestRange + ' rooms away)', 'HIGH COMMAND: ');
-                }
+                return log.a(_.capitalize(type) + ' operation planned for ' + roomLink(siegeTarget.name) + ' owned by ' + siegeTarget.user + ' (Nearest Friendly Room - ' + siegeTarget.closestRange + ' rooms away)', 'HIGH COMMAND: ');
             }
         }
     }
@@ -405,7 +396,7 @@ function operationRequests() {
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
     let maxLevel = Memory.maxLevel;
-    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target && target.type !== 'attack' && target.type !== 'scout' && target.type !== 'guard' && target.type !== 'pending').length || 0;
+    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target && target.type !== 'guard' && target.type !== 'pending').length || 0;
     let siegeCountFiltered = _.filter(Memory.targetRooms, (target) => target && (target.type === 'siege' || target.type === 'siegeGroup' || target.type === 'drain')).length || 0;
     let staleMulti = 1;
     for (let key in Memory.targetRooms) {
@@ -428,16 +419,6 @@ function manageAttacks() {
             // Skip test
             case 'test':
                 continue;
-            // Manage Scouts
-            case 'scout':
-            case 'attack':
-                // Clear scouts first if over limit
-                if (totalCountFiltered > OPERATION_LIMIT) {
-                    log.a('Canceling scouting in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
-                    delete Memory.targetRooms[key];
-                    continue;
-                }
-                break;
             // Manage Holds
             case 'hold':
                 staleMulti = 100;
@@ -462,13 +443,6 @@ function manageAttacks() {
                 continue;
             // Manage siege
             case 'drain':
-                if (siegeCountFiltered > 1) {
-                    log.a('Canceling ' + _.capitalize(Memory.targetRooms[key].type) + ' in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
-                    delete Memory.targetRooms[key];
-                    siegeCountFiltered--;
-                    continue;
-                }
-                break;
             case 'siegeGroup':
                 if (Memory.roomCache[key] && !_.includes(Memory._enemies, Memory.roomCache[key].owner)) {
                     log.a('Canceling ' + _.capitalize(Memory.targetRooms[key].type) + ' in ' + roomLink(key) + ' as it is no longer hostile.', 'HIGH COMMAND: ');
@@ -511,8 +485,13 @@ function manageAttacks() {
                     continue;
                 }
                 if (!Memory.roomCache[key] || !Memory.roomCache[key]) {
-                    log.a('Canceling harass in ' + roomLink(key) + ' as it is no longer owned by anyone.', 'HIGH COMMAND: ');
-                    delete Memory.targetRooms[key];
+                    let cache = Memory.targetRooms || {};
+                    let tick = Game.time;
+                    cache[key] = {
+                        tick: tick,
+                        type: 'hold',
+                        level: 0
+                    };
                     continue;
                 }
                 staleMulti = 4;
@@ -547,12 +526,6 @@ function manageAttacks() {
             log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
             continue;
         }
-        // Remove far rooms
-        if (Memory.roomCache[key] && Memory.roomCache[key].closestRange > ROOM_INFLUENCE_RANGE && type !== 'guard' && !Memory.targetRooms[key].manual) {
-            delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + roomLink(key) + ' as it is too far away.', 'HIGH COMMAND: ');
-            continue;
-        }
         // Remove your rooms
         if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && Memory.roomCache[key].user === MY_USERNAME) {
             delete Memory.targetRooms[key];
@@ -571,7 +544,7 @@ function manageAttacks() {
             continue;
         }
         // Remove no longer hostile rooms
-        if (Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key] && Memory.roomCache[key].user && !Memory._threats.includes(Memory.roomCache[key].user)) {
+        if (Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key] && Memory.roomCache[key].user && !Memory._threats.includes(Memory.roomCache[key].user) && (!HOLD_SECTOR || !sameSectorCheck(Memory.roomCache[key].closestRoom, key))) {
             delete Memory.targetRooms[key];
             log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is no longer considered a threat.', 'HIGH COMMAND: ');
             continue;
@@ -728,10 +701,6 @@ function manualAttacks() {
             cache[Game.flags[name].pos.roomName] = {
                 type: 'harass'
             };
-        } else if (_.startsWith(name, 'attack')) {
-            cache[Game.flags[name].pos.roomName] = {
-                type: 'attack'
-            };
         } else if (_.startsWith(name, 'guard')) {
             cache[Game.flags[name].pos.roomName] = {
                 type: 'guard'
@@ -861,6 +830,14 @@ function checkForNap(user) {
     } catch (e) {
         return false;
     }
+}
+
+function getPriority(range) {
+    if (range <= 1) return PRIORITIES.priority;
+    else if (range <= 3) return PRIORITIES.urgent;
+    else if (range <= 5) return PRIORITIES.high;
+    else if (range <= 10) return PRIORITIES.medium;
+    else return PRIORITIES.secondary;
 }
 
 module.exports.operationSustainability = function (room, operationRoom = room.name) {

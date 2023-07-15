@@ -31,6 +31,8 @@ module.exports.role = function (creep) {
         if (!creep.memory.energyDestination) creep.memory._shibMove = undefined;
         if (creep.memory.energyDestination || creep.locateEnergy()) {
             creep.withdrawResource()
+        } else {
+            creep.idleFor(5);
         }
     }
 };

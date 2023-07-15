@@ -26,21 +26,7 @@ Creep.prototype.holdRoom = function () {
         } else {
             this.shibKite();
         }
-        if (Game.time % 5 === 0) levelManager(this);
+        if (Game.time % 5 === 0) this.operationManager();
         highCommand.operationSustainability(this.room);
     }
 };
-
-function levelManager(creep) {
-    if (!Memory.targetRooms[creep.memory.destination] || creep.room.name !== creep.memory.destination) return;
-    if (!creep.room.controller || (!creep.room.controller.owner && !creep.room.controller.reservation) || (!creep.room.creeps.length && !creep.room.structures.length)) return delete Memory.targetRooms[creep.memory.destination];
-    // Safemode
-    if (creep.room.controller.safeMode) {
-        Memory.targetRooms[creep.memory.destination] = undefined;
-        creep.suicide();
-        return;
-    } else if (creep.room.hostileCreeps.length) Memory.targetRooms[creep.memory.destination].level = 2;
-    else Memory.targetRooms[creep.memory.destination].level = 1;
-    Memory.targetRooms[creep.memory.destination].cleaner = creep.room.hostileStructures.length > 0;
-    Memory.targetRooms[creep.memory.destination].claimAttacker = creep.room.controller && creep.room.controller.owner && (!creep.room.controller.upgradeBlocked || creep.room.controller.upgradeBlocked < CREEP_CLAIM_LIFE_TIME);
-}

@@ -29,9 +29,9 @@ Creep.prototype.guardRoom = function () {
     // Season 4
     if (Game.shard.name === 'shardSeason') {
         let reactor = this.room.find(FIND_REACTORS)[0];
-        if (reactor) {
-            if (!reactor.owner || reactor.owner.username !== MY_USERNAME) Memory.targetRooms[this.memory.destination].claimer = true; else Memory.targetRooms[this.memory.destination].claimer = undefined;
-        }
+        if (reactor && !this.room.hostileCreeps.length && (!reactor.owner || reactor.owner.username !== MY_USERNAME)) {
+            Memory.targetRooms[this.memory.destination].claimer = true;
+        } else Memory.targetRooms[this.memory.destination].claimer = undefined;
     }
     // Handle combat
     if (this.canIWin(50)) {
@@ -41,25 +41,5 @@ Creep.prototype.guardRoom = function () {
     } else {
         if (!this.findDefensivePosition()) this.shibKite();
     }
-    levelManager(this);
+    this.operationManager();
 };
-
-function levelManager(creep) {
-    if (creep.room.controller && creep.room.controller.safeMode) {
-        Memory.targetRooms[creep.memory.destination] = undefined;
-        creep.memory.role = 'longbow';
-        creep.memory.operation = 'borderPatrol';
-        return;
-    }
-    if (Memory.targetRooms[creep.memory.destination]) {
-        let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
-        let armedEnemies = _.filter(enemyCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
-        if (armedEnemies.length) {
-            Memory.targetRooms[creep.memory.destination].level = 2;
-        } else if (enemyCreeps.length) {
-            Memory.targetRooms[creep.memory.destination].level = 1;
-        } else if (!Memory.targetRooms[creep.memory.destination].manual) {
-            Memory.targetRooms[creep.memory.destination].level = 0;
-        }
-    }
-}

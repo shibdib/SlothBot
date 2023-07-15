@@ -22,11 +22,11 @@ module.exports.role = function role(creep) {
     // Checks
     if (!creep.memory.working) {
         if (creep.isFull) {
+            creep.memory.other.noBump = true;
             creep.memory.source = undefined;
             creep.memory.harvest = undefined;
             creep.memory.remoteMining = undefined;
             creep.memory.source = undefined;
-            creep.memory.other.noBump = true;
             return creep.memory.working = true;
         }
         creep.memory.other.noBump = undefined;
@@ -56,7 +56,7 @@ module.exports.role = function role(creep) {
             } else {
                 if (creep.memory.remoteMining || findRemoteSource(creep)) {
                     creep.say('Remote!', true);
-                    if (creep.memory.remoteMining !== creep.room.name) return creep.shibMove(new RoomPosition(25, 25, creep.memory.remoteMining), {range: 24}); else creep.memory.remoteMining = undefined;
+                    if (creep.memory.remoteMining !== creep.room.name) return creep.shibMove(new RoomPosition(25, 25, creep.memory.remoteMining), {range: 15}); else creep.memory.remoteMining = undefined;
                 } else {
                     delete creep.memory.harvest;
                     creep.idleFor(5);
@@ -66,26 +66,26 @@ module.exports.role = function role(creep) {
     } else {
         if (!creep.store[RESOURCE_ENERGY]) creep.memory.working = undefined;
         // If under attack, waller
-        if (Memory.roomCache[creep.room.name].threatLevel && wallMaintainer(creep)) return;
+        if ((Memory.roomCache[creep.room.name].threatLevel || creep.memory.currentTarget) && wallMaintainer(creep)) return;
         // If haulers needed haul
         if (hauling(creep)) return;
         // If builder needed build
-        if (building(creep)) return;
+        if ((creep.memory.constructionSite || Math.random() > 0.25 || creep.room.constructionSites.length) && building(creep)) return;
         // If praiser needed praise
         if (upgrading(creep)) return;
         // If walls to repair
         if (wallMaintainer(creep)) return;
+        // If praiser needed praise
+        if (upgrading(creep, true)) return;
         // Otherwise idle
-        else creep.idleFor(10);
+        else creep.idleFor(5);
     }
 };
 
 function building(creep) {
     if (creep.memory.task && creep.memory.task !== 'build' && creep.memory.task !== 'repair') return;
     if ((creep.memory.task === 'build' || creep.memory.task === 'repair') || (creep.memory.constructionSite || creep.constructionWork())) {
-        creep.say('Build!', true);
-        creep.builderFunction();
-        return true;
+        if (creep.builderFunction()) return true;
     }
 }
 
@@ -121,10 +121,10 @@ function hauling(creep) {
     }
 }
 
-function upgrading(creep) {
+function upgrading(creep, force = undefined) {
     if (creep.memory.task && creep.memory.task !== 'upgrade') return;
-    let upgrader = _.find(creep.room.creeps, (c) => c.memory.role === "upgrader");
-    if (upgrader || !creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME || creep.room.controller.upgradeBlocked || creep.room.controller.level === 8) {
+    let upgrader = _.find(creep.room.creeps, (c) => c.memory && c.memory.role === "upgrader");
+    if ((!force && upgrader) || !creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME || creep.room.controller.upgradeBlocked || creep.room.controller.level === 8) {
         creep.memory.task = undefined;
         return false;
     }
@@ -173,7 +173,7 @@ function wallMaintainer(creep) {
         if (Memory.roomCache[creep.room.name].threatLevel) {
             hostileBarrier = _.min(_.filter(barrierStructures, (s) => s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)), 5)[0]), 'hits');
         }
-        let barrier = _.min(barrierStructures, 'hits');
+        let barrier = _.min(_.filter(barrierStructures, (s) => s.hits < RAMPART_HITS_MAX[creep.room.controller.level] * 0.9), 'hits');
         let site = _.filter(creep.room.constructionSites, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL))[0];
         if (!hostileBarrier && barrierStructures.length && barrier.hits < 2000) {
             creep.memory.currentTarget = barrier.id;
@@ -211,20 +211,26 @@ function wallMaintainer(creep) {
             if (target.hits < 10000) {
                 creep.memory.targetWallHits = 25000;
             } else {
-                creep.memory.targetWallHits = target.hits + 50000;
+                let targetHits = target.hits;
+                if (targetHits > RAMPART_HITS_MAX[creep.room.controller.level]) targetHits = RAMPART_HITS_MAX[creep.room.controller.level];
+                creep.memory.targetWallHits = targetHits;
             }
         }
         target.say(target.hits + ' / ' + creep.memory.targetWallHits);
         creep.say(ICONS.castle, true);
         switch (creep.repair(target)) {
             case OK:
-                if (target.hits >= creep.memory.targetWallHits + 1200) {
+                if (target.hits >= creep.memory.targetWallHits) {
                     creep.memory.currentTarget = undefined;
                     creep.memory.targetWallHits = undefined;
                 }
                 break;
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(target, {range: 3})
+                break;
+            default:
+                creep.memory.currentTarget = undefined;
+                creep.memory.targetWallHits = undefined;
         }
         return true;
     } else {
