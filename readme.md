@@ -26,4 +26,4 @@ really ugly stuff._
 ##Setup
 1. For the main server simply fork this repo and sync your github to the game, point it to the src folder.
 2. Private servers you can download this repo, copy the src folder into the applicable server folder.
-3. Modify the config.js file for your needs.
+3. Modify the config.default.js file for your needs.

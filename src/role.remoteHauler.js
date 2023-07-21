@@ -15,13 +15,14 @@ module.exports.role = function (creep) {
     // Check for tow
     if (creep.towTruck()) return true;
     // If Hauling
-    if (_.sum(creep.store) >= creep.store.getCapacity() * 0.5) {
+    if (_.sum(creep.store)) {
+        creep.opportunisticRepair();
+        creep.opportunisticFill();
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
             for (const resourceType in creep.store) {
                 switch (creep.transfer(storageItem, resourceType)) {
                     case ERR_NOT_IN_RANGE:
-                        creep.opportunisticFill();
                         creep.shibMove(storageItem);
                         return true;
                     default:
@@ -43,10 +44,10 @@ module.exports.role = function (creep) {
         if (creep.skSafety()) return;
         // Attempt to generate safemodes
         if (safemodeGeneration(creep)) return;
-        // If you have energy target get it
-        if (creep.memory.energyDestination) return creep.withdrawResource();
         // If you know what room to go to and not already there go to it
         else if (creep.room.name !== creep.memory.destination && creep.room.routeSafe(creep.memory.destination)) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 18});
+        // If you have energy target get it
+        if (creep.memory.energyDestination) return creep.withdrawResource();
         // If in the assigned room, look for energy
         else if (creep.locateEnergy()) return true;
         // Get room assigned based off assigned harv, otherwise find a harv
@@ -83,8 +84,9 @@ function dropOff(creep) {
 
         //Controller
     let controllerContainer = Game.getObjectById(overlord.memory.controllerContainer);
+    let storageContainer = Game.getObjectById(overlord.memory.storageContainer);
     let lowTower = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy < TOWER_CAPACITY * 0.9);
-    if (lowTower && !_.find(creep.room.creeps, (c) => c.my && c.memory.storageDestination === lowTower.id)) {
+    if (lowTower && !_.find(creep.room.myCreeps, (c) => c.memory.storageDestination === lowTower.id)) {
         creep.memory.storageDestination = lowTower.id;
         return true;
     } else if (overlord.terminal && overlord.terminal.store.getFreeCapacity() > _.sum(creep.store) && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 2) {
@@ -98,6 +100,9 @@ function dropOff(creep) {
         return true;
     } else if (overlord.storage && overlord.storage.store.getFreeCapacity() > _.sum(creep.store)) {
         creep.memory.storageDestination = overlord.storage.id;
+        return true;
+    } else if (storageContainer && storageContainer.store.getFreeCapacity() > _.sum(creep.store)) {
+        creep.memory.storageDestination = storageContainer.id;
         return true;
     } else if (creep.haulerDelivery()) {
         return true;

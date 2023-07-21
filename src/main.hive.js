@@ -20,7 +20,7 @@ module.exports.hiveMind = function () {
     // Timing
     Memory.tickCooldowns = undefined;
     // Hive/global function loop
-    diplomacy.diplomacyOverlord()
+    diplomacy.diplomacyOverlord();
     let hiveFunctions = shuffle([{name: 'highCommand', f: highCommand.highCommand},
         {name: 'labs', f: labs.labManager},
         {name: 'expansion', f: expansion.claimNewRoom},
@@ -81,7 +81,7 @@ module.exports.hiveMind = function () {
             activeRoom.cacheRoomIntel();
             overlord.overlordMind(activeRoom, CPU_TASK_LIMITS['roomLimit'] * 0.9 / _.size(Memory.myRooms));
         } catch (e) {
-            log.e('Overlord Module experienced an error');
+            log.e('Overlord Module experienced an error in room ' + roomLink(currentRoom));
             log.e(e.stack);
             Game.notify(e.stack);
         }
@@ -93,8 +93,6 @@ module.exports.hiveMind = function () {
         log.e('Pixel generated on ' + Game.shard.name, 'Note:');
         Game.cpu.generatePixel();
     }
-    // Disable Notifications
-    if (Game.time % 150 === 0) disableNotifications();
 };
 
 let errorCount = {};
@@ -111,11 +109,11 @@ function minionController(minion) {
         minion.room.cacheRoomIntel(false, minion);
     }
     // Set role
-    let memoryRole = minion.memory.role;
     try {
         // Squad pair members dont act here
         if (!minion.memory.squadLeader || minion.memory.squadLeader === minion.id || (minion.memory.squadLeader && !Game.getObjectById(minion.memory.squadLeader))) {
-            let creepRole = require('role.' + memoryRole);
+            if (!minion.memory.role) return minion.suicide();
+            let creepRole = require('role.' + minion.memory.role);
             creepRole.role(minion);
             errorCount[minion.name] = undefined;
         }
@@ -133,11 +131,4 @@ function minionController(minion) {
             minion.suicide();
         }
     }
-}
-
-function disableNotifications() {
-    _.filter(Game.creeps, (c) => !c.memory.notifyDisabled).forEach(function (c) {
-        c.memory.notifyDisabled = true;
-        c.notifyWhenAttacked(false);
-    });
 }

@@ -686,14 +686,14 @@ function dealFinder(terminal, globalOrders) {
 
 function sellPixels(globalOrders) {
     let sellAmount = Game.resources[PIXEL] - PIXEL_BUFFER;
-    if (sellAmount >= 25) {
+    if (sellAmount >= 10) {
         let buyer = _.max(globalOrders.filter(order => order.resourceType === PIXEL && order.type === ORDER_BUY && order.price >= latestMarketHistory(PIXEL)['avgPrice'] * 0.8), 'price');
         if (buyer.id) {
             if (buyer.remainingAmount < sellAmount) sellAmount = buyer.remainingAmount;
             switch (Game.market.deal(buyer.id, sellAmount)) {
                 case OK:
                     log.w("Pixel Sell Off Completed - For " + (buyer.price * sellAmount) + " credits.", "Market: ");
-                    spendingMoney += ((buyer.price * sellAmount) * 0.75);
+                    spendingMoney += buyer.price * sellAmount;
                     log.w("New spending account amount - " + spendingMoney, "Market: ");
                     return true;
             }

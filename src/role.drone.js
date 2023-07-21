@@ -22,7 +22,6 @@ module.exports.role = function role(creep) {
     // Checks
     if (!creep.memory.working) {
         if (creep.isFull) {
-            creep.memory.other.noBump = true;
             creep.memory.source = undefined;
             creep.memory.harvest = undefined;
             creep.memory.remoteMining = undefined;
@@ -64,9 +63,9 @@ module.exports.role = function role(creep) {
             }
         }
     } else {
-        if (!creep.store[RESOURCE_ENERGY]) creep.memory.working = undefined;
-        // If under attack, waller
-        if ((Memory.roomCache[creep.room.name].threatLevel || creep.memory.currentTarget) && wallMaintainer(creep)) return;
+        if (!creep.store[RESOURCE_ENERGY]) return creep.memory.working = undefined;
+        // If under attack, waller else chance to be a waller
+        if ((Memory.roomCache[creep.room.name].threatLevel || creep.memory.currentTarget || Math.random() > 0.5) && wallMaintainer(creep)) return;
         // If haulers needed haul
         if (hauling(creep)) return;
         // If builder needed build
@@ -85,14 +84,17 @@ module.exports.role = function role(creep) {
 function building(creep) {
     if (creep.memory.task && creep.memory.task !== 'build' && creep.memory.task !== 'repair') return;
     if ((creep.memory.task === 'build' || creep.memory.task === 'repair') || (creep.memory.constructionSite || creep.constructionWork())) {
-        if (creep.builderFunction()) return true;
+        if (creep.builderFunction()) {
+            creep.memory.other.noBump = true;
+            return true;
+        }
     }
 }
 
 function hauling(creep) {
     if (creep.memory.task && creep.memory.task !== 'haul') return;
     if (!creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME) return false;
-    let haulers = _.filter(creep.room.creeps, (c) => c.my && c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler' || c.memory.role === 'shuttle')).length < 1;
+    let haulers = _.filter(creep.room.myCreeps, (c) => c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler' || c.memory.role === 'shuttle')).length < 1;
     let needyTower = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.1).length > 0;
     if (creep.memory.task === 'haul' || (creep.room.level <= 4 && creep.isFull && (haulers || needyTower) && !creep.memory.task && (creep.room.energyAvailable < creep.room.energyCapacityAvailable || needyTower))) {
         creep.memory.task = 'haul';
@@ -123,7 +125,7 @@ function hauling(creep) {
 
 function upgrading(creep, force = undefined) {
     if (creep.memory.task && creep.memory.task !== 'upgrade') return;
-    let upgrader = _.find(creep.room.creeps, (c) => c.memory && c.memory.role === "upgrader");
+    let upgrader = _.find(creep.room.myCreeps, (c) => c.memory.role === "upgrader");
     if ((!force && upgrader) || !creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME || creep.room.controller.upgradeBlocked || creep.room.controller.level === 8) {
         creep.memory.task = undefined;
         return false;
@@ -132,33 +134,13 @@ function upgrading(creep, force = undefined) {
     creep.say('Praise!', true);
     switch (creep.upgradeController(creep.room.controller)) {
         case OK:
+            creep.memory.other.noBump = true;
             delete creep.memory._shibMove;
             break;
         case ERR_NOT_IN_RANGE:
             creep.shibMove(creep.room.controller, {range: 3});
     }
     return true;
-}
-
-function findRemoteSource(creep) {
-    let adjacent = _.filter(Game.map.describeExits(creep.pos.roomName), (r) => !Memory.roomCache[r] ||
-        ((!Memory.roomCache[r].owner || Memory.roomCache[r].owner === MY_USERNAME) && (!Memory.roomCache[r].reservation || Memory.roomCache[r].reservation === MY_USERNAME) && !Memory.roomCache[r].sk && Memory.roomCache[r].sources));
-    if (adjacent.length) {
-        creep.memory.remoteMining = _.sample(adjacent);
-        return true;
-    } else {
-        let possibles = [];
-        _.filter(Game.map.describeExits(creep.pos.roomName)).forEach(function (r) {
-            _.filter(Game.map.describeExits(r)).forEach(function (s) {
-                if (!Memory.roomCache[s] || ((!Memory.roomCache[s].owner || Memory.roomCache[s].owner === MY_USERNAME) &&
-                    (!Memory.roomCache[s].reservation || Memory.roomCache[s].reservation === MY_USERNAME) && !Memory.roomCache[s].sk && Memory.roomCache[s].sources)) return possibles.push(s);
-            })
-        });
-        if (possibles.length) {
-            creep.memory.remoteMining = _.sample(possibles);
-            return true;
-        }
-    }
 }
 
 function wallMaintainer(creep) {
@@ -221,9 +203,10 @@ function wallMaintainer(creep) {
         switch (creep.repair(target)) {
             case OK:
                 if (target.hits >= creep.memory.targetWallHits) {
+                    creep.memory.other.noBump = undefined;
                     creep.memory.currentTarget = undefined;
                     creep.memory.targetWallHits = undefined;
-                }
+                } else creep.memory.other.noBump = true;
                 break;
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(target, {range: 3})
@@ -235,5 +218,28 @@ function wallMaintainer(creep) {
         return true;
     } else {
         return false;
+    }
+}
+
+function findRemoteSource(creep) {
+    let adjacent = _.filter(Game.map.describeExits(creep.pos.roomName), (r) => Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(creep.room.name).status && Memory.roomCache[r] &&
+        ((!Memory.roomCache[r].owner || Memory.roomCache[r].owner === MY_USERNAME)
+            && (!Memory.roomCache[r].reservation || Memory.roomCache[r].reservation === MY_USERNAME)
+            && !Memory.roomCache[r].sk && Memory.roomCache[r].sources));
+    if (adjacent.length) {
+        creep.memory.remoteMining = _.sample(adjacent);
+        return true;
+    } else {
+        let possibles = [];
+        _.filter(Game.map.describeExits(creep.pos.roomName)).forEach(function (r) {
+            _.filter(Game.map.describeExits(r)).forEach(function (s) {
+                if (!Memory.roomCache[s] || ((!Memory.roomCache[s].owner || Memory.roomCache[s].owner === MY_USERNAME) &&
+                    (!Memory.roomCache[s].reservation || Memory.roomCache[s].reservation === MY_USERNAME) && !Memory.roomCache[s].sk && Memory.roomCache[s].sources)) return possibles.push(s);
+            })
+        });
+        if (possibles.length) {
+            creep.memory.remoteMining = _.sample(possibles);
+            return true;
+        }
     }
 }

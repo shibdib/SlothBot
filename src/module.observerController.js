@@ -29,8 +29,8 @@ module.exports.observerControl = function (room) {
                 observedRooms[room.name] = scoutOperation;
                 return;
             }
-            // Observer queries (Level 0's)
-            let observerOperation = _.findKey(Memory.targetRooms, (t) => t && t.level === 0 && (!t.observerCheck || t.observerCheck + 20 < Game.time));
+            // Observer queries
+            let observerOperation = _.findKey(Memory.targetRooms, (t) => t && (!t.observerCheck || t.observerCheck + 50 < Game.time));
             if (observerOperation && Game.map.getRoomLinearDistance(room.name, observerOperation) <= OBSERVER_RANGE) {
                 observer.observeRoom(observerOperation);
                 observedRooms[room.name] = observerOperation;

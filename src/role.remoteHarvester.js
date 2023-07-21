@@ -15,8 +15,20 @@ module.exports.role = function (creep) {
     // If you're in place just harvest
     if (creep.memory.onContainer) {
         if (Math.random() > 0.9) return creep.memory.onContainer = undefined;
+        // Build container
+        if (!creep.memory.containerID && creep.store[RESOURCE_ENERGY]) {
+            let dropped = creep.pos.lookFor(LOOK_RESOURCES)[0];
+            if (dropped && dropped.amount >= 200) {
+                let site = creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
+                if (site) {
+                    creep.build(site);
+                    creep.pickup(dropped);
+                }
+                return;
+            }
+        }
         // Handle setting the pickup for a hauler
-        let source = Game.getObjectById(creep.memory.other.source);
+        let source = Game.getObjectById(creep.memory.source);
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
                 creep.memory.onContainer = undefined;
@@ -55,8 +67,8 @@ module.exports.role = function (creep) {
             return creep.suicide();
         }
         // Harvest
-        if (creep.memory.other.source) {
-            let source = Game.getObjectById(creep.memory.other.source);
+        let source = Game.getObjectById(creep.memory.source);
+        if (source) {
             let container = Game.getObjectById(creep.memory.containerID) || Game.getObjectById(creep.memory.containerSite);
             // Make sure you're on the container
             if (container) {
@@ -92,7 +104,7 @@ module.exports.role = function (creep) {
                         source.memory.carryAmountNeeded = _.round((source.memory.travelRange * 1.5) * (creep.getActiveBodyparts(WORK) * HARVEST_POWER));
                     }
                     if (!creep.memory.containerID || !Game.getObjectById(creep.memory.containerID)) {
-                        creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.other.source), creep);
+                        creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
                     }
                     //if (creep.memory.hauler && Game.time % 50 === 0 && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
                     if (container && container.hits) {
@@ -100,6 +112,13 @@ module.exports.role = function (creep) {
                         if (_.sum(container.store) >= 1980) creep.idleFor(20);
                     }
                     break;
+            }
+        } else if (!creep.findSource()) {
+            let oldestHarvester = _.min(_.filter(creep.room.creeps, (c) => c.memory && c.ticksToLive < 500 && c.memory.role === "remoteHarvester"), "ticksToLive");
+            if (!oldestHarvester || !oldestHarvester.id) return creep.idleFor(10);
+            else {
+                creep.memory.source = oldestHarvester.memory.source;
+                oldestHarvester.suicide();
             }
         }
     }

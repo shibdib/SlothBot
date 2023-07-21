@@ -19,12 +19,9 @@ module.exports.role = function (creep) {
     if (!container) creep.room.memory.controllerContainer = undefined;
     let link = Game.getObjectById(creep.room.memory.controllerLink);
     if (!link) creep.room.memory.controllerLink = undefined;
-    if (creep.memory.other.stationary || (creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE))) {
-        creep.memory.other.stationary = true;
+    if (creep.memory.other.stationary) {
         // Handle sitting on container
-        if (container && (!creep.memory.containerOccupied || (Math.random() > 0.9 && !Game.getObjectById(creep.memory.containerOccupied)))) {
-            if (container.pos.checkForCreep()) creep.memory.containerOccupied = container.pos.checkForCreep().id; else creep.shibMove(container, {range: 0});
-        }
+        if (container && !creep.pos.isEqualToPos(container.pos)) creep.shibMove(container, {range: 0});
         switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
             case OK:
                 creep.memory.inPlace = true;
@@ -59,10 +56,7 @@ module.exports.role = function (creep) {
         if (creep.memory.working) {
             switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
                 case OK:
-                    // Handle sitting on container
-                    if (container && (!creep.memory.containerOccupied || (Math.random() > 0.9 && !Game.getObjectById(creep.memory.containerOccupied)))) {
-                        if (container.pos.checkForCreep()) creep.memory.containerOccupied = container.pos.checkForCreep().id; else creep.shibMove(container, {range: 0});
-                    }
+                    creep.memory.other.noBump = true;
                     return;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
@@ -76,6 +70,7 @@ module.exports.role = function (creep) {
                     }
             }
         } else if (creep.memory.energyDestination) {
+            creep.memory.other.noBump = undefined;
             creep.withdrawResource();
         } else if (container && container.store[RESOURCE_ENERGY]) {
             creep.withdrawResource(container);
@@ -121,7 +116,7 @@ function herald(creep) {
             }
         }
     } else {
-        let activeHerald = _.filter(creep.room.creeps, (c) => c.my && c.memory.herald);
+        let activeHerald = _.filter(creep.room.myCreeps, (c) => c.memory.herald);
         if (!activeHerald.length) {
             creep.memory.herald = true;
         } else {

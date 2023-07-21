@@ -31,7 +31,23 @@ module.exports.overlordMind = function (room, CPULimit) {
     let count;
     let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military && !r.spawning));
     for (let creep of roomCreeps) {
-        minionController(creep);
+        try {
+            minionController(creep);
+        } catch (e) {
+            if (!errorCount[creep.name]) errorCount[creep.name] = 1; else errorCount[creep.name] += 1;
+            if (errorCount[creep.name] < 10) {
+                if (errorCount[creep.name] === 1) {
+                    log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name));
+                    log.e(e);
+                    log.e(e.stack);
+                    Game.notify(e);
+                    Game.notify(e.stack);
+                }
+            } else if (errorCount[creep.name] >= 50) {
+                if (errorCount[creep.name] === 50) log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name) + ' and has been killed.');
+                creep.suicide();
+            }
+        }
     }
 
     // Room function loop
@@ -45,9 +61,9 @@ module.exports.overlordMind = function (room, CPULimit) {
         {name: 'spawning', f: creepSpawning}]);
     let functionCount = overlordFunctions.length;
     count = 0;
-    let overlordTaskCurrentCPU = Game.cpu.getUsed();
     let overlordTaskTotalCPU = 0;
     do {
+        let overlordTaskCurrentCPU = Game.cpu.getUsed();
         let currentFunction = _.first(overlordFunctions);
         if (!currentFunction) break;
         overlordFunctions = _.rest(overlordFunctions);
@@ -55,12 +71,13 @@ module.exports.overlordMind = function (room, CPULimit) {
         try {
             currentFunction.f(room);
         } catch (e) {
-            log.e('Error with ' + currentFunction.name + ' function');
+            log.e('Error with ' + currentFunction.name + ' function in room ' + roomLink(room.name));
             log.e(e.stack);
             Game.notify(e.stack);
         }
         overlordTaskCurrentCPU = Game.cpu.getUsed() - overlordTaskCurrentCPU;
         overlordTaskTotalCPU += overlordTaskCurrentCPU;
+        //console.log(overlordTaskCurrentCPU + ' CPU used on ' + currentFunction.name + ' function')
     } while ((overlordTaskTotalCPU < CPULimit) && count < functionCount)
 
 
@@ -74,12 +91,12 @@ module.exports.overlordMind = function (room, CPULimit) {
     // Store Data
     let used = Game.cpu.getUsed() - mindStart;
     let cpuUsageArray = ROOM_CPU_ARRAY[room.name] || [];
-    if (cpuUsageArray.length < 250) {
+    if (cpuUsageArray.length < 100) {
         cpuUsageArray.push(used)
     } else {
         cpuUsageArray.shift();
         cpuUsageArray.push(used);
-        if (Game.time % 150 === 0 && average(cpuUsageArray) > CPULimit) {
+        if (average(cpuUsageArray) > CPULimit) {
             let cpuOverCount = room.memory.cpuOverage || 0;
             room.memory.cpuOverage = cpuOverCount + 1;
             log.e(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
@@ -95,7 +112,7 @@ module.exports.overlordMind = function (room, CPULimit) {
                 room.memory.noRemote = Game.time + 5000;
                 _.filter(Game.creeps, (c) => c.my && c.memory.overlord === room.name && c.room.name !== room.name && !c.memory.military).forEach((k) => k.suicide());
                 //Game.notify(room.name + ' remote spawning has been disabled.');
-                log.e(room.name + ' remote spawning has been disabled.');
+                log.e(roomLink(room.name) + ' remote spawning has been disabled.');
             }
         } else if (Game.time % 150 === 0) {
             if (room.memory.cpuOverage) room.memory.cpuOverage--;
@@ -128,24 +145,9 @@ function minionController(minion) {
         minion.room.invaderCheck();
         minion.room.cacheRoomIntel(false, minion);
     }
-    try {
-        // Run role
-        require('role.' + minion.memory.role).role(minion);
-    } catch (e) {
-        if (!errorCount[minion.name]) errorCount[minion.name] = 1; else errorCount[minion.name] += 1;
-        if (errorCount[minion.name] < 10) {
-            if (errorCount[minion.name] === 1) {
-                log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name));
-                log.e(e);
-                log.e(e.stack);
-                Game.notify(e);
-                Game.notify(e.stack);
-            }
-        } else if (errorCount[minion.name] >= 50) {
-            if (errorCount[minion.name] === 50) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been killed.');
-            minion.suicide();
-        }
-    }
+    // Run role
+    if (!minion.memory.role) return minion.suicide();
+    require('role.' + minion.memory.role).role(minion);
 }
 
 function creepSpawning(room) {

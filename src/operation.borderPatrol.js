@@ -33,7 +33,7 @@ Creep.prototype.borderPatrol = function () {
     }
     if (this.memory.destination && this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
     // Handle combat
-    if (this.canIWin(50)) {
+    if (this.canIWin(10)) {
         if (this.handleMilitaryCreep()) return;
     } else {
         return this.shibKite();

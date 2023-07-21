@@ -8,6 +8,7 @@
 //modules
 //Setup globals and prototypes
 require("require");
+let memWipe, running;
 let tools = require("tools.misc");
 let hive = require('main.hive');
 let cleanUp = require('module.cleanup');
@@ -15,36 +16,63 @@ log.e('Global Reset - Last reset occurred ' + (Game.time - (Memory.lastGlobalRes
 Memory.lastGlobalReset = Game.time;
 
 module.exports.loop = function () {
-    // Misc Tools
-    tools.CPULimits();
-    tools.memHack();
-    tools.tickLength();
-    tools.cleanMemory();
-    tools.status();
-
     //Bucket Cool down Check
     if (Memory.cpuTracking && Memory.cpuTracking.cooldown) {
-        if (Memory.cpuTracking.cooldown + 25 < Game.time || Game.cpu.bucket > BUCKET_MAX * 0.9) {
+        if (Memory.cpuTracking.cooldown + 25 < Game.time || Game.cpu.bucket > BUCKET_MAX * 0.05) {
             delete Memory.cpuTracking.cooldown;
         } else {
             let countDown = (Memory.cpuTracking.cooldown + 25) - Game.time;
-            log.e('On CPU Cooldown For ' + countDown + ' more ticks. Current Bucket ' + Game.cpu.bucket);
+            log.e('On CPU Cooldown For ' + countDown + ' more ticks or until the bucket reaches ' + BUCKET_MAX * 0.05 + '. Current Bucket ' + Game.cpu.bucket);
             return;
         }
     } else {
         if (!Memory.cpuTracking) Memory.cpuTracking = {};
-        if (Game.cpu.bucket < BUCKET_MAX * 0.2) {
+        if (Game.cpu.bucket < BUCKET_MAX * 0.05) {
             Memory.cpuTracking.cooldown = Game.time;
             log.e('CPU Bucket Too Low - Cooldown Initiated');
             return;
         }
     }
 
-    // Update allies
-    populateLOANlist();
+    // Handle auto placing a spawn
+    if (!running) {
+        let ownedRoom = _.find(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my);
+        let spawn = _.find(ownedRoom.structures, (s) => s.structureType === STRUCTURE_SPAWN);
+        if (ownedRoom && !spawn) {
+            if (!memWipe) {
+                resetMemory();
+                memWipe = true;
+                return;
+            }
+            require('module.roomPlanner').buildRoom(ownedRoom);
+        } else if (spawn) running = true;
+        return;
+    }
 
-    // Cleanup Modules
-    cleanUp.cleanup();
+    try {
+        // Handle pixel generation
+        // Generate every 1500 ticks if enabled, no military operations, and we have a full bucket
+        if (GENERATE_PIXELS && ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) && !_.find(Memory.targetRooms, (r) => r && r.operation !== 'pending') && Memory.lastPixel + CREEP_LIFE_TIME < Game.time && Game.cpu.bucket === BUCKET_MAX) {
+            log.a('Pixel Generated');
+            Game.cpu.generatePixel();
+            return Memory.lastPixel = Game.time;
+        } else if (!Memory.lastPixel) Memory.lastPixel = Game.time;
+
+        // Misc Tools
+        tools.CPULimits();
+        tools.tickLength();
+        tools.cleanMemory();
+        tools.status();
+        //tools.memHack();
+        // Update allies
+        populateLOANlist();
+        // Cleanup Modules
+        cleanUp.cleanup();
+    } catch (e) {
+        log.e('Error with a main tool function');
+        log.e(e + ' ' + e.stack);
+        Game.notify(e + ' ' + e.stack);
+    }
 
     // Store owned rooms in array
     if (!Memory.myRooms || !Memory.myRooms.length || Game.time % 5 === 0) {
@@ -109,6 +137,7 @@ cpuUsage = function () {
         }
     }
 }
+
 function wrapLoop(fn) {
     let memory;
     let tick;
@@ -141,4 +170,33 @@ function wrapLoop(fn) {
 
         RawMemory._parsed = Memory;
     };
+}
+
+// Robalian's Mem Hack bastardized
+function memWrap(f) {
+    let lastMemory;
+    let tick;
+    return () => {
+        if (tick && lastMemory && Game.time === tick + 1) {
+            delete global.Memory;
+            global.Memory = lastMemory;
+            Memory = lastMemory;
+            RawMemory._parsed = lastMemory;
+        } else {
+            log.a('Parsing memory this tick.');
+            Memory.rooms; // forces parsing
+            lastMemory = RawMemory._parsed;
+        }
+        tick = Game.time;
+        f();
+    };
+}
+
+function resetMemory() {
+    log.a('Resetting Memory');
+    RawMemory.set('{}');
+    Memory.creeps = {};
+    Memory.rooms = {};
+    Memory.flags = {};
+    Memory.spawns = {};
 }

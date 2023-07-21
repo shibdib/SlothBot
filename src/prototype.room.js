@@ -150,7 +150,7 @@ Object.defineProperty(Room.prototype, 'energyState', {
 Object.defineProperty(Room.prototype, 'hostileStructures', {
     get: function () {
         if (!this._hostileStructures) {
-            this._hostileStructures = _.filter(this.structures, (s) => !s.my && s.owner && ![STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_POWER_BANK].includes(s.structureType) && !_.includes(FRIENDLIES, s.owner.username));
+            this._hostileStructures = _.filter(this.structures, (s) => !s.my && s.owner && ![STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_POWER_BANK, STRUCTURE_ROAD].includes(s.structureType) && !_.includes(FRIENDLIES, s.owner.username));
         }
         return this._hostileStructures;
     },
@@ -194,6 +194,17 @@ Object.defineProperty(Room.prototype, 'creeps', {
             this._creeps = this.find(FIND_CREEPS);
         }
         return this._creeps;
+    },
+    enumerable: false,
+    configurable: true
+});
+
+Object.defineProperty(Room.prototype, 'myCreeps', {
+    get: function () {
+        if (!this._myCreeps) {
+            this._myCreeps = this.find(FIND_CREEPS).filter((c) => c.my);
+        }
+        return this._myCreeps;
     },
     enumerable: false,
     configurable: true
@@ -349,46 +360,31 @@ function getRoomResource(room, resource, unused = false) {
 }
 
 Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
+    // Check if corrupted
+    if (Memory.roomCache && !Memory.roomCache[Memory.myRooms[0]]) {
+        Memory.roomCache = {};
+        log.e('Room cache was corrupted, resetting.');
+    } else if (!Memory.roomCache) Memory.roomCache = {};
     if (!force && Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + CREEP_LIFE_TIME > Game.time) return;
     let room = Game.rooms[this.name];
-    let nonCombats, mineral, sk, power, portal, user, level, owner, lastOperation, towers,
-        reservation, commodity, safemode, hubCheck, spawnLocation, sourceRange, obstructions, seasonResource, isHighway,
-        closestRoom,
-        seasonResourceType, seasonDecoder, seasonReactor, seasonReactorOwner, seasonCollector, seasonHighwayPath, swarm, structures, towerCount,
-        sourceRating;
+    let mineral, sk, power, portal, user, level, owner, lastOperation, towers, reservation, commodity, safemode,
+        spawnLocation, obstructions, seasonResource, closestRoom, closestRange, mineralAmount, seasonReactor,
+        seasonReactorOwner, swarm, structures, towerCount, sourceRating;
     if (room) {
         // Get closest room
         closestRoom = this.findClosestOwnedRoom();
+        // Store things that don't change
         if (Memory.roomCache[room.name]) {
-            seasonHighwayPath = Memory.roomCache[room.name].seasonHighwayPath;
             lastOperation = Memory.roomCache[room.name].lastOperation;
-            hubCheck = Memory.roomCache[room.name].hubCheck;
             if (closestRoom === Memory.roomCache[room.name].closestRoom) {
-                sourceRange = Memory.roomCache[room.name].sourceRange;
+                closestRoom = Memory.roomCache[room.name].closestRoom;
+                closestRange = Memory.roomCache[room.name].closestRange;
                 sourceRating = Memory.roomCache[room.name].sourceRating;
             }
         }
         // Check for season resource
         if (Game.shard.name === 'shardSeason') {
-            /** Season 1
-             let container = room.find(FIND_SCORE_CONTAINERS)[0];
-             let collector = room.find(FIND_SCORE_COLLECTORS)[0];
-             if (container) seasonResource = Game.time + container.ticksToDecay;
-             // If collector is reachable, mark as 1 else mark as 2
-             if (collector) {
-                if (collector.pos.countOpenTerrainAround() || collector.pos.findClosestByPath(FIND_EXIT)) seasonCollector = 1; else seasonCollector = 2;
-            }
-                // Season 2
-            let container = room.find(FIND_SYMBOL_CONTAINERS)[0];
-            if (creep) container = creep.pos.findClosestByPath(container);
-            if (container) {
-                seasonResource = Game.time + container.ticksToDecay;
-                seasonResourceType = container.resourceType;
-            }
-             if (this.decoder) {
-                seasonDecoder = this.decoder.resourceType;
-            }**/
-                // season 4?
+            // season 4?
             let reactor = room.find(FIND_REACTORS)[0];
             if (reactor) {
                 seasonReactor = reactor.id;
@@ -400,12 +396,14 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             }
         }
         // Minerals
-        if (room.mineral) mineral = room.mineral.mineralType;
+        if (room.mineral) {
+            mineral = room.mineral.mineralType;
+            mineralAmount = room.mineral.mineralAmount;
+        }
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
         let cache = Memory.roomCache || {};
         let sources = room.sources;
-        nonCombats = _.filter(room.creeps, (e) => (!e.hasActiveBodyparts(ATTACK) && !e.hasActiveBodyparts(RANGED_ATTACK) && (e.hasActiveBodyparts(WORK) || e.hasActiveBodyparts(CARRY))));
         let combatCreeps = _.filter(room.hostileCreeps, (e) => e.hasActiveBodyparts(ATTACK) || e.hasActiveBodyparts(RANGED_ATTACK));
         if (!sk && _.find(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)) sk = true;
         if (room.controller) {
@@ -437,19 +435,6 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             } else if (room.controller.reservation) {
                 reservation = room.controller.reservation.username;
                 user = room.controller.reservation.username;
-            } else {
-                if (room.controller.pos.countOpenTerrainAround()) {
-                    let roomPlanner = require('module.roomPlanner');
-                    if (sources.length === 2) {
-                        if (!hubCheck || !hubCheck.x) hubCheck = roomPlanner.hubCheck(this);
-                        if (!sourceRange) {
-                            sourceRange = 0;
-                            for (let source of sources) {
-                                sourceRange += source.pos.getRangeTo(_.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER)[0]);
-                            }
-                        }
-                    }
-                }
             }
             level = room.controller.level || undefined;
         }
@@ -478,19 +463,20 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             power = _.find(room.structures, (e) => e && e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
             if (power) power = Game.time + power.ticksToDecay; else power = undefined;
         }
-        // Get closest
-        let closestRange = this.findClosestOwnedRoom(true);
-        // Handle rating sources for remotes
-        if (!user && !sourceRating && closestRange <= 2 && sources.length) {
-            sourceRating = {};
-            for (let source of this.sources) {
-                let goHome = Game.map.findExit(this.name, closestRoom);
-                let homeExit = this.find(goHome);
-                let homeMiddle = _.round(homeExit.length / 2);
-                let distanceToExit = source.pos.getRangeTo(homeExit[homeMiddle]);
-                let roomRange = Game.map.findRoute(this.name, closestRoom).length;
-                sourceRating[source.id] = distanceToExit + 20;
-                if (roomRange > 1) sourceRating[source.id] += (roomRange * 50);
+        if (!closestRange || (!sourceRating && sources.length)) {
+            closestRange = this.findClosestOwnedRoom(true);
+            // Handle rating sources for remotes
+            if (!user && !sourceRating && closestRange <= 2 && sources.length) {
+                sourceRating = {};
+                for (let source of this.sources) {
+                    let goHome = Game.map.findExit(this.name, closestRoom);
+                    let homeExit = this.find(goHome);
+                    let homeMiddle = _.round(homeExit.length / 2);
+                    let distanceToExit = source.pos.getRangeTo(homeExit[homeMiddle]);
+                    let roomRange = Game.map.findRoute(this.name, closestRoom).length;
+                    sourceRating[source.id] = distanceToExit + 20;
+                    if (roomRange > 1) sourceRating[source.id] += (roomRange * 50);
+                }
             }
         }
         let isHighway = !room.controller && !sk && !room.sources.length;
@@ -503,6 +489,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             shardName: Game.shard.name,
             sources: sources.length,
             mineral: mineral,
+            mineralAmount: mineralAmount,
             commodity: commodity,
             owner: owner,
             spawnLocation: spawnLocation,
@@ -516,22 +503,16 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             isHighway: isHighway,
             closestRange: closestRange,
             closestRoom: closestRoom,
-            hubCheck: hubCheck,
-            sourceRange: sourceRange,
             obstructions: obstructions,
             lastOperation: lastOperation,
             seasonResource: seasonResource,
-            seasonResourceType: seasonResourceType,
-            seasonCollector: seasonCollector,
-            seasonHighwayPath: seasonHighwayPath,
-            seasonDecoder: seasonDecoder,
             seasonReactor: seasonReactor,
             seasonReactorOwner: seasonReactorOwner,
             invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,
             towers: towerCount,
             swarm: swarm,
             structures: structures,
-            hostile: combatCreeps.length > 0 || towerCount,
+            hostile: combatCreeps.length > 0 || towerCount || _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,
             sourceRating: sourceRating
         };
         Memory.ncpArray = _.uniq(ncpArray);

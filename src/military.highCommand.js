@@ -20,7 +20,7 @@ module.exports.highCommand = function () {
     // Manage dispatching responders
     manageResponseForces();
     // Auxiliary
-    if (Math.random() > 0.75) auxiliaryOperations();
+    if (Math.random() > 0.5) auxiliaryOperations();
     // Request scouting for new operations
     else if (Memory.maxLevel >= 2 && Math.random() > 0.5) operationRequests();
     // Manage old operations
@@ -48,7 +48,7 @@ function manageResponseForces() {
             Memory.roomCache[ownedRoomAttack].responseDispatched = Game.time;
             if (friendlyResponsePower > Memory.roomCache[ownedRoomAttack].hostilePower) break;
             friendlyResponsePower += creep.combatPower;
-            creep.memory.other.destination = ownedRoomAttack;
+            creep.memory.destination = ownedRoomAttack;
             creep.memory.awaitingOrders = undefined;
             creep.memory._shibMove = undefined;
             creep.memory.idle = undefined;
@@ -62,7 +62,7 @@ function manageResponseForces() {
             Memory.roomCache[responseTargets.name].responseDispatched = Game.time;
             if (friendlyResponsePower > responseTargets.hostilePower) break;
             friendlyResponsePower += creep.combatPower;
-            creep.memory.other.destination = responseTargets.name;
+            creep.memory.destination = responseTargets.name;
             creep.memory.awaitingOrders = undefined;
             creep.memory._shibMove = undefined;
             creep.memory.idle = undefined;
@@ -75,7 +75,7 @@ function manageResponseForces() {
             Memory.roomCache[invaderCore].responseDispatched = Game.time;
             if (friendlyResponsePower) break;
             friendlyResponsePower += creep.combatPower;
-            creep.memory.other.destination = invaderCore;
+            creep.memory.destination = invaderCore;
             creep.memory.awaitingOrders = undefined;
             creep.memory._shibMove = undefined;
             creep.memory.idle = undefined;
@@ -88,7 +88,7 @@ function manageResponseForces() {
             Memory.roomCache[unarmedVisitors].responseDispatched = Game.time;
             if (friendlyResponsePower) break;
             friendlyResponsePower += creep.combatPower;
-            creep.memory.other.destination = unarmedVisitors;
+            creep.memory.destination = unarmedVisitors;
             creep.memory.awaitingOrders = undefined;
             creep.memory._shibMove = undefined;
             creep.memory.idle = undefined;
@@ -98,7 +98,7 @@ function manageResponseForces() {
         for (let creep of _.sortBy(_.filter(idleResponders, (c) => (!c.memory.other.longRange && Game.map.getRoomLinearDistance(c.memory.overlord, guard) <= 2) || c.memory.other.longRange), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, guard);
         })) {
-            creep.memory.other.destination = guard;
+            creep.memory.destination = guard;
             creep.memory.awaitingOrders = undefined;
             creep.memory._shibMove = undefined;
             creep.memory.idle = undefined;
@@ -143,120 +143,58 @@ function auxiliaryOperations() {
             Memory.auxiliaryTargets = cache;
             log.a('Mining operation planned for ' + roomLink(commodityRoom.name) + ' suspected commodity deposit location, Nearest Room - ' + commodityRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
         }
-    }
-    // Seasonal score collection
-    if (Game.shard.name === 'shardSeason') {
-        /** Season 1
-         let scoreCollector = _.min(_.filter(initialFilter, (r) => r.seasonCollector === 1), 'closestRange');
-         // Score collection
-         if (maxLevel >= 4 || scoreCollector.name) {
-            let scoreRoom = _.min(_.filter(initialFilter, (r) => r.seasonResource > Game.time && r.closestRange <= r.seasonResource / 50 && r.reservation !== MY_USERNAME), 'closestRange');
-            let scoreMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'score').length || 0;
-            if (scoreRoom.name && scoreMining < 10 && getResourceTotal(RESOURCE_SCORE) < 100000) {
+        // Rebuild allies
+        let alliedRoom = _.filter(initialFilter, (r) => r.owner && r.owner !== MY_USERNAME && FRIENDLIES.includes(r.owner) && r.level > 3 && !r.towers);
+        let needyRoom = _.filter(Game.rooms, (r) => (r.memory.buildersNeeded || r.memory.struggling) && !Memory.auxiliaryTargets[r.name]);
+        let rebuildTargets = _.union(needyRoom, alliedRoom);
+        if (rebuildTargets) {
+            for (let rebuild of rebuildTargets) {
                 let cache = Memory.auxiliaryTargets || {};
                 let tick = Game.time;
-                cache[scoreRoom.name] = {
+                cache[rebuild.name] = {
                     tick: tick,
-                    type: 'score',
+                    type: 'rebuild',
                     level: 1,
-                    priority: PRIORITIES.secondary
+                    priority: PRIORITIES.priority
                 };
                 Memory.auxiliaryTargets = cache;
-                log.a('Score Claiming operation planned for ' + roomLink(scoreRoom.name) + ' suspected score container location, Nearest Room - ' + scoreRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
+                log.a('Rebuild operation planned for ' + roomLink(rebuild.name) + ', Nearest Room - ' + Memory.roomCache[rebuild.name].closestRange + ' rooms away', 'HIGH COMMAND: ');
             }
         }
-         // Collector clearing
-         let pendingCollector = _.min(_.filter(initialFilter, (r) => r.seasonCollector === 2 && (!r.user || r.user === MY_USERNAME)), 'closestRange');
-         let scoreCleaning = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'scoreCleaner').length || 0;
-         if (scoreCleaning < 2 && pendingCollector.name && (!scoreCollector.name || scoreCollector.closestRange > pendingCollector.closestRange)) {
+        // Seasonal score collection
+        if (Game.shard.name === 'shardSeason') {
+            // Reactor Guard
+            let reactorRoom = _.filter(Memory.roomCache, (r) => !_.includes(Memory.nonCombatRooms, r.name) && r.seasonReactor && sameSectorCheck(r.closestRoom, r.name));
+            if (reactorRoom.length) {
+                for (let reactor of reactorRoom) {
+                    if (Memory.targetRooms[reactor.name]) continue;
+                    let cache = Memory.targetRooms || {};
+                    let tick = Game.time;
+                    cache[reactor.name] = {
+                        tick: tick,
+                        type: 'guard',
+                        level: 1,
+                        priority: PRIORITIES.medium
+                    };
+                    Memory.targetRooms = cache;
+                    log.a('Reactor guard operation planned for ' + roomLink(reactor.name) + ', Nearest Room - ' + reactor.closestRange + ' rooms away', 'HIGH COMMAND: ');
+                }
+            }
+        }
+        // Mineral mine center rooms
+        let mineralRoom = _.find(initialFilter, (r) => !r.sk && r.sources >= 3 && r.mineralAmount && sameSectorCheck(r.closestRoom, r.name));
+        if (mineralRoom) {
             let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;
-            cache[pendingCollector.name] = {
+            cache[mineralRoom.name] = {
                 tick: tick,
-                type: 'scoreCleaner',
+                type: 'mineral',
                 level: 1,
-                priority: PRIORITIES.secondary
+                priority: PRIORITIES.medium
             };
             Memory.auxiliaryTargets = cache;
-            log.a('Score cleaning operation planned for ' + roomLink(pendingCollector.name) + ' to clear walls, Nearest Room - ' + pendingCollector.closestRange + ' rooms away', 'HIGH COMMAND: ');
+            log.a('Mining operation planned for ' + roomLink(mineralRoom.name) + ' mineral deposit location, Nearest Room - ' + mineralRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
         }
-         // Collector Guard
-         else if (scoreCollector.name && !Memory.targetRooms[scoreCollector.name]) {
-            let cache = Memory.targetRooms || {};
-            let tick = Game.time;
-            cache[scoreCollector.name] = {
-                tick: tick,
-                type: 'guard',
-                level: 1,
-                priority: PRIORITIES.secondary
-            };
-            Memory.targetRooms = cache;
-            log.a('Score guard operation planned for ' + roomLink(scoreCollector.name) + ', Nearest Room - ' + scoreCollector.closestRange + ' rooms away', 'HIGH COMMAND: ');
-        }**/
-        /**
-        if (maxLevel >= 4) {
-            let scoreRoom = _.min(_.filter(initialFilter, (r) => r.seasonResource > Game.time && r.closestRange <= r.seasonResource / 50 && r.reservation !== MY_USERNAME &&
-                ((Memory.ownedSymbols && Memory.ownedSymbols.includes(r.seasonResourceType) && getResourceTotal(r.seasonResourceType) < 25000) || getResourceTotal(r.seasonResourceType) < 2500)), 'closestRange');
-            let scoreMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'score').length || 0;
-            if (scoreRoom.name && scoreMining < 10) {
-                let cache = Memory.auxiliaryTargets || {};
-                let tick = Game.time;
-                cache[scoreRoom.name] = {
-                    tick: tick,
-                    type: 'score',
-                    level: 1,
-                    priority: PRIORITIES.secondary
-                };
-                Memory.auxiliaryTargets = cache;
-                log.a('Resource Claiming operation planned for ' + roomLink(scoreRoom.name) + ' suspected score container location, Nearest Room - ' + scoreRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
-            }
-            // Guard highway cracks
-            let highwayCracks = _.min(_.filter(Memory.roomCache, (r) => r.seasonHighwayPath && r.closestRange < 7 && !Memory.targetRooms[r.name]), 'closestRange');
-            if (highwayCracks.name) {
-                let cache = Memory.targetRooms || {};
-                let tick = Game.time;
-                cache[highwayCracks.name] = {
-                    tick: tick,
-                    type: 'guard',
-                    level: 1,
-                    priority: PRIORITIES.secondary
-                };
-                Memory.targetRooms = cache;
-                log.a('Highway Guard operation planned for ' + roomLink(highwayCracks.name) + ', Nearest Room - ' + highwayCracks.closestRange + ' rooms away', 'HIGH COMMAND: ');
-            }
-        }
-         **/
-            // Reactor Guard
-        let reactorRoom = _.filter(Memory.roomCache, (r) => !_.includes(Memory.nonCombatRooms, r.name) && r.seasonReactor && r.closestRange <= 5);
-        if (reactorRoom.length) {
-            for (let reactor of reactorRoom) {
-                if (Memory.targetRooms[reactor.name]) continue;
-                let cache = Memory.targetRooms || {};
-                let tick = Game.time;
-                cache[reactor.name] = {
-                    tick: tick,
-                    type: 'guard',
-                    level: 1,
-                    priority: PRIORITIES.medium
-                };
-                Memory.targetRooms = cache;
-                log.a('Reactor guard operation planned for ' + roomLink(reactor.name) + ', Nearest Room - ' + reactor.closestRange + ' rooms away', 'HIGH COMMAND: ');
-            }
-        }
-    }
-    // Rebuild allies
-    let alliedRoom = _.min(_.filter(initialFilter, (r) => r.owner && r.owner !== MY_USERNAME && FRIENDLIES.includes(r.owner) && r.level > 3 && !r.towers), 'closestRange');
-    if (alliedRoom.name) {
-        let cache = Memory.auxiliaryTargets || {};
-        let tick = Game.time;
-        cache[alliedRoom.name] = {
-            tick: tick,
-            type: 'rebuild',
-            level: 1,
-            priority: PRIORITIES.high
-        };
-        Memory.auxiliaryTargets = cache;
-        log.a('Rebuild operation planned for ' + roomLink(alliedRoom.name) + ', Nearest Room - ' + commodityRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
     }
 }
 
@@ -322,7 +260,7 @@ function operationRequests() {
     }
     // Direct Room Attacks
     if (OFFENSIVE_OPERATIONS && _.size(Memory.targetRooms) < OPERATION_LIMIT) {
-        let initialFilter = _.filter(Memory.roomCache, (r) => r.user && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !checkForNap(r.user) && (!r.safemode || r.safemode - 500 < Game.time));
+        let initialFilter = _.filter(Memory.roomCache, (r) => r.user && userStrength(r.user) <= Memory.maxLevel && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !checkForNap(r.user) && (!r.safemode || r.safemode - 500 < Game.time));
         // New Spawn Denial/No towers
         let newSpawns = _.sortBy(_.filter(initialFilter, (r) => (NEW_SPAWN_DENIAL || (HOLD_SECTOR && sameSectorCheck(r.closestRoom, r.name))) && r.owner && !r.towers), function (t) {
             return t.closestRange
@@ -399,173 +337,191 @@ function manageAttacks() {
     let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target && target.type !== 'guard' && target.type !== 'pending').length || 0;
     let siegeCountFiltered = _.filter(Memory.targetRooms, (target) => target && (target.type === 'siege' || target.type === 'siegeGroup' || target.type === 'drain')).length || 0;
     let staleMulti = 1;
-    for (let key in Memory.targetRooms) {
-        try {
-            if (!Memory.targetRooms[key] || !key || key === 'undefined') {
+    targetRooms:
+        for (let key in Memory.targetRooms) {
+            try {
+                if (!Memory.targetRooms[key] || !key || key === 'undefined') {
+                    delete Memory.targetRooms[key];
+                    continue;
+                }
+            } catch (e) {
+            }
+            // If room is a manual no combat room cancel operation
+            if (_.includes(Memory.nonCombatRooms, key)) {
+                delete Memory.targetRooms[key];
+                log.a('Canceling operation in ' + roomLink(key) + ' as it is set as a manual non combat room.', 'HIGH COMMAND: ');
+                continue;
+            }
+            // If target rooms user is too powerful don't poke it
+            if (Memory.roomCache[key] && userStrength(Memory.roomCache[key].user) > Memory.maxLevel) {
+                delete Memory.targetRooms[key];
+                log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is too powerful.', 'HIGH COMMAND: ');
+                continue;
+            }
+            // If high level hostiles have been seen cancel it
+            if (Memory.targetRooms[key].userList) {
+                for (let user of Memory.targetRooms[key].userList) {
+                    if (userStrength(user) > Memory.maxLevel) {
+                        delete Memory.targetRooms[key];
+                        log.a('Canceling operation in ' + roomLink(key) + ' as we detected ' + user + ' who is too powerful.', 'HIGH COMMAND: ');
+                        continue targetRooms;
+                    }
+                }
+            }
+            let type = Memory.targetRooms[key].type;
+            let level = Memory.targetRooms[key].level || 0;
+            // Special Conditions
+            switch (type) {
+                // Skip test
+                case 'test':
+                    continue;
+                // Manage Holds
+                case 'hold':
+                    staleMulti = 100;
+                    if (totalCountFiltered > OPERATION_LIMIT) {
+                        log.a('Canceling ' + type + ' in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
+                        delete Memory.targetRooms[key];
+                        continue;
+                    } else if (Memory.roomCache[key] && _.includes(FRIENDLIES, Memory.roomCache[key].owner)) {
+                        log.a('Canceling ' + _.capitalize(Memory.targetRooms[key].type) + ' in ' + roomLink(key) + ' as it is no longer hostile.', 'HIGH COMMAND: ');
+                        delete Memory.targetRooms[key];
+                        totalCountFiltered--;
+                        continue;
+                    } else if (Memory.roomCache[key] && (!Memory.roomCache[key].owner || Memory.roomCache[key].owner === 'Invader') && !Memory.roomCache[key].reservation) {
+                        log.a('Canceling ' + _.capitalize(Memory.targetRooms[key].type) + ' in ' + roomLink(key) + ' as it is no longer controlled by anyone.', 'HIGH COMMAND: ');
+                        delete Memory.targetRooms[key];
+                        totalCountFiltered--;
+                        continue;
+                    }
+                    break;
+                // Manage Nukes
+                case 'nukes':
+                    continue;
+                // Manage siege
+                case 'drain':
+                case 'siegeGroup':
+                    if (Memory.roomCache[key] && !_.includes(Memory._enemies, Memory.roomCache[key].owner)) {
+                        log.a('Canceling ' + _.capitalize(Memory.targetRooms[key].type) + ' in ' + roomLink(key) + ' as it is no longer hostile.', 'HIGH COMMAND: ');
+                        delete Memory.targetRooms[key];
+                        totalCountFiltered--;
+                        siegeCountFiltered--;
+                        continue;
+                    } else if (maxLevel < 6) {
+                        log.a('Canceling ' + _.capitalize(Memory.targetRooms[key].type) + ' in ' + roomLink(key) + ' as we do not have a room available to supply the creeps needed.', 'HIGH COMMAND: ');
+                        delete Memory.targetRooms[key];
+                        totalCountFiltered--;
+                        siegeCountFiltered--;
+                        continue;
+                    } else if (siegeCountFiltered > 1) {
+                        log.a('Canceling ' + _.capitalize(Memory.targetRooms[key].type) + ' in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
+                        delete Memory.targetRooms[key];
+                        totalCountFiltered--;
+                        siegeCountFiltered--;
+                        continue;
+                    }
+                    break;
+                // Manage Pending
+                case 'pending':
+                    if (Memory.targetRooms[key].dDay - 50 <= Game.time) {
+                        let cache = Memory.targetRooms || {};
+                        let tick = Game.time;
+                        cache[key] = {
+                            tick: tick,
+                            type: 'hold',
+                            level: 1
+                        };
+                        Memory.targetRooms = cache;
+                    }
+                    continue;
+                // Manage Harass
+                case 'harass':
+                    if (totalCountFiltered > OPERATION_LIMIT) {
+                        log.a('Canceling harass in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
+                        delete Memory.targetRooms[key];
+                        continue;
+                    }
+                    if (!Memory.roomCache[key] || !Memory.roomCache[key]) {
+                        let cache = Memory.targetRooms || {};
+                        let tick = Game.time;
+                        cache[key] = {
+                            tick: tick,
+                            type: 'hold',
+                            level: 0
+                        };
+                        continue;
+                    }
+                    staleMulti = 4;
+                    break;
+                // Manage Guard
+                case 'guard':
+                    let guardCount = _.filter(Memory.targetRooms, (target) => target && target.type === 'guard').length || 0;
+                    if (guardCount > 2) {
+                        log.a('Canceling guard in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
+                        delete Memory.targetRooms[key];
+                        continue;
+                    }
+                    staleMulti = 5 * (level + 1);
+                    break;
+                // Remove auxiliary
+                case 'power':
+                case 'poke':
+                case 'commodity':
+                case 'claimClear':
+                case 'claimScout':
+                case 'score':
+                case 'scoreCleaner':
+                case 'claim':
+                    delete Memory.targetRooms[key];
+                    continue;
+            }
+            if (Memory.targetRooms[key].manual) staleMulti = 50;
+            // Cancel stale ops with no kills
+            if (type !== 'hold' && (Memory.targetRooms[key].tick + (1500 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) ||
+                (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + (2500 * staleMulti) < Game.time)) {
+                delete Memory.targetRooms[key];
+                log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
+                continue;
+            }
+            // Remove your rooms
+            if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && Memory.roomCache[key].user === MY_USERNAME) {
                 delete Memory.targetRooms[key];
                 continue;
             }
-        } catch (e) {
-        }
-        if (_.includes(Memory.nonCombatRooms, key)) {
-            delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + roomLink(key) + ' as it is set as a manual non combat room.', 'HIGH COMMAND: ');
-            continue;
-        }
-        let type = Memory.targetRooms[key].type;
-        let level = Memory.targetRooms[key].level || 0;
-        // Special Conditions
-        switch (type) {
-            // Skip test
-            case 'test':
-                continue;
-            // Manage Holds
-            case 'hold':
-                staleMulti = 100;
-                if (totalCountFiltered > OPERATION_LIMIT) {
-                    log.a('Canceling ' + type + ' in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
-                    delete Memory.targetRooms[key];
-                    continue;
-                } else if (Memory.roomCache[key] && _.includes(FRIENDLIES, Memory.roomCache[key].owner)) {
-                    log.a('Canceling ' + _.capitalize(Memory.targetRooms[key].type) + ' in ' + roomLink(key) + ' as it is no longer hostile.', 'HIGH COMMAND: ');
-                    delete Memory.targetRooms[key];
-                    totalCountFiltered--;
-                    continue;
-                } else if (Memory.roomCache[key] && (!Memory.roomCache[key].owner || Memory.roomCache[key].owner === 'Invader') && !Memory.roomCache[key].reservation) {
-                    log.a('Canceling ' + _.capitalize(Memory.targetRooms[key].type) + ' in ' + roomLink(key) + ' as it is no longer controlled by anyone.', 'HIGH COMMAND: ');
-                    delete Memory.targetRooms[key];
-                    totalCountFiltered--;
-                    continue;
-                }
-                break;
-            // Manage Nukes
-            case 'nukes':
-                continue;
-            // Manage siege
-            case 'drain':
-            case 'siegeGroup':
-                if (Memory.roomCache[key] && !_.includes(Memory._enemies, Memory.roomCache[key].owner)) {
-                    log.a('Canceling ' + _.capitalize(Memory.targetRooms[key].type) + ' in ' + roomLink(key) + ' as it is no longer hostile.', 'HIGH COMMAND: ');
-                    delete Memory.targetRooms[key];
-                    totalCountFiltered--;
-                    siegeCountFiltered--;
-                    continue;
-                } else if (maxLevel < 6) {
-                    log.a('Canceling ' + _.capitalize(Memory.targetRooms[key].type) + ' in ' + roomLink(key) + ' as we do not have a room available to supply the creeps needed.', 'HIGH COMMAND: ');
-                    delete Memory.targetRooms[key];
-                    totalCountFiltered--;
-                    siegeCountFiltered--;
-                    continue;
-                } else if (siegeCountFiltered > 1) {
-                    log.a('Canceling ' + _.capitalize(Memory.targetRooms[key].type) + ' in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
-                    delete Memory.targetRooms[key];
-                    totalCountFiltered--;
-                    siegeCountFiltered--;
-                    continue;
-                }
-                break;
-            // Manage Pending
-            case 'pending':
-                if (Memory.targetRooms[key].dDay - 50 <= Game.time) {
-                    let cache = Memory.targetRooms || {};
-                    let tick = Game.time;
-                    cache[key] = {
-                        tick: tick,
-                        type: 'hold',
-                        level: 1
-                    };
-                    Memory.targetRooms = cache;
-                }
-                continue;
-            // Manage Harass
-            case 'harass':
-                if (totalCountFiltered > OPERATION_LIMIT) {
-                    log.a('Canceling harass in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
-                    delete Memory.targetRooms[key];
-                    continue;
-                }
-                if (!Memory.roomCache[key] || !Memory.roomCache[key]) {
-                    let cache = Memory.targetRooms || {};
-                    let tick = Game.time;
-                    cache[key] = {
-                        tick: tick,
-                        type: 'hold',
-                        level: 0
-                    };
-                    continue;
-                }
-                staleMulti = 4;
-                break;
-            // Manage Guard
-            case 'guard':
-                let guardCount = _.filter(Memory.targetRooms, (target) => target && target.type === 'guard').length || 0;
-                if (guardCount > 2) {
-                    log.a('Canceling guard in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
-                    delete Memory.targetRooms[key];
-                    continue;
-                }
-                staleMulti = 5 * (level + 1);
-                break;
-            // Remove auxiliary
-            case 'power':
-            case 'poke':
-            case 'commodity':
-            case 'claimClear':
-            case 'claimScout':
-            case 'score':
-            case 'scoreCleaner':
-            case 'claim':
+            // Remove allied rooms
+            if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && _.includes(FRIENDLIES, Memory.roomCache[key].user)) {
                 delete Memory.targetRooms[key];
+                log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is a friend.', 'HIGH COMMAND: ');
                 continue;
-        }
-        if (Memory.targetRooms[key].manual) staleMulti = 50;
-        // Cancel stale ops with no kills
-        if (type !== 'hold' && (Memory.targetRooms[key].tick + (1500 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) ||
-            (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + (2500 * staleMulti) < Game.time)) {
-            delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
-            continue;
-        }
-        // Remove your rooms
-        if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && Memory.roomCache[key].user === MY_USERNAME) {
-            delete Memory.targetRooms[key];
-            continue;
-        }
-        // Remove allied rooms
-        if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && _.includes(FRIENDLIES, Memory.roomCache[key].user)) {
-            delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is a friend.', 'HIGH COMMAND: ');
-            continue;
-        }
-        // Remove NAP rooms
-        if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && checkForNap(Memory.roomCache[key].user)) {
-            delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is part of a friendly alliance.', 'HIGH COMMAND: ');
-            continue;
-        }
-        // Remove no longer hostile rooms
-        if (Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key] && Memory.roomCache[key].user && !Memory._threats.includes(Memory.roomCache[key].user) && (!HOLD_SECTOR || !sameSectorCheck(Memory.roomCache[key].closestRoom, key))) {
-            delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is no longer considered a threat.', 'HIGH COMMAND: ');
-            continue;
-        }
-        // Delete wave based rooms at the threshold
-        if (Memory.targetRooms[key].waves) {
-            if (Memory.targetRooms[key].waves >= 5) {
+            }
+            // Remove NAP rooms
+            if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && checkForNap(Memory.roomCache[key].user)) {
                 delete Memory.targetRooms[key];
-                log.a('Canceling operation in ' + roomLink(key) + ' as it has reached the maximum number of attack waves.', 'HIGH COMMAND: ');
+                log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is part of a friendly alliance.', 'HIGH COMMAND: ');
+                continue;
+            }
+            // Remove no longer hostile rooms
+            if (Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key] && Memory.roomCache[key].user && !Memory._threats.includes(Memory.roomCache[key].user) && (!HOLD_SECTOR || !sameSectorCheck(Memory.roomCache[key].closestRoom, key))) {
+                delete Memory.targetRooms[key];
+                log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is no longer considered a threat.', 'HIGH COMMAND: ');
+                continue;
+            }
+            // Delete wave based rooms at the threshold
+            if (Memory.targetRooms[key].waves) {
+                if (Memory.targetRooms[key].waves >= 5) {
+                    delete Memory.targetRooms[key];
+                    log.a('Canceling operation in ' + roomLink(key) + ' as it has reached the maximum number of attack waves.', 'HIGH COMMAND: ');
+                }
+            }
+            // Remove rooms where we're getting wrecked
+            if (Memory.targetRooms[key].tick + 1750 && Memory.targetRooms[key].friendlyDead) {
+                let alliedLosses = Memory.targetRooms[key].friendlyDead;
+                let enemyLosses = Memory.targetRooms[key].enemyDead || 1000;
+                if (alliedLosses > enemyLosses * staleMulti) {
+                    delete Memory.targetRooms[key];
+                    log.a('Canceling operation in ' + roomLink(key) + ' due to heavy casualties.', 'HIGH COMMAND: ');
+                }
             }
         }
-        // Remove rooms where we're getting wrecked
-        if (Memory.targetRooms[key].tick + 1750 && Memory.targetRooms[key].friendlyDead) {
-            let alliedLosses = Memory.targetRooms[key].friendlyDead;
-            let enemyLosses = Memory.targetRooms[key].enemyDead || 1000;
-            if (alliedLosses > enemyLosses * staleMulti) {
-                delete Memory.targetRooms[key];
-                log.a('Canceling operation in ' + roomLink(key) + ' due to heavy casualties.', 'HIGH COMMAND: ');
-            }
-        }
-    }
 }
 
 function manageAuxiliary() {
@@ -585,19 +541,25 @@ function manageAuxiliary() {
         // Special Conditions
         switch (type) {
             case 'power':
-                if (maxLevel < 8) delete Memory.auxiliaryTargets[key];
                 if (Memory.roomCache[key].power + 500 < Game.time) {
                     delete Memory.auxiliaryTargets[key];
                     delete Memory.roomCache[key];
+                    continue;
                 }
-                break;
+            case 'mineral':
+                if (!Memory.roomCache[key].mineralAmount) {
+                    delete Memory.auxiliaryTargets[key];
+                    delete Memory.roomCache[key];
+                    continue;
+                }
             case 'rebuild':
                 if (Memory.roomCache[key].towers || !Memory.roomCache[key].owner || !FRIENDLIES.includes(Memory.roomCache[key].owner)) {
                     log.a('Canceling rebuild operation in ' + roomLink(key) + ' as we are no longer needed.', 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
                     delete Memory.roomCache[key];
+                    continue;
                 }
-                continue;
+                break;
             case 'commodity':
                 if (maxLevel < 6) delete Memory.auxiliaryTargets[key];
                 break;
@@ -608,32 +570,6 @@ function manageAuxiliary() {
                     delete Memory.auxiliaryTargets[key];
                     continue;
                 }
-                break;
-            case 'score':
-                if (!Memory.roomCache[key] || !Memory.roomCache[key].seasonResource || Memory.roomCache[key].seasonResource < Game.time) {
-                    log.a('Canceling auxiliary operation in ' + roomLink(key) + ' as the container has expired.', 'HIGH COMMAND: ');
-                    delete Memory.auxiliaryTargets[key];
-                    continue;
-                }
-                /** Season 1
-                 else if (getResourceTotal(RESOURCE_SCORE) > 100000) {
-                    log.a('Canceling auxiliary operation in ' + roomLink(key) + ' as we hit our stored score cap.', 'HIGH COMMAND: ');
-                    delete Memory.auxiliaryTargets[key];
-                    continue;
-                }**/
-                let cutOff = 2500;
-                if (Memory.ownedSymbols && Memory.ownedSymbols.includes(Memory.roomCache[key].seasonResourceType)) cutOff = 25000;
-                if (getResourceTotal(Memory.roomCache[key].seasonResourceType) > cutOff) {
-                    log.a('Canceling auxiliary operation in ' + roomLink(key) + ' as we hit our stored score cap for.' + Memory.roomCache[key].seasonResource, 'HIGH COMMAND: ');
-                    delete Memory.auxiliaryTargets[key];
-                    continue;
-                }
-                break;
-            case 'scoreCleaner':
-                continue;
-            case 'clean':
-            case 'robbery':
-                delete Memory.auxiliaryTargets[key];
                 break;
         }
         if (!Memory.auxiliaryTargets[key]) continue;
@@ -923,3 +859,12 @@ abandon = function (room) {
     Memory.roomCache[room].noClaim = Game.time + 10000;
     Game.rooms[room].controller.unclaim();
 };
+
+// Get max level room of user
+module.exports.getUserStrength = function (user) {
+    return userStrength(user);
+}
+
+function userStrength(user) {
+    return _.max(_.filter(Memory.roomCache, (r) => r.owner === user), 'level').level || 0;
+}

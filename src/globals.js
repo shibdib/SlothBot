@@ -15,8 +15,8 @@ let globals = function () {
         if (activeConfig) {
             require(activeConfig);
         } else {
-            require(Game.shard.name);
-            activeConfig = Game.shard.name;
+            require('config.' + Game.shard.name);
+            activeConfig = 'config.' + Game.shard.name;
             console.log('Loaded config for ' + Game.shard.name);
             if (_.includes(COMBAT_SERVER, Game.shard.name)) {
                 console.log('Combat Server Mode Active - All Players Considered Hostile');
@@ -30,9 +30,9 @@ let globals = function () {
         if (activeConfig) {
             require(activeConfig);
         } else {
-            require('config');
-            activeConfig = 'config';
-            console.log('No custom config found loading default config.js');
+            require('config.default');
+            activeConfig = 'config.default';
+            console.log('No custom config found loading default config');
             if (_.includes(COMBAT_SERVER, Game.shard.name)) {
                 console.log('Combat Server Mode Active - All Players Considered Hostile');
                 console.log('Manual Allies (Overrides the above) - ' + JSON.stringify(MANUAL_FRIENDS));
@@ -124,35 +124,25 @@ let globals = function () {
         stationaryHarvester: 2,
         // Workers
         drone: 3,
-        upgrader: 5,
-        mineralHarvester: 6,
+        upgrader: 4,
+        mineralHarvester: 8,
         // Haulers
         hauler: 1,
-        miscHauler: 2,
+        miscHauler: 7,
         // Remotes
-        remoteHarvester: 5,
+        remoteHarvester: 3,
         remoteHauler: 3,
         remoteUpgrader: 7,
-        roadBuilder: 4,
-        assistPioneer: 5,
-        fuelTruck: 7,
+        roadBuilder: 7,
+        fuelTruck: 8,
         reserver: 6,
-        // Power
-        Power: 6,
-        // SK
-        SKWorker: 5,
         // Military
         defender: 2,
-        priority: 3,
-        urgent: 4,
-        high: 5,
-        medium: 6,
-        secondary: 7,
-        scout: 3,
-        responder: 2,
-        // Misc
-        claimer: 3,
-        explorer: 2,
+        priority: 4,
+        urgent: 5,
+        high: 6,
+        medium: 7,
+        secondary: 8
     };
 
     global.SPAWN = {
@@ -600,6 +590,12 @@ let globals = function () {
     global.TEN_CPU = Game.cpu.limit === 20 || Game.shard.name === 'shard3';
 
     global.log = new Log();
+
+    global.clear = function () {
+        console.log(
+            "<script>angular.element(document.getElementsByClassName('fa fa-trash ng-scope')[0].parentNode).scope().Console.clear()</script>"
+        );
+    };
 
     global.sameSectorCheck = function (roomA, roomB) {
         let [EW, NS] = roomA.match(/\d+/g);

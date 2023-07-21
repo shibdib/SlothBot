@@ -161,7 +161,7 @@ function nukeSupplies(creep) {
 function boostDelivery(creep) {
     let lab = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.neededBoost && s.store[s.memory.neededBoost] < s.memory.amount);
     if (lab) {
-        let boostCreep = _.filter(creep.room.creeps, (c) => c.my && c.memory.boosts && c.memory.boosts.boostLab === lab.id)[0];
+        let boostCreep = _.filter(creep.room.myCreeps, (c) => c.memory.boosts && c.memory.boosts.boostLab === lab.id)[0];
         if (boostCreep && creep.room.store(lab.memory.neededBoost)) {
             if (lab.mineralType && lab.mineralType !== lab.memory.neededBoost) {
                 creep.memory.resourceNeeded = lab.mineralType;

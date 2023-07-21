@@ -13,13 +13,11 @@ module.exports.cleanup = function () {
         //cleanRouteCacheByAge();
         cleanRouteCacheByUsage();
         cleanConstructionSites();
-        //cleanRoomIntel();
         cleanStructureMemory();
         cleanStructures();
     }
     if (Game.time % EST_TICKS_PER_DAY === 0) {
-        delete Memory._pathCache;
-        delete Memory._distanceCache;
+        cleanRoomIntel();
     }
     if (Game.time % 5 === 0) {
         for (let name in Memory.creeps) {
@@ -108,15 +106,11 @@ function cleanConstructionSites() {
 function cleanRoomIntel() {
     if (Memory.roomCache) {
         let startLength = _.size(Memory.roomCache);
-        for (let key in Memory.roomCache) {
-            let cutoff = 15000;
-            if (Memory.roomCache[key].important) cutoff = 20000;
-            if (Memory.roomCache[key].cached + cutoff < Game.time) delete Memory.roomCache[key];
-        }
+        Object.keys(Memory.roomCache).forEach((r) => {
+            let cachedTime = Memory.roomCache[r].cached;
+            if (cachedTime + 10000 < Game.time || (cachedTime + 20000 < Game.time && r.important) || (r.closestRange > 10 && cachedTime + 5000 < Game.time)) delete Memory.roomCache[r];
+        });
         if (startLength > _.size(Memory.roomCache)) log.d('CleanUp: Room Cache now has ' + _.size(Memory.roomCache) + ' entries.')
-    }
-    for (let key in Memory.rooms) {
-        if (!Game.rooms[key]) delete Memory.rooms[key];
     }
 }
 

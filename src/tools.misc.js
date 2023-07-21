@@ -32,8 +32,9 @@ module.exports.cleanMemory = function () {
 }
 
 // Mem Hack
-let LAST_MEMORY_TICK;
-module.exports.memHack = function () {
+/** OLD
+ let LAST_MEMORY_TICK;
+ module.exports.memHack = function () {
     if (LAST_MEMORY_TICK && global.LastMemory && Game.time === (LAST_MEMORY_TICK + 1)) {
         delete global.Memory;
         global.Memory = global.LastMemory;
@@ -43,6 +44,24 @@ module.exports.memHack = function () {
         global.LastMemory = RawMemory._parsed;
     }
     LAST_MEMORY_TICK = Game.time;
+} **/
+
+module.exports.memHack = function () {
+    let lastMemory;
+    let tick;
+    return () => {
+        if (tick && lastMemory && Game.time === tick + 1) {
+            delete global.Memory;
+            global.Memory = lastMemory;
+            Memory = lastMemory;
+            RawMemory._parsed = lastMemory;
+        } else {
+            console.log('parsing memory');
+            Memory.rooms; // forces parsing
+            lastMemory = RawMemory._parsed;
+        }
+        tick = Game.time;
+    };
 }
 
 // Set Task CPU Limits
@@ -54,7 +73,7 @@ module.exports.CPULimits = function () {
 }
 
 // CPU Limit Tool
-adjustedCPULimit = function adjustedCPULimit(limit, bucket, target = BUCKET_MAX * 0.8, maxCpuPerTick = Game.cpu.limit * 2) {
+function adjustedCPULimit(limit, bucket, target = BUCKET_MAX * 0.8, maxCpuPerTick = Game.cpu.limit * 2) {
     var multiplier = 1;
     if (bucket < target) {
         multiplier = Math.sin(Math.PI * bucket / (2 * target));
@@ -69,7 +88,7 @@ adjustedCPULimit = function adjustedCPULimit(limit, bucket, target = BUCKET_MAX 
     }
 
     return clamp(Math.round(limit * 0.2), Math.round(limit * multiplier), maxCpuPerTick);
-};
+}
 
 // Status console
 let lastStatus = _.round(new Date().getTime() / 1000, 2);

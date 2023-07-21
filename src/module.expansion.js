@@ -7,14 +7,14 @@
 let lastTick = 0;
 
 module.exports.claimNewRoom = function () {
+    let worthyRooms;
     if (lastTick + 1000 > Game.time) return;
     let claimTarget = Memory.nextClaim;
     if (Math.random() > 0.75) claimTarget = undefined;
     lastTick = Game.time;
     if (!claimTarget) {
-        let worthyRooms = _.filter(Memory.roomCache, (r) => Game.rooms[r.closestRoom] && (!r.noClaim || r.noClaim < Game.time) && !r.obstructions && !r.owner && !r.reservation && r.hubCheck &&
-            Game.rooms[r.closestRoom].routeSafe(r.name, 500, 1, 12) &&
-            Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status);
+        worthyRooms = _.filter(Memory.roomCache, (r) => Game.rooms[r.closestRoom] && (!r.noClaim || r.noClaim < Game.time) && !r.obstructions && !r.owner && !r.reservation && r.sources === 2 &&
+            Game.rooms[r.closestRoom].routeSafe(r.name, 500, 1, 12) && Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status);
         if (!worthyRooms.length) return;
         let possibles = {};
         worthy:
@@ -44,8 +44,9 @@ module.exports.claimNewRoom = function () {
                 let neighboring = _.map(Game.map.describeExits(name));
                 let sourceCount = 0;
                 neighboring.forEach(function (r) {
-                    if (Memory.roomCache[r] && !Memory.roomCache[r].user) sourceCount += Memory.roomCache[r].sources;
-                })
+                    if (!Memory.roomCache[r]) sourceCount++;
+                    else if (Memory.roomCache[r] && !Memory.roomCache[r].user) sourceCount += Memory.roomCache[r].sources;
+                });
                 // No remotes is a big negative
                 if (!sourceCount) continue;
                 baseScore += (sourceCount * 250);
@@ -55,12 +56,10 @@ module.exports.claimNewRoom = function () {
                 for (let y = 0; y < 50; y++) {
                     for (let x = 0; x < 50; x++) {
                         let tile = terrain.get(x, y);
-                        if (tile === TERRAIN_MASK_SWAMP) terrainScore += 25;
+                        if (tile === TERRAIN_MASK_SWAMP) terrainScore += 50;
                     }
                 }
                 baseScore -= terrainScore;
-                // Source range
-                baseScore -= Memory.roomCache[name].sourceRange * 10;
                 // If it's a new mineral add to the score
                 if (!_.includes(Memory.ownedMinerals, worthyRooms[key].mineral)) {
                     switch (worthyRooms[key].mineral) {
@@ -89,7 +88,7 @@ module.exports.claimNewRoom = function () {
                      if (_.includes(symbolAccess, worthyRooms[key].seasonDecoder)) continue;
                      **/
                     // Season 4
-                    if (Memory.roomCache[name].seasonResource) baseScore += 2000;
+                    if (Memory.roomCache[name].seasonResource) baseScore += 1000;
                 }
                 // Prioritize your sector
                 if (sameSectorCheck(name, worthyRooms[key].closestRoom)) baseScore += 2000; else baseScore -= 500;
@@ -107,7 +106,7 @@ module.exports.claimNewRoom = function () {
                 log.a('Next claim target set to ' + roomLink(claimTarget) + ' once available.', 'EXPANSION CONTROL: ');
                 Memory.nextClaim = claimTarget;
             } else if (!Memory.roomCache[claimTarget] || Memory.roomCache[claimTarget].owner) Memory.nextClaim = undefined;
-        } else {
+        } else if (!Memory.auxiliaryTargets[claimTarget] && Memory.roomCache[claimTarget] && !Memory.roomCache[claimTarget].hostile) {
             Memory.nextClaim = undefined;
             let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;
@@ -119,5 +118,7 @@ module.exports.claimNewRoom = function () {
             Memory.auxiliaryTargets = cache;
             log.a('Claim Mission For ' + roomLink(claimTarget) + ' Initiated.', 'EXPANSION CONTROL: ');
         }
+    } else {
+        log.a('No claim targets found out of a possible ' + worthyRooms.length + ' rooms.', 'EXPANSION CONTROL: ')
     }
 };

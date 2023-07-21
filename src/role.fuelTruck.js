@@ -30,16 +30,6 @@ module.exports.role = function (creep) {
         if (!_.sum(creep.store)) {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 22});
         }
-        let dropPoint = creep.room.storage;
-        if (dropPoint) {
-            switch (creep.transfer(dropPoint, RESOURCE_ENERGY)) {
-                case OK:
-                    break;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(dropPoint);
-            }
-        } else {
-            creep.shibMove(Game.rooms[creep.memory.destination].controller);
-        }
+        creep.haulerDelivery();
     }
 };

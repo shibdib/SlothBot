@@ -15,6 +15,18 @@ module.exports.role = function (creep) {
         // If in place harvest
         if (creep.memory.onContainer) {
             let container = Game.getObjectById(creep.memory.containerID);
+            // Build container
+            if (!container && creep.store[RESOURCE_ENERGY]) {
+                let dropped = creep.pos.lookFor(LOOK_RESOURCES)[0];
+                if (dropped && dropped.amount >= 200) {
+                    let site = creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
+                    if (site) {
+                        creep.build(site);
+                        creep.pickup(dropped);
+                    }
+                    return;
+                }
+            }
             let source = Game.getObjectById(creep.memory.source);
             switch (creep.harvest(source)) {
                 case ERR_NOT_IN_RANGE:
@@ -52,16 +64,6 @@ module.exports.role = function (creep) {
                     creep.memory.onContainer = true;
                 }
             }
-            // Build container
-            if (!creep.memory.containerID && !extensionFiller(creep) && _.sum(creep.store) === creep.store.getCapacity()) {
-                let dropped = creep.pos.lookFor(LOOK_RESOURCES)[0];
-                if (dropped && dropped.amount >= 700) {
-                    let site = creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
-                    if (site) {
-                        return creep.build(site);
-                    }
-                }
-            }
         }
     } else {
         if (!creep.findSource()) {
@@ -85,7 +87,7 @@ function depositEnergy(creep) {
     if (container && container.hits < container.hitsMax * 0.5) return creep.repair(container);
     if (creep.memory.linkID) {
         let link = Game.getObjectById(creep.memory.linkID);
-        if (link.store[RESOURCE_ENERGY] < LINK_CAPACITY) {
+        if (link && link.store[RESOURCE_ENERGY] < LINK_CAPACITY) {
             creep.transfer(link, RESOURCE_ENERGY);
         } else if (container && _.sum(container.store) >= 1900) {
             if (container.hits < container.hitsMax) creep.repair(container); else if (creep.pos.checkForRampart()) creep.repair(creep.pos.checkForRampart());
@@ -97,7 +99,7 @@ function depositEnergy(creep) {
     } else if (container) {
         if (_.sum(container.store) >= 1900) {
             if (container.hits < container.hitsMax) creep.repair(container); else {
-                creep.idleFor(20);
+                creep.idleFor(5);
             }
         }
     } else {
@@ -135,7 +137,7 @@ function harvestDepositLink(creep) {
     } else {
         let inBuild = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!inBuild && source.memory.containerPos) {
-            let otherHarvester = _.filter(creep.room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && !c.memory.linkID && c.memory.containerID && c.id !== creep.id)[0];
+            let otherHarvester = _.filter(creep.room.myCreeps, (c) => c.memory.role === 'stationaryHarvester' && !c.memory.linkID && c.memory.containerID && c.id !== creep.id)[0];
             if (otherHarvester) {
                 let hub = new RoomPosition(creep.room.memory.bunkerHub.x, creep.room.memory.bunkerHub.y, creep.room.name);
                 if (otherHarvester.pos.getRangeTo(hub) > creep.pos.getRangeTo(hub)) return;

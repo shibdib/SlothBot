@@ -9,13 +9,19 @@ module.exports.setRoomState = function (room) {
     if (Game.time % 5 === 0) {
         // Set Energy Needs
         let energyInRoom = room.energy;
-        //Delete old memory
-        room.memory.energyIncomeArray = undefined;
-        room.memory.energySurplus = undefined;
-        room.memory.extremeEnergySurplus = undefined;
-        room.memory.energyNeeded = undefined;
         // Request builders
         if (Math.random() > 0.7) requestBuilders(room);
+        // Check if struggling
+        let rebootCreeps = _.filter(room.myCreeps, (c) => c.memory.other.reboot && c.memory.role !== "upgrader").length;
+        if (room.level >= 3 && (room.creeps.length < 3 || rebootCreeps > 1)) {
+            if (room.memory.struggling !== true) log.a(roomLink(room.name) + ' is struggling to survive.', 'ROOMS');
+            room.memory.struggling = true;
+            room.memory.struggleTime = Game.time;
+        } else if (room.memory.struggling && room.memory.struggleTime + 1000 < Game.time) {
+            log.a(roomLink(room.name) + ' has recovered to an acceptable level.', 'ROOMS');
+            room.memory.struggling = false;
+        }
+        room.memory.struggling = room.level > 2 && (room.friendlyCreeps.length < 5 || rebootCreeps > 1);
         let last = room.memory.lastEnergyAmount || 0;
         room.memory.lastEnergyAmount = energyInRoom;
         let energyIncomeArray = [];

@@ -12,9 +12,6 @@ let RCL_PROGRESS = {};
 let roomLastTickProgress = {};
 
 module.exports.hud = function () {
-    // Delete old memory
-    Memory.lastTickGCLProgress = undefined;
-    Memory.gclProgressArray = undefined;
     //GCL
     GCL_PROGRESS_ARRAY = GCL_PROGRESS_ARRAY || [];
     let progressPerTick = Game.gcl.progress - (lastTickGCLProgress || 0);
@@ -36,12 +33,7 @@ module.exports.hud = function () {
     let myRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner.username === MY_USERNAME);
     for (let room of myRooms) {
         if (!room) continue;
-        // Delete old memory
-        room.memory.lastTickProgress = undefined;
-        room.memory.rclProgressArray = undefined;
-        room.memory.lastTickProgress = undefined;
         let lowerBoundary = 4;
-        if (!Memory.roomCache) Memory.roomCache = {};
         if (!Memory.roomCache[room.name]) room.cacheRoomIntel(true);
         if (Memory.roomCache[room.name].threatLevel) lowerBoundary++;
         room.visual.rect(0, 0, 16, lowerBoundary, {
@@ -90,111 +82,109 @@ module.exports.hud = function () {
         }
     }
     // Map Hud
-    if (3 > 2) {
-        try {
-            if (VISUAL_CACHE['map'] && Game.time % 25 !== 0) return Game.map.visual.import(VISUAL_CACHE['map']);
-            // Target Rooms
-            if (Memory.targetRooms) {
-                for (let room of Object.keys(Memory.targetRooms)) {
-                    if (!Memory.targetRooms[room]) continue;
-                    if (room === 'undefined') {
-                        delete Memory.targetRooms[room];
-                        return;
-                    }
-                    Game.map.visual.text(_.capitalize(Memory.targetRooms[room].type), new RoomPosition(2, 47, room), {
-                        color: '#ff0000',
-                        fontSize: 4,
-                        align: 'left'
-                    });
+    try {
+        if (VISUAL_CACHE['map'] && Game.time % 25 !== 0) return Game.map.visual.import(VISUAL_CACHE['map']);
+        // Target Rooms
+        if (Memory.targetRooms) {
+            for (let room of Object.keys(Memory.targetRooms)) {
+                if (!Memory.targetRooms[room]) continue;
+                if (room === 'undefined') {
+                    delete Memory.targetRooms[room];
+                    return;
                 }
-            }
-            // Claim Target
-            if (Memory.nextClaim) {
-                Game.map.visual.text('Next Claim', new RoomPosition(5, 25, Memory.nextClaim), {
-                    color: '#989212',
-                    fontSize: 9,
+                Game.map.visual.text(_.capitalize(Memory.targetRooms[room].type), new RoomPosition(2, 47, room), {
+                    color: '#ff0000',
+                    fontSize: 4,
                     align: 'left'
                 });
             }
-            // My rooms
-            for (let room of Memory.myRooms) {
-                Game.map.visual.text(_.capitalize(Game.rooms[room].mineral.mineralType), new RoomPosition(48, 48, room), {
-                    color: '#01a218',
-                    fontSize: 4
-                });
-                Game.map.visual.text('Energy: ' + Game.rooms[room].energy, new RoomPosition(2, 2, room), {
-                    color: '#989212',
-                    fontSize: 3,
-                    align: 'left'
-                });
-                Game.map.visual.text('Creeps: ' + Game.rooms[room].creeps.length, new RoomPosition(2, 5, room), {
-                    color: '#989212',
-                    fontSize: 3,
-                    align: 'left'
-                });
-                Game.map.visual.text('Threat Level: ' + (Memory.roomCache[room].threatLevel || 0), new RoomPosition(2, 8, room), {
-                    color: '#989212',
-                    fontSize: 3,
-                    align: 'left'
-                });
-            }
-            // Intel Cache
-            for (let intel of _.filter(Memory.roomCache)) {
-                if (!intel || !intel.name || intel.cached + 10000 < Game.time || intel.owner === MY_USERNAME) continue;
-                Game.map.visual.text(ICONS.testFinished, new RoomPosition(44, 47, intel.name), {
-                    color: '#989212',
-                    fontSize: 3,
-                    align: 'left'
-                });
-                if (intel.threatLevel) {
-                    Game.map.visual.text('Threat Level: ' + intel.threatLevel || 0, new RoomPosition(2, 2, intel.name), {
-                        color: '#ff0000',
-                        fontSize: 3,
-                        align: 'left'
-                    });
-                }
-                if (intel.user) {
-                    Game.map.visual.text('User: ' + intel.user || 'None', new RoomPosition(2, 5, intel.name), {
-                        color: '#989212',
-                        fontSize: 3,
-                        align: 'left'
-                    });
-                }
-                if (intel.power) {
-                    Game.map.visual.text('Power Detected', new RoomPosition(2, 33, intel.name), {
-                        color: '#989212',
-                        fontSize: 3,
-                        align: 'left'
-                    });
-                }
-                if (intel.commodity) {
-                    Game.map.visual.text('Commodity Detected', new RoomPosition(2, 36, intel.name), {
-                        color: '#989212',
-                        fontSize: 3,
-                        align: 'left'
-                    });
-                }
-                if (intel.seasonResource) {
-                    Game.map.visual.text('Score Detected', new RoomPosition(2, 36, intel.name), {
-                        color: '#989212',
-                        fontSize: 3,
-                        align: 'left'
-                    });
-                }
-                if (intel.portal) {
-                    Game.map.visual.text('Portal Detected', new RoomPosition(2, 39, intel.name), {
-                        color: '#989212',
-                        fontSize: 3,
-                        align: 'left'
-                    });
-                }
-            }
-            VISUAL_CACHE['map'] = Game.map.visual.export();
-            Memory.MapVisualData = undefined;
-        } catch (e) {
-            console.log(e)
-            console.log(e.stack)
         }
+        // Claim Target
+        if (Memory.nextClaim) {
+            Game.map.visual.text('Next Claim', new RoomPosition(5, 25, Memory.nextClaim), {
+                color: '#989212',
+                fontSize: 9,
+                align: 'left'
+            });
+        }
+        // My rooms
+        for (let room of Memory.myRooms) {
+            Game.map.visual.text(_.capitalize(Game.rooms[room].mineral.mineralType), new RoomPosition(48, 48, room), {
+                color: '#01a218',
+                fontSize: 4
+            });
+            Game.map.visual.text('Energy: ' + Game.rooms[room].energy, new RoomPosition(2, 2, room), {
+                color: '#989212',
+                fontSize: 3,
+                align: 'left'
+            });
+            Game.map.visual.text('Creeps: ' + Game.rooms[room].creeps.length, new RoomPosition(2, 5, room), {
+                color: '#989212',
+                fontSize: 3,
+                align: 'left'
+            });
+            Game.map.visual.text('Threat Level: ' + (Memory.roomCache[room].threatLevel || 0), new RoomPosition(2, 8, room), {
+                color: '#989212',
+                fontSize: 3,
+                align: 'left'
+            });
+        }
+        // Intel Cache
+        for (let intel of _.filter(Memory.roomCache)) {
+            if (!intel || !intel.name || intel.cached + 10000 < Game.time || intel.owner === MY_USERNAME) continue;
+            Game.map.visual.text(ICONS.testFinished, new RoomPosition(44, 47, intel.name), {
+                color: '#989212',
+                fontSize: 3,
+                align: 'left'
+            });
+            if (intel.threatLevel) {
+                Game.map.visual.text('Threat Level: ' + intel.threatLevel || 0, new RoomPosition(2, 2, intel.name), {
+                    color: '#ff0000',
+                    fontSize: 3,
+                    align: 'left'
+                });
+            }
+            if (intel.user) {
+                Game.map.visual.text('User: ' + intel.user || 'None', new RoomPosition(2, 5, intel.name), {
+                    color: '#989212',
+                    fontSize: 3,
+                    align: 'left'
+                });
+            }
+            if (intel.power) {
+                Game.map.visual.text('Power Detected', new RoomPosition(2, 33, intel.name), {
+                    color: '#989212',
+                    fontSize: 3,
+                    align: 'left'
+                });
+            }
+            if (intel.commodity) {
+                Game.map.visual.text('Commodity Detected', new RoomPosition(2, 36, intel.name), {
+                    color: '#989212',
+                    fontSize: 3,
+                    align: 'left'
+                });
+            }
+            if (intel.seasonResource) {
+                Game.map.visual.text('Score Detected', new RoomPosition(2, 36, intel.name), {
+                    color: '#989212',
+                    fontSize: 3,
+                    align: 'left'
+                });
+            }
+            if (intel.portal) {
+                Game.map.visual.text('Portal Detected', new RoomPosition(2, 39, intel.name), {
+                    color: '#989212',
+                    fontSize: 3,
+                    align: 'left'
+                });
+            }
+        }
+        VISUAL_CACHE['map'] = Game.map.visual.export();
+        Memory.MapVisualData = undefined;
+    } catch (e) {
+        console.log(e)
+        console.log(e.stack)
     }
 };
 

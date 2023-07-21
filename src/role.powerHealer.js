@@ -22,7 +22,7 @@ module.exports.role = function (creep) {
                     creep.rangedHeal(assignment);
             }
         } else {
-            let attacker = _.filter(creep.room.creeps, (c) => c.my && c.memory.role === 'powerAttacker' && !_.filter(creep.room.creeps, (h) => h.my && h.memory.assigned === c.id)[0])[0];
+            let attacker = _.filter(creep.room.myCreeps, (c) => c.memory.role === 'powerAttacker' && !_.filter(creep.room.creeps, (h) => h.my && h.memory.assigned === c.id)[0])[0];
             if (attacker) creep.memory.assigned = attacker.id; else {
                 if (creep.pos.getRangeTo(powerBank) > 2) creep.shibMove(powerBank, {range: 2});
                 creep.healInRange();

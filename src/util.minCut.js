@@ -204,6 +204,27 @@ var util_mincut = {
             return console.log('ERROR: Invalid bounds', JSON.stringify(bounds));
         for (; j < jmax; j++) {
             r = rect[j];
+            // Dirty fix for shared coordinates
+            if (r.x1 === r.x2 || r.y1 === r.y2) {
+                if (r.x1 === r.x2) {
+                    if (Math.random() > 0.5) {
+                        if (Math.random() > 0.5) r.x1++;
+                        else r.x1--;
+                    } else {
+                        if (Math.random() > 0.5) r.x2++;
+                        else r.x2--;
+                    }
+                }
+                if (r.y1 === r.y2) {
+                    if (Math.random() > 0.5) {
+                        if (Math.random() > 0.5) r.y1++;
+                        else r.y1--;
+                    } else {
+                        if (Math.random() > 0.5) r.y2++;
+                        else r.y2--;
+                    }
+                }
+            }
             // Test sizes of rectangles
             if (r.x1 >= r.x2 || r.y1 >= r.y2) {
                 return console.log('ERROR: Rectangle Nr.', j, JSON.stringify(r), 'invalid.');
@@ -352,8 +373,14 @@ var util_mincut = {
         }
     },
     // Function for user: calculate min cut tiles from room, rect[]
-    GetCutTiles: function (roomname, rect, bounds = {x1: 0, y1: 0, x2: 49, y2: 49}, verbose = false) {
+    GetCutTiles: function (roomname, rect, bounds = {
+        x1: 0,
+        y1: 0,
+        x2: 49,
+        y2: 49
+    }, verbose = false, visualize = false) {
         let graph = util_mincut.create_graph(roomname, rect, bounds);
+        if (!graph) return undefined;
         let source = 2 * 50 * 50; // Position Source / Sink in Room-Graph
         let sink = 2 * 50 * 50 + 1;
         let count = graph.Calcmincut(source, sink);
@@ -374,11 +401,11 @@ var util_mincut = {
         }
         // if bounds are given,
         // try to dectect islands of walkable tiles, which are not conntected to the exits, and delete them from the cut-tiles
-        let whole_room = (bounds.x1 == 0 && bounds.y1 == 0 && bounds.x2 == 49 && bounds.y2 == 49);
+        let whole_room = (bounds.x1 === 0 && bounds.y1 === 0 && bounds.x2 === 49 && bounds.y2 === 49);
         if (positions.length > 0 && !whole_room)
             util_mincut.delete_tiles_to_dead_ends(roomname, positions);
         // Visualise Result
-        if (true && positions.length > 0) {
+        if (visualize && positions.length > 0) {
             let visual = new RoomVisual(roomname);
             for (let i = positions.length - 1; i >= 0; i--) {
                 visual.circle(positions[i].x, positions[i].y, {radius: 0.5, fill: '#ff7722', opacity: 0.9});

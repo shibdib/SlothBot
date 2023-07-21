@@ -24,7 +24,8 @@ global.SIGN_CLEANER = true; // Clean room signs away with explorers
 global.AVOID_ALLIED_SECTORS = true; // Dont claim rooms in allied sectors
 global.REMOTE_SOURCE_SCORE = 200; // Set the score for remote sources to be mined (higher means more sources but further)
 global.REMOTE_SOURCE_TARGET = 6; // The number of remote sources a room looks to have
-global.AVOID_ATTACKING_ALLIANCES = true;
+global.AVOID_ATTACKING_ALLIANCES = true; // Check LOAN and avoid attacking people in alliances
+global.GENERATE_PIXELS = true; // Generate pixels sporadically
 
 // Seasonal Specific
 global.SEASON_RCL_CUTOFF = 8; // Only score in rooms greater than or equal to this

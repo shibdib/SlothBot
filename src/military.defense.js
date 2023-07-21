@@ -120,12 +120,14 @@ function safeModeManager(room) {
         if (attackEvents[0]) {
             for (let attack of attackEvents) {
                 let attackedObject = Game.getObjectById(attack.data.targetId);
-                if (attackedObject instanceof Creep) {
-                    keyAttack = true;
-                    break;
-                } else if (attackedObject instanceof Structure && !_.includes([STRUCTURE_ROAD, STRUCTURE_WALL, STRUCTURE_RAMPART], attackedObject.structureType)) {
-                    keyAttack = true;
-                    break;
+                if (attackedObject) {
+                    if (attackedObject instanceof Creep) {
+                        keyAttack = true;
+                        break;
+                    } else if (attackedObject instanceof Structure && !_.includes([STRUCTURE_ROAD, STRUCTURE_WALL, STRUCTURE_RAMPART], attackedObject.structureType)) {
+                        keyAttack = true;
+                        break;
+                    }
                 }
             }
         }
@@ -136,7 +138,7 @@ function safeModeManager(room) {
                 let ownerArray = [];
                 room.hostileCreeps.forEach((c) => ownerArray.push(c.owner.username));
                 log.a(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString(), 'DEFENSE COMMAND');
-                Game.notify(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString());
+                Game.notify(room.name + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString());
             }
         }
     }
@@ -152,7 +154,7 @@ function earlyWarning(room) {
 
 function unSavableCheck(room) {
     let badCount = room.memory.badCount || 0;
-    let worthwhileStructure = _.find(room.structures, (s) => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType)) || _.find(room.creeps, (c) => c.my && c.memory.role === 'drone');
+    let worthwhileStructure = _.find(room.structures, (s) => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType)) || _.find(room.myCreeps, (c) => c.memory.role === 'drone');
     if ((Memory.roomCache[room.name].threatLevel > 2 || !worthwhileStructure) && _.size(Memory.myRooms) !== 1 && !room.controller.safeMode && !room.controller.safeModeAvailable) {
         let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)));
         // If hostiles add a badCount

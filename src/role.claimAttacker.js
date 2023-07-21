@@ -10,6 +10,8 @@
  */
 
 module.exports.role = function (creep) {
+    // If room is no longer safe, recycle
+    if (Memory.targetRooms[creep.memory.destination] && !Memory.targetRooms[creep.memory.destination].claimAttacker) return creep.recycleCreep();
     if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22});
     if (creep.room.controller.upgradeBlocked > creep.ticksToLive) creep.suicide();
     if (creep.room.controller && (creep.room.controller.owner || creep.room.controller.reservation)) {

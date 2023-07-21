@@ -34,6 +34,7 @@ module.exports.role = function (creep) {
                 creep.room.cacheRoomIntel(true, creep);
             }**/
         } else {
+            if (Game.time % 5 === 0) creep.operationManager();
             if (!creep.scorchedEarth()) {
                 if (Memory.targetRooms[creep.memory.destination]) Memory.targetRooms[creep.memory.destination].cleaner = undefined;
                 creep.room.cacheRoomIntel(true, creep);

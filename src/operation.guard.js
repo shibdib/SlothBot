@@ -10,6 +10,11 @@ Creep.prototype.guardRoom = function () {
     let sentence = ['Security', 'Guard', 'For', destination];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
+    // If no operation become border patrol
+    if (!Memory.targetRooms[this.memory.destination]) {
+        this.memory.operation = 'borderPatrol';
+        return this.memory._shibMove = undefined;
+    }
     // If military action required do that
     if (this.room.name !== destination) {
         if (this.room.hostileCreeps.length && this.canIWin(50)) return this.handleMilitaryCreep();
@@ -26,13 +31,6 @@ Creep.prototype.guardRoom = function () {
         }
         guardRange = 8;
     } **/
-    // Season 4
-    if (Game.shard.name === 'shardSeason') {
-        let reactor = this.room.find(FIND_REACTORS)[0];
-        if (reactor && !this.room.hostileCreeps.length && (!reactor.owner || reactor.owner.username !== MY_USERNAME)) {
-            Memory.targetRooms[this.memory.destination].claimer = true;
-        } else Memory.targetRooms[this.memory.destination].claimer = undefined;
-    }
     // Handle combat
     if (this.canIWin(50)) {
         if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
