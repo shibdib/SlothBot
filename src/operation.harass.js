@@ -24,7 +24,7 @@ Creep.prototype.harass = function () {
             if (this.room.hostileCreeps.length) Memory.targetRooms[this.memory.other.target].level = 2; else Memory.targetRooms[this.memory.other.target].level = 1;
             if (!this.handleMilitaryCreep() && !this.scorchedEarth()) this.findDefensivePosition();
         } else {
-            this.memory.destination = _.sample(_.filter(_.map(Game.map.describeExits(this.memory.other.target)), (r) => !Memory.roomCache[r] || !Memory.roomCache[r].owner));
+            this.memory.destination = _.sample(_.filter(_.map(Game.map.describeExits(this.memory.other.target)), (r) => (!Memory.roomCache[r] || !Memory.roomCache[r].owner) && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(this.memory.overlord).status));
             this.say('RETASKED', true);
         }
     } else {

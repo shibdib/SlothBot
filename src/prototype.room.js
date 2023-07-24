@@ -369,7 +369,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     let room = Game.rooms[this.name];
     let mineral, sk, power, portal, user, level, owner, lastOperation, towers, reservation, commodity, safemode,
         spawnLocation, obstructions, seasonResource, closestRoom, closestRange, mineralAmount, seasonReactor,
-        seasonReactorOwner, swarm, structures, towerCount, sourceRating;
+        seasonReactorOwner, swarm, structures, towerCount, sourceRating, hubCheck;
     if (room) {
         // Get closest room
         closestRoom = this.findClosestOwnedRoom();
@@ -435,6 +435,17 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             } else if (room.controller.reservation) {
                 reservation = room.controller.reservation.username;
                 user = room.controller.reservation.username;
+            } else if (room.sources.length === 2) {
+                let terrain = Game.map.getRoomTerrain(room.name);
+                let terrainScore = 0;
+                for (let y = 0; y < 50; y++) {
+                    for (let x = 0; x < 50; x++) {
+                        let tile = terrain.get(x, y);
+                        if (tile === TERRAIN_MASK_SWAMP) terrainScore += 1;
+                        else if (tile !== TERRAIN_MASK_WALL) terrainScore += 2;
+                    }
+                }
+                hubCheck = terrain >= 100;
             }
             level = room.controller.level || undefined;
         }
@@ -492,6 +503,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             mineralAmount: mineralAmount,
             commodity: commodity,
             owner: owner,
+            hubCheck: hubCheck,
             spawnLocation: spawnLocation,
             reservation: reservation,
             level: level,

@@ -57,7 +57,7 @@ function buildFromLayout(room) {
         let countCheck = _.filter(layout, (s) => ![STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD, STRUCTURE_LINK].includes(s.structureType) && CONTROLLER_STRUCTURES[s.structureType][room.controller.level] > _.filter(room.structures, (r) => r.structureType === s.structureType).length + _.filter(room.constructionSites, (r) => r.structureType === s.structureType).length);
         if (countCheck.length) {
             // Build tower first
-            if (!builtSpawn && !builtTower && initialSpawn && room.controller.level >= 3) return rampartBuilder(room, layout);
+            if (!builtSpawn && !builtTower && initialSpawn && room.controller.level >= 3) filter = _.filter(countCheck, (s) => s.structureType === STRUCTURE_TOWER);
             // Build preset layout
             else if (room.controller.level === 8) {
                 filter = _.filter(countCheck, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
@@ -76,8 +76,6 @@ function buildFromLayout(room) {
         for (let structure of filter) {
             // Check if already at count
             if (CONTROLLER_STRUCTURES[structure.structureType][room.controller.level] <= (_.filter(room.structures, (s) => s.structureType === structure.structureType).length + _.filter(room.constructionSites, (s) => s.structureType === structure.structureType).length)) continue;
-            // Towers handled elsewhere
-            if (structure.structureType === STRUCTURE_TOWER) continue;
             let pos = new RoomPosition(structure.x, structure.y, room.name);
             if (room.controller.level !== room.level && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER && structure.structureType !== STRUCTURE_TERMINAL)) continue;
             if (room.controller.level === room.level && structure.structureType === STRUCTURE_EXTENSION) continue;
@@ -169,7 +167,7 @@ function hubBuilder(room, hub, layout) {
                 room.memory.hubLinkLocation = {x: hub.x, y: hub.y};
             }
         }
-    } else if (!room.memory.storageContainer && room.controller.level < 4 && room.controller.level > 1) {
+    } else if (!room.memory.storageContainer && room.controller.level === 3) {
         let storagePos = _.filter(layout, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         storagePos = new RoomPosition(storagePos.x, storagePos.y, room.name);
         if (storagePos.checkForAllStructure()[0]) {
@@ -285,67 +283,69 @@ function labBuilder(room, labs, hub) {
 }
 
 function roadBuilder(room, layout) {
-    let spawn = _.sample(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN));
-    // Source Roads
-    for (let source of room.sources) {
-        let harvester = _.find(room.creeps, (s) => s.my && s.memory.role === 'stationaryHarvester' && s.memory.containerID && s.memory.source === source.id);
-        if (harvester) {
-            let container = Game.getObjectById(harvester.memory.containerID);
-            if (container && buildRoadFromTo(room, spawn, container)) {
-                return true;
-            }
-        }
-    }
-    // Controller Road
-    let container = Game.getObjectById(room.memory.controllerContainer);
-    if (container && buildRoadFromTo(room, spawn, container)) {
-        return true;
-    }
-    // Neighboring Roads
-    let neighboring = Game.map.describeExits(spawn.pos.roomName);
-    if (neighboring) {
-        if (neighboring['1']) {
-            let exits = spawn.room.find(FIND_EXIT_TOP);
-            let middle = _.round(exits.length / 2);
-            if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
-                return true;
-            }
-        }
-        if (neighboring['3']) {
-            let exits = spawn.room.find(FIND_EXIT_RIGHT);
-            let middle = _.round(exits.length / 2);
-            if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
-                return true;
-            }
-        }
-        if (neighboring['5']) {
-            let exits = spawn.room.find(FIND_EXIT_BOTTOM);
-            let middle = _.round(exits.length / 2);
-            if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
-                return true;
-            }
-        }
-        if (neighboring['7']) {
-            let exits = spawn.room.find(FIND_EXIT_LEFT);
-            let middle = _.round(exits.length / 2);
-            if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
-                return true;
-            }
-        }
-    }
-    // Mineral Roads/Harvester
-    if (room.controller.level >= 6) {
-        let container = Game.getObjectById(room.memory.extractorContainer);
-        let spawn = _.sample(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN));
-        if (container && spawn && buildRoadFromTo(room, spawn, container)) return true;
-    }
     if (room.controller.level >= 3) {
-        let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD);
-        for (let structure of filter) {
-            let pos = new RoomPosition(structure.x, structure.y, room.name);
-            if (!pos.checkForRoad() && !pos.checkForConstructionSites() && !pos.checkForImpassible() && !pos.checkForWall()) {
-                if (pos.createConstructionSite(STRUCTURE_ROAD) === OK) {
+        let spawn = _.sample(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN));
+        // Source Roads
+        for (let source of room.sources) {
+            let harvester = _.find(room.creeps, (s) => s.my && s.memory.role === 'stationaryHarvester' && s.memory.containerID && s.memory.source === source.id);
+            if (harvester) {
+                let container = Game.getObjectById(harvester.memory.containerID);
+                if (container && buildRoadFromTo(room, spawn, container)) {
                     return true;
+                }
+            }
+        }
+        // Controller Road
+        let container = Game.getObjectById(room.memory.controllerContainer);
+        if (container && buildRoadFromTo(room, spawn, container)) {
+            return true;
+        }
+        if (room.controller.level >= 4) {
+            // Neighboring Roads
+            let neighboring = Game.map.describeExits(spawn.pos.roomName);
+            if (neighboring) {
+                if (neighboring['1']) {
+                    let exits = spawn.room.find(FIND_EXIT_TOP);
+                    let middle = _.round(exits.length / 2);
+                    if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
+                        return true;
+                    }
+                }
+                if (neighboring['3']) {
+                    let exits = spawn.room.find(FIND_EXIT_RIGHT);
+                    let middle = _.round(exits.length / 2);
+                    if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
+                        return true;
+                    }
+                }
+                if (neighboring['5']) {
+                    let exits = spawn.room.find(FIND_EXIT_BOTTOM);
+                    let middle = _.round(exits.length / 2);
+                    if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
+                        return true;
+                    }
+                }
+                if (neighboring['7']) {
+                    let exits = spawn.room.find(FIND_EXIT_LEFT);
+                    let middle = _.round(exits.length / 2);
+                    if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
+                        return true;
+                    }
+                }
+            }
+            // Mineral Roads/Harvester
+            if (room.controller.level >= 6) {
+                let container = Game.getObjectById(room.memory.extractorContainer);
+                let spawn = _.sample(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN));
+                if (container && spawn && buildRoadFromTo(room, spawn, container)) return true;
+            }
+            let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD);
+            for (let structure of filter) {
+                let pos = new RoomPosition(structure.x, structure.y, room.name);
+                if (!pos.checkForRoad() && !pos.checkForConstructionSites() && !pos.checkForImpassible() && !pos.checkForWall()) {
+                    if (pos.createConstructionSite(STRUCTURE_ROAD) === OK) {
+                        return true;
+                    }
                 }
             }
         }
@@ -356,7 +356,7 @@ function roadBuilder(room, layout) {
 let towerPos;
 function rampartBuilder(room, layout = undefined, count = false) {
     // Protected Structures
-    _.filter(room.structures, (s) => protectedStructureTypes.includes(s.structureType) && !s.pos.checkForRampart() && !s.pos.checkForConstructionSites() && ([STRUCTURE_SPAWN, STRUCTURE_TOWER].includes(s.structureType) || !s.pos.isInBunker())).forEach((s) => s.pos.createConstructionSite(STRUCTURE_RAMPART));
+    _.filter(room.structures, (s) => protectedStructureTypes.includes(s.structureType) && !s.pos.checkForRampart() && !s.pos.checkForConstructionSites() && ([STRUCTURE_SPAWN, STRUCTURE_TOWER].includes(s.structureType))).forEach((s) => s.pos.createConstructionSite(STRUCTURE_RAMPART));
     // Handle rampart bunker placement
     if (!rampartSpots[room.name] || Math.random() > 0.98) {
         // Delete old memory
@@ -373,19 +373,31 @@ function rampartBuilder(room, layout = undefined, count = false) {
             });
         }
         // Controller
-        rect_array.push({
-            x1: room.controller.pos.x - 1,
-            y1: room.controller.pos.y - 1,
-            x2: room.controller.pos.x + 1,
-            y2: room.controller.pos.y + 1
-        });
-        // Sources
-        for (let source of room.sources) {
+        if (PROTECT_CONTROLLER) {
             rect_array.push({
-                x1: source.pos.x - 2,
-                y1: source.pos.y - 2,
-                x2: source.pos.x + 2,
-                y2: source.pos.y + 2
+                x1: room.controller.pos.x - 1,
+                y1: room.controller.pos.y - 1,
+                x2: room.controller.pos.x + 1,
+                y2: room.controller.pos.y + 1
+            });
+        }
+        if (PROTECT_SOURCES) {
+            // Sources
+            for (let source of room.sources) {
+                rect_array.push({
+                    x1: source.pos.x - 1,
+                    y1: source.pos.y - 1,
+                    x2: source.pos.x + 1,
+                    y2: source.pos.y + 1
+                });
+            }
+        }
+        if (PROTECT_MINERAL) {
+            rect_array.push({
+                x1: room.mineral.pos.x - 1,
+                y1: room.mineral.pos.y - 1,
+                x2: room.mineral.pos.x + 1,
+                y2: room.mineral.pos.y + 1
             });
         }
         /**
@@ -424,37 +436,11 @@ function rampartBuilder(room, layout = undefined, count = false) {
             }));
             let buildPositions = [];
             spots.forEach((p) => buildPositions.push(new RoomPosition(p.x, p.y, room.name)));
-            // Towers
-            // Check if already at count
-            if (CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level] > (_.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER).length + _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_TOWER).length)) {
-                if (towerPos) {
-                    towerPos.createConstructionSite(STRUCTURE_TOWER);
-                    towerPos = undefined;
-                    return;
-                } else if ((buildPositions.length < 10 && _.size(Game.map.describeExits(room.name)) < 2) && _.find(room.structures, (s) => s.structureType === STRUCTURE_WALL)) {
-                    let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-                    let wallReplacement = hub.findClosestByPath(_.filter(room.structures, (s) => s.structureType === STRUCTURE_WALL));
-                    if (wallReplacement) {
-                        towerPos = wallReplacement.pos;
-                        wallReplacement.destroy();
-                    }
-                } else {
-                    if (JSON.parse(storedLayouts[room.name])) {
-                        for (let structure of _.filter(JSON.parse(storedLayouts[room.name]), (s) => s.structureType === STRUCTURE_TOWER)) {
-                            let pos = new RoomPosition(structure.x, structure.y, room.name);
-                            if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
-                                if (pos.createConstructionSite(structure.structureType) === OK) {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
             let cycles = 0;
             let inBuild = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length;
             for (let pos of buildPositions) {
                 if (cycles + inBuild >= 4) break;
+                let nearestSourceRange = pos.getRangeTo(pos.findClosestByRange(FIND_SOURCES));
                 if ((pos.isNearTo(room.controller) || pos.isNearTo(room.mineral) || pos.isNearTo(pos.findClosestByRange(FIND_SOURCES)))
                     && !pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) return cycles++;
                 // Handle tunnels
@@ -467,7 +453,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
                             }
                         }
                     }
-                } else if (pos.checkForAllStructure()[0] && !pos.checkForBuiltWall() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
+                } else if ((pos.checkForAllStructure()[0] || nearestSourceRange <= 3) && !pos.checkForBuiltWall() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
                     return;
                 } else if (((isEven(pos.x) && isOdd(pos.y)) || (isOdd(pos.x) && isEven(pos.y))) && !pos.checkForBuiltWall() && !pos.checkForConstructionSites()) {
                     if (pos.checkForRampart() && !pos.checkForAllStructure()[0]) pos.checkForRampart().destroy();
@@ -498,7 +484,7 @@ module.exports.hubCheck = function (room) {
 
 let storedX, storedY, storedPossibles;
 function findHub(room, hubCheck = undefined) {
-    if (room.memory.bunkerHub && room.memory.bunkerHub.x) return buildFromLayout(room);
+    if (room.controller.owner && room.controller.owner.username === MY_USERNAME && room.memory.bunkerHub && room.memory.bunkerHub.x) return buildFromLayout(room);
     if (room.structures.length) _.filter(room.structures, (s) => !s.owner || s.owner.username !== MY_USERNAME).forEach((s) => s.destroy());
     let pos, xOffset, yOffset, layoutVersion, layout;
     let possiblePos = storedPossibles || {};
@@ -624,6 +610,7 @@ function findHub(room, hubCheck = undefined) {
                         }
                         let barrierCount = rampartBuilder(room, layout, true);
                         if (barrierCount) {
+                            if (hubCheck) return true;
                             possiblePos[posCount++] = {
                                 x: pos.x,
                                 y: pos.y,
@@ -634,7 +621,7 @@ function findHub(room, hubCheck = undefined) {
                         }
                     }
                     storedPossibles = possiblePos;
-                    i++;
+                    if (!hubCheck) i++;
                 }
             }
         if (complete && _.size(storedPossibles) && _.min(storedPossibles, 'barrierCount').x && _.min(storedPossibles, 'barrierCount').y) {
@@ -656,6 +643,8 @@ function findHub(room, hubCheck = undefined) {
             log.a('Current possible count: ' + _.size(storedPossibles));
         } else if (complete && !_.size(storedPossibles)) {
             abandonRoom(room.name);
+            room.memory = {};
+            if (Memory.auxiliaryTargets && Memory.auxiliaryTargets[room.name]) delete Memory.auxiliaryTargets[room.name];
             if (Memory.roomCache && Memory.roomCache[room.name]) Memory.roomCache[room.name].noClaim = true;
             return log.a(room.name + ' has been abandoned due to being unable to find a suitable layout.');
         }
@@ -801,6 +790,7 @@ function updateLayout(room) {
 }
 
 function abandonRoom(room) {
+    Game.rooms[room].cacheRoomIntel(true);
     let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
     if (overlordFor.length) {
         for (let key in overlordFor) {
@@ -816,7 +806,7 @@ function abandonRoom(room) {
     let noClaim = Memory.noClaim || [];
     noClaim.push(room);
     delete Game.rooms[room].memory;
-    if (Memory.roomCache[room.name]) Memory.roomCache[room.name].noClaim = Game.time;
+    Memory.roomCache[room.name].noClaim = Game.time;
     Game.rooms[room].controller.unclaim();
 }
 

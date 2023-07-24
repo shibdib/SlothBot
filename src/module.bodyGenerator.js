@@ -79,11 +79,13 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             break;
         // Military
         case 'attacker':
-            tough = _.floor((energyAmount * 0.05) / BODYPART_COST[TOUGH]) || 1;
-            if (tough > 5) tough = 5;
-            attack = _.floor((energyAmount * 0.45) / BODYPART_COST[ATTACK]) || 1;
+            tough = _.floor((energyAmount * 0.02) / BODYPART_COST[TOUGH]) || 1;
+            if (tough > 3) tough = 3;
+            attack = _.floor((energyAmount * 0.40) / BODYPART_COST[ATTACK]) || 1;
             if (attack > 20) attack = 20;
-            move = tough + attack;
+            heal = _.floor((energyAmount * 0.08) / BODYPART_COST[ATTACK]) || 1;
+            if (heal > 2) heal = 2;
+            move = tough + attack + heal;
             break;
         case 'healer':
             heal = _.floor(energyAmount / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
@@ -116,9 +118,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             }
             break;
         case 'longbow':
-            rangedAttack = _.floor((energyAmount * 0.6) / (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE])) || 1;
+            rangedAttack = _.floor((energyAmount * 0.7) / (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE])) || 1;
             if (rangedAttack > 17) rangedAttack = 17;
-            heal = _.floor((energyAmount * 0.4) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
+            heal = _.floor((energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
             if (heal > 8) heal = 8;
             move = heal + rangedAttack;
             break;

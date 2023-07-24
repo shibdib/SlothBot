@@ -208,6 +208,8 @@ Creep.prototype.attackHostile = function (hostile) {
     let moveTarget = hostile;
     let inRangeRampart = this.pos.findClosestByPath(this.room.structures, {filter: (r) => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && !r.pos.checkForConstructionSites() && (!r.pos.checkForCreep() || (r.pos.x === this.pos.x && r.pos.y === this.pos.y)) && r.my && r.pos.getRangeTo(hostile) <= 1});
     if (inRangeRampart) moveTarget = inRangeRampart;
+    // Heal if possible
+    this.healInRange();
     // If has a range part use it
     if (this.hasActiveBodyparts(RANGED_ATTACK) && this.pos.inRangeTo(hostile, 3)) this.rangedAttack(hostile);
     // Attack
@@ -435,6 +437,7 @@ Creep.prototype.healCreeps = function () {
 };
 
 Creep.prototype.healInRange = function () {
+    if (!this.hasActiveBodyparts(HEAL)) return false;
     if (this.hits < this.hitsMax) return this.heal(this);
     let injured = _.find(this.room.creeps, (c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax);
     if (injured) {
@@ -463,10 +466,7 @@ Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, o
 
 Creep.prototype.scorchedEarth = function () {
     // Safemode check
-    if (this.room.user && this.room.user !== MY_USERNAME && this.room.controller && this.room.controller.safeMode) return false;
-    // Friendly check
-    let remote = _.find(this.room.myCreeps, (c) => c.memory.role === 'remoteHarvester' || c.memory.role === 'reserver');
-    if ((this.room.user && _.includes(FRIENDLIES, this.room.user)) || remote) return false;
+    if (this.room.controller && this.room.controller.safeMode) return false;
     // Set target
     let hostile = Game.getObjectById(this.memory.target) || this.findClosestEnemy(true);
     // If target fight

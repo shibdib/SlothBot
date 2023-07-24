@@ -233,19 +233,19 @@ module.exports.miscCreepQueue = function (room) {
     miscTick[room.name] = Game.time;
     let level = getLevel(room);
     //Drones
-    let number = 2;
+    let number = 10 - room.controller.level;
     if (getCreepCount(room, 'drone') < number) {
         // 2 at all times, 3 in conflict or if there's a construction site but not critical, 10 - level if there's an important build
         let importantBuilds = _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-        let priority = PRIORITIES.drone;
+        let priority = PRIORITIES.medium;
         if (Memory.roomCache[room.name].threatLevel) {
-            priority = PRIORITIES.urgent
-        } else if (importantBuilds) {
             priority = PRIORITIES.priority
+        } else if (importantBuilds) {
+            priority = PRIORITIES.urgent
             number = 10 - room.controller.level;
-        }
+        } else number = 2;
         if (getCreepCount(room, 'drone') < number) {
-            queueCreep(room, priority + getCreepCount(room, 'drone') * 0.5, {
+            queueCreep(room, priority, {
                 role: 'drone',
                 other: {reboot: room.friendlyCreeps.length <= 3}
             })
@@ -412,15 +412,13 @@ module.exports.remoteCreepQueue = function (room) {
             if (Memory.roomCache[remoteName].roomHeat > 250) {
                 continue;
             }
-            // If you can't route there because of hostiles skip it
-            if (!room.routeSafe(remoteName, 2, 500, 3)) continue;
             // Handle invaders
             if ((Memory.roomCache[remoteName].invaderCore || Memory.roomCache[remoteName].threatLevel || (Memory.roomCache[remoteName].user && !_.includes(FRIENDLIES, Memory.roomCache[remoteName].user))) && !Memory.roomCache[remoteName].sk) {
                 // Handle invader core
                 if (Memory.roomCache[remoteName].invaderCore) {
-                    if (!getCreepCount(undefined, 'deconstructor', remoteName)) {
+                    if (!getCreepCount(undefined, 'attacker', remoteName)) {
                         queueCreep(room, PRIORITIES.high, {
-                            role: 'deconstructor',
+                            role: 'attacker',
                             military: true,
                             destination: remoteName
                         })
@@ -429,9 +427,10 @@ module.exports.remoteCreepQueue = function (room) {
                 room.memory.borderPatrol = remoteName;
                 continue;
             }
+            // If reserved by others continue
             if (Memory.roomCache[remoteName] && Memory.roomCache[remoteName].reservation && Memory.roomCache[remoteName].reservation !== MY_USERNAME) continue;
-            // Handle rooms that can't be reached safely
-            if (!room.routeSafe(remoteName)) continue;
+            // If you can't route there because of hostiles skip it
+            if (!room.routeSafe(remoteName, 2, 500, 3)) continue;
             // Handle SK
             if (Memory.roomCache[remoteName].sk && room.level >= 7 && !room.memory.noRemote) {
                 // If invader core continue
@@ -529,9 +528,15 @@ module.exports.globalCreepQueue = function () {
         }
         // Set vars
         let opLevel = operations[key].level;
-        let priority = operations[key].priority || 4;
+        let priority = operations[key].priority;
+        if (!priority) {
+            if (Memory.roomCache[key]) {
+                priority = getPriority(Memory.roomCache[key].closestRange);
+            } else priority = 4;
+            operations[key].priority = priority;
+        }
         // Scouts for rooms at level 0 or who haven't been checked by an observer
-        if (!operations[key].observerCheck && Memory.targetRooms[key]) {
+        if (!operations[key].observerCheck && Memory.targetRooms[key] && !opLevel) {
             if (!getCreepCount(undefined, 'scout', key)) {
                 queueGlobalCreep(PRIORITIES.priority, {role: 'scout', destination: key, military: true})
             }
@@ -610,7 +615,7 @@ module.exports.globalCreepQueue = function () {
                 }
                 break;
             case 'harass': // Harass Room
-                let remotes = _.filter(_.map(Game.map.describeExits(key)), (r) => !Memory.roomCache[r] || !Memory.roomCache[r].owner);
+                let remotes = _.filter(_.map(Game.map.describeExits(key)), (r) => (!Memory.roomCache[r] || !Memory.roomCache[r].owner) && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(Memory.myRooms[0]).status);
                 let harassers = _.filter(Game.creeps, (c) => c.my && c.memory.other && c.memory.other.target === key);
                 // Camp remotes unless an ally controls them or they're owned
                 if (harassers.length < remotes.length * 1.25) {
@@ -627,6 +632,14 @@ module.exports.globalCreepQueue = function () {
                 if (getCreepCount(undefined, 'longbow', key) < opLevel) {
                     queueGlobalCreep(priority + getCreepCount(undefined, 'longbow', key), {
                         role: 'longbow',
+                        destination: key,
+                        operation: 'hold',
+                        military: true
+                    })
+                }
+                if (getCreepCount(undefined, 'attacker', key) < opLevel) {
+                    queueGlobalCreep(priority + getCreepCount(undefined, 'attacker', key), {
+                        role: 'attacker',
                         destination: key,
                         operation: 'hold',
                         military: true
@@ -961,4 +974,12 @@ function getCreepCount(room = undefined, role, destination, operation = undefine
 function getCreepTTL(room, role) {
     let creeps = _.filter(Game.creeps, (r) => r.my && r.memory.role === role && (r.room.name === room || r.memory.destination === room));
     if (creeps.length) return _.min(creeps, '.ticksToLive').ticksToLive; else return 0;
+}
+
+function getPriority(range) {
+    if (range <= 1) return PRIORITIES.priority;
+    else if (range <= 3) return PRIORITIES.urgent;
+    else if (range <= 5) return PRIORITIES.high;
+    else if (range <= 10) return PRIORITIES.medium;
+    else return PRIORITIES.secondary;
 }

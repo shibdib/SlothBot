@@ -104,12 +104,13 @@ RoomPosition.prototype.getAdjacentPositionAtRange = function (target, range = 3)
  *
  * @returns {boolean}
  */
-RoomPosition.prototype.isInBunker = function () {
+RoomPosition.prototype.isInBunker = function (range = 0) {
     let room = Game.rooms[this.roomName];
     if (!room.memory.bunkerHub) return false;
-    let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+    let closestExit = this.findClosestByRange(FIND_EXIT);
+    console.log(JSON.stringify(closestExit))
     let path = PathFinder.search(
-        this, {pos: hub, range: 1},
+        this, {pos: closestExit, range: 0},
         {
             plainCost: 1,
             swampCost: 1,
@@ -118,7 +119,7 @@ RoomPosition.prototype.isInBunker = function () {
                 let costs = new PathFinder.CostMatrix;
                 room.find(FIND_STRUCTURES).forEach(function (s) {
                     if (OBSTACLE_OBJECT_TYPES.includes(s.structureType) || s.structureType === STRUCTURE_RAMPART) {
-                        costs.set(s.pos.x, s.pos.y, 255);
+                        costs.set(s.pos.x, s.pos.y, 256);
                     }
                 });
                 return costs;
@@ -145,6 +146,44 @@ RoomPosition.prototype.positionAtDirection = function (direction) {
     }
     return new RoomPosition(x, y, this.roomName);
 }
+
+/**
+ * warinternal's Original Code --
+ * Shorthand for lookForAtArea around a room position modified by Shibdib from a roomObject to roomPosition
+ *
+ * @param {string} lookFor - LOOK_* constant
+ * @param {boolean} asArray - Return as array bool
+ * @param {number} range - Range to look
+ * @returns {object} Returns an object/array of the results
+ */
+RoomPosition.prototype.lookForNearby = function (lookFor, asArray = true, range = 1) {
+    return Game.rooms[this.roomName].lookForAtArea(
+        lookFor,
+        Math.max(0, this.y - range),
+        Math.max(0, this.x - range),
+        Math.min(49, this.y + range),
+        Math.min(49, this.x + range),
+        asArray
+    );
+};
+
+/**
+ * warinternal's Original Code --
+ * Shorthand for lookAtArea around a room position modified by Shibdib from a roomObject to roomPosition
+ *
+ * @param {boolean} asArray - Return as array bool
+ * @param {number} range - Range to look
+ * @returns {object} Returns an object/array of the results
+ */
+RoomPosition.prototype.lookNearby = function (asArray, range = 1) {
+    return Game.rooms[this.roomName].lookAtArea(
+        Math.max(0, this.y - range),
+        Math.max(0, this.x - range),
+        Math.min(49, this.y + range),
+        Math.min(49, this.x + range),
+        asArray
+    );
+};
 
 RoomPosition.prototype.checkForWall = function () {
     return Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) === 1;

@@ -27,6 +27,12 @@ global.REMOTE_SOURCE_TARGET = 6; // The number of remote sources a room looks to
 global.AVOID_ATTACKING_ALLIANCES = true; // Check LOAN and avoid attacking people in alliances
 global.GENERATE_PIXELS = true; // Generate pixels sporadically
 
+// Room Ramparts
+// These determine if the bunker algo takes these into account
+global.PROTECT_CONTROLLER = false;
+global.PROTECT_MINERAL = false;
+global.PROTECT_SOURCES = false;
+
 // Seasonal Specific
 global.SEASON_RCL_CUTOFF = 8; // Only score in rooms greater than or equal to this
 

@@ -521,7 +521,7 @@ Creep.prototype.haulerDelivery = function () {
         return true;
     }
     //Top off container if no controller link otherwise check for a hub link
-    if (!this.room.memory.controllerLink || !this.memory.hubLink) {
+    if (!this.room.memory.controllerLink || !this.room.memory.hubLink) {
         if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY)) {
             this.memory.storageDestination = controllerContainer.id;
             return true;
@@ -532,7 +532,7 @@ Creep.prototype.haulerDelivery = function () {
                 return true;
             }
         }
-    } else if (this.memory.hubLink) {
+    } else if (this.room.memory.hubLink) {
         let hubLink = Game.getObjectById(this.memory.hubLink);
         if (hubLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY)) {
             this.memory.storageDestination = hubLink.id;
@@ -752,7 +752,7 @@ Creep.prototype.builderFunction = function () {
         }
     } else {
         this.say('Build!', true);
-        this.memory.needExpediter = construction.progressTotal - construction.progress > 100;
+        construction.say(construction.progress + ' / ' + construction.progressTotal);
         switch (this.build(construction)) {
             case OK:
                 return true;

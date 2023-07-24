@@ -1,8 +1,6 @@
 # Overlord
 
-An Artificial Intelligence for the programming game Screeps.
-
-THIS BOT IS BEING REPLACED - USE AT YOUR OWN RISK
+Artificial Intelligence for the programming game Screeps.
 
 This code is designed to function fine with no user interaction. It also uses flags to allow the user to guide it if
 they desire.

@@ -115,6 +115,18 @@ function extensionFiller(creep) {
         let extension = container.pos.findInRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION), 1);
         let sourceExtensions = ROOM_HARVESTER_EXTENSIONS[creep.room.name] || [];
         ROOM_HARVESTER_EXTENSIONS[creep.room.name] = _.union(sourceExtensions, _.pluck(extension, 'id'));
+        // Rampart check if near border or outside
+        if (extension.length && creep.room.level >= 3) {
+            let nearbyBunkerWall = _.find(container.pos.lookForNearby(LOOK_STRUCTURES, true, 3), (s) => (s.structure.structureType === STRUCTURE_RAMPART && !s.structure.pos.checkForObstacleStructure()) || s.structure.structureType === STRUCTURE_WALL);
+            if (nearbyBunkerWall) {
+                if (!container.pos.checkForRampart()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
+                for (let e of extension) {
+                    if (!e.pos.checkForRampart()) {
+                        e.pos.createConstructionSite(STRUCTURE_RAMPART);
+                    }
+                }
+            }
+        }
     } else {
         if (creep.opportunisticFill()) return true;
     }

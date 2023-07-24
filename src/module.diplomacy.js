@@ -5,16 +5,14 @@
  * Project - Overlord-Bot (Screeps)
  */
 
+let tempHostiles = {};
+
 module.exports.diplomacyOverlord = function () {
     if (!Memory._userList) Memory._userList = {};
     //Manage friendlies
-    global.FRIENDLIES = _.union(LOANlist, [MY_USERNAME], ['Shibdib'], MANUAL_FRIENDS);
+    global.FRIENDLIES = _.union(LOANlist, [MY_USERNAME], ['Shibdib'], MANUAL_FRIENDS).filter((u) => !_.find(tempHostiles, (h) => h.user === u && h.tick > Game.time));
     //Manage threats
     if (Game.time % 5 === 0 && Memory._userList) threatManager();
-    //Manage symbol list for seasonal
-    if (Game.shard.name === 'shardSeason' && Game.time % 1000 === 0) {
-        Memory.ownedSymbols = _.uniq(_.pluck(_.filter(Memory.roomCache, (r) => r.owner && _.includes(FRIENDLIES, r.owner) && r.closestRange < 15 && r.level >= SEASON_RCL_CUTOFF), 'seasonDecoder'));
-    }
 };
 
 function threatManager() {
@@ -129,8 +127,20 @@ module.exports.trackThreat = function (creep) {
                     let multiple = 5;
                     if (Memory.roomCache[creep.room.name].user === MY_USERNAME) multiple = 10;
                     if (Memory.roomCache[creep.room.name].user === user) multiple = 1;
+                    // Handle a friendly attacking you
                     if (_.includes(FRIENDLIES, user)) {
-                        standing = cache[user]['standing'] - 1;
+                        standing = cache[user]['standing'] - multiple;
+                        if (!tempHostiles[user]) {
+                            tempHostiles[user] = {user: user, tick: Game.time + CREEP_LIFE_TIME, infractionCount: 1};
+                            log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. ' + user + ' has now temporarily been marked hostile. (Now At - ' + standing + ')', 'DIPLOMACY:');
+                        } else {
+                            tempHostiles[user].tick = Game.time + CREEP_LIFE_TIME;
+                            tempHostiles[user].infractionCount++;
+                            if (tempHostiles[user].infractionCount > 5) {
+                                log.e(user + ' has attacked us ' + tempHostiles[user].infractionCount + '. times. (Now At - ' + standing + ')', 'DIPLOMACY:');
+                                Game.notify(user + ' has attacked us ' + tempHostiles[user].infractionCount + '. times. (Now At - ' + standing + ')', 60);
+                            }
+                        }
                     } else {
                         standing = cache[user]['standing'] - (2.5 * multiple);
                     }
@@ -139,13 +149,8 @@ module.exports.trackThreat = function (creep) {
                     let multiple = -5;
                     if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === MY_USERNAME) multiple = -10;
                     if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === user) multiple = -1;
-                    if (_.includes(FRIENDLIES, user)) {
-                        standing = multiple;
-                        log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. ' + user + ' has now temporarily been marked hostile. (Now At - ' + standing + ')', 'DIPLOMACY:');
-                    } else {
-                        standing = 10 * multiple;
-                        log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. ' + user + ' has now been marked hostile. (Now At - ' + standing + ')', 'DIPLOMACY:');
-                    }
+                    standing = 10 * multiple;
+                    log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. ' + user + ' has now been marked hostile. (Now At - ' + standing + ')', 'DIPLOMACY:');
                     let sentence = [user, 'now', 'marked', 'hostile'];
                     let word = Game.time % sentence.length;
                     creep.say(sentence[word], true);
@@ -162,7 +167,7 @@ module.exports.trackThreat = function (creep) {
         }
     }
     creep.memory._lastHits = creep.hits;
-    // Handle hostile creeps in owned rooms
+    // Handle trespassing
     if (creep.room.hostileCreeps.length && Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === MY_USERNAME) {
         let neutrals = _.uniq(_.pluck(creep.room.hostileCreeps, 'owner.username'));
         if (neutrals.length) {

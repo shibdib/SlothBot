@@ -198,15 +198,16 @@ function wallMaintainer(creep) {
                 creep.memory.targetWallHits = targetHits;
             }
         }
-        target.say(target.hits + ' / ' + creep.memory.targetWallHits);
         creep.say(ICONS.castle, true);
+        if (target.hits >= creep.memory.targetWallHits) {
+            creep.memory.other.noBump = undefined;
+            creep.memory.currentTarget = undefined;
+            return creep.memory.targetWallHits = undefined;
+        }
+        target.say(target.hits + ' / ' + creep.memory.targetWallHits);
         switch (creep.repair(target)) {
             case OK:
-                if (target.hits >= creep.memory.targetWallHits) {
-                    creep.memory.other.noBump = undefined;
-                    creep.memory.currentTarget = undefined;
-                    creep.memory.targetWallHits = undefined;
-                } else creep.memory.other.noBump = true;
+                creep.memory.other.noBump = true;
                 break;
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(target, {range: 3})

@@ -72,7 +72,7 @@ let globals = function () {
     };
     global.PIXEL_BUFFER = 500; // Sell any pixels above this amount
     global.BUY_ENERGY = true; // If true it will buy energy at anything below the baseline energy price if a room isn't considered in surplus
-    global.BUY_ENERGY_CREDIT_BUFFER = 1000000; // Stay above this to buy energy
+    global.BUY_ENERGY_CREDIT_BUFFER = 500000; // Stay above this to buy energy
     global.CREDIT_BUFFER = 10000; // Stay above
     global.FACTORY_CUTOFF = ENERGY_AMOUNT * 0.5; // Amount needed for a factory to be active
     global.MINERAL_TRADE_AMOUNT = 10000;  // Hold this much of a mineral before selling
@@ -123,7 +123,6 @@ let globals = function () {
         // Harvesters
         stationaryHarvester: 2,
         // Workers
-        drone: 3,
         upgrader: 4,
         mineralHarvester: 8,
         // Haulers
@@ -135,14 +134,14 @@ let globals = function () {
         remoteUpgrader: 7,
         roadBuilder: 7,
         fuelTruck: 8,
-        reserver: 6,
+        reserver: 4,
         // Military
         defender: 2,
-        priority: 4,
-        urgent: 5,
-        high: 6,
-        medium: 7,
-        secondary: 8
+        priority: 3,
+        urgent: 4,
+        high: 5,
+        medium: 6,
+        secondary: 7
     };
 
     global.SPAWN = {

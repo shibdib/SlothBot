@@ -21,7 +21,7 @@ module.exports.role = function (creep) {
     if (!link) creep.room.memory.controllerLink = undefined;
     if (creep.memory.other.stationary) {
         // Handle sitting on container
-        if (container && !creep.pos.isEqualToPos(container.pos)) creep.shibMove(container, {range: 0});
+        if (container && !creep.pos.isEqualToPos(container.pos)) return creep.shibMove(container, {range: 0});
         switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
             case OK:
                 creep.memory.inPlace = true;

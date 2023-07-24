@@ -8,12 +8,12 @@ let lastTick = 0;
 
 module.exports.claimNewRoom = function () {
     let worthyRooms;
-    if (lastTick + 1000 > Game.time) return;
+    if (lastTick + 5000 > Game.time) return;
     let claimTarget = Memory.nextClaim;
     if (Math.random() > 0.75) claimTarget = undefined;
     lastTick = Game.time;
     if (!claimTarget) {
-        worthyRooms = _.filter(Memory.roomCache, (r) => Game.rooms[r.closestRoom] && (!r.noClaim || r.noClaim < Game.time) && !r.obstructions && !r.owner && !r.reservation && r.sources === 2 &&
+        worthyRooms = _.filter(Memory.roomCache, (r) => Game.rooms[r.closestRoom] && (!r.noClaim || r.noClaim < Game.time) && !r.obstructions && !r.owner && !r.reservation && r.hubCheck &&
             Game.rooms[r.closestRoom].routeSafe(r.name, 500, 1, 12) && Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status);
         if (!worthyRooms.length) return;
         let possibles = {};
@@ -26,9 +26,9 @@ module.exports.claimNewRoom = function () {
                 let friendlyRooms = _.filter(Memory.roomCache, (r) => r.level && _.includes(FRIENDLIES, r.owner));
                 for (let key in friendlyRooms) {
                     let avoidName = friendlyRooms[key].name;
-                    let distance = Game.map.getRoomLinearDistance(name, avoidName)
-                    if (distance <= 2) distance = Game.map.findRoute(name, avoidName).length;
-                    if (distance <= 2) continue worthy; else if (distance === 3) baseScore += 1000; else if (distance < 6) baseScore += 100; else if (distance > 20) continue worthy; else baseScore -= 1000;
+                    let distance = Game.map.findRoute(name, avoidName).length;
+                    if (distance === 1) continue worthy;
+                    if (distance === 3) baseScore += 2000; else if (distance < 7) baseScore += 1000; else if (distance > 20) continue worthy; else baseScore -= 5000;
                     // Sector check for allies
                     if (AVOID_ALLIED_SECTORS && sameSectorCheck(name, avoidName)) baseScore -= 1500;
                 }
@@ -38,7 +38,7 @@ module.exports.claimNewRoom = function () {
                     let avoidName = enemyRooms[key].name;
                     let distance = Game.map.getRoomLinearDistance(name, avoidName)
                     if (distance <= 2) distance = Game.map.findRoute(name, avoidName).length;
-                    if (distance <= 2) baseScore -= 2500; else if (distance < 6) baseScore -= 1000;
+                    if (distance <= 2) baseScore -= 5000; else if (distance < 6) baseScore -= 1000;
                 }
                 // Remote access
                 let neighboring = _.map(Game.map.describeExits(name));

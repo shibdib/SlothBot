@@ -73,7 +73,7 @@ module.exports.towerControl = function (room) {
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;
             } // If you can damage it and it's not border humping attack it. Always attack invaders
-            else if (attackPower > healPower && ((rangeToExit >= ((hostileCreeps[i].hits + (healPower * rangeToExit)) / attackPower)) || hostileCreeps[i].owner.username === 'Invader' || hostileCreeps[i].fatigue)) {
+            else if (attackPower > healPower && (((rangeToExit + (hostileCreeps[i].fatigue * 0.5)) >= ((hostileCreeps[i].hits + (healPower * rangeToExit)) / attackPower)) || hostileCreeps[i].owner.username === 'Invader')) {
                 room.memory.towerTarget = hostileCreeps[i].id;
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;

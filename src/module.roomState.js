@@ -50,7 +50,7 @@ module.exports.setRoomState = function (room) {
         let currentMinerals = Memory.ownedMinerals || [];
         currentMinerals.push(room.mineral.mineralType);
         Memory.ownedMinerals = _.uniq(currentMinerals);
-        if (room.level > 6) {
+        if (room.controller.level >= 6) {
             if (Math.random() > 0.95) Memory.harvestableMinerals = undefined;
             let harvestableMinerals = Memory.harvestableMinerals || [];
             harvestableMinerals.push(room.mineral.mineralType);
@@ -72,5 +72,5 @@ module.exports.setRoomState = function (room) {
 };
 
 function requestBuilders(room) {
-    room.memory.buildersNeeded = (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length || !_.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER).length || (room.level < room.controller.level && room.level < 5));
+    room.memory.buildersNeeded = (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length || !_.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER).length);
 }

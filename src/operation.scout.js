@@ -56,9 +56,9 @@ function forwardObserver(room) {
         let userList = Memory.targetRooms[room.name].userList || [];
         let users = _.uniq(_.map(room.hostileCreeps, 'owner.username'));
         Memory.targetRooms[room.name].userList = _.union(userList, users);
-        Memory.targetRooms[room.name].maxLevel = _.max(Memory.targetRooms[room.name].userList, function (u) {
+        Memory.targetRooms[room.name].maxLevel = highCommand.getUserStrength(_.max(Memory.targetRooms[room.name].userList, function (u) {
             return highCommand.getUserStrength(u);
-        });
+        }));
     }
     // Type specific stuff
     let armedEnemies = _.find(room.hostileCreeps, (c) => (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, c.owner.username));
@@ -66,15 +66,16 @@ function forwardObserver(room) {
         case 'hold':
             let towers = _.find(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && c.isActive());
             if (towers) {
-                delete Memory.targetRooms[room.name];
-                log.a('Canceling hold operation in ' + roomLink(room.name) + ' as a tower is now detected.', 'HIGH COMMAND: ');
+                Memory.targetRooms[room.name].type = 'harass';
+                Memory.targetRooms[room.name].level = 1;
+                log.a('Converting hold operation in ' + roomLink(room.name) + ' to a harass operation as a tower is now detected.', 'HIGH COMMAND: ');
                 return room.cacheRoomIntel(true);
             }
             // Clear target if room is no longer owned
             if (!room.controller || !room.controller.owner) {
                 log.a('Canceling hold operation in ' + roomLink(room.name) + ' as it is no longer owned.', 'HIGH COMMAND: ');
                 delete Memory.targetRooms[room.name];
-                return;
+                return room.cacheRoomIntel(true);
             }
             // Request cleaner if structures are present
             // Request claim attacker if viable

@@ -143,24 +143,6 @@ function auxiliaryOperations() {
             Memory.auxiliaryTargets = cache;
             log.a('Mining operation planned for ' + roomLink(commodityRoom.name) + ' suspected commodity deposit location, Nearest Room - ' + commodityRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
         }
-        // Rebuild allies
-        let alliedRoom = _.filter(initialFilter, (r) => r.owner && r.owner !== MY_USERNAME && FRIENDLIES.includes(r.owner) && r.level > 3 && !r.towers);
-        let needyRoom = _.filter(Game.rooms, (r) => (r.memory.buildersNeeded || r.memory.struggling) && !Memory.auxiliaryTargets[r.name]);
-        let rebuildTargets = _.union(needyRoom, alliedRoom);
-        if (rebuildTargets) {
-            for (let rebuild of rebuildTargets) {
-                let cache = Memory.auxiliaryTargets || {};
-                let tick = Game.time;
-                cache[rebuild.name] = {
-                    tick: tick,
-                    type: 'rebuild',
-                    level: 1,
-                    priority: PRIORITIES.priority
-                };
-                Memory.auxiliaryTargets = cache;
-                log.a('Rebuild operation planned for ' + roomLink(rebuild.name) + ', Nearest Room - ' + Memory.roomCache[rebuild.name].closestRange + ' rooms away', 'HIGH COMMAND: ');
-            }
-        }
         // Seasonal score collection
         if (Game.shard.name === 'shardSeason') {
             // Reactor Guard
@@ -194,6 +176,24 @@ function auxiliaryOperations() {
             };
             Memory.auxiliaryTargets = cache;
             log.a('Mining operation planned for ' + roomLink(mineralRoom.name) + ' mineral deposit location, Nearest Room - ' + mineralRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
+        }
+    }
+    // Rebuild allies
+    let alliedRoom = _.filter(initialFilter, (r) => r.owner && r.owner !== MY_USERNAME && FRIENDLIES.includes(r.owner) && r.level > 3 && !r.towers);
+    let needyRoom = _.filter(Game.rooms, (r) => (r.memory.buildersNeeded || r.memory.struggling) && Memory.roomCache[r.name] && Memory.roomCache[r.name].owner === MY_USERNAME && !Memory.auxiliaryTargets[r.name]);
+    let rebuildTargets = _.union(needyRoom, alliedRoom);
+    if (rebuildTargets) {
+        for (let rebuild of rebuildTargets) {
+            let cache = Memory.auxiliaryTargets || {};
+            let tick = Game.time;
+            cache[rebuild.name] = {
+                tick: tick,
+                type: 'rebuild',
+                level: 1,
+                priority: PRIORITIES.priority
+            };
+            Memory.auxiliaryTargets = cache;
+            log.a('Rebuild operation planned for ' + roomLink(rebuild.name) + ', Nearest Room - ' + Memory.roomCache[rebuild.name].closestRange + ' rooms away', 'HIGH COMMAND: ');
         }
     }
 }
@@ -435,19 +435,10 @@ function manageAttacks() {
                     continue;
                 // Manage Harass
                 case 'harass':
+                    staleMulti = 100;
                     if (totalCountFiltered > OPERATION_LIMIT) {
                         log.a('Canceling harass in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                         delete Memory.targetRooms[key];
-                        continue;
-                    }
-                    if (!Memory.roomCache[key] || !Memory.roomCache[key]) {
-                        let cache = Memory.targetRooms || {};
-                        let tick = Game.time;
-                        cache[key] = {
-                            tick: tick,
-                            type: 'hold',
-                            level: 0
-                        };
                         continue;
                     }
                     staleMulti = 4;
