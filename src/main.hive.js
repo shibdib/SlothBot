@@ -97,14 +97,25 @@ module.exports.hiveMind = function () {
 
 let errorCount = {};
 function minionController(minion) {
-    // If idle sleep
+    // Disable notifications
+    if (!minion.memory.notifyDisabled) {
+        minion.notifyWhenAttacked(false);
+        minion.memory.notifyDisabled = true;
+    }
+    // Set last managed tick
+    minion.memory.lastManaged = Game.time;
+    // Handle idle
     if (minion.idle) return;
-    // If on portal move
-    if (minion.portalCheck() || minion.borderCheck()) return;
-    // Track threat
+    // Track Threat
     diplomacy.trackThreat(minion);
-    // Report intel chance if not in owned room
-    if (!minion.room.controller || !minion.room.controller.owner || !minion.room.controller.owner.name !== MY_USERNAME) {
+    // Handle edge cases
+    if (minion.portalCheck() || minion.borderCheck()
+        || (minion.room.hostileCreeps.length && minion.hits < minion.hitsMax && minion.shibKite())
+        || (minion.memory.fleeNukeTime && minion.fleeNukeRoom())) {
+        return;
+    }
+    // Report intel chance
+    if (minion.room.name !== minion.memory.overlord) {
         minion.room.invaderCheck();
         minion.room.cacheRoomIntel(false, minion);
     }

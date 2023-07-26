@@ -179,7 +179,7 @@ function orderCleanup(myOrders) {
                         continue;
                     }
                 }
-            } else if (Game.rooms[order.roomName].energyState <= 2) {
+            } else if (Game.rooms[order.roomName].energyState < 2) {
                 if (Game.market.cancelOrder(order.id) === OK) {
                     log.e("Order Cancelled: " + order.id + " - Cancel sale of energy as we have a shortage in the room.", 'MARKET: ');
                     continue;
@@ -194,17 +194,23 @@ function orderCleanup(myOrders) {
     }
 }
 
+let priceUpdateTracker = {};
 function pricingUpdate(globalOrders, myOrders) {
     for (let key in myOrders) {
         let order = myOrders[key];
+        if (!priceUpdateTracker[order.id]) priceUpdateTracker[order.resourceType] = {};
+        else if (priceUpdateTracker[order.id].lastChange + 2000 > Game.time) continue;
         if (order.type === ORDER_SELL) {
             let currentPrice = order.price;
             let newPrice = currentPrice;
-            let competitorOrder = _.min(globalOrders.filter(o => !_.includes(Memory.myRooms, o.roomName) && o.resourceType === order.resourceType && o.type === ORDER_SELL), 'price');
-            if (competitorOrder.id) {
-                newPrice = competitorOrder.price - 0.001;
-            } else if (latestMarketHistory(order.resourceType)) {
+            // Pricing
+            if (latestMarketHistory(order.resourceType)) {
                 newPrice = latestMarketHistory(order.resourceType)['avgPrice'];
+            } else {
+                let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === order.resourceType && order.type === ORDER_SELL), 'price');
+                if (competitorOrder.id) {
+                    newPrice = competitorOrder.price - 0.001;
+                }
             }
             let cost = 0;
             if (currentPrice < newPrice) {
@@ -213,6 +219,7 @@ function pricingUpdate(globalOrders, myOrders) {
             let availableCash = Game.market.credits - CREDIT_BUFFER;
             if (currentPrice !== newPrice && cost <= availableCash) {
                 if (Game.market.changeOrderPrice(order.id, newPrice)) {
+                    priceUpdateTracker[order.id].lastChange = Game.time;
                     log.w("Sell order price change " + order.id + " new/old " + newPrice + "/" + order.price + " Resource - " + order.resourceType, "Market: ");
                 }
             }
@@ -234,6 +241,7 @@ function pricingUpdate(globalOrders, myOrders) {
             let availableCash = Game.market.credits - CREDIT_BUFFER;
             if (currentPrice !== newPrice && cost <= availableCash) {
                 if (Game.market.changeOrderPrice(order.id, newPrice)) {
+                    priceUpdateTracker[order.id].lastChange = Game.time;
                     log.w("Buy order price change " + order.id + " new/old " + newPrice + "/" + order.price + " Resource - " + order.resourceType, "Market: ");
                 }
             }
@@ -271,12 +279,14 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         if (sellAmount > terminal.store[resourceType]) sellAmount = terminal.store[resourceType];
         if (sellAmount < 100) continue;
         // Pricing
-        let price = 8;
-        let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL), 'price');
-        if (competitorOrder.id) {
-            price = competitorOrder.price - 0.001;
-        } else if (latestMarketHistory(resourceType)) {
-            price = latestMarketHistory(resourceType)['avgPrice'] + 0.001;
+        let price = 5;
+        if (latestMarketHistory(resourceType)) {
+            price = latestMarketHistory(resourceType)['avgPrice'];
+        } else {
+            let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL), 'price');
+            if (competitorOrder.id) {
+                price = competitorOrder.price - 0.001;
+            }
         }
         let cost = price * sellAmount * 0.05;
         if (cost > Game.market.credits) sellAmount = _.round(Game.market.credits / (price * 0.05));
@@ -298,7 +308,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
     for (let mineral of shuffle(BASE_MINERALS)) {
         // Don't buy minerals you can mine
         if (Memory.harvestableMinerals && Memory.harvestableMinerals.includes(mineral)) continue;
-        let target = reactionAmount * 3;
+        let target = reactionAmount;
         let stored = getResourceTotal(mineral) + (getResourceTotal(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
         if (stored < target) {
             let buyAmount = target - stored;
@@ -464,6 +474,7 @@ function fillBuyOrders(terminal, globalOrders) {
                 else keepAmount = REACTION_AMOUNT * 0.5;
             } else if (BASE_COMMODITIES.includes(resourceType)) keepAmount = REACTION_AMOUNT * 0.5;
             else keepAmount = 0;
+            if (Game.market.credits < CREDIT_BUFFER) keepAmount = 0;
         }
         // Get amount
         let sellAmount = terminal.room.store(resourceType) - keepAmount;
@@ -723,19 +734,18 @@ function emergencyEnergy(terminal) {
 
 function dealFinder(terminal, globalOrders) {
     if (terminal.store.getFreeCapacity()) {
-        let sellOrder = _.min(globalOrders.filter(order => order.type === ORDER_SELL && latestMarketHistory(order.resourceType) && order.price <= latestMarketHistory(order.resourceType)['avgPrice'] * 0.7 &&
-            Game.market.calcTransactionCost(order.amount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY] * 0.5), 'price');
+        let sellOrder = _.min(globalOrders.filter(order => order.type === ORDER_SELL && latestMarketHistory(order.resourceType) && order.price <= latestMarketHistory(order.resourceType)['avgPrice'] * 0.5 &&
+            (!order.roomName || Game.market.calcTransactionCost(order.amount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY] * 0.5)), 'price');
         let buyAmount = sellOrder.amount;
-        if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.round(buyAmount * ((spendingMoney) / (sellOrder.price * buyAmount)));
+        if (sellOrder.price * buyAmount > spendingMoney * 0.1) buyAmount = _.round(buyAmount * ((spendingMoney * 0.1) / (sellOrder.price * buyAmount)));
         if (sellOrder.id && buyAmount >= 100) {
-            log.w("DEAL DEAL DEAL " + sellOrder.resourceType + " for " + sellOrder.price + " credits (DEAL FOUND!!) last seen at " + latestMarketHistory(sellOrder.resourceType)['avgPrice'], "Market: ");
-            /**
+            log.w("DEAL DEAL DEAL " + sellOrder.resourceType + " for " + sellOrder.price + " credits. Average sale price - " + latestMarketHistory(sellOrder.resourceType)['avgPrice'], "Market: ");
              if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
-                log.w("Bought " + buyAmount + sellOrder.resourceType + " for " + (sellOrder.price * buyAmount) + " credits (DEAL FOUND!!) in " + roomLink(terminal.room.name), "Market: ");
+                 log.w("Bought " + buyAmount + ' ' + sellOrder.resourceType + " for " + (sellOrder.price * buyAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
                 spendingMoney -= (sellOrder.price * buyAmount);
                 log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
                 return true;
-            }**/
+             }
         }
     }
     return false;

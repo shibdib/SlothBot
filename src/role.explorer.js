@@ -27,8 +27,9 @@ module.exports.role = function (creep) {
             }
             return creep.moveTo(portal);
         } else {
-            let adjacent = _.filter(_.map(Game.map.describeExits(creep.pos.roomName)), (r) => Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(creep.memory.overlord).status);
+            let adjacent = _.filter(_.map(Game.map.describeExits(creep.pos.roomName)), (r) => Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(creep.memory.overlord).status && !_.find(creep.room.myCreeps, (c) => c.memory.destination === r));
             // If there's unexplored prioritize else pick the oldest intel
+            if (!adjacent.length) adjacent = _.filter(_.map(Game.map.describeExits(creep.pos.roomName)), (r) => Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(creep.memory.overlord).status);
             let target = _.sample(_.filter(adjacent, (r) => !Memory.roomCache[r])) || _.min(adjacent, (r) => Memory.roomCache[r].cached);
             if (Math.random() > 0.9) target = _.sample(_.filter(adjacent));
             if (target) creep.memory.destination = target; else creep.idleFor(25);

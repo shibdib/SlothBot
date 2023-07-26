@@ -36,6 +36,7 @@ module.exports.role = function (creep) {
         } else if (creep.room.controller.reservation) {
             switch (creep.attackController(creep.room.controller)) {
                 case OK:
+                    creep.memory.other.stationary = true;
                     if (!creep.memory.signed) {
                         let signs = RESERVE_ROOM_SIGNS;
                         creep.signController(creep.room.controller, _.sample(signs));

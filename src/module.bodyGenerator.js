@@ -176,7 +176,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             // Neutral
             else if (work > (SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1) work = (SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
             carry = 1;
-            if (Memory.roomCache[creepInfo.destination].roadsBuilt) move = work / 2; else move = work;
+            if (Memory.roomCache[creepInfo.destination] && Memory.roomCache[creepInfo.destination].roadsBuilt) move = work / 2; else move = work;
             break;
         case 'remoteHauler':
             let workCost = BODYPART_COST[WORK];

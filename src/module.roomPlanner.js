@@ -138,7 +138,7 @@ function auxiliaryBuilding(room) {
 }
 
 function hubBuilder(room, hub, layout) {
-    if (room.controller.level >= 7) {
+    if (room.controller.level >= 5) {
         if (!room.memory.hubLink && hub.checkForAllStructure()[0] && hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) return room.memory.hubLink = hub.checkForAllStructure()[0].id;
         if (room.memory.hubLinkLocation) {
             let pos = new RoomPosition(room.memory.hubLinkLocation.x, room.memory.hubLinkLocation.y, room.name);
@@ -199,7 +199,7 @@ function controllerBuilder(room) {
         } else {
             room.memory.controllerContainer = controllerContainer.id;
         }
-    } else if (!room.memory.controllerLink && room.controller.level >= 5) {
+    } else if (!room.memory.controllerLink && room.controller.level >= 7) {
         let controllerLink = _.find(room.controller.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_LINK);
         if (!controllerLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
@@ -210,6 +210,8 @@ function controllerBuilder(room) {
                 position.createConstructionSite(STRUCTURE_LINK);
                 break;
             }
+        } else {
+            room.memory.controllerLink = controllerLink.id;
         }
     }
 }
@@ -441,7 +443,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
             for (let pos of buildPositions) {
                 if (cycles + inBuild >= 4) break;
                 let nearestSourceRange = pos.getRangeTo(pos.findClosestByRange(FIND_SOURCES));
-                if ((pos.isNearTo(room.controller) || pos.isNearTo(room.mineral) || pos.isNearTo(pos.findClosestByRange(FIND_SOURCES)))
+                if ((pos.checkForAllStructure()[0] || pos.isNearTo(room.controller) || pos.isNearTo(room.mineral) || nearestSourceRange <= 3)
                     && !pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) return cycles++;
                 // Handle tunnels
                 else if (pos.checkForWall()) {
@@ -453,8 +455,6 @@ function rampartBuilder(room, layout = undefined, count = false) {
                             }
                         }
                     }
-                } else if ((pos.checkForAllStructure()[0] || nearestSourceRange <= 3) && !pos.checkForBuiltWall() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
-                    return;
                 } else if (((isEven(pos.x) && isOdd(pos.y)) || (isOdd(pos.x) && isEven(pos.y))) && !pos.checkForBuiltWall() && !pos.checkForConstructionSites()) {
                     if (pos.checkForRampart() && !pos.checkForAllStructure()[0]) pos.checkForRampart().destroy();
                     if (pos.checkForRoad()) pos.checkForRoad().destroy();

@@ -28,6 +28,7 @@ module.exports.role = function (creep) {
     } else {
         if (creep.memory.destination && creep.memory.destination !== creep.room.name) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22});
         if (!creep.handleMilitaryCreep()) {
+            creep.room.cacheRoomIntel(true);
             creep.memory.operation = 'borderPatrol';
             creep.memory.destination = undefined;
             creep.findDefensivePosition(creep);

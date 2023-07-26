@@ -17,7 +17,7 @@ module.exports.cleanup = function () {
         cleanStructures();
     }
     if (Game.time % EST_TICKS_PER_DAY === 0) {
-        cleanRoomIntel();
+        //cleanRoomIntel();
     }
     if (Game.time % 5 === 0) {
         for (let name in Memory.creeps) {

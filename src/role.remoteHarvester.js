@@ -89,19 +89,16 @@ module.exports.role = function (creep) {
                     break;
                 case OK:
                     // Set the travel range in the source memory
-                    if (!creep.memory.carryAmountUpdate) {
-                        if (!source.memory.travelRange || Math.random() > 0.5) {
-                            let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
-                            let homeExit = creep.room.find(goHome);
-                            let homeMiddle = _.round(homeExit.length / 2);
-                            let distanceToExit = source.pos.getRangeTo(homeExit[homeMiddle]);
-                            let roomRange = Game.map.findRoute(creep.room.name, creep.memory.overlord).length;
-                            let total = distanceToExit;
-                            if (roomRange > 1) total += (roomRange * 30);
-                            source.memory.travelRange = total;
-                        }
-                        creep.memory.carryAmountUpdate = true;
-                        source.memory.carryAmountNeeded = _.round((source.memory.travelRange * 1.5) * (creep.getActiveBodyparts(WORK) * HARVEST_POWER));
+                    if (!creep.memory.setSourceAmount) {
+                        let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
+                        let homeExit = creep.room.find(goHome);
+                        let homeMiddle = _.round(homeExit.length / 2);
+                        let distanceToExit = source.pos.getRangeTo(homeExit[homeMiddle]);
+                        let roomRange = Game.map.findRoute(creep.room.name, creep.memory.overlord).length;
+                        let travelRange = distanceToExit * 2;
+                        if (roomRange > 1) travelRange += (roomRange * 30);
+                        source.memory.carryAmountNeeded = _.round(travelRange * (creep.getActiveBodyparts(WORK) * HARVEST_POWER));
+                        creep.memory.setSourceAmount = true;
                     }
                     if (!creep.memory.containerID || !Game.getObjectById(creep.memory.containerID)) {
                         creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);

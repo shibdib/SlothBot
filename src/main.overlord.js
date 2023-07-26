@@ -128,6 +128,11 @@ module.exports.overlordMind = function (room, CPULimit) {
 
 let errorCount = {};
 function minionController(minion) {
+    // Disable notifications
+    if (!minion.memory.notifyDisabled) {
+        minion.notifyWhenAttacked(false);
+        minion.memory.notifyDisabled = true;
+    }
     // Set last managed tick
     minion.memory.lastManaged = Game.time;
     // Handle idle

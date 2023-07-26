@@ -159,7 +159,7 @@ function harvestDepositLink(creep) {
             for (let key in zoneTerrain) {
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, creep.room.name);
                 if (source.memory.badLink && JSON.parse(source.memory.badLink).x === position.x && JSON.parse(source.memory.badLink).y === position.y) continue;
-                if (position.checkForAllStructure().length > 0 || position.getRangeTo(creep.room.controller) < 3) continue;
+                if (position.checkForAllStructure().length || position.getRangeTo(creep.room.controller) < 3) continue;
                 if (position.createConstructionSite(STRUCTURE_LINK) === OK) return creep.memory.linkTest = true;
             }
         }
@@ -222,7 +222,7 @@ function extensionBuilder(creep) {
                 if (xOff !== 0 || yOff !== 0) {
                     let pos = new RoomPosition(container.x + xOff, container.y + yOff, container.roomName);
                     if (pos.checkForWall() || pos.checkForConstructionSites() || pos.checkForObstacleStructure()
-                        || pos.isExit() || pos.isNearTo(creep.room.controller) || (!source.memory.dominant && pos.getRangeTo(otherSource) <= 2)) continue;
+                        || pos.isExit() || pos.isNearTo(creep.room.controller) || (!source.memory.dominant && pos.getRangeTo(otherSource) <= 2) || pos.checkForRoad()) continue;
                     count++;
                     if ((!creep.memory.linkID && count < 3) || (creep.memory.linkID && count < 2)) continue;
                     pos.createConstructionSite(STRUCTURE_EXTENSION)
