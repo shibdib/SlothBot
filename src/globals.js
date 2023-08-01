@@ -134,14 +134,14 @@ let globals = function () {
         remoteUpgrader: 7,
         roadBuilder: 7,
         fuelTruck: 8,
-        reserver: 4,
+        reserver: 5,
         // Military
         defender: 2,
         priority: 3,
         urgent: 4,
         high: 5,
         medium: 6,
-        secondary: 7
+        secondary: 9
     };
 
     global.SPAWN = {

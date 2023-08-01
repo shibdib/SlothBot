@@ -973,7 +973,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                     break;
             }
             for (let boost of BOOST_USE[boostType]) {
-                if (this.room.store(boost) >= boostNeeded) {
+                if (boostNeeded && this.room.store(boost) >= boostNeeded) {
                     available[boost] = {
                         'boost': boost,
                         'amount': boostNeeded
@@ -985,6 +985,8 @@ Creep.prototype.tryToBoost = function (boosts) {
         this.memory.boosts.requestedBoosts = available;
     } else if (_.size(this.memory.boosts.requestedBoosts)) {
         for (let requestedBoost of Object.keys(this.memory.boosts.requestedBoosts)) {
+            // 0 check
+            if (!this.memory.boosts.requestedBoosts[requestedBoost]['amount']) return false;
             // Check if boost is low, if so restart
             let boostInRoom = this.room.store(requestedBoost);
             if (boostInRoom < this.memory.boosts.requestedBoosts[requestedBoost]['amount']) {

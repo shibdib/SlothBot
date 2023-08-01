@@ -37,14 +37,16 @@ module.exports.loop = function () {
     // Handle auto placing a spawn
     if (!running) {
         let ownedRoom = _.find(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my);
-        let spawn = _.find(ownedRoom.structures, (s) => s.structureType === STRUCTURE_SPAWN);
-        if (ownedRoom && !spawn) {
+        let spawn = _.find(Game.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
+        let creep = _.find(Game.creeps, (s) => s.my);
+        if (ownedRoom && !spawn && !creep) {
             if (!memWipe) {
                 resetMemory();
                 memWipe = true;
                 return;
             }
             require('module.roomPlanner').buildRoom(ownedRoom);
+            return;
         } else if (spawn) running = true;
         return;
     }

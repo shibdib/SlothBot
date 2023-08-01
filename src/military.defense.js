@@ -29,7 +29,7 @@ module.exports.controller = function (room) {
     }
 
     // Check if you should safemode
-    if (Memory.roomCache[room.name].threatLevel > 2 || room.controller.safemode) safeModeManager(room);
+    if (Memory.roomCache[room.name].threatLevel > 2 || room.controller.safeMode) safeModeManager(room);
 
     // Tower control
     //let woundedCreep = _.find(room.friendlyCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)) || _.find(room.powerCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
@@ -105,11 +105,12 @@ function safeModeManager(room) {
     // Ensure camping enemies continue to gain threat even if no creeps present.
     addThreat(room);
     // Handle an active safemode
-    if (room.controller.safemode) {
+    if (room.controller.safeMode) {
+        room.memory.defenseCooldown = undefined;
         // Setup guards for when the safemode ends
-        if (room.controller.safemode < 750) {
-            let endingTick = Game.time + room.controller.safemode;
-            room.memory.defenseCooldown = endingTick + 2500;
+        if (room.controller.safeMode < 750) {
+            let endingTick = Game.time + room.controller.safeMode;
+            room.memory.defenseCooldown = endingTick + CREEP_LIFE_TIME;
         }
     } else {
         let armedHostiles = _.filter(room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK) || c.hasActiveBodyparts(CLAIM));
@@ -155,10 +156,10 @@ function earlyWarning(room) {
 function unSavableCheck(room) {
     let badCount = room.memory.badCount || 0;
     let worthwhileStructure = _.find(room.structures, (s) => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType)) || _.find(room.myCreeps, (c) => c.memory.role === 'drone');
-    if (Memory.roomCache[room.name].threatLevel > 2 && _.size(Memory.myRooms) !== 1 && !room.controller.safeMode && !room.controller.safeModeAvailable) {
+    if (Memory.roomCache[room.name].threatLevel > 2 && _.size(Memory.myRooms) !== 1 && !room.controller.safeMode) {
         let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)));
         // If hostiles add a badCount
-        if (hostiles.length && room.energy < ENERGY_AMOUNT[room.level] * 0.025 && _.size(Memory.myRooms) === Game.gcl.level) room.memory.badCount += 1;
+        if (hostiles.length) room.memory.badCount += 1;
         // If all worthwhile structures are gone add badCount
         if (!worthwhileStructure) room.memory.badCount += 0.5;
         // If badCount is high enough abandon
@@ -166,7 +167,7 @@ function unSavableCheck(room) {
             abandonOverrun(room);
             room.memory = {};
             room.cacheRoomIntel(true);
-            Memory.roomCache[room.name].noClaim = Game.time;
+            Memory.roomCache[room.name].noClaim = Game.time + 10000;
             log.a(roomLink(room.name) + ' has been abandoned.');
             Game.notify(room.name + ' has been abandoned.');
         } else if (badCount < room.memory.badCount) {
@@ -222,7 +223,7 @@ abandonOverrun = function (room) {
     noClaim.push(room.name);
     delete room.memory;
     room.cacheRoomIntel(true);
-    Memory.roomCache[room.name].noClaim = Game.time;
+    Memory.roomCache[room.name].noClaim = Game.time + 10000;
     room.controller.unclaim();
 };
 

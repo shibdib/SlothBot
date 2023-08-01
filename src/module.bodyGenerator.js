@@ -57,6 +57,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             }
         case 'powerManager':
         case 'labTech':
+            carry = 4;
+            move = 4;
+            break;
         case 'hauler':
         case 'shuttle':
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
@@ -112,7 +115,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
                 attack = 1;
                 move = 1;
             } else {
-                if (Math.random() > 0.49 || level < 5) attack = _.floor((energyAmount * 0.45) / BODYPART_COST[ATTACK]) || 1; else rangedAttack = _.floor((energyAmount * 0.45) / BODYPART_COST[RANGED_ATTACK]) || 1;
+                if (Math.random() > 0.25 || level < 5) attack = _.floor((energyAmount * 0.45) / BODYPART_COST[ATTACK]) || 1; else rangedAttack = _.floor((energyAmount * 0.45) / BODYPART_COST[RANGED_ATTACK]) || 1;
                 if (attack > 32) attack = 32; else if (rangedAttack > 32) rangedAttack = 32;
                 move = (attack + rangedAttack) * 0.5;
             }
@@ -194,7 +197,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             // Work parts after level 3
             if (room.level >= 4) work = 1; else work = 0;
             // Set move
-            if (Memory.roomCache[creepInfo.destination].roadsBuilt) move = carry + work / 2; else move = carry + work;
+            if (Memory.roomCache[creepInfo.destination] && Memory.roomCache[creepInfo.destination].roadsBuilt) move = carry + work / 2; else move = carry + work;
             break;
         case 'SKMineral':
         case 'commodityMiner':

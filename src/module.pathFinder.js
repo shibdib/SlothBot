@@ -7,7 +7,7 @@
 let tools = require('tools.cpuTracker');
 
 const DEFAULT_MAXOPS = 500;
-const STATE_STUCK = 3;
+const STATE_STUCK = 2;
 const FLEE_RANGE = 4;
 
 const terrainMatrixCache = {};
@@ -175,7 +175,7 @@ function executePath(creep, pathInfo, options, origin, heading) {
         pathInfo.newPos = positionAtDirection(origin, nextDirection);
         if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName) {
             // Handle tunneling thru walls/ramps
-            if (pathInfo.newPos.checkForBarrierStructure() && (!Memory.roomCache[pathInfo.newPos.roomName].owner || !FRIENDLIES.includes(Memory.roomCache[pathInfo.newPos.roomName].owner))) {
+            if (pathInfo.newPos.checkForBarrierStructure() && (!Memory.roomCache[pathInfo.newPos.roomName] || !Memory.roomCache[pathInfo.newPos.roomName].owner || !FRIENDLIES.includes(Memory.roomCache[pathInfo.newPos.roomName].owner))) {
                 if ((options.tunnel || creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(WORK)) && pathInfo.path) {
                     let barrier = pathInfo.newPos.checkForBarrierStructure();
                     if (creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(WORK)) {
@@ -304,6 +304,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         });
         if (ret.incomplete) {
             if (!creep.memory.badPathing && roomDistance) {
+                options.maxOps = DEFAULT_MAXOPS * (roomDistance + 5);
                 creep.memory.badPathing = 1;
                 if (origin.roomName !== target.roomName) {
                     deleteRoute(origin.roomName, target.roomName);
@@ -463,7 +464,7 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
 //FUNCTIONS
 function creepBumping(creep, pathInfo, options) {
     if (!pathInfo.newPos) return creep.moveRandom();
-    let bumpCreep = _.find(creep.room.creeps, (c) => c.memory && !c.memory.other.stationary && !c.memory.trailer && (!c.memory.other.noBump || Math.random() > 0.9) && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y);
+    let bumpCreep = _.find(creep.room.myCreeps, (c) => !c.fatigue && !c.memory.other.stationary && !c.memory.willNeedTow && !c.memory.trailer && (!c.memory.other.noBump || Math.random() > 0.95) && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y);
     if (bumpCreep) {
         if (!creep.memory.trailer) {
             if (bumpCreep.hasActiveBodyparts(MOVE)) {

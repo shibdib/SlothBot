@@ -57,6 +57,11 @@ module.exports.role = function (creep) {
             let container = Game.getObjectById(creep.memory.containerID);
             //Make sure you're on the container
             if (container || Game.getObjectById(creep.memory.source).memory.containerPos) {
+                // Check for edge case where you cant reach container because of extensions
+                if (container && !container.pos.countOpenTerrainAround()) {
+                    let extension = container.pos.findInRange(FIND_MY_STRUCTURES, 1, (s) => s.structureType === STRUCTURE_EXTENSION)[0];
+                    if (extension) extension.destroy();
+                }
                 let spot = container || new RoomPosition(JSON.parse(Game.getObjectById(creep.memory.source).memory.containerPos).x, JSON.parse(Game.getObjectById(creep.memory.source).memory.containerPos).y, creep.room.name);
                 if (spot && creep.pos.getRangeTo(spot)) {
                     return creep.shibMove(spot, {range: 0});

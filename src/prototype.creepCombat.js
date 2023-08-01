@@ -597,7 +597,7 @@ Creep.prototype.fleeHome = function (force = false) {
 };
 
 Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
-    if ((!this.room.hostileCreeps.length && !Memory.roomCache[this.room.name].towers) || this.room.name === this.memory.overlord) return true;
+    if ((!this.room.hostileCreeps.length && (!Memory.roomCache[this.room.name] || !Memory.roomCache[this.room.name].towers)) || this.room.name === this.memory.overlord) return true;
     // Check cache and refresh every 3 ticks
     if (this.memory.winCache && this.memory.winCache.room === this.room.name && this.memory.winCache.tick + 3 > Game.time) return this.memory.winCache.result;
     let hostilePower = 0;

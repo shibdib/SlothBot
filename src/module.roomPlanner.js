@@ -8,34 +8,25 @@
 /**
  * Created by rober on 5/16/2017.
  */
-let layouts = require('module.roomLayouts');
 let minCut = require('util.minCut');
-let storedLayouts = {};
 let rampartSpots = {};
 let tickTracker = {};
 
 module.exports.buildRoom = function (room) {
     let lastRun = tickTracker[room.name] || {};
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
-        if (room.memory.bunkerHub.layoutVersion === LAYOUT_VERSION && storedLayouts[room.name]) {
-            let cooldown = 50;
-            if (room.level < room.controller.level) cooldown = 25;
-            if (((lastRun.layout || 0) + cooldown < Game.time || (Math.random() > 0.75 && room.level < room.controller.level)) || !lastRun.layout) {
-                buildFromLayout(room);
-                lastRun.layout = Game.time + _.random(10, 100);
-                tickTracker[room.name] = lastRun;
-            } else if (room.level === room.controller.level && (((lastRun.auxiliary || 0) + cooldown < Game.time) || !lastRun.auxiliary)) {
-                auxiliaryBuilding(room)
-                lastRun.auxiliary = Game.time + _.random(10, 100);
-                tickTracker[room.name] = lastRun;
-            }
-        } else {
-            storedLayouts[room.name] = undefined;
-            updateLayout(room);
+        let cooldown = 50;
+        if (room.level < room.controller.level) cooldown = 25;
+        if (((lastRun.layout || 0) + cooldown < Game.time || (Math.random() > 0.75 && room.level < room.controller.level)) || !lastRun.layout) {
+            buildFromLayout(room);
+            lastRun.layout = Game.time + _.random(10, 100);
+            tickTracker[room.name] = lastRun;
+        } else if (room.level === room.controller.level && (((lastRun.auxiliary || 0) + cooldown < Game.time) || !lastRun.auxiliary)) {
+            auxiliaryBuilding(room)
+            lastRun.auxiliary = Game.time + _.random(10, 100);
             tickTracker[room.name] = lastRun;
         }
     } else {
-        storedLayouts[room.name] = undefined;
         findHub(room);
         lastRun.layout = Game.time + _.random(10, 250);
         lastRun.auxiliary = Game.time + _.random(10, 250);
@@ -45,7 +36,7 @@ module.exports.buildRoom = function (room) {
 
 function buildFromLayout(room) {
     let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-    let layout = JSON.parse(storedLayouts[room.name]);
+    let layout = bunkerTemplate;
     let filter = [];
     // Handle a rebuild
     let builtSpawn = _.find(room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
@@ -62,9 +53,9 @@ function buildFromLayout(room) {
             else if (room.controller.level === 8) {
                 filter = _.filter(countCheck, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
             } else if (room.controller.level === 6 || room.controller.level === 7) {
-                filter = _.filter(countCheck, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
+                filter = _.filter(countCheck, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_RAMPART);
             } else if (room.controller.level < 6 && room.controller.level >= 3) {
-                filter = _.filter(countCheck, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_LAB);
+                filter = _.filter(countCheck, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_LAB);
             } else if (!initialSpawn) {
                 filter = _.filter(countCheck, (s) => s.structureType === STRUCTURE_SPAWN);
             }
@@ -76,33 +67,15 @@ function buildFromLayout(room) {
         for (let structure of filter) {
             // Check if already at count
             if (CONTROLLER_STRUCTURES[structure.structureType][room.controller.level] <= (_.filter(room.structures, (s) => s.structureType === structure.structureType).length + _.filter(room.constructionSites, (s) => s.structureType === structure.structureType).length)) continue;
-            let pos = new RoomPosition(structure.x, structure.y, room.name);
-            if (room.controller.level !== room.level && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER && structure.structureType !== STRUCTURE_TERMINAL)) continue;
-            if (room.controller.level === room.level && structure.structureType === STRUCTURE_EXTENSION) continue;
-            if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
-                if (pos.createConstructionSite(structure.structureType) === OK) {
-                    built = true;
-                    count++;
-                    if (count >= 3) break;
-                }
-            }
-        }
-    }
-    // Handle special buildings
-    if (!built && room.controller.level >= 7 && room.controller.level === room.level) {
-        let factory = room.factory || _.find(room.constructionSites, (s) => s.structureType === STRUCTURE_FACTORY);
-        let power = _.find(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN) || _.find(room.constructionSites, (s) => s.structureType === STRUCTURE_POWER_SPAWN);
-        let nuker = _.find(room.structures, (s) => s.structureType === STRUCTURE_NUKER) || _.find(room.constructionSites, (s) => s.structureType === STRUCTURE_NUKER);
-        if (!factory || !power || !nuker) {
-            let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_EXTENSION);
-            let buildThis = STRUCTURE_FACTORY;
-            if (room.controller.level === 8 && !power) buildThis = STRUCTURE_POWER_SPAWN; else if (room.controller.level === 8 && !nuker) buildThis = STRUCTURE_NUKER;
-            for (let structure of shuffle(filter)) {
-                let pos = new RoomPosition(structure.x, structure.y, room.name);
+            for (let buildPos of structure.pos) {
+                let pos = new RoomPosition(hub.x + buildPos.x, hub.y + buildPos.y, room.name);
+                // Build important stuff first
+                if (room.controller.level !== room.level && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER && structure.structureType !== STRUCTURE_TERMINAL)) continue;
                 if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
-                    if (pos.createConstructionSite(buildThis) === OK) {
+                    if (pos.createConstructionSite(structure.structureType) === OK) {
                         built = true;
-                        break;
+                        count++;
+                        if (count >= 3) break;
                     }
                 }
             }
@@ -112,9 +85,9 @@ function buildFromLayout(room) {
 
 function auxiliaryBuilding(room) {
     let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-    let layout = JSON.parse(storedLayouts[room.name]);
+    let layout = bunkerTemplate;
     // Hub
-    hubBuilder(room, hub, layout);
+    hubLink(room, hub);
     // Bunker Ramparts
     rampartBuilder(room, layout);
     // Controller
@@ -137,46 +110,16 @@ function auxiliaryBuilding(room) {
     if (badStructure.length) badStructure.forEach((s) => s.destroy());
 }
 
-function hubBuilder(room, hub, layout) {
-    if (room.controller.level >= 5) {
-        if (!room.memory.hubLink && hub.checkForAllStructure()[0] && hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) return room.memory.hubLink = hub.checkForAllStructure()[0].id;
-        if (room.memory.hubLinkLocation) {
-            let pos = new RoomPosition(room.memory.hubLinkLocation.x, room.memory.hubLinkLocation.y, room.name);
-            if (pos.checkForAllStructure()[0]) {
-                if (pos.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = pos.checkForAllStructure()[0].id;
-                if (pos.checkForAllStructure()[0].structureType === STRUCTURE_LINK && !pos.checkForAllStructure()[0].isActive()) room.memory.hubLink = undefined;
-            } else if (!pos.checkForConstructionSites()) pos.createConstructionSite(STRUCTURE_LINK);
-        } else {
-            if (hub.checkForAllStructure()[0]) {
-                if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = hub.checkForAllStructure()[0].id;
-                if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK && !hub.checkForAllStructure()[0].isActive()) room.memory.hubLink = undefined;
-                if (hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) hub.checkForAllStructure()[0].destroy();
-                if (hub.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER && hub.checkForAllStructure()[0].structureType !== STRUCTURE_LINK && hub.checkForAllStructure()[0].structureType !== STRUCTURE_ROAD) {
-                    let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_EXTENSION);
-                    for (let structure of shuffle(filter)) {
-                        let pos = new RoomPosition(structure.x, structure.y, room.name);
-                        if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
-                            if (room.controller.level >= 7 && pos.createConstructionSite(STRUCTURE_LINK) === OK) {
-                                room.memory.hubLinkLocation = {x: pos.x, y: pos.y};
-                                break;
-                            }
-                        }
-                    }
-                }
-            } else if (!hub.checkForConstructionSites()) {
-                room.memory.hubLinkLocation = {x: hub.x, y: hub.y};
+function hubLink(room, hub) {
+    if (room.controller.level >= 5 && (!room.memory.hubLink || !Game.getObjectById(room.memory.hubLink))) {
+        let hubLinkPos = new RoomPosition(hub.x, hub.y - 1, room.name);
+        if (hubLinkPos.checkForAllStructure()[0]) {
+            let hubLink = hubLinkPos.checkForAllStructure()[0];
+            if (hubLink.structureType === STRUCTURE_LINK) {
+                room.memory.hubLink = hubLink.id;
+                return true;
             }
         }
-    } else if (!room.memory.storageContainer && room.controller.level === 3) {
-        let storagePos = _.filter(layout, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-        storagePos = new RoomPosition(storagePos.x, storagePos.y, room.name);
-        if (storagePos.checkForAllStructure()[0]) {
-            if (storagePos.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER) storagePos.checkForAllStructure()[0].destroy();
-            else if (storagePos.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) room.memory.storageContainer = storagePos.checkForAllStructure()[0].id;
-        } else storagePos.createConstructionSite(STRUCTURE_CONTAINER);
-    } else if (room.controller.level >= 4 && room.memory.storageContainer) {
-        Game.getObjectById(room.memory.storageContainer).destroy();
-        room.memory.storageContainer = undefined;
     }
 }
 
@@ -357,22 +300,23 @@ function roadBuilder(room, layout) {
 
 let towerPos;
 function rampartBuilder(room, layout = undefined, count = false) {
+    let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
     // Protected Structures
     _.filter(room.structures, (s) => protectedStructureTypes.includes(s.structureType) && !s.pos.checkForRampart() && !s.pos.checkForConstructionSites() && ([STRUCTURE_SPAWN, STRUCTURE_TOWER].includes(s.structureType))).forEach((s) => s.pos.createConstructionSite(STRUCTURE_RAMPART));
     // Handle rampart bunker placement
     if (!rampartSpots[room.name] || Math.random() > 0.98) {
-        // Delete old memory
-        room.memory.rampartSpots = undefined;
         rampartSpots[room.name] = undefined;
         let rect_array = [];
         // structures
         for (let structure of layout) {
-            rect_array.push({
-                x1: structure.x - 2,
-                y1: structure.y - 2,
-                x2: structure.x + 2,
-                y2: structure.y + 2
-            });
+            for (let buildPos of structure.pos) {
+                rect_array.push({
+                    x1: (buildPos.x + hub.x) - 1,
+                    y1: (buildPos.y + hub.y) - 1,
+                    x2: (buildPos.x + hub.x) + 1,
+                    y2: (buildPos.y + hub.y) + 1
+                });
+            }
         }
         // Controller
         if (PROTECT_CONTROLLER) {
@@ -402,16 +346,6 @@ function rampartBuilder(room, layout = undefined, count = false) {
                 y2: room.mineral.pos.y + 1
             });
         }
-        /**
-         // Seasonal
-         if (room.decoder) {
-            rect_array.push({
-                x1: room.decoder.pos.x - 1,
-                y1: room.decoder.pos.y - 1,
-                x2: room.decoder.pos.x + 1,
-                y2: room.decoder.pos.y + 1
-            });
-        }**/
         let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
         // Clean up boundaries
         for (let key in rect_array) {
@@ -482,7 +416,7 @@ module.exports.hubCheck = function (room) {
     return findHub(room, true)
 };
 
-let storedX, storedY, storedPossibles;
+let storedPos, storedPossibles;
 function findHub(room, hubCheck = undefined) {
     if (room.controller.owner && room.controller.owner.username === MY_USERNAME && room.memory.bunkerHub && room.memory.bunkerHub.x) return buildFromLayout(room);
     if (room.structures.length) _.filter(room.structures, (s) => !s.owner || s.owner.username !== MY_USERNAME).forEach((s) => s.destroy());
@@ -492,78 +426,20 @@ function findHub(room, hubCheck = undefined) {
     // If we already have a spawn in room, go off of that
     let spawn = _.find(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
     if (spawn) {
-        layouts:
-            for (let buildTemplate of shuffle(layouts.layoutArray)) {
-                layout = [];
-                layoutVersion = buildTemplate[0]['layout'];
-                let spawnPos = _.filter(buildTemplate, (s) => s.type === STRUCTURE_SPAWN);
-                if (!spawnPos[0]) continue; else spawnPos = spawnPos[0].pos[0];
-                let yVar, xVar;
-                if (layoutVersion === 1) {
-                    yVar = 16;
-                    xVar = 15;
-                } else {
-                    yVar = 25;
-                    xVar = 25;
-                }
-                xOffset = difference(spawnPos.x, xVar);
-                if (spawnPos.x > xVar) xOffset *= -1;
-                yOffset = difference(spawnPos.y, yVar);
-                if (spawnPos.y > yVar) yOffset *= -1;
-                pos = new RoomPosition(spawn.pos.x + xOffset, spawn.pos.y + yOffset, room.name);
-                xOffset = difference(pos.x, xVar);
-                if (pos.x < xVar) xOffset *= -1;
-                yOffset = difference(pos.y, yVar);
-                if (pos.y < yVar) yOffset *= -1;
-                for (let type of buildTemplate) {
-                    for (let s of type.pos) {
-                        let structure = {};
-                        structure.structureType = type.type;
-                        structure.x = s.x + xOffset;
-                        structure.y = s.y + yOffset;
-                        if (structure.x > 48 || structure.x < 2 || structure.y > 48 || structure.y < 2) continue layouts;
-                        let structurePos = new RoomPosition(structure.x, structure.y, room.name);
-                        if (type.type !== STRUCTURE_RAMPART && (structurePos.checkIfOutOfBounds() || pos.isNearTo(room.controller) || pos.isNearTo(pos.findClosestByRange(FIND_SOURCES)) || structurePos.checkForWall())) {
-                            layout = [];
-                            continue layouts;
-                        }
-                        layout.push(structure);
-                    }
-                }
-                let barrierCount = rampartBuilder(room, layout, true);
-                if (barrierCount) {
-                    possiblePos[posCount++] = {
-                        x: pos.x,
-                        y: pos.y,
-                        version: layoutVersion,
-                        layout: layout,
-                        barrierCount: barrierCount
-                    };
-                }
-            }
-        if (_.size(possiblePos) && _.min(possiblePos, 'barrierCount').x && _.min(possiblePos, 'barrierCount').y) {
-            log.a('Bunker Hub search complete for ' + room.name + '...');
-            log.a('Final possible count: ' + _.size(possiblePos));
-            let best = _.min(possiblePos, 'barrierCount');
-            room.memory.bunkerHub = {};
-            room.memory.bunkerHub.x = best.x;
-            room.memory.bunkerHub.y = best.y;
-            room.memory.hubSearch = undefined;
-            storedLayouts[room.name] = JSON.stringify(best.layout);
-            room.memory.bunkerHub.layoutVersion = LAYOUT_VERSION;
-            room.memory.bunkerHub.bunkerVersion = best.version;
-            return true;
-        } else {
-            return false;
-        }
+        room.memory.bunkerHub = {};
+        room.memory.bunkerHub.x = spawn.x;
+        room.memory.bunkerHub.y = spawn.y - 1;
+        buildFromLayout(room);
     } else {
+        if (!storedPos) storedPos = {};
+        if (!storedPos[room.name]) storedPos[room.name] = {};
         // Start search at 10,10 and work our way out
-        let x = storedX || 9;
-        let y = storedY || 10;
+        let x = storedPos[room.name].x || 9;
+        let y = storedPos[room.name].y || 10;
         let complete;
         // Loop runs until all possible positions have been checked
         primary:
-            for (let i = 1; i < 10;) {
+            for (let i = 1; i < 250;) {
                 // Mechanic to cycle through all possible positions
                 x++;
                 if (x > 40 && y >= 40) {
@@ -573,79 +449,55 @@ function findHub(room, hubCheck = undefined) {
                     x = 10;
                     y++;
                 }
-                storedX = x;
-                storedY = y;
+                storedPos[room.name].x = x;
+                storedPos[room.name].y = y;
                 pos = new RoomPosition(x, y, room.name);
                 if (pos.checkForImpassible()) continue;
-                // Cycle through all possible layouts
-                for (let buildTemplate of shuffle(layouts.layoutArray)) {
-                    let layoutVersion = buildTemplate[0]['layout'];
-                    let yVar, xVar;
-                    if (layoutVersion === 1) {
-                        yVar = 16;
-                        xVar = 15;
-                    } else {
-                        yVar = 25;
-                        xVar = 25;
-                    }
-                    xOffset = difference(pos.x, xVar);
-                    if (pos.x < xVar) xOffset *= -1;
-                    yOffset = difference(pos.y, yVar);
-                    if (pos.y < yVar) yOffset *= -1;
-                    let controller = room.controller;
-                    let closestSource = pos.findClosestByRange(FIND_SOURCES);
-                    layout = [];
-                    for (let type of buildTemplate) {
-                        for (let s of type.pos) {
-                            let structure = {};
-                            structure.structureType = type.type;
-                            structure.x = s.x + xOffset;
-                            structure.y = s.y + yOffset;
-                            if (structure.x > 49 || structure.x < 1 || structure.y > 49 || structure.y < 1) continue primary;
-                            let structurePos = new RoomPosition(structure.x, structure.y, room.name);
-                            if (type.type !== STRUCTURE_RAMPART && (structurePos.checkIfOutOfBounds() || pos.isNearTo(controller) || pos.isNearTo(closestSource) || structurePos.checkForWall())) {
-                                continue primary;
-                            }
-                            layout.push(structure);
-                        }
-                        let barrierCount = rampartBuilder(room, layout, true);
-                        if (barrierCount) {
-                            if (hubCheck) return true;
-                            possiblePos[posCount++] = {
-                                x: pos.x,
-                                y: pos.y,
-                                version: layoutVersion,
-                                layout: JSON.stringify(layout),
-                                barrierCount: barrierCount
-                            };
+                // Cycle through buildings to make sure the hub fits
+                for (let type of bunkerTemplate) {
+                    for (let s of type.pos) {
+                        let structure = {};
+                        structure.x = x + s.x;
+                        structure.y = y + s.y;
+                        if (structure.x > 49 || structure.x < 1 || structure.y > 49 || structure.y < 1) continue primary;
+                        let structurePos = new RoomPosition(structure.x, structure.y, room.name);
+                        let closestSource = structurePos.findClosestByRange(FIND_SOURCES);
+                        if (type.structureType !== STRUCTURE_RAMPART && (structurePos.checkIfOutOfBounds() || structurePos.isNearTo(room.controller) || structurePos.isNearTo(closestSource) || structurePos.checkForImpassible())) {
+                            continue primary;
                         }
                     }
-                    storedPossibles = possiblePos;
-                    if (!hubCheck) i++;
                 }
+                if (hubCheck) return true;
+                possiblePos[posCount++] = {
+                    x: pos.x,
+                    y: pos.y,
+                };
+                storedPossibles = possiblePos;
+                i++;
             }
-        if (complete && _.size(storedPossibles) && _.min(storedPossibles, 'barrierCount').x && _.min(storedPossibles, 'barrierCount').y) {
+        if (complete && _.size(storedPossibles)) {
             log.a('Bunker Hub search complete for ' + room.name + '...');
             log.a('Final possible count: ' + _.size(storedPossibles));
-            let best = _.min(storedPossibles, 'barrierCount');
+            let choice = _.sample(storedPossibles);
             room.memory.bunkerHub = {};
-            room.memory.bunkerHub.x = best.x;
-            room.memory.bunkerHub.y = best.y;
-            room.memory.hubSearch = undefined;
-            storedLayouts[room.name] = best.layout;
-            room.memory.bunkerHub.layoutVersion = LAYOUT_VERSION;
-            room.memory.bunkerHub.bunkerVersion = best.version;
+            room.memory.bunkerHub.x = choice.x;
+            room.memory.bunkerHub.y = choice.y;
             buildFromLayout(room);
+            storedPos[room.name] = undefined;
+            storedPossibles = undefined;
             return true;
         } else if (!complete) {
             log.a('Bunker Hub search incomplete for ' + room.name + ', continuing next tick.');
-            log.a('Current position: ' + storedX + ',' + storedY);
+            log.a('Current position: ' + storedPos[room.name].x + ',' + storedPos[room.name].y);
             log.a('Current possible count: ' + _.size(storedPossibles));
         } else if (complete && !_.size(storedPossibles)) {
+            if (hubCheck) return false;
             abandonRoom(room.name);
+            storedPos[room.name] = undefined;
+            storedPossibles = undefined;
             room.memory = {};
             if (Memory.auxiliaryTargets && Memory.auxiliaryTargets[room.name]) delete Memory.auxiliaryTargets[room.name];
-            if (Memory.roomCache && Memory.roomCache[room.name]) Memory.roomCache[room.name].noClaim = true;
+            if (Memory.roomCache && Memory.roomCache[room.name]) Memory.roomCache[room.name].noClaim = 10000;
             return log.a(room.name + ' has been abandoned due to being unable to find a suitable layout.');
         }
     }
@@ -753,42 +605,6 @@ function praiseRoom(room) {
     }
 }
 
-function updateLayout(room) {
-    let buildTemplate;
-    let layoutVersion = room.memory.bunkerHub.bunkerVersion;
-    for (let i = 0; i < layouts.allLayouts.length; i++) {
-        if (layouts.allLayouts[i][0]['layout'] === layoutVersion) {
-            buildTemplate = layouts.allLayouts[i];
-            break;
-        }
-    }
-    let pos = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-    let yVar, xVar, xOffset, yOffset;
-    if (layoutVersion === 1) {
-        yVar = 16;
-        xVar = 15;
-    } else {
-        yVar = 25;
-        xVar = 25;
-    }
-    xOffset = difference(pos.x, xVar);
-    if (pos.x < xVar) xOffset *= -1;
-    yOffset = difference(pos.y, yVar);
-    if (pos.y < yVar) yOffset *= -1;
-    let layout = [];
-    for (let type of buildTemplate) {
-        for (let s of type.pos) {
-            let structure = {};
-            structure.structureType = type.type;
-            structure.x = s.x + xOffset;
-            structure.y = s.y + yOffset;
-            layout.push(structure);
-        }
-    }
-    room.memory.bunkerHub.layoutVersion = LAYOUT_VERSION;
-    storedLayouts[room.name] = JSON.stringify(layout);
-}
-
 function abandonRoom(room) {
     Game.rooms[room].cacheRoomIntel(true);
     let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
@@ -806,7 +622,7 @@ function abandonRoom(room) {
     let noClaim = Memory.noClaim || [];
     noClaim.push(room);
     delete Game.rooms[room].memory;
-    Memory.roomCache[room.name].noClaim = Game.time;
+    Memory.roomCache[room].noClaim = Game.time + 10000;
     Game.rooms[room].controller.unclaim();
 }
 
@@ -960,3 +776,99 @@ let protectedStructureTypes = [
     STRUCTURE_OBSERVER,
     STRUCTURE_EXTENSION
 ];
+
+let bunkerTemplate = [
+    {
+        "structureType": STRUCTURE_SPAWN,
+        "pos": [{"x": -1, "y": 1}, {"x": 0, "y": 1}, {"x": 1, "y": 1}]
+    },
+    {
+        "structureType": STRUCTURE_OBSERVER,
+        "pos": [{"x": 0, "y": 0}]
+    },
+    {
+        "structureType": STRUCTURE_FACTORY,
+        "pos": [{"x": 0, "y": 2}]
+    },
+    {
+        "structureType": STRUCTURE_LINK,
+        "pos": [{"x": 0, "y": -1}]
+    },
+    {
+        "structureType": STRUCTURE_TERMINAL,
+        "pos": [{"x": -1, "y": 0}]
+    },
+    {
+        "structureType": STRUCTURE_STORAGE,
+        "pos": [{"x": 1, "y": 0}]
+    },
+    {
+        "structureType": STRUCTURE_POWER_SPAWN,
+        "pos": [{"x": -1, "y": -1}]
+    },
+    {
+        "structureType": STRUCTURE_NUKER,
+        "pos": [{"x": 1, "y": -1}]
+    },
+    {
+        "structureType": STRUCTURE_TOWER,
+        "pos": [{"x": 0, "y": 5}, {"x": 0, "y": -5},
+            {"x": 5, "y": 3}, {"x": -5, "y": 3},
+            {"x": 5, "y": -3}, {"x": -5, "y": -3}]
+    },
+    {
+        "structureType": STRUCTURE_EXTENSION,
+        "pos": [{"x": 5, "y": 0}, {"x": -5, "y": 0}, {"x": 2, "y": 0}, {"x": -2, "y": 0},
+            {"x": 3, "y": 1}, {"x": 4, "y": 1}, {"x": -3, "y": 1}, {"x": -4, "y": 1},
+            {"x": 2, "y": 2}, {"x": 3, "y": 2}, {"x": 5, "y": 2}, {"x": -2, "y": 2}, {"x": -3, "y": 2}, {
+                "x": -5,
+                "y": 2
+            },
+            {"x": 1, "y": 3}, {"x": -1, "y": 3}, {"x": 4, "y": 3}, {"x": -4, "y": 3},
+            {"x": 1, "y": 4}, {"x": 2, "y": 4}, {"x": 3, "y": 4}, {"x": 5, "y": 4}, {"x": -1, "y": 4}, {
+                "x": -2,
+                "y": 4
+            }, {"x": -3, "y": 4}, {"x": -5, "y": 4},
+            {"x": 1, "y": 5}, {"x": 2, "y": 5}, {"x": 4, "y": 5}, {"x": -1, "y": 5}, {"x": -2, "y": 5}, {
+                "x": -4,
+                "y": 5
+            },
+            {"x": 3, "y": -1}, {"x": 4, "y": -1}, {"x": -3, "y": -1}, {"x": -4, "y": -1},
+            {"x": 2, "y": -2}, {"x": 3, "y": -2}, {"x": 5, "y": -2}, {"x": -2, "y": -2}, {"x": -3, "y": -2}, {
+                "x": -5,
+                "y": -2
+            },
+            {"x": 1, "y": -3}, {"x": -1, "y": -3}, {"x": 4, "y": -3}, {"x": -4, "y": -3},
+            {"x": 1, "y": -4}, {"x": 2, "y": -4}, {"x": 3, "y": -4}, {"x": 5, "y": -4}, {"x": -1, "y": -4}, {
+                "x": -2,
+                "y": -4
+            }, {"x": -3, "y": -4}, {"x": -5, "y": -4},
+            {"x": 1, "y": -5}, {"x": 2, "y": -5}, {"x": 4, "y": -5}, {"x": -1, "y": -5}, {"x": -2, "y": -5}, {
+                "x": -4,
+                "y": -5
+            }]
+    },
+    {
+        "structureType": STRUCTURE_ROAD,
+        "pos": [{"x": 2, "y": 0}, {"x": 3, "y": 0}, {"x": 4, "y": 0}, {"x": -2, "y": 0}, {"x": -3, "y": 0}, {
+            "x": -4,
+            "y": 0
+        },
+            {"x": 2, "y": 1}, {"x": 5, "y": 1}, {"x": -2, "y": 1}, {"x": -5, "y": 1},
+            {"x": 0, "y": 2}, {"x": 1, "y": 2}, {"x": 4, "y": 2}, {"x": -1, "y": 2}, {"x": -4, "y": 2},
+            {"x": 0, "y": 3}, {"x": 2, "y": 3}, {"x": 3, "y": 3}, {"x": 5, "y": 3}, {"x": -2, "y": 3}, {
+                "x": -3,
+                "y": 3
+            }, {"x": -5, "y": 3},
+            {"x": 0, "y": 4}, {"x": 4, "y": 4}, {"x": -4, "y": 4},
+            {"x": 0, "y": 5}, {"x": 3, "y": 5}, {"x": 5, "y": 5}, {"x": -3, "y": 5}, {"x": -5, "y": 5},
+            {"x": 2, "y": -1}, {"x": 5, "y": -1}, {"x": -2, "y": -1}, {"x": -5, "y": -1},
+            {"x": 0, "y": -2}, {"x": 1, "y": -2}, {"x": 4, "y": -2}, {"x": -1, "y": -2}, {"x": -4, "y": -2},
+            {"x": 0, "y": -3}, {"x": 2, "y": -3}, {"x": 3, "y": -3}, {"x": 5, "y": -3}, {"x": -2, "y": -3}, {
+                "x": -3,
+                "y": -3
+            }, {"x": -5, "y": -3},
+            {"x": 0, "y": -4}, {"x": 4, "y": -4}, {"x": -4, "y": -4},
+            {"x": 0, "y": -5}, {"x": 3, "y": -5}, {"x": 5, "y": -5}, {"x": -3, "y": -5}, {"x": -5, "y": -5},]
+    },
+]

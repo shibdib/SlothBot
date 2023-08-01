@@ -98,7 +98,7 @@ module.exports.towerControl = function (room) {
                 if (nearbyRampart.id) for (let tower of towers) tower.repair(nearbyRampart);
                 if (potentialAttack < healPower) room.memory.dangerousAttack = true; else room.memory.towerTarget = hostileCreeps[i].id;
                 room.memory.towerTarget = undefined;
-            } else if (woundedCreep) {
+            } else if (woundedCreep && repairTower) {
                 repairTower.heal(woundedCreep);
             }
         }

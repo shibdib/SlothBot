@@ -19,7 +19,8 @@ module.exports.setRoomState = function (room) {
             room.memory.struggleTime = Game.time;
         } else if (room.memory.struggling && room.memory.struggleTime + 1000 < Game.time) {
             log.a(roomLink(room.name) + ' has recovered to an acceptable level.', 'ROOMS');
-            room.memory.struggling = false;
+            room.memory.struggling = undefined;
+            room.memory.struggleTime = undefined;
         }
         room.memory.struggling = room.level > 2 && (room.friendlyCreeps.length < 5 || rebootCreeps > 1);
         let last = room.memory.lastEnergyAmount || 0;

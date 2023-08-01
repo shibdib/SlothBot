@@ -4,11 +4,9 @@
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
  */
-
-/**
- * Created by rober on 7/5/2017.
- */
 'use strict';
+
+let roomPlanner = require('module.roomPlanner');
 
 Object.defineProperty(Room.prototype, 'decoder', {
     get: function () {
@@ -361,15 +359,15 @@ function getRoomResource(room, resource, unused = false) {
 
 Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     // Check if corrupted
-    if (Memory.roomCache && !Memory.roomCache[Memory.myRooms[0]]) {
+    if (Memory.roomCache && Memory.myRooms && !Memory.roomCache[Memory.myRooms[0]]) {
         Memory.roomCache = {};
         log.e('Room cache was corrupted, resetting.');
     } else if (!Memory.roomCache) Memory.roomCache = {};
-    if (!force && Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + CREEP_LIFE_TIME > Game.time) return;
+    if (!force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + CREEP_LIFE_TIME > Game.time) return;
     let room = Game.rooms[this.name];
     let mineral, sk, power, portal, user, level, owner, lastOperation, towers, reservation, commodity, safemode,
         spawnLocation, obstructions, seasonResource, closestRoom, closestRange, mineralAmount, seasonReactor,
-        seasonReactorOwner, swarm, structures, towerCount, sourceRating, hubCheck;
+        seasonReactorOwner, swarm, structures, towerCount, hubCheck;
     if (room) {
         // Get closest room
         closestRoom = this.findClosestOwnedRoom();
@@ -379,9 +377,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             if (closestRoom === Memory.roomCache[room.name].closestRoom) {
                 closestRoom = Memory.roomCache[room.name].closestRoom;
                 closestRange = Memory.roomCache[room.name].closestRange;
-                sourceRating = Memory.roomCache[room.name].sourceRating;
             }
         }
+        if (!closestRange) closestRange = this.findClosestOwnedRoom(true);
         // Check for season resource
         if (Game.shard.name === 'shardSeason') {
             // season 4?
@@ -435,17 +433,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             } else if (room.controller.reservation) {
                 reservation = room.controller.reservation.username;
                 user = room.controller.reservation.username;
-            } else if (room.sources.length === 2) {
-                let terrain = Game.map.getRoomTerrain(room.name);
-                let terrainScore = 0;
-                for (let y = 0; y < 50; y++) {
-                    for (let x = 0; x < 50; x++) {
-                        let tile = terrain.get(x, y);
-                        if (tile === TERRAIN_MASK_SWAMP) terrainScore += 1;
-                        else if (tile !== TERRAIN_MASK_WALL) terrainScore += 2;
-                    }
-                }
-                hubCheck = terrain >= 100;
+            }
+            if (room.sources.length === 2) {
+                hubCheck = roomPlanner.hubCheck(room);
             }
             level = room.controller.level || undefined;
         }
@@ -473,22 +463,6 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             // Store power info
             power = _.find(room.structures, (e) => e && e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
             if (power) power = Game.time + power.ticksToDecay; else power = undefined;
-        }
-        if (!closestRange || (!sourceRating && sources.length)) {
-            closestRange = this.findClosestOwnedRoom(true);
-            // Handle rating sources for remotes
-            if (!user && !sourceRating && closestRange <= 2 && sources.length) {
-                sourceRating = {};
-                for (let source of this.sources) {
-                    let goHome = Game.map.findExit(this.name, closestRoom);
-                    let homeExit = this.find(goHome);
-                    let homeMiddle = _.round(homeExit.length / 2);
-                    let distanceToExit = source.pos.getRangeTo(homeExit[homeMiddle]);
-                    let roomRange = Game.map.findRoute(this.name, closestRoom).length;
-                    sourceRating[source.id] = distanceToExit + 20;
-                    if (roomRange > 1) sourceRating[source.id] += (roomRange * 50);
-                }
-            }
         }
         let isHighway = !room.controller && !sk && !room.sources.length;
         if (towers) towerCount = towers.length;
@@ -524,8 +498,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             towers: towerCount,
             swarm: swarm,
             structures: structures,
-            hostile: combatCreeps.length > 0 || towerCount || _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0,
-            sourceRating: sourceRating
+            hostile: combatCreeps.length > 0 || towerCount || _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0
         };
         Memory.ncpArray = _.uniq(ncpArray);
         Memory.roomCache = cache;
