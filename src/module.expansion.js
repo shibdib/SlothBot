@@ -7,7 +7,6 @@
 let lastTick = 0;
 
 module.exports.claimNewRoom = function () {
-    return;
     let worthyRooms;
     if (lastTick + 5000 > Game.time) return;
     lastTick = Game.time;

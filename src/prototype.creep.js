@@ -587,7 +587,6 @@ Creep.prototype.constructionWork = function () {
         site = _.max(site, 'progress');
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
-
         return true;
     }
     site = _.filter(mySites, (s) => s.structureType === STRUCTURE_TERMINAL);
