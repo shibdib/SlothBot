@@ -1,11 +1,60 @@
-module.exports.manager = function () {
-    RawMemory.setActiveSegments([0, 98]);
+const activeSegments = [0, 23, 98];
+
+module.exports.init = function () {
+    RawMemory.setActiveSegments(activeSegments);
 
     // Track allied requests
     logRequests();
 
     // Make requests
     if (Game.time % 50 === 0) makeRequests();
+}
+
+let segmentRetrieved;
+module.exports.retrieveIntel = function () {
+    // Retrieve intel cache
+    // TODO: REMOVE MEMORY INTEL CACHE
+    if (!INTEL || !segmentRetrieved) {
+        if (RawMemory.segments[23]) {
+            segmentRetrieved = true;
+            Memory.intelCache = undefined;
+            Memory.roomCache = undefined;
+            global.INTEL = JSON.parse(RawMemory.segments[23]);
+        } else if (Memory.intelCache) global.INTEL = JSON.parse(Memory.intelCache);
+        else if (Memory.roomCache) global.INTEL = Memory.roomCache; else global.INTEL = {};
+        if (!segmentRetrieved) {
+            RawMemory.setActiveSegments(activeSegments);
+            log.e("Intel segment not accessible, enabling the segment for the next tick.");
+        }
+    }
+    return true;
+}
+
+module.exports.storeIntel = function () {
+    let store = INTEL;
+    if (JSON.stringify(store).length >= 95000) {
+        let sorted = _.sortBy(store, 'cached');
+        log.e("Intel segment is too large, pruning oldest intel.");
+        for (let entry of sorted) {
+            delete store[entry.name];
+            if (JSON.stringify(store).length < 75000) break;
+        }
+    }
+    RawMemory.segments[23] = JSON.stringify(store);
+}
+
+module.exports.storePaths = function (cache) {
+    console.log(JSON.stringify(cache));
+    let store = _.filter(cache, (p) => p.key && p.tick + CREEP_LIFE_TIME > Game.time);
+    if (JSON.stringify(store).length >= 95000) {
+        let sorted = _.sortBy(store, 'uses');
+        log.e("Path segment is too large, pruning least used.");
+        for (let path of sorted) {
+            delete store[path.key];
+            if (JSON.stringify(store).length < 75000) break;
+        }
+    }
+    RawMemory.segments[0] = JSON.stringify(store);
 }
 
 function logRequests() {
@@ -29,7 +78,7 @@ function makeRequests() {
     RawMemory.setDefaultPublicSegment(98)
     let requestArray = [];
     // Energy requests
-    let energyRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].energyState < 2 && Game.rooms[r].terminal);
+    let energyRooms = _.filter(MY_ROOMS, (r) => Game.rooms[r].energyState < 2 && Game.rooms[r].terminal);
     for (let room of energyRooms) {
         if (room) {
             let priority = 0.1;
@@ -79,7 +128,7 @@ function makeRequests() {
     }
 
     // Ghodium requests
-    let terminalRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].terminal);
+    let terminalRooms = _.filter(MY_ROOMS, (r) => Game.rooms[r].terminal);
     for (let room of terminalRooms) {
         if (Game.rooms[room].store(RESOURCE_GHODIUM) < NUKER_GHODIUM_CAPACITY) {
             requestArray.push(
@@ -95,10 +144,10 @@ function makeRequests() {
     }
 
     // Defense requests
-    let defenseRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].memory.dangerousAttack || Game.rooms[r].memory.defenseCooldown > Game.time);
+    let defenseRooms = _.filter(MY_ROOMS, (r) => Game.rooms[r].memory.dangerousAttack || Game.rooms[r].memory.defenseCooldown > Game.time);
     for (let room of defenseRooms) {
         let priority = 0.25;
-        if (Memory.roomCache[room].threatLevel === 4) priority = 1;
+        if (INTEL[room].threatLevel === 4) priority = 1;
         requestArray.push(
             {
                 requestType: 1,

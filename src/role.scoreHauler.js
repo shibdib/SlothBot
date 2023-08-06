@@ -16,7 +16,7 @@ module.exports.role = function (creep) {
         }
     } else if (creep.memory.hauling) {
         if (!creep.memory.closestRoom) {
-            let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => r.seasonReactor && Game.map.getRoomLinearDistance(r.name, creep.room.name) <= (creep.ticksToLive / 55) && !r.hostile && !_.includes(Memory.nonCombatRooms, r.name)), 'closestRange');
+            let scoreRoom = _.min(_.filter(INTEL, (r) => r.seasonReactor && Game.map.getRoomLinearDistance(r.name, creep.room.name) <= (creep.ticksToLive / 55) && !r.hostile && !_.includes(Memory.nonCombatRooms, r.name)), 'closestRange');
             if (scoreRoom.name) creep.memory.closestRoom = scoreRoom.name; else creep.idleFor(15);
         } else if (creep.room.name !== creep.memory.closestRoom) {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.closestRoom), {range: 23});

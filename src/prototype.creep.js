@@ -18,7 +18,7 @@ Object.defineProperty(Creep.prototype, "idle", {
             return 0;
         }
         // Handle flee if hostile is gone
-        if (this.memory.runCooldown && this.memory.ranFrom && !Memory.roomCache[this.memory.ranFrom].numberOfHostiles) {
+        if (this.memory.runCooldown && this.memory.ranFrom && !INTEL[this.memory.ranFrom].numberOfHostiles) {
             delete this.idle;
             delete this.memory.idle;
             delete this.memory.ranFrom;
@@ -27,7 +27,8 @@ Object.defineProperty(Creep.prototype, "idle", {
             return 0;
         }
         if (!this.memory.idleSet) {
-            if ((this.pos.checkForRoad() || this.pos.checkForContainer()) && this.memory.role !== 'stationaryHarvester' && this.memory.role !== 'mineralHarvester' && this.memory.role !== 'remoteHarvester') {
+            if (this.memory.other.stationary) this.memory.idleSet = true;
+            else if ((this.pos.checkForRoad() || this.pos.checkForContainer()) && !this.memory.military && this.memory.role !== 'stationaryHarvester' && this.memory.role !== 'mineralHarvester' && this.memory.role !== 'remoteHarvester') {
                 return this.moveRandom();
             } else if (this.pos.getRangeTo(this.pos.findClosestByRange(FIND_SOURCES)) === 1 && this.memory.role !== 'stationaryHarvester' && this.memory.role !== 'mineralHarvester' && this.memory.role !== 'remoteHarvester') {
                 return this.moveRandom();
@@ -49,7 +50,7 @@ Object.defineProperty(Creep.prototype, "idle", {
 
 Creep.prototype.idleFor = function (ticks = 0) {
     // No idling in SK rooms
-    if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) return false;
+    if (INTEL[this.room.name] && INTEL[this.room.name].sk) return false;
     if (this.hits < this.hitsMax && this.hasActiveBodyparts(HEAL)) return this.heal(this);
     if (ticks > 0) {
         this.idle = Game.time + ticks;
@@ -171,7 +172,7 @@ Creep.prototype.skSafety = function () {
         this.goToHub();
         return true;
     }
-    if (this.room.controller || (Memory.roomCache[this.room.name] && !Memory.roomCache[this.room.name].sk)) return false;
+    if (this.room.controller || (INTEL[this.room.name] && !INTEL[this.room.name].sk)) return false;
     // handle safe SK movement
     let range = 6;
     if (this.memory.destination && this.memory.destination === this.room.name) range = 8;
@@ -282,7 +283,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
 
 Creep.prototype.locateEnergy = function () {
     // Handle resources in allied rooms
-    if (Memory.roomCache[this.room.name].owner && Memory.roomCache[this.room.name].owner !== MY_USERNAME) {
+    if (INTEL[this.room.name].owner && INTEL[this.room.name].owner !== MY_USERNAME) {
         //Dropped
         if (this.room.droppedEnergy.length) {
             let dropped = _.find(this.room.droppedEnergy, (r) => r.amount >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5));
@@ -385,7 +386,7 @@ Creep.prototype.locateEnergy = function () {
                 container = this.pos.findClosestByRange(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && (this.room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= this.room.controller.level)
                     && s.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.25)));
             } else {
-                container = _.max(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.storageContainer !== s.id && (this.room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= this.room.controller.level)
+                container = _.max(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && (this.room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= this.room.controller.level)
                     && s.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.25)), function (c) {
                     return _.sum(c.store);
                 });
@@ -448,7 +449,7 @@ Creep.prototype.haulerDelivery = function () {
         if (this.room.terminal) this.memory.storageDestination = this.room.terminal.id; else if (this.room.storage) this.memory.storageDestination = this.room.storage.id;
     }
     //Tower
-    if (Memory.roomCache[this.room.name].threatLevel) {
+    if (INTEL[this.room.name].threatLevel) {
         let tower = _.find(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.9);
         if (tower) {
             this.memory.storageDestination = tower.id;
@@ -559,7 +560,7 @@ Creep.prototype.constructionWork = function () {
         this.memory.targetHits = 12500;
         return true;
     }
-    if (Memory.roomCache[this.room.name].threatLevel) {
+    if (INTEL[this.room.name].threatLevel) {
         let hostileBarrier = _.min(_.filter(this.room.structures, (s) => [STRUCTURE_WALL, STRUCTURE_RAMPART].includes(s.structureType) && s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)), 5)[0]), 'hits');
         if (hostileBarrier.id) {
             this.memory.constructionSite = hostileBarrier.id;
@@ -589,6 +590,13 @@ Creep.prototype.constructionWork = function () {
         this.memory.task = 'build';
         return true;
     }
+    site = _.filter(mySites, (s) => s.structureType === STRUCTURE_LINK);
+    if (site.length > 0) {
+        site = _.max(site, 'progress');
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'build';
+        return true;
+    }
     site = _.filter(mySites, (s) => s.structureType === STRUCTURE_TERMINAL);
     if (site.length > 0) {
         site = _.max(site, 'progress');
@@ -597,13 +605,6 @@ Creep.prototype.constructionWork = function () {
         return true;
     }
     site = _.filter(mySites, (s) => s.structureType === STRUCTURE_STORAGE);
-    if (site.length > 0) {
-        site = _.max(site, 'progress');
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'build';
-        return true;
-    }
-    site = _.filter(mySites, (s) => s.structureType === STRUCTURE_LINK);
     if (site.length > 0) {
         site = _.max(site, 'progress');
         this.memory.constructionSite = site.id;
@@ -747,7 +748,7 @@ Creep.prototype.builderFunction = function () {
                 break;
             case ERR_NOT_ENOUGH_ENERGY:
                 this.memory.working = undefined;
-                break;
+                return true;
         }
     } else {
         this.say('Build!', true);
@@ -769,7 +770,7 @@ Creep.prototype.builderFunction = function () {
                 break;
             case ERR_NOT_ENOUGH_ENERGY:
                 this.memory.working = undefined;
-                break;
+                return true;
         }
     }
 };
@@ -1106,7 +1107,7 @@ Creep.prototype.fleeNukeRoom = function () {
         return false;
     }
     if (this.memory.fleeTo && this.room.name !== this.memory.fleeTo) this.shibMove(new RoomPosition(25, 25, this.memory.fleeTo), {range: 23}); else if (this.room.name !== this.memory.fleeTo) this.idleFor(this.memory.fleeNukeTime - Game.time);
-    if (!this.memory.fleeTo) this.memory.fleeTo = _.sample(_.filter(Memory.myRooms, (r) => !r.nukes.length)).name;
+    if (!this.memory.fleeTo) this.memory.fleeTo = _.sample(_.filter(MY_ROOMS, (r) => !r.nukes.length)).name;
 };
 
 Creep.prototype.moveRandom = function () {

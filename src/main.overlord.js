@@ -22,11 +22,6 @@ module.exports.overlordMind = function (room, CPULimit) {
 
     let mindStart = Game.cpu.getUsed();
 
-    // Handle auto spawn placement
-    if (Memory.myRooms.length === 1 && !_.find(Game.structures, (s) => s.structureType === STRUCTURE_SPAWN)) {
-        planner.buildRoom(room);
-    }
-
     // Manage creeps
     let count;
     let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military && !r.spawning));
@@ -139,9 +134,11 @@ function minionController(minion) {
     if (minion.idle) return;
     // Track Threat
     diplomacy.trackThreat(minion);
+    // Combat
+    minion.attackInRange();
+    minion.healInRange();
     // Handle edge cases
     if (minion.portalCheck() || minion.borderCheck()
-        || (minion.room.hostileCreeps.length && minion.hits < minion.hitsMax && minion.shibKite())
         || (minion.memory.fleeNukeTime && minion.fleeNukeRoom())) {
         return;
     }

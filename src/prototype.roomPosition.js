@@ -108,7 +108,6 @@ RoomPosition.prototype.isInBunker = function (range = 0) {
     let room = Game.rooms[this.roomName];
     if (!room.memory.bunkerHub) return false;
     let closestExit = this.findClosestByRange(FIND_EXIT);
-    console.log(JSON.stringify(closestExit))
     let path = PathFinder.search(
         this, {pos: closestExit, range: 0},
         {
@@ -206,7 +205,7 @@ RoomPosition.prototype.checkForBuiltWall = function () {
 };
 
 RoomPosition.prototype.checkForPortal = function () {
-    if (Memory.roomCache[this.roomName] && !Memory.roomCache[this.roomName].portal) return false;
+    if (INTEL[this.roomName] && !INTEL[this.roomName].portal) return false;
     return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_PORTAL);
 };
 

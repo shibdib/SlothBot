@@ -26,7 +26,7 @@ module.exports.hiveMind = function () {
         {name: 'expansion', f: expansion.claimNewRoom},
         {name: 'globalQueue', f: spawning.globalCreepQueue},
         {name: 'power', f: power.powerControl},
-        {name: 'segments', f: segments.manager},
+        {name: 'segments', f: segments.init},
         {name: 'hud', f: hud.hud}]);
     let functionCount = hiveFunctions.length;
     let count = 0;
@@ -69,17 +69,22 @@ module.exports.hiveMind = function () {
     count = 0;
     let overlordCurrentCPU = Game.cpu.getUsed();
     let overlordTotalCPU = 0;
-    let myRooms = shuffle(Memory.myRooms);
+    let myRooms = shuffle(MY_ROOMS);
     do {
         let currentRoom = _.first(myRooms);
         if (!currentRoom) break;
         myRooms = _.rest(myRooms);
         count++;
         let activeRoom = Game.rooms[currentRoom];
+        // If no longer owned, filter out
+        if (!activeRoom) {
+            MY_ROOMS = _.filter(MY_ROOMS, (r) => r !== currentRoom);
+            continue;
+        }
         try {
             activeRoom.invaderCheck();
             activeRoom.cacheRoomIntel();
-            overlord.overlordMind(activeRoom, CPU_TASK_LIMITS['roomLimit'] * 0.9 / _.size(Memory.myRooms));
+            overlord.overlordMind(activeRoom, CPU_TASK_LIMITS['roomLimit'] * 0.9 / _.size(MY_ROOMS));
         } catch (e) {
             log.e('Overlord Module experienced an error in room ' + roomLink(currentRoom));
             log.e(e.stack);
@@ -87,7 +92,7 @@ module.exports.hiveMind = function () {
         }
         overlordCurrentCPU = Game.cpu.getUsed() - overlordCurrentCPU;
         overlordTotalCPU += overlordCurrentCPU;
-    } while (count < _.size(Memory.myRooms))
+    } while (count < MY_ROOMS.length)
     // Pixel
     if (PIXEL_GENERATION && Game.cpu.bucket === PIXEL_CPU_COST && ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
         log.e('Pixel generated on ' + Game.shard.name, 'Note:');
@@ -108,9 +113,11 @@ function minionController(minion) {
     if (minion.idle) return;
     // Track Threat
     diplomacy.trackThreat(minion);
+    // Combat
+    minion.attackInRange();
+    minion.healInRange();
     // Handle edge cases
     if (minion.portalCheck() || minion.borderCheck()
-        || (minion.room.hostileCreeps.length && minion.hits < minion.hitsMax && minion.shibKite())
         || (minion.memory.fleeNukeTime && minion.fleeNukeRoom())) {
         return;
     }

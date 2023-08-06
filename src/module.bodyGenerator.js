@@ -61,9 +61,15 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             move = 4;
             break;
         case 'hauler':
+            carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
+            if (carry > level * 2) carry = level * 2;
+            if (!room.memory.roadsBuilt) move = carry; else move = _.ceil(carry / 2);
+            break;
         case 'shuttle':
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
-            if (carry > level * 2) carry = level * 2.25;
+            let farthestSourceDistance = _.max(_.filter(room.sources, (s) => !s.memory.link), 'memory.distanceToHub').memory.distanceToHub * 2;
+            let energyHarvestedPerTrip = (HARVEST_POWER * 6) * farthestSourceDistance;
+            if (carry > energyHarvestedPerTrip / CARRY_CAPACITY) carry = energyHarvestedPerTrip / CARRY_CAPACITY;
             if (!room.memory.roadsBuilt) move = carry; else move = _.ceil(carry / 2);
             break;
         case 'stationaryHarvester':
@@ -175,11 +181,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             // SK
             if (creepInfo.other && creepInfo.other.SK && work > SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) work = (SOURCE_ENERGY_KEEPER_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 4;
             // Reserved
-            else if (Memory.roomCache[creepInfo.destination] && Memory.roomCache[creepInfo.destination].reservation === MY_USERNAME && work > (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1) work = (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
+            else if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].reservation === MY_USERNAME && work > (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1) work = (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
             // Neutral
             else if (work > (SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1) work = (SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
             carry = 1;
-            if (Memory.roomCache[creepInfo.destination] && Memory.roomCache[creepInfo.destination].roadsBuilt) move = work / 2; else move = work;
+            if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt) move = work / 2; else move = work;
             break;
         case 'remoteHauler':
             let workCost = BODYPART_COST[WORK];
@@ -197,7 +203,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             // Work parts after level 3
             if (room.level >= 4) work = 1; else work = 0;
             // Set move
-            if (Memory.roomCache[creepInfo.destination] && Memory.roomCache[creepInfo.destination].roadsBuilt) move = carry + work / 2; else move = carry + work;
+            if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt) move = carry + work / 2; else move = carry + work;
             break;
         case 'SKMineral':
         case 'commodityMiner':

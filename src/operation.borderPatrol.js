@@ -12,7 +12,7 @@ Creep.prototype.borderPatrol = function () {
     hud(this);
     if (!this.memory.destination) {
         // Check neighbors
-        let adjacent = _.filter(Game.map.describeExits(this.pos.roomName), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel)[0] || _.filter(Game.map.describeExits(this.pos.roomName), (r) => Memory.roomCache[r] && Memory.roomCache[r].roomHeat)[0];
+        let adjacent = _.filter(Game.map.describeExits(this.pos.roomName), (r) => INTEL[r] && INTEL[r].threatLevel)[0] || _.filter(Game.map.describeExits(this.pos.roomName), (r) => INTEL[r] && INTEL[r].roomHeat)[0];
         if (adjacent) {
             return this.memory.destination = adjacent;
         }
@@ -20,7 +20,7 @@ Creep.prototype.borderPatrol = function () {
             // If on target, be available to respond
             if (!this.memory.onTarget) this.memory.onTarget = Game.time;
             // Don't idle in SK rooms, go home
-            if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) return this.memory.destination = this.memory.overlord;
+            if (INTEL[this.room.name] && INTEL[this.room.name].sk) return this.memory.destination = this.memory.overlord;
             // Idle in target rooms for 25 ticks then check if adjacent rooms need help or mark yourself ready to respond
             if (this.memory.onTarget + 25 <= Game.time) {
                 this.memory.destination = undefined;
@@ -43,7 +43,7 @@ Creep.prototype.borderPatrol = function () {
 
 function offDuty(creep, partner = undefined) {
     if (!creep.healCreeps()) {
-        let latestAttack = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat > 0 && Game.map.getRoomLinearDistance(r.name, creep.memory.overlord) <= 2 && !r.threatLevel), 'roomHeat');
+        let latestAttack = _.max(_.filter(INTEL, (r) => r.roomHeat > 0 && Game.map.getRoomLinearDistance(r.name, creep.memory.overlord) <= 2 && !r.threatLevel), 'roomHeat');
         if (latestAttack && latestAttack.name && latestAttack.name !== creep.room.name) {
             return creep.shibMove(new RoomPosition(25, 25, latestAttack.name), {range: 8})
         } else if (!latestAttack && creep.room.name !== creep.memory.overlord) {

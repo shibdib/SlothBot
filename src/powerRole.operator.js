@@ -62,7 +62,7 @@ module.exports.role = function (powerCreep) {
     if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom !== powerCreep.room.name) {
         return powerCreep.shibMove(new RoomPosition(25, 25, powerCreep.memory.destinationRoom), {range: 24})
     } else if (!powerCreep.memory.destinationRoom) {
-        powerCreep.memory.destinationRoom = _.find(Memory.myRooms, (r) => !_.find(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === r) && Game.rooms[r].controller.level === 8) || _.find(Memory.myRooms, (r) => !_.find(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === r) && Game.rooms[r].controller.level === 7);
+        powerCreep.memory.destinationRoom = _.find(MY_ROOMS, (r) => !_.find(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === r) && Game.rooms[r].controller.level === 8) || _.find(MY_ROOMS, (r) => !_.find(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === r) && Game.rooms[r].controller.level === 7);
     }
     // Handle owned rooms
     if (powerCreep.room.controller.owner && powerCreep.room.controller.owner.username === MY_USERNAME) {
@@ -81,7 +81,7 @@ module.exports.role = function (powerCreep) {
             }
         }
         // Boost tower when under attack
-        else if (targetTower && Memory.roomCache[powerCreep.room.name].responseNeeded && powerCreep.powers[PWR_OPERATE_TOWER] && !powerCreep.powers[PWR_OPERATE_TOWER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_TOWER].ops) {
+        else if (targetTower && INTEL[powerCreep.room.name].responseNeeded && powerCreep.powers[PWR_OPERATE_TOWER] && !powerCreep.powers[PWR_OPERATE_TOWER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_TOWER].ops) {
             powerCreep.say('TOWER', true);
             return abilitySwitch(powerCreep, PWR_OPERATE_TOWER, targetTower);
         }

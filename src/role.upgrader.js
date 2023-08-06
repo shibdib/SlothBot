@@ -88,13 +88,13 @@ function herald(creep) {
             sentence = sentence.concat(['This', 'Room', 'Is', 'In', 'Low', 'Power', 'Mode', 'For', ((creep.room.memory.lowPower + 10000) - Game.time), 'Ticks']);
         } else {
             if (Memory.LOANalliance) sentence = sentence.concat([Memory.LOANalliance, '-']);
-            if (Memory.roomCache[creep.room.name].threatLevel) {
-                if (Memory.roomCache[creep.room.name].threatLevel === 1) sentence = sentence.concat(['FPCON', 'ALPHA']);
-                if (Memory.roomCache[creep.room.name].threatLevel === 2) sentence = sentence.concat(['FPCON', 'BRAVO']);
-                if (Memory.roomCache[creep.room.name].threatLevel === 3) sentence = sentence.concat(['FPCON', 'CHARLIE']);
-                if (Memory.roomCache[creep.room.name].threatLevel >= 4) sentence = sentence.concat(['FPCON', 'DELTA']);
-            } else if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].lastPlayerSighting) {
-                sentence = sentence.concat(['LAST', 'ATTACK', Game.time - Memory.roomCache[creep.room.name].lastPlayerSighting, 'TICKS', 'AGO']);
+            if (INTEL[creep.room.name].threatLevel) {
+                if (INTEL[creep.room.name].threatLevel === 1) sentence = sentence.concat(['FPCON', 'ALPHA']);
+                if (INTEL[creep.room.name].threatLevel === 2) sentence = sentence.concat(['FPCON', 'BRAVO']);
+                if (INTEL[creep.room.name].threatLevel === 3) sentence = sentence.concat(['FPCON', 'CHARLIE']);
+                if (INTEL[creep.room.name].threatLevel >= 4) sentence = sentence.concat(['FPCON', 'DELTA']);
+            } else if (INTEL[creep.room.name] && INTEL[creep.room.name].lastPlayerSighting) {
+                sentence = sentence.concat(['LAST', 'ATTACK', Game.time - INTEL[creep.room.name].lastPlayerSighting, 'TICKS', 'AGO']);
             } else {
                 sentence = sentence.concat(['FPCON', 'NORMAL']);
             }

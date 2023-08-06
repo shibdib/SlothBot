@@ -143,7 +143,7 @@ module.exports.status = function () {
             }
         } catch (e) {
             log.a('--OPERATION INFO FAILED--', ' ');
-            console.log(e.stack)
+            log.e(e.stack)
         }
         try {
             if (Memory._enemies && Memory._enemies.length) {

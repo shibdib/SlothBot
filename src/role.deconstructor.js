@@ -24,7 +24,7 @@ module.exports.role = function (creep) {
                 tunnel: true,
                 ignoreCreeps: true
             }); else {
-                Memory.roomCache[creep.room.name].seasonHighwayPath = true;
+                INTEL[creep.room.name].seasonHighwayPath = true;
                 Memory.auxiliaryTargets[creep.memory.destination] = undefined;
             }
             /**if (!collector.pos.findClosestByPath(FIND_EXIT)) {

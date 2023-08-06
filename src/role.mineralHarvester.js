@@ -21,7 +21,7 @@ module.exports.role = function (creep) {
         if (!creep.memory.onContainer) {
             let container = Game.getObjectById(creep.room.memory.extractorContainer);
             if (container) {
-                if (!container.pos.checkForCreep() && creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0}); else creep.memory.onContainer = true;
+                if (creep.pos.getRangeTo(container)) return creep.shibMove(container, {range: 0}); else creep.memory.onContainer = true;
             } else {
                 creep.memory.onContainer = true;
             }

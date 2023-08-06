@@ -11,7 +11,7 @@
 
 let MANAGE_TICKS = 15;
 module.exports.labManager = function () {
-    let myRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].level >= 7 && !Game.rooms[r].nukes.length && _.find(Game.rooms[r].structures, (s) => s.structureType === STRUCTURE_LAB));
+    let myRooms = _.filter(MY_ROOMS, (r) => Game.rooms[r] && Game.rooms[r].level >= 7 && !Game.rooms[r].nukes.length && _.find(Game.rooms[r].structures, (s) => s.structureType === STRUCTURE_LAB));
     if (myRooms.length) {
         if (Game.time % 500 === 0) cleanLabs();
         if (Game.time % 275 === 0) {

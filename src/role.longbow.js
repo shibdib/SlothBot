@@ -11,10 +11,6 @@
 
 module.exports.role = function (creep) {
     if (creep.tryToBoost(['ranged', 'heal'])) return;
-    creep.attackInRange();
-    creep.healInRange();
-    // Handle flee
-    if (!creep.hasActiveBodyparts(RANGED_ATTACK)) return creep.fleeHome(true);
     // Responder Mode
     if (creep.memory.operation) {
         switch (creep.memory.operation) {

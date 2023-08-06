@@ -40,6 +40,8 @@ module.exports.cleanup = function () {
 
 // Clean path cache by removing paths that haven't been used in 1000 ticks or fall below the average use count
 function cleanPathCacheByUsage() {
+    //TODO: Fix cleaning this
+    return;
     let paths;
     try {
         paths = _.sortBy(JSON.parse(RawMemory.segments[0]), 'uses');
@@ -104,21 +106,21 @@ function cleanConstructionSites() {
 }
 
 function cleanRoomIntel() {
-    if (Memory.roomCache) {
-        let startLength = _.size(Memory.roomCache);
-        Object.keys(Memory.roomCache).forEach((r) => {
-            let cachedTime = Memory.roomCache[r].cached;
-            if (cachedTime + 10000 < Game.time || (cachedTime + 20000 < Game.time && r.important) || (r.closestRange > 10 && cachedTime + 5000 < Game.time)) delete Memory.roomCache[r];
+    if (INTEL) {
+        let startLength = _.size(INTEL);
+        Object.keys(INTEL).forEach((r) => {
+            let cachedTime = INTEL[r].cached;
+            if (cachedTime + 10000 < Game.time || (cachedTime + 20000 < Game.time && r.important) || (r.closestRange > 10 && cachedTime + 5000 < Game.time)) delete INTEL[r];
         });
-        if (startLength > _.size(Memory.roomCache)) log.d('CleanUp: Room Cache now has ' + _.size(Memory.roomCache) + ' entries.')
+        if (startLength > _.size(INTEL)) log.d('CleanUp: Room Cache now has ' + _.size(INTEL) + ' entries.')
     }
 }
 
 function cleanStructureMemory() {
     if (Memory.structureMemory) {
         Memory.structureMemory = undefined;
-    } else if (Memory.myRooms && Memory.myRooms.length) {
-        for (let room of Memory.myRooms) {
+    } else {
+        for (let room of MY_ROOMS) {
             if (Game.rooms[room].memory.structureMemory) {
                 for (let structure of Object.keys(Game.rooms[room].memory.structureMemory)) {
                     if (!Game.getObjectById(structure)) Game.rooms[room].memory.structureMemory[structure] = undefined;

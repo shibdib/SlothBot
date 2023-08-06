@@ -75,7 +75,7 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
         this.memory.target = enemy.id;
         return enemy;
     }
-    let hostileRoom = Memory.roomCache[this.room.name].user && !_.includes(FRIENDLIES, Memory.roomCache[this.room.name].user);
+    let hostileRoom = INTEL[this.room.name].user && !_.includes(FRIENDLIES, INTEL[this.room.name].user);
     if (this.room.controller && (this.room.controller.owner || this.room.controller.reservation)) {
         let owner;
         if (this.room.controller.owner) owner = this.room.controller.owner.username; else owner = this.room.controller.reservation.username;
@@ -451,7 +451,7 @@ Creep.prototype.healInRange = function () {
 
 Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, onlyInBuild = true) {
     // No sites
-    if (!this.room.constructionSites.length || (this.room.controller && this.room.controller.safeMode) || _.includes(FRIENDLIES, Memory.roomCache[this.room.name].user)) return false;
+    if (!this.room.constructionSites.length || (this.room.controller && this.room.controller.safeMode) || _.includes(FRIENDLIES, INTEL[this.room.name].user)) return false;
     // Friendly room
     let constructionSite = Game.getObjectById(this.memory.stompSite) || this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => !onlyInBuild || s.progress});
     if (constructionSite) {
@@ -505,12 +505,12 @@ Creep.prototype.scorchedEarth = function () {
 };
 
 Creep.prototype.attackInRange = function () {
+    // If no ranged attack return
+    if (!this.hasActiveBodyparts(RANGED_ATTACK)) return false;
     // If no targets return
     if (!this.room.hostileCreeps.length && !this.room.hostileStructures.length) return false;
     // If already engaged return
     if (Game.getObjectById(this.memory.target) && this.pos.inRangeTo(Game.getObjectById(this.memory.target), 3)) return this.rangedAttack(Game.getObjectById(this.memory.target));
-    // If no ranged attack return
-    if (!this.hasActiveBodyparts(RANGED_ATTACK)) return false;
     // Check for targets in range
     let hostile = Game.getObjectById(this.memory.opportunityAttack);
     if (!hostile || !hostile.pos.inRangeTo(this, 3) || hostile.pos.roomName !== this.room.name) {
@@ -573,7 +573,7 @@ Creep.prototype.moveToStaging = function () {
 Creep.prototype.fleeHome = function (force = false) {
     if (this.room.controller && this.room.controller.owner && this.room.controller.owner.username === MY_USERNAME && !this.memory.runCooldown) return false;
     if (this.hits < this.hitsMax) force = true;
-    if (!force && !this.memory.runCooldown && (this.hits === this.hitsMax || (!Memory.roomCache[this.room.name].lastCombat || Memory.roomCache[this.room.name].lastCombat + 10 < Game.time))) return false;
+    if (!force && !this.memory.runCooldown && (this.hits === this.hitsMax || (!INTEL[this.room.name].lastCombat || INTEL[this.room.name].lastCombat + 10 < Game.time))) return false;
     if (!this.memory.ranFrom) this.memory.ranFrom = this.room.name;
     let cooldown = this.memory.runCooldown || Game.time + 50;
     let closest = this.memory.fleeDestination || this.room.findClosestOwnedRoom(false, 3);
@@ -597,7 +597,7 @@ Creep.prototype.fleeHome = function (force = false) {
 };
 
 Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
-    if ((!this.room.hostileCreeps.length && (!Memory.roomCache[this.room.name] || !Memory.roomCache[this.room.name].towers)) || this.room.name === this.memory.overlord) return true;
+    if ((!this.room.hostileCreeps.length && (!INTEL[this.room.name] || !INTEL[this.room.name].towers)) || this.room.name === this.memory.overlord) return true;
     // Check cache and refresh every 3 ticks
     if (this.memory.winCache && this.memory.winCache.room === this.room.name && this.memory.winCache.tick + 3 > Game.time) return this.memory.winCache.result;
     let hostilePower = 0;
@@ -624,9 +624,9 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     for (let i = 0; i < friendlyTowers.length; i++) {
         alliedPower += TOWER_POWER_FROM_RANGE(friendlyTowers[i].pos.getRangeTo(this), TOWER_POWER_ATTACK);
     }
-    if (!Memory.roomCache[this.room.name]) this.room.cacheRoomIntel(true);
-    Memory.roomCache[this.room.name].hostilePower = hostilePower;
-    Memory.roomCache[this.room.name].friendlyPower = alliedPower;
+    if (!INTEL[this.room.name]) this.room.cacheRoomIntel(true);
+    INTEL[this.room.name].hostilePower = hostilePower;
+    INTEL[this.room.name].friendlyPower = alliedPower;
     if (this.hasActiveBodyparts(RANGED_ATTACK) && meleeOnly && alliedPower > healPower) {
         this.memory.winCache = {};
         this.memory.winCache.room = this.room.name;

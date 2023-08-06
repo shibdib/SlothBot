@@ -5,12 +5,12 @@
  * Project - Overlord-Bot (Screeps)
  */
 
-//modules
 //Setup globals and prototypes
 require("require");
 let memWipe, running;
 let tools = require("tools.misc");
 let hive = require('main.hive');
+let segments = require('module.segmentManager');
 let cleanUp = require('module.cleanup');
 log.e('Global Reset - Last reset occurred ' + (Game.time - (Memory.lastGlobalReset || Game.time)) + ' ticks ago.');
 Memory.lastGlobalReset = Game.time;
@@ -34,6 +34,27 @@ module.exports.loop = function () {
         }
     }
 
+    // Store owned rooms in array
+    if (!MY_ROOMS || !MY_ROOMS.length || Game.time % 5 === 0) {
+        let myRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my);
+        if (myRooms.length) {
+            global.MY_ROOMS = _.pluck(myRooms, '.name');
+            global.MAX_LEVEL = _.max(myRooms, 'controller.level').controller.level;
+            global.MIN_LEVEL = _.min(myRooms, 'controller.level').controller.level;
+            // TODO: REMOVE THESE
+            Memory.myRooms = undefined;
+            Memory.maxLevel = undefined;
+            Memory.minLevel = undefined;
+            // Clean cache
+            _.filter(INTEL, (r) => r.owner && r.owner === MY_USERNAME).forEach(function (r) {
+                if (!MY_ROOMS.includes(r.name)) delete INTEL[r.name];
+            });
+        }
+    }
+
+    // Initialize the INTEL cache
+    if (!segments.retrieveIntel()) return;
+
     // Handle auto placing a spawn
     if (!running) {
         let ownedRoom = _.find(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my);
@@ -54,7 +75,7 @@ module.exports.loop = function () {
     try {
         // Handle pixel generation
         // Generate every 1500 ticks if enabled, no military operations, and we have a full bucket
-        if (GENERATE_PIXELS && ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) && !_.find(Memory.targetRooms, (r) => r && r.operation !== 'pending') && Memory.lastPixel + CREEP_LIFE_TIME < Game.time && Game.cpu.bucket === BUCKET_MAX) {
+        if (GENERATE_PIXELS && ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) && !_.find(Memory.targetRooms, (r) => r && r.operation !== 'pending') && Memory.lastPixel + 100 * MY_ROOMS.length < Game.time && Game.cpu.bucket === BUCKET_MAX) {
             log.a('Pixel Generated');
             Game.cpu.generatePixel();
             return Memory.lastPixel = Game.time;
@@ -76,18 +97,11 @@ module.exports.loop = function () {
         Game.notify(e + ' ' + e.stack);
     }
 
-    // Store owned rooms in array
-    if (!Memory.myRooms || !Memory.myRooms.length || Game.time % 5 === 0) {
-        let myRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my);
-        if (myRooms.length) {
-            Memory.myRooms = _.pluck(myRooms, '.name');
-            Memory.maxLevel = _.max(myRooms, 'controller.level').controller.level;
-            Memory.minLevel = _.min(myRooms, 'controller.level').controller.level;
-        }
-    }
-
     //Hive Mind
-    if (Memory.myRooms && Memory.myRooms.length) hive.hiveMind();
+    hive.hiveMind();
+
+    // Save Intel Cache
+    segments.storeIntel();
 };
 
 // Abandon a room
@@ -105,11 +119,9 @@ abandon = function (room) {
     for (let key in Game.rooms[room].constructionSites) {
         Game.rooms[room].constructionSites[key].remove();
     }
-    let noClaim = Memory.noClaim || [];
-    noClaim.push(room);
     delete Game.rooms[room].memory;
     Game.rooms[room].cacheRoomIntel(true);
-    Memory.roomCache[room].noClaim = Game.time + 10000;
+    INTEL[room].noClaim = Game.time + 10000;
     Game.rooms[room].controller.unclaim();
 };
 
@@ -138,60 +150,14 @@ cpuUsage = function () {
             log.e(task + ': ' + average(ROOM_TASK_CPU_ARRAY[task]), ' ')
         }
     }
-}
+};
 
-function wrapLoop(fn) {
-    let memory;
-    let tick;
-
-    return () => {
-        if (tick && tick + 1 === Game.time && memory) {
-            // this line is required to disable the default Memory deserialization
-            delete global.Memory;
-            Memory = memory;
-        } else {
-            memory = Memory;
-        }
-
-        tick = Game.time;
-
-        fn();
-
-        // there are two ways of saving Memory with different advantages and disadvantages
-        // 1. RawMemory.set(JSON.stringify(Memory));
-        // + ability to use custom serialization method
-        // - you have to pay for serialization
-        // - unable to edit Memory via Memory watcher or console
-        // 2. RawMemory._parsed = Memory;
-        // - undocumented functionality, could get removed at any time
-        // + the server will take care of serialization, it doesn't cost any CPU on your site
-        // + maintain full functionality including Memory watcher and console
-
-        // this implementation uses the official way of saving Memory
-        //RawMemory.set(JSON.stringify(Memory));
-
-        RawMemory._parsed = Memory;
-    };
-}
-
-// Robalian's Mem Hack bastardized
-function memWrap(f) {
-    let lastMemory;
-    let tick;
-    return () => {
-        if (tick && lastMemory && Game.time === tick + 1) {
-            delete global.Memory;
-            global.Memory = lastMemory;
-            Memory = lastMemory;
-            RawMemory._parsed = lastMemory;
-        } else {
-            log.a('Parsing memory this tick.');
-            Memory.rooms; // forces parsing
-            lastMemory = RawMemory._parsed;
-        }
-        tick = Game.time;
-        f();
-    };
+intel = function (roomName) {
+    if (!INTEL[roomName]) return log.e('No intel for ' + roomName);
+    log.a('--INTEL FOR ' + roomName + '--', ' ');
+    for (let key in INTEL[roomName]) {
+        log.e(key + ': ' + INTEL[roomName][key], ' ');
+    }
 }
 
 function resetMemory() {

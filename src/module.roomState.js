@@ -65,7 +65,7 @@ module.exports.setRoomState = function (room) {
         // Store highest rcl
         if (!stats.highestRCL || stats.highestRCL < room.controller.level) stats.highestRCL = room.controller.level;
         // Store ticks with a threat level
-        if (Memory.roomCache[room.name].threatLevel >= 3) {
+        if (INTEL[room.name].threatLevel >= 3) {
             if (!stats.underAttack) stats.underAttack = 1; else stats.underAttack += 1;
         } else if (stats.underAttack) stats.underAttack -= 1;
         room.memory.stats = stats;

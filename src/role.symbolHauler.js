@@ -18,7 +18,7 @@ module.exports.role = function (creep) {
         if (!creep.memory.closestRoom) {
             if (creep.room.decoder && creep.store[creep.room.decoder.resourceType]) creep.memory.closestRoom = creep.room.name;
             else {
-                let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => r.seasonDecoder && creep.store[r.seasonDecoder] && r.owner && _.includes(FRIENDLIES, r.owner) && Game.map.getRoomLinearDistance(r.name, creep.room.name) <= (creep.ticksToLive / 55) && r.level >= SEASON_RCL_CUTOFF), 'closestRange');
+                let scoreRoom = _.min(_.filter(INTEL, (r) => r.seasonDecoder && creep.store[r.seasonDecoder] && r.owner && _.includes(FRIENDLIES, r.owner) && Game.map.getRoomLinearDistance(r.name, creep.room.name) <= (creep.ticksToLive / 55) && r.level >= SEASON_RCL_CUTOFF), 'closestRange');
                 if (scoreRoom.name) creep.memory.closestRoom = scoreRoom.name; else creep.memory.closestRoom = creep.memory.closestRoom || creep.room.findClosestOwnedRoom(false, 4);
             }
         } else if (creep.room.name !== creep.memory.closestRoom) {

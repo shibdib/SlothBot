@@ -20,7 +20,7 @@ module.exports.role = function (creep) {
                         let signs = RESERVE_ROOM_SIGNS;
                         creep.signController(creep.room.controller, _.sample(signs));
                         creep.memory.signed = true;
-                        if (!Memory.roomCache[creep.room.name].reserverCap) Memory.roomCache[creep.room.name].reserverCap = creep.room.controller.pos.countOpenTerrainAround();
+                        if (!INTEL[creep.room.name].reserverCap) INTEL[creep.room.name].reserverCap = creep.room.controller.pos.countOpenTerrainAround();
                     }
                     let ticks;
                     if (creep.room.controller.reservation && creep.room.controller.reservation.username === MY_USERNAME) {
@@ -28,7 +28,7 @@ module.exports.role = function (creep) {
                     } else {
                         ticks = 0;
                     }
-                    Memory.roomCache[creep.room.name].reservationExpires = Game.time + ticks - 2000;
+                    INTEL[creep.room.name].reservationExpires = Game.time + ticks - 2000;
                     break;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(creep.room.controller);
@@ -42,7 +42,7 @@ module.exports.role = function (creep) {
                         creep.signController(creep.room.controller, _.sample(signs));
                         creep.memory.signed = true;
                     }
-                    if (!Memory.roomCache[creep.room.name].reserverCap) Memory.roomCache[creep.room.name].reserverCap = creep.room.controller.pos.countOpenTerrainAround();
+                    if (!INTEL[creep.room.name].reserverCap) INTEL[creep.room.name].reserverCap = creep.room.controller.pos.countOpenTerrainAround();
                     break;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(creep.room.controller);

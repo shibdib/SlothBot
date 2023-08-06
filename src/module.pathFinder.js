@@ -6,7 +6,7 @@
  */
 let tools = require('tools.cpuTracker');
 
-const DEFAULT_MAXOPS = 500;
+const DEFAULT_MAXOPS = 1000;
 const STATE_STUCK = 2;
 const FLEE_RANGE = 4;
 
@@ -17,6 +17,7 @@ const hostileMatrixCache = {};
 const skMatrixCache = {};
 let globalPathCache = {};
 let globalRouteCache = {};
+let segments = require('module.segmentManager');
 
 function shibMove(creep, heading, options = {}) {
     // Store source keeper
@@ -41,7 +42,7 @@ function shibMove(creep, heading, options = {}) {
     if (!creep.memory._shibMove || !creep.memory._shibMove.target || creep.memory._shibMove.targetRoom !== target.roomName || creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y) creep.memory._shibMove = {};
 
     // If creep has just entered an SK room force a re-path to make sure it doesn't DIE
-    if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].sk && (!creep.memory.skRepath || creep.memory.skRepath !== creep.room.name)) {
+    if (INTEL[creep.room.name] && INTEL[creep.room.name].sk && (!creep.memory.skRepath || creep.memory.skRepath !== creep.room.name)) {
         creep.memory.skRepath = creep.room.name;
         return creep.memory._shibMove = undefined;
     } else if (creep.memory.skRepath && creep.memory.skRepath !== creep.room.name) creep.memory.skRepath = undefined;
@@ -54,7 +55,7 @@ function shibMove(creep, heading, options = {}) {
         maxOps: DEFAULT_MAXOPS,
         range: 1,
         ignoreStructures: false,
-        maxRooms: 3,
+        maxRooms: 7,
         ignoreRoads: false,
         offRoad: false,
         confirmPath: false,
@@ -175,7 +176,7 @@ function executePath(creep, pathInfo, options, origin, heading) {
         pathInfo.newPos = positionAtDirection(origin, nextDirection);
         if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName) {
             // Handle tunneling thru walls/ramps
-            if (pathInfo.newPos.checkForBarrierStructure() && (!Memory.roomCache[pathInfo.newPos.roomName] || !Memory.roomCache[pathInfo.newPos.roomName].owner || !FRIENDLIES.includes(Memory.roomCache[pathInfo.newPos.roomName].owner))) {
+            if (pathInfo.newPos.checkForBarrierStructure() && (!INTEL[pathInfo.newPos.roomName] || !INTEL[pathInfo.newPos.roomName].owner || !FRIENDLIES.includes(INTEL[pathInfo.newPos.roomName].owner))) {
                 if ((options.tunnel || creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(WORK)) && pathInfo.path) {
                     let barrier = pathInfo.newPos.checkForBarrierStructure();
                     if (creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(WORK)) {
@@ -230,9 +231,9 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         return creep.move(creep.pos.getDirectionTo(heading));
     }
     let cached;
-    if (!Memory.roomCache[creep.room.name]) return creep.room.cacheRoomIntel(true, creep);
+    if (!INTEL[creep.room.name]) return creep.room.cacheRoomIntel(true, creep);
     if (!target) return creep.moveRandom();
-    if (options.useCache && !Memory.roomCache[creep.room.name].threatLevel && !options.tunnel) cached = getPath(creep, origin, target);
+    if (options.useCache && !INTEL[creep.room.name].threatLevel && !options.tunnel) cached = getPath(creep, origin, target);
     if (cached && options.ignoreCreeps) {
         if (options.confirmPath) return cached;
         pathInfo.findAttempt = undefined;
@@ -321,7 +322,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                     if (creep.memory.military && creep.memory.destination && (Memory.targetRooms[creep.memory.destination] || Memory.auxiliaryTargets[creep.memory.destination])) {
                         delete Memory.targetRooms[creep.memory.destination];
                         delete Memory.auxiliaryTargets[creep.memory.destination];
-                        delete Memory.roomCache[creep.memory.destination];
+                        delete INTEL[creep.memory.destination];
                         log.a('Canceling operation in ' + roomLink(creep.memory.destination) + ' as we cannot find a path.', 'HIGH COMMAND: ');
                     }
                     return creep.suicide();
@@ -371,7 +372,7 @@ function findRoute(origin, destination, options = {}) {
     let roomDistance = Game.map.getRoomLinearDistance(origin, destination);
     if (roomDistance > 7) {
         // Check for portals and don't use cached if one exists
-        portalRoom = _.filter(Memory.roomCache, (r) => r.portal && Game.map.getRoomLinearDistance(origin, r.name) < roomDistance * 0.5 &&
+        portalRoom = _.filter(INTEL, (r) => r.portal && Game.map.getRoomLinearDistance(origin, r.name) < roomDistance * 0.5 &&
             JSON.parse(r.portal)[0].destination.roomName && Game.map.getRoomLinearDistance(JSON.parse(r.portal)[0].destination.roomName, destination) < roomDistance * 0.5)[0];
         if (portalRoom) {
             portal = portalRoom.name;
@@ -382,8 +383,8 @@ function findRoute(origin, destination, options = {}) {
     if (options.distance) {
         if (!route) route = [];
         if (!portalRoom) return route.length; else if (portalRoom) {
-            let portalDestination = JSON.parse(Memory.roomCache[portalRoom.name].portal)[0].destination.roomName || JSON.parse(Memory.roomCache[portalRoom.name].portal)[0].destination.room;
-            if (Memory.roomCache[portalDestination]) return route.length + Memory.roomCache[portalDestination].closestRoom; else return route.length + 1
+            let portalDestination = JSON.parse(INTEL[portalRoom.name].portal)[0].destination.roomName || JSON.parse(INTEL[portalRoom.name].portal)[0].destination.room;
+            if (INTEL[portalDestination]) return route.length + INTEL[portalDestination].closestRoom; else return route.length + 1
         }
     } else return route;
 }
@@ -396,7 +397,7 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
     }
     // Get portal room route first if needed
     if (portalRoom) portalRoute = pathFunction(origin, portalRoom.name, roomDistance)
-    if (portalRoute) start = JSON.parse(Memory.roomCache[portalRoom.name].portal)[0].destination.roomName; else start = origin;
+    if (portalRoute) start = JSON.parse(INTEL[portalRoom.name].portal)[0].destination.roomName; else start = origin;
     let routeSearch = Game.map.findRoute(start, destination, {
         routeCallback: function (roomName) {
             // Skip origin/destination
@@ -410,37 +411,37 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
             if (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) return 1;
             // Check for avoid flagged rooms
             if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) return 250;
-            if (Memory.roomCache && Memory.roomCache[roomName]) {
+            if (INTEL && INTEL[roomName]) {
                 // Temp avoid
-                if (Memory.roomCache[roomName].tempAvoid) {
-                    if (Memory.roomCache[roomName].tempAvoid + 3000 > Game.time) return 175; else delete Memory.roomCache[roomName].tempAvoid;
+                if (INTEL[roomName].tempAvoid) {
+                    if (INTEL[roomName].tempAvoid + 3000 > Game.time) return 175; else delete INTEL[roomName].tempAvoid;
                 }
                 // Pathing Penalty Rooms
-                if (Memory.roomCache[roomName].pathingPenalty) return 250;
+                if (INTEL[roomName].pathingPenalty) return 250;
                 // High Threat
-                if (Memory.roomCache[roomName].threatLevel) return 60 * Memory.roomCache[roomName].threatLevel;
+                if (INTEL[roomName].threatLevel) return 60 * INTEL[roomName].threatLevel;
                 // Friendly Rooms
-                if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 5;
+                if (INTEL[roomName].user && _.includes(FRIENDLIES, INTEL[roomName].user)) return 5;
                 // Highway
-                if (Memory.roomCache[roomName].isHighway) return 5;
+                if (INTEL[roomName].isHighway) return 5;
                 // Avoid strongholds
-                if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].towers) return 256;
+                if (INTEL[roomName].sk && INTEL[roomName].towers) return 256;
                 // Avoid rooms owned by others
-                if (Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner)) {
-                    if (Memory.roomCache[roomName].towers) return 256; else return 125;
+                if (INTEL[roomName].owner && !_.includes(FRIENDLIES, INTEL[roomName].owner)) {
+                    if (INTEL[roomName].towers) return 256; else return 125;
                 }
                 // If room has observed obstructions
-                if (Memory.roomCache[roomName] && Memory.roomCache[roomName].obstructions) return 200;
+                if (INTEL[roomName] && INTEL[roomName].obstructions) return 200;
                 // If room is under attack
-                if (Memory.roomCache[roomName] && Memory.roomCache[roomName].hostilePower > Memory.roomCache[roomName].friendlyPower && Memory.roomCache[roomName].tickDetected + 150 > Game.time) return 100;
+                if (INTEL[roomName] && INTEL[roomName].hostilePower > INTEL[roomName].friendlyPower && INTEL[roomName].tickDetected + 150 > Game.time) return 100;
                 // SK rooms are avoided if not being mined
-                if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].user + 150 !== MY_USERNAME) return 100;
+                if (INTEL[roomName].sk && INTEL[roomName].user + 150 !== MY_USERNAME) return 100;
                 // Avoid rooms reserved by others
-                if (Memory.roomCache[roomName].reservation && !_.includes(FRIENDLIES, Memory.roomCache[roomName].reservation)) return 50;
-                if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 45;
+                if (INTEL[roomName].reservation && !_.includes(FRIENDLIES, INTEL[roomName].reservation)) return 50;
+                if (INTEL[roomName].user && !_.includes(FRIENDLIES, INTEL[roomName].user)) return 45;
             } else
                 // Unknown rooms have a higher weight
-            if (!Memory.roomCache[roomName]) return 75;
+            if (!INTEL[roomName]) return 75;
             return 12;
         }
     });
@@ -559,13 +560,15 @@ function getStructureMatrix(roomName, creep, matrix, options) {
     let room = Game.rooms[roomName];
     let type = 1;
     if (options.ignoreRoads) type = 2; else if (options.offRoad) type = 3;
-    if (Memory.roomCache[roomName] && Memory.roomCache[roomName].user && Memory.roomCache[roomName].user !== MY_USERNAME) type = 1;
+    if (INTEL[roomName] && INTEL[roomName].user && INTEL[roomName].user !== MY_USERNAME) type = 1;
     if (options.tunnel) type = 4;
+    // If we can't see into the room, try to use an old matrix
     if (!room) {
         if (structureMatrixCache[roomName + type]) return PathFinder.CostMatrix.deserialize(structureMatrixCache[roomName + type]);
-        return matrix;
+        else return matrix;
     }
-    if (!structureMatrixCache[roomName + type] || options.showMatrix || options.tunnel || !structureMatrixTick[room.name] || Game.time > structureMatrixTick[roomName + type] + 3000 || structureCount[roomName] !== room.structures.length + room.constructionSites.length) {
+    // Check if matrix is cached and usable
+    if (!structureMatrixTick[room.name] || !structureCount[roomName] || !structureMatrixCache[roomName + type] || options.showMatrix || options.tunnel || Game.time > structureMatrixTick[roomName + type] + (CREEP_LIFE_TIME * 5) || structureCount[roomName] !== room.structures.length + room.constructionSites.length) {
         structureMatrixTick[roomName + type] = Game.time;
         structureCount[roomName] = room.structures.length + room.constructionSites.length;
         structureMatrixCache[roomName + type] = addStructuresToMatrix(room, creep, matrix, type, options).serialize();
@@ -576,7 +579,7 @@ function getStructureMatrix(roomName, creep, matrix, options) {
 function addStructuresToMatrix(room, creep, matrix, type, options) {
     if (!room) return matrix;
     let roadCost = type === 4 ? 1 : type === 3 ? 2 : type === 2 ? 2 : 1;
-    let wallWrecker = (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)) || (Memory.roomCache[room.name] && FRIENDLIES.includes(Memory.roomCache[room.name].owner));
+    let wallWrecker = (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)) || (INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner));
     for (let structure of room.structures) {
         if (structure instanceof StructureWall) {
             if (wallWrecker) {
@@ -714,7 +717,7 @@ let skNoVision = [];
 
 function getSKMatrix(roomName, matrix = undefined, options) {
     let room = Game.rooms[roomName];
-    if (!Memory.roomCache[roomName] || !Memory.roomCache[roomName].sk || !room) return matrix;
+    if (!INTEL[roomName] || !INTEL[roomName].sk || !room) return matrix;
     if (!room && !_.includes(skNoVision)) {
         skNoVision.push(roomName);
         return matrix;
@@ -728,7 +731,7 @@ function getSKMatrix(roomName, matrix = undefined, options) {
 }
 
 function addSksToMatrix(room, matrix, options) {
-    if (room && Memory.roomCache[room.name] && Memory.roomCache[room.name].sk) {
+    if (room && INTEL[room.name] && INTEL[room.name].sk) {
         let sks = room.find(FIND_CREEPS, {filter: (c) => c.owner.username === 'Source Keeper'});
         if (options.ignoreKeeper) sks = _.filter(sks, (c) => c.id !== options.ignoreKeeper)
         if (sks.length) {
@@ -832,7 +835,6 @@ function deleteRoute(from, to) {
 
 function cachePath(creep, from, to, path) {
     if (!path || !path.length) return;
-    Memory._pathCache = undefined;
     //Store path based off move weight
     let options = getMoveWeight(creep);
     let weight = 3;
@@ -842,21 +844,17 @@ function cachePath(creep, from, to, path) {
         weight = 2;
     }
     let key = getPathKey(from, to, weight);
-    if (!globalPathCache && RawMemory.segments[0]) globalPathCache = JSON.parse(RawMemory.segments[0]);
-    let cache = globalPathCache || {};
-    if (cache instanceof Array) cache = {};
-    let tick = Game.time;
-    cache[key] = {
+    if (!globalPathCache || !_.size(globalPathCache)) globalPathCache = {};
+    globalPathCache[key] = {
         path: path,
+        key: key,
         uses: 1,
-        tick: tick,
-        created: tick
-    };
-    globalPathCache = cache;
-    //if (Math.random() > 0.95) RawMemory.segments[0] = JSON.stringify(cache);
+        tick: Game.time
+    }
 }
 
 function getPath(creep, from, to) {
+    if (!globalPathCache || !_.size(globalPathCache)) return;
     let cache = globalPathCache || {};
     //Store path based off move weight
     let options = getMoveWeight(creep);
@@ -866,10 +864,10 @@ function getPath(creep, from, to) {
     } else if (options.ignoreRoads) {
         weight = 2;
     }
-    let cachedPath = cache[getPathKey(from, to, weight)];
+    let cachedPath = globalPathCache[getPathKey(from, to, weight)];
     // Check for the path reversed
-    if (!cachedPath && cache[getPathKey(to, from, weight)]) {
-        cachedPath = cache[getPathKey(to, from, weight)];
+    if (!cachedPath && globalPathCache[getPathKey(to, from, weight)]) {
+        cachedPath = globalPathCache[getPathKey(to, from, weight)];
         cachedPath.path = reverseString(cachedPath.path);
     }
     if (cachedPath) {
@@ -961,7 +959,7 @@ Room.prototype.routeSafe = function (destination = this.name, maxThreat = 2, max
     if (route && route.length) route.forEach(function (r) {
         // Return false for super long routes
         if (route.length > range) return state = false;
-        else if (Memory.roomCache[r] && (Memory.roomCache[r].threatLevel >= maxThreat || Memory.roomCache[r].roomHeat >= maxHeat)) return state = false;
+        else if (INTEL[r] && (INTEL[r].threatLevel >= maxThreat || INTEL[r].roomHeat >= maxHeat)) return state = false;
     })
     let cache = routeSafetyCache[this.name + '.' + destination] || {};
     cache.status = state;

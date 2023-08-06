@@ -25,7 +25,7 @@ module.exports.role = function role(creep) {
         return;
     }
     // Remove bad desto
-    if ((Memory.roomCache[creep.memory.destination] && Memory.roomCache[creep.memory.destination].user && Memory.roomCache[creep.memory.destination].user !== MY_USERNAME) || !Memory.roomCache[creep.memory.destination]) return creep.memory.destination = undefined;
+    if ((INTEL[creep.memory.destination] && INTEL[creep.memory.destination].user && INTEL[creep.memory.destination].user !== MY_USERNAME) || !INTEL[creep.memory.destination]) return creep.memory.destination = undefined;
     // Handle movement
     if (creep.pos.roomName !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination, {range: 23}));
     // Checks
@@ -65,7 +65,7 @@ module.exports.role = function role(creep) {
             if (!Game.getObjectById(creep.memory.constructionSite)) return creep.memory.constructionSite = undefined;
             creep.builderFunction();
         } else {
-            if (!remoteRoads(creep)) Memory.roomCache[creep.room.name].roadsBuilt = true;
+            if (!remoteRoads(creep)) INTEL[creep.room.name].roadsBuilt = true;
             creep.memory.destination = undefined;
             if (creep.memory.overlord === creep.room.name) creep.idleFor(15);
         }
@@ -79,7 +79,7 @@ function remoteRoads(creep) {
     let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
     let homeExit = creep.room.find(goHome);
     let homeMiddle = _.round(homeExit.length / 2);
-    if (!Memory.roomCache[creep.room.name] || !Memory.roomCache[creep.room.name].owner) {
+    if (!INTEL[creep.room.name] || !INTEL[creep.room.name].owner) {
         let containers = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
         for (let container of containers) {
             if (_.size(Game.constructionSites) >= 70) return false;
@@ -97,7 +97,7 @@ function remoteRoads(creep) {
         if (buildRoadFromTo(creep.room, lair, homeExit[homeMiddle])) return true;
     }
     let mineral = creep.room.find(FIND_MINERALS)[0];
-    if (mineral && Memory.roomCache[creep.room.name].sources > 2 && buildRoadFromTo(creep.room, mineral, homeExit[homeMiddle])) return true;
+    if (mineral && INTEL[creep.room.name].sources > 2 && buildRoadFromTo(creep.room, mineral, homeExit[homeMiddle])) return true;
     if (creep.room.controller && buildRoadFromTo(creep.room, creep.room.controller, homeExit[homeMiddle])) return true;
     let neighboring = Game.map.describeExits(creep.pos.roomName);
     if (neighboring['1'] && neighboring['1'] !== creep.memory.overlord) {

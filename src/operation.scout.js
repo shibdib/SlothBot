@@ -8,6 +8,7 @@ let highCommand = require('military.highCommand');
 const {getUserStrength} = require("./military.highCommand");
 
 Creep.prototype.scoutRoom = function () {
+    if (!Memory.targetRooms[this.memory.destination]) return this.recycleCreep();
     if (this.room.name !== this.memory.destination) {
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {
             range: 23,

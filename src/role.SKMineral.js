@@ -24,7 +24,7 @@ module.exports.role = function (creep) {
                     // Check if mineral depleted
                     if (mineral.mineralAmount === 0) {
                         log.a(creep.room.name + ' supply of ' + mineral.mineralType + ' has been depleted. Regen in ' + mineral.ticksToRegeneration);
-                        Memory.roomCache[creep.room.name].mineralCooldown = Game.time + mineral.ticksToRegeneration;
+                        INTEL[creep.room.name].mineralCooldown = Game.time + mineral.ticksToRegeneration;
                         return creep.suicide();
                     }
                     switch (creep.harvest(mineral)) {

@@ -13,28 +13,25 @@ global.HOSTILES = []; // Manually set players as hostile
 global.MANUAL_FRIENDS = []; // Manually set players as friends (overrides COMBAT_SERVER)
 global.RAMPART_ACCESS = true // Allow friends and allies access thru ramparts
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
-global.OFFENSIVE_OPERATIONS = true; // Offensive Combat
+global.OFFENSIVE_OPERATIONS = true; // Offensive Combat, disabling this will disable all offensive operations
 global.HOLD_SECTOR = true; // Attack rooms in sectors you have rooms
-global.ATTACK_LOCALS = false; // Attacks targets within range of the next entry
+global.ATTACK_LOCALS = false; // Attacks targets within range
 global.NEW_SPAWN_DENIAL = true; // Crush new spawns immediately
 global.NCP_HOSTILE = true; // Always attack users of open source bots
 global.ATTACK_COOLDOWN = 4500; //Time between attacks on a room
 global.STATUS_COOLDOWN = 180; // Seconds between console status reports
 global.SIGN_CLEANER = true; // Clean room signs away with explorers
-global.AVOID_ALLIED_SECTORS = true; // Dont claim rooms in allied sectors
-global.REMOTE_SOURCE_SCORE = 200; // Set the score for remote sources to be mined (higher means more sources but further)
+global.AVOID_ALLIED_SECTORS = true; // Try not to claim rooms in allied sectors
 global.REMOTE_SOURCE_TARGET = 6; // The number of remote sources a room looks to have
 global.AVOID_ATTACKING_ALLIANCES = true; // Check LOAN and avoid attacking people in alliances
-global.GENERATE_PIXELS = true; // Generate pixels sporadically
+global.GENERATE_PIXELS = true; // Generate pixels when feasible (not in war)
 
 // Room Ramparts
-// These determine if the bunker algo takes these into account
+global.RAMPARTS_ONLY = true; // Only build ramparts and not a checkered pattern
+// These determine if the bunker algo takes these into account. Doesn't guarantee they'll be included in the bunker but regardless they will have ramparts protecting them
 global.PROTECT_CONTROLLER = false;
 global.PROTECT_MINERAL = false;
 global.PROTECT_SOURCES = false;
-
-// Seasonal Specific
-global.SEASON_RCL_CUTOFF = 8; // Only score in rooms greater than or equal to this
 
 // Signing and whatnot
 global.OWNED_ROOM_SIGNS = ["~~~NO ENTRY - Full Automation In Progress - NO ENTRY~~~"];

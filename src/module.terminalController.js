@@ -59,11 +59,11 @@ module.exports.terminalControl = function (room) {
         // Set saleTerminal
         if (!Memory.saleTerminal.room || Memory.saleTerminal.saleSet + 15000 < Game.time || !Game.rooms[Memory.saleTerminal.room]) {
             // Clear if no longer valid
-            if (!Game.rooms[Memory.saleTerminal.room] || !Memory.roomCache[Memory.saleTerminal.room] || Memory.roomCache[Memory.saleTerminal.room].owner !== MY_USERNAME) Memory.saleTerminal = {};
-            if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].controller.level === Memory.maxLevel) {
+            if (!Game.rooms[Memory.saleTerminal.room] || !INTEL[Memory.saleTerminal.room] || INTEL[Memory.saleTerminal.room].owner !== MY_USERNAME) Memory.saleTerminal = {};
+            if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].controller.level === MAX_LEVEL) {
                 return Memory.saleTerminal.saleSet = Game.time;
             }
-            Memory.saleTerminal.room = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && !s.room.memory.praiseRoom && s.room.level === Memory.maxLevel && !s.room.nukes.length && s.isActive() && _.sum(s.store) < s.store.getCapacity() * 0.9)).room.name;
+            Memory.saleTerminal.room = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && !s.room.memory.praiseRoom && s.room.level === MAX_LEVEL && !s.room.nukes.length && s.isActive() && _.sum(s.store) < s.store.getCapacity() * 0.9)).room.name;
             Memory.saleTerminal.saleSet = Game.time;
         }
         runOnce = Game.time;
@@ -207,7 +207,7 @@ function pricingUpdate(globalOrders, myOrders) {
             if (latestMarketHistory(order.resourceType)) {
                 newPrice = latestMarketHistory(order.resourceType)['avgPrice'];
             } else {
-                let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === order.resourceType && order.type === ORDER_SELL), 'price');
+                let competitorOrder = _.min(globalOrders.filter(order => !_.includes(MY_ROOMS, order.roomName) && order.resourceType === order.resourceType && order.type === ORDER_SELL), 'price');
                 if (competitorOrder.id) {
                     newPrice = competitorOrder.price - 0.001;
                 }
@@ -228,7 +228,7 @@ function pricingUpdate(globalOrders, myOrders) {
             let newPrice = currentPrice;
             let averagePrice;
             if (latestMarketHistory(order.resourceType)) averagePrice = latestMarketHistory(order.resourceType)['avgPrice'] + 0.001;
-            let competitorOrder = _.max(globalOrders.filter(o => !_.includes(Memory.myRooms, o.roomName) && o.resourceType === order.resourceType && o.type === ORDER_BUY), 'price');
+            let competitorOrder = _.max(globalOrders.filter(o => !_.includes(MY_ROOMS, o.roomName) && o.resourceType === order.resourceType && o.type === ORDER_BUY), 'price');
             if (competitorOrder.id) {
                 newPrice = competitorOrder.price + 0.001;
             } else if (averagePrice) newPrice = averagePrice;
@@ -283,7 +283,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         if (latestMarketHistory(resourceType)) {
             price = latestMarketHistory(resourceType)['avgPrice'];
         } else {
-            let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL), 'price');
+            let competitorOrder = _.min(globalOrders.filter(order => !_.includes(MY_ROOMS, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL), 'price');
             if (competitorOrder.id) {
                 price = competitorOrder.price - 0.001;
             }
@@ -314,7 +314,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
             let buyAmount = target - stored;
             // If not on mmo just buy it
             if (!['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
-                let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName)), 'price');
+                let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral && order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName)), 'price');
                 if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.floor(spendingMoney / sellOrder.price);
                 if (sellOrder.id && buyAmount >= 50) {
                     if (buyAmount > sellOrder.amount) buyAmount = sellOrder.amount;
@@ -334,7 +334,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
                 if (latestMarketHistory(mineral)) {
                     averagePrice = latestMarketHistory(mineral)['avgPrice'] + 0.001;
                 }
-                let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === mineral && order.type === ORDER_BUY), 'price');
+                let competitorOrder = _.min(globalOrders.filter(order => !_.includes(MY_ROOMS, order.roomName) && order.resourceType === mineral && order.type === ORDER_BUY), 'price');
                 if (competitorOrder.id) {
                     price = competitorOrder.price + 0.001;
                 } else if (averagePrice) price = averagePrice;
@@ -359,7 +359,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
         if (BUY_THESE_BOOSTS && BUY_THESE_BOOSTS.length) {
             for (let mineral of shuffle(BUY_THESE_BOOSTS)) {
                 let stored = getResourceTotal(mineral) || 0;
-                if (stored < BOOST_AMOUNT * (_.size(Memory.myRooms))) {
+                if (stored < BOOST_AMOUNT * (_.size(MY_ROOMS))) {
                     let buyAmount = BOOST_AMOUNT - stored;
                     if (buyAmount > tradeAmount) buyAmount = tradeAmount;
                     // Avoid Duplicates
@@ -369,7 +369,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
                     if (latestMarketHistory(mineral)) {
                         averagePrice = latestMarketHistory(mineral)['avgPrice'] + 0.001;
                     }
-                    let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === mineral && order.type === ORDER_BUY), 'price');
+                    let competitorOrder = _.min(globalOrders.filter(order => !_.includes(MY_ROOMS, order.roomName) && order.resourceType === mineral && order.type === ORDER_BUY), 'price');
                     if (competitorOrder.id) {
                         price = competitorOrder.price + 0.001;
                     } else if (averagePrice) price = averagePrice;
@@ -388,27 +388,29 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
             }
         }
         // Buy energy
-        if (!terminal.room.energyState && !_.find(myOrders, (o) => o.resourceType === RESOURCE_ENERGY && o.roomName === terminal.room.name)) {
-            let price = 0.5;
-            let averagePrice;
-            if (latestMarketHistory(RESOURCE_ENERGY)) {
-                averagePrice = latestMarketHistory(RESOURCE_ENERGY)['avgPrice'] + 0.001;
-            }
-            let competitorOrder = _.max(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === RESOURCE_ENERGY && order.type === ORDER_BUY), 'price');
-            if (competitorOrder.id) {
-                price = competitorOrder.price + 0.001;
-            } else if (averagePrice) price = averagePrice;
-            // Do not buy over average price
-            if (averagePrice < price) price = averagePrice;
-            if (Game.market.createOrder({
-                type: ORDER_BUY,
-                resourceType: RESOURCE_ENERGY,
-                price: price,
-                totalAmount: 10000,
-                roomName: terminal.pos.roomName
-            }) === OK) {
-                log.w("New Buy Order: " + RESOURCE_ENERGY + " at/per " + price + ' in ' + roomLink(terminal.room.name), "Market: ");
-                return true;
+        if (BUY_ENERGY) {
+            if (!terminal.room.energyState && !_.find(myOrders, (o) => o.resourceType === RESOURCE_ENERGY && o.roomName === terminal.room.name)) {
+                let price = 0.5;
+                let averagePrice;
+                if (latestMarketHistory(RESOURCE_ENERGY)) {
+                    averagePrice = latestMarketHistory(RESOURCE_ENERGY)['avgPrice'] + 0.001;
+                }
+                let competitorOrder = _.max(globalOrders.filter(order => !_.includes(MY_ROOMS, order.roomName) && order.resourceType === RESOURCE_ENERGY && order.type === ORDER_BUY), 'price');
+                if (competitorOrder.id) {
+                    price = competitorOrder.price + 0.001;
+                } else if (averagePrice) price = averagePrice;
+                // Do not buy over average price
+                if (averagePrice < price) price = averagePrice;
+                if (Game.market.createOrder({
+                    type: ORDER_BUY,
+                    resourceType: RESOURCE_ENERGY,
+                    price: price,
+                    totalAmount: 10000,
+                    roomName: terminal.pos.roomName
+                }) === OK) {
+                    log.w("New Buy Order: " + RESOURCE_ENERGY + " at/per " + price + ' in ' + roomLink(terminal.room.name), "Market: ");
+                    return true;
+                }
             }
         }
     }
@@ -419,7 +421,7 @@ function buyPower(terminal, globalOrders) {
     if (stored >= POWER_SPAWN_POWER_CAPACITY) return;
     let buyAmount = reactionAmount - stored;
     if (buyAmount >= 1000) {
-        let orders = globalOrders.filter(order => order.resourceType === RESOURCE_POWER && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName));
+        let orders = globalOrders.filter(order => order.resourceType === RESOURCE_POWER && order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName));
         let maxPrice = _.min(orders, 'price').price;
         let filteredOrders = orders.filter(o => o.price >= maxPrice * 0.9);
         let seller = _.min(filteredOrders, function (o) {
@@ -438,7 +440,7 @@ function buyPower(terminal, globalOrders) {
 
 function buyEnergy(terminal, globalOrders) {
     if (!terminal.room.energyState) {
-        let orders = globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName));
+        let orders = globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY && order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName));
         let maxPrice = _.min(orders, 'price').price;
         console.log(maxPrice)
         let filteredOrders = orders.filter(o => o.price >= maxPrice * 0.9);
@@ -482,7 +484,7 @@ function fillBuyOrders(terminal, globalOrders) {
         if (sellAmount > 0) {
             // Find cheapest buyer within 10% of max price
             let orders = globalOrders.filter(order => order.resourceType === resourceType && order.type === ORDER_BUY && order.roomName !== terminal.pos.roomName &&
-                Game.market.calcTransactionCost(500, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY] && (!Memory.roomCache[order.roomName] || !HOSTILES.includes(Memory.roomCache[order.roomName].user)));
+                Game.market.calcTransactionCost(500, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY] && (!INTEL[order.roomName] || !HOSTILES.includes(INTEL[order.roomName].user)));
             let maxPrice = _.max(orders, 'price').price;
             let filteredOrders = orders.filter(o => o.price >= maxPrice * 0.9);
             let buyer = _.min(filteredOrders, function (o) {
@@ -503,14 +505,14 @@ function fillBuyOrders(terminal, globalOrders) {
             }
             // Offload if we're overflowing
             else if (sellAmount >= keepAmount * 2) {
-                let randomRoom = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && r.level >= 6)) || _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && r.level >= 6));
+                let randomRoom = _.sample(_.filter(INTEL, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && r.level >= 6)) || _.sample(_.filter(INTEL, (r) => r.user && r.user !== MY_USERNAME && r.level >= 6));
                 if (randomRoom) {
                     randomRoom = randomRoom.name;
                     if (Game.market.calcTransactionCost(sellAmount, terminal.room.name, randomRoom) > terminal.store[RESOURCE_ENERGY]) sellAmount = _.floor(terminal.store[RESOURCE_ENERGY] / (1 - Math.exp(-Game.map.getRoomLinearDistance(terminal.room.name, randomRoom) / 30)));
                     if (sellAmount > 1000) {
                         switch (terminal.send(resourceType, 1000, randomRoom)) {
                             case OK:
-                                log.w(terminal.pos.roomName + " Dumped - " + sellAmount + ' ' + resourceType + " to " + roomLink(randomRoom) + " (OWNED BY- " + Memory.roomCache[randomRoom].user + ") from " + roomLink(terminal.room.name), "Market: ");
+                                log.w(terminal.pos.roomName + " Dumped - " + sellAmount + ' ' + resourceType + " to " + roomLink(randomRoom) + " (OWNED BY- " + INTEL[randomRoom].user + ") from " + roomLink(terminal.room.name), "Market: ");
                                 return true;
                         }
                     }
@@ -523,44 +525,11 @@ function fillBuyOrders(terminal, globalOrders) {
 let usedTerminals = {};
 function balanceResources(terminal) {
     // Season, locate closest to collector room
-    let scoreStorage;
-    /** Season 1
-     if (Game.shard.name === 'shardSeason') {
-        let scoreRoom = _.min(_.filter(Memory.roomCache, (r) => r.seasonCollector === 1 && !r.hostile && !_.includes(Memory.nonCombatRooms, r.name)), 'closestRange');
-        if (scoreRoom && scoreRoom.name && Game.rooms[scoreRoom.name]) {
-            scoreStorage = Game.rooms[scoreRoom.name].findClosestOwnedRoom(false, 6);
-        }
-    }**/
         // Loop resources
     let sortedKeys = Object.keys(terminal.store).sort(function (a, b) {
             return terminal.store[b] - terminal.store[a]
         });
     for (let resource of sortedKeys) {
-        /** Season 1
-         // Handle score
-         if (Game.shard.name === 'shardSeason' && resource === RESOURCE_SCORE) {
-            if (terminal.room.name === scoreStorage) continue;
-            switch (terminal.send(resource, terminal.store[RESOURCE_SCORE], scoreStorage)) {
-                case OK:
-                    log.a('Sending ' + terminal.store[RESOURCE_SCORE] + ' ' + resource + ' To ' + roomLink(scoreStorage) + ' From ' + roomLink(terminal.room.name), "Market: ");
-                    return true;
-            }
-            continue;
-        }
-         ** Season 2
-         if (Game.shard.name === 'shardSeason' && _.includes(SYMBOLS, resource)) {
-            if (terminal.room.decoder.resourceType === resource) continue;
-            // Find room with decoder
-            let needyTerminal = _.find(Game.structures, (r) => (!usedTerminals[r.room.name] || usedTerminals[r.room.name].tick !== Game.time) && r.structureType === STRUCTURE_TERMINAL && r.room.decoder.resourceType === resource && r.store.getFreeCapacity() && Game.market.calcTransactionCost(5000, terminal.room.name, r.room.name) < terminal.room.energy * 0.01);
-            if (!needyTerminal) continue;
-            switch (terminal.send(resource, terminal.store[resource], needyTerminal.room.name)) {
-                case OK:
-                    log.a('Sending ' + terminal.store[resource] + ' ' + resource + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
-                    usedTerminals[needyTerminal.room.name] = {tick: Game.time};
-                    usedTerminals[terminal.room.name] = {tick: Game.time};
-                    return true;
-            }
-        }**/
         // Energy balance handled elsewhere
         if (resource === RESOURCE_ENERGY) continue;
         let keepAmount = reactionAmount;
@@ -630,7 +599,7 @@ function balanceResources(terminal) {
 
 function balanceEnergy(terminal) {
     // Balance Energy
-    if (!Memory.roomCache[terminal.room.name].threatLevel && !terminal.room.nukes.length && terminal.room.energyState) {
+    if (!INTEL[terminal.room.name].threatLevel && !terminal.room.nukes.length && terminal.room.energyState) {
         // Find needy terminals
         let needyTerminal = _.find(Game.structures, (r) => r.room.name !== terminal.room.name && r.room.energyState < terminal.room.energyState && r.structureType === STRUCTURE_TERMINAL && (!r.room.store[RESOURCE_BATTERY] || !r.room.factory) &&
             (!usedTerminals[r.room.name] || usedTerminals[r.room.name].tick !== Game.time) && r.store.getFreeCapacity() && Game.market.calcTransactionCost(15000, terminal.room.name, r.room.name) < 1500);
@@ -701,10 +670,10 @@ function balanceEnergy(terminal) {
 
 function emergencyEnergy(terminal) {
     // Balance energy
-    if (terminal.store[RESOURCE_ENERGY] && !Memory.roomCache[terminal.room.name].requestingSupport && !Memory.roomCache[terminal.room.name].threatLevel && !terminal.room.nukes.length) {
+    if (terminal.room.energyState && terminal.store[RESOURCE_ENERGY] && !INTEL[terminal.room.name].requestingSupport && !INTEL[terminal.room.name].threatLevel && !terminal.room.nukes.length) {
         // Find needy terminals
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
-        let responseNeeded = _.min(_.filter(myRooms, (r) => r.name !== terminal.room.name && ((Memory.roomCache[r.name] && Memory.roomCache[r.name].threatLevel >= 3) || (r.memory.nuke > 1500)) && r.terminal && r.energy < ENERGY_AMOUNT[terminal.room.level] * 0.5), '.energy');
+        let responseNeeded = _.min(_.filter(myRooms, (r) => r.name !== terminal.room.name && ((INTEL[r.name] && INTEL[r.name].threatLevel >= 3) || (r.memory.nuke > 1500)) && r.terminal && !r.energyState), '.energy');
         if (responseNeeded && responseNeeded.name) {
             let needyTerminal = responseNeeded.terminal;
             // Determine how much you can move
@@ -716,18 +685,27 @@ function emergencyEnergy(terminal) {
                     return true;
             }
         }
-    } else if ((Memory.roomCache[terminal.room.name].requestingSupport || terminal.room.nukes.length) && terminal.room.energy < ENERGY_AMOUNT[terminal.room.level] * 0.5) {
-        let orders = globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY && order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName) && order.remainingAmount >= 10000);
-        let maxPrice = _.min(orders, 'price').price;
-        let filteredOrders = orders.filter(o => o.price >= maxPrice * 0.9);
-        let seller = _.min(filteredOrders, function (o) {
-            return Game.market.calcTransactionCost(10000, terminal.room.name, o.roomName);
-        })
-        if (seller.price * 10000 < Game.market.credits * 0.5) {
-            if (Game.market.deal(seller.id, 10000, terminal.pos.roomName) === OK) {
-                log.w('Siege Supplies ' + roomLink(terminal.room.name) + " Bought " + 10000 + " " + RESOURCE_ENERGY + " for " + (seller.price * 10000) + " credits", "Market: ");
-                return true;
-            }
+    } else if (!terminal.room.energyState && (INTEL[terminal.room.name].requestingSupport || terminal.room.nukes.length)) {
+        let price = 0.5;
+        let averagePrice;
+        if (latestMarketHistory(RESOURCE_ENERGY)) {
+            averagePrice = latestMarketHistory(RESOURCE_ENERGY)['avgPrice'] + 0.001;
+        }
+        let competitorOrder = _.max(globalOrders.filter(order => !_.includes(MY_ROOMS, order.roomName) && order.resourceType === RESOURCE_ENERGY && order.type === ORDER_BUY), 'price');
+        if (competitorOrder.id) {
+            price = competitorOrder.price + 0.001;
+        } else if (averagePrice) price = averagePrice;
+        // Do not buy over average price
+        if (averagePrice && averagePrice < price) price = averagePrice;
+        if (Game.market.createOrder({
+            type: ORDER_BUY,
+            resourceType: RESOURCE_ENERGY,
+            price: price,
+            totalAmount: 10000,
+            roomName: terminal.pos.roomName
+        }) === OK) {
+            log.w("New Emergency Buy Order: " + RESOURCE_ENERGY + " at/per " + price + ' in ' + roomLink(terminal.room.name), "Market: ");
+            return true;
         }
     }
 }

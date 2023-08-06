@@ -16,7 +16,7 @@ module.exports.role = function (creep) {
     if (creep.memory.operation === 'claimClear') return creep.claimClear();
     //Initial move
     if (creep.pos.roomName !== creep.memory.destination) {
-        if (Game.gcl.level <= Memory.myRooms.length) {
+        if (Game.gcl.level <= MY_ROOMS.length) {
             delete Memory.auxiliaryTargets[creep.room.name];
             return creep.suicide();
         }
@@ -25,14 +25,14 @@ module.exports.role = function (creep) {
         if (!creep.memory.intelLogged) {
             creep.memory.intelLogged = true;
             creep.room.cacheRoomIntel(true, creep);
-        } else if (Memory.roomCache[creep.room.name].closestRange <= 1) {
+        } else if (INTEL[creep.room.name].closestRange <= 1) {
             Memory.auxiliaryTargets[creep.room.name] = undefined;
             return creep.suicide();
         } else if (creep.room.controller.owner) {
             cleanRoom(creep.room, creep.room.structures);
             return creep.suicide();
         } else if (!creep.pos.findClosestByPath(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER))) {
-            Memory.roomCache[creep.room.name].obstructions = true;
+            INTEL[creep.room.name].obstructions = true;
             Memory.auxiliaryTargets[creep.room.name] = undefined;
             return creep.suicide();
         } else if (!creep.memory.signed) {
@@ -58,7 +58,7 @@ module.exports.role = function (creep) {
                 case OK:
                     Memory.auxiliaryTargets[creep.room.name] = undefined;
                     Memory.targetRooms[creep.room.name] = undefined;
-                    Memory.myRooms.push(creep.room.name);
+                    MY_ROOMS.push(creep.room.name);
             }
         }
     }

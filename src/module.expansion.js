@@ -8,15 +8,20 @@ let lastTick = 0;
 
 module.exports.claimNewRoom = function () {
     let worthyRooms;
-    if (lastTick + 5000 > Game.time) return;
+    if (lastTick + 500 > Game.time || !MY_ROOMS[0]) return;
     lastTick = Game.time;
-    let claimInProgress = _.find(Memory.auxiliaryTargets, (t) => t && (t.type === 'claimScout' || t.type === 'claim'));
+    // Check for active claims or rebuilds
+    let claimInProgress = _.find(Memory.auxiliaryTargets, (t) => t && (t.type === 'claim' || t.type === 'rebuild'));
     if (claimInProgress) return;
     let claimTarget = Memory.nextClaim;
-    if (Math.random() > 0.75) claimTarget = undefined;
+    // Clear claim target if it's not valid
+    if (!INTEL[claimTarget] || INTEL[claimTarget].owner || INTEL[claimTarget].reservation || Math.random() > 0.75) {
+        Memory.nextClaim = undefined;
+        claimTarget = undefined;
+    }
     if (!claimTarget) {
-        worthyRooms = _.filter(Memory.roomCache, (r) => Game.rooms[r.closestRoom] && (!r.noClaim || r.noClaim < Game.time) && !r.obstructions && !r.owner && (!r.reservation || r.reservation === MY_USERNAME) && r.hubCheck &&
-            Game.rooms[r.closestRoom].routeSafe(r.name, 500, 1, 12) && Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(Memory.myRooms[0]).status);
+        worthyRooms = _.filter(INTEL, (r) => Game.rooms[r.closestRoom] && (!r.noClaim || r.noClaim < Game.time) && !r.obstructions && !r.owner && (!r.reservation || r.reservation === MY_USERNAME) && r.hubCheck &&
+            Game.rooms[r.closestRoom].routeSafe(r.name, 500, 1, 12) && Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(MY_ROOMS[0]).status);
         if (!worthyRooms.length) return;
         let possibles = {};
         worthy:
@@ -24,8 +29,13 @@ module.exports.claimNewRoom = function () {
                 let name = worthyRooms[key].name;
                 // All rooms start at 10000
                 let baseScore = 10000;
+                // Check if we've already failed here, give up after 10 tries otherwise just subtract 1000 per fail
+                if (INTEL[name].failedClaim) {
+                    if (INTEL[name].failedClaim >= 10) continue;
+                    baseScore -= INTEL[name].failedClaim * 1000;
+                }
                 // Check if it's near any owned friendly rooms
-                let friendlyRooms = _.filter(Memory.roomCache, (r) => r.level && _.includes(FRIENDLIES, r.owner));
+                let friendlyRooms = _.filter(INTEL, (r) => r.level && _.includes(FRIENDLIES, r.owner));
                 for (let key in friendlyRooms) {
                     let avoidName = friendlyRooms[key].name;
                     let distance = Game.map.findRoute(name, avoidName).length;
@@ -35,33 +45,30 @@ module.exports.claimNewRoom = function () {
                     if (AVOID_ALLIED_SECTORS && sameSectorCheck(name, avoidName)) baseScore -= 1500;
                 }
                 // Check if it's near any owned enemy rooms
-                let enemyRooms = _.filter(Memory.roomCache, (r) => r.level && _.includes(HOSTILES, r.owner));
+                let enemyRooms = _.filter(INTEL, (r) => r.level && _.includes(HOSTILES, r.owner));
                 for (let key in enemyRooms) {
                     let avoidName = enemyRooms[key].name;
                     let distance = Game.map.getRoomLinearDistance(name, avoidName)
                     if (distance <= 2) distance = Game.map.findRoute(name, avoidName).length;
-                    if (distance <= 2) baseScore -= 5000; else if (distance < 6) baseScore -= 1000;
+                    if (distance <= 2) baseScore -= 3000; else if (distance < 6) baseScore -= 1000;
                 }
                 // Remote access
                 let neighboring = _.map(Game.map.describeExits(name));
                 let sourceCount = 0;
                 neighboring.forEach(function (r) {
-                    if (!Memory.roomCache[r]) sourceCount++;
-                    else if (Memory.roomCache[r] && !Memory.roomCache[r].user) sourceCount += Memory.roomCache[r].sources;
+                    if (!INTEL[r]) sourceCount++;
+                    else if (INTEL[r] && !INTEL[r].user) sourceCount += INTEL[r].sources;
                 });
                 // No remotes is a big negative
-                if (!sourceCount) continue;
+                if (!sourceCount) baseScore -= 2500;
                 baseScore += (sourceCount * 250);
                 // Swamps suck
-                let terrain = Game.map.getRoomTerrain(name);
-                let terrainScore = 0;
                 for (let y = 0; y < 50; y++) {
                     for (let x = 0; x < 50; x++) {
-                        let tile = terrain.get(x, y);
-                        if (tile === TERRAIN_MASK_SWAMP) terrainScore += 50;
+                        let tile = Game.map.getRoomTerrain(name).get(x, y);
+                        if (tile === TERRAIN_MASK_SWAMP) baseScore -= 50;
                     }
                 }
-                baseScore -= terrainScore;
                 // If it's a new mineral add to the score
                 if (!_.includes(Memory.ownedMinerals, worthyRooms[key].mineral)) {
                     switch (worthyRooms[key].mineral) {
@@ -81,17 +88,7 @@ module.exports.claimNewRoom = function () {
                             baseScore += 200;
                             break;
                     }
-                } else baseScore -= 500;
-                // Season stuff
-                if (Game.shard.name === 'shardSeason') {
-                    // Season 2
-                    /**
-                     let symbolAccess = _.uniq(_.pluck(_.filter(Memory.roomCache, (r) => r.owner && _.includes(FRIENDLIES, r.owner) && r.closestRange < 15), 'seasonDecoder'));
-                     if (_.includes(symbolAccess, worthyRooms[key].seasonDecoder)) continue;
-                     **/
-                    // Season 4
-                    if (!Memory.roomCache[name].seasonResource) continue;
-                }
+                } else baseScore -= 1000;
                 // Prioritize your sector
                 if (sameSectorCheck(name, worthyRooms[key].closestRoom)) baseScore += 2000; else baseScore -= 500;
                 worthyRooms[key]["claimValue"] = baseScore;
@@ -101,14 +98,14 @@ module.exports.claimNewRoom = function () {
     }
     if (claimTarget) {
         let limit = Game.gcl.level;
-        // Special novice/respawn zone cases
-        if (Game.map.getRoomStatus(Memory.myRooms[0]).status === 'novice') limit = 3;
-        if (limit <= Memory.myRooms.length || Memory.spawnIn + 7500 > Game.time || Memory.minLevel < 3 || claimInProgress) {
+        // Special novice zone cases
+        if (Game.map.getRoomStatus(MY_ROOMS[0]).status === 'novice') limit = 3;
+        if (limit <= MY_ROOMS.length || Memory.spawnIn + 7500 > Game.time || MIN_LEVEL < 3) {
             if (Memory.nextClaim !== claimTarget) {
                 log.a('Next claim target set to ' + roomLink(claimTarget) + ' once available.', 'EXPANSION CONTROL: ');
                 Memory.nextClaim = claimTarget;
-            } else if (!Memory.roomCache[claimTarget] || Memory.roomCache[claimTarget].owner) Memory.nextClaim = undefined;
-        } else if (!Memory.auxiliaryTargets[claimTarget] && Memory.roomCache[claimTarget] && !Memory.roomCache[claimTarget].hostile) {
+            }
+        } else if (!Memory.auxiliaryTargets[claimTarget] && INTEL[claimTarget] && !INTEL[claimTarget].hostile) {
             Memory.nextClaim = undefined;
             let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;

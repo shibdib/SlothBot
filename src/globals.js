@@ -20,10 +20,10 @@ let globals = function () {
             console.log('Loaded config for ' + Game.shard.name);
             if (_.includes(COMBAT_SERVER, Game.shard.name)) {
                 console.log('Combat Server Mode Active - All Players Considered Hostile');
-                console.log('Manual Allies (Overrides the above) - ' + JSON.stringify(MANUAL_FRIENDS));
+                console.log('Manual Allies (Overrides the above) - ' + MANUAL_FRIENDS.toString());
             } else {
-                console.log('Manual Enemies - ' + JSON.stringify(HOSTILES));
-                console.log('Manual Allies - ' + JSON.stringify(MANUAL_FRIENDS));
+                console.log('Manual Enemies - ' + HOSTILES.toString());
+                console.log('Manual Allies - ' + MANUAL_FRIENDS.toString());
             }
         }
     } catch (e) {
@@ -35,10 +35,10 @@ let globals = function () {
             console.log('No custom config found loading default config');
             if (_.includes(COMBAT_SERVER, Game.shard.name)) {
                 console.log('Combat Server Mode Active - All Players Considered Hostile');
-                console.log('Manual Allies (Overrides the above) - ' + JSON.stringify(MANUAL_FRIENDS));
+                console.log('Manual Allies (Overrides the above) - ' + MANUAL_FRIENDS.toString());
             } else {
-                console.log('Manual Enemies - ' + JSON.stringify(HOSTILES));
-                console.log('Manual Allies - ' + JSON.stringify(MANUAL_FRIENDS));
+                console.log('Manual Enemies - ' + HOSTILES.toString());
+                console.log('Manual Allies - ' + MANUAL_FRIENDS.toString());
             }
         }
     }
@@ -71,7 +71,7 @@ let globals = function () {
         8: 250000
     };
     global.PIXEL_BUFFER = 500; // Sell any pixels above this amount
-    global.BUY_ENERGY = true; // If true it will buy energy at anything below the baseline energy price if a room isn't considered in surplus
+    global.BUY_ENERGY = true; // If true it will buy energy when above the buffer
     global.BUY_ENERGY_CREDIT_BUFFER = 500000; // Stay above this to buy energy
     global.CREDIT_BUFFER = 10000; // Stay above
     global.FACTORY_CUTOFF = ENERGY_AMOUNT * 0.5; // Amount needed for a factory to be active
@@ -124,17 +124,17 @@ let globals = function () {
         stationaryHarvester: 2,
         // Workers
         upgrader: 4,
-        mineralHarvester: 4,
+        mineralHarvester: 5,
         // Haulers
         hauler: 1,
         miscHauler: 7,
         // Remotes
-        remoteHarvester: 3,
-        remoteHauler: 3,
+        remoteHarvester: 4,
+        remoteHauler: 5,
         remoteUpgrader: 7,
         roadBuilder: 7,
         fuelTruck: 8,
-        reserver: 5,
+        reserver: 6,
         // Military
         defender: 2,
         priority: 3,
@@ -370,10 +370,19 @@ let globals = function () {
         'dismantle': [RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_ZYNTHIUM_ACID, RESOURCE_ZYNTHIUM_HYDRIDE]
     };
 
+    // Get Username
     global.MY_USERNAME = _.get(
         _.find(Game.spawns) || _.find(Game.creeps) || _.get(_.find(Game.rooms, room => room.controller && room.controller.my), 'controller'),
         ['owner', 'username'],
     );
+
+    // Set some diplo stuff
+    global.ENEMIES = [];
+    global.THREATS = [];
+    global.MY_ROOMS = [];
+
+    // Declare intel cache
+    global.INTEL = {};
 
     /*
      Cached dynamic properties: Declaration
@@ -515,7 +524,7 @@ let globals = function () {
 
     global.getResourceTotal = function (resource) {
         let amount = 0;
-        for (let roomName of Memory.myRooms) {
+        for (let roomName of MY_ROOMS) {
             let room = Game.rooms[roomName];
             amount += room.store(resource);
         }
