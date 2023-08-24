@@ -10,8 +10,6 @@ module.exports.cleanup = function () {
     if (RawMemory.segments[0] && _.size(RawMemory.segments[0]) > 75000) cleanPathCacheByUsage(); //clean path and distance caches
     if (Game.time % 100 === 0) {
         cleanDistanceCacheByUsage();
-        //cleanRouteCacheByAge();
-        cleanRouteCacheByUsage();
         cleanConstructionSites();
         cleanStructureMemory();
         cleanStructures();
@@ -57,29 +55,6 @@ function cleanPathCacheByUsage() {
     RawMemory.segments[0] = JSON.stringify(paths);
 }
 
-// Clean route cache by removing routes that haven't been used in 2500 ticks or fall below the average use count
-function cleanRouteCacheByUsage() {
-    if (Memory._routeCache && _.size(Memory._routeCache) > ROUTE_CACHE_SIZE) {
-        let initial = _.size(Memory._routeCache);
-        let averageUses = average(_.pluck(Memory._routeCache, 'uses'));
-        for (let key in Memory._routeCache) {
-            if (_.size(Memory._routeCache) < ROUTE_CACHE_SIZE - (ROUTE_CACHE_SIZE * 0.10)) break;
-            if (Memory._routeCache[key].uses < averageUses || Memory._routeCache[key].tick + 2500 < Game.time) delete Memory._routeCache[key];
-        }
-        if (initial !== _.size(Memory._routeCache)) log.i('Cleaning Route cache (Deleted ' + (initial - _.size(Memory._routeCache)) + ')...');
-    }
-}
-
-function cleanRouteCacheByAge() {
-    if (Memory._routeCache) { //1500 entries ~= 100kB
-        let initial = _.size(Memory._routeCache);
-        for (let key in Memory._routeCache) {
-            if (Memory._routeCache[key].created + 5000 < Game.time) delete Memory._routeCache[key];
-        }
-        if (initial !== _.size(Memory._routeCache)) log.i('Cleaning Route cache of old routes (Deleted ' + (initial - _.size(Memory._routeCache)) + ')...');
-    }
-}
-
 function cleanDistanceCacheByUsage() {
     if (Memory._distanceCache) {  //1500 entries ~= 100kB
         let cache;
@@ -110,7 +85,7 @@ function cleanRoomIntel() {
         let startLength = _.size(INTEL);
         Object.keys(INTEL).forEach((r) => {
             let cachedTime = INTEL[r].cached;
-            if (cachedTime + 10000 < Game.time || (cachedTime + 20000 < Game.time && r.important) || (r.closestRange > 10 && cachedTime + 5000 < Game.time)) delete INTEL[r];
+            if (cachedTime + 10000 < Game.time || (cachedTime + 20000 < Game.time && r.important) || (findClosestOwnedRoom(r.name, true) > 10 && cachedTime + 5000 < Game.time)) delete INTEL[r];
         });
         if (startLength > _.size(INTEL)) log.d('CleanUp: Room Cache now has ' + _.size(INTEL) + ' entries.')
     }

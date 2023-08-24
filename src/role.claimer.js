@@ -24,10 +24,6 @@ module.exports.role = function (creep) {
     } else {
         if (!creep.memory.intelLogged) {
             creep.memory.intelLogged = true;
-            creep.room.cacheRoomIntel(true, creep);
-        } else if (INTEL[creep.room.name].closestRange <= 1) {
-            Memory.auxiliaryTargets[creep.room.name] = undefined;
-            return creep.suicide();
         } else if (creep.room.controller.owner) {
             cleanRoom(creep.room, creep.room.structures);
             return creep.suicide();

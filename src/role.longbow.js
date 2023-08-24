@@ -10,7 +10,6 @@
  */
 
 module.exports.role = function (creep) {
-    if (creep.tryToBoost(['ranged', 'heal'])) return;
     // Responder Mode
     if (creep.memory.operation) {
         switch (creep.memory.operation) {
@@ -26,8 +25,8 @@ module.exports.role = function (creep) {
             case 'harass':
                 creep.harass();
                 break;
-            case 'siegeGroup':
-                creep.siegeGroupRoom();
+            case 'denial':
+                creep.roomDenial();
                 break;
         }
     } else if (creep.memory.destination) {
@@ -35,10 +34,10 @@ module.exports.role = function (creep) {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22});
         } else {
             // Handle combat
-            if (this.canIWin(50)) {
-                if (!this.handleMilitaryCreep() && !this.scorchedEarth()) this.findDefensivePosition();
+            if (creep.canIWin(50)) {
+                if (!creep.handleMilitaryCreep() && !creep.scorchedEarth()) creep.findDefensivePosition();
             } else {
-                this.shibKite();
+                creep.shibKite();
             }
         }
     }

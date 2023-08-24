@@ -12,9 +12,8 @@ module.exports.setRoomState = function (room) {
         // Request builders
         if (Math.random() > 0.7) requestBuilders(room);
         // Check if struggling
-        let rebootCreeps = _.filter(room.myCreeps, (c) => c.memory.other.reboot && c.memory.role !== "upgrader").length;
-        if (room.level >= 3 && (room.creeps.length < 3 || rebootCreeps > 1)) {
-            if (room.memory.struggling !== true) log.a(roomLink(room.name) + ' is struggling to survive.', 'ROOMS');
+        if (room.level >= 3 && (room.creeps.length < 4 || room.energy < ENERGY_AMOUNT[room.level] * 0.1)) {
+            if (room.memory.struggling !== true) log.a(roomLink(room.name) + ' is struggling.', 'ROOMS');
             room.memory.struggling = true;
             room.memory.struggleTime = Game.time;
         } else if (room.memory.struggling && room.memory.struggleTime + 1000 < Game.time) {
@@ -22,7 +21,6 @@ module.exports.setRoomState = function (room) {
             room.memory.struggling = undefined;
             room.memory.struggleTime = undefined;
         }
-        room.memory.struggling = room.level > 2 && (room.friendlyCreeps.length < 5 || rebootCreeps > 1);
         let last = room.memory.lastEnergyAmount || 0;
         room.memory.lastEnergyAmount = energyInRoom;
         let energyIncomeArray = [];
@@ -48,9 +46,9 @@ module.exports.setRoomState = function (room) {
             ROOM_CONTROLLER_SPACE[room.name] = room.controller.pos.countOpenTerrainAround();
         }
         // Store minerals
-        let currentMinerals = Memory.ownedMinerals || [];
+        let currentMinerals = MY_MINERALS || [];
         currentMinerals.push(room.mineral.mineralType);
-        Memory.ownedMinerals = _.uniq(currentMinerals);
+        global.MY_MINERALS = _.uniq(currentMinerals);
         if (room.controller.level >= 6) {
             if (Math.random() > 0.95) Memory.harvestableMinerals = undefined;
             let harvestableMinerals = Memory.harvestableMinerals || [];

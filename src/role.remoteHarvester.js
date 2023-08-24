@@ -90,20 +90,22 @@ module.exports.role = function (creep) {
                 case OK:
                     // Set the travel range in the source memory
                     if (!creep.memory.setSourceAmount) {
-                        let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
-                        let homeExit = creep.room.find(goHome);
-                        let homeMiddle = _.round(homeExit.length / 2);
-                        let distanceToExit = source.pos.getRangeTo(homeExit[homeMiddle]);
-                        let roomRange = Game.map.findRoute(creep.room.name, creep.memory.overlord).length;
-                        let travelRange = distanceToExit * 2;
-                        if (roomRange > 1) travelRange += (roomRange * 30);
+                        let travelRange = source.memory.distance;
+                        if (!travelRange || Math.random() > 0.9) {
+                            let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
+                            let homeExit = creep.room.find(goHome);
+                            let homeMiddle = _.round(homeExit.length / 2);
+                            let distanceToExit = source.pos.getRangeTo(homeExit[homeMiddle]);
+                            let roomRange = Game.map.findRoute(creep.room.name, creep.memory.overlord).length;
+                            travelRange = (distanceToExit * 2) + (roomRange * 30);
+                            source.memory.distance = travelRange;
+                        }
                         source.memory.carryAmountNeeded = _.round(travelRange * (creep.getActiveBodyparts(WORK) * HARVEST_POWER));
                         creep.memory.setSourceAmount = true;
                     }
                     if (!creep.memory.containerID || !Game.getObjectById(creep.memory.containerID)) {
                         creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
                     }
-                    //if (creep.memory.hauler && Game.time % 50 === 0 && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
                     if (container && container.hits) {
                         if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
                         if (_.sum(container.store) >= 1980) creep.idleFor(20);

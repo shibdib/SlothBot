@@ -29,7 +29,7 @@ module.exports.powerControl = function () {
             let powerCreeps = _.filter(Game.powerCreeps, (c) => c.my);
             for (let powerCreep of powerCreeps) {
                 if (powerCreep.ticksToLive) {
-                    let powerCreepRole = require('powerRole.' + powerCreep.className);
+                    const powerCreepRole = require('powerRole.' + powerCreep.className);
                     try {
                         // Handle suicide
                         if (!powerCreep.level && sparePowerLevels <= 0) {

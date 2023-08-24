@@ -39,7 +39,7 @@ module.exports.factoryControl = function (room) {
                                     return delete room.factory.memory.producing;
                                 }
                             }
-                        } else if (room.energy < FACTORY_CUTOFF * 0.8) {
+                        } else if (COMMODITIES[room.factory.memory.producing].components[RESOURCE_ENERGY] && room.energy < ENERGY_AMOUNT[room.level] * 0.7) {
                             log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to being low on energy.', ' FACTORY CONTROL:');
                             return delete room.factory.memory.producing;
                         }
@@ -75,6 +75,8 @@ module.exports.factoryControl = function (room) {
                 } else {
                     // De-compress
                     for (let mineral of shuffle(BASE_MINERALS)) {
+                        // If it costs energy and we don't have enough energy, continue
+                        if (COMMODITIES[mineral].components[RESOURCE_ENERGY] && !room.energyState) continue;
                         if (!COMMODITIES[mineral] || room.store(mineral) >= REACTION_AMOUNT * 0.5) continue;
                         let enough;
                         for (let neededResource of Object.keys(COMMODITIES[mineral].components)) {
@@ -91,6 +93,8 @@ module.exports.factoryControl = function (room) {
                         // If a base continue
                         if (!COMMODITIES[commodity] || (room.store(commodity) >= DUMP_AMOUNT * 0.9 && !_.includes(COMPRESSED_COMMODITIES, commodity))) continue;
                         if (commodity === RESOURCE_BATTERY) continue;
+                        // If it costs energy and we don't have enough energy, continue
+                        if (COMMODITIES[commodity].components[RESOURCE_ENERGY] && !room.energyState) continue;
                         // Handle levels
                         let factoryLevel = room.factory.level || 0;
                         if (!room.factory.effects || !room.factory.effects.length) factoryLevel = 0;

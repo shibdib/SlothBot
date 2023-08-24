@@ -14,7 +14,7 @@ module.exports.towerControl = function (room) {
     room.memory.spawnDefenders = undefined;
     // Set a repair tower
     let repairTower = Game.getObjectById(roomRepairTower[room.name]) || _.max(_.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.15), 'energy');
-    if (!hostileCreeps.length && repairTower.id && repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.2) {
+    if (!hostileCreeps.length && repairTower.id && repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.5) {
         roomRepairTower[room.name] = repairTower.id;
         let woundedCreep = _.find(room.friendlyCreeps, (c) => c.hits < c.hitsMax) || _.find(room.powerCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
         let degrade = _.find(room.structures, (s) => (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.25) || (s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.2) || (s.structureType === STRUCTURE_RAMPART && s.hits < 10000));
@@ -27,10 +27,11 @@ module.exports.towerControl = function (room) {
             }
         }
         // If energy rich, pump it into ramparts
+        /**
         if (room.energyState) {
             let barrier = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < BARRIER_TARGET_HIT_POINTS[room.level]), 'hits');
             if (barrier.id) repairTower.repair(barrier);
-        }
+        }**/
     } else if (hostileCreeps.length) {
         let towers = _.shuffle(_.filter(room.structures, (s) => s && s.structureType === STRUCTURE_TOWER && s.isActive() && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST));
         if (!towers.length && !room.controller.safeMode) {
@@ -63,7 +64,7 @@ module.exports.towerControl = function (room) {
             if (healPower * 2 > attackPower) {
                 room.memory.dangerousAttack = true;
                 room.memory.spawnDefenders = true;
-                room.memory.defenseCooldown = Game.time + 2000;
+                room.memory.defenseCooldown = Game.time + CREEP_LIFE_TIME;
             }
             let nearStructures = hostileCreeps[i].pos.findInRange(room.structures, 3, {filter: (s) => ![STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_CONTROLLER].includes(s.structureType)}).length > 0;
             let rangeToExit = hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT)) + 1;
@@ -73,7 +74,7 @@ module.exports.towerControl = function (room) {
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;
             } // If you can damage it and it's not border humping attack it. Always attack invaders
-            else if (attackPower > healPower && (((rangeToExit + (hostileCreeps[i].fatigue * 0.5)) >= ((hostileCreeps[i].hits + (healPower * rangeToExit)) / attackPower)) || hostileCreeps[i].owner.username === 'Invader')) {
+            else if (attackPower > healPower && (hostileCreeps[i].owner.username === 'Invader' || (hostileCreeps[i].hits + (healPower * (rangeToExit + (hostileCreeps[i].fatigue * 0.5))) < attackPower * (rangeToExit + (hostileCreeps[i].fatigue * 0.5))))) {
                 room.memory.towerTarget = hostileCreeps[i].id;
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;
@@ -92,14 +93,15 @@ module.exports.towerControl = function (room) {
                     nukeRampart = _.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.hits < NUKE_DAMAGE[2] + 15000 && (s.hits + ((towers.length * 500) * (s.pos.findClosestByRange(FIND_NUKES).timeToLand * 0.8))) >= NUKE_DAMAGE[2])[0];
                     for (let tower of towers) tower.repair(nukeRampart);
                 }
+            } // Heal allies
+            else if (woundedCreep && repairTower && repairTower.id) {
+                repairTower.heal(woundedCreep);
             }  // Else if it's near a barrier, repair the barrier
             else if (room.energyState && room.storage) {
                 let nearbyRampart = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)), 3)[0] && s.hits < BARRIER_TARGET_HIT_POINTS[room.level]), 'hits');
                 if (nearbyRampart.id) for (let tower of towers) tower.repair(nearbyRampart);
                 if (potentialAttack < healPower) room.memory.dangerousAttack = true; else room.memory.towerTarget = hostileCreeps[i].id;
                 room.memory.towerTarget = undefined;
-            } else if (woundedCreep && repairTower) {
-                repairTower.heal(woundedCreep);
             }
         }
     }

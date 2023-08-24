@@ -16,7 +16,6 @@ module.exports.role = function (creep) {
         if (creep.memory.powerBank) {
             let powerBank = Game.getObjectById(creep.memory.powerBank);
             if (!powerBank) {
-                creep.room.cacheRoomIntel(true, creep);
                 return Memory.auxiliaryTargets[creep.memory.destination] = undefined;
             }
             if (!Memory.auxiliaryTargets[creep.memory.destination].space) Memory.auxiliaryTargets[creep.memory.destination].space = powerBank.pos.countOpenTerrainAround();
@@ -37,7 +36,6 @@ module.exports.role = function (creep) {
             if (powerBank) {
                 creep.memory.powerBank = powerBank.id;
             } else {
-                creep.room.cacheRoomIntel(true, creep);
                 Memory.auxiliaryTargets[creep.memory.destination] = undefined;
             }
         }

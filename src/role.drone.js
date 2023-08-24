@@ -228,7 +228,7 @@ function wallMaintainer(creep) {
 }
 
 function findRemoteSource(creep) {
-    let adjacent = _.filter(Game.map.describeExits(creep.pos.roomName), (r) => Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(creep.room.name).status && INTEL[r] &&
+    let adjacent = _.filter(Game.map.describeExits(creep.pos.roomName), (r) => INTEL[r] &&
         ((!INTEL[r].owner || INTEL[r].owner === MY_USERNAME)
             && (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME)
             && !INTEL[r].sk && INTEL[r].sources));

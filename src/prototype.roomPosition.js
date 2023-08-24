@@ -213,7 +213,6 @@ RoomPosition.prototype.checkForRampart = function (active = undefined) {
     if (active) return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic);
     return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART);
 };
-
 RoomPosition.prototype.checkForBarrierStructure = function () {
     return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
 };

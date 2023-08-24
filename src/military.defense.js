@@ -8,7 +8,7 @@
 /**
  * Created by Bob on 7/1/2017.
  */
-let towers = require('module.towerController');
+const towers = require('module.towerController');
 let structureCount = {};
 
 //Claimed Defense
@@ -32,15 +32,14 @@ module.exports.controller = function (room) {
     if (INTEL[room.name].threatLevel > 2 || room.controller.safeMode) safeModeManager(room);
 
     // Tower control
-    //let woundedCreep = _.find(room.friendlyCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)) || _.find(room.powerCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
-    //if (room.hostileCreeps.length || Game.time % 50 === 0 || woundedCreep) towers.towerControl(room);
     towers.towerControl(room);
 
     //Manage Ramparts for Allies
-    if (RAMPART_ACCESS && FRIENDLIES.length) rampartManager(room, structures);
+    // If we aren't allowing access set it once and then return to save cpu
+    if (!Memory._rampartsSet || RAMPART_ACCESS) rampartManager(room, structures);
 
     // Early Warning System
-    if (Game.time % 25 === 0) earlyWarning(room);
+    if (Game.time % 5 === 0) earlyWarning(room);
 
     // Send an email on a player attack with details of attack
     if (INTEL[room.name].threatLevel && !INTEL[room.name].alertEmail && INTEL[room.name].threatLevel >= 4) {
@@ -51,22 +50,19 @@ module.exports.controller = function (room) {
         for (let hostile of playerHostile) hostileOwners.push(hostile.owner.username)
         hostileOwners = _.uniq(hostileOwners);
         Game.notify('----------------------');
-        Game.notify(room.name + ' - Enemy detected, room is now in FPCON DELTA.');
+        Game.notify(roomHistoryLink(room.name) + ' - Enemy detected, room is now in FPCON DELTA.');
         Game.notify('----------------------');
         Game.notify(INTEL[room.name].numberOfHostiles + ' - Foreign Hostiles Reported');
         Game.notify('----------------------');
         Game.notify('Hostile Owners - ' + JSON.stringify(hostileOwners));
         Game.notify('----------------------');
         log.a('----------------------');
-        log.a(roomLink(room.name) + ' - Enemy detected, room is now in FPCON DELTA.');
+        log.a(roomHistoryLink(room.name) + ' - Enemy detected, room is now in FPCON DELTA.');
         log.a('----------------------');
         log.a(INTEL[room.name].numberOfHostiles + ' - Foreign Hostiles Reported');
         log.a('----------------------');
         log.a('Hostile Owners - ' + JSON.stringify(hostileOwners));
         log.a('----------------------');
-        let nukeTargets = Memory.MAD || [];
-        hostileOwners.forEach((p) => nukeTargets.push(p))
-        Memory.MAD = _.uniq(nukeTargets);
     }
 
     // Request assistance
@@ -78,11 +74,15 @@ module.exports.controller = function (room) {
 };
 
 //Functions
-
 function rampartManager(room, structures) {
-    let enemies = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
+    // Close if no rampart access
+    if (!RAMPART_ACCESS) {
+        Memory._rampartsSet = true;
+        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic).forEach((rampart) => rampart.setPublic(false));
+        return;
+    } else Memory._rampartsSet = undefined;
     // Open all if no enemies
-    if (!enemies.length) {
+    if (!room.hostileCreeps.length) {
         _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic).forEach((rampart) => rampart.setPublic(true));
         return;
     }
@@ -90,9 +90,9 @@ function rampartManager(room, structures) {
     let allies = _.filter(room.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my);
     if (allies.length) {
         // Close ramparts
-        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) <= 1).forEach((rampart) => rampart.setPublic(false));
+        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && s.pos.getRangeTo(s.pos.findClosestByRange(room.hostileCreeps)) <= 1).forEach((rampart) => rampart.setPublic(false));
         // Open ramparts
-        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) > 1).forEach((rampart) => rampart.setPublic(true));
+        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && s.pos.getRangeTo(s.pos.findClosestByRange(room.hostileCreeps)) > 1).forEach((rampart) => rampart.setPublic(true));
     } else if (room.hostileCreeps.length) {
         // Close public ones
         _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic).forEach((rampart) => rampart.setPublic(false));
@@ -134,7 +134,7 @@ function safeModeManager(room) {
         }
         let towers = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] > 10)).length > 0;
         // If attacks occurred and we have no towers or the defense is ineffective safemode
-        if ((!towers || room.memory.dangerousAttack) && keyAttack) {
+        if ((!towers || room.memory.dangerousAttack) && keyAttack && room.level >= MAX_LEVEL - 1) {
             if (room.controller.activateSafeMode() === OK) {
                 let ownerArray = [];
                 room.hostileCreeps.forEach((c) => ownerArray.push(c.owner.username));
@@ -146,34 +146,31 @@ function safeModeManager(room) {
 }
 
 function earlyWarning(room) {
-    let adjacent = _.filter(Game.map.describeExits(room.name), (r) => INTEL[r] && INTEL[r].threatLevel >= 4 && INTEL[r].threatLevel > INTEL[room.name].threatLevel)[0];
-    if (adjacent) {
-        INTEL[room.name].threatLevel = INTEL[adjacent].threatLevel;
+    let adjacent = _.find(Game.map.describeExits(room.name), (r) => INTEL[r] && INTEL[r].threatLevel >= 3 && INTEL[r].threatLevel > INTEL[room.name].threatLevel);
+    if (adjacent && adjacent.name) {
+        INTEL[room.name].threatLevel = INTEL[adjacent.name].threatLevel;
         INTEL[room.name].tickDetected = Game.time;
+        log.a('----------------------');
+        log.a(roomLink(adjacent.name) + ' - Enemy detected in a remote of ' + roomLink(room.name) + '.');
+        log.a('----------------------');
     }
 }
 
 function unSavableCheck(room) {
     let badCount = room.memory.badCount || 0;
     let worthwhileStructure = _.find(room.structures, (s) => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType)) || _.find(room.myCreeps, (c) => c.memory.role === 'drone');
-    if (INTEL[room.name].threatLevel > 2 && MY_ROOMS.length > 1 && !room.controller.safeMode) {
+    if (INTEL[room.name].threatLevel > 2 && MY_ROOMS.length > 1 && !room.controller.safeMode && !worthwhileStructure) {
         let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)));
         // If hostiles add a badCount
-        if (hostiles.length) room.memory.badCount += 1;
+        if (hostiles.length) room.memory.badCount += hostiles.length;
         // If all worthwhile structures are gone add badCount
-        if (!worthwhileStructure) room.memory.badCount += 0.5;
+        room.memory.badCount += 1;
         // If badCount is high enough abandon
         if (room.memory.badCount > room.controller.level * 500) {
-            abandonOverrun(room);
-            room.memory = {};
-            room.cacheRoomIntel(true);
-            Memory.targetRooms[room.name] = undefined;
-            Memory.auxiliaryTargets[room.name] = undefined;
-            INTEL[room.name].noClaim = Game.time + 10000;
+            abandonRoom(room);
             log.a(roomLink(room.name) + ' has been abandoned.');
             Game.notify(room.name + ' has been abandoned.');
         } else if (badCount < room.memory.badCount) {
-            room.memory.struggling = true;
             if (badCount % 10 === 0) log.a(roomLink(room.name) + ' has accrued an abandon point. (' + badCount + '/' + room.controller.level * 500 + ')');
         }
     } else if (room.memory.badCount) {
@@ -207,26 +204,6 @@ function addThreat(room) {
         }
     }
 }
-
-abandonOverrun = function (room) {
-    let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room.name);
-    if (overlordFor.length) {
-        for (let key in overlordFor) {
-            overlordFor[key].suicide();
-        }
-    }
-    for (let key in room.structures) {
-        room.structures[key].destroy();
-    }
-    for (let key in room.constructionSites) {
-        room.constructionSites[key].remove();
-    }
-    delete room.memory;
-    room.cacheRoomIntel(true);
-    if (!INTEL[room.name].failedClaim) INTEL[room.name].failedClaim = 1; else INTEL[room.name].failedClaim++;
-    INTEL[room.name].noClaim = Game.time + 20000;
-    room.controller.unclaim();
-};
 
 handleNukeAttack = function (room) {
     let nukes = room.find(FIND_NUKES);

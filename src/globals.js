@@ -5,9 +5,8 @@
  * Project - Overlord-Bot (Screeps)
  */
 
-let Log = require('logger');
+const Log = require('logger');
 let activeConfig;
-let myCreepCache;
 
 let globals = function () {
     // Try to load a private server config otherwise load the default
@@ -17,6 +16,7 @@ let globals = function () {
         } else {
             require('config.' + Game.shard.name);
             activeConfig = 'config.' + Game.shard.name;
+            console.log('------------------------------------------------------------------');
             console.log('Loaded config for ' + Game.shard.name);
             if (_.includes(COMBAT_SERVER, Game.shard.name)) {
                 console.log('Combat Server Mode Active - All Players Considered Hostile');
@@ -25,6 +25,7 @@ let globals = function () {
                 console.log('Manual Enemies - ' + HOSTILES.toString());
                 console.log('Manual Allies - ' + MANUAL_FRIENDS.toString());
             }
+            console.log('------------------------------------------------------------------');
         }
     } catch (e) {
         if (activeConfig) {
@@ -32,7 +33,9 @@ let globals = function () {
         } else {
             require('config.default');
             activeConfig = 'config.default';
-            console.log('No custom config found loading default config');
+            console.log('------------------------------------------------------------------');
+            console.log('No custom config found loading default config.');
+            console.log("Create a custom config using the naming scheme 'config.shardName.js'");
             if (_.includes(COMBAT_SERVER, Game.shard.name)) {
                 console.log('Combat Server Mode Active - All Players Considered Hostile');
                 console.log('Manual Allies (Overrides the above) - ' + MANUAL_FRIENDS.toString());
@@ -40,21 +43,38 @@ let globals = function () {
                 console.log('Manual Enemies - ' + HOSTILES.toString());
                 console.log('Manual Allies - ' + MANUAL_FRIENDS.toString());
             }
+            console.log('------------------------------------------------------------------');
         }
     }
-    global.LAYOUT_VERSION = 1.53;
 
-    global.PIXEL_GENERATION = false; //Generate Pixels?
-    global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
+    global.PROFILER_ENABLED = true; // Disable if you don't want to use the profiler. Should save CPU.
 
-    // Energy income breakdown (Not used atm)
-    global.ROOM_ENERGY_ALLOTMENT = {
-        'store': 0.2,
-        'upgrade': 0.55,
-        'build': 0.5,
-        'walls': 0.2,
-        'other': 0.3
+    // Creep build priorities (Lower is higher priority)
+    global.PRIORITIES = {
+        // Harvesters
+        stationaryHarvester: 1,
+        // Workers
+        upgrader: 4,
+        mineralHarvester: 5,
+        // Haulers
+        hauler: 1,
+        miscHauler: 7,
+        // Remotes
+        remoteHarvester: 5,
+        remoteHauler: 2,
+        roadBuilder: 7,
+        fuelTruck: 8,
+        reserver: 4,
+        // Military
+        defender: 2,
+        priority: 3,
+        urgent: 4,
+        high: 5,
+        medium: 6,
+        secondary: 9
     };
+
+    global.REMOTE_SOURCE_TARGET = 3; // The number of remote sources a room looks to have. Changing this might ruin your economy.
 
     // Amount targets (Advanced)
     // Aim for this amount at each room level
@@ -63,28 +83,13 @@ let globals = function () {
         0: 1,
         1: 1,
         2: 1,
-        3: 1000,
-        4: 15000,
-        5: 25000,
-        6: 50000,
-        7: 100000,
-        8: 250000
+        3: 1,
+        4: 25000,
+        5: 50000,
+        6: 100000,
+        7: 250000,
+        8: 1000000
     };
-    global.PIXEL_BUFFER = 500; // Sell any pixels above this amount
-    global.BUY_ENERGY = true; // If true it will buy energy when above the buffer
-    global.BUY_ENERGY_CREDIT_BUFFER = 500000; // Stay above this to buy energy
-    global.CREDIT_BUFFER = 10000; // Stay above
-    global.FACTORY_CUTOFF = ENERGY_AMOUNT * 0.5; // Amount needed for a factory to be active
-    global.MINERAL_TRADE_AMOUNT = 10000;  // Hold this much of a mineral before selling
-    global.BOOST_TRADE_AMOUNT = 15000;  // Hold this much of a mineral before selling
-    global.TERMINAL_ENERGY_BUFFER = 10000; // Keep this much in terminal (Needed for trade)
-    global.REACTION_AMOUNT = 10000; // Minimum amount for base reaction minerals and power
-    global.BOOST_AMOUNT = 20000; // Try to have this much of all applicable boosts
-    global.DUMP_AMOUNT = 40000; // Fills buys (of if overflowing it will offload to other terminals)
-
-    // Pathfinder Cache Sizes
-    global.PATH_CACHE_SIZE = 10000;
-    global.ROUTE_CACHE_SIZE = 500;
 
     // Wall and rampart target amounts
     global.BARRIER_TARGET_HIT_POINTS = {
@@ -97,6 +102,15 @@ let globals = function () {
         7: 2500000,
         8: 5000000
     };
+
+
+    //
+    //
+    //
+    //  DO NOT EDIT BELOW THIS LINE
+    //
+    //
+    //
 
     // Reaction
     global.TIER_3_BOOSTS = [RESOURCE_CATALYZED_GHODIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ACID, RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE];
@@ -119,52 +133,8 @@ let globals = function () {
     global.HIGHER_COMMODITIES = [RESOURCE_COMPOSITE, RESOURCE_CRYSTAL, RESOURCE_LIQUID];
     global.ALL_COMMODITIES = _.union(BASE_COMMODITIES, HIGHER_COMMODITIES, REGIONAL_0_COMMODITIES, REGIONAL_1_COMMODITIES, REGIONAL_2_COMMODITIES, REGIONAL_3_COMMODITIES, REGIONAL_4_COMMODITIES, REGIONAL_5_COMMODITIES, COMPRESSED_COMMODITIES);
 
-    global.PRIORITIES = {
-        // Harvesters
-        stationaryHarvester: 2,
-        // Workers
-        upgrader: 4,
-        mineralHarvester: 5,
-        // Haulers
-        hauler: 1,
-        miscHauler: 7,
-        // Remotes
-        remoteHarvester: 4,
-        remoteHauler: 5,
-        remoteUpgrader: 7,
-        roadBuilder: 7,
-        fuelTruck: 8,
-        reserver: 6,
-        // Military
-        defender: 2,
-        priority: 3,
-        urgent: 4,
-        high: 5,
-        medium: 6,
-        secondary: 9
-    };
-
-    global.SPAWN = {
-        0: {
-            stationaryHarvester: [WORK, WORK, MOVE],
-            drone: [MOVE, MOVE, CARRY, WORK],
-            maintenance: [MOVE, MOVE, CARRY, WORK],
-            waller: [MOVE, MOVE, CARRY, WORK],
-            upgrader: [MOVE, MOVE, CARRY, WORK],
-            praiseUpgrader: [MOVE, CARRY, WORK],
-            hauler: [CARRY, CARRY, MOVE, MOVE],
-            filler: [CARRY, CARRY, MOVE, MOVE],
-            explorer: [MOVE],
-            scout: [MOVE],
-            defender: [MOVE, ATTACK],
-            longbow: [RANGED_ATTACK, MOVE],
-            remoteHauler: [CARRY, CARRY, MOVE, MOVE],
-            remoteHarvester: [MOVE, CARRY, WORK],
-            remoteAllInOne: [MOVE, MOVE, CARRY, WORK],
-        }
-    };
-
     //Cache stuff
+    global.ROOM_STATUS = 0;
     global.ROAD_CACHE = {};
     global.CREEP_CPU_ARRAY = {};
     global.ROOM_CPU_ARRAY = {};
@@ -179,6 +149,16 @@ let globals = function () {
     global.ROOM_HARVESTER_EXTENSIONS = {};
     global.ALLY_HELP_REQUESTS = {};
     global.VISUAL_CACHE = {};
+    global.INTEL = {};
+    global.MY_MINERALS = [];
+
+    // Set some diplo stuff
+    global.ENEMIES = [];
+    global.THREATS = [];
+    global.MY_ROOMS = [];
+    global.FRIENDLIES = [];
+
+    // Declare intel cache
 
     global.ICONS = {
         [STRUCTURE_CONTROLLER]: "\uD83C\uDFF0"
@@ -376,14 +356,6 @@ let globals = function () {
         ['owner', 'username'],
     );
 
-    // Set some diplo stuff
-    global.ENEMIES = [];
-    global.THREATS = [];
-    global.MY_ROOMS = [];
-
-    // Declare intel cache
-    global.INTEL = {};
-
     /*
      Cached dynamic properties: Declaration
      By warinternal, from the Screeps Slack
@@ -422,37 +394,37 @@ let globals = function () {
                 color: "black",
                 opacity: 0.9,
                 align: "left",
-                font: "bold 0.6 Arial"
+                font: "bold 0.6 Monospace"
             }).text(what, x, y, {
                 color: "black",
                 opacity: 0.9,
                 align: "left",
-                font: "bold 0.6 Arial",
+                font: "bold 0.6 Monospace",
             });
         } else {
             room.visual.text(what, x, y, {
                 color: "black",
                 opacity: 0.9,
                 align: "left",
-                font: "bold 0.6 Arial",
+                font: "bold 0.6 Monospace",
                 backgroundColor: "black",
                 backgroundPadding: 0.3
             }).text(what, x, y, {
                 color: "black",
                 opacity: 0.9,
                 align: "left",
-                font: "bold 0.6 Arial",
+                font: "bold 0.6 Monospace",
                 backgroundColor: "#eeeeee",
                 backgroundPadding: 0.2
             });
         }
     };
 
-// League Of Automated Nations allied users list by Kamots
-// Provides global.LOANlist as array of allied usernames. Array is empty if not in an alliance, but still defined.
-// Updates on 2nd run and then every 1001 ticks or if the global scope gets cleared.
-// Usage: After you require this file, just add this to anywhere in your main loop to run every tick: global.populateLOANlist();
-// global.LOANlist will contain an array of usernames after global.populateLOANlist() runs twice in a row (two consecutive ticks).
+    // League Of Automated Nations allied users list by Kamots
+    // Provides global.LOANlist as array of allied usernames. Array is empty if not in an alliance, but still defined.
+    // Updates on 2nd run and then every 1001 ticks or if the global scope gets cleared.
+    // Usage: After you require this file, just add this to anywhere in your main loop to run every tick: global.populateLOANlist();
+    // global.LOANlist will contain an array of usernames after global.populateLOANlist() runs twice in a row (two consecutive ticks).
     global.populateLOANlist = function (LOANuser = "LeagueOfAutomatedNations", LOANsegment = 99) {
         if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name)) { // To skip running in sim or private servers which prevents errors
             if (!Memory.lastLOANtime || !global.LOANlist) {
@@ -522,15 +494,6 @@ let globals = function () {
         return array;
     };
 
-    global.getResourceTotal = function (resource) {
-        let amount = 0;
-        for (let roomName of MY_ROOMS) {
-            let room = Game.rooms[roomName];
-            amount += room.store(resource);
-        }
-        return amount;
-    }
-
     global.getLevel = function (room) {
         let energy = room.energyCapacityAvailable;
         let energyLevel = 0;
@@ -572,6 +535,24 @@ let globals = function () {
         return `<a href="#!/room/${Game.shard.name}/${roomName}" ${select && id ? `onclick="angular.element('body').injector().get('RoomViewPendingSelector').set('${id}')"` : ``}>${text}</a>`;
     };
 
+    global.roomHistoryLink = function (roomArg, text = undefined, select = true) {
+        let roomName;
+        let id = roomArg.id;
+        if (roomArg instanceof Room) {
+            roomName = roomArg.name;
+        } else if (roomArg.pos !== undefined) {
+            roomName = roomArg.pos.roomName;
+        } else if (roomArg.roomName !== undefined) {
+            roomName = roomArg.roomName;
+        } else if (typeof roomArg === 'string') {
+            roomName = roomArg;
+        } else {
+            console.log(`Invalid parameter to roomLink global function: ${roomArg} of type ${typeof roomArg}`);
+        }
+        text = text || (id ? roomArg : roomName);
+        return `<a href="#!/history/${Game.shard.name}/${roomName}?t=${Game.time}" ${select && id ? `onclick="angular.element('body').injector().get('RoomViewPendingSelector').set('${id}')"` : ``}>${text}</a>`;
+    };
+
     global.getRandomInt = function (min, max) {
         return Math.floor(Math.random() * (max - min + 1) + min);
     };
@@ -584,9 +565,8 @@ let globals = function () {
         return Math.abs(n % 2) === 1;
     };
 
-    /* Posted March 2nd, 2018 by @semperrabbit */
-
     global.BUCKET_MAX = 10000;
+
     global.clamp = function clamp(min, val, max) {
         if (val < min) return min;
         if (val > max) return max;
@@ -595,25 +575,9 @@ let globals = function () {
 
     global.CPU_TASK_LIMITS = {};
 
-    global.TEN_CPU = Game.cpu.limit === 20 || Game.shard.name === 'shard3';
+    global.SHARD3 = Game.shard.name === 'shard3';
 
     global.log = new Log();
-
-    global.clear = function () {
-        console.log(
-            "<script>angular.element(document.getElementsByClassName('fa fa-trash ng-scope')[0].parentNode).scope().Console.clear()</script>"
-        );
-    };
-
-    global.sameSectorCheck = function (roomA, roomB) {
-        let [EW, NS] = roomA.match(/\d+/g);
-        let roomAEWInt = EW.toString()[0];
-        let roomANSInt = NS.toString()[0];
-        let [EW2, NS2] = roomB.match(/\d+/g);
-        let roomBEWInt = EW2.toString()[0];
-        let roomBNSInt = NS2.toString()[0];
-        return roomAEWInt === roomBEWInt && roomANSInt === roomBNSInt;
-    }
 
     global.floodFill = function (roomName) {
 

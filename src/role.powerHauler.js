@@ -34,7 +34,7 @@ module.exports.role = function (creep) {
             }
         }
     } else {
-        creep.memory.closestRoom = creep.memory.closestRoom || creep.room.findClosestOwnedRoom(false, 6);
+        creep.memory.closestRoom = creep.memory.closestRoom || findClosestOwnedRoom(creep.room.name, false, 6);
         if (creep.room.name !== creep.memory.closestRoom) {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.closestRoom), {range: 23});
         } else {

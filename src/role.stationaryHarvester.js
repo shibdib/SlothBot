@@ -27,7 +27,7 @@ module.exports.role = function (creep) {
                     }
                     return;
                 }
-            } else if (container && !container.store.getFreeCapacity(RESOURCE_ENERGY)) return creep.idleFor(5);
+            }
             switch (creep.harvest(source)) {
                 case ERR_NOT_IN_RANGE:
                     creep.memory.onContainer = undefined;
@@ -35,18 +35,17 @@ module.exports.role = function (creep) {
                 case ERR_NOT_ENOUGH_RESOURCES:
                     if (container && creep.store[RESOURCE_ENERGY]) {
                         creep.repair(container);
-                    } else if (!source.effects) {
-                        creep.idleFor(source.ticksToRegeneration + 1);
-                    }
+                    } else creep.idleFor(source.ticksToRegeneration + 1);
                     break;
                 case OK:
+                    if (container && !container.store.getFreeCapacity(RESOURCE_ENERGY)) depositEnergy(creep);
                     // Set stationary so we don't get bumped
                     creep.memory.other.stationary = true;
+                    // If we have a link and container, empty the container of overflow
+                    if (source.memory.link && container && container.store[RESOURCE_ENERGY]) creep.withdraw(container, RESOURCE_ENERGY);
                     // Every other tick check for deposit ability
                     if (isEven(Game.time)) {
-                        // If we have a link and container, empty the container of overflow
-                        if (source.memory.link && container && container.store[RESOURCE_ENERGY]) creep.withdraw(container, RESOURCE_ENERGY);
-                        if (creep.store[RESOURCE_ENERGY]) return depositEnergy(creep);
+                        if (creep.store[RESOURCE_ENERGY]) depositEnergy(creep);
                     }
                     break;
             }
@@ -90,11 +89,12 @@ function depositEnergy(creep) {
         let link = Game.getObjectById(source.memory.link);
         if (link && link.store[RESOURCE_ENERGY] < LINK_CAPACITY) {
             creep.transfer(link, RESOURCE_ENERGY);
-        } else if (container && _.sum(container.store) >= 1900) {
+            creep.withdraw(container, RESOURCE_ENERGY);
+        } else if (container && !container.store.getFreeCapacity(RESOURCE_ENERGY)) {
             if (container.hits < container.hitsMax) creep.repair(container); else if (creep.pos.checkForRampart()) creep.repair(creep.pos.checkForRampart());
         }
     } else if (container) {
-        if (_.sum(container.store) >= 1900) {
+        if (!container.store.getFreeCapacity(RESOURCE_ENERGY)) {
             if (container.hits < container.hitsMax) creep.repair(container); else {
                 creep.idleFor(5);
             }

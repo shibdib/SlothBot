@@ -5,20 +5,18 @@
  * Project - Overlord-Bot (Screeps)
  */
 
-let observers = require('module.observerController');
-let factory = require('module.factoryController');
-let defense = require('military.defense');
-let links = require('module.linkController');
-let terminals = require('module.terminalController');
-let spawning = require('module.creepSpawning');
-let state = require('module.roomState');
-let planner = require('module.roomPlanner');
-let diplomacy = require('module.diplomacy');
-let tools = require('tools.cpuTracker');
+const observers = require('module.observerController');
+const factory = require('module.factoryController');
+const defense = require('military.defense');
+const links = require('module.linkController');
+const terminals = require('module.terminalController');
+const spawning = require('module.creepSpawning');
+const state = require('module.roomState');
+const planner = require('module.roomPlanner');
+const diplomacy = require('module.diplomacy');
 
 module.exports.overlordMind = function (room, CPULimit) {
     if (!room) return;
-    room.cacheRoomIntel();
 
     let mindStart = Game.cpu.getUsed();
 
@@ -69,6 +67,7 @@ module.exports.overlordMind = function (room, CPULimit) {
             log.e('Error with ' + currentFunction.name + ' function in room ' + roomLink(room.name));
             log.e(e.stack);
             Game.notify(e.stack);
+            break;
         }
         overlordTaskCurrentCPU = Game.cpu.getUsed() - overlordTaskCurrentCPU;
         overlordTaskTotalCPU += overlordTaskCurrentCPU;
@@ -143,7 +142,7 @@ function minionController(minion) {
         return;
     }
     // Report intel chance
-    if (minion.room.name !== minion.memory.overlord) {
+    if (!MY_ROOMS.includes(minion.room.name)) {
         minion.room.invaderCheck();
         minion.room.cacheRoomIntel(false, minion);
     }

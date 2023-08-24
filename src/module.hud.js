@@ -16,9 +16,7 @@ module.exports.hud = function () {
     GCL_PROGRESS_ARRAY = GCL_PROGRESS_ARRAY || [];
     let progressPerTick = Game.gcl.progress - (lastTickGCLProgress || 0);
     lastTickGCLProgress = Game.gcl.progress;
-    let paused = '*P* ';
     if (progressPerTick > 0) {
-        paused = '';
         if (GCL_PROGRESS_ARRAY < 250) {
             GCL_PROGRESS_ARRAY.push(progressPerTick)
         } else {
@@ -34,15 +32,15 @@ module.exports.hud = function () {
     for (let room of myRooms) {
         if (!room) continue;
         let lowerBoundary = 4;
-        if (!INTEL[room.name]) room.cacheRoomIntel(true);
+        if (!INTEL[room.name]) room.cacheRoomIntel();
         if (INTEL[room.name].threatLevel) lowerBoundary++;
-        room.visual.rect(0, 0, 16, lowerBoundary, {
+        room.visual.rect(0, 0, 17, lowerBoundary, {
             fill: '#ffffff',
             opacity: '0.55',
             stroke: 'black'
         });
         //GCL Display
-        displayText(room, 0, 1, paused + ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks. Bucket- ' + Game.cpu.bucket);
+        displayText(room, 1, 1, ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks.');
         //Safemode
         if (room.controller.safeMode) {
             let secondsToNoSafe = room.controller.safeMode * Memory.tickInfo.tickLength;
@@ -55,9 +53,7 @@ module.exports.hud = function () {
             roomLastTickProgress[room.name] = room.controller.progress;
             let progressPerTick = room.controller.progress - lastTickProgress;
             RCL_PROGRESS[room.name] = RCL_PROGRESS[room.name] || [];
-            let paused = '*P* ';
             if (progressPerTick > 0) {
-                paused = '';
                 if (RCL_PROGRESS[room.name].length < 250) {
                     RCL_PROGRESS[room.name].push(progressPerTick)
                 } else {
@@ -69,15 +65,15 @@ module.exports.hud = function () {
             let secondsToUpgrade = _.round(((room.controller.progressTotal - room.controller.progress) / progressPerTick) * Memory.tickInfo.tickLength);
             let ticksToUpgrade = _.round((room.controller.progressTotal - room.controller.progress) / progressPerTick);
             let displayTime = secondsToReadable(secondsToUpgrade);
-            displayText(room, 0, 2, paused + ICONS.upgradeController + ' ' + room.controller.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks. (' + room.memory.averageCpu + '/R.CPU)');
+            displayText(room, 1, 2, ICONS.upgradeController + ' ' + room.controller.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks. (' + room.memory.averageCpu + '/R.CPU)');
         } else {
             delete roomLastTickProgress[room.name];
             delete RCL_PROGRESS[room.name];
-            displayText(room, 0, 2, ICONS.upgradeController + ' Controller Level: ' + room.controller.level + ' (' + room.memory.averageCpu + '/R.CPU)');
+            displayText(room, 1, 2, ICONS.upgradeController + ' Controller Level: ' + room.controller.level + ' (' + room.memory.averageCpu + '/R.CPU)');
         }
         let y = lowerBoundary;
         if (INTEL[room.name].threatLevel) {
-            displayText(room, 0, y, ICONS.crossedSword + ' RESPONSE NEEDED: Threat Level ' + INTEL[room.name].threatLevel);
+            displayText(room, 1, y, ICONS.crossedSword + ' RESPONSE NEEDED: Threat Level ' + INTEL[room.name].threatLevel);
             y++;
         }
     }

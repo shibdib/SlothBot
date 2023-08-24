@@ -4,9 +4,7 @@
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
  */
-let highCommand = require('military.highCommand');
-const {getUserStrength} = require("./military.highCommand");
-
+const highCommand = require('military.highCommand');
 Creep.prototype.scoutRoom = function () {
     if (!Memory.targetRooms[this.memory.destination]) return this.recycleCreep();
     if (this.room.name !== this.memory.destination) {
@@ -22,11 +20,11 @@ Creep.prototype.scoutRoom = function () {
 };
 
 Creep.prototype.operationManager = function () {
-    return operationPlanner(this.room, this);
+    return forwardObserver(this.room);
 };
 
 StructureObserver.prototype.operationPlanner = function (room) {
-    return operationPlanner(room);
+    return forwardObserver(room);
 };
 
 function operationPlanner(room, creep = undefined) {
@@ -57,26 +55,26 @@ function forwardObserver(room) {
         let userList = Memory.targetRooms[room.name].userList || [];
         let users = _.uniq(_.map(room.hostileCreeps, 'owner.username'));
         Memory.targetRooms[room.name].userList = _.union(userList, users);
-        Memory.targetRooms[room.name].maxLevel = highCommand.getUserStrength(_.max(Memory.targetRooms[room.name].userList, function (u) {
-            return highCommand.getUserStrength(u);
+        Memory.targetRooms[room.name].maxLevel = userStrength(_.max(Memory.targetRooms[room.name].userList, function (u) {
+            return userStrength(u);
         }));
     }
     // Type specific stuff
     let armedEnemies = _.find(room.hostileCreeps, (c) => (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, c.owner.username));
     switch (Memory.targetRooms[room.name].type) {
+        // Handle hold
         case 'hold':
-            let towers = _.find(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && c.isActive());
-            if (towers) {
-                Memory.targetRooms[room.name].type = 'harass';
+            if (INTEL[room.name].towers) {
+                Memory.targetRooms[room.name].type = 'denial';
                 Memory.targetRooms[room.name].level = 1;
-                log.a('Converting hold operation in ' + roomLink(room.name) + ' to a harass operation as a tower is now detected.', 'HIGH COMMAND: ');
-                return room.cacheRoomIntel(true);
+                log.a('Converting hold operation in ' + roomLink(room.name) + ' to a remote denial operation as a tower is now detected.', 'HIGH COMMAND: ');
+                return;
             }
             // Clear target if room is no longer owned
             if (!room.controller || !room.controller.owner) {
                 log.a('Canceling hold operation in ' + roomLink(room.name) + ' as it is no longer owned.', 'HIGH COMMAND: ');
                 delete Memory.targetRooms[room.name];
-                return room.cacheRoomIntel(true);
+                return;
             }
             // Request cleaner if structures are present
             // Request claim attacker if viable
@@ -95,6 +93,19 @@ function forwardObserver(room) {
                 Memory.targetRooms[room.name].priority = PRIORITIES.priority;
             }
             break;
+        // Handle Scouting without a set task
+        case 'scout':
+            if (INTEL[room.name].towers) {
+                Memory.targetRooms[room.name].type = 'denial';
+                log.a('Room ' + roomLink(room.name) + ' denial operation planned.', 'HIGH COMMAND: ');
+            } else if (INTEL[room.name].owner) {
+                Memory.targetRooms[room.name].type = 'hold';
+                log.a('Room ' + roomLink(room.name) + ' hold operation planned.', 'HIGH COMMAND: ');
+            } else {
+                Memory.targetRooms[room.name].type = 'guard';
+                log.a('Room ' + roomLink(room.name) + ' guard operation planned.', 'HIGH COMMAND: ');
+            }
+        // Clear target if room is no longer owned
     }
     if (room.hostileCreeps.length || room.hostileStructures.length) {
         Memory.targetRooms[room.name].level = 2;

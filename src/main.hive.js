@@ -5,16 +5,15 @@
  * Project - Overlord-Bot (Screeps)
  */
 
-let overlord = require('main.overlord');
-let highCommand = require('military.highCommand');
-let labs = require('module.labController');
-let segments = require('module.segmentManager');
-let power = require('module.powerManager');
-let spawning = require('module.creepSpawning');
-let expansion = require('module.expansion');
-let diplomacy = require('module.diplomacy');
-let hud = require('module.hud');
-let tools = require('tools.cpuTracker');
+const overlord = require('main.overlord');
+const highCommand = require('military.highCommand');
+const labs = require('module.labController');
+const segments = require('module.segmentManager');
+const power = require('module.powerManager');
+const spawning = require('module.creepSpawning');
+const expansion = require('module.expansion');
+const diplomacy = require('module.diplomacy');
+const hud = require('module.hud');
 
 module.exports.hiveMind = function () {
     // Timing
@@ -93,11 +92,6 @@ module.exports.hiveMind = function () {
         overlordCurrentCPU = Game.cpu.getUsed() - overlordCurrentCPU;
         overlordTotalCPU += overlordCurrentCPU;
     } while (count < MY_ROOMS.length)
-    // Pixel
-    if (PIXEL_GENERATION && Game.cpu.bucket === PIXEL_CPU_COST && ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
-        log.e('Pixel generated on ' + Game.shard.name, 'Note:');
-        Game.cpu.generatePixel();
-    }
 };
 
 let errorCount = {};
@@ -122,7 +116,7 @@ function minionController(minion) {
         return;
     }
     // Report intel chance
-    if (minion.room.name !== minion.memory.overlord) {
+    if (!MY_ROOMS.includes(minion.room.name)) {
         minion.room.invaderCheck();
         minion.room.cacheRoomIntel(false, minion);
     }
@@ -131,7 +125,7 @@ function minionController(minion) {
         // Squad pair members dont act here
         if (!minion.memory.squadLeader || minion.memory.squadLeader === minion.id || (minion.memory.squadLeader && !Game.getObjectById(minion.memory.squadLeader))) {
             if (!minion.memory.role) return minion.suicide();
-            let creepRole = require('role.' + minion.memory.role);
+            const creepRole = require('role.' + minion.memory.role);
             creepRole.role(minion);
             errorCount[minion.name] = undefined;
         }

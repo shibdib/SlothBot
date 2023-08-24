@@ -71,7 +71,7 @@ function skDeposit(creep) {
             }
         }
     } else {
-        let closest = creep.memory.closestRoom || creep.room.findClosestOwnedRoom(false, 4);
+        let closest = creep.memory.closestRoom || findClosestOwnedRoom(creep.room.name, false, 4);
         creep.memory.closestRoom = closest;
         return creep.shibMove(new RoomPosition(25, 25, closest), {range: 23});
     }

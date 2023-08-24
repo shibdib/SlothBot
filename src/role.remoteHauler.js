@@ -15,7 +15,8 @@ module.exports.role = function (creep) {
     // Check for tow
     if (creep.towTruck()) return true;
     // If Hauling
-    if (_.sum(creep.store)) {
+    if (creep.isFull || creep.memory.hauling) {
+        if (!_.sum(creep.store)) creep.memory.hauling = undefined; else creep.memory.hauling = true;
         creep.memory.energyDestination = undefined;
         creep.opportunisticRepair();
         creep.opportunisticFill();
@@ -27,6 +28,7 @@ module.exports.role = function (creep) {
                         creep.shibMove(storageItem);
                         return true;
                     default:
+                        delete creep.memory.resourceDelivery;
                         delete creep.memory.storageDestination;
                         delete creep.memory._shibMove;
                         break;
@@ -48,9 +50,9 @@ module.exports.role = function (creep) {
         // If you have energy target get it
         if (creep.memory.energyDestination) return creep.withdrawResource();
         // Pickup dropped resource
-        if (creep.room.droppedResources.length && _.max(creep.room.droppedResources, 'amount').amount > creep.store.getCapacity() * 0.5) return creep.memory.energyDestination = _.max(creep.room.droppedResources, 'amount').id;
+        if (creep.room.droppedResources.length && _.max(creep.room.droppedResources, 'amount').amount > creep.store.getCapacity() * 0.1) return creep.memory.energyDestination = _.max(creep.room.droppedResources, 'amount').id;
         // Pickup dropped energy
-        if (creep.room.droppedEnergy.length && _.max(creep.room.droppedEnergy, 'amount').amount > creep.store.getCapacity() * 0.5) return creep.memory.energyDestination = _.max(creep.room.droppedEnergy, 'amount').id;
+        if (creep.room.droppedEnergy.length && _.max(creep.room.droppedEnergy, 'amount').amount > creep.store.getCapacity() * 0.1) return creep.memory.energyDestination = _.max(creep.room.droppedEnergy, 'amount').id;
         // If you know what room to go to and not already there go to it
         else if (creep.room.name !== creep.memory.destination && creep.room.routeSafe(creep.memory.destination)) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 18});
         // If in the assigned room, look for energy
@@ -62,42 +64,32 @@ module.exports.role = function (creep) {
 
 // Remote Hauler Drop Off
 function dropOff(creep) {
-    if (creep.memory.overlord !== creep.room.name) return creep.wrongRoom();
+    if (creep.memory.resourceDelivery) {
+        if (creep.memory.resourceDelivery !== creep.room.name) creep.shibMove(new RoomPosition(25, 25, creep.memory.resourceDelivery), {range: 18});
+        else {
+            if (creep.room.terminal) creep.memory.storageDestination = creep.room.terminal.id;
+            else if (creep.room.storage) creep.memory.storageDestination = creep.room.storage.id;
+        }
+        return;
+    }
     let overlord = Game.rooms[creep.memory.overlord];
     // If carrying minerals deposit in terminal or storage
     if (_.sum(creep.store) > creep.store[RESOURCE_ENERGY]) {
         if (overlord.terminal) creep.memory.storageDestination = overlord.terminal.id;
         else if (overlord.storage) creep.memory.storageDestination = overlord.storage.id;
-        else if (Game.getObjectById(overlord.memory.controllerContainer)) creep.memory.storageDestination = overlord.memory.controllerContainer;
+        else creep.memory.resourceDelivery = findClosestOwnedRoom(creep.room.name, false, 4);
         return;
     }
-    // Handle border links
-    /**
-     buildLinks(creep);
-     if (!creep.memory.borderLinkAttempt && !creep.memory.borderLink) {
-        let borderLink = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_LINK && s.isActive() && creep.pos.getRangeTo(s) <= 8 && s.id !== s.room.memory.hubLink);
-        if (borderLink) creep.memory.borderLink = borderLink.id;
-        creep.memory.borderLinkAttempt = true;
-    } else if (creep.memory.borderLink) {
-        let borderLink = Game.getObjectById(creep.memory.borderLink);
-        if (borderLink && (!borderLink.cooldown || borderLink.cooldown < 5) && borderLink.store.getFreeCapacity(RESOURCE_ENERGY)) {
-            creep.memory.borderLink = borderLink.id;
-            creep.memory.storageDestination = borderLink.id;
-            return true;
-        }
-    }**/
-
-        //Controller
+    //Controller
     let controllerContainer = Game.getObjectById(overlord.memory.controllerContainer);
-    let storageContainer = Game.getObjectById(overlord.memory.storageContainer);
-    let lowTower = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.9);
-    if (lowTower && !_.find(creep.room.myCreeps, (c) => c.memory.storageDestination === lowTower.id)) {
+    let lowTower = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY && !_.find(creep.room.myCreeps, (c) => c.memory.storageDestination === s.id));
+    if (lowTower) {
         creep.memory.storageDestination = lowTower.id;
         return true;
-    } else if (overlord.terminal && overlord.terminal.store.getFreeCapacity() > _.sum(creep.store) && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 2) {
+    } else if (overlord.terminal && overlord.terminal.store.getFreeCapacity() > _.sum(creep.store) && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 2 && !_.find(creep.room.myCreeps, (c) => c.memory.storageDestination === overlord.terminal.id)) {
         creep.memory.storageDestination = overlord.terminal.id;
         return true;
-    } else if (overlord.level === overlord.controller.level && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 50 && Math.random() < (controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) / CONTAINER_CAPACITY)) {
+    } else if (overlord.level === overlord.controller.level && controllerContainer && Math.random() < (controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) / CONTAINER_CAPACITY)) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     } else if (overlord.terminal && overlord.terminal.store.getFreeCapacity() > _.sum(creep.store) && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 5) {
@@ -106,31 +98,9 @@ function dropOff(creep) {
     } else if (overlord.storage && overlord.storage.store.getFreeCapacity() > _.sum(creep.store)) {
         creep.memory.storageDestination = overlord.storage.id;
         return true;
-    } else if (storageContainer && storageContainer.store.getFreeCapacity() > _.sum(creep.store)) {
-        creep.memory.storageDestination = storageContainer.id;
-        return true;
     } else if (creep.haulerDelivery()) {
         return true;
     } else creep.idleFor(5)
-}
-
-// Build remote links
-function buildLinks(creep) {
-    if (creep.memory.linkAttempt || creep.pos.getRangeTo(creep.pos.findClosestByRange(FIND_EXIT)) > 3) return;
-    if (creep.room.controller.level >= 8) {
-        let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
-        let hubLink = Game.getObjectById(creep.room.memory.hubLink);
-        let allLinks = _.filter(creep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LINK);
-        let closestLink = creep.pos.findClosestByRange(allLinks);
-        let closestRange = creep.pos.getRangeTo(closestLink);
-        let inBuildLink = _.filter(creep.room.constructionSites, (s) => s.my && s.structureType === STRUCTURE_LINK)[0];
-        if (!inBuildLink && controllerLink && hubLink && allLinks.length < 6 && closestRange > 8) {
-            if (creep.pos.getRangeTo(creep.room.hub) >= 18) {
-                creep.pos.createConstructionSite(STRUCTURE_LINK);
-            }
-        } else if (closestRange < 8) creep.memory.dropOffLink = closestLink.id;
-    }
-    creep.memory.linkAttempt = true;
 }
 
 // Generate safemode

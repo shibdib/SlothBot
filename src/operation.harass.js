@@ -5,27 +5,37 @@
  * Project - Overlord-Bot (Screeps)
  */
 
-let highCommand = require('military.highCommand');
+const highCommand = require('military.highCommand');
 Creep.prototype.harass = function () {
-    // Become border patrol if no longer a target
-    if (!Memory.targetRooms[this.memory.other.target]) {
+    // If no one remains to harass, border patrol
+    if (!Memory.harassTargets || !Memory.harassTargets.length) {
         this.memory.operation = 'borderPatrol';
-        this.memory.destination = undefined;
         return;
     }
-    let sentence = ['No', 'Remotes', 'Allowed'];
+    Game.map.visual.text(ICONS.nuke, this.pos, {color: '#FF0000', fontSize: 4});
+    let sentence = ['MURDER', 'MODE', 'ACTIVATED', '--', 'DANGER', '--'];
     this.say(sentence[Game.time % sentence.length], true);
     if (this.room.name === this.memory.destination) {
         highCommand.generateThreat(this);
-        if (this.memory.other) highCommand.operationSustainability(this.room, this.memory.other.target);
         // Handle combat
         if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(50)) {
-            // If hostile creeps, level 2
-            if (this.room.hostileCreeps.length) Memory.targetRooms[this.memory.other.target].level = 2; else Memory.targetRooms[this.memory.other.target].level = 1;
             if (!this.handleMilitaryCreep() && !this.scorchedEarth()) this.findDefensivePosition();
         } else {
-            this.memory.destination = _.sample(_.filter(_.map(Game.map.describeExits(this.memory.other.target)), (r) => (!INTEL[r] || !INTEL[r].owner) && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(this.memory.overlord).status));
-            this.say('RETASKED', true);
+            let visited = this.memory.other.visited || [];
+            visited.push(this.room.name);
+            this.memory.other.visited = visited;
+            let target = _.min(_.filter(INTEL, (r) => !visited.includes(r.name) && !r.owner && Memory.harassTargets.includes(r.user)), function (r) {
+                return findClosestOwnedRoom(r.name, true);
+            }).name;
+            if (target) {
+                this.memory.destination = target;
+                this.say('RE-TASKED', true);
+                log.a('Re-tasking harasser ' + this.name + ' to ' + roomLink(target) + ' targeting ' + INTEL[target].user + ' from ' + roomLink(this.room.name), 'HARASS: ');
+            } else if (this.memory.other.visited.length) {
+                this.memory.other.visited = [];
+            } else {
+                this.idleFor(5);
+            }
         }
     } else {
         if (this.room.hostileCreeps.length && this.canIWin(50)) return this.handleMilitaryCreep();

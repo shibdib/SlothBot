@@ -5,9 +5,9 @@
  * Project - Overlord-Bot (Screeps)
  */
 
-let highCommand = require('military.highCommand');
-
+const highCommand = require('military.highCommand');
 Creep.prototype.holdRoom = function () {
+    if (this.tryToBoost(['ranged', 'heal', 'attack', 'tough'])) return;
     let sentence = ['Coming', 'For', 'That', 'Booty', this.memory.destination];
     this.say(sentence[Game.time % sentence.length], true);
     this.attackInRange();

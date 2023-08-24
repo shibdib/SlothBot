@@ -8,11 +8,11 @@ let lastTick = 0;
 
 module.exports.claimNewRoom = function () {
     let worthyRooms;
-    if (lastTick + 500 > Game.time || !MY_ROOMS[0]) return;
+    if (lastTick + 500 > Game.time || !MY_ROOMS[0] || _.size(INTEL) < 15) return;
     lastTick = Game.time;
     // Check for active claims or rebuilds
-    let claimInProgress = _.find(Memory.auxiliaryTargets, (t) => t && (t.type === 'claim' || t.type === 'rebuild'));
-    if (claimInProgress) return;
+    let claimsInProgress = _.filter(Memory.auxiliaryTargets, (t) => t && (t.type === 'claim' || t.type === 'rebuild'));
+    if (claimsInProgress.length > MY_ROOMS.length * 0.25) return;
     let claimTarget = Memory.nextClaim;
     // Clear claim target if it's not valid
     if (!INTEL[claimTarget] || INTEL[claimTarget].owner || INTEL[claimTarget].reservation || Math.random() > 0.75) {
@@ -20,8 +20,8 @@ module.exports.claimNewRoom = function () {
         claimTarget = undefined;
     }
     if (!claimTarget) {
-        worthyRooms = _.filter(INTEL, (r) => Game.rooms[r.closestRoom] && (!r.noClaim || r.noClaim < Game.time) && !r.obstructions && !r.owner && (!r.reservation || r.reservation === MY_USERNAME) && r.hubCheck &&
-            Game.rooms[r.closestRoom].routeSafe(r.name, 500, 1, 12) && Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(MY_ROOMS[0]).status);
+        worthyRooms = _.filter(INTEL, (r) => (!r.noClaim || r.noClaim < Game.time) && !r.obstructions && !r.owner && (!r.reservation || r.reservation === MY_USERNAME) && r.hubCheck &&
+            Game.rooms[findClosestOwnedRoom(r.name)].routeSafe(r.name, 500, 1, 12) && (!ROOM_STATUS || Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(MY_ROOMS[0]).status));
         if (!worthyRooms.length) return;
         let possibles = {};
         worthy:
@@ -31,7 +31,7 @@ module.exports.claimNewRoom = function () {
                 let baseScore = 10000;
                 // Check if we've already failed here, give up after 10 tries otherwise just subtract 1000 per fail
                 if (INTEL[name].failedClaim) {
-                    if (INTEL[name].failedClaim >= 10) continue;
+                    if (INTEL[name].failedClaim >= 5) continue;
                     baseScore -= INTEL[name].failedClaim * 1000;
                 }
                 // Check if it's near any owned friendly rooms
@@ -70,7 +70,7 @@ module.exports.claimNewRoom = function () {
                     }
                 }
                 // If it's a new mineral add to the score
-                if (!_.includes(Memory.ownedMinerals, worthyRooms[key].mineral)) {
+                if (!_.includes(MY_MINERALS, worthyRooms[key].mineral)) {
                     switch (worthyRooms[key].mineral) {
                         case RESOURCE_OXYGEN:
                             baseScore += 1500;
@@ -90,7 +90,11 @@ module.exports.claimNewRoom = function () {
                     }
                 } else baseScore -= 1000;
                 // Prioritize your sector
-                if (sameSectorCheck(name, worthyRooms[key].closestRoom)) baseScore += 2000; else baseScore -= 500;
+                if (sameSectorCheck(name, findClosestOwnedRoom(name))) baseScore += 2000; else baseScore -= 2000;
+                // Final Sanity Range Check
+                if (Game.map.findRoute(name, findClosestOwnedRoom(name)).length > 12) continue;
+                // If negative skip it
+                if (baseScore < 0) continue;
                 worthyRooms[key]["claimValue"] = baseScore;
                 possibles[key] = worthyRooms[key];
             }
@@ -100,12 +104,12 @@ module.exports.claimNewRoom = function () {
         let limit = Game.gcl.level;
         // Special novice zone cases
         if (Game.map.getRoomStatus(MY_ROOMS[0]).status === 'novice') limit = 3;
-        if (limit <= MY_ROOMS.length || Memory.spawnIn + 7500 > Game.time || MIN_LEVEL < 3) {
+        if (limit <= MY_ROOMS.length || MIN_LEVEL < 3) {
             if (Memory.nextClaim !== claimTarget) {
                 log.a('Next claim target set to ' + roomLink(claimTarget) + ' once available.', 'EXPANSION CONTROL: ');
                 Memory.nextClaim = claimTarget;
             }
-        } else if (!Memory.auxiliaryTargets[claimTarget] && INTEL[claimTarget] && !INTEL[claimTarget].hostile) {
+        } else if (!Memory.auxiliaryTargets[claimTarget] && INTEL[claimTarget] && !INTEL[claimTarget].hostile && !claimsInProgress.length) {
             Memory.nextClaim = undefined;
             let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;

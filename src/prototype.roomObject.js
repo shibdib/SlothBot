@@ -190,14 +190,14 @@ RoomObject.prototype.say = function (what) {
         color: "black",
         opacity: 0.9,
         align: "left",
-        font: "bold 0.6 Arial",
+        font: "bold 0.6 Monospace",
         backgroundColor: "black",
         backgroundPadding: 0.3
     }).text(what, this.pos.x + 1, this.pos.y - 1, {
         color: "black",
         opacity: 0.9,
         align: "left",
-        font: "bold 0.6 Arial",
+        font: "bold 0.6 Monospace",
         backgroundColor: "#eeeeee",
         backgroundPadding: 0.2
     });

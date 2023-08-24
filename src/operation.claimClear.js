@@ -22,9 +22,7 @@ Creep.prototype.claimClear = function () {
                     this.signController(this.room.controller, 'Cleaning provided by #Overlord-bot');
             }
         } else {
-            cleanRoom(this.room, this.room.structures);
-            this.room.controller.unclaim();
-            this.room.cacheRoomIntel(true);
+            abandonRoom(this.room);
             if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
             this.suicide();
         }
@@ -32,11 +30,3 @@ Creep.prototype.claimClear = function () {
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
     }
 };
-
-function cleanRoom(room, structures) {
-    for (let key in structures) {
-        if (structures[key] && structures[key].structureType !== STRUCTURE_ROAD) {
-            structures[key].destroy();
-        }
-    }
-}

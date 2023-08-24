@@ -6,6 +6,7 @@
  */
 
 require("globals")();
+require("globals.Helpers")();
 require("prototype.creep");
 require("prototype.creepCombat");
 require("prototype.powerCreep");
@@ -16,10 +17,9 @@ require('module.pathFinder');
 
 // Operations
 require("operation.scout");
-require("operation.siegeGroup");
 require("operation.guard");
 require("operation.hold");
 require("operation.claimClear");
 require("operation.borderPatrol");
-require("operation.swarm");
-require("operation.harass");
+require("operation.harass"); // Harass random rooms of a specific players remotes
+require("operation.denial"); // Deny individual rooms remotes

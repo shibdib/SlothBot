@@ -22,7 +22,10 @@ module.exports.linkControl = function (room) {
         if (link.id === link.room.memory.hubLink && link.room.energyAvailable !== link.room.energyCapacityAvailable) continue;
         let upgrader = _.find(link.room.creeps, (c) => c.memory && c.memory.role === 'upgrader');
         // Controller link if conditions met
-        if (upgrader && (controllerLink && ((controllerLink.store[RESOURCE_ENERGY] < 50 && !controllerAlternator) || link.id === link.room.memory.hubLink))) {
+        if (hubLink && !hubLink.room.energyState) {
+            controllerAlternator = undefined;
+            link.transferEnergy(hubLink);
+        } else if (upgrader && (controllerLink && ((controllerLink.store[RESOURCE_ENERGY] < 50 && !controllerAlternator) || link.id === link.room.memory.hubLink))) {
             controllerAlternator = true;
             link.transferEnergy(controllerLink);
         } else if (hubLink && hubLink.store[RESOURCE_ENERGY] < 400) {

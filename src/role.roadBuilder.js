@@ -65,7 +65,7 @@ module.exports.role = function role(creep) {
             if (!Game.getObjectById(creep.memory.constructionSite)) return creep.memory.constructionSite = undefined;
             creep.builderFunction();
         } else {
-            if (!remoteRoads(creep)) INTEL[creep.room.name].roadsBuilt = true;
+            if (creep.room.name !== creep.memory.overlord && !remoteRoads(creep)) INTEL[creep.room.name].roadsBuilt = true;
             creep.memory.destination = undefined;
             if (creep.memory.overlord === creep.room.name) creep.idleFor(15);
         }

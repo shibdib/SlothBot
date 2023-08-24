@@ -1,4 +1,4 @@
-const activeSegments = [0, 23, 98];
+const activeSegments = [0, 1, 2, 3, 23, 98];
 
 module.exports.init = function () {
     RawMemory.setActiveSegments(activeSegments);
@@ -10,37 +10,49 @@ module.exports.init = function () {
     if (Game.time % 50 === 0) makeRequests();
 }
 
-let segmentRetrieved;
+let intelSegmentChecked;
+let segmentNumber = 0;
+if (Game.shard.name.match(/\d+/)[0]) segmentNumber = Game.shard.name.match(/\d+/)[0];
 module.exports.retrieveIntel = function () {
     // Retrieve intel cache
-    // TODO: REMOVE MEMORY INTEL CACHE
-    if (!INTEL || !segmentRetrieved) {
-        if (RawMemory.segments[23]) {
-            segmentRetrieved = true;
+    if (!_.size(INTEL) || !intelSegmentChecked) {
+        if (RawMemory.segments[segmentNumber]) {
+            intelSegmentChecked = true;
             Memory.intelCache = undefined;
             Memory.roomCache = undefined;
-            global.INTEL = JSON.parse(RawMemory.segments[23]);
+            global.INTEL = JSON.parse(RawMemory.segments[segmentNumber]) || {};
         } else if (Memory.intelCache) global.INTEL = JSON.parse(Memory.intelCache);
-        else if (Memory.roomCache) global.INTEL = Memory.roomCache; else global.INTEL = {};
-        if (!segmentRetrieved) {
+        else if (Memory.roomCache) global.INTEL = Memory.roomCache;
+        else {
             RawMemory.setActiveSegments(activeSegments);
-            log.e("Intel segment not accessible, enabling the segment for the next tick.");
+            log.d("Intel segment not accessible, enabling the segment for the next tick.");
+            global.INTEL = {};
         }
     }
     return true;
 }
 
 module.exports.storeIntel = function () {
-    let store = INTEL;
-    if (JSON.stringify(store).length >= 95000) {
-        let sorted = _.sortBy(store, 'cached');
-        log.e("Intel segment is too large, pruning oldest intel.");
-        for (let entry of sorted) {
-            delete store[entry.name];
-            if (JSON.stringify(store).length < 75000) break;
-        }
+    // Don't store if we never retrieved
+    if (!intelSegmentChecked) {
+        log.d("Intel segment not accessed, not storing.");
+        return;
     }
-    RawMemory.segments[23] = JSON.stringify(store);
+    let store = INTEL;
+    try {
+        if (JSON.stringify(store).length >= 95000) {
+            let sorted = _.sortBy(store, 'cached');
+            log.e("Intel segment is too large, pruning oldest intel.");
+            for (let entry of sorted) {
+                delete store[entry.name];
+                if (JSON.stringify(store).length < 75000) break;
+            }
+        }
+        RawMemory.segments[segmentNumber] = JSON.stringify(store);
+    } catch (e) {
+        log.e("Error stringifying intel cache, skipping store.");
+        log.e(e.stack);
+    }
 }
 
 module.exports.storePaths = function (cache) {

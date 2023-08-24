@@ -19,12 +19,16 @@ module.exports.role = function (creep) {
     if (!container) creep.room.memory.controllerContainer = undefined;
     let link = Game.getObjectById(creep.room.memory.controllerLink);
     if (!link) creep.room.memory.controllerLink = undefined;
-    if (creep.memory.other.stationary) {
-        // Handle sitting on container
-        if (container && !creep.pos.isEqualToPos(container.pos)) return creep.shibMove(container, {range: 0});
+    // Handle stationary upgraders
+    if (creep.memory.other.stationary || (_.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length > _.filter(creep.body, (p) => p.type === MOVE).length)) {
+        creep.memory.other.stationary = true;
+        // Handle getting in place
+        if (!creep.memory.inPosition && container) {
+            if (container.pos.checkForCreep() && creep.pos.isNearTo(container) && (!link || creep.pos.isNearTo(link))) creep.memory.inPosition = true;
+            else return creep.shibMove(container, {range: 0});
+        }
         switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
             case OK:
-                creep.memory.inPlace = true;
                 // Handle resource withdraw
                 if (link && link.store[RESOURCE_ENERGY]) {
                     creep.withdrawResource(link);

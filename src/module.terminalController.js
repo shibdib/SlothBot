@@ -84,7 +84,7 @@ module.exports.terminalControl = function (room) {
     }
     // Place buy orders
     if (placeBuyOrders(room.terminal, globalOrders, myOrders)) return;
-    //Send energy to rooms under siege
+    //Send energy to rooms under siege or struggling
     if (emergencyEnergy(room.terminal)) return;
     //Disperse Minerals and Boosts
     if (balanceResources(room.terminal)) return;
@@ -670,42 +670,20 @@ function balanceEnergy(terminal) {
 
 function emergencyEnergy(terminal) {
     // Balance energy
-    if (terminal.room.energyState && terminal.store[RESOURCE_ENERGY] && !INTEL[terminal.room.name].requestingSupport && !INTEL[terminal.room.name].threatLevel && !terminal.room.nukes.length) {
+    if (terminal.room.energy > ENERGY_AMOUNT[terminal.room.level] * 0.75 && terminal.store[RESOURCE_ENERGY] && !INTEL[terminal.room.name].requestingSupport && !INTEL[terminal.room.name].threatLevel && !terminal.room.nukes.length) {
         // Find needy terminals
-        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
-        let responseNeeded = _.min(_.filter(myRooms, (r) => r.name !== terminal.room.name && ((INTEL[r.name] && INTEL[r.name].threatLevel >= 3) || (r.memory.nuke > 1500)) && r.terminal && !r.energyState), '.energy');
-        if (responseNeeded && responseNeeded.name) {
-            let needyTerminal = responseNeeded.terminal;
+        let responseNeeded = _.filter(MY_ROOMS, (r) => r !== terminal.room.name && INTEL[r] && INTEL[r].threatLevel >= 3 && Game.rooms[r].terminal && !Game.rooms[r].energyState);
+        if (responseNeeded.length) {
+            let lowestEnergy = _.min(responseNeeded, (r) => Game.rooms[r].energy);
+            let needyTerminal = Game.rooms[lowestEnergy].terminal;
             // Determine how much you can move
-            let availableAmount = terminal.store[RESOURCE_ENERGY] - 5000;
+            let availableAmount = terminal.store[RESOURCE_ENERGY] * 0.2;
             if (availableAmount <= 0) return false;
             switch (terminal.send(RESOURCE_ENERGY, availableAmount, needyTerminal.room.name)) {
                 case OK:
-                    log.a('Siege Supplies ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                    log.a('Emergency Supplies ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
                     return true;
             }
-        }
-    } else if (!terminal.room.energyState && (INTEL[terminal.room.name].requestingSupport || terminal.room.nukes.length)) {
-        let price = 0.5;
-        let averagePrice;
-        if (latestMarketHistory(RESOURCE_ENERGY)) {
-            averagePrice = latestMarketHistory(RESOURCE_ENERGY)['avgPrice'] + 0.001;
-        }
-        let competitorOrder = _.max(globalOrders.filter(order => !_.includes(MY_ROOMS, order.roomName) && order.resourceType === RESOURCE_ENERGY && order.type === ORDER_BUY), 'price');
-        if (competitorOrder.id) {
-            price = competitorOrder.price + 0.001;
-        } else if (averagePrice) price = averagePrice;
-        // Do not buy over average price
-        if (averagePrice && averagePrice < price) price = averagePrice;
-        if (Game.market.createOrder({
-            type: ORDER_BUY,
-            resourceType: RESOURCE_ENERGY,
-            price: price,
-            totalAmount: 10000,
-            roomName: terminal.pos.roomName
-        }) === OK) {
-            log.w("New Emergency Buy Order: " + RESOURCE_ENERGY + " at/per " + price + ' in ' + roomLink(terminal.room.name), "Market: ");
-            return true;
         }
     }
 }
