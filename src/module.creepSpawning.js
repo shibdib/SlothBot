@@ -788,6 +788,8 @@ function displayQueue(roomName) {
     let room = Game.rooms[roomName];
     // Global queue
     let importantBuilds = _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
+    let currentRoomQueue = {};
+    if (_.size(roomQueue[room.name])) currentRoomQueue = JSON.parse(JSON.stringify(roomQueue[room.name]));
     if (_.size(globalQueue) && room.level >= 3 && !INTEL[room.name].threatLevel && !importantBuilds) {
         let operationQueue = JSON.parse(JSON.stringify(globalQueue));
         for (let key in operationQueue) {
@@ -813,19 +815,22 @@ function displayQueue(roomName) {
                 }
                 // Tweak priority based on range and if shared sector
                 let priority = operationQueue[key].priority
-                if ((sameSectorCheck(roomName, operationQueue[key].destination) || (INTEL[operationQueue[key].destination] && findClosestOwnedRoom(operationQueue[key].destination) === roomName)) && room.energyState) {
+                if (room.energyState && (sameSectorCheck(roomName, operationQueue[key].destination) || (INTEL[operationQueue[key].destination] && findClosestOwnedRoom(operationQueue[key].destination) === roomName))) {
                     priority *= 0.5;
                 } else if (!room.energyState && operationQueue[key].military) {
                     priority *= 2;
                 } else priority += 1;
                 if (priority < PRIORITIES.priority) priority = PRIORITIES.priority;
                 operationQueue[key].priority = priority;
-
+            }
+            // If a creep is already in the room queue with the same role and a higher priority remove it
+            if (_.find(currentRoomQueue, (c) => c.role === operationQueue[key].role && c.priority >= operationQueue[key].priority)) {
+                currentRoomQueue = _.filter(currentRoomQueue, (c) => c.role !== operationQueue[key].role);
             }
         }
-        queue = _.sortBy(Object.assign({}, operationQueue, roomQueue[room.name]), 'priority');
+        queue = _.sortBy(Object.assign({}, operationQueue, currentRoomQueue), 'priority');
     } else if (_.size(roomQueue[room.name])) {
-        queue = _.sortBy(Object.assign({}, roomQueue[room.name]), 'priority');
+        queue = _.sortBy(Object.assign({}, currentRoomQueue), 'priority');
     }
     let activeSpawns = _.filter(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.spawning);
     if (!_.size(queue) && !activeSpawns.length) return;
