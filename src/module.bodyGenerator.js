@@ -145,8 +145,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         // Remote
         case 'claimer':
             claim = 1;
-            tough = 1;
-            move = 2;
+            move = _.floor(energyAmount - BODYPART_COST[CLAIM]) || 1;
+            if (move > 5) move = 5;
             break;
         case 'reserver':
             claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;

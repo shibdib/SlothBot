@@ -21,7 +21,7 @@ module.exports.claimNewRoom = function () {
     }
     if (!claimTarget) {
         worthyRooms = _.filter(INTEL, (r) => (!r.noClaim || r.noClaim < Game.time) && !r.obstructions && !r.owner && (!r.reservation || r.reservation === MY_USERNAME) && r.hubCheck &&
-            Game.rooms[findClosestOwnedRoom(r.name)].routeSafe(r.name, 500, 1, 12) && (!ROOM_STATUS || Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(MY_ROOMS[0]).status));
+            Game.map.findRoute(r.name, findClosestOwnedRoom(r.name)).length <= 14 && (!ROOM_STATUS || Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(MY_ROOMS[0]).status));
         if (!worthyRooms.length) return;
         let possibles = {};
         worthy:
@@ -60,7 +60,7 @@ module.exports.claimNewRoom = function () {
                     else if (INTEL[r] && !INTEL[r].user) sourceCount += INTEL[r].sources;
                 });
                 // No remotes is a big negative
-                if (!sourceCount) baseScore -= 2500;
+                if (!sourceCount) continue;
                 baseScore += (sourceCount * 250);
                 // Swamps suck
                 for (let y = 0; y < 50; y++) {

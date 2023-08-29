@@ -284,7 +284,7 @@ module.exports.miscCreepQueue = function (room) {
             let priority = PRIORITIES.secondary;
             if (room.energyState) priority = PRIORITIES.priority;
             // Assist with Defense
-            let needsDefense = _.find(MY_ROOMS, (r) => r !== room.name && (Game.rooms[r].memory.dangerousAttack || Game.rooms[r].memory.defenseCooldown > Game.time) && room.routeSafe(r, 3, 999, 12));
+            let needsDefense = _.find(MY_ROOMS, (r) => r !== room.name && (Game.rooms[r].memory.dangerousAttack || Game.rooms[r].memory.defenseCooldown > Game.time) && room.routeSafe(r, 3, 999, 15));
             if (needsDefense) {
                 if (getCreepCount(undefined, 'longbow', needsDefense) < 2) {
                     queueCreep(room, priority, {
@@ -309,7 +309,7 @@ module.exports.miscCreepQueue = function (room) {
             }
             if (room.energyState > 1 && level >= 6) {
                 // Assist with Energy if not struggling
-                let needsEnergy = _.find(MY_ROOMS, (r) => Game.rooms[r].memory.struggling && !Game.rooms[r].terminal && INTEL[r] && !INTEL[r].threatLevel && room.routeSafe(r, 3, 999, 12));
+                let needsEnergy = _.find(MY_ROOMS, (r) => Game.rooms[r].memory.struggling && !Game.rooms[r].terminal && INTEL[r] && !INTEL[r].threatLevel && room.routeSafe(r, 3, 999, 15));
                 if (needsEnergy) {
                     if (getCreepCount(undefined, 'fuelTruck', needsEnergy) < 2) {
                         queueCreep(room, PRIORITIES.urgent, {
@@ -795,7 +795,7 @@ function displayQueue(roomName) {
                 let body = generator.bodyGenerator(room.level, operationQueue[key].role, room, operationQueue[key]);
                 // Add a distance sanity checks
                 let maxRange = 22;
-                if (_.includes(body, CLAIM)) maxRange = 12;
+                if (_.includes(body, CLAIM)) maxRange = 14;
                 if (!room.shibRoute(operationQueue[key].destination) || room.shibRoute(operationQueue[key].destination).length > maxRange) {
                     delete operationQueue[key]
                     continue;

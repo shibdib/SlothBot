@@ -53,7 +53,7 @@ global.PROTECT_MINERAL = false; // Include mineral in the bunker algorithm
 global.PROTECT_SOURCES = false; // Include sources in the bunker algorithm
 
 // Signing and whatnot
-global.OWNED_ROOM_SIGNS = ["~~~NO ENTRY - Full Automation In Progress - NO ENTRY~~~"];
+global.OWNED_ROOM_SIGNS = ["~~~ https://github.com/shibdib/SlothBot ~~~"];
 global.RESERVE_ROOM_SIGNS = ["~~RESTRICTED - Deadly Force Authorized - RESTRICTED~~"];
 global.EXPLORED_ROOM_SIGNS = ["We Noticed", "We're Everywhere", "We Know", "We See You", "We're Watching"];
 global.ATTACK_ROOM_SIGNS = ["~~ALL YOUR BASE BELONG TO ME~~"];
