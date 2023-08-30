@@ -50,7 +50,7 @@ function manageActiveLabs(room) {
                     return;
                 case ERR_NOT_ENOUGH_RESOURCES:
                     for (let hubLab of hub) {
-                        if (room.store(hubLab.memory.itemNeeded, true) < 50) {
+                        if (room.store(hubLab.memory.itemNeeded) < 50) {
                             log.a(room.name + ' is no longer producing ' + room.memory.producingBoost + ' due to a shortage of ' + hubLab.memory.itemNeeded);
                             room.memory.producingBoost = undefined;
                             primaryLabs[room.name] = undefined;
@@ -112,7 +112,7 @@ function checkForInputs(room, boost) {
     let components = BOOST_COMPONENTS[boost];
     if (!components || !components.length) return undefined;
     for (let input of shuffle(components)) {
-        if (room.store(input, true) < 50) return false;
+        if (room.store(input, true) < 75) return false;
     }
     return boost;
 }
