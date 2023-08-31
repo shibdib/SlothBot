@@ -176,7 +176,7 @@ module.exports.essentialCreepQueue = function (room) {
     if (getCreepCount(room, 'stationaryHarvester')) {
         let priority = PRIORITIES.hauler;
         let reboot;
-        if (!getCreepCount(room, 'hauler') || room.friendlyCreeps.length < 5) {
+        if (!getCreepCount(room, 'hauler')) {
             priority = 1;
             reboot = true;
         }
@@ -190,9 +190,14 @@ module.exports.essentialCreepQueue = function (room) {
         if (room.level < 6) {
             let amount = 2;
             if (room.memory.hubLink) amount = 1;
+            if (!getCreepCount(room, 'shuttle')) {
+                priority = 1;
+                reboot = true;
+            }
             if (getCreepCount(room, 'shuttle') < amount || (creepExpiringSoon(room.name, 'shuttle') && getCreepCount(room, 'shuttle') === amount)) {
-                queueCreep(room, PRIORITIES.hauler, {
-                    role: 'shuttle'
+                queueCreep(room, priority + getCreepCount(room, 'shuttle'), {
+                    role: 'shuttle',
+                    other: {reboot: reboot}
                 });
             }
         }
