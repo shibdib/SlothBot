@@ -426,7 +426,8 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
                 // Friendly Rooms
                 if (INTEL[roomName].user && _.includes(FRIENDLIES, INTEL[roomName].user)) return 5;
                 // Highway
-                if (highway) return 5;
+                // Disabled for now.. is there any real benefit to forcing highway use?
+                //if (highway) return 5;
                 // Avoid strongholds
                 if (INTEL[roomName].sk && INTEL[roomName].towers) return 256;
                 // Avoid rooms owned by others
@@ -438,7 +439,7 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
                 // If room is under attack
                 if (INTEL[roomName] && INTEL[roomName].hostilePower > INTEL[roomName].friendlyPower && INTEL[roomName].tickDetected + 150 > Game.time) return 100;
                 // SK rooms are avoided if not being mined
-                if (INTEL[roomName].sk && INTEL[roomName].user + 150 !== MY_USERNAME) return 100;
+                if (INTEL[roomName].sk && INTEL[roomName].user !== MY_USERNAME) return 50;
                 // Avoid rooms reserved by others
                 if (INTEL[roomName].reservation && !_.includes(FRIENDLIES, INTEL[roomName].reservation)) return 50;
                 if (INTEL[roomName].user && !_.includes(FRIENDLIES, INTEL[roomName].user)) return 45;
