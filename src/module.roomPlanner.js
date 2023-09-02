@@ -42,8 +42,8 @@ function buildFromLayout(room) {
     let countCheck = _.filter(layout, (s) => ![STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD].includes(s.structureType) && CONTROLLER_STRUCTURES[s.structureType][room.controller.level] > _.filter(room.structures, (r) => r.structureType === s.structureType).length + _.filter(room.constructionSites, (r) => r.structureType === s.structureType).length);
     if (countCheck.length) {
         // Build tower first
-        let builtSpawn = _.find(room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
-        let builtTower = _.find(room.structures, (s) => s.structureType === STRUCTURE_TOWER);
+        let builtSpawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN);
+        let builtTower = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER);
         let initialSpawn = _.find(Game.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)
         // Handle auto spawn placement, then tower first new claims, then everything else
         if (!initialSpawn) filter = _.filter(layout, (s) => s.structureType === STRUCTURE_SPAWN);
@@ -86,7 +86,7 @@ function auxiliaryBuilding(room) {
     }
     // Cleanup
     if (Math.random() > 0.9) {
-        let noRoad = _.filter(room.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) && s.pos.checkForRoad());
+        let noRoad = _.filter(room.impassibleStructures, (s) => s.pos.checkForRoad());
         if (noRoad.length) noRoad.forEach((s) => s.pos.checkForRoad().destroy());
         let badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_TERMINAL));
         if (room.controller.level >= 6) {
@@ -132,7 +132,7 @@ function controllerBuilder(room) {
             room.memory.controllerContainer = controllerContainer.id;
         }
     } else if (!room.memory.controllerLink && room.controller.level >= 7) {
-        let controllerLink = _.find(room.controller.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_LINK);
+        let controllerLink = _.find(room.controller.pos.findInRange(room.impassibleStructures, 2), (s) => s.structureType === STRUCTURE_LINK);
         if (!controllerLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
             for (let key in zoneTerrain) {
@@ -149,7 +149,7 @@ function controllerBuilder(room) {
 }
 
 function mineralBuilder(room) {
-    let extractor = _.find(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR);
+    let extractor = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_EXTRACTOR);
     if (extractor) {
         // Destroy thorium extractor when empty
         if (!extractor.pos.checkForMineral()) {
@@ -208,7 +208,7 @@ function sourceBuilder(room) {
             }
             // Link
             if (Game.getObjectById(room.memory.hubLink)) {
-                let sourceLink = _.find(source.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_LINK);
+                let sourceLink = _.find(source.pos.findInRange(room.impassibleStructures, 2), (s) => s.structureType === STRUCTURE_LINK);
                 if (!sourceLink && source.pos.countOpenTerrainAround() > 1) {
                     source.memory.link = undefined;
                     let sourceBuild = _.find(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 2), (s) => s.structureType === STRUCTURE_LINK);
@@ -230,7 +230,7 @@ function sourceBuilder(room) {
 
 function labBuilder(room) {
     if (!room.memory.labHub) return findLabHub(room);
-    let built = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB).length;
+    let built = _.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB).length;
     let inBuild = _.find(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB);
     if (CONTROLLER_STRUCTURES[STRUCTURE_LAB][room.controller.level] <= built || inBuild) return;
     let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
@@ -243,7 +243,7 @@ function labBuilder(room) {
 }
 
 function roadBuilder(room, layout) {
-    let spawn = _.find(room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
+    let spawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN);
     // Source Roads
     for (let source of room.sources) {
         let container = Game.getObjectById(source.memory.container);
@@ -303,9 +303,9 @@ function roadBuilder(room, layout) {
     // Mineral Roads/Harvester and labs
     if (room.level >= 6) {
         let container = Game.getObjectById(room.memory.extractorContainer);
-        let spawn = _.sample(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN));
+        let spawn = _.sample(_.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN));
         if (container && spawn && buildRoadFromTo(room, spawn, container)) return true;
-        let labs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB);
+        let labs = _.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB);
         if (labs.length) {
             labs.forEach((l) => {
                 let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
@@ -448,7 +448,7 @@ function findHub(room, hubCheck = undefined) {
     let possiblePos = storedPossibles || {};
     let posCount = 0;
     // If we already have a spawn in room, go off of that
-    let spawn = _.find(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
+    let spawn = _.find(room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
     if (spawn) {
         room.memory.bunkerHub = {};
         room.memory.bunkerHub.x = spawn.pos.x;
@@ -604,7 +604,7 @@ function praiseRoom(room) {
     // Abandon praise room at rcl8
     if (room.controller.level === 8 || !BUILD_PRAISE_ROOMS) return abandonRoom(room.name);
     // Build spawn, if the spawn exists make sure it has a rampart
-    let spawn = _.find(room.structures, (s) => s.structureType === STRUCTURE_SPAWN) || _.find(room.constructionSites, (s) => s.structureType === STRUCTURE_SPAWN);
+    let spawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN) || _.find(room.constructionSites, (s) => s.structureType === STRUCTURE_SPAWN);
     if (!spawn) {
         for (let xOff = -1; xOff <= 1; xOff++) {
             for (let yOff = -1; yOff <= 1; yOff++) {
@@ -652,7 +652,7 @@ function praiseRoom(room) {
     }
     // Tower
     if (room.controller.level >= 3) {
-        let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER);
+        let towers = _.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER);
         let towerHub = room.mineral;
         if (towers.length) towerHub = _.sample(towers);
         //Build Towers

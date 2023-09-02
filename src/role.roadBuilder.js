@@ -75,7 +75,7 @@ module.exports.role = function role(creep) {
 function remoteRoads(creep) {
     if (creep.room.name !== creep.memory.destination || creep.room.constructionSites.length > 3) return false;
     let sources = creep.room.sources;
-    let skLairs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR);
+    let skLairs = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR);
     let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
     let homeExit = creep.room.find(goHome);
     let homeMiddle = _.round(homeExit.length / 2);

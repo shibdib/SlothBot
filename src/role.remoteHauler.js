@@ -82,7 +82,7 @@ function dropOff(creep) {
     }
     //Controller
     let controllerContainer = Game.getObjectById(overlord.memory.controllerContainer);
-    let lowTower = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY && !_.find(creep.room.myCreeps, (c) => c.memory.storageDestination === s.id));
+    let lowTower = _.find(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY && !_.find(creep.room.myCreeps, (c) => c.memory.storageDestination === s.id));
     if (lowTower) {
         creep.memory.storageDestination = lowTower.id;
         return true;
@@ -113,7 +113,7 @@ function safemodeGeneration(creep) {
     // Only do it if we have less than 2 safemodes
     if (!creep.room.controller.safeModeAvailable || creep.room.controller.safeModeAvailable < 2) {
         if (creep.store.getUsedCapacity(RESOURCE_GHODIUM) < SAFE_MODE_COST) {
-            let ghodiumStorage = _.filter(creep.room.structures, (s) => s.store && s.store[RESOURCE_GHODIUM])[0];
+            let ghodiumStorage = _.filter(creep.room.impassibleStructures, (s) => s.store && s.store[RESOURCE_GHODIUM])[0];
             if (ghodiumStorage) {
                 switch (creep.transfer(ghodiumStorage, RESOURCE_GHODIUM)) {
                     case OK:

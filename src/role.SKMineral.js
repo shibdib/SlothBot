@@ -39,7 +39,7 @@ module.exports.role = function (creep) {
                     }
                 }
             } else {
-                let extractor = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR);
+                let extractor = _.find(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_EXTRACTOR);
                 if (extractor) {
                     creep.memory.extractor = extractor.id;
                     // Store mineral as owned

@@ -4,8 +4,8 @@ let helpers = function () {
     global.abandonRoom = function (room) {
         if (!room) return log.e(room.name + ' does not appear to be owned by you.');
         _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room.name).forEach((c) => c.suicide());
-        if (room.structures && room.structures.length) {
-            for (let structure of room.structures) {
+        if (room.impassibleStructures && room.impassibleStructures.length) {
+            for (let structure of room.impassibleStructures) {
                 structure.destroy();
             }
         }

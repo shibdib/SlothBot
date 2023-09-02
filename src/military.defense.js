@@ -132,7 +132,7 @@ function safeModeManager(room) {
                 }
             }
         }
-        let towers = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] > 10)).length > 0;
+        let towers = _.filter(room.impassibleStructures, (s) => (s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] > 10)).length > 0;
         // If attacks occurred and we have no towers or the defense is ineffective safemode
         if ((!towers || room.memory.dangerousAttack) && keyAttack && room.level >= MAX_LEVEL - 1) {
             if (room.controller.activateSafeMode() === OK) {
@@ -158,7 +158,7 @@ function earlyWarning(room) {
 
 function unSavableCheck(room) {
     let badCount = room.memory.badCount || 0;
-    let worthwhileStructure = _.find(room.structures, (s) => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType)) || _.find(room.myCreeps, (c) => c.memory.role === 'drone');
+    let worthwhileStructure = _.find(room.impassibleStructures, (s) => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType)) || _.find(room.myCreeps, (c) => c.memory.role === 'drone');
     if (INTEL[room.name].threatLevel > 2 && MY_ROOMS.length > 1 && !room.controller.safeMode && !worthwhileStructure) {
         let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)));
         // If hostiles add a badCount

@@ -127,7 +127,7 @@ Creep.prototype.renewalCheck = function (target = 1200, force = false) {
         delete this.memory.renewingTarget;
         return delete this.memory.renewing;
     }
-    let spawn = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && !s.spawning)[0];
+    let spawn = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN && !s.spawning)[0];
     if (spawn) {
         switch (spawn.renewCreep(this)) {
             case OK:
@@ -175,7 +175,7 @@ Creep.prototype.skSafety = function () {
     // handle safe SK movement
     let range = 6;
     if (this.memory.destination && this.memory.destination === this.room.name) range = 8;
-    let lair = this.pos.findClosestByRange(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn <= 15 && s.pos.getRangeTo(this) < range});
+    let lair = this.pos.findClosestByRange(this.room.impassibleStructures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn <= 15 && s.pos.getRangeTo(this) < range});
     let SK = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper' && c.pos.getRangeTo(this) < range});
     if (lair || SK) {
         this.memory.fledSK = Game.time;
@@ -187,7 +187,7 @@ Creep.prototype.skSafety = function () {
             return true;
         }
         // Handle invader cores in sk
-        if (_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0]) {
+        if (_.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0]) {
             return this.suicide();
         }
     } else if (this.memory.fledSK) {
@@ -357,7 +357,7 @@ Creep.prototype.locateEnergy = function () {
         }
         // Dismantle hostile
         if (this.hasActiveBodyparts(WORK)) {
-            let hostileStructures = _.find(this.room.structures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username));
+            let hostileStructures = _.find(this.room.impassibleStructures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username));
             if (hostileStructures) {
                 switch (this.dismantle(hostileStructures)) {
                     case ERR_NOT_IN_RANGE:
@@ -449,7 +449,7 @@ Creep.prototype.haulerDelivery = function () {
     }
     //Tower
     if (INTEL[this.room.name].threatLevel) {
-        let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY);
+        let tower = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY);
         if (tower.length) {
             this.memory.storageDestination = _.min(tower, function (t) {
                 return t.store[RESOURCE_ENERGY];
@@ -457,7 +457,7 @@ Creep.prototype.haulerDelivery = function () {
             return true;
         }
     } else {
-        let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.5);
+        let tower = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.5);
         if (tower.length) {
             this.memory.storageDestination = _.min(tower, function (t) {
                 return t.store[RESOURCE_ENERGY];
@@ -470,7 +470,7 @@ Creep.prototype.haulerDelivery = function () {
     if (this.memory.energyStructures && this.memory.roomEnergyCap === this.room.energyCapacityAvailable) {
         energyStructures = JSON.parse(this.memory.energyStructures).map(id => Game.getObjectById(id))
     } else {
-        energyStructures = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION && (!ROOM_HARVESTER_EXTENSIONS[s.room.name] || !ROOM_HARVESTER_EXTENSIONS[s.room.name].includes(s.id)));
+        energyStructures = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION && (!ROOM_HARVESTER_EXTENSIONS[s.room.name] || !ROOM_HARVESTER_EXTENSIONS[s.room.name].includes(s.id)));
         this.memory.energyStructures = JSON.stringify(_.map(energyStructures, 'id'));
         this.memory.roomEnergyCap = this.room.energyCapacityAvailable;
     }
@@ -489,20 +489,20 @@ Creep.prototype.haulerDelivery = function () {
             return true;
         }
         //Labs
-        let lab = _.find(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.store[RESOURCE_ENERGY] < LAB_ENERGY_CAPACITY);
+        let lab = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB && s.store[RESOURCE_ENERGY] < LAB_ENERGY_CAPACITY);
         if (lab) {
             this.memory.storageDestination = lab.id;
             return true;
         }
         if (this.room.controller.level >= 8) {
             //Nuke
-            let nuke = _.find(this.room.structures, (s) => s.structureType === STRUCTURE_NUKER && s.store[RESOURCE_ENERGY] < NUKER_ENERGY_CAPACITY);
+            let nuke = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_NUKER && s.store[RESOURCE_ENERGY] < NUKER_ENERGY_CAPACITY);
             if (nuke && this.room.energyState) {
                 this.memory.storageDestination = nuke.id;
                 return true;
             }
             //Power Spawn
-            let power = _.find(this.room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.store.getFreeCapacity(RESOURCE_ENERGY));
+            let power = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.store.getFreeCapacity(RESOURCE_ENERGY));
             if (power) {
                 this.memory.storageDestination = power.id;
                 return true;
@@ -1009,7 +1009,7 @@ Creep.prototype.tryToBoost = function (boosts, tier = undefined) {
             }
             // Find a lab to boost the creep if none exist, idle.
             if (!this.memory.boosts.boostLab || !Game.getObjectById(this.memory.boosts.boostLab).memory.neededBoost) {
-                let lab = _.find(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.store[RESOURCE_ENERGY] > 0 &&
+                let lab = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB && s.store[RESOURCE_ENERGY] > 0 &&
                     (s.mineralType === boostNeeded || !s.memory.itemNeeded) && (!s.memory.neededBoost || s.memory.neededBoost === boostNeeded));
                 if (lab) {
                     lab.memory.paused = true;

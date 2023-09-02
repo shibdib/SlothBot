@@ -109,7 +109,7 @@ function extensionFiller(creep) {
     if (!ROOM_HARVESTER_EXTENSIONS[creep.room.name] || !creep.memory.extensionsFound) {
         creep.memory.extensionsFound = true;
         let container = Game.getObjectById(creep.memory.containerID) || creep;
-        let extension = container.pos.findInRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION), 1);
+        let extension = container.pos.findInRange(_.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION), 1);
         let sourceExtensions = ROOM_HARVESTER_EXTENSIONS[creep.room.name] || [];
         ROOM_HARVESTER_EXTENSIONS[creep.room.name] = _.union(sourceExtensions, _.pluck(extension, 'id'));
         // Rampart check if near border or outside

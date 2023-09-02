@@ -32,7 +32,7 @@ module.exports.role = function (creep) {
                     break;
             }
         } else {
-            let powerBank = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_POWER_BANK);
+            let powerBank = _.find(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_POWER_BANK);
             if (powerBank) {
                 creep.memory.powerBank = powerBank.id;
             } else {

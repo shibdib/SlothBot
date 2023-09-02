@@ -68,7 +68,7 @@ function dropOff(creep) {
     }
     //Controller
     let controllerContainer = Game.getObjectById(overlord.memory.controllerContainer);
-    let lowTower = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY && !_.find(creep.room.myCreeps, (c) => c.memory.storageDestination === s.id));
+    let lowTower = _.find(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY && !_.find(creep.room.myCreeps, (c) => c.memory.storageDestination === s.id));
     if (lowTower) {
         creep.memory.storageDestination = lowTower.id;
         return true;

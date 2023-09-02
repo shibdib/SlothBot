@@ -45,7 +45,7 @@ module.exports.role = function (creep) {
             }
         }
     } else {
-        let extractor = creep.room.structures.filter((s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
+        let extractor = creep.room.impassibleStructures.filter((s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
         if (extractor) {
             creep.memory.extractor = extractor.id;
         } else {

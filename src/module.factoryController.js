@@ -19,8 +19,12 @@ module.exports.factoryControl = function (room) {
     tickTracker[room.name] = Game.time;
     // Check for factory
     if (room.factory && !room.nukes.length && !room.memory.lowPower) {
+        // Check if on cooldown
+        if (room.factory.cooldown) {
+            return coolDownTracker[room.name] = room.factory.cooldown + 1;
+        } else coolDownTracker[room.name] = 5;
         // If factory is set to produce do so
-        if (room.factory.memory.producing && !room.factory.cooldown) {
+        if (room.factory.memory.producing) {
             switch (room.factory.produce(room.factory.memory.producing)) {
                 case OK:
                     // Check if it's still good to produce
@@ -112,6 +116,7 @@ module.exports.factoryControl = function (room) {
                             return room.factory.memory.producing = commodity;
                         }
                     }
+                    coolDownTracker[room.name] = 100;
                 }
             }
         }

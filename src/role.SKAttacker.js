@@ -14,7 +14,7 @@ module.exports.role = function (creep) {
     if (creep.room.name === creep.memory.destination) {
         // Handle invader core in sk
         if (creep.room.hostileStructures.length) {
-            let core = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0];
+            let core = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0];
             if (core) {
                 creep.room.cacheRoomIntel(true, creep);
                 return creep.suicide();
@@ -37,7 +37,7 @@ module.exports.role = function (creep) {
             }
         } else {
             creep.healInRange();
-            let lair = Game.getObjectById(creep.memory.lair) || _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR), 'ticksToSpawn');
+            let lair = Game.getObjectById(creep.memory.lair) || _.min(_.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR), 'ticksToSpawn');
             creep.memory.keeper = undefined;
             creep.memory.lair = lair.id;
             if (creep.hits === creep.hitsMax && creep.pos.isNearTo(lair)) creep.idleFor(lair.ticksToSpawn - 1); else creep.shibMove(lair, {range: 1});

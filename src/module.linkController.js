@@ -8,7 +8,7 @@
 let controllerAlternator;
 module.exports.linkControl = function (room) {
     if (room.level < 5) return;
-    let links = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && !s.cooldown && s.store[RESOURCE_ENERGY] >= 100 && s.id !== s.room.memory.controllerLink));
+    let links = shuffle(_.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_LINK && !s.cooldown && s.store[RESOURCE_ENERGY] >= 100 && s.id !== s.room.memory.controllerLink));
     let hubLink = Game.getObjectById(room.memory.hubLink);
     let controllerLink = Game.getObjectById(room.memory.controllerLink);
     if (!controllerLink) {

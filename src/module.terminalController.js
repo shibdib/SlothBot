@@ -267,7 +267,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         if (_.includes(ALL_COMMODITIES, resourceType)) {
             if (COMPRESSED_COMMODITIES.includes(resourceType)) sellAmount = terminal.room.store(resourceType) - REACTION_AMOUNT;
             else if (REGIONAL_0_COMMODITIES.includes(resourceType)) {
-                if (!_.find(terminal.room.structures, (s) => s.my && s.structureType === STRUCTURE_FACTORY && s.effects)) sellAmount = terminal.room.store(resourceType);
+                if (!_.find(terminal.room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_FACTORY && s.effects)) sellAmount = terminal.room.store(resourceType);
                 else sellAmount = terminal.room.store(resourceType) - (REACTION_AMOUNT * 0.5);
             } else if (BASE_COMMODITIES.includes(resourceType)) sellAmount = terminal.room.store(resourceType) - (REACTION_AMOUNT * 0.5);
             else sellAmount = terminal.room.store(resourceType);
@@ -472,7 +472,7 @@ function fillBuyOrders(terminal, globalOrders) {
         if (_.includes(ALL_COMMODITIES, resourceType)) {
             if (COMPRESSED_COMMODITIES.includes(resourceType)) keepAmount = REACTION_AMOUNT;
             else if (REGIONAL_0_COMMODITIES.includes(resourceType)) {
-                if (!_.find(terminal.room.structures, (s) => s.my && s.structureType === STRUCTURE_FACTORY && s.effects)) keepAmount = 0;
+                if (!_.find(terminal.room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_FACTORY && s.effects)) keepAmount = 0;
                 else keepAmount = REACTION_AMOUNT * 0.5;
             } else if (BASE_COMMODITIES.includes(resourceType)) keepAmount = REACTION_AMOUNT * 0.5;
             else keepAmount = 0;

@@ -11,7 +11,7 @@ module.exports.role = function (creep) {
     if (creep.pos.roomName !== creep.memory.destination) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
     } else {
-        let powerBank = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_POWER_BANK)[0];
+        let powerBank = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_POWER_BANK)[0];
         if (powerBank && creep.pos.isNearTo(powerBank)) creep.moveRandom();
         if (creep.memory.assigned) {
             let assignment = Game.getObjectById(creep.memory.assigned);

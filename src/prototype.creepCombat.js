@@ -44,7 +44,7 @@ Creep.prototype.abilityPower = function () {
 
 Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = false, guardLocation = undefined, guardRange) {
     let enemy;
-    let hostileStructures = _.find(this.room.structures, (s) => (!s.owner || !FRIENDLIES.includes(s.owner.username)) && s.structureType !== STRUCTURE_RAMPART && (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange));
+    let hostileStructures = _.find(this.room.impassibleStructures, (s) => (!s.owner || !FRIENDLIES.includes(s.owner.username)) && (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange));
     let hostileCreeps = _.filter(this.room.hostileCreeps, (s) => (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange) && !s.pos.checkForRampart()) || _.filter(this.room.hostileCreeps, (s) => (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange));
     if (!hostileCreeps.length && !hostileStructures) return undefined;
     // If we already have a target, keep it if it's still valid
@@ -80,7 +80,7 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
 
 Creep.prototype.findClosestHostileStructure = function (barriers = true) {
     let enemy;
-    let hostileStructures = _.find(this.room.structures, (s) => (!s.owner || !FRIENDLIES.includes(s.owner.username)) && s.structureType !== STRUCTURE_RAMPART);
+    let hostileStructures = _.find(this.room.impassibleStructures, (s) => !s.owner || !FRIENDLIES.includes(s.owner.username));
     if (!hostileStructures) return undefined;
     if (this.memory.target) {
         let oldTarget = Game.getObjectById(this.memory.target);
@@ -91,7 +91,7 @@ Creep.prototype.findClosestHostileStructure = function (barriers = true) {
         }
     }
     // Invader Cores
-    enemy = _.find(this.room.structures, (c) => c.structureType === STRUCTURE_INVADER_CORE);
+    enemy = _.find(this.room.impassibleStructures, (c) => c.structureType === STRUCTURE_INVADER_CORE);
     if (enemy) {
         this.memory.target = enemy.id;
         return enemy;
@@ -533,11 +533,11 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     for (let i = 0; i < armedFriendlies.length; i++) {
         alliedPower += armedFriendlies[i].abilityPower().attack;
     }
-    let hostileTowers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && !_.includes(FRIENDLIES, s.owner.username));
+    let hostileTowers = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && !_.includes(FRIENDLIES, s.owner.username));
     for (let i = 0; i < hostileTowers.length; i++) {
         hostilePower += TOWER_POWER_FROM_RANGE(hostileTowers[i].pos.getRangeTo(this), TOWER_POWER_ATTACK);
     }
-    let friendlyTowers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && _.includes(FRIENDLIES, s.owner.username));
+    let friendlyTowers = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && _.includes(FRIENDLIES, s.owner.username));
     for (let i = 0; i < friendlyTowers.length; i++) {
         alliedPower += TOWER_POWER_FROM_RANGE(friendlyTowers[i].pos.getRangeTo(this), TOWER_POWER_ATTACK);
     }

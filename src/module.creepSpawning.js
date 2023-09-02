@@ -25,7 +25,7 @@ module.exports.processBuildQueue = function (room) {
     if (buildTick[room.name] + 5 > Game.time) return;
     buildTick[room.name] = Game.time;
     // Check for free spawns
-    let availableSpawns = _.filter(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning && s.isActive());
+    let availableSpawns = _.filter(room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning && s.isActive());
     for (let availableSpawn of availableSpawns) {
         let body, role, cost, queuedBuild;
         // Pick build target
@@ -273,7 +273,7 @@ module.exports.miscCreepQueue = function (room) {
     if (!room.nukes.length && !INTEL[room.name].threatLevel) {
         //Mineral Harvester
         if (room.mineral.mineralAmount && !getCreepCount(room, 'mineralHarvester') && room.store(room.mineral.mineralType) < 100000) {
-            if (_.find(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)) {
+            if (_.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_EXTRACTOR)) {
                 queueCreep(room, PRIORITIES.mineralHarvester, {
                     role: 'mineralHarvester',
                     other: {assignedMineral: room.mineral.id}
@@ -767,12 +767,12 @@ function determineEnergyOrder(room) {
     storedLevel[room.name] = getLevel(room);
     if (!energyOrder[room.name] || orderStored[room.name] + 750 < Game.time) {
         let harvester = _.filter(room.myCreeps, (c) => c.memory.role === 'stationaryHarvester' && c.memory.onContainer);
-        let energyStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
+        let energyStructures = _.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
         let rangeArray = [];
         let usedIdArray = [];
         for (let x = 0; x < energyStructures.length; x++) {
             let nextClosest;
-            let harvesterExtensions = _.filter(room.structures, (s) => !_.includes(usedIdArray, s.id) && (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.pos.findFirstInRange(harvester, 1));
+            let harvesterExtensions = _.filter(room.impassibleStructures, (s) => !_.includes(usedIdArray, s.id) && (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.pos.findFirstInRange(harvester, 1));
             if (harvesterExtensions.length) {
                 nextClosest = harvesterExtensions[0];
             } else {
@@ -835,7 +835,7 @@ function displayQueue(roomName) {
     } else if (_.size(roomQueue[room.name])) {
         queue = _.sortBy(Object.assign({}, roomQueue[room.name]), 'priority');
     }
-    let activeSpawns = _.filter(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.spawning);
+    let activeSpawns = _.filter(room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.spawning);
     if (!_.size(queue) && !activeSpawns.length) return;
     let lower = _.size(queue) + activeSpawns.length + 2;
     if (lower > 9) lower = 9;

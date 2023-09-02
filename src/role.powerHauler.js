@@ -28,7 +28,7 @@ module.exports.role = function (creep) {
                     break;
             }
         } else {
-            if (!_.find(creep.room.structures, (s) => s.structureType === STRUCTURE_POWER_BANK)) {
+            if (!_.find(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_POWER_BANK)) {
                 Memory.auxiliaryTargets[creep.room.name] = undefined;
                 creep.suicide();
             }
@@ -38,7 +38,7 @@ module.exports.role = function (creep) {
         if (creep.room.name !== creep.memory.closestRoom) {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.closestRoom), {range: 23});
         } else {
-            let deliver = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.power < s.store.getFreeCapacity(RESOURCE_POWER))[0] || creep.room.terminal || creep.room.storage;
+            let deliver = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.power < s.store.getFreeCapacity(RESOURCE_POWER))[0] || creep.room.terminal || creep.room.storage;
             if (deliver) {
                 switch (creep.transfer(deliver, RESOURCE_POWER)) {
                     case OK:
