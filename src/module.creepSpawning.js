@@ -793,8 +793,6 @@ function displayQueue(roomName) {
     let room = Game.rooms[roomName];
     // Global queue
     let importantBuilds = _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    let currentRoomQueue = {};
-    if (_.size(roomQueue[room.name])) currentRoomQueue = JSON.parse(JSON.stringify(roomQueue[room.name]));
     if (_.size(globalQueue) && room.level >= 3 && !INTEL[room.name].threatLevel && !importantBuilds) {
         let operationQueue = JSON.parse(JSON.stringify(globalQueue));
         for (let key in operationQueue) {
@@ -829,13 +827,13 @@ function displayQueue(roomName) {
                 operationQueue[key].priority = priority;
             }
             // If a creep is already in the room queue with the same role and a higher priority remove it
-            if (_.find(currentRoomQueue, (c) => c.role === operationQueue[key].role && c.priority >= operationQueue[key].priority)) {
-                currentRoomQueue = _.filter(currentRoomQueue, (c) => c.role !== operationQueue[key].role);
+            if (_.size(roomQueue[room.name]) && _.find(roomQueue[room.name], (c) => c.role === operationQueue[key].role && c.priority >= operationQueue[key].priority)) {
+                roomQueue[room.name] = _.filter(roomQueue[room.name], (c) => c.role !== operationQueue[key].role);
             }
         }
-        queue = _.sortBy(Object.assign({}, operationQueue, currentRoomQueue), 'priority');
+        queue = _.sortBy(Object.assign({}, operationQueue, roomQueue[room.name]), 'priority');
     } else if (_.size(roomQueue[room.name])) {
-        queue = _.sortBy(Object.assign({}, currentRoomQueue), 'priority');
+        queue = _.sortBy(Object.assign({}, roomQueue[room.name]), 'priority');
     }
     let activeSpawns = _.filter(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.spawning);
     if (!_.size(queue) && !activeSpawns.length) return;
