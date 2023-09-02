@@ -857,6 +857,7 @@ function cachePath(creep, from, to, path) {
     globalPathCache[key] = {
         path: path,
         key: key,
+        structures: creep.room.impassibleStructures.length,
         uses: 1,
         tick: Game.time
     }
@@ -880,10 +881,15 @@ function getPath(creep, from, to) {
         cachedPath.path = reverseString(cachedPath.path);
     }
     if (cachedPath) {
-        cachedPath.uses += 1;
-        cachedPath.tick = Game.time;
-        globalPathCache = cache;
-        return cachedPath.path;
+        if (creep.room.impassibleStructures.length === cachedPath.structures) {
+            cachedPath.uses += 1;
+            cachedPath.tick = Game.time;
+            globalPathCache = cache;
+            return cachedPath.path;
+        } else {
+            delete cache[cachedPath.key];
+            globalPathCache = cache;
+        }
     }
 }
 
