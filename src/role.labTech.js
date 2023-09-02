@@ -32,16 +32,16 @@ module.exports.role = function (creep) {
         || terminalControl(creep)
         // Empty mineral harvester container
         || mineralHauler(creep)
-        // Empty labs
-        || emptyLab(creep)
         // Check nuker for ghodium
         || nukeSupplies(creep)
         // Get factory orders
         || factorySupplies(creep)
-        // Empty factories
-        || emptyFactory(creep)
         // Get lab orders
         || labSupplies(creep)
+        // Empty labs
+        || emptyLab(creep)
+        // Empty factories
+        || emptyFactory(creep)
         // Handle storage goods
         || storageControl(creep)) return;
     // If nothing to do, be a hauler for 50 ticks
