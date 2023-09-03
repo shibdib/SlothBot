@@ -176,9 +176,9 @@ Object.defineProperty(Room.prototype, 'droppedResources', {
     get: function () {
         if (!this._droppedResources) {
             if (!this.hostileCreeps.length) {
-                this._droppedResources = this.find(FIND_DROPPED_RESOURCES);
+                this._droppedResources = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY});
             } else {
-                this._droppedResources = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
+                this._droppedResources = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY && r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
             }
         }
         return this._droppedResources;

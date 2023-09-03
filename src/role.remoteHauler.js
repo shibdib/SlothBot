@@ -51,8 +51,6 @@ module.exports.role = function (creep) {
         if (creep.memory.energyDestination) return creep.withdrawResource();
         // Pickup dropped resource
         if (creep.room.droppedResources.length && _.max(creep.room.droppedResources, 'amount').amount > creep.store.getCapacity() * 0.1) return creep.memory.energyDestination = _.max(creep.room.droppedResources, 'amount').id;
-        // Pickup dropped energy
-        if (creep.room.droppedEnergy.length && _.max(creep.room.droppedEnergy, 'amount').amount > creep.store.getCapacity() * 0.1) return creep.memory.energyDestination = _.max(creep.room.droppedEnergy, 'amount').id;
         // If you know what room to go to and not already there go to it
         else if (creep.room.name !== creep.memory.destination && creep.room.routeSafe(creep.memory.destination)) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 18});
         // If in the assigned room, look for energy
@@ -100,6 +98,8 @@ function dropOff(creep) {
         return true;
     } else if (creep.haulerDelivery()) {
         return true;
+    } else if (creep.pos.getRangeTo(creep.room.controller) > 2) {
+        creep.shibMove(creep.room.controller);
     } else creep.idleFor(5)
 }
 
