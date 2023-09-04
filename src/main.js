@@ -81,8 +81,7 @@ module.exports.loop = function () {
         try {
             // Handle pixel generation
             // Generate every 1500 ticks if enabled, no military operations, and we have a full bucket
-            if (GENERATE_PIXELS && ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) &&
-                !_.find(Memory.targetRooms, (r) => r && r.operation !== 'pending') && Memory.lastPixel + 100 * MY_ROOMS.length < Game.time && Game.cpu.bucket >= PIXEL_CPU_COST && !_.find(MY_ROOMS, (r) => INTEL[r].threatLevel)) {
+            if (GENERATE_PIXELS && Memory.lastPixel + 100 < Game.time && ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) && Game.cpu.bucket >= PIXEL_CPU_COST && !_.find(MY_ROOMS, (r) => INTEL[r] && INTEL[r].threatLevel)) {
                 log.a('Pixel Generated');
                 Game.cpu.generatePixel();
                 return Memory.lastPixel = Game.time;
