@@ -599,7 +599,7 @@ function balanceResources(terminal) {
 
 function balanceEnergy(terminal) {
     // Balance Energy
-    if (!INTEL[terminal.room.name].threatLevel && !terminal.room.nukes.length && terminal.room.energyState) {
+    if (!INTEL[terminal.room.name].threatLevel && !terminal.room.nukes.length && terminal.room.energyState > 1) {
         // Find needy terminals
         let needyTerminal = _.find(Game.structures, (r) => r.room.name !== terminal.room.name && r.room.energyState < terminal.room.energyState && r.structureType === STRUCTURE_TERMINAL && (!r.room.store[RESOURCE_BATTERY] || !r.room.factory) &&
             (!usedTerminals[r.room.name] || usedTerminals[r.room.name].tick !== Game.time) && r.store.getFreeCapacity() && Game.market.calcTransactionCost(15000, terminal.room.name, r.room.name) < 1500);
