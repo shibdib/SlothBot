@@ -470,8 +470,8 @@ function pathFunction(origin, destination, roomDistance, portalRoom) {
 //FUNCTIONS
 function creepBumping(creep, pathInfo, options) {
     if (!pathInfo.newPos) return creep.moveRandom();
-    let bumpCreep = _.find(creep.room.myCreeps, (c) => !c.fatigue && !c.memory.other.stationary && !c.memory.willNeedTow && !c.memory.trailer &&
-        (!c.memory.military || Math.random() > 0.5) && (!c.memory.other.noBump || Math.random() > 0.95) && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y);
+    let nextPosition = positionAtDirection(creep.pos, parseInt(pathInfo.path[0], 10));
+    let bumpCreep = _.find(nextPosition.lookFor(LOOK_CREEPS), (c) => c.my && !c.fatigue && !c.memory.other.stationary && !c.memory.willNeedTow && !c.memory.trailer && (!c.memory.other.noBump || Math.random() > 0.5));
     if (bumpCreep) {
         if (!creep.memory.trailer) {
             if (bumpCreep.hasActiveBodyparts(MOVE)) {
@@ -587,7 +587,7 @@ function getStructureMatrix(roomName, creep, matrix, options) {
 
 function addStructuresToMatrix(room, creep, matrix, type, options) {
     if (!room) return matrix;
-    let roadCost = type === 4 ? 1 : type === 3 ? 2 : type === 2 ? 2 : 1;
+    let roadCost = type === 4 ? 1 : type === 3 ? 3 : type === 2 ? 3 : 1;
     let wallWrecker = (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)) || (INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner));
     for (let structure of room.structures) {
         if (structure instanceof StructureWall) {
@@ -917,9 +917,14 @@ function getMoveWeight(creep, options = {}) {
     }
     let move = creep.getActiveBodyparts(MOVE);
     // Get weight of creep
-    let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
-    // Add weight of used carry parts
-    weight += _.ceil(_.sum(creep.store) / 50) || 0;
+    let weight;
+    if (creep.memory._shibMove && creep.memory._shibMove.weight) weight = creep.memory._shibMove.weight;
+    else {
+        weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
+        // Add weight of used carry parts
+        weight += _.ceil(_.sum(creep.store) / 50) || 0;
+        creep.memory._shibMove.weight = weight;
+    }
     // Add weight of trailer
     if (creep.memory.trailer && Game.getObjectById(creep.memory.trailer)) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
     if (move >= weight * 5) {
