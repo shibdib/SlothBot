@@ -537,7 +537,7 @@ function addTerrainToMatrix(roomName, type, options) {
     let matrix = new PathFinder.CostMatrix();
     let terrain = Game.map.getRoomTerrain(roomName);
     let plainCost = type === 4 ? 0 : type === 3 ? 1 : type === 2 ? 1 : 5;
-    let swampCost = type === 4 ? 0 : type === 3 ? 1 : type === 2 ? 15 : 25;
+    let swampCost = type === 4 ? 0 : type === 3 ? 1 : type === 2 ? 5 : 25;
     for (let y = 0; y < 50; y++) {
         for (let x = 0; x < 50; x++) {
             let tile = terrain.get(x, y);
@@ -916,11 +916,12 @@ function getMoveWeight(creep, options = {}) {
         return options;
     }
     let move = creep.getActiveBodyparts(MOVE);
+    // Get weight of creep
     let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
+    // Add weight of used carry parts
+    weight += _.ceil(_.sum(creep.store) / 50) || 0;
+    // Add weight of trailer
     if (creep.memory.trailer && Game.getObjectById(creep.memory.trailer)) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
-    let fullCarry = 0;
-    if (_.sum(creep.store)) fullCarry = _.ceil(_.sum(creep.store) / 50);
-    weight += fullCarry;
     if (move >= weight * 5) {
         options.offRoad = true;
     } else if (move >= weight) {
