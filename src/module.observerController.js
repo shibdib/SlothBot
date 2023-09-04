@@ -14,9 +14,16 @@ module.exports.observerControl = function (room) {
     let observer = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_OBSERVER);
     if (observer) {
         if (observedRooms[room.name] && Game.rooms[observedRooms[room.name]]) {
-            Game.rooms[observedRooms[room.name]].cacheRoomIntel();
+            // Force a refresh if it's a manual observation
+            let force = undefined;
+            if (Memory.observeRoom === observedRooms[room.name]) force = true;
+            Game.rooms[observedRooms[room.name]].cacheRoomIntel(force);
             if (Memory.targetRooms[observedRooms[room.name]]) {
                 observer.operationPlanner(Game.rooms[observedRooms[room.name]]);
+            }
+            if (Memory.observeRoom === observedRooms[room.name]) {
+                log.a(room.name + ' is done observing ' + Memory.observeRoom + ' and will now observe randomly.');
+                Memory.observeRoom = undefined;
             }
             observedRooms[room.name] = undefined;
         } else {

@@ -525,6 +525,13 @@ function manualAttacks() {
             Game.flags[name].remove();
             continue;
         }
+        // Set manual observation
+        if (_.startsWith(name, 'observe')) {
+            Memory.observeRoom = Game.flags[name].pos.roomName;
+            log.a('Observing ' + roomLink(Game.flags[name].pos.roomName) + ' at your request.', 'HIGH COMMAND: ');
+            Game.flags[name].remove();
+            continue;
+        }
         // Remove bad room/remote flag
         if (_.startsWith(name, 'remove')) {
             if (Memory.avoidRooms && _.includes(Memory.avoidRooms, Game.flags[name].pos.roomName)) {
