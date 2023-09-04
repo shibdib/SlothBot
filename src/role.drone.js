@@ -71,7 +71,7 @@ module.exports.role = function role(creep) {
         // If haulers needed haul
         if (hauling(creep)) return;
         // If builder needed build
-        if ((creep.memory.constructionSite || Math.random() > 0.25 || creep.room.constructionSites.length) && building(creep)) return;
+        if ((creep.memory.constructionSite || creep.room.constructionSites.length) && building(creep)) return;
         // If praiser needed praise
         if (upgrading(creep)) return;
         // If walls to repair
