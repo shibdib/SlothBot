@@ -15,7 +15,6 @@ module.exports.observerControl = function (room) {
     if (observer) {
         if (observedRooms[room.name] && Game.rooms[observedRooms[room.name]]) {
             Game.rooms[observedRooms[room.name]].cacheRoomIntel();
-            if (Game.map.getRoomLinearDistance(observedRooms[room.name], room.name) <= 2) Game.rooms[observedRooms[room.name]].invaderCheck();
             if (Memory.targetRooms[observedRooms[room.name]]) {
                 observer.operationPlanner(Game.rooms[observedRooms[room.name]]);
             }
@@ -36,15 +35,33 @@ module.exports.observerControl = function (room) {
                 observedRooms[room.name] = observerOperation;
                 return;
             }
-            // Observer queries (Random)
-            let target;
-            let roomX = room.name.match(/\d+/g).map(Number)[0];
-            let roomY = room.name.match(/\d+/g).map(Number)[1];
-            let targetX = Math.abs(roomX + (Math.round(Math.random() * 20 - 10)));
-            let targetY = Math.abs(roomY + (Math.round(Math.random() * 20 - 10)));
-            target = room.name.replace(/[0-9]/g, '')[0] + targetX + room.name.replace(/[0-9]/g, '')[1] + targetY;
-            observer.observeRoom(target);
-            observedRooms[room.name] = target;
+            // Observer queries, random
+            let x = 0;
+            while (x < 10) {
+                let roomX = room.name.match(/\d+/g).map(Number)[0];
+                let roomY = room.name.match(/\d+/g).map(Number)[1];
+                let eW = room.name.replace(/[0-9]/g, '')[0];
+                let nS = room.name.replace(/[0-9]/g, '')[1];
+                let targetX = roomX + ((Math.floor(Math.random() * 11)) * (Math.round(Math.random()) ? 1 : -1));
+                let targetY = roomY + ((Math.floor(Math.random() * 11)) * (Math.round(Math.random()) ? 1 : -1));
+                // Handle changing directions
+                if (targetX < 0) {
+                    targetX *= -1;
+                    if (eW === 'E') eW = 'W'; else eW = 'E';
+                }
+                if (targetY < 0) {
+                    targetY *= -1;
+                    if (nS === 'N') nS = 'S'; else nS = 'N';
+                }
+                let targetRoom = eW + targetX + nS + targetY;
+                if (INTEL[targetRoom] && INTEL[targetRoom].tick < Game.time - 100) {
+                    x++;
+                    continue;
+                }
+                observer.observeRoom(eW + targetX + nS + targetY);
+                observedRooms[room.name] = eW + targetX + nS + targetY;
+                break;
+            }
         }
     }
 };
