@@ -346,7 +346,7 @@ module.exports.remoteCreepQueue = function (room) {
         if (sourceCount < targetAmount) {
             for (let adjacentRoom of remoteRooms) {
                 let secondaryAdjacent = _.filter(Game.map.describeExits(adjacentRoom), (r) => INTEL[r] && INTEL[r].sources && !INTEL[r].level && (!ROOM_STATUS || Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status) &&
-                    (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation)));
+                    (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation)) && !_.find(MY_ROOMS, (m) => m !== room.name && _.find(Game.map.describeExits(m), (e) => e === r)));
                 if (secondaryAdjacent.length) {
                     secondaryAdjacent.forEach((r) => sourceCount += INTEL[r].sources || 1);
                     remoteRooms = _.union(remoteRooms, secondaryAdjacent);
