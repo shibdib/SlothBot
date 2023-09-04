@@ -20,6 +20,12 @@ module.exports.observerControl = function (room) {
             }
             observedRooms[room.name] = undefined;
         } else {
+            // Manual queries
+            if (Memory.observeRoom && Game.map.getRoomLinearDistance(room.name, Memory.observeRoom) <= OBSERVER_RANGE) {
+                observer.observeRoom(Memory.observeRoom);
+                observedRooms[room.name] = Memory.observeRoom;
+                return;
+            }
             // Observer queries (Military scouts first)
             let scoutOperation = _.findKey(Memory.targetRooms, (t) => t && t.type === 'scout');
             if (scoutOperation && Game.map.getRoomLinearDistance(room.name, scoutOperation) <= OBSERVER_RANGE) {
