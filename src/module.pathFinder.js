@@ -12,6 +12,7 @@ const FLEE_RANGE = 4;
 const terrainMatrixCache = {};
 const structureMatrixCache = {};
 const creepMatrixCache = {};
+const stationaryCreepMatrixCache = {};
 const hostileMatrixCache = {};
 const skMatrixCache = {};
 let globalPathCache = {};
@@ -514,6 +515,7 @@ function getMatrix(roomName, creep, options) {
     let matrix = getTerrainMatrix(roomName, options);
     if (!options.ignoreStructures) matrix = getStructureMatrix(roomName, creep, matrix, options);
     if (room && !options.ignoreCreeps) matrix = getCreepMatrix(roomName, creep, matrix, options);
+    if (room) matrix = getStationaryCreepMatrix(roomName, creep, matrix, options);
     if (room && room.hostileCreeps.length && (creep.className || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.avoidEnemies)) matrix = getHostileMatrix(roomName, matrix, options);
     matrix = getSKMatrix(roomName, matrix, options);
     return matrix;
@@ -572,9 +574,9 @@ function getStructureMatrix(roomName, creep, matrix, options) {
         else return matrix;
     }
     // Check if matrix is cached and usable
-    if (!structureMatrixTick[room.name] || !structureCount[roomName] || !structureMatrixCache[roomName + type] || options.showMatrix || options.tunnel || Game.time > structureMatrixTick[roomName + type] + (CREEP_LIFE_TIME * 5) || structureCount[roomName] !== room.structures.length + room.constructionSites.length) {
+    if (!structureMatrixTick[room.name] || !structureCount[roomName] || !structureMatrixCache[roomName + type] || options.showMatrix || options.tunnel || Game.time > structureMatrixTick[roomName + type] + (CREEP_LIFE_TIME * 25) || structureCount[roomName] !== room.structures.length) {
         structureMatrixTick[roomName + type] = Game.time;
-        structureCount[roomName] = room.structures.length + room.constructionSites.length;
+        structureCount[roomName] = room.structures.length;
         structureMatrixCache[roomName + type] = addStructuresToMatrix(room, creep, matrix, type, options).serialize();
     }
     return PathFinder.CostMatrix.deserialize(structureMatrixCache[roomName + type]);
@@ -618,21 +620,6 @@ function addStructuresToMatrix(room, creep, matrix, type, options) {
     for (let site of blockingSites) {
         matrix.set(site.pos.x, site.pos.y, 256);
     }
-    //Stationary creeps
-    let stationaryCreeps = _.filter(room.myCreeps, (c) => c.memory.other && c.memory.other.stationary);
-    for (let site of stationaryCreeps) {
-        matrix.set(site.pos.x, site.pos.y, 256);
-    }
-    //Avoid bumping creeps
-    let noBumpCreeps = _.filter(room.myCreeps, (c) => c.memory.other && c.memory.other.noBump);
-    for (let site of noBumpCreeps) {
-        matrix.set(site.pos.x, site.pos.y, 150);
-    }
-    //Military creeps
-    let militaryCreeps = _.filter(room.myCreeps, (c) => c.memory.military);
-    for (let site of militaryCreeps) {
-        matrix.set(site.pos.x, site.pos.y, 50);
-    }
     //Sources
     for (let source of room.sources) {
         matrix.set(source.pos.x, source.pos.y, 256);
@@ -658,7 +645,6 @@ function addStructuresToMatrix(room, creep, matrix, type, options) {
 }
 
 let creepMatrixTick = {};
-
 function getCreepMatrix(roomName, creep, matrix, options) {
     let room = Game.rooms[roomName];
     if (!room) return matrix;
@@ -687,8 +673,30 @@ function addCreepsToMatrix(room, matrix, creep = undefined, options) {
     return matrix;
 }
 
-let hostileMatrixTick = {};
+let stationaryMatrixTick = {};
 
+function getStationaryCreepMatrix(roomName, creep, matrix, options) {
+    let room = Game.rooms[roomName];
+    if (!room) return matrix;
+    if (!stationaryCreepMatrixCache[roomName] || options.showMatrix || (!stationaryMatrixTick[room.name] || Game.time > stationaryMatrixTick[room.name])) {
+        room.memory.creepMatrixTick = undefined;
+        stationaryCreepMatrixCache[roomName] = addStationaryCreepsToMatrix(room, matrix, creep, options).serialize();
+    }
+    return PathFinder.CostMatrix.deserialize(stationaryCreepMatrixCache[roomName]);
+}
+
+function addStationaryCreepsToMatrix(room, matrix, creep = undefined, options) {
+    if (!room) return matrix;
+    //Stationary creeps
+    let stationaryCreeps = _.filter(room.myCreeps, (c) => c.memory.other && c.memory.other.stationary);
+    for (let site of stationaryCreeps) {
+        matrix.set(site.pos.x, site.pos.y, 245);
+    }
+    stationaryMatrixTick[room.name] = Game.time + (_.min(stationaryCreeps, 'ticksToLive').ticksToLive || 10);
+    return matrix;
+}
+
+let hostileMatrixTick = {};
 function getHostileMatrix(roomName, matrix, options) {
     let room = Game.rooms[roomName];
     if (!room) return matrix;
