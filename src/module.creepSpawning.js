@@ -278,7 +278,7 @@ module.exports.miscCreepQueue = function (room) {
             }
         }
         //Pre observer spawn explorers
-        if (getCreepCount(undefined, 'explorer') < (9 - MAX_LEVEL) * 2) {
+        if (getCreepCount(undefined, 'explorer') < 8 - MAX_LEVEL) {
             queueCreep(room, PRIORITIES.priority + getCreepCount(undefined, 'explorer'), {role: 'explorer'})
         }
         // If room is near the highest level
