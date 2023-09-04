@@ -216,7 +216,7 @@ module.exports.essentialCreepQueue = function (room) {
     // Determine amount
     let number = 1;
     let importantBuilds = _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.memory.struggling || importantBuilds || room.controller.progress > room.controller.progressTotal || INTEL[room.name].threatLevel >= 3 || room.memory.spawnDefenders;
+    let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.memory.struggling || importantBuilds || room.controller.progress > room.controller.progressTotal || INTEL[room.name].threatLevel >= 3;
     if (room.level < 7 && room.level === room.controller.level && !reboot && room.energyState) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         if (container) {
@@ -787,7 +787,6 @@ function determineEnergyOrder(room) {
     }
 }
 
-let processedQueues = {};
 function displayQueue(roomName) {
     let queue;
     let room = Game.rooms[roomName];

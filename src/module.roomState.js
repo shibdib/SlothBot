@@ -12,12 +12,12 @@ module.exports.setRoomState = function (room) {
         // Request builders
         if (Math.random() > 0.7) requestBuilders(room);
         // Check if struggling
-        if (room.level >= 3 && (room.creeps.length < 4 || room.energy < ENERGY_AMOUNT[room.level] * 0.1)) {
+        if (room.storage && (room.creeps.length < 4 || room.energy < ENERGY_AMOUNT[room.level] * 0.1)) {
             if (room.memory.struggling !== true) log.a(roomLink(room.name) + ' is struggling.', 'ROOMS');
             room.memory.struggling = true;
             room.memory.struggleTime = Game.time;
-        } else if (room.memory.struggling && room.memory.struggleTime + 1000 < Game.time) {
-            log.a(roomLink(room.name) + ' has recovered to an acceptable level.', 'ROOMS');
+        } else {
+            if (room.memory.struggling) log.a(roomLink(room.name) + ' has recovered to an acceptable level.', 'ROOMS');
             room.memory.struggling = undefined;
             room.memory.struggleTime = undefined;
         }
