@@ -384,7 +384,7 @@ function getRoomResource(room, resource, unused = false) {
 Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     if (!INTEL) global.INTEL = {};
     let cache = INTEL;
-    if (!force && INTEL[this.name] && INTEL[this.name].cached + 500 > Game.time) return;
+    if (!force && INTEL[this.name] && INTEL[this.name].cached + CREEP_LIFE_TIME > Game.time) return;
     let mineral, sk, power, portal, level, owner, lastOperation, towers, reservation, safemode,
         mineralAmount, hubCheck, isHighway, user;
     // Store things that don't change
@@ -456,7 +456,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         sources: this.sources.length,
         mineral: mineral,
         mineralAmount: mineralAmount,
-        commodity: _.includes(this.deposits, (d) => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20)),
+        commodity: _.filter(this.deposits, (d) => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20)).length > 0,
         owner: owner,
         hubCheck: hubCheck,
         reservation: reservation,
@@ -468,7 +468,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         power: power,
         isHighway: isHighway,
         lastOperation: lastOperation,
-        invaderCore: _.includes(this.structures, (e) => e.structureType === STRUCTURE_INVADER_CORE),
+        invaderCore: _.filter(this.structures, (e) => e.structureType === STRUCTURE_INVADER_CORE).length > 0,
         towers: towers,
         hostile: combatCreeps !== undefined || (towers && !FRIENDLIES.includes(owner)),
         status: Game.map.getRoomStatus(this.name).status
