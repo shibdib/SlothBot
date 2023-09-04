@@ -387,7 +387,7 @@ function findRoute(origin, destination, options = {}) {
             destination = portalRoom.name;
         }
     }
-    route = pathFunction(origin, destination, roomDistance, portalRoom);
+    route = routeLogic(origin, destination, roomDistance, portalRoom);
     if (options.distance) {
         if (!route) route = [];
         if (!portalRoom) return route.length; else if (portalRoom) {
@@ -397,14 +397,14 @@ function findRoute(origin, destination, options = {}) {
     } else return route;
 }
 
-function pathFunction(origin, destination, roomDistance, portalRoom) {
+function routeLogic(origin, destination, roomDistance, portalRoom) {
     let portalRoute, start;
     // if it's a neighbor we can just go
     if (_.find(Game.map.describeExits(origin), (r) => r === destination)) {
         return [origin, destination];
     }
     // Get portal room route first if needed
-    if (portalRoom) portalRoute = pathFunction(origin, portalRoom.name, roomDistance)
+    if (portalRoom) portalRoute = routeLogic(origin, portalRoom.name, roomDistance)
     if (portalRoute) start = JSON.parse(INTEL[portalRoom.name].portal)[0].destination.roomName; else start = origin;
     let routeSearch = Game.map.findRoute(start, destination, {
         routeCallback: function (roomName) {
@@ -537,7 +537,7 @@ function addTerrainToMatrix(roomName, type, options) {
     let matrix = new PathFinder.CostMatrix();
     let terrain = Game.map.getRoomTerrain(roomName);
     let plainCost = type === 4 ? 0 : type === 3 ? 1 : type === 2 ? 1 : 5;
-    let swampCost = type === 4 ? 0 : type === 3 ? 1 : type === 2 ? 5 : 25;
+    let swampCost = type === 4 ? 0 : type === 3 ? 1 : type === 2 ? 20 : 25;
     for (let y = 0; y < 50; y++) {
         for (let x = 0; x < 50; x++) {
             let tile = terrain.get(x, y);
