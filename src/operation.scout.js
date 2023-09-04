@@ -46,6 +46,7 @@ function forwardObserver(room) {
             tick: tick,
             type: 'pending',
             dDay: tick + room.controller.safeMode,
+            observerCheck: tick
         };
         Memory.targetRooms = cache;
         return;
