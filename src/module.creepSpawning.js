@@ -234,9 +234,9 @@ module.exports.miscCreepQueue = function (room) {
     miscTick[room.name] = Game.time;
     let level = getLevel(room);
     //Drones
-    // 1 at all times, more if we have a lot of construction
+    // 1 at all times, more if we have a lot of construction and energy
     let number = 1;
-    if (_.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART)) number = (9 - room.controller.level) + room.energyState;
+    if (room.energyState && _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART)) number = 10 - room.controller.level;
     if (getCreepCount(room, 'drone') < number) {
         // Bump priority if under attack
         let priority = PRIORITIES.high;
