@@ -32,6 +32,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         case 'drone':
         case 'waller':
         case 'roadBuilder':
+            energyScaling = true;
             work = _.floor((energyAmount * 0.4) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
             carry = _.floor((energyAmount * 0.1) / BODYPART_COST[CARRY]) || 1;
@@ -39,7 +40,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             move = work + carry;
             break;
         case 'upgrader':
-            if (!INTEL[room.name].threatLevel) energyScaling = true;
+            energyScaling = true;
             if (room.nukes.length || room.level < room.controller.level) {
                 work = 1;
                 carry = 1;
@@ -87,7 +88,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             move = 1;
             break;
         case 'mineralHarvester':
-            if (!INTEL[room.name].threatLevel) energyScaling = true;
+            energyScaling = true;
             work = _.floor((energyAmount - (BODYPART_COST[MOVE] + BODYPART_COST[CARRY])) / BODYPART_COST[WORK]) || 1;
             if (work > 30) work = 30;
             move = 1;
@@ -148,6 +149,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             if (move > 5) move = 5;
             break;
         case 'reserver':
+            energyScaling = true;
             claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
             if (claim > 20) claim = 20;
             if (level >= 6) {
@@ -191,6 +193,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             break;
         case 'SKMineral':
         case 'commodityMiner':
+            energyScaling = true;
             work = _.floor((energyAmount * 0.35) / BODYPART_COST[WORK]) || 1;
             if (work > 15) work = 15;
             carry = _.floor((energyAmount * 0.15) / BODYPART_COST[CARRY]) || 1;
