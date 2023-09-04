@@ -215,8 +215,7 @@ module.exports.essentialCreepQueue = function (room) {
     // Upgrader
     // Determine amount
     let number = 1;
-    let importantBuilds = _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.memory.struggling || importantBuilds || room.controller.progress > room.controller.progressTotal || INTEL[room.name].threatLevel >= 3;
+    let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || INTEL[room.name].threatLevel >= 3;
     if (room.level < 7 && room.level === room.controller.level && !reboot) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         if (container) {
