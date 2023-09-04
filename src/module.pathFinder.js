@@ -695,7 +695,7 @@ function addStationaryCreepsToMatrix(room, matrix, creep = undefined, options) {
     for (let site of stationaryCreeps) {
         matrix.set(site.pos.x, site.pos.y, 245);
     }
-    stationaryMatrixTick[room.name] = Game.time + (_.min(stationaryCreeps, 'ticksToLive').ticksToLive || 10);
+    stationaryMatrixTick[room.name] = Game.time + ((_.min(stationaryCreeps, 'ticksToLive').ticksToLive * 0.5) || 10);
     return matrix;
 }
 
