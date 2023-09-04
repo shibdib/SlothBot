@@ -475,7 +475,7 @@ Creep.prototype.haulerDelivery = function () {
         this.memory.roomEnergyCap = this.room.energyCapacityAvailable;
     }
     let hauler = this;
-    let needyStructure = _.max(_.filter(energyStructures, (s) => s.store.getFreeCapacity(RESOURCE_ENERGY) && !_.find(this.room.myCreeps, (c) => c.memory.storageDestination === s.id)), function (s) {
+    let needyStructure = _.max(_.filter(energyStructures, (s) => s.store.getFreeCapacity(RESOURCE_ENERGY) && !_.find(this.room.myCreeps, (c) => c.memory.storageDestination === s.id && c.memory.role === this.memory.role)), function (s) {
         return hauler.pos.getRangeTo(s);
     });
     if (needyStructure && needyStructure.id) {
