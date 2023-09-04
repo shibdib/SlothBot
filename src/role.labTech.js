@@ -65,6 +65,8 @@ function getResource(creep) {
     creep.say(creep.memory.resourceNeeded, true);
     let amount = creep.memory.amountNeeded || undefined;
     if (creep.memory.deliverTo && Game.getObjectById(creep.memory.deliverTo).amount) amount = Game.getObjectById(creep.memory.deliverTo).amount;
+    if (amount > creep.store.getFreeCapacity()) amount = creep.store.getFreeCapacity();
+    if (amount > storageSite.store[creep.memory.resourceNeeded]) amount = storageSite.store[creep.memory.resourceNeeded];
     if (storageSite && storageSite.store[creep.memory.resourceNeeded]) {
         creep.memory.storageSite = storageSite.id;
         switch (creep.withdraw(storageSite, creep.memory.resourceNeeded, amount)) {
