@@ -18,10 +18,9 @@ module.exports.role = function (creep) {
         // Store space
         if (Memory.auxiliaryTargets[creep.memory.destination] && !Memory.auxiliaryTargets[creep.memory.destination].space) Memory.auxiliaryTargets[creep.memory.destination].space = deposit.pos.countOpenTerrainAround();
         // Clear the deposit if needed
-        if (!deposit || (!deposit.depositType && !deposit.mineralAmount)) return creep.memory.deposit = undefined;
-        if (deposit.lastCooldown >= 25 || creep.ticksToLive < 250) return creep.memory.deposit = undefined;
+        if (!deposit || (!deposit.depositType && !deposit.mineralAmount) || deposit.lastCooldown >= 25 || creep.ticksToLive < 250) return creep.memory.deposit = undefined;
         // Refresh the operation
-        if (Memory.auxiliaryTargets[creep.memory.destination]) return Memory.auxiliaryTargets[creep.memory.destination].tick = Game.time;
+        if (Memory.auxiliaryTargets[creep.memory.destination]) Memory.auxiliaryTargets[creep.memory.destination].tick = Game.time;
         switch (creep.harvest(deposit)) {
             case OK:
                 creep.memory.other.noBump = true;

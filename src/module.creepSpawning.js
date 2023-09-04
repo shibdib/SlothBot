@@ -569,7 +569,7 @@ module.exports.globalCreepQueue = function () {
                 }
                 break;
             case 'commodity': // Commodity Mining
-                let commoditySpace = operations[key].space || 2;
+                let commoditySpace = operations[key].space || 1;
                 if (getCreepCount(undefined, 'commodityMiner', key) < commoditySpace) {
                     queueGlobalCreep(PRIORITIES.secondary, {role: 'commodityMiner', destination: key, military: true})
                 }
