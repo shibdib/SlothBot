@@ -222,7 +222,7 @@ module.exports.essentialCreepQueue = function (room) {
         if (container) {
             if (container.store[RESOURCE_ENERGY] > CONTAINER_CAPACITY * 0.7) {
                 number = ((container.store[RESOURCE_ENERGY] - (CONTAINER_CAPACITY * (0.1 * room.level))) / (50 * room.level));
-                if (number > 4) number = 4;
+                if (number > container.pos.countOpenTerrainAround()) number = container.pos.countOpenTerrainAround();
             }
         } else number = 10 - room.level;
     }
