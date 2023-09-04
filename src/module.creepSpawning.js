@@ -217,12 +217,12 @@ module.exports.essentialCreepQueue = function (room) {
     let number = 1;
     let importantBuilds = _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
     let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.memory.struggling || importantBuilds || room.controller.progress > room.controller.progressTotal || INTEL[room.name].threatLevel >= 3;
-    if (room.level < 7 && room.level === room.controller.level && !reboot && room.energyState) {
+    if (room.level < 7 && room.level === room.controller.level && !reboot) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         if (container) {
             if (container.store[RESOURCE_ENERGY] > CONTAINER_CAPACITY * 0.7) {
-                number = ((container.store[RESOURCE_ENERGY] - (CONTAINER_CAPACITY * (0.1 * room.level))) / (75 * room.level));
-                if (number > room.energyState + 1) number = room.energyState + 1;
+                number = ((container.store[RESOURCE_ENERGY] - (CONTAINER_CAPACITY * (0.1 * room.level))) / (50 * room.level));
+                if (number > 4) number = 4;
             }
         } else number = 10 - room.level;
     }
@@ -242,10 +242,8 @@ module.exports.miscCreepQueue = function (room) {
     let level = getLevel(room);
     //Drones
     // 2 at all times below 7, 12 - level if there's an important build or below level 4
-    let number = 2;
-    if (room.level >= 7) number = 1;
-    let importantBuilds = _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    if (importantBuilds || room.level < 4) number = 12 - room.controller.level;
+    let number = room.energyState;
+    if (_.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART)) number = 12 - room.controller.level;
     if (getCreepCount(room, 'drone') < number) {
         // Bump priority if under attack
         let priority = PRIORITIES.high;
@@ -282,7 +280,7 @@ module.exports.miscCreepQueue = function (room) {
         }
         //Pre observer spawn explorers
         if (getCreepCount(undefined, 'explorer') < (9 - MAX_LEVEL) * 2) {
-            queueCreep(room, PRIORITIES.priority, {role: 'explorer'})
+            queueCreep(room, PRIORITIES.priority + getCreepCount(undefined, 'explorer'), {role: 'explorer'})
         }
         // If room is near the highest level
         if (level >= MAX_LEVEL - 1 && level >= 4) {
