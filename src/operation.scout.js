@@ -61,7 +61,7 @@ function forwardObserver(room) {
         }));
     }
     // Type specific stuff
-    let armedEnemies = _.find(room.hostileCreeps, (c) => (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, c.owner.username));
+    let armedEnemies = _.find(room.hostileCreeps, (c) => (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)));
     switch (Memory.targetRooms[room.name].type) {
         // Handle hold
         case 'hold':
