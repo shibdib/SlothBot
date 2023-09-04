@@ -108,9 +108,9 @@ function safeModeManager(room) {
     if (room.controller.safeMode) {
         room.memory.defenseCooldown = undefined;
         // Setup guards for when the safemode ends
-        if (room.controller.safeMode < 750) {
+        if (room.controller.safeMode < 750 && room.level >= 5) {
             let endingTick = Game.time + room.controller.safeMode;
-            room.memory.defenseCooldown = endingTick + CREEP_LIFE_TIME;
+            room.memory.defenseCooldown = endingTick + CREEP_LIFE_TIME * 0.5;
         }
     } else {
         let armedHostiles = _.filter(room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK) || c.hasActiveBodyparts(CLAIM));
