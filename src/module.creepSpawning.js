@@ -145,12 +145,6 @@ module.exports.roomStartup = function (room) {
     if (getCreepCount(room, 'stationaryHarvester') && !getCreepCount(room, 'hauler')) {
         queueCreep(room, 1, {role: 'hauler'})
     }
-    if (!getCreepCount(room, 'upgrader') || (getCreepCount(room, 'upgrader') < 5 && room.level === room.controller.level)) {
-        queueCreep(room, 4 + getCreepCount(room, 'upgrader'), {role: 'upgrader'})
-    }
-    if (!room.controller.safeMode && (room.memory.spawnDefenders || room.memory.defenseCooldown > Game.time) && !getCreepCount(room, 'defender')) {
-        queueCreep(room, PRIORITIES.defender, {role: 'defender'})
-    }
     if (getCreepCount(room, 'explorer') < 2) {
         queueCreep(room, 9, {role: 'explorer'})
     }
@@ -241,7 +235,7 @@ module.exports.miscCreepQueue = function (room) {
     let level = getLevel(room);
     //Drones
     // 2 at all times below 7, 12 - level if there's an important build or below level 4
-    let number = room.energyState;
+    let number = room.energyState || 1;
     if (_.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART)) number = 12 - room.controller.level;
     if (getCreepCount(room, 'drone') < number) {
         // Bump priority if under attack
