@@ -32,41 +32,30 @@ module.exports.retrieveIntel = function () {
     return true;
 }
 
+let lastIntelStore;
 module.exports.storeIntel = function () {
     // Don't store if we never retrieved
     if (!intelSegmentChecked) {
         log.d("Intel segment not accessed, not storing.");
         return;
     }
-    let store = INTEL;
-    try {
-        if (JSON.stringify(store).length >= 95000) {
-            let sorted = _.sortBy(store, 'cached');
-            log.e("Intel segment is too large, pruning oldest intel.");
-            for (let entry of sorted) {
-                delete store[entry.name];
-                if (JSON.stringify(store).length < 75000) break;
+    if (!lastIntelStore || lastIntelStore + CREEP_LIFE_TIME < Game.time || Math.random() > 0.9) {
+        let store = JSON.parse(JSON.stringify(INTEL));
+        try {
+            if (JSON.stringify(store).length >= 95000) {
+                let sorted = _.sortBy(store, 'cached');
+                for (let entry of sorted) {
+                    delete store[entry.name];
+                    if (JSON.stringify(store).length < 75000) break;
+                }
             }
-        }
-        RawMemory.segments[segmentNumber] = JSON.stringify(store);
-    } catch (e) {
-        log.e("Error stringifying intel cache, skipping store.");
-        log.e(e.stack);
-    }
-}
-
-module.exports.storePaths = function (cache) {
-    console.log(JSON.stringify(cache));
-    let store = _.filter(cache, (p) => p.key && p.tick + CREEP_LIFE_TIME > Game.time);
-    if (JSON.stringify(store).length >= 95000) {
-        let sorted = _.sortBy(store, 'uses');
-        log.e("Path segment is too large, pruning least used.");
-        for (let path of sorted) {
-            delete store[path.key];
-            if (JSON.stringify(store).length < 75000) break;
+            RawMemory.segments[segmentNumber] = JSON.stringify(store);
+            lastIntelStore = Game.time;
+        } catch (e) {
+            log.e("Error stringifying intel cache, skipping store.");
+            log.e(e.stack);
         }
     }
-    RawMemory.segments[0] = JSON.stringify(store);
 }
 
 function logRequests() {
