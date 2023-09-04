@@ -234,19 +234,17 @@ module.exports.miscCreepQueue = function (room) {
     miscTick[room.name] = Game.time;
     let level = getLevel(room);
     //Drones
-    // 2 at all times below 7, 12 - level if there's an important build or below level 4
-    let number = room.energyState || 1;
+    // 1 at all times, more if we have a lot of construction
+    let number = 1;
     if (_.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART)) number = (9 - room.controller.level) + room.energyState;
     if (getCreepCount(room, 'drone') < number) {
         // Bump priority if under attack
         let priority = PRIORITIES.high;
         if (room.memory.spawnDefenders || room.memory.defenseCooldown > Game.time) priority = PRIORITIES.defender;
-        if (getCreepCount(room, 'drone') < number) {
-            queueCreep(room, priority + getCreepCount(room, 'drone'), {
-                role: 'drone',
-                other: {reboot: room.friendlyCreeps.length <= 3}
-            })
-        }
+        queueCreep(room, priority + getCreepCount(room, 'drone'), {
+            role: 'drone',
+            other: {reboot: room.friendlyCreeps.length <= 3}
+        })
     }
     if (room.terminal && level >= 6) {
         //LabTech
