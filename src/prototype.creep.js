@@ -1070,7 +1070,6 @@ Creep.prototype.tryToBoost = function (boosts, tier = undefined) {
 Creep.prototype.recycleCreep = function () {
     // If no moves, suicide
     if (!this.hasActiveBodyparts(MOVE)) return this.suicide();
-    this.say("RIP", true);
     let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
     if (!spawn) {
         if (this.room.name !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 22})
@@ -1091,7 +1090,7 @@ Creep.prototype.recycleCreep = function () {
     // Clear role to queue replacement if needed
     switch (spawn.recycleCreep(this)) {
         case OK:
-            log.a('Creep - ' + this.name + ' successfully recycled in ' + this.room.name, 'RECYCLING:');
+            log.d('Creep - ' + this.name + ' successfully recycled in ' + this.room.name, 'RECYCLING:');
             break;
         case ERR_NOT_IN_RANGE:
             return this.shibMove(spawn);
