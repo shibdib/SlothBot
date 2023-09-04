@@ -54,7 +54,7 @@ module.exports.observerControl = function (room) {
                     if (nS === 'N') nS = 'S'; else nS = 'N';
                 }
                 let targetRoom = eW + targetX + nS + targetY;
-                if (INTEL[targetRoom] && INTEL[targetRoom].tick < Game.time - 100) {
+                if (INTEL[targetRoom] && INTEL[targetRoom].tick < Game.time - 50) {
                     x++;
                     continue;
                 }
