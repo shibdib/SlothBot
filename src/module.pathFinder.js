@@ -486,7 +486,10 @@ function creepBumping(creep, pathInfo, options) {
             creep.move(creep.pos.getDirectionTo(bumpCreep));
             bumpCreep.say(ICONS.traffic, true)
         }
-        if (bumpCreep.memory._shibMove) bumpCreep.memory._shibMove.path = undefined;
+        if (bumpCreep.memory._shibMove) {
+            bumpCreep.memory._shibMove.path = undefined;
+            bumpCreep.memory._shibMove.pathPosTime = undefined;
+        }
         return true;
     } else {
         delete creep.memory._shibMove;
