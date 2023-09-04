@@ -236,7 +236,7 @@ module.exports.miscCreepQueue = function (room) {
     //Drones
     // 2 at all times below 7, 12 - level if there's an important build or below level 4
     let number = room.energyState || 1;
-    if (_.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART)) number = 12 - room.controller.level;
+    if (_.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART)) number = (9 - room.controller.level) + room.energyState;
     if (getCreepCount(room, 'drone') < number) {
         // Bump priority if under attack
         let priority = PRIORITIES.high;
