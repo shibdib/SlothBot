@@ -537,7 +537,7 @@ function addTerrainToMatrix(roomName, type, options) {
     let matrix = new PathFinder.CostMatrix();
     let terrain = Game.map.getRoomTerrain(roomName);
     let plainCost = type === 4 ? 0 : type === 3 ? 1 : type === 2 ? 1 : 5;
-    let swampCost = type === 4 ? 0 : type === 3 ? 1 : type === 2 ? 20 : 25;
+    let swampCost = type === 4 ? 0 : type === 3 ? 1 : type === 2 ? 15 : 25;
     for (let y = 0; y < 50; y++) {
         for (let x = 0; x < 50; x++) {
             let tile = terrain.get(x, y);
