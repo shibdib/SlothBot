@@ -809,7 +809,7 @@ function displayQueue(roomName) {
                 if (room.energyState && (sameSectorCheck(roomName, operationQueue[key].destination) || (INTEL[operationQueue[key].destination] && findClosestOwnedRoom(operationQueue[key].destination) === roomName))) {
                     priority *= 0.5;
                 } else if (!room.energyState && operationQueue[key].military) {
-                    priority *= 2;
+                    priority *= 5;
                 } else priority += 1;
                 if (priority < PRIORITIES.priority) priority = PRIORITIES.priority;
                 operationQueue[key].priority = priority;
