@@ -88,7 +88,7 @@ let globals = function () {
         5: 50000,
         6: 100000,
         7: 250000,
-        8: 1000000
+        8: 500000
     };
 
     // Wall and rampart target amounts
