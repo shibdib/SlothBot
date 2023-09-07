@@ -854,14 +854,14 @@ Creep.prototype.towTruck = function () {
 Creep.prototype.portalCheck = function () {
     if (this.room.controller || !this.pos.checkForPortal()) return false;
     this.memory.usedPortal = this.room.name;
-    if (!positionAtDirection(this.pos, LEFT).checkForPortal()) return this.move(LEFT);
-    if (!positionAtDirection(this.pos, RIGHT).checkForPortal()) return this.move(RIGHT);
-    if (!positionAtDirection(this.pos, TOP).checkForPortal()) return this.move(TOP);
-    if (!positionAtDirection(this.pos, BOTTOM).checkForPortal()) return this.move(BOTTOM);
-    if (!positionAtDirection(this.pos, BOTTOM_RIGHT).checkForPortal()) return this.move(BOTTOM_RIGHT);
-    if (!positionAtDirection(this.pos, BOTTOM_LEFT).checkForPortal()) return this.move(BOTTOM_LEFT);
-    if (!positionAtDirection(this.pos, TOP_RIGHT).checkForPortal()) return this.move(TOP_RIGHT);
-    if (!positionAtDirection(this.pos, TOP_LEFT).checkForPortal()) return this.move(TOP_LEFT);
+    if (positionAtDirection(this.pos, LEFT) && !positionAtDirection(this.pos, LEFT).checkForPortal()) return this.move(LEFT);
+    if (positionAtDirection(this.pos, RIGHT) && !positionAtDirection(this.pos, RIGHT).checkForPortal()) return this.move(RIGHT);
+    if (positionAtDirection(this.pos, TOP) && !positionAtDirection(this.pos, TOP).checkForPortal()) return this.move(TOP);
+    if (positionAtDirection(this.pos, BOTTOM) && !positionAtDirection(this.pos, BOTTOM).checkForPortal()) return this.move(BOTTOM);
+    if (positionAtDirection(this.pos, BOTTOM_RIGHT) && !positionAtDirection(this.pos, BOTTOM_RIGHT).checkForPortal()) return this.move(BOTTOM_RIGHT);
+    if (positionAtDirection(this.pos, BOTTOM_LEFT) && !positionAtDirection(this.pos, BOTTOM_LEFT).checkForPortal()) return this.move(BOTTOM_LEFT);
+    if (positionAtDirection(this.pos, TOP_RIGHT) && !positionAtDirection(this.pos, TOP_RIGHT).checkForPortal()) return this.move(TOP_RIGHT);
+    if (positionAtDirection(this.pos, TOP_LEFT) && !positionAtDirection(this.pos, TOP_LEFT).checkForPortal()) return this.move(TOP_LEFT);
 };
 
 Creep.prototype.borderCheck = function () {
@@ -1003,7 +1003,7 @@ Creep.prototype.tryToBoost = function (boosts, tier = undefined) {
             // Check if boost is low, if so restart
             if (this.room.store(boostNeeded) < amountNeeded) {
                 let lab = Game.getObjectById(this.memory.boosts.boostLab);
-                lab.memory = undefined;
+                if (lab) lab.memory = undefined;
                 this.memory.boosts = undefined;
                 return true;
             }

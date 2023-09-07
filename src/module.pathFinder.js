@@ -471,31 +471,33 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
 function creepBumping(creep, pathInfo, options) {
     if (!pathInfo.newPos) return creep.moveRandom();
     let nextPosition = positionAtDirection(creep.pos, parseInt(pathInfo.path[0], 10));
-    let bumpCreep = _.find(nextPosition.lookFor(LOOK_CREEPS), (c) => c.my && !c.fatigue && !c.memory.other.stationary && !c.memory.willNeedTow && !c.memory.trailer && (!c.memory.other.noBump || Math.random() > 0.5));
-    if (bumpCreep) {
-        if (!creep.memory.trailer) {
-            if (bumpCreep.hasActiveBodyparts(MOVE)) {
-                bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
+    if (nextPosition) {
+        let bumpCreep = _.find(nextPosition.lookFor(LOOK_CREEPS), (c) => c.my && !c.fatigue && !c.memory.other.stationary && !c.memory.willNeedTow && !c.memory.trailer && (!c.memory.other.noBump || Math.random() > 0.5));
+        if (bumpCreep) {
+            if (!creep.memory.trailer) {
+                if (bumpCreep.hasActiveBodyparts(MOVE)) {
+                    bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
+                } else {
+                    creep.pull(bumpCreep);
+                }
+                creep.move(creep.pos.getDirectionTo(bumpCreep));
+                bumpCreep.say(ICONS.traffic, true)
             } else {
-                creep.pull(bumpCreep);
+                bumpCreep.moveRandom();
+                creep.move(creep.pos.getDirectionTo(bumpCreep));
+                bumpCreep.say(ICONS.traffic, true)
             }
-            creep.move(creep.pos.getDirectionTo(bumpCreep));
-            bumpCreep.say(ICONS.traffic, true)
+            if (bumpCreep.memory._shibMove) {
+                bumpCreep.memory._shibMove.path = undefined;
+                bumpCreep.memory._shibMove.pathPosTime = undefined;
+            }
+            return true;
         } else {
-            bumpCreep.moveRandom();
-            creep.move(creep.pos.getDirectionTo(bumpCreep));
-            bumpCreep.say(ICONS.traffic, true)
+            delete creep.memory._shibMove;
+            creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
         }
-        if (bumpCreep.memory._shibMove) {
-            bumpCreep.memory._shibMove.path = undefined;
-            bumpCreep.memory._shibMove.pathPosTime = undefined;
-        }
-        return true;
-    } else {
-        delete creep.memory._shibMove;
-        creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
-        return false;
     }
+    return false;
 }
 
 function normalizePos(destination) {
@@ -919,7 +921,7 @@ function getMoveWeight(creep, options = {}) {
     // Get weight of creep
     let weight;
     if (creep.memory._shibMove && creep.memory._shibMove.weight) weight = creep.memory._shibMove.weight;
-    else {
+    else if (creep.memory._shibMove) {
         weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
         // Add weight of used carry parts
         weight += _.ceil(_.sum(creep.store) / 50) || 0;
