@@ -127,8 +127,6 @@ function minionController(minion) {
         minion.notifyWhenAttacked(false);
         minion.memory.notifyDisabled = true;
     }
-    // Set last managed tick
-    minion.memory.lastManaged = Game.time;
     // Handle idle
     if (minion.idle) return;
     // Track Threat

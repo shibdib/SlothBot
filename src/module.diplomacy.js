@@ -108,8 +108,7 @@ module.exports.trackThreat = function (creep) {
     // Scouts/Explorers don't generate threat
     if (creep.memory.role === 'scout' || creep.memory.role === 'explorer') return;
     // Handle damage
-    if (!creep.memory._lastHits) return creep.memory._lastHits = creep.hits;
-    if (creep.hits < creep.memory._lastHits) {
+    if (creep.hits < creep.memory._lastHits || creep.hitsMax) {
         if (!INTEL[creep.room.name]) return creep.room.cacheRoomIntel();
         INTEL[creep.room.name].lastCombat = Game.time;
         if (creep.room.controller && ((creep.room.controller.owner && creep.room.controller.owner.username !== MY_USERNAME) || (creep.room.controller.reservation && creep.room.controller.reservation.username !== MY_USERNAME)) && creep.memory.destination !== creep.room.name) return false;

@@ -70,7 +70,6 @@ module.exports.processBuildQueue = function (room) {
                 if (energyOrder[availableSpawn.room.name]) energyStructures = JSON.parse(energyOrder[availableSpawn.room.name]);
                 switch (availableSpawn.spawnCreep(body, name, {
                     memory: {
-                        born: Game.time,
                         role: role,
                         overlord: availableSpawn.room.name,
                         assignedSource: queuedBuild.assignedSource,
@@ -97,7 +96,6 @@ module.exports.processBuildQueue = function (room) {
                     default:
                         let error = availableSpawn.spawnCreep(body, name, {
                             memory: {
-                                born: Game.time,
                                 role: role,
                                 overlord: availableSpawn.room.name,
                                 assignedSource: queuedBuild.assignedSource,
@@ -581,7 +579,7 @@ module.exports.globalCreepQueue = function () {
                 }
                 break;
             case 'power': // Power Mining
-                let powerSpace = operations[key].space || 2;
+                let powerSpace = operations[key].space || 1;
                 let powerHealer = getCreepCount(undefined, 'powerHealer', key);
                 let powerAttacker = getCreepCount(undefined, 'powerAttacker', key);
                 let powerHealerTTL, powerAttackerTTL;
@@ -589,7 +587,7 @@ module.exports.globalCreepQueue = function () {
                     powerHealerTTL = creepTTL[key]['powerHealer'] || undefined;
                     powerAttackerTTL = creepTTL[key]['powerAttacker'] || undefined;
                 }
-                if (!operations[key].complete && (powerHealer < powerAttacker + 1 || (powerHealerTTL && powerHealerTTL < 450 && powerHealer < (powerAttacker + 1) + 1))) {
+                if (!operations[key].complete && (powerHealer < powerAttacker || (powerHealerTTL && powerHealerTTL < 450 && powerHealer < powerAttacker + 1))) {
                     queueGlobalCreep(PRIORITIES.secondary, {role: 'powerHealer', destination: key, military: true})
                 }
                 if (!operations[key].complete && (powerAttacker < powerSpace || (powerAttackerTTL && powerAttackerTTL < 450 && powerAttacker < powerSpace + 1))) {
@@ -808,8 +806,11 @@ function displayQueue(roomName) {
                 let priority = operationQueue[key].priority
                 if (room.energyState && (sameSectorCheck(roomName, operationQueue[key].destination) || (INTEL[operationQueue[key].destination] && findClosestOwnedRoom(operationQueue[key].destination) === roomName))) {
                     priority *= 0.5;
-                } else if (!room.energyState && operationQueue[key].military) {
-                    priority *= 5;
+                } else if (!room.energyState) {
+                    if (operationQueue[key].military) {
+                        delete operationQueue[key]
+                        continue;
+                    } else priority *= 4;
                 } else priority += 1;
                 if (priority < PRIORITIES.priority) priority = PRIORITIES.priority;
                 operationQueue[key].priority = priority;
