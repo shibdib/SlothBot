@@ -64,6 +64,18 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
             this.memory.target = enemy.id;
             return enemy;
         }
+        // Towers with no ramparts
+        if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.impassibleStructures, {filter: (c) => c.structureType === STRUCTURE_TOWER && (!c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000) && c.isActive()}); else enemy = this.pos.findClosestByPath(this.room.impassibleStructures, {filter: (c) => c.structureType === STRUCTURE_TOWER && (!c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000) && c.isActive()});
+        if (enemy) {
+            this.memory.target = enemy.id;
+            return enemy;
+        }
+        // Spawns with no ramparts
+        if (!barriersPresent) enemy = _.find(this.room.impassibleStructures, {filter: (c) => c.structureType === STRUCTURE_SPAWN && (!c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000) && c.isActive()}); else enemy = this.pos.findClosestByPath(this.room.impassibleStructures, {filter: (c) => c.structureType === STRUCTURE_SPAWN && (!c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000) && c.isActive()});
+        if (enemy) {
+            this.memory.target = enemy.id;
+            return enemy;
+        }
         // Find unarmed creeps (Outside Ramps)
         if (!barriersPresent) enemy = this.pos.findClosestByRange(hostileCreeps, {filter: (c) => (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0) && (!c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000))}); else enemy = this.pos.findClosestByPath(hostileCreeps, {filter: (c) => (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0) && (!c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000))});
         if (enemy) {
