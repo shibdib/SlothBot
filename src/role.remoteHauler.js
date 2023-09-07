@@ -90,6 +90,9 @@ function dropOff(creep) {
     } else if (overlord.level === overlord.controller.level && controllerContainer && Math.random() < (controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) / CONTAINER_CAPACITY)) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
+    } else if (overlord.energyState && overlord.nuker && overlord.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
+        creep.memory.storageDestination = overlord.nuker.id;
+        return true;
     } else if (overlord.terminal && overlord.terminal.store.getFreeCapacity() > _.sum(creep.store) && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 5) {
         creep.memory.storageDestination = overlord.terminal.id;
         return true;
