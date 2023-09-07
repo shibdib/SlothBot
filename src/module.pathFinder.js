@@ -58,19 +58,11 @@ function shibMove(creep, heading, options = {}) {
 
     // Default options
     _.defaults(options, {
-        useCache: true,
-        avoidEnemies: false,
-        ignoreCreeps: true,
         maxOps: DEFAULT_MAXOPS,
         range: 1,
-        ignoreStructures: false,
         maxRooms: 7,
-        ignoreRoads: false,
-        offRoad: false,
-        confirmPath: false,
-        tunnel: false,
-        showMatrix: false,
-        getNextDirection: false
+        useCache: true,
+        ignoreCreeps: true
     });
 
     //Clear path if stuck
@@ -141,11 +133,6 @@ function shibMove(creep, heading, options = {}) {
         return creep.memory._shibMove = undefined;
     }
 
-    // Set these for creeps that can afford them
-    if (!creep.className && (!options.ignoreRoads || !options.offRoad)) {
-        options = getMoveWeight(creep, options);
-    } else if (creep.className) options.offRoad = true;
-
     // Request a tow truck if needed
     if (creep.memory.willNeedTow === undefined) creep.memory.willNeedTow = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length;
     if (!creep.className && creep.memory.willNeedTow && (creep.pos.getRangeTo(heading) > 3 || !creep.hasActiveBodyparts(MOVE))) {
@@ -211,8 +198,6 @@ function executePath(creep, pathInfo, options, origin, heading) {
         creep.memory._shibMove = pathInfo;
         switch (creep.move(nextDirection)) {
             case OK:
-                creep.memory._shibMove.lastMoveTick = Game.time;
-                creep.memory._shibMove.lastDirection = nextDirection;
                 break;
             case ERR_TIRED:
                 break;
@@ -240,8 +225,9 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         return creep.move(creep.pos.getDirectionTo(heading));
     }
     let cached;
+    pathInfo.pathOptions = options;
     if (!target) return creep.moveRandom();
-    if (options.useCache && !INTEL[creep.room.name].threatLevel && !options.tunnel) cached = getPath(creep, origin, target);
+    if (options.useCache && !INTEL[creep.room.name].threatLevel && !options.tunnel) cached = getPath(creep, origin, target, pathInfo);
     if (cached && options.ignoreCreeps) {
         if (options.confirmPath) return cached;
         pathInfo.findAttempt = undefined;
@@ -348,7 +334,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
         pathInfo.target = target;
         pathInfo.portal = portal;
-        if (options.ignoreCreeps && !options.ignoreStructures) cachePath(creep, origin, target, pathInfo.path);
+        if (options.ignoreCreeps && !options.ignoreStructures) cachePath(creep, origin, target, pathInfo);
         delete pathInfo.findAttempt;
         if (options.getPath) return creep.memory.getPath = pathInfo.path;
         creep.memory._shibMove = pathInfo;
@@ -539,7 +525,7 @@ function addTerrainToMatrix(roomName, type, options) {
     let matrix = new PathFinder.CostMatrix();
     let terrain = Game.map.getRoomTerrain(roomName);
     let plainCost = type === 4 ? 0 : type === 3 ? 1 : type === 2 ? 1 : 5;
-    let swampCost = type === 4 ? 0 : type === 3 ? 1 : type === 2 ? 15 : 25;
+    let swampCost = type === 4 ? 0 : type === 3 ? 1 : type === 2 ? 25 : 50;
     for (let y = 0; y < 50; y++) {
         for (let x = 0; x < 50; x++) {
             let tile = terrain.get(x, y);
@@ -856,10 +842,10 @@ function deleteRoute(from, to) {
     globalRouteCache = cache;
 }
 
-function cachePath(creep, from, to, path) {
-    if (!path || !path.length) return;
+function cachePath(creep, from, to, pathInfo) {
+    if (!pathInfo.path || !pathInfo.path.length) return;
     //Store path based off move weight
-    let options = getMoveWeight(creep);
+    let options = getMoveWeight(creep, pathInfo.pathOptions);
     let weight = 3;
     if (options.offRoad) {
         weight = 1;
@@ -869,7 +855,7 @@ function cachePath(creep, from, to, path) {
     let key = getPathKey(from, to, weight);
     if (!globalPathCache || !_.size(globalPathCache)) globalPathCache = {};
     globalPathCache[key] = {
-        path: path,
+        path: pathInfo.path,
         key: key,
         structures: creep.room.impassibleStructures.length,
         uses: 1,
@@ -877,11 +863,11 @@ function cachePath(creep, from, to, path) {
     }
 }
 
-function getPath(creep, from, to) {
+function getPath(creep, from, to, pathInfo) {
     if (!globalPathCache || !_.size(globalPathCache)) return;
     let cache = globalPathCache || {};
     //Store path based off move weight
-    let options = getMoveWeight(creep);
+    let options = getMoveWeight(creep, pathInfo.pathOptions);
     let weight = 3;
     if (options.offRoad) {
         weight = 1;
@@ -912,21 +898,21 @@ function reverseString(str) {
 }
 
 function getMoveWeight(creep, options = {}) {
-    // Handle PC
-    if (creep.className) {
+    // Handle PC or offRoad being set already
+    if (creep.className || options.offRoad) {
         options.offRoad = true;
+        return options;
+    }
+    // Handle ignoreRoads being set already
+    if (options.ignoreRoads) {
         return options;
     }
     let move = creep.getActiveBodyparts(MOVE);
     // Get weight of creep
-    let weight;
-    if (creep.memory._shibMove && creep.memory._shibMove.weight) weight = creep.memory._shibMove.weight;
-    else if (creep.memory._shibMove) {
-        weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
-        // Add weight of used carry parts
-        weight += _.ceil(_.sum(creep.store) / 50) || 0;
-        creep.memory._shibMove.weight = weight;
-    }
+    let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
+    // Add weight of used carry parts
+    weight += _.ceil(_.sum(creep.store) / 50) || 0;
+    creep.memory._shibMove.weight = weight;
     // Add weight of trailer
     if (creep.memory.trailer && Game.getObjectById(creep.memory.trailer)) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
     if (move >= weight * 5) {
@@ -1018,7 +1004,7 @@ Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined)
     let avoidance = _.map(avoid, (c) => {
         return {pos: c.pos, range: fleeRange};
     });
-    let options = getMoveWeight(this, {});
+    let options = getMoveWeight(this);
     let creep = this;
     let ret = PathFinder.search(this.pos, avoidance, {
         flee: true,
