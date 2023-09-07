@@ -18,7 +18,7 @@ module.exports.role = function (creep) {
             if (!assignment) return creep.memory.assigned = undefined;
             switch (creep.heal(assignment)) {
                 case ERR_NOT_IN_RANGE:
-                    creep.shibMove(assignment);
+                    creep.shibMove(assignment, {ignoreCreeps: false});
                     creep.rangedHeal(assignment);
             }
         } else {
