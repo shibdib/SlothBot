@@ -321,6 +321,17 @@ Object.defineProperty(Room.prototype, 'level', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'nuker', {
+    get: function () {
+        if (!this._nuker) {
+            this._nuker = _.find(this.impassibleStructures, (s) => s.structureType === STRUCTURE_NUKER && s.isActive());
+        }
+        return this._nuker;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'energy', {
     get: function () {
         if (!this._energy) {
