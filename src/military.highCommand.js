@@ -440,7 +440,7 @@ function manageAuxiliary() {
         if (!INTEL[key]) {
             if (Game.rooms[key]) {
                 Game.rooms[key].cacheRoomIntel();
-            } else {
+            } else if (!Memory.auxiliaryTargets[key].manual) {
                 log.a('Canceling auxiliary operation in ' + roomLink(key) + ' as we have no intel.', 'HIGH COMMAND: ');
                 delete Memory.auxiliaryTargets[key];
             }
