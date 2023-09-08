@@ -483,6 +483,7 @@ function creepBumping(creep, pathInfo, options) {
             creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
         }
     }
+    creep.moveRandom();
     return false;
 }
 
@@ -844,6 +845,8 @@ function deleteRoute(from, to) {
 
 function cachePath(creep, from, to, pathInfo) {
     if (!pathInfo.path || !pathInfo.path.length) return;
+    // Don't store super short paths
+    if (pathInfo.path.length <= 5) return;
     //Store path based off move weight
     let options = getMoveWeight(creep, pathInfo.pathOptions);
     let weight = 3;
@@ -865,8 +868,10 @@ function cachePath(creep, from, to, pathInfo) {
 
 function getPath(creep, from, to, pathInfo) {
     if (!globalPathCache || !_.size(globalPathCache)) return;
+    // Don't get a cached path if creep is stuck
+    if (creep.memory._shibMove && creep.memory._shibMove.pathPosTime && creep.memory._shibMove.pathPosTime >= STATE_STUCK) return;
     let cache = globalPathCache || {};
-    //Store path based off move weight
+    // Store path based off move weight
     let options = getMoveWeight(creep, pathInfo.pathOptions);
     let weight = 3;
     if (options.offRoad) {
