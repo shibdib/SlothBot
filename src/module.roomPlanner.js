@@ -47,7 +47,7 @@ function buildFromLayout(room) {
         let initialSpawn = _.find(Game.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)
         // Handle auto spawn placement, then tower first new claims, then everything else
         if (!initialSpawn) filter = _.filter(layout, (s) => s.structureType === STRUCTURE_SPAWN);
-        else if (!builtSpawn && !builtTower && initialSpawn && room.controller.level >= 3) filter = _.filter(countCheck, (s) => s.structureType === STRUCTURE_TOWER);
+        else if (!builtSpawn && !builtTower && initialSpawn) filter = _.filter(countCheck, (s) => s.structureType === STRUCTURE_TOWER);
         else filter = _.filter(countCheck, (s) => CONTROLLER_STRUCTURES[s.structureType][room.controller.level]);
         if (filter.length) {
             for (let structure of filter) {
@@ -70,7 +70,7 @@ function auxiliaryBuilding(room) {
     sourceBuilder(room);
     // Controller
     controllerBuilder(room);
-    if (room.level >= 4) {
+    if (room.storage) {
         // Roads
         if (!_.find(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD) && !roadBuilder(room, layout)) room.memory.roadsBuilt = true; else room.memory.roadsBuilt = undefined
         // Ramparts
