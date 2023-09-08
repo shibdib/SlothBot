@@ -39,7 +39,7 @@ module.exports.role = function (creep) {
         }
     } else {
         // If low TTL return home and recycle
-        if (creep.ticksToLive < 75) {
+        if (creep.room.name !== creep.memory.destination && creep.ticksToLive < 75) {
             creep.memory.destination = undefined;
             return creep.recycleCreep();
         }
