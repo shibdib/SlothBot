@@ -8,7 +8,7 @@ let lastTick = 0;
 
 module.exports.claimNewRoom = function () {
     let worthyRooms;
-    if (lastTick + 500 > Game.time || !MY_ROOMS[0] || _.size(INTEL) < 15) return;
+    if (lastTick + 500 > Game.time || !MY_ROOMS[0] || _.size(INTEL) < 5) return;
     lastTick = Game.time;
     // Check for active claims or rebuilds
     let claimsInProgress = _.filter(Memory.auxiliaryTargets, (t) => t && (t.type === 'claim' || t.type === 'rebuild'));
