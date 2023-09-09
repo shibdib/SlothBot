@@ -65,7 +65,9 @@ module.exports.overlordMind = function (room, CPULimit) {
             currentFunction.f(room);
         } catch (e) {
             log.e('Error with ' + currentFunction.name + ' function in room ' + roomLink(room.name));
+            log.e(e);
             log.e(e.stack);
+            Game.notify(e);
             Game.notify(e.stack);
             break;
         }
