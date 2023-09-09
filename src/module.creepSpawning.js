@@ -806,7 +806,7 @@ function displayQueue(roomName) {
                 let priority = operationQueue[key].priority
                 if (room.energyState && (sameSectorCheck(roomName, operationQueue[key].destination) || (INTEL[operationQueue[key].destination] && findClosestOwnedRoom(operationQueue[key].destination) === roomName))) {
                     priority *= 0.5;
-                } else if (!room.energyState) {
+                } else if (room.energyState < 2) {
                     if (operationQueue[key].military) {
                         delete operationQueue[key]
                         continue;
