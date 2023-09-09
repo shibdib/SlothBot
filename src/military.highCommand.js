@@ -13,7 +13,7 @@ module.exports.highCommand = function () {
     if (_.size(Game.flags)) manualAttacks();
     if (lastTick + 10 > Game.time) return;
     lastTick = Game.time;
-    OPERATION_LIMIT = 6;
+    OPERATION_LIMIT = _.filter(MY_ROOMS, (r) => Game.rooms[r].energyState && Game.rooms[r].level === MAX_LEVEL).length + 1;
     if (!Memory.nonCombatRooms) Memory.nonCombatRooms = [];
     if (!Memory.targetRooms) Memory.targetRooms = {};
     if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
@@ -123,15 +123,15 @@ function operationRequests() {
 }
 
 function auxiliaryOperations() {
-    let initialFilter = _.filter(INTEL, (r) => r.name && !Memory.auxiliaryTargets[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !r.hostile);
+    let initialFilter = _.filter(INTEL, (r) => r.name && !Memory.auxiliaryTargets[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && !r.hostile);
     if (MAX_LEVEL >= 6) {
         // Power Mining
         if (MAX_LEVEL >= 8) {
             let powerRoom = _.min(_.filter(initialFilter, (r) => r.power && r.power + 1500 >= Game.time && findClosestOwnedRoom(r.name, true) <= 8), function (t) {
                 return findClosestOwnedRoom(t.name, true);
             });
-            let powerMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'power').length || 0;
-            if (powerRoom.name && powerMining < 2) {
+            let powerMining = _.find(Memory.auxiliaryTargets, (target) => target && target.type === 'power');
+            if (powerRoom.name && !powerMining) {
                 let cache = Memory.auxiliaryTargets || {};
                 let tick = Game.time;
                 cache[powerRoom.name] = {
@@ -148,8 +148,8 @@ function auxiliaryOperations() {
         let commodityRoom = _.min(_.filter(initialFilter, (r) => r.commodity && findClosestOwnedRoom(r.name, true) <= 8), function (t) {
             return findClosestOwnedRoom(t.name, true);
         });
-        let commodityMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'commodity').length || 0;
-        if (commodityRoom.name && commodityMining < 3) {
+        let commodityMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'commodity').length;
+        if (commodityRoom.name && commodityMining < _.size(MY_ROOMS)) {
             let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;
             cache[commodityRoom.name] = {
