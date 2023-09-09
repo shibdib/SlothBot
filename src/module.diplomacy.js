@@ -115,11 +115,8 @@ module.exports.trackThreat = function (creep) {
         let nearbyCreeps = _.uniq(_.pluck(_.filter(creep.room.creeps, (c) => ((c.hasActiveBodyparts(RANGED_ATTACK) && c.pos.inRangeTo(creep, 3)) || (c.hasActiveBodyparts(ATTACK) && c.pos.isNearTo(creep))) && c.owner.username !== MY_USERNAME), 'owner.username'));
         if (nearbyCreeps.length) {
             for (let user of nearbyCreeps) {
-                if (user === 'Source Keeper') {
-                    INTEL[creep.room.name].pathingPenalty = true;
-                    continue;
-                }
-                if (user === MY_USERNAME || user === 'Invader') continue;
+                INTEL[creep.room.name].pathingPenalty = Game.time;
+                if (user === MY_USERNAME || user === 'Invader' || user === 'Source Keeper') continue;
                 // Handle taking damage near allies with other hostiles
                 if (nearbyCreeps.length > 1 && _.includes(FRIENDLIES, user)) continue;
                 let cache = Memory._userList || {};

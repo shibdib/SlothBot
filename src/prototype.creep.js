@@ -14,7 +14,6 @@ Object.defineProperty(Creep.prototype, "idle", {
             delete this.idle;
             delete this.memory.idle;
             delete this.memory.idleSet;
-            delete this.memory.other.noBump;
             return 0;
         }
         // Handle flee if hostile is gone
@@ -23,7 +22,6 @@ Object.defineProperty(Creep.prototype, "idle", {
             delete this.memory.idle;
             delete this.memory.ranFrom;
             delete this.memory.runCooldown;
-            delete this.memory.other.noBump;
             return 0;
         }
         if (!this.memory.idleSet) {
@@ -35,7 +33,6 @@ Object.defineProperty(Creep.prototype, "idle", {
             } else if (this.pos.getRangeTo(this.pos.findClosestByRange(FIND_EXIT)) <= 1) return this.shibMove(new RoomPosition(25, 25, this.room.name), {range: 15})
             else this.memory.idleSet = true;
         }
-        this.memory.other.noBump = undefined;
         this.say(_.sample([ICONS.wait23, ICONS.wait21, ICONS.wait19, ICONS.wait17, ICONS.wait13, ICONS.wait11, ICONS.wait7, ICONS.wait10, ICONS.wait3, ICONS.wait1]), true);
         return this.memory.idle;
     },

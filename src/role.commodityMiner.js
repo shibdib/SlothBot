@@ -9,7 +9,6 @@ module.exports.role = function (creep) {
     if (creep.tryToBoost(['harvest'])) return;
     //Invader detection
     if (creep.fleeHome()) return;
-    creep.memory.other.noBump = undefined;
     if (creep.room.name !== creep.memory.destination && !_.sum(creep.store)) {
         if (creep.ticksToLive < 200) return creep.recycleCreep();
         else return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22, offRoad: true});
@@ -35,6 +34,7 @@ module.exports.role = function (creep) {
                 if (creep.pos.isNearTo(deposit)) creep.idleFor(deposit.cooldown);
         }
     } else if (_.sum(creep.store)) {
+        creep.memory.other.noBump = undefined;
         creep.memory.closestRoom = creep.memory.closestRoom || findClosestOwnedRoom(creep.room.name, false, 4);
         if (creep.room.name !== creep.memory.closestRoom) {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.closestRoom), {range: 23});
