@@ -41,6 +41,8 @@ module.exports.terminalControl = function (room) {
         Memory.saleTerminal.saleSet = Game.time;
     }
     let myOrders = Game.market.orders;
+    // Get global orders
+    globalOrders = Game.market.getAllOrders();
     if (room.name === Memory.saleTerminal.room) {
         if (Memory._banker) {
             if (spendingMoney > Game.market.credits - CREDIT_BUFFER) spendingMoney = Game.market.credits - (CREDIT_BUFFER * 1.1);
@@ -50,8 +52,6 @@ module.exports.terminalControl = function (room) {
         profitCheck();
         // Check for diplomatic changes based on trade
         tradeDiplomacyTracker();
-        // Get global orders
-        globalOrders = Game.market.getAllOrders();
         // Sell pixels
         if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name)) sellPixels(globalOrders);
         // Update prices
