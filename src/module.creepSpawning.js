@@ -553,11 +553,15 @@ module.exports.globalCreepQueue = function () {
             case 'rebuild':
                 if (!INTEL[key] || !INTEL[key].threatLevel) {
                     if (getCreepCount(undefined, 'drone', key) < 5) {
-                        queueGlobalCreep(priority, {role: 'drone', destination: key, military: true});
+                        queueGlobalCreep(PRIORITIES.secondary + getCreepCount(undefined, 'drone', key), {
+                            role: 'drone',
+                            destination: key,
+                            military: true
+                        });
                     }
                     // If threats are present, spawn longbows
                     if (THREATS.length && getCreepCount(undefined, 'longbow', key) < 2) {
-                        queueGlobalCreep(PRIORITIES.medium, {
+                        queueGlobalCreep(PRIORITIES.secondary, {
                             role: 'longbow',
                             destination: key,
                             military: true,
@@ -587,7 +591,7 @@ module.exports.globalCreepQueue = function () {
                     powerHealerTTL = creepTTL[key]['powerHealer'] || undefined;
                     powerAttackerTTL = creepTTL[key]['powerAttacker'] || undefined;
                 }
-                if (!operations[key].complete && (powerHealer < powerAttacker || (powerHealerTTL && powerHealerTTL < 450 && powerHealer < powerAttacker + 1))) {
+                if (!operations[key].complete && (powerHealer < powerAttacker * 2 || (powerHealerTTL && powerHealerTTL < 450 && powerHealer < (powerAttacker * 2) + 1))) {
                     queueGlobalCreep(PRIORITIES.secondary, {role: 'powerHealer', destination: key, military: true})
                 }
                 if (!operations[key].complete && (powerAttacker < powerSpace || (powerAttackerTTL && powerAttackerTTL < 450 && powerAttacker < powerSpace + 1))) {
