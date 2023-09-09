@@ -406,7 +406,7 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
             let [EW, NS] = roomName.match(/\d+/g);
             let highway = (INTEL[roomName] && INTEL[roomName].isHighway) || EW % 10 == 0 || NS % 10 == 0;
             // Add a check for novice/respawn
-            if (!highway && ROOM_STATUS && Game.map.getRoomStatus(roomName).status !== Game.map.getRoomStatus(origin).status) return 256;
+            if (Game.map.getRoomStatus(roomName).status !== Game.map.getRoomStatus(origin).status) return 256;
             // My rooms
             if (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) return 1;
             // Check for avoid flagged rooms

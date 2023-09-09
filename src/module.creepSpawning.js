@@ -327,7 +327,7 @@ module.exports.remoteCreepQueue = function (room) {
         remoteHives[room.name] = undefined;
         // Find rooms around you using INTEL with remote possibilities
         let sourceCount = 0;
-        let remoteRooms = _.filter(Game.map.describeExits(room.name), (r) => INTEL[r] && INTEL[r].sources && !INTEL[r].level && (!ROOM_STATUS || Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status) &&
+        let remoteRooms = _.filter(Game.map.describeExits(room.name), (r) => INTEL[r] && INTEL[r].sources && !INTEL[r].level && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
             (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation)));
         if (remoteRooms.length) remoteRooms.forEach((r) => sourceCount += INTEL[r].sources || 1);
         // Handle less than desired
@@ -335,7 +335,7 @@ module.exports.remoteCreepQueue = function (room) {
         if (!room.energyState && room.level >= 7) targetAmount *= 2;
         if (sourceCount < targetAmount) {
             for (let adjacentRoom of remoteRooms) {
-                let secondaryAdjacent = _.filter(Game.map.describeExits(adjacentRoom), (r) => INTEL[r] && INTEL[r].sources && !INTEL[r].level && (!ROOM_STATUS || Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status) &&
+                let secondaryAdjacent = _.filter(Game.map.describeExits(adjacentRoom), (r) => INTEL[r] && INTEL[r].sources && !INTEL[r].level && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
                     (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation)) && !_.find(MY_ROOMS, (m) => m !== room.name && _.find(Game.map.describeExits(m), (e) => e === r)));
                 if (secondaryAdjacent.length) {
                     secondaryAdjacent.forEach((r) => sourceCount += INTEL[r].sources || 1);
