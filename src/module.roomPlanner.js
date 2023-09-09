@@ -213,7 +213,7 @@ function sourceBuilder(room) {
                 source.memory.container = sourceContainer.id;
             }
             // Link
-            if (Game.getObjectById(room.memory.hubLink)) {
+            if (sourceContainer && Game.getObjectById(room.memory.hubLink)) {
                 let sourceLink = _.find(source.pos.findInRange(room.impassibleStructures, 2), (s) => s.structureType === STRUCTURE_LINK);
                 if (!sourceLink && source.pos.countOpenTerrainAround() > 1) {
                     source.memory.link = undefined;
