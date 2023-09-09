@@ -99,7 +99,9 @@ function operationRequests() {
             return log.a('Hold operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + findClosestOwnedRoom(target.name, true) + ' rooms away)', 'HIGH COMMAND: ');
         }
         // Denial attacks
-        let activeDenial = _.find(Memory.targetRooms, (target) => target && target.type === 'denial');
+        let activeDenial = _.min(_.filter(Memory.targetRooms, (target) => target && target.type === 'denial'), function (t) {
+            return findClosestOwnedRoom(t.name, true)
+        });
         if (!activeDenial.name) {
             let target = _.min(_.filter(initialFilter, (r) => r.owner && (ATTACK_LOCALS || _.includes(Memory._threats, r.user) || (HOLD_SECTOR && sameSectorCheck(findClosestOwnedRoom(r.name), r.name)))), function (t) {
                 return findClosestOwnedRoom(t.name, true)
