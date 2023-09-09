@@ -8,13 +8,12 @@
 let roomRepairTower = {};
 
 module.exports.towerControl = function (room) {
-    let hostileCreeps = _.sortBy(room.hostileCreeps, 'hits');
     room.memory.towerTarget = undefined;
     room.memory.dangerousAttack = undefined;
     room.memory.spawnDefenders = undefined;
     // Set a repair tower
     let repairTower = Game.getObjectById(roomRepairTower[room.name]) || _.max(_.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.15), 'energy');
-    if (!hostileCreeps.length && repairTower.id && repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.5) {
+    if (!room.hostileCreeps.length && repairTower.id && repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.5) {
         roomRepairTower[room.name] = repairTower.id;
         let woundedCreep = _.find(room.friendlyCreeps, (c) => c.hits < c.hitsMax) || _.find(room.powerCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
         let degrade = _.find(room.structures, (s) => (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.25) || (s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.2) || (s.structureType === STRUCTURE_RAMPART && s.hits < 10000));
@@ -32,7 +31,8 @@ module.exports.towerControl = function (room) {
             let barrier = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < BARRIER_TARGET_HIT_POINTS[room.level]), 'hits');
             if (barrier.id) repairTower.repair(barrier);
         }**/
-    } else if (hostileCreeps.length) {
+    } else if (room.hostileCreeps.length) {
+        let hostileCreeps = _.sortBy(room.hostileCreeps, 'hits');
         let towers = _.shuffle(_.filter(room.impassibleStructures, (s) => s && s.structureType === STRUCTURE_TOWER && s.isActive() && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST));
         if (!towers.length && !room.controller.safeMode) {
             room.memory.dangerousAttack = true;

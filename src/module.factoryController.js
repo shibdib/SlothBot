@@ -18,7 +18,7 @@ module.exports.factoryControl = function (room) {
     if (lastRun + coolDown > Game.time) return;
     tickTracker[room.name] = Game.time;
     // Check for factory
-    if (room.factory && !room.nukes.length && !room.memory.lowPower) {
+    if (!room.nukes.length) {
         // Check if on cooldown
         if (room.factory.cooldown) {
             return coolDownTracker[room.name] = room.factory.cooldown + 1;

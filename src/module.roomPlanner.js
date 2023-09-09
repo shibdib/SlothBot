@@ -11,8 +11,11 @@
 const minCut = require('util.minCut');
 let rampartSpots = {};
 let tickTracker = {};
+let globalRun;
 
 module.exports.buildRoom = function (room) {
+    // Only run once per tick
+    if (globalRun === Game.time) return;
     let lastRun = tickTracker[room.name] || {};
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
         let cooldown = 50;
@@ -22,16 +25,19 @@ module.exports.buildRoom = function (room) {
             buildFromLayout(room);
             lastRun.layout = Game.time + _.random(10, 100);
             tickTracker[room.name] = lastRun;
+            globalRun = Game.time;
         } else if (room.level === room.controller.level && (((lastRun.auxiliary || 0) + cooldown < Game.time) || !lastRun.auxiliary)) {
             auxiliaryBuilding(room)
             lastRun.auxiliary = Game.time + _.random(10, 100);
             tickTracker[room.name] = lastRun;
+            globalRun = Game.time;
         }
     } else {
         findHub(room);
         lastRun.layout = Game.time + _.random(10, 250);
         lastRun.auxiliary = Game.time + _.random(10, 250);
         tickTracker[room.name] = lastRun;
+        globalRun = Game.time;
     }
 };
 

@@ -25,9 +25,23 @@ module.exports.terminalControl = function (room) {
         return;
     }
     Memory.saleTerminal = Memory.saleTerminal || {};
+    // If sale terminal has a nuke incoming clear it
+    if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room] && Game.rooms[Memory.saleTerminal.room].nukes.length) {
+        log.a(roomLink(Memory.saleTerminal.room) + ' is no longer the primary market room due to an incoming nuke.');
+        Memory.saleTerminal.room = undefined;
+    }
+    // Set saleTerminal
+    if (!Memory.saleTerminal.room || Memory.saleTerminal.saleSet + 15000 < Game.time || !Game.rooms[Memory.saleTerminal.room]) {
+        // Clear if no longer valid
+        if (!Game.rooms[Memory.saleTerminal.room] || !INTEL[Memory.saleTerminal.room] || INTEL[Memory.saleTerminal.room].owner !== MY_USERNAME) Memory.saleTerminal = {};
+        if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].controller.level === MAX_LEVEL) {
+            return Memory.saleTerminal.saleSet = Game.time;
+        }
+        Memory.saleTerminal.room = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && !s.room.memory.praiseRoom && s.room.level === MAX_LEVEL && !s.room.nukes.length && s.isActive() && _.sum(s.store) < s.store.getCapacity() * 0.9)).room.name;
+        Memory.saleTerminal.saleSet = Game.time;
+    }
     let myOrders = Game.market.orders;
-    // Things that don't need to be run for every terminal
-    if (runOnce !== Game.time) {
+    if (room.name === Memory.saleTerminal.room) {
         if (Memory._banker) {
             if (spendingMoney > Game.market.credits - CREDIT_BUFFER) spendingMoney = Game.market.credits - (CREDIT_BUFFER * 1.1);
             Memory._banker.spendingAccount = _.floor(spendingMoney, 1);
@@ -36,8 +50,6 @@ module.exports.terminalControl = function (room) {
         profitCheck();
         // Check for diplomatic changes based on trade
         tradeDiplomacyTracker();
-        // Tweak reaction amount if broke
-        if (Game.market.credits < CREDIT_BUFFER) reactionAmount = REACTION_AMOUNT * 0.5; else reactionAmount = REACTION_AMOUNT;
         // Get global orders
         globalOrders = Game.market.getAllOrders();
         // Sell pixels
@@ -48,29 +60,7 @@ module.exports.terminalControl = function (room) {
             lastPriceAdjust = Game.time;
         }
         // Cleanup broken or old orders
-        if (Math.random() > 0.25) {
-            orderCleanup(myOrders);
-        }
-        // If sale terminal has a nuke incoming clear it
-        if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room] && Game.rooms[Memory.saleTerminal.room].nukes.length) {
-            log.a(roomLink(Memory.saleTerminal.room) + ' is no longer the primary market room due to an incoming nuke.');
-            Memory.saleTerminal.room = undefined;
-        }
-        // Set saleTerminal
-        if (!Memory.saleTerminal.room || Memory.saleTerminal.saleSet + 15000 < Game.time || !Game.rooms[Memory.saleTerminal.room]) {
-            // Clear if no longer valid
-            if (!Game.rooms[Memory.saleTerminal.room] || !INTEL[Memory.saleTerminal.room] || INTEL[Memory.saleTerminal.room].owner !== MY_USERNAME) Memory.saleTerminal = {};
-            if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].controller.level === MAX_LEVEL) {
-                return Memory.saleTerminal.saleSet = Game.time;
-            }
-            Memory.saleTerminal.room = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && !s.room.memory.praiseRoom && s.room.level === MAX_LEVEL && !s.room.nukes.length && s.isActive() && _.sum(s.store) < s.store.getCapacity() * 0.9)).room.name;
-            Memory.saleTerminal.saleSet = Game.time;
-        }
-        runOnce = Game.time;
-    }
-    //Buy Energy
-    //if (BUY_ENERGY && Game.market.credits > BUY_ENERGY_CREDIT_BUFFER && ((lastEnergyPurchase || 0) + 1000 < Game.time || spendingMoney > 100000) && buyEnergy(room.terminal, globalOrders)) return;
-    if (room.name === Memory.saleTerminal.room) {
+        orderCleanup(myOrders);
         // Place sell orders
         if (!['swc', 'botarena'].includes(Game.shard.name)) placeSellOrders(room.terminal, globalOrders, myOrders);
         if (spendingMoney > 0) {

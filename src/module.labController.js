@@ -15,16 +15,14 @@ module.exports.labManager = function () {
             let room = Game.rooms[roomName];
             // If no hubs, continue
             if (!room.memory.labHub) continue;
-            if (Game.time % 275 === 0 || !primaryLabs[room.name] || !room.memory.producingBoost) {
-                manageBoostProduction(room);
-            }
+            if (Game.time % 100 === 0 || !primaryLabs[room.name]) manageBoostProduction(room);
             manageActiveLabs(room);
         }
     }
 };
 
 function manageActiveLabs(room) {
-    if (!primaryLabs[room.name] || !room.memory.producingBoost) return;
+    if (!room.memory.producingBoost) return;
     let hub = primaryLabs[room.name].map(id => Game.getObjectById(id));
     hub[0].say(room.memory.producingBoost);
     let secondaryLabs = _.filter(room.impassibleStructures, (s) => !s.cooldown && s.structureType === STRUCTURE_LAB && !primaryLabs[room.name].includes(s.id) &&
