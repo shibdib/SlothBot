@@ -517,11 +517,11 @@ module.exports.globalCreepQueue = function () {
         // Handle harassers
         if (Memory.harassTargets && Memory.harassTargets.length) {
             let targetAmount = Memory.harassTargets.length * 2;
-            if (targetAmount > MY_ROOMS.length * 2) targetAmount = MY_ROOMS.length * 2;
+            if (targetAmount > MY_ROOMS.length) targetAmount = MY_ROOMS.length;
             if (getCreepCount(undefined, 'longbow', undefined, 'harass') < targetAmount) {
                 let harassTarget = _.sample(_.filter(INTEL, (r) => !r.owner && Memory.harassTargets.includes(r.user)));
                 if (harassTarget) {
-                    queueGlobalCreep(PRIORITIES.medium, {
+                    queueGlobalCreep(PRIORITIES.secondary, {
                         role: 'longbow',
                         destination: harassTarget.name,
                         operation: 'harass',
