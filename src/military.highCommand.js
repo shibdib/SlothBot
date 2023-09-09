@@ -102,7 +102,7 @@ function operationRequests() {
         let activeDenial = _.min(_.filter(Memory.targetRooms, (target) => target && target.type === 'denial'), function (t) {
             return findClosestOwnedRoom(t.name, true)
         });
-        if (!activeDenial.name) {
+        if (activeDenial.name) {
             let target = _.min(_.filter(initialFilter, (r) => r.owner && (ATTACK_LOCALS || _.includes(Memory._threats, r.user) || (HOLD_SECTOR && sameSectorCheck(findClosestOwnedRoom(r.name), r.name)))), function (t) {
                 return findClosestOwnedRoom(t.name, true)
             });
