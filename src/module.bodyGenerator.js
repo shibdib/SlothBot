@@ -83,7 +83,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             let powerCreep = _.find(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === room.name && c.powers[PWR_REGEN_SOURCE]);
             if (powerCreep) {
                 work = (SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME);
-            } else if (work > SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) work = SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME);
+            } else if (work > (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1) work = (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
             carry = _.ceil(EXTENSION_ENERGY_CAPACITY[room.controller.level] / CARRY_CAPACITY);
             move = 1;
             break;
