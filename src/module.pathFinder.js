@@ -600,7 +600,7 @@ function addStructuresToMatrix(room, creep, matrix, type, options) {
         default:
             roadCost = 1;
     }
-    let wallWrecker = (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)) || (INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner));
+    let wallWrecker = (!creep.className && !creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)) || (INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner));
     for (let structure of room.structures) {
         if (structure instanceof StructureWall) {
             if (wallWrecker) {
