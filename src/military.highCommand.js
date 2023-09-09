@@ -50,7 +50,6 @@ function operationRequests() {
                     priority: getPriority(defenseRequest.roomName)
                 };
                 Memory.targetRooms = cache;
-                if (INTEL[defenseRequest.roomName]) INTEL[defenseRequest.roomName].lastOperation = Game.time;
                 return log.a('ALLY REQUEST!! Guard operation planned for ' + roomLink(defenseRequest.roomName), 'HIGH COMMAND: ');
             }
         }
@@ -67,10 +66,9 @@ function operationRequests() {
                     tick: Game.time,
                     type: type,
                     level: 1,
-                    priority: getPriority(defenseRequest.roomName)
+                    priority: getPriority(attackRequest.roomName)
                 };
                 Memory.targetRooms = cache;
-                INTEL[attackRequest.roomName].lastOperation = Game.time;
                 return log.a('ALLY REQUEST!! ' + type + ' operation planned for ' + roomLink(attackRequest.roomName), 'HIGH COMMAND: ');
             }
         }
@@ -85,27 +83,27 @@ function operationRequests() {
         let initialFilter = _.filter(INTEL, (r) => r.user && userStrength(r.user) <= MAX_LEVEL && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] &&
             !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !checkForNap(r.user) && (!r.safemode || r.safemode - 500 < Game.time));
         // New Spawn Denial/No towers
-        let newSpawns = _.sortBy(_.filter(initialFilter, (r) => (NEW_SPAWN_DENIAL || (HOLD_SECTOR && sameSectorCheck(findClosestOwnedRoom(r.name), r.name))) && r.owner && !r.towers), function (t) {
+        let target = _.min(_.filter(initialFilter, (r) => (NEW_SPAWN_DENIAL || (HOLD_SECTOR && sameSectorCheck(findClosestOwnedRoom(r.name), r.name))) && r.owner && !r.towers), function (t) {
             return findClosestOwnedRoom(t.name, true)
-        })[0];
-        if (newSpawns) {
+        });
+        if (target.name) {
             let cache = Memory.targetRooms || {};
-            cache[newSpawns.name] = {
+            cache[target.name] = {
                 tick: Game.time,
                 type: 'hold',
-                level: 0,
-                priority: PRIORITIES.priority
+                level: 1,
+                priority: getPriority(target.name)
             };
             Memory.targetRooms = cache;
-            INTEL[newSpawns.name].lastOperation = Game.time;
-            return log.a('Hold operation planned for ' + roomLink(newSpawns.name) + ' owned by ' + newSpawns.user + ' (Nearest Friendly Room - ' + findClosestOwnedRoom(newSpawns.name, true) + ' rooms away)', 'HIGH COMMAND: ');
+            INTEL[target.name].lastOperation = Game.time;
+            return log.a('Hold operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + findClosestOwnedRoom(target.name, true) + ' rooms away)', 'HIGH COMMAND: ');
         }
         // Denial attacks
         let activeDenial = _.find(Memory.targetRooms, (target) => target && target.type === 'denial');
-        if (!activeDenial) {
-            let target = _.sortBy(_.filter(initialFilter, (r) => r.owner && (ATTACK_LOCALS || _.includes(Memory._threats, r.user) || (HOLD_SECTOR && sameSectorCheck(findClosestOwnedRoom(r.name), r.name)))), function (t) {
+        if (!activeDenial.name) {
+            let target = _.min(_.filter(initialFilter, (r) => r.owner && (ATTACK_LOCALS || _.includes(Memory._threats, r.user) || (HOLD_SECTOR && sameSectorCheck(findClosestOwnedRoom(r.name), r.name)))), function (t) {
                 return findClosestOwnedRoom(t.name, true)
-            })[0]
+            });
             if (target) {
                 let cache = Memory.targetRooms || {};
                 cache[target.name] = {
