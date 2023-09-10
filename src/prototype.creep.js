@@ -574,13 +574,6 @@ Creep.prototype.constructionWork = function () {
         this.memory.task = 'build';
         return true;
     }
-    site = _.filter(mySites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
-    if (site.length) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'build';
-        return true;
-    }
     site = _.filter(mySites, (s) => s.structureType === STRUCTURE_EXTENSION);
     if (site.length > 0) {
         site = _.max(site, 'progress');
@@ -620,6 +613,13 @@ Creep.prototype.constructionWork = function () {
     site = _.filter(mySites, (s) => s.structureType === STRUCTURE_CONTAINER);
     if (site.length > 0) {
         site = _.max(site, 'progress');
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'build';
+        return true;
+    }
+    site = _.filter(mySites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
+    if (site.length) {
+        site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
         return true;
