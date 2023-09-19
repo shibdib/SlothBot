@@ -292,12 +292,12 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 return shibPath(creep, target, pathInfo, origin, target, options);
             }
         }
+        if (!allowedRooms) allowedRooms = [origin.roomName].concat(_.map(Game.map.describeExits(origin.roomName)));
         let callback = (roomName) => {
             if (allowedRooms && !_.includes(allowedRooms, roomName)) return false;
             if (checkAvoid(roomName) && roomName !== target.roomName && roomName !== origin.roomName) return false;
             return getMatrix(roomName, creep, options);
         };
-        if (!allowedRooms) allowedRooms = [origin.roomName];
         let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
             maxOps: options.maxOps,
             maxRooms: allowedRooms.length + 1,
@@ -937,6 +937,7 @@ function getMoveWeight(creep, options = {}) {
     let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
     // Add weight of used carry parts
     weight += _.ceil(_.sum(creep.store) / 50) || 0;
+    if (!creep.memory._shibMove) creep.memory._shibMove = {};
     creep.memory._shibMove.weight = weight;
     // Add weight of trailer
     if (creep.memory.trailer && Game.getObjectById(creep.memory.trailer)) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
