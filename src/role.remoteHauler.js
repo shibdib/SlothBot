@@ -51,8 +51,10 @@ module.exports.role = function (creep) {
         if (creep.memory.energyDestination) return creep.withdrawResource();
         // Pickup dropped resource
         if (creep.room.droppedResources.length && _.max(creep.room.droppedResources, 'amount').amount > creep.store.getCapacity() * 0.1) return creep.memory.energyDestination = _.max(creep.room.droppedResources, 'amount').id;
+        // If we have vision just locateEnergy
+        else if (Game.rooms[creep.memory.destination] && creep.locateEnergy(Game.rooms[creep.memory.destination])) return true;
         // If you know what room to go to and not already there go to it
-        else if (creep.room.name !== creep.memory.destination && creep.room.routeSafe(creep.memory.destination)) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 18});
+        else if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 18});
         // If in the assigned room, look for energy
         else if (creep.locateEnergy()) return true;
         // Get room assigned based off assigned harv, otherwise find a harv
@@ -101,8 +103,8 @@ function dropOff(creep) {
         return true;
     } else if (creep.haulerDelivery()) {
         return true;
-    } else if (creep.pos.getRangeTo(creep.room.controller) > 2) {
-        creep.shibMove(creep.room.controller);
+    } else if (creep.pos.getRangeTo(Game.rooms[creep.memory.overlord].controller) > 2) {
+        creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 2});
     } else creep.idleFor(5)
 }
 
