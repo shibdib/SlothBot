@@ -60,11 +60,11 @@ let globals = function () {
         hauler: 1,
         miscHauler: 7,
         // Remotes
-        remoteHarvester: 5,
+        remoteHarvester: 4,
         remoteHauler: 2,
         roadBuilder: 7,
         fuelTruck: 8,
-        reserver: 4,
+        reserver: 5,
         // Military
         defender: 2,
         priority: 3,
@@ -495,6 +495,7 @@ let globals = function () {
 
     global.getLevel = function (room) {
         let energy = room.energyCapacityAvailable;
+        if (!room.controller || !energy) return 0;
         let energyLevel = 0;
         if (energy >= RCL_1_ENERGY && energy < RCL_2_ENERGY) {
             energyLevel = 1;
