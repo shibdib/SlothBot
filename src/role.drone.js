@@ -36,7 +36,7 @@ module.exports.role = function role(creep) {
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
-        } else if (!creep.room.level || creep.room.level < 3) {
+        } else if (!creep.room.level || creep.room.level < 2) {
             creep.memory.harvest = true;
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
             if (source && (!INTEL[creep.room.name].owner || INTEL[creep.room.name].owner === MY_USERNAME) && (!INTEL[creep.room.name].reservation || INTEL[creep.room.name].reservation === MY_USERNAME)) {
@@ -54,13 +54,7 @@ module.exports.role = function role(creep) {
                         break;
                 }
             } else {
-                if (creep.memory.remoteMining || findRemoteSource(creep)) {
-                    creep.say('Remote!', true);
-                    if (creep.memory.remoteMining !== creep.room.name) return creep.shibMove(new RoomPosition(25, 25, creep.memory.remoteMining), {range: 15}); else creep.memory.remoteMining = undefined;
-                } else {
-                    delete creep.memory.harvest;
-                    creep.idleFor(5);
-                }
+                creep.idleFor(5);
             }
         } else {
             creep.idleFor(5);
