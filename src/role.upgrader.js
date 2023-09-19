@@ -78,7 +78,7 @@ module.exports.role = function (creep) {
             creep.withdrawResource();
         } else if (container && container.store[RESOURCE_ENERGY]) {
             creep.withdrawResource(container);
-        } else if (!creep.locateEnergy(25)) {
+        } else if (!creep.locateEnergy()) {
             creep.idleFor(15);
         }
     }
