@@ -153,21 +153,16 @@ function minionController(minion) {
 
 function creepSpawning(room) {
     spawning.processBuildQueue(room);
-    if (room.level < 2) {
-        spawning.roomStartup(room);
-        spawning.remoteCreepQueue(room);
-    } else {
-        let spawnFunctions = [{name: 'essentialSpawning', f: spawning.essentialCreepQueue},
-            {name: 'miscSpawning', f: spawning.miscCreepQueue},
-            {name: 'remoteSpawning', f: spawning.remoteCreepQueue}];
-        try {
-            for (let task of spawnFunctions) {
-                task.f(room);
-            }
-        } catch (e) {
-            log.e(spawnFunctions[0].name + ' for room ' + room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
+    let spawnFunctions = [{name: 'essentialSpawning', f: spawning.essentialCreepQueue},
+        {name: 'miscSpawning', f: spawning.miscCreepQueue},
+        {name: 'remoteSpawning', f: spawning.remoteCreepQueue}];
+    try {
+        for (let task of spawnFunctions) {
+            task.f(room);
         }
+    } catch (e) {
+        log.e(spawnFunctions[0].name + ' for room ' + room.name + ' experienced an error');
+        log.e(e.stack);
+        Game.notify(e.stack);
     }
 }
