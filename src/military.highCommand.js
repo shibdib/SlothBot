@@ -124,7 +124,7 @@ function operationRequests() {
 
 function auxiliaryOperations() {
     let initialFilter = _.filter(INTEL, (r) => r.name && !Memory.auxiliaryTargets[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && !r.hostile);
-    if (MAX_LEVEL >= 6) {
+    if (MAX_LEVEL >= 4) {
         // Power Mining
         if (MAX_LEVEL >= 8) {
             let powerRoom = _.min(_.filter(initialFilter, (r) => r.power && r.power + 1500 >= Game.time && findClosestOwnedRoom(r.name, true) <= 8), function (t) {
