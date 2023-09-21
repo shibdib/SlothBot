@@ -1,4 +1,4 @@
-const activeSegments = [0, 1, 2, 3, 23, 98];
+const activeSegments = [0, 1, 2, 3, 4, 23, 98];
 
 module.exports.init = function () {
     RawMemory.setActiveSegments(activeSegments);
@@ -18,12 +18,14 @@ module.exports.retrieveIntel = function () {
     if (!_.size(INTEL) || !intelSegmentChecked) {
         if (RawMemory.segments[segmentNumber]) {
             intelSegmentChecked = true;
-            Memory.intelCache = undefined;
-            Memory.roomCache = undefined;
-            global.INTEL = JSON.parse(RawMemory.segments[segmentNumber]) || {};
-        } else if (Memory.intelCache) global.INTEL = JSON.parse(Memory.intelCache);
-        else if (Memory.roomCache) global.INTEL = Memory.roomCache;
-        else {
+            let intelCache = JSON.parse(RawMemory.segments[segmentNumber]);
+            // Check for invalid cache
+            if (!_.size(intelCache) || !intelCache[Object.keys(intelCache)[0]].name) {
+                log.e('Invalid intel cache, clearing.');
+                RawMemory.segments[segmentNumber] = undefined;
+                global.INTEL = {};
+            } else global.INTEL = JSON.parse(RawMemory.segments[segmentNumber]) || {};
+        } else {
             RawMemory.setActiveSegments(activeSegments);
             log.d("Intel segment not accessible, enabling the segment for the next tick.");
             global.INTEL = {};
@@ -39,7 +41,12 @@ module.exports.storeIntel = function () {
         log.d("Intel segment not accessed, not storing.");
         return;
     }
-    if (!lastIntelStore || lastIntelStore + CREEP_LIFE_TIME < Game.time || Math.random() > 0.9) {
+    if (!lastIntelStore || lastIntelStore + CREEP_LIFE_TIME < Game.time || Math.random() > 0.95) {
+        // Check for invalid cache
+        if (!_.size(INTEL) || !INTEL[Object.keys(INTEL)[0]].name) {
+            log.e('Invalid intel cache, clearing.');
+            return global.INTEL = {};
+        }
         let store = JSON.parse(JSON.stringify(INTEL));
         try {
             if (JSON.stringify(store).length >= 95000) {
