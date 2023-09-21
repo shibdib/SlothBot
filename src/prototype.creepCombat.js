@@ -109,7 +109,7 @@ Creep.prototype.findClosestHostileStructure = function (barriers = true) {
         return enemy;
     }
     let hostileRoom = !_.includes(FRIENDLIES, INTEL[this.room.name].user);
-    let structures = _.filter(this.room.structures, (s) => ![STRUCTURE_POWER_BANK, STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_INVADER_CORE].includes(s.structureType));
+    let structures = _.filter(this.room.structures, (s) => ((s) => !s.owner || !FRIENDLIES.includes(s.owner.username)) && ![STRUCTURE_POWER_BANK, STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_INVADER_CORE].includes(s.structureType));
     let barriersPresent = _.find(structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
     // Kill towers then spawns
     if (hostileRoom && structures.length) {
