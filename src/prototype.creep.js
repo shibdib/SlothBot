@@ -28,9 +28,9 @@ Object.defineProperty(Creep.prototype, "idle", {
             if (this.memory.other.stationary) this.memory.idleSet = true;
             else if ((this.pos.checkForRoad() || this.pos.checkForContainer()) && !this.memory.military && this.memory.role !== 'stationaryHarvester' && this.memory.role !== 'mineralHarvester' && this.memory.role !== 'remoteHarvester') {
                 return this.moveRandom();
-            } else if (this.pos.getRangeTo(this.pos.findClosestByRange(FIND_SOURCES)) === 1 && this.memory.role !== 'stationaryHarvester' && this.memory.role !== 'mineralHarvester' && this.memory.role !== 'remoteHarvester') {
+            } else if (this.pos.getRangeTo(this.pos.findClosestByRange(FIND_SOURCES)) <= 2 && this.memory.role !== 'stationaryHarvester' && this.memory.role !== 'mineralHarvester' && this.memory.role !== 'remoteHarvester') {
                 return this.moveRandom();
-            } else if (this.pos.getRangeTo(this.pos.findClosestByRange(FIND_EXIT)) <= 1) return this.shibMove(new RoomPosition(25, 25, this.room.name), {range: 15})
+            } else if (this.pos.getRangeTo(this.pos.findClosestByRange(FIND_EXIT)) <= 4) return this.shibMove(new RoomPosition(25, 25, this.room.name), {range: 15})
             else this.memory.idleSet = true;
         }
         this.say(_.sample([ICONS.wait23, ICONS.wait21, ICONS.wait19, ICONS.wait17, ICONS.wait13, ICONS.wait11, ICONS.wait7, ICONS.wait10, ICONS.wait3, ICONS.wait1]), true);
