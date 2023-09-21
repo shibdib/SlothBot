@@ -60,11 +60,11 @@ let globals = function () {
         hauler: 1,
         miscHauler: 7,
         // Remotes
-        remoteHarvester: 4,
+        remoteHarvester: 3,
         remoteHauler: 2,
         roadBuilder: 7,
         fuelTruck: 8,
-        reserver: 5,
+        reserver: 4,
         // Military
         defender: 2,
         priority: 3,
