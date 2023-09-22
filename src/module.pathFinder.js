@@ -135,7 +135,7 @@ function shibMove(creep, heading, options = {}) {
 
     // If in an SK room and no matrix exists, reset it
     if (_.includes(skNoVision, creep.room.name)) {
-        skNoVision = _.filter(skNoVision, (r) = r !== creep.room.name);
+        skNoVision = _.filter(skNoVision, (r) => r !== creep.room.name);
         return creep.memory._shibMove = undefined;
     }
 
@@ -750,15 +750,14 @@ let skNoVision = [];
 
 function getSKMatrix(roomName, matrix = undefined, options) {
     let room = Game.rooms[roomName];
-    if (!INTEL[roomName] || !INTEL[roomName].sk || !room) return matrix;
-    if (!room && !_.includes(skNoVision)) {
-        skNoVision.push(roomName);
+    if (!INTEL[roomName] || !INTEL[roomName].sk) return matrix;
+    if (!room) {
+        if (!_.includes(skNoVision)) skNoVision.push(roomName);
         return matrix;
     }
-    if (!skMatrixCache[room.name] || options.showMatrix || (Game.time !== skMatrixTick[room.name] + 5 && Game.rooms[room.name])) {
-        room.memory.skMatrixTick = undefined;
-        skMatrixTick[room.name] = Game.time;
-        skMatrixCache[room.name] = addSksToMatrix(room, matrix, options).serialize();
+    if (!skMatrixCache[roomName] || options.showMatrix || (Game.time !== skMatrixTick[roomName] + CREEP_LIFE_TIME && Game.rooms[roomName])) {
+        skMatrixTick[roomName] = Game.time;
+        skMatrixCache[roomName] = addSksToMatrix(room, matrix, options).serialize();
     }
     return PathFinder.CostMatrix.deserialize(skMatrixCache[roomName]);
 }
@@ -797,7 +796,7 @@ function addSksToMatrix(room, matrix, options) {
                         continue;
                     }
                     if (position && !position.checkForWall() && !position.checkForRoad()) {
-                        let weight = 220;
+                        let weight = 240;
                         matrix.set(position.x, position.y, weight)
                     }
                 }
