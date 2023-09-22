@@ -498,13 +498,13 @@ Room.prototype.invaderCheck = function () {
     if (controllingEntity && controllingEntity !== MY_USERNAME) return false;
     // No hostile detected
     if (!this.hostileCreeps.length) {
+        INTEL[this.name].lastInvaderSighting = undefined;
         if (!INTEL[this.name].roomHeat && !INTEL[this.name].threatLevel) return false;
         // Room heat is capped at 1000
         if (INTEL[this.name].roomHeat > 1000) INTEL[this.name].roomHeat = 1000;
-        let waitOut = 15;
-        if (INTEL[this.name].threatLevel > 3) waitOut = 50;
+        let waitOut = 5;
         // Clear if no waitOut or if not one of your rooms
-        let reduction = _.ceil((Game.time - previousCheck) / 5) * this.friendlyCreeps.length;
+        let reduction = _.ceil((Game.time - previousCheck) / 5) * (this.friendlyCreeps.length) + 1;
         if (INTEL[this.name].lastPlayerSighting + 500 > Game.time) reduction *= 25;
         if (INTEL[this.name].tickDetected + waitOut < Game.time || INTEL[this.name].user !== MY_USERNAME) {
             INTEL[this.name].threatLevel = undefined;
