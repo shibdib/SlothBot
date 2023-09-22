@@ -365,9 +365,22 @@ Creep.prototype.locateEnergy = function (room = this.room) {
                 return true;
             }
         }
+        if (this.memory.role !== 'shuttle') {
+            // Storage
+            if (room.storage && room.storage.store[RESOURCE_ENERGY]) {
+                this.memory.energyDestination = room.storage.id;
+                return true;
+            }
+            // Terminal
+            if (room.terminal && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
+                this.memory.energyDestination = room.terminal.id;
+                this.memory.findEnergyCountdown = undefined;
+                return true;
+            }
+        }
         //Dropped
         if (room.droppedEnergy.length) {
-            let dropped = _.find(room.droppedEnergy, (r) => r.amount >= (room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5));
+            let dropped = _.find(room.droppedEnergy, (r) => r.amount >= (_.filter(room.creeps, (c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5));
             if (dropped) {
                 this.memory.energyDestination = dropped.id;
                 this.memory.findEnergyCountdown = undefined;
@@ -383,19 +396,6 @@ Creep.prototype.locateEnergy = function (room = this.room) {
             });
             if (container && container.id) {
                 this.memory.energyDestination = container.id;
-                this.memory.findEnergyCountdown = undefined;
-                return true;
-            }
-        }
-        if (this.memory.role !== 'shuttle') {
-            // Storage
-            if (room.storage && room.storage.store[RESOURCE_ENERGY]) {
-                this.memory.energyDestination = room.storage.id;
-                return true;
-            }
-            // Terminal
-            if (room.terminal && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
-                this.memory.energyDestination = room.terminal.id;
                 this.memory.findEnergyCountdown = undefined;
                 return true;
             }
@@ -463,7 +463,7 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
     // Spawns/Extensions
-    let energyStructures;
+    let energyStructures = {};
     if (this.memory.energyStructures && this.memory.roomEnergyCap === this.room.energyCapacityAvailable) {
         energyStructures = JSON.parse(this.memory.energyStructures).map(id => Game.getObjectById(id))
     } else {
