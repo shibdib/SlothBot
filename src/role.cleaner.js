@@ -27,18 +27,8 @@ module.exports.role = function (creep) {
                 INTEL[creep.room.name].seasonHighwayPath = true;
                 Memory.auxiliaryTargets[creep.memory.destination] = undefined;
             }
-            /**if (!collector.pos.findClosestByPath(FIND_EXIT)) {
-                creep.memory.attackCollector = true;
-            } else {
-                Memory.auxiliaryTargets[creep.memory.destination] = undefined;
-                creep.room.cacheRoomIntel(true, creep);
-            }**/
         } else {
-            if (Game.time % 5 === 0) creep.operationManager();
-            if (!creep.scorchedEarth()) {
-                if (Memory.targetRooms[creep.memory.destination]) Memory.targetRooms[creep.memory.destination].cleaner = undefined;
-                creep.suicide();
-            }
+            creep.scorchedEarth();
         }
     }
 };
