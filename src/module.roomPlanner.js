@@ -215,9 +215,9 @@ function sourceBuilder(room) {
             // Link
             if (sourceContainer && Game.getObjectById(room.memory.hubLink)) {
                 let sourceLink = _.find(source.pos.findInRange(room.impassibleStructures, 2), (s) => s.structureType === STRUCTURE_LINK);
-                if (!sourceLink && source.pos.countOpenTerrainAround() > 1) {
+                if (!sourceLink && sourceContainer.pos.countOpenTerrainAround() > 1) {
                     source.memory.link = undefined;
-                    let sourceBuild = _.find(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 2), (s) => s.structureType === STRUCTURE_LINK);
+                    let sourceBuild = _.find(sourceContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 2), (s) => s.structureType === STRUCTURE_LINK);
                     if (!sourceBuild) {
                         let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, sourceContainer.pos.y - 1, sourceContainer.pos.x - 1, sourceContainer.pos.y + 1, sourceContainer.pos.x + 1, true);
                         for (let key in zoneTerrain) {
@@ -341,34 +341,6 @@ function rampartBuilder(room, layout = undefined, count = false) {
                 });
             }
         }
-        // Controller
-        if (PROTECT_CONTROLLER) {
-            rect_array.push({
-                x1: room.controller.pos.x - 1,
-                y1: room.controller.pos.y - 1,
-                x2: room.controller.pos.x + 1,
-                y2: room.controller.pos.y + 1
-            });
-        }
-        if (PROTECT_SOURCES) {
-            // Sources
-            for (let source of room.sources) {
-                rect_array.push({
-                    x1: source.pos.x - 1,
-                    y1: source.pos.y - 1,
-                    x2: source.pos.x + 1,
-                    y2: source.pos.y + 1
-                });
-            }
-        }
-        if (PROTECT_MINERAL) {
-            rect_array.push({
-                x1: room.mineral.pos.x - 1,
-                y1: room.mineral.pos.y - 1,
-                x2: room.mineral.pos.x + 1,
-                y2: room.mineral.pos.y + 1
-            });
-        }
         let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
         // Clean up boundaries
         for (let key in rect_array) {
@@ -434,11 +406,13 @@ function rampartBuilder(room, layout = undefined, count = false) {
     }
     // Build ramparts around sources, mineral, controller
     if (room.level >= 3) {
-        for (let source of room.sources) {
-            buildRampartAround(source.pos);
+        if (PROTECT_SOURCES) {
+            for (let source of room.sources) {
+                buildRampartAround(source.pos);
+            }
         }
-        buildRampartAround(room.mineral.pos);
-        buildRampartAround(room.controller.pos);
+        if (PROTECT_MINERAL) buildRampartAround(room.mineral.pos);
+        if (PROTECT_CONTROLLER) buildRampartAround(room.controller.pos);
     }
 }
 
