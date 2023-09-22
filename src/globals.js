@@ -64,13 +64,14 @@ let globals = function () {
         remoteHauler: 2,
         roadBuilder: 7,
         fuelTruck: 8,
-        reserver: 4,
+        reserver: 3,
         // Military
         defender: 2,
-        priority: 3,
-        urgent: 4,
-        high: 5,
-        medium: 6,
+        extreme: 3,
+        priority: 4,
+        urgent: 5,
+        high: 6,
+        medium: 7,
         secondary: 9
     };
 
