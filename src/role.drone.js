@@ -11,6 +11,8 @@
 
 module.exports.role = function role(creep) {
     if (creep.tryToBoost(['build'])) return;
+    // If damaged move to safety
+    if (!creep.getActiveBodyparts(WORK) || !creep.getActiveBodyparts(CARRY)) return creep.goToHub();
     // Trailer at low level
     if (creep.room.controller && creep.room.controller.level < 3 && creep.towTruck()) return true;
     // Handle remote drones
@@ -22,7 +24,7 @@ module.exports.role = function role(creep) {
     if (!creep.store[RESOURCE_ENERGY]) creep.memory.working = undefined;
     // Checks
     if (!creep.memory.working) {
-        if (creep.isFull) {
+        if (creep.isFull && !creep.memory.stationaryHarvester) {
             creep.memory.source = undefined;
             creep.memory.harvest = undefined;
             creep.memory.remoteMining = undefined;
@@ -33,13 +35,16 @@ module.exports.role = function role(creep) {
         creep.memory.working = undefined;
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
+        let spawn = _.find(creep.room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
-        } else if (!creep.room.level || creep.room.level < 2) {
+        } else if (!spawn || creep.room.level < 2) {
             creep.memory.harvest = true;
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
             if (source && (!INTEL[creep.room.name].owner || INTEL[creep.room.name].owner === MY_USERNAME) && (!INTEL[creep.room.name].reservation || INTEL[creep.room.name].reservation === MY_USERNAME)) {
+                // Set a statioanry harvester on new spawns
+                if (!spawn && !_.find(creep.room.myCreeps, (c) => c.id !== creep.id && c.memory.stationaryHarvester) && _.find(creep.room.myCreeps, (c) => c.id !== creep.id && c.memory.role === 'drone')) creep.memory.stationaryHarvester = true;
                 creep.say('Harvest!', true);
                 creep.memory.source = source.id;
                 switch (creep.harvest(source)) {
@@ -62,12 +67,12 @@ module.exports.role = function role(creep) {
     } else {
         // If under attack, waller else chance to be a waller
         if ((INTEL[creep.room.name].threatLevel || creep.memory.currentTarget || (Math.random() > 0.5 && !creep.memory.constructionSite && !creep.room.constructionSites.length)) && wallMaintainer(creep)) return;
+        // If praiser needed praise
+        if (upgrading(creep)) return;
         // If haulers needed haul
         if (hauling(creep)) return;
         // If builder needed build
         if ((creep.memory.constructionSite || creep.room.constructionSites.length) && building(creep)) return;
-        // If praiser needed praise
-        if (upgrading(creep)) return;
         // If walls to repair
         if (wallMaintainer(creep)) return;
         // If nothing else to do upgrade
@@ -78,7 +83,7 @@ module.exports.role = function role(creep) {
             creep.idleFor(5);
         }
     }
-};
+}
 
 function building(creep) {
     if (creep.memory.task && creep.memory.task !== 'build' && creep.memory.task !== 'repair') return;
@@ -124,7 +129,7 @@ function hauling(creep) {
 
 function upgrading(creep, force = undefined) {
     if (creep.memory.task && creep.memory.task !== 'upgrade') return;
-    let upgrader = _.find(creep.room.myCreeps, (c) => c.memory.role === "upgrader");
+    let upgrader = _.find(creep.room.myCreeps, (c) => c.memory.role === "upgrader" || c.memory.task === "upgrade");
     if ((!force && upgrader) || !creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME || creep.room.controller.upgradeBlocked || creep.room.controller.level === 8) {
         creep.memory.task = undefined;
         return false;
