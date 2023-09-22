@@ -20,7 +20,7 @@ Creep.prototype.guardRoom = function () {
     if (this.canIWin(50)) {
         if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
             this.handleMilitaryCreep()
-        } else this.findDefensivePosition();
+        } else if (!this.healCreeps()) this.findDefensivePosition();
     } else {
         if (!this.findDefensivePosition()) this.shibKite();
     }
