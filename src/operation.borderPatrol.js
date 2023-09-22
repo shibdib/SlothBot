@@ -38,9 +38,7 @@ Creep.prototype.borderPatrol = function () {
         } else {
             return this.shibKite();
         }
-    } else {
-        this.idleFor(5);
-    }
+    } else if (!this.healCreeps()) this.idleFor(5);
     if (this.memory.destination && this.room.name === this.memory.destination && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) this.memory.destination = undefined;
 };
 
