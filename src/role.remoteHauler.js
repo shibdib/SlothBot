@@ -10,6 +10,8 @@
  */
 
 module.exports.role = function (creep) {
+    // Handle robberies
+    if (creep.memory.operation === 'robbery') return creep.robRoom();
     // Icon
     creep.say(ICONS.haul2, true);
     // Check for tow

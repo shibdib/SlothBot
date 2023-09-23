@@ -175,6 +175,20 @@ function auxiliaryOperations() {
             Memory.auxiliaryTargets = cache;
             log.a('Mining operation planned for ' + roomLink(mineralRoom.name) + ' mineral deposit location, Nearest Room - ' + findClosestOwnedRoom(mineralRoom.name, true) + ' rooms away', 'HIGH COMMAND: ');
         }
+        // Robbery
+        let robberyTarget = _.find(initialFilter, (r) => r.loot);
+        if (robberyTarget) {
+            let cache = Memory.auxiliaryTargets || {};
+            let tick = Game.time;
+            cache[robberyTarget.name] = {
+                tick: tick,
+                type: 'robbery',
+                level: 1,
+                priority: PRIORITIES.high
+            };
+            Memory.auxiliaryTargets = cache;
+            log.a('Robbery operation planned for ' + roomLink(robberyTarget.name) + ', Nearest Room - ' + findClosestOwnedRoom(robberyTarget.name, true) + ' rooms away', 'HIGH COMMAND: ');
+        }
     }
     // Rebuild allies
     let needyRoom = _.find(MY_ROOMS, (r) => Game.rooms[r].memory.buildersNeeded && INTEL[r] && !INTEL[r].threatLevel && !Memory.auxiliaryTargets[r]);
@@ -564,7 +578,7 @@ function manualAttacks() {
         // Manual combat
         let tick = Game.time;
         let operation = name.replace(/[^a-z]/gi, '');
-        if (['clear', 'clean', 'claim', 'rebuild'].includes(operation)) {
+        if (['clear', 'clean', 'claim', 'rebuild', 'robbery'].includes(operation)) {
             Memory.auxiliaryTargets[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 type: operation,
