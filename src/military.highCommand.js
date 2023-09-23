@@ -495,8 +495,10 @@ function manageAuxiliary() {
                 }
                 break;
             case 'commodity':
-                if (MAX_LEVEL < 4) delete Memory.auxiliaryTargets[key];
-                log.a('Canceling mining operation in ' + roomLink(key) + ' as we have no storages.', 'HIGH COMMAND: ');
+                if (MAX_LEVEL < 4) {
+                    delete Memory.auxiliaryTargets[key];
+                    log.a('Canceling mining operation in ' + roomLink(key) + ' as we have no storages.', 'HIGH COMMAND: ');
+                }
                 break;
             case 'claim':
             case 'claimClear':
