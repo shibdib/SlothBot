@@ -363,6 +363,7 @@ function manageAttacks() {
                             level: 0
                         };
                         Memory.targetRooms = cache;
+                        log.a('Pending expired in ' + roomLink(key) + ' switching to a hold.', 'HIGH COMMAND: ');
                     }
                     continue;
                 // Manage Harass
@@ -408,6 +409,7 @@ function manageAttacks() {
             // Remove your rooms
             if (INTEL[key] && Memory.targetRooms[key].type !== 'guard' && INTEL[key].user && INTEL[key].user === MY_USERNAME) {
                 delete Memory.targetRooms[key];
+                log.a('Canceling operation in ' + roomLink(key) + ' as it is targeting one of our rooms.', 'HIGH COMMAND: ');
                 continue;
             }
             // Remove allied rooms
@@ -493,11 +495,13 @@ function manageAuxiliary() {
                 }
                 break;
             case 'commodity':
-                if (MAX_LEVEL < 6) delete Memory.auxiliaryTargets[key];
+                if (MAX_LEVEL < 4) delete Memory.auxiliaryTargets[key];
+                log.a('Canceling mining operation in ' + roomLink(key) + ' as we have no storages.', 'HIGH COMMAND: ');
                 break;
             case 'claim':
             case 'claimClear':
                 if (Game.gcl.level === MY_ROOMS.length) {
+                    log.a('Canceling claim operation in ' + roomLink(key) + ' as we have no available GCL.', 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
                     continue;
                 }
