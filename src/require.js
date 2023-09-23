@@ -23,3 +23,4 @@ require("operation.claimClear");
 require("operation.borderPatrol");
 require("operation.harass"); // Harass random rooms of a specific players remotes
 require("operation.denial"); // Deny individual rooms remotes
+require("operation.robbery"); // Rob rooms
