@@ -39,7 +39,7 @@ module.exports.role = function role(creep) {
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
-        } else if (!spawn || creep.room.level < 2) {
+        } else if (!spawn || creep.room.level < 2 || (!INTEL[creep.room.name] || INTEL[creep.room.name].user !== MY_USERNAME)) {
             creep.memory.harvest = true;
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
             if (source && (!INTEL[creep.room.name].owner || INTEL[creep.room.name].owner === MY_USERNAME) && (!INTEL[creep.room.name].reservation || INTEL[creep.room.name].reservation === MY_USERNAME)) {
@@ -59,7 +59,13 @@ module.exports.role = function role(creep) {
                         break;
                 }
             } else {
-                creep.idleFor(5);
+                if (creep.memory.remoteMining || findRemoteSource(creep)) {
+                    creep.say('Remote!', true);
+                    if (creep.memory.remoteMining !== creep.room.name) return creep.shibMove(new RoomPosition(25, 25, creep.memory.remoteMining), {range: 15}); else creep.memory.remoteMining = undefined;
+                } else {
+                    delete creep.memory.harvest;
+                    creep.idleFor(5);
+                }
             }
         } else {
             creep.idleFor(5);
@@ -129,7 +135,7 @@ function hauling(creep) {
 
 function upgrading(creep, force = undefined) {
     if (creep.memory.task && creep.memory.task !== 'upgrade') return;
-    let upgrader = _.find(creep.room.myCreeps, (c) => c.memory.role === "upgrader" || c.memory.task === "upgrade");
+    let upgrader = creep.memory.task === 'upgrade' || _.find(creep.room.myCreeps, (c) => c.memory.role === "upgrader" || c.memory.task === "upgrade");
     if ((!force && upgrader) || !creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME || creep.room.controller.upgradeBlocked || creep.room.controller.level === 8) {
         creep.memory.task = undefined;
         return false;
