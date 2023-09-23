@@ -25,7 +25,7 @@ module.exports.role = function (creep) {
         if (!creep.memory.intelLogged) {
             creep.memory.intelLogged = true;
         } else if (creep.room.controller.owner) {
-            cleanRoom(creep.room, creep.room.structures);
+            cleanRoom(creep.room);
             return creep.suicide();
         } else if (!creep.pos.findClosestByPath(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER))) {
             INTEL[creep.room.name].obstructions = true;
@@ -60,6 +60,7 @@ module.exports.role = function (creep) {
     }
 };
 
-function cleanRoom(room, structures) {
-    _.filter(structures, (s) => s.structureType !== STRUCTURE_CONTROLLER).forEach((s) => s.destroy());
+function cleanRoom(room) {
+    _.filter(room.structures, (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_ROAD).forEach((s) => s.destroy());
+    _.filter(room.constructionSites, (s) => s.owner.username !== MY_USERNAME).forEach((s) => s.remove());
 }
