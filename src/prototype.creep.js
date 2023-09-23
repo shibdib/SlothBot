@@ -865,7 +865,10 @@ Creep.prototype.borderCheck = function () {
     let x = this.pos.x;
     let y = this.pos.y;
     if (x === 0 || y === 0 || x === 49 || y === 49) {
-        if (this.memory._shibMove && this.memory._shibMove.path && this.memory._shibMove.path.length) {
+        // Handle stuck creeps
+        if (this.memory.borderCountDown) this.memory.borderCountDown++; else this.memory.borderCountDown = 1;
+        // Handle path following
+        if (this.memory.borderCountDown < 5 && this.memory._shibMove && this.memory._shibMove.path && this.memory._shibMove.path.length) {
             let pathInfo = this.memory._shibMove;
             let origin = normalizePos(this);
             pathInfo.path = pathInfo.path.slice(1);
@@ -934,6 +937,7 @@ Creep.prototype.borderCheck = function () {
         }
         return true;
     }
+    this.memory.borderCountDown = undefined;
     return false;
 };
 
