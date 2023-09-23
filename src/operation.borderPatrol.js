@@ -9,7 +9,10 @@ Creep.prototype.borderPatrol = function () {
     let sentence = [ICONS.border, 'Border', 'Patrol'];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
-    if (!this.memory.destination) {
+    // Handle combat
+    if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(50)) {
+        if (this.handleMilitaryCreep() || this.scorchedEarth()) return; else return this.shibKite();
+    } else if (!this.healCreeps() && !this.memory.destination) {
         // Check neighbors
         let adjacent = _.filter(Game.map.describeExits(this.pos.roomName), (r) => INTEL[r] && INTEL[r].threatLevel)[0] || _.filter(Game.map.describeExits(this.pos.roomName), (r) => INTEL[r] && INTEL[r].roomHeat)[0];
         if (adjacent) {
@@ -29,16 +32,7 @@ Creep.prototype.borderPatrol = function () {
                 this.idleFor(5);
             }
         }
-    }
-    if (this.memory.destination && this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
-    // Handle combat
-    if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
-        if (this.canIWin(20)) {
-            if (this.handleMilitaryCreep()) return;
-        } else {
-            return this.shibKite();
-        }
-    } else if (!this.healCreeps()) this.idleFor(5);
+    } else if (this.memory.destination && this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
     if (this.memory.destination && this.room.name === this.memory.destination && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) this.memory.destination = undefined;
 };
 

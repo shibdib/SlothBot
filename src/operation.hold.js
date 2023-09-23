@@ -16,6 +16,7 @@ Creep.prototype.holdRoom = function () {
     if (this.room.name !== this.memory.destination) {
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
     } else {
+        if (!Memory.targetRooms[this.room.name]) return this.memory.operation = 'borderPatrol';
         let sentence = ['Please', 'Abandon'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
