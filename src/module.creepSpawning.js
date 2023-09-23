@@ -269,9 +269,9 @@ module.exports.miscCreepQueue = function (room) {
             }
             //Border Patrol
             if (room.memory.borderPatrol && !getCreepCount(undefined, 'longbow', room.memory.borderPatrol, 'borderPatrol')) {
-                let power = 1;
-                if (room.memory.borderPatrol) power = INTEL[room.memory.borderPatrol].hostilePower;
-                queueCreep(room, priority, {
+                let power = 1
+                if (INTEL[room.memory.borderPatrol]) power = INTEL[room.memory.borderPatrol].hostilePower;
+                queueCreep(room, PRIORITIES.remoteHarvester, {
                     role: 'longbow',
                     operation: 'borderPatrol',
                     military: true,
@@ -349,9 +349,7 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteRoomCount = INTEL[remoteName].remoteRoom.length;
             let highestLevel = true;
             INTEL[remoteName].remoteRoom.forEach(function (r) {
-                if (r !== room.name && Game.rooms[r] && Game.rooms[r].level > room.level) {
-                    return highestLevel = false;
-                }
+                if (r !== room.name && Game.rooms[r] && Game.rooms[r].level > room.level) return highestLevel = false;
             });
             // Handle invader cores with an attacker
             if (INTEL[remoteName].invaderCore) {
@@ -363,8 +361,8 @@ module.exports.remoteCreepQueue = function (room) {
             }
             // Handle invaders
             // If the intel is fresh send a border patrol otherwise send an explorer
-            if (highestLevel && INTEL[remoteName].threatLevel && INTEL[remoteName].tickDetected + CREEP_LIFE_TIME < Game.time) {
-                if (INTEL[remoteName].tickDetected + CREEP_LIFE_TIME > Game.time) {
+            if (highestLevel && INTEL[remoteName].threatLevel > 1) {
+                if (INTEL[remoteName].tickDetected + CREEP_LIFE_TIME < Game.time) {
                     if (!getCreepCount(undefined, 'explorer', remoteName)) {
                         queueCreep(room, PRIORITIES.priority, {role: 'explorer', destination: remoteName})
                     }
@@ -542,14 +540,14 @@ module.exports.globalCreepQueue = function () {
             case 'rebuild':
                 if (!INTEL[key] || !INTEL[key].threatLevel) {
                     if (getCreepCount(undefined, 'drone', key) < 5) {
-                        queueGlobalCreep(PRIORITIES.urgent + getCreepCount(undefined, 'drone', key), {
+                        queueGlobalCreep(priority + getCreepCount(undefined, 'drone', key), {
                             role: 'drone',
                             destination: key,
                             military: true
                         });
                     }
                 } else if (INTEL[key].threatLevel && getCreepCount(undefined, 'longbow', key) < 2) {
-                    queueGlobalCreep(PRIORITIES.urgent, {
+                    queueGlobalCreep(priority, {
                         role: 'longbow',
                         destination: key,
                         military: true,
@@ -560,13 +558,23 @@ module.exports.globalCreepQueue = function () {
             case 'commodity': // Commodity Mining
                 let commoditySpace = operations[key].space || 1;
                 if (getCreepCount(undefined, 'commodityMiner', key) < commoditySpace) {
-                    queueGlobalCreep(PRIORITIES.secondary, {role: 'commodityMiner', destination: key, military: true})
+                    queueGlobalCreep(priority, {role: 'commodityMiner', destination: key, military: true})
                 }
                 break;
             case 'mineral': // Middle room mineral mining
                 let mineralSpace = operations[key].space || 1;
                 if (getCreepCount(undefined, 'commodityMiner', key) < mineralSpace) {
-                    queueGlobalCreep(PRIORITIES.secondary, {role: 'commodityMiner', destination: key, military: true})
+                    queueGlobalCreep(priority, {role: 'commodityMiner', destination: key, military: true})
+                }
+                break;
+            case 'robbery': // Middle room mineral mining
+                if (!getCreepCount(undefined, 'remoteHauler', key)) {
+                    queueGlobalCreep(priority, {
+                        role: 'remoteHauler',
+                        destination: key,
+                        military: true,
+                        operation: 'robbery'
+                    })
                 }
                 break;
             case 'power': // Power Mining
@@ -579,17 +587,17 @@ module.exports.globalCreepQueue = function () {
                     powerAttackerTTL = creepTTL[key]['powerAttacker'] || undefined;
                 }
                 if (!operations[key].complete && (powerHealer < powerAttacker * 2 || (powerHealerTTL && powerHealerTTL < 450 && powerHealer < (powerAttacker * 2) + 1))) {
-                    queueGlobalCreep(PRIORITIES.secondary, {role: 'powerHealer', destination: key, military: true})
+                    queueGlobalCreep(priority, {role: 'powerHealer', destination: key, military: true})
                 }
                 if (!operations[key].complete && (powerAttacker < powerSpace || (powerAttackerTTL && powerAttackerTTL < 450 && powerAttacker < powerSpace + 1))) {
-                    queueGlobalCreep(PRIORITIES.secondary - 1, {
+                    queueGlobalCreep(priority - 1, {
                         role: 'powerAttacker',
                         destination: key,
                         military: true
                     })
                 }
                 if (operations[key].hauler && getCreepCount(undefined, 'powerHauler', key) < operations[key].hauler) {
-                    queueGlobalCreep(PRIORITIES.secondary - 1, {role: 'powerHauler', destination: key, military: true})
+                    queueGlobalCreep(priority - 1, {role: 'powerHauler', destination: key, military: true})
                 }
                 break;
             case 'denial': // Deny Room
