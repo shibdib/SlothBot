@@ -135,7 +135,7 @@ function hauling(creep) {
 
 function upgrading(creep, force = undefined) {
     if (creep.memory.task && creep.memory.task !== 'upgrade') return;
-    let upgrader = creep.memory.task === 'upgrade' || _.find(creep.room.myCreeps, (c) => c.memory.role === "upgrader" || c.memory.task === "upgrade");
+    let upgrader = _.find(creep.room.myCreeps, (c) => c.id !== creep.id && (c.memory.role === "upgrader" || c.memory.task === "upgrade"));
     if ((!force && upgrader) || !creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME || creep.room.controller.upgradeBlocked || creep.room.controller.level === 8) {
         creep.memory.task = undefined;
         return false;
