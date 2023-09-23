@@ -5,7 +5,7 @@
  * Project - Overlord-Bot (Screeps)
  */
 
-const DEFAULT_MAXOPS = 1000;
+const DEFAULT_MAXOPS = 3000;
 const STATE_STUCK = 2;
 const FLEE_RANGE = 4;
 
