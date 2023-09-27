@@ -507,6 +507,11 @@ function manageAuxiliary() {
                     delete Memory.auxiliaryTargets[key];
                     continue;
                 }
+                if (MAX_LEVEL < 4) {
+                    log.a('Canceling claim operation in ' + roomLink(key) + ' as we have no RCL 4+.', 'HIGH COMMAND: ');
+                    delete Memory.auxiliaryTargets[key];
+                    continue;
+                }
                 break;
         }
         if (!Memory.auxiliaryTargets[key]) continue;
