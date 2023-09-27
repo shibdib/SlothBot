@@ -295,7 +295,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         if (!allowedRooms) allowedRooms = [origin.roomName].concat(_.map(Game.map.describeExits(origin.roomName)));
         let callback = (roomName) => {
             if (allowedRooms && !_.includes(allowedRooms, roomName)) return false;
-            if (checkAvoid(roomName) && roomName !== target.roomName && roomName !== origin.roomName) return false;
             return getMatrix(roomName, creep, options);
         };
         let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
@@ -501,10 +500,6 @@ function normalizePos(destination) {
     return destination;
 }
 
-function checkAvoid(roomName) {
-    return Memory.rooms && Memory.rooms[roomName] && Memory.rooms[roomName].avoid;
-}
-
 function getMatrix(roomName, creep, options) {
     let room = Game.rooms[roomName];
     let matrix = getTerrainMatrix(roomName, options);
@@ -540,8 +535,8 @@ function addTerrainToMatrix(roomName, type) {
             swampCost = 0;
             break;
         default:
-            plainCost = 6;
-            swampCost = 30;
+            plainCost = 5;
+            swampCost = 25;
     }
     for (let y = 0; y < 50; y++) {
         for (let x = 0; x < 50; x++) {
