@@ -85,6 +85,7 @@ Object.defineProperty(Creep.prototype, 'combatPower', {
  * Creep method optimizations "getActiveBodyparts"
  */
 Creep.prototype.getActiveBodyparts = function (type) {
+    if (this.className) return 0;
     let count = 0;
     for (let i = this.body.length; i-- > 0;) {
         if (this.body[i].hits > 0) {
@@ -100,6 +101,7 @@ Creep.prototype.getActiveBodyparts = function (type) {
  * Fast check if bodypart exists
  */
 Creep.prototype.hasActiveBodyparts = function (type) {
+    if (this.className) return false;
     for (let i = this.body.length; i-- > 0;) {
         if (this.body[i].hits > 0) {
             if (this.body[i].type === type) {
@@ -328,7 +330,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
             }
         }
         // Links
-        let hubLink = Game.getObjectById(room.memory.hubLink);
+        let hubLink = Game.getObjectById(room.memory.hubLink) || _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_LINK && s.store[RESOURCE_ENERGY]);
         if (hubLink && hubLink.store[RESOURCE_ENERGY]) {
             this.memory.energyDestination = hubLink.id;
             this.memory.findEnergyCountdown = undefined;
@@ -479,7 +481,7 @@ Creep.prototype.haulerDelivery = function () {
         this.memory.storageDestination = needyStructure.id;
         return true;
     }
-    if (this.room.controller.level >= 6) {
+    if (this.room.controller && this.room.controller.level >= 6) {
         //Terminal low
         if (this.room.terminal && this.room.terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER) {
             this.memory.storageDestination = this.room.terminal.id;
@@ -879,8 +881,8 @@ Creep.prototype.borderCheck = function () {
                     pathInfo.pathPosTime = 0;
                     pathInfo.lastMoveTick = Game.time;
                     this.memory._shibMove = pathInfo;
-                    return false;
             }
+            // Handle corners
         } else if (x === 0 && y === 0) {
             this.move(BOTTOM_RIGHT);
         } else if (x === 0 && y === 49) {
@@ -890,50 +892,23 @@ Creep.prototype.borderCheck = function () {
         } else if (x === 49 && y === 49) {
             this.move(TOP_LEFT);
         }
-        let pos;
-        let road = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.pos.isNearTo(this))[0];
+        // Handle border movement
+        let options;
+        let road = _.find(this.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.pos.isNearTo(this));
         if (road) {
             this.move(this.pos.getDirectionTo(road));
         } else if (x === 49) {
-            pos = positionAtDirection(this.pos, LEFT);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                this.move(LEFT)
-            } else {
-                pos = positionAtDirection(this.pos, TOP_LEFT);
-                if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                    this.move(TOP_LEFT)
-                } else this.move(BOTTOM_LEFT)
-            }
+            options = [LEFT, TOP_LEFT, BOTTOM_LEFT];
+            this.move(_.sample(options));
         } else if (x === 0) {
-            pos = positionAtDirection(this.pos, RIGHT);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(RIGHT)
-            } else {
-                pos = positionAtDirection(this.pos, TOP_RIGHT);
-                if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                    this.move(TOP_RIGHT)
-                } else this.move(BOTTOM_RIGHT)
-            }
+            options = [RIGHT, TOP_RIGHT, BOTTOM_RIGHT];
+            this.move(_.sample(options));
         } else if (y === 0) {
-            pos = positionAtDirection(this.pos, BOTTOM);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                this.move(BOTTOM)
-            } else {
-                pos = positionAtDirection(this.pos, BOTTOM_RIGHT);
-                if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                    this.move(BOTTOM_RIGHT)
-                } else this.move(BOTTOM_LEFT)
-            }
+            options = [BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT];
+            this.move(_.sample(options));
         } else if (y === 49) {
-            pos = positionAtDirection(this.pos, TOP);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                this.move(TOP)
-            } else {
-                pos = positionAtDirection(this.pos, TOP_RIGHT);
-                if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                    this.move(TOP_RIGHT)
-                } else this.move(TOP_LEFT)
-            }
+            options = [TOP, TOP_LEFT, TOP_RIGHT];
+            this.move(_.sample(options));
         }
         return true;
     }
@@ -1108,7 +1083,7 @@ Creep.prototype.fleeNukeRoom = function () {
         return false;
     }
     if (this.memory.fleeTo && this.room.name !== this.memory.fleeTo) this.shibMove(new RoomPosition(25, 25, this.memory.fleeTo), {range: 23}); else if (this.room.name !== this.memory.fleeTo) this.idleFor(this.memory.fleeNukeTime - Game.time);
-    if (!this.memory.fleeTo) this.memory.fleeTo = _.sample(_.filter(MY_ROOMS, (r) => !r.nukes.length)).name;
+    if (!this.memory.fleeTo) this.memory.fleeTo = _.sample(_.filter(MY_ROOMS, (r) => !Game.rooms[r].nukes.length)).name;
 };
 
 Creep.prototype.moveRandom = function () {

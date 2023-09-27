@@ -462,7 +462,7 @@ function creepBumping(creep, pathInfo, options) {
     if (nextPosition) {
         let bumpCreep = _.find(nextPosition.lookFor(LOOK_CREEPS), (c) => c.my && !c.fatigue && !c.memory.other.stationary && !c.memory.willNeedTow && !c.memory.trailer && (!c.memory.other.noBump || Math.random() > 0.9));
         if (bumpCreep) {
-            if (!creep.memory.trailer) {
+            if (!creep.className && !creep.memory.trailer) {
                 if (bumpCreep.hasActiveBodyparts(MOVE)) {
                     bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
                 } else {
