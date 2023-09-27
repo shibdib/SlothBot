@@ -47,22 +47,25 @@ module.exports.hiveMind = function () {
         hiveTaskTotalCPU += hiveTaskCurrentCPU;
     } while ((hiveTaskTotalCPU < CPU_TASK_LIMITS['hiveTasks']) && count < functionCount)
     // Military creep loop
-    count = 0;
     let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => (r.memory.military || !r.memory.overlord) && !r.spawning));
-    let totalCreeps = militaryCreeps.length
-    do {
-        let currentCreep = _.first(militaryCreeps);
-        if (!currentCreep) break;
-        militaryCreeps = _.rest(militaryCreeps);
-        count++;
+    for (let creep of militaryCreeps) {
         try {
-            minionController(currentCreep);
+            minionController(creep);
         } catch (e) {
-            log.e('Error with ' + currentCreep.name + ' in ' + roomLink(currentCreep.room.name));
-            log.e(e.stack);
-            Game.notify(e.stack);
+            if (!errorCount[creep.name]) {
+                errorCount[creep.name] = 1;
+                log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name));
+                log.e(e);
+                log.e(e.stack);
+                Game.notify(e);
+                Game.notify(e.stack);
+            } else errorCount[creep.name] += 1;
+            if (errorCount[creep.name] >= 50) {
+                log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name) + ' and has been killed.');
+                creep.suicide();
+            }
         }
-    } while (count < totalCreeps)
+    }
 
     // Overlord loop
     count = 0;
@@ -118,27 +121,7 @@ function minionController(minion) {
         minion.room.invaderCheck();
         minion.room.cacheRoomIntel(false, minion);
     }
-    // Set role
-    try {
-        // Squad pair members dont act here
-        if (!minion.memory.squadLeader || minion.memory.squadLeader === minion.id || (minion.memory.squadLeader && !Game.getObjectById(minion.memory.squadLeader))) {
-            if (!minion.memory.role) return minion.suicide();
-            const creepRole = require('role.' + minion.memory.role);
-            creepRole.role(minion);
-            errorCount[minion.name] = undefined;
-        }
-    } catch (e) {
-        if (!errorCount[minion.name]) errorCount[minion.name] = 1; else errorCount[minion.name] += 1;
-        if (errorCount[minion.name] < 10) {
-            if (errorCount[minion.name] === 1) {
-                log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name));
-                log.e(e);
-                log.e(e.stack);
-                Game.notify(e.stack);
-            }
-        } else if (errorCount[minion.name] >= 50) {
-            if (errorCount[minion.name] === 50) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been killed.');
-            minion.suicide();
-        }
-    }
+    // Run role
+    if (!minion.memory.role) return minion.suicide();
+    require('role.' + minion.memory.role).role(minion);
 }
