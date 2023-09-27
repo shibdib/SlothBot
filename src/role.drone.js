@@ -156,10 +156,10 @@ function upgrading(creep, force = undefined) {
 function wallMaintainer(creep) {
     if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget)) {
         let nukeSite, nukeRampart;
-        let barrierStructures = _.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (s.room.energyState || s.hits < BARRIER_TARGET_HIT_POINTS[s.room.level]));
+        let barrierStructures = _.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL));
         if (creep.room.memory.nuke) {
             nukeSite = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5)[0];
-            nukeRampart = _.min(_.filter(barrierStructures, (s) => s.structureType === STRUCTURE_RAMPART && ((s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.hits < 5000100) || s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) === 0)), 'hits');
+            nukeRampart = _.min(_.filter(barrierStructures, (s) => s.structureType === STRUCTURE_RAMPART && ((s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.hits < (NUKE_DAMAGE[1] * creep.room.nukes.length) + 100000) || (s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) === 0 && s.hits < (NUKE_DAMAGE[0] * creep.room.nukes.length) + 100000))), 'hits');
         }
         let hostileBarrier;
         if (INTEL[creep.room.name].threatLevel) {
@@ -167,13 +167,12 @@ function wallMaintainer(creep) {
         }
         let barrier = _.min(_.filter(barrierStructures, (s) => s.hits < RAMPART_HITS_MAX[creep.room.controller.level] * 0.9), 'hits');
         let site = _.filter(creep.room.constructionSites, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL))[0];
-        if (!hostileBarrier && barrierStructures.length && barrier.hits < 2000) {
+        if (!hostileBarrier && barrier.id && barrier.hits < 2000) {
             creep.memory.currentTarget = barrier.id;
             creep.shibMove(barrier, {range: 3})
         } else if (hostileBarrier) {
             creep.memory.currentTarget = hostileBarrier.id;
         } else if (nukeSite) {
-            creep.say(ICONS.nuke, true);
             switch (creep.build(nukeSite)) {
                 case OK:
                     creep.memory._shibMove = undefined;
@@ -182,7 +181,6 @@ function wallMaintainer(creep) {
                     creep.shibMove(nukeSite, {range: 3})
             }
         } else if (nukeRampart && nukeRampart.id) {
-            creep.say(ICONS.nuke, true);
             creep.memory.currentTarget = nukeRampart.id;
         } else if (site) {
             switch (creep.build(site)) {
