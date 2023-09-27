@@ -20,7 +20,7 @@ module.exports.claimNewRoom = function () {
         claimTarget = undefined;
     }
     if (!claimTarget) {
-        worthyRooms = _.filter(INTEL, (r) => (!r.noClaim || r.noClaim < Game.time) && !r.hostile && !r.obstructions && !r.owner && (!r.reservation || r.reservation === MY_USERNAME) && r.hubCheck &&
+        worthyRooms = _.filter(INTEL, (r) => (!r.noClaim || r.noClaim < Game.time) && !r.needCleaner && !r.hostile && !r.obstructions && !r.owner && (!r.reservation || r.reservation === MY_USERNAME) && r.hubCheck &&
             Game.map.findRoute(r.name, findClosestOwnedRoom(r.name)).length <= 14 && Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(MY_ROOMS[0]).status);
         if (!worthyRooms.length) return;
         let possibles = {};
@@ -90,7 +90,7 @@ module.exports.claimNewRoom = function () {
                     }
                 } else baseScore -= 1000;
                 // Prioritize your sector
-                if (sameSectorCheck(name, findClosestOwnedRoom(name))) baseScore += 5000;
+                if (sameSectorCheck(name, findClosestOwnedRoom(name))) baseScore += 7000;
                 // If negative skip it
                 //if (baseScore < 0) continue;
                 worthyRooms[key]["claimValue"] = baseScore;
