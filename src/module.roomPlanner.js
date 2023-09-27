@@ -21,12 +21,14 @@ module.exports.buildRoom = function (room) {
         let cooldown = 50;
         if (room.level < room.controller.level) cooldown = 10;
         if (!room.memory.labHub) return findLabHub(room);
-        if (((lastRun.layout || 0) + cooldown < Game.time || (Math.random() > 0.75 && room.level < room.controller.level)) || !lastRun.layout) {
-            buildFromLayout(room);
+        // Check if we're short any structures from the bunker template
+        let countCheck = _.filter(bunkerTemplate, (s) => ![STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD].includes(s.structureType) && CONTROLLER_STRUCTURES[s.structureType][room.controller.level] > _.filter(room.structures, (r) => r.structureType === s.structureType).length + _.filter(room.constructionSites, (r) => r.structureType === s.structureType));
+        if (((lastRun.layout || 0) + cooldown < Game.time || (Math.random() > 0.75 && room.level < room.controller.level) || !lastRun.layout) && countCheck.length) {
+            buildFromLayout(room, countCheck);
             lastRun.layout = Game.time + _.random(10, 100);
             tickTracker[room.name] = lastRun;
             globalRun = Game.time;
-        } else if (room.level === room.controller.level && (((lastRun.auxiliary || 0) + cooldown < Game.time) || !lastRun.auxiliary)) {
+        } else if (((lastRun.auxiliary || 0) + cooldown < Game.time) || !lastRun.auxiliary) {
             auxiliaryBuilding(room)
             lastRun.auxiliary = Game.time + _.random(10, 100);
             tickTracker[room.name] = lastRun;
@@ -41,29 +43,24 @@ module.exports.buildRoom = function (room) {
     }
 };
 
-function buildFromLayout(room) {
-    let layout = bunkerTemplate;
+function buildFromLayout(room, countCheck) {
     let filter = [];
-    // Check if we're missing any structures
-    let countCheck = _.filter(layout, (s) => ![STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD].includes(s.structureType) && CONTROLLER_STRUCTURES[s.structureType][room.controller.level] > _.filter(room.structures, (r) => r.structureType === s.structureType).length + _.filter(room.constructionSites, (r) => r.structureType === s.structureType).length);
-    if (countCheck.length) {
-        // Build tower first
-        let builtSpawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN);
-        let builtTower = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER);
-        let initialSpawn = _.find(Game.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)
-        // Handle auto spawn placement, then tower first new claims, then everything else
-        if (!initialSpawn) filter = _.filter(layout, (s) => s.structureType === STRUCTURE_SPAWN);
-        else if (TOWER_FIRST && !builtSpawn && !builtTower && initialSpawn) filter = _.filter(countCheck, (s) => s.structureType === STRUCTURE_TOWER);
-        else filter = _.filter(countCheck, (s) => CONTROLLER_STRUCTURES[s.structureType][room.controller.level]);
-        if (filter.length) {
-            for (let structure of filter) {
-                // Build important stuff first
-                if (room.controller.level !== room.level && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER && structure.structureType !== STRUCTURE_TERMINAL)) continue;
-                for (let buildPos of structure.pos) {
-                    let pos = new RoomPosition(room.hub.x + buildPos.x, room.hub.y + buildPos.y, room.name);
-                    if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
-                        pos.createConstructionSite(structure.structureType);
-                    }
+    // Build tower first
+    let builtSpawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN);
+    let builtTower = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER);
+    let initialSpawn = _.find(Game.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)
+    // Handle auto spawn placement, then tower first new claims, then everything else
+    if (!initialSpawn) filter = _.filter(bunkerTemplate, (s) => s.structureType === STRUCTURE_SPAWN);
+    else if (TOWER_FIRST && !builtSpawn && !builtTower && initialSpawn) filter = _.filter(countCheck, (s) => s.structureType === STRUCTURE_TOWER);
+    else filter = _.filter(countCheck, (s) => CONTROLLER_STRUCTURES[s.structureType][room.controller.level]);
+    if (filter.length) {
+        for (let structure of filter) {
+            // Build important stuff first
+            if (room.controller.level !== room.level && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER && structure.structureType !== STRUCTURE_TERMINAL)) continue;
+            for (let buildPos of structure.pos) {
+                let pos = new RoomPosition(room.hub.x + buildPos.x, room.hub.y + buildPos.y, room.name);
+                if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
+                    pos.createConstructionSite(structure.structureType);
                 }
             }
         }
@@ -76,20 +73,20 @@ function auxiliaryBuilding(room) {
     sourceBuilder(room);
     // Controller
     controllerBuilder(room);
+    // Hub
+    if (room.level >= 5) hubLink(room);
     if (room.storage) {
         // Roads
-        if (!_.find(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD) && !roadBuilder(room, layout)) room.memory.roadsBuilt = true; else room.memory.roadsBuilt = undefined
+        if (!_.find(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD) && !roadBuilder(room, layout)) INTEL[room.name].roadsBuilt = true; else INTEL[room.name].roadsBuilt = undefined
         // Ramparts
         rampartBuilder(room, layout);
-        // Hub
-        if (room.level >= 5) hubLink(room);
         if (room.level >= 6) {
             // Labs
             labBuilder(room);
             // Mineral
             mineralBuilder(room);
         }
-    }
+    } else INTEL[room.name].roadsBuilt = undefined;
     // Cleanup
     if (Math.random() > 0.9) {
         let noRoad = _.filter(room.impassibleStructures, (s) => s.pos.checkForRoad());
@@ -109,8 +106,8 @@ function hubLink(room) {
         room.memory.hubLink = undefined;
         let hubLinkPos = new RoomPosition(room.hub.x, room.hub.y + 1, room.name);
         if (hubLinkPos.checkForAllStructure()[0]) {
-            let hubLink = hubLinkPos.checkForAllStructure()[0];
-            if (hubLink.structureType === STRUCTURE_LINK) {
+            let hubLink = _.find(hubLinkPos.checkForAllStructure(), s => s.structureType === STRUCTURE_LINK);
+            if (hubLink) {
                 room.memory.hubLink = hubLink.id;
                 return true;
             }
@@ -163,6 +160,7 @@ function mineralBuilder(room) {
         }
         let extractorContainer = _.find(extractor.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
         if (!extractorContainer) {
+            room.memory.extractorContainer = undefined;
             let extractorBuild = _.find(extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
             if (!extractorBuild) {
                 let containerSpots = room.lookForAtArea(LOOK_TERRAIN, extractor.pos.y - 1, extractor.pos.x - 1, extractor.pos.y + 1, extractor.pos.x + 1, true);
@@ -396,9 +394,6 @@ function rampartBuilder(room, layout = undefined, count = false) {
                     return;
                 } else if (pos.checkForBuiltWall() && pos.checkForRoad()) {
                     pos.checkForRoad().destroy();
-                    return;
-                } else if (pos.checkForRampart() && !pos.checkForImpassible() && !pos.checkForRoad()) {
-                    pos.createConstructionSite(STRUCTURE_ROAD);
                     return;
                 }
             }

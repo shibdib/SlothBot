@@ -139,7 +139,7 @@ module.exports.essentialCreepQueue = function (room) {
     let level = getLevel(room);
     //Harvesters
     if (getCreepCount(room, 'stationaryHarvester') < room.sources.length || (creepExpiringSoon(room.name, 'stationaryHarvester') && getCreepCount(room, 'stationaryHarvester') === room.sources.length)) {
-        queueCreep(room, PRIORITIES.stationaryHarvester, {
+        queueCreep(room, PRIORITIES.stationaryHarvester + getCreepCount(room, 'stationaryHarvester'), {
             role: 'stationaryHarvester',
             other: {
                 reboot: !getCreepCount(room, 'stationaryHarvester')
@@ -150,18 +150,21 @@ module.exports.essentialCreepQueue = function (room) {
     if (getCreepCount(room, 'stationaryHarvester')) {
         let priority = PRIORITIES.hauler;
         let reboot;
-        if (!getCreepCount(room, 'hauler')) {
-            priority = 1;
-            reboot = true;
-        }
-        if (!getCreepCount(room, 'hauler') || (creepExpiringSoon(room.name, 'hauler') && getCreepCount(room, 'hauler') === 1)) {
-            queueCreep(room, priority + getCreepCount(room, 'hauler') * 1.2, {
-                role: 'hauler',
-                other: {reboot: reboot}
-            });
+        if (room.storage || room.terminal || room.memory.hubLink) {
+            if (!getCreepCount(room, 'hauler')) {
+                priority = 1;
+                reboot = true;
+            }
+            if (!getCreepCount(room, 'hauler') || (creepExpiringSoon(room.name, 'hauler') && getCreepCount(room, 'hauler') === 1)) {
+                queueCreep(room, priority + getCreepCount(room, 'hauler') * 1.2, {
+                    role: 'hauler',
+                    other: {reboot: reboot}
+                });
+            }
         }
         // Spawn shuttles for harvesters with no link
         let amount = 2 - _.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.hubLink && s.id !== room.memory.controllerLink).length;
+        if (!room.memory.hubLink) amount = 2;
         if (amount > 0) {
             if (!getCreepCount(room, 'shuttle')) {
                 priority = 1;
@@ -240,7 +243,7 @@ module.exports.miscCreepQueue = function (room) {
     // If no conflict detected
     if (!room.nukes.length && !INTEL[room.name].threatLevel) {
         //Mineral Harvester
-        if (room.level >= 6 && room.mineral.mineralAmount && !getCreepCount(room, 'mineralHarvester')) {
+        if (room.level >= 6 && room.memory.extractorContainer && room.mineral.mineralAmount && !getCreepCount(room, 'mineralHarvester')) {
             queueCreep(room, PRIORITIES.mineralHarvester, {
                 role: 'mineralHarvester',
                 other: {assignedMineral: room.mineral.id}
@@ -352,7 +355,7 @@ module.exports.remoteCreepQueue = function (room) {
                 if (r !== room.name && Game.rooms[r] && Game.rooms[r].level > room.level) return highestLevel = false;
             });
             // Handle invader cores with an attacker
-            if (INTEL[remoteName].invaderCore) {
+            if (highestLevel && INTEL[remoteName].invaderCore) {
                 if (INTEL[remoteName].sk) continue;
                 if (!getCreepCount(undefined, 'attacker', remoteName)) {
                     queueCreep(room, PRIORITIES.priority, {role: 'attacker', military: true, destination: remoteName})
@@ -539,7 +542,7 @@ module.exports.globalCreepQueue = function () {
             // Rebuilding allies
             case 'rebuild':
                 if (!INTEL[key] || !INTEL[key].threatLevel) {
-                    if (getCreepCount(undefined, 'drone', key) < 5) {
+                    if (getCreepCount(undefined, 'drone', key) < 8) {
                         queueGlobalCreep(priority + getCreepCount(undefined, 'drone', key), {
                             role: 'drone',
                             destination: key,

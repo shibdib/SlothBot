@@ -17,7 +17,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
     let body = [];
     let work, claim, carry, move, tough, attack, rangedAttack, heal, energyScaling;
     let energyAmount = room.energyCapacityAvailable;
-    if (creepInfo.other.reboot || room.creeps.length <= 2) {
+    let importantBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART).length > 0;
+    if (creepInfo.other.reboot || room.myCreeps.length <= 3) {
         energyAmount = room.energyAvailable;
         if (energyAmount < 300) energyAmount = 300;
     }
@@ -55,8 +56,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
                 break;
             } else {
                 work = _.floor((energyAmount * 0.4) / BODYPART_COST[WORK]) || 1;
+                if (work > 5) work = 5;
                 carry = _.floor((energyAmount * 0.1) / BODYPART_COST[CARRY]) || 1;
-                if (!room.memory.roadsBuilt) move = carry + work; else move = _.ceil(carry + work / 2);
+                if (carry > 3) carry = 3;
+                if (!INTEL[room.name].roadsBuilt) move = carry + work; else move = _.ceil(carry + work / 2);
                 break;
             }
         case 'powerManager':
@@ -64,7 +67,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         case 'labTech':
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
             if (carry > level * 2) carry = level * 2;
-            if (!room.memory.roadsBuilt) move = carry; else move = _.ceil(carry / 2);
+            if (!INTEL[room.name].roadsBuilt) move = carry; else move = _.ceil(carry / 2);
             break;
         case 'shuttle':
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
@@ -75,7 +78,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             }
             let energyHarvestedPerTrip = (HARVEST_POWER * 6) * farthestSourceDistance;
             if (carry > energyHarvestedPerTrip / CARRY_CAPACITY) carry = energyHarvestedPerTrip / CARRY_CAPACITY;
-            if (!room.memory.roadsBuilt) move = carry; else move = _.ceil(carry / 2);
+            if (!INTEL[room.name].roadsBuilt) move = carry; else move = _.ceil(carry / 2);
             break;
         case 'stationaryHarvester':
             // Goal is to have enough WORK parts to empty a source in half of its lifetime
@@ -84,7 +87,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             if (powerCreep) {
                 work = (SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME);
             } else if (work > (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1) work = (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
-            carry = _.ceil(EXTENSION_ENERGY_CAPACITY[room.controller.level] / CARRY_CAPACITY);
+            carry = 1;
             move = 1;
             break;
         case 'mineralHarvester':
@@ -152,7 +155,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             energyScaling = true;
             claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
             if (claim > 20) claim = 20;
-            if (level >= 6) {
+            if (importantBuild) claim = 1;
+            if (INTEL[creepInfo.destination].roadsBuilt && level >= 6) {
                 claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
                 if (claim > 20) claim = 20;
                 move = claim * 0.5;
