@@ -437,7 +437,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         level = this.controller.level || undefined;
         // Check for loot
         if (!needCleaner) {
-            let lootTarget = _.filter(this.structures, (s) => (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) && _.sum(s.store) > 0).length > 0;
+            let lootTarget = _.filter(this.structures, (s) => (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) && _.sum(s.store) > 0 && s.pos.checkForRampart(true)).length > 0;
             if (!towers && lootTarget && !this.hostileCreeps.length) loot = true;
         }
     } else if (!sk && this.sources.length && _.find(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)) {
