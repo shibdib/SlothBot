@@ -30,8 +30,7 @@ Creep.prototype.robRoom = function () {
     } else {
         let lootTarget = _.find(this.room.structures, (s) => (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_CONTAINER) && _.sum(s.store) > 0);
         if (lootTarget) {
-            Memory.auxiliaryTargets[this.room.name].tick = Game.time;
-            for (let resourceType in lootTarget.store) this.withdrawResource(lootTarget, resourceType);
+            for (let resourceType in lootTarget.store) if (this.withdrawResource(lootTarget, resourceType)) Memory.auxiliaryTargets[this.room.name].tick = Game.time;
         } else {
             this.memory.hauling = true;
             Memory.auxiliaryTargets[this.room.name] = undefined;
