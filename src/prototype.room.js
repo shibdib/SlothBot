@@ -145,7 +145,7 @@ Object.defineProperty(Room.prototype, 'impassibleStructures', {
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
         if (!this._energyState) {
-            if (this.energy >= ENERGY_AMOUNT[this.level] * 3 || !this.storage) {
+            if (this.energy >= ENERGY_AMOUNT[this.level] * 3 || (!this.storage && !this.terminal)) {
                 this._energyState = 3;
             } else if (this.energy >= ENERGY_AMOUNT[this.level] * 2) {
                 this._energyState = 2;
