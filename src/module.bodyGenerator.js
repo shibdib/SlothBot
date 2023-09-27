@@ -156,7 +156,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
             if (claim > 20) claim = 20;
             if (importantBuild) claim = 1;
-            if (INTEL[creepInfo.destination].roadsBuilt && level >= 6) {
+            if (INTEL[creepInfo.destination].roadsBuilt && INTEL[room.name].roadsBuilt) {
                 claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
                 if (claim > 20) claim = 20;
                 move = claim * 0.5;
@@ -172,7 +172,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             // Neutral
             else if ((!INTEL[creepInfo.destination] || INTEL[creepInfo.destination].reservation !== MY_USERNAME) && work > (SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1) work = (SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
             carry = 1;
-            if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt) move = _.ceil(work / 2); else move = work;
+            if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt && INTEL[room.name].roadsBuilt) move = _.ceil(work / 2); else move = work;
             break;
         case 'remoteHauler':
             let workCost = BODYPART_COST[WORK];
@@ -190,7 +190,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             // Work parts after level 3
             if (room.level >= 4) work = 1; else work = 0;
             // Set move
-            if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt) move = _.ceil((carry + work) / 2); else {
+            if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt && INTEL[room.name].roadsBuilt) move = _.ceil((carry + work) / 2); else {
                 if (carry > 24) carry = 24;
                 move = carry + work;
             }
