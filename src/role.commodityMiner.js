@@ -7,17 +7,20 @@
 
 module.exports.role = function (creep) {
     if (creep.tryToBoost(['harvest'])) return;
-    //Invader detection
+    // Invader detection
     if (creep.fleeHome()) return;
+    // Old age check
+    if (creep.ticksToLive < 150) if (!_.sum(creep.store)) return creep.suicide(); else return creep.recycleCreep();
+    // Move to the deposit
     if (creep.room.name !== creep.memory.destination && !_.sum(creep.store)) {
-        if (creep.ticksToLive < 200) return creep.recycleCreep();
-        else return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22, offRoad: true});
-    } else if (creep.memory.deposit && !creep.isFull) {
+        return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22, offRoad: true});
+    } // Harvest
+    else if (creep.memory.deposit && !creep.isFull) {
         let deposit = Game.getObjectById(creep.memory.deposit);
         // Store space
         if (Memory.auxiliaryTargets[creep.memory.destination] && !Memory.auxiliaryTargets[creep.memory.destination].space) Memory.auxiliaryTargets[creep.memory.destination].space = deposit.pos.countOpenTerrainAround();
         // Clear the deposit if needed
-        if (!deposit || (!deposit.depositType && !deposit.mineralAmount) || deposit.lastCooldown >= 25 || creep.ticksToLive < 250) return creep.memory.deposit = undefined;
+        if (!deposit || (!deposit.depositType && !deposit.mineralAmount) || deposit.lastCooldown >= 25) return creep.memory.deposit = undefined;
         // Refresh the operation
         if (Memory.auxiliaryTargets[creep.memory.destination]) Memory.auxiliaryTargets[creep.memory.destination].tick = Game.time;
         switch (creep.harvest(deposit)) {
@@ -33,7 +36,8 @@ module.exports.role = function (creep) {
             case ERR_TIRED:
                 if (creep.pos.isNearTo(deposit)) creep.idleFor(deposit.cooldown);
         }
-    } else if (_.sum(creep.store)) {
+    } // Deposit at storage
+    else if (_.sum(creep.store)) {
         creep.memory.other.noBump = undefined;
         creep.memory.closestRoom = creep.memory.closestRoom || findClosestOwnedRoom(creep.room.name, false, 4);
         if (creep.room.name !== creep.memory.closestRoom) {
@@ -55,7 +59,7 @@ module.exports.role = function (creep) {
         }
     } else {
         //Find Deposit
-        let deposit = _.filter(creep.room.deposits, (d) => !d.lastCooldown || d.lastCooldown < 25)[0] || creep.room.mineral;
+        let deposit = _.find(creep.room.deposits, (d) => !d.lastCooldown || d.lastCooldown < 25) || creep.room.mineral;
         if (deposit && (deposit.depositType || deposit.mineralAmount)) {
             creep.memory.deposit = deposit.id;
         } else {
