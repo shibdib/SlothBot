@@ -397,7 +397,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     let cache = INTEL;
     if (!force && INTEL[this.name] && INTEL[this.name].cached + CREEP_LIFE_TIME > Game.time) return;
     let mineral, sk, power, portal, level, owner, lastOperation, towers, reservation, safemode,
-        mineralAmount, hubCheck, isHighway, user, loot;
+        mineralAmount, hubCheck, isHighway, user, loot, commodity, needCleaner;
     // Store things that don't change
     if (INTEL[this.name]) {
         lastOperation = INTEL[this.name].lastOperation;
@@ -413,6 +413,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     let ncpArray = Memory.ncpArray || [];
     let combatCreeps = _.find(this.hostileCreeps, (e) => e.hasActiveBodyparts(ATTACK) || e.hasActiveBodyparts(RANGED_ATTACK));
     if (this.controller) {
+        // Check for barriers and if controller is reachable
+        let barrier = _.find(this.impassibleStructures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
+        if (barrier && !this.controller.pos.findClosestByPath(FIND_EXIT)) needCleaner = true;
         if (this.controller.safeMode) safemode = this.controller.safeMode + Game.time;
         if (this.controller.owner) {
             owner = this.controller.owner.username;
@@ -428,22 +431,28 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             towers = _.filter(this.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && s.isActive()).length;
         } else if (this.controller.reservation) {
             reservation = this.controller.reservation.username;
-        } else if (!hubCheck && !this.hostileCreeps.length && this.sources.length === 2) {
+        } else if (!needCleaner && !hubCheck && !this.hostileCreeps.length && this.sources.length === 2) {
             hubCheck = roomPlanner.hubCheck(this);
         }
         level = this.controller.level || undefined;
+        // Check for loot
+        if (!needCleaner) {
+            let lootTarget = _.filter(this.structures, (s) => (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) && _.sum(s.store) > 0).length > 0;
+            if (!towers && lootTarget && !this.hostileCreeps.length) loot = true;
+        }
     } else if (!sk && this.sources.length && _.find(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)) {
         sk = true;
     } else if (!sk && !this.sources.length) {
+        // Get commodity info
+        if (this.deposits.length && _.find(this.deposits, (d) => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20))) {
+            commodity = _.find(this.deposits, (d) => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20)).depositType;
+        }
         isHighway = true;
     }
     // Set a user is we have no owner or reservation
     if (!owner && !reservation && (this.hostileCreeps.length || this.alliedCreeps.length)) {
         if (this.alliedCreeps.length) user = this.alliedCreeps[0].owner.username; else if (this.hostileCreeps.length) user = this.hostileCreeps[0].owner.username;
     }
-    // Check for loot
-    let lootTarget = _.filter(this.structures, (s) => (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) && _.sum(s.store) > 0).length > 0;
-    if (!towers && lootTarget && !this.hostileCreeps.length) loot = true;
     // Store portal info
     portal = _.filter(this.structures, (e) => e.structureType === STRUCTURE_PORTAL);
     if (portal.length) {
@@ -470,7 +479,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         sources: this.sources.length,
         mineral: mineral,
         mineralAmount: mineralAmount,
-        commodity: _.filter(this.deposits, (d) => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20)).length > 0,
+        commodity: commodity,
         owner: owner,
         hubCheck: hubCheck,
         reservation: reservation,
@@ -486,7 +495,8 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         towers: towers,
         hostile: combatCreeps !== undefined || (towers && !FRIENDLIES.includes(owner)),
         status: Game.map.getRoomStatus(this.name).status,
-        loot: loot
+        loot: loot,
+        needCleaner: needCleaner
     };
     Memory.ncpArray = _.uniq(ncpArray);
     global.INTEL = cache;
