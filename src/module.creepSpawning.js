@@ -228,7 +228,7 @@ module.exports.miscCreepQueue = function (room) {
             other: {reboot: room.friendlyCreeps.length <= 3}
         })
     }
-    if (room.terminal && level >= 6) {
+    if (room.terminal && room.storage && level >= 6) {
         //LabTech
         if (!getCreepCount(room, 'labTech')) {
             queueCreep(room, PRIORITIES.hauler, {role: 'labTech'})
