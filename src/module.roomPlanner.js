@@ -248,6 +248,7 @@ function labBuilder(room) {
 
 function roadBuilder(room, layout) {
     let spawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN);
+    if (!spawn) return;
     // Source Roads
     for (let source of room.sources) {
         let container = Game.getObjectById(source.memory.container);
