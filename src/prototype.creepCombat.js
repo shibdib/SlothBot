@@ -92,7 +92,7 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
 
 Creep.prototype.findClosestHostileStructure = function (barriers = true) {
     let enemy;
-    let hostileStructures = _.find(this.room.impassibleStructures, (s) => !s.owner || !FRIENDLIES.includes(s.owner.username));
+    let hostileStructures = _.find(this.room.impassibleStructures, (s) => (!s.owner || !FRIENDLIES.includes(s.owner.username)) || s.structureType === STRUCTURE_WALL);
     if (!hostileStructures) return undefined;
     if (this.memory.target) {
         let oldTarget = Game.getObjectById(this.memory.target);
@@ -108,12 +108,12 @@ Creep.prototype.findClosestHostileStructure = function (barriers = true) {
         this.memory.target = enemy.id;
         return enemy;
     }
-    let hostileRoom = !_.includes(FRIENDLIES, INTEL[this.room.name].user);
+    let hostileRoom = !_.includes(FRIENDLIES, INTEL[this.room.name].owner);
     let structures = _.filter(this.room.structures, (s) => ((s) => !s.owner || !FRIENDLIES.includes(s.owner.username)) && ![STRUCTURE_POWER_BANK, STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_INVADER_CORE].includes(s.structureType));
     let barriersPresent = _.find(structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
     // Kill towers then spawns
     if (hostileRoom && structures.length) {
-        let nonBarriers = _.find(structures, (s) => ![STRUCTURE_WALL, STRUCTURE_RAMPART].includes(s.structureType));
+        let nonBarriers = _.find(structures, (s) => ![STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_CONTAINER, STRUCTURE_ROAD, STRUCTURE_CONTROLLER, STRUCTURE_PORTAL, STRUCTURE_KEEPER_LAIR].includes(s.structureType));
         if (nonBarriers) {
             // Towers with no ramparts
             if (!barriersPresent) enemy = this.pos.findClosestByRange(structures, {filter: (c) => c.structureType === STRUCTURE_TOWER && (!c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000) && c.isActive()}); else enemy = this.pos.findClosestByPath(structures, {filter: (c) => c.structureType === STRUCTURE_TOWER && (!c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000) && c.isActive()});
@@ -140,7 +140,7 @@ Creep.prototype.findClosestHostileStructure = function (barriers = true) {
                 return enemy;
             }
             // All other structures
-            if (!barriersPresent) enemy = this.pos.findClosestByRange(structures, {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD && c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART && c.structureType !== STRUCTURE_POWER_BANK && c.structureType !== STRUCTURE_KEEPER_LAIR && c.structureType !== STRUCTURE_PORTAL}); else enemy = this.pos.findClosestByPath(structures, {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART && c.structureType !== STRUCTURE_POWER_BANK && c.structureType !== STRUCTURE_KEEPER_LAIR && c.structureType !== STRUCTURE_PORTAL});
+            if (!barriersPresent) enemy = this.pos.findClosestByRange(structures, {filter: (c) => c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART}); else enemy = this.pos.findClosestByPath(structures, {filter: (c) => c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART});
             if (enemy) {
                 this.memory.target = enemy.id;
                 return enemy;
