@@ -25,6 +25,8 @@ Creep.prototype.robRoom = function () {
                 }
             }
         }
+    } else if (!Memory.auxiliaryTargets[this.memory.destination]) {
+        return this.recycleCreep();
     } else if (this.room.name !== this.memory.destination) {
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
     } else {
