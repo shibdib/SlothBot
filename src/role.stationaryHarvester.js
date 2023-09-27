@@ -19,7 +19,7 @@ module.exports.role = function (creep) {
             // Build container
             if (!container && creep.store[RESOURCE_ENERGY]) {
                 let dropped = creep.pos.lookFor(LOOK_RESOURCES)[0];
-                if (dropped && dropped.amount >= 200) {
+                if (dropped && dropped.amount >= 750) {
                     let site = creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
                     if (site) {
                         creep.build(site);
@@ -38,19 +38,19 @@ module.exports.role = function (creep) {
                     } else creep.idleFor(source.ticksToRegeneration + 1);
                     break;
                 case OK:
-                    if (container && !container.store.getFreeCapacity(RESOURCE_ENERGY)) depositEnergy(creep);
                     // Set stationary so we don't get bumped
                     creep.memory.other.stationary = true;
                     // If we have a link and container, empty the container of overflow
                     if (source.memory.link && container && container.store[RESOURCE_ENERGY]) creep.withdraw(container, RESOURCE_ENERGY);
                     // Every other tick check for deposit ability
                     if (isEven(Game.time)) {
+                        if (container && !container.store.getFreeCapacity(RESOURCE_ENERGY)) depositEnergy(creep);
                         if (creep.store[RESOURCE_ENERGY]) depositEnergy(creep);
                     }
                     break;
             }
         } else {
-            let container = Game.getObjectById(source.memory.container);
+            let container = Game.getObjectById(source.memory.container) || _.find(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
             //Make sure you're on the container
             if (container) {
                 if (creep.pos.getRangeTo(container)) {
@@ -85,7 +85,7 @@ function depositEnergy(creep) {
     // Fill nearby
     if (extensionFiller(creep)) return;
     if (container && container.hits < container.hitsMax * 0.5) return creep.repair(container);
-    if (source.memory.link) {
+    if (source.memory.link && creep.room.memory.hubLink) {
         let link = Game.getObjectById(source.memory.link);
         if (link && link.store[RESOURCE_ENERGY] < LINK_CAPACITY) {
             creep.transfer(link, RESOURCE_ENERGY);
