@@ -27,17 +27,16 @@ module.exports.overlordMind = function (room, CPULimit) {
         try {
             minionController(creep);
         } catch (e) {
-            if (!errorCount[creep.name]) errorCount[creep.name] = 1; else errorCount[creep.name] += 1;
-            if (errorCount[creep.name] < 10) {
-                if (errorCount[creep.name] === 1) {
-                    log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name));
-                    log.e(e);
-                    log.e(e.stack);
-                    Game.notify(e);
-                    Game.notify(e.stack);
-                }
-            } else if (errorCount[creep.name] >= 50) {
-                if (errorCount[creep.name] === 50) log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name) + ' and has been killed.');
+            if (!errorCount[creep.name]) {
+                errorCount[creep.name] = 1;
+                log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name));
+                log.e(e);
+                log.e(e.stack);
+                Game.notify(e);
+                Game.notify(e.stack);
+            } else errorCount[creep.name] += 1;
+            if (errorCount[creep.name] >= 50) {
+                log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name) + ' and has been killed.');
                 creep.suicide();
             }
         }
