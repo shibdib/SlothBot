@@ -126,7 +126,7 @@ function auxiliaryOperations() {
     let initialFilter = _.filter(INTEL, (r) => r.name && !Memory.auxiliaryTargets[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && !r.hostile);
     if (MAX_LEVEL >= 4) {
         // Power Mining
-        if (MAX_LEVEL >= 8) {
+        if (MAX_LEVEL >= 8 && getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT) {
             let powerRoom = _.min(_.filter(initialFilter, (r) => r.power && r.power + 1500 >= Game.time && findClosestOwnedRoom(r.name, true) <= 8), function (t) {
                 return findClosestOwnedRoom(t.name, true);
             });
@@ -145,7 +145,7 @@ function auxiliaryOperations() {
             }
         }
         // Commodity Mining
-        let commodityRoom = _.min(_.filter(initialFilter, (r) => r.commodity && findClosestOwnedRoom(r.name, true) <= 8), function (t) {
+        let commodityRoom = _.min(_.filter(initialFilter, (r) => r.commodity && getResourceTotal(r.commodity) < DUMP_AMOUNT && findClosestOwnedRoom(r.name, true) <= 8), function (t) {
             return findClosestOwnedRoom(t.name, true);
         });
         let commodityMining = _.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'commodity').length;
@@ -477,6 +477,11 @@ function manageAuxiliary() {
                     delete INTEL[key];
                     continue;
                 }
+                if (getResourceTotal(RESOURCE_POWER) >= DUMP_AMOUNT) {
+                    log.a('Canceling power mining operation in ' + roomLink(key) + ' as we have enough power.', 'HIGH COMMAND: ');
+                    delete Memory.auxiliaryTargets[key];
+                    continue;
+                }
                 break;
             case 'mineral':
                 if (!INTEL[key].mineralAmount) {
@@ -498,6 +503,11 @@ function manageAuxiliary() {
                 if (MAX_LEVEL < 4) {
                     delete Memory.auxiliaryTargets[key];
                     log.a('Canceling mining operation in ' + roomLink(key) + ' as we have no storages.', 'HIGH COMMAND: ');
+                }
+                if (getResourceTotal(INTEL[key].commodity) >= DUMP_AMOUNT) {
+                    log.a('Canceling mining operation in ' + roomLink(key) + ' as we have enough ' + INTEL[key].commodity + '.', 'HIGH COMMAND: ');
+                    delete Memory.auxiliaryTargets[key];
+                    continue;
                 }
                 break;
             case 'claim':
