@@ -256,9 +256,10 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
                     this.shibMove(energyItem);
                     break;
                 default:
+                    this.memory.withdrawID = energyItem.id;
                     this.memory.energyDestination = undefined;
                     this.memory._shibMove = undefined;
-                    break;
+                    return true;
             }
         } else if (energyItem.amount) {
             switch (this.pickup(energyItem)) {
@@ -266,7 +267,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
                     this.memory.withdrawID = energyItem.id;
                     this.memory.energyDestination = undefined;
                     this.memory._shibMove = undefined;
-                    break;
+                    return true;
                 case ERR_NOT_IN_RANGE:
                     this.shibMove(energyItem);
                     break;
