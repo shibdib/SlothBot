@@ -330,13 +330,6 @@ Creep.prototype.locateEnergy = function (room = this.room) {
                 return true;
             }
         }
-        // Links
-        let hubLink = Game.getObjectById(room.memory.hubLink) || _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_LINK && s.store[RESOURCE_ENERGY]);
-        if (hubLink && hubLink.store[RESOURCE_ENERGY]) {
-            this.memory.energyDestination = hubLink.id;
-            this.memory.findEnergyCountdown = undefined;
-            return true;
-        }
         // Tombstone
         if (room.tombstones.length) {
             let tombstone = _.find(room.tombstones, (r) => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY]);
@@ -355,20 +348,14 @@ Creep.prototype.locateEnergy = function (room = this.room) {
                 return true;
             }
         }
-        // Dismantle hostile
-        if (this.hasActiveBodyparts(WORK)) {
-            let hostileStructures = _.find(room.impassibleStructures, (s) => s.owner && !_.includes(FRIENDLIES, s.owner.username));
-            if (hostileStructures) {
-                switch (this.dismantle(hostileStructures)) {
-                    case ERR_NOT_IN_RANGE:
-                        this.shibMove(hostileStructures);
-                }
-                this.say('DISMANTLE', true);
+        if (this.memory.role !== 'shuttle' || this.memory.findEnergyCountdown >= 5) {
+            // Links
+            let hubLink = Game.getObjectById(room.memory.hubLink) || _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_LINK && s.store[RESOURCE_ENERGY]);
+            if (hubLink && hubLink.store[RESOURCE_ENERGY]) {
+                this.memory.energyDestination = hubLink.id;
                 this.memory.findEnergyCountdown = undefined;
                 return true;
             }
-        }
-        if (this.memory.role !== 'shuttle') {
             // Storage
             if (room.storage && room.storage.store[RESOURCE_ENERGY]) {
                 this.memory.energyDestination = room.storage.id;
@@ -816,7 +803,7 @@ Creep.prototype.towTruck = function () {
                 towDestination = Game.getObjectById(trailer.memory.towDestination).pos;
             }
             // Handle case of desto being occupied
-            if (trailer.memory.towOptions && trailer.memory.towOptions.range === 0 && this.pos.isNearTo(towDestination) && (trailer.hasActiveBodyparts(MOVE) || (towDestination.checkForCreep() && towDestination.checkForCreep().id !== this.id))) {
+            if (trailer.memory.towOptions && trailer.memory.towOptions.range === 0 && this.pos.isNearTo(towDestination) && (towDestination.checkForCreep() && towDestination.checkForCreep().id !== this.id)) {
                 trailer.memory.towOptions.range = 1;
             }
             // Handle towing timeout
@@ -882,6 +869,7 @@ Creep.prototype.borderCheck = function () {
                     pathInfo.pathPosTime = 0;
                     pathInfo.lastMoveTick = Game.time;
                     this.memory._shibMove = pathInfo;
+                    return false;
             }
             // Handle corners
         } else if (x === 0 && y === 0) {

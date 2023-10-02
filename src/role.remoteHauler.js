@@ -84,11 +84,11 @@ function dropOff(creep) {
     }
     //Controller
     let controllerContainer = Game.getObjectById(overlord.memory.controllerContainer);
-    let lowTower = _.find(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY && !_.find(creep.room.myCreeps, (c) => c.memory.storageDestination === s.id));
+    let lowTower = _.find(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.7 && !_.find(creep.room.myCreeps, (c) => c.memory.storageDestination === s.id));
     if (lowTower) {
         creep.memory.storageDestination = lowTower.id;
         return true;
-    } else if (overlord.terminal && overlord.terminal.store.getFreeCapacity() > _.sum(creep.store) && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 2 && !_.find(creep.room.myCreeps, (c) => c.memory.storageDestination === overlord.terminal.id)) {
+    } else if (overlord.terminal && overlord.terminal.store.getFreeCapacity() > _.sum(creep.store) && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER) {
         creep.memory.storageDestination = overlord.terminal.id;
         return true;
     } else if (overlord.level === overlord.controller.level && controllerContainer && Math.random() < (controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) / CONTAINER_CAPACITY)) {
@@ -96,6 +96,9 @@ function dropOff(creep) {
         return true;
     } else if (overlord.energyState && overlord.nuker && overlord.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
         creep.memory.storageDestination = overlord.nuker.id;
+        return true;
+    } else if (overlord.energyState && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 100) {
+        creep.memory.storageDestination = controllerContainer.id;
         return true;
     } else if (overlord.terminal && overlord.terminal.store.getFreeCapacity() > _.sum(creep.store) && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 5) {
         creep.memory.storageDestination = overlord.terminal.id;

@@ -25,7 +25,12 @@ module.exports.role = function (creep) {
             }
         } else {
             creep.opportunisticFill();
-            if (creep.room.storage) creep.memory.storageDestination = creep.room.storage.id;
+            // If we have an energy state and a storage, store in the controller container. Otherwise store in storage.
+            if (!creep.memory.storageDestination) {
+                let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
+                if (creep.room.storage && creep.room.energyState > 1 && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 100) creep.memory.storageDestination = controllerContainer.id;
+                else if (creep.room.storage) creep.memory.storageDestination = creep.room.storage.id;
+            }
             if (!creep.haulerDelivery()) creep.idleFor(5)
         }
     } else {
