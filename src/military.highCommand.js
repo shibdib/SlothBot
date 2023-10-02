@@ -21,6 +21,8 @@ module.exports.highCommand = function () {
     Memory.harassTargets = _.filter(Object.keys(Memory._userList), (r) => !_.includes(FRIENDLIES, r) && _.includes(THREATS, r) && userStrength(r) <= MAX_LEVEL);
     // Manage dispatching responders
     manageResponseForces();
+    // Handle auto nuking
+    if (MAX_LEVEL >= 8 && Memory.MAD && Memory.MAD.length) autoNuke();
     // Auxiliary
     if (Math.random() > 0.5) auxiliaryOperations();
     // Request scouting for new operations
@@ -637,6 +639,26 @@ function nukeFlag(flag) {
         nuker.launchNuke(flag.pos);
         log.a('NUCLEAR LAUNCH DETECTED - ' + flag.pos.roomName + ' ' + flag.pos.x + '.' + flag.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.', 'HIGH COMMAND: ');
         flag.remove();
+    }
+}
+
+function autoNuke() {
+    // Check for available launchers
+    let availableLaunchers = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown);
+    if (!availableLaunchers.length) return;
+    // Find a target in range, get the closest to one of your rooms
+    let MADTarget = _.min(_.filter(INTEL, (r) => Memory.MAD.includes(r.owner) && !Memory.targetRooms[r.name] && (!r.lastNuke || r.lastNuke + NUKE_LAND_TIME < Game.time) && r.nukeTarget && _.find(availableLaunchers, (s) => Game.map.getRoomLinearDistance(s.room.name, r.name) <= 10)), function (r) {
+        return findClosestOwnedRoom(r.name, true);
+    });
+    if (MADTarget && MADTarget.name) {
+        log.a('MAD Target Acquired - ' + roomLink(MADTarget.name) + ' - LAUNCHING NUKES', 'HIGH COMMAND: ');
+        Game.notify('MAD Target Acquired - ' + MADTarget.name + ' - LAUNCHING NUKES');
+        let launcher = _.find(availableLaunchers, (s) => Game.map.getRoomLinearDistance(s.room.name, MADTarget.name) <= 10);
+        let target = new RoomPosition(1, 1, MADTarget.name).posFromString(MADTarget.nukeTarget);
+        launcher.launchNuke(target);
+        MADTarget.lastNuke = Game.time;
+        INTEL[MADTarget.name] = MADTarget;
+        Memory.MAD = _.filter(Memory.MAD, (u) => u !== MADTarget.owner);
     }
 }
 
