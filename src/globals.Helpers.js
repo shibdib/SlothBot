@@ -87,6 +87,13 @@ let helpers = function () {
     // Return the closest owned room or the range to it
     let closestCache = {};
     global.findClosestOwnedRoom = function (roomName, range = false, minLevel = 1) {
+        // Check if you own the room
+        if (MY_ROOMS.includes(roomName) && minLevel <= Game.rooms[roomName].controller.level) {
+            closestCache[roomName] = {};
+            closestCache[roomName].closest = roomName;
+            closestCache[roomName].distance = 0;
+            if (range) return 0; else return roomName;
+        }
         if (!closestCache.length || !closestCache[roomName] || closestCache[roomName].ownedCount !== MY_ROOMS.length) {
             closestCache[roomName] = {};
             closestCache[roomName].ownedCount = MY_ROOMS.length;
