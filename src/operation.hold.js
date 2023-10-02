@@ -21,9 +21,9 @@ Creep.prototype.holdRoom = function () {
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
         // Handle combat
-        if (this.room.hostileCreeps.length) {
-            if (this.handleMilitaryCreep()) return;
-        } else if (!this.scorchedEarth()) this.findDefensivePosition();
+        if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(50)) {
+            if (this.handleMilitaryCreep() || this.scorchedEarth()) return; else return this.shibKite();
+        } else this.healCreeps()
         if (Game.time % 5 === 0) this.operationManager();
         highCommand.operationSustainability(this.room);
     }
