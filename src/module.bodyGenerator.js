@@ -156,7 +156,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
             if (claim > 20) claim = 20;
             if (importantBuild) claim = 1;
-            if (INTEL[creepInfo.destination].roadsBuilt && INTEL[room.name].roadsBuilt) {
+            if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt && INTEL[room.name].roadsBuilt) {
                 claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
                 if (claim > 20) claim = 20;
                 move = claim * 0.5;
@@ -226,7 +226,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             break;
     }
     let energyMulti = 1;
-    if (energyScaling && room.storage && room.energyState < 3) energyMulti = (room.energy || 100) / (ENERGY_AMOUNT[room.level] * 3);
+    if (energyScaling && room.storage && room.energyState < 3) energyMulti = room.energyState / 4;
     if (energyMulti > 1) energyMulti = 1;
     for (let i = 0; i < _.ceil(work * energyMulti); i++) body.push(WORK)
     for (let i = 0; i < _.ceil(carry * energyMulti); i++) body.push(CARRY)

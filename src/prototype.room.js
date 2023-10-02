@@ -145,11 +145,11 @@ Object.defineProperty(Room.prototype, 'impassibleStructures', {
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
         if (!this._energyState) {
-            if (this.energy >= ENERGY_AMOUNT[this.level] * 3 || (!this.storage && !this.terminal)) {
+            if (this.energy >= STORAGE_CAPACITY * 0.5) {
                 this._energyState = 3;
-            } else if (this.energy >= ENERGY_AMOUNT[this.level] * 2) {
+            } else if (this.energy >= STORAGE_CAPACITY * 0.2) {
                 this._energyState = 2;
-            } else if (this.energy >= ENERGY_AMOUNT[this.level]) {
+            } else if (this.energy >= STORAGE_CAPACITY * 0.05 || (!this.storage && !this.terminal)) {
                 this._energyState = 1;
             } else {
                 this._energyState = 0;
@@ -397,7 +397,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     let cache = INTEL;
     if (!force && INTEL[this.name] && INTEL[this.name].cached + CREEP_LIFE_TIME > Game.time) return;
     let mineral, sk, power, portal, level, owner, lastOperation, towers, reservation, safemode,
-        mineralAmount, hubCheck, isHighway, user, loot, commodity, needCleaner;
+        mineralAmount, hubCheck, isHighway, user, loot, commodity, needCleaner, nukeTarget;
     // Store things that don't change
     if (INTEL[this.name]) {
         lastOperation = INTEL[this.name].lastOperation;
@@ -429,6 +429,10 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
                 }
             }
             towers = _.filter(this.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && s.isActive()).length;
+            // Handle nuke targets
+            if (this.terminal) {
+                nukeTarget = this.terminal.pos.posToString();
+            }
         } else if (this.controller.reservation) {
             reservation = this.controller.reservation.username;
         } else if (!needCleaner && !hubCheck && !this.hostileCreeps.length && this.sources.length === 2) {
@@ -437,8 +441,8 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         level = this.controller.level || undefined;
         // Check for loot
         if (!needCleaner) {
-            let lootTarget = _.filter(this.structures, (s) => (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) && _.sum(s.store) > 0 && s.pos.checkForRampart(true)).length > 0;
-            if (!towers && lootTarget && !this.hostileCreeps.length) loot = true;
+            let lootTarget = _.filter(this.structures, (s) => (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) && _.sum(s.store) > 0 && !s.pos.checkForRampart(true)).length > 0;
+            if (lootTarget && !this.hostileCreeps.length) loot = true;
         }
     } else if (!sk && this.sources.length && _.find(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)) {
         sk = true;
@@ -496,7 +500,8 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         hostile: combatCreeps !== undefined || (towers && !FRIENDLIES.includes(owner)),
         status: Game.map.getRoomStatus(this.name).status,
         loot: loot,
-        needCleaner: needCleaner
+        needCleaner: needCleaner,
+        nukeTarget: nukeTarget
     };
     Memory.ncpArray = _.uniq(ncpArray);
     global.INTEL = cache;

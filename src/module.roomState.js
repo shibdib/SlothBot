@@ -12,7 +12,7 @@ module.exports.setRoomState = function (room) {
         // Request builders
         if (Math.random() > 0.7) requestBuilders(room);
         // Check if struggling
-        if (room.storage && (room.creeps.length < 4 || room.energy < ENERGY_AMOUNT[room.level] * 0.1)) {
+        if (room.storage && (room.creeps.length < 4 || !room.energyState)) {
             if (room.memory.struggling !== true) log.a(roomLink(room.name) + ' is struggling.', 'ROOMS');
             room.memory.struggling = true;
             room.memory.struggleTime = Game.time;

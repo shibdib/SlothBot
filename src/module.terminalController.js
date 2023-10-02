@@ -127,7 +127,7 @@ function orderCleanup(myOrders) {
                     }
                 }
             } else if (order.resourceType === RESOURCE_ENERGY) {
-                if (_.find(myRooms, (r) => r.terminal && r.energy >= ENERGY_AMOUNT[r.level] * 2)) {
+                if (_.find(myRooms, (r) => r.terminal && r.energyState > 1)) {
                     if (Game.market.cancelOrder(order.id) === OK) {
                         log.e("Order Cancelled: " + order.id + " we have a room with an energy surplus and do not need to purchase energy", 'MARKET: ');
                         continue;
@@ -239,13 +239,11 @@ function pricingUpdate(globalOrders, myOrders) {
 
 function placeSellOrders(terminal, globalOrders, myOrders) {
     for (let resourceType of Object.keys(terminal.store)) {
+        if (resourceType === RESOURCE_ENERGY) continue;
         let sellAmount = 0;
         if (Game.market.credits <= 0) return false;
         // Avoid Duplicates
         if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
-        // Energy
-        if (resourceType === RESOURCE_ENERGY && terminal.room.energyState > 2) sellAmount = terminal.room.energy - ENERGY_AMOUNT[terminal.room.level] * 2; else if (resourceType === RESOURCE_ENERGY && terminal.room.energyState <= 2) continue;
-        if (resourceType === RESOURCE_BATTERY && terminal.room.energyState > 2) sellAmount = terminal.room.store(resourceType) - 2000; else if (resourceType === RESOURCE_BATTERY && terminal.room.energyState <= 2) continue;
         // Handle minerals (don't sell base minerals if there's a factory)
         if (BASE_MINERALS.includes(resourceType) && terminal.room.factory) continue;
         if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS, BASE_COMMODITIES), resourceType)) {
@@ -613,7 +611,7 @@ function balanceEnergy(terminal) {
 
 function emergencyEnergy(terminal) {
     // Balance energy
-    if (terminal.room.energy > ENERGY_AMOUNT[terminal.room.level] * 0.75 && terminal.store[RESOURCE_ENERGY] && !INTEL[terminal.room.name].requestingSupport && !INTEL[terminal.room.name].threatLevel && !terminal.room.nukes.length) {
+    if (terminal.energyState > 1 && terminal.store[RESOURCE_ENERGY] && !INTEL[terminal.room.name].requestingSupport && !INTEL[terminal.room.name].threatLevel && !terminal.room.nukes.length) {
         // Find needy terminals
         let responseNeeded = _.filter(MY_ROOMS, (r) => r !== terminal.room.name && INTEL[r] && INTEL[r].threatLevel >= 3 && Game.rooms[r].terminal && !Game.rooms[r].energyState);
         if (responseNeeded.length) {

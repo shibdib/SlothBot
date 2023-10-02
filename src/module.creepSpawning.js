@@ -202,7 +202,7 @@ module.exports.essentialCreepQueue = function (room) {
         } else number = 10 - room.level;
     }
     if (getCreepCount(room, 'upgrader') < number) {
-        queueCreep(room, PRIORITIES.upgrader + getCreepCount(room, 'upgrader'), {
+        queueCreep(room, (PRIORITIES.upgrader - room.energyState) + getCreepCount(room, 'upgrader'), {
             role: 'upgrader',
             other: {reboot: reboot}
         })
@@ -221,8 +221,8 @@ module.exports.miscCreepQueue = function (room) {
     if (room.energyState && _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART)) number = 9 - room.controller.level;
     if (getCreepCount(room, 'drone') < number) {
         // Bump priority if under attack
-        let priority = PRIORITIES.priority;
-        if (room.memory.spawnDefenders || room.memory.defenseCooldown > Game.time) priority = PRIORITIES.defender;
+        let priority = PRIORITIES.drone;
+        if (room.memory.spawnDefenders || room.memory.defenseCooldown > Game.time) priority -= 1;
         queueCreep(room, priority + getCreepCount(room, 'drone'), {
             role: 'drone',
             other: {reboot: room.friendlyCreeps.length <= 3}
@@ -358,7 +358,11 @@ module.exports.remoteCreepQueue = function (room) {
             if (highestLevel && INTEL[remoteName].invaderCore) {
                 if (INTEL[remoteName].sk) continue;
                 if (!getCreepCount(undefined, 'attacker', remoteName)) {
-                    queueCreep(room, PRIORITIES.priority, {role: 'attacker', military: true, destination: remoteName})
+                    queueCreep(room, PRIORITIES.remoteHarvester - 1, {
+                        role: 'attacker',
+                        military: true,
+                        destination: remoteName
+                    })
                 }
                 continue;
             }
@@ -367,7 +371,7 @@ module.exports.remoteCreepQueue = function (room) {
             if (highestLevel && INTEL[remoteName].threatLevel > 1) {
                 if (INTEL[remoteName].tickDetected + CREEP_LIFE_TIME < Game.time) {
                     if (!getCreepCount(undefined, 'explorer', remoteName)) {
-                        queueCreep(room, PRIORITIES.priority, {role: 'explorer', destination: remoteName})
+                        queueCreep(room, PRIORITIES.remoteHarvester - 1, {role: 'explorer', destination: remoteName})
                     }
                 } else if (!INTEL[remoteName].sk) room.memory.borderPatrol = remoteName;
                 continue;
@@ -398,7 +402,7 @@ module.exports.remoteCreepQueue = function (room) {
                 } // Regular remotes
                 else if (!INTEL[remoteName].sk) {
                     if (getCreepCount(undefined, 'remoteHarvester', remoteName) < INTEL[remoteName].sources) {
-                        queueCreep(room, PRIORITIES.remoteHarvester + (getCreepCount(room, 'remoteHarvester') * 0.2), {
+                        queueCreep(room, PRIORITIES.remoteHarvester + (getCreepCount(room, 'remoteHarvester') * 0.5) + room.energyState, {
                             role: 'remoteHarvester',
                             destination: remoteName
                         })
@@ -406,7 +410,7 @@ module.exports.remoteCreepQueue = function (room) {
                     if (room.level >= 4 && (!INTEL[remoteName].reservationExpires || Game.time > INTEL[remoteName].reservationExpires)) {
                         let amount = INTEL[remoteName].reserverCap || 1;
                         if (getCreepCount(undefined, 'reserver', remoteName) < amount) {
-                            queueCreep(room, PRIORITIES.reserver + getCreepCount(undefined, 'reserver', remoteName) * 2.5, {
+                            queueCreep(room, PRIORITIES.reserver + getCreepCount(undefined, 'reserver', remoteName), {
                                 role: 'reserver',
                                 destination: remoteName
                             })

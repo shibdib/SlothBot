@@ -86,6 +86,7 @@ function makeRequests() {
     RawMemory.setDefaultPublicSegment(98)
     let requestArray = [];
     // Energy requests
+    /**
     let energyRooms = _.filter(MY_ROOMS, (r) => Game.rooms[r].energyState < 2 && Game.rooms[r].terminal);
     for (let room of energyRooms) {
         if (room) {
@@ -103,6 +104,7 @@ function makeRequests() {
             )
         }
     }
+     **/
 
     // Base mineral requests && Boost requests
     if (Memory.saleTerminal) {
@@ -121,7 +123,7 @@ function makeRequests() {
             }
         }
         for (let boost of BUY_THESE_BOOSTS) {
-            if (Game.rooms[Memory.saleTerminal.room].store(boost) < BOOST_AMOUNT * 3) {
+            if (Game.rooms[Memory.saleTerminal.room] && Game.rooms[Memory.saleTerminal.room].store(boost) < BOOST_AMOUNT * 3) {
                 requestArray.push(
                     {
                         requestType: 0,

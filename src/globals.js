@@ -55,6 +55,7 @@ let globals = function () {
         stationaryHarvester: 1,
         // Workers
         upgrader: 4,
+        drone: 2,
         mineralHarvester: 5,
         // Haulers
         hauler: 1,
@@ -78,19 +79,6 @@ let globals = function () {
     global.REMOTE_SOURCE_TARGET = 3; // The number of remote sources a room looks to have. Changing this might ruin your economy.
 
     // Amount targets (Advanced)
-    // Aim for this amount at each room level
-    global.ENERGY_AMOUNT = {
-        undefined: 1,
-        0: 1,
-        1: 1,
-        2: 1,
-        3: 1,
-        4: 25000,
-        5: 50000,
-        6: 100000,
-        7: 200000,
-        8: 250000
-    };
 
     // Wall and rampart target amounts
     global.BARRIER_TARGET_HIT_POINTS = {

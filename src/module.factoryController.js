@@ -43,11 +43,11 @@ module.exports.factoryControl = function (room) {
                                     return delete room.factory.memory.producing;
                                 }
                             }
-                        } else if (COMMODITIES[room.factory.memory.producing].components[RESOURCE_ENERGY] && room.energy < ENERGY_AMOUNT[room.level] * 0.7) {
+                        } else if (COMMODITIES[room.factory.memory.producing].components[RESOURCE_ENERGY] && !room.energyState) {
                             log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to being low on energy.', ' FACTORY CONTROL:');
                             return delete room.factory.memory.producing;
                         }
-                    } else if (room.store(RESOURCE_ENERGY) > ENERGY_AMOUNT[room.level] * 1.5) {
+                    } else if (room.energyState > 1) {
                         return delete room.factory.memory.producing;
                     }
                     coolDownTracker[room.name] = COMMODITIES[room.factory.memory.producing].cooldown + 1;
