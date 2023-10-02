@@ -538,7 +538,7 @@ function manualAttacks() {
     for (let name in Game.flags) {
         // Handle nukes
         if (_.startsWith(name, 'nuke')) {
-            nukeFlag(name);
+            nukeFlag(Game.flags[name]);
             Game.flags[name].remove();
             continue;
         }
