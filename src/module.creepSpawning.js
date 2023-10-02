@@ -220,10 +220,7 @@ module.exports.miscCreepQueue = function (room) {
     let number = 1 + room.energyState;
     if (room.energyState && _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART)) number = 9 - room.controller.level;
     if (getCreepCount(room, 'drone') < number) {
-        // Bump priority if under attack
-        let priority = PRIORITIES.drone;
-        if (room.memory.spawnDefenders || room.memory.defenseCooldown > Game.time) priority -= 1;
-        queueCreep(room, priority + getCreepCount(room, 'drone'), {
+        queueCreep(room, PRIORITIES.drone + getCreepCount(room, 'drone'), {
             role: 'drone',
             other: {reboot: room.friendlyCreeps.length <= 3}
         })
