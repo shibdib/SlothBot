@@ -659,6 +659,14 @@ function autoNuke() {
         MADTarget.lastNuke = Game.time;
         INTEL[MADTarget.name] = MADTarget;
         Memory.MAD = _.filter(Memory.MAD, (u) => u !== MADTarget.owner);
+        let cache = Memory.targetRooms || {};
+        cache[MADTarget.name] = {
+            tick: Game.time,
+            type: 'pending',
+            dDay: Game.time + NUKE_LAND_TIME,
+            observerCheck: Game.time
+        };
+        Memory.targetRooms = cache;
     }
 }
 
