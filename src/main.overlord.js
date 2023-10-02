@@ -75,14 +75,6 @@ module.exports.overlordMind = function (room, CPULimit) {
         //console.log(overlordTaskCurrentCPU + ' CPU used on ' + currentFunction.name + ' function')
     } while ((overlordTaskTotalCPU < CPULimit) && count < functionCount)
 
-
-    // Silence Alerts
-    if (Game.time % 2500 === 0) {
-        for (let building of room.structures) {
-            building.notifyWhenAttacked(false);
-        }
-    }
-
     // Store Data
     let used = Game.cpu.getUsed() - mindStart;
     let cpuUsageArray = ROOM_CPU_ARRAY[room.name] || [];

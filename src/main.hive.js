@@ -14,10 +14,18 @@ const spawning = require('module.creepSpawning');
 const expansion = require('module.expansion');
 const diplomacy = require('module.diplomacy');
 const hud = require('module.hud');
+let buildingNotifications;
 
 module.exports.hiveMind = function () {
     // Timing
     Memory.tickCooldowns = undefined;
+    // Silence Alerts
+    if (Game.time % 2500 === 0 || !buildingNotifications) {
+        buildingNotifications = true;
+        for (let building of _.filter(Game.structures)) {
+            building.notifyWhenAttacked(false);
+        }
+    }
     // Hive/global function loop
     diplomacy.diplomacyOverlord();
     let hiveFunctions = shuffle([{name: 'highCommand', f: highCommand.highCommand},
