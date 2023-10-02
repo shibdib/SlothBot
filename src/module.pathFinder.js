@@ -179,11 +179,11 @@ function executePath(creep, pathInfo, options, origin, heading) {
         if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName && pathInfo.newPos) {
             // Handle tunneling thru walls/ramps
             if (pathInfo.newPos.checkForBarrierStructure() && (!INTEL[pathInfo.newPos.roomName] || !INTEL[pathInfo.newPos.roomName].owner || !FRIENDLIES.includes(INTEL[pathInfo.newPos.roomName].owner))) {
-                if ((options.tunnel || creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(WORK)) && pathInfo.path) {
+                if ((options.tunnel || creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(WORK) || creep.hasActiveBodyparts(RANGED_ATTACK)) && pathInfo.path) {
                     let barrier = pathInfo.newPos.checkForBarrierStructure();
-                    if (creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(WORK)) {
+                    if (creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(WORK) || creep.hasActiveBodyparts(RANGED_ATTACK)) {
                         creep.memory._shibMove.pathPosTime = 0;
-                        if (creep.hasActiveBodyparts(ATTACK) && creep.attack(barrier)) return; else (creep.dismantle(barrier));
+                        if (creep.hasActiveBodyparts(ATTACK) && creep.attack(barrier)) return; else if (creep.hasActiveBodyparts(WORK) && creep.dismantle(barrier)) return; else if (creep.rangedAttack(barrier)) return;
                     } else {
                         creep.memory.barrierClearing = barrier.id;
                         if (Game.getObjectById(creep.memory.trailer)) {
