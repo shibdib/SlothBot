@@ -67,7 +67,7 @@ module.exports.observerControl = function (room) {
                     if (nS === 'N') nS = 'S'; else nS = 'N';
                 }
                 let targetRoom = eW + targetX + nS + targetY;
-                if (INTEL[targetRoom] && INTEL[targetRoom].tick < Game.time - 50) {
+                if ((INTEL[targetRoom] && INTEL[targetRoom].tick < Game.time - 50) || Game.map.getRoomStatus(targetRoom).status === 'closed') {
                     x++;
                     continue;
                 }
