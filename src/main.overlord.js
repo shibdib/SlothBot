@@ -87,13 +87,6 @@ module.exports.overlordMind = function (room, CPULimit) {
             let cpuOverCount = room.memory.cpuOverage || 0;
             room.memory.cpuOverage = cpuOverCount + 1;
             log.e(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
-            for (let key in TASK_CPU_ARRAY[room.name]) {
-                log.e(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(TASK_CPU_ARRAY[room.name][key]), 2));
-            }
-            //Game.notify(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
-            for (let key in TASK_CPU_ARRAY[room.name]) {
-                //Game.notify(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(TASK_CPU_ARRAY[room.name][key]), 2));
-            }
             if (cpuOverCount >= 10) {
                 room.memory.cpuOverage = undefined;
                 room.memory.noRemote = Game.time + 5000;
