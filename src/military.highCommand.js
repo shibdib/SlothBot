@@ -193,7 +193,7 @@ function auxiliaryOperations() {
         }
     }
     // Rebuild allies
-    let needyRoom = _.find(MY_ROOMS, (r) => Game.rooms[r].memory.buildersNeeded && INTEL[r] && !INTEL[r].threatLevel && !Memory.auxiliaryTargets[r]);
+    let needyRoom = _.find(MY_ROOMS, (r) => Game.rooms[r].memory.buildersNeeded && INTEL[r] && !INTEL[r].hostile && !Memory.auxiliaryTargets[r]);
     if (needyRoom) {
         let cache = Memory.auxiliaryTargets || {};
         let tick = Game.time;
@@ -501,6 +501,11 @@ function manageAuxiliary() {
                     delete INTEL[key];
                     continue;
                 }
+                if (INTEL[key].hostile) {
+                    log.a('Canceling rebuild operation in ' + roomLink(key) + ' as it is under attack.', 'HIGH COMMAND: ');
+                    delete Memory.auxiliaryTargets[key];
+                    continue;
+                }
                 break;
             case 'commodity':
                 if (MAX_LEVEL < 4) {
@@ -601,7 +606,7 @@ function manualAttacks() {
         }
         // Abandon a room
         if (_.startsWith(name, 'abandon')) {
-            abandonRoom(Game.flags[name].pos.roomName)
+            abandonRoom(Game.rooms[Game.flags[name].pos.roomName])
             Game.flags[name].remove();
             continue;
         }

@@ -159,7 +159,7 @@ function earlyWarning(room) {
 function unSavableCheck(room) {
     let badCount = room.memory.badCount || 0;
     let worthwhileStructure = _.find(room.impassibleStructures, (s) => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType)) || _.find(room.myCreeps, (c) => c.memory.role === 'drone');
-    if (INTEL[room.name].threatLevel > 2 && MY_ROOMS.length > 1 && !room.controller.safeMode && !worthwhileStructure) {
+    if (Game.gcl.level <= MY_ROOMS.length && INTEL[room.name].threatLevel > 2 && MY_ROOMS.length > 1 && !room.controller.safeMode && !worthwhileStructure) {
         let hostiles = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)));
         // If hostiles add a badCount
         if (hostiles.length) room.memory.badCount += hostiles.length;
