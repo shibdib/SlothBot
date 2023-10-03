@@ -79,7 +79,7 @@ module.exports.hud = function () {
     }
     // Map Hud
     try {
-        if (VISUAL_CACHE['map'] && Game.time % 25 !== 0) return Game.map.visual.import(VISUAL_CACHE['map']);
+        if (CACHE.VISUAL_CACHE && CACHE.VISUAL_CACHE['map'] && Game.time % 25 !== 0) return Game.map.visual.import(CACHE.VISUAL_CACHE['map']);
         // Target Rooms
         if (Memory.targetRooms && _.size(Memory.targetRooms)) {
             for (let room of Object.keys(Memory.targetRooms)) {
@@ -251,8 +251,8 @@ module.exports.hud = function () {
                 }
             }
         }
-        VISUAL_CACHE['map'] = Game.map.visual.export();
-        Memory.MapVisualData = undefined;
+        if (!CACHE.VISUAL_CACHE) CACHE.VISUAL_CACHE = {}
+        CACHE.VISUAL_CACHE['map'] = Game.map.visual.export();
     } catch (e) {
         console.log(e)
         console.log(e.stack)

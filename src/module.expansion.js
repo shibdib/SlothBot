@@ -21,7 +21,7 @@ module.exports.claimNewRoom = function () {
     }
     if (!claimTarget) {
         worthyRooms = _.filter(INTEL, (r) => (!r.noClaim || r.noClaim < Game.time) && !r.needCleaner && !r.hostile && !r.obstructions && !r.owner && (!r.reservation || r.reservation === MY_USERNAME) && r.hubCheck &&
-            Game.map.findRoute(r.name, findClosestOwnedRoom(r.name)).length <= 14 && Game.map.getRoomStatus(r.name).status === Game.map.getRoomStatus(MY_ROOMS[0]).status);
+            Game.map.findRoute(r.name, findClosestOwnedRoom(r.name)).length <= 14 && roomStatus(r.name) === roomStatus(MY_ROOMS[0]));
         if (!worthyRooms.length) return;
         let possibles = {};
         worthy:
@@ -101,7 +101,7 @@ module.exports.claimNewRoom = function () {
     if (claimTarget) {
         let limit = Game.gcl.level;
         // Special novice zone cases
-        if (Game.map.getRoomStatus(MY_ROOMS[0]).status === 'novice') limit = 3;
+        if (roomStatus(MY_ROOMS[0]) === 'novice') limit = 3;
         if (limit > MY_ROOMS.length && MAX_LEVEL >= 4 && !Memory.auxiliaryTargets[claimTarget] && INTEL[claimTarget] && !INTEL[claimTarget].hostile) {
             Memory.nextClaim = undefined;
             let cache = Memory.auxiliaryTargets || {};

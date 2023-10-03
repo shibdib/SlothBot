@@ -140,6 +140,17 @@ let helpers = function () {
     global.difference = function (num1, num2) {
         return (num1 > num2) ? num1 - num2 : num2 - num1
     }
+
+    // Store room status for 10k ticks
+    global.roomStatus = function (roomName) {
+        if (!CACHE.ROOM_STATUS || CACHE.ROOM_STATUS.tick + 10000 < Game.time) {
+            CACHE.ROOM_STATUS = {};
+            CACHE.ROOM_STATUS.tick = Game.time;
+        }
+        if (CACHE.ROOM_STATUS[roomName]) return CACHE.ROOM_STATUS[roomName];
+        else CACHE.ROOM_STATUS[roomName] = Game.map.getRoomStatus(roomName).status;
+        return CACHE.ROOM_STATUS[roomName];
+    }
 }
 
 module.exports = helpers;

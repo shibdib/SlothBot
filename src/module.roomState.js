@@ -35,16 +35,6 @@ module.exports.setRoomState = function (room) {
         }
         room.memory.energyPositive = average(energyIncomeArray) > 0;
         ROOM_ENERGY_INCOME_ARRAY[room.name] = energyIncomeArray;
-        // Cache number of spaces around sources for things
-        if (!ROOM_SOURCE_SPACE[room.name]) {
-            let spaces = 0;
-            for (let source of room.sources) spaces += source.pos.countOpenTerrainAround();
-            ROOM_SOURCE_SPACE[room.name] = spaces;
-        }
-        // Cache number of spaces around sources for things
-        if (!ROOM_CONTROLLER_SPACE[room.name]) {
-            ROOM_CONTROLLER_SPACE[room.name] = room.controller.pos.countOpenTerrainAround();
-        }
         // Store minerals
         let currentMinerals = MY_MINERALS || [];
         currentMinerals.push(room.mineral.mineralType);

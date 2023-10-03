@@ -21,7 +21,6 @@ module.exports.cleanup = function () {
         for (let name in Memory.creeps) {
             if (!Game.creeps[name]) {
                 delete Memory.creeps[name];
-                delete CREEP_CPU_ARRAY[name];
             }
         }
         for (let name in Memory.flags) {

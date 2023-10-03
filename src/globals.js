@@ -63,7 +63,7 @@ let globals = function () {
         // Remotes
         remoteHarvester: 3,
         remoteHauler: 2,
-        roadBuilder: 7,
+        roadBuilder: 4,
         fuelTruck: 8,
         reserver: 3,
         // Military
@@ -123,22 +123,14 @@ let globals = function () {
     global.ALL_COMMODITIES = _.union(BASE_COMMODITIES, HIGHER_COMMODITIES, REGIONAL_0_COMMODITIES, REGIONAL_1_COMMODITIES, REGIONAL_2_COMMODITIES, REGIONAL_3_COMMODITIES, REGIONAL_4_COMMODITIES, REGIONAL_5_COMMODITIES, COMPRESSED_COMMODITIES);
 
     //Cache stuff
-    global.ROAD_CACHE = {};
-    global.CREEP_CPU_ARRAY = {};
-    global.ROOM_CPU_ARRAY = {};
-    global.CREEP_ROLE_CPU_ARRAY = {};
-    global.CREEP_ROLE_CPU = {};
-    global.ROOM_TASK_CPU_ARRAY = {};
-    global.ROOM_ENERGY_INCOME_ARRAY = {};
-    global.TASK_CPU_ARRAY = {};
-    global.ROOM_CREEP_CPU_OBJECT = {};
-    global.ROOM_SOURCE_SPACE = {};
-    global.ROOM_CONTROLLER_SPACE = {};
-    global.ROOM_HARVESTER_EXTENSIONS = {};
-    global.ALLY_HELP_REQUESTS = {};
-    global.VISUAL_CACHE = {};
-    global.INTEL = {};
-    global.MY_MINERALS = [];
+    global.CACHE = {};
+    global.ROAD_CACHE = CACHE.ROAD_CACHE = {};
+    global.ROOM_CPU_ARRAY = CACHE.ROOM_CPU_ARRAY = {};
+    global.ROOM_ENERGY_INCOME_ARRAY = CACHE.ROOM_ENERGY_INCOME_ARRAY = {};
+    global.ROOM_HARVESTER_EXTENSIONS = CACHE.ROOM_HARVESTER_EXTENSIONS = {};
+    global.ALLY_HELP_REQUESTS = CACHE.ALLY_HELP_REQUESTS = {};
+    global.INTEL = CACHE.INTEL = {};
+    global.MY_MINERALS = CACHE.MY_MINERALS = [];
 
     // Set some diplo stuff
     global.ENEMIES = [];

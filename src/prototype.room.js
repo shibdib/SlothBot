@@ -498,7 +498,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         invaderCore: _.filter(this.structures, (e) => e.structureType === STRUCTURE_INVADER_CORE).length > 0,
         towers: towers,
         hostile: combatCreeps !== undefined || (towers && !FRIENDLIES.includes(owner)),
-        status: Game.map.getRoomStatus(this.name).status,
+        status: roomStatus(this.name),
         loot: loot,
         needCleaner: needCleaner,
         nukeTarget: nukeTarget

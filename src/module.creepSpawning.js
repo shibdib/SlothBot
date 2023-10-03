@@ -155,8 +155,10 @@ module.exports.essentialCreepQueue = function (room) {
                 priority = 1;
                 reboot = true;
             }
-            if (!getCreepCount(room, 'hauler') || (creepExpiringSoon(room.name, 'hauler') && getCreepCount(room, 'hauler') === 1)) {
-                queueCreep(room, priority + getCreepCount(room, 'hauler') * 1.2, {
+            let number = 1;
+            if (room.energyState) number = 2;
+            if (getCreepCount(room, 'hauler') < number || (creepExpiringSoon(room.name, 'hauler') && getCreepCount(room, 'hauler') === number)) {
+                queueCreep(room, priority + getCreepCount(room, 'hauler'), {
                     role: 'hauler',
                     other: {reboot: reboot}
                 });
@@ -202,7 +204,7 @@ module.exports.essentialCreepQueue = function (room) {
         } else number = 10 - room.level;
     }
     if (getCreepCount(room, 'upgrader') < number) {
-        queueCreep(room, (PRIORITIES.upgrader - room.energyState) + getCreepCount(room, 'upgrader'), {
+        queueCreep(room, (PRIORITIES.upgrader - (room.energyState * 0.5)) + getCreepCount(room, 'upgrader'), {
             role: 'upgrader',
             other: {reboot: reboot}
         })
@@ -249,7 +251,7 @@ module.exports.miscCreepQueue = function (room) {
         // Explorers
         let roomExplorers = _.filter(Game.creeps, (c) => c.my && c.memory.role === 'explorer' && c.memory.overlord === room.name);
         if (roomExplorers.length < 9 - MAX_LEVEL) {
-            queueCreep(room, PRIORITIES.priority + (roomExplorers.length * 0.25), {role: 'explorer'})
+            queueCreep(room, PRIORITIES.extreme + (roomExplorers.length * 0.25), {role: 'explorer'})
         }
         // If room is near the highest level
         if (level >= MAX_LEVEL - 1 && level >= 4) {
@@ -307,14 +309,14 @@ module.exports.remoteCreepQueue = function (room) {
         remoteRoomTargets[room.name] = undefined;
         // Find rooms around you using INTEL with remote possibilities
         let sourceCount = 0;
-        let remoteRooms = _.filter(Game.map.describeExits(room.name), (r) => Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status && INTEL[r] && INTEL[r].sources && !INTEL[r].level &&
+        let remoteRooms = _.filter(Game.map.describeExits(room.name), (r) => roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level &&
             (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation)));
         if (remoteRooms.length) remoteRooms.forEach((r) => sourceCount += INTEL[r].sources || 1);
         // Handle less than desired
         let targetAmount = REMOTE_SOURCE_TARGET;
         if (sourceCount < targetAmount) {
             for (let adjacentRoom of remoteRooms) {
-                let secondaryAdjacent = _.filter(Game.map.describeExits(adjacentRoom), (r) => INTEL[r] && INTEL[r].sources && !INTEL[r].level && Game.map.getRoomStatus(r).status === Game.map.getRoomStatus(room.name).status &&
+                let secondaryAdjacent = _.filter(Game.map.describeExits(adjacentRoom), (r) => INTEL[r] && INTEL[r].sources && !INTEL[r].level && roomStatus(r) === roomStatus(room.name) &&
                     (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation)));
                 if (secondaryAdjacent.length) {
                     secondaryAdjacent.forEach((r) => sourceCount += INTEL[r].sources || 1);
@@ -445,7 +447,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
             // Remote Road Builder
-            if (getCreepCount(undefined, 'roadBuilder', room.name) < _.filter(Game.map.describeExits(room.name), (r) => !INTEL[r] || (INTEL[r].sources && !INTEL[r].roadsBuilt)).length + 1) {
+            if (getCreepCount(room, 'roadBuilder') < 2) {
                 queueCreep(room, PRIORITIES.roadBuilder, {
                     role: 'roadBuilder',
                     misc: JSON.parse(remoteRoomTargets[room.name])
