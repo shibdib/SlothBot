@@ -18,6 +18,9 @@ module.exports.buildRoom = function (room) {
     if (globalRun === Game.time) return;
     let lastRun = tickTracker[room.name] || {};
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
+        // Hub check
+        let bunkerHub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+        if (bunkerHub.checkForWall()) return room.memory.bunkerHub = undefined;
         let cooldown = 50;
         if (room.level < room.controller.level) cooldown = 10;
         if (!room.memory.labHub) return findLabHub(room);
