@@ -447,7 +447,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
             // Remote Road Builder
-            if (getCreepCount(room, 'roadBuilder') < 2) {
+            if (getCreepCount(undefined, 'roadBuilder', room.name) < 2) {
                 queueCreep(room, PRIORITIES.roadBuilder, {
                     role: 'roadBuilder',
                     misc: JSON.parse(remoteRoomTargets[room.name])
