@@ -14,8 +14,8 @@ module.exports.role = function (creep) {
     Game.map.visual.text(ICONS.eye, creep.pos, {color: '#FF0000', fontSize: 4});
     // Set destination
     if (!creep.memory.destination) {
-        let portal = Game.getObjectById(creep.memory.portal) || creep.pos.findClosestByRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL));
-        if (portal && (!Game.cpu.shardLimits || Game.cpu.shardLimits[portal.destination.shard] > 0) && !creep.memory.usedPortal && (creep.memory.other.portalJump || Math.random() > 0.5 || creep.memory.other.portalForce)) {
+        let portal = Game.getObjectById(creep.memory.portal) || creep.pos.findClosestByRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL && !s.destination.shard));
+        if (!creep.memory.usedPortal && portal && (creep.memory.other.portalJump || Math.random() > 0.01)) {
             if (!creep.memory.other.portalJump) {
                 let roomName;
                 if (portal.destination.shard) roomName = portal.destination.room.name; else roomName = portal.destination.roomName;
@@ -25,7 +25,7 @@ module.exports.role = function (creep) {
             } else if (creep.memory.other.portalJump === creep.room.name) {
                 return creep.memory.usedPortal = true;
             }
-            return creep.moveTo(portal);
+            return creep.shibMove(portal, {range: 0});
         } else {
             let adjacent = _.filter(_.map(Game.map.describeExits(creep.pos.roomName)), (r) => roomStatus(r) === roomStatus(creep.memory.overlord) && !_.find(creep.room.myCreeps, (c) => c.memory.destination === r) && creep.pos.findClosestByPath(Game.map.findExit(creep.pos.roomName, r)));
             if (!adjacent.length) adjacent = _.filter(_.map(Game.map.describeExits(creep.pos.roomName)), (r) => creep.pos.findClosestByPath(Game.map.findExit(creep.pos.roomName, r)));

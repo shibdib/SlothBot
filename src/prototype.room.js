@@ -11,6 +11,7 @@ const roomPlanner = require('module.roomPlanner');
 let hubCache = {};
 Object.defineProperty(Room.prototype, 'hub', {
     get: function () {
+        if (!this.memory.bunkerHub || !this.memory.bunkerHub.x || !this.memory.bunkerHub.y) return;
         if (!this._hub) {
             if (!hubCache[this.name]) {
                 hubCache[this.name] = JSON.stringify({x: this.memory.bunkerHub.x, y: this.memory.bunkerHub.y});
@@ -458,17 +459,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         if (this.alliedCreeps.length) user = this.alliedCreeps[0].owner.username; else if (this.hostileCreeps.length) user = this.hostileCreeps[0].owner.username;
     }
     // Store portal info
-    portal = _.filter(this.structures, (e) => e.structureType === STRUCTURE_PORTAL);
-    if (portal.length) {
-        let portalArray = [];
-        let destinationArray = [];
-        for (let obj of portal) {
-            if (obj.ticksToDecay && obj.ticksToDecay <= 500) continue;
-            if (!_.includes(destinationArray, obj.destination)) destinationArray.push(obj.destination); else continue;
-            let decayTick = obj.ticksToDecay + Game.time || 99999999999;
-            portalArray.push({decayTick: decayTick, destination: obj.destination})
-        }
-        if (portalArray.length) portal = JSON.stringify(portalArray); else portal = undefined;
+    portal = _.find(this.structures, (e) => e.structureType === STRUCTURE_PORTAL && !e.destination.shard);
+    if (portal) {
+        portal = portal.destination.roomName;
     } else {
         portal = undefined;
     }

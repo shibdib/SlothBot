@@ -103,19 +103,9 @@ let helpers = function () {
                 let myRoom = Game.rooms[key];
                 if (!myRoom || myRoom.controller.level < minLevel) continue;
                 // Handle absurd distances
-                let path = Game.map.findRoute(key, roomName).length;
-                if (path >= (CREEP_LIFE_TIME / 50)) {
-                    let currentRoom = roomName;
-                    let closestPortal = _.sortBy(_.filter(INTEL, (r) => r.portal), function (f) {
-                        Game.map.getRoomLinearDistance(f.name, currentRoom)
-                    });
-                    let closest = closestPortal.length - 1;
-                    if (closestPortal[closest]) {
-                        let portalDestination = JSON.parse(INTEL[closestPortal[closest].name].portal)[0].destination.roomName || JSON.parse(INTEL[closestPortal[closest].name].portal)[0].destination.room;
-                        if (INTEL[portalDestination]) path = Game.map.getRoomLinearDistance(closestPortal[closest].name, currentRoom) + findClosestOwnedRoom(portalDestination, true);
-                    }
-                }
+                let path = myRoom.shibRoute(roomName);
                 if (!path) continue;
+                distance = path.length;
                 if (!distance) {
                     distance = path;
                     closest = myRoom.name;

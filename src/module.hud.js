@@ -233,22 +233,14 @@ module.exports.hud = function () {
                 });
             }
             if (intel.portal) {
-                let count = 0;
-                for (let portal of JSON.parse(intel.portal)) {
-                    let destination;
-                    if (portal.destination.shard) destination = portal.destination.shard + ' ' + portal.destination.room;
-                    else destination = portal.destination.roomName;
-                    Game.map.visual.text('Portal to ' + destination, new RoomPosition(25, 33 + (count), intel.name), {
-                        color: '#b90bf5',
-                        backgroundColor: '#000000',
-                        stroke: '#000000',
-                        fontSize: 4,
-                        fontFamily: 'monospace',
-                        align: 'center'
-                    });
-                    count += 4;
-                    if (count > 8) break;
-                }
+                Game.map.visual.text('Portal to ' + intel.portal, new RoomPosition(25, 33, intel.name), {
+                    color: '#b90bf5',
+                    backgroundColor: '#000000',
+                    stroke: '#000000',
+                    fontSize: 4,
+                    fontFamily: 'monospace',
+                    align: 'center'
+                });
             }
         }
         if (!CACHE.VISUAL_CACHE) CACHE.VISUAL_CACHE = {}

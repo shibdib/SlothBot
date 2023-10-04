@@ -101,23 +101,18 @@ function shibMove(creep, heading, options = {}) {
     if (options.showMatrix) return getMatrix(creep.room.name, creep, options)
 
     // Handle portal
-    if (creep.memory.portal) {
-        let portal = creep.memory.portal;
-        if (Game.getObjectById(creep.memory.portal)) {
-            let portalInfo = Game.getObjectById(creep.memory.portal);
-            if (portal instanceof RoomPosition) portal = portal.roomName; else portal = portalInfo.room;
-        }
-        if (creep.memory.portal === creep.room.name) {
-            let portalStructure = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL);
-            return creep.moveTo(portalStructure);
+    if (options.portal) {
+        // Handle arriving
+        if (creep.room.name === options.portalDestination) {
+            heading = new RoomPosition(25, 25, options.originalDestination);
+            options.portal = undefined;
+            options.range = 23;
+        } else if (creep.room.name !== creep.memory.portal) {
+            heading = new RoomPosition(25, 25, options.portal);
+            options.range = 23;
         } else {
-            if (creep.memory.usedPortal) {
-                creep.memory.portal = undefined;
-                creep.memory._shibMove = undefined;
-                return;
-            } else {
-                heading = Game.getObjectById(creep.memory.portal);
-            }
+            heading = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL);
+            options.range = 0;
         }
     }
 
@@ -235,7 +230,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     if (!target) return creep.moveRandom();
     if (options.useCache && !INTEL[creep.room.name].threatLevel && !options.tunnel) cached = getPath(creep, origin, target, pathInfo);
     if (cached && options.ignoreCreeps) {
-        if (options.confirmPath) return cached;
         pathInfo.findAttempt = undefined;
         pathInfo.target = target;
         pathInfo.path = cached;
@@ -267,10 +261,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let allowedRooms = pathInfo.route || options.route;
         if (roomDistance) {
             let route = findRoute(origin.roomName, target.roomName, options);
-            if (portal) {
-                creep.memory.portal = portal;
-                return portal = undefined;
-            }
             if (route) {
                 if (!_.includes(route, creep.room.name)) route.unshift(creep.room.name);
                 allowedRooms = route;
@@ -338,7 +328,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let nextDirection = parseInt(pathInfo.path[0], 10);
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
         pathInfo.target = target;
-        pathInfo.portal = portal;
         if (options.ignoreCreeps && !options.ignoreStructures) cachePath(creep, origin, target, pathInfo);
         delete pathInfo.findAttempt;
         if (options.getPath) return creep.memory.getPath = pathInfo.path;
@@ -357,7 +346,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     }
 }
 
-let portal;
 function findRoute(origin, destination, options = {}) {
     // Default options
     _.defaults(options, {
@@ -366,26 +354,23 @@ function findRoute(origin, destination, options = {}) {
     let route;
     if (options.useCache && !options.distance) route = getRoute(origin, destination);
     if (route) return route;
-    portal = undefined;
+    options.portal = undefined;
     let portalRoom;
     let roomDistance = Game.map.getRoomLinearDistance(origin, destination);
     if (roomDistance > 7) {
         // Check for portals and don't use cached if one exists
-        portalRoom = _.filter(INTEL, (r) => r.portal && Game.map.getRoomLinearDistance(origin, r.name) < roomDistance * 0.5 &&
-            JSON.parse(r.portal)[0].destination.roomName && Game.map.getRoomLinearDistance(JSON.parse(r.portal)[0].destination.roomName, destination) < roomDistance * 0.5)[0];
-        if (portalRoom) {
-            portal = portalRoom.name;
+        portalRoom = _.min(_.filter(INTEL, (r) => r.portal && Game.map.getRoomLinearDistance(origin, r.name) < 8 && Game.map.getRoomLinearDistance(r.portal, destination) < 8), function (r) {
+            return Game.map.getRoomLinearDistance(origin, r.name);
+        });
+        if (portalRoom && portalRoom.name) {
+            options.portal = portalRoom.name;
+            options.portalDestination = INTEL[portalRoom.name].portal;
+            options.originalDestination = destination;
             destination = portalRoom.name;
         }
     }
     route = routeLogic(origin, destination, roomDistance, portalRoom);
-    if (options.distance) {
-        if (!route) route = [];
-        if (!portalRoom) return route.length; else if (portalRoom) {
-            let portalDestination = JSON.parse(INTEL[portalRoom.name].portal)[0].destination.roomName || JSON.parse(INTEL[portalRoom.name].portal)[0].destination.room;
-            if (INTEL[portalDestination]) return route.length + findClosestOwnedRoom(portalDestination, true); else return route.length + 1
-        }
-    } else return route;
+    return route;
 }
 
 function routeLogic(origin, destination, roomDistance, portalRoom) {
@@ -396,7 +381,7 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
     }
     // Get portal room route first if needed
     if (portalRoom) portalRoute = routeLogic(origin, portalRoom.name, roomDistance)
-    if (portalRoute) start = JSON.parse(INTEL[portalRoom.name].portal)[0].destination.roomName; else start = origin;
+    if (portalRoute) start = INTEL[portalRoom.name].portal; else start = origin;
     let routeSearch = Game.map.findRoute(start, destination, {
         routeCallback: function (roomName) {
             // Skip origin/destination
@@ -603,6 +588,8 @@ function addStructuresToMatrix(room, creep, matrix, type, options) {
             } else {
                 matrix.set(structure.pos.x, structure.pos.y, 150);
             }
+        } else if (structure instanceof StructurePortal) {
+            matrix.set(structure.pos.x, structure.pos.y, 150);
         } else if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureController) {
