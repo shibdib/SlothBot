@@ -11,39 +11,28 @@
 const minCut = require('util.minCut');
 let rampartSpots = {};
 let tickTracker = {};
-let globalRun;
 
 module.exports.buildRoom = function (room) {
     // Only run once per tick
-    if (globalRun === Game.time) return;
     let lastRun = tickTracker[room.name] || {};
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
         // Hub check
         let bunkerHub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
         if (bunkerHub.checkForWall()) return room.memory.bunkerHub = undefined;
-        let cooldown = 50;
-        if (room.level < room.controller.level) cooldown = 10;
         if (!room.memory.labHub) return findLabHub(room);
         // Check if we're short any structures from the bunker template
         let countCheck = _.filter(bunkerTemplate, (s) => ![STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD].includes(s.structureType) && CONTROLLER_STRUCTURES[s.structureType][room.controller.level] > _.filter(room.structures, (r) => r.structureType === s.structureType).length + _.filter(room.constructionSites, (r) => r.structureType === s.structureType));
-        if (((lastRun.layout || 0) + cooldown < Game.time || (Math.random() > 0.75 && room.level < room.controller.level) || !lastRun.layout) && countCheck.length) {
+        if ((lastRun.layout || 0) < Game.time && countCheck.length) {
             buildFromLayout(room, countCheck);
-            lastRun.layout = Game.time + _.random(10, 100);
-            tickTracker[room.name] = lastRun;
-            globalRun = Game.time;
-        } else if (((lastRun.auxiliary || 0) + cooldown < Game.time) || !lastRun.auxiliary) {
+            lastRun.layout = Game.time + _.random(50, 100);
+        } else if ((lastRun.auxiliary || 0) < Game.time) {
             auxiliaryBuilding(room)
-            lastRun.auxiliary = Game.time + _.random(10, 100);
-            tickTracker[room.name] = lastRun;
-            globalRun = Game.time;
+            lastRun.auxiliary = Game.time + _.random(50, 100);
         }
     } else {
         findHub(room);
-        lastRun.layout = Game.time + _.random(10, 250);
-        lastRun.auxiliary = Game.time + _.random(10, 250);
-        tickTracker[room.name] = lastRun;
-        globalRun = Game.time;
     }
+    tickTracker[room.name] = lastRun;
 };
 
 function buildFromLayout(room, countCheck) {
@@ -80,7 +69,7 @@ function auxiliaryBuilding(room) {
     if (room.level >= 5) hubLink(room);
     if (room.storage) {
         // Roads
-        if (!_.find(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD) && !roadBuilder(room, layout)) INTEL[room.name].roadsBuilt = true; else INTEL[room.name].roadsBuilt = undefined
+        if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length < 3 && !roadBuilder(room, layout)) INTEL[room.name].roadsBuilt = true; else INTEL[room.name].roadsBuilt = undefined
         // Ramparts
         rampartBuilder(room, layout);
         if (room.level >= 6) {
@@ -360,46 +349,56 @@ function rampartBuilder(room, layout = undefined, count = false) {
         if (count && rampartSpots[room.name]) {
             return _.size(JSON.parse(rampartSpots[room.name]));
         }
-    } else if (rampartSpots[room.name]) {
-        if (room.level >= 3) {
-            let spots = JSON.parse(rampartSpots[room.name]);
-            if (!spots.length) _.filter(room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).forEach((b) => spots.push({
-                x: b.pos.x,
-                y: b.pos.y
-            }));
-            let buildPositions = [];
-            spots.forEach((p) => buildPositions.push(new RoomPosition(p.x, p.y, room.name)));
-            let cycles = 0;
-            let inBuild = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length;
-            for (let pos of buildPositions) {
-                if (cycles + inBuild >= 4) break;
-                if ((RAMPARTS_ONLY || pos.checkForAllStructure()[0] || pos.isNearTo(room.controller) || pos.isNearTo(room.mineral) || pos.getRangeTo(pos.findClosestByRange(FIND_SOURCES)) <= 3)
-                    && !pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) return cycles++;
-                // Handle tunnels
-                else if (pos.checkForWall()) {
-                    for (let xOff = -1; xOff <= 1; xOff++) {
-                        for (let yOff = -1; yOff <= 1; yOff++) {
-                            if (xOff !== 0 || yOff !== 0) {
-                                let newPos = new RoomPosition(pos.x + xOff, pos.y + yOff, pos.roomName);
-                                if (!newPos.checkForWall() && !newPos.checkForBarrierStructure() && !newPos.checkForConstructionSites() && newPos.createConstructionSite(STRUCTURE_RAMPART) === OK) return cycles++
-                            }
+    } else if (rampartSpots[room.name] && room.storage) {
+        let spots = JSON.parse(rampartSpots[room.name]);
+        if (!spots.length) _.filter(room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).forEach((b) => spots.push({
+            x: b.pos.x,
+            y: b.pos.y
+        }));
+        let buildPositions = [];
+        spots.forEach((p) => buildPositions.push(new RoomPosition(p.x, p.y, room.name)));
+        let cycles = 0;
+        let inBuild = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length;
+        for (let pos of buildPositions) {
+            if (cycles + inBuild >= 5) break;
+            // If near controller, mineral, or source build ramparts
+            if (pos.isNearTo(room.controller) || pos.isNearTo(room.mineral) || pos.isNearTo(pos.findClosestByRange(FIND_SOURCES))) {
+                if (!pos.checkForRampart() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) cycles++;
+            }
+            // Ramparts only
+            else if (RAMPARTS_ONLY && !pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) cycles++;
+            // Handle tunnels
+            else if (pos.checkForWall()) {
+                for (let xOff = -1; xOff <= 1; xOff++) {
+                    for (let yOff = -1; yOff <= 1; yOff++) {
+                        if (xOff !== 0 || yOff !== 0) {
+                            let newPos = new RoomPosition(pos.x + xOff, pos.y + yOff, pos.roomName);
+                            if (!newPos.checkForWall() && !newPos.checkForBarrierStructure() && !newPos.checkForConstructionSites() && newPos.createConstructionSite(STRUCTURE_RAMPART) === OK) cycles++
                         }
                     }
-                } else if (!RAMPARTS_ONLY && ((isEven(pos.x) && isOdd(pos.y)) || (isOdd(pos.x) && isEven(pos.y))) && !pos.checkForBuiltWall() && !pos.checkForConstructionSites()) {
-                    if (pos.checkForRampart() && !pos.checkForAllStructure()[0]) pos.checkForRampart().destroy();
-                    else if (pos.createConstructionSite(STRUCTURE_WALL) === OK) return cycles++
-                } else if (!pos.checkForRampart() && !pos.checkForBuiltWall() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
-                    return cycles++
-                } else if (pos.checkForBuiltWall() && RAMPARTS_ONLY) {
-                    pos.checkForBuiltWall().destroy();
-                    return;
-                } else if (pos.checkForBuiltWall() && pos.checkForRampart()) {
-                    pos.checkForRampart().destroy();
-                    return;
-                } else if (pos.checkForBuiltWall() && pos.checkForRoad()) {
-                    pos.checkForRoad().destroy();
-                    return;
                 }
+            }
+            // Handle checkered pattern
+            else if (!RAMPARTS_ONLY && ((isEven(pos.x) && isOdd(pos.y)) || (isOdd(pos.x) && isEven(pos.y))) && !pos.checkForBuiltWall() && !pos.checkForConstructionSites()) {
+                if (pos.checkForRampart() && !pos.checkForAllStructure()) pos.checkForRampart().destroy();
+                else if (pos.createConstructionSite(STRUCTURE_WALL) === OK) cycles++
+            } else if (!pos.checkForRampart() && !pos.checkForBuiltWall() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
+                cycles++
+            }
+            // Handle destroying walls in ramparts only mode
+            else if (pos.checkForBuiltWall() && RAMPARTS_ONLY) {
+                pos.checkForBuiltWall().destroy();
+                return;
+            }
+            // Handle ramparts on walls
+            else if (pos.checkForBuiltWall() && pos.checkForRampart()) {
+                pos.checkForRampart().destroy();
+                return;
+            }
+            // Handle walls on roads
+            else if (pos.checkForBuiltWall() && pos.checkForRoad()) {
+                pos.checkForRoad().destroy();
+                return;
             }
         }
     }

@@ -48,7 +48,7 @@ global.BOOST_AMOUNT = 10000; // Try to have this much of all applicable boosts
 global.DUMP_AMOUNT = 40000; // Fills buys (or if overflowing it will offload to other terminals)
 
 // Room Ramparts
-global.RAMPARTS_ONLY = true; // Only build ramparts and not a checkered pattern
+global.RAMPARTS_ONLY = false; // Only build ramparts and not a checkered pattern
 global.PROTECT_CONTROLLER = false; // Include controller in the bunker algorithm
 global.PROTECT_MINERAL = false; // Include mineral in the bunker algorithm
 global.PROTECT_SOURCES = false; // Include sources in the bunker algorithm
