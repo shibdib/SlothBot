@@ -18,13 +18,7 @@ module.exports.retrieveIntel = function () {
     if (!_.size(INTEL) || !intelSegmentChecked) {
         if (RawMemory.segments[segmentNumber]) {
             intelSegmentChecked = true;
-            let intelCache = JSON.parse(RawMemory.segments[segmentNumber]);
-            // Check for invalid cache
-            if (!_.size(intelCache) || !intelCache[Object.keys(intelCache)[0]].name) {
-                log.e('Invalid intel cache, clearing.');
-                RawMemory.segments[segmentNumber] = undefined;
-                global.INTEL = {};
-            } else global.INTEL = JSON.parse(RawMemory.segments[segmentNumber]) || {};
+            global.INTEL = JSON.parse(RawMemory.segments[segmentNumber]) || {};
         } else {
             RawMemory.setActiveSegments(activeSegments);
             log.d("Intel segment not accessible, enabling the segment for the next tick.");

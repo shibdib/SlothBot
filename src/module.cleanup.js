@@ -7,7 +7,6 @@
 
 module.exports.cleanup = function () {
 //CLEANUP
-    if (RawMemory.segments[0] && _.size(RawMemory.segments[0]) > 75000) cleanPathCacheByUsage(); //clean path and distance caches
     if (Game.time % 100 === 0) {
         cleanDistanceCacheByUsage();
         cleanConstructionSites();
@@ -34,25 +33,6 @@ module.exports.cleanup = function () {
         }
     }
 };
-
-// Clean path cache by removing paths that haven't been used in 1000 ticks or fall below the average use count
-function cleanPathCacheByUsage() {
-    //TODO: Fix cleaning this
-    return;
-    let paths;
-    try {
-        paths = _.sortBy(JSON.parse(RawMemory.segments[0]), 'uses');
-    } catch (e) {
-        return RawMemory.segments[0] = undefined;
-    }
-    let initial = _.size(paths);
-    for (let key in paths) {
-        if (_.size(paths) < 500) break;
-        delete paths[key]
-    }
-    if (initial !== _.size(paths)) log.i('Cleaning Path cache (Deleted Appx. ' + ((initial - _.size(paths)) * 100) + ' KB)...');
-    RawMemory.segments[0] = JSON.stringify(paths);
-}
 
 function cleanDistanceCacheByUsage() {
     if (Memory._distanceCache) {  //1500 entries ~= 100kB

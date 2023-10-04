@@ -52,7 +52,13 @@ module.exports.loop = function () {
         }
 
         // Initialize the INTEL cache
-        if (!segments.retrieveIntel()) return;
+        try {
+            if (!segments.retrieveIntel()) return;
+        } catch (e) {
+            log.e('Error retrieving intel cache');
+            log.e(e + ' ' + e.stack);
+            Game.notify(e + ' ' + e.stack);
+        }
 
         // Handle auto placing a spawn
         // Also handles respawns
@@ -106,7 +112,13 @@ module.exports.loop = function () {
         hive.hiveMind();
 
         // Save Intel Cache
-        segments.storeIntel();
+        try {
+            segments.storeIntel();
+        } catch (e) {
+            log.e('Error saving intel cache');
+            log.e(e + ' ' + e.stack);
+            Game.notify(e + ' ' + e.stack);
+        }
     });
 };
 
