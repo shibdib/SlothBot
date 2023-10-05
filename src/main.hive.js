@@ -102,7 +102,7 @@ module.exports.hiveMind = function () {
         }
         overlordCurrentCPU = Game.cpu.getUsed() - overlordCurrentCPU;
         overlordTotalCPU += overlordCurrentCPU;
-    } while (count < MY_ROOMS.length)
+    } while (count < MY_ROOMS.length && Game.cpu.getUsed() * 1.25 < Game.cpu.tickLimit)
 };
 
 let errorCount = {};
@@ -120,8 +120,7 @@ function minionController(minion) {
     minion.attackInRange();
     minion.healInRange();
     // Handle edge cases
-    if (minion.portalCheck() || minion.borderCheck()
-        || (minion.memory.fleeNukeTime && minion.fleeNukeRoom())) {
+    if (minion.borderCheck() || (minion.memory.fleeNukeTime && minion.fleeNukeRoom())) {
         return;
     }
     // Report intel chance
