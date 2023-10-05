@@ -85,7 +85,7 @@ function operationRequests() {
         let initialFilter = _.filter(INTEL, (r) => r.user && userStrength(r.user) <= MAX_LEVEL && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] &&
             !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !checkForNap(r.user) && (!r.safemode || r.safemode - 500 < Game.time));
         // New Spawn Denial/No towers
-        let target = _.min(_.filter(initialFilter, (r) => (NEW_SPAWN_DENIAL || (HOLD_SECTOR && sameSectorCheck(findClosestOwnedRoom(r.name), r.name))) && r.owner && !r.towers), function (t) {
+        let target = _.min(_.filter(initialFilter, (r) => r.owner && !r.towers && (NEW_SPAWN_DENIAL || (HOLD_SECTOR && sameSectorCheck(findClosestOwnedRoom(r.name), r.name)))), function (t) {
             return findClosestOwnedRoom(t.name, true)
         });
         if (target.name) {
@@ -179,7 +179,8 @@ function auxiliaryOperations() {
         }
         // Robbery
         let robberyTarget = _.find(initialFilter, (r) => r.loot);
-        if (robberyTarget) {
+        let activeRobbery = _.find(Memory.auxiliaryTargets, (target) => target && target.type === 'robbery');
+        if (robberyTarget && !activeRobbery) {
             let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;
             cache[robberyTarget.name] = {
@@ -494,6 +495,19 @@ function manageAuxiliary() {
                     continue;
                 }
                 break;
+            case 'robbery':
+                if (!INTEL[key].loot) {
+                    log.a('Canceling robbery operation in ' + roomLink(key) + ' as the resource is depleted.', 'HIGH COMMAND: ');
+                    delete Memory.auxiliaryTargets[key];
+                    delete INTEL[key];
+                    continue;
+                } else if (_.filter(Memory.auxiliaryTargets, (target) => target && target.type === 'robbery').length > 1) {
+                    log.a('Canceling robbery operation in ' + roomLink(key) + ' as we have too many active heists.', 'HIGH COMMAND: ');
+                    delete Memory.auxiliaryTargets[key];
+                    delete INTEL[key];
+                    continue;
+                }
+                break;
             case 'rebuild':
                 if (!MY_ROOMS.includes(key)) {
                     log.a('Canceling rebuild operation in ' + roomLink(key) + ' as we are no longer needed.', 'HIGH COMMAND: ');
@@ -701,6 +715,11 @@ function getPriority(room) {
     else return PRIORITIES.secondary;
 }
 
+/**
+ * Check if an operation is sustainable
+ * @param room
+ * @param operationRoom
+ */
 module.exports.operationSustainability = function (room, operationRoom = room.name) {
     let operation;
     if (Memory.targetRooms[operationRoom]) operation = Memory.targetRooms[operationRoom]; else if (Memory.auxiliaryTargets[operationRoom]) operation = Memory.auxiliaryTargets[operationRoom];
@@ -753,6 +772,10 @@ module.exports.operationSustainability = function (room, operationRoom = room.na
     else if (Memory.targetRooms[room.name]) Memory.targetRooms[room.name] = operation; else if (Memory.auxiliaryTargets[room.name]) Memory.auxiliaryTargets[room.name] = operation;
 };
 
+/**
+ * Generate threat for a user
+ * @param creep
+ */
 module.exports.generateThreat = function (creep) {
     let user = INTEL[creep.room.name].user;
     if (_.includes(FRIENDLIES, user)) return;
