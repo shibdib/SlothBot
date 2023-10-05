@@ -36,117 +36,6 @@ Object.defineProperty(PowerCreep.prototype, "idle", {
     }
 });
 
-//Go to the room hub
-PowerCreep.prototype.goToHub = function (destination) {
-    let hub = new RoomPosition(25, 25, destination);
-    if (this.pos.getRangeTo(hub) <= 15) return this.idleFor(10);
-    return this.shibMove(hub, {range: 15})
-};
-
-/**
- * Set the unit to idle-mode for ticks given
- *
- * @type {int}
- */
-PowerCreep.prototype.idleFor = function (ticks = 0) {
-    if (ticks > 0) {
-        this.idle = Game.time + ticks;
-    } else {
-        delete this.idle;
-    }
-};
-
-PowerCreep.prototype.moveRandom = function (onPath) {
-    let start = Math.ceil(Math.random() * 8);
-    let direction = 0;
-    for (let i = start; i < start + 8; i++) {
-        direction = ((i - 1) % 8) + 1;
-        let pos = this.pos.getAdjacentPosition(direction);
-        if (!pos || pos.isExit() || pos.checkForWall() || pos.checkForObstacleStructure() || pos.checkForCreep()) {
-            continue;
-        }
-        break;
-    }
-    this.move(direction);
-};
-
-PowerCreep.prototype.borderCheck = function () {
-    let thisPos = this.pos;
-    let x = thisPos.x;
-    let y = thisPos.y;
-    if (x === 0 || y === 0 || x === 49 || y === 49) {
-        if (x === 0 && y === 0) {
-            return this.move(BOTTOM_RIGHT);
-        } else if (x === 0 && y === 49) {
-            return this.move(TOP_RIGHT);
-        }
-        else if (x === 49 && y === 0) {
-            return this.move(BOTTOM_LEFT);
-        }
-        else if (x === 49 && y === 49) {
-            return this.move(TOP_LEFT);
-        }
-        let pos;
-        if (x === 49) {
-            pos = positionAtDirection(thisPos, LEFT);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(LEFT)
-            }
-            pos = positionAtDirection(thisPos, TOP_LEFT);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(TOP_LEFT)
-            }
-            return this.move(BOTTOM_LEFT)
-        }
-        else if (x === 0) {
-            pos = positionAtDirection(thisPos, RIGHT);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(RIGHT)
-            }
-            pos = positionAtDirection(thisPos, TOP_RIGHT);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(TOP_RIGHT)
-            }
-            return this.move(BOTTOM_RIGHT)
-        }
-        else if (y === 0) {
-            pos = positionAtDirection(thisPos, BOTTOM);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(BOTTOM)
-            }
-            pos = positionAtDirection(thisPos, BOTTOM_RIGHT);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(BOTTOM_RIGHT)
-            }
-            return this.move(BOTTOM_LEFT)
-        }
-        else if (y === 49) {
-            pos = positionAtDirection(thisPos, TOP);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(TOP)
-            }
-            pos = positionAtDirection(thisPos, TOP_RIGHT);
-            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
-                return this.move(TOP_RIGHT)
-            }
-            return this.move(TOP_LEFT)
-        }
-        return true;
-    }
-    return false;
-};
-
-function positionAtDirection(origin, direction) {
-    let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
-    let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
-    let x = origin.x + offsetX[direction];
-    let y = origin.y + offsetY[direction];
-    if (x > 49 || x < 0 || y > 49 || y < 0 || !x || !y) {
-        return;
-    }
-    return new RoomPosition(x, y, origin.roomName);
-}
-
 Object.defineProperty(PowerCreep.prototype, 'ops', {
     get: function () {
         if (!this._ops) {
@@ -169,18 +58,108 @@ Object.defineProperty(PowerCreep.prototype, 'isFull', {
     configurable: true
 });
 
-
-PowerCreep.prototype.fleeRoom = function (room) {
-    if (this.room.name !== room) return this.idleFor(this.memory.fleeNukeTime);
-    if (this.memory.fleeNukeTime <= Game.time) {
-        this.memory.fleeNukeTime = undefined;
-        this.memory.fleeNukeRoom = undefined;
-    }
-    let exit = this.pos.findClosestByPath(FIND_EXIT);
-    this.say('NUKE! RUN!', true);
-    this.shibMove(exit);
+/**
+ * Go to room hub
+ * @param destination
+ * @returns {*|boolean|boolean|void|string}
+ */
+PowerCreep.prototype.goToHub = function (destination) {
+    let hub = new RoomPosition(25, 25, destination);
+    if (this.pos.getRangeTo(hub) <= 15) return this.idleFor(10);
+    return this.shibMove(hub, {range: 15})
 };
 
+/**
+ * Idle for x ticks
+ * @param ticks
+ */
+PowerCreep.prototype.idleFor = function (ticks = 0) {
+    if (ticks > 0) {
+        this.idle = Game.time + ticks;
+    } else {
+        delete this.idle;
+    }
+};
+
+/**
+ * Move randomly
+ */
+PowerCreep.prototype.moveRandom = function () {
+    let start = Math.ceil(Math.random() * 8);
+    let direction = 0;
+    for (let i = start; i < start + 8; i++) {
+        direction = ((i - 1) % 8) + 1;
+        let pos = this.pos.getAdjacentPosition(direction);
+        if (!pos || pos.isExit() || pos.checkForWall() || pos.checkForObstacleStructure() || pos.checkForCreep()) {
+            continue;
+        }
+        break;
+    }
+    this.move(direction);
+};
+
+/**
+ * Handle border checks
+ * @returns {*|boolean}
+ */
+PowerCreep.prototype.borderCheck = function () {
+    let x = this.pos.x;
+    let y = this.pos.y;
+    if (x === 0 || y === 0 || x === 49 || y === 49) {
+        // Handle stuck creeps
+        if (this.memory.borderCountDown) this.memory.borderCountDown++; else this.memory.borderCountDown = 1;
+        // Handle path following
+        if (this.memory.borderCountDown < 5 && this.memory._shibMove && this.memory._shibMove.path && this.memory._shibMove.path.length) {
+            let pathInfo = this.memory._shibMove;
+            let origin = normalizePos(this);
+            pathInfo.path = pathInfo.path.slice(1);
+            let nextDirection = parseInt(pathInfo.path[0], 10);
+            pathInfo.newPos = positionAtDirection(origin, nextDirection);
+            switch (this.move(nextDirection)) {
+                case OK:
+                    pathInfo.pathPosTime = 0;
+                    pathInfo.lastMoveTick = Game.time;
+                    this.memory._shibMove = pathInfo;
+                    return false;
+            }
+            // Handle corners
+        } else if (x === 0 && y === 0) {
+            this.move(BOTTOM_RIGHT);
+        } else if (x === 0 && y === 49) {
+            this.move(TOP_RIGHT);
+        } else if (x === 49 && y === 0) {
+            this.move(BOTTOM_LEFT);
+        } else if (x === 49 && y === 49) {
+            this.move(TOP_LEFT);
+        }
+        // Handle border movement
+        let options;
+        let road = _.find(this.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.pos.isNearTo(this));
+        if (road) {
+            this.move(this.pos.getDirectionTo(road));
+        } else if (x === 49) {
+            options = [LEFT, TOP_LEFT, BOTTOM_LEFT];
+            this.move(_.sample(options));
+        } else if (x === 0) {
+            options = [RIGHT, TOP_RIGHT, BOTTOM_RIGHT];
+            this.move(_.sample(options));
+        } else if (y === 0) {
+            options = [BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT];
+            this.move(_.sample(options));
+        } else if (y === 49) {
+            options = [TOP, TOP_LEFT, TOP_RIGHT];
+            this.move(_.sample(options));
+        }
+        return true;
+    }
+    this.memory.borderCountDown = undefined;
+    return false;
+};
+
+/**
+ * Handle nuke fleeing
+ * @returns {boolean}
+ */
 PowerCreep.prototype.fleeNukeRoom = function () {
     this.say('NUKE!', true);
     if (this.memory.fleeNukeTime <= Game.time) {
@@ -191,3 +170,14 @@ PowerCreep.prototype.fleeNukeRoom = function () {
     if (this.memory.fleeTo && this.room.name !== this.memory.fleeTo) this.shibMove(new RoomPosition(25, 25, this.memory.fleeTo), {range: 23}); else if (this.room.name !== this.memory.fleeTo) this.idleFor(this.memory.fleeNukeTime - Game.time);
     if (!this.memory.fleeTo) this.memory.fleeTo = _.sample(_.filter(MY_ROOMS, (r) => !r.nukes.length)).name;
 };
+
+function positionAtDirection(origin, direction) {
+    let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
+    let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
+    let x = origin.x + offsetX[direction];
+    let y = origin.y + offsetY[direction];
+    if (x > 49 || x < 0 || y > 49 || y < 0 || !x || !y) {
+        return;
+    }
+    return new RoomPosition(x, y, origin.roomName);
+}

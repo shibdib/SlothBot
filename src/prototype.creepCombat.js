@@ -2,7 +2,67 @@
 /// COMBAT STUFF/////////////////////////////
 /////////////////////////////////////////////
 
-// Get attack/heal power and account for boosts
+/**
+ * Handle military creep
+ * @param barrier
+ * @param rampart
+ * @param ignoreBorder
+ * @param guardLocation
+ * @param guardRange
+ * @returns {boolean|*}
+ */
+Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true, ignoreBorder = false, guardLocation = undefined, guardRange = 8) {
+    // Safemode check
+    if (this.room.user && this.room.user !== MY_USERNAME && this.room.controller && this.room.controller.safeMode) return false;
+    // Heal if possible
+    this.healInRange();
+    // Flee home if you have no parts
+    if ((!this.hasActiveBodyparts(HEAL) || this.getActiveBodyparts(HEAL) === 1) && !this.hasActiveBodyparts(ATTACK) && !this.hasActiveBodyparts(RANGED_ATTACK)) return this.fleeHome(true);
+    // Set target
+    let hostile = this.findClosestEnemy(barrier, ignoreBorder, guardLocation, guardRange);
+    // No target return false
+    if (!hostile) return false;
+    if (hostile && hostile.pos.checkForRampart()) {
+        hostile = hostile.pos.checkForRampart();
+        this.memory.target = hostile.id;
+    }
+    // Pair up DISABLED FOR DEBUGGING
+    if (2 < 1 && hostile && this.room.friendlyCreeps.length > 1 && this.memory.role === 'longbow') {
+        let friend = Game.getObjectById(this.memory.friendPair) || _.filter(this.room.myCreeps, (c) => c.id !== this.id && c.memory.role === 'longbow' && !c.memory.friendPair)[0];
+        if (friend && friend.room.name === this.room.name) {
+            this.memory.friendPair = friend.id;
+            friend.memory.friendPair = this.id;
+            if (this.memory.friendPairAlpha) return;
+            friend.memory.friendPairAlpha = true;
+        }
+        if (!friend || friend.room.name !== this.room.name || (friend && !this.pairFighting(friend))) {
+            this.memory.friendPair = undefined;
+            this.memory.friendPairAlpha = undefined;
+            if (friend) {
+                friend.memory.friendPair = undefined;
+                friend.memory.friendPairAlpha = undefined;
+            }
+        }
+    }
+    // If target fight
+    if (hostile) {
+        // Handle cleaner
+        if (this.hasActiveBodyparts(WORK) && this.scorchedEarth()) return true;
+        // Fight from rampart
+        if (rampart && this.fightRampart(hostile)) return true;
+        // Melee attacker
+        if (this.hasActiveBodyparts(ATTACK) && this.attackHostile(hostile)) return true;
+        // Ranged attacker
+        if (this.hasActiveBodyparts(RANGED_ATTACK) && this.fightRanged(hostile)) return true;
+    } else
+        // If no target or heals stomp sites
+        return this.moveToHostileConstructionSites();
+};
+
+/**
+ * Get attack/heal power and account for boosts
+ * @returns {{meleeAttack: number, ranged: number, attack: number, heal: number, rangedAttack: number, melee: number, rangedHeal: number}}
+ */
 Creep.prototype.abilityPower = function () {
     let meleePower = 0;
     let rangedPower = 0;
@@ -42,6 +102,14 @@ Creep.prototype.abilityPower = function () {
     };
 };
 
+/**
+ * Find closest enemy
+ * @param barriers
+ * @param ignoreBorder
+ * @param guardLocation
+ * @param guardRange
+ * @returns {*|undefined|Structure}
+ */
 Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = false, guardLocation = undefined, guardRange) {
     let enemy;
     let hostileStructures = _.find(this.room.impassibleStructures, (s) => (!s.owner || !FRIENDLIES.includes(s.owner.username)) && (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange));
@@ -90,6 +158,11 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
     return undefined;
 };
 
+/**
+ * Find closest hostile structure
+ * @param barriers
+ * @returns {undefined|*}
+ */
 Creep.prototype.findClosestHostileStructure = function (barriers = true) {
     let enemy;
     let hostileStructures = _.find(this.room.impassibleStructures, (s) => (!s.owner || !FRIENDLIES.includes(s.owner.username)) || s.structureType === STRUCTURE_WALL);
@@ -182,54 +255,11 @@ Creep.prototype.findClosestHostileStructure = function (barriers = true) {
     return undefined;
 };
 
-Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true, ignoreBorder = false, guardLocation = undefined, guardRange = 8) {
-    // Safemode check
-    if (this.room.user && this.room.user !== MY_USERNAME && this.room.controller && this.room.controller.safeMode) return false;
-    // Heal if possible
-    this.healInRange();
-    // Flee home if you have no parts
-    if ((!this.hasActiveBodyparts(HEAL) || this.getActiveBodyparts(HEAL) === 1) && !this.hasActiveBodyparts(ATTACK) && !this.hasActiveBodyparts(RANGED_ATTACK)) return this.fleeHome(true);
-    // Set target
-    let hostile = this.findClosestEnemy(barrier, ignoreBorder, guardLocation, guardRange);
-    // No target return false
-    if (!hostile) return false;
-    if (hostile && hostile.pos.checkForRampart()) {
-        hostile = hostile.pos.checkForRampart();
-        this.memory.target = hostile.id;
-    }
-    // Pair up DISABLED FOR DEBUGGING
-    if (2 < 1 && hostile && this.room.friendlyCreeps.length > 1 && this.memory.role === 'longbow') {
-        let friend = Game.getObjectById(this.memory.friendPair) || _.filter(this.room.myCreeps, (c) => c.id !== this.id && c.memory.role === 'longbow' && !c.memory.friendPair)[0];
-        if (friend && friend.room.name === this.room.name) {
-            this.memory.friendPair = friend.id;
-            friend.memory.friendPair = this.id;
-            if (this.memory.friendPairAlpha) return;
-            friend.memory.friendPairAlpha = true;
-        }
-        if (!friend || friend.room.name !== this.room.name || (friend && !this.pairFighting(friend))) {
-            this.memory.friendPair = undefined;
-            this.memory.friendPairAlpha = undefined;
-            if (friend) {
-                friend.memory.friendPair = undefined;
-                friend.memory.friendPairAlpha = undefined;
-            }
-        }
-    }
-    // If target fight
-    if (hostile) {
-        // Handle cleaner
-        if (this.hasActiveBodyparts(WORK) && this.scorchedEarth()) return true;
-        // Fight from rampart
-        if (rampart && this.fightRampart(hostile)) return true;
-        // Melee attacker
-        if (this.hasActiveBodyparts(ATTACK) && this.attackHostile(hostile)) return true;
-        // Ranged attacker
-        if (this.hasActiveBodyparts(RANGED_ATTACK) && this.fightRanged(hostile)) return true;
-    } else
-        // If no target or heals stomp sites
-        return this.moveToHostileConstructionSites();
-};
-
+/**
+ * Handle attacking
+ * @param hostile
+ * @returns {boolean}
+ */
 Creep.prototype.attackHostile = function (hostile) {
     if (!this.room.hostileCreeps.length) return false;
     let moveTarget = hostile;
@@ -273,6 +303,11 @@ Creep.prototype.attackHostile = function (hostile) {
     }
 };
 
+/**
+ * Handle rampart fighting
+ * @param hostile
+ * @returns {boolean}
+ */
 Creep.prototype.fightRampart = function (hostile = undefined) {
     // Set target or used preset
     let target = hostile || this.findClosestEnemy(false, true);
@@ -314,6 +349,11 @@ Creep.prototype.fightRampart = function (hostile = undefined) {
     return true;
 };
 
+/**
+ * Handle ranged fighting
+ * @param target
+ * @returns {void|boolean}
+ */
 Creep.prototype.fightRanged = function (target) {
     if (!this.room.hostileCreeps.length) return false;
     if (!this.canIWin(5)) return this.shibKite();
@@ -371,6 +411,10 @@ Creep.prototype.fightRanged = function (target) {
     }
 };
 
+/**
+ * Handle healing
+ * @returns {boolean}
+ */
 Creep.prototype.healCreeps = function () {
     let injured = _.sortBy(_.filter(this.room.creeps, (c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax), function (c) {
         return (c.hits / c.hitsMax);
@@ -384,6 +428,10 @@ Creep.prototype.healCreeps = function () {
     return false;
 };
 
+/**
+ * Handle healing in range
+ * @returns {*|boolean}
+ */
 Creep.prototype.healInRange = function () {
     if (!this.hasActiveBodyparts(HEAL)) return false;
     if (this.hits < this.hitsMax) return this.heal(this);
@@ -397,6 +445,12 @@ Creep.prototype.healInRange = function () {
     return false;
 };
 
+/**
+ * Stomp sites
+ * @param creepCheck
+ * @param onlyInBuild
+ * @returns {void|boolean}
+ */
 Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, onlyInBuild = true) {
     // No sites
     if (!this.room.constructionSites.length || (this.room.controller && this.room.controller.safeMode) || _.includes(FRIENDLIES, INTEL[this.room.name].user)) return false;
@@ -412,6 +466,10 @@ Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, o
     return false;
 };
 
+/**
+ * Handle structure bashing
+ * @returns {boolean}
+ */
 Creep.prototype.scorchedEarth = function () {
     // Safemode check
     if (this.room.controller && this.room.controller.safeMode) return false;
@@ -452,6 +510,10 @@ Creep.prototype.scorchedEarth = function () {
     }
 };
 
+/**
+ * Attack in range
+ * @returns {*|boolean}
+ */
 Creep.prototype.attackInRange = function () {
     // If no ranged attack return
     if (!this.hasActiveBodyparts(RANGED_ATTACK)) return false;
@@ -472,6 +534,10 @@ Creep.prototype.attackInRange = function () {
     return true;
 };
 
+/**
+ * Move to a staging room
+ * @returns {boolean|*}
+ */
 Creep.prototype.moveToStaging = function () {
     if (!this.memory.other || !this.memory.other.waitFor || this.memory.stagingComplete || this.memory.other.waitFor === 1 || this.ticksToLive <= 250 || !this.memory.destination) return false;
     // Recycle if operation canceled
@@ -518,6 +584,11 @@ Creep.prototype.moveToStaging = function () {
     }
 };
 
+/**
+ * Run back to overlord
+ * @param force
+ * @returns {*|boolean}
+ */
 Creep.prototype.fleeHome = function (force = false) {
     if (this.room.controller && this.room.controller.owner && this.room.controller.owner.username === MY_USERNAME && !this.memory.runCooldown) return false;
     if (this.hits < this.hitsMax) force = true;
@@ -544,6 +615,12 @@ Creep.prototype.fleeHome = function (force = false) {
     return true;
 };
 
+/**
+ * Check if you can win the fight
+ * @param range
+ * @param inbound
+ * @returns {*|boolean}
+ */
 Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     let armedHostiles = _.filter(this.room.hostileCreeps, (c) => (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(HEAL)) && this.pos.getRangeTo(c) <= range);
     let hostileTowers = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && !_.includes(FRIENDLIES, s.owner.username) && s.isActive() && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST);
@@ -600,6 +677,11 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     }
 };
 
+/**
+ * Find a rampart
+ * @param target
+ * @returns {boolean}
+ */
 Creep.prototype.findDefensivePosition = function (target = this) {
     if (this.id === target.id && this.room.hostileCreeps.length) target = this.pos.findClosestByRange(this.room.hostileCreeps);
     let bestRampart;

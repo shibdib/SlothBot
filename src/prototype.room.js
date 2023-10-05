@@ -368,8 +368,12 @@ Object.defineProperty(Room.prototype, 'factory', {
     configurable: true
 });
 
-// Creates a room prototype that accepts RESOURCE_* Constants that gets you the total of that resource in a room.
-// EXAMPLE USAGE - Game.rooms['W0S0'].store(RESOURCE_ENERGY);
+/**
+ * Get room resource
+ * @param resource
+ * @param unused
+ * @returns {*}
+ */
 Room.prototype.store = function (resource, unused = false) {
     if (!this._resourceStore) this._resourceStore = {};
     if (!this._resourceStore[resource]) {
@@ -393,6 +397,11 @@ function getRoomResource(room, resource, unused = false) {
     return count;
 }
 
+/**
+ * Cache room intel
+ * @param force
+ * @param creep
+ */
 Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     if (!INTEL) global.INTEL = {};
     let cache = INTEL;
@@ -501,6 +510,10 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 };
 
 let invaderAlert = {};
+/**
+ * Check for invaders
+ * @returns {boolean}
+ */
 Room.prototype.invaderCheck = function () {
     if (!INTEL || !INTEL[this.name]) return false;
     if (INTEL[this.name].lastInvaderCheck + 15 > Game.time) return;

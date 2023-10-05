@@ -45,17 +45,6 @@ Object.defineProperty(Creep.prototype, "idle", {
     }
 });
 
-Creep.prototype.idleFor = function (ticks = 0) {
-    // No idling in SK rooms
-    if (INTEL[this.room.name] && INTEL[this.room.name].sk) return false;
-    if (this.hits < this.hitsMax && this.hasActiveBodyparts(HEAL)) return this.heal(this);
-    if (ticks > 0) {
-        this.idle = Game.time + ticks;
-    } else {
-        delete this.idle;
-    }
-};
-
 Object.defineProperty(Creep.prototype, 'isFull', {
     get: function () {
         if (!this._isFull) {
@@ -82,7 +71,25 @@ Object.defineProperty(Creep.prototype, 'combatPower', {
 });
 
 /**
- * Creep method optimizations "getActiveBodyparts"
+ * Idle for a set number of ticks
+ * @param ticks
+ * @returns {*|boolean}
+ */
+Creep.prototype.idleFor = function (ticks = 0) {
+    // No idling in SK rooms
+    if (INTEL[this.room.name] && INTEL[this.room.name].sk) return false;
+    if (this.hits < this.hitsMax && this.hasActiveBodyparts(HEAL)) return this.heal(this);
+    if (ticks > 0) {
+        this.idle = Game.time + ticks;
+    } else {
+        delete this.idle;
+    }
+};
+
+/**
+ * Fast get bodyparts
+ * @param type
+ * @returns {number}
  */
 Creep.prototype.getActiveBodyparts = function (type) {
     if (this.className) return 0;
@@ -98,7 +105,9 @@ Creep.prototype.getActiveBodyparts = function (type) {
 };
 
 /**
- * Fast check if bodypart exists
+ * Fast check for bodyparts
+ * @param type
+ * @returns {boolean}
  */
 Creep.prototype.hasActiveBodyparts = function (type) {
     if (this.className) return false;
@@ -112,6 +121,10 @@ Creep.prototype.hasActiveBodyparts = function (type) {
     return false;
 };
 
+/**
+ * Check if creep is not in its assigned room
+ * @returns {boolean}
+ */
 Creep.prototype.wrongRoom = function () {
     if (this.memory.overlord && this.pos.roomName !== this.memory.overlord) {
         this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 23});
@@ -119,34 +132,11 @@ Creep.prototype.wrongRoom = function () {
     }
 };
 
-Creep.prototype.renewalCheck = function (target = 1200, force = false) {
-    if (!this.memory.other.spawnedLevel) this.memory.other.spawnedLevel = Game.rooms[this.memory.overlord].level;
-    if (this.ticksToLive >= target) {
-        delete this.memory.boostAttempt;
-        delete this.memory.renewingTarget;
-        return delete this.memory.renewing;
-    }
-    let spawn = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN && !s.spawning)[0];
-    if (spawn) {
-        switch (spawn.renewCreep(this)) {
-            case OK:
-                if (this.store[RESOURCE_ENERGY] > 0) this.transfer(spawn, RESOURCE_ENERGY);
-                this.say(ICONS.renew);
-                this.memory.renewingTarget = spawn.id;
-                this.memory.renewing = true;
-                return true;
-            case ERR_NOT_IN_RANGE:
-                this.memory.renewingTarget = spawn.id;
-                this.memory.renewing = true;
-                this.shibMove(spawn);
-                return true;
-        }
-    } else {
-        delete this.memory.renewing;
-        return false;
-    }
-};
-
+/**
+ * Find a source
+ * @param ignoreOthers
+ * @returns {*|boolean}
+ */
 Creep.prototype.findSource = function (ignoreOthers = false) {
     let source = _.find(this.room.sources, (s) => !_.find(Game.creeps, (c) => c.id !== this.id && c.memory.role === this.memory.role && c.memory.source === s.id));
     if (ignoreOthers) source = _.sample(this.room.sources);
@@ -157,6 +147,10 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
     return false;
 };
 
+/**
+ * Find a mineral
+ * @returns {*}
+ */
 Creep.prototype.findMineral = function () {
     const mineral = this.room.mineral;
     if (mineral) {
@@ -165,6 +159,10 @@ Creep.prototype.findMineral = function () {
     }
 };
 
+/**
+ * Handle SK damage
+ * @returns {*|boolean}
+ */
 Creep.prototype.skSafety = function () {
     if (this.hits < this.hitsMax) {
         this.goToHub();
@@ -195,6 +193,10 @@ Creep.prototype.skSafety = function () {
     }
 }
 
+/**
+ * Opportunistic repair
+ * @returns {boolean}
+ */
 Creep.prototype.opportunisticRepair = function () {
     if (!this.hasActiveBodyparts(WORK)) return false;
     try {
@@ -207,6 +209,10 @@ Creep.prototype.opportunisticRepair = function () {
     }
 };
 
+/**
+ * Opportunistic fill extensions and spawns
+ * @returns {boolean}
+ */
 Creep.prototype.opportunisticFill = function () {
     // Fill nearby energy structures as you pass
     if (!this.store[RESOURCE_ENERGY]) return false;
@@ -222,6 +228,13 @@ Creep.prototype.opportunisticFill = function () {
     }
 }
 
+/**
+ * Handle withdrawing from a structure
+ * @param destination
+ * @param resourceType
+ * @param amount
+ * @returns {undefined|boolean|void}
+ */
 Creep.prototype.withdrawResource = function (destination = undefined, resourceType = RESOURCE_ENERGY, amount = undefined) {
     if (destination) this.memory.energyDestination = destination.id;
     if (this.memory.energyDestination) {
@@ -279,6 +292,11 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
     }
 };
 
+/**
+ * Locate energy in a room
+ * @param room
+ * @returns {boolean}
+ */
 Creep.prototype.locateEnergy = function (room = this.room) {
     // Handle resources in allied rooms
     if (INTEL[room.name] && INTEL[room.name].owner && INTEL[room.name].owner !== MY_USERNAME) {
@@ -399,6 +417,10 @@ Creep.prototype.locateEnergy = function (room = this.room) {
     }
 };
 
+/**
+ * Handle energy delivery
+ * @returns {boolean}
+ */
 Creep.prototype.haulerDelivery = function () {
     // If you have a destination, deliver
     if (this.memory.storageDestination) {
@@ -530,6 +552,10 @@ Creep.prototype.haulerDelivery = function () {
     }
 };
 
+/**
+ * Find construction/repair work
+ * @returns {boolean}
+ */
 Creep.prototype.constructionWork = function () {
     let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax && !_.filter(this.room.myCreeps, (c) => c.memory.constructionSite === s.id).length);
     let mySites = _.filter(this.room.constructionSites, (s) => !s.owner || _.includes(FRIENDLIES, s.owner.username));
@@ -656,52 +682,10 @@ Creep.prototype.constructionWork = function () {
     return false;
 };
 
-Creep.prototype.repairWork = function () {
-    let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax && !_.filter(this.room.myCreeps, (c) => c.memory.constructionSite === s.id).length);
-    let site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        this.memory.targetHits = 12500;
-        return true;
-    }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.5);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        this.memory.targetHits = site.hitsMax * 0.65;
-        return true;
-    }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        this.memory.targetHits = site.hitsMax * 0.65;
-        return true;
-    }
-    site = _.filter(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        return true;
-    }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        this.memory.targetHits = 12500;
-        return true;
-    }
-    this.memory.constructionSite = undefined;
-    this.memory.task = undefined;
-    return false;
-};
-
+/**
+ * Handle construction/repair work
+ * @returns {boolean}
+ */
 Creep.prototype.builderFunction = function () {
     let construction = Game.getObjectById(this.memory.constructionSite);
     if (!construction || (construction.pos.roomName !== this.pos.roomName)) {
@@ -764,6 +748,12 @@ Creep.prototype.builderFunction = function () {
     }
 };
 
+/**
+ * Go to the hub
+ * @param destination
+ * @param idleTime
+ * @returns {boolean}
+ */
 Creep.prototype.goToHub = function (destination = this.memory.overlord, idleTime = 10) {
     let hub = new RoomPosition(25, 25, destination);
     if (this.pos.getRangeTo(hub) <= 15) {
@@ -774,6 +764,10 @@ Creep.prototype.goToHub = function (destination = this.memory.overlord, idleTime
     return true;
 };
 
+/**
+ * Handle towing
+ * @returns {undefined|boolean}
+ */
 Creep.prototype.towTruck = function () {
     // Clear broken trailers
     if (this.memory.trailer && !Game.getObjectById(this.memory.trailer)) this.memory.trailer = undefined;
@@ -838,19 +832,10 @@ Creep.prototype.towTruck = function () {
     }
 };
 
-Creep.prototype.portalCheck = function () {
-    if (this.room.controller || !this.pos.checkForPortal()) return false;
-    this.memory.usedPortal = this.room.name;
-    if (positionAtDirection(this.pos, LEFT) && !positionAtDirection(this.pos, LEFT).checkForPortal()) return this.move(LEFT);
-    if (positionAtDirection(this.pos, RIGHT) && !positionAtDirection(this.pos, RIGHT).checkForPortal()) return this.move(RIGHT);
-    if (positionAtDirection(this.pos, TOP) && !positionAtDirection(this.pos, TOP).checkForPortal()) return this.move(TOP);
-    if (positionAtDirection(this.pos, BOTTOM) && !positionAtDirection(this.pos, BOTTOM).checkForPortal()) return this.move(BOTTOM);
-    if (positionAtDirection(this.pos, BOTTOM_RIGHT) && !positionAtDirection(this.pos, BOTTOM_RIGHT).checkForPortal()) return this.move(BOTTOM_RIGHT);
-    if (positionAtDirection(this.pos, BOTTOM_LEFT) && !positionAtDirection(this.pos, BOTTOM_LEFT).checkForPortal()) return this.move(BOTTOM_LEFT);
-    if (positionAtDirection(this.pos, TOP_RIGHT) && !positionAtDirection(this.pos, TOP_RIGHT).checkForPortal()) return this.move(TOP_RIGHT);
-    if (positionAtDirection(this.pos, TOP_LEFT) && !positionAtDirection(this.pos, TOP_LEFT).checkForPortal()) return this.move(TOP_LEFT);
-};
-
+/**
+ * Handle border movement
+ * @returns {boolean}
+ */
 Creep.prototype.borderCheck = function () {
     let x = this.pos.x;
     let y = this.pos.y;
@@ -905,7 +890,13 @@ Creep.prototype.borderCheck = function () {
     return false;
 };
 
-Creep.prototype.tryToBoost = function (boosts, tier = undefined) {
+/**
+ * Handle creep boosting
+ * @param bodyPart
+ * @param tier
+ * @returns {boolean}
+ */
+Creep.prototype.tryToBoost = function (bodyPart, tier = undefined) {
     // If they age out or are boosted, don't try again
     if (this.memory.boostAttempt || this.ticksToLive < 1000) {
         if (!this.memory.boostAttempt && this.memory.boosts) {
@@ -921,7 +912,7 @@ Creep.prototype.tryToBoost = function (boosts, tier = undefined) {
     if (!this.memory.boosts.requestedBoosts) {
         let available = {};
         let boostNeeded;
-        for (let boostType of boosts) {
+        for (let boostType of bodyPart) {
             switch (boostType) {
                 case 'attack':
                     boostNeeded = this.getActiveBodyparts(ATTACK) * 30;
@@ -1032,6 +1023,10 @@ Creep.prototype.tryToBoost = function (boosts, tier = undefined) {
     return true;
 };
 
+/**
+ * Handle creep recycling
+ * @returns {*|void}
+ */
 Creep.prototype.recycleCreep = function () {
     // If no moves, suicide
     if (!this.hasActiveBodyparts(MOVE)) return this.suicide();
@@ -1064,6 +1059,10 @@ Creep.prototype.recycleCreep = function () {
     }
 };
 
+/**
+ * Handle fleeing a nuke
+ * @returns {boolean}
+ */
 Creep.prototype.fleeNukeRoom = function () {
     this.say('NUKE!', true);
     if (this.memory.fleeNukeTime <= Game.time) {
@@ -1075,6 +1074,9 @@ Creep.prototype.fleeNukeRoom = function () {
     if (!this.memory.fleeTo) this.memory.fleeTo = _.sample(_.filter(MY_ROOMS, (r) => !Game.rooms[r].nukes.length)).name;
 };
 
+/**
+ * Move a random directions
+ */
 Creep.prototype.moveRandom = function () {
     let start = Math.ceil(Math.random() * 8);
     let direction = 0;

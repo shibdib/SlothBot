@@ -10,12 +10,18 @@
  */
 'use strict';
 
-let distanceCache = {};
-
+/**
+ * Check if out of bounds
+ * @returns {boolean}
+ */
 RoomPosition.prototype.checkIfOutOfBounds = function () {
     return this.x > 46 || this.x < 3 || this.y > 46 || this.y < 3;
 };
 
+/**
+ * Find the closest source
+ * @returns {*}
+ */
 RoomPosition.prototype.getClosestSource = function () {
     let source = this.findClosestByRange(FIND_SOURCES_ACTIVE, {filter: (s) => s.pos.countOpenTerrainAround() > _.filter(Game.rooms[this.roomName].creeps, (c) => c.memory && c.memory.source === s.id).length});
     if (!source) {
@@ -24,6 +30,13 @@ RoomPosition.prototype.getClosestSource = function () {
     return source;
 };
 
+/**
+ * Find in range structures
+ * @param objects
+ * @param range
+ * @param structureTypes
+ * @returns {*}
+ */
 RoomPosition.prototype.findInRangeStructures = function (objects, range, structureTypes) {
     return this.findInRange(objects, 1, {
         filter: function (object) {
@@ -32,6 +45,12 @@ RoomPosition.prototype.findInRangeStructures = function (objects, range, structu
     });
 };
 
+/**
+ * Find closest structure
+ * @param structures
+ * @param structureType
+ * @returns {*}
+ */
 RoomPosition.prototype.findClosestStructure = function (structures, structureType) {
     return this.findClosestByPath(structures, {
         filter: function (object) {
@@ -40,6 +59,11 @@ RoomPosition.prototype.findClosestStructure = function (structures, structureTyp
     });
 };
 
+/**
+ * Get position at direction
+ * @param direction
+ * @returns {RoomPosition|undefined}
+ */
 RoomPosition.prototype.getAdjacentPosition = function (direction) {
     const adjacentPos = [
         [0, 0],
@@ -61,7 +85,6 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
 
 /**
  * Counts open terrain around a POS
- *
  * @param {boolean} borderBuild - Check if the pos is within 2 of an exit
  * @param {boolean} ignore - Ignore all obstructions besides walls
  * @returns {number}
@@ -184,39 +207,68 @@ RoomPosition.prototype.lookNearby = function (asArray, range = 1) {
     );
 };
 
+/**
+ * Check for terrain wall
+ * @returns {boolean}
+ */
 RoomPosition.prototype.checkForWall = function () {
     return Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) === 1;
 };
 
+/**
+ * Check for terrain swamp
+ * @returns {boolean}
+ */
 RoomPosition.prototype.checkForSwamp = function () {
     return Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) === 2;
 };
 
-RoomPosition.prototype.checkForCreep = function () {
-    return this.lookFor(LOOK_CREEPS)[0];
-};
-
+/**
+ * Check for terrain plain
+ * @returns {boolean}
+ */
 RoomPosition.prototype.checkForPlain = function () {
     return !Game.map.getRoomTerrain(this.roomName).get(this.x, this.y);
 };
 
+/**
+ * Check for creep
+ * @returns {*}
+ */
+RoomPosition.prototype.checkForCreep = function () {
+    return this.lookFor(LOOK_CREEPS)[0];
+};
+
+/**
+ * Check for built wall
+ * @returns {*}
+ */
 RoomPosition.prototype.checkForBuiltWall = function () {
     return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_WALL);
 };
 
-RoomPosition.prototype.checkForPortal = function () {
-    if (INTEL[this.roomName] && !INTEL[this.roomName].portal) return false;
-    return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_PORTAL);
-};
-
+/**
+ * Check for rampart
+ * @param active
+ * @returns {*}
+ */
 RoomPosition.prototype.checkForRampart = function (active = undefined) {
     if (active) return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic);
     return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART);
 };
+
+/**
+ * Check for barrier structure
+ * @returns {*}
+ */
 RoomPosition.prototype.checkForBarrierStructure = function () {
     return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
 };
 
+/**
+ * Check for obstacle structure
+ * @returns {*}
+ */
 RoomPosition.prototype.checkForObstacleStructure = function () {
     let obstacle = this.lookFor(LOOK_STRUCTURES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
     if (!obstacle) obstacle = _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART && !s.my && !s.isPublic && !FRIENDLIES.includes(s.owner.username));
@@ -224,27 +276,52 @@ RoomPosition.prototype.checkForObstacleStructure = function () {
     return obstacle;
 };
 
+/**
+ * Check for construction site
+ * @returns {*}
+ */
 RoomPosition.prototype.checkForConstructionSites = function () {
     return this.lookFor(LOOK_CONSTRUCTION_SITES)[0];
 };
 
+/**
+ * Check for mineral
+ * @returns {*}
+ */
 RoomPosition.prototype.checkForMineral = function () {
     return this.lookFor(LOOK_MINERALS)[0];
 };
 
+/**
+ * Check for road
+ * @returns {*}
+ */
 RoomPosition.prototype.checkForRoad = function () {
     return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_ROAD)[0];
 };
 
+/**
+ * Check for container
+ * @returns {*}
+ */
 RoomPosition.prototype.checkForContainer = function () {
     return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
 };
 
+/**
+ * Check for energy
+ * @returns {number|any|PaymentCurrencyAmount}
+ */
 RoomPosition.prototype.checkForEnergy = function () {
     let energy = this.lookFor(LOOK_ENERGY)[0];
     if (energy) return energy.amount;
 };
 
+/**
+ * Check for all structures
+ * @param ramparts
+ * @returns {undefined|*}
+ */
 RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
     if (Game.rooms[this.roomName]) {
         if (!ramparts) return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD);
@@ -254,6 +331,12 @@ RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
     }
 };
 
+/**
+ * Check for impassible
+ * @param ignoreWall
+ * @param ignoreCreep
+ * @returns {boolean}
+ */
 RoomPosition.prototype.checkForImpassible = function (ignoreWall = false, ignoreCreep = false) {
     if (ignoreWall) {
         if (this.checkForObstacleStructure() || (!ignoreCreep && this.checkForCreep())) return true;
@@ -262,102 +345,22 @@ RoomPosition.prototype.checkForImpassible = function (ignoreWall = false, ignore
     }
 };
 
+/**
+ * Find first in range
+ * @param lookUp
+ * @param range
+ * @returns {*}
+ */
 RoomPosition.prototype.findFirstInRange = function (lookUp, range) {
     return _.find(lookUp, (o) => this.inRangeTo(o, range));
 };
 
-
+/**
+ * Check is pos is an exit
+ * @returns {boolean}
+ */
 RoomPosition.prototype.isExit = function () {
     return this.x < 1 || this.x > 48 || this.y < 1 || this.y > 48;
-};
-
-RoomPosition.prototype.isValid = function () {
-    if (this.x < 0 || this.y < 0) {
-        return false;
-    }
-    return !(this.x > 49 || this.y > 49);
-};
-
-RoomPosition.prototype.buildRoomPosition = function (direction, distance) {
-    if (distance > 1) {
-        log.i('!!!! Distance > 1 not yet implemented');
-    }
-    return this.getAdjacentPosition((direction - 1) % 8 + 1);
-};
-
-RoomPosition.prototype.rangeToTarget = function (target) {
-    if (!target) return;
-    // Distance cache fails hard on MMO
-    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') {
-        return this.getRangeTo(target);
-    }
-    let cached = getCachedTargetDistance(this, target);
-    if (cached) return cached;
-    return cacheTargetDistance(this, target);
-};
-
-function cacheTargetDistance(origin, target) {
-    let key, cache;
-    if (target instanceof RoomPosition) key = getPathKey(origin, target); else key = getPathKey(origin, target.pos);
-    cache = distanceCache
-    let distance = origin.getRangeTo(target);
-    cache[key] = {
-        distance: distance,
-        uses: 1,
-        tick: Game.time
-    };
-    distanceCache = cache;
-    return distance;
-}
-
-function getCachedTargetDistance(origin, target) {
-    let cache = distanceCache;
-    if (cache) {
-        let cachedDistance;
-        if (target instanceof RoomPosition) cachedDistance = cache[getPathKey(origin, target)]; else cachedDistance = cache[getPathKey(origin, target.pos)];
-        if (cachedDistance) {
-            cachedDistance.uses += 1;
-            distanceCache = cache;
-            return cachedDistance.distance;
-        }
-    }
-}
-
-function getPathKey(from, to) {
-    return getPosKey(from) + '$' + getPosKey(to);
-}
-
-function getPosKey(pos) {
-    return pos.x + 'x' + pos.y + pos.roomName;
-}
-
-//SemperRabbit Shares
-RoomPosition.prototype.isEqualToXY = function (x, y) {
-    return x === this.x && y === this.y;
-};
-RoomPosition.prototype.isEqualToPos = function (obj) {
-    return obj.x === this.x && obj.y === this.y && obj.roomName === this.roomName;
-};
-RoomPosition.prototype.isEqualToRoomObject = function (obj) {
-    return obj.pos.x === this.x && obj.pos.y === this.y && obj.pos.roomName === this.roomName;
-};
-RoomPosition.prototype.inRangeToXY = function (x, y, range) {
-    return ((x - this.x) < 0 ? (this.x - x) : (x - this.x)) <= range && ((y - this.y) < 0 ? (this.y - y) : (y - this.y)) <= range;
-};
-RoomPosition.prototype.inRangeToPos = function (obj, range) {
-    return ((obj.x - this.x) < 0 ? (this.x - obj.x) : (obj.x - this.x)) <= range && ((obj.y - this.y) < 0 ? (this.y - obj.y) : (obj.y - this.y)) <= range;
-};
-RoomPosition.prototype.inRangeToRoomObject = function (obj, range) {
-    return ((obj.pos.x - this.x) < 0 ? (this.x - obj.pos.x) : (obj.pos.x - this.x)) <= range && ((obj.pos.y - this.y) < 0 ? (this.y - obj.pos.y) : (obj.pos.y - this.y)) <= range;
-};
-RoomPosition.prototype.isNearToXY = function (x, y) {
-    return ((x - this.x) < 0 ? (this.x - x) : (x - this.x)) <= 1 && ((y - this.y) < 0 ? (this.y - y) : (y - this.y)) <= 1;
-};
-RoomPosition.prototype.isNearToPos = function (obj) {
-    return ((obj.x - this.x) < 0 ? (this.x - obj.x) : (obj.x - this.x)) <= 1 && ((obj.y - this.y) < 0 ? (this.y - obj.y) : (obj.y - this.y)) <= 1;
-};
-RoomPosition.prototype.isNearToRoomObject = function (obj) {
-    return ((obj.pos.x - this.x) < 0 ? (this.x - obj.pos.x) : (obj.pos.x - this.x)) <= 1 && ((obj.pos.y - this.y) < 0 ? (this.y - obj.pos.y) : (obj.pos.y - this.y)) <= 1;
 };
 
 /* Posted December 25th, 2016 by @semperrabbit */
