@@ -89,12 +89,10 @@ module.exports.processBuildQueue = function (room) {
                         lastBuilt[availableSpawn.room.name] = Game.time;
                         if (!queuedBuild.operation) log.d(availableSpawn.room.name + ' Spawning a ' + role);
                         if (globalQueue[role]) {
-                            delete globalQueue[role];
-                            Memory.globalCreepQueue = JSON.stringify(globalQueue);
+                            Memory.globalCreepQueue = JSON.stringify(_.filter(globalQueue, (c) => c.role !== role));
                         }
                         if (roomQueue[role]) {
-                            delete roomQueue[role];
-                            room.memory.creepQueue = JSON.stringify(roomQueue);
+                            room.memory.creepQueue = JSON.stringify(_.filter(roomQueue, (c) => c.role !== role));
                         }
                         return;
                     case ERR_NOT_ENOUGH_ENERGY:
@@ -548,8 +546,7 @@ module.exports.globalCreepQueue = function () {
                     if (getCreepCount(undefined, 'drone', key) < 8) {
                         queueGlobalCreep(priority + getCreepCount(undefined, 'drone', key), {
                             role: 'drone',
-                            destination: key,
-                            military: true
+                            destination: key
                         });
                     }
                 } else if (INTEL[key].threatLevel && getCreepCount(undefined, 'longbow', key) < 2) {
@@ -564,23 +561,18 @@ module.exports.globalCreepQueue = function () {
             case 'commodity': // Commodity Mining
                 let commoditySpace = operations[key].space || 1;
                 if (getCreepCount(undefined, 'commodityMiner', key) < commoditySpace) {
-                    queueGlobalCreep(priority, {role: 'commodityMiner', destination: key, military: true})
+                    queueGlobalCreep(priority, {role: 'commodityMiner', destination: key})
                 }
                 break;
             case 'mineral': // Middle room mineral mining
                 let mineralSpace = operations[key].space || 1;
                 if (getCreepCount(undefined, 'commodityMiner', key) < mineralSpace) {
-                    queueGlobalCreep(priority, {role: 'commodityMiner', destination: key, military: true})
+                    queueGlobalCreep(priority, {role: 'commodityMiner', destination: key})
                 }
                 break;
             case 'robbery': // Middle room mineral mining
                 if (!getCreepCount(undefined, 'remoteHauler', key)) {
-                    queueGlobalCreep(priority, {
-                        role: 'remoteHauler',
-                        destination: key,
-                        military: true,
-                        operation: 'robbery'
-                    })
+                    queueGlobalCreep(priority, {role: 'remoteHauler', destination: key, operation: 'robbery'})
                 }
                 break;
             case 'power': // Power Mining
@@ -596,14 +588,10 @@ module.exports.globalCreepQueue = function () {
                     queueGlobalCreep(priority, {role: 'powerHealer', destination: key, military: true})
                 }
                 if (!operations[key].complete && (powerAttacker < powerSpace || (powerAttackerTTL && powerAttackerTTL < 450 && powerAttacker < powerSpace + 1))) {
-                    queueGlobalCreep(priority - 1, {
-                        role: 'powerAttacker',
-                        destination: key,
-                        military: true
-                    })
+                    queueGlobalCreep(priority - 1, {role: 'powerAttacker', destination: key})
                 }
                 if (operations[key].hauler && getCreepCount(undefined, 'powerHauler', key) < operations[key].hauler) {
-                    queueGlobalCreep(priority - 1, {role: 'powerHauler', destination: key, military: true})
+                    queueGlobalCreep(priority - 1, {role: 'powerHauler', destination: key})
                 }
                 break;
             case 'denial': // Deny Room
@@ -678,7 +666,7 @@ module.exports.globalCreepQueue = function () {
 };
 
 /**
- *
+ * Queue a creep for spawning
  * @param room - Room object for room creeps
  * @param priority - Spawn Priority
  * @param options - Creep spawn options object
@@ -718,6 +706,11 @@ function queueCreep(room, priority, options = {}, military = false) {
     }
 }
 
+/**
+ * Queue a creep for global spawning
+ * @param priority
+ * @param options
+ */
 function queueGlobalCreep(priority, options = {}) {
     let cache = {};
     if (Memory.globalCreepQueue) cache = JSON.parse(Memory.globalCreepQueue);
@@ -747,6 +740,10 @@ function queueGlobalCreep(priority, options = {}) {
     Memory.globalCreepQueue = JSON.stringify(cache);
 }
 
+/**
+ * Determine what order energy is used in a room
+ * @param room
+ */
 function determineEnergyOrder(room) {
     storedLevel[room.name] = getLevel(room);
     if (!energyOrder[room.name] || orderStored[room.name] + 750 < Game.time) {
@@ -771,6 +768,11 @@ function determineEnergyOrder(room) {
     }
 }
 
+/**
+ * Display the creep build queue
+ * @param room
+ * @returns {*}
+ */
 function displayQueue(room) {
     let queue;
     // Global queue
@@ -784,28 +786,23 @@ function displayQueue(room) {
         for (let key in operationQueue) {
             if (operationQueue[key].destination) {
                 let body = generator.bodyGenerator(room.level, operationQueue[key].role, room, operationQueue[key]);
-                // Add a distance sanity checks
-                let maxRange = 22;
-                if (_.includes(body, CLAIM)) maxRange = 14;
-                if (!room.shibRoute(operationQueue[key].destination) || room.shibRoute(operationQueue[key].destination).length > maxRange) {
+                // If a military op check if room can produce creeps at the level required
+                if (Memory.targetRooms[operationQueue[key].destination] && Memory.targetRooms[operationQueue[key].destination].maxLevel > room.level) {
                     delete operationQueue[key]
                     continue;
                 }
-                // If not a military op just check for route safety
-                // If a military op check if room can produce creeps at the level required
-                if (!operationQueue[key].military) {
-                    if (!room.routeSafe(operationQueue[key].destination, 500, 1, maxRange)) {
-                        delete operationQueue[key]
-                        continue;
-                    }
-                } else if (Memory.targetRooms[operationQueue[key].destination] && Memory.targetRooms[operationQueue[key].destination].maxLevel > room.level) {
+                // Add a distance sanity checks
+                let maxRange = 22;
+                if (_.includes(body, CLAIM)) maxRange = 14;
+                let route = room.shibRoute(operationQueue[key].destination);
+                if (!route || route.length > maxRange) {
                     delete operationQueue[key]
                     continue;
                 }
                 // Tweak priority based on range and if shared sector
                 if (room.energyState && (INTEL[operationQueue[key].destination] && findClosestOwnedRoom(operationQueue[key].destination, undefined, room.level) === room.name)) {
                     operationQueue[key].priority *= 0.5;
-                } else if (room.energyState < 2) {
+                } else if (!room.energyState) {
                     operationQueue[key].priority *= 6;
                 } else operationQueue[key].priority += 1;
                 if (operationQueue[key].priority < 2) operationQueue[key].priority = 2;
@@ -874,6 +871,11 @@ function creepExpiringSoon(room, role) {
     if (creeps.length) return _.min(creeps, '.ticksToLive').ticksToLive <= (CREEP_SPAWN_TIME * _.size(_.min(creeps, '.ticksToLive').body)) + 15; else return false;
 }
 
+/**
+ * Get priority for a room based on distance
+ * @param room
+ * @returns {number}
+ */
 function getPriority(room) {
     let range = findClosestOwnedRoom(room, true)
     if (range <= 1) return PRIORITIES.priority;
