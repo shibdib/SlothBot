@@ -121,8 +121,7 @@ function minionController(minion) {
     minion.attackInRange();
     minion.healInRange();
     // Handle edge cases
-    if (minion.portalCheck() || minion.borderCheck()
-        || (minion.memory.fleeNukeTime && minion.fleeNukeRoom())) {
+    if (minion.borderCheck() || (minion.memory.fleeNukeTime && minion.fleeNukeRoom())) {
         return;
     }
     // Report intel chance
