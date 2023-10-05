@@ -1,8 +1,5 @@
 /*
- * Copyright (c) 2019.
- * Github - Shibdib
- * Name - Bob Sardinia
- * Project - Overlord-Bot (Screeps)
+ * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
 /**

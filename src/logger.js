@@ -1,3 +1,7 @@
+/*
+ * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
+ */
+
 //  ~~ logger.js ~~
 /**
  * This Log class acts as a simple logging mechanism, taking advantage of how

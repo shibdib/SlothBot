@@ -1,3 +1,7 @@
+/*
+ * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
+ */
+
 'use strict';
 
 let usedOnStart = 0;

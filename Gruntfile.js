@@ -1,3 +1,7 @@
+/*
+ * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
+ */
+
 module.exports = function (grunt) {
     // --force --host=xxx --email=xxx --pass=xxx
     let host = grunt.option('host');

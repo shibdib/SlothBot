@@ -1,3 +1,7 @@
+/*
+ * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
+ */
+
 const activeSegments = [0, 1, 2, 3, 4, 23, 98];
 
 module.exports.init = function () {

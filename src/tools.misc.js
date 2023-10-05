@@ -1,3 +1,7 @@
+/*
+ * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
+ */
+
 // Get Tick Length
 const tickLengthArray = [];
 module.exports.tickLength = function () {

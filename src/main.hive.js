@@ -1,8 +1,5 @@
 /*
- * Copyright (c) 2020.
- * Github - Shibdib
- * Name - Bob Sardinia
- * Project - Overlord-Bot (Screeps)
+ * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
 const overlord = require('main.overlord');
@@ -28,13 +25,13 @@ module.exports.hiveMind = function () {
     }
     // Hive/global function loop
     diplomacy.diplomacyOverlord();
-    let hiveFunctions = shuffle([{name: 'highCommand', f: highCommand.highCommand},
-        {name: 'labs', f: labs.labManager},
-        {name: 'expansion', f: expansion.claimNewRoom},
-        {name: 'globalQueue', f: spawning.globalCreepQueue},
-        {name: 'power', f: power.powerControl},
-        {name: 'segments', f: segments.init},
-        {name: 'hud', f: hud.hud}]);
+    let hiveFunctions = shuffle([{name: 'highCommand', f: highCommand.highCommand}, {
+        name: 'labs',
+        f: labs.labManager
+    }, {name: 'expansion', f: expansion.claimNewRoom}, {
+        name: 'globalQueue',
+        f: spawning.globalCreepQueue
+    }, {name: 'power', f: power.powerControl}, {name: 'segments', f: segments.init}, {name: 'hud', f: hud.hud}]);
     let functionCount = hiveFunctions.length;
     let count = 0;
     let hiveTaskCurrentCPU = Game.cpu.getUsed();
@@ -88,7 +85,7 @@ module.exports.hiveMind = function () {
         let activeRoom = Game.rooms[currentRoom];
         // If no longer owned, filter out
         if (!activeRoom) {
-            MY_ROOMS = _.filter(MY_ROOMS, (r) => r !== currentRoom);
+            global.MY_ROOMS = _.filter(MY_ROOMS, (r) => r !== currentRoom);
             continue;
         }
         try {
@@ -106,6 +103,7 @@ module.exports.hiveMind = function () {
 };
 
 let errorCount = {};
+
 function minionController(minion) {
     // Disable notifications
     if (!minion.memory.notifyDisabled) {
