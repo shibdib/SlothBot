@@ -1,6 +1,9 @@
 // Helper functions to call from the console or codebase.
 let helpers = function () {
-    // Abandon a room
+    /**
+     * Abandon a room
+     * @param room
+     */
     global.abandonRoom = function (room) {
         if (!room) return log.e(room.name + ' does not appear to be owned by you.');
         _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room.name).forEach((c) => c.suicide());
@@ -24,7 +27,10 @@ let helpers = function () {
         room.controller.unclaim();
     };
 
-    // Get nukes in range
+    /**
+     * Get nukes in range
+     * @param target
+     */
     global.nukes = function (target) {
         let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown);
         if (target) nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, target) <= 10);
@@ -36,14 +42,21 @@ let helpers = function () {
         }
     };
 
-    // Clear Console
+    /**
+     * Clear the console
+     */
     global.clear = function () {
         console.log(
             "<script>angular.element(document.getElementsByClassName('fa fa-trash ng-scope')[0].parentNode).scope().Console.clear()</script>"
         );
     };
 
-    // Check if rooms share a sector
+    /**
+     * Check if rooms share a sector
+     * @param roomA
+     * @param roomB
+     * @returns {boolean}
+     */
     global.sameSectorCheck = function (roomA, roomB) {
         let [EW, NS] = roomA.match(/\d+/g);
         let roomAEWInt = EW.toString()[0];
@@ -54,7 +67,11 @@ let helpers = function () {
         return roomAEWInt === roomBEWInt && roomANSInt === roomBNSInt;
     };
 
-    // Get the total amount of a resource you have
+    /**
+     * Get the total amount of a resource you have
+     * @param resource
+     * @returns {number}
+     */
     global.getResourceTotal = function (resource) {
         let amount = 0;
         for (let roomName of MY_ROOMS) {
@@ -64,13 +81,19 @@ let helpers = function () {
         return amount;
     }
 
-    // Get the total uptime for the current global
+
+    /**
+     * Get the total amount of a resource you have
+     */
     global.getUptime = function () {
         let uptime = (Game.time - (Memory.lastGlobalReset || Game.time));
         log.a('Current global uptime: ' + uptime + ' ticks', ' ');
     }
 
-    // Get room intel
+    /**
+     * Get the intel for a room
+     * @param roomName
+     */
     global.intel = function (roomName) {
         if (!INTEL[roomName]) return log.e('No intel for ' + roomName);
         log.a('--INTEL FOR ' + roomName + '--', ' ');
@@ -79,13 +102,23 @@ let helpers = function () {
         }
     }
 
-    // Returns the max known level for a user from the INTEL cache
+    /**
+     * Get the strength of a user
+     * @param user
+     * @returns {number}
+     */
     global.userStrength = function (user) {
         return _.max(_.filter(INTEL, (r) => r.owner === user), 'level').level || 0;
     }
 
-    // Return the closest owned room or the range to it
     let closestCache = {};
+    /**
+     * Find the closest owned room to a given room
+     * @param roomName
+     * @param range
+     * @param minLevel
+     * @returns {number|*|number|string}
+     */
     global.findClosestOwnedRoom = function (roomName, range = false, minLevel = 1) {
         // Check if you own the room
         if (MY_ROOMS.includes(roomName) && minLevel <= Game.rooms[roomName].controller.level) {
@@ -126,12 +159,21 @@ let helpers = function () {
         }
     };
 
-    // Find the different between 2 numbers
+    /**
+     * Difference between two numbers
+     * @param num1
+     * @param num2
+     * @returns {number}
+     */
     global.difference = function (num1, num2) {
         return (num1 > num2) ? num1 - num2 : num2 - num1
     }
 
-    // Store room status for 10k ticks
+    /**
+     * Store the room status
+     * @param roomName
+     * @returns {*}
+     */
     global.roomStatus = function (roomName) {
         if (!CACHE.ROOM_STATUS || CACHE.ROOM_STATUS.tick + 10000 < Game.time) {
             CACHE.ROOM_STATUS = {};
