@@ -9,14 +9,14 @@ const DEFAULT_MAXOPS = 3000;
 const STATE_STUCK = 2;
 const FLEE_RANGE = 4;
 
-const terrainMatrixCache = {};
-const structureMatrixCache = {};
-const creepMatrixCache = {};
-const stationaryCreepMatrixCache = {};
-const hostileMatrixCache = {};
-const skMatrixCache = {};
-let globalPathCache = {};
-let globalRouteCache = {};
+const terrainMatrixCache = CACHE.terrainMatrixCache = {};
+const structureMatrixCache = CACHE.structureMatrixCache = {};
+const creepMatrixCache = CACHE.creepMatrixCache = {};
+const stationaryCreepMatrixCache = CACHE.stationaryCreepMatrixCache = {};
+const hostileMatrixCache = CACHE.hostileMatrixCache = {};
+const skMatrixCache = CACHE.skMatrixCache = {};
+let globalPathCache = CACHE.globalPathCache = {};
+let globalRouteCache = CACHE.globalRouteCache = {};
 
 function shibMove(creep, heading, options = {}) {
     // Store source keeper
@@ -347,21 +347,21 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
 }
 
 function findRoute(origin, destination, options = {}) {
+    // Handle same room edge case
+    if (origin === destination) return [origin];
     // Default options
     _.defaults(options, {
         useCache: true,
     });
     let route;
     if (options.useCache && !options.distance) route = getRoute(origin, destination);
-    if (route) return route;
+    if (route === 'failed') return []; else if (route) return route;
     options.portal = undefined;
     let portalRoom;
     let roomDistance = Game.map.getRoomLinearDistance(origin, destination);
-    if (roomDistance > 7) {
+    if (roomDistance > 12) {
         // Check for portals and don't use cached if one exists
-        portalRoom = _.min(_.filter(INTEL, (r) => r.portal && Game.map.getRoomLinearDistance(origin, r.name) < 8 && Game.map.getRoomLinearDistance(r.portal, destination) < 8), function (r) {
-            return Game.map.getRoomLinearDistance(origin, r.name);
-        });
+        portalRoom = _.find(INTEL, (r) => r.portal && Game.map.getRoomLinearDistance(origin, r.name) < 10 && Game.map.getRoomLinearDistance(r.portal, destination) < 10);
         if (portalRoom && portalRoom.name) {
             options.portal = portalRoom.name;
             options.portalDestination = INTEL[portalRoom.name].portal;
@@ -370,6 +370,20 @@ function findRoute(origin, destination, options = {}) {
         }
     }
     route = routeLogic(origin, destination, roomDistance, portalRoom);
+    // If we have a route, cache it. Otherwise, cache a failure and remove operations/queued creeps for it.
+    if (route && route.length) {
+        cacheRoute(origin, destination, route);
+    } else {
+        cacheRoute(origin, destination, undefined, true);
+        if (Memory.targetRooms[destination] || Memory.auxiliaryTargets[destination]) {
+            delete Memory.targetRooms[destination];
+            delete Memory.auxiliaryTargets[destination];
+            delete INTEL[destination];
+            log.a('Canceling operation in ' + roomLink(destination) + ' as we cannot find a route.', 'HIGH COMMAND: ');
+        }
+        if (Memory.globalCreepQueue) Memory.globalCreepQueue = JSON.stringify(_.filter(JSON.parse(Memory.globalCreepQueue), (q) => q.destination !== destination));
+        log.a('No route found between ' + origin + ' and ' + destination + ' using ' + JSON.stringify(options), 'PATHING:');
+    }
     return route;
 }
 
@@ -432,7 +446,6 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
         if (roomDistance > 2 && path[1] === destination) {
             path.splice(1, 1);
         }
-        cacheRoute(origin, destination, path);
         return path;
     } else {
         return undefined;
@@ -670,29 +683,6 @@ function addCreepsToMatrix(room, matrix, creep = undefined, options) {
     return matrix;
 }
 
-let stationaryMatrixTick = {};
-function getStationaryCreepMatrix(roomName, creep, matrix, options) {
-    let room = Game.rooms[roomName];
-    if (!room) return matrix;
-    if (!stationaryCreepMatrixCache[roomName] || options.showMatrix || (!stationaryMatrixTick[room.name] || Game.time > stationaryMatrixTick[room.name])) {
-        room.memory.creepMatrixTick = undefined;
-        stationaryCreepMatrixCache[roomName] = addStationaryCreepsToMatrix(room, matrix).serialize();
-    }
-    return PathFinder.CostMatrix.deserialize(stationaryCreepMatrixCache[roomName]);
-}
-
-function addStationaryCreepsToMatrix(room, matrix) {
-    if (!room) return matrix;
-    //Stationary creeps
-    let stationaryCreeps = _.filter(room.myCreeps, (c) => c.memory.other && c.memory.other.stationary);
-    for (let site of stationaryCreeps) {
-        if (room.name === 'W9S9') console.log(JSON.stringify(site.pos))
-        matrix.set(site.pos.x, site.pos.y, 150);
-    }
-    stationaryMatrixTick[room.name] = Game.time + ((_.round(_.min(stationaryCreeps, 'ticksToLive').ticksToLive * 0.5)) || 10);
-    return matrix;
-}
-
 let hostileMatrixTick = {};
 function getHostileMatrix(roomName, matrix, options) {
     let room = Game.rooms[roomName];
@@ -812,13 +802,14 @@ function positionAtDirection(origin, direction) {
     return new RoomPosition(x, y, origin.roomName);
 }
 
-function cacheRoute(from, to, route) {
+function cacheRoute(from, to, route, failed = undefined) {
     let key = from + '_' + to;
     let cache = globalRouteCache || {};
     if (cache instanceof Array) cache = {};
     let tick = Game.time;
     cache[key] = {
         route: JSON.stringify(route),
+        failed: failed,
         uses: 1,
         tick: tick,
         created: tick
@@ -831,6 +822,7 @@ function getRoute(from, to) {
         let cachedRoute = globalRouteCache[from + '_' + to];
         if (cachedRoute) {
             if (cachedRoute.tick + (CREEP_LIFE_TIME * 2) > Game.time) {
+                if (cachedRoute.failed) return 'failed';
                 cachedRoute.uses += 1;
                 return JSON.parse(cachedRoute.route);
             } else {
@@ -960,18 +952,44 @@ function getPosKey(pos) {
     return pos.x + 'x' + pos.y + pos.roomName;
 }
 
+/**
+ * Movement code
+ * @param destination
+ * @param options
+ * @returns {*|boolean|boolean|void|string}
+ */
 PowerCreep.prototype.shibMove = function (destination, options) {
     return shibMove(this, destination, options);
 };
+
+/**
+ * Movement code
+ * @param destination
+ * @param options
+ * @returns {*|boolean|boolean|void|string}
+ */
 Creep.prototype.shibMove = function (destination, options) {
-    shibMove(this, destination, options);
+    return shibMove(this, destination, options);
 };
-Creep.prototype.shibRoute = function (destination, options) {
-    return findRoute(this.room.name, destination, options);
-};
+
+/**
+ * Find route to destination
+ * @param destination
+ * @param options
+ * @returns {[*]|[]|string|any|[*,*]|string}
+ */
 Room.prototype.shibRoute = function (destination, options) {
+    let route = getRoute(this.name, destination);
+    if (route) return route;
     return findRoute(this.name, destination, options);
 };
+
+/**
+ * Show pathing matrix
+ * @param destination
+ * @param tunnel
+ * @returns {*|boolean|boolean|void|string}
+ */
 Creep.prototype.showMatrix = function (destination, tunnel = undefined) {
     let options = {};
     options.tunnel = tunnel
@@ -980,6 +998,14 @@ Creep.prototype.showMatrix = function (destination, tunnel = undefined) {
 };
 
 let routeSafetyCache = {};
+/**
+ * Check if route is safe
+ * @param destination
+ * @param maxThreat
+ * @param maxHeat
+ * @param range
+ * @returns {*|boolean}
+ */
 Room.prototype.routeSafe = function (destination = this.name, maxThreat = 2, maxHeat = 1000, range = 20) {
     if (routeSafetyCache[this.name + '.' + destination] && routeSafetyCache[this.name + '.' + destination].expire > Game.time) return routeSafetyCache[this.name + '.' + destination].status;
     let route = findRoute(this.name, destination);
@@ -995,11 +1021,13 @@ Room.prototype.routeSafe = function (destination = this.name, maxThreat = 2, max
     routeSafetyCache[this.name + '.' + destination] = cache;
     return state;
 };
-RoomPosition.prototype.shibMove = function (destination, options) {
-    return shibMove(this, destination, options);
-};
 
-
+/**
+ * Handle kiting
+ * @param fleeRange
+ * @param target
+ * @returns {boolean}
+ */
 Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined) {
     if (!this.hasActiveBodyparts(MOVE) || (this.room.controller && this.room.controller.safeMode)) return false;
     let avoid = _.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange + 1).concat(this.pos.findInRange(this.room.structures, fleeRange + 1, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn <= fleeRange + 2})) || target;
