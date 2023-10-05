@@ -72,7 +72,8 @@ module.exports.role = function role(creep) {
         }
     } else {
         // If under attack, waller else chance to be a waller
-        if ((INTEL[creep.room.name].threatLevel || creep.memory.currentTarget || (Math.random() > 0.5 && !creep.memory.constructionSite && !creep.room.constructionSites.length)) && wallMaintainer(creep)) return;
+        let importantBuilds = _.find(creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL);
+        if ((INTEL[creep.room.name].threatLevel || creep.memory.currentTarget || (Math.random() > 0.5 && !creep.memory.constructionSite && !importantBuilds)) && wallMaintainer(creep)) return;
         // If praiser needed praise
         if (upgrading(creep)) return;
         // If haulers needed haul
