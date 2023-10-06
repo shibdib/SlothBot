@@ -84,7 +84,7 @@ module.exports.processBuildQueue = function (room) {
                         let globalQueue = {};
                         if (room.memory.creepQueue) roomQueue = JSON.parse(room.memory.creepQueue);
                         if (Memory.globalCreepQueue) globalQueue = JSON.parse(Memory.globalCreepQueue);
-                        if (globalQueue[role]) {
+                        if (globalQueue[role] && queuedBuild.destination) {
                             delete globalQueue[role]
                             Memory.globalCreepQueue = JSON.stringify(globalQueue);
                         } else if (roomQueue[role]) {
