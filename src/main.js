@@ -61,16 +61,14 @@ module.exports.loop = function () {
         // Also handles respawns
         if (!running) {
             let ownedRoom = _.find(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my);
-            let spawn = _.find(Game.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
+            let spawn = _.find(Game.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.name !== 'auto');
             let creep = _.find(Game.creeps, (s) => s.my);
             if (ownedRoom && (!spawn || (!creep && spawn.room.controller.level === 1 && !memWipe))) {
                 if (!memWipe) {
                     resetMemory();
                     memWipe = true;
-                    return;
                 }
                 require('module.roomPlanner').buildRoom(ownedRoom);
-                return;
             } else if (spawn) running = true;
             return;
         }
@@ -119,8 +117,8 @@ module.exports.loop = function () {
     });
 };
 
-function resetMemory() {
-    log.a('Resetting Memory');
+global.resetMemory = function () {
+    log.e('Memory Wipe Initiated');
     RawMemory.set('{}');
     Memory.creeps = {};
     Memory.rooms = {};

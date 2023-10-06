@@ -419,12 +419,13 @@ let storedPos, storedPossibles;
 function findHub(room, hubCheck = undefined) {
     if (room.controller.owner && room.controller.owner.username === MY_USERNAME && room.memory.bunkerHub && room.memory.bunkerHub.x && room.memory.bunkerHub.y) return buildFromLayout(room);
     if (room.structures.length) _.filter(room.structures, (s) => !s.owner || s.owner.username !== MY_USERNAME).forEach((s) => s.destroy());
-    let pos, xOffset, yOffset, layoutVersion, layout;
     let possiblePos = storedPossibles || {};
     let posCount = 0;
     // If we already have a spawn in room, go off of that
-    let spawn = _.find(room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
+    let spawn = _.find(room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.name !== 'auto');
     if (spawn) {
+        log.a('Bunker Hub search complete for ' + room.name + '...');
+        log.a('Using existing spawn as hub.')
         room.memory.bunkerHub = {};
         room.memory.bunkerHub.x = spawn.pos.x;
         room.memory.bunkerHub.y = spawn.pos.y + 1;
@@ -452,7 +453,7 @@ function findHub(room, hubCheck = undefined) {
                 }
                 storedPos[room.name].x = x;
                 storedPos[room.name].y = y;
-                pos = new RoomPosition(x, y, room.name);
+                let pos = new RoomPosition(x, y, room.name);
                 if (pos.checkForImpassible()) continue;
                 // Cycle through buildings to make sure the hub fits
                 for (let type of bunkerTemplate) {
