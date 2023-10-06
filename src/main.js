@@ -63,14 +63,13 @@ module.exports.loop = function () {
             let ownedRoom = _.find(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my);
             let spawn = _.find(Game.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.name !== 'auto');
             let creep = _.find(Game.creeps, (s) => s.my);
-            if (ownedRoom && (!spawn || (!creep && spawn.room.controller.level === 1 && !memWipe))) {
+            if (ownedRoom && (!spawn || !creep)) {
                 if (!memWipe) {
                     resetMemory();
                     memWipe = true;
                 }
-                require('module.roomPlanner').buildRoom(ownedRoom);
+                if (!spawn) return require('module.roomPlanner').buildRoom(ownedRoom);
             } else if (spawn) running = true;
-            return;
         }
 
         // Handle Pixel Farming
