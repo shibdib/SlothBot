@@ -135,19 +135,22 @@ let helpers = function () {
             closestCache[roomName] = {};
             closestCache[roomName].ownedCount = MY_ROOMS.length;
             let distance = 99;
-            let closest;
+            let closest, closestDistance;
             for (let key of MY_ROOMS) {
                 let myRoom = Game.rooms[key];
                 if (!myRoom || myRoom.controller.level < minLevel) continue;
+                // Basic distance check to save CPU
+                distance = Game.map.getRoomLinearDistance(roomName, myRoom.name);
                 // Handle absurd distances
-                let path = myRoom.shibRoute(roomName);
-                if (!path) continue;
-                distance = path.length;
-                if (!distance) {
-                    distance = path;
+                if (distance > 25) {
+                    let path = myRoom.shibRoute(roomName);
+                    if (path) distance = path.length;
+                }
+                if (!closestDistance) {
+                    closestDistance = distance;
                     closest = myRoom.name;
-                } else if (path < distance) {
-                    distance = path;
+                } else if (distance < closestDistance) {
+                    closestDistance = distance;
                     closest = myRoom.name;
                 }
             }

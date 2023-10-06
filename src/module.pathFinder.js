@@ -363,12 +363,14 @@ function findRoute(origin, destination, options = {}) {
             options.portal = portalRoom.name;
             options.portalDestination = INTEL[portalRoom.name].portal;
             options.originalDestination = destination;
+            options.portalDistance = Game.map.getRoomLinearDistance(INTEL[portalRoom.name].portal, destination);
             destination = portalRoom.name;
         }
     }
     route = routeLogic(origin, destination, roomDistance, portalRoom);
     // If we have a route, cache it. Otherwise, cache a failure and remove operations/queued creeps for it.
     if (route && route.length) {
+        if (options.originalDestination) destination = options.originalDestination;
         cacheRoute(origin, destination, route);
     } else {
         cacheRoute(origin, destination, undefined, true);
@@ -379,7 +381,7 @@ function findRoute(origin, destination, options = {}) {
             log.a('Canceling operation in ' + roomLink(destination) + ' as we cannot find a route.', 'HIGH COMMAND: ');
         }
         if (Memory.globalCreepQueue) Memory.globalCreepQueue = JSON.stringify(_.filter(JSON.parse(Memory.globalCreepQueue), (q) => q.destination !== destination));
-        log.a('No route found between ' + origin + ' and ' + destination + ' using ' + JSON.stringify(options), 'PATHING:');
+        log.a('No route found between ' + roomLink(origin) + ' and ' + roomLink(destination), 'PATHING:');
     }
     return route;
 }
@@ -802,7 +804,7 @@ function positionAtDirection(origin, direction) {
 function cacheRoute(from, to, route, failed = undefined) {
     let key = from + '_' + to;
     let cache = globalRouteCache || {};
-    if (cache instanceof Array) cache = {};
+    if (typeof cache !== 'object') cache = {};
     let tick = Game.time;
     cache[key] = {
         route: JSON.stringify(route),
@@ -975,7 +977,7 @@ Creep.prototype.shibMove = function (destination, options) {
  * @param options
  * @returns {[*]|[]|string|any|[*,*]|string}
  */
-Room.prototype.shibRoute = function (destination, options) {
+Room.prototype.shibRoute = function (destination, options = {}) {
     let route = getRoute(this.name, destination);
     if (route) return route;
     return findRoute(this.name, destination, options);
