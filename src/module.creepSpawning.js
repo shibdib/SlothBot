@@ -85,9 +85,11 @@ module.exports.processBuildQueue = function (room) {
                         if (room.memory.creepQueue) roomQueue = JSON.parse(room.memory.creepQueue);
                         if (Memory.globalCreepQueue) globalQueue = JSON.parse(Memory.globalCreepQueue);
                         if (globalQueue[role]) {
-                            Memory.globalCreepQueue = JSON.stringify(_.filter(globalQueue, (c) => c.role !== role));
+                            delete globalQueue[role]
+                            Memory.globalCreepQueue = JSON.stringify(globalQueue);
                         } else if (roomQueue[role]) {
-                            room.memory.creepQueue = JSON.stringify(_.filter(roomQueue, (c) => c.role !== role));
+                            delete roomQueue[role]
+                            room.memory.creepQueue = JSON.stringify(roomQueue);
                         }
                         return;
                     case ERR_NOT_ENOUGH_ENERGY:
@@ -619,19 +621,15 @@ module.exports.globalCreepQueue = function () {
 function queueCreep(room = undefined, priority, options = {}, global = false) {
     let cache = {};
     // Set the cache to local or global
-    if (global && Memory.globalCreepQueue) cache = JSON.parse(Memory.globalCreepQueue); else if (room.memory.creepQueue) cache = JSON.parse(room.memory.creepQueue);
+    if (global && Memory.globalCreepQueue) cache = JSON.parse(Memory.globalCreepQueue); else if (room && room.memory.creepQueue) cache = JSON.parse(room.memory.creepQueue);
+    // Handle a cache sanity check
+    if (typeof cache !== 'object') cache = {};
     // Handle overwriting less important creeps
     if (cache[options.role] && cache[options.role].priority <= priority) return; else if (cache[options.role]) delete cache[options.role];
     // Set room name if local
     if (!global) options.room = room.name;
     _.defaults(options, {
-        role: undefined,
-        assignedSource: undefined,
-        destination: undefined,
-        other: {},
-        military: undefined,
-        operation: undefined,
-        misc: undefined
+        other: {}
     });
     cache[options.role] = {
         cached: Game.time,
@@ -644,7 +642,9 @@ function queueCreep(room = undefined, priority, options = {}, global = false) {
         operation: options.operation,
         misc: options.misc
     };
-    if (global) Memory.globalCreepQueue = JSON.stringify(cache); else room.memory.creepQueue = JSON.stringify(cache);
+    if (global) Memory.globalCreepQueue = JSON.stringify(cache); else {
+        room.memory.creepQueue = JSON.stringify(cache);
+    }
 }
 
 /**
@@ -701,8 +701,9 @@ function displayQueue(room) {
                 // Add a distance sanity checks
                 let maxRange = 22;
                 if (_.includes(body, CLAIM)) maxRange = 14;
-                let route = room.shibRoute(operationQueue[key].destination);
-                if (!route || route.length > maxRange) {
+                let range = Game.map.getRoomLinearDistance(room.name, operationQueue[key].destination);
+                if (range > maxRange) range = room.shibRoute(operationQueue[key].destination).length;
+                if (range > maxRange) {
                     delete operationQueue[key]
                     continue;
                 }
