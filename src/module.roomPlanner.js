@@ -62,18 +62,20 @@ function auxiliaryBuilding(room) {
     sourceBuilder(room);
     // Controller
     controllerBuilder(room);
-    // Hub
-    if (room.level >= 5) hubLink(room);
+    // Ramparts
+    rampartBuilder(room, layout);
     if (room.storage) {
         // Roads
         if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length < 3 && !roadBuilder(room, layout)) INTEL[room.name].roadsBuilt = true; else INTEL[room.name].roadsBuilt = undefined
-        // Ramparts
-        rampartBuilder(room, layout);
-        if (room.level >= 6) {
-            // Labs
-            labBuilder(room);
-            // Mineral
-            mineralBuilder(room);
+        if (room.level >= 5) {
+            // Hub
+            hubLink(room);
+            if (room.level >= 6) {
+                // Labs
+                labBuilder(room);
+                // Mineral
+                mineralBuilder(room);
+            }
         }
     } else INTEL[room.name].roadsBuilt = undefined;
     // Cleanup
@@ -346,7 +348,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
         if (count && rampartSpots[room.name]) {
             return _.size(JSON.parse(rampartSpots[room.name]));
         }
-    } else if (rampartSpots[room.name] && room.storage) {
+    } else if (rampartSpots[room.name]) {
         let spots = JSON.parse(rampartSpots[room.name]);
         if (!spots.length) _.filter(room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).forEach((b) => spots.push({
             x: b.pos.x,
