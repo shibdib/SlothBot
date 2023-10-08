@@ -49,10 +49,14 @@ let globals = function () {
     // Creep build priorities (Lower is higher priority)
     global.PRIORITIES = {
         // Harvesters
-        stationaryHarvester: 1, // Workers
-        upgrader: 4, drone: 2, mineralHarvester: 5, // Haulers
-        hauler: 1, miscHauler: 7, // Remotes
-        remoteHarvester: 3, remoteHauler: 2, roadBuilder: 4, fuelTruck: 8, reserver: 3, // Military
+        stationaryHarvester: 1,
+        // Workers
+        upgrader: 4, drone: 2, mineralHarvester: 5,
+        // Haulers
+        hauler: 1, miscHauler: 7,
+        // Remotes
+        remoteHarvester: 3, remoteHauler: 3, roadBuilder: 4, fuelTruck: 8, reserver: 3,
+        // Military
         defender: 2, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9
     };
 
