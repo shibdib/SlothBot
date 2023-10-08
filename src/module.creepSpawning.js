@@ -200,10 +200,11 @@ module.exports.miscCreepQueue = function (room) {
     //Drones
     // 1 at all times, more if we have a lot of construction and energy
     let number = 1 + room.energyState;
-    if (room.energyState && _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART)) number = 9 - room.controller.level;
+    if (room.energyState && (!room.terminal || _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART))) number = 12 - room.controller.level;
     if (getCreepCount(room, 'drone') < number) {
         queueCreep(room, PRIORITIES.drone + getCreepCount(room, 'drone'), {
-            role: 'drone', other: {reboot: room.friendlyCreeps.length <= 3}
+            role: 'drone',
+            other: {reboot: room.friendlyCreeps.length <= 3}
         })
     }
     if (room.terminal && room.storage && level >= 6) {
@@ -223,7 +224,8 @@ module.exports.miscCreepQueue = function (room) {
         //Mineral Harvester
         if (room.level >= 6 && room.memory.extractorContainer && room.mineral.mineralAmount && !getCreepCount(room, 'mineralHarvester')) {
             queueCreep(room, PRIORITIES.mineralHarvester, {
-                role: 'mineralHarvester', other: {assignedMineral: room.mineral.id}
+                role: 'mineralHarvester',
+                other: {assignedMineral: room.mineral.id}
             })
         }
         // Explorers
@@ -474,7 +476,10 @@ module.exports.globalCreepQueue = function () {
                 let harassTarget = _.sample(_.filter(INTEL, (r) => !r.owner && Memory.harassTargets.includes(r.user)));
                 if (harassTarget) {
                     queueCreep(undefined, PRIORITIES.secondary, {
-                        role: 'longbow', destination: harassTarget.name, operation: 'harass', military: true
+                        role: 'longbow',
+                        destination: harassTarget.name,
+                        operation: 'harass',
+                        military: true
                     }, true)
                 }
             }
@@ -510,7 +515,10 @@ module.exports.globalCreepQueue = function () {
                     }
                 } else if (INTEL[key].threatLevel && getCreepCount(undefined, 'longbow', key) < 2) {
                     queueCreep(undefined, priority, {
-                        role: 'longbow', destination: key, military: true, operation: 'guard',
+                        role: 'longbow',
+                        destination: key,
+                        military: true,
+                        operation: 'guard',
                     }, true);
                 }
                 break;
@@ -708,7 +716,7 @@ function displayQueue(room) {
                     continue;
                 }
                 // Tweak priority based on range and if shared sector
-                if (room.energyState && (INTEL[operationQueue[key].destination] && findClosestOwnedRoom(operationQueue[key].destination, undefined, room.level) === room.name)) {
+                if (room.energyState > 1 && (INTEL[operationQueue[key].destination] && findClosestOwnedRoom(operationQueue[key].destination, undefined, room.level) === room.name)) {
                     operationQueue[key].priority *= 0.5;
                 } else if (!room.energyState) {
                     operationQueue[key].priority *= 6;
