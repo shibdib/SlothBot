@@ -87,7 +87,8 @@ module.exports.processBuildQueue = function (room) {
                         if (globalQueue[role] && queuedBuild.destination) {
                             delete globalQueue[role]
                             Memory.globalCreepQueue = JSON.stringify(globalQueue);
-                        } else if (roomQueue[role]) {
+                        }
+                        if (roomQueue[role]) {
                             delete roomQueue[role]
                             room.memory.creepQueue = JSON.stringify(roomQueue);
                         }
@@ -359,7 +360,7 @@ module.exports.remoteCreepQueue = function (room) {
                     // If we have an SKAttacker send harvesters
                     if (getCreepCount(undefined, 'SKAttacker', remoteName)) {
                         if (getCreepCount(undefined, 'remoteHarvester', remoteName) < INTEL[remoteName].sources) {
-                            queueCreep(room, PRIORITIES.remoteHarvester + (getCreepCount(room, 'remoteHarvester') * 0.2), {
+                            queueCreep(room, PRIORITIES.remoteHarvester + (getCreepCount(undefined, 'remoteHarvester', remoteName) * 0.5), {
                                 role: 'remoteHarvester', destination: remoteName
                             })
                         }
@@ -370,7 +371,7 @@ module.exports.remoteCreepQueue = function (room) {
                 } // Regular remotes
                 else if (!INTEL[remoteName].sk) {
                     if (getCreepCount(undefined, 'remoteHarvester', remoteName) < INTEL[remoteName].sources) {
-                        queueCreep(room, PRIORITIES.remoteHarvester + (getCreepCount(room, 'remoteHarvester') * 0.5) + room.energyState, {
+                        queueCreep(room, PRIORITIES.remoteHarvester + (getCreepCount(undefined, 'remoteHarvester', remoteName) * 0.5), {
                             role: 'remoteHarvester', destination: remoteName
                         })
                     }
@@ -509,7 +510,7 @@ module.exports.globalCreepQueue = function () {
             case 'rebuild':
                 if (!INTEL[key] || !INTEL[key].threatLevel) {
                     if (getCreepCount(undefined, 'drone', key) < 8) {
-                        queueCreep(undefined, priority + getCreepCount(undefined, 'drone', key), {
+                        queueCreep(undefined, PRIORITIES.drone + getCreepCount(undefined, 'drone', key), {
                             role: 'drone', destination: key
                         }, true);
                     }
@@ -650,9 +651,7 @@ function queueCreep(room = undefined, priority, options = {}, global = false) {
         operation: options.operation,
         misc: options.misc
     };
-    if (global) Memory.globalCreepQueue = JSON.stringify(cache); else {
-        room.memory.creepQueue = JSON.stringify(cache);
-    }
+    if (global) Memory.globalCreepQueue = JSON.stringify(cache); else room.memory.creepQueue = JSON.stringify(cache);
 }
 
 /**
@@ -716,7 +715,7 @@ function displayQueue(room) {
                     continue;
                 }
                 // Tweak priority based on range and if shared sector
-                if (room.energyState > 1 && (INTEL[operationQueue[key].destination] && findClosestOwnedRoom(operationQueue[key].destination, undefined, room.level) === room.name)) {
+                if (room.energyState && room.storage && (INTEL[operationQueue[key].destination] && findClosestOwnedRoom(operationQueue[key].destination, undefined, room.level) === room.name)) {
                     operationQueue[key].priority *= 0.5;
                 } else if (!room.energyState) {
                     operationQueue[key].priority *= 6;
@@ -766,7 +765,12 @@ function displayQueue(room) {
  * @returns {*|number}
  */
 function getCreepCount(room = undefined, role, destination, operation = undefined) {
-    if (!destination && !operation && room) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === room.name || c.room.name === room.name)).length; else if (room && operation && !destination) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === room.name || c.memory.overlord === room.name) && c.memory.operation === operation).length; else if (destination && !operation) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === destination || c.memory.overlord === destination)).length; else if (!destination && operation) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && c.memory.operation === operation).length; else if (destination && operation) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === destination || c.memory.overlord === destination) && c.memory.operation === operation).length; else if (!destination && !operation && !room) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role).length;
+    if (!destination && !operation && room) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === room.name || c.room.name === room.name)).length;
+    else if (room && operation && !destination) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === room.name || c.memory.overlord === room.name) && c.memory.operation === operation).length;
+    else if (destination && !operation) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === destination || c.memory.overlord === destination)).length;
+    else if (!destination && operation) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && c.memory.operation === operation).length;
+    else if (destination && operation) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === destination || c.memory.overlord === destination) && c.memory.operation === operation).length;
+    else if (!destination && !operation && !room) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role).length;
 }
 
 /**
