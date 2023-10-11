@@ -15,7 +15,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
     let work, claim, carry, move, tough, attack, rangedAttack, heal, energyScaling;
     let energyAmount = room.energyCapacityAvailable;
     let importantBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART).length > 0;
-    if (creepInfo.other.reboot || room.myCreeps.length <= 3) {
+    if (creepInfo.other.reboot || room.myCreeps.length <= 3 || !room.storage) {
         energyAmount = room.energyAvailable;
         if (energyAmount < 300) energyAmount = 300;
     }
