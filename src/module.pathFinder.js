@@ -380,7 +380,6 @@ function findRoute(origin, destination, options = {}) {
             delete INTEL[destination];
             log.a('Canceling operation in ' + roomLink(destination) + ' as we cannot find a route.', 'HIGH COMMAND: ');
         }
-        if (Memory.globalCreepQueue) Memory.globalCreepQueue = JSON.stringify(_.filter(JSON.parse(Memory.globalCreepQueue), (q) => q.destination !== destination));
         log.a('No route found between ' + roomLink(origin) + ' and ' + roomLink(destination), 'PATHING:');
     }
     return route;
