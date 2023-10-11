@@ -55,7 +55,7 @@ let globals = function () {
         // Haulers
         hauler: 1, miscHauler: 7,
         // Remotes
-        remoteHarvester: 3, remoteHauler: 3, roadBuilder: 4, fuelTruck: 8, reserver: 3,
+        remoteHarvester: 3, remoteHauler: 3, roadBuilder: 4, fuelTruck: 8, reserver: 4,
         // Military
         defender: 2, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9
     };
