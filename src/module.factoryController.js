@@ -22,31 +22,32 @@ module.exports.factoryControl = function (room) {
         } else coolDownTracker[room.name] = 5;
         // If factory is set to produce do so
         if (room.factory.memory.producing) {
-            switch (room.factory.produce(room.factory.memory.producing)) {
-                case OK:
-                    // Check if it's still good to produce
-                    if (room.factory.memory.producing !== RESOURCE_ENERGY) {
-                        if (room.factory.memory.producing === RESOURCE_BATTERY && room.energyState < 2) {
-                            log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to falling below the energy target.', ' FACTORY CONTROL:');
-                            return delete room.factory.memory.producing;
-                        } else if (!_.includes(COMPRESSED_COMMODITIES, room.factory.memory.producing) && room.store(room.factory.memory.producing) > REACTION_AMOUNT) {
-                            log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to hitting the production cap.', ' FACTORY CONTROL:');
-                            return delete room.factory.memory.producing;
-                        } else if (_.includes(COMPRESSED_COMMODITIES, room.factory.memory.producing)) {
-                            for (let neededResource of Object.keys(COMMODITIES[room.factory.memory.producing].components)) {
-                                if (neededResource === RESOURCE_ENERGY) continue;
-                                if (room.store(neededResource) < REACTION_AMOUNT * 0.5) {
-                                    log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' because ' + neededResource + ' fell below the reaction amount.', ' FACTORY CONTROL:');
-                                    return delete room.factory.memory.producing;
-                                }
-                            }
-                        } else if (COMMODITIES[room.factory.memory.producing].components[RESOURCE_ENERGY] && !room.energyState) {
-                            log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to being low on energy.', ' FACTORY CONTROL:');
+            // Check if it's still good to produce
+            if (room.factory.memory.producing !== RESOURCE_ENERGY) {
+                if (room.factory.memory.producing === RESOURCE_BATTERY && room.store(RESOURCE_ENERGY, true) < STORAGE_CAPACITY * 0.1) {
+                    log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to falling below the energy target.', ' FACTORY CONTROL:');
+                    return delete room.factory.memory.producing;
+                } else if (!_.includes(COMPRESSED_COMMODITIES, room.factory.memory.producing) && room.store(room.factory.memory.producing) > REACTION_AMOUNT) {
+                    log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to hitting the production cap.', ' FACTORY CONTROL:');
+                    return delete room.factory.memory.producing;
+                } else if (_.includes(COMPRESSED_COMMODITIES, room.factory.memory.producing)) {
+                    for (let neededResource of Object.keys(COMMODITIES[room.factory.memory.producing].components)) {
+                        if (neededResource === RESOURCE_ENERGY) continue;
+                        if (room.store(neededResource) < REACTION_AMOUNT * 0.5) {
+                            log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' because ' + neededResource + ' fell below the reaction amount.', ' FACTORY CONTROL:');
                             return delete room.factory.memory.producing;
                         }
-                    } else if (room.energyState > 1) {
-                        return delete room.factory.memory.producing;
                     }
+                } else if (COMMODITIES[room.factory.memory.producing].components[RESOURCE_ENERGY] && !room.energyState) {
+                    log.a('No longer producing ' + room.factory.memory.producing + ' in ' + roomLink(room.name) + ' due to being low on energy.', ' FACTORY CONTROL:');
+                    return delete room.factory.memory.producing;
+                }
+            } else if (room.store(RESOURCE_ENERGY, true) > STORAGE_CAPACITY * 0.11) {
+                return delete room.factory.memory.producing;
+            }
+            // Produce
+            switch (room.factory.produce(room.factory.memory.producing)) {
+                case OK:
                     coolDownTracker[room.name] = COMMODITIES[room.factory.memory.producing].cooldown + 1;
                     return;
                 case -4:
@@ -64,11 +65,11 @@ module.exports.factoryControl = function (room) {
                     }
                     return;
             }
-        } else if (!room.energyState && room.store(RESOURCE_BATTERY) >= 50) {
+        } else if (room.store(RESOURCE_ENERGY, true) < STORAGE_CAPACITY * 0.05 && room.store(RESOURCE_BATTERY) >= 50) {
             log.a('Converting ' + RESOURCE_BATTERY + ' to ENERGY in ' + roomLink(room.name), ' FACTORY CONTROL:');
             return room.factory.memory.producing = RESOURCE_ENERGY;
         } else {
-            if (room.energyState > 1) {
+            if (room.store(RESOURCE_ENERGY, true) > STORAGE_CAPACITY * 0.3) {
                 log.a('Producing ' + RESOURCE_BATTERY + ' in ' + roomLink(room.name), ' FACTORY CONTROL:');
                 return room.factory.memory.producing = RESOURCE_BATTERY;
             } else {
