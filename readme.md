@@ -1,4 +1,4 @@
-# Overlord
+# Sloth Bot
 
 Artificial Intelligence for the programming game Screeps.
 
@@ -11,13 +11,15 @@ _This was made as a way for me to learn JS, so excuse any horrible practices you
 really ugly stuff._
 
 ##Current Features
-- Supports both subscriptions and 10 CPU accounts
 - Automated Room Building
 - Automated Room Claiming
 - Automated Room Defense
 - Automated Boost Creation and Use
 - Automated Market Interaction
+- Automated Factory Code
+- Automated Power Creep Code
 - Automated Alliance Integration (This bot will recognize LOAN alliance members and not engage them)
+    - LOAN is current not working so this is non functional.
 - Manual Attack Target Designation (Description forthcoming)
 - Automated Attack Target Code 
 
