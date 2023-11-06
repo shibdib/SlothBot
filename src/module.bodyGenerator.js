@@ -224,7 +224,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
     }
     let energyMulti = 1;
     if (energyScaling && room.storage && room.energyState < 3) energyMulti = room.energyState / 4;
-    if (energyMulti > 1) energyMulti = 1;
+    if (energyMulti > 1) energyMulti = 1; else if (energyMulti < 0.05) energyMulti = 0.05;
     for (let i = 0; i < _.ceil(work * energyMulti); i++) body.push(WORK)
     for (let i = 0; i < _.ceil(carry * energyMulti); i++) body.push(CARRY)
     for (let i = 0; i < _.ceil(claim * energyMulti); i++) body.push(CLAIM)
