@@ -25,6 +25,8 @@ module.exports.role = function (creep) {
         || boostDelivery(creep)
         // Handle dropped goodies
         || droppedResources(creep)
+        // Empty factories
+        || emptyFactory(creep)
         // Handle terminal goods
         || terminalControl(creep)
         // Empty mineral harvester container
@@ -37,8 +39,6 @@ module.exports.role = function (creep) {
         || labSupplies(creep)
         // Empty labs
         || emptyLab(creep)
-        // Empty factories
-        || emptyFactory(creep)
         // Handle storage goods
         || storageControl(creep)) return;
     // If nothing to do, be a hauler for 50 ticks

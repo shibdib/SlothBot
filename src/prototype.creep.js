@@ -365,6 +365,12 @@ Creep.prototype.locateEnergy = function (room = this.room) {
                 return true;
             }
         }
+        // Factory when producing energy or nothing
+        if (room.factory && (!room.factory.memory.producing || room.factory.memory.producing === RESOURCE_ENERGY) && room.factory.store[RESOURCE_ENERGY]) {
+            this.memory.energyDestination = room.factory.id;
+            this.memory.findEnergyCountdown = undefined;
+            return true;
+        }
         if (this.memory.role !== 'shuttle' || this.memory.findEnergyCountdown >= 5) {
             // Links
             let hubLink = Game.getObjectById(room.memory.hubLink) || _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_LINK && s.store[RESOURCE_ENERGY]);
