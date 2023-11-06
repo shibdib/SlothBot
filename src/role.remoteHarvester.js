@@ -73,7 +73,7 @@ module.exports.role = function (creep) {
                     return creep.shibMove(container, {range: 0});
                 } else {
                     // Add a check for walls
-                    INTEL[creep.room.name].needCleaner = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).length > 0;
+                    INTEL[creep.room.name].obstacles = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).length > 0;
                     creep.memory.onContainer = true;
                 }
             } else if (!creep.pos.isNearTo(source)) return creep.shibMove(source);
