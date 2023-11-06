@@ -357,7 +357,7 @@ function findRoute(origin, destination, options = {}) {
     let portalRoom;
     let roomDistance = Game.map.getRoomLinearDistance(origin, destination);
     if (roomDistance > 12) {
-        // Check for portals and don't use cached if one exists
+        // Check for portals and don't use cached if one exists, if no portal and range is absurd just return
         portalRoom = _.find(INTEL, (r) => r.portal && Game.map.getRoomLinearDistance(origin, r.name) < 10 && Game.map.getRoomLinearDistance(r.portal, destination) < 10);
         if (portalRoom && portalRoom.name) {
             options.portal = portalRoom.name;
@@ -365,6 +365,8 @@ function findRoute(origin, destination, options = {}) {
             options.originalDestination = destination;
             options.portalDistance = Game.map.getRoomLinearDistance(INTEL[portalRoom.name].portal, destination);
             destination = portalRoom.name;
+        } else if (roomDistance > 20) {
+            return;
         }
     }
     route = routeLogic(origin, destination, roomDistance, portalRoom);
@@ -414,6 +416,8 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
                 if (INTEL[roomName].pathingPenalty) {
                     if (INTEL[roomName].pathingPenalty + CREEP_LIFE_TIME < Game.time) return 200; else delete INTEL[roomName].pathingPenalty;
                 }
+                // Avoid rooms with obstacles
+                if (INTEL[roomName].obstacles) return 250;
                 // Avoid strongholds
                 if (INTEL[roomName].sk && INTEL[roomName].towers) return 256;
                 // High Threat
@@ -956,7 +960,7 @@ function getPosKey(pos) {
  * @param options
  * @returns {*|boolean|boolean|void|string}
  */
-PowerCreep.prototype.shibMove = function (destination, options) {
+PowerCreep.prototype.shibMove = function (destination, options = {}) {
     return shibMove(this, destination, options);
 };
 
@@ -966,7 +970,7 @@ PowerCreep.prototype.shibMove = function (destination, options) {
  * @param options
  * @returns {*|boolean|boolean|void|string}
  */
-Creep.prototype.shibMove = function (destination, options) {
+Creep.prototype.shibMove = function (destination, options = {}) {
     return shibMove(this, destination, options);
 };
 
@@ -1011,7 +1015,7 @@ Room.prototype.routeSafe = function (destination = this.name, maxThreat = 2, max
     if (route && route.length > range) state = false;
     else if (route && route.length) route.forEach(function (r) {
         // Return false for super long routes
-        if (INTEL[r] && (INTEL[r].threatLevel >= maxThreat || INTEL[r].roomHeat >= maxHeat)) return state = false;
+        if (INTEL[r] && (INTEL[r].threatLevel >= maxThreat || INTEL[r].roomHeat >= maxHeat || INTEL[r].hostilePower > INTEL[r].friendlyPower)) return state = false;
     })
     let cache = routeSafetyCache[this.name + '.' + destination] || {};
     cache.status = state;
