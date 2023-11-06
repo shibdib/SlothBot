@@ -190,7 +190,7 @@ function pricingUpdate(globalOrders, myOrders) {
             let newPrice = currentPrice;
             // Pricing
             if (latestMarketHistory(order.resourceType)) {
-                newPrice = latestMarketHistory(order.resourceType)['avgPrice'];
+                newPrice = latestMarketHistory(order.resourceType).avg;
             } else {
                 let competitorOrder = _.min(globalOrders.filter(order => !_.includes(MY_ROOMS, order.roomName) && order.resourceType === order.resourceType && order.type === ORDER_SELL), 'price');
                 if (competitorOrder.id) {
@@ -212,7 +212,7 @@ function pricingUpdate(globalOrders, myOrders) {
             let currentPrice = order.price;
             let newPrice = currentPrice;
             let averagePrice;
-            if (latestMarketHistory(order.resourceType)) averagePrice = latestMarketHistory(order.resourceType)['avgPrice'] + 0.001;
+            if (latestMarketHistory(order.resourceType)) averagePrice = latestMarketHistory(order.resourceType).avg + 0.001;
             let competitorOrder = _.max(globalOrders.filter(o => !_.includes(MY_ROOMS, o.roomName) && o.resourceType === order.resourceType && o.type === ORDER_BUY), 'price');
             if (competitorOrder.id) {
                 newPrice = competitorOrder.price + 0.001;
@@ -235,10 +235,10 @@ function pricingUpdate(globalOrders, myOrders) {
 }
 
 function placeSellOrders(terminal, globalOrders, myOrders) {
+    if (Game.market.credits <= 0) return false;
     for (let resourceType of Object.keys(terminal.store)) {
         if (resourceType === RESOURCE_ENERGY) continue;
-        let sellAmount = 0;
-        if (Game.market.credits <= 0) return false;
+        let sellAmount = terminal.store[resourceType];
         // Avoid Duplicates
         if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
         // Handle minerals (don't sell base minerals if there's a factory)
@@ -264,7 +264,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         // Pricing
         let price = 5;
         if (latestMarketHistory(resourceType)) {
-            price = latestMarketHistory(resourceType)['avgPrice'];
+            price = latestMarketHistory(resourceType).avg;
         } else {
             let competitorOrder = _.min(globalOrders.filter(order => !_.includes(MY_ROOMS, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL), 'price');
             if (competitorOrder.id) {
@@ -315,7 +315,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
                 let price = 0.5;
                 let averagePrice;
                 if (latestMarketHistory(mineral)) {
-                    averagePrice = latestMarketHistory(mineral)['avgPrice'] + 0.001;
+                    averagePrice = latestMarketHistory(mineral).avg + 0.001;
                 }
                 let competitorOrder = _.min(globalOrders.filter(order => !_.includes(MY_ROOMS, order.roomName) && order.resourceType === mineral && order.type === ORDER_BUY), 'price');
                 if (competitorOrder.id) {
@@ -350,7 +350,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
                     let price = 0.5;
                     let averagePrice;
                     if (latestMarketHistory(mineral)) {
-                        averagePrice = latestMarketHistory(mineral)['avgPrice'] + 0.001;
+                        averagePrice = latestMarketHistory(mineral).avg + 0.001;
                     }
                     let competitorOrder = _.min(globalOrders.filter(order => !_.includes(MY_ROOMS, order.roomName) && order.resourceType === mineral && order.type === ORDER_BUY), 'price');
                     if (competitorOrder.id) {
@@ -371,12 +371,12 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
             }
         }
         // Buy energy
-        if (BUY_ENERGY) {
+        if (BUY_ENERGY && !_.find(MY_ROOMS, (r) => Game.rooms[r].terminal && Game.rooms[r].energyState > 1)) {
             if (!_.find(myOrders, (o) => o.resourceType === RESOURCE_ENERGY && o.roomName === terminal.room.name)) {
                 let price = 0.5;
                 let averagePrice;
                 if (latestMarketHistory(RESOURCE_ENERGY)) {
-                    averagePrice = latestMarketHistory(RESOURCE_ENERGY)['avgPrice'] + 0.001;
+                    averagePrice = latestMarketHistory(RESOURCE_ENERGY).avg + 0.001;
                 }
                 let competitorOrder = _.max(globalOrders.filter(order => !_.includes(MY_ROOMS, order.roomName) && order.resourceType === RESOURCE_ENERGY && order.type === ORDER_BUY), 'price');
                 if (competitorOrder.id) {
@@ -403,6 +403,8 @@ function fillBuyOrders(terminal, globalOrders) {
     let sortedKeys = Object.keys(terminal.store).sort(function (a, b) {
         return terminal.store[a] - terminal.store[b]
     });
+    let spareSpace = terminal.store.getFreeCapacity() + terminal.room.storage.store.getFreeCapacity();
+    if (spareSpace > STORAGE_CAPACITY * 0.1 && Game.market.credits > CREDIT_BUFFER * 5) return false;
     for (let resourceType of sortedKeys) {
         if (resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) continue;
         let keepAmount = DUMP_AMOUNT;
@@ -628,7 +630,7 @@ function emergencyEnergy(terminal) {
 
 function dealFinder(terminal, globalOrders) {
     if (terminal.store.getFreeCapacity()) {
-        let sellOrder = _.min(globalOrders.filter(order => order.type === ORDER_SELL && latestMarketHistory(order.resourceType) && order.price <= latestMarketHistory(order.resourceType)['avgPrice'] * 0.5 &&
+        let sellOrder = _.min(globalOrders.filter(order => order.type === ORDER_SELL && latestMarketHistory(order.resourceType) && order.price <= latestMarketHistory(order.resourceType).avg * 0.75 &&
             (!order.roomName || Game.market.calcTransactionCost(order.amount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY] * 0.5)), 'price');
         let buyAmount = sellOrder.amount;
         if (sellOrder.price * buyAmount > spendingMoney * 0.1) buyAmount = _.round(buyAmount * ((spendingMoney * 0.1) / (sellOrder.price * buyAmount)));
@@ -648,7 +650,7 @@ function dealFinder(terminal, globalOrders) {
 function sellPixels(globalOrders) {
     let sellAmount = Game.resources[PIXEL] - PIXEL_BUFFER;
     if (sellAmount >= 10) {
-        let buyer = _.max(globalOrders.filter(order => order.resourceType === PIXEL && order.type === ORDER_BUY && order.price >= latestMarketHistory(PIXEL)['avgPrice'] * 0.8), 'price');
+        let buyer = _.max(globalOrders.filter(order => order.resourceType === PIXEL && order.type === ORDER_BUY && order.price >= latestMarketHistory(PIXEL).avg * 0.8), 'price');
         if (buyer.id) {
             if (buyer.remainingAmount < sellAmount) sellAmount = buyer.remainingAmount;
             switch (Game.market.deal(buyer.id, sellAmount)) {
@@ -664,8 +666,10 @@ function sellPixels(globalOrders) {
 
 function latestMarketHistory(resource) {
     let history = Game.market.getHistory(resource);
+    let result = {}
     if (_.size(history)) {
-        return history[_.size(history) - 1]
+        result.avg = _.round(_.sum(history, 'avgPrice') / _.size(history), 3);
+        return result
     } else {
         return false;
     }
