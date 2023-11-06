@@ -17,7 +17,7 @@ module.exports.claimNewRoom = function () {
         claimTarget = undefined;
     }
     if (!claimTarget) {
-        worthyRooms = _.filter(INTEL, (r) => (!r.noClaim || r.noClaim < Game.time) && !r.needCleaner && !r.hostile && !r.obstructions && !r.owner && (!r.reservation || r.reservation === MY_USERNAME) && r.hubCheck &&
+        worthyRooms = _.filter(INTEL, (r) => (!r.noClaim || r.noClaim < Game.time) && !r.obstacles && !r.hostile && !r.obstructions && !r.owner && (!r.reservation || r.reservation === MY_USERNAME) && r.hubCheck &&
             Game.map.findRoute(r.name, findClosestOwnedRoom(r.name)).length <= 14 && roomStatus(r.name) === roomStatus(MY_ROOMS[0]));
         if (!worthyRooms.length) return;
         let possibles = {};
