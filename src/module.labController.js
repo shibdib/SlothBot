@@ -78,7 +78,7 @@ function manageBoostProduction(room) {
     if (!secondaryLabs.length || hub.length < 2) return;
     // Find boosts we can make
     let boost;
-    let boostList = _.union(LAB_PRIORITY, BASE_COMPOUNDS, TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS);
+    let boostList = _.union(LAB_PRIORITY, BASE_COMPOUNDS, TIER_3_BOOSTS, TIER_2_BOOSTS, TIER_1_BOOSTS);
     for (let key in boostList) {
         // Check if we already have enough
         let cutOff = BOOST_AMOUNT;
