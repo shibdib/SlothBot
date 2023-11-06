@@ -173,7 +173,7 @@ Object.defineProperty(Room.prototype, 'hostileStructures', {
 Object.defineProperty(Room.prototype, 'droppedResources', {
     get: function () {
         if (!this._droppedResources) {
-            if (!this.hostileCreeps.length) {
+            if (!this._droppedResources) {
                 this._droppedResources = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY});
             } else {
                 this._droppedResources = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY && r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
@@ -188,7 +188,7 @@ Object.defineProperty(Room.prototype, 'droppedResources', {
 Object.defineProperty(Room.prototype, 'droppedEnergy', {
     get: function () {
         if (!this._droppedEnergy) {
-            if (!this.hostileCreeps.length) {
+            if (!this._droppedEnergy) {
                 this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY});
             } else {
                 this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
@@ -281,7 +281,7 @@ Object.defineProperty(Room.prototype, 'constructionSites', {
 Object.defineProperty(Room.prototype, 'tombstones', {
     get: function () {
         if (!this._tombstones) {
-            if (!this.hostileCreeps.length) {
+            if (!this._tombstones) {
                 this._tombstones = this.find(FIND_TOMBSTONES);
             } else {
                 this._tombstones = this.find(FIND_TOMBSTONES, {filter: (r) => r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
@@ -296,7 +296,7 @@ Object.defineProperty(Room.prototype, 'tombstones', {
 Object.defineProperty(Room.prototype, 'ruins', {
     get: function () {
         if (!this._ruins) {
-            if (!this.hostileCreeps.length) {
+            if (!this._ruins) {
                 this._ruins = this.find(FIND_RUINS);
             } else {
                 this._ruins = this.find(FIND_RUINS, {filter: (r) => r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
@@ -404,7 +404,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     let cache = INTEL;
     if (!force && INTEL[this.name] && INTEL[this.name].cached + CREEP_LIFE_TIME > Game.time) return;
     let mineral, sk, power, portal, level, owner, lastOperation, towers, reservation, safemode,
-        mineralAmount, hubCheck, isHighway, user, loot, commodity, needCleaner, nukeTarget;
+        mineralAmount, hubCheck, isHighway, user, loot, commodity, obstacles, nukeTarget;
     // Store things that don't change
     if (INTEL[this.name]) {
         lastOperation = INTEL[this.name].lastOperation;
@@ -420,9 +420,8 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     let ncpArray = Memory.ncpArray || [];
     let combatCreeps = _.find(this.hostileCreeps, (e) => e.hasActiveBodyparts(ATTACK) || e.hasActiveBodyparts(RANGED_ATTACK));
     if (this.controller) {
-        // Check for barriers and if controller is reachable
-        let barrier = _.find(this.impassibleStructures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
-        if (barrier && !this.controller.pos.findClosestByPath(FIND_EXIT)) needCleaner = true;
+        // Check for obstacles
+        if (!this.controller.pos.findClosestByPath(FIND_EXIT) || _.find(this.impassibleStructures, (s) => !s.pos.findClosestByPath(FIND_EXIT))) obstacles = true;
         if (this.controller.safeMode) safemode = this.controller.safeMode + Game.time;
         if (this.controller.owner) {
             owner = this.controller.owner.username;
@@ -442,14 +441,18 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             }
         } else if (this.controller.reservation) {
             reservation = this.controller.reservation.username;
-        } else if (!needCleaner && !hubCheck && !this.hostileCreeps.length && this.sources.length === 2) {
+        } else if (!obstacles && !hubCheck && !this.hostileCreeps.length && this.sources.length === 2) {
             hubCheck = roomPlanner.hubCheck(this);
         }
         level = this.controller.level || undefined;
         // Check for loot
-        if (!needCleaner) {
+        if (!obstacles) {
             let lootTarget = _.filter(this.structures, (s) => (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) && _.sum(s.store) > 0 && !s.pos.checkForRampart(true)).length > 0;
             if (lootTarget && !this.hostileCreeps.length) loot = true;
+        }
+        // Invader Core
+        if (_.filter(this.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0) {
+            towers = _.filter(this.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && s.isActive()).length;
         }
     } else if (!sk && this.sources.length && _.find(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)) {
         sk = true;
@@ -499,7 +502,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         hostile: combatCreeps !== undefined || (towers && !FRIENDLIES.includes(owner)),
         status: roomStatus(this.name),
         loot: loot,
-        needCleaner: needCleaner,
+        obstacles: obstacles,
         nukeTarget: nukeTarget
     };
     Memory.ncpArray = _.uniq(ncpArray);
