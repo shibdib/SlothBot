@@ -60,7 +60,7 @@ let globals = function () {
         defender: 2, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9
     };
 
-    global.REMOTE_SOURCE_TARGET = 3; // The number of remote sources a room looks to have. Changing this might ruin your economy.
+    global.REMOTE_SOURCE_TARGET = 5; // The number of remote sources a room looks to have. Changing this might ruin your economy.
 
     // Amount targets (Advanced)
 
