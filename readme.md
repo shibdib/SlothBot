@@ -10,6 +10,8 @@ For discussion or support message **Shibdib** on Discord.
 _This was made as a way for me to learn JS, so excuse any horrible practices you may encounter. Slowly refactoring the
 really ugly stuff._
 
+Releases represent the "Stable" branch and are deemed working "good enough". Dev may contain some really bad bugs. 
+
 ## Current Features
 - Automated Room Building
 - Automated Room Claiming
