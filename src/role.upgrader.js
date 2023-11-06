@@ -14,42 +14,26 @@ module.exports.role = function (creep) {
     // Set and check container and link
     let container = Game.getObjectById(creep.room.memory.controllerContainer);
     if (!container) creep.room.memory.controllerContainer = undefined;
-    let link = Game.getObjectById(creep.room.memory.controllerLink);
-    if (!link) creep.room.memory.controllerLink = undefined;
     // Handle stationary upgraders
     if (creep.memory.other.stationary || (_.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length > _.filter(creep.body, (p) => p.type === MOVE).length)) {
         creep.memory.other.stationary = true;
         // Handle getting in place
         if (!creep.memory.inPosition && container) {
+            let link = Game.getObjectById(creep.room.memory.controllerLink);
+            if (!link) creep.room.memory.controllerLink = undefined;
             if (container.pos.checkForCreep() && creep.pos.isNearTo(container) && (!link || creep.pos.isNearTo(link))) creep.memory.inPosition = true;
             else return creep.shibMove(container, {range: 0});
         }
         switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
             case OK:
                 // Handle resource withdraw
-                if (link && link.store[RESOURCE_ENERGY]) {
-                    creep.withdrawResource(link);
-                } else if (container && container.store[RESOURCE_ENERGY]) {
-                    creep.withdrawResource(container);
-                } else if (creep.room.memory.secondaryControllerContainer) {
-                    if (Game.getObjectById(creep.room.memory.secondaryControllerContainer).store[RESOURCE_ENERGY]) {
-                        creep.withdrawResource(Game.getObjectById(creep.room.memory.secondaryControllerContainer));
-                    }
-                }
+                withdraw(creep);
                 return;
             case ERR_NOT_IN_RANGE:
                 return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
             case ERR_NOT_ENOUGH_RESOURCES:
                 // Handle resource withdraw
-                if (link && link.store[RESOURCE_ENERGY]) {
-                    creep.withdrawResource(link);
-                } else if (container && container.store[RESOURCE_ENERGY]) {
-                    creep.withdrawResource(container);
-                } else if (creep.room.memory.secondaryControllerContainer) {
-                    if (Game.getObjectById(creep.room.memory.secondaryControllerContainer).store[RESOURCE_ENERGY]) {
-                        creep.withdrawResource(Game.getObjectById(creep.room.memory.secondaryControllerContainer));
-                    }
-                }
+                withdraw(creep);
         }
     } else {
         if (creep.isFull) creep.memory.working = true;
@@ -64,11 +48,7 @@ module.exports.role = function (creep) {
                     return;
                 case ERR_NOT_ENOUGH_RESOURCES:
                     // Handle resource withdraw
-                    if (link && link.store[RESOURCE_ENERGY]) {
-                        creep.withdrawResource(link);
-                    } else if (container && container.store[RESOURCE_ENERGY]) {
-                        creep.withdrawResource(container);
-                    }
+                    withdraw(creep);
             }
         } else if (creep.memory.energyDestination) {
             creep.memory.other.noBump = undefined;
@@ -78,6 +58,20 @@ module.exports.role = function (creep) {
         } else if (!creep.locateEnergy()) {
             creep.idleFor(15);
         }
+    }
+};
+
+function withdraw(creep) {
+    // Set and check container and link
+    let container = Game.getObjectById(creep.room.memory.controllerContainer);
+    if (!container) creep.room.memory.controllerContainer = undefined;
+    let link = Game.getObjectById(creep.room.memory.controllerLink);
+    if (!link) creep.room.memory.controllerLink = undefined;
+    // Handle resource withdraw
+    if (link && link.store[RESOURCE_ENERGY]) {
+        creep.withdrawResource(link);
+    } else if (container && container.store[RESOURCE_ENERGY]) {
+        creep.withdrawResource(container);
     }
 };
 
