@@ -10,7 +10,7 @@ For discussion or support message **Shibdib** on Discord.
 _This was made as a way for me to learn JS, so excuse any horrible practices you may encounter. Slowly refactoring the
 really ugly stuff._
 
-##Current Features
+## Current Features
 - Automated Room Building
 - Automated Room Claiming
 - Automated Room Defense
@@ -23,7 +23,14 @@ really ugly stuff._
 - Manual Attack Target Designation (Description forthcoming)
 - Automated Attack Target Code 
 
-##Setup
+## Setup
 1. For the main server simply fork this repo and sync your github to the game, point it to the src folder.
 2. Private servers you can download this repo, copy the src folder into the applicable server folder.
 3. Modify the config.default.js file for your needs.
+
+## In The Works
+- Quad/Duo code
+- Smarter boosting
+- Better portal pathing
+
+Please makes Issues and feel free to PR. 
