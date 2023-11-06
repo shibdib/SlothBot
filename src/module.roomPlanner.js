@@ -15,6 +15,7 @@ module.exports.buildRoom = function (room) {
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
         // Hub check
         let bunkerHub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+        let builtSpawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN);
         if (bunkerHub.checkForWall()) return room.memory.bunkerHub = undefined;
         if (!room.memory.labHub) return findLabHub(room);
         // Check if we're short any structures from the bunker template
@@ -22,7 +23,7 @@ module.exports.buildRoom = function (room) {
         if ((lastRun.layout || 0) < Game.time && countCheck.length) {
             buildFromLayout(room, countCheck);
             lastRun.layout = Game.time + _.random(50, 100);
-        } else if ((lastRun.auxiliary || 0) < Game.time) {
+        } else if (builtSpawn && (lastRun.auxiliary || 0) < Game.time) {
             auxiliaryBuilding(room)
             lastRun.auxiliary = Game.time + _.random(50, 100);
         }
@@ -64,9 +65,9 @@ function auxiliaryBuilding(room) {
     controllerBuilder(room);
     // Ramparts
     rampartBuilder(room, layout);
+    // Roads
+    if (room.level >= 3 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length < 3 && !roadBuilder(room, layout)) INTEL[room.name].roadsBuilt = true; else INTEL[room.name].roadsBuilt = undefined
     if (room.storage) {
-        // Roads
-        if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length < 3 && !roadBuilder(room, layout)) INTEL[room.name].roadsBuilt = true; else INTEL[room.name].roadsBuilt = undefined
         if (room.level >= 5) {
             // Hub
             hubLink(room);
@@ -109,7 +110,7 @@ function hubLink(room) {
 function controllerBuilder(room) {
     let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
     if (!controllerContainer && room.controller.level >= 2) {
-        controllerContainer = room.controller.pos.findInRange(room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
+        controllerContainer = room.controller.pos.findInRange(room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.pos.findClosestByRange(FIND_SOURCES)) && !s.pos.isNearTo(s.pos.findClosestByRange(FIND_MINERALS))})[0];
         if (!controllerContainer) {
             let controllerBuild = room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
             if (!controllerBuild) {
@@ -117,7 +118,7 @@ function controllerBuilder(room) {
                     for (let yOff = -1; yOff <= 1; yOff++) {
                         if (xOff !== 0 || yOff !== 0) {
                             let pos = new RoomPosition(room.controller.pos.x + xOff, room.controller.pos.y + yOff, room.name);
-                            if (!pos.checkForImpassible()) return pos.createConstructionSite(STRUCTURE_CONTAINER);
+                            if (!pos.checkForAllStructure()[0]) return pos.createConstructionSite(STRUCTURE_CONTAINER);
                         }
                     }
                 }
@@ -143,7 +144,7 @@ function controllerBuilder(room) {
 }
 
 function mineralBuilder(room) {
-    let extractor = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_EXTRACTOR);
+    let extractor = _.find(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR);
     if (extractor) {
         // Destroy thorium extractor when empty
         if (!extractor.pos.checkForMineral()) {
