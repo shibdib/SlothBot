@@ -19,6 +19,18 @@ module.exports.role = function role(creep) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
     }
     if (!creep.store[RESOURCE_ENERGY]) creep.memory.working = undefined;
+    // Handle case of carry something besides energy
+    if (_.sum(creep.store) > creep.store[RESOURCE_ENERGY]) {
+        for (let resourceType in creep.store) {
+            switch (creep.transfer(creep.room.storage || creep.room.terminal, resourceType)) {
+                case OK:
+                    return;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(creep.room.storage || creep.room.terminal);
+                    return true;
+            }
+        }
+    }
     // Checks
     if (!creep.memory.working) {
         if (creep.isFull && !creep.memory.stationaryHarvester) {
