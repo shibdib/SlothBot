@@ -195,7 +195,7 @@ Creep.prototype.skSafety = function () {
  * @returns {boolean}
  */
 Creep.prototype.opportunisticRepair = function () {
-    if (!this.hasActiveBodyparts(WORK)) return false;
+    if (!this.hasActiveBodyparts(WORK) || !this.store[RESOURCE_ENERGY]) return false;
     try {
         let object = _.filter(this.room.lookForAtArea(LOOK_STRUCTURES, this.pos.y - 3, this.pos.x - 3, this.pos.y + 3, this.pos.x + 3, true), (s) => [STRUCTURE_ROAD, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_CONTAINER].includes(s.structure.structureType) && s.structure.hits < s.structure.hitsMax * 0.75)
         if (object && object.length) {
@@ -238,6 +238,8 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
         let energyItem = Game.getObjectById(this.memory.energyDestination);
         if (!energyItem) return this.memory.energyDestination = undefined;
         if (energyItem.pos.roomName !== this.room.name) return this.shibMove(energyItem);
+        // If resource type is not set, and energy exists in the target, set it as energy. Otherwise, set it as the first resource type.
+        if (!energyItem[resourceType] && (!energyItem.store || !energyItem.store[resourceType])) return this.memory.energyDestination = undefined;
         if (energyItem.store && energyItem.store[resourceType]) {
             switch (this.withdraw(energyItem, resourceType, amount)) {
                 case ERR_INVALID_TARGET:
