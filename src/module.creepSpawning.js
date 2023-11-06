@@ -290,6 +290,7 @@ module.exports.remoteCreepQueue = function (room) {
         if (remoteRooms.length) remoteRooms.forEach((r) => sourceCount += INTEL[r].sources || 1);
         // Handle less than desired
         let targetAmount = REMOTE_SOURCE_TARGET;
+        //if (room.level >= 7) targetAmount = REMOTE_SOURCE_TARGET * 2;
         if (sourceCount < targetAmount) {
             for (let adjacentRoom of remoteRooms) {
                 let secondaryAdjacent = _.filter(Game.map.describeExits(adjacentRoom), (r) => INTEL[r] && INTEL[r].sources && !INTEL[r].level && roomStatus(r) === roomStatus(room.name) && (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation)));
@@ -348,6 +349,8 @@ module.exports.remoteCreepQueue = function (room) {
                 } else if (!INTEL[remoteName].sk) room.memory.borderPatrol = remoteName;
                 continue;
             }
+            // Route check
+            if (!room.routeSafe(remoteName, 3, 999, 4)) continue;
             // For shared remotes only the highest level room produces creeps
             if (highestLevel) {
                 // Handle SK
@@ -375,7 +378,7 @@ module.exports.remoteCreepQueue = function (room) {
                             role: 'remoteHarvester', destination: remoteName
                         })
                     }
-                    if (room.level >= 4 && (!INTEL[remoteName].reservationExpires || Game.time > INTEL[remoteName].reservationExpires)) {
+                    if (room.level >= 4 && (!INTEL[remoteName].reservationExpires || Game.time > INTEL[remoteName].reservationExpires) && INTEL[remoteName].sources < 3) {
                         let amount = INTEL[remoteName].reserverCap || 1;
                         if (getCreepCount(undefined, 'reserver', remoteName) < amount) {
                             queueCreep(room, PRIORITIES.reserver + getCreepCount(undefined, 'reserver', remoteName), {
@@ -384,7 +387,7 @@ module.exports.remoteCreepQueue = function (room) {
                         }
                     }
                     // Obstructions
-                    if (INTEL[remoteName] && INTEL[remoteName].needCleaner) {
+                    if (INTEL[remoteName] && INTEL[remoteName].obstacles) {
                         if (!getCreepCount(undefined, 'cleaner', remoteName)) {
                             queueCreep(room, PRIORITIES.remoteHarvester, {role: 'cleaner', destination: remoteName})
                         }
