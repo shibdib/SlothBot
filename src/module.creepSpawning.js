@@ -259,17 +259,6 @@ module.exports.miscCreepQueue = function (room) {
                     other: {power: power}
                 });
             }
-            if (room.energyState > 1 && level >= 6) {
-                // Assist with Energy if not struggling
-                let needsEnergy = _.find(MY_ROOMS, (r) => Game.rooms[r].memory.struggling && !Game.rooms[r].terminal && INTEL[r] && !INTEL[r].threatLevel && room.routeSafe(r, 3, 999, 15));
-                if (needsEnergy) {
-                    if (getCreepCount(undefined, 'fuelTruck', needsEnergy) < 2) {
-                        queueCreep(room, PRIORITIES.urgent, {
-                            role: 'fuelTruck', destination: needsEnergy
-                        });
-                    }
-                }
-            }
         }
     }
 };
