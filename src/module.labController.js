@@ -12,7 +12,7 @@ module.exports.labManager = function () {
             let room = Game.rooms[roomName];
             // If no hubs, continue
             if (!room.memory.labHub) continue;
-            if (Game.time % 100 === 0 || !primaryLabs[room.name]) manageBoostProduction(room);
+            if (Game.time % 100 === 0 || !primaryLabs[room.name] || !room.memory.producingBoost) manageBoostProduction(room);
             manageActiveLabs(room);
         }
     }

@@ -17,7 +17,6 @@ module.exports.buildRoom = function (room) {
         let bunkerHub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
         let builtSpawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN);
         if (bunkerHub.checkForWall()) return room.memory.bunkerHub = undefined;
-        if (!room.memory.labHub) return findLabHub(room);
         // Check if we're short any structures from the bunker template
         let countCheck = _.filter(bunkerTemplate, (s) => ![STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD].includes(s.structureType) && CONTROLLER_STRUCTURES[s.structureType][room.controller.level] > _.filter(room.structures, (r) => r.structureType === s.structureType).length + _.filter(room.constructionSites, (r) => r.structureType === s.structureType));
         if ((lastRun.layout || 0) < Game.time && countCheck.length) {
@@ -232,7 +231,9 @@ function labBuilder(room) {
     let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
     for (let structure of labTemplate) {
         let pos = new RoomPosition(labHub.x + structure.x, labHub.y + structure.y, room.name);
-        if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
+        // Edge case where a wall is in the way
+        if (pos.checkForBuiltWall()) pos.checkForBuiltWall().destroy();
+        else if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
             pos.createConstructionSite(STRUCTURE_LAB);
         }
     }
