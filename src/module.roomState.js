@@ -4,8 +4,6 @@
 
 module.exports.setRoomState = function (room) {
     if (Game.time % 5 === 0) {
-        // Set Energy Needs
-        let energyInRoom = room.energy;
         // Request builders
         if (Math.random() > 0.7) requestBuilders(room);
         // Check if struggling
@@ -19,16 +17,16 @@ module.exports.setRoomState = function (room) {
             room.memory.struggleTime = undefined;
         }
         let last = room.memory.lastEnergyAmount || 0;
-        room.memory.lastEnergyAmount = energyInRoom;
+        room.memory.lastEnergyAmount = room.energy;
         let energyIncomeArray = [];
         // Backwards compatibility
         if (ROOM_ENERGY_INCOME_ARRAY[room.name])
             energyIncomeArray = ROOM_ENERGY_INCOME_ARRAY[room.name];
         if (energyIncomeArray.length < 250) {
-            energyIncomeArray.push(energyInRoom - last);
+            energyIncomeArray.push(room.energy - last);
         } else {
             energyIncomeArray.shift();
-            energyIncomeArray.push(energyInRoom - last);
+            energyIncomeArray.push(room.energy - last);
         }
         room.memory.energyPositive = average(energyIncomeArray) > 0;
         ROOM_ENERGY_INCOME_ARRAY[room.name] = energyIncomeArray;
