@@ -117,7 +117,7 @@ function controllerBuilder(room) {
                     for (let yOff = -1; yOff <= 1; yOff++) {
                         if (xOff !== 0 || yOff !== 0) {
                             let pos = new RoomPosition(room.controller.pos.x + xOff, room.controller.pos.y + yOff, room.name);
-                            if (!pos.checkForAllStructure()[0]) return pos.createConstructionSite(STRUCTURE_CONTAINER);
+                            if (!pos.checkForAllStructure()[0] && !pos.checkForImpassible()) return pos.createConstructionSite(STRUCTURE_CONTAINER);
                         }
                     }
                 }
