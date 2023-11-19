@@ -421,7 +421,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     let combatCreeps = _.find(this.hostileCreeps, (e) => e.hasActiveBodyparts(ATTACK) || e.hasActiveBodyparts(RANGED_ATTACK));
     if (this.controller) {
         // Check for obstacles
-        if (!this.controller.pos.findClosestByPath(FIND_EXIT) || _.find(this.impassibleStructures, (s) => !s.pos.findClosestByPath(FIND_EXIT))) obstacles = true;
+        if ((this.controller && !this.controller.pos.findClosestByPath(FIND_EXIT)) || _.find(this.impassibleStructures, (s) => s.structureType !== STRUCTURE_EXTRACTOR && !s.pos.findClosestByPath(FIND_EXIT))) obstacles = true;
         if (this.controller.safeMode) safemode = this.controller.safeMode + Game.time;
         if (this.controller.owner) {
             owner = this.controller.owner.username;
