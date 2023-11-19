@@ -25,7 +25,10 @@ module.exports.role = function (creep) {
                 Memory.auxiliaryTargets[creep.memory.destination] = undefined;
             }
         } else {
-            creep.scorchedEarth();
+            if (!creep.scorchedEarth()) {
+                creep.room.cacheRoomIntel(true);
+                creep.suicide();
+            }
         }
     }
 };
