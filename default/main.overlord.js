@@ -31,13 +31,24 @@ class Overlord {
         // Handle links
         if (this.room.level >= 5) this.linkController();
         // Handle terminal
-        if (this.room.terminal && !this.room.terminal.cooldown && (tracker['terminalController'] || 0) + 100 < Game.time) this.terminalController();
+        if (this.room.terminal && !this.room.terminal.cooldown && (tracker['terminalController'] || 0) + 100 < Game.time) {
+            this.terminalController();
+            tracker['terminalController'] = Game.time;
+        }
         // Handle room building
-        if ((tracker['roomBuilding'] || 0) + 25 < Game.time) this.constructionController();
+        if ((tracker['roomBuilding'] || 0) + 25 < Game.time) {
+            this.constructionController();
+            tracker['roomBuilding'] = Game.time;
+        }
         // Observer controller
         if (this.room.level >= 8) this.observerController();
         // Factory controller
         if (this.room.factory) this.factoryController();
+        // State controller
+        if ((tracker['stateController'] || 0) + 100 < Game.time) {
+            this.stateController();
+            tracker['stateController'] = Game.time;
+        }
         // Store tick tracker
         tickTracker[this.room.name] = tracker;
         // Store cpu usage
@@ -88,6 +99,10 @@ class Overlord {
 
     defenseController() {
         defense.controller(this.room);
+    }
+
+    stateController() {
+        state.setRoomState(this.room);
     }
 
     creepSpawningController() {
@@ -164,5 +179,11 @@ function minionController(minion) {
     }
     // Run role
     if (!minion.memory.role) return minion.suicide();
-    require('role.' + minion.memory.role).role(minion);
+    let converted = ['drone', 'hauler', 'shuttle'];
+    if (converted.includes(minion.memory.role)) {
+        let Role = require('role.' + minion.memory.role);
+        new Role(minion);
+    } else {
+        require('role.' + minion.memory.role).role(minion);
+    }
 }

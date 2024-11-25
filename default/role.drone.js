@@ -2,249 +2,268 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
+const profiler = require("./tools.profiler");
+
 /**
  * Created by Bob on 7/12/2017.
  */
 
-module.exports.role = function role(creep) {
-    if (creep.tryToBoost(['build'])) return;
-    // If damaged move to safety
-    if (!creep.getActiveBodyparts(WORK) || !creep.getActiveBodyparts(CARRY)) return creep.goToHub();
-    // Trailer at low level
-    if (creep.room.controller && creep.room.controller.level < 3 && creep.towTruck()) return true;
-    // Handle remote drones
-    if (!creep.memory.destination) creep.memory.destination = creep.memory.overlord;
-    if (creep.memory.destination && creep.room.name !== creep.memory.destination && !creep.memory.remoteMining) {
-        if (!creep.getActiveBodyparts(WORK)) return creep.suicide();
-        return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
+class RoleDrone {
+    constructor(creep) {
+        this.creep = creep;
+        this.houseKeeping();
+        if (!creep.memory.working) {
+            this.energyCollection();
+        } else {
+            this.jobManager();
+        }
     }
-    if (!creep.store[RESOURCE_ENERGY]) creep.memory.working = undefined;
-    // Handle case of carry something besides energy
-    if (_.sum(creep.store) > creep.store[RESOURCE_ENERGY]) {
-        for (let resourceType in creep.store) {
-            switch (creep.transfer(creep.room.storage || creep.room.terminal, resourceType)) {
-                case OK:
-                    return;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(creep.room.storage || creep.room.terminal);
-                    return true;
+
+    houseKeeping() {
+        if (this.creep.tryToBoost(['build'])) return;
+        // If damaged move to safety
+        if (!this.creep.getActiveBodyparts(WORK) || !this.creep.getActiveBodyparts(CARRY)) return this.creep.goToHub();
+        // Trailer at low level
+        if (this.creep.room.controller && this.creep.room.controller.level < 3 && this.creep.towTruck()) return true;
+        // Handle remote drones
+        if (!this.creep.memory.destination) this.creep.memory.destination = this.creep.memory.overlord;
+        if (this.creep.memory.destination && this.creep.room.name !== this.creep.memory.destination && !this.creep.memory.remoteMining) {
+            if (!this.creep.getActiveBodyparts(WORK)) return this.creep.suicide();
+            return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 24});
+        }
+        if (!this.creep.store[RESOURCE_ENERGY]) this.creep.memory.working = undefined;
+        // Handle case of carry something besides energy
+        if (_.sum(this.creep.store) > this.creep.store[RESOURCE_ENERGY]) {
+            for (let resourceType in this.creep.store) {
+                switch (this.creep.transfer(this.creep.room.storage || this.creep.room.terminal, resourceType)) {
+                    case OK:
+                        return;
+                    case ERR_NOT_IN_RANGE:
+                        this.creep.shibMove(this.creep.room.storage || this.creep.room.terminal);
+                        return true;
+                }
             }
         }
-    }
-    // Checks
-    if (!creep.memory.working) {
-        if (creep.isFull && !creep.memory.stationaryHarvester) {
-            creep.memory.source = undefined;
-            creep.memory.harvest = undefined;
-            creep.memory.remoteMining = undefined;
-            creep.memory.source = undefined;
-            return creep.memory.working = true;
+        if (this.creep.isFull && !this.creep.memory.stationaryHarvester) {
+            this.creep.memory.source = undefined;
+            this.creep.memory.harvest = undefined;
+            this.creep.memory.remoteMining = undefined;
+            this.creep.memory.source = undefined;
+            return this.creep.memory.working = true;
         }
-        creep.memory.other.noBump = undefined;
-        creep.memory.working = undefined;
-        creep.memory.constructionSite = undefined;
-        creep.memory.task = undefined;
-        let spawn = _.find(creep.room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
-        if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
-            creep.say('Energy!', true);
-            creep.withdrawResource();
-        } else if (!spawn || creep.room.level < 2 || (!INTEL[creep.room.name] || INTEL[creep.room.name].user !== MY_USERNAME)) {
-            creep.memory.harvest = true;
-            let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
-            if (source && (!INTEL[creep.room.name].owner || INTEL[creep.room.name].owner === MY_USERNAME) && (!INTEL[creep.room.name].reservation || INTEL[creep.room.name].reservation === MY_USERNAME)) {
+    }
+
+    energyCollection() {
+        this.creep.memory.other.noBump = undefined;
+        this.creep.memory.working = undefined;
+        this.creep.memory.constructionSite = undefined;
+        this.creep.memory.task = undefined;
+        let spawn = _.find(this.creep.room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
+        if (!this.creep.memory.harvest && (this.creep.memory.energyDestination || this.creep.locateEnergy())) {
+            this.creep.say('Energy!', true);
+            this.creep.withdrawResource();
+        } else if (!spawn || this.creep.room.level < 2 || (!INTEL[this.creep.room.name] || INTEL[this.creep.room.name].user !== MY_USERNAME)) {
+            this.creep.memory.harvest = true;
+            let source = Game.getObjectById(this.creep.memory.source) || this.creep.pos.getClosestSource();
+            if (source && (!INTEL[this.creep.room.name].owner || INTEL[this.creep.room.name].owner === MY_USERNAME) && (!INTEL[this.creep.room.name].reservation || INTEL[this.creep.room.name].reservation === MY_USERNAME)) {
                 // Set a statioanry harvester on new spawns
-                if (!spawn && !_.find(creep.room.myCreeps, (c) => c.id !== creep.id && c.memory.stationaryHarvester) && _.find(creep.room.myCreeps, (c) => c.id !== creep.id && c.memory.role === 'drone')) creep.memory.stationaryHarvester = true;
-                creep.say('Harvest!', true);
-                creep.memory.source = source.id;
-                switch (creep.harvest(source)) {
+                if (!spawn && !_.find(this.creep.room.myCreeps, (c) => c.id !== this.creep.id && c.memory.stationaryHarvester) && _.find(this.creep.room.myCreeps, (c) => c.id !== this.creep.id && c.memory.role === 'drone')) this.creep.memory.stationaryHarvester = true;
+                this.creep.say('Harvest!', true);
+                this.creep.memory.source = source.id;
+                switch (this.creep.harvest(source)) {
                     case ERR_NOT_IN_RANGE:
-                        creep.shibMove(source);
+                        this.creep.shibMove(source);
                         break;
                     case ERR_NOT_ENOUGH_RESOURCES:
-                        creep.memory.source = undefined;
+                        this.creep.memory.source = undefined;
                         break;
                     case OK:
-                        creep.memory.other.noBump = true;
+                        this.creep.memory.other.noBump = true;
                         break;
                 }
             } else {
-                if (creep.memory.remoteMining || findRemoteSource(creep)) {
-                    creep.say('Remote!', true);
-                    if (creep.memory.remoteMining !== creep.room.name) return creep.shibMove(new RoomPosition(25, 25, creep.memory.remoteMining), {range: 15}); else creep.memory.remoteMining = undefined;
+                if (this.creep.memory.remoteMining || findRemoteSource(this.creep)) {
+                    this.creep.say('Remote!', true);
+                    if (this.creep.memory.remoteMining !== this.creep.room.name) return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.remoteMining), {range: 15}); else this.creep.memory.remoteMining = undefined;
                 } else {
-                    delete creep.memory.harvest;
-                    creep.idleFor(5);
+                    delete this.creep.memory.harvest;
+                    this.creep.idleFor(5);
                 }
             }
         } else {
-            creep.idleFor(5);
-        }
-    } else {
-        // If under attack, waller else chance to be a waller
-        let importantBuilds = _.find(creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL);
-        if ((INTEL[creep.room.name].threatLevel || creep.memory.currentTarget || (Math.random() > 0.5 && !creep.memory.constructionSite && !importantBuilds)) && wallMaintainer(creep)) return;
-        // If praiser needed praise
-        if (upgrading(creep)) return;
-        // If haulers needed haul
-        if (hauling(creep)) return;
-        // If builder needed build
-        if ((creep.memory.constructionSite || creep.room.constructionSites.length) && building(creep)) return;
-        // If walls to repair
-        if (wallMaintainer(creep)) return;
-        // If nothing else to do upgrade
-        if (upgrading(creep, true)) return;
-        // Otherwise idle
-        else {
-            creep.memory.task = undefined;
-            creep.idleFor(5);
+            this.creep.idleFor(5);
         }
     }
-}
 
-function building(creep) {
-    if (creep.memory.task && creep.memory.task !== 'build' && creep.memory.task !== 'repair') return;
-    if ((creep.memory.task === 'build' || creep.memory.task === 'repair') || (creep.memory.constructionSite || creep.constructionWork())) {
-        if (creep.builderFunction()) {
-            creep.memory.other.noBump = true;
+    jobManager() {
+        // If under attack, waller else chance to be a waller
+        let importantBuilds = _.find(this.creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL);
+        if ((INTEL[this.creep.room.name].threatLevel || this.creep.memory.currentTarget || (Math.random() > 0.5 && !this.creep.memory.constructionSite && !importantBuilds)) && this.walling()) return;
+        // If praiser needed praise
+        if (this.upgrading()) return;
+        // If haulers needed haul
+        if (this.hauling()) return;
+        // If builder needed build
+        if ((this.creep.memory.constructionSite || this.creep.room.constructionSites.length) && this.building()) return;
+        // If walls to repair
+        if (this.walling()) return;
+        // If nothing else to do upgrade
+        if (this.upgrading(true)) return;
+        // Otherwise idle
+        else {
+            this.creep.memory.task = undefined;
+            this.creep.idleFor(5);
+        }
+    }
+
+    hauling() {
+        if (this.creep.memory.task && this.creep.memory.task !== 'haul') return;
+        if (!this.creep.room.controller || !this.creep.room.controller.owner || this.creep.room.controller.owner.username !== MY_USERNAME) return false;
+        let haulers = _.filter(this.creep.room.mythis.creeps, (c) => c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler' || c.memory.role === 'shuttle')).length < 1;
+        let needyTower = _.filter(this.creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.1).length > 0;
+        if (this.creep.memory.task === 'haul' || (this.creep.room.level <= 4 && this.creep.isFull && (haulers || needyTower) && !this.creep.memory.task && (this.creep.room.energyAvailable < this.creep.room.energyCapacityAvailable || needyTower))) {
+            this.creep.memory.task = 'haul';
+            this.creep.say('Haul!', true);
+            if (this.creep.memory.storageDestination || this.creep.haulerDelivery()) {
+                let storageItem = Game.getObjectById(this.creep.memory.storageDestination);
+                if (!storageItem) return delete this.creep.memory.storageDestination;
+                switch (this.creep.transfer(storageItem, RESOURCE_ENERGY)) {
+                    case OK:
+                        delete this.creep.memory.storageDestination;
+                        delete this.creep.memory._shibMove;
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        this.creep.shibMove(storageItem);
+                        break;
+                    case ERR_FULL || ERR_INVALID_TARGET:
+                        delete this.creep.memory.storageDestination;
+                        delete this.creep.memory._shibMove;
+                        if (storageItem.memory) delete storageItem.memory.deliveryIncoming;
+                        break;
+                }
+            } else if (this.creep.room.energyAvailable === this.creep.room.energyCapacityAvailable) {
+                this.creep.memory.task = undefined;
+            }
             return true;
         }
     }
-}
 
-function hauling(creep) {
-    if (creep.memory.task && creep.memory.task !== 'haul') return;
-    if (!creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME) return false;
-    let haulers = _.filter(creep.room.myCreeps, (c) => c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler' || c.memory.role === 'shuttle')).length < 1;
-    let needyTower = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.1).length > 0;
-    if (creep.memory.task === 'haul' || (creep.room.level <= 4 && creep.isFull && (haulers || needyTower) && !creep.memory.task && (creep.room.energyAvailable < creep.room.energyCapacityAvailable || needyTower))) {
-        creep.memory.task = 'haul';
-        creep.say('Haul!', true);
-        if (creep.memory.storageDestination || creep.haulerDelivery()) {
-            let storageItem = Game.getObjectById(creep.memory.storageDestination);
-            if (!storageItem) return delete creep.memory.storageDestination;
-            switch (creep.transfer(storageItem, RESOURCE_ENERGY)) {
-                case OK:
-                    delete creep.memory.storageDestination;
-                    delete creep.memory._shibMove;
-                    break;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(storageItem);
-                    break;
-                case ERR_FULL || ERR_INVALID_TARGET:
-                    delete creep.memory.storageDestination;
-                    delete creep.memory._shibMove;
-                    if (storageItem.memory) delete storageItem.memory.deliveryIncoming;
-                    break;
+    upgrading(force) {
+        if (this.creep.memory.task && this.creep.memory.task !== 'upgrade') return;
+        if (!force) {
+            let controllerCheck = !this.creep.room.controller || !this.creep.room.controller.owner || this.creep.room.controller.owner.username !== MY_USERNAME || this.creep.room.controller.upgradeBlocked || this.creep.room.controller.level === 8 || !this.creep.room.controller.ticksToDowngrade || this.creep.room.controller.ticksToDowngrade > this.creep_LIFE_TIME * 2;
+            if (controllerCheck) {
+                this.creep.memory.task = undefined;
+                return false;
             }
-        } else if (creep.room.energyAvailable === creep.room.energyCapacityAvailable) {
-            creep.memory.task = undefined;
+        }
+        this.creep.memory.task = 'upgrade';
+        this.creep.say('Praise!', true);
+        switch (this.creep.upgradeController(this.creep.room.controller)) {
+            case OK:
+                this.creep.memory.other.noBump = true;
+                delete this.creep.memory._shibMove;
+                break;
+            case ERR_NOT_IN_RANGE:
+                this.creep.shibMove(this.creep.room.controller, {range: 3});
         }
         return true;
     }
-}
 
-function upgrading(creep, force = undefined) {
-    if (creep.memory.task && creep.memory.task !== 'upgrade') return;
-    if (!force) {
-        let controllerCheck = !creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME || creep.room.controller.upgradeBlocked || creep.room.controller.level === 8 || !creep.room.controller.ticksToDowngrade || creep.room.controller.ticksToDowngrade > CREEP_LIFE_TIME * 2;
-        if (controllerCheck) {
-            creep.memory.task = undefined;
+    building() {
+        if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return;
+        if ((this.creep.memory.task === 'build' || this.creep.memory.task === 'repair') || (this.creep.memory.constructionSite || this.creep.constructionWork())) {
+            if (this.creep.builderFunction()) {
+                this.creep.memory.other.noBump = true;
+                return true;
+            }
+        }
+    }
+
+    walling() {
+        if (!this.creep.memory.currentTarget || !Game.getObjectById(this.creep.memory.currentTarget)) {
+            let activeWallers = _.filter(this.creep.room.myCreeps, (c) => c.memory.task === 'waller');
+            if (!INTEL[this.creep.room.name].threatLevel && activeWallers.length > 1) return false;
+            let nukeSite, nukeRampart;
+            let barrierStructures = _.filter(this.creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL));
+            if (this.creep.room.memory.nuke) {
+                nukeSite = _.filter(this.creep.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5)[0];
+                nukeRampart = _.min(_.filter(barrierStructures, (s) => s.structureType === STRUCTURE_RAMPART && ((s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.hits < (NUKE_DAMAGE[1] * this.creep.room.nukes.length) + 100000) || (s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) === 0 && s.hits < (NUKE_DAMAGE[0] * creep.room.nukes.length) + 100000))), 'hits');
+            }
+            let hostileBarrier;
+            if (INTEL[this.creep.room.name].threatLevel) {
+                hostileBarrier = _.min(_.filter(barrierStructures, (s) => s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)), 5)[0]), 'hits');
+            }
+            let barrier = _.min(_.filter(barrierStructures, (s) => s.hits < RAMPART_HITS_MAX[this.creep.room.controller.level] * 0.9), 'hits');
+            let site = _.filter(this.creep.room.constructionSites, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL))[0];
+            if (!hostileBarrier && barrier.id && barrier.hits < 2000) {
+                this.creep.memory.currentTarget = barrier.id;
+                this.creep.shibMove(barrier, {range: 3})
+            } else if (hostileBarrier) {
+                this.creep.memory.currentTarget = hostileBarrier.id;
+            } else if (nukeSite) {
+                switch (this.creep.build(nukeSite)) {
+                    case OK:
+                        this.creep.memory._shibMove = undefined;
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        this.creep.shibMove(nukeSite, {range: 3})
+                }
+            } else if (nukeRampart && nukeRampart.id) {
+                this.creep.memory.currentTarget = nukeRampart.id;
+            } else if (site) {
+                switch (this.creep.build(site)) {
+                    case OK:
+                        this.creep.memory._shibMove = undefined;
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        this.creep.shibMove(site, {range: 3})
+                }
+                this.creep.memory.task = "waller";
+                return true;
+            } else if (barrier.id) {
+                this.creep.memory.currentTarget = barrier.id;
+            }
+        }
+        let target = Game.getObjectById(this.creep.memory.currentTarget);
+        if (target) {
+            this.creep.memory.task = "waller";
+            if (!this.creep.memory.targetWallHits) {
+                if (target.hits < 10000) {
+                    this.creep.memory.targetWallHits = 25000;
+                } else {
+                    let targetHits = target.hits + 10000;
+                    if (targetHits > RAMPART_HITS_MAX[this.creep.room.controller.level]) targetHits = RAMPART_HITS_MAX[this.creep.room.controller.level];
+                    this.creep.memory.targetWallHits = targetHits;
+                }
+            }
+            this.creep.say(ICONS.castle, true);
+            target.say(target.hits + ' / ' + this.creep.memory.targetWallHits);
+            switch (this.creep.repair(target)) {
+                case OK:
+                    this.creep.memory.other.noBump = true;
+                    if (target.hits >= this.creep.memory.targetWallHits) {
+                        this.creep.memory.other.noBump = undefined;
+                        this.creep.memory.currentTarget = undefined;
+                        this.creep.memory.targetWallHits = undefined;
+                    }
+                    break;
+                case ERR_NOT_IN_RANGE:
+                    this.creep.shibMove(target, {range: 3})
+                    break;
+                default:
+                    this.creep.memory.currentTarget = undefined;
+                    this.creep.memory.targetWallHits = undefined;
+            }
+            return true;
+        } else {
             return false;
         }
     }
-    creep.memory.task = 'upgrade';
-    creep.say('Praise!', true);
-    switch (creep.upgradeController(creep.room.controller)) {
-        case OK:
-            creep.memory.other.noBump = true;
-            delete creep.memory._shibMove;
-            break;
-        case ERR_NOT_IN_RANGE:
-            creep.shibMove(creep.room.controller, {range: 3});
-    }
-    return true;
 }
 
-function wallMaintainer(creep) {
-    if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget)) {
-        let activeWallers = _.filter(creep.room.myCreeps, (c) => c.memory.task === 'waller');
-        if (!INTEL[creep.room.name].threatLevel && activeWallers.length > 1) return false;
-        let nukeSite, nukeRampart;
-        let barrierStructures = _.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL));
-        if (creep.room.memory.nuke) {
-            nukeSite = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5)[0];
-            nukeRampart = _.min(_.filter(barrierStructures, (s) => s.structureType === STRUCTURE_RAMPART && ((s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.hits < (NUKE_DAMAGE[1] * creep.room.nukes.length) + 100000) || (s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) === 0 && s.hits < (NUKE_DAMAGE[0] * creep.room.nukes.length) + 100000))), 'hits');
-        }
-        let hostileBarrier;
-        if (INTEL[creep.room.name].threatLevel) {
-            hostileBarrier = _.min(_.filter(barrierStructures, (s) => s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)), 5)[0]), 'hits');
-        }
-        let barrier = _.min(_.filter(barrierStructures, (s) => s.hits < RAMPART_HITS_MAX[creep.room.controller.level] * 0.9), 'hits');
-        let site = _.filter(creep.room.constructionSites, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL))[0];
-        if (!hostileBarrier && barrier.id && barrier.hits < 2000) {
-            creep.memory.currentTarget = barrier.id;
-            creep.shibMove(barrier, {range: 3})
-        } else if (hostileBarrier) {
-            creep.memory.currentTarget = hostileBarrier.id;
-        } else if (nukeSite) {
-            switch (creep.build(nukeSite)) {
-                case OK:
-                    creep.memory._shibMove = undefined;
-                    break;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(nukeSite, {range: 3})
-            }
-        } else if (nukeRampart && nukeRampart.id) {
-            creep.memory.currentTarget = nukeRampart.id;
-        } else if (site) {
-            switch (creep.build(site)) {
-                case OK:
-                    creep.memory._shibMove = undefined;
-                    break;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(site, {range: 3})
-            }
-            creep.memory.task = "waller";
-            return true;
-        } else if (barrier.id) {
-            creep.memory.currentTarget = barrier.id;
-        }
-    }
-    let target = Game.getObjectById(creep.memory.currentTarget);
-    if (target) {
-        creep.memory.task = "waller";
-        if (!creep.memory.targetWallHits) {
-            if (target.hits < 10000) {
-                creep.memory.targetWallHits = 25000;
-            } else {
-                let targetHits = target.hits + 10000;
-                if (targetHits > RAMPART_HITS_MAX[creep.room.controller.level]) targetHits = RAMPART_HITS_MAX[creep.room.controller.level];
-                creep.memory.targetWallHits = targetHits;
-            }
-        }
-        creep.say(ICONS.castle, true);
-        target.say(target.hits + ' / ' + creep.memory.targetWallHits);
-        switch (creep.repair(target)) {
-            case OK:
-                creep.memory.other.noBump = true;
-                if (target.hits >= creep.memory.targetWallHits) {
-                    creep.memory.other.noBump = undefined;
-                    creep.memory.currentTarget = undefined;
-                    creep.memory.targetWallHits = undefined;
-                }
-                break;
-            case ERR_NOT_IN_RANGE:
-                creep.shibMove(target, {range: 3})
-                break;
-            default:
-                creep.memory.currentTarget = undefined;
-                creep.memory.targetWallHits = undefined;
-        }
-        return true;
-    } else {
-        return false;
-    }
-}
+profiler.registerClass(RoleDrone, 'Drone');
+module.exports = RoleDrone;
 
 function findRemoteSource(creep) {
     let adjacent = _.filter(Game.map.describeExits(creep.pos.roomName), (r) => INTEL[r] &&

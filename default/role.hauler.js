@@ -2,19 +2,40 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-module.exports.role = function (creep) {
-    creep.say(ICONS.haul, true);
-    if (creep.towTruck() || (Math.random() > 0.7 && creep.wrongRoom())) return true;
-    // If hauling do things
-    if (_.sum(creep.store)) {
-        creep.opportunisticFill();
-        if (!creep.haulerDelivery()) creep.idleFor(5)
-    } else {
-        if (!creep.memory.energyDestination) creep.memory._shibMove = undefined;
-        if (creep.memory.energyDestination || creep.locateEnergy()) {
-            creep.withdrawResource()
+const profiler = require("./tools.profiler");
+
+class RoleHauler {
+    constructor(creep) {
+        this.creep = creep;
+
+        this.housekeeping();
+
+        if (_.sum(creep.store)) {
+            this.deliverResource();
         } else {
-            creep.idleFor(5);
+            this.findResource();
         }
     }
-};
+
+    housekeeping() {
+        this.creep.say(ICONS.haul, true);
+        if (this.creep.towTruck() || (Math.random() > 0.7 && this.creep.wrongRoom())) return true;
+    }
+
+    deliverResource() {
+        this.creep.opportunisticFill();
+        if (!this.creep.haulerDelivery()) this.creep.idleFor(5)
+    }
+
+    findResource() {
+        if (!this.creep.memory.energyDestination) this.creep.memory._shibMove = undefined;
+        if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
+            this.creep.withdrawResource()
+        } else {
+            this.creep.idleFor(5);
+        }
+    }
+}
+
+profiler.registerClass(RoleHauler, 'Hauler');
+module.exports = RoleHauler;
