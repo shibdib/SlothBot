@@ -266,17 +266,22 @@ module.exports.miscCreepQueue = function (room) {
 //Remote creeps
 let remoteTick = {};
 let robberyTargets = {};
+let lastRemoteRefresh = {};
 module.exports.remoteCreepQueue = function (room) {
     if (remoteTick[room.name] + 10 > Game.time) return;
     remoteTick[room.name] = Game.time;
     room.memory.borderPatrol = undefined;
-    if (!remoteRoomTargets[room.name] || Math.random() > 0.75) {
+    // Refresh every 5k ticks or if room under attack
+    if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + 5000 > Game.time || !INTEL[room.name] || INTEL[room.name].threatLevel > 2) {
+        // Cache refresh time
+        lastRemoteRefresh[room.name] = Game.time;
         // Clean old Remotes
         remoteRoomTargets[room.name] = undefined;
         // Find rooms around you using INTEL with remote possibilities
         let sourceCount = 0;
         let remoteRooms = _.filter(Game.map.describeExits(room.name), (r) => roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level && (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation)));
         if (remoteRooms.length) remoteRooms.forEach((r) => sourceCount += INTEL[r].sources || 1);
+        /** DISABLE LONG RANGE REMOTE MINING FOR NOW
         // Handle less than desired
         let targetAmount = REMOTE_SOURCE_TARGET;
         //if (room.level >= 7) targetAmount = REMOTE_SOURCE_TARGET * 2;
@@ -289,7 +294,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
                 if (sourceCount >= targetAmount) break;
             }
-        }
+         }**/
         remoteRoomTargets[room.name] = JSON.stringify(remoteRooms);
         // Check for robbery targets
         robberyTargets[room.name] = JSON.stringify(_.filter(remoteRooms, (r) => INTEL[r] && INTEL[r].user && INTEL[r].user !== MY_USERNAME && !_.includes(FRIENDLIES, INTEL[r].reservation) && (!INTEL[r].sk || room.level >= 7)));
@@ -338,8 +343,8 @@ module.exports.remoteCreepQueue = function (room) {
                 } else if (!INTEL[remoteName].sk) room.memory.borderPatrol = remoteName;
                 continue;
             }
-            // Route check
-            if (!room.routeSafe(remoteName, 3, 999, 4)) continue;
+            // Route check (DISABLED FOR NOW)
+            //if (!room.routeSafe(remoteName, 3, 999, 4)) continue;
             // For shared remotes only the highest level room produces creeps
             if (highestLevel) {
                 // Handle SK
