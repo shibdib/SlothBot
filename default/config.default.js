@@ -45,6 +45,8 @@ global.BOOST_AMOUNT = 10000; // Try to have this much of all applicable boosts
 global.DUMP_AMOUNT = 40000; // Fills buys (or if overflowing it will offload to other terminals)
 
 // Room Ramparts
+global.BUNKER_LEVEL = 4; // What level do we start building the bunker
+global.STRUCTURE_RAMPARTS = 4; // What level do we build ramparts on important structures
 global.RAMPARTS_ONLY = false; // Only build ramparts and not a checkered pattern
 global.PROTECT_CONTROLLER = false; // Include controller in the bunker algorithm
 global.PROTECT_MINERAL = false; // Include mineral in the bunker algorithm

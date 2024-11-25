@@ -13,17 +13,14 @@ module.exports.buildRoom = function (room) {
     // Only run once per tick
     let lastRun = tickTracker[room.name] || {};
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
-        // Hub check
-        let bunkerHub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-        let builtSpawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN);
-        if (bunkerHub.checkForWall()) return room.memory.bunkerHub = undefined;
         // Check if we're short any structures from the bunker template
-        let countCheck = _.filter(bunkerTemplate, (s) => ![STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD].includes(s.structureType) && CONTROLLER_STRUCTURES[s.structureType][room.controller.level] > _.filter(room.structures, (r) => r.structureType === s.structureType).length + _.filter(room.constructionSites, (r) => r.structureType === s.structureType));
-        if ((lastRun.layout || 0) < Game.time && countCheck.length) {
-            buildFromLayout(room, countCheck);
+        if ((lastRun.layout || 0) < Game.time) {
+            let countCheck = _.filter(bunkerTemplate, (s) => ![STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD].includes(s.structureType) && CONTROLLER_STRUCTURES[s.structureType][room.controller.level] > _.filter(room.structures, (r) => r.structureType === s.structureType).length + _.filter(room.constructionSites, (r) => r.structureType === s.structureType));
+            if (countCheck.length) buildFromLayout(room, countCheck);
             lastRun.layout = Game.time + _.random(50, 100);
-        } else if (builtSpawn && (lastRun.auxiliary || 0) < Game.time) {
-            auxiliaryBuilding(room)
+        } else if ((lastRun.auxiliary || 0) < Game.time) {
+            let builtSpawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN);
+            if (builtSpawn) auxiliaryBuilding(room)
             lastRun.auxiliary = Game.time + _.random(50, 100);
         }
     } else {
@@ -316,10 +313,22 @@ function roadBuilder(room, layout) {
 }
 
 function rampartBuilder(room, layout = undefined, count = false) {
+    // Build ramparts around sources, mineral, controller
+    if (room.level >= STRUCTURE_RAMPARTS) {
+        if (PROTECT_SOURCES) {
+            for (let source of room.sources) {
+                buildRampartAround(source.pos);
+            }
+        }
+        if (PROTECT_MINERAL) buildRampartAround(room.mineral.pos);
+        if (PROTECT_CONTROLLER) buildRampartAround(room.controller.pos);
+    }
+    // When to build the bunker walls
+    if (room.level < BUNKER_LEVEL) return;
     // Protected Structures
     _.filter(room.structures, (s) => protectedStructureTypes.includes(s.structureType) && !s.pos.checkForRampart() && !s.pos.checkForConstructionSites()).forEach((s) => s.pos.createConstructionSite(STRUCTURE_RAMPART));
     // Handle rampart bunker placement
-    if (!rampartSpots[room.name] || Math.random() > 0.98) {
+    if (!rampartSpots[room.name]) {
         rampartSpots[room.name] = undefined;
         let rect_array = [];
         // structures
@@ -350,7 +359,8 @@ function rampartBuilder(room, layout = undefined, count = false) {
         if (count && rampartSpots[room.name]) {
             return _.size(JSON.parse(rampartSpots[room.name]));
         }
-    } else if (rampartSpots[room.name]) {
+    } else {
+        // Get spots, set cache if not set
         let spots = JSON.parse(rampartSpots[room.name]);
         if (!spots.length) _.filter(room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).forEach((b) => spots.push({
             x: b.pos.x,
@@ -402,16 +412,6 @@ function rampartBuilder(room, layout = undefined, count = false) {
                 return;
             }
         }
-    }
-    // Build ramparts around sources, mineral, controller
-    if (room.level >= 3) {
-        if (PROTECT_SOURCES) {
-            for (let source of room.sources) {
-                buildRampartAround(source.pos);
-            }
-        }
-        if (PROTECT_MINERAL) buildRampartAround(room.mineral.pos);
-        if (PROTECT_CONTROLLER) buildRampartAround(room.controller.pos);
     }
 }
 
