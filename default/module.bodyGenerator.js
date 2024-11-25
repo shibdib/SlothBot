@@ -12,7 +12,7 @@
  */
 module.exports.bodyGenerator = function (level, role, room = undefined, creepInfo = undefined) {
     let body = [];
-    let work, claim, carry, move, tough, attack, rangedAttack, heal, energyScaling;
+    let work, claim, carry, move, tough, attack, rangedAttack, heal, energyScaling, halfMove;
     let energyAmount = room.energyCapacityAvailable;
     let importantBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART).length > 0;
     if (creepInfo.other.reboot || room.myCreeps.length <= 3 || !room.storage) {
@@ -34,14 +34,12 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             if (work > 15) work = 15;
             carry = _.floor((energyAmount * 0.1) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
-            move = work + carry;
             break;
         case 'upgrader':
             energyScaling = true;
             if (room.nukes.length || room.level < room.controller.level) {
                 work = 1;
                 carry = 1;
-                move = work + carry;
                 break;
             } else if (room.memory.controllerContainer) {
                 work = _.floor((energyAmount - (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) / BODYPART_COST[WORK]) || 1;
@@ -55,7 +53,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
                 if (work > 5) work = 5;
                 carry = _.floor((energyAmount * 0.1) / BODYPART_COST[CARRY]) || 1;
                 if (carry > 3) carry = 3;
-                if (!INTEL[room.name].roadsBuilt) move = carry + work; else move = _.ceil(carry + work / 2);
+                if (INTEL[room.name].roadsBuilt) halfMove = true;
                 break;
             }
         case 'powerManager':
@@ -63,7 +61,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         case 'labTech':
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
             if (carry > level * 2) carry = level * 2;
-            if (!INTEL[room.name].roadsBuilt) move = carry; else move = _.ceil(carry / 2);
+            if (INTEL[room.name].roadsBuilt) halfMove = true;
             break;
         case 'shuttle':
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
@@ -74,7 +72,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             }
             let energyHarvestedPerTrip = (HARVEST_POWER * 6) * farthestSourceDistance;
             if (carry > energyHarvestedPerTrip / CARRY_CAPACITY) carry = energyHarvestedPerTrip / CARRY_CAPACITY;
-            if (!INTEL[room.name].roadsBuilt) move = carry; else move = _.ceil(carry / 2);
+            if (INTEL[room.name].roadsBuilt) halfMove = true;
             break;
         case 'stationaryHarvester':
             // Goal is to have enough WORK parts to empty a source in half of its lifetime
@@ -98,14 +96,12 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             if (tough > 3) tough = 3;
             attack = _.floor((energyAmount * 0.48) / BODYPART_COST[ATTACK]) || 1;
             if (attack > 20) attack = 20;
-            move = tough + attack;
             break;
         case 'defender':
             rangedAttack = 0;
             attack = 0;
             if (room.level < 3) {
                 attack = 1;
-                move = 1;
             } else {
                 if (Math.random() > 0.25 || level < 5) attack = _.floor((energyAmount * 0.45) / BODYPART_COST[ATTACK]) || 1; else rangedAttack = _.floor((energyAmount * 0.45) / BODYPART_COST[RANGED_ATTACK]) || 1;
                 if (attack > 32) attack = 32; else if (rangedAttack > 32) rangedAttack = 32;
@@ -125,21 +121,17 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
                     heal = _.ceil(heal * ratio);
                 }
             }
-            move = heal + rangedAttack;
             break;
         case 'poke':
             if (Math.random() > 0.5) rangedAttack = 1; else attack = 1;
-            move = 1;
             break;
         case 'cleaner':
             work = _.floor(energyAmount / (BODYPART_COST[WORK] + BODYPART_COST[MOVE])) || 1;
             if (work > 25) work = 25;
-            move = work;
             break;
         case 'claimAttacker':
             claim = _.floor((energyAmount * 0.50) / BODYPART_COST[CLAIM]) || 1;
             if (claim > 25) claim = 25;
-            move = claim;
             break;
         // Remote
         case 'claimer':
@@ -155,8 +147,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt && INTEL[room.name].roadsBuilt) {
                 claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
                 if (claim > 20) claim = 20;
-                move = claim * 0.5;
-            } else move = claim;
+                halfMove = true;
+            }
             break;
         case 'remoteHarvester':
             work = _.floor((energyAmount * 0.5) / BODYPART_COST[WORK]) || 1;
@@ -168,7 +160,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             // Neutral
             else if ((!INTEL[creepInfo.destination] || INTEL[creepInfo.destination].reservation !== MY_USERNAME) && work > (SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1) work = (SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
             carry = 1;
-            if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt && INTEL[room.name].roadsBuilt) move = _.ceil(work / 2); else move = work;
+            if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt && INTEL[room.name].roadsBuilt) halfMove = true;
             break;
         case 'remoteHauler':
             let workCost = BODYPART_COST[WORK];
@@ -186,9 +178,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             // Work parts after level 3
             if (room.level >= 4) work = 1; else work = 0;
             // Set move
-            if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt && INTEL[room.name].roadsBuilt) move = _.ceil((carry + work) / 2); else {
+            if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt && INTEL[room.name].roadsBuilt) halfMove = true; else {
                 if (carry > 24) carry = 24;
-                move = carry + work;
             }
             break;
         case 'SKMineral':
@@ -198,27 +189,22 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             if (work > 15) work = 15;
             carry = _.floor((energyAmount * 0.15) / BODYPART_COST[CARRY]) || 1;
             if (carry > 10) carry = 10;
-            move = work + carry;
             break;
         case 'SKAttacker':
             attack = 19;
             heal = 6;
-            move = attack + heal;
             break;
         case 'powerAttacker':
             attack = 25;
-            move = 25;
             break;
         case 'powerHealer':
             heal = 16;
-            move = 16;
             break;
         case 'fuelTruck':
         case 'robber':
         case 'powerHauler':
             carry = _.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
             if (carry > 25) carry = 25;
-            move = carry;
             break;
     }
     let energyMulti = 1;
@@ -230,11 +216,16 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
     for (let i = 0; i < _.ceil(rangedAttack * energyMulti); i++) body.push(RANGED_ATTACK)
     for (let i = 0; i < _.ceil(attack * energyMulti); i++) body.push(ATTACK)
     let moveArray = [];
-    for (let i = 0; i < _.ceil(move * energyMulti); i++) moveArray.push(MOVE)
     let healArray = [];
     for (let i = 0; i < _.ceil(heal * energyMulti); i++) healArray.push(HEAL)
     let toughArray = [];
     for (let i = 0; i < _.ceil(tough * energyMulti); i++) toughArray.push(TOUGH)
+    // If move is not set, we find the amount from the rest of the parts
+    if (move && move > 0) {
+        for (let i = 0; i < _.ceil((move * energyMulti) + 0.2); i++) moveArray.push(MOVE)
+    } else if (!halfMove) {
+        for (let i = 0; i < body.length + healArray.length + toughArray.length; i++) moveArray.push(MOVE)
+    } else for (let i = 0; i < _.ceil((((body.length + healArray.length + toughArray.length) * 0.5) * energyMulti) + 0.2); i++) moveArray.push(MOVE)
     if (role === 'SKAttacker' || role === 'powerAttacker' || role === 'claimer') return toughArray.concat(moveArray, shuffle(body), healArray);
     else return toughArray.concat(shuffle(body), moveArray, healArray);
 };
