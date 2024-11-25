@@ -15,6 +15,7 @@ module.exports.init = function () {
 }
 
 let intelSegmentChecked;
+let intelCheckCounter = 0;
 let segmentNumber = 0;
 try {
     if (Game.shard.name.match(/\d+/) !== null) segmentNumber = Game.shard.name.match(/\d+/)[0];
@@ -22,16 +23,21 @@ try {
     // For some reason private servers hate this
 }
 module.exports.retrieveIntel = function () {
+    if (intelSegmentChecked) return true;
     // Retrieve intel cache
-    if (!_.size(INTEL) || !intelSegmentChecked) {
+    if (intelCheckCounter < 5) {
         if (RawMemory.segments[segmentNumber]) {
             intelSegmentChecked = true;
             global.INTEL = JSON.parse(RawMemory.segments[segmentNumber]) || {};
+            log.e("Intel segment retrieved, restoring old intel.", "INTEL MANAGER: ");
         } else {
+            intelCheckCounter++;
             RawMemory.setActiveSegments(activeSegments);
-            log.d("Intel segment not accessible, enabling the segment for the next tick.");
-            global.INTEL = {};
+            log.d("Intel segment not accessible, enabling the segment for the next tick.", "INTEL MANAGER: ");
         }
+    } else {
+        intelSegmentChecked = true;
+        log.e("Intel segment not accessible, defaulting to global.", "INTEL MANAGER: ");
     }
     return true;
 }
@@ -40,13 +46,13 @@ let lastIntelStore;
 module.exports.storeIntel = function () {
     // Don't store if we never retrieved
     if (!intelSegmentChecked) {
-        log.d("Intel segment not accessed, not storing.");
+        log.d("Intel segment not accessed, not storing.", "INTEL MANAGER: ");
         return;
     }
     if (!lastIntelStore || lastIntelStore + CREEP_LIFE_TIME < Game.time || Math.random() > 0.95) {
         // Check for invalid cache
         if (!_.size(INTEL) || !INTEL[Object.keys(INTEL)[0]].name) {
-            log.e('Invalid intel cache, clearing.');
+            log.e('Invalid intel cache, clearing.', "INTEL MANAGER: ");
             return global.INTEL = {};
         }
         let store = JSON.parse(JSON.stringify(INTEL));
@@ -61,7 +67,7 @@ module.exports.storeIntel = function () {
             RawMemory.segments[segmentNumber] = JSON.stringify(store);
             lastIntelStore = Game.time;
         } catch (e) {
-            log.e("Error stringifying intel cache, skipping store.");
+            log.e("Error stringifying intel cache, skipping store.", "INTEL MANAGER: ");
             log.e(e.stack);
         }
     }
