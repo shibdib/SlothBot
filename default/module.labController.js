@@ -3,11 +3,15 @@
  */
 
 let primaryLabs = {};
+let lastClean = 0;
 
 module.exports.labManager = function () {
     let labRooms = _.filter(MY_ROOMS, (r) => _.filter(Game.rooms[r].structures, (s) => s.structureType === STRUCTURE_LAB).length >= 3);
     if (labRooms.length) {
-        if (Game.time % 500 === 0) cleanLabs();
+        if (lastClean + 2000 < Game.time) {
+            lastClean = Game.time;
+            cleanLabs();
+        }
         for (let roomName of labRooms) {
             let room = Game.rooms[roomName];
             // If no hubs, continue

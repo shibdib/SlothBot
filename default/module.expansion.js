@@ -1,12 +1,10 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
-let lastTick = 0;
 
 module.exports.claimNewRoom = function () {
     let worthyRooms;
-    if (lastTick + 500 > Game.time || !MY_ROOMS[0] || _.size(INTEL) < 5) return;
-    lastTick = Game.time;
+    if (!MY_ROOMS[0] || _.size(INTEL) < 5) return;
     // Check for active claims or rebuilds
     let claimsInProgress = _.filter(Memory.auxiliaryTargets, (t) => t && (t.type === 'claim' || t.type === 'rebuild'));
     if (claimsInProgress.length > MY_ROOMS.length * 0.25) return;

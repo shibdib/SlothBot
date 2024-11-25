@@ -3,13 +3,10 @@
  */
 
 let OPERATION_LIMIT;
-let lastTick = 0;
 
 module.exports.highCommand = function () {
     // Check for flags
     if (_.size(Game.flags)) manualAttacks();
-    if (lastTick + 10 > Game.time) return;
-    lastTick = Game.time;
     OPERATION_LIMIT = _.filter(MY_ROOMS, (r) => Game.rooms[r].energyState && Game.rooms[r].level === MAX_LEVEL).length + 1;
     if (!Memory.nonCombatRooms) Memory.nonCombatRooms = [];
     if (!Memory.targetRooms) Memory.targetRooms = {};

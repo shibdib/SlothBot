@@ -11,96 +11,132 @@ const spawning = require('module.creepSpawning');
 const expansion = require('module.expansion');
 const diplomacy = require('module.diplomacy');
 const hud = require('module.hud');
+const profiler = require('tools.profiler');
 let buildingNotifications;
+let tickTracker = {};
 
-module.exports.hiveMind = function () {
-    // Timing
-    Memory.tickCooldowns = undefined;
-    // Silence Alerts
-    if (Game.time % 2500 === 0 || !buildingNotifications) {
-        buildingNotifications = true;
-        for (let building of _.filter(Game.structures)) {
-            building.notifyWhenAttacked(false);
+class Hive {
+    constructor() {
+        // General housekeeping
+        this.houseKeeping();
+        // Segment management
+        this.segmentManager();
+        // Manage rooms
+        this.overlordManager();
+        // Military creep manager
+        this.militaryCreepManager();
+        // PowerCreep manager
+        this.powerCreepManager();
+        // Hud manager
+        this.hudManager();
+        // Global queue
+        if ((tickTracker['globalQueue'] || 0) + 10 < Game.time) {
+            this.globalQueue();
+            tickTracker['globalQueue'] = Game.time;
+        }
+        // High Command
+        if ((tickTracker['highCommand'] || 0) + 50 < Game.time) {
+            this.highCommand();
+            tickTracker['highCommand'] = Game.time;
+        }
+        // Lab manager
+        if ((tickTracker['labManager'] || 0) + 5 < Game.time) {
+            this.labManager();
+            tickTracker['labManager'] = Game.time;
+        }
+        // Expansion manager
+        if ((tickTracker['expansionManager'] || 0) + 1000 < Game.time) {
+            this.expansionManager();
+            tickTracker['expansionManager'] = Game.time;
         }
     }
-    // Hive/global function loop
-    diplomacy.diplomacyOverlord();
-    let hiveFunctions = shuffle([{name: 'highCommand', f: highCommand.highCommand}, {
-        name: 'labs',
-        f: labs.labManager
-    }, {name: 'expansion', f: expansion.claimNewRoom}, {
-        name: 'globalQueue',
-        f: spawning.globalCreepQueue
-    }, {name: 'power', f: power.powerControl}, {name: 'segments', f: segments.init}, {name: 'hud', f: hud.hud}]);
-    let functionCount = hiveFunctions.length;
-    let count = 0;
-    let hiveTaskCurrentCPU = Game.cpu.getUsed();
-    let hiveTaskTotalCPU = 0;
-    do {
-        let currentFunction = _.first(hiveFunctions);
-        if (!currentFunction) break;
-        hiveFunctions = _.rest(hiveFunctions);
-        count++;
-        try {
-            currentFunction.f();
-        } catch (e) {
-            log.e('Error with a hive function');
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
-        hiveTaskCurrentCPU = Game.cpu.getUsed() - hiveTaskCurrentCPU;
-        hiveTaskTotalCPU += hiveTaskCurrentCPU;
-    } while ((hiveTaskTotalCPU < CPU_TASK_LIMITS['hiveTasks']) && count < functionCount)
-    // Military creep loop
-    let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => (r.memory.military || !r.memory.overlord) && !r.spawning));
-    for (let creep of militaryCreeps) {
-        try {
-            minionController(creep);
-        } catch (e) {
-            if (!errorCount[creep.name]) {
-                errorCount[creep.name] = 1;
-                log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name));
-                log.e(e);
-                log.e(e.stack);
-                Game.notify(e);
-                Game.notify(e.stack);
-            } else errorCount[creep.name] += 1;
-            if (errorCount[creep.name] >= 50) {
-                log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name) + ' and has been killed.');
-                creep.suicide();
+
+    houseKeeping() {
+        // Timing
+        Memory.tickCooldowns = undefined;
+        // Silence Alerts
+        if (Game.time % 2500 === 0 || !buildingNotifications) {
+            buildingNotifications = true;
+            for (let building of _.filter(Game.structures)) {
+                building.notifyWhenAttacked(false);
             }
         }
     }
 
-    // Overlord loop
-    count = 0;
-    let overlordCurrentCPU = Game.cpu.getUsed();
-    let overlordTotalCPU = 0;
-    let myRooms = shuffle(MY_ROOMS);
-    do {
-        let currentRoom = _.first(myRooms);
-        if (!currentRoom) break;
-        myRooms = _.rest(myRooms);
-        count++;
-        let activeRoom = Game.rooms[currentRoom];
-        // If no longer owned, filter out
-        if (!activeRoom) {
-            global.MY_ROOMS = _.filter(MY_ROOMS, (r) => r !== currentRoom);
-            continue;
+    hudManager() {
+        hud.hud();
+    }
+
+    highCommand() {
+        highCommand.highCommand();
+    }
+
+    labManager() {
+        labs.labManager();
+    }
+
+    expansionManager() {
+        expansion.claimNewRoom();
+    }
+
+    globalQueue() {
+        spawning.globalCreepQueue();
+    }
+
+    powerCreepManager() {
+        power.powerControl();
+    }
+
+    segmentManager() {
+        segments.init();
+    }
+
+    militaryCreepManager() {
+        let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => (r.memory.military || !r.memory.overlord) && !r.spawning));
+        for (let creep of militaryCreeps) {
+            try {
+                minionController(creep);
+            } catch (e) {
+                if (!errorCount[creep.name]) {
+                    errorCount[creep.name] = 1;
+                    log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name));
+                    log.e(e);
+                    log.e(e.stack);
+                    Game.notify(e);
+                    Game.notify(e.stack);
+                } else errorCount[creep.name] += 1;
+                if (errorCount[creep.name] >= 50) {
+                    log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name) + ' and has been killed.');
+                    creep.suicide();
+                }
+            }
         }
-        try {
-            activeRoom.invaderCheck();
-            activeRoom.cacheRoomIntel();
-            overlord.overlordMind(activeRoom, CPU_TASK_LIMITS['roomLimit'] * 0.9 / _.size(MY_ROOMS));
-        } catch (e) {
-            log.e('Overlord Module experienced an error in room ' + roomLink(currentRoom));
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
-        overlordCurrentCPU = Game.cpu.getUsed() - overlordCurrentCPU;
-        overlordTotalCPU += overlordCurrentCPU;
-    } while (count < MY_ROOMS.length && Game.cpu.getUsed() * 1.25 < Game.cpu.tickLimit)
-};
+    }
+
+    overlordManager() {
+        // Overlord loop
+        MY_ROOMS.forEach(function (room) {
+            let activeRoom = Game.rooms[room];
+            // If no longer owned, filter out
+            if (!activeRoom) {
+                global.MY_ROOMS = _.filter(MY_ROOMS, (r) => r !== room);
+                return;
+            }
+            try {
+                activeRoom.invaderCheck();
+                activeRoom.cacheRoomIntel();
+                new overlord(activeRoom, CPU_TASK_LIMITS['roomLimit'] * 0.9 / _.size(MY_ROOMS));
+            } catch (e) {
+                log.e('Overlord Module experienced an error in room ' + roomLink(room));
+                log.e(e.stack);
+                Game.notify(e.stack);
+            }
+        })
+    }
+}
+
+profiler.registerClass(Hive, 'Hive');
+module.exports = Hive;
 
 let errorCount = {};
 

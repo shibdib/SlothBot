@@ -5,7 +5,6 @@ let tickTracker = {};
 let coolDownTracker = {};
 
 module.exports.factoryControl = function (room) {
-    if (!room.factory) return;
     // Say what is being produced
     if (room.factory.memory.producing) {
         room.factory.say(_.capitalize(room.factory.memory.producing));

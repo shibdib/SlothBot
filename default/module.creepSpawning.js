@@ -433,10 +433,7 @@ module.exports.remoteCreepQueue = function (room) {
 };
 
 //Military creeps
-let lastGlobalTick = 0;
 module.exports.globalCreepQueue = function () {
-    if (lastGlobalTick + 15 > Game.time) return;
-    lastGlobalTick = Game.time;
     let operations = Object.assign({}, Memory.targetRooms, Memory.auxiliaryTargets);
     // Targets
     if (!_.size(operations)) return;

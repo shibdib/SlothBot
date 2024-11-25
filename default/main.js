@@ -103,7 +103,7 @@ module.exports.loop = function () {
         }
 
         //Hive Mind
-        hive.hiveMind();
+        new hive();
 
         // Save Intel Cache
         try {

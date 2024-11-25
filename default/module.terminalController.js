@@ -9,13 +9,9 @@
 let tradeAmount = MINERAL_TRADE_AMOUNT;
 let reactionAmount = REACTION_AMOUNT;
 let runOnce, globalOrders, lastPriceAdjust, spendingMoney, lastEnergyPurchase;
-let tickTracker = {};
 if (Memory._banker) spendingMoney = Memory._banker.spendingAccount; else spendingMoney = 0;
 
 module.exports.terminalControl = function (room) {
-    let lastRun = tickTracker[room.name] || 0;
-    if (!room.terminal || room.terminal.cooldown || lastRun + 100 > Game.time) return;
-    tickTracker[room.name] = Game.time;
     // Handle season stuff
     if (Game.shard.name === 'shardSeason') {
         balanceResources(room.terminal);

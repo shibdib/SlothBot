@@ -7,7 +7,6 @@
  */
 let observedRooms = {};
 module.exports.observerControl = function (room) {
-    if (room.level !== 8) return;
     let observer = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_OBSERVER);
     if (observer) {
         if (observedRooms[room.name] && Game.rooms[observedRooms[room.name]]) {
