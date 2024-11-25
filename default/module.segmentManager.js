@@ -16,7 +16,7 @@ module.exports.init = function () {
 
 let intelSegmentChecked;
 let segmentNumber = 0;
-if (Game.shard.name.match(/\d+/)[0]) segmentNumber = Game.shard.name.match(/\d+/)[0];
+if (Game.shard.name.match(/\d+/) !== null) segmentNumber = Game.shard.name.match(/\d+/)[0];
 module.exports.retrieveIntel = function () {
     // Retrieve intel cache
     if (!_.size(INTEL) || !intelSegmentChecked) {

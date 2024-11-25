@@ -27,7 +27,7 @@ module.exports = function (grunt) {
                     ptr: false
                 },
                 dist: {
-                    src: ['src/*.js']
+                    src: ['default/*.js']
                 }
             }
         });
@@ -41,7 +41,7 @@ module.exports = function (grunt) {
                     server: server
                 },
                 dist: {
-                    src: ['src/*.js']
+                    src: ['default/*.js']
                 }
             }
         });
