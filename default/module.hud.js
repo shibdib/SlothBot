@@ -9,25 +9,27 @@ let RCL_PROGRESS = {};
 let roomLastTickProgress = {};
 
 module.exports.hud = function () {
-    //GCL
-    GCL_PROGRESS_ARRAY = GCL_PROGRESS_ARRAY || [];
-    let progressPerTick = Game.gcl.progress - (lastTickGCLProgress || 0);
-    lastTickGCLProgress = Game.gcl.progress;
-    if (progressPerTick > 0) {
-        if (GCL_PROGRESS_ARRAY < 25) {
-            GCL_PROGRESS_ARRAY.push(progressPerTick)
-        } else {
-            GCL_PROGRESS_ARRAY.shift();
-            GCL_PROGRESS_ARRAY.push(progressPerTick)
-        }
-    }
-    progressPerTick = average(GCL_PROGRESS_ARRAY);
-    let secondsToUpgrade = _.round(((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick) * Memory.tickInfo.tickLength);
-    let ticksToUpgrade = _.round((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick);
-    let displayTime = secondsToReadable(secondsToUpgrade);
     let myRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner.username === MY_USERNAME);
     for (let room of myRooms) {
+        // No flag no hud
+        //if (!_.find(room.find(FIND_FLAGS), (f) => _.startsWith(f.name, 'hud'))) continue;
         if (!room || !ROOM_CPU_ARRAY[room.name]) continue;
+        //GCL
+        GCL_PROGRESS_ARRAY = GCL_PROGRESS_ARRAY || [];
+        let progressPerTick = Game.gcl.progress - (lastTickGCLProgress || 0);
+        lastTickGCLProgress = Game.gcl.progress;
+        if (progressPerTick > 0) {
+            if (GCL_PROGRESS_ARRAY < 25) {
+                GCL_PROGRESS_ARRAY.push(progressPerTick)
+            } else {
+                GCL_PROGRESS_ARRAY.shift();
+                GCL_PROGRESS_ARRAY.push(progressPerTick)
+            }
+        }
+        progressPerTick = average(GCL_PROGRESS_ARRAY);
+        let secondsToUpgrade = _.round(((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick) * Memory.tickInfo.tickLength);
+        let ticksToUpgrade = _.round((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick);
+        let displayTime = secondsToReadable(secondsToUpgrade);
         let lowerBoundary = 4;
         if (!INTEL[room.name]) room.cacheRoomIntel();
         if (INTEL[room.name].threatLevel) lowerBoundary++;
@@ -75,6 +77,7 @@ module.exports.hud = function () {
         }
     }
     // Map Hud
+    /**
     try {
         if (CACHE.VISUAL_CACHE && CACHE.VISUAL_CACHE['map'] && Game.time % 25 !== 0) return Game.map.visual.import(CACHE.VISUAL_CACHE['map']);
         // Target Rooms
@@ -245,7 +248,7 @@ module.exports.hud = function () {
     } catch (e) {
         console.log(e)
         console.log(e.stack)
-    }
+    }**/
 };
 
 function secondsToReadable(seconds) {
