@@ -167,6 +167,8 @@ function upgrading(creep, force = undefined) {
 
 function wallMaintainer(creep) {
     if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget)) {
+        let activeWallers = _.filter(creep.room.myCreeps, (c) => c.memory.task === 'waller');
+        if (!INTEL[creep.room.name].threatLevel && activeWallers.length > 1) return false;
         let nukeSite, nukeRampart;
         let barrierStructures = _.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL));
         if (creep.room.memory.nuke) {
@@ -202,6 +204,7 @@ function wallMaintainer(creep) {
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(site, {range: 3})
             }
+            creep.memory.task = "waller";
             return true;
         } else if (barrier.id) {
             creep.memory.currentTarget = barrier.id;
@@ -209,6 +212,7 @@ function wallMaintainer(creep) {
     }
     let target = Game.getObjectById(creep.memory.currentTarget);
     if (target) {
+        creep.memory.task = "waller";
         if (!creep.memory.targetWallHits) {
             if (target.hits < 10000) {
                 creep.memory.targetWallHits = 25000;
