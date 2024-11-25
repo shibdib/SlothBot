@@ -61,6 +61,8 @@ class Hive {
                 building.notifyWhenAttacked(false);
             }
         }
+        // Diplomacy
+        diplomacy.diplomacyOverlord();
     }
 
     hudManager() {
