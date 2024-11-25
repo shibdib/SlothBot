@@ -28,7 +28,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             break;
         // General Creeps
         case 'drone':
-        case 'waller':
         case 'roadBuilder':
             energyScaling = true;
             work = _.floor((energyAmount * 0.4) / BODYPART_COST[WORK]) || 1;
