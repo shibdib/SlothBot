@@ -53,6 +53,27 @@ class RoleDrone {
         }
     }
 
+    jobManager() {
+        // If under attack, waller else chance to be a waller
+        let importantBuilds = _.find(this.creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL);
+        if ((INTEL[this.creep.room.name].threatLevel || this.creep.memory.currentTarget || (Math.random() > 0.5 && !this.creep.memory.constructionSite && !importantBuilds)) && this.walling()) return;
+        // If builder needed build
+        if ((this.creep.memory.constructionSite || this.creep.room.constructionSites.length) && this.building()) return;
+        // If praiser needed praise
+        if (this.upgrading()) return;
+        // If haulers needed haul
+        if (this.hauling()) return;
+        // If walls to repair
+        if (this.walling()) return;
+        // If nothing else to do upgrade
+        if (this.upgrading(true)) return;
+        // Otherwise idle
+        else {
+            this.creep.memory.task = undefined;
+            this.creep.idleFor(5);
+        }
+    }
+
     energyCollection() {
         this.creep.memory.other.noBump = undefined;
         this.creep.memory.working = undefined;
@@ -91,27 +112,6 @@ class RoleDrone {
                 }
             }
         } else {
-            this.creep.idleFor(5);
-        }
-    }
-
-    jobManager() {
-        // If under attack, waller else chance to be a waller
-        let importantBuilds = _.find(this.creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL);
-        if ((INTEL[this.creep.room.name].threatLevel || this.creep.memory.currentTarget || (Math.random() > 0.5 && !this.creep.memory.constructionSite && !importantBuilds)) && this.walling()) return;
-        // If praiser needed praise
-        if (this.upgrading()) return;
-        // If haulers needed haul
-        if (this.hauling()) return;
-        // If builder needed build
-        if ((this.creep.memory.constructionSite || this.creep.room.constructionSites.length) && this.building()) return;
-        // If walls to repair
-        if (this.walling()) return;
-        // If nothing else to do upgrade
-        if (this.upgrading(true)) return;
-        // Otherwise idle
-        else {
-            this.creep.memory.task = undefined;
             this.creep.idleFor(5);
         }
     }
@@ -183,7 +183,7 @@ class RoleDrone {
     walling() {
         if (!this.creep.memory.currentTarget || !Game.getObjectById(this.creep.memory.currentTarget)) {
             let activeWallers = _.filter(this.creep.room.myCreeps, (c) => c.memory.task === 'waller');
-            if (!INTEL[this.creep.room.name].threatLevel && activeWallers.length > 1) return false;
+            if (!INTEL[this.creep.room.name].threatLevel && activeWallers.length > 0) return false;
             let nukeSite, nukeRampart;
             let barrierStructures = _.filter(this.creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL));
             if (this.creep.room.memory.nuke) {
