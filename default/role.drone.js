@@ -55,8 +55,7 @@ class RoleDrone {
 
     jobManager() {
         // If under attack, waller else chance to be a waller
-        let importantBuilds = _.find(this.creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL);
-        if ((INTEL[this.creep.room.name].threatLevel || this.creep.memory.currentTarget || (Math.random() > 0.5 && !this.creep.memory.constructionSite && !importantBuilds)) && this.walling()) return;
+        if ((INTEL[this.creep.room.name].threatLevel || this.creep.memory.currentTarget) && this.walling()) return;
         // If builder needed build
         if ((this.creep.memory.constructionSite || this.creep.room.constructionSites.length) && this.building()) return;
         // If praiser needed praise
