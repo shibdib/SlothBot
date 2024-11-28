@@ -11,7 +11,7 @@ const profiler = require("./tools.profiler");
 class RoleDrone {
     constructor(creep) {
         this.creep = creep;
-        this.houseKeeping();
+        if (this.houseKeeping()) return;
         if (!creep.memory.working) {
             this.energyCollection();
         } else {
@@ -29,7 +29,8 @@ class RoleDrone {
         if (!this.creep.memory.destination) this.creep.memory.destination = this.creep.memory.overlord;
         if (this.creep.memory.destination && this.creep.room.name !== this.creep.memory.destination && !this.creep.memory.remoteMining) {
             if (!this.creep.getActiveBodyparts(WORK)) return this.creep.suicide();
-            return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 24});
+            this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 24});
+            return true;
         }
         if (!this.creep.store[RESOURCE_ENERGY]) this.creep.memory.working = undefined;
         // Handle case of carry something besides energy
@@ -49,7 +50,7 @@ class RoleDrone {
             this.creep.memory.harvest = undefined;
             this.creep.memory.remoteMining = undefined;
             this.creep.memory.source = undefined;
-            return this.creep.memory.working = true;
+            this.creep.memory.working = true;
         }
     }
 
