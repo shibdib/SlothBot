@@ -249,14 +249,7 @@ let globals = function () {
 
     global.CUMULATIVE_CONTROLLER_DOWNGRADE = _.map(CONTROLLER_DOWNGRADE, (v1, k1, c1) => (_.reduce(c1, (a, v2, k2, c2) => (a + ((k2 <= k1) ? v2 : 0)), 0)));
 
-    global.RCL_1_ENERGY = 300;
-    global.RCL_2_ENERGY = 550;
-    global.RCL_3_ENERGY = 800;
-    global.RCL_4_ENERGY = 1300;
-    global.RCL_5_ENERGY = 1800;
-    global.RCL_6_ENERGY = 2300;
-    global.RCL_7_ENERGY = 5600;
-    global.RCL_8_ENERGY = 12900;
+    global.ROOM_ENERGY_CAPACITY = {0: 0, 1: 300, 2: 550, 3: 800, 4: 1300, 5: 1800, 6: 2300, 7: 5600, 8: 12900};
 
     global.RCL_1_EXTENSIONS = 0;
     global.RCL_2_EXTENSIONS = 5;
@@ -473,25 +466,10 @@ let globals = function () {
     };
 
     global.getLevel = function (room) {
-        let energy = room.energyCapacityAvailable;
-        if (!room.controller || !energy) return 0;
+        if (!room.controller || !room.energyCapacityAvailable) return 0;
         let energyLevel = 0;
-        if (energy >= RCL_1_ENERGY && energy < RCL_2_ENERGY) {
-            energyLevel = 1;
-        } else if (energy >= RCL_2_ENERGY && energy < RCL_3_ENERGY) {
-            energyLevel = 2
-        } else if (energy >= RCL_3_ENERGY && energy < RCL_4_ENERGY) {
-            energyLevel = 3
-        } else if (energy >= RCL_4_ENERGY && energy < RCL_5_ENERGY) {
-            energyLevel = 4
-        } else if (energy >= RCL_5_ENERGY && energy < RCL_6_ENERGY) {
-            energyLevel = 5
-        } else if (energy >= RCL_6_ENERGY && energy < RCL_7_ENERGY) {
-            energyLevel = 6
-        } else if (energy >= RCL_7_ENERGY && energy < RCL_8_ENERGY) {
-            energyLevel = 7
-        } else if (energy >= RCL_8_ENERGY) {
-            energyLevel = 8
+        while (room.energyCapacityAvailable >= ROOM_ENERGY_CAPACITY[energyLevel]) {
+            energyLevel++;
         }
         if (energyLevel <= room.controller.level) return energyLevel; else return room.controller.level;
     };
