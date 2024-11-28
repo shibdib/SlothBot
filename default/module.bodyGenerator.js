@@ -10,7 +10,15 @@
  * @param {object} room - The spawning room.
  * @param {object} creepInfo - Overall queue object.
  */
+
+let bodyCache = {};
+let generatedBody;
+
 module.exports.bodyGenerator = function (level, role, room = undefined, creepInfo = undefined) {
+    // Check for cached
+    let cacheKey = level + '.' + role + '.' + JSON.stringify(creepInfo)
+    if (bodyCache[cacheKey]) return bodyCache[cacheKey];
+    // Generate body
     let body = [];
     let work, claim, carry, move, tough, attack, rangedAttack, heal, energyScaling, halfMove;
     let energyAmount = room.energyCapacityAvailable;
@@ -226,6 +234,17 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
     } else if (!halfMove) {
         for (let i = 0; i < body.length + healArray.length + toughArray.length; i++) moveArray.push(MOVE)
     } else for (let i = 0; i < _.ceil((((body.length + healArray.length + toughArray.length) * 0.5) * energyMulti) + 0.2); i++) moveArray.push(MOVE)
-    if (role === 'SKAttacker' || role === 'powerAttacker' || role === 'claimer') return toughArray.concat(moveArray, shuffle(body), healArray);
-    else return toughArray.concat(shuffle(body), moveArray, healArray);
+    // Sanity check for cost
+    while (bodyCost(toughArray.concat(moveArray, shuffle(body), healArray)) > ROOM_ENERGY_CAPACITY[room.level]) {
+        body = _.rest(body)
+    }
+    if (role === 'SKAttacker' || role === 'powerAttacker' || role === 'claimer') generatedBody = toughArray.concat(moveArray, shuffle(body), healArray);
+    else generatedBody = toughArray.concat(shuffle(body), moveArray, healArray);
+    bodyCache[cacheKey] = generatedBody;
 };
+
+function bodyCost(body) {
+    return body.reduce(function (cost, part) {
+        return cost + BODYPART_COST[part];
+    }, 0);
+}
