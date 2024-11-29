@@ -13,7 +13,7 @@ module.exports.role = function (creep) {
     if (creep.memory.haulerMode) {
         if (!creep.store[RESOURCE_ENERGY] && creep.memory.haulerMode + 50 < Game.time) return delete creep.memory.haulerMode;
         const haulerRole = require('role.hauler');
-        return haulerRole.role(creep);
+        return new haulerRole(creep);
     }
     // Deliver
     if (_.sum(creep.store)) return deliverResource(creep);

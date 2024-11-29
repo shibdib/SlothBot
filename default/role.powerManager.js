@@ -8,7 +8,7 @@ module.exports.role = function (creep) {
     if (creep.memory.haulerMode) {
         if (!creep.store[RESOURCE_ENERGY] && creep.memory.haulerMode + 50 < Game.time) return delete creep.memory.haulerMode;
         const haulerRole = require('role.hauler');
-        return haulerRole.role(creep);
+        return new haulerRole(creep);
     }
     creep.say(ICONS.power, true);
     let powerSpawn = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0];
