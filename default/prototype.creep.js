@@ -412,8 +412,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
                     }
                 }
             } else {
-                let container
-                container = _.max(_.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && (room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= room.controller.level)
+                let container = _.max(_.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && (room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= room.controller.level)
                     && s.store[RESOURCE_ENERGY] > room.myCreeps.filter((c) => c.memory.energyDestination === s.id && c.id !== this.id).length * (this.store.getFreeCapacity() * 0.8)), function (c) {
                     return _.sum(c.store);
                 });

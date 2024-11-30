@@ -88,9 +88,9 @@ class RoleDrone {
             this.creep.say('Energy!', true);
             this.creep.withdrawResource();
         } else if (!spawn || !this.creep.room.storage) {
-            this.creep.memory.harvest = true;
             let source = Game.getObjectById(this.creep.memory.source) || this.creep.pos.getClosestSource();
             if (source && (!INTEL[this.creep.room.name].owner || INTEL[this.creep.room.name].owner === MY_USERNAME) && (!INTEL[this.creep.room.name].reservation || INTEL[this.creep.room.name].reservation === MY_USERNAME)) {
+                this.creep.memory.harvest = true;
                 // Set a statioanry harvester on new spawns
                 if (!spawn && !_.find(this.creep.room.myCreeps, (c) => c.id !== this.creep.id && c.memory.stationaryHarvester) && _.find(this.creep.room.myCreeps, (c) => c.id !== this.creep.id && c.memory.role === 'drone')) this.creep.memory.stationaryHarvester = true;
                 this.creep.say('Harvest!', true);
