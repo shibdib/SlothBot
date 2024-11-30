@@ -10,7 +10,7 @@
 global.STATUS_COOLDOWN = 180; // Seconds between console status reports
 global.SIGN_CLEANER = true; // Clean room signs away with explorers
 global.AVOID_ALLIED_SECTORS = true; // Try not to claim rooms in allied sectors
-global.GENERATE_PIXELS = true; // Generate pixels when feasible (not in war)
+global.GENERATE_PIXELS = false; // Generate pixels when feasible (not in war)
 global.PIXEL_FARM = false; // Use this on spawn ins, bot will do nothing but farm pixels and keep the room from decaying
 global.PIXEL_BUFFER = 1000; // Sell any pixels above this amount
 global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
