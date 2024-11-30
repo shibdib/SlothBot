@@ -84,7 +84,7 @@ class RoleDrone {
         this.creep.memory.constructionSite = undefined;
         this.creep.memory.task = undefined;
         let spawn = _.find(this.creep.room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
-        if (!this.creep.memory.harvest && (this.creep.memory.energyDestination || this.creep.locateEnergy())) {
+        if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
             this.creep.say('Energy!', true);
             this.creep.withdrawResource();
         } else if (!spawn || !this.creep.room.storage) {

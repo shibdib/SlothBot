@@ -396,8 +396,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
             }
         }
         // Container
-        if (this.memory.role === 'shuttle' || this.memory.role === 'remoteHauler' || !room.controller || !room.controller.owner ||
-            ((!room.storage || !room.storage.store[RESOURCE_ENERGY]) && (!room.terminal || room.terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER))) {
+        if (this.memory.role === 'shuttle' || this.memory.role === 'remoteHauler' || !room.controller || !room.controller.owner || !room.storage) {
             // Handle non haulers pre storage, prevent them from hogging all the energy
             if (!room.storage && room.controller && room.controller.owner && !['shuttle', 'remoteHauler', 'hauler'].includes(this.memory.role)) {
                 if (!room.memory.droneContainer) {
