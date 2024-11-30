@@ -399,7 +399,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         if (this.memory.role === 'shuttle' || this.memory.role === 'remoteHauler' || !room.controller || !room.controller.owner ||
             ((!room.storage || !room.storage.store[RESOURCE_ENERGY]) && (!room.terminal || room.terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER))) {
             // Handle non haulers pre storage, prevent them from hogging all the energy
-            if (!room.storage && !['shuttle', 'remoteHauler', 'hauler'].includes(this.memory.role)) {
+            if (!room.storage && room.controller && room.controller.owner && !['shuttle', 'remoteHauler', 'hauler'].includes(this.memory.role)) {
                 if (!room.memory.droneContainer) {
                     let droneContainer = _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && room.memory.controllerContainer !== s.id);
                     if (droneContainer.length > 1) room.memory.droneContainer = droneContainer.id;
