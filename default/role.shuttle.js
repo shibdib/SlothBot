@@ -9,6 +9,7 @@ class RoleShuttle {
         this.creep = creep;
         this.housekeeping();
         if (_.sum(creep.store)) {
+            if (this.creep.memory.overlord !== this.creep.room.name) return this.creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 8})
             this.hauling();
         } else {
             this.pickup();
