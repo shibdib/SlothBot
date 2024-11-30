@@ -30,12 +30,7 @@ module.exports.role = function (creep) {
         if (creep.room.name !== creep.memory.destination) {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22});
         } else {
-            // Handle combat
-            if (creep.canIWin(50)) {
-                if (!creep.handleMilitaryCreep() && !creep.scorchedEarth()) creep.findDefensivePosition();
-            } else {
-                creep.shibKite();
-            }
+            if (!creep.handleMilitaryCreep() && !creep.scorchedEarth() && !creep.healCreeps()) creep.findDefensivePosition();
         }
     }
 };
