@@ -22,18 +22,26 @@ class RoleDrone {
 
     houseKeeping() {
         if (this.creep.tryToBoost(['build'])) return true;
+        // Handle remote drones overlord change
+        if (this.creep.memory.destination && this.creep.memory.overlord !== this.creep.memory.destination) this.creep.memory.overlord = this.creep.memory.destination;
+        // If full clear memory
+        if (this.creep.isFull && !this.creep.memory.stationaryHarvester) {
+            this.creep.memory.source = undefined;
+            this.creep.memory.harvest = undefined;
+            this.creep.memory.remoteMining = undefined;
+            this.creep.memory.source = undefined;
+            this.creep.memory.energyDestination = undefined;
+            this.creep.memory.working = true;
+        } else if (!this.creep.store[RESOURCE_ENERGY]) this.creep.memory.working = undefined;
         // If damaged move to safety
         if (!this.creep.getActiveBodyparts(WORK) || !this.creep.getActiveBodyparts(CARRY)) return this.creep.goToHub();
-        // Trailer at low level
-        if (this.creep.room.controller && this.creep.room.controller.level < 3 && this.creep.towTruck()) return true;
-        // Handle remote drones
-        if (!this.creep.memory.destination) this.creep.memory.destination = this.creep.memory.overlord;
-        if (this.creep.memory.destination && this.creep.room.name !== this.creep.memory.destination && !this.creep.memory.remoteMining) {
+        // Handle returning to overlord
+        if (this.creep.room.name !== this.creep.memory.overlord && !this.creep.memory.remoteMining) {
+            this.creep.memory.energyDestination = undefined;
             if (!this.creep.getActiveBodyparts(WORK)) return this.creep.suicide();
-            this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 24});
+            this.creep.goToHub();
             return true;
         }
-        if (!this.creep.store[RESOURCE_ENERGY]) this.creep.memory.working = undefined;
         // Handle case of carry something besides energy
         if (_.sum(this.creep.store) > this.creep.store[RESOURCE_ENERGY]) {
             for (let resourceType in this.creep.store) {
@@ -46,13 +54,8 @@ class RoleDrone {
                 }
             }
         }
-        if (this.creep.isFull && !this.creep.memory.stationaryHarvester) {
-            this.creep.memory.source = undefined;
-            this.creep.memory.harvest = undefined;
-            this.creep.memory.remoteMining = undefined;
-            this.creep.memory.source = undefined;
-            this.creep.memory.working = true;
-        }
+        // Trailer at low level
+        if (this.creep.room.controller && this.creep.room.controller.level < 3 && this.creep.towTruck()) return true;
     }
 
     jobManager() {
@@ -84,7 +87,7 @@ class RoleDrone {
         if (!this.creep.memory.harvest && (this.creep.memory.energyDestination || this.creep.locateEnergy())) {
             this.creep.say('Energy!', true);
             this.creep.withdrawResource();
-        } else if (!spawn || !this.creep.room.storage || (!INTEL[this.creep.room.name] || INTEL[this.creep.room.name].user !== MY_USERNAME)) {
+        } else if (!spawn || !this.creep.room.storage) {
             this.creep.memory.harvest = true;
             let source = Game.getObjectById(this.creep.memory.source) || this.creep.pos.getClosestSource();
             if (source && (!INTEL[this.creep.room.name].owner || INTEL[this.creep.room.name].owner === MY_USERNAME) && (!INTEL[this.creep.room.name].reservation || INTEL[this.creep.room.name].reservation === MY_USERNAME)) {
@@ -106,7 +109,7 @@ class RoleDrone {
             } else {
                 if (this.creep.memory.remoteMining || findRemoteSource(this.creep)) {
                     this.creep.say('Remote!', true);
-                    if (this.creep.memory.remoteMining !== this.creep.room.name) return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.remoteMining), {range: 15}); else this.creep.memory.remoteMining = undefined;
+                    if (this.creep.memory.remoteMining !== this.creep.room.name) return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.remoteMining), {range: 15}); else this.creep.idleFor(5);
                 } else {
                     delete this.creep.memory.harvest;
                     this.creep.idleFor(5);
@@ -272,18 +275,5 @@ function findRemoteSource(creep) {
     if (adjacent.length) {
         creep.memory.remoteMining = _.sample(adjacent);
         return true;
-    } else {
-        let possibles = [];
-        _.filter(Game.map.describeExits(creep.pos.roomName)).forEach(function (r) {
-            _.filter(Game.map.describeExits(r)).forEach(function (s) {
-                if (!INTEL[s] || ((!INTEL[s].owner || INTEL[s].owner === MY_USERNAME) &&
-                    (!INTEL[s].reservation || INTEL[s].reservation === MY_USERNAME) && !INTEL[s].sk && INTEL[s].sources)) return possibles.push(s);
-            })
-        });
-        if (possibles.length) {
-            creep.memory.remoteMining = _.sample(possibles);
-            creep.memory.destination = undefined;
-            return true;
-        }
     }
 }
