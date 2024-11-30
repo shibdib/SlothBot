@@ -13,6 +13,7 @@ class RoleDrone {
         this.creep = creep;
         if (this.houseKeeping()) return;
         if (!creep.memory.working) {
+            if (creep.isFull) return creep.memory.working = true;
             this.energyCollection();
         } else {
             this.jobManager();
@@ -20,7 +21,7 @@ class RoleDrone {
     }
 
     houseKeeping() {
-        if (this.creep.tryToBoost(['build'])) return;
+        if (this.creep.tryToBoost(['build'])) return true;
         // If damaged move to safety
         if (!this.creep.getActiveBodyparts(WORK) || !this.creep.getActiveBodyparts(CARRY)) return this.creep.goToHub();
         // Trailer at low level
@@ -119,7 +120,7 @@ class RoleDrone {
     hauling() {
         if (this.creep.memory.task && this.creep.memory.task !== 'haul') return;
         if (!this.creep.room.controller || !this.creep.room.controller.owner || this.creep.room.controller.owner.username !== MY_USERNAME) return false;
-        let haulers = _.filter(this.creep.room.mythis.creeps, (c) => c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler' || c.memory.role === 'shuttle')).length < 1;
+        let haulers = _.filter(this.creep.room.myCreeps, (c) => c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler' || c.memory.role === 'shuttle')).length < 1;
         let needyTower = _.filter(this.creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.1).length > 0;
         if (this.creep.memory.task === 'haul' || (this.creep.room.level <= 4 && this.creep.isFull && (haulers || needyTower) && !this.creep.memory.task && (this.creep.room.energyAvailable < this.creep.room.energyCapacityAvailable || needyTower))) {
             this.creep.memory.task = 'haul';
@@ -151,7 +152,7 @@ class RoleDrone {
     upgrading(force) {
         if (this.creep.memory.task && this.creep.memory.task !== 'upgrade') return;
         if (!force) {
-            let controllerCheck = !this.creep.room.controller || !this.creep.room.controller.owner || this.creep.room.controller.owner.username !== MY_USERNAME || this.creep.room.controller.upgradeBlocked || this.creep.room.controller.level === 8 || !this.creep.room.controller.ticksToDowngrade || this.creep.room.controller.ticksToDowngrade > this.creep_LIFE_TIME * 2;
+            let controllerCheck = !this.creep.room.controller || !this.creep.room.controller.owner || this.creep.room.controller.owner.username !== MY_USERNAME || this.creep.room.controller.upgradeBlocked || this.creep.room.controller.level === 8 || !this.creep.room.controller.ticksToDowngrade || this.creep.room.controller.ticksToDowngrade > 3000;
             if (controllerCheck) {
                 this.creep.memory.task = undefined;
                 return false;
@@ -182,8 +183,6 @@ class RoleDrone {
 
     walling() {
         if (!this.creep.memory.currentTarget || !Game.getObjectById(this.creep.memory.currentTarget)) {
-            let activeWallers = _.filter(this.creep.room.myCreeps, (c) => c.memory.task === 'waller');
-            if (!INTEL[this.creep.room.name].threatLevel && activeWallers.length > 0) return false;
             let nukeSite, nukeRampart;
             let barrierStructures = _.filter(this.creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL));
             if (this.creep.room.memory.nuke) {
