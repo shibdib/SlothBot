@@ -282,6 +282,7 @@ function findRemoteSource(creep) {
         });
         if (possibles.length) {
             creep.memory.remoteMining = _.sample(possibles);
+            creep.memory.remoteMining = undefined;
             return true;
         }
     }
