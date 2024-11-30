@@ -8,7 +8,7 @@ class RoleHauler {
     constructor(creep) {
         this.creep = creep;
 
-        this.housekeeping();
+        if (this.housekeeping()) return;
 
         if (_.sum(creep.store)) {
             this.deliverResource();
