@@ -175,7 +175,7 @@ module.exports.essentialCreepQueue = function (room) {
     // Upgrader
     // Determine amount
     let number = 1;
-    let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || INTEL[room.name].threatLevel >= 3;
+    let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9;
     if (room.level < 7 && room.level === room.controller.level && !reboot) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         if (container) {
@@ -364,6 +364,12 @@ module.exports.remoteCreepQueue = function (room) {
                         if (!getCreepCount(undefined, 'SKMineral', remoteName) && (!INTEL[remoteName].mineralCooldown || INTEL[remoteName].mineralCooldown < Game.time)) {
                             queueCreep(room, PRIORITIES.remoteHarvester, {role: 'SKMineral', destination: remoteName})
                         }
+                        // Remote Road Builder
+                        if (getCreepCount(undefined, 'roadBuilder', room.name) < 2) {
+                            queueCreep(room, PRIORITIES.roadBuilder, {
+                                role: 'roadBuilder', misc: JSON.parse(remoteRoomTargets[room.name])
+                            })
+                        }
                     }
                 } // Regular remotes
                 else if (!INTEL[remoteName].sk) {
@@ -377,6 +383,12 @@ module.exports.remoteCreepQueue = function (room) {
                         if (getCreepCount(undefined, 'reserver', remoteName) < amount) {
                             queueCreep(room, PRIORITIES.reserver + getCreepCount(undefined, 'reserver', remoteName), {
                                 role: 'reserver', destination: remoteName
+                            })
+                        }
+                        // Remote Road Builder
+                        if (getCreepCount(undefined, 'roadBuilder', room.name) < 2) {
+                            queueCreep(room, PRIORITIES.roadBuilder, {
+                                role: 'roadBuilder', misc: JSON.parse(remoteRoomTargets[room.name])
                             })
                         }
                     }
@@ -408,12 +420,6 @@ module.exports.remoteCreepQueue = function (room) {
                         }
                     }
                 }
-            }
-            // Remote Road Builder
-            if (getCreepCount(undefined, 'roadBuilder', room.name) < 2) {
-                queueCreep(room, PRIORITIES.roadBuilder, {
-                    role: 'roadBuilder', misc: JSON.parse(remoteRoomTargets[room.name])
-                })
             }
         }
     }
