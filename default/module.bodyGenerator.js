@@ -23,7 +23,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
     let work, claim, carry, move, tough, attack, rangedAttack, heal, energyScaling, halfMove;
     let energyAmount = room.energyCapacityAvailable;
     let importantBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART).length > 0;
-    if (creepInfo.other.reboot || room.myCreeps.length <= 3 || !room.storage) {
+    if (creepInfo.other.reboot || room.myCreeps.length <= 2 || !room.storage) {
         energyAmount = room.energyAvailable;
         if (energyAmount < 300) energyAmount = 300;
     }
@@ -236,7 +236,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
     } else for (let i = 0; i < _.ceil((((body.length + healArray.length + toughArray.length) * 0.5) * energyMulti) + 0.2); i++) moveArray.push(MOVE)
     // Sanity check for cost
     while (bodyCost(toughArray.concat(moveArray, shuffle(body), healArray)) > energyAmount) {
-        body = _.rest(body)
+        body = _.uniq(body)
     }
     if (role === 'SKAttacker' || role === 'powerAttacker' || role === 'claimer') generatedBody = toughArray.concat(moveArray, shuffle(body), healArray);
     else generatedBody = toughArray.concat(shuffle(body), moveArray, healArray);
