@@ -64,7 +64,7 @@ class RoleDrone {
         // If praiser needed praise
         if (this.upgrading()) return;
         // If builder needed build
-        if ((this.creep.memory.constructionSite || this.creep.room.constructionSites.length) && this.building()) return;
+        if (this.building()) return;
         // If haulers needed haul
         if (this.hauling()) return;
         // If walls to repair
@@ -155,7 +155,8 @@ class RoleDrone {
     upgrading(force) {
         if (this.creep.memory.task && this.creep.memory.task !== 'upgrade') return;
         if (!force) {
-            let controllerCheck = !this.creep.room.controller || !this.creep.room.controller.owner || this.creep.room.controller.owner.username !== MY_USERNAME || this.creep.room.controller.upgradeBlocked || this.creep.room.controller.level === 8 || !this.creep.room.controller.ticksToDowngrade || this.creep.room.controller.ticksToDowngrade > 3000;
+            let controllerCheck = !this.creep.room.controller || !this.creep.room.controller.owner || this.creep.room.controller.owner.username !== MY_USERNAME
+                || this.creep.room.controller.upgradeBlocked || this.creep.room.controller.level === 8 || !this.creep.room.controller.ticksToDowngrade || this.creep.room.controller.ticksToDowngrade > 3000;
             if (controllerCheck) {
                 this.creep.memory.task = undefined;
                 return false;
