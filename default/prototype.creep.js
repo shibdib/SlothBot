@@ -265,7 +265,6 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
                     this.shibMove(energyItem);
                     break;
                 default:
-                    this.memory.withdrawID = energyItem.id;
                     this.memory.energyDestination = undefined;
                     this.memory._shibMove = undefined;
                     return true;
@@ -273,7 +272,6 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
         } else if (energyItem.amount) {
             switch (this.pickup(energyItem)) {
                 case OK:
-                    this.memory.withdrawID = energyItem.id;
                     this.memory.energyDestination = undefined;
                     this.memory._shibMove = undefined;
                     return true;
@@ -390,8 +388,8 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         }
         //Dropped
         if (room.droppedEnergy.length) {
-            let dropped = _.find(room.droppedEnergy, (r) => r.amount >= (_.filter(room.creeps, (c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * (this.store.getFreeCapacity() * 0.5));
-            if (dropped) {
+            let dropped = _.max(room.droppedEnergy, (r) => r.amount);
+            if (dropped && dropped.id && !room.myCreeps.filter((c) => c.memory.energyDestination === dropped.id).length) {
                 this.memory.energyDestination = dropped.id;
                 this.memory.findEnergyCountdown = undefined;
                 return true;
@@ -399,22 +397,40 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         }
         // Container
         if (this.memory.role === 'shuttle' || this.memory.role === 'remoteHauler' || ((!room.storage || !room.storage.store[RESOURCE_ENERGY]) && (!room.terminal || room.terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER))) {
-            let container
-            container = _.max(_.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && (room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= room.controller.level)
-                && s.store[RESOURCE_ENERGY] > room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length * (this.store.getFreeCapacity() * 0.8)), function (c) {
-                return _.sum(c.store);
-            });
-            if (container && container.id) {
-                this.memory.energyDestination = container.id;
-                this.memory.findEnergyCountdown = undefined;
-                return true;
+            // Handle non haulers pre storage, prevent them from hogging all the energy
+            if (!room.storage && !['shuttle', 'remoteHauler', 'hauler'].includes(this.memory.role)) {
+                if (!room.memory.droneContainer) {
+                    let droneContainer = _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && room.memory.controllerContainer !== s.id);
+                    if (droneContainer.length > 1) room.memory.droneContainer = droneContainer.id;
+                } else {
+                    let droneContainer = Game.getObjectById(room.memory.droneContainer)
+                    if (droneContainer.energy) {
+                        this.memory.energyDestination = droneContainer.id;
+                        this.memory.findEnergyCountdown = undefined;
+                        return true;
+                    } else {
+                        if (!this.memory.findEnergyCountdown) this.memory.findEnergyCountdown = 1; else this.memory.findEnergyCountdown += 1;
+                        return false;
+                    }
+                }
+            } else {
+                let container
+                container = _.max(_.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && (room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= room.controller.level)
+                    && s.store[RESOURCE_ENERGY] > room.myCreeps.filter((c) => c.memory.energyDestination === s.id && c.id !== this.id).length * (this.store.getFreeCapacity() * 0.8)), function (c) {
+                    return _.sum(c.store);
+                });
+                if (container && container.id) {
+                    this.memory.energyDestination = container.id;
+                    this.memory.findEnergyCountdown = undefined;
+                    return true;
+                }
             }
         }
         // Factory from batteries
         if (room.factory && (!room.factory.memory.producing || room.factory.memory.producing === RESOURCE_ENERGY) && room.factory.store[RESOURCE_ENERGY]) {
             this.memory.energyDestination = room.factory.id;
         }
-        if (!this.memory.findEnergyCountdown && this.memory.role === 'hauler') this.memory.findEnergyCountdown = 1; else this.memory.findEnergyCountdown += 1;
+        if (!this.memory.findEnergyCountdown) this.memory.findEnergyCountdown = 1; else this.memory.findEnergyCountdown += 1;
         return false;
     }
 };
