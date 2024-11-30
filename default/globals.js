@@ -15,7 +15,7 @@ let globals = function () {
             activeConfig = 'config.' + Game.shard.name;
             console.log('------------------------------------------------------------------');
             console.log('Loaded config for ' + Game.shard.name);
-            if (_.includes(COMBAT_SERVER, Game.shard.name)) {
+            if (COMBAT_SERVER) {
                 console.log('Combat Server Mode Active - All Players Considered Hostile');
                 console.log('Manual Allies (Overrides the above) - ' + MANUAL_FRIENDS.toString());
             } else {
@@ -33,7 +33,7 @@ let globals = function () {
             console.log('------------------------------------------------------------------');
             console.log('No custom config found loading default config.');
             console.log("Create a custom config using the naming scheme 'config.shardName.js'");
-            if (_.includes(COMBAT_SERVER, Game.shard.name)) {
+            if (COMBAT_SERVER) {
                 console.log('Combat Server Mode Active - All Players Considered Hostile');
                 console.log('Manual Allies (Overrides the above) - ' + MANUAL_FRIENDS.toString());
             } else {

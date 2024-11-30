@@ -17,7 +17,7 @@ global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
 global.TOWER_FIRST = false; // Set to true to have towers built before spawns
 
 // Diplomacy
-global.COMBAT_SERVER = []; // Insert the Game.shard.name of servers you'd like to declare everyone hostile
+global.COMBAT_SERVER = false; // If you'd like to declare everyone hostile
 global.HOSTILES = []; // Manually set players as hostile
 global.MANUAL_FRIENDS = []; // Manually set players as friends (overrides COMBAT_SERVER)
 global.RAMPART_ACCESS = false // Allow friends and allies access through ramparts. Having this disabled does save CPU.

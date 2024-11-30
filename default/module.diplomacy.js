@@ -62,7 +62,7 @@ function threatManager() {
     Memory._threats = _.union(Memory._threats, HOSTILES);
     global.THREATS = Memory._threats;
     // Check shard name for a combat server
-    if (COMBAT_SERVER.includes(Game.shard.name)) {
+    if (COMBAT_SERVER) {
         Memory._enemies = _.filter(Object.keys(Memory._userList), (p) => p !== '' && p !== 'undefined' && !_.includes(FRIENDLIES, p));
         Memory._threats = Memory._enemies;
     }
