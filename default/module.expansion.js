@@ -85,7 +85,7 @@ module.exports.claimNewRoom = function () {
                     }
                 } else baseScore -= 1000;
                 // Prioritize your sector
-                if (sameSectorCheck(name, findClosestOwnedRoom(name))) baseScore += 7000;
+                if (myRoomInSectorCheck(name)) baseScore += 7000;
                 // If negative skip it
                 //if (baseScore < 0) continue;
                 worthyRooms[key]["claimValue"] = baseScore;

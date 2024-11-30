@@ -72,6 +72,24 @@ let helpers = function () {
     };
 
     /**
+     * Check if we own any rooms in this rooms sector
+     * @param room Room to compare against
+     * @returns {boolean}
+     */
+    global.myRoomInSectorCheck = function (room) {
+        let [EW, NS] = room.match(/\d+/g);
+        let roomAEWInt = EW.toString()[0];
+        let roomANSInt = NS.toString()[0];
+        for (let myRoom of MY_ROOMS) {
+            let [EW2, NS2] = myRoom.match(/\d+/g);
+            let roomBEWInt = EW2.toString()[0];
+            let roomBNSInt = NS2.toString()[0];
+            if (roomAEWInt === roomBEWInt && roomANSInt === roomBNSInt) return true;
+        }
+        return false;
+    };
+
+    /**
      * Get the total amount of a resource you have
      * @param resource
      * @returns {number}

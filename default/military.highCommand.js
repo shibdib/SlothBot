@@ -71,7 +71,7 @@ function operationRequests() {
     }
     // Kill strongholds
     // TODO: Add stronghold attack
-    let stronghold = _.sortBy(_.filter(INTEL, (r) => r.sk && r.towers && r.towers < 3 && (sameSectorCheck(findClosestOwnedRoom(r.name), r.name) || findClosestOwnedRoom(r.name, true) <= 3)), function (t) {
+    let stronghold = _.sortBy(_.filter(INTEL, (r) => r.sk && r.towers && r.towers < 3 && (myRoomInSectorCheck(r.name) || findClosestOwnedRoom(r.name, true) <= 3)), function (t) {
         return findClosestOwnedRoom(t.name, true)
     })[0];
     // Direct Room Attacks
@@ -79,7 +79,7 @@ function operationRequests() {
         let initialFilter = _.filter(INTEL, (r) => r.user && userStrength(r.user) <= MAX_LEVEL && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] &&
             !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !checkForNap(r.user) && (!r.safemode || r.safemode - 500 < Game.time));
         // New Spawn Denial/No towers
-        let target = _.min(_.filter(initialFilter, (r) => r.owner && !r.towers && (NEW_SPAWN_DENIAL || (HOLD_SECTOR && sameSectorCheck(findClosestOwnedRoom(r.name), r.name)))), function (t) {
+        let target = _.min(_.filter(initialFilter, (r) => r.owner && !r.towers && (NEW_SPAWN_DENIAL || (HOLD_SECTOR && myRoomInSectorCheck(r.name)))), function (t) {
             return findClosestOwnedRoom(t.name, true)
         });
         if (target.name) {
@@ -99,7 +99,7 @@ function operationRequests() {
             return findClosestOwnedRoom(t.name, true)
         });
         if (activeDenial.name) {
-            let target = _.min(_.filter(initialFilter, (r) => r.owner && (ATTACK_LOCALS || _.includes(Memory._threats, r.user) || (HOLD_SECTOR && sameSectorCheck(findClosestOwnedRoom(r.name), r.name)))), function (t) {
+            let target = _.min(_.filter(initialFilter, (r) => r.owner && (ATTACK_LOCALS || _.includes(Memory._threats, r.user) || (HOLD_SECTOR && myRoomInSectorCheck(r.name)))), function (t) {
                 return findClosestOwnedRoom(t.name, true)
             });
             if (target) {
@@ -158,7 +158,7 @@ function auxiliaryOperations() {
             log.a('Mining operation planned for ' + roomLink(commodityRoom.name) + ' suspected commodity deposit location, Nearest Room - ' + findClosestOwnedRoom(commodityRoom.name, true) + ' rooms away', 'HIGH COMMAND: ');
         }
         // Mineral mine center rooms
-        let mineralRoom = _.find(initialFilter, (r) => !r.sk && r.sources >= 3 && r.mineralAmount && !MY_MINERALS.includes(r.mineral) && sameSectorCheck(findClosestOwnedRoom(r.name), r.name));
+        let mineralRoom = _.find(initialFilter, (r) => !r.sk && r.sources >= 3 && r.mineralAmount && !MY_MINERALS.includes(r.mineral) && myRoomInSectorCheck(r.name));
         if (mineralRoom) {
             let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;
@@ -423,7 +423,7 @@ function manageAttacks() {
                 continue;
             }
             // Remove no longer hostile rooms
-            if (Memory.targetRooms[key].type !== 'guard' && Memory.targetRooms[key].type !== 'hold' && INTEL[key] && INTEL[key].user && !Memory._threats.includes(INTEL[key].user) && (!HOLD_SECTOR || !sameSectorCheck(findClosestOwnedRoom(key), key))) {
+            if (Memory.targetRooms[key].type !== 'guard' && Memory.targetRooms[key].type !== 'hold' && INTEL[key] && INTEL[key].user && !Memory._threats.includes(INTEL[key].user) && (!HOLD_SECTOR || !myRoomInSectorCheck(key))) {
                 delete Memory.targetRooms[key];
                 log.a('Canceling operation in ' + roomLink(key) + ' as ' + INTEL[key].user + ' is no longer considered a threat.', 'HIGH COMMAND: ');
                 continue;
