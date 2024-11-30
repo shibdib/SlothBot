@@ -84,7 +84,7 @@ class RoleDrone {
         if (!this.creep.memory.harvest && (this.creep.memory.energyDestination || this.creep.locateEnergy())) {
             this.creep.say('Energy!', true);
             this.creep.withdrawResource();
-        } else if (!spawn || this.creep.room.level < 2 || (!INTEL[this.creep.room.name] || INTEL[this.creep.room.name].user !== MY_USERNAME)) {
+        } else if (!spawn || !this.creep.room.storage || (!INTEL[this.creep.room.name] || INTEL[this.creep.room.name].user !== MY_USERNAME)) {
             this.creep.memory.harvest = true;
             let source = Game.getObjectById(this.creep.memory.source) || this.creep.pos.getClosestSource();
             if (source && (!INTEL[this.creep.room.name].owner || INTEL[this.creep.room.name].owner === MY_USERNAME) && (!INTEL[this.creep.room.name].reservation || INTEL[this.creep.room.name].reservation === MY_USERNAME)) {
