@@ -408,9 +408,6 @@ Creep.prototype.locateEnergy = function (room = this.room) {
                         this.memory.energyDestination = droneContainer.id;
                         this.memory.findEnergyCountdown = undefined;
                         return true;
-                    } else {
-                        if (!this.memory.findEnergyCountdown) this.memory.findEnergyCountdown = 1; else this.memory.findEnergyCountdown += 1;
-                        return false;
                     }
                 }
             } else {
