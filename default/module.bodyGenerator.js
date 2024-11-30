@@ -15,9 +15,6 @@ let bodyCache = {};
 let generatedBody;
 
 module.exports.bodyGenerator = function (level, role, room = undefined, creepInfo = undefined) {
-    // Check for cached
-    let cacheKey = level + '.' + role + '.' + JSON.stringify(creepInfo)
-    if (bodyCache[cacheKey]) return bodyCache[cacheKey];
     // Generate body
     let body = [];
     let work, claim, carry, move, tough, attack, rangedAttack, heal, energyScaling, halfMove;
@@ -27,6 +24,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         energyAmount = room.energyAvailable;
         if (energyAmount < 300) energyAmount = 300;
     }
+    // Check for cached
+    let cacheKey = energyAmount + '.' + role + '.' + JSON.stringify(creepInfo)
+    if (bodyCache[cacheKey]) return bodyCache[cacheKey];
     switch (role) {
         // Explorer/Scout
         case 'explorer':
@@ -45,7 +45,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             break;
         case 'upgrader':
             energyScaling = true;
-            if (room.nukes.length || room.level < room.controller.level) {
+            if (room.level < room.controller.level) {
                 work = 1;
                 carry = 1;
                 break;
@@ -230,10 +230,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
     for (let i = 0; i < _.ceil(tough * energyMulti); i++) toughArray.push(TOUGH)
     // If move is not set, we find the amount from the rest of the parts
     if (move && move > 0) {
-        for (let i = 0; i < _.ceil((move * energyMulti) + 0.2); i++) moveArray.push(MOVE)
+        for (let i = 0; i < _.ceil((move * energyMulti)); i++) moveArray.push(MOVE)
     } else if (!halfMove) {
         for (let i = 0; i < body.length + healArray.length + toughArray.length; i++) moveArray.push(MOVE)
-    } else for (let i = 0; i < _.ceil((((body.length + healArray.length + toughArray.length) * 0.5) * energyMulti) + 0.2); i++) moveArray.push(MOVE)
+    } else for (let i = 0; i < _.ceil((((body.length + healArray.length + toughArray.length) * 0.5) * energyMulti)); i++) moveArray.push(MOVE)
     // Sanity check for cost
     while (bodyCost(toughArray.concat(moveArray, shuffle(body), healArray)) > energyAmount) {
         body = _.uniq(body)
