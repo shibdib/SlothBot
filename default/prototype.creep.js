@@ -460,7 +460,7 @@ Creep.prototype.haulerDelivery = function () {
     }
     //Tower
     if (INTEL[this.room.name].threatLevel) {
-        let tower = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY);
+        let tower = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.isActive && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY);
         if (tower.length) {
             this.memory.storageDestination = _.min(tower, function (t) {
                 return t.store[RESOURCE_ENERGY];
@@ -468,7 +468,7 @@ Creep.prototype.haulerDelivery = function () {
             return true;
         }
     } else {
-        let tower = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.5);
+        let tower = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.isActive && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.5);
         if (tower.length) {
             this.memory.storageDestination = _.min(tower, function (t) {
                 return t.store[RESOURCE_ENERGY];
@@ -481,7 +481,7 @@ Creep.prototype.haulerDelivery = function () {
     if (this.memory.energyStructures && this.memory.roomEnergyCap === this.room.energyCapacityAvailable) {
         energyStructures = JSON.parse(this.memory.energyStructures).map(id => Game.getObjectById(id))
     } else {
-        energyStructures = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION && (!ROOM_HARVESTER_EXTENSIONS[s.room.name] || !ROOM_HARVESTER_EXTENSIONS[s.room.name].includes(s.id)));
+        energyStructures = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION && s.isActive && (!ROOM_HARVESTER_EXTENSIONS[s.room.name] || !ROOM_HARVESTER_EXTENSIONS[s.room.name].includes(s.id)));
         this.memory.energyStructures = JSON.stringify(_.map(energyStructures, 'id'));
         this.memory.roomEnergyCap = this.room.energyCapacityAvailable;
     }
