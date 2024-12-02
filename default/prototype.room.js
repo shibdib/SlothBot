@@ -23,17 +23,6 @@ Object.defineProperty(Room.prototype, 'hub', {
     configurable: true
 });
 
-Object.defineProperty(Room.prototype, 'constructionSites', {
-    get: function () {
-        if (!this._constructionSites) {
-            this._constructionSites = _.filter(Game.constructionSites, (s) => s.pos.roomName === this.name);
-        }
-        return this._constructionSites;
-    },
-    enumerable: false,
-    configurable: true
-});
-
 Object.defineProperty(Room.prototype, 'user', {
     get: function () {
         if (!this._user) {
