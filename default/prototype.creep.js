@@ -577,14 +577,12 @@ Creep.prototype.constructionWork = function () {
     let mySites = _.filter(this.room.constructionSites, (s) => !s.owner || _.includes(FRIENDLIES, s.owner.username));
     let site = _.find(mySites, (s) => s.structureType === STRUCTURE_TOWER);
     if (site) {
-        site = _.max(site, 'progress');
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
         return true;
     }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
+    site = _.find(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000);
+    if (site) {
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         this.memory.targetHits = 12500;
