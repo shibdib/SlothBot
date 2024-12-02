@@ -32,7 +32,12 @@ class RoleDrone {
             this.creep.memory.source = undefined;
             this.creep.memory.energyDestination = undefined;
             this.creep.memory.working = true;
-        } else if (!this.creep.store[RESOURCE_ENERGY]) this.creep.memory.working = undefined;
+        } else if (!this.creep.store[RESOURCE_ENERGY]) {
+            this.creep.memory.working = undefined;
+            this.creep.memory.currentTarget = undefined;
+            this.creep.memory.task = undefined;
+            this.creep.memory.targetWallHits = undefined;
+        }
         // If damaged move to safety
         if (!this.creep.getActiveBodyparts(WORK) || !this.creep.getActiveBodyparts(CARRY)) return this.creep.goToHub();
         // Handle returning to overlord
