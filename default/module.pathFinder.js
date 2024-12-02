@@ -622,7 +622,7 @@ function addStructuresToMatrix(room, creep, matrix, type, options) {
             }
         } else if (structure instanceof StructureContainer) {
             matrix.set(structure.pos.x, structure.pos.y, 75);
-        } else if (structure instanceof StructureRoad) {
+        } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost);
         } else {
             matrix.set(structure.pos.x, structure.pos.y, 256);
