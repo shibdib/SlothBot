@@ -201,7 +201,7 @@ module.exports.miscCreepQueue = function (room) {
     //Drones
     // 1 at all times, more if we have a lot of construction and energy
     let number = 1 + room.energyState;
-    if (room.energyState && (!room.memory.controllerContainer || _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART))) number = 12 - room.controller.level;
+    if (!room.storage || _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART)) number = 12 - room.controller.level;
     if (getCreepCount(room, 'drone') < number) {
         queueCreep(room, PRIORITIES.drone + getCreepCount(room, 'drone'), {
             role: 'drone',
