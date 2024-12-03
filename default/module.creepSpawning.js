@@ -201,6 +201,7 @@ module.exports.miscCreepQueue = function (room) {
     //Drones
     // 1 at all times, more if we have a lot of construction and energy
     let number = 1 + room.energyState;
+    // TODO: Smarter scaling here somehow
     if (!room.storage || _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART)) number = 12 - room.controller.level;
     if (getCreepCount(room, 'drone') < number) {
         queueCreep(room, PRIORITIES.drone + getCreepCount(room, 'drone'), {
@@ -393,7 +394,7 @@ module.exports.remoteCreepQueue = function (room) {
                         }
                     }
                     // Obstructions
-                    if (INTEL[remoteName] && INTEL[remoteName].obstacles) {
+                    if (INTEL[remoteName] && INTEL[remoteName].obstacles && !INTEL[remoteName].status === 'normal') {
                         if (!getCreepCount(undefined, 'cleaner', remoteName)) {
                             queueCreep(room, PRIORITIES.remoteHarvester, {role: 'cleaner', destination: remoteName})
                         }
