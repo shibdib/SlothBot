@@ -8,7 +8,7 @@ const roomPlanner = require('module.roomPlanner');
 let hubCache = {};
 Object.defineProperty(Room.prototype, 'hub', {
     get: function () {
-        if (!this.memory.bunkerHub || !this.memory.bunkerHub.x || !this.memory.bunkerHub.y) return;
+        if (!this.memory.bunkerHub || !this.memory.bunkerHub.x || !this.memory.bunkerHub.y) return roomPlanner.findHub(this);
         if (!this._hub) {
             if (!hubCache[this.name]) {
                 hubCache[this.name] = JSON.stringify({x: this.memory.bunkerHub.x, y: this.memory.bunkerHub.y});

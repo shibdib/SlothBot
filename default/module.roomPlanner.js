@@ -419,6 +419,10 @@ module.exports.hubCheck = function (room) {
     return findHub(room, true)
 };
 
+module.exports.findHub = function (room) {
+    return findHub(room)
+};
+
 let storedPos, storedPossibles;
 function findHub(room, hubCheck = undefined) {
     if (room.controller.owner && room.controller.owner.username === MY_USERNAME && room.memory.bunkerHub && room.memory.bunkerHub.x && room.memory.bunkerHub.y) return buildFromLayout(room);
