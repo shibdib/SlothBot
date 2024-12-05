@@ -106,18 +106,30 @@ function hubLink(room) {
 function controllerBuilder(room) {
     let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
     if (!controllerContainer && room.controller.level >= 2) {
-        controllerContainer = room.controller.pos.findInRange(room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.pos.findClosestByRange(FIND_SOURCES)) && !s.pos.isNearTo(s.pos.findClosestByRange(FIND_MINERALS))})[0];
+        controllerContainer = room.controller.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.pos.findClosestByRange(FIND_SOURCES)) && !s.pos.isNearTo(s.pos.findClosestByRange(FIND_MINERALS))})[0];
         if (!controllerContainer) {
-            let controllerBuild = room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
+            let controllerBuild = room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 3, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
             if (!controllerBuild) {
-                for (let xOff = -1; xOff <= 1; xOff++) {
-                    for (let yOff = -1; yOff <= 1; yOff++) {
+                let possibles = [];
+                for (let xOff = -2; xOff <= 2; xOff++) {
+                    for (let yOff = -2; yOff <= 2; yOff++) {
                         if (xOff !== 0 || yOff !== 0) {
                             let pos = new RoomPosition(room.controller.pos.x + xOff, room.controller.pos.y + yOff, room.name);
-                            if (!pos.checkForImpassible()) return pos.createConstructionSite(STRUCTURE_CONTAINER);
+                            if (!pos.checkForImpassible() && !pos.checkIfOutOfBounds() && !pos.isNearTo(pos.findClosestByRange(FIND_SOURCES)) && !pos.isNearTo(pos.findClosestByRange(FIND_MINERALS))) possibles.push({
+                                x: pos.x,
+                                y: pos.y
+                            });
                         }
                     }
                 }
+                let closestPos;
+                let closestRange = 999;
+                for (let pos of possibles) {
+                    pos = new RoomPosition(pos.x, pos.y, room.name);
+                    const range = pos.getRangeTo(room.hub)
+                    if (range < closestRange) closestPos = pos;
+                }
+                closestPos.createConstructionSite(STRUCTURE_CONTAINER);
             }
         } else {
             room.memory.controllerContainer = controllerContainer.id;
