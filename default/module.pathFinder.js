@@ -691,12 +691,13 @@ function addStationaryCreepsToMatrix(room, matrix, creep = undefined, options) {
     if (!room) return matrix;
     let creeps = room.myCreeps;
     for (let creep of creeps) {
-        if (!creep.memory.other.stationary) continue;
-        matrix.set(creep.pos.x, creep.pos.y, 150);
-        if (options.showMatrix) new RoomVisual(room.name).text('IMP', creep.pos.x, creep.pos.y, {
-            color: 'white',
-            font: 0.4
-        });
+        if (creep.memory.other.stationary || creep.memory.other.noBump) {
+            matrix.set(creep.pos.x, creep.pos.y, 150);
+            if (options.showMatrix) new RoomVisual(room.name).text('IMP', creep.pos.x, creep.pos.y, {
+                color: 'white',
+                font: 0.4
+            });
+        }
     }
     return matrix;
 }
