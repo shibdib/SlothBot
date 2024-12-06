@@ -14,7 +14,7 @@ module.exports.role = function (creep) {
     // Check for tow
     if (creep.towTruck()) return true;
     // If Hauling
-    if (creep.isFull || creep.memory.hauling || creep.memory.storageDestination) {
+    if (_.sum(creep.store) || creep.memory.hauling || creep.memory.storageDestination) {
         if (!_.sum(creep.store)) {
             creep.memory.storageDestination = undefined;
             creep.memory.hauling = undefined;
@@ -65,7 +65,7 @@ module.exports.role = function (creep) {
             }
         }
         // If we're already outside the room check for energy
-        if (creep.locateEnergy()) return;
+        if (creep.room.name !== creep.memory.overlord && creep.locateEnergy()) return;
         creep.idleFor(25);
     }
 };
