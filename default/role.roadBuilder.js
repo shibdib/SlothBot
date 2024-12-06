@@ -33,18 +33,20 @@ module.exports.role = function role(creep) {
             creep.withdrawResource();
         } else if (!creep.room.level || creep.room.level < 3) {
             creep.memory.harvest = true;
-            let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
+            let source = Game.getObjectById(creep.memory.other.source) || creep.pos.getClosestSource();
             if (source) {
                 creep.say('Harvest!', true);
-                creep.memory.source = source.id;
+                creep.memory.other.source = source.id;
                 switch (creep.harvest(source)) {
                     case ERR_NOT_IN_RANGE:
+                        creep.memory.other.noBump = undefined;
                         creep.shibMove(source);
                         break;
                     case ERR_NOT_ENOUGH_RESOURCES:
-                        creep.memory.source = undefined;
+                        creep.memory.other.source = undefined;
                         break;
                     case OK:
+                        creep.memory.other.noBump = true;
                         break;
                 }
             } else {
