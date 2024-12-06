@@ -70,6 +70,8 @@ class Overlord {
                     Game.notify(e.stack);
                 } else errorCount[creep.name] += 1;
                 if (errorCount[creep.name] >= 50) {
+                    log.e(e);
+                    log.e(e.stack);
                     log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name) + ' and has been killed.');
                     creep.suicide();
                 }
