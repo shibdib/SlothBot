@@ -460,7 +460,7 @@ function creepBumping(creep, pathInfo, options) {
     if (!pathInfo.newPos) return creep.moveRandom();
     let nextPosition = positionAtDirection(creep.pos, parseInt(pathInfo.path[0], 10));
     if (nextPosition) {
-        let bumpCreep = _.find(nextPosition.lookFor(LOOK_CREEPS), (c) => c.my && !c.fatigue && !c.memory.other.stationary && !c.memory.willNeedTow && !c.memory.trailer && (!c.memory.other.noBump || Math.random() > 0.9));
+        let bumpCreep = _.find(nextPosition.lookFor(LOOK_CREEPS), (c) => c.my && !c.fatigue && (!c.memory.other.stationary || Math.random() > 0.95) && !c.memory.willNeedTow && !c.memory.trailer && (!c.memory.other.noBump || Math.random() > 0.9));
         if (bumpCreep) {
             if (!creep.className && !creep.memory.trailer) {
                 if (bumpCreep.hasActiveBodyparts(MOVE)) {
@@ -544,7 +544,7 @@ function addTerrainToMatrix(roomName, type) {
             let tile = terrain.get(x, y);
             if (tile === TERRAIN_MASK_WALL) matrix.set(x, y, 256);
             // Handle exits
-            else if (x === 0 || x === 49 || y === 0 || y === 49) matrix.set(x, y, 50);
+            else if (x === 0 || x === 49 || y === 0 || y === 49) matrix.set(x, y, 40);
             else if (tile === TERRAIN_MASK_SWAMP) matrix.set(x, y, swampCost);
             else matrix.set(x, y, plainCost);
         }
@@ -692,7 +692,7 @@ function addStationaryCreepsToMatrix(room, matrix, creep = undefined, options) {
     let creeps = room.myCreeps;
     for (let creep of creeps) {
         if (creep.memory.other.stationary || creep.memory.other.noBump) {
-            matrix.set(creep.pos.x, creep.pos.y, 150);
+            matrix.set(creep.pos.x, creep.pos.y, 200);
             if (options.showMatrix) new RoomVisual(room.name).text('IMP', creep.pos.x, creep.pos.y, {
                 color: 'white',
                 font: 0.4
