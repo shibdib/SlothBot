@@ -14,8 +14,7 @@ module.exports.role = function role(creep) {
     if (creep.skSafety()) return;
     // Set destination
     if (!creep.memory.destination) {
-        let harvesterLocation = _.sample(_.pluck(_.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester'), 'memory.destination'));
-        if (harvesterLocation) creep.memory.destination = harvesterLocation; else creep.memory.destination = _.sample(creep.memory.misc);
+        creep.memory.destination = _.sample(creep.memory.misc);
         creep.memory.energyDestination = undefined;
         creep.memory.source = undefined;
         return;
