@@ -678,7 +678,7 @@ Creep.prototype.constructionWork = function () {
  */
 Creep.prototype.builderFunction = function () {
     let construction = Game.getObjectById(this.memory.constructionSite);
-    if (!construction || (construction.pos.roomName !== this.pos.roomName)) {
+    if (!construction) {
         this.memory.constructionSite = undefined;
         this.memory.task = undefined;
         return;
@@ -805,7 +805,7 @@ Creep.prototype.towTruck = function () {
             if (this.pull(trailer) === ERR_NOT_IN_RANGE) {
                 if (!this.memory.lastRangeToTrailer) this.memory.lastRangeToTrailer = trailer.pos.getRangeTo(this);
                 else if (this.memory.lastRangeToTrailer < trailer.pos.getRangeTo(this)) this.memory._shibMove = undefined;
-                this.shibMove(trailer);
+                this.shibMove(trailer, {range: 1});
                 return true;
             } else {
                 trailer.move(this);
