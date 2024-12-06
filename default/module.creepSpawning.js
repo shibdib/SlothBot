@@ -341,7 +341,7 @@ module.exports.remoteCreepQueue = function (room) {
     }
     // Remotes with intel
     let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-    if (room.memory.remoteSources && totalHarvesters < REMOTE_TARGET_AMOUNT[room.level]) {
+    if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 2) {
         let remoteSources = JSON.parse(room.memory.remoteSources);
         remoteSources = _.sortBy(_.filter(remoteSources, (r) => r.score <= REMOTE_DISTANCE_MAX), (s) => s.score);
         for (const remoteSource of remoteSources) {
