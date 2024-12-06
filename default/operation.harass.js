@@ -9,7 +9,6 @@ Creep.prototype.harass = function () {
         this.memory.operation = 'borderPatrol';
         return;
     }
-    Game.map.visual.text(ICONS.nuke, this.pos, {color: '#FF0000', fontSize: 4});
     let sentence = ['MURDER', 'MODE', 'ACTIVATED', '--', 'DANGER', '--'];
     this.say(sentence[Game.time % sentence.length], true);
     if (this.room.name === this.memory.destination) {
@@ -21,7 +20,7 @@ Creep.prototype.harass = function () {
             let visited = this.memory.other.visited || [];
             visited.push(this.room.name);
             this.memory.other.visited = visited;
-            let target = _.min(_.filter(INTEL, (r) => !visited.includes(r.name) && !r.owner && Memory.harassTargets.includes(r.user)), function (r) {
+            let target = _.min(_.filter(INTEL, (r) => !visited.includes(r.name) && (!r.owner || r.level < 3) && Memory.harassTargets.includes(r.user)), function (r) {
                 return findClosestOwnedRoom(r.name, true);
             }).name;
             if (target) {
