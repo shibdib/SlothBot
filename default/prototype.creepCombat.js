@@ -626,6 +626,8 @@ Creep.prototype.fleeHome = function (force = false) {
  * @returns {*|boolean}
  */
 Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
+    // Safemode check
+    if (this.room.controller && this.room.controller.safeMode && this.room.controller.owner.username !== MY_USERNAME) return false;
     let armedHostiles = _.filter(this.room.hostileCreeps, (c) => (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(HEAL)) && this.pos.getRangeTo(c) <= range);
     let hostileTowers = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && !_.includes(FRIENDLIES, s.owner.username) && s.isActive() && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST);
     if ((!armedHostiles.length && !hostileTowers.length) || this.room.name === this.memory.overlord) return true;
