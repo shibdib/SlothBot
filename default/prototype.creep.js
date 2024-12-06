@@ -540,16 +540,10 @@ Creep.prototype.haulerDelivery = function () {
         if (this.memory.role === 'hauler') this.memory.cooldown = true;
         return true;
     }
-    //Storage below buffer
-    if (this.room.storage && this.room.storage.store.getFreeCapacity() && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < STORAGE_ENERGY_BUFFER) {
-        this.memory.storageDestination = this.room.storage.id;
-        if (this.memory.role === 'hauler') this.memory.cooldown = true;
-        return true;
-    }
     //Top off container if no controller link otherwise check for a hub link
     if (!this.room.memory.controllerLink || !this.room.memory.hubLink) {
         let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-        if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY)) {
+        if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > CONTAINER_CAPACITY * 0.5) {
             this.memory.storageDestination = controllerContainer.id;
             return true;
         }
@@ -559,6 +553,12 @@ Creep.prototype.haulerDelivery = function () {
             this.memory.storageDestination = hubLink.id;
             return true;
         }
+    }
+    //Storage below buffer
+    if (this.room.storage && this.room.storage.store.getFreeCapacity() && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < STORAGE_ENERGY_BUFFER) {
+        this.memory.storageDestination = this.room.storage.id;
+        if (this.memory.role === 'hauler') this.memory.cooldown = true;
+        return true;
     }
     //Storage fallback
     if (this.room.storage && this.room.storage.store.getFreeCapacity()) {
