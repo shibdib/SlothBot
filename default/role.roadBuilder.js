@@ -58,7 +58,7 @@ module.exports.role = function role(creep) {
         if (!creep.store[RESOURCE_ENERGY]) creep.memory.working = undefined;
         // Handle movement
         if (!creep.memory.constructionSite && creep.pos.roomName !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
-        creep.memory.source = undefined;
+        creep.memory.other.source = undefined;
         creep.memory.harvest = undefined;
         if (creep.room.name !== creep.memory.overlord && remoteRoads(creep) === false) {
             INTEL[creep.room.name].roadsBuilt = true;
