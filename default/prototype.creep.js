@@ -696,8 +696,10 @@ Creep.prototype.builderFunction = function () {
         construction.say(construction.hits + '/' + construction.hitsMax);
         switch (this.repair(construction)) {
             case OK:
+                this.memory.other.noBump = true;
                 return true;
             case ERR_NOT_IN_RANGE:
+                this.memory.other.noBump = undefined;
                 this.shibMove(construction, {range: 3});
                 return true;
             case ERR_RCL_NOT_ENOUGH:
@@ -710,6 +712,7 @@ Creep.prototype.builderFunction = function () {
                 this.memory.task = undefined;
                 break;
             case ERR_NOT_ENOUGH_ENERGY:
+                this.memory.other.noBump = undefined;
                 this.memory.working = undefined;
                 return true;
         }
@@ -718,8 +721,10 @@ Creep.prototype.builderFunction = function () {
         construction.say(construction.progress + '/' + construction.progressTotal);
         switch (this.build(construction)) {
             case OK:
+                this.memory.other.noBump = true;
                 return true;
             case ERR_NOT_IN_RANGE:
+                this.memory.other.noBump = undefined;
                 this.shibMove(construction, {range: 3});
                 return true;
             case ERR_RCL_NOT_ENOUGH:
@@ -732,6 +737,7 @@ Creep.prototype.builderFunction = function () {
                 this.memory.task = undefined;
                 break;
             case ERR_NOT_ENOUGH_ENERGY:
+                this.memory.other.noBump = undefined;
                 this.memory.working = undefined;
                 return true;
         }
