@@ -47,14 +47,24 @@ module.exports.role = function (creep) {
                             break;
                     }
                 }
-                // Handle repairing
-                let container = Game.getObjectById(creep.memory.containerID);
-                if (!container) return creep.memory.containerID = undefined;
-                creep.memory.energyAmount = _.sum(container.store);
-                creep.memory.energyId = container.id;
-                if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.25) creep.repair(container);
-                else if (_.sum(container.store) >= CONTAINER_CAPACITY * 0.75 && container.hits < container.hitsMax) creep.repair(container);
-                else if (_.sum(container.store) >= CONTAINER_CAPACITY) creep.idleFor(20);
+                // Handle container
+                let container = Game.getObjectById(creep.memory.containerID) || Game.getObjectById(creep.memory.containerSite);
+                if (container && container.hits) {
+                    if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
+                    if (_.sum(container.store) >= 1980) {
+                        if (creep.memory.assignedHauler && !Game.getObjectById(creep.memory.assignedHauler)) creep.memory.assignedHauler = undefined;
+                        creep.idleFor(20);
+                    } else if (_.sum(container.store) >= CONTAINER_CAPACITY * 0.75 && container.hits < container.hitsMax) creep.repair(container);
+                    else if (_.sum(container.store) >= CONTAINER_CAPACITY) creep.idleFor(20);
+                    creep.memory.energyAmount = _.sum(container.store);
+                    creep.memory.energyId = container.id;
+                } else {
+                    let dropped = creep.pos.lookFor(LOOK_RESOURCES)[0];
+                    if (dropped) {
+                        creep.memory.energyAmount = dropped.amount;
+                        creep.memory.energyId = dropped.id;
+                    }
+                }
                 break;
         }
     } else {
@@ -89,21 +99,6 @@ module.exports.role = function (creep) {
                     case OK:
                         if (!creep.memory.containerID || !Game.getObjectById(creep.memory.containerID)) {
                             creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.other.source), creep);
-                        }
-                        if (container && container.hits) {
-                            if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
-                            if (_.sum(container.store) >= 1980) {
-                                if (creep.memory.assignedHauler && !Game.getObjectById(creep.memory.assignedHauler)) creep.memory.assignedHauler = undefined;
-                                creep.idleFor(20);
-                            }
-                            creep.memory.energyAmount = _.sum(container.store);
-                            creep.memory.energyId = container.id;
-                        } else {
-                            let dropped = creep.pos.lookFor(LOOK_RESOURCES)[0];
-                            if (dropped) {
-                                creep.memory.energyAmount = dropped.amount;
-                                creep.memory.energyId = dropped.id;
-                            }
                         }
                         break;
                 }
