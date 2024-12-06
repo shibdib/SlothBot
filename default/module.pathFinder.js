@@ -505,7 +505,6 @@ function getMatrix(roomName, creep, options) {
     let room = Game.rooms[roomName];
     let matrix = getTerrainMatrix(roomName, options);
     if (!options.ignoreStructures) matrix = getStructureMatrix(roomName, creep, matrix, options);
-    //matrix = getExitsMatrix(roomName, matrix);
     if (room && !options.ignoreCreeps) matrix = getCreepMatrix(roomName, creep, matrix, options);
     if (room) matrix = getStationaryCreepsMatrix(roomName, creep, matrix, options);
     if (room && room.hostileCreeps.length && (creep.className || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.avoidEnemies)) matrix = getHostileMatrix(roomName, matrix, options);
@@ -553,30 +552,6 @@ function addTerrainToMatrix(roomName, type) {
     return matrix;
 }
 
-function getExitsMatrix(roomName, matrix) {
-    if (!exitsMatrixCache[roomName]) {
-        exitsMatrixCache[roomName] = addExitsToMatrix(roomName, matrix).serialize();
-    }
-    return PathFinder.CostMatrix.deserialize(exitsMatrixCache[roomName]);
-}
-
-function addExitsToMatrix(roomName, matrix) {
-    let terrain = Game.map.getRoomTerrain(roomName);
-    for (let y = 0; y < 50; y++) {
-        let tile1 = terrain.get(0, y);
-        if (tile1 === TERRAIN_MASK_WALL) matrix.set(0, y, 256); else matrix.set(0, y, 50);
-        let tile2 = terrain.get(49, y);
-        if (tile2 === TERRAIN_MASK_WALL) matrix.set(49, y, 256); else matrix.set(49, y, 50);
-    }
-    for (let x = 0; x < 50; x++) {
-        let tile1 = terrain.get(x, 0);
-        if (tile1 === TERRAIN_MASK_WALL) matrix.set(x, 0, 256); else matrix.set(x, 0, 50);
-        let tile2 = terrain.get(x, 49);
-        if (tile2 === TERRAIN_MASK_WALL) matrix.set(x, 49, 256); else matrix.set(x, 49, 50);
-    }
-    return matrix;
-}
-
 let structureMatrixTick = {};
 let structureCount = {};
 
@@ -610,10 +585,10 @@ function addStructuresToMatrix(room, creep, matrix, type, options) {
         default:
             roadCost = 1;
     }
-    let wallWrecker = (!creep.className && !creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)) || (INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner));
+    let noWallWrecker = (!creep.className && !creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)) || (INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner));
     for (let structure of room.structures) {
         if (structure instanceof StructureWall) {
-            if (wallWrecker) {
+            if (noWallWrecker) {
                 matrix.set(structure.pos.x, structure.pos.y, 256);
             } else {
                 matrix.set(structure.pos.x, structure.pos.y, 150);
@@ -630,7 +605,7 @@ function addStructuresToMatrix(room, creep, matrix, type, options) {
         } else if (structure instanceof StructureRampart && (FRIENDLIES.includes(structure.owner.username) && !structure.pos.checkForObstacleStructure())) {
             matrix.set(structure.pos.x, structure.pos.y, 250);
         } else if (structure instanceof StructureRampart && (!structure.my || !structure.isPublic || structure.pos.checkForObstacleStructure())) {
-            if (wallWrecker) {
+            if (noWallWrecker) {
                 matrix.set(structure.pos.x, structure.pos.y, 256);
             } else {
                 matrix.set(structure.pos.x, structure.pos.y, 150);
