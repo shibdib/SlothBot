@@ -198,11 +198,10 @@ module.exports.miscCreepQueue = function (room) {
     if (miscTick[room.name] + 12 > Game.time) return;
     miscTick[room.name] = Game.time;
     let level = getLevel(room);
-    //Drones
-    // 1 at all times, more if we have a lot of construction and energy
-    let number = 1 + room.energyState;
-    // TODO: Smarter scaling here somehow
-    if (!room.storage || _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART)) number = 12 - room.controller.level;
+    // Drones
+    // Scale based on spawn count
+    let number = 3 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level];
+    if (!room.storage || _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART)) number = 6 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level];
     if (getCreepCount(room, 'drone') < number) {
         queueCreep(room, PRIORITIES.drone + getCreepCount(room, 'drone'), {
             role: 'drone',
