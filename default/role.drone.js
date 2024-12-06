@@ -185,8 +185,8 @@ class RoleDrone {
         if ((this.creep.memory.task === 'build' || this.creep.memory.task === 'repair') || (this.creep.memory.constructionSite || this.creep.constructionWork())) {
             if (this.creep.builderFunction()) {
                 this.creep.memory.other.noBump = true;
-                return true;
             }
+            return true;
         }
     }
 
