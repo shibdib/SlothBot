@@ -50,6 +50,8 @@ module.exports.role = function (creep) {
                 // Handle repairing
                 let container = Game.getObjectById(creep.memory.containerID);
                 if (!container) return creep.memory.containerID = undefined;
+                creep.memory.energyAmount = _.sum(container.store);
+                creep.memory.energyId = container.id;
                 if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.25) creep.repair(container);
                 else if (_.sum(container.store) >= CONTAINER_CAPACITY * 0.75 && container.hits < container.hitsMax) creep.repair(container);
                 else if (_.sum(container.store) >= CONTAINER_CAPACITY) creep.idleFor(20);

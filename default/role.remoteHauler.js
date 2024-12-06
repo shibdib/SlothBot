@@ -58,7 +58,7 @@ module.exports.role = function (creep) {
         }
         // If we don't have a destination, find one
         if (!creep.memory.energyDestination) {
-            let harvester = _.find(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && c.memory.energyAmount >= creep.store.getCapacity() * 0.4
+            let harvester = _.find(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && c.memory.energyAmount >= CONTAINER_CAPACITY * 0.5
                 && !_.find(Game.creeps, (h) => h.my && h.memory.energyDestination === c.memory.energyId));
             if (harvester && harvester.id) {
                 return creep.memory.energyDestination = harvester.memory.energyId;
@@ -66,7 +66,7 @@ module.exports.role = function (creep) {
         }
         // If we're already outside the room check for energy
         if (creep.room.name !== creep.memory.overlord && creep.locateEnergy()) return;
-        creep.idleFor(25);
+        creep.idleFor(15);
     }
 };
 
