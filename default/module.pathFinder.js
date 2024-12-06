@@ -544,6 +544,8 @@ function addTerrainToMatrix(roomName, type) {
         for (let x = 0; x < 50; x++) {
             let tile = terrain.get(x, y);
             if (tile === TERRAIN_MASK_WALL) matrix.set(x, y, 256);
+            // Handle exits
+            else if (x === 0 || x === 49 || y === 0 || y === 49) matrix.set(x, y, 50);
             else if (tile === TERRAIN_MASK_SWAMP) matrix.set(x, y, swampCost);
             else matrix.set(x, y, plainCost);
         }
@@ -562,17 +564,15 @@ function addExitsToMatrix(roomName, matrix) {
     let terrain = Game.map.getRoomTerrain(roomName);
     for (let y = 0; y < 50; y++) {
         let tile1 = terrain.get(0, y);
-        if (tile1 === TERRAIN_MASK_WALL) matrix.set(0, y, 256); else matrix.set(0, y, 250);
+        if (tile1 === TERRAIN_MASK_WALL) matrix.set(0, y, 256); else matrix.set(0, y, 50);
         let tile2 = terrain.get(49, y);
-        if (tile2 === TERRAIN_MASK_WALL) matrix.set(49, y, 256); else matrix.set(49, y, 250);
+        if (tile2 === TERRAIN_MASK_WALL) matrix.set(49, y, 256); else matrix.set(49, y, 50);
     }
     for (let x = 0; x < 50; x++) {
-        matrix.set(x, 0, 250);
-        matrix.set(x, 49, 250);
         let tile1 = terrain.get(x, 0);
-        if (tile1 === TERRAIN_MASK_WALL) matrix.set(x, 0, 256); else matrix.set(x, 0, 250);
+        if (tile1 === TERRAIN_MASK_WALL) matrix.set(x, 0, 256); else matrix.set(x, 0, 50);
         let tile2 = terrain.get(x, 49);
-        if (tile2 === TERRAIN_MASK_WALL) matrix.set(x, 49, 256); else matrix.set(x, 49, 250);
+        if (tile2 === TERRAIN_MASK_WALL) matrix.set(x, 49, 256); else matrix.set(x, 49, 50);
     }
     return matrix;
 }
