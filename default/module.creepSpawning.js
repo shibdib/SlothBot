@@ -48,7 +48,7 @@ module.exports.processBuildQueue = function (room) {
         }
         // If we have a queue try to build it, otherwise opportunistically renew
         if (queuedBuild) {
-            determineEnergyOrder(room);
+            if (!determineEnergyOrder(room)) return;
             if (typeof queuedBuild === 'object') {
                 _.defaults(queuedBuild, {
                     role: undefined,
@@ -610,6 +610,11 @@ function queueCreep(room = undefined, priority, options = {}, global = false) {
  */
 function determineEnergyOrder(room) {
     storedLevel[room.name] = getLevel(room);
+    if (!room.hub) {
+        const planner = require('module.roomPlanner');
+        planner.findHub(room);
+        return false;
+    }
     if (!energyOrder[room.name] || orderStored[room.name] + 750 < Game.time) {
         let harvester = _.filter(room.myCreeps, (c) => c.memory.role === 'stationaryHarvester' && c.memory.onContainer);
         let energyStructures = _.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);

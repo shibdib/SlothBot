@@ -9,6 +9,8 @@ let RCL_PROGRESS = {};
 let roomLastTickProgress = {};
 
 module.exports.hud = function () {
+    // Avoid new spawn errors
+    if (!Memory.tickInfo) return;
     let myRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner.username === MY_USERNAME);
     for (let room of myRooms) {
         // No flag no hud
