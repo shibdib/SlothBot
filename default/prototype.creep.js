@@ -135,7 +135,7 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
     let source = _.find(this.room.sources, (s) => !_.find(Game.creeps, (c) => c.id !== this.id && c.memory.role === this.memory.role && c.memory.source === s.id));
     if (ignoreOthers) source = _.sample(this.room.sources);
     if (source) {
-        this.memory.source = source.id;
+        this.memory.other.source = source.id;
         return source.id;
     }
     return false;

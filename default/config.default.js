@@ -23,6 +23,11 @@ global.MANUAL_FRIENDS = []; // Manually set players as friends (overrides COMBAT
 global.RAMPART_ACCESS = false // Allow friends and allies access through ramparts. Having this disabled does save CPU.
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
 
+// Remote Mining
+global.REMOTE_MINING = true; // Whether we remote mine or not
+global.REMOTE_TARGET_AMOUNT = {1: 1, 2: 1, 3: 2, 4: 2, 5: 3, 6: 3, 7: 5, 8: 8}; // Targeted amount per level
+global.REMOTE_DISTANCE_MAX = 100; // Max distance score per source
+
 // Combat Settings
 global.OFFENSIVE_OPERATIONS = true; // Offensive Combat, disabling this will disable all offensive operations
 global.HOLD_SECTOR = true; // Attack rooms in sectors you have rooms

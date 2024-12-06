@@ -7,6 +7,7 @@ const STATE_STUCK = 2;
 const FLEE_RANGE = 4;
 
 const terrainMatrixCache = CACHE.terrainMatrixCache = {};
+const exitsMatrixCache = CACHE.exitsMatrixCache = {};
 const structureMatrixCache = CACHE.structureMatrixCache = {};
 const creepMatrixCache = CACHE.creepMatrixCache = {};
 const stationaryCreepMatrixCache = CACHE.stationaryCreepMatrixCache = {};
@@ -505,9 +506,10 @@ function getMatrix(roomName, creep, options) {
     let matrix = getTerrainMatrix(roomName, options);
     if (!options.ignoreStructures) matrix = getStructureMatrix(roomName, creep, matrix, options);
     if (room && !options.ignoreCreeps) matrix = getCreepMatrix(roomName, creep, matrix, options);
-    //if (room) matrix = getStationaryCreepMatrix(roomName, creep, matrix, options);
+    if (room) matrix = getStationaryCreepsMatrix(roomName, creep, matrix, options);
     if (room && room.hostileCreeps.length && (creep.className || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.avoidEnemies)) matrix = getHostileMatrix(roomName, matrix, options);
     matrix = getSKMatrix(roomName, matrix, options);
+    matrix = getExitsMatrix(roomName, matrix);
     return matrix;
 }
 
@@ -546,18 +548,31 @@ function addTerrainToMatrix(roomName, type) {
             else matrix.set(x, y, plainCost);
         }
     }
-    let exits = Game.map.describeExits(roomName);
-    if (exits === undefined) return matrix;
-    let top = ((_.get(exits, TOP, undefined) === undefined) ? 1 : 0);
-    let right = ((_.get(exits, RIGHT, undefined) === undefined) ? 48 : 49);
-    let bottom = ((_.get(exits, BOTTOM, undefined) === undefined) ? 48 : 49);
-    let left = ((_.get(exits, LEFT, undefined) === undefined) ? 1 : 0);
-    for (let y = top; y <= bottom; ++y) {
-        for (let x = left; x <= right; x += ((y % 49 === 0) ? 1 : 49)) {
-            if (matrix.get(x, y) < 0x03 && terrain.get(x, y) !== TERRAIN_MASK_WALL) {
-                matrix.set(x, y, 0x03);
-            }
-        }
+    return matrix;
+}
+
+function getExitsMatrix(roomName, matrix) {
+    if (!exitsMatrixCache[roomName]) {
+        exitsMatrixCache[roomName] = addExitsToMatrix(roomName, matrix).serialize();
+    }
+    return PathFinder.CostMatrix.deserialize(exitsMatrixCache[roomName]);
+}
+
+function addExitsToMatrix(roomName, matrix) {
+    let terrain = Game.map.getRoomTerrain(roomName);
+    for (let y = 0; y < 50; y++) {
+        let tile1 = terrain.get(0, y);
+        if (tile1 === TERRAIN_MASK_WALL) matrix.set(0, y, 256); else matrix.set(0, y, 250);
+        let tile2 = terrain.get(49, y);
+        if (tile2 === TERRAIN_MASK_WALL) matrix.set(49, y, 256); else matrix.set(49, y, 250);
+    }
+    for (let x = 0; x < 50; x++) {
+        matrix.set(x, 0, 250);
+        matrix.set(x, 49, 250);
+        let tile1 = terrain.get(x, 0);
+        if (tile1 === TERRAIN_MASK_WALL) matrix.set(x, 0, 256); else matrix.set(x, 0, 250);
+        let tile2 = terrain.get(x, 49);
+        if (tile2 === TERRAIN_MASK_WALL) matrix.set(x, 49, 256); else matrix.set(x, 49, 250);
     }
     return matrix;
 }
@@ -678,6 +693,32 @@ function addCreepsToMatrix(room, matrix, creep = undefined, options) {
     for (let key in creeps) {
         matrix.set(creeps[key].pos.x, creeps[key].pos.y, 0xff);
         if (options.showMatrix) new RoomVisual(room.name).text('IMP', creeps[key].pos.x, creeps[key].pos.y, {
+            color: 'white',
+            font: 0.4
+        });
+    }
+    return matrix;
+}
+
+let stationaryCreepsMatrixTick = {};
+
+function getStationaryCreepsMatrix(roomName, creep, matrix, options) {
+    let room = Game.rooms[roomName];
+    if (!room) return matrix;
+    if (!stationaryCreepMatrixCache[roomName] || options.showMatrix || (!stationaryCreepsMatrixTick[room.name] || Game.time !== stationaryCreepsMatrixTick[room.name])) {
+        creepMatrixTick[room.name] = Game.time;
+        stationaryCreepMatrixCache[roomName] = addStationaryCreepsToMatrix(room, matrix, creep, options).serialize();
+    }
+    return PathFinder.CostMatrix.deserialize(stationaryCreepMatrixCache[roomName]);
+}
+
+function addStationaryCreepsToMatrix(room, matrix, creep = undefined, options) {
+    if (!room) return matrix;
+    let creeps = room.myCreeps;
+    for (let creep of creeps) {
+        if (!creep.memory.other.stationary) continue;
+        matrix.set(creep.pos.x, creep.pos.y, 256);
+        if (options.showMatrix) new RoomVisual(room.name).text('IMP', creep.pos.x, creep.pos.y, {
             color: 'white',
             font: 0.4
         });

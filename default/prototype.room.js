@@ -405,6 +405,27 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         mineral = this.mineral.mineralType;
         mineralAmount = this.mineral.mineralAmount;
     }
+    // Get remote source data for the highest level room declaring this a remote
+    if (INTEL[this.name] && INTEL[this.name].remoteRoom && !force) {
+        let highestLevel = INTEL[this.name].remoteRoom[0];
+        INTEL[this.name].remoteRoom.forEach(function (r) {
+            if (r !== highestLevel && Game.rooms[r] && Game.rooms[r].level > Game.rooms[INTEL[this.name].remoteRoom[0]].level) return highestLevel = r;
+        });
+        for (const source of this.sources) {
+            let goHome = Game.map.findExit(this.name, highestLevel);
+            let homeExit = this.find(goHome);
+            let homeMiddle = _.round(homeExit.length / 2);
+            let distanceToExit = source.pos.findPathTo(homeExit[homeMiddle]).length;
+            // Store data at overlord
+            let remoteSourceData = Game.rooms[highestLevel].memory.remoteSources;
+            if (!remoteSourceData) remoteSourceData = "{}";
+            remoteSourceData = JSON.parse(remoteSourceData);
+            remoteSourceData[source.id] = {};
+            remoteSourceData[source.id].room = this.name;
+            remoteSourceData[source.id].score = (distanceToExit * 2) + 30;
+            Game.rooms[highestLevel].memory.remoteSources = JSON.stringify(remoteSourceData);
+        }
+    }
     // Make NCP array
     let ncpArray = Memory.ncpArray || [];
     let combatCreeps = _.find(this.hostileCreeps, (e) => e.hasActiveBodyparts(ATTACK) || e.hasActiveBodyparts(RANGED_ATTACK));

@@ -8,8 +8,8 @@
 
 module.exports.role = function (creep) {
     //If source is set harvest
-    if (creep.memory.source) {
-        let source = Game.getObjectById(creep.memory.source);
+    if (creep.memory.other.source) {
+        let source = Game.getObjectById(creep.memory.other.source);
         // If in place harvest
         if (creep.memory.onContainer) {
             let container = Game.getObjectById(source.memory.container);
@@ -68,7 +68,7 @@ module.exports.role = function (creep) {
             let oldestHarvester = _.min(_.filter(creep.room.creeps, (c) => c.memory && c.ticksToLive < 500 && c.memory.role === "stationaryHarvester"), "ticksToLive") || _.find(creep.room.creeps, (c) => c.memory && c.memory.role === "stationaryHarvester" && c.memory.other.reboot);
             if (!oldestHarvester || !oldestHarvester.id) return creep.suicide();
             else {
-                creep.memory.source = oldestHarvester.memory.source;
+                creep.memory.other.source = oldestHarvester.memory.other.source;
                 oldestHarvester.suicide();
             }
         }
@@ -77,7 +77,7 @@ module.exports.role = function (creep) {
 
 // Rotate between link and container if we don't have a hub and controller link
 function depositEnergy(creep) {
-    let source = Game.getObjectById(creep.memory.source);
+    let source = Game.getObjectById(creep.memory.other.source);
     let container = Game.getObjectById(source.memory.container);
     // Fill nearby
     if (extensionFiller(creep)) return;

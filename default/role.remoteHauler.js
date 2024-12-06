@@ -14,8 +14,12 @@ module.exports.role = function (creep) {
     // Check for tow
     if (creep.towTruck()) return true;
     // If Hauling
-    if (creep.isFull || creep.memory.hauling) {
-        if (!_.sum(creep.store)) creep.memory.hauling = undefined; else creep.memory.hauling = true;
+    if (creep.isFull || creep.memory.hauling || creep.memory.storageDestination) {
+        if (!_.sum(creep.store)) {
+            creep.memory.storageDestination = undefined;
+            creep.memory.hauling = undefined;
+            return;
+        } else creep.memory.hauling = true;
         // Sanity check for container and non energy
         if (_.sum(creep.store) > creep.store[RESOURCE_ENERGY] && creep.memory.storageDestination && Game.getObjectById(creep.memory.storageDestination) instanceof StructureContainer) return creep.memory.storageDestination = undefined;
         creep.memory.energyDestination = undefined;
@@ -52,19 +56,17 @@ module.exports.role = function (creep) {
             // Empty ruins
             if (creep.room.ruins.length && _.find(creep.room.ruins, (r) => r.store.getUsedCapacity())) return creep.memory.energyDestination = _.find(creep.room.ruins, (r) => r.store.getUsedCapacity()).id;
         }
-        // If low TTL return home and recycle
-        if (creep.room.name !== creep.memory.destination && creep.ticksToLive < 75) {
-            creep.memory.destination = undefined;
-            return creep.recycleCreep();
+        // If we don't have a destination, find one
+        if (!creep.memory.energyDestination) {
+            let harvester = _.find(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && c.memory.energyAmount >= creep.store.getCapacity() * 0.4
+                && !_.find(Game.creeps, (h) => h.my && h.memory.energyDestination === c.memory.energyId));
+            if (harvester && harvester.id) {
+                return creep.memory.energyDestination = harvester.memory.energyId;
+            }
         }
-        // If we have vision just locateEnergy
-        else if (Game.rooms[creep.memory.destination] && creep.locateEnergy(Game.rooms[creep.memory.destination])) return true;
-        // If you know what room to go to and not already there go to it
-        else if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 18});
-        // If in the assigned room, look for energy
-        else if (creep.locateEnergy()) return true;
-        // Get room assigned based off assigned harv, otherwise find a harv
-        else creep.idleFor(25);
+        // If we're already outside the room check for energy
+        if (creep.locateEnergy()) return;
+        creep.idleFor(25);
     }
 };
 

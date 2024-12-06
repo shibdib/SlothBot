@@ -174,15 +174,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             let workCost = BODYPART_COST[WORK];
             if (room.level < 4) workCost = 0;
             carry = _.floor(((energyAmount - workCost) * 0.49) / BODYPART_COST[CARRY]) || 1;
-            if (Game.getObjectById(creepInfo.misc)) {
-                let energyOutput = creepInfo.misc;
-                let assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.destination === creepInfo.destination);
-                let current = 0;
-                if (assignedHaulers.length) assignedHaulers.forEach((c) => current += c.store.getCapacity())
-                if ((carry * CARRY_CAPACITY) > energyOutput - current) carry = _.ceil((energyOutput - current) / CARRY_CAPACITY) || 1
-            }
-            // Max 32 at 7+, else 15, always have 1
-            if (room.level >= 7 && carry > 32) carry = 32; else if (carry > 15) carry = 15; else if (carry < 1) carry = 1;
+            // Max 20 at 7+, else 12, always have 1
+            if (room.level >= 7 && carry > 20) carry = 20; else if (carry > 12) carry = 12; else if (carry < 1) carry = 1;
             // Work parts after level 3
             if (room.level >= 4) work = 1; else work = 0;
             // Set move
