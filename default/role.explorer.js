@@ -24,10 +24,11 @@ module.exports.role = function (creep) {
             }
             return creep.shibMove(portal, {range: 0});
         } else {
-            let adjacent = _.filter(_.map(Game.map.describeExits(creep.pos.roomName)), (r) => roomStatus(r) === roomStatus(creep.memory.overlord) && !_.find(creep.room.myCreeps, (c) => c.memory.destination === r) && creep.pos.findClosestByPath(Game.map.findExit(creep.pos.roomName, r)));
-            if (!adjacent.length) adjacent = _.filter(_.map(Game.map.describeExits(creep.pos.roomName)), (r) => creep.pos.findClosestByPath(Game.map.findExit(creep.pos.roomName, r)));
-            // If there's unexplored prioritize else pick the oldest intel
-            let target = _.sample(_.filter(adjacent, (r) => !INTEL[r])) || _.min(adjacent, (r) => INTEL[r].cached);
+            let adjacent = _.filter(_.map(Game.map.describeExits(creep.pos.roomName)), (r) => roomStatus(r) === roomStatus(creep.memory.overlord));
+            // Filter out the last room if we have options
+            if (creep.memory.lastRoom && adjacent.length > 1) adjacent = _.filter(adjacent, (a) => a !== creep.memory.lastRoom);
+            // If there's unexplored prioritize else pick random
+            let target = _.find(adjacent, (r) => !INTEL[r]) || _.sample(adjacent);
             if (target) creep.memory.destination = target; else creep.idleFor(25);
         }
     } else if (creep.pos.roomName === creep.memory.destination) {
@@ -46,6 +47,7 @@ module.exports.role = function (creep) {
             }
         }
         creep.memory.destination = undefined;
+        creep.memory.lastRoom = creep.pos.roomName;
     } else {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
     }
