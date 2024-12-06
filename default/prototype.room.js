@@ -422,6 +422,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             remoteSourceData = JSON.parse(remoteSourceData);
             remoteSourceData[source.id] = {};
             remoteSourceData[source.id].room = this.name;
+            remoteSourceData[source.id].source = source.id;
             remoteSourceData[source.id].score = (distanceToExit * 2) + 30;
             Game.rooms[highestLevel].memory.remoteSources = JSON.stringify(remoteSourceData);
         }

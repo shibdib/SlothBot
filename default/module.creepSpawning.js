@@ -348,7 +348,7 @@ module.exports.remoteCreepQueue = function (room) {
             if (INTEL[remoteSource.room].threatLevel || INTEL[remoteSource.room].sk) continue;
             if (getCreepCount(undefined, 'remoteHarvester', remoteSource.room) < INTEL[remoteSource.room].sources) {
                 queueCreep(room, PRIORITIES.remoteHarvester, {
-                    role: 'remoteHarvester', destination: remoteSource.room, other: {source: Object.keys(remoteSource)}
+                    role: 'remoteHarvester', destination: remoteSource.room, other: {source: remoteSource.source}
                 })
             }
         }
