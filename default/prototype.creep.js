@@ -404,7 +404,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
                     if (droneContainer.length > 1) room.memory.droneContainer = droneContainer[0].id;
                 } else {
                     let droneContainer = Game.getObjectById(room.memory.droneContainer)
-                    if (droneContainer.store[RESOURCE_ENERGY]) {
+                    if (droneContainer && droneContainer.store[RESOURCE_ENERGY]) {
                         this.memory.energyDestination = droneContainer.id;
                         this.memory.findEnergyCountdown = undefined;
                         return true;
