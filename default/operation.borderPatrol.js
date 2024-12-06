@@ -22,15 +22,15 @@ Creep.prototype.borderPatrol = function () {
             if (INTEL[this.room.name] && INTEL[this.room.name].sk) return this.memory.destination = this.memory.overlord;
             // Idle in target rooms for 25 ticks then check if adjacent rooms need help or mark yourself ready to respond
             if (this.memory.onTarget + 25 <= Game.time) {
-                this.memory.destination = undefined;
+                this.memory.destination = this.memory.overlord;
                 this.memory.awaitingOrders = true;
                 this.memory.onTarget = undefined;
             } else {
                 this.idleFor(5);
             }
-        }
+        } else if (!this.memory.destination) this.idleFor(5);
     } else if (this.memory.destination && this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
-    if (this.memory.destination && this.room.name === this.memory.destination && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) this.memory.destination = undefined;
+    else if (this.room.name === this.memory.destination && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) this.memory.destination = undefined;
 };
 
 function offDuty(creep, partner = undefined) {
