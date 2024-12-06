@@ -32,19 +32,17 @@ module.exports.role = function (creep) {
         }
     } else if (creep.pos.roomName === creep.memory.destination) {
         // Sign the controller
-        if (!creep.moveToHostileConstructionSites(false, true)) {
-            if (creep.room.controller && !creep.room.controller.owner && !INTEL[creep.room.name].obstructions) {
-                if ((SIGN_CLEANER || !creep.room.controller.sign) && (!creep.room.controller.sign || (creep.room.controller.sign.username !== MY_USERNAME && creep.room.controller.sign.username !== 'Screeps'))) {
-                    // Else sign it
-                    switch (creep.signController(creep.room.controller, _.sample(EXPLORED_ROOM_SIGNS))) {
-                        case OK:
-                            creep.memory.destination = undefined;
-                            break;
-                        case ERR_NOT_IN_RANGE:
-                            creep.shibMove(creep.room.controller);
-                    }
-                    return;
+        if (creep.room.controller && !creep.room.controller.owner && !INTEL[creep.room.name].obstructions) {
+            if ((SIGN_CLEANER || !creep.room.controller.sign) && (!creep.room.controller.sign || (creep.room.controller.sign.username !== MY_USERNAME && creep.room.controller.sign.username !== 'Screeps'))) {
+                // Else sign it
+                switch (creep.signController(creep.room.controller, _.sample(EXPLORED_ROOM_SIGNS))) {
+                    case OK:
+                        creep.memory.destination = undefined;
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(creep.room.controller);
                 }
+                return;
             }
         }
         creep.memory.destination = undefined;
