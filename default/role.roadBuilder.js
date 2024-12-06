@@ -21,10 +21,10 @@ module.exports.role = function role(creep) {
         creep.memory.source = undefined;
         return;
     }
-    // Handle movement
-    if (creep.pos.roomName !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
     // Checks
     if (!creep.memory.working) {
+        // Handle movement
+        if (creep.pos.roomName !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
         if (creep.isFull) return creep.memory.working = true;
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
