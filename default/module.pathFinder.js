@@ -505,11 +505,11 @@ function getMatrix(roomName, creep, options) {
     let room = Game.rooms[roomName];
     let matrix = getTerrainMatrix(roomName, options);
     if (!options.ignoreStructures) matrix = getStructureMatrix(roomName, creep, matrix, options);
+    //matrix = getExitsMatrix(roomName, matrix);
     if (room && !options.ignoreCreeps) matrix = getCreepMatrix(roomName, creep, matrix, options);
     if (room) matrix = getStationaryCreepsMatrix(roomName, creep, matrix, options);
     if (room && room.hostileCreeps.length && (creep.className || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.avoidEnemies)) matrix = getHostileMatrix(roomName, matrix, options);
     matrix = getSKMatrix(roomName, matrix, options);
-    matrix = getExitsMatrix(roomName, matrix);
     return matrix;
 }
 
@@ -717,7 +717,7 @@ function addStationaryCreepsToMatrix(room, matrix, creep = undefined, options) {
     let creeps = room.myCreeps;
     for (let creep of creeps) {
         if (!creep.memory.other.stationary) continue;
-        matrix.set(creep.pos.x, creep.pos.y, 256);
+        matrix.set(creep.pos.x, creep.pos.y, 150);
         if (options.showMatrix) new RoomVisual(room.name).text('IMP', creep.pos.x, creep.pos.y, {
             color: 'white',
             font: 0.4
