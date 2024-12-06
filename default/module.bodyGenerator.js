@@ -152,7 +152,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
             if (claim > 20) claim = 20;
             if (importantBuild) claim = 1;
-            if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt && INTEL[room.name].roadsBuilt) {
+            if (room.level >= 6) {
                 claim = _.floor(energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
                 if (claim > 20) claim = 20;
                 halfMove = true;
@@ -168,7 +168,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             // Neutral
             else if ((!INTEL[creepInfo.destination] || INTEL[creepInfo.destination].reservation !== MY_USERNAME) && work > (SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1) work = (SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
             carry = 1;
-            if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt && INTEL[room.name].roadsBuilt) halfMove = true;
+            if (room.level >= 6) halfMove = true;
             break;
         case 'remoteHauler':
             let workCost = BODYPART_COST[WORK];
@@ -179,7 +179,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             // Work parts after level 3
             if (room.level >= 4) work = 1; else work = 0;
             // Set move
-            if (INTEL[creepInfo.destination] && INTEL[creepInfo.destination].roadsBuilt && INTEL[room.name].roadsBuilt) halfMove = true; else {
+            if (room.level >= 6) halfMove = true; else {
                 if (carry > 24) carry = 24;
             }
             break;
