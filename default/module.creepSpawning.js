@@ -424,7 +424,7 @@ module.exports.globalCreepQueue = function () {
             let targetAmount = Memory.harassTargets.length * 2;
             if (targetAmount > MY_ROOMS.length) targetAmount = MY_ROOMS.length;
             if (getCreepCount(undefined, 'longbow', undefined, 'harass') < targetAmount) {
-                let harassTarget = _.sample(_.filter(INTEL, (r) => !r.owner && Memory.harassTargets.includes(r.user)));
+                let harassTarget = _.sample(_.filter(INTEL, (r) => (!r.owner || r.level < 3) && Memory.harassTargets.includes(r.user)));
                 if (harassTarget) {
                     queueCreep(undefined, PRIORITIES.secondary, {
                         role: 'longbow',
