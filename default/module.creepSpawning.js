@@ -346,7 +346,8 @@ module.exports.remoteCreepQueue = function (room) {
         remoteSources = _.sortBy(_.filter(remoteSources, (r) => r.score <= REMOTE_DISTANCE_MAX), (s) => s.score);
         for (const remoteSource of remoteSources) {
             if (INTEL[remoteSource.room].threatLevel || INTEL[remoteSource.room].sk) continue;
-            if (getCreepCount(undefined, 'remoteHarvester', remoteSource.room) < INTEL[remoteSource.room].sources) {
+            const assignedHarvester = _.find(Game.creeps, (c) => c.my && c.memory.other.source === remoteSource.source);
+            if (!assignedHarvester) {
                 queueCreep(room, PRIORITIES.remoteHarvester, {
                     role: 'remoteHarvester', destination: remoteSource.room, other: {source: remoteSource.source}
                 })
