@@ -193,7 +193,8 @@ class RoleDrone {
     walling() {
         if (!this.creep.memory.currentTarget || !Game.getObjectById(this.creep.memory.currentTarget)) {
             let nukeSite, nukeRampart;
-            let barrierStructures = _.filter(this.creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL));
+            let barrierStructures = _.filter(this.creep.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART ||
+                s.structureType === STRUCTURE_WALL) && (!INTEL[this.creep.room.name].threatLevel || !_.find(this.creep.room.myCreeps, (c) => c.creep.memory.currentTarget === s.id)));
             if (this.creep.room.memory.nuke) {
                 nukeSite = _.filter(this.creep.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5)[0];
                 nukeRampart = _.min(_.filter(barrierStructures, (s) => s.structureType === STRUCTURE_RAMPART && ((s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.hits < (NUKE_DAMAGE[1] * this.creep.room.nukes.length) + 100000) || (s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) === 0 && s.hits < (NUKE_DAMAGE[0] * creep.room.nukes.length) + 100000))), 'hits');
