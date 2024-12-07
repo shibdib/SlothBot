@@ -261,7 +261,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             let route = findRoute(origin.roomName, target.roomName, options);
             if (route) {
                 if (!_.includes(route, creep.room.name)) route.unshift(creep.room.name);
-                allowedRooms = route;
+                allowedRooms = _.uniq(route.concat(_.map(Game.map.describeExits(creep.room.name))));
                 pathInfo.route = route;
             } else {
                 let exitDir = Game.map.findExit(origin.roomName, pathInfo.targetRoom);
@@ -544,7 +544,7 @@ function addTerrainToMatrix(roomName, type) {
             let tile = terrain.get(x, y);
             if (tile === TERRAIN_MASK_WALL) matrix.set(x, y, 256);
             // Handle exits
-            else if (x === 0 || x === 49 || y === 0 || y === 49) matrix.set(x, y, 40);
+            else if (x === 0 || x === 49 || y === 0 || y === 49) matrix.set(x, y, 10);
             else if (tile === TERRAIN_MASK_SWAMP) matrix.set(x, y, swampCost);
             else matrix.set(x, y, plainCost);
         }
