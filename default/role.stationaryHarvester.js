@@ -15,6 +15,7 @@ module.exports.role = function (creep) {
             let container = Game.getObjectById(source.memory.container);
             // Build container
             if (!container && creep.store[RESOURCE_ENERGY]) {
+                source.memory.container = undefined;
                 let dropped = creep.pos.lookFor(LOOK_RESOURCES)[0];
                 if (dropped && dropped.amount >= 750) {
                     let site = creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
@@ -41,8 +42,7 @@ module.exports.role = function (creep) {
                     if (source.memory.link && container && container.store[RESOURCE_ENERGY]) creep.withdraw(container, RESOURCE_ENERGY);
                     // Every other tick check for deposit ability
                     if (isEven(Game.time)) {
-                        if (container && !container.store.getFreeCapacity(RESOURCE_ENERGY)) depositEnergy(creep);
-                        if (creep.store[RESOURCE_ENERGY]) depositEnergy(creep);
+                        if ((container && !container.store.getFreeCapacity(RESOURCE_ENERGY)) || creep.store[RESOURCE_ENERGY]) depositEnergy(creep);
                     }
                     break;
             }
