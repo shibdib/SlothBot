@@ -228,7 +228,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
         for (let i = 0; i < body.length + healArray.length + toughArray.length; i++) moveArray.push(MOVE)
     } else for (let i = 0; i < _.ceil((((body.length + healArray.length + toughArray.length) * 0.5) * energyMulti)); i++) moveArray.push(MOVE)
     // Sanity check for cost
-    while (bodyCost(toughArray.concat(moveArray, shuffle(body), healArray)) > energyAmount) {
+    let i = 0;
+    while (bodyCost(toughArray.concat(moveArray, shuffle(body), healArray)) > energyAmount && i < body.length) {
+        i++;
         body = _.uniq(body)
     }
     if (role === 'SKAttacker' || role === 'powerAttacker' || role === 'claimer') generatedBody = toughArray.concat(moveArray, shuffle(body), healArray);
