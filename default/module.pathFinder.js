@@ -60,8 +60,14 @@ function shibMove(creep, heading, options = {}) {
         range: 1,
         maxRooms: 7,
         useCache: true,
-        ignoreCreeps: true
+        ignoreCreeps: true,
+        heuristicWeight: 3
     });
+
+    // If the target is a frequently visited structure we want a more accurate path so bump heuristic
+    if (heading instanceof StructureContainer || heading instanceof StructureStorage || heading instanceof StructureTerminal || heading instanceof Source) {
+        options.heuristicWeight = 1;
+    }
 
     // Handle forced creep notice
     if (creep.memory.noticeCreeps) {
@@ -291,6 +297,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
             maxOps: options.maxOps,
             maxRooms: allowedRooms.length + 1,
+            heuristicWeight: options.heuristicWeight,
             roomCallback: callback,
         });
         if (ret.incomplete) {
@@ -921,6 +928,7 @@ function getMoveWeight(creep, options = {}) {
     // Handle PC or offRoad being set already
     if (creep.className || options.offRoad) {
         options.offRoad = true;
+        //options.heuristicWeight = 1.1;
         return options;
     }
     // Handle ignoreRoads being set already
@@ -937,6 +945,7 @@ function getMoveWeight(creep, options = {}) {
     // Add weight of trailer
     if (creep.memory.trailer && Game.getObjectById(creep.memory.trailer)) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
     if (move >= weight * 5) {
+        //options.heuristicWeight = 1.1;
         options.offRoad = true;
     } else if (move >= weight) {
         options.ignoreRoads = true;
