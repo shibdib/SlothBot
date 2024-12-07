@@ -41,7 +41,7 @@ class RoleDrone {
         // If damaged move to safety
         if (!this.creep.getActiveBodyparts(WORK) || !this.creep.getActiveBodyparts(CARRY)) return this.creep.goToHub();
         // Handle returning to overlord
-        if (this.creep.room.name !== this.creep.memory.overlord && !this.creep.memory.remoteMining) {
+        if (this.creep.room.name !== this.creep.memory.overlord && !this.creep.memory.remoteMining && !this.creep.memory.working) {
             this.creep.memory.energyDestination = undefined;
             if (!this.creep.getActiveBodyparts(WORK)) return this.creep.suicide();
             this.creep.goToHub();
@@ -96,7 +96,7 @@ class RoleDrone {
             let source = Game.getObjectById(this.creep.memory.source) || this.creep.pos.getClosestSource();
             if (source && (!INTEL[this.creep.room.name].owner || INTEL[this.creep.room.name].owner === MY_USERNAME) && (!INTEL[this.creep.room.name].reservation || INTEL[this.creep.room.name].reservation === MY_USERNAME)) {
                 this.creep.memory.harvest = true;
-                // Set a statioanry harvester on new spawns
+                // Set a stationary harvester on new spawns
                 if (!spawn && !_.find(this.creep.room.myCreeps, (c) => c.id !== this.creep.id && c.memory.stationaryHarvester) && _.find(this.creep.room.myCreeps, (c) => c.id !== this.creep.id && c.memory.role === 'drone')) this.creep.memory.stationaryHarvester = true;
                 this.creep.say('Harvest!', true);
                 this.creep.memory.source = source.id;
