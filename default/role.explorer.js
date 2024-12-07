@@ -24,7 +24,7 @@ module.exports.role = function (creep) {
             }
             return creep.shibMove(portal, {range: 0});
         } else {
-            let adjacent = _.filter(_.map(Game.map.describeExits(creep.pos.roomName)), (r) => roomStatus(r) === roomStatus(creep.memory.overlord));
+            let adjacent = _.filter(_.map(Game.map.describeExits(creep.pos.roomName)), (r) => roomStatus(r) === roomStatus(creep.memory.overlord) && (!INTEL[r].obstacles || creep.pos.findPathTo(Game.map.findExit(this.name, r)).length));
             // Filter out the last room if we have options
             if (creep.memory.lastRoom && adjacent.length > 1) adjacent = _.filter(adjacent, (a) => a !== creep.memory.lastRoom);
             // If there's unexplored prioritize else pick random
