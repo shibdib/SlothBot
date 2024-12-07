@@ -610,7 +610,7 @@ function queueCreep(room = undefined, priority, options = {}, global = false) {
  */
 function determineEnergyOrder(room) {
     storedLevel[room.name] = getLevel(room);
-    if (!room.hub) {
+    if (!room.hub.x) {
         const planner = require('module.roomPlanner');
         planner.findHub(room);
         return false;
@@ -635,6 +635,7 @@ function determineEnergyOrder(room) {
         energyOrder[room.name] = JSON.stringify(rangeArray);
         orderStored[room.name] = Game.time;
     }
+    return true;
 }
 
 /**
