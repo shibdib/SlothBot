@@ -383,251 +383,285 @@ function getRoomResource(room, resource, unused = false) {
     return count;
 }
 
-/**
- * Cache room intel
- * @param force
- * @param creep
- */
 Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     if (!INTEL) global.INTEL = {};
     let cache = INTEL;
-    if (!force && INTEL[this.name] && INTEL[this.name].cached + CREEP_LIFE_TIME > Game.time) return;
+
+    const roomData = cache[this.name] || {};
+    if (!force && roomData.cached + CREEP_LIFE_TIME > Game.time) return;
+
     let mineral, sk, power, portal, level, owner, lastOperation, towers, reservation, safemode,
         mineralAmount, hubCheck, isHighway, user, loot, commodity, obstacles, nukeTarget;
-    // Store things that don't change
+    const structures = this.structures;
+
+    // Cache previously stored room data to minimize lookups
     if (INTEL[this.name]) {
         lastOperation = INTEL[this.name].lastOperation;
         sk = INTEL[this.name].sk;
         if (Math.random() > 0.2 && !force) hubCheck = INTEL[this.name].hubCheck;
     }
+
     // Minerals
     if (this.mineral) {
         mineral = this.mineral.mineralType;
         mineralAmount = this.mineral.mineralAmount;
     }
-    // Get remote source data for the highest level room declaring this a remote
+
+    // Remote source data handling
     if (INTEL[this.name] && INTEL[this.name].remoteRoom && !force) {
         let highestLevel = INTEL[this.name].remoteRoom[0];
-        INTEL[this.name].remoteRoom.forEach(function (r) {
-            if (r !== highestLevel && Game.rooms[r] && Game.rooms[r].level > Game.rooms[INTEL[this.name].remoteRoom[0]].level) return highestLevel = r;
-        });
-        for (const source of this.sources) {
-            let goHome = Game.map.findExit(this.name, highestLevel);
-            let homeExit = this.find(goHome);
-            let homeMiddle = _.round(homeExit.length / 2);
-            let distanceToExit = source.pos.findPathTo(homeExit[homeMiddle]).length;
-            // Store data at overlord
-            let remoteSourceData = Game.rooms[highestLevel].memory.remoteSources;
-            if (!remoteSourceData) remoteSourceData = "{}";
-            remoteSourceData = JSON.parse(remoteSourceData);
-            remoteSourceData[source.id] = {};
-            remoteSourceData[source.id].room = this.name;
-            remoteSourceData[source.id].source = source.id;
-            remoteSourceData[source.id].score = (distanceToExit * 2) + 30;
-            Game.rooms[highestLevel].memory.remoteSources = JSON.stringify(remoteSourceData);
-        }
-    }
-    // Check for obstacles
-    const neighbors = _.map(Game.map.describeExits(this.name));
-    for (const neighbor of neighbors) {
-        // If there's a controller use that to check all exits otherwise check for structures
-        if (this.controller) {
-            if (this.controller.pos.findClosestByPath(Game.map.findExit(this.name, neighbor))) {
-                obstacles = true;
-                break;
+        const remoteRoomData = INTEL[this.name].remoteRoom;
+        remoteRoomData.forEach((r) => {
+            if (r !== highestLevel && Game.rooms[r] && Game.rooms[r].level > Game.rooms[highestLevel].level) {
+                highestLevel = r;
             }
-        } else if (_.find(this.impassibleStructures, (s) => s.structureType !== STRUCTURE_EXTRACTOR && !s.pos.findClosestByPath(Game.map.findExit(this.name, neighbor)))) {
-            obstacles = true;
-            break;
+        });
+
+        const remoteSourceData = Game.rooms[highestLevel] && Game.rooms[highestLevel].memory.remoteSources || "{}";
+        const parsedRemoteSourceData = JSON.parse(remoteSourceData);
+
+        this.sources.forEach((source) => {
+            const goHome = Game.map.findExit(this.name, highestLevel);
+            const homeExit = source.pos.findClosestByPath(this.find(goHome));
+            const distanceToExit = source.pos.findPathTo(homeExit).length - 2;
+
+            // Avoid adding the source if it's already present in remoteSourceData
+            if (!parsedRemoteSourceData[source.id]) {
+                parsedRemoteSourceData[source.id] = {
+                    room: this.name,
+                    score: distanceToExit + 30
+                };
+            }
+        });
+
+        if (Game.rooms[highestLevel]) {
+            Game.rooms[highestLevel].memory.remoteSources = JSON.stringify(parsedRemoteSourceData);
         }
     }
-    // Make NCP array
+
+    // Check for obstacles
+    obstacles = this.controller
+        ? this.controller.pos.findClosestByPath(Game.map.findExit(this.name)) !== undefined
+        : _.some(this.impassibleStructures, (s) => s.structureType !== STRUCTURE_EXTRACTOR &&
+            !s.pos.findClosestByPath(Game.map.findExit(this.name)));
+
+    // Handle NCP check
     let ncpArray = Memory.ncpArray || [];
-    let combatCreeps = _.find(this.hostileCreeps, (e) => e.hasActiveBodyparts(ATTACK) || e.hasActiveBodyparts(RANGED_ATTACK));
     if (this.controller) {
         if (this.controller.safeMode) safemode = this.controller.safeMode + Game.time;
+
         if (this.controller.owner) {
             owner = this.controller.owner.username;
+
             // Signage NCP check
             if (this.controller.sign) {
-                let text = this.controller.sign.text.toLowerCase();
-                if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum') || text.includes('ᴏᴠᴇʀᴍɪɴᴅ') || text.includes('jln')) {
+                const text = this.controller.sign.text.toLowerCase();
+                if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum') ||
+                    text.includes('ᴏᴠᴇʀᴍɪɴᴅ') || text.includes('jln')) {
                     ncpArray.push(this.controller.sign.username);
-                } else if (_.includes(ncpArray, this.controller.sign.username)) {
+                } else {
                     _.remove(ncpArray, (u) => u === this.controller.sign.username);
                 }
             }
-            towers = _.filter(this.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && s.isActive()).length;
-            // Handle nuke targets
-            if (this.terminal) {
-                nukeTarget = this.terminal.pos.posToString();
-            }
+
+            towers = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && s.isActive()).length;
+            if (this.terminal) nukeTarget = this.terminal.pos.posToString();
         } else if (this.controller.reservation) {
             reservation = this.controller.reservation.username;
         } else if (!obstacles && !hubCheck && !this.hostileCreeps.length && this.sources.length === 2) {
             hubCheck = roomPlanner.hubCheck(this);
         }
-        level = this.controller.level || undefined;
-        // Check for loot
+
+        level = this.controller.level;
         if (!obstacles) {
-            let lootTarget = _.filter(this.structures, (s) => (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) && _.sum(s.store) > 0 && !s.pos.checkForRampart(true)).length > 0;
-            if (lootTarget && !this.hostileCreeps.length) loot = true;
+            loot = _.some(structures, (s) => (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) &&
+                _.sum(s.store) > 0 && !s.pos.checkForRampart(true)) && !this.hostileCreeps.length;
         }
-        // Invader Core
-        if (_.filter(this.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length > 0) {
-            towers = _.filter(this.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && s.isActive()).length;
+
+        if (_.some(structures, (s) => s.structureType === STRUCTURE_INVADER_CORE)) {
+            towers = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && s.isActive()).length;
         }
-    } else if (!sk && this.sources.length && _.find(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)) {
+    } else if (!sk && this.sources.length && _.some(structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)) {
         sk = true;
     } else if (!sk && !this.sources.length) {
-        // Get commodity info
-        if (this.deposits.length && _.find(this.deposits, (d) => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20))) {
+        if (this.deposits.length && _.some(this.deposits, (d) => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20))) {
             commodity = _.find(this.deposits, (d) => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20)).depositType;
         }
         isHighway = true;
     }
-    // Set a user is we have no owner or reservation
+
+    // Set user if no owner or reservation
     if (!owner && !reservation && (this.hostileCreeps.length || this.alliedCreeps.length)) {
-        if (this.alliedCreeps.length) user = this.alliedCreeps[0].owner.username; else if (this.hostileCreeps.length) user = this.hostileCreeps[0].owner.username;
+        user = this.alliedCreeps.length ? this.alliedCreeps[0].owner.username : this.hostileCreeps[0].owner.username;
     }
-    // Store portal info
-    portal = _.find(this.structures, (e) => e.structureType === STRUCTURE_PORTAL && !e.destination.shard);
-    if (portal) {
-        portal = portal.destination.roomName;
-    } else {
-        portal = undefined;
-    }
-    // Store power info
-    power = _.find(this.structures, (e) => e && e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
-    if (power) power = Game.time + power.ticksToDecay; else power = undefined;
-    cache[this.name] = cache[this.name] || {};
+
+    // Store portal and power info
+    portal = _.find(structures, (e) => e.structureType === STRUCTURE_PORTAL && !e.destination.shard);
+    power = _.find(structures, (e) => e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
+    power = power ? Game.time + power.ticksToDecay : undefined;
+
+    // Cache room intel
     cache[this.name] = {
         cached: Game.time,
         name: this.name,
         shardName: Game.shard.name,
         sources: this.sources.length,
-        mineral: mineral,
-        mineralAmount: mineralAmount,
-        commodity: commodity,
-        owner: owner,
-        hubCheck: hubCheck,
-        reservation: reservation,
-        level: level,
-        sk: sk,
-        user: owner || reservation || user,
-        safemode: safemode,
-        portal: portal,
-        power: power,
-        isHighway: isHighway,
-        lastOperation: lastOperation,
-        invaderCore: _.filter(this.structures, (e) => e.structureType === STRUCTURE_INVADER_CORE).length > 0,
-        towers: towers,
-        hostile: combatCreeps !== undefined || (towers && !FRIENDLIES.includes(owner)),
+        mineral,
+        mineralAmount,
+        commodity,
+        owner,
+        hubCheck,
+        reservation,
+        level,
+        sk,
+        user: user || owner || reservation,
+        safemode,
+        portal,
+        power,
+        isHighway,
+        lastOperation,
+        invaderCore: _.some(structures, (e) => e.structureType === STRUCTURE_INVADER_CORE),
+        towers,
+        hostile: towers && !FRIENDLIES.includes(owner),
         status: roomStatus(this.name),
-        loot: loot,
-        obstacles: obstacles,
-        nukeTarget: nukeTarget
+        loot,
+        obstacles,
+        nukeTarget
     };
+
     Memory.ncpArray = _.uniq(ncpArray);
     global.INTEL = cache;
 };
 
 let invaderAlert = {};
+
 /**
  * Check for invaders
  * @returns {boolean}
  */
 Room.prototype.invaderCheck = function () {
-    if (!INTEL || !INTEL[this.name]) return false;
-    if (INTEL[this.name].lastInvaderCheck + 15 > Game.time) return;
-    let previousCheck = INTEL[this.name].lastInvaderCheck || Game.time;
-    INTEL[this.name].lastInvaderCheck = Game.time;
-    // If owned/reserved by someone else or if it's far from our rooms clear the info and return
-    if ((INTEL[this.name].owner && INTEL[this.name].owner !== MY_USERNAME) || (INTEL[this.name].reservation && INTEL[this.name].reservation !== MY_USERNAME) || findClosestOwnedRoom(this.name, true) > 2) {
-        INTEL[this.name].numberOfHostiles = undefined;
-        INTEL[this.name].alertEmail = undefined;
-        INTEL[this.name].friendlyPower = undefined;
-        INTEL[this.name].hostilePower = undefined;
-        INTEL[this.name].requestingSupport = undefined;
-        INTEL[this.name].invaderTTL = undefined;
-        INTEL[this.name].roomHeat = undefined;
-        INTEL[this.name].threatLevel = undefined;
+    if (!INTEL[this.name]) return false;
+
+    const roomData = INTEL[this.name];
+    const {hostileCreeps, friendlyCreeps} = this;
+    const previousCheck = roomData.lastInvaderCheck || Game.time;
+
+    // If invader check is recent, return early
+    if (roomData.lastInvaderCheck + 15 > Game.time) return;
+
+    roomData.lastInvaderCheck = Game.time;
+
+    // If the room is owned/reserved by someone else or too far from your rooms, clear data
+    if (
+        (roomData.owner && roomData.owner !== MY_USERNAME) ||
+        (roomData.reservation && roomData.reservation !== MY_USERNAME) ||
+        findClosestOwnedRoom(this.name, true) > 2
+    ) {
+        // Reset the room data
+        Object.assign(roomData, {
+            numberOfHostiles: undefined,
+            alertEmail: undefined,
+            friendlyPower: undefined,
+            hostilePower: undefined,
+            requestingSupport: undefined,
+            invaderTTL: undefined,
+            roomHeat: undefined,
+            threatLevel: undefined
+        });
         return false;
     }
-    // No hostile detected
-    if (!this.hostileCreeps.length) {
-        INTEL[this.name].lastInvaderSighting = undefined;
-        if (!INTEL[this.name].roomHeat && !INTEL[this.name].threatLevel) return false;
-        // Room heat is capped at 1000
-        if (INTEL[this.name].roomHeat > 1000) INTEL[this.name].roomHeat = 1000;
-        let waitOut = 5;
-        // Clear if no waitOut or if not one of your rooms
-        let reduction = _.ceil((Game.time - previousCheck) / 5) * (this.friendlyCreeps.length) + 1;
-        if (INTEL[this.name].lastPlayerSighting + 500 > Game.time) reduction *= 25;
-        if (INTEL[this.name].tickDetected + waitOut < Game.time || INTEL[this.name].user !== MY_USERNAME) {
-            INTEL[this.name].threatLevel = undefined;
-            let roomHeat = (INTEL[this.name].roomHeat - reduction) || 0;
-            if (roomHeat <= 0) {
-                INTEL[this.name].roomHeat = undefined;
-            } else {
-                INTEL[this.name].roomHeat = roomHeat;
-            }
-            INTEL[this.name].numberOfHostiles = undefined;
-            INTEL[this.name].alertEmail = undefined;
-            INTEL[this.name].friendlyPower = undefined;
-            INTEL[this.name].hostilePower = undefined;
-            INTEL[this.name].requestingSupport = undefined;
-            INTEL[this.name].invaderTTL = undefined;
+
+    // No hostile creeps detected
+    if (!hostileCreeps.length) {
+        roomData.lastInvaderSighting = undefined;
+        if (!roomData.roomHeat && !roomData.threatLevel) return false;
+
+        // Cap room heat at 1000
+        roomData.roomHeat = Math.min(roomData.roomHeat, 1000);
+
+        const waitOut = 5;
+        let reduction = _.ceil((Game.time - previousCheck) / 5) * friendlyCreeps.length + 1;
+        if (roomData.lastPlayerSighting + 500 > Game.time) reduction *= 25;
+
+        if (roomData.tickDetected + waitOut < Game.time || roomData.user !== MY_USERNAME) {
+            roomData.threatLevel = undefined;
+            roomData.roomHeat = Math.max(roomData.roomHeat - reduction, 0) || undefined;
+
+            // Clear other fields
+            Object.assign(roomData, {
+                numberOfHostiles: undefined,
+                alertEmail: undefined,
+                friendlyPower: undefined,
+                hostilePower: undefined,
+                requestingSupport: undefined,
+                invaderTTL: undefined
+            });
         }
         return false;
-    } else {
-        let hostileCombatPower = 0;
-        let armedHostiles = _.filter(this.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
-        for (let i = 0; i < armedHostiles.length; i++) {
-            hostileCombatPower += armedHostiles[i].combatPower;
-        }
-        let alliedCombatPower = 0;
-        let armedFriendlies = _.filter(this.friendlyCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
-        for (let i = 0; i < armedFriendlies.length; i++) {
-            alliedCombatPower += armedFriendlies[i].combatPower;
-        }
-        INTEL[this.name].hostilePower = hostileCombatPower || 1;
-        INTEL[this.name].friendlyPower = alliedCombatPower;
-        let armedInvader = _.filter(this.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(HEAL) || c.getActiveBodyparts(WORK) >= 4);
-        INTEL[this.name].tickDetected = Game.time;
-        if (!INTEL[this.name].numberOfHostiles || INTEL[this.name].numberOfHostiles < this.hostileCreeps.length) {
-            INTEL[this.name].numberOfHostiles = this.hostileCreeps.length || 1;
-        }
-        // Make owner array
-        let ownerArray = [];
-        this.hostileCreeps.forEach((c) => ownerArray.push(c.owner.username));
-        ownerArray = _.uniq(ownerArray);
-        // If Armed Invaders
-        if (armedInvader.length) {
-            INTEL[this.name].invaderTTL = _.max(armedInvader, 'ticksToLive').ticksToLive + Game.time;
-            INTEL[this.name].lastInvaderSighting = Game.time;
-            if (invaderAlert[this.name] + 25 < Game.time) {
-                invaderAlert[this.name] = Game.time;
-                log.a('Invaders detected in ' + roomLink(this.name) + '. ' + this.hostileCreeps.length +
-                    ' creeps detected. (this.hostileCreeps/Friendly Power Present - ' + hostileCombatPower + '/' + alliedCombatPower + ')', 'RESPONSE COMMAND');
-            }
-        }
-        // Determine threat level
-        if (this.hostileCreeps.length && !armedInvader.length) {
-            INTEL[this.name].threatLevel = 1;
-        } else if (armedInvader.length && this.hostileCreeps[0].owner.username === 'Invader' && ownerArray.length === 1) {
-            INTEL[this.name].threatLevel = 2;
-        } else if (armedInvader.length && this.hostileCreeps[0].owner.username !== 'Invader' && ownerArray.length === 1) {
-            INTEL[this.name].lastPlayerSighting = Game.time;
-            INTEL[this.name].threatLevel = 3;
-            let roomHeat = INTEL[this.name].roomHeat || 0;
-            INTEL[this.name].roomHeat = roomHeat + (_.sum(this.hostileCreeps, 'body.length') * 0.25);
-        } else if (armedInvader.length > 1 && (this.hostileCreeps[0].owner.username !== 'Invader' || ownerArray.length > 1)) {
-            INTEL[this.name].lastPlayerSighting = Game.time;
-            INTEL[this.name].threatLevel = 4;
-            let roomHeat = INTEL[this.name].roomHeat || 0;
-            INTEL[this.name].roomHeat = roomHeat + (_.sum(this.hostileCreeps, 'body.length') * 0.25);
-        }
-        return INTEL[this.name].threatLevel > 0;
     }
+
+    // Calculate combat powers
+    const hostileCombatPower = _.sum(
+        _.filter(hostileCreeps, (creep) => creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(RANGED_ATTACK)),
+        'combatPower'
+    );
+
+    const alliedCombatPower = _.sum(
+        _.filter(friendlyCreeps, (creep) => creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(RANGED_ATTACK)),
+        'combatPower'
+    );
+
+    roomData.hostilePower = hostileCombatPower || 1;
+    roomData.friendlyPower = alliedCombatPower;
+
+    const armedInvaders = _.filter(
+        hostileCreeps,
+        (creep) => creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(RANGED_ATTACK) || creep.hasActiveBodyparts(HEAL) || creep.getActiveBodyparts(WORK) >= 4
+    );
+
+    roomData.tickDetected = Game.time;
+
+    // Update hostiles count
+    roomData.numberOfHostiles = Math.max(roomData.numberOfHostiles || 0, hostileCreeps.length);
+
+    // Record hostile owners
+    const ownerArray = _.uniq(hostileCreeps.map((creep) => creep.owner.username));
+
+    // Handle armed invaders
+    if (armedInvaders.length) {
+        roomData.invaderTTL = Math.max(...armedInvaders.map((creep) => creep.ticksToLive)) + Game.time;
+        roomData.lastInvaderSighting = Game.time;
+
+        if (invaderAlert[this.name] + 25 < Game.time) {
+            invaderAlert[this.name] = Game.time;
+            log.a(
+                `Invaders detected in ${roomLink(this.name)}. ${hostileCreeps.length} creeps detected. (Hostile/Friendly Power: ${hostileCombatPower}/${alliedCombatPower})`,
+                'RESPONSE COMMAND'
+            );
+        }
+    }
+
+    // Determine threat level
+    const updateThreatLevel = () => {
+        if (!armedInvaders.length) return 1;
+        if (armedInvaders[0].owner.username === 'Invader' && ownerArray.length === 1) return 2;
+        if (armedInvaders[0].owner.username !== 'Invader' && ownerArray.length === 1) {
+            roomData.lastPlayerSighting = Game.time;
+            return 3;
+        }
+        if (armedInvaders.length > 1 && (armedInvaders[0].owner.username !== 'Invader' || ownerArray.length > 1)) {
+            roomData.lastPlayerSighting = Game.time;
+            return 4;
+        }
+        return 0;
+    };
+
+    roomData.threatLevel = updateThreatLevel();
+
+    // Adjust room heat if needed
+    if (roomData.threatLevel >= 3) {
+        roomData.roomHeat = (roomData.roomHeat || 0) + _.sum(hostileCreeps, 'body.length') * 0.25;
+    }
+
+    return roomData.threatLevel > 0;
 };

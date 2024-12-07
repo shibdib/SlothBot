@@ -15,7 +15,7 @@ let bodyCache = {};
 
 module.exports.bodyGenerator = function (level, role, room = undefined, creepInfo = undefined) {
     // Generate body
-    let body = [];
+    let bodyArray = [];
     let work, claim, carry, move, tough, attack, rangedAttack, heal, energyScaling, halfMove;
     let energyAmount = room.energyCapacityAvailable;
 
@@ -285,16 +285,17 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
 
     // Utility function to add body parts
     const addBodyParts = (count, part, array) => {
-        const numParts = Math.ceil(count * energyMulti);
+        let numParts = Math.ceil(count * energyMulti);
+        if (part === MOVE) numParts = count;
         if (numParts > 0) array.push(...Array(numParts).fill(part));
     };
 
     // Generate main body parts
-    addBodyParts(work, WORK, body);
-    addBodyParts(carry, CARRY, body);
-    addBodyParts(claim, CLAIM, body);
-    addBodyParts(rangedAttack, RANGED_ATTACK, body);
-    addBodyParts(attack, ATTACK, body);
+    addBodyParts(work, WORK, bodyArray);
+    addBodyParts(carry, CARRY, bodyArray);
+    addBodyParts(claim, CLAIM, bodyArray);
+    addBodyParts(rangedAttack, RANGED_ATTACK, bodyArray);
+    addBodyParts(attack, ATTACK, bodyArray);
 
     // Generate special body parts
     const healArray = [];
@@ -304,29 +305,30 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
 
     // Generate MOVE parts
     let moveArray = [];
-    const totalParts = body.length + healArray.length + toughArray.length;
+    const totalParts = bodyArray.length + healArray.length + toughArray.length;
     if (move && move > 0) {
         addBodyParts(move, MOVE, moveArray);
     } else {
         const moveParts = halfMove
-            ? Math.ceil((totalParts * 0.5) * energyMulti)
+            ? Math.ceil(totalParts * 0.5)
             : totalParts;
         addBodyParts(moveParts, MOVE, moveArray);
     }
 
+
     // Validate and adjust body composition
     let i = 0;
-    while (bodyCost([...toughArray, ...moveArray, ..._.shuffle(body), ...healArray]) > energyAmount && i < body.length) {
+    while (bodyCost([...toughArray, ...moveArray, ..._.shuffle(bodyArray), ...healArray]) > energyAmount && i < bodyArray.length) {
         i++;
-        body = _.uniq(body);
+        bodyArray = _.uniq(bodyArray);
     }
 
     // Assemble the final body
     let generatedBody;
     if (['SKAttacker', 'powerAttacker', 'claimer'].includes(role)) {
-        generatedBody = [...toughArray, ...moveArray, ..._.shuffle(body), ...healArray];
+        generatedBody = [...toughArray, ...moveArray, ..._.shuffle(bodyArray), ...healArray];
     } else {
-        generatedBody = [...toughArray, ..._.shuffle(body), ...moveArray, ...healArray];
+        generatedBody = [...toughArray, ..._.shuffle(bodyArray), ...moveArray, ...healArray];
     }
 
     // Cache the generated body

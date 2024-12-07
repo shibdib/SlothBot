@@ -157,35 +157,54 @@ profiler.registerClass(Overlord, 'Overlord');
 module.exports = Overlord;
 
 let errorCount = {};
+// Global cache for roles
+const ROLE_CACHE = {};
+
 function minionController(minion) {
-    // Disable notifications
+    // Disable notifications if not already disabled
     if (!minion.memory.notifyDisabled) {
         minion.notifyWhenAttacked(false);
         minion.memory.notifyDisabled = true;
     }
-    // Handle idle
+
+    // Return if idle
     if (minion.idle) return;
+
     // Track Threat
     diplomacy.trackThreat(minion);
-    // Combat
+
+    // Combat Actions
     minion.attackInRange();
     minion.healInRange();
-    // Handle edge cases
+
+    // Handle edge cases (border or nuke flee)
     if (minion.borderCheck() || (minion.memory.fleeNukeTime && minion.fleeNukeRoom())) {
         return;
     }
-    // Report intel chance
+
+    // Report intel if outside MY_ROOMS
     if (!MY_ROOMS.includes(minion.room.name)) {
         minion.room.invaderCheck();
         minion.room.cacheRoomIntel(false, minion);
     }
-    // Run role
+
+    // If no role, the minion should suicide
     if (!minion.memory.role) return minion.suicide();
-    let converted = ['drone', 'hauler', 'shuttle'];
-    if (converted.includes(minion.memory.role)) {
-        let Role = require('role.' + minion.memory.role);
+
+    // Check if the role is cached
+    let Role;
+    if (ROLE_CACHE[minion.memory.role]) {
+        Role = ROLE_CACHE[minion.memory.role];
+    } else {
+        // Load the role and cache it
+        Role = require('role.' + minion.memory.role);
+        ROLE_CACHE[minion.memory.role] = Role;
+    }
+
+    // Handle converted roles
+    if (['drone', 'hauler', 'shuttle', 'roadBuilder'].includes(minion.memory.role)) {
         new Role(minion);
     } else {
-        require('role.' + minion.memory.role).role(minion);
+        Role.role(minion);
     }
 }
