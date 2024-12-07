@@ -428,7 +428,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         }
     }
     // Check for obstacles
-    const neighbors = _.map(Game.map.describeExits(creep.pos.roomName));
+    const neighbors = _.map(Game.map.describeExits(this.name));
     for (const neighbor of neighbors) {
         // If there's a controller use that to check all exits otherwise check for structures
         if (this.controller) {
