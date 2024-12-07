@@ -178,12 +178,12 @@ module.exports.essentialCreepQueue = function (room) {
     let reboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9;
     if (room.level < 7 && room.level === room.controller.level && !reboot) {
         let container = Game.getObjectById(room.memory.controllerContainer);
-        if (container) {
+        if (container && room.energyState) {
             if (container.store[RESOURCE_ENERGY] > CONTAINER_CAPACITY * 0.7) {
                 number = ((container.store[RESOURCE_ENERGY] - (CONTAINER_CAPACITY * (0.1 * room.level))) / (50 * room.level));
                 if (number > container.pos.countOpenTerrainAround()) number = container.pos.countOpenTerrainAround();
             }
-        } else number = 10 - room.level;
+        } else number = 3;
     }
     if (getCreepCount(room, 'upgrader') < number) {
         queueCreep(room, (PRIORITIES.upgrader - (room.energyState * 0.5)) + getCreepCount(room, 'upgrader'), {
