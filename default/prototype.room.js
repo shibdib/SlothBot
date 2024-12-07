@@ -427,12 +427,24 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             Game.rooms[highestLevel].memory.remoteSources = JSON.stringify(remoteSourceData);
         }
     }
+    // Check for obstacles
+    const neighbors = _.map(Game.map.describeExits(creep.pos.roomName));
+    for (const neighbor of neighbors) {
+        // If there's a controller use that to check all exits otherwise check for structures
+        if (this.controller) {
+            if (this.controller.pos.findClosestByPath(Game.map.findExit(this.name, neighbor))) {
+                obstacles = true;
+                break;
+            }
+        } else if (_.find(this.impassibleStructures, (s) => s.structureType !== STRUCTURE_EXTRACTOR && !s.pos.findClosestByPath(Game.map.findExit(this.name, neighbor)))) {
+            obstacles = true;
+            break;
+        }
+    }
     // Make NCP array
     let ncpArray = Memory.ncpArray || [];
     let combatCreeps = _.find(this.hostileCreeps, (e) => e.hasActiveBodyparts(ATTACK) || e.hasActiveBodyparts(RANGED_ATTACK));
     if (this.controller) {
-        // Check for obstacles
-        if ((this.controller && !this.controller.pos.findClosestByPath(FIND_EXIT)) || _.find(this.impassibleStructures, (s) => s.structureType !== STRUCTURE_EXTRACTOR && !s.pos.findClosestByPath(FIND_EXIT))) obstacles = true;
         if (this.controller.safeMode) safemode = this.controller.safeMode + Game.time;
         if (this.controller.owner) {
             owner = this.controller.owner.username;
