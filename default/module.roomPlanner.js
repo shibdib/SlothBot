@@ -134,8 +134,8 @@ function controllerBuilder(room) {
         } else {
             room.memory.controllerContainer = controllerContainer.id;
         }
-    } else if (!room.memory.controllerLink && room.controller.level >= 7) {
-        let controllerLink = _.find(room.controller.pos.findInRange(room.impassibleStructures, 2), (s) => s.structureType === STRUCTURE_LINK);
+    } else if (controllerContainer && !room.memory.controllerLink && room.controller.level >= 7) {
+        let controllerLink = _.find(controllerContainer.pos.findInRange(room.impassibleStructures, 1), (s) => s.structureType === STRUCTURE_LINK);
         if (!controllerLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
             for (let key in zoneTerrain) {
@@ -195,7 +195,8 @@ function sourceBuilder(room) {
     if (room.controller.level >= 2) {
         for (let source of room.sources) {
             // Container
-            let sourceContainer = _.find(source.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
+            let sourceContainer = Game.getObjectById(source.memory.containerID) || _.find(source.pos.findInRange(room.structures, 1),
+                (s) => s.structureType === STRUCTURE_CONTAINER);
             if (!sourceContainer) {
                 source.memory.container = undefined;
                 let sourceBuild = _.find(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
@@ -212,10 +213,18 @@ function sourceBuilder(room) {
             }
             // Link
             if (sourceContainer && Game.getObjectById(room.memory.hubLink)) {
-                let sourceLink = _.find(source.pos.findInRange(room.impassibleStructures, 2), (s) => s.structureType === STRUCTURE_LINK);
+                let sourceLink = _.find(sourceContainer.pos.findInRange(room.impassibleStructures, 1), (s) => s.structureType === STRUCTURE_LINK);
                 if (!sourceLink && sourceContainer.pos.countOpenTerrainAround() > 1) {
+                    // Clear old bad link
+                    if (source.memory.link && Game.getObjectById(source.memory.link)) {
+                        const oldLink = Game.getObjectById(source.memory.link);
+                        const oldRampart = oldLink.pos.checkForRampart();
+                        if (oldRampart) oldRampart.destroy();
+                        oldLink.destroy();
+                        log.e('Cleared incorrect source link in ' + roomLink(room.name), "ROOM PLANNER:");
+                    }
                     source.memory.link = undefined;
-                    let sourceBuild = _.find(sourceContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 2), (s) => s.structureType === STRUCTURE_LINK);
+                    let sourceBuild = _.find(sourceContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK);
                     if (!sourceBuild) {
                         let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, sourceContainer.pos.y - 1, sourceContainer.pos.x - 1, sourceContainer.pos.y + 1, sourceContainer.pos.x + 1, true);
                         for (let key in zoneTerrain) {
@@ -447,7 +456,7 @@ function findHub(room, hubCheck = undefined) {
         log.a('Bunker Hub search complete for ' + room.name + '...');
         log.a('Using existing spawn as hub.')
         room.memory.bunkerHub = {};
-        room.memory.bunkerHub.x = spawn.pos.x;
+        room.memory.bunkerHub.x = spawn.pos.x + 1;
         room.memory.bunkerHub.y = spawn.pos.y + 1;
         buildFromLayout(room);
     } else {
