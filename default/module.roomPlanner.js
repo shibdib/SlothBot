@@ -141,7 +141,7 @@ function controllerBuilder(room) {
             for (let key in zoneTerrain) {
                 if (_.find(controllerContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK)) break;
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
-                if (position.checkForAllStructure().length || position.checkForImpassible()) continue;
+                if (position.checkForAllStructure().length || position.checkForImpassible() || position.isNearTo(room.controller)) continue;
                 position.createConstructionSite(STRUCTURE_LINK);
                 break;
             }
