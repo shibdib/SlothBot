@@ -49,6 +49,6 @@ module.exports.role = function (creep) {
         creep.memory.destination = undefined;
         creep.memory.lastRoom = creep.pos.roomName;
     } else {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 10});
     }
 };
