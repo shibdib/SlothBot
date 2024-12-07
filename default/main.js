@@ -21,11 +21,11 @@ module.exports.loop = function () {
 
         // Bucket Cool down Check
         if (Memory.cpuTracking && Memory.cpuTracking.cooldown) {
-            if (Memory.cpuTracking.cooldown + 25 < Game.time || Game.cpu.bucket > BUCKET_MAX * 0.05) {
+            if (Memory.cpuTracking.cooldown + 50 < Game.time || Game.cpu.bucket > BUCKET_MAX * 0.5) {
                 delete Memory.cpuTracking.cooldown;
             } else {
-                let countDown = (Memory.cpuTracking.cooldown + 25) - Game.time;
-                log.e('On CPU Cooldown For ' + countDown + ' more ticks or until the bucket reaches ' + BUCKET_MAX * 0.05 + '. Current Bucket ' + Game.cpu.bucket);
+                let countDown = (Memory.cpuTracking.cooldown + 50) - Game.time;
+                log.e('On CPU Cooldown For ' + countDown + ' more ticks or until the bucket reaches ' + BUCKET_MAX * 0.5 + '. Current Bucket ' + Game.cpu.bucket);
                 return;
             }
         } else {
