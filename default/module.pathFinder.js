@@ -261,7 +261,10 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             let route = findRoute(origin.roomName, target.roomName, options);
             if (route) {
                 if (!_.includes(route, creep.room.name)) route.unshift(creep.room.name);
-                allowedRooms = _.uniq(route.concat(_.map(Game.map.describeExits(creep.room.name))));
+                // Include the immediate surrounding rooms and their neighbors
+                let immediateArea = [];
+                _.map(Game.map.describeExits(creep.room.name)).forEach(r => immediateArea = immediateArea.concat(_.map(Game.map.describeExits(r))));
+                allowedRooms = _.uniq(route.concat(immediateArea));
                 pathInfo.route = route;
             } else {
                 let exitDir = Game.map.findExit(origin.roomName, pathInfo.targetRoom);
