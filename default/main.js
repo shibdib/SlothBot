@@ -16,7 +16,10 @@ Memory.lastGlobalReset = Game.time;
 if (PROFILER_ENABLED) profiler.enable();
 module.exports.loop = function () {
     profiler.wrap(function () {
-        //Bucket Cool down Check
+        // Memhack
+        tryInitSameMemory();
+
+        // Bucket Cool down Check
         if (Memory.cpuTracking && Memory.cpuTracking.cooldown) {
             if (Memory.cpuTracking.cooldown + 25 < Game.time || Game.cpu.bucket > BUCKET_MAX * 0.05) {
                 delete Memory.cpuTracking.cooldown;
@@ -123,4 +126,18 @@ global.resetMemory = function () {
     Memory.rooms = {};
     Memory.flags = {};
     Memory.spawns = {};
+}
+
+global.lastMemoryTick = undefined;
+
+function tryInitSameMemory() {
+    if (lastMemoryTick && global.LastMemory && Game.time == (lastMemoryTick + 1)) {
+        delete global.Memory
+        global.Memory = global.LastMemory
+        RawMemory._parsed = global.LastMemory
+    } else {
+        Memory;
+        global.LastMemory = RawMemory._parsed
+    }
+    lastMemoryTick = Game.time
 }
