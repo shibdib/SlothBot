@@ -8,6 +8,7 @@ class RoleRemoteHarvester {
     constructor(creep) {
         this.creep = creep;
         this.room = creep.room;
+        this.container = Game.getObjectById(this.creep.memory.containerID) || Game.getObjectById(this.creep.memory.containerSite);
         this.performRoleActions();
     }
 
@@ -27,18 +28,20 @@ class RoleRemoteHarvester {
             this.room.cacheRoomIntel(true);
             return this.creep.suicide();
         }
+        // Periodically check the container
+        if (this.creep.memory.onContainer && this.container && Math.random() > 0.9 && this.creep.pos.getRangeTo(this.container) > 0) {
+            this.creep.memory.onContainer = undefined;
+        }
     }
 
     harvestSource() {
         // Harvest from source
         const source = Game.getObjectById(this.creep.memory.other.source);
         if (source) {
-            const container = Game.getObjectById(this.creep.memory.containerID) || Game.getObjectById(this.creep.memory.containerSite);
-
             // Move to the container if not near it
-            if (!this.creep.memory.onContainer && container && this.creep.pos.getRangeTo(container) > 0) {
-                return this.creep.shibMove(container, {range: 0});
-            } else if (!this.creep.pos.isNearTo(source)) {
+            if (!this.creep.memory.onContainer && this.container && this.creep.pos.getRangeTo(this.container) > 0) {
+                return this.creep.shibMove(this.container, {range: 0});
+            } else if (!this.creep.memory.onContainer && !this.creep.pos.isNearTo(source)) {
                 return this.creep.shibMove(source);
             } else {
                 this.creep.memory.onContainer = true;
@@ -53,20 +56,19 @@ class RoleRemoteHarvester {
                         if (!this.creep.memory.containerID || !Game.getObjectById(this.creep.memory.containerID)) {
                             this.creep.memory.containerID = harvestDepositContainer(Game.getObjectById(this.creep.memory.other.source), this.creep);
                         }
-                        const container = Game.getObjectById(this.creep.memory.containerID) || Game.getObjectById(this.creep.memory.containerSite);
-                        if (container && container.hits) {
-                            if (this.creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return this.creep.repair(container);
-                            if (_.sum(container.store) >= 1980) {
+                        if (this.container && this.container.hits) {
+                            if (this.creep.store[RESOURCE_ENERGY] && this.container.hits < this.container.hitsMax * 0.5) return this.creep.repair(this.container);
+                            if (_.sum(this.container.store) >= 1980) {
                                 if (this.creep.memory.assignedHauler && !Game.getObjectById(this.creep.memory.assignedHauler)) this.creep.memory.assignedHauler = undefined;
                                 this.creep.idleFor(20);
-                            } else if (_.sum(container.store) >= CONTAINER_CAPACITY * 0.75 && container.hits < container.hitsMax) {
-                                this.creep.repair(container);
-                            } else if (_.sum(container.store) >= CONTAINER_CAPACITY) {
+                            } else if (_.sum(this.container.store) >= CONTAINER_CAPACITY * 0.75 && this.container.hits < this.container.hitsMax) {
+                                this.creep.repair(this.container);
+                            } else if (_.sum(this.container.store) >= CONTAINER_CAPACITY) {
                                 this.creep.idleFor(20);
                             }
 
-                            this.creep.memory.energyAmount = _.sum(container.store);
-                            this.creep.memory.energyId = container.id;
+                            this.creep.memory.energyAmount = _.sum(this.container.store);
+                            this.creep.memory.energyId = this.container.id;
                         } else {
                             const dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
                             if (dropped) {
@@ -77,6 +79,8 @@ class RoleRemoteHarvester {
                         break;
                 }
             }
+        } else {
+            this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 15});
         }
     }
 }
