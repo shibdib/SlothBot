@@ -103,9 +103,16 @@ let helpers = function () {
         return amount;
     }
 
+    /**
+     * Run profiler
+     */
+    global.profile = function () {
+        log.a('Running the Profiler', ' ');
+        Game.profiler.stream(25);
+    }
 
     /**
-     * Get the total amount of a resource you have
+     * Time since last reset
      */
     global.getUptime = function () {
         let uptime = (Game.time - (Memory.lastGlobalReset || Game.time));
