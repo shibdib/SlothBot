@@ -391,14 +391,12 @@ class RoleLabTech {
 
         // Find a container with minerals and valid conditions
         const container = _.find(this.room.structures, (s) =>
-            s.structureType === STRUCTURE_CONTAINER &&
-            _.sum(s.store) > s.store[RESOURCE_ENERGY] &&
-            (_.sum(s.store) >= this.creep.store.getCapacity() || !this.room.mineral.mineralAmount)
+            s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) && s.pos.isNearTo(this.room.mineral)
         );
 
         if (container) {
             // Assign the first available resource in the container to the creep's memory
-            const resourceType = Object.keys(container.store).find(res => res !== RESOURCE_ENERGY);
+            const resourceType = Object.keys(container.store).find(r => r.amount >= this.creep.store.getCapacity() * 0.1);
             if (resourceType) {
                 this.creep.memory.resourceNeeded = resourceType;
                 this.creep.memory.withdrawFrom = container.id;

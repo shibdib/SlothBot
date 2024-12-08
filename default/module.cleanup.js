@@ -3,7 +3,6 @@
  */
 
 module.exports.cleanup = function () {
-//CLEANUP
     if (Game.time % 100 === 0) {
         cleanDistanceCacheByUsage();
         cleanConstructionSites();
@@ -11,70 +10,102 @@ module.exports.cleanup = function () {
         cleanStructures();
     }
     if (Game.time % EST_TICKS_PER_DAY === 0) {
-        //cleanRoomIntel();
+        // Uncomment to enable: cleanRoomIntel();
     }
     if (Game.time % 5 === 0) {
+        // Cleanup old creep memory
         for (let name in Memory.creeps) {
             if (!Game.creeps[name]) {
                 delete Memory.creeps[name];
             }
         }
+
+        // Cleanup old flag memory
         for (let name in Memory.flags) {
             if (!Game.flags[name]) {
                 delete Memory.flags[name];
             }
         }
-        let buggedCreep = _.filter(Game.creeps, (c) => !c.memory.role);
-        for (let key in buggedCreep) {
-            buggedCreep[key].suicide();
+
+        // Suicide bugged creeps
+        const buggedCreeps = _.filter(Game.creeps, function (c) {
+            return !c.memory || !c.memory.role;
+        });
+        for (let i = 0; i < buggedCreeps.length; i++) {
+            buggedCreeps[i].suicide();
         }
     }
 };
 
 function cleanDistanceCacheByUsage() {
-    if (Memory._distanceCache) {  //1500 entries ~= 100kB
-        let cache;
-        try {
-            cache = JSON.parse(Memory._distanceCache);
-        } catch (e) {
-            return delete Memory._distanceCache;
-        }
-        if (_.size(cache) < 5000) return;
-        let sorted = _.sortBy(Memory._distanceCache, 'uses');
-        let overage = (_.size(Memory._distanceCache) - 2000) + 250;
-        log.i('Cleaning Distance cache (Over max size by ' + overage + ')...');
-        Memory._distanceCache = _.slice(sorted, overage, _.size(Memory._distanceCache));
+    if (!Memory._distanceCache) return;
+
+    let cache;
+    try {
+        cache = JSON.parse(Memory._distanceCache);
+    } catch (e) {
+        delete Memory._distanceCache;
+        return;
     }
+
+    if (_.size(cache) < 5000) return;
+
+    const sorted = _.sortBy(cache, "uses");
+    const overage = _.size(cache) - 2000 + 250;
+    log.i(`Cleaning Distance cache (Over max size by ${overage})...`);
+    Memory._distanceCache = JSON.stringify(_.slice(sorted, overage));
 }
 
 function cleanConstructionSites() {
-    for (let key in Game.constructionSites) {
-        if (Math.random() > 0.5 && (!Game.constructionSites[key].room || !Game.constructionSites[key].pos.findClosestByRange(FIND_MY_CREEPS)) &&
-            Game.constructionSites[key].structureType !== STRUCTURE_SPAWN && Game.constructionSites[key].structureType !== STRUCTURE_EXTENSION && Game.constructionSites[key].structureType !== STRUCTURE_CONTAINER && Game.constructionSites[key].structureType !== STRUCTURE_ROAD) {
-            Game.constructionSites[key].remove();
+    for (let id in Game.constructionSites) {
+        const site = Game.constructionSites[id];
+        if (
+            Math.random() > 0.5 &&
+            (!site.room || !site.pos.findClosestByRange(FIND_MY_CREEPS)) &&
+            site.structureType !== STRUCTURE_SPAWN &&
+            site.structureType !== STRUCTURE_EXTENSION &&
+            site.structureType !== STRUCTURE_CONTAINER &&
+            site.structureType !== STRUCTURE_ROAD
+        ) {
+            site.remove();
         }
     }
 }
 
+// Uncomment to use this function when necessary
 function cleanRoomIntel() {
-    if (INTEL) {
-        let startLength = _.size(INTEL);
-        Object.keys(INTEL).forEach((r) => {
-            let cachedTime = INTEL[r].cached;
-            if (cachedTime + 10000 < Game.time || (cachedTime + 20000 < Game.time && r.important) || (findClosestOwnedRoom(r.name, true) > 10 && cachedTime + 5000 < Game.time)) delete INTEL[r];
-        });
-        if (startLength > _.size(INTEL)) log.d('CleanUp: Room Cache now has ' + _.size(INTEL) + ' entries.')
+    if (!INTEL) return;
+
+    const startLength = _.size(INTEL);
+    for (let roomName in INTEL) {
+        const intel = INTEL[roomName];
+        if (
+            intel.cached + 10000 < Game.time ||
+            (intel.cached + 20000 < Game.time && intel.important) ||
+            (findClosestOwnedRoom(roomName, true) > 10 && intel.cached + 5000 < Game.time)
+        ) {
+            delete INTEL[roomName];
+        }
+    }
+
+    const newLength = _.size(INTEL);
+    if (startLength > newLength) {
+        log.d(`CleanUp: Room Cache now has ${newLength} entries.`);
     }
 }
 
 function cleanStructureMemory() {
     if (Memory.structureMemory) {
-        Memory.structureMemory = undefined;
-    } else {
-        for (let room of MY_ROOMS) {
-            if (Game.rooms[room].memory.structureMemory) {
-                for (let structure of Object.keys(Game.rooms[room].memory.structureMemory)) {
-                    if (!Game.getObjectById(structure)) Game.rooms[room].memory.structureMemory[structure] = undefined;
+        delete Memory.structureMemory;
+        return;
+    }
+
+    for (let i = 0; i < MY_ROOMS.length; i++) {
+        const room = Game.rooms[MY_ROOMS[i]];
+        if (room && room.memory && room.memory.structureMemory) {
+            for (let structureId in room.memory.structureMemory) {
+                if (!Game.getObjectById(structureId)) {
+                    delete room.memory.structureMemory[structureId];
                 }
             }
         }
@@ -82,7 +113,15 @@ function cleanStructureMemory() {
 }
 
 function cleanStructures() {
-    for (let structure of _.filter(Game.structures)) {
-        if (structure.room.controller && (!structure.room.controller.owner || structure.room.controller.owner.username !== MY_USERNAME) && !structure.isActive()) structure.destroy();
+    const structures = _.filter(Game.structures, function (s) {
+        return (
+            s.room.controller &&
+            (!s.room.controller.owner || s.room.controller.owner.username !== MY_USERNAME) &&
+            !s.isActive()
+        );
+    });
+
+    for (let i = 0; i < structures.length; i++) {
+        structures[i].destroy();
     }
 }

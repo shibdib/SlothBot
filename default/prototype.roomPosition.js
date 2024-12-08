@@ -266,12 +266,27 @@ RoomPosition.prototype.checkForBarrierStructure = function () {
  * Check for obstacle structure
  * @returns {*}
  */
+global.OBSTACLE_CACHE = {};
 RoomPosition.prototype.checkForObstacleStructure = function () {
+    const cacheKey = this.x + ',' + this.y + ',' + this.roomName; // Using a unique key for each position.
+    // Check cache first
+    if (OBSTACLE_CACHE && OBSTACLE_CACHE[cacheKey]) {
+        return OBSTACLE_CACHE[cacheKey];
+    }
     let obstacle = this.lookFor(LOOK_STRUCTURES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
-    if (!obstacle) obstacle = _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART && !s.my && !s.isPublic && !FRIENDLIES.includes(s.owner.username));
-    if (!obstacle) obstacle = this.lookFor(LOOK_CONSTRUCTION_SITES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
+    if (!obstacle) {
+        obstacle = _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART && !s.my && !s.isPublic && !FRIENDLIES.includes(s.owner.username));
+    }
+    if (!obstacle) {
+        obstacle = this.lookFor(LOOK_CONSTRUCTION_SITES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
+    }
+    // Store the result in the cache
+    if (!OBSTACLE_CACHE) OBSTACLE_CACHE = {};
+    OBSTACLE_CACHE[cacheKey] = obstacle;
+
     return obstacle;
 };
+
 
 /**
  * Check for construction site

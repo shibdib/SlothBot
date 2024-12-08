@@ -5,6 +5,7 @@
 const Log = require('logger');
 let activeConfig;
 
+// noinspection JSUnresolvedReference
 let globals = function () {
     // Try to load a private server config otherwise load the default
     try {

@@ -69,7 +69,7 @@ class Overlord {
                     Game.notify(e);
                     Game.notify(e.stack);
                 } else errorCount[creep.name] += 1;
-                if (errorCount[creep.name] >= 50) {
+                if (errorCount[creep.name] >= 10) {
                     log.e(e);
                     log.e(e.stack);
                     log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name) + ' and has been killed.');
@@ -133,13 +133,13 @@ class Overlord {
             if (average(cpuUsageArray) > this.CPULimit) {
                 let cpuOverCount = this.room.memory.cpuOverage || 0;
                 this.room.memory.cpuOverage = cpuOverCount + 1;
-                log.e(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
+                log.e(this.room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
                 if (cpuOverCount >= 50) {
                     this.room.memory.cpuOverage = undefined;
                     this.room.memory.noRemote = Game.time + 5000;
-                    _.filter(Game.creeps, (c) => c.my && c.memory.overlord === room.name && c.room.name !== room.name && !c.memory.military).forEach((k) => k.suicide());
+                    _.filter(Game.creeps, (c) => c.my && c.memory.overlord === this.room.name && c.room.name !== this.room.name && !c.memory.military).forEach((k) => k.suicide());
                     //Game.notify(room.name + ' remote spawning has been disabled.');
-                    log.e(roomLink(room.name) + ' remote spawning has been disabled.');
+                    log.e(roomLink(this.room.name) + ' remote spawning has been disabled.');
                 }
             } else {
                 if (this.room.memory.cpuOverage) this.room.memory.cpuOverage--;

@@ -413,7 +413,7 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
             if (roomName === origin || roomName === destination) return 1;
             // Regex highway check
             let [EW, NS] = roomName.match(/\d+/g);
-            let highway = (INTEL[roomName] && INTEL[roomName].isHighway) || EW % 10 == 0 || NS % 10 == 0;
+            let highway = (INTEL[roomName] && INTEL[roomName].isHighway) || EW % 10 === 0 || NS % 10 === 0;
             // Add a check for novice/respawn
             if (roomStatus(roomName) !== roomStatus(origin)) return 256;
             // My rooms
@@ -597,6 +597,7 @@ function addStructuresToMatrix(room, creep, matrix, type, options) {
     }
     let noWallWrecker = (!creep.className && !creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)) || (INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner));
     for (let structure of room.structures) {
+        const obstacle = structure.pos.checkForObstacleStructure();
         if (structure instanceof StructureWall) {
             if (noWallWrecker) {
                 matrix.set(structure.pos.x, structure.pos.y, 256);
@@ -609,12 +610,12 @@ function addStructuresToMatrix(room, creep, matrix, type, options) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureController) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
-        } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic) && !structure.pos.checkForObstacleStructure()) {
+        } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic) && !obstacle) {
             if (room.hostileCreeps.length) matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
             else matrix.set(structure.pos.x, structure.pos.y, 2);
-        } else if (structure instanceof StructureRampart && (FRIENDLIES.includes(structure.owner.username) && !structure.pos.checkForObstacleStructure())) {
+        } else if (structure instanceof StructureRampart && (FRIENDLIES.includes(structure.owner.username) && !obstacle)) {
             matrix.set(structure.pos.x, structure.pos.y, 250);
-        } else if (structure instanceof StructureRampart && (!structure.my || !structure.isPublic || structure.pos.checkForObstacleStructure())) {
+        } else if (structure instanceof StructureRampart && (!structure.my || !structure.isPublic || obstacle)) {
             if (noWallWrecker) {
                 matrix.set(structure.pos.x, structure.pos.y, 256);
             } else {
@@ -622,7 +623,7 @@ function addStructuresToMatrix(room, creep, matrix, type, options) {
             }
         } else if (structure instanceof StructureContainer) {
             matrix.set(structure.pos.x, structure.pos.y, 75);
-        } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()) {
+        } else if (structure instanceof StructureRoad && !obstacle && !structure.pos.checkForContainer()) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost);
         } else {
             matrix.set(structure.pos.x, structure.pos.y, 256);
@@ -1054,45 +1055,69 @@ Room.prototype.routeSafe = function (destination = this.name, maxThreat = 2, max
 };
 
 /**
- * Handle kiting
+ * Handle kiting with optimized movement and target avoidance
  * @param fleeRange
  * @param target
  * @returns {boolean}
  */
 Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined) {
+    // If the creep can't move or if the room is in safe mode, don't kite
     if (!this.hasActiveBodyparts(MOVE) || (this.room.controller && this.room.controller.safeMode)) return false;
-    let avoid = _.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange + 1).concat(this.pos.findInRange(this.room.structures, fleeRange + 1, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn <= fleeRange + 2})) || target;
-    if (!avoid || !avoid.length) return false;
-    // If in a rampart you're safe
+
+    // Detect enemies to avoid
+    let avoid = _.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) &&
+        (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) &&
+        this.pos.getRangeTo(c) <= fleeRange + 1
+    ).concat(this.pos.findInRange(this.room.structures, fleeRange + 1, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn <= fleeRange + 2}));
+
+    // If no enemies or threats to avoid, don't need to kite
+    if (!avoid.length) return false;
+
+    // If the creep is already in a rampart, it's safe, no need to move
     if (this.pos.checkForRampart()) return true;
+
+    // Indicate we're running away
     this.say('!!RUN!!', true);
     this.memory.kiteRoom = this.memory.room;
-    let avoidance = _.map(avoid, (c) => {
-        return {pos: c.pos, range: fleeRange};
-    });
+
+    // Define the avoidance zones
+    let avoidance = _.map(avoid, (c) => ({pos: c.pos, range: fleeRange}));
+
+    // Set movement options
     let options = getMoveWeight(this);
     let creep = this;
+
+    // Perform pathfinding to escape the threats
     let ret = PathFinder.search(this.pos, avoidance, {
         flee: true,
         swampCost: 75,
         plainCost: 3,
         maxRooms: 2,
         roomCallback: function () {
+            // Generate terrain matrix with added factors for structures and creeps
             let matrix = getTerrainMatrix(creep.room.name, options);
             matrix = getStructureMatrix(creep.room.name, creep, matrix, options);
             matrix = getCreepMatrix(creep.room.name, creep, matrix, options);
             matrix = getHostileMatrix(creep.room.name, matrix, options);
-            return getSKMatrix(creep.room.name, matrix, options);
+            matrix = getSKMatrix(creep.room.name, matrix, options);
+            return matrix;
         }
     });
+
+    // If a valid path exists, move the creep
     if (ret.path.length > 0) {
+        // If this is the squad leader, store the direction for the squad
         if (this.memory.squadLeader === this.id) {
             this.memory.squadKite = this.pos.getDirectionTo(ret.path[0]);
         }
+
+        // Store the last kite direction and move
         this.memory.lastKite = this.pos.getDirectionTo(ret.path[0]);
         this.move(this.pos.getDirectionTo(ret.path[0]));
+
         return true;
-    } else {
-        return false;
     }
+
+    // If no valid path is found, return false (kiting failed)
+    return false;
 };

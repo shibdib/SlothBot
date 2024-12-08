@@ -42,7 +42,7 @@ class RoleCommodityMiner {
         // Store space
         if (!Memory.auxiliaryTargets[this.creep.memory.destination].space) Memory.auxiliaryTargets[this.creep.memory.destination].space = deposit.pos.countOpenTerrainAround();
         // Clear the deposit if needed
-        if (!deposit || (!deposit.depositType && !deposit.mineralAmount) || deposit.lastCooldown >= 25) return creep.memory.deposit = undefined;
+        if (!deposit || (!deposit.depositType && !deposit.mineralAmount) || deposit.lastCooldown >= 25) return this.creep.memory.deposit = undefined;
         // Refresh the operation
         if (Memory.auxiliaryTargets[this.creep.memory.destination]) Memory.auxiliaryTargets[this.creep.memory.destination].tick = Game.time;
         switch (this.creep.harvest(deposit)) {

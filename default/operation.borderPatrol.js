@@ -6,46 +6,80 @@ Creep.prototype.borderPatrol = function () {
     let sentence = [ICONS.border, 'Border', 'Patrol'];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
-    // Handle combat
-    if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(50)) {
-        if (this.handleMilitaryCreep() || this.scorchedEarth()) return; else return this.shibKite();
-    } else if (!this.healCreeps() && !this.memory.destination) {
-        // Check neighbors
-        let adjacent = _.filter(Game.map.describeExits(this.pos.roomName), (r) => INTEL[r] && INTEL[r].threatLevel)[0] || _.filter(Game.map.describeExits(this.pos.roomName), (r) => INTEL[r] && INTEL[r].roomHeat)[0];
-        if (adjacent) {
-            return this.memory.destination = adjacent;
+
+    // 1. Proactive Combat Check
+    if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
+        if (this.canIWin(50)) {
+            if (this.handleMilitaryCreep() || this.scorchedEarth()) return;
+            else return this.shibKite();
         }
-        if (!this.memory.awaitingOrders) {
-            // If on target, be available to respond
-            if (!this.memory.onTarget) this.memory.onTarget = Game.time;
-            // Don't idle in SK rooms, go home
-            if (INTEL[this.room.name] && INTEL[this.room.name].sk) return this.memory.destination = this.memory.overlord;
-            // Idle in target rooms for 25 ticks then check if adjacent rooms need help or mark yourself ready to respond
-            if (this.memory.onTarget + 25 <= Game.time) {
+    } else {
+        // 2. Evaluate adjacent rooms for threats
+        let adjacentRoomWithThreat = findAdjacentRoomWithThreat(this);
+        if (adjacentRoomWithThreat) {
+            // Move to the adjacent room with the highest threat
+            this.memory.destination = adjacentRoomWithThreat;
+            return this.shibMove(new RoomPosition(25, 25, adjacentRoomWithThreat), {range: 24});
+        }
+
+        // 3. Check current room status
+        if (this.memory.destination) {
+            // If we are already on a mission, let's move there
+            if (this.room.name !== this.memory.destination) {
+                return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
+            } else {
+                // 4. Evaluate if we should stay or move back
+                if (!this.room.hostileCreeps.length && !this.room.hostileStructures.length) {
+                    this.memory.destination = undefined; // Safe, so reset destination
+                    this.idleFor(5); // Idle for a moment to observe
+                    return;
+                }
+            }
+        }
+
+        // 5. Proactive behavior when idle
+        if (!this.memory.destination && !this.memory.awaitingOrders) {
+            if (INTEL[this.room.name] && INTEL[this.room.name].sk) {
+                // If in SK room, return to overlord
+                this.memory.destination = this.memory.overlord;
+                this.idleFor(5);
+            } else {
+                // Mark for awaiting orders after idle
                 this.memory.destination = this.memory.overlord;
                 this.memory.awaitingOrders = true;
-                this.memory.onTarget = undefined;
-            } else {
                 this.idleFor(5);
             }
-        } else if (!this.memory.destination) this.idleFor(5);
-    } else if (this.memory.destination && this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
-    else if (this.room.name === this.memory.destination && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) this.memory.destination = undefined;
-};
-
-function offDuty(creep, partner = undefined) {
-    if (!creep.healCreeps()) {
-        let latestAttack = _.max(_.filter(INTEL, (r) => r.roomHeat > 0 && Game.map.getRoomLinearDistance(r.name, creep.memory.overlord) <= 2 && !r.threatLevel), 'roomHeat');
-        if (latestAttack && latestAttack.name && latestAttack.name !== creep.room.name) {
-            return creep.shibMove(new RoomPosition(25, 25, latestAttack.name), {range: 8})
-        } else if (!latestAttack && creep.room.name !== creep.memory.overlord) {
-            return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 8})
         }
-        if (!partner || partner.pos.isNearTo(creep)) {
-            if (partner) partner.idleFor(10)
-            return creep.idleFor(10);
-        } else if (partner) {
-            return partner.shibMove(this, {range: 0});
+
+        // 6. Move back to overlord if needed
+        if (this.memory.awaitingOrders && !this.memory.destination) {
+            this.memory.destination = this.memory.overlord;
+            this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
         }
     }
-}
+};
+
+/**
+ * Find an adjacent room with threats based on INTEL.
+ * @returns {string|null} The room name with the highest threat or null.
+ */
+findAdjacentRoomWithThreat = function (creep) {
+    let adjacentRooms = _.map(Game.map.describeExits(creep.pos.roomName));
+    let maxThreatLevel = 0;
+    let roomWithHighestThreat = null;
+
+    for (let adjacentRoom of adjacentRooms) {
+        if (INTEL[adjacentRoom]) {
+            let threat = INTEL[adjacentRoom].threatLevel || 0;
+            let heat = INTEL[adjacentRoom].roomHeat || 0;
+
+            // Prioritize rooms with higher threat or room heat
+            if (threat > maxThreatLevel || heat > maxThreatLevel) {
+                maxThreatLevel = Math.max(threat, heat);
+                roomWithHighestThreat = adjacentRoom;
+            }
+        }
+    }
+
+    return roomWithHighestThreat;
+};

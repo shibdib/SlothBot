@@ -484,6 +484,7 @@ module.exports.globalCreepQueue = function () {
 
     for (let key in operations) {
         const operation = operations[key];
+        if (!operation) continue;
         const opLevel = operation.level;
         let priority = operation.priority;
 

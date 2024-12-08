@@ -1,27 +1,49 @@
-/*
- * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
- */
-
 const highCommand = require('military.highCommand');
+
 Creep.prototype.holdRoom = function () {
+    // Boost logic: Only boost if necessary
     if (this.tryToBoost(['ranged', 'heal', 'attack', 'tough'])) return;
-    let sentence = ['Coming', 'For', 'That', 'Booty', this.memory.destination];
+
+    // Make sure to display status to inform the user what's happening
+    const sentence = ['Coming', 'For', 'That', 'Booty', this.memory.destination];
     this.say(sentence[Game.time % sentence.length], true);
+
+    // Perform combat and healing if in range
     this.attackInRange();
     this.healInRange();
-    // Move to response room if needed
+
+    // If not in the destination room, move there
     if (this.room.name !== this.memory.destination) {
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
-    } else {
-        if (!Memory.targetRooms[this.room.name]) return this.memory.operation = 'borderPatrol';
-        let sentence = ['Please', 'Abandon'];
-        let word = Game.time % sentence.length;
-        this.say(sentence[word], true);
-        // Handle combat
-        if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(50)) {
-            if (this.handleMilitaryCreep() || this.scorchedEarth()) return; else return this.shibKite();
-        } else this.healCreeps()
-        if (Game.time % 5 === 0) this.operationManager();
-        highCommand.operationSustainability(this.room);
     }
+
+    // Check if we still have a target room in the memory
+    if (!Memory.targetRooms[this.room.name]) {
+        this.memory.operation = 'borderPatrol';
+        return;
+    }
+
+    // Announce that we might need to abandon the room
+    const abandonMessage = ['Please', 'Abandon'];
+    this.say(abandonMessage[Game.time % abandonMessage.length], true);
+
+    // Handle combat if hostile creeps or structures are present
+    if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(50)) {
+        // Engage in combat if possible
+        if (this.handleMilitaryCreep() || this.scorchedEarth()) return;
+
+        // If not combat-focused, kite away from enemies
+        return this.shibKite();
+    }
+
+    // If no immediate combat, focus on healing nearby friendly creeps
+    this.healCreeps();
+
+    // Call operation manager periodically (every 5 ticks)
+    if (Game.time % 5 === 0) {
+        this.operationManager();
+    }
+
+    // Update sustainability of operation in this room
+    highCommand.operationSustainability(this.room);
 };

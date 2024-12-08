@@ -12,66 +12,104 @@ let runOnce, globalOrders, lastPriceAdjust, spendingMoney, lastEnergyPurchase;
 if (Memory._banker) spendingMoney = Memory._banker.spendingAccount; else spendingMoney = 0;
 
 module.exports.terminalControl = function (room) {
-    // Handle season stuff
+    // Handle season-related tasks
     if (Game.shard.name === 'shardSeason') {
-        balanceResources(room.terminal);
-        return;
+        return balanceResources(room.terminal);
     }
+
+    // Initialize saleTerminal memory if not set
     Memory.saleTerminal = Memory.saleTerminal || {};
-    // If sale terminal has a nuke incoming clear it
+
+    // If there's an incoming nuke, clear the saleTerminal room
     if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room] && Game.rooms[Memory.saleTerminal.room].nukes.length) {
         log.a(roomLink(Memory.saleTerminal.room) + ' is no longer the primary market room due to an incoming nuke.');
         Memory.saleTerminal.room = undefined;
     }
-    // Set saleTerminal
+
+    // Set the saleTerminal room if needed
     if (!Memory.saleTerminal.room || Memory.saleTerminal.saleSet + 15000 < Game.time || !Game.rooms[Memory.saleTerminal.room]) {
-        // Clear if no longer valid
-        if (!Game.rooms[Memory.saleTerminal.room] || !INTEL[Memory.saleTerminal.room] || INTEL[Memory.saleTerminal.room].owner !== MY_USERNAME) Memory.saleTerminal = {};
-        if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].controller.level === MAX_LEVEL) {
-            return Memory.saleTerminal.saleSet = Game.time;
+        // Clear invalid saleTerminal if the room no longer meets the conditions
+        const roomData = Game.rooms[Memory.saleTerminal.room];
+        if (!roomData || !INTEL[Memory.saleTerminal.room] || INTEL[Memory.saleTerminal.room].owner !== MY_USERNAME) {
+            Memory.saleTerminal = {};
         }
-        Memory.saleTerminal.room = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && !s.room.memory.praiseRoom && s.room.level === MAX_LEVEL && !s.room.nukes.length && s.isActive() && _.sum(s.store) < s.store.getCapacity() * 0.9)).room.name;
-        Memory.saleTerminal.saleSet = Game.time;
+
+        // If the saleTerminal room has the max controller level, return early
+        if (roomData && roomData.controller.level === MAX_LEVEL) {
+            Memory.saleTerminal.saleSet = Game.time;
+            return;
+        }
+
+        // Choose a valid room for saleTerminal
+        const availableRooms = _.filter(Game.structures, (s) => {
+            return s.structureType === STRUCTURE_TERMINAL &&
+                !s.room.memory.praiseRoom &&
+                s.room.level === MAX_LEVEL &&
+                !s.room.nukes.length &&
+                s.isActive() &&
+                _.sum(s.store) < s.store.getCapacity() * 0.9;
+        });
+
+        if (availableRooms.length) {
+            Memory.saleTerminal.room = _.sample(availableRooms).room.name;
+            Memory.saleTerminal.saleSet = Game.time;
+        }
     }
-    let myOrders = Game.market.orders;
-    // Get global orders
-    globalOrders = Game.market.getAllOrders();
+
+    const myOrders = Game.market.orders;
+    const globalOrders = Game.market.getAllOrders();
+
+    // Handle actions for the primary sale terminal room
     if (room.name === Memory.saleTerminal.room) {
         if (Memory._banker) {
-            if (spendingMoney > Game.market.credits - CREDIT_BUFFER) spendingMoney = Game.market.credits - (CREDIT_BUFFER * 1.1);
+            spendingMoney = Math.min(spendingMoney, Game.market.credits - (CREDIT_BUFFER * 1.1));
             Memory._banker.spendingAccount = _.floor(spendingMoney, 1);
         }
-        // Track profits
+
+        // Track profits and manage diplomacy
         profitCheck();
-        // Check for diplomatic changes based on trade
         tradeDiplomacyTracker();
-        // Sell pixels
-        if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name)) sellPixels(globalOrders);
-        // Update prices
+
+        // Sell pixels for specific shards
+        if (['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
+            sellPixels(globalOrders);
+        }
+
+        // Adjust prices periodically
         if ((lastPriceAdjust || 0) + 100 < Game.time) {
             pricingUpdate(globalOrders, myOrders);
             lastPriceAdjust = Game.time;
         }
-        // Cleanup broken or old orders
+
+        // Cleanup old orders and place new ones
         orderCleanup(myOrders);
-        // Place sell orders
-        if (!['swc', 'botarena'].includes(Game.shard.name)) placeSellOrders(room.terminal, globalOrders, myOrders);
-        if (spendingMoney > 0) {
-            // Buy resources being sold at below market value
-            //if (dealFinder(room.terminal, globalOrders)) return;
+        if (!['swc', 'botarena'].includes(Game.shard.name)) {
+            placeSellOrders(room.terminal, globalOrders, myOrders);
         }
-        //Dump Excess
+
+        // Handle buying and selling logic
+        if (spendingMoney > 0) {
+            // Buy resources if below market value (commented out code here for potential future use)
+            // if (dealFinder(room.terminal, globalOrders)) return;
+        }
+
+        // Dump excess resources
         if (fillBuyOrders(room.terminal, globalOrders)) return;
     }
-    // Place buy orders
-    if (placeBuyOrders(room.terminal, globalOrders, myOrders)) return;
-    //Send energy to rooms under siege or struggling
+
+    // Handle placing buy orders if we're not in the sale terminal room
+    if (placeBuyOrders(room, globalOrders, myOrders)) return;
+
+    // Emergency energy transfers for struggling rooms or under siege
     if (emergencyEnergy(room.terminal)) return;
-    //Disperse Minerals and Boosts
+
+    // Disperse minerals and boosts
     if (balanceResources(room.terminal)) return;
-    //Disperse energy
-    balanceEnergy(room.terminal)
+
+    // Balance energy resources
+    balanceEnergy(room.terminal);
 };
+
 
 function orderCleanup(myOrders) {
     let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
@@ -286,7 +324,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
 function placeBuyOrders(terminal, globalOrders, myOrders) {
     for (let mineral of shuffle(BASE_MINERALS)) {
         // Don't buy minerals you can mine
-        if (Memory.harvestableMinerals && Memory.harvestableMinerals.includes(mineral)) continue;
+        if (MY_MINERALS && MY_MINERALS.includes(mineral)) continue;
         let target = reactionAmount;
         let stored = getResourceTotal(mineral) + (getResourceTotal(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
         if (stored < target) {
