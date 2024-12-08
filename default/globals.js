@@ -61,8 +61,8 @@ let globals = function () {
     };
 
     global.REMOTE_SOURCE_TARGET = 5; // The number of remote sources a room looks to have. Changing this might ruin your economy.
-
-    // Amount targets (Advanced)
+    // Global cache for roles
+    global.ROLE_CACHE = {};
 
     // Wall and rampart target amounts
     global.BARRIER_TARGET_HIT_POINTS = {

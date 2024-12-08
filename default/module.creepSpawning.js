@@ -250,17 +250,14 @@ module.exports.miscCreepQueue = function (room) {
 
     // Drone Queueing
     let dronePriority = PRIORITIES.drone;
-    let droneNumber = room.storage || hasConstructionSites ? 6 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] : 3 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level];
+    let droneNumber = !room.storage || hasConstructionSites ? 6 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] : 3 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level];
     let rebootDrone = room.friendlyCreeps.length <= 3;
     queueCreepIfNeeded('drone', dronePriority, droneNumber, {reboot: rebootDrone});
 
-    // LabTech and PowerManager
+    // LabTech
     if (storageOrTerminal && level >= 6) {
         if (!getCreepCount(room, 'labTech')) {
             queueCreep(room, PRIORITIES.hauler, {role: 'labTech'});
-        }
-        if (room.energyState && level === 8 && room.store(RESOURCE_POWER) && !getCreepCount(room, 'powerManager')) {
-            queueCreep(room, PRIORITIES.hauler, {role: 'powerManager'});
         }
     }
 

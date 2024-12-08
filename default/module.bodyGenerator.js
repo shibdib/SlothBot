@@ -77,7 +77,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, creepInf
             }
             break;
 
-        case 'powerManager':
         case 'hauler':
         case 'labTech':
             carry = Math.floor((energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
