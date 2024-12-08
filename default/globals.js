@@ -398,57 +398,65 @@ let globals = function () {
     // Usage: After you require this file, just add this to anywhere in your main loop to run every tick: global.populateLOANlist();
     // global.LOANlist will contain an array of usernames after global.populateLOANlist() runs twice in a row (two consecutive ticks).
     global.populateLOANlist = function (LOANuser = "LeagueOfAutomatedNations", LOANsegment = 99) {
-        if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name)) { // To skip running in sim or private servers which prevents errors
+        const shardNames = ['shard0', 'shard1', 'shard2', 'shard3'];
+        if (shardNames.includes(Game.shard.name)) {
+            global.ALLIANCE_DATA = undefined; // To skip running in sim or private servers to avoid errors
+
+            // Initialize memory if necessary
             if (!Memory.lastLOANtime || !global.LOANlist) {
-                global.LOANcheck = false;
                 Memory.lastLOANtime = Game.time - 10000;
                 global.LOANlist = [];
-                if (!Memory.LOANalliance) Memory.LOANalliance = "";
+                Memory.LOANalliance = Memory.LOANalliance || "";
             }
+
+            // Check if it's time to update
             if (Game.time >= (Memory.lastLOANtime + 1000)) {
                 global.LOANcheck = false;
                 Memory.lastLOANtime = Game.time;
                 RawMemory.setActiveForeignSegment(LOANuser, LOANsegment);
-            } else if (Game.time === Memory.lastLOANtime + 1 && RawMemory.foreignSegment && (RawMemory.foreignSegment.username === LOANuser) && (RawMemory.foreignSegment.id === LOANsegment)) {
+            } else if (Game.time === Memory.lastLOANtime + 1 && RawMemory.foreignSegment &&
+                RawMemory.foreignSegment.username === LOANuser &&
+                RawMemory.foreignSegment.id === LOANsegment) {
                 global.LOANcheck = true;
                 Memory.lastLOANtime = Game.time;
+
                 if (RawMemory.foreignSegment.data == null) {
-                    if (Memory.friendList) global.LOANlist = Memory.friendList; else global.LOANlist = [];
-                    if (!Memory.LOANalliance) Memory.LOANalliance = '';
-                    global.ALLIANCE_DATA = undefined;
+                    // If no data, reset the LOAN list
+                    global.LOANlist = Memory.friendList || [];
+                    Memory.LOANalliance = '';
                     return false;
                 } else {
-                    let myUsername = MY_USERNAME; // Blank! Will be auto-filled.
-                    let LOANdata = JSON.parse(RawMemory.foreignSegment.data);
+                    // Process the alliance data
+                    const LOANdata = JSON.parse(RawMemory.foreignSegment.data);
                     global.ALLIANCE_DATA = RawMemory.foreignSegment.data;
-                    let LOANdataKeys = Object.keys(LOANdata);
-                    for (let iL = (LOANdataKeys.length - 1); iL >= 0; iL--) {
-                        if (LOANdata[LOANdataKeys[iL]].indexOf(myUsername) >= 0) {
-                            //console.log("Player",myUsername,"found in alliance",LOANdataKeys[iL]);
-                            let disavowed = [];
-                            global.LOANlist = LOANdata[LOANdataKeys[iL]];
-                            global.LOANlist = global.LOANlist.filter(function (uname) {
-                                return disavowed.indexOf(uname) < 0;
-                            });
-                            global.LOANlist.concat(MANUAL_FRIENDS);
+                    const LOANdataKeys = Object.keys(LOANdata);
+                    let foundAlliance = false;
+
+                    for (let iL = LOANdataKeys.length - 1; iL >= 0; iL--) {
+                        if (LOANdata[LOANdataKeys[iL]].includes(MY_USERNAME)) {
+                            global.LOANlist = [...global.LOANlist, ...MANUAL_FRIENDS];
                             Memory.friendList = global.LOANlist;
-                            Memory.LOANalliance = LOANdataKeys[iL].toString();
-                            return true;
+                            Memory.LOANalliance = LOANdataKeys[iL];
+                            foundAlliance = true;
+                            break;
                         }
                     }
-                    return false;
+
+                    return foundAlliance;
                 }
             }
+
             return true;
         } else {
+            // For non-shard environments
             global.LOANcheck = true;
-            global.LOANlist = [];
-            global.LOANlist.concat(MANUAL_FRIENDS);
+            global.LOANlist = [...MANUAL_FRIENDS];
             Memory.LOANalliance = "";
             global.ALLIANCE_DATA = undefined;
             return false;
         }
     };
+
 
     global.shuffle = function (array) {
         let counter = array.length;
