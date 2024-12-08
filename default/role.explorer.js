@@ -12,7 +12,7 @@ class RoleExplorer {
     }
 
     performRoleActions() {
-        if (this.housekeeping()) return;
+        this.housekeeping();
         if (!this.creep.memory.destination) {
             this.findDestination();
         } else if (this.room.name === this.creep.memory.destination) {
@@ -24,7 +24,6 @@ class RoleExplorer {
 
     housekeeping() {
         this.creep.say(ICONS.eye, true);
-        if (this.creep.towTruck() || (Math.random() > 0.7 && this.creep.wrongRoom())) return true;
     }
 
     findDestination() {
