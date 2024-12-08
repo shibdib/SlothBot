@@ -72,7 +72,7 @@ module.exports.terminalControl = function (room) {
 
         // Sell pixels for specific shards
         if (['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
-            sellPixels(globalOrders);
+            if (SELL_PIXELS) sellPixels(globalOrders);
         }
 
         // Adjust prices periodically
