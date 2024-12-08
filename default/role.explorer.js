@@ -43,7 +43,7 @@ class RoleExplorer {
             let adjacent = _.filter(_.map(Game.map.describeExits(this.room.name)), function (r) {
                 let [EW, NS] = r.match(/\d+/g);
                 let highway = (INTEL[r] && INTEL[r].isHighway) || EW % 10 === 0 || NS % 10 === 0;
-                return roomStatus(r) === (roomStatus(this.creep.memory.overlord) || highway) && (!INTEL[this.room.name].obstacles || this.creep.pos.findPathTo(Game.map.findExit(this.room.name, r)).length)
+                return (roomStatus(r) === roomStatus(this.creep.memory.overlord) || highway) && (!INTEL[this.room.name].obstacles || this.creep.pos.findPathTo(Game.map.findExit(this.room.name, r)).length)
             });
             // Filter out the last room if we have options
             if (this.creep.memory.lastRoom && adjacent.length > 1) adjacent = _.filter(adjacent, (a) => a !== this.creep.memory.lastRoom);
