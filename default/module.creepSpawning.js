@@ -786,7 +786,6 @@ function displayQueue(room) {
                 let maxRange = 22;
                 if (_.includes(body, CLAIM)) maxRange = 14;
                 let range = Game.map.getRoomLinearDistance(room.name, operationQueue[key].destination);
-                if (range > maxRange) range = room.shibRoute(operationQueue[key].destination).length;
                 if (range > maxRange) {
                     delete operationQueue[key]
                     continue;
