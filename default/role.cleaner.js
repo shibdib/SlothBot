@@ -2,49 +2,52 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-/**
- * Created by Bob on 7/12/2017.
- */
+const profiler = require("./tools.profiler");
 
-module.exports.role = function (creep) {
-    if (creep.tryToBoost(['dismantle'])) return;
-    creep.say('NOM!', true);
-    if (creep.memory.barrierClearing) return barrierCleaning(creep);
-    if (creep.memory.destination) {
-        if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
-        if (Memory.auxiliaryTargets[creep.memory.destination] && Memory.auxiliaryTargets[creep.memory.destination].type === 'scoreCleaner') {
-            Memory.auxiliaryTargets[creep.memory.destination].guard = creep.room.hostileCreeps.length > 0;
-            //let collector = creep.room.find(FIND_SCORE_COLLECTORS)[0];
-            // Season 2 stuff
-            let targetRoom = creep.memory.targetRoom || findTargetRoom(creep);
-            if (targetRoom) return creep.shibMove(creep.pos.findClosestByRange(Game.map.findExit(creep.room.name, targetRoom)), {
-                tunnel: true,
-                ignoreCreeps: true
-            }); else {
-                INTEL[creep.room.name].seasonHighwayPath = true;
-                Memory.auxiliaryTargets[creep.memory.destination] = undefined;
-            }
+class RoleCleaner {
+    constructor(creep) {
+        this.creep = creep;
+        this.room = creep.room;
+        this.performRoleActions();
+    }
+
+    performRoleActions() {
+        if (this.housekeeping()) return;
+        if (this.creep.memory.barrierClearing) {
+            this.barrierCleaning();
+        } else if (this.creep.memory.destination && this.room.name !== this.creep.memory.destination) {
+            this.travel();
         } else {
-            if (!creep.scorchedEarth()) {
-                creep.room.cacheRoomIntel(true);
-                creep.suicide();
-            }
+            this.cleanRoom();
         }
     }
-};
 
-function barrierCleaning(creep) {
-    let barrier = Game.getObjectById(creep.memory.barrierClearing);
-    if (!barrier) return creep.memory.barrierClearing = undefined;
-    if (creep.pos.isNearTo(barrier)) {
-        if (creep.hasActiveBodyparts(WORK)) {
-            return creep.dismantle(barrier);
+    housekeeping() {
+        if (this.creep.tryToBoost(['dismantle'])) return true;
+        this.creep.say('NOM!', true);
+    }
+
+    barrierCleaning() {
+        let barrier = Game.getObjectById(this.creep.memory.barrierClearing);
+        if (!barrier) return this.creep.memory.barrierClearing = undefined;
+        if (this.creep.pos.isNearTo(barrier)) {
+            if (this.creep.hasActiveBodyparts(WORK)) {
+                return this.creep.dismantle(barrier);
+            }
+        } else this.creep.shibMove(barrier);
+    }
+
+    travel() {
+        this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination));
+    }
+
+    cleanRoom() {
+        if (!this.creep.scorchedEarth()) {
+            this.room.cacheRoomIntel(true);
+            this.creep.suicide();
         }
-    } else creep.shibMove(barrier);
+    }
 }
 
-function findTargetRoom(creep) {
-    let noPath = _.filter(Game.map.describeExits(creep.room.name), (r) => !creep.pos.findClosestByPath(Game.map.findExit(creep.room.name, r)))[0];
-    creep.memory.targetRoom = noPath;
-    return noPath;
-}
+profiler.registerClass(RoleCleaner, 'Cleaner');
+module.exports = RoleCleaner;

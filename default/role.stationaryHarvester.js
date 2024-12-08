@@ -2,47 +2,70 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-/**
- * Created by Bob on 7/12/2017.
- */
+const profiler = require("./tools.profiler");
 
-module.exports.role = function (creep) {
-    //If source is set harvest
-    if (creep.memory.other.source) {
-        let source = Game.getObjectById(creep.memory.other.source);
+class RoleStationaryHarvester {
+    constructor(creep) {
+        this.creep = creep;
+        this.room = creep.room;
+        this.performRoleActions();
+    }
+
+    performRoleActions() {
+        if (!this.creep.memory.other.source) {
+            this.findSource();
+        } else {
+            this.harvestSource();
+        }
+    }
+
+    findSource() {
+        if (!this.creep.findSource()) {
+            let oldestHarvester = _.min(_.filter(this.room.creeps, (c) => c.memory && c.ticksToLive < 500 && c.memory.role === "stationaryHarvester"), "ticksToLive") ||
+                _.find(this.room.creeps, (c) => c.memory && c.memory.role === "stationaryHarvester" && c.memory.other.reboot);
+            if (!oldestHarvester || !oldestHarvester.id) return this.creep.suicide();
+            else {
+                this.creep.memory.other.source = oldestHarvester.memory.other.source;
+                oldestHarvester.suicide();
+            }
+        }
+    }
+
+    harvestSource() {
+        let source = Game.getObjectById(this.creep.memory.other.source);
         // If in place harvest
-        if (creep.memory.onContainer) {
+        if (this.creep.memory.onContainer) {
             let container = Game.getObjectById(source.memory.container);
             // Build container
-            if (!container && creep.store[RESOURCE_ENERGY]) {
+            if (!container && this.creep.store[RESOURCE_ENERGY]) {
                 source.memory.container = undefined;
-                let dropped = creep.pos.lookFor(LOOK_RESOURCES)[0];
+                let dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
                 if (dropped && dropped.amount >= 750) {
-                    let site = creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
+                    let site = this.creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
                     if (site) {
-                        creep.build(site);
-                        creep.pickup(dropped);
+                        this.creep.build(site);
+                        this.creep.pickup(dropped);
                     }
                     return;
                 }
             }
-            switch (creep.harvest(source)) {
+            switch (this.creep.harvest(source)) {
                 case ERR_NOT_IN_RANGE:
-                    creep.memory.onContainer = undefined;
+                    this.creep.memory.onContainer = undefined;
                     break;
                 case ERR_NOT_ENOUGH_RESOURCES:
-                    if (container && creep.store[RESOURCE_ENERGY]) {
-                        creep.repair(container);
-                    } else creep.idleFor(source.ticksToRegeneration + 1);
+                    if (container && this.creep.store[RESOURCE_ENERGY]) {
+                        this.creep.repair(container);
+                    } else this.creep.idleFor(source.ticksToRegeneration + 1);
                     break;
                 case OK:
                     // Set stationary so we don't get bumped
-                    creep.memory.other.stationary = true;
+                    this.creep.memory.other.stationary = true;
                     // If we have a link and container, empty the container of overflow
-                    if (source.memory.link && container && container.store[RESOURCE_ENERGY]) creep.withdraw(container, RESOURCE_ENERGY);
+                    if (source.memory.link && container && container.store[RESOURCE_ENERGY]) this.creep.withdraw(container, RESOURCE_ENERGY);
                     // Every other tick check for deposit ability
                     if (isEven(Game.time)) {
-                        if ((container && !container.store.getFreeCapacity(RESOURCE_ENERGY)) || creep.store[RESOURCE_ENERGY]) depositEnergy(creep);
+                        if ((container && !container.store.getFreeCapacity(RESOURCE_ENERGY)) || this.creep.store[RESOURCE_ENERGY]) depositEnergy(this.creep);
                     }
                     break;
             }
@@ -50,30 +73,30 @@ module.exports.role = function (creep) {
             let container = Game.getObjectById(source.memory.container) || _.find(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
             //Make sure you're on the container
             if (container) {
-                if (creep.pos.getRangeTo(container)) {
-                    return creep.shibMove(container, {range: 0});
+                if (this.creep.pos.getRangeTo(container)) {
+                    return this.creep.shibMove(container, {range: 0});
                 } else {
-                    creep.memory.onContainer = true;
+                    this.creep.memory.onContainer = true;
                 }
             } else {
-                if (creep.pos.getRangeTo(source) > 1) {
-                    return creep.shibMove(source);
+                if (this.creep.pos.getRangeTo(source) > 1) {
+                    return this.creep.shibMove(source);
                 } else {
-                    creep.memory.onContainer = true;
+                    this.creep.memory.onContainer = true;
                 }
-            }
-        }
-    } else {
-        if (!creep.findSource()) {
-            let oldestHarvester = _.min(_.filter(creep.room.creeps, (c) => c.memory && c.ticksToLive < 500 && c.memory.role === "stationaryHarvester"), "ticksToLive") || _.find(creep.room.creeps, (c) => c.memory && c.memory.role === "stationaryHarvester" && c.memory.other.reboot);
-            if (!oldestHarvester || !oldestHarvester.id) return creep.suicide();
-            else {
-                creep.memory.other.source = oldestHarvester.memory.other.source;
-                oldestHarvester.suicide();
             }
         }
     }
-};
+
+    findResource() {
+        if (!this.creep.memory.energyDestination) this.creep.memory._shibMove = undefined;
+        if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
+            this.creep.withdrawResource()
+        } else {
+            this.creep.idleFor(5);
+        }
+    }
+}
 
 // Rotate between link and container if we don't have a hub and controller link
 function depositEnergy(creep) {
@@ -125,3 +148,6 @@ function extensionFiller(creep) {
         if (creep.opportunisticFill()) return true;
     }
 }
+
+profiler.registerClass(RoleStationaryHarvester, 'StationaryHarvester');
+module.exports = RoleStationaryHarvester;

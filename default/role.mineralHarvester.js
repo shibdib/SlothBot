@@ -2,51 +2,73 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-/**
- * Created by Bob on 7/12/2017.
- */
+const profiler = require("./tools.profiler");
 
-module.exports.role = function (creep) {
-    if (creep.tryToBoost(['harvest'])) return;
-    if (creep.wrongRoom()) return;
-    // Check if mineral depleted
-    if (creep.memory.other.assignedMineral && Game.getObjectById(creep.memory.other.assignedMineral).mineralAmount === 0) {
-        log.a(creep.room.name + ' supply of ' + Game.getObjectById(creep.memory.other.assignedMineral).mineralType + ' has been depleted.');
-        return creep.suicide();
+class RoleMineralHarvester {
+    constructor(creep) {
+        this.creep = creep;
+        this.room = creep.room;
+        this.performRoleActions();
     }
-    if (creep.memory.extractor) {
-        if (!creep.memory.onContainer) {
-            let container = Game.getObjectById(creep.room.memory.extractorContainer);
-            if (container) {
-                if (creep.pos.getRangeTo(container)) return creep.shibMove(container, {range: 0}); else creep.memory.onContainer = true;
-            } else {
-                creep.memory.onContainer = true;
-            }
-        } else if (Math.random() > 0.9) creep.memory.onContainer = undefined;
-        let extractor = Game.getObjectById(creep.memory.extractor);
-        if (Game.getObjectById(creep.room.memory.extractorContainer) && _.sum(Game.getObjectById(creep.room.memory.extractorContainer).store) === 2000 && !creep.pos.getRangeTo(Game.getObjectById(creep.room.memory.extractorContainer))) return creep.idleFor(25);
-        if (extractor.cooldown && extractor.pos.getRangeTo(creep) < 2) {
-            creep.idleFor(extractor.cooldown - 1)
+
+    performRoleActions() {
+        if (this.housekeeping()) return;
+        if (!this.creep.memory.extractor) {
+            this.setExtractor();
         } else {
-            let mineral = Game.getObjectById(creep.memory.other.assignedMineral);
-            switch (creep.harvest(mineral)) {
+            this.extractResource();
+        }
+    }
+
+    housekeeping() {
+        if (this.creep.tryToBoost(['harvest'])) return true;
+        if (this.creep.wrongRoom()) return true;
+        // Check if mineral depleted
+        if (this.creep.memory.other.assignedMineral && Game.getObjectById(this.creep.memory.other.assignedMineral).mineralAmount === 0) {
+            log.a(this.room.name + ' supply of ' + Game.getObjectById(this.creep.memory.other.assignedMineral).mineralType + ' has been depleted.');
+            return this.creep.suicide();
+        }
+    }
+
+    setExtractor() {
+        let extractor = this.room.structures.filter((s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
+        if (extractor) {
+            this.creep.memory.extractor = extractor.id;
+        } else {
+            this.creep.suicide();
+        }
+    }
+
+    extractResource() {
+        if (!this.creep.memory.onContainer) {
+            let container = Game.getObjectById(this.room.memory.extractorContainer);
+            if (container) {
+                if (this.creep.pos.getRangeTo(container)) return this.creep.shibMove(container, {range: 0}); else this.creep.memory.onContainer = true;
+            } else {
+                this.creep.memory.onContainer = true;
+            }
+        } else if (Math.random() > 0.9) this.creep.memory.onContainer = undefined;
+        let extractor = Game.getObjectById(this.creep.memory.extractor);
+        if (Game.getObjectById(this.room.memory.extractorContainer) && _.sum(Game.getObjectById(this.room.memory.extractorContainer).store) === 2000
+            && !this.creep.pos.getRangeTo(Game.getObjectById(this.room.memory.extractorContainer))) return this.creep.idleFor(25);
+        if (extractor.cooldown && extractor.pos.getRangeTo(this.creep) < 2) {
+            this.creep.idleFor(extractor.cooldown - 1)
+        } else {
+            let mineral = Game.getObjectById(this.creep.memory.other.assignedMineral);
+            switch (this.creep.harvest(mineral)) {
                 case OK:
-                    creep.memory.other.stationary = true;
+                    this.creep.memory.other.stationary = true;
                     break;
                 case ERR_NOT_IN_RANGE:
-                    creep.shibMove(mineral);
+                    this.creep.shibMove(mineral);
                     break;
                 case ERR_NOT_FOUND:
                     mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
                     break;
             }
         }
-    } else {
-        let extractor = creep.room.structures.filter((s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
-        if (extractor) {
-            creep.memory.extractor = extractor.id;
-        } else {
-            creep.suicide();
-        }
     }
-};
+}
+
+profiler.registerClass(RoleMineralHarvester, 'MineralHarvester');
+module.exports = RoleMineralHarvester;

@@ -2,12 +2,23 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-/**
- * Created by Bob on 7/12/2017.
- */
+const profiler = require("./tools.profiler");
 
-module.exports.role = function (creep) {
-    if (creep.memory.operation) {
+class RoleAttacker {
+    constructor(creep) {
+        this.creep = creep;
+        this.performRoleActions();
+    }
+
+    performRoleActions() {
+        if (this.creep.memory.operation) {
+            this.operationSelection(this.creep);
+        } else {
+            this.unassignedTasks(this.creep);
+        }
+    }
+
+    operationSelection(creep) {
         switch (creep.memory.operation) {
             case 'guard':
                 creep.guardRoom();
@@ -19,7 +30,9 @@ module.exports.role = function (creep) {
                 creep.borderPatrol();
                 break;
         }
-    } else {
+    }
+
+    unassignedTasks(creep) {
         if (creep.memory.destination && creep.memory.destination !== creep.room.name) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22});
         if (!creep.handleMilitaryCreep() && !creep.scorchedEarth()) {
             creep.memory.operation = 'borderPatrol';
@@ -27,4 +40,8 @@ module.exports.role = function (creep) {
             creep.findDefensivePosition(creep);
         }
     }
-};
+}
+
+profiler.registerClass(RoleAttacker, 'Attacker');
+module.exports = RoleAttacker;
+

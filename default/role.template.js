@@ -7,11 +7,12 @@ const profiler = require("./tools.profiler");
 class RoleHauler {
     constructor(creep) {
         this.creep = creep;
+        this.room = creep.room;
         this.performRoleActions();
     }
 
     performRoleActions() {
-        this.housekeeping();
+        if (this.housekeeping()) return;
         if (_.sum(this.creep.store)) {
             this.deliverResource();
         } else {

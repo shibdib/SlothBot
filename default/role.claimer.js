@@ -2,45 +2,62 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-/**
- * Created by Bob on 7/12/2017.
- */
+const profiler = require("./tools.profiler");
 
-module.exports.role = function (creep) {
-    // If you lost your claim part... die
-    if (!creep.hasActiveBodyparts(CLAIM)) creep.suicide();
-    //Check if claim clear op
-    if (creep.memory.operation === 'claimClear') return creep.claimClear();
-    //Initial move
-    if (creep.pos.roomName !== creep.memory.destination) {
-        if (Game.gcl.level <= MY_ROOMS.length) {
-            delete Memory.auxiliaryTargets[creep.room.name];
-            return creep.suicide();
+class RoleClaimer {
+    constructor(creep) {
+        this.creep = creep;
+        this.room = creep.room;
+        this.performRoleActions();
+    }
+
+    // Placeholder for role-specific actions
+    performRoleActions() {
+        if (this.housekeeping()) {
+
+        } else if (this.room.name !== this.creep.memory.destination) {
+            this.travel();
+        } else {
+            this.claimRoom();
         }
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
-    } else {
-        if (!creep.memory.intelLogged) {
-            creep.memory.intelLogged = true;
-        } else if (creep.room.controller.owner) {
-            cleanRoom(creep.room);
-            return creep.suicide();
-        } else if (!creep.pos.findClosestByPath(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER))) {
-            INTEL[creep.room.name].obstructions = true;
-            Memory.auxiliaryTargets[creep.room.name] = undefined;
-            return creep.suicide();
-        } else if (!creep.memory.signed) {
-            switch (creep.signController(creep.room.controller, _.sample(OWNED_ROOM_SIGNS))) {
+    }
+
+    housekeeping() {
+        // If you lost your claim part... die
+        if (!this.creep.hasActiveBodyparts(CLAIM)) this.creep.suicide();
+        //Check if claim clear op
+        if (this.creep.memory.operation === 'claimClear') return this.creep.claimClear();
+        if (Game.gcl.level <= MY_ROOMS.length) {
+            delete Memory.auxiliaryTargets[this.creep.room.name];
+            return this.creep.suicide();
+        }
+    }
+
+    travel() {
+        this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 23});
+    }
+
+    claimRoom() {
+        if (this.creep.room.controller.owner) {
+            cleanRoom(this.room);
+            return this.creep.suicide();
+        } else if (!this.creep.pos.findClosestByPath(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER))) {
+            INTEL[this.room.name].obstructions = true;
+            Memory.auxiliaryTargets[this.room.name] = undefined;
+            return this.creep.suicide();
+        } else if (!this.creep.memory.signed) {
+            switch (this.creep.signController(this.room.controller, _.sample(OWNED_ROOM_SIGNS))) {
                 case ERR_NOT_IN_RANGE:
-                    creep.shibMove(creep.room.controller);
+                    this.creep.shibMove(this.room.controller);
                     break;
                 case OK:
-                    creep.room.memory = undefined;
-                    creep.memory.signed = true;
+                    this.room.memory = undefined;
+                    this.creep.memory.signed = true;
             }
         } else {
-            switch (creep.claimController(creep.room.controller)) {
+            switch (this.creep.claimController(this.room.controller)) {
                 case ERR_NOT_IN_RANGE:
-                    creep.shibMove(creep.room.controller);
+                    this.creep.shibMove(this.room.controller);
                     break;
                 case ERR_BUSY:
                     break;
@@ -49,15 +66,19 @@ module.exports.role = function (creep) {
                 case ERR_INVALID_TARGET:
                     break;
                 case OK:
-                    Memory.auxiliaryTargets[creep.room.name] = undefined;
-                    Memory.targetRooms[creep.room.name] = undefined;
-                    MY_ROOMS.push(creep.room.name);
+                    Memory.auxiliaryTargets[this.room.name] = undefined;
+                    Memory.targetRooms[this.room.name] = undefined;
+                    MY_ROOMS.push(this.room.name);
             }
         }
     }
-};
 
-function cleanRoom(room) {
-    _.filter(room.structures, (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_ROAD).forEach((s) => s.destroy());
-    _.filter(room.constructionSites, (s) => s.owner.username !== MY_USERNAME).forEach((s) => s.remove());
+    cleanRoom() {
+        _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_ROAD).forEach((s) => s.destroy());
+        _.filter(this.room.constructionSites, (s) => s.owner.username !== MY_USERNAME).forEach((s) => s.remove());
+    }
 }
+
+profiler.registerClass(RoleClaimer, 'Claimer');
+module.exports = RoleClaimer;
+

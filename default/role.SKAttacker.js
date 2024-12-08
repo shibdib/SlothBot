@@ -2,30 +2,50 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-/**
- * Created by Bob on 7/12/2017.
- */
+const profiler = require("./tools.profiler");
 
-module.exports.role = function (creep) {
-    if (creep.tryToBoost(['attack', 'heal'])) return;
-    if (creep.room.name === creep.memory.destination) {
+class RoleSKAttacker {
+    constructor(creep) {
+        this.creep = creep;
+        this.room = creep.room;
+        this.performRoleActions();
+    }
+
+    performRoleActions() {
+        if (this.housekeeping()) return;
+        if (this.room.name === this.creep.memory.destination) {
+            this.travel();
+        } else {
+            this.SKAttackerTasks();
+        }
+    }
+
+    housekeeping() {
+        if (this.creep.tryToBoost(['attack', 'heal'])) return true;
         // Handle invader core in sk
-        if (creep.room.hostileStructures.length) {
-            let core = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0];
+        if (this.room.hostileStructures.length) {
+            let core = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0];
             if (core) {
-                creep.room.cacheRoomIntel(true, creep);
-                return creep.suicide();
+                this.room.cacheRoomIntel(true);
+                return this.creep.suicide();
             }
         }
-        let sourceKeeper = Game.getObjectById(creep.memory.keeper) || creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper'});
+    }
+
+    travel() {
+        this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 23});
+    }
+
+    SKAttackerTasks() {
+        let sourceKeeper = Game.getObjectById(this.creep.memory.keeper) || this.creep.pos.findClosestByRange(this.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper'});
         if (sourceKeeper) {
-            creep.heal(creep);
-            creep.memory.lair = undefined;
-            creep.memory.keeper = sourceKeeper.id;
-            switch (creep.attack(sourceKeeper)) {
+            this.creep.heal(this.creep);
+            this.creep.memory.lair = undefined;
+            this.creep.memory.keeper = sourceKeeper.id;
+            switch (this.creep.attack(sourceKeeper)) {
                 case ERR_NOT_IN_RANGE:
-                    if (creep.hits < creep.hitsMax * 0.8 && creep.pos.getRangeTo(sourceKeeper) > 7) return;
-                    creep.shibMove(sourceKeeper);
+                    if (this.creep.hits < this.creep.hitsMax * 0.8 && this.creep.pos.getRangeTo(sourceKeeper) > 7) return;
+                    this.creep.shibMove(sourceKeeper);
                     break;
                 case ERR_NO_BODYPART:
                     break;
@@ -33,13 +53,14 @@ module.exports.role = function (creep) {
                     break;
             }
         } else {
-            creep.healInRange();
-            let lair = Game.getObjectById(creep.memory.lair) || _.min(_.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR), 'ticksToSpawn');
-            creep.memory.keeper = undefined;
-            creep.memory.lair = lair.id;
-            if (creep.hits === creep.hitsMax && creep.pos.isNearTo(lair)) creep.idleFor(lair.ticksToSpawn - 1); else creep.shibMove(lair, {range: 1});
+            this.creep.healInRange();
+            let lair = Game.getObjectById(this.creep.memory.lair) || _.min(_.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR), 'ticksToSpawn');
+            this.creep.memory.keeper = undefined;
+            this.creep.memory.lair = lair.id;
+            if (this.creep.hits === this.creep.hitsMax && this.creep.pos.isNearTo(lair)) this.creep.idleFor(lair.ticksToSpawn - 1); else this.creep.shibMove(lair, {range: 1});
         }
-    } else {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
     }
-};
+}
+
+profiler.registerClass(RoleSKAttacker, 'SKAttacker');
+module.exports = RoleSKAttacker;

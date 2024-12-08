@@ -1,7 +1,7 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
-
+//TODO: move to labTech
 module.exports.role = function (creep) {
     //INITIAL CHECKS
     // Hauler mode

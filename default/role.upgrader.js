@@ -2,120 +2,88 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-/**
- * Created by Bob on 7/12/2017.
- */
+const profiler = require("./tools.profiler");
 
-module.exports.role = function (creep) {
-    // Boost only if room is energy rich
-    if (creep.tryToBoost(['upgrade'])) return;
-    // Handle yelling
-    herald(creep);
-    // Set and check container and link
-    let container = Game.getObjectById(creep.room.memory.controllerContainer);
-    if (!container) creep.room.memory.controllerContainer = undefined;
-    // Handle stationary upgraders
-    if (creep.memory.other.stationary || (_.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length > _.filter(creep.body, (p) => p.type === MOVE).length)) {
-        creep.memory.other.stationary = true;
-        // Handle getting in place
-        if (!creep.memory.inPosition && container) {
-            let link = Game.getObjectById(creep.room.memory.controllerLink);
-            if (!link) creep.room.memory.controllerLink = undefined;
-            if (container.pos.checkForCreep() && creep.pos.isNearTo(container) && (!link || creep.pos.isNearTo(link))) creep.memory.inPosition = true;
-            else return creep.shibMove(container, {range: 0});
+class RoleUpgrader {
+    constructor(creep) {
+        this.creep = creep;
+        this.room = creep.room;
+        this.container = Game.getObjectById(this.room.memory.controllerContainer);
+        if (!this.container) this.room.memory.controllerContainer = undefined;
+        this.link = Game.getObjectById(this.room.memory.controllerLink);
+        if (!this.link) this.room.memory.controllerLink = undefined;
+        this.performRoleActions();
+    }
+
+    performRoleActions() {
+        if (this.housekeeping()) return;
+        if (this.creep.memory.other.stationary ||
+            (_.filter(this.creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length > _.filter(this.creep.body, (p) => p.type === MOVE).length)) {
+            this.stationaryUpgrading();
+        } else {
+            this.mobileUpgrading();
         }
-        switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
+    }
+
+    housekeeping() {
+        // Boost
+        if (this.creep.tryToBoost(['upgrade'])) return true;
+    }
+
+    stationaryUpgrading() {
+        this.creep.memory.other.stationary = true;
+        // Handle getting in place
+        if (!this.creep.memory.inPosition && this.container) {
+            if (this.container.pos.checkForCreep() && this.creep.pos.isNearTo(this.container) && (!this.link || this.creep.pos.isNearTo(this.link))) this.creep.memory.inPosition = true;
+            else return this.creep.shibMove(this.container, {range: 0});
+        }
+        switch (this.creep.upgradeController(Game.rooms[this.creep.memory.overlord].controller)) {
             case OK:
                 // Handle resource withdraw
-                withdraw(creep);
+                this.withdraw();
                 return;
             case ERR_NOT_IN_RANGE:
-                return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+                return this.creep.shibMove(Game.rooms[this.creep.memory.overlord].controller, {range: 3});
             case ERR_NOT_ENOUGH_RESOURCES:
                 // Handle resource withdraw
-                withdraw(creep);
+                this.withdraw();
         }
-    } else {
-        if (creep.isFull) creep.memory.working = true;
-        if (!creep.store[RESOURCE_ENERGY]) delete creep.memory.working;
-        if (creep.memory.working) {
-            switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
+    }
+
+    mobileUpgrading() {
+        if (this.creep.isFull) this.creep.memory.working = true;
+        if (!this.creep.store[RESOURCE_ENERGY]) delete this.creep.memory.working;
+        if (this.creep.memory.working) {
+            switch (this.creep.upgradeController(Game.rooms[this.creep.memory.overlord].controller)) {
                 case OK:
-                    creep.memory.other.noBump = true;
+                    this.creep.memory.other.noBump = true;
                     return;
                 case ERR_NOT_IN_RANGE:
-                    creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+                    this.creep.shibMove(this.room.controller, {range: 3});
                     return;
                 case ERR_NOT_ENOUGH_RESOURCES:
                     // Handle resource withdraw
-                    withdraw(creep);
+                    this.withdraw();
             }
-        } else if (creep.memory.energyDestination) {
-            creep.memory.other.noBump = undefined;
-            creep.withdrawResource();
-        } else if (container && container.store[RESOURCE_ENERGY]) {
-            creep.withdrawResource(container);
-        } else if (!creep.locateEnergy()) {
-            creep.idleFor(15);
+        } else if (this.creep.memory.energyDestination) {
+            this.creep.memory.other.noBump = undefined;
+            this.creep.withdrawResource();
+        } else if (this.container && this.container.store[RESOURCE_ENERGY]) {
+            this.creep.withdrawResource(this.container);
+        } else if (!this.creep.locateEnergy()) {
+            this.creep.idleFor(15);
         }
     }
-};
 
-function withdraw(creep) {
-    // Set and check container and link
-    let container = Game.getObjectById(creep.room.memory.controllerContainer);
-    if (!container) creep.room.memory.controllerContainer = undefined;
-    let link = Game.getObjectById(creep.room.memory.controllerLink);
-    if (!link) creep.room.memory.controllerLink = undefined;
-    // Handle resource withdraw
-    if (link && link.store[RESOURCE_ENERGY]) {
-        creep.withdrawResource(link);
-    } else if (container && container.store[RESOURCE_ENERGY]) {
-        creep.withdrawResource(container);
-    }
-};
-
-function herald(creep) {
-    if (creep.memory.notHerald) return;
-    if (creep.memory.herald) {
-        let sentence = ['-'];
-        if (creep.room.memory.lowPower) {
-            sentence = sentence.concat(['This', 'Room', 'Is', 'In', 'Low', 'Power', 'Mode', 'For', ((creep.room.memory.lowPower + 10000) - Game.time), 'Ticks']);
-        } else {
-            if (Memory.LOANalliance) sentence = sentence.concat([Memory.LOANalliance, '-']);
-            if (INTEL[creep.room.name].threatLevel) {
-                if (INTEL[creep.room.name].threatLevel === 1) sentence = sentence.concat(['FPCON', 'ALPHA']);
-                if (INTEL[creep.room.name].threatLevel === 2) sentence = sentence.concat(['FPCON', 'BRAVO']);
-                if (INTEL[creep.room.name].threatLevel === 3) sentence = sentence.concat(['FPCON', 'CHARLIE']);
-                if (INTEL[creep.room.name].threatLevel >= 4) sentence = sentence.concat(['FPCON', 'DELTA']);
-            } else if (INTEL[creep.room.name] && INTEL[creep.room.name].lastPlayerSighting) {
-                sentence = sentence.concat(['LAST', 'ATTACK', Game.time - INTEL[creep.room.name].lastPlayerSighting, 'TICKS', 'AGO']);
-            } else {
-                sentence = sentence.concat(['FPCON', 'NORMAL']);
-            }
-            if (Memory.ncpArray && Memory.ncpArray.length > 1) {
-                sentence = sentence.concat(['-', 'KNOWN', 'NCP', 'LIST', '-']);
-                sentence = sentence.concat(Memory.ncpArray);
-            }
-        }
-        let word = Game.time % sentence.length;
-        creep.say(sentence[word], true);
-        if (!creep.memory.signed) {
-            let signs = OWNED_ROOM_SIGNS;
-            let addition = '';
-            if (Game.shard.name === 'treecafe' && creep.room.energyState) addition = ' @pvp@';
-            switch (creep.signController(creep.room.controller, _.sample(signs) + addition)) {
-                case OK:
-                    creep.memory.signed = true;
-                    break;
-            }
-        }
-    } else {
-        let activeHerald = _.filter(creep.room.myCreeps, (c) => c.memory.herald);
-        if (!activeHerald.length) {
-            creep.memory.herald = true;
-        } else {
-            creep.memory.notHerald = true;
+    withdraw() {
+        // Handle resource withdraw
+        if (this.link && this.link.store[RESOURCE_ENERGY]) {
+            this.creep.withdrawResource(this.link);
+        } else if (this.container && this.container.store[RESOURCE_ENERGY]) {
+            this.creep.withdrawResource(this.container);
         }
     }
 }
+
+profiler.registerClass(RoleUpgrader, 'Upgrader');
+module.exports = RoleUpgrader;

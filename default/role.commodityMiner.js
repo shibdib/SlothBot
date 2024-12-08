@@ -2,67 +2,97 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-module.exports.role = function (creep) {
-    if (creep.tryToBoost(['harvest'])) return;
-    // Invader detection
-    if (creep.fleeHome()) return;
-    // Old age check
-    if (creep.ticksToLive < 150) if (!_.sum(creep.store)) return creep.suicide(); else return creep.recycleCreep();
-    // Move to the deposit
-    if (creep.room.name !== creep.memory.destination && !_.sum(creep.store)) {
-        return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22, offRoad: true});
-    } // Harvest
-    else if (creep.memory.deposit && !creep.isFull) {
-        let deposit = Game.getObjectById(creep.memory.deposit);
+const profiler = require("./tools.profiler");
+
+class RoleCommodityMiner {
+    constructor(creep) {
+        this.creep = creep;
+        this.room = creep.room;
+        this.performRoleActions();
+    }
+
+    // Placeholder for role-specific actions
+    performRoleActions() {
+        if (this.housekeeping()) return;
+        if (this.room.name !== this.creep.memory.destination && !_.sum(this.creep.store)) {
+            this.travelToDeposit();
+        } else if (this.creep.memory.deposit && !this.creep.isFull) {
+            this.harvest();
+        } else if (_.sum(this.creep.store)) {
+            this.returnResource();
+        } else {
+            this.findDeposit();
+        }
+    }
+
+    housekeeping() {
+        if (this.creep.tryToBoost(['harvest'])) return true;
+        // Old age check
+        if (this.creep.ticksToLive < 150) if (!_.sum(this.creep.store)) return this.creep.suicide(); else return this.creep.recycleCreep();
+        // Make sure the operation is active
+        if (!Memory.auxiliaryTargets[this.creep.memory.destination]) if (!_.sum(this.creep.store)) return this.creep.suicide(); else return this.creep.recycleCreep();
+    }
+
+    travelToDeposit() {
+        return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22, offRoad: true});
+    }
+
+    harvest() {
+        let deposit = Game.getObjectById(this.creep.memory.deposit);
         // Store space
-        if (Memory.auxiliaryTargets[creep.memory.destination] && !Memory.auxiliaryTargets[creep.memory.destination].space) Memory.auxiliaryTargets[creep.memory.destination].space = deposit.pos.countOpenTerrainAround();
+        if (!Memory.auxiliaryTargets[this.creep.memory.destination].space) Memory.auxiliaryTargets[this.creep.memory.destination].space = deposit.pos.countOpenTerrainAround();
         // Clear the deposit if needed
         if (!deposit || (!deposit.depositType && !deposit.mineralAmount) || deposit.lastCooldown >= 25) return creep.memory.deposit = undefined;
         // Refresh the operation
-        if (Memory.auxiliaryTargets[creep.memory.destination]) Memory.auxiliaryTargets[creep.memory.destination].tick = Game.time;
-        switch (creep.harvest(deposit)) {
+        if (Memory.auxiliaryTargets[this.creep.memory.destination]) Memory.auxiliaryTargets[this.creep.memory.destination].tick = Game.time;
+        switch (this.creep.harvest(deposit)) {
             case OK:
-                creep.memory.other.noBump = true;
+                this.creep.memory.other.noBump = true;
                 break;
             case ERR_NOT_IN_RANGE:
-                creep.shibMove(deposit);
+                this.creep.shibMove(deposit);
                 break;
             case ERR_NOT_ENOUGH_RESOURCES:
-                creep.memory.deposit = undefined;
+                this.creep.memory.deposit = undefined;
                 break;
             case ERR_TIRED:
-                if (creep.pos.isNearTo(deposit)) creep.idleFor(deposit.cooldown);
+                if (this.creep.pos.isNearTo(deposit)) this.creep.idleFor(deposit.cooldown);
         }
-    } // Deposit at storage
-    else if (_.sum(creep.store)) {
-        creep.memory.other.noBump = undefined;
-        creep.memory.closestRoom = creep.memory.closestRoom || findClosestOwnedRoom(creep.room.name, false, 4);
-        if (creep.room.name !== creep.memory.closestRoom) {
-            return creep.shibMove(new RoomPosition(25, 25, creep.memory.closestRoom), {range: 23});
+    }
+
+    returnResource() {
+        this.creep.memory.other.noBump = undefined;
+        this.creep.memory.closestRoom = this.creep.memory.closestRoom || findClosestOwnedRoom(this.room.name, false, 4);
+        if (this.room.name !== this.creep.memory.closestRoom) {
+            return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.closestRoom), {range: 23});
         } else {
-            let deliver = creep.room.terminal || creep.room.storage;
+            let deliver = this.room.terminal || this.room.storage;
             if (deliver) {
-                for (let resourceType in creep.store) {
-                    switch (creep.transfer(deliver, resourceType)) {
+                for (let resourceType in this.creep.store) {
+                    switch (this.creep.transfer(deliver, resourceType)) {
                         case OK:
-                            creep.memory.hauling = undefined;
+                            this.creep.memory.hauling = undefined;
                             break;
                         case ERR_NOT_IN_RANGE:
-                            creep.shibMove(deliver);
+                            this.creep.shibMove(deliver);
                             break;
                     }
                 }
             }
         }
-    } else {
+    }
+
+    findDeposit() {
         //Find Deposit
-        let deposit = _.find(creep.room.deposits, (d) => !d.lastCooldown || d.lastCooldown < 25) || creep.room.mineral;
+        let deposit = _.find(this.room.deposits, (d) => !d.lastCooldown || d.lastCooldown < 25) || this.room.mineral;
         if (deposit && (deposit.depositType || deposit.mineralAmount)) {
-            creep.memory.deposit = deposit.id;
+            this.creep.memory.deposit = deposit.id;
         } else {
-            INTEL[creep.memory.destination].commodity = undefined;
-            Memory.auxiliaryTargets[creep.memory.destination] = undefined;
-            if (!_.sum(creep.store)) creep.suicide();
+            INTEL[this.creep.memory.destination].commodity = undefined;
+            Memory.auxiliaryTargets[this.creep.memory.destination] = undefined;
         }
     }
-};
+}
+
+profiler.registerClass(RoleCommodityMiner, 'CommodityMiner');
+module.exports = RoleCommodityMiner;

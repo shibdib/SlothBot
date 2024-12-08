@@ -2,35 +2,51 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-/**
- * Created by Bob on 7/12/2017.
- */
+const profiler = require("./tools.profiler");
 
-module.exports.role = function (creep) {
-    // Responder Mode
-    if (creep.memory.operation) {
-        switch (creep.memory.operation) {
-            case 'borderPatrol':
-                creep.borderPatrol();
-                break;
-            case 'guard':
-                creep.guardRoom();
-                break;
-            case 'hold':
-                creep.holdRoom();
-                break;
-            case 'harass':
-                creep.harass();
-                break;
-            case 'denial':
-                creep.roomDenial();
-                break;
-        }
-    } else if (creep.memory.destination) {
-        if (creep.room.name !== creep.memory.destination) {
-            return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22});
-        } else {
-            if (!creep.handleMilitaryCreep() && !creep.scorchedEarth() && !creep.healCreeps()) creep.findDefensivePosition();
+class RoleLongbow {
+    constructor(creep) {
+        this.creep = creep;
+        this.room = creep.room;
+        this.performRoleActions();
+    }
+
+    performRoleActions() {
+        if (this.creep.memory.operation) {
+            this.operationManagement();
+        } else if (this.creep.memory.destination) {
+            this.destinationManagement();
         }
     }
-};
+
+    operationManagement() {
+        switch (this.creep.memory.operation) {
+            case 'borderPatrol':
+                this.creep.borderPatrol();
+                break;
+            case 'guard':
+                this.creep.guardRoom();
+                break;
+            case 'hold':
+                this.creep.holdRoom();
+                break;
+            case 'harass':
+                this.creep.harass();
+                break;
+            case 'denial':
+                this.creep.roomDenial();
+                break;
+        }
+    }
+
+    destinationManagement() {
+        if (this.room.name !== this.creep.memory.destination) {
+            return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22});
+        } else {
+            if (!this.creep.handleMilitaryCreep() && !this.creep.scorchedEarth() && !this.creep.healCreeps()) this.creep.findDefensivePosition();
+        }
+    }
+}
+
+profiler.registerClass(RoleLongbow, 'Longbow');
+module.exports = RoleLongbow;

@@ -157,8 +157,6 @@ profiler.registerClass(Overlord, 'Overlord');
 module.exports = Overlord;
 
 let errorCount = {};
-// Global cache for roles
-const ROLE_CACHE = {};
 
 function minionController(minion) {
     // Disable notifications if not already disabled
@@ -201,10 +199,5 @@ function minionController(minion) {
         ROLE_CACHE[minion.memory.role] = Role;
     }
 
-    // Handle converted roles
-    if (['drone', 'hauler', 'shuttle', 'roadBuilder'].includes(minion.memory.role)) {
-        new Role(minion);
-    } else {
-        Role.role(minion);
-    }
+    new Role(minion);
 }

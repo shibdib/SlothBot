@@ -2,73 +2,91 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-/**
- * Created by Bob on 7/12/2017.
- */
+const profiler = require("./tools.profiler");
 
-module.exports.role = function (creep) {
-    // Handle robberies
-    if (creep.memory.operation === 'robbery') return creep.robRoom();
-    // Icon
-    creep.say(ICONS.haul2, true);
-    // Check for tow
-    if (creep.towTruck()) return true;
-    // If Hauling
-    if (_.sum(creep.store) || creep.memory.hauling || creep.memory.storageDestination) {
-        if (!_.sum(creep.store)) {
-            creep.memory.storageDestination = undefined;
-            creep.memory.hauling = undefined;
+class RoleRemoteHauler {
+    constructor(creep) {
+        this.creep = creep;
+        this.room = creep.room;
+        this.performRoleActions();
+    }
+
+    performRoleActions() {
+        if (this.housekeeping()) return;
+        if (_.sum(this.creep.store)) {
+            this.deliverResource();
+        } else {
+            this.findResource();
+        }
+    }
+
+    housekeeping() {
+        // If unsafe return home
+        if (this.creep.skSafety()) return true;
+        // Attempt to generate safemodes
+        if (safemodeGeneration(this.creep)) return true;
+        // Handle robberies
+        if (this.creep.memory.operation === 'robbery') return this.creep.robRoom();
+        // Icon
+        this.creep.say(ICONS.haul2, true);
+        // Check for tow
+        if (this.creep.towTruck()) return true;
+    }
+
+    deliverResource() {
+        if (!_.sum(this.creep.store)) {
+            this.creep.memory.storageDestination = undefined;
+            this.creep.memory.hauling = undefined;
             return;
-        } else creep.memory.hauling = true;
+        } else this.creep.memory.hauling = true;
         // Sanity check for container and non energy
-        if (_.sum(creep.store) > creep.store[RESOURCE_ENERGY] && creep.memory.storageDestination && Game.getObjectById(creep.memory.storageDestination) instanceof StructureContainer) return creep.memory.storageDestination = undefined;
-        creep.memory.energyDestination = undefined;
-        creep.opportunisticRepair();
-        creep.opportunisticFill();
-        if (creep.memory.storageDestination) {
-            let storageItem = Game.getObjectById(creep.memory.storageDestination);
-            for (const resourceType in creep.store) {
-                switch (creep.transfer(storageItem, resourceType)) {
+        if (_.sum(this.creep.store) > this.creep.store[RESOURCE_ENERGY] && this.creep.memory.storageDestination &&
+            Game.getObjectById(this.creep.memory.storageDestination) instanceof StructureContainer) return this.creep.memory.storageDestination = undefined;
+        this.creep.memory.energyDestination = undefined;
+        this.creep.opportunisticRepair();
+        this.creep.opportunisticFill();
+        if (this.creep.memory.storageDestination) {
+            let storageItem = Game.getObjectById(this.creep.memory.storageDestination);
+            for (const resourceType in this.creep.store) {
+                switch (this.creep.transfer(storageItem, resourceType)) {
                     case ERR_NOT_IN_RANGE:
-                        creep.shibMove(storageItem);
+                        this.creep.shibMove(storageItem);
                         return true;
                     default:
-                        delete creep.memory.resourceDelivery;
-                        delete creep.memory.storageDestination;
-                        delete creep.memory._shibMove;
+                        delete this.creep.memory.resourceDelivery;
+                        delete this.creep.memory.storageDestination;
+                        delete this.creep.memory._shibMove;
                         break;
                 }
             }
         } else {
-            dropOff(creep)
+            dropOff(this.creep)
         }
-    } else {
-        // If unsafe return home
-        if (creep.skSafety()) return;
-        // Attempt to generate safemodes
-        if (safemodeGeneration(creep)) return;
+    }
+
+    findResource() {
         // If you have energy target get it
-        if (creep.memory.energyDestination) return creep.withdrawResource();
+        if (this.creep.memory.energyDestination) return this.creep.withdrawResource();
         // Perform a storage space check
-        if (Game.rooms[creep.memory.overlord].storage && _.sum(Game.rooms[creep.memory.overlord].storage.store) < Game.rooms[creep.memory.overlord].storage.store.getCapacity() * 0.8) {
+        if (Game.rooms[this.creep.memory.overlord].storage && _.sum(Game.rooms[this.creep.memory.overlord].storage.store) < Game.rooms[this.creep.memory.overlord].storage.store.getCapacity() * 0.8) {
             // Pickup dropped resource
-            if (creep.room.droppedResources.length && _.max(creep.room.droppedResources, 'amount').amount > creep.store.getCapacity() * 0.1) return creep.memory.energyDestination = _.max(creep.room.droppedResources, 'amount').id;
+            if (this.room.droppedResources.length && _.max(this.room.droppedResources, 'amount').amount > this.creep.store.getCapacity() * 0.1) return this.creep.memory.energyDestination = _.max(this.room.droppedResources, 'amount').id;
             // Empty ruins
-            if (creep.room.ruins.length && _.find(creep.room.ruins, (r) => r.store.getUsedCapacity())) return creep.memory.energyDestination = _.find(creep.room.ruins, (r) => r.store.getUsedCapacity()).id;
+            if (this.room.ruins.length && _.find(this.room.ruins, (r) => r.store.getUsedCapacity())) return this.creep.memory.energyDestination = _.find(this.room.ruins, (r) => r.store.getUsedCapacity()).id;
         }
         // If we don't have a destination, find one
-        if (!creep.memory.energyDestination) {
-            let harvester = _.find(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && c.memory.energyAmount >= CONTAINER_CAPACITY * 0.25
+        if (!this.creep.memory.energyDestination) {
+            let harvester = _.find(Game.creeps, (c) => c.my && c.memory.overlord === this.creep.memory.overlord && c.memory.role === 'remoteHarvester' && c.memory.energyAmount >= CONTAINER_CAPACITY * 0.25
                 && !_.find(Game.creeps, (h) => h.my && h.memory.energyDestination === c.memory.energyId));
             if (harvester && harvester.id) {
-                return creep.memory.energyDestination = harvester.memory.energyId;
+                return this.creep.memory.energyDestination = harvester.memory.energyId;
             }
         }
         // If we're already outside the room check for energy
-        if (creep.room.name !== creep.memory.overlord && creep.locateEnergy()) return;
-        creep.idleFor(15);
+        if (this.room.name !== this.creep.memory.overlord && this.creep.locateEnergy()) return;
+        this.creep.idleFor(15);
     }
-};
+}
 
 // Remote Hauler Drop Off
 function dropOff(creep) {
@@ -155,3 +173,6 @@ function safemodeGeneration(creep) {
         return true;
     }
 }
+
+profiler.registerClass(RoleRemoteHauler, 'RemoteHauler');
+module.exports = RoleRemoteHauler;

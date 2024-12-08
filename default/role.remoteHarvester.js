@@ -2,112 +2,84 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-/**
- * Created by Bob on 7/12/2017.
- */
+const profiler = require("./tools.profiler");
 
-module.exports.role = function (creep) {
-    // SK Safety
-    if (creep.skSafety()) return creep.memory.onContainer = undefined;
-    // If you're in place just harvest
-    if (creep.memory.onContainer) {
-        if (Math.random() > 0.9) return creep.memory.onContainer = undefined;
-        // Build container
-        if (!creep.memory.containerID && creep.store[RESOURCE_ENERGY]) {
-            let dropped = creep.pos.lookFor(LOOK_RESOURCES)[0];
-            if (dropped && dropped.amount >= 200) {
-                let site = creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
-                if (site) {
-                    creep.build(site);
-                    creep.pickup(dropped);
-                }
-                return;
-            }
+class RoleRemoteHarvester {
+    constructor(creep) {
+        this.creep = creep;
+        this.room = creep.room;
+        this.performRoleActions();
+    }
+
+    performRoleActions() {
+        if (this.housekeeping()) return;
+        this.harvestSource();
+    }
+
+    housekeeping() {
+        // SK Safety
+        if (this.creep.skSafety()) {
+            this.creep.memory.onContainer = undefined;
+            return true;
         }
-        // Handle setting the pickup for a hauler
-        let source = Game.getObjectById(creep.memory.other.source);
-        switch (creep.harvest(source)) {
-            case ERR_NOT_IN_RANGE:
-                creep.memory.onContainer = undefined;
-                break;
-            case ERR_NOT_ENOUGH_RESOURCES:
-                creep.idleFor(source.ticksToRegeneration + 1);
-                break;
-            case OK:
-                creep.memory.other.stationary = true;
-                // Handle building container
-                if (creep.store[RESOURCE_ENERGY] && creep.memory.containerSite && creep.pos.checkForEnergy() >= 500) {
-                    let site = Game.getObjectById(creep.memory.containerSite);
-                    if (!site) return creep.memory.containerSite = undefined;
-                    switch (creep.build(site)) {
-                        case OK:
-                            return;
-                        case ERR_NOT_IN_RANGE:
-                            creep.shibMove(site);
-                            break;
-                    }
-                }
-                // Handle container
-                let container = Game.getObjectById(creep.memory.containerID) || Game.getObjectById(creep.memory.containerSite);
-                if (container && container.hits) {
-                    if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
-                    if (_.sum(container.store) >= 1980) {
-                        if (creep.memory.assignedHauler && !Game.getObjectById(creep.memory.assignedHauler)) creep.memory.assignedHauler = undefined;
-                        creep.idleFor(20);
-                    } else if (_.sum(container.store) >= CONTAINER_CAPACITY * 0.75 && container.hits < container.hitsMax) creep.repair(container);
-                    else if (_.sum(container.store) >= CONTAINER_CAPACITY) creep.idleFor(20);
-                    creep.memory.energyAmount = _.sum(container.store);
-                    creep.memory.energyId = container.id;
-                } else {
-                    let dropped = creep.pos.lookFor(LOOK_RESOURCES)[0];
-                    if (dropped) {
-                        creep.memory.energyAmount = dropped.amount;
-                        creep.memory.energyId = dropped.id;
-                    }
-                }
-                break;
+        // Handle room reservation/ownership
+        if (this.room.controller && (this.room.controller.reservation && this.room.controller.reservation.username !== MY_USERNAME)) {
+            this.room.cacheRoomIntel(true);
+            return this.creep.suicide();
         }
-    } else {
-        // Suicide and cache intel if room is reserved/owned by someone else
-        if (creep.room.controller && (creep.room.controller.reservation && creep.room.controller.reservation.username !== MY_USERNAME)) {
-            creep.room.cacheRoomIntel(true, creep);
-            return creep.suicide();
-        }
-        // Harvest
-        let source = Game.getObjectById(creep.memory.other.source);
+    }
+
+    harvestSource() {
+        // Harvest from source
+        const source = Game.getObjectById(this.creep.memory.other.source);
         if (source) {
-            let container = Game.getObjectById(creep.memory.containerID) || Game.getObjectById(creep.memory.containerSite);
-            // Make sure you're on the container
-            if (container) {
-                if (creep.pos.getRangeTo(container) > 0) {
-                    return creep.shibMove(container, {range: 0});
-                } else {
-                    // Add a check for walls
-                    INTEL[creep.room.name].obstacles = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).length > 0;
-                    creep.memory.onContainer = true;
-                }
-            } else if (!creep.pos.isNearTo(source)) {
-                return creep.shibMove(source);
+            const container = Game.getObjectById(this.creep.memory.containerID) || Game.getObjectById(this.creep.memory.containerSite);
+
+            // Move to the container if not near it
+            if (!this.creep.memory.onContainer && container && this.creep.pos.getRangeTo(container) > 0) {
+                return this.creep.shibMove(container, {range: 0});
+            } else if (!this.creep.pos.isNearTo(source)) {
+                return this.creep.shibMove(source);
             } else {
-                switch (creep.harvest(source)) {
+                this.creep.memory.onContainer = true;
+                switch (this.creep.harvest(source)) {
                     case ERR_NOT_IN_RANGE:
-                        creep.shibMove(source);
+                        this.creep.shibMove(source);
                         break;
                     case ERR_NOT_ENOUGH_RESOURCES:
-                        creep.idleFor(source.ticksToRegeneration + 1);
+                        this.creep.idleFor(source.ticksToRegeneration + 1);
                         break;
                     case OK:
-                        if (!creep.memory.containerID || !Game.getObjectById(creep.memory.containerID)) {
-                            creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.other.source), creep);
+                        if (!this.creep.memory.containerID || !Game.getObjectById(this.creep.memory.containerID)) {
+                            this.creep.memory.containerID = harvestDepositContainer(Game.getObjectById(this.creep.memory.other.source), this.creep);
+                        }
+                        const container = Game.getObjectById(this.creep.memory.containerID) || Game.getObjectById(this.creep.memory.containerSite);
+                        if (container && container.hits) {
+                            if (this.creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return this.creep.repair(container);
+                            if (_.sum(container.store) >= 1980) {
+                                if (this.creep.memory.assignedHauler && !Game.getObjectById(this.creep.memory.assignedHauler)) this.creep.memory.assignedHauler = undefined;
+                                this.creep.idleFor(20);
+                            } else if (_.sum(container.store) >= CONTAINER_CAPACITY * 0.75 && container.hits < container.hitsMax) {
+                                this.creep.repair(container);
+                            } else if (_.sum(container.store) >= CONTAINER_CAPACITY) {
+                                this.creep.idleFor(20);
+                            }
+
+                            this.creep.memory.energyAmount = _.sum(container.store);
+                            this.creep.memory.energyId = container.id;
+                        } else {
+                            const dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
+                            if (dropped) {
+                                this.creep.memory.energyAmount = dropped.amount;
+                                this.creep.memory.energyId = dropped.id;
+                            }
                         }
                         break;
                 }
             }
-        } else if (creep.memory.destination && creep.room.name !== creep.memory.destination) {
-            creep.shibMove(new RoomPosition(25, 25, creep.memory.destination, {range: 23}));
         }
     }
-};
+}
 
 function harvestDepositContainer(source, creep) {
     let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(source) === 1});
@@ -136,3 +108,6 @@ function findContainerSpot(room, position) {
         }
     }
 }
+
+profiler.registerClass(RoleRemoteHarvester, 'RemoteHarvester');
+module.exports = RoleRemoteHarvester;

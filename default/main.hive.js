@@ -168,5 +168,16 @@ function minionController(minion) {
     }
     // Run role
     if (!minion.memory.role) return minion.suicide();
-    require('role.' + minion.memory.role).role(minion);
+
+    // Check if the role is cached
+    let Role;
+    if (ROLE_CACHE[minion.memory.role]) {
+        Role = ROLE_CACHE[minion.memory.role];
+    } else {
+        // Load the role and cache it
+        Role = require('role.' + minion.memory.role);
+        ROLE_CACHE[minion.memory.role] = Role;
+    }
+
+    new Role(minion);
 }

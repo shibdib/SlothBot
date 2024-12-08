@@ -7,11 +7,13 @@ const profiler = require("./tools.profiler");
 class RoleShuttle {
     constructor(creep) {
         this.creep = creep;
+        this.room = creep.room;
+        this.performRoleActions();
+    }
 
+    performRoleActions() {
         if (this.housekeeping()) return;
-
-        if (_.sum(creep.store)) {
-            if (this.creep.memory.overlord !== this.creep.room.name) return this.creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 8})
+        if (_.sum(this.creep.store)) {
             this.hauling();
         } else {
             this.pickup();
