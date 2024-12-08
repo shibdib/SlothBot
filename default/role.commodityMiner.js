@@ -26,23 +26,40 @@ class RoleCommodityMiner {
     }
 
     housekeeping() {
-        if (this.creep.tryToBoost(['harvest'])) return true;
+        // Try to boost harvest if possible
+        if (this.creep.tryToBoost(['harvest'])) return true;  // Boost work, not harvest (if it’s meant to be harvesting)
+
         // Old age check
-        if (this.creep.ticksToLive < 150) if (!_.sum(this.creep.store)) return this.creep.suicide(); else return this.creep.recycleCreep();
-        // Make sure the operation is active
-        if (!Memory.auxiliaryTargets[this.creep.memory.destination]) if (!_.sum(this.creep.store)) return this.creep.suicide(); else return this.creep.recycleCreep();
+        if (this.creep.ticksToLive < 150) {
+            if (!_.sum(this.creep.store)) {
+                this.creep.suicide();
+            } else {
+                this.creep.recycleCreep();
+            }
+            return true;
+        }
+
+        // Make sure the operation is active and valid destination exists
+        if (!this.creep.memory.destination || !Memory.auxiliaryTargets[this.creep.memory.destination]) {
+            if (!_.sum(this.creep.store)) {
+                this.creep.suicide();
+            } else {
+                this.creep.recycleCreep();
+            }
+            return true;
+        }
     }
 
     travelToDeposit() {
-        return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22, offRoad: true});
+        return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22});
     }
 
     harvest() {
         let deposit = Game.getObjectById(this.creep.memory.deposit);
-        // Store space
-        if (!Memory.auxiliaryTargets[this.creep.memory.destination].space) Memory.auxiliaryTargets[this.creep.memory.destination].space = deposit.pos.countOpenTerrainAround();
         // Clear the deposit if needed
         if (!deposit || (!deposit.depositType && !deposit.mineralAmount) || deposit.lastCooldown >= 25) return this.creep.memory.deposit = undefined;
+        // Store space
+        if (!Memory.auxiliaryTargets[this.creep.memory.destination].space) Memory.auxiliaryTargets[this.creep.memory.destination].space = deposit.pos.countOpenTerrainAround();
         // Refresh the operation
         if (Memory.auxiliaryTargets[this.creep.memory.destination]) Memory.auxiliaryTargets[this.creep.memory.destination].tick = Game.time;
         switch (this.creep.harvest(deposit)) {

@@ -22,8 +22,10 @@ module.exports.highCommand = function () {
     // Request scouting for new operations
     else if (MAX_LEVEL >= 2 && Math.random() > 0.5) operationRequests();
     // Manage old operations
-    else {
+    if (_.size(Memory.targetRooms)) {
         manageAttacks();
+    }
+    if (_.size(Memory.auxiliaryTargets)) {
         manageAuxiliary();
     }
 };

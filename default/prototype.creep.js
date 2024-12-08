@@ -1036,14 +1036,21 @@ Creep.prototype.tryToBoost = function (bodyPart, tier = undefined) {
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
                     break;
             }
-            for (let boost of BOOST_USE[boostType]) {
-                if (boostNeeded && this.room.store(boost) >= boostNeeded) {
-                    available[boost] = {
-                        'boost': boost,
-                        'amount': boostNeeded
-                    };
-                    break;
+            try {
+                for (let boost of BOOST_USE[boostType]) {
+                    if (boostNeeded && this.room.store(boost) >= boostNeeded) {
+                        available[boost] = {
+                            'boost': boost,
+                            'amount': boostNeeded
+                        };
+                        break;
+                    }
                 }
+            } catch (e) {
+                this.memory.boostAttempt = true;
+                log.e("Boost failure for " + this.name);
+                log.e("Boost Failed: " + e);
+                return false;
             }
         }
         this.memory.boosts.requestedBoosts = available;

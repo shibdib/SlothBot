@@ -476,8 +476,9 @@ let globals = function () {
     };
 
     global.roomLink = function (roomArg, text = undefined, select = true) {
+        let id;
+        if (roomArg) id = roomArg.id; else return undefined;
         let roomName;
-        let id = roomArg.id;
         if (roomArg instanceof Room) {
             roomName = roomArg.name;
         } else if (roomArg.pos !== undefined) {

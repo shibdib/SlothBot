@@ -72,6 +72,7 @@ class Overlord {
                 if (errorCount[creep.name] >= 10) {
                     log.e(e);
                     log.e(e.stack);
+                    log.e(JSON.stringify(creep.memory));
                     log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name) + ' and has been killed.');
                     creep.suicide();
                 }

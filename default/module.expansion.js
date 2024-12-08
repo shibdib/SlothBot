@@ -6,16 +6,20 @@ module.exports.claimNewRoom = function () {
     if (!MY_ROOMS[0] || _.size(INTEL) < 5) return;
 
     // Check for active claims or rebuilds
-    const claimsInProgress = _.filter(Memory.auxiliaryTargets, t => t && (t.type === 'claim' || t.type === 'rebuild'));
-    if (claimsInProgress.length > MY_ROOMS.length * 0.25) return;
+    const claimInProgress = _.find(Memory.auxiliaryTargets, t => t && (t.type === 'claim' || t.type === 'rebuild'));
+    if (claimInProgress) return;
 
     let claimTarget = Memory.nextClaim;
 
     // Clear claim target if invalid
     const targetIntel = INTEL[claimTarget];
-    if (!targetIntel || targetIntel.owner || targetIntel.reservation || targetIntel.hostile || Math.random() > 0.75) {
-        Memory.nextClaim = undefined;
-        claimTarget = undefined;
+    if (claimTarget) {
+        if (!targetIntel || targetIntel.owner || targetIntel.reservation || targetIntel.hostile) {
+            Memory.nextClaim = undefined;
+            claimTarget = undefined;
+        } else {
+            return;
+        }
     }
 
     if (!claimTarget) {
