@@ -40,7 +40,7 @@ module.exports.processBuildQueue = function (room) {
             if (other.boostCheck && !hasRequiredBoosts(room, other.boostCheck)) continue;
 
             // Generate body and check if we can afford it
-            body = generator.bodyGenerator(room.level, role, room, topPriority);
+            body = new generator(room.level, role, room, topPriority).generateBody();
             if (!body || !body.length) continue;
 
             const cost = global.UNIT_COST(body);
@@ -776,7 +776,7 @@ function displayQueue(room) {
         let operationQueue = JSON.parse(JSON.stringify(globalQueue));
         for (let key in operationQueue) {
             if (operationQueue[key].destination) {
-                let body = generator.bodyGenerator(room.level, operationQueue[key].role, room, operationQueue[key]);
+                let body = new generator(room.level, operationQueue[key].role, room, operationQueue[key]).generateBody();
                 // If a military op check if room can produce creeps at the level required
                 if (Memory.targetRooms[operationQueue[key].destination] && Memory.targetRooms[operationQueue[key].destination].maxLevel > room.level) {
                     delete operationQueue[key]
@@ -819,7 +819,7 @@ function displayQueue(room) {
         for (let item of queue) {
             if (i >= 5) break;
             let mil = '';
-            let cost = global.UNIT_COST(generator.bodyGenerator(room.level, item.role, room, item));
+            let cost = global.UNIT_COST(new generator(room.level, item.role, room, item).generateBody());
             displayText(room, 35, 2 + i, item.priority + ' ' + _.capitalize(item.role) + mil + ': ' + room.energyAvailable + '/' + cost + ' Age: ' + (Game.time - item.cached));
             i++;
         }
