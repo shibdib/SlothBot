@@ -40,7 +40,9 @@ class RoleExplorer {
             }
             return this.creep.shibMove(portal, {range: 0});
         } else {
-            let adjacent = _.filter(_.map(Game.map.describeExits(this.room.name)), (r) => (!INTEL[this.room.name].obstacles || this.creep.pos.findPathTo(Game.map.findExit(this.room.name, r)).length));
+            const highwayRegex = /^[EW]\d{1,2}0?([NS]\d{1,2}0?)$|^[NS]\d{1,2}0?([EW]\d{1,2}0?)$/;
+            let adjacent = _.filter(_.map(Game.map.describeExits(this.room.name)), (r) => (roomStatus(r) === roomStatus(this.creep.memory.overlord) || highwayRegex.test(r)) &&
+                ((roomStatus(this.creep.memory.overlord) === 'normal' && !INTEL[this.room.name].obstacles) || this.creep.pos.findPathTo(Game.map.findExit(this.room.name, r)).length));
             // Filter out the last room if we have options
             if (this.creep.memory.lastRoom && adjacent.length > 1) adjacent = _.filter(adjacent, (a) => a !== this.creep.memory.lastRoom);
             // If there's unexplored prioritize else pick random
