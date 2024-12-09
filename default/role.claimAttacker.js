@@ -7,23 +7,29 @@ const profiler = require("./tools.profiler");
 class RoleClaimAttacker {
     constructor(creep) {
         this.creep = creep;
+        this.room = creep.room;
         this.performRoleActions();
     }
 
     performRoleActions() {
-        if (this.statusChecks(this.creep)) {
+        if (this.houseKeeping()) {
 
-        } else if (this.creep.room.controller && (this.creep.room.controller.owner || this.creep.room.controller.reservation)) {
+        } else if (this.creep.room.controller && (!INTEL[this.room.name] || INTEL[this.room.name].user !== MY_USERNAME) &&
+            (this.creep.room.controller.owner || this.creep.room.controller.reservation)) {
             this.attackController(this.creep);
         } else if (this.creep.room.controller) {
             this.reserveController(this.creep);
         }
     }
 
-    statusChecks(creep) {
-        if (Memory.targetRooms[creep.memory.destination] && !Memory.targetRooms[creep.memory.destination].claimAttacker) return creep.recycleCreep();
-        if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22});
-        if (creep.room.controller.upgradeBlocked > creep.ticksToLive) creep.suicide();
+    houseKeeping() {
+        if (!Memory.targetRooms[this.creep.memory.destination] || (Memory.targetRooms[this.creep.memory.destination] &&
+            !Memory.targetRooms[this.creep.memory.destination].claimAttacker)) return this.creep.recycleCreep();
+        if (this.creep.room.name !== this.creep.memory.destination) {
+            this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22});
+            return true;
+        }
+        if (this.creep.room.controller.upgradeBlocked > this.creep.ticksToLive) this.creep.suicide();
     }
 
     attackController(creep) {
