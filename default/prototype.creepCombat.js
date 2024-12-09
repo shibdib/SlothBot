@@ -280,7 +280,7 @@ Creep.prototype.findClosestHostileStructure = function (barriers = true) {
     }
 
     // If no towers/spawns found, prioritize any other active hostile structures
-    target = _.find(structures, (s) => s.isActive() && ![STRUCTURE_WALL, STRUCTURE_RAMPART].includes(s.structureType));
+    target = _.find(structures, (s) => s.isActive() && ![STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_ROAD, STRUCTURE_CONTAINER].includes(s.structureType));
 
     if (target) {
         this.memory.target = target.id;
