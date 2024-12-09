@@ -9,27 +9,51 @@ let helpers = function () {
      * @param room
      */
     global.abandonRoom = function (room) {
-        if (!room) return log.e(room.name + ' does not appear to be owned by you.');
-        _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room.name).forEach((c) => c.suicide());
-        if (room.impassibleStructures && room.impassibleStructures.length) {
-            for (let structure of room.impassibleStructures) {
-                structure.destroy();
-            }
+        if (!room || !room.controller || room.controller.owner.username !== MY_USERNAME) {
+            return log.e(room ? `${room.name} does not appear to be owned by you.` : 'Room does not exist.');
         }
-        if (room.constructionSites && room.constructionSites.length) {
-            for (let site of room.constructionSites) {
-                site.remove();
-            }
+
+        // Suicide all creeps associated with this room
+        _.forEach(Game.creeps, (creep) => {
+            if (creep.memory.overlord === room.name) creep.suicide();
+        });
+
+        // Remove impassible structures
+        if (room.impassibleStructures.length) {
+            room.impassibleStructures.forEach(structure => structure.destroy());
         }
-        delete room.memory;
-        Memory.targetRooms[room.name] = undefined;
-        Memory.auxiliaryTargets[room.name] = undefined;
-        room.cacheRoomIntel(true);
-        INTEL[room.name].noClaim = Game.time + 10000;
-        if (INTEL[room.name].failedClaim) INTEL[room.name].failedClaim++;
-        else INTEL[room.name].failedClaim = 1;
+
+        // Remove construction sites
+        if (room.constructionSites.length) {
+            room.constructionSites.forEach(site => site.remove());
+        }
+
+        // Cleanup memory and related targets
+        cleanupMemory(room);
+
+        // Reset room intel
+        resetRoomIntel(room);
+
+        // Unclaim the room controller
         room.controller.unclaim();
+
+        function cleanupMemory(room) {
+            // Only clear relevant memory if room is fully owned
+            const roomName = room.name;
+            delete room.memory;
+            Memory.targetRooms[roomName] = undefined;
+            Memory.auxiliaryTargets[roomName] = undefined;
+        }
+
+        function resetRoomIntel(room) {
+            const roomName = room.name;
+            if (!INTEL[roomName]) INTEL[roomName] = {};
+            INTEL[roomName].noClaim = Game.time + 10000;
+            INTEL[roomName].failedClaim = (INTEL[roomName].failedClaim || 0) + 1;
+            room.cacheRoomIntel(true);  // Only cache intel if necessary
+        }
     };
+
 
     /**
      * Get nukes in range
@@ -77,17 +101,18 @@ let helpers = function () {
      * @returns {boolean}
      */
     global.myRoomInSectorCheck = function (room) {
-        let [EW, NS] = room.match(/\d+/g);
-        let roomAEWInt = EW.toString()[0];
-        let roomANSInt = NS.toString()[0];
-        for (let myRoom of MY_ROOMS) {
-            let [EW2, NS2] = myRoom.match(/\d+/g);
-            let roomBEWInt = EW2.toString()[0];
-            let roomBNSInt = NS2.toString()[0];
-            if (roomAEWInt === roomBEWInt && roomANSInt === roomBNSInt) return true;
-        }
-        return false;
+        // Extract the sector information (first digit of EW and NS)
+        let [EW, NS] = room.match(/\d+/g).map(Number);
+        let roomSector = `${String(EW)[0]}${String(NS)[0]}`;
+
+        // Check if any of MY_ROOMS belong to the same sector
+        return MY_ROOMS.some(myRoom => {
+            let [EW2, NS2] = myRoom.match(/\d+/g).map(Number);
+            let myRoomSector = `${String(EW2)[0]}${String(NS2)[0]}`;
+            return roomSector === myRoomSector;
+        });
     };
+
 
     /**
      * Get the total amount of a resource you have
@@ -149,46 +174,74 @@ let helpers = function () {
      * @returns {number|*|number|string}
      */
     global.findClosestOwnedRoom = function (roomName, range = false, minLevel = 1) {
-        // Check if you own the room
-        if (MY_ROOMS.includes(roomName) && minLevel <= Game.rooms[roomName].controller.level) {
-            closestCache[roomName] = {};
-            closestCache[roomName].closest = roomName;
-            closestCache[roomName].distance = 0;
-            if (range) return 0; else return roomName;
+        // Check if you own the room and if the controller level meets the minimum level
+        const room = Game.rooms[roomName];
+        if (MY_ROOMS.includes(roomName) && room.controller.level >= minLevel) {
+            closestCache[roomName] = {
+                closest: roomName,
+                distance: 0,
+                lastUpdated: Game.time
+            };
+            return range ? 0 : roomName;
         }
-        if (!closestCache.length || !closestCache[roomName] || closestCache[roomName].ownedCount !== MY_ROOMS.length) {
-            closestCache[roomName] = {};
-            closestCache[roomName].ownedCount = MY_ROOMS.length;
-            let distance = 99;
-            let closest, closestDistance;
-            for (let key of MY_ROOMS) {
-                let myRoom = Game.rooms[key];
-                if (!myRoom || myRoom.controller.level < minLevel) continue;
-                // Basic distance check to save CPU
-                distance = Game.map.getRoomLinearDistance(roomName, myRoom.name);
-                // Handle absurd distances
-                if (distance > 25) {
-                    let path = myRoom.shibRoute(roomName);
-                    if (path) distance = path.length;
-                }
-                if (!closestDistance) {
-                    closestDistance = distance;
-                    closest = myRoom.name;
-                } else if (distance < closestDistance) {
-                    closestDistance = distance;
-                    closest = myRoom.name;
+
+        // Check if we have a valid cache
+        const cached = closestCache[roomName];
+        if (cached) {
+            // If the cache is expired (older than 10,000 ticks), invalidate it
+            if (Game.time - cached.lastUpdated > 10000) {
+                delete closestCache[roomName]; // Expire cache
+            } else {
+                // Return the cached value if it's still valid
+                if (cached.ownedCount === MY_ROOMS.length) {
+                    return range ? cached.distance : cached.closest;
                 }
             }
-            if (!closest) closest = _.sample(Game.spawns).room.name;
-            if (!distance && closest) distance = Game.map.getRoomLinearDistance(roomName, closest);
-            closestCache[roomName].closest = closest;
-            closestCache[roomName].distance = distance;
-            if (!range) return closest;
-            return distance;
-        } else {
-            if (!range) return closestCache[roomName].closest;
-            return closestCache[roomName].distance;
         }
+
+        // Initialize cache for this room if not already
+        closestCache[roomName] = {ownedCount: MY_ROOMS.length, lastUpdated: Game.time};
+        let closest = null;
+        let closestDistance = Infinity;
+
+        // Check all owned rooms for proximity
+        for (let key of MY_ROOMS) {
+            const myRoom = Game.rooms[key];
+            if (!myRoom || myRoom.controller.level < minLevel) continue;
+
+            let distance = Game.map.getRoomLinearDistance(roomName, myRoom.name);
+
+            // Only use pathfinding if the distance is greater than a threshold
+            if (distance > 25) {
+                // Only call shibRoute if the basic distance is large
+                const path = myRoom.shibRoute(roomName);
+                if (path) {
+                    distance = path.length;
+                }
+            }
+
+            // If this room is closer, update the closest room and distance
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closest = myRoom.name;
+
+                // If we find an optimal room, exit early to avoid unnecessary loops
+                if (distance === 1) break;
+            }
+        }
+
+        // Fallback if no closest room is found, just pick a random spawn
+        if (!closest) {
+            closest = _.sample(Game.spawns).room.name;
+            closestDistance = Game.map.getRoomLinearDistance(roomName, closest);
+        }
+
+        // Cache the result for future use
+        closestCache[roomName].closest = closest;
+        closestCache[roomName].distance = closestDistance;
+        closestCache[roomName].lastUpdated = Game.time; // Store the time of the cache update
+
+        return range ? closestDistance : closest;
     };
 
     /**

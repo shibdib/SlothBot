@@ -7,44 +7,6 @@ let activeConfig;
 
 // noinspection JSUnresolvedReference
 let globals = function () {
-    // Try to load a private server config otherwise load the default
-    try {
-        if (activeConfig) {
-            require(activeConfig);
-        } else {
-            require('config.' + Game.shard.name);
-            activeConfig = 'config.' + Game.shard.name;
-            console.log('------------------------------------------------------------------');
-            console.log('Loaded config for ' + Game.shard.name);
-            if (COMBAT_SERVER) {
-                console.log('Combat Server Mode Active - All Players Considered Hostile');
-                console.log('Manual Allies (Overrides the above) - ' + MANUAL_FRIENDS.toString());
-            } else {
-                console.log('Manual Enemies - ' + HOSTILES.toString());
-                console.log('Manual Allies - ' + MANUAL_FRIENDS.toString());
-            }
-            console.log('------------------------------------------------------------------');
-        }
-    } catch (e) {
-        if (activeConfig) {
-            require(activeConfig);
-        } else {
-            require('config.default');
-            activeConfig = 'config.default';
-            console.log('------------------------------------------------------------------');
-            console.log('No custom config found loading default config.');
-            console.log("Create a custom config using the naming scheme 'config.shardName.js'");
-            if (COMBAT_SERVER) {
-                console.log('Combat Server Mode Active - All Players Considered Hostile');
-                console.log('Manual Allies (Overrides the above) - ' + MANUAL_FRIENDS.toString());
-            } else {
-                console.log('Manual Enemies - ' + HOSTILES.toString());
-                console.log('Manual Allies - ' + MANUAL_FRIENDS.toString());
-            }
-            console.log('------------------------------------------------------------------');
-        }
-    }
-
     global.PROFILER_ENABLED = true; // Disable if you don't want to use the profiler. Should save CPU.
 
     // Creep build priorities (Lower is higher priority)
@@ -61,16 +23,6 @@ let globals = function () {
         defender: 2, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9
     };
 
-    global.REMOTE_SOURCE_TARGET = 5; // The number of remote sources a room looks to have. Changing this might ruin your economy.
-    // Global cache for roles
-    global.ROLE_CACHE = {};
-
-    // Wall and rampart target amounts
-    global.BARRIER_TARGET_HIT_POINTS = {
-        1: 1000, 2: 10000, 3: 25000, 4: 100000, 5: 500000, 6: 1000000, 7: 2500000, 8: 5000000
-    };
-
-
     //
     //
     //
@@ -78,6 +30,68 @@ let globals = function () {
     //
     //
     //
+
+
+    const slothBotASCII = `
+      SSSSS  L       OOO   TTTTT  H   H   BBBBB   OOO   TTTTT
+     S        L      O   O    T    H   H   B    B O   O    T
+      SSS     L      O   O    T    HHHHH   BBBBB  O   O    T
+         S    L      O   O    T    H   H   B    B O   O    T
+     SSSSS    LLLLL   OOO     T    H   H   BBBBB   OOO     T
+     
+     https://github.com/shibdib/SlothBot
+    `;
+
+    console.log(slothBotASCII);
+
+    // Try to load a private server config otherwise load the default
+    console.log(`Global Reset - Last reset occurred ${Game.time - (Memory.lastGlobalReset || Game.time)} ticks ago.`);
+    Memory.lastGlobalReset = Game.time;
+
+    try {
+        const configFile = activeConfig || `config.${Game.shard.name}`;
+        require(configFile);
+        activeConfig = activeConfig || `config.${Game.shard.name}`;
+
+        console.log('------------------------------------------------------------------');
+        console.log(`Loaded config for ${Game.shard.name}`);
+
+        const combatMessage = COMBAT_SERVER
+            ? 'Combat Server Mode Active - All Players Considered Hostile'
+            : `Manual Enemies - ${HOSTILES.toString()}\nManual Allies - ${MANUAL_FRIENDS.toString()}`;
+
+        console.log(combatMessage);
+
+        if (COMBAT_SERVER) {
+            console.log(`Manual Allies (Overrides the above) - ${MANUAL_FRIENDS.toString()}`);
+        }
+
+        console.log('------------------------------------------------------------------');
+    } catch (e) {
+        const fallbackConfig = activeConfig || 'config.default';
+        require(fallbackConfig);
+        activeConfig = 'config.default';
+
+        console.log('------------------------------------------------------------------');
+        console.log('No custom config found, loading default config.');
+        console.log("Create a custom config using the naming scheme 'config.shardName.js'");
+
+        const fallbackMessage = COMBAT_SERVER
+            ? 'Combat Server Mode Active - All Players Considered Hostile'
+            : `Manual Enemies - ${HOSTILES.toString()}\nManual Allies - ${MANUAL_FRIENDS.toString()}`;
+
+        console.log(fallbackMessage);
+
+        if (COMBAT_SERVER) {
+            console.log(`Manual Allies (Overrides the above) - ${MANUAL_FRIENDS.toString()}`);
+        }
+
+        console.log('------------------------------------------------------------------');
+    }
+
+
+    // Global cache for roles
+    global.ROLE_CACHE = {};
 
     // Reaction
     global.TIER_3_BOOSTS = [RESOURCE_CATALYZED_GHODIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ACID, RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE];
