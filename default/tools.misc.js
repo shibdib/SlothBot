@@ -61,79 +61,121 @@ function adjustedCPULimit(limit, bucket, target = BUCKET_MAX * 0.8, maxCpuPerTic
     return clamp(Math.round(limit * 0.2), Math.round(limit * multiplier), maxCpuPerTick);
 }
 
-// Status console
+// Status console with cache expiration and enhanced output formatting
 let lastStatus = 0;
 module.exports.status = function () {
-    if (lastStatus + STATUS_COOLDOWN < _.round(new Date().getTime() / 1000, 2) || (!Memory.lastStatus || Memory.lastStatus + 100 < Game.time)) {
-        lastStatus = _.round(new Date().getTime() / 1000, 2)
-        log.a('---------------------------------------------------------------------------', ' ');
-        log.a('--GLOBAL INFO--', ' ');
-        log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + ((_.round(Game.gcl.progress / Game.gcl.progressTotal, 2)) * 100) + '% | Total Creep Count - ' + _.size(Game.creeps), ' ');
-        log.e('CPU Bucket - ' + Game.cpu.bucket + ' | CPU Limit - ' + Game.cpu.limit + ' | CPU Available - ' + Game.cpu.tickLimit, ' ');
-        try {
-            log.a('--ROOM INFO--', ' ');
-            for (let name of MY_ROOMS) {
-                let activeRoom = Game.rooms[name];
-                if (!activeRoom.controller) continue;
-                let averageCpu = 'No Data';
-                if (ROOM_CPU_ARRAY[activeRoom.name]) averageCpu = _.round(average(ROOM_CPU_ARRAY[activeRoom.name]), 2) || 'No Data';
-                let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
-                let lowPowerText = '';
-                if (activeRoom.memory.lowPower) lowPowerText = ' [LOW POWER]';
-                log.e(roomLink(activeRoom.name) + lowPowerText + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + ((_.round(activeRoom.controller.progress / activeRoom.controller.progressTotal, 2)) * 100) + '% | Energy Available - ' + activeRoom.energy + ' | Avg. Energy Income - ' + activeRoom.energyIncome + ' | Creep Count: ' + _.size(roomCreeps), ' ');
-            }
-        } catch (e) {
-            log.a('--ROOM INFO FAILED--', ' ');
-        }
-        try {
-            let targetRooms = Memory.targetRooms;
-            let auxiliaryTargets = Memory.auxiliaryTargets;
-            let blank = {};
-            let operations = Object.assign(blank, targetRooms, auxiliaryTargets);
-            if (operations && _.size(operations)) {
-                log.a('--OPERATION INFO--', ' ');
-                for (let key in operations) {
-                    if (!operations[key] || !key) continue;
-                    let level = operations[key].level || 0;
-                    let type = operations[key].type;
-                    if (operations[key].enemyDead || operations[key].friendlyDead) {
-                        log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + operations[key].priority + ' | Room ' + roomLink(key) + ' | Enemy KIA - ' + operations[key].trackedEnemy.length + '/' + operations[key].enemyDead + ' | Friendly KIA - ' + operations[key].trackedFriendly.length + '/' + operations[key].friendlyDead, ' ');
-                    } else if (operations[key].type === 'pending') {
-                        log.e(_.capitalize(type) + ' | Countdown - ' + (operations[key].dDay - Game.time) + ' ticks | Room ' + roomLink(key), ' ');
-                    } else {
-                        log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + operations[key].priority + ' | Room ' + roomLink(key), ' ');
-                    }
-                }
-                let scouts = _.filter(operations, (t) => t && (t.type === 'scout' || t.type === 'attack'));
-                if (scouts.length) log.e('Scout Target Count - ' + scouts.length, ' ');
-            }
-        } catch (e) {
-            log.a('--OPERATION INFO FAILED--', ' ');
-            log.e(e.stack)
-        }
-        try {
-            if (Memory.harassTargets && Memory.harassTargets.length) {
-                let activeHarassers = _.filter(Game.creeps, (c) => c.memory && c.memory.operation === 'harass');
-                log.a('--HARASSMENT INFO--', ' ');
-                log.e('Harass Targets: ' + Memory.harassTargets.join(", "), ' ');
-                if (activeHarassers.length) {
-                    log.e('Active Harassers: ' + activeHarassers.length, ' ');
-                    log.e('Targets: ' + _.pluck(activeHarassers, 'memory.destination').join(", "), ' ');
-                }
-            }
-        } catch (e) {
-            log.a('--HARASSMENT INFO FAILED--', ' ');
-        }
-        try {
-            if (Memory._enemies && Memory._enemies.length) {
-                log.a('--DIPLOMATIC INFO--', ' ');
-                log.e('Enemies: ' + Memory._enemies.join(", "), ' ');
-            }
-        } catch (e) {
-            log.a('--DIPLOMATIC INFO FAILED--', ' ');
-        }
-        Memory.lastStatus = Game.time;
+    const currentTime = _.round(new Date().getTime() / 1000, 2);
+    const timeSinceLastStatus = currentTime - lastStatus;
+
+    // Check if the status cooldown has expired or if we need to refresh the status
+    if (timeSinceLastStatus >= STATUS_COOLDOWN) {
+        lastStatus = currentTime;
+
+        log.a('===========================================================================', ' ');
+        log.a('------------------------------- GLOBAL INFO -------------------------------', ' ');
+        log.e(`🏆 GCL: ${Game.gcl.level} | Progress: ${(Game.gcl.progress / Game.gcl.progressTotal * 100).toFixed(2)}%`, ' ');
+        log.e(`💻 CPU Bucket: ${Game.cpu.bucket} | CPU Limit: ${Game.cpu.limit} | Available: ${Game.cpu.tickLimit}`, ' ');
+        log.e(`👾 Total Creeps: ${_.size(Game.creeps)}`, ' ');
+
+        log.a('------------------------------- ROOM INFO -------------------------------', ' ');
+        MY_ROOMS.forEach(roomName => {
+            const room = Game.rooms[roomName];
+            if (!room || !room.controller) return;
+
+            const roomCreeps = _.filter(Game.creeps, c => c.memory && c.memory.overlord === room.name);
+            const avgCpu = ROOM_CPU_ARRAY[room.name] ? (_.round(average(ROOM_CPU_ARRAY[room.name])) || 'No Data') : 'No Data';
+            const lowPowerText = room.memory.lowPower ? ' 🔋[LOW POWER]' : '';
+            const progress = ((room.controller.progress / room.controller.progressTotal) * 100).toFixed(2);
+            const energyInfo = `Energy: ${room.energy} | Income: ${room.energyIncome}`;
+
+            // Create a progress bar string (use '=' for progress, '-' for empty space)
+            const progressBarLength = 20;  // Length of the progress bar
+            const progressRatio = room.controller.progress / room.controller.progressTotal;  // Calculate progress ratio
+            const filledLength = Math.floor(progressBarLength * progressRatio);  // Calculate how many characters to fill
+            const emptyLength = progressBarLength - filledLength;  // Calculate remaining empty space
+            const progressBar = `[${'X'.repeat(filledLength)}${'-'.repeat(emptyLength)}]`;  // Build the progress bar
+
+            // Log general info along with the progress bar
+            log.e(`${roomLink(room.name)}${lowPowerText} | RCL: ${room.controller.level} | CPU Usage: ${avgCpu} | RCL Progress: ${progress}% ${progressBar}`, ' ');
+            log.e(`${energyInfo} | Creeps: ${_.size(roomCreeps)}`, ' ');
+        });
+
+        // OPERATION INFO
+        displayOperationsInfo();
+
+        // HARASSMENT INFO
+        displayHarassmentInfo();
+
+        // DIPLOMATIC INFO
+        displayDiplomaticInfo();
+
+        // Update the last status time
+        Memory.lastStatus = undefined;
         getUptime();
-        return log.a('---------------------------------------------------------------------------', ' ');
+
+        log.a('===========================================================================', ' ');
+    }
+
+    // Helper function to display operation information
+    function displayOperationsInfo() {
+        const operations = {...Memory.targetRooms, ...Memory.auxiliaryTargets};
+
+        if (_.size(operations)) {
+            log.a('------------------------------ OPERATION INFO -----------------------------', ' ');
+
+            Object.entries(operations).forEach(([key, op]) => {
+                if (!op) return;
+
+                const {
+                    level = 0,
+                    type,
+                    priority,
+                    dDay,
+                    enemyDead,
+                    friendlyDead,
+                    trackedEnemy = [],
+                    trackedFriendly = []
+                } = op;
+                const roomLinkText = roomLink(key);
+
+                let logText = `${_.capitalize(type)} | Level: ${level} | Priority: ${priority} | Room: ${roomLinkText}`;
+
+                if (enemyDead || friendlyDead) {
+                    logText += ` | 💥 Enemy KIA: ${trackedEnemy.length}/${enemyDead} | 🤝 Friendly KIA: ${trackedFriendly.length}/${friendlyDead}`;
+                } else if (type === 'pending') {
+                    logText += ` | ⏳ Countdown: ${dDay - Game.time} ticks`;
+                }
+
+                log.e(logText, ' ');
+            });
+
+            const scouts = _.filter(operations, t => t && (t.type === 'scout' || t.type === 'attack'));
+            if (scouts.length) {
+                log.e(`🔍 Scout Target Count: ${scouts.length}`, ' ');
+            }
+        }
+    }
+
+    // Helper function to display harassment info
+    function displayHarassmentInfo() {
+        if (Memory.harassTargets && Memory.harassTargets.length) {
+            log.a('----------------------------- HARASSMENT INFO ----------------------------', ' ');
+            log.e(`🎯 Harass Targets: ${Memory.harassTargets.join(", ")}`, ' ');
+
+            const activeHarassers = _.filter(Game.creeps, c => c.memory && c.memory.operation === 'harass');
+            if (activeHarassers.length) {
+                log.e(`⚔️ Active Harassers: ${activeHarassers.length}`, ' ');
+                log.e(`📍 Targets: ${_.pluck(activeHarassers, 'memory.destination').join(", ")}`, ' ');
+            }
+        }
+    }
+
+    // Helper function to display diplomatic info
+    function displayDiplomaticInfo() {
+        if (Memory._enemies && Memory._enemies.length) {
+            log.a('------------------------------ DIPLOMATIC INFO ----------------------------', ' ');
+            log.e(`⚔️ Enemies: ${Memory._enemies.join(", ")}`, ' ');
+        }
     }
 };
+

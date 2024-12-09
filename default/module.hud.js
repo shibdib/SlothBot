@@ -2,83 +2,160 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-let constructionSiteInfo = {};
 let GCL_PROGRESS_ARRAY = [];
-let lastTickGCLProgress;
+let lastTickGCLProgress = 0;
 let RCL_PROGRESS = {};
 let roomLastTickProgress = {};
 
 module.exports.hud = function () {
-    // Avoid new spawn errors
+    // Avoid new spawn errors and ensure tick info is available
     if (!Memory.tickInfo) return;
+
+    // Always update the HUD every tick
     let myRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner.username === MY_USERNAME);
+
     for (let room of myRooms) {
-        // No flag no hud
-        //if (!_.find(room.find(FIND_FLAGS), (f) => _.startsWith(f.name, 'hud'))) continue;
+        // Skip rooms without a controller or insufficient CPU data
         if (!room || !ROOM_CPU_ARRAY[room.name]) continue;
-        //GCL
-        GCL_PROGRESS_ARRAY = GCL_PROGRESS_ARRAY || [];
-        let progressPerTick = Game.gcl.progress - (lastTickGCLProgress || 0);
+
+        updateGCLProgress(room);
+        updateRCLProgress(room);
+
+        // Display HUD based on the last calculated values
+        displayGCLInfo(room);
+        displaySafeModeInfo(room);
+        displayRCLInfo(room);
+    }
+
+    // Helper function to update the GCL progress and store data for the next tick
+    function updateGCLProgress(room) {
+        let progressPerTick = Game.gcl.progress - lastTickGCLProgress;
         lastTickGCLProgress = Game.gcl.progress;
+
+        // Only update the array if there's progress made
         if (progressPerTick > 0) {
-            if (GCL_PROGRESS_ARRAY < 25) {
-                GCL_PROGRESS_ARRAY.push(progressPerTick)
+            if (GCL_PROGRESS_ARRAY.length < 25) {
+                GCL_PROGRESS_ARRAY.push(progressPerTick);
             } else {
                 GCL_PROGRESS_ARRAY.shift();
-                GCL_PROGRESS_ARRAY.push(progressPerTick)
+                GCL_PROGRESS_ARRAY.push(progressPerTick);
             }
         }
-        progressPerTick = average(GCL_PROGRESS_ARRAY);
-        let secondsToUpgrade = _.round(((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick) * Memory.tickInfo.tickLength);
-        let ticksToUpgrade = _.round((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick);
+    }
+
+    // Helper function to update RCL progress for a given room
+    function updateRCLProgress(room) {
+        if (!room.controller.progressTotal) {
+            // If no progress total, show the controller's level without progress info
+            roomLastTickProgress[room.name] = undefined;
+            delete RCL_PROGRESS[room.name];
+            return;
+        }
+
+        let lastTickProgress = roomLastTickProgress[room.name] || room.controller.progress;
+        roomLastTickProgress[room.name] = room.controller.progress;
+
+        let progressPerTick = room.controller.progress - lastTickProgress;
+        if (progressPerTick > 0) {
+            RCL_PROGRESS[room.name] = RCL_PROGRESS[room.name] || [];
+            if (RCL_PROGRESS[room.name].length < 25) {
+                RCL_PROGRESS[room.name].push(progressPerTick);
+            } else {
+                RCL_PROGRESS[room.name].shift();
+                RCL_PROGRESS[room.name].push(progressPerTick);
+            }
+        }
+    }
+
+    // Helper function to calculate the average of an array, safely handling empty arrays
+    function average(array) {
+        if (!array || array.length === 0) {
+            return 0;  // Return 0 if the array is empty or undefined
+        }
+        return array.reduce((sum, value) => sum + value, 0) / array.length;
+    }
+
+    // Helper function to display GCL information (progress, time to upgrade)
+    function displayGCLInfo(room) {
+        let progressPerTick = average(GCL_PROGRESS_ARRAY);
+        let remainingProgress = Game.gcl.progressTotal - Game.gcl.progress;
+
+        let secondsToUpgrade = _.round((remainingProgress / progressPerTick) * Memory.tickInfo.tickLength);
         let displayTime = secondsToReadable(secondsToUpgrade);
-        let lowerBoundary = 4;
-        if (!INTEL[room.name]) room.cacheRoomIntel();
-        if (INTEL[room.name].threatLevel) lowerBoundary++;
-        room.visual.rect(0, 0, 17, lowerBoundary, {
-            fill: '#ffffff',
-            opacity: '0.55',
-            stroke: 'black'
-        });
-        //GCL Display
-        displayText(room, 1, 1, ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks.');
-        //Safemode
+
+        // Draw a GCL progress bar with a gradient color
+        let progressPercent = (Game.gcl.progress / Game.gcl.progressTotal) * 100;
+        room.visual.rect(1, 1, 15, 0.5, {fill: '#808080', opacity: 0.5}); // background bar
+        room.visual.rect(1, 1, 15 * (progressPercent / 100), 0.5, {fill: '#00FF00'}); // active bar
+
+        // Display GCL info with updated time format
+        displayText(room, 1, 2, `${ICONS.upgradeController} GCL: ${Game.gcl.level} - ${displayTime} (${_.round(remainingProgress / progressPerTick)} ticks)`);
+    }
+
+    // Helper function to display Safe Mode info, if applicable
+    function displaySafeModeInfo(room) {
         if (room.controller.safeMode) {
             let secondsToNoSafe = room.controller.safeMode * Memory.tickInfo.tickLength;
             let displayTime = secondsToReadable(secondsToNoSafe);
-            if (displayTime) room.controller.say(displayTime + ' / ' + room.controller.safeMode + ' ticks.');
-        }
-        //Controller
-        if (room.controller.progressTotal) {
-            let lastTickProgress = roomLastTickProgress[room.name] || room.controller.progress;
-            roomLastTickProgress[room.name] = room.controller.progress;
-            let progressPerTick = room.controller.progress - lastTickProgress;
-            RCL_PROGRESS[room.name] = RCL_PROGRESS[room.name] || [];
-            if (progressPerTick > 0) {
-                if (RCL_PROGRESS[room.name].length < 25) {
-                    RCL_PROGRESS[room.name].push(progressPerTick)
-                } else {
-                    RCL_PROGRESS[room.name].shift();
-                    RCL_PROGRESS[room.name].push(progressPerTick)
-                }
-            }
-            progressPerTick = average(RCL_PROGRESS[room.name]);
-            let secondsToUpgrade = _.round(((room.controller.progressTotal - room.controller.progress) / progressPerTick) * Memory.tickInfo.tickLength);
-            let ticksToUpgrade = _.round((room.controller.progressTotal - room.controller.progress) / progressPerTick);
-            let displayTime = secondsToReadable(secondsToUpgrade);
-            displayText(room, 1, 2, ICONS.upgradeController + ' ' + room.controller.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks. (' + _.round(average(ROOM_CPU_ARRAY[room.name]), 2) + '/R.CPU)');
-        } else {
-            delete roomLastTickProgress[room.name];
-            delete RCL_PROGRESS[room.name];
-            displayText(room, 1, 2, ICONS.upgradeController + ' Controller Level: ' + room.controller.level + ' (' + _.round(average(ROOM_CPU_ARRAY[room.name]), 2) + '/R.CPU)');
-        }
-        let y = lowerBoundary;
-        if (INTEL[room.name].threatLevel) {
-            displayText(room, 1, y, ICONS.crossedSword + ' RESPONSE NEEDED: Threat Level ' + INTEL[room.name].threatLevel);
-            y++;
+            room.controller.say(`${displayTime} / ${room.controller.safeMode} ticks.`);
         }
     }
-    // Map Hud
+
+    // Helper function to display RCL information
+    function displayRCLInfo(room) {
+        let progressPerTick = average(RCL_PROGRESS[room.name]);
+        let secondsToUpgrade = _.round(((room.controller.progressTotal - room.controller.progress) / progressPerTick) * Memory.tickInfo.tickLength);
+        let ticksToUpgrade = _.round((room.controller.progressTotal - room.controller.progress) / progressPerTick);
+        let displayTime = secondsToReadable(secondsToUpgrade);
+
+        // Prevent Infinity display by using a fallback
+        if (isNaN(ticksToUpgrade) || ticksToUpgrade === Infinity) {
+            ticksToUpgrade = 'Calculating...';
+        }
+
+        // Draw a RCL progress bar with a gradient color
+        let progressPercent = (room.controller.progress / room.controller.progressTotal) * 100;
+        room.visual.rect(1, 3, 15, 0.5, {fill: '#808080', opacity: 0.5}); // background bar
+        room.visual.rect(1, 3, 15 * (progressPercent / 100), 0.5, {fill: '#00FF00'}); // active bar
+
+        // Display RCL progress or controller level
+        displayText(room, 1, 4, `${ICONS.upgradeController} RCL: ${room.controller.level} - ${displayTime} / ${ticksToUpgrade} ticks. (${_.round(average(ROOM_CPU_ARRAY[room.name]), 2)}/R.CPU)`);
+    }
+
+    // Helper function to handle threat level info
+    function displayThreatInfo(room, y) {
+        if (INTEL[room.name] && INTEL[room.name].threatLevel) {
+            displayText(room, 1, y, `${ICONS.crossedSword} RESPONSE NEEDED: Threat Level ${INTEL[room.name].threatLevel}`);
+            return y + 1;
+        }
+        return y;
+    }
+
+    // Helper function to display formatted text on the room's visual
+    function displayText(room, x, y, text) {
+        room.visual.text(text, x, y, {align: 'left', opacity: 0.9, font: 'bold 1.5x'});
+    }
+
+    // Function to convert seconds to readable format (days, hours, minutes, seconds)
+    function secondsToReadable(seconds) {
+        if (seconds === Infinity || seconds < 0) return 'Calculating...';
+
+        let days = Math.floor(seconds / (24 * 60 * 60));
+        let hours = Math.floor((seconds % (24 * 60 * 60)) / 3600);
+        let minutes = Math.floor((seconds % 3600) / 60);
+        let remainingSeconds = Math.floor(seconds % 60);
+
+        let timeString = '';
+        if (days > 0) timeString += `${days}d `;
+        if (hours > 0 || days > 0) timeString += `${hours}h `;
+        if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes}m `;
+        timeString += `${remainingSeconds}s`;
+
+        return timeString;
+    }
+};
+
+// Map Hud
     /**
     try {
         if (CACHE.VISUAL_CACHE && CACHE.VISUAL_CACHE['map'] && Game.time % 25 !== 0) return Game.map.visual.import(CACHE.VISUAL_CACHE['map']);
@@ -251,7 +328,6 @@ module.exports.hud = function () {
         console.log(e)
         console.log(e.stack)
     }**/
-};
 
 function secondsToReadable(seconds) {
     if (seconds < 60) return seconds + ' Seconds';
