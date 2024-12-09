@@ -616,7 +616,7 @@ function manualAttacks() {
     for (let name in Game.flags) {
         const flag = Game.flags[name];
         const roomName = flag.pos.roomName;
-        const operation = name.replace(/[^a-z]/gi, '');
+        const operation = name.replace(/[^a-z]/gi, '').toLowerCase();
         const tick = Game.time;
 
         // Define a helper function for flag removal and logging
@@ -626,14 +626,14 @@ function manualAttacks() {
         }
 
         // Handle nukes
-        if (_.startsWith(name, 'nuke')) {
+        if (operation.includes('nuke')) {
             nukeFlag(flag);
             removeFlagAndLog('Nuke operation initiated in ' + roomLink(roomName));
             continue;
         }
 
         // Handle cancellations
-        if (_.startsWith(name, 'cancel')) {
+        if (operation.includes('cancel')) {
             delete Memory.targetRooms[roomName];
             delete Memory.auxiliaryTargets[roomName];
             delete INTEL[roomName];
@@ -642,7 +642,7 @@ function manualAttacks() {
         }
 
         // Handle bad room avoidance
-        if (_.startsWith(name, 'avoid')) {
+        if (operation.includes('avoid')) {
             Memory.avoidRooms = Memory.avoidRooms || [];
             if (!Memory.avoidRooms.includes(roomName)) {
                 Memory.avoidRooms.push(roomName);
@@ -653,7 +653,7 @@ function manualAttacks() {
         }
 
         // Handle non-combat room designation
-        if (_.startsWith(name, 'ignore')) {
+        if (operation.includes('ignore')) {
             Memory.nonCombatRooms = Memory.nonCombatRooms || [];
             if (!Memory.nonCombatRooms.includes(roomName)) {
                 Memory.nonCombatRooms.push(roomName);
@@ -664,14 +664,14 @@ function manualAttacks() {
         }
 
         // Handle observation
-        if (_.startsWith(name, 'observe')) {
+        if (operation.includes('observe')) {
             Memory.observeRoom = roomName;
             removeFlagAndLog('Observing ' + roomLink(roomName) + ' at your request.');
             continue;
         }
 
         // Remove from avoid or non-combat lists
-        if (_.startsWith(name, 'remove')) {
+        if (operation.includes('remove')) {
             let removed = false;
             if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) {
                 Memory.avoidRooms = _.filter(Memory.avoidRooms, r => r !== roomName);
@@ -694,7 +694,7 @@ function manualAttacks() {
         }
 
         // Handle room abandonment
-        if (_.startsWith(name, 'abandon')) {
+        if (operation.includes('abandon')) {
             abandonRoom(Game.rooms[roomName]);
             removeFlagAndLog('Abandoning room ' + roomLink(roomName));
             continue;
