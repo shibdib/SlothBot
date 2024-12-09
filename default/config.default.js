@@ -61,10 +61,24 @@ global.PROTECT_SOURCES = false; // Include sources in the bunker algorithm
 
 // Signing and whatnot
 global.OWNED_ROOM_SIGNS = ["~~~ https://github.com/shibdib/SlothBot ~~~"];
-global.RESERVE_ROOM_SIGNS = ["~~RESTRICTED - Deadly Force Authorized - RESTRICTED~~"];
-global.EXPLORED_ROOM_SIGNS = ["We Noticed", "We're Everywhere", "We Know", "We See You", "We're Watching"];
+global.RESERVE_ROOM_SIGNS = [
+    "~~RESTRICTED - Deadly Force Authorized - RESTRICTED~~",
+    "You Have Entered the Danger Zone. Good Luck.",
+    "Warning: Spaghetti Monsters Detected",
+    "Unauthorized Access Will Result in Immediate Confusion",
+    "Trespassers Will Be Surprised by Our Lethargy",
+    "Proceed at Your Own Peril - SlothBot Sleeps with One Eye Open"
+];
+global.EXPLORED_ROOM_SIGNS = [
+    "We Noticed - We Always Notice",
+    "SlothBot Was Here, And Also There, and Everywhere",
+    "We Know, But We’re Too Lazy to Act on It",
+    "We See You... Staring at Us Through Your Screen",
+    "We’re Watching, But It’s Probably Just a Glitch",
+    "SlothBot: We Explore, But Slowly",
+    "We’ve Seen Your Base, and We’re Not Impressed"
+];
 global.ATTACK_ROOM_SIGNS = ["~~ALL YOUR BASE BELONG TO ME~~"];
-global.EXPLORER_SPAM = ['HI', 'Hello', 'Beep', 'Boop', 'Aloha', 'Shibby!'];
 
 // The boosts you want labs to focus on first (resources permitted)
 global.LAB_PRIORITY = [RESOURCE_GHODIUM, RESOURCE_CATALYZED_GHODIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_LEMERGIUM_ACID];
