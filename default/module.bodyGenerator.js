@@ -256,11 +256,6 @@ class ModuleBodyGenerator {
                     }
                 }
 
-                // Ensure that there are enough MOVE parts for mobility
-                const totalParts = rangedAttack + heal;
-                const moveRequired = Math.ceil(totalParts * 0.5);  // Enough move parts to support both rangedAttack and heal
-                move = Math.max(1, moveRequired);  // At least one MOVE part is required
-
                 break;
 
             case 'cleaner':
