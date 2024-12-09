@@ -440,10 +440,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     }
 
     // Check for obstacles
-    obstacles = this.controller
-        ? this.controller.pos.findClosestByPath(Game.map.findExit(this.name)) !== undefined
-        : _.some(this.impassibleStructures, (s) => s.structureType !== STRUCTURE_EXTRACTOR &&
-            !s.pos.findClosestByPath(Game.map.findExit(this.name)));
+    obstacles = isRoomBlocked(this.name);
 
     // Handle NCP check
     let ncpArray = Memory.ncpArray || [];
@@ -532,6 +529,49 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     Memory.ncpArray = _.uniq(ncpArray);
     global.INTEL = cache;
 };
+
+function isRoomBlocked(roomName) {
+    const exits = Game.map.describeExits(roomName);
+    if (!exits) return undefined; // No exits in the room
+
+    const exitKeys = Object.keys(exits);
+    for (let i = 0; i < exitKeys.length; i++) {
+        for (let j = i + 1; j < exitKeys.length; j++) {
+            const start = new RoomPosition(25, 25, roomName);
+            const path = PathFinder.search(
+                start,
+                {pos: new RoomPosition(25, 25, exits[exitKeys[j]]), range: 1},
+                {
+                    roomCallback: function (roomName) {
+                        const room = Game.rooms[roomName];
+                        if (!room) return;
+
+                        const costs = new PathFinder.CostMatrix();
+
+                        // Mark impassable structures
+                        room.impassibleStructures.forEach((structure) => {
+                            costs.set(structure.pos.x, structure.pos.y, 255);
+                        });
+
+                        // Add hostile creeps to impassable list
+                        room.find(FIND_HOSTILE_CREEPS).forEach((creep) => {
+                            costs.set(creep.pos.x, creep.pos.y, 255);
+                        });
+
+                        return costs;
+                    }
+                }
+            );
+
+            // If a path is found, the room isn't blocked
+            if (!path.incomplete) {
+                return undefined;
+            }
+        }
+    }
+    return true; // All paths are blocked
+}
+
 
 let invaderAlert = {};
 
