@@ -22,8 +22,9 @@ module.exports.claimNewRoom = function () {
         }
     }
 
+    let worthyRooms;
     if (!claimTarget) {
-        const worthyRooms = _.filter(INTEL, room => (
+        worthyRooms = _.filter(INTEL, room => (
             (!room.noClaim || room.noClaim < Game.time) &&
             !room.obstacles &&
             !room.hostile &&
