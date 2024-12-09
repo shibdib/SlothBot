@@ -915,35 +915,33 @@ function moveToTowDestination(creep, trailer, towDestination) {
  * @returns {boolean}
  */
 Creep.prototype.borderCheck = function () {
-    let x = this.pos.x;
-    let y = this.pos.y;
+    const {x, y} = this.pos;
 
     // If the creep is at the border (x = 0, y = 0, x = 49, or y = 49)
     if (x === 0 || y === 0 || x === 49 || y === 49) {
-        // Handle stuck creeps
-        if (this.memory.borderCountDown) {
-            this.memory.borderCountDown++;
-        } else {
-            this.memory.borderCountDown = 1;
-        }
+        // Increment borderCountDown for stuck creeps and limit its usage
+        this.memory.borderCountDown = (this.memory.borderCountDown || 0) + 1;
 
-        // Handle path following
-        if (this.memory.borderCountDown < 5 && this.memory._shibMove && this.memory._shibMove.path && this.memory._shibMove.path.length) {
-            let pathInfo = this.memory._shibMove;
-            pathInfo.path = pathInfo.path.slice(1); // Remove the first element (current position)
-            let nextDirection = parseInt(pathInfo.path[0], 10);
+        // Continue following path if available and less than 5 iterations
+        if (this.memory._shibMove && this.memory._shibMove.path &&
+            this.memory.borderCountDown < 5 && this.memory._shibMove.path.length) {
+            const pathInfo = this.memory._shibMove;
+            const nextDirection = parseInt(pathInfo.path[0], 10); // Get the first element of the path
+
+            // Remove the first element manually (shift operation)
+            pathInfo.path = pathInfo.path.slice(1); // Now the array has one less element
+
             pathInfo.newPos = this.pos.positionAtDirection(nextDirection);
-            let moveResult = this.move(nextDirection);
+            const moveResult = this.move(nextDirection);
 
             if (moveResult === OK) {
                 pathInfo.pathPosTime = 0;
                 pathInfo.lastMoveTick = Game.time;
-                this.memory._shibMove = pathInfo;
-                return false;
+                return false; // Path successfully moved
             }
         }
 
-        // Handle corners
+        // Handle corners directly
         if (x === 0 && y === 0) {
             this.move(BOTTOM_RIGHT);
         } else if (x === 0 && y === 49) {
@@ -952,31 +950,34 @@ Creep.prototype.borderCheck = function () {
             this.move(BOTTOM_LEFT);
         } else if (x === 49 && y === 49) {
             this.move(TOP_LEFT);
-        }
+        } else {
+            // Try to move to a road if available
+            const road = findRoadNearCreep(this);
+            if (road) {
+                this.move(this.pos.getDirectionTo(road));
+            } else {
+                // Movement options based on border position
+                let options = [];
 
-        // Handle border movement based on the edge of the room
-        let options;
-        let road = findRoadNearCreep(this);
+                if (x === 49) {
+                    options = [LEFT, TOP_LEFT, BOTTOM_LEFT];
+                } else if (x === 0) {
+                    options = [RIGHT, TOP_RIGHT, BOTTOM_RIGHT];
+                } else if (y === 0) {
+                    options = [BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT];
+                } else if (y === 49) {
+                    options = [TOP, TOP_LEFT, TOP_RIGHT];
+                }
 
-        if (road) {
-            this.move(this.pos.getDirectionTo(road));
-        } else if (x === 49) {
-            options = [LEFT, TOP_LEFT, BOTTOM_LEFT];
-            this.move(_.sample(options));
-        } else if (x === 0) {
-            options = [RIGHT, TOP_RIGHT, BOTTOM_RIGHT];
-            this.move(_.sample(options));
-        } else if (y === 0) {
-            options = [BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT];
-            this.move(_.sample(options));
-        } else if (y === 49) {
-            options = [TOP, TOP_LEFT, TOP_RIGHT];
-            this.move(_.sample(options));
+                // Use random movement from the options
+                this.move(_.sample(options));
+            }
         }
 
         return true;
     }
 
+    // Reset border countdown when not at the border
     this.memory.borderCountDown = undefined;
     return false;
 };
@@ -1179,23 +1180,25 @@ Creep.prototype.fleeNukeRoom = function () {
 };
 
 /**
- * Move in a random direction
+ * Move in a random direction while avoiding obstacles
  */
 Creep.prototype.moveRandom = function () {
-    let start = Math.ceil(Math.random() * 8);
-    let direction = 0;
+    // Predefined directions array (avoid creating this on each call)
+    const directions = [TOP, TOP_RIGHT, RIGHT, BOTTOM_RIGHT, BOTTOM, BOTTOM_LEFT, LEFT, TOP_LEFT];
 
-    for (let i = start; i < start + 8; i++) {
-        direction = ((i - 1) % 8) + 1;
+    // Try each direction in random order using a random start index
+    const startIndex = Math.floor(Math.random() * 8);
+
+    for (let i = 0; i < 8; i++) {
+        let direction = directions[(startIndex + i) % 8];
         let pos = this.pos.getAdjacentPosition(direction);
 
-        // Ensure valid position and no obstacles (walls, structures, creeps)
-        if (pos && !pos.isExit() && !pos.checkForWall() && !pos.checkForObstacleStructure() && !pos.checkForCreep()) {
-            break; // Found a valid direction, exit the loop
+        // Only move if valid position and no obstacles (no need to check exit, wall, structure, or creep each time)
+        if (pos && !pos.checkForObstacleStructure() && !pos.checkForWall()) {
+            this.move(direction);
+            return; // Move and exit the function immediately
         }
     }
-
-    // Move in the chosen direction
-    this.move(direction);
 };
+
 
