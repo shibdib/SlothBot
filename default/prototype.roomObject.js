@@ -90,6 +90,7 @@ OwnedStructure.prototype.isActive = function () {
  * @param what
  */
 RoomObject.prototype.say = function (what) {
+    if (!this.room) return;
     this.room.visual.line(this.pos.x, this.pos.y, this.pos.x + 1 - 0.2, this.pos.y - 1, {
         color: "#eeeeee",
         opacity: 0.9,
