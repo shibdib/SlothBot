@@ -516,7 +516,7 @@ Creep.prototype.fightRanged = function (target) {
         return true;
     } else {
         // For longer-range attacks, prioritize weaker targets
-        let opportunity = _.min(targets, 'hits');
+        let opportunity = _.min(hostileNearby, 'hits');
         if (opportunity) this.rangedAttack(opportunity);
 
         // Avoid getting too close to dangerous creeps
