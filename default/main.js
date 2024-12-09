@@ -10,8 +10,6 @@ const hive = require('main.hive');
 const segments = require('module.segmentManager');
 const cleanUp = require('module.cleanup');
 const profiler = require('tools.profiler');
-log.d('Global Reset - Last reset occurred ' + (Game.time - (Memory.lastGlobalReset || Game.time)) + ' ticks ago.');
-Memory.lastGlobalReset = Game.time;
 
 if (PROFILER_ENABLED) profiler.enable();
 module.exports.loop = function () {
