@@ -360,6 +360,7 @@ function manageAttacks() {
     // Iterate through target rooms
     for (let key in Memory.targetRooms) {
         let target = Memory.targetRooms[key];
+        if (!target) continue;
         let type = target.type;
 
         // Skip manual no combat rooms

@@ -31,7 +31,7 @@ function getRepairTower(room) {
 // Handle repair tower actions
 function handleRepairTowerActions(room, repairTower) {
     // Check if room is in a state where we can repair
-    if (room.energyState && repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.25) {
+    if (repairTower && room.energyState && repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.25) {
         roomRepairTower[room.name] = repairTower.id;
 
         let woundedCreep = findWoundedCreep(room);
