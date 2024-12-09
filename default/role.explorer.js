@@ -40,14 +40,16 @@ class RoleExplorer {
             }
             return this.creep.shibMove(portal, {range: 0});
         } else {
-            const highwayRegex = /^[EW]\d{1,2}0?([NS]\d{1,2}0?)$|^[NS]\d{1,2}0?([EW]\d{1,2}0?)$/;
-            let adjacent = _.filter(_.map(Game.map.describeExits(this.room.name)), (r) => (roomStatus(r) === roomStatus(this.creep.memory.overlord) || highwayRegex.test(r)) &&
-                ((roomStatus(this.creep.memory.overlord) === 'normal' && !INTEL[this.room.name].obstacles) || this.creep.pos.findPathTo(Game.map.findExit(this.room.name, r)).length));
+            const exits = Game.map.describeExits(this.room.name);
+            const rooms = Object.keys(exits).map((direction) => {
+                return {name: exits[direction], direction: parseInt(direction, 10)};
+            });
+            let adjacent = _.filter(rooms, (r) => !this.room.lookForAt(LOOK_STRUCTURES, this.room.find(r.direction)[0])[0] && pathableExit(this.creep, this.room.find(r.direction)[0]));
             // Filter out the last room if we have options
-            if (this.creep.memory.lastRoom && adjacent.length > 1) adjacent = _.filter(adjacent, (a) => a !== this.creep.memory.lastRoom);
+            if (this.creep.memory.lastRoom && adjacent.length > 1) adjacent = _.filter(adjacent, (a) => a.name !== this.creep.memory.lastRoom);
             // If there's unexplored prioritize else pick random
-            let target = _.find(adjacent, (r) => !INTEL[r]) || _.sample(adjacent);
-            if (target) this.creep.memory.destination = target; else this.creep.idleFor(25);
+            let target = _.find(adjacent, (r) => !INTEL[r.name]) || _.sample(adjacent);
+            if (target && target.name) this.creep.memory.destination = target.name; else this.creep.idleFor(6);
         }
     }
 
@@ -73,6 +75,23 @@ class RoleExplorer {
     travel() {
         this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 10});
     }
+}
+
+function pathableExit(creep, exitPosition) {
+    const roomCallback = (roomName) => {
+        const room = Game.rooms[roomName];
+        const costMatrix = new PathFinder.CostMatrix();
+        if (room) {
+            const structures = room.impassibleStructures;
+            structures.forEach((structure) => costMatrix.set(structure.pos.x, structure.pos.y, 256));
+        }
+        return costMatrix;
+    };
+    const search = PathFinder.search(creep.pos, exitPosition, {
+        maxRooms: 0,
+        roomCallback: roomCallback,
+    });
+    return search.incomplete !== undefined;
 }
 
 profiler.registerClass(RoleExplorer, 'Explorer');
