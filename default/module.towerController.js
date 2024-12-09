@@ -13,10 +13,10 @@ module.exports.towerControl = function (room) {
     // Handle repair tower selection and checking energy state
     let repairTower = getRepairTower(room);
 
-    if (repairTower) {
-        handleRepairTowerActions(room, repairTower);
-    } else if (room.hostileCreeps.length) {
+    if (room.hostileCreeps.length) {
         handleHostileCreeps(room);
+    } else if (repairTower) {
+        handleRepairTowerActions(room, repairTower);
     }
 };
 
@@ -31,7 +31,7 @@ function getRepairTower(room) {
 // Handle repair tower actions
 function handleRepairTowerActions(room, repairTower) {
     // Check if room is in a state where we can repair
-    if (room.energyState && !room.hostileCreeps.length && repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.25) {
+    if (room.energyState && repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.25) {
         roomRepairTower[room.name] = repairTower.id;
 
         let woundedCreep = findWoundedCreep(room);
