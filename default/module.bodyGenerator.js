@@ -217,7 +217,7 @@ class ModuleBodyGenerator {
                     const energyForRangedAttack = Math.floor((this.energyAmount * 0.45) / BODYPART_COST[RANGED_ATTACK]);
 
                     // Choose to balance between attack and ranged attack based on random chance and room level
-                    if (Math.random() > 0.25 || this.level < 5) {
+                    if (Math.random() > 0.6 || this.level < 5) {
                         attack = energyForAttack || 1;
                     } else {
                         rangedAttack = energyForRangedAttack || 1;
