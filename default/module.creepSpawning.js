@@ -14,9 +14,9 @@ let lastGlobalSpawn = Game.time;
 let buildTick = {};
 module.exports.processBuildQueue = function (room) {
     // Skip unbuilt rooms or if the queue is empty
-    if (!room.level || !_.size(displayQueue(room))) return;
-
     const queue = displayQueue(room);
+    if (!room.level || !_.size(queue)) return;
+
     const currentTick = Game.time;
 
     // Check cooldown for building
@@ -766,70 +766,106 @@ function determineEnergyOrder(room) {
  */
 function displayQueue(room) {
     let queue;
-    // Global queue
     let importantBuilds = _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    let globalQueue = {};
-    if (Memory.globalCreepQueue) globalQueue = JSON.parse(Memory.globalCreepQueue);
-    let roomQueue = {};
-    if (room.memory.creepQueue) roomQueue = JSON.parse(room.memory.creepQueue);
+    let globalQueue = Memory.globalCreepQueue ? JSON.parse(Memory.globalCreepQueue) : {};
+    let roomQueue = room.memory.creepQueue ? JSON.parse(room.memory.creepQueue) : {};
+
+    // Update global queue only if conditions are right
     if (_.size(globalQueue) && room.level >= 3 && !INTEL[room.name].threatLevel && !importantBuilds) {
         let operationQueue = JSON.parse(JSON.stringify(globalQueue));
+
         for (let key in operationQueue) {
             if (operationQueue[key].destination) {
                 let body = new generator(room.level, operationQueue[key].role, room, operationQueue[key]).generateBody();
-                // If a military op check if room can produce creeps at the level required
-                if (Memory.targetRooms[operationQueue[key].destination] && Memory.targetRooms[operationQueue[key].destination].maxLevel > room.level) {
-                    delete operationQueue[key]
-                    continue;
-                }
-                // Add a distance sanity checks
+                // Check for military ops and ensure range sanity
                 let maxRange = 22;
                 if (_.includes(body, CLAIM)) maxRange = 14;
                 let range = Game.map.getRoomLinearDistance(room.name, operationQueue[key].destination);
                 if (range > maxRange) {
-                    delete operationQueue[key]
+                    delete operationQueue[key];
                     continue;
                 }
-                // Tweak priority based on range and if shared sector
-                if (room.energyState && room.storage && (INTEL[operationQueue[key].destination] && findClosestOwnedRoom(operationQueue[key].destination, undefined, room.level) === room.name)) {
-                    operationQueue[key].priority *= 0.5;
-                } else if (!room.energyState) {
-                    operationQueue[key].priority *= 6;
-                } else operationQueue[key].priority += 1;
-                if (operationQueue[key].priority < 2) operationQueue[key].priority = 2;
-                // Handle overwriting room queues with global queues
-                if (roomQueue[operationQueue[key].role] && roomQueue[operationQueue[key].role].priority <= operationQueue[key].priority) delete operationQueue[key]; else delete roomQueue[operationQueue[key].role];
+
+                // Adjust priority based on specific conditions
+                adjustQueuePriority(operationQueue, key, room, operationQueue[key], body);
             }
         }
+
         queue = _.sortBy(Object.assign({}, operationQueue, roomQueue), 'priority');
     } else if (_.size(roomQueue)) {
         queue = _.sortBy(Object.assign({}, roomQueue), 'priority');
     }
+
     let activeSpawns = _.filter(room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.spawning);
     if (!_.size(queue) && !activeSpawns.length) return;
-    let lower = _.size(queue) + activeSpawns.length + 2;
-    if (lower > 9) lower = 9;
-    room.visual.rect(34, 0, 49, lower, {
-        fill: '#ffffff', opacity: '0.55', stroke: 'black'
-    });
-    displayText(room, 35, 1, 'Creep Build Queue');
-    let i = 0;
+
+    let lower = Math.min(_.size(queue) + activeSpawns.length + 2, 9);
+    let yOffset = 1;
+
+    // Display Queue Heading
+    room.visual.text('Creep Build Queue', 35, yOffset, {align: 'left', opacity: 0.8});
+    yOffset++;
+
+    // Display Queue Information
     if (_.size(queue)) {
-        for (let item of queue) {
-            if (i >= 5) break;
-            let mil = '';
+        for (let i = 0; i < 5 && i < queue.length; i++) {
+            let item = queue[i];
             let cost = global.UNIT_COST(new generator(room.level, item.role, room, item).generateBody());
-            displayText(room, 35, 2 + i, item.priority + ' ' + _.capitalize(item.role) + mil + ': ' + room.energyAvailable + '/' + cost + ' Age: ' + (Game.time - item.cached));
-            i++;
+            room.visual.text(`${item.priority} ${_.capitalize(item.role)}: ${room.energyAvailable}/${cost} Age: ${Game.time - item.cached}`, 35, yOffset + i, {
+                align: 'left',
+                opacity: 0.8
+            });
+        }
+        yOffset += _.size(queue.slice(0, 5));
+    }
+
+    // Display Spawning Information
+    activeSpawns.forEach(spawn => {
+        let spawningCreep = Game.creeps[spawn.spawning.name];
+        room.visual.text(`Spawning - ${_.capitalize(spawningCreep.name.split("_")[0])} - Ticks: ${spawn.spawning.remainingTime}`, 35, yOffset, {
+            align: 'left',
+            opacity: 0.8
+        });
+        yOffset++;
+    });
+
+    return queue;
+
+    // Helper function to adjust queue priority based on various conditions
+    function adjustQueuePriority(operationQueue, key, room, operation, body) {
+        let range = Game.map.getRoomLinearDistance(room.name, operation.destination);
+
+        if (Memory.targetRooms[operation.destination] && Memory.targetRooms[operation.destination].maxLevel > room.level) {
+            delete operationQueue[key];
+            return;
+        }
+
+        // Tweak priority based on distance and energy state
+        let maxRange = _.includes(body, CLAIM) ? 14 : 22;
+        if (range > maxRange) {
+            delete operationQueue[key];
+            return;
+        }
+
+        // Adjust priority based on energy state and other conditions
+        if (room.energyState && room.storage && INTEL[operation.destination] && findClosestOwnedRoom(operation.destination, undefined, room.level) === room.name) {
+            operation.priority *= 0.5;
+        } else if (!room.energyState) {
+            operation.priority *= 6;
+        } else {
+            operation.priority += 1;
+        }
+
+        // Ensure minimum priority is 2
+        if (operation.priority < 2) operation.priority = 2;
+
+        // Remove room queue entries with higher priority in the global queue
+        if (roomQueue[operation.role] && roomQueue[operation.role].priority <= operation.priority) {
+            delete operationQueue[key];
+        } else {
+            delete roomQueue[operation.role];
         }
     }
-    // Display spawning
-    for (let spawn of activeSpawns) {
-        let spawningCreep = Game.creeps[spawn.spawning.name];
-        displayText(room, 35, 2 + i, 'Spawning - ' + _.capitalize(spawningCreep.name.split("_")[0]) + ' - Ticks: ' + spawn.spawning.remainingTime);
-        i++;
-    }
-    return queue;
 }
 
 /**
