@@ -645,18 +645,24 @@ function shouldBuildRampartAtPosition(pos, room) {
     }
 
     // Ramparts-only mode logic
-    if (RAMPARTS_ONLY && !pos.checkForBarrierStructure() && !pos.checkForConstructionSites()) {
-        return true;
+    if (RAMPARTS_ONLY) {
+        if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites()) {
+            return true;
+        } else if (pos.checkForBuiltWall()) {
+            pos.checkForBuiltWall().destroy();
+            return true;
+        }
     }
 
-    // Handle tunnels around walls
-    if (pos.checkForWall()) {
+    // Handle tunnels
+    if (pos.checkForWall() && pos.checkForRoad()) {
         return handleTunnelAroundWall(pos);
     }
 
     // Checkered pattern for ramparts
     if (!RAMPARTS_ONLY && isCheckeredPattern(pos)) {
-        return true;
+        pos.createConstructionSite(STRUCTURE_WALL);
+        return false;
     }
 
     // General case for rampart creation
