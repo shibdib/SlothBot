@@ -78,12 +78,6 @@ class ModuleBodyGenerator {
                 carry = Math.floor((this.energyAmount * 0.1) / BODYPART_COST[CARRY]) || 1;
                 carry = Math.min(carry, 10); // Max carry to 10
 
-                // Adjust movement parts based on whether roads are built
-                if (INTEL[this.room.name].roadsBuilt) halfMove = true;
-
-                // If halfMove is set, reduce move parts for better efficiency on roads
-                move = halfMove ? Math.ceil((work + carry) * 0.5) : Math.ceil(work + carry);
-
                 break;
 
             case 'upgrader':
