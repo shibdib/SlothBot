@@ -202,19 +202,27 @@ let helpers = function () {
     }
 
     /**
-     * Store the room status
-     * @param roomName
-     * @returns {*}
+     * Get and store the room status for a given room.
+     * @param {string} roomName - The name of the room whose status is to be retrieved.
+     * @returns {string} The status of the room.
      */
     global.roomStatus = function (roomName) {
-        if (!CACHE.ROOM_STATUS || CACHE.ROOM_STATUS.tick + 10000 < Game.time) {
-            CACHE.ROOM_STATUS = {};
-            CACHE.ROOM_STATUS.tick = Game.time;
+        const cache = CACHE.ROOM_STATUS;
+
+        // Refresh the cache if it is outdated or doesn't exist
+        if (!cache || cache.tick + 10000 < Game.time) {
+            CACHE.ROOM_STATUS = {
+                tick: Game.time
+            };
         }
-        if (CACHE.ROOM_STATUS[roomName]) return CACHE.ROOM_STATUS[roomName];
-        else CACHE.ROOM_STATUS[roomName] = Game.map.getRoomStatus(roomName).status;
+
+        // If the room status is not in cache, retrieve and store it
+        if (!CACHE.ROOM_STATUS[roomName]) {
+            CACHE.ROOM_STATUS[roomName] = Game.map.getRoomStatus(roomName).status;
+        }
+
         return CACHE.ROOM_STATUS[roomName];
-    }
+    };
 }
 
 module.exports = helpers;
