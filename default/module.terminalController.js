@@ -111,106 +111,115 @@ module.exports.terminalControl = function (room) {
 };
 
 function orderCleanup(myOrders) {
-    let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
-    for (let order of _.filter(myOrders)) {
-        // Cancel inactive
-        if (!order.active) {
-            if (Game.market.cancelOrder(order.id) === OK) {
-                log.e("Order Cancelled: " + order.id + " no longer active.", 'MARKET: ');
-                continue;
+    // Ensure myOrders is an object and contains valid order data
+    if (typeof myOrders !== 'object' || Object.keys(myOrders).length === 0) {
+        log.e("myOrders is not a valid object or is empty. Skipping order cleanup.", 'MARKET: ');
+        return;
+    }
+
+    let myRooms = MY_ROOMS;
+    const currentCredits = Game.market.credits;
+
+    // Iterate over the orders in myOrders
+    for (let orderId in myOrders) {
+        let order = myOrders[orderId]; // Get the order object
+
+        if (!order) continue;
+
+        // Cancel orders if the room no longer exists
+        if (!Game.rooms[order.roomName] && Game.market.cancelOrder(order.id) === OK) {
+            log.e(`Order Cancelled: ${order.id} - Room no longer exists.`, 'MARKET: ');
+            continue;
+        }
+
+        // Cancel inactive orders
+        if (!order.active && Game.market.cancelOrder(order.id) === OK) {
+            log.e(`Order Cancelled: ${order.id} no longer active.`, 'MARKET: ');
+            continue;
+        }
+
+        // Cancel orders that aren't in the sale terminal room
+        if (order.roomName !== Memory.saleTerminal.room && Game.market.cancelOrder(order.id) === OK) {
+            log.e(`Order Cancelled: ${order.id} as it's not the sale terminal room.`, 'MARKET: ');
+            continue;
+        }
+
+        // Cancel non-sale terminal buys if not in the correct room
+        if (order.type === ORDER_BUY && Memory.saleTerminal && order.roomName !== Memory.saleTerminal.room && Game.market.cancelOrder(order.id) === OK) {
+            log.e(`Order Cancelled: ${order.id} as it is not the market room.`, 'MARKET: ');
+            continue;
+        }
+
+        // Cancel orders if the credit balance is too low to fulfill them
+        if (order.type === ORDER_BUY && currentCredits < 50 && Game.market.cancelOrder(order.id) === OK) {
+            log.e(`Order Cancelled: ${order.id} due to low credits.`, 'MARKET: ');
+            continue;
+        }
+
+        // Handle duplicate orders: Cancel duplicates to avoid resource wastage
+        let duplicates = _.filter(myOrders, o => o.roomName === order.roomName && o.resourceType === order.resourceType && o.type === order.type && o.id !== order.id);
+        if (duplicates.length) {
+            log.e(`Order Cancelled: ${order.id} duplicate order.`, 'MARKET: ');
+            duplicates.forEach(duplicateOrder => Game.market.cancelOrder(duplicateOrder.id));
+            continue;
+        }
+
+        // Handle resource-specific cancellations based on trade limits
+        if (order.resourceType !== RESOURCE_ENERGY && order.remainingAmount > tradeAmount && Game.market.cancelOrder(order.id) === OK) {
+            log.e(`Order Cancelled: ${order.id} exceeds trade limit (order amount/set limit) ${order.remainingAmount}/${tradeAmount}`, 'MARKET: ');
+            continue;
+        }
+
+        // Cancel energy orders if a surplus is available
+        if (order.resourceType === RESOURCE_ENERGY && _.find(myRooms, r => r.terminal && r.energyState > 1) && Game.market.cancelOrder(order.id) === OK) {
+            log.e(`Order Cancelled: ${order.id} due to energy surplus.`, 'MARKET: ');
+            continue;
+        }
+
+        // Cancel orders that have been fulfilled
+        if (order.amount === 0 && Game.market.cancelOrder(order.id) === OK) {
+            log.e(`Order Cancelled: ${order.id} - Order Fulfilled.`, 'MARKET: ');
+            continue;
+        }
+
+        // Do not sell on SWC or BA shards
+        if (['swc', 'botarena'].includes(Game.shard.name) && order.type === ORDER_SELL && Game.market.cancelOrder(order.id) === OK) {
+            log.e(`Order Cancelled: ${order.id} - No selling in SWC or BA.`, 'MARKET: ');
+            continue;
+        }
+
+        // Resource Extension Logic: Extend only if profitable and sufficient resources are available
+        if (order.type === ORDER_SELL && Game.rooms[order.roomName].terminal.store[order.resourceType] - order.remainingAmount > 1500) {
+            let amount = Game.rooms[order.roomName].terminal.store[order.resourceType] - order.remainingAmount;
+            if (amount > 0) {
+                let cost = order.price * amount * 0.05;
+                if (cost > spendingMoney) {
+                    amount = _.round(spendingMoney / (order.price * 0.05));
+                }
+
+                // Only extend if the extension provides good ROI
+                if (amount > 0 && Game.market.extendOrder(order.id, amount) === OK) {
+                    log.w(`Extended sell order ${order.id} by ${amount} ${order.resourceType} in ${roomLink(order.roomName)}`, "Market: ");
+                    spendingMoney -= (order.price * amount * 0.05);
+                    log.w(`Remaining spending account amount - ${spendingMoney}`, "Market: ");
+                }
             }
         }
-        // Cancel non sale terminal
-        if (order.roomName !== Memory.saleTerminal.room) {
-            if (Game.market.cancelOrder(order.id) === OK) {
-                log.e("Order Cancelled: " + order.id + " as it's not the sale terminal room.", 'MARKET: ');
-                continue;
-            }
+
+        // Cancel orders if there are not enough resources in the terminal (for non-ENERGY/BATTERY resources)
+        if ((order.resourceType !== RESOURCE_ENERGY && order.resourceType !== RESOURCE_BATTERY) && !order.amount && Game.market.cancelOrder(order.id) === OK) {
+            log.e(`Order Cancelled: ${order.id} - Not enough resources remaining in terminal.`, 'MARKET: ');
+            continue;
         }
-        if (order.type === ORDER_BUY) {
-            // Only sale terminal room buys
-            if (Memory.saleTerminal && order.roomName !== Memory.saleTerminal.room) {
-                if (Game.market.cancelOrder(order.id) === OK) {
-                    log.e("Order Cancelled: " + order.id + " as it is not the market room.", 'MARKET: ');
-                    continue;
-                }
-            }
-            // Super broke
-            if (Game.market.credits < 50) {
-                if (Game.market.cancelOrder(order.id) === OK) {
-                    log.e("Order Cancelled: " + order.id + " due to low credits.", 'MARKET: ');
-                    continue;
-                }
-            }
-            // Remove duplicates for same resource
-            let duplicate = _.filter(myOrders, (o) => o.roomName === order.roomName &&
-                o.resourceType === order.resourceType && o.type === order.type && o.id !== order.id);
-            if (duplicate.length) {
-                log.e("Order Cancelled: " + order.id + " duplicate order.", 'MARKET: ');
-                duplicate.forEach((duplicateOrder) => Game.market.cancelOrder(duplicateOrder.id))
-            }
-            if (order.resourceType !== RESOURCE_ENERGY) {
-                if (order.remainingAmount > tradeAmount) {
-                    if (Game.market.cancelOrder(order.id) === OK) {
-                        log.e("Order Cancelled: " + order.id + " for exceeding the set trade amount (order amount/set limit) " + order.remainingAmount + "/" + tradeAmount, 'MARKET: ');
-                        continue;
-                    }
-                }
-            } else if (order.resourceType === RESOURCE_ENERGY) {
-                if (_.find(myRooms, (r) => r.terminal && r.energyState > 1)) {
-                    if (Game.market.cancelOrder(order.id) === OK) {
-                        log.e("Order Cancelled: " + order.id + " we have a room with an energy surplus and do not need to purchase energy", 'MARKET: ');
-                        continue;
-                    }
-                }
-            }
-            if (order.amount === 0) {
-                if (Game.market.cancelOrder(order.id) === OK) {
-                    log.e("Order Cancelled: " + order.id + " - Order Fulfilled.", 'MARKET: ');
-                    continue;
-                }
-            }
-        } else {
-            // do no create sell orders on SWC or BA
-            if (['swc', 'botarena'].includes(Game.shard.name)) {
-                if (Game.market.cancelOrder(order.id) === OK) {
-                    log.e("Order Cancelled: " + order.id + " - No selling in BA or SWC.", 'MARKET: ');
-                    continue;
-                }
-            }
-            if (Game.rooms[order.roomName].terminal.store[order.resourceType] - order.remainingAmount > 1500) {
-                let amount = Game.rooms[order.roomName].terminal.store[order.resourceType] - order.remainingAmount;
-                if (amount > 0) {
-                    let cost = order.price * amount * 0.05;
-                    if (cost > spendingMoney) amount = _.round(spendingMoney / (order.price * 0.05));
-                    if (Game.market.extendOrder(order.id, amount) === OK) {
-                        log.w("Extended sell order " + order.id + " an additional " + amount + " " + order.resourceType + " in " + roomLink(order.roomName), "Market: ");
-                        spendingMoney -= (order.price * amount * 0.05);
-                        log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
-                    }
-                }
-            }
-            if (order.resourceType !== RESOURCE_ENERGY && order.resourceType !== RESOURCE_BATTERY) {
-                if (!order.amount) {
-                    if (Game.market.cancelOrder(order.id) === OK) {
-                        log.e("Order Cancelled: " + order.id + " - Not enough resources remaining in terminal.", 'MARKET: ');
-                        continue;
-                    }
-                }
-            } else if (Game.rooms[order.roomName].energyState < 2) {
-                if (Game.market.cancelOrder(order.id) === OK) {
-                    log.e("Order Cancelled: " + order.id + " - Cancel sale of energy as we have a shortage in the room.", 'MARKET: ');
-                    continue;
-                }
-            }
-        }
-        if (!Game.rooms[order.roomName]) {
-            if (Game.market.cancelOrder(order.id) === OK) {
-                log.e("Order Cancelled: " + order.id + " we no longer own this room", 'MARKET: ');
-            }
+
+        // Cancel energy sell orders if there is an energy shortage
+        if (order.resourceType === RESOURCE_ENERGY && Game.rooms[order.roomName].energyState < 2 && Game.market.cancelOrder(order.id) === OK) {
+            log.e(`Order Cancelled: ${order.id} - Energy shortage in room.`, 'MARKET: ');
+            continue;
         }
     }
 }
+
 
 let priceUpdateTracker = {};
 
@@ -592,7 +601,7 @@ function fillBuyOrders(terminal, globalOrders) {
     function getDynamicKeepAmount(resourceType) {
         // Implement smarter logic for determining keepAmount based on the current market trend, etc.
         if (COMPRESSED_COMMODITIES.includes(resourceType)) return REACTION_AMOUNT;
-        if (REGIONAL_0_COMMODITIES.includes(resourceType)) return terminal.room.factory !== undefined ? REACTION_AMOUNT * 0.5 : 0;
+        if (REGIONAL_0_COMMODITIES.includes(resourceType)) return terminal.room.factory !== undefined && terminal.room.factory.effects ? REACTION_AMOUNT * 0.5 : 0;
         return BASE_COMMODITIES.includes(resourceType) ? REACTION_AMOUNT * 0.5 : 0;
     }
 
@@ -996,7 +1005,7 @@ function latestMarketHistory(resource) {
     let history = Game.market.getHistory(resource);
 
     if (!Array.isArray(history) || history.length === 0) {
-        log.w(`No market history found for resource: ${resource}`, "Market: ");
+        //log.w(`No market history found for resource: ${resource}`, "Market: ");
         return false;  // No market history available for the resource
     }
 
