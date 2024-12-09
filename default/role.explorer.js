@@ -44,7 +44,7 @@ class RoleExplorer {
             const rooms = Object.keys(exits).map((direction) => {
                 return {name: exits[direction], direction: parseInt(direction, 10)};
             });
-            let adjacent = _.filter(rooms, (r) => !this.room.lookForAt(LOOK_STRUCTURES, this.room.find(r.direction)[0])[0] && pathableExit(this.creep, this.room.find(r.direction)[0]));
+            let adjacent = _.filter(rooms, (r) => !this.room.lookForAt(LOOK_STRUCTURES, this.room.find(r.direction)[0])[0] && roomStatus(r.name) !== 'closed' && pathableExit(this.creep, this.room.find(r.direction)[0]));
             // Filter out the last room if we have options
             if (this.creep.memory.lastRoom && adjacent.length > 1) adjacent = _.filter(adjacent, (a) => a.name !== this.creep.memory.lastRoom);
             // If there's unexplored prioritize else pick random

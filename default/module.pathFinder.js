@@ -411,6 +411,8 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
         routeCallback: function (roomName) {
             // Skip origin/destination
             if (roomName === origin || roomName === destination) return 1;
+            // Check for closed rooms
+            if (roomStatus(roomName) === 'closed') return 256;
             // Regex highway check
             let [EW, NS] = roomName.match(/\d+/g);
             let highway = (INTEL[roomName] && INTEL[roomName].isHighway) || EW % 10 === 0 || NS % 10 === 0;
