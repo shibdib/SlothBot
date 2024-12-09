@@ -24,12 +24,16 @@ class RoleClaimAttacker {
 
     houseKeeping() {
         if (!Memory.targetRooms[this.creep.memory.destination] || (Memory.targetRooms[this.creep.memory.destination] &&
-            !Memory.targetRooms[this.creep.memory.destination].claimAttacker)) return this.creep.recycleCreep();
-        if (this.creep.room.name !== this.creep.memory.destination) {
+            !Memory.targetRooms[this.creep.memory.destination].claimAttacker)) {
+            this.creep.recycleCreep();
+            return true;
+        } else if (this.creep.room.name !== this.creep.memory.destination) {
             this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22});
             return true;
+        } else if (this.creep.room.controller.upgradeBlocked > this.creep.ticksToLive) {
+            this.creep.suicide();
+            return true;
         }
-        if (this.creep.room.controller.upgradeBlocked > this.creep.ticksToLive) this.creep.suicide();
     }
 
     attackController(creep) {
