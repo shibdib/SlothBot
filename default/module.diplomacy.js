@@ -191,7 +191,7 @@ module.exports.trackThreat = function (creep) {
                 }
             }
 
-            standing = Math.max(standing, -1500);
+            standing = Math.max(standing, -5004);
             cache[user] = {standing: standing, lastAction: Game.time, lastChange: Game.time};
             Memory._userList = cache;
         }
@@ -227,7 +227,7 @@ module.exports.trackThreat = function (creep) {
                 "DIPLOMACY"
             );
 
-            standing = Math.max(standing, -1500);
+            standing = Math.max(standing, -5004);
             cache[user] = {standing: standing, lastAction: Game.time, lastChange: Game.time};
             Memory._userList = cache;
         }
