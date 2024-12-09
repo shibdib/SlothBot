@@ -661,7 +661,12 @@ function shouldBuildRampartAtPosition(pos, room) {
 
     // Checkered pattern for ramparts
     if (!RAMPARTS_ONLY && isCheckeredPattern(pos)) {
-        pos.createConstructionSite(STRUCTURE_WALL);
+        if (pos.checkForRampart()) {
+            pos.checkForRampart().destroy();
+        }
+        if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites()) {
+            pos.createConstructionSite(STRUCTURE_WALL);
+        }
         return false;
     }
 
