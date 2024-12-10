@@ -349,7 +349,7 @@ function handleNukeAttack(room) {
     for (let nuke of nukes) {
         if (nuke.timeToLand <= 75) {
             // Fleeing logic: assign a time to flee and the room to flee to
-            for (let c of nuke.room.creeps) {
+            for (let c of nuke.room.myCreeps) {
                 c.memory.fleeNukeTime = Game.time + nuke.timeToLand + 2;
                 c.memory.fleeNukeRoom = nuke.room.name;
             }
@@ -357,7 +357,7 @@ function handleNukeAttack(room) {
         }
 
         // Protect important structures by creating ramparts around them
-        let structures = nuke.pos.findInRange(FIND_MY_STRUCTURES, 5, {
+        let structures = nuke.pos.findInRange(nuke.room.structures, 5, {
             filter: (s) => [
                 STRUCTURE_SPAWN,
                 STRUCTURE_STORAGE,
