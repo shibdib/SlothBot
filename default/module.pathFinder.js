@@ -12,6 +12,7 @@ const structureMatrixCache = CACHE.structureMatrixCache = {};
 const creepMatrixCache = CACHE.creepMatrixCache = {};
 const stationaryCreepMatrixCache = CACHE.stationaryCreepMatrixCache = {};
 const hostileMatrixCache = CACHE.hostileMatrixCache = {};
+const outsideHubMatrixCache = CACHE.outsideHubMatrixCache = {};
 const skMatrixCache = CACHE.skMatrixCache = {};
 let globalPathCache = CACHE.globalPathCache = {};
 let globalRouteCache = CACHE.globalRouteCache = {};
@@ -519,7 +520,10 @@ function getMatrix(roomName, creep, options) {
     if (!options.ignoreStructures) matrix = getStructureMatrix(roomName, creep, matrix, options);
     if (room && !options.ignoreCreeps) matrix = getCreepMatrix(roomName, creep, matrix, options);
     if (room) matrix = getStationaryCreepsMatrix(roomName, creep, matrix, options);
-    if (room && room.hostileCreeps.length && (creep.className || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.avoidEnemies)) matrix = getHostileMatrix(roomName, matrix, options);
+    if (room && room.hostileCreeps.length && (creep.className || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.avoidEnemies)) {
+        matrix = getHostileMatrix(roomName, matrix, options);
+        matrix = getOutsideHubMatrix(roomName, matrix, options);
+    }
     matrix = getSKMatrix(roomName, matrix, options);
     return matrix;
 }
@@ -531,42 +535,41 @@ function getTerrainMatrix(roomName, options) {
         terrainMatrixCache[roomName + type] = addTerrainToMatrix(roomName, type).serialize();
     }
     return PathFinder.CostMatrix.deserialize(terrainMatrixCache[roomName + type]);
-}
 
-function addTerrainToMatrix(roomName, type) {
-    let matrix = new PathFinder.CostMatrix();
-    let terrain = Game.map.getRoomTerrain(roomName);
-    let plainCost, swampCost;
-    switch (type) {
-        case 2:
-            plainCost = 1;
-            swampCost = 25;
-            break;
-        case 3:
-        case 4:
-            plainCost = 0;
-            swampCost = 0;
-            break;
-        default:
-            plainCost = 5;
-            swampCost = 25;
-    }
-    for (let y = 0; y < 50; y++) {
-        for (let x = 0; x < 50; x++) {
-            let tile = terrain.get(x, y);
-            if (tile === TERRAIN_MASK_WALL) matrix.set(x, y, 256);
-            // Handle exits
-            else if (x === 0 || x === 49 || y === 0 || y === 49) matrix.set(x, y, 10);
-            else if (tile === TERRAIN_MASK_SWAMP) matrix.set(x, y, swampCost);
-            else matrix.set(x, y, plainCost);
+    function addTerrainToMatrix(roomName, type) {
+        let matrix = new PathFinder.CostMatrix();
+        let terrain = Game.map.getRoomTerrain(roomName);
+        let plainCost, swampCost;
+        switch (type) {
+            case 2:
+                plainCost = 1;
+                swampCost = 25;
+                break;
+            case 3:
+            case 4:
+                plainCost = 0;
+                swampCost = 0;
+                break;
+            default:
+                plainCost = 5;
+                swampCost = 25;
         }
+        for (let y = 0; y < 50; y++) {
+            for (let x = 0; x < 50; x++) {
+                let tile = terrain.get(x, y);
+                if (tile === TERRAIN_MASK_WALL) matrix.set(x, y, 256);
+                // Handle exits
+                else if (x === 0 || x === 49 || y === 0 || y === 49) matrix.set(x, y, 10);
+                else if (tile === TERRAIN_MASK_SWAMP) matrix.set(x, y, swampCost);
+                else matrix.set(x, y, plainCost);
+            }
+        }
+        return matrix;
     }
-    return matrix;
 }
 
 let structureMatrixTick = {};
 let structureCount = {};
-
 function getStructureMatrix(roomName, creep, matrix, options) {
     let room = Game.rooms[roomName];
     let type = 1;
@@ -584,79 +587,79 @@ function getStructureMatrix(roomName, creep, matrix, options) {
         structureMatrixCache[roomName + type] = addStructuresToMatrix(room, creep, matrix, type, options).serialize();
     }
     return PathFinder.CostMatrix.deserialize(structureMatrixCache[roomName + type]);
-}
 
-function addStructuresToMatrix(room, creep, matrix, type, options) {
-    if (!room) return matrix;
-    let roadCost;
-    switch (type) {
-        case 2:
-        case 3:
-            roadCost = 5;
-            break;
-        default:
-            roadCost = 1;
-    }
-    let noWallWrecker = (!creep.className && !creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)) || (INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner));
-    for (let structure of room.structures) {
-        const obstacle = structure.pos.checkForObstacleStructure();
-        if (structure instanceof StructureWall) {
-            if (noWallWrecker) {
-                matrix.set(structure.pos.x, structure.pos.y, 256);
-            } else {
-                matrix.set(structure.pos.x, structure.pos.y, 150);
-            }
-        } else if (structure instanceof StructurePortal) {
-            matrix.set(structure.pos.x, structure.pos.y, 150);
-        } else if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
-            matrix.set(structure.pos.x, structure.pos.y, 256);
-        } else if (structure instanceof StructureController) {
-            matrix.set(structure.pos.x, structure.pos.y, 256);
-        } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic) && !obstacle) {
-            if (room.hostileCreeps.length) matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
-            else matrix.set(structure.pos.x, structure.pos.y, 2);
-        } else if (structure instanceof StructureRampart && (FRIENDLIES.includes(structure.owner.username) && !obstacle)) {
-            matrix.set(structure.pos.x, structure.pos.y, 250);
-        } else if (structure instanceof StructureRampart && (!structure.my || !structure.isPublic || obstacle)) {
-            if (noWallWrecker) {
-                matrix.set(structure.pos.x, structure.pos.y, 256);
-            } else {
-                matrix.set(structure.pos.x, structure.pos.y, 150);
-            }
-        } else if (structure instanceof StructureContainer) {
-            matrix.set(structure.pos.x, structure.pos.y, 75);
-        } else if (structure instanceof StructureRoad && !obstacle && !structure.pos.checkForContainer()) {
-            matrix.set(structure.pos.x, structure.pos.y, roadCost);
-        } else {
-            matrix.set(structure.pos.x, structure.pos.y, 256);
+    function addStructuresToMatrix(room, creep, matrix, type, options) {
+        if (!room) return matrix;
+        let roadCost;
+        switch (type) {
+            case 2:
+            case 3:
+                roadCost = 5;
+                break;
+            default:
+                roadCost = 1;
         }
-    }
-    let blockingSites = _.filter(room.constructionSites, (s) => (s.my && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART) || (!s.my && _.includes(FRIENDLIES, s.owner.username)));
-    for (let site of blockingSites) {
-        matrix.set(site.pos.x, site.pos.y, 256);
-    }
-    //Sources
-    for (let source of room.sources) {
-        matrix.set(source.pos.x, source.pos.y, 256);
-    }
-    if (room.mineral) {
-        matrix.set(room.mineral.pos.x, room.mineral.pos.y, 256);
-    }
-    // Handle tunnel/finding lowest wall/ramp path
-    if (type === 4) {
-        let barriers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
-        if (barriers.length) {
-            let maxHp = _.max(barriers, 'hits').hits;
-            for (let s of barriers) {
-                matrix.set(s.pos.x, s.pos.y, _.floor((s.hits / maxHp) * 50));
-                if (options.showMatrix) new RoomVisual(room.name).text(_.floor((s.hits / maxHp) * 100), s.pos.x, s.pos.y, {
-                    color: 'white',
-                    font: 0.4
-                });
+        let noWallWrecker = (!creep.className && !creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)) || (INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner));
+        for (let structure of room.structures) {
+            const obstacle = structure.pos.checkForObstacleStructure();
+            if (structure instanceof StructureWall) {
+                if (noWallWrecker) {
+                    matrix.set(structure.pos.x, structure.pos.y, 256);
+                } else {
+                    matrix.set(structure.pos.x, structure.pos.y, 150);
+                }
+            } else if (structure instanceof StructurePortal) {
+                matrix.set(structure.pos.x, structure.pos.y, 150);
+            } else if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
+                matrix.set(structure.pos.x, structure.pos.y, 256);
+            } else if (structure instanceof StructureController) {
+                matrix.set(structure.pos.x, structure.pos.y, 256);
+            } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic) && !obstacle) {
+                if (room.hostileCreeps.length) matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
+                else matrix.set(structure.pos.x, structure.pos.y, 2);
+            } else if (structure instanceof StructureRampart && (FRIENDLIES.includes(structure.owner.username) && !obstacle)) {
+                matrix.set(structure.pos.x, structure.pos.y, 250);
+            } else if (structure instanceof StructureRampart && (!structure.my || !structure.isPublic || obstacle)) {
+                if (noWallWrecker) {
+                    matrix.set(structure.pos.x, structure.pos.y, 256);
+                } else {
+                    matrix.set(structure.pos.x, structure.pos.y, 150);
+                }
+            } else if (structure instanceof StructureContainer) {
+                matrix.set(structure.pos.x, structure.pos.y, 75);
+            } else if (structure instanceof StructureRoad && !obstacle && !structure.pos.checkForContainer()) {
+                matrix.set(structure.pos.x, structure.pos.y, roadCost);
+            } else {
+                matrix.set(structure.pos.x, structure.pos.y, 256);
             }
         }
+        let blockingSites = _.filter(room.constructionSites, (s) => (s.my && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART) || (!s.my && _.includes(FRIENDLIES, s.owner.username)));
+        for (let site of blockingSites) {
+            matrix.set(site.pos.x, site.pos.y, 256);
+        }
+        //Sources
+        for (let source of room.sources) {
+            matrix.set(source.pos.x, source.pos.y, 256);
+        }
+        if (room.mineral) {
+            matrix.set(room.mineral.pos.x, room.mineral.pos.y, 256);
+        }
+        // Handle tunnel/finding lowest wall/ramp path
+        if (type === 4) {
+            let barriers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
+            if (barriers.length) {
+                let maxHp = _.max(barriers, 'hits').hits;
+                for (let s of barriers) {
+                    matrix.set(s.pos.x, s.pos.y, _.floor((s.hits / maxHp) * 50));
+                    if (options.showMatrix) new RoomVisual(room.name).text(_.floor((s.hits / maxHp) * 100), s.pos.x, s.pos.y, {
+                        color: 'white',
+                        font: 0.4
+                    });
+                }
+            }
+        }
+        return matrix;
     }
-    return matrix;
 }
 
 let creepMatrixTick = {};
@@ -669,23 +672,23 @@ function getCreepMatrix(roomName, creep, matrix, options) {
         creepMatrixCache[roomName] = addCreepsToMatrix(room, matrix, creep, options).serialize();
     }
     return PathFinder.CostMatrix.deserialize(creepMatrixCache[roomName]);
-}
 
-function addCreepsToMatrix(room, matrix, creep = undefined, options) {
-    if (!room) return matrix;
-    let creeps = room.creeps;
-    if (!room.hostileCreeps.length && creep) {
-        creeps = creep.pos.findInRange(FIND_CREEPS, 5);
-        creeps = creeps.concat(creep.pos.findInRange(FIND_POWER_CREEPS, 5));
+    function addCreepsToMatrix(room, matrix, creep = undefined, options) {
+        if (!room) return matrix;
+        let creeps = room.creeps;
+        if (!room.hostileCreeps.length && creep) {
+            creeps = creep.pos.findInRange(FIND_CREEPS, 5);
+            creeps = creeps.concat(creep.pos.findInRange(FIND_POWER_CREEPS, 5));
+        }
+        for (let key in creeps) {
+            matrix.set(creeps[key].pos.x, creeps[key].pos.y, 0xff);
+            if (options.showMatrix) new RoomVisual(room.name).text('IMP', creeps[key].pos.x, creeps[key].pos.y, {
+                color: 'white',
+                font: 0.4
+            });
+        }
+        return matrix;
     }
-    for (let key in creeps) {
-        matrix.set(creeps[key].pos.x, creeps[key].pos.y, 0xff);
-        if (options.showMatrix) new RoomVisual(room.name).text('IMP', creeps[key].pos.x, creeps[key].pos.y, {
-            color: 'white',
-            font: 0.4
-        });
-    }
-    return matrix;
 }
 
 let stationaryCreepsMatrixTick = {};
@@ -698,21 +701,21 @@ function getStationaryCreepsMatrix(roomName, creep, matrix, options) {
         stationaryCreepMatrixCache[roomName] = addStationaryCreepsToMatrix(room, matrix, creep, options).serialize();
     }
     return PathFinder.CostMatrix.deserialize(stationaryCreepMatrixCache[roomName]);
-}
 
-function addStationaryCreepsToMatrix(room, matrix, creep = undefined, options) {
-    if (!room) return matrix;
-    let creeps = room.myCreeps;
-    for (let creep of creeps) {
-        if (creep.memory.other.stationary || creep.memory.other.noBump) {
-            matrix.set(creep.pos.x, creep.pos.y, 200);
-            if (options.showMatrix) new RoomVisual(room.name).text('IMP', creep.pos.x, creep.pos.y, {
-                color: 'white',
-                font: 0.4
-            });
+    function addStationaryCreepsToMatrix(room, matrix, creep = undefined, options) {
+        if (!room) return matrix;
+        let creeps = room.myCreeps;
+        for (let creep of creeps) {
+            if (creep.memory.other.stationary || creep.memory.other.noBump) {
+                matrix.set(creep.pos.x, creep.pos.y, 200);
+                if (options.showMatrix) new RoomVisual(room.name).text('IMP', creep.pos.x, creep.pos.y, {
+                    color: 'white',
+                    font: 0.4
+                });
+            }
         }
+        return matrix;
     }
-    return matrix;
 }
 
 let hostileMatrixTick = {};
@@ -725,33 +728,121 @@ function getHostileMatrix(roomName, matrix, options) {
         hostileMatrixCache[roomName] = addHostilesToMatrix(room, matrix, options).serialize();
     }
     return PathFinder.CostMatrix.deserialize(hostileMatrixCache[roomName]);
+
+    function addHostilesToMatrix(room, matrix, options) {
+        if (!room || (room.controller && room.controller.owner && room.controller.owner.username === MY_USERNAME && room.controller.safeMode)) {
+            return matrix;
+        }
+
+        const enemyCreeps = room.hostileCreeps.filter(c => !c.className && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)));
+        const range = 4; // Maximum range to apply weights around hostiles
+
+        for (const creep of enemyCreeps) {
+            const {x, y} = creep.pos;
+
+            // Set maximum penalty for hostile positions
+            matrix.set(x, y, 256);
+
+            // Avoid area around the hostile creep
+            for (let dx = -range; dx <= range; dx++) {
+                for (let dy = -range; dy <= range; dy++) {
+                    const posX = x + dx;
+                    const posY = y + dy;
+
+                    // Ensure the position is within room bounds
+                    if (posX < 0 || posX >= 50 || posY < 0 || posY >= 50) continue;
+
+                    // Calculate weight based on distance
+                    const distance = Math.max(Math.abs(dx), Math.abs(dy)); // "Chebyshev distance" for accurate range
+                    const weight = 10 * (range + 1 - distance);
+
+                    // Avoid overwriting higher penalties already set in the matrix
+                    if (matrix.get(posX, posY) < weight) {
+                        matrix.set(posX, posY, weight);
+                    }
+                }
+            }
+        }
+
+        return matrix;
+    }
 }
 
-function addHostilesToMatrix(room, matrix, options) {
-    if (!room || (room.controller && room.controller.owner && room.controller.owner.username === MY_USERNAME && room.controller.safeMode)) return matrix;
-    let enemyCreeps = _.filter(room.hostileCreeps, (c) => !c.className && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)));
-    for (let key in enemyCreeps) {
-        matrix.set(enemyCreeps[key].pos.x, enemyCreeps[key].pos.y, 256);
-        let range = 4;
-        let avoidZone = enemyCreeps[key].room.lookForAtArea(LOOK_TERRAIN, enemyCreeps[key].pos.y - range, enemyCreeps[key].pos.x - range, enemyCreeps[key].pos.y + range, enemyCreeps[key].pos.x + range, true);
-        for (let pos of avoidZone) {
-            let position;
-            try {
-                position = new RoomPosition(pos.x, pos.y, room.name);
-            } catch (e) {
-                continue;
-            }
-            let weight = 10 * ((range + 1) - position.getRangeTo(enemyCreeps[key]));
-            if (!position || (matrix.get(position.x, position.y) && matrix.get(position.x, position.y) >= weight)) continue;
-            matrix.set(position.x, position.y, weight)
-        }
+let outsideHubMatrixTick = {};
+
+function getOutsideHubMatrix(roomName, matrix, options) {
+    let room = Game.rooms[roomName];
+    if (!room) return matrix;
+    if (!outsideHubMatrixCache[roomName] || options.showMatrix || (!outsideHubMatrixTick[room.name] || Game.time > outsideHubMatrixTick[room.name] + 10000)) {
+        outsideHubMatrixTick[room.name] = Game.time;
+        outsideHubMatrixCache[roomName] = markOutsideHubAsImpassable(room, matrix).serialize();
     }
-    return matrix;
+    return PathFinder.CostMatrix.deserialize(outsideHubMatrixCache[roomName]);
+
+    function markOutsideHubAsImpassable(room, matrix) {
+        if (!room) return matrix;
+
+        const terrain = new Room.Terrain(room.name);
+        const ramparts = room.find(room.structures, {
+            filter: s => s.structureType === STRUCTURE_RAMPART
+        });
+        const spawn = _.find(room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
+
+        if (ramparts.length === 0 || !spawn) return matrix; // No hub detected
+
+        // Start flood-fill from a position inside the hub
+        const startPos = spawn.pos; // Assuming at least one rampart exists
+        const queue = [startPos];
+        const visited = new Set();
+        visited.add(`${startPos.x},${startPos.y}`);
+
+        // Flood-fill to mark accessible tiles
+        while (queue.length > 0) {
+            const pos = queue.shift();
+
+            // Add the position to the matrix as walkable
+            matrix.set(pos.x, pos.y, 1);
+
+            // Check adjacent tiles
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    if (dx === 0 && dy === 0) continue; // Skip the current tile
+
+                    const x = pos.x + dx;
+                    const y = pos.y + dy;
+
+                    // Skip out-of-bounds positions
+                    if (x < 0 || x >= 50 || y < 0 || y >= 50) continue;
+
+                    // Skip already visited positions or terrain that isn't walkable
+                    const key = `${x},${y}`;
+                    if (visited.has(key) || terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+
+                    // Skip tiles outside the rampart boundaries
+                    if (!ramparts.some(r => r.pos.isNearTo(x, y))) continue;
+
+                    // Mark as visited and add to the queue
+                    visited.add(key);
+                    queue.push(new RoomPosition(x, y, room.name));
+                }
+            }
+        }
+
+        // Mark positions outside the hub as impassable
+        for (let x = 0; x < 50; x++) {
+            for (let y = 0; y < 50; y++) {
+                if (!visited.has(`${x},${y}`)) {
+                    matrix.set(x, y, 255);
+                }
+            }
+        }
+
+        return matrix;
+    }
 }
 
 let skMatrixTick = {};
 let skNoVision = [];
-
 function getSKMatrix(roomName, matrix = undefined, options) {
     let room = Game.rooms[roomName];
     if (!INTEL[roomName] || !INTEL[roomName].sk) return matrix;
@@ -764,50 +855,50 @@ function getSKMatrix(roomName, matrix = undefined, options) {
         skMatrixCache[roomName] = addSksToMatrix(room, matrix, options).serialize();
     }
     return PathFinder.CostMatrix.deserialize(skMatrixCache[roomName]);
-}
 
-function addSksToMatrix(room, matrix, options) {
-    if (room && INTEL[room.name] && INTEL[room.name].sk) {
-        let sks = room.find(FIND_CREEPS, {filter: (c) => c.owner.username === 'Source Keeper'});
-        if (options.ignoreKeeper) sks = _.filter(sks, (c) => c.id !== options.ignoreKeeper)
-        if (sks.length) {
-            for (let sk of sks) {
-                matrix.set(sk.pos.x, sk.pos.y, 256);
-                let sites = sk.room.lookForAtArea(LOOK_TERRAIN, sk.pos.y - 5, sk.pos.x - 5, sk.pos.y + 5, sk.pos.x + 5, true);
-                for (let site of sites) {
-                    let position;
-                    try {
-                        position = new RoomPosition(site.x, site.y, room.name);
-                    } catch (e) {
-                        continue;
-                    }
-                    if (position && !position.checkForWall()) {
-                        let weight = 250;
-                        matrix.set(position.x, position.y, weight)
+    function addSksToMatrix(room, matrix, options) {
+        if (room && INTEL[room.name] && INTEL[room.name].sk) {
+            let sks = room.find(FIND_CREEPS, {filter: (c) => c.owner.username === 'Source Keeper'});
+            if (options.ignoreKeeper) sks = _.filter(sks, (c) => c.id !== options.ignoreKeeper)
+            if (sks.length) {
+                for (let sk of sks) {
+                    matrix.set(sk.pos.x, sk.pos.y, 256);
+                    let sites = sk.room.lookForAtArea(LOOK_TERRAIN, sk.pos.y - 5, sk.pos.x - 5, sk.pos.y + 5, sk.pos.x + 5, true);
+                    for (let site of sites) {
+                        let position;
+                        try {
+                            position = new RoomPosition(site.x, site.y, room.name);
+                        } catch (e) {
+                            continue;
+                        }
+                        if (position && !position.checkForWall()) {
+                            let weight = 250;
+                            matrix.set(position.x, position.y, weight)
+                        }
                     }
                 }
-            }
-        } else {
-            let lairs = room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn < 25});
-            let avoid = _.union(lairs, room.sources, room.mineral);
-            for (let lair of avoid) {
-                let sites = lair.room.lookForAtArea(LOOK_TERRAIN, lair.pos.y - 5, lair.pos.x - 5, lair.pos.y + 5, lair.pos.x + 5, true);
-                for (let site of sites) {
-                    let position;
-                    try {
-                        position = new RoomPosition(site.x, site.y, room.name);
-                    } catch (e) {
-                        continue;
-                    }
-                    if (position && !position.checkForWall() && !position.checkForRoad()) {
-                        let weight = 240;
-                        matrix.set(position.x, position.y, weight)
+            } else {
+                let lairs = room.find(room.structures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn < 25});
+                let avoid = _.union(lairs, room.sources, room.mineral);
+                for (let lair of avoid) {
+                    let sites = lair.room.lookForAtArea(LOOK_TERRAIN, lair.pos.y - 5, lair.pos.x - 5, lair.pos.y + 5, lair.pos.x + 5, true);
+                    for (let site of sites) {
+                        let position;
+                        try {
+                            position = new RoomPosition(site.x, site.y, room.name);
+                        } catch (e) {
+                            continue;
+                        }
+                        if (position && !position.checkForWall() && !position.checkForRoad()) {
+                            let weight = 240;
+                            matrix.set(position.x, position.y, weight)
+                        }
                     }
                 }
             }
         }
+        return matrix;
     }
-    return matrix;
 }
 
 function serializePath(startPos, path, color = _.sample(["orange", "blue", "green", "red", "yellow", "black", "gray", "purple"])) {
