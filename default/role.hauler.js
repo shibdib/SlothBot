@@ -11,7 +11,7 @@ class RoleHauler {
     }
 
     performRoleActions() {
-        this.housekeeping();
+        if (this.housekeeping()) return;
         if (_.sum(this.creep.store)) {
             this.deliverResource();
         } else {
