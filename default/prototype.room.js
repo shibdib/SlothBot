@@ -384,150 +384,128 @@ function getRoomResource(room, resource, unused = false) {
 }
 
 Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
-    if (!INTEL) global.INTEL = {};
-    let cache = INTEL;
+    // Ensure global INTEL is initialized
+    if (!global.INTEL) global.INTEL = {};
+    const cache = global.INTEL;
 
-    const roomData = cache[this.name] || {};
-    if (!force && roomData.cached + CREEP_LIFE_TIME > Game.time) return;
+    const roomData = cache[this.name];
+    const currentTime = Game.time;
 
-    let mineral, sk, power, portal, level, owner, lastOperation, towers, reservation, safemode,
-        mineralAmount, hubCheck, isHighway, user, loot, commodity, obstacles, nukeTarget;
-    const structures = this.structures;
+    // Early exit: use cached data if it's still valid
+    if (!force && roomData && roomData.cached + CREEP_LIFE_TIME > currentTime) return;
 
-    // Cache previously stored room data to minimize lookups
-    if (INTEL[this.name]) {
-        lastOperation = INTEL[this.name].lastOperation;
-        sk = INTEL[this.name].sk;
-        if (Math.random() > 0.2 && !force) hubCheck = INTEL[this.name].hubCheck;
-    }
+    const structures = this.structures || [];
+    const controller = this.controller;
+    const sources = this.sources;
+    const deposits = this.deposits || [];
+    const alliedCreeps = this.alliedCreeps || [];
+    const hostileCreeps = this.hostileCreeps || [];
+
+    // Initialize room intel object
+    const roomIntel = {
+        cached: currentTime,
+        name: this.name,
+        shardName: Game.shard.name,
+        sources: sources.length,
+        obstacles: isRoomBlocked(this.name),
+        invaderCore: _.some(structures, function (s) {
+            return s.structureType === STRUCTURE_INVADER_CORE;
+        }),
+    };
 
     // Minerals
     if (this.mineral) {
-        mineral = this.mineral.mineralType;
-        mineralAmount = this.mineral.mineralAmount;
+        roomIntel.mineral = this.mineral.mineralType;
+        roomIntel.mineralAmount = this.mineral.mineralAmount;
     }
 
-    // Remote source data handling
-    if (INTEL[this.name] && INTEL[this.name].remoteRoom && !force) {
-        let highestLevel = INTEL[this.name].remoteRoom[0];
-        const remoteRoomData = INTEL[this.name].remoteRoom;
-        remoteRoomData.forEach((r) => {
-            if (r !== highestLevel && Game.rooms[r] && Game.rooms[r].level > Game.rooms[highestLevel].level) {
-                highestLevel = r;
+    // Remote sources (only if existing data and not forced)
+    if (roomData && roomData.remoteRoom && !force) {
+        var highestLevelRoom = roomData.remoteRoom[0];
+        for (var i = 0; i < roomData.remoteRoom.length; i++) {
+            var roomName = roomData.remoteRoom[i];
+            var remoteRoom = Game.rooms[roomName];
+            if (remoteRoom && remoteRoom.controller && remoteRoom.controller.level > (Game.rooms[highestLevelRoom] && Game.rooms[highestLevelRoom].controller ? Game.rooms[highestLevelRoom].controller.level : 0)) {
+                highestLevelRoom = roomName;
             }
-        });
-
-        const remoteSourceData = Game.rooms[highestLevel] && Game.rooms[highestLevel].memory.remoteSources || "{}";
-        const parsedRemoteSourceData = JSON.parse(remoteSourceData);
-
-        this.sources.forEach((source) => {
-            const goHome = Game.map.findExit(this.name, highestLevel);
-            const homeExit = source.pos.findClosestByPath(this.find(goHome));
-            const distanceToExit = source.pos.findPathTo(homeExit).length - 2;
-
-            // Avoid adding the source if it's already present in remoteSourceData
-            if (!parsedRemoteSourceData[source.id]) {
-                parsedRemoteSourceData[source.id] = {
-                    room: this.name,
-                    score: distanceToExit + 30
-                };
-            }
-        });
-
-        if (Game.rooms[highestLevel]) {
-            Game.rooms[highestLevel].memory.remoteSources = JSON.stringify(parsedRemoteSourceData);
         }
-    }
 
-    // Check for obstacles
-    obstacles = isRoomBlocked(this.name);
+        if (highestLevelRoom) {
+            var remoteMemory = Game.rooms[highestLevelRoom] && Game.rooms[highestLevelRoom].memory.remoteSources || "{}";
+            var remoteData = JSON.parse(remoteMemory);
 
-    // Handle NCP check
-    let ncpArray = Memory.ncpArray || [];
-    if (this.controller) {
-        if (this.controller.safeMode) safemode = this.controller.safeMode + Game.time;
-
-        if (this.controller.owner) {
-            owner = this.controller.owner.username;
-
-            // Signage NCP check
-            if (this.controller.sign) {
-                const text = this.controller.sign.text.toLowerCase();
-                if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum') ||
-                    text.includes('ᴏᴠᴇʀᴍɪɴᴅ') || text.includes('jln')) {
-                    ncpArray.push(this.controller.sign.username);
-                } else {
-                    _.remove(ncpArray, (u) => u === this.controller.sign.username);
+            for (var j = 0; j < sources.length; j++) {
+                var source = sources[j];
+                if (!remoteData[source.id]) {
+                    var exitDir = Game.map.findExit(this.name, highestLevelRoom);
+                    var exit = source.pos.findClosestByPath(this.find(exitDir));
+                    if (exit) {
+                        var distance = source.pos.getRangeTo(exit);
+                        remoteData[source.id] = {room: this.name, score: distance + 30};
+                    }
                 }
             }
 
-            towers = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && s.isActive()).length;
-            if (this.terminal) nukeTarget = this.terminal.pos.posToString();
-        } else if (this.controller.reservation) {
-            reservation = this.controller.reservation.username;
-        } else if (!obstacles && !hubCheck && !this.hostileCreeps.length && this.sources.length === 2) {
-            hubCheck = roomPlanner.hubCheck(this);
+            if (Game.rooms[highestLevelRoom]) {
+                Game.rooms[highestLevelRoom].memory.remoteSources = JSON.stringify(remoteData);
+            }
         }
-
-        level = this.controller.level;
-        if (!obstacles) {
-            loot = _.some(structures, (s) => (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) &&
-                _.sum(s.store) > 0 && !s.pos.checkForRampart(true)) && !this.hostileCreeps.length;
-        }
-
-        if (_.some(structures, (s) => s.structureType === STRUCTURE_INVADER_CORE)) {
-            towers = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && s.isActive()).length;
-        }
-    } else if (!sk && this.sources.length && _.some(structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)) {
-        sk = true;
-    } else if (!sk && !this.sources.length) {
-        if (this.deposits.length && _.some(this.deposits, (d) => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20))) {
-            commodity = _.find(this.deposits, (d) => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20)).depositType;
-        }
-        isHighway = true;
     }
 
-    // Set user if no owner or reservation
-    if (!owner && !reservation && (this.hostileCreeps.length || this.alliedCreeps.length)) {
-        user = this.alliedCreeps.length ? this.alliedCreeps[0].owner.username : this.hostileCreeps[0].owner.username;
+    // Controller-related data
+    if (controller) {
+        roomIntel.level = controller.level;
+        roomIntel.owner = controller.owner ? controller.owner.username : undefined;
+        roomIntel.reservation = controller.reservation ? controller.reservation.username : undefined;
+        roomIntel.safemode = controller.safeMode ? currentTime + controller.safeMode : undefined;
+
+        // Hub check
+        if (!roomIntel.obstacles && (!roomData || !roomData.hubCheck) && hostileCreeps.length === 0 && sources.length === 2) {
+            roomIntel.hubCheck = roomPlanner.hubCheck(this);
+        }
+
+        // Handle NCP signage
+        if (controller.sign && controller.sign.text) {
+            var signText = controller.sign.text.toLowerCase();
+            if (signText.indexOf("overmind") >= 0 || signText.indexOf("tooangel") >= 0 || signText.indexOf("quorum") >= 0 || signText.indexOf("ᴏᴠᴇʀᴍɪɴᴅ") >= 0 || signText.indexOf("jln") >= 0) {
+                if (!Memory.ncpArray) Memory.ncpArray = [];
+                Memory.ncpArray = _.uniq(Memory.ncpArray.concat([controller.sign.username]));
+            }
+        }
+
+        // Tower and terminal checks
+        roomIntel.towers = _.filter(structures, function (s) {
+            return s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && s.isActive();
+        }).length;
+        roomIntel.nukeTarget = this.terminal ? this.terminal.pos.posToString() : undefined;
+
+        // Loot availability
+        roomIntel.loot = hostileCreeps.length === 0 && _.some(structures, function (s) {
+            return (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) &&
+                _.sum(s.store) > 0 &&
+                !s.pos.checkForRampart(true);
+        });
     }
 
-    // Store portal and power info
-    portal = _.find(structures, (e) => e.structureType === STRUCTURE_PORTAL && !e.destination.shard);
-    power = _.find(structures, (e) => e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
-    power = power ? Game.time + power.ticksToDecay : undefined;
+    // Special room type checks
+    if (_.some(structures, function (s) {
+        return s.structureType === STRUCTURE_KEEPER_LAIR;
+    })) {
+        roomIntel.sk = true;
+    } else if (sources.length === 0 && _.some(deposits, function (d) {
+        return d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20);
+    })) {
+        var commodityDeposit = _.find(deposits, function (d) {
+            return d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20);
+        });
+        if (commodityDeposit) {
+            roomIntel.commodity = commodityDeposit.depositType;
+        }
+        roomIntel.isHighway = true;
+    }
 
-    // Cache room intel
-    cache[this.name] = {
-        cached: Game.time,
-        name: this.name,
-        shardName: Game.shard.name,
-        sources: this.sources.length,
-        mineral,
-        mineralAmount,
-        commodity,
-        owner,
-        hubCheck,
-        reservation,
-        level,
-        sk,
-        user: user || owner || reservation,
-        safemode,
-        portal,
-        power,
-        isHighway,
-        lastOperation,
-        invaderCore: _.some(structures, (e) => e.structureType === STRUCTURE_INVADER_CORE),
-        towers,
-        hostile: towers && !FRIENDLIES.includes(owner),
-        status: roomStatus(this.name),
-        loot,
-        obstacles,
-        nukeTarget
-    };
-
-    Memory.ncpArray = _.uniq(ncpArray);
-    global.INTEL = cache;
+    // Cache the updated data
+    cache[this.name] = roomIntel;
 };
 
 function isRoomBlocked(roomName) {
