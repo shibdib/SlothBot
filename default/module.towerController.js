@@ -101,8 +101,8 @@ function handleHostileCreeps(room) {
 function calculateAttackPower(room, hostileCreep, towers) {
     let attackPower = 0;
 
-    let inMeleeRange = _.filter(room.friendlyCreeps, c => c.pos.getRangeTo(hostileCreep) === 1);
-    let inRangedRange = _.filter(room.friendlyCreeps, c => c.pos.getRangeTo(hostileCreep) <= 3);
+    let inMeleeRange = _.filter(room.friendlyCreeps, c => c.hasActiveBodyparts(ATTACK) && c.pos.getRangeTo(hostileCreep) === 1);
+    let inRangedRange = _.filter(room.friendlyCreeps, c => c.hasActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(hostileCreep) <= 3);
 
     // Add attack power from friendly creeps
     inMeleeRange.forEach(c => attackPower += c.abilityPower().attack);
@@ -119,8 +119,8 @@ function calculateHealPower(room, hostileCreep) {
     let healPower = 0;
 
     if (!room.controller.safeMode) {
-        let inRangeMeleeHealers = _.filter(hostileCreep.room.hostileCreeps, s => s.pos.isNearTo(hostileCreep) && s.hasActiveBodyparts(HEAL));
-        let inRangeRangedHealers = _.filter(hostileCreep.room.hostileCreeps, s => s.pos.getRangeTo(hostileCreep) < 4 && s.hasActiveBodyparts(HEAL));
+        let inRangeMeleeHealers = _.filter(room.hostileCreeps, s => s.pos.isNearTo(hostileCreep) && s.hasActiveBodyparts(HEAL));
+        let inRangeRangedHealers = _.filter(room.hostileCreeps, s => s.pos.getRangeTo(hostileCreep) < 4 && s.hasActiveBodyparts(HEAL));
 
         inRangeMeleeHealers.forEach(c => healPower += c.abilityPower().heal);
         inRangeRangedHealers.forEach(c => healPower += c.abilityPower().rangedHeal);
@@ -132,6 +132,7 @@ function calculateHealPower(room, hostileCreep) {
 
 // Determine if we should attack a hostile creep based on attack and heal power
 function shouldAttackHostileCreep(attackPower, healPower, hostileCreep) {
+
     // Only attack if we can do more damage than the heal power, or if it is an invader (who should always be attacked)
     return (attackPower > healPower && (hostileCreep.owner.username === 'Invader' || hostileCreep.hits > healPower));
 }
