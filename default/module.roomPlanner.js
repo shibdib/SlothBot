@@ -274,7 +274,7 @@ function controllerBuilder(room) {
         let closestPos = null;
         let closestRange = Infinity;
         for (let pos of positions) {
-            pos = new RoomPosition(pos.x, pos.y, hub.room.name);
+            pos = new RoomPosition(pos.x, pos.y, room.name);
             const range = pos.getRangeTo(hub);
             if (range < closestRange) {
                 closestPos = pos;

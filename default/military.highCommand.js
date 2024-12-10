@@ -502,6 +502,7 @@ function manageAuxiliary() {
 
     for (let key in Memory.auxiliaryTargets) {
         let target = Memory.auxiliaryTargets[key];
+        if (!target) continue;
         let type = target.type;
 
         // Force an intel update if missing, and cancel operation if no intel
