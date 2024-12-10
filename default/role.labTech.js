@@ -245,7 +245,7 @@ class RoleLabTech {
 
     droppedResources() {
         // Check if terminal and storage are near capacity
-        if (_.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity() &&
+        if (this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity() &&
             _.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()) {
             return false;
         }
@@ -295,7 +295,7 @@ class RoleLabTech {
     }
 
     emptyFactory() {
-        if (_.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity() &&
+        if (this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity() &&
             _.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()) {
             return false;
         }
@@ -327,6 +327,7 @@ class RoleLabTech {
     }
 
     terminalControl() {
+        if (!this.room.terminal) return false;
         const terminal = this.room.terminal;
         const storage = this.room.storage;
 

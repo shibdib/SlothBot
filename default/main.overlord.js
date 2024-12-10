@@ -16,67 +16,77 @@ let tickTracker = {};
 
 class Overlord {
     constructor(room, CPULimit) {
-        let overlordStart = Game.cpu.getUsed();
+        const overlordStart = Game.cpu.getUsed();
         this.room = room;
         this.CPULimit = CPULimit;
-        // Set tick tracker
-        let tracker = {};
-        if (tickTracker[this.room.name]) tracker = tickTracker[this.room.name];
+
+        let tracker = tickTracker[this.room.name] || {};
+
         // Handle room creeps
         this.creepManager();
+
         // Handle creep spawning
         this.creepSpawningController();
+
         // Defense Controller
         this.defenseController();
-        // Handle links
+
+        // Handle links if room level >= 5
         if (this.room.level >= 5) this.linkController();
-        // Handle terminal
+
+        // Handle terminal with cooldown check
         if (this.room.terminal && !this.room.terminal.cooldown && (tracker['terminalController'] || 0) + 100 < Game.time) {
             this.terminalController();
             tracker['terminalController'] = Game.time;
         }
-        // Handle room building
+
+        // Handle room building with throttle
         if ((tracker['roomBuilding'] || 0) + 25 < Game.time) {
             this.constructionController();
             tracker['roomBuilding'] = Game.time;
         }
-        // Observer controller
+
+        // Observer controller for room level >= 8
         if (this.room.level >= 8) this.observerController();
+
         // Factory controller
         if (this.room.factory) this.factoryController();
+
         // State controller
         if ((tracker['stateController'] || 0) + 100 < Game.time) {
             this.stateController();
             tracker['stateController'] = Game.time;
         }
-        // Store tick tracker
+
+        // Store tick tracker and cpu usage data
         tickTracker[this.room.name] = tracker;
-        // Store cpu usage
-        this.storeCpuData(Game.cpu.getUsed() - overlordStart)
+        this.storeCpuData(Game.cpu.getUsed() - overlordStart);
     }
 
     creepManager() {
-        let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === this.room.name && !r.memory.military && !r.spawning));
-        for (let creep of roomCreeps) {
+        const roomCreeps = Object.values(Game.creeps).filter(creep => creep.memory.overlord === this.room.name && !creep.memory.military && !creep.spawning);
+
+        for (const creep of roomCreeps) {
             try {
                 minionController(creep);
             } catch (e) {
-                if (!errorCount[creep.name]) {
-                    errorCount[creep.name] = 1;
-                    log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name));
-                    log.e(e);
-                    log.e(e.stack);
-                    Game.notify(e);
-                    Game.notify(e.stack);
-                } else errorCount[creep.name] += 1;
-                if (errorCount[creep.name] >= 10) {
-                    log.e(e);
-                    log.e(e.stack);
-                    log.e(JSON.stringify(creep.memory));
-                    log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name) + ' and has been killed.');
-                    creep.suicide();
-                }
+                this.handleCreepError(creep, e);
             }
+        }
+    }
+
+    handleCreepError(creep, e) {
+        errorCount[creep.name] = (errorCount[creep.name] || 0) + 1;
+
+        if (errorCount[creep.name] >= 10) {
+            log.e(`${creep.name} encountered repeated errors and has been terminated.`);
+            log.e(e.stack);
+            log.e(JSON.stringify(creep.memory));
+            creep.suicide();
+        } else if (errorCount[creep.name] === 1) {
+            log.e(`${creep.name} encountered an error in room ${roomLink(creep.room.name)}`);
+            log.e(e.stack);
+            Game.notify(e.stack);
         }
     }
 
@@ -110,47 +120,64 @@ class Overlord {
 
     creepSpawningController() {
         spawning.processBuildQueue(this.room);
-        let spawnFunctions = [{name: 'essentialSpawning', f: spawning.essentialCreepQueue},
+        const spawnFunctions = [
+            {name: 'essentialSpawning', f: spawning.essentialCreepQueue},
             {name: 'miscSpawning', f: spawning.miscCreepQueue},
-            {name: 'remoteSpawning', f: spawning.remoteCreepQueue}];
-        try {
-            for (let task of spawnFunctions) {
+            {name: 'remoteSpawning', f: spawning.remoteCreepQueue}
+        ];
+
+        for (const task of spawnFunctions) {
+            try {
                 task.f(this.room);
+            } catch (e) {
+                log.e(`${task.name} for room ${this.room.name} encountered an error`);
+                log.e(e.stack);
+                Game.notify(e.stack);
             }
-        } catch (e) {
-            log.e(spawnFunctions[0].name + ' for room ' + this.room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
         }
     }
 
     storeCpuData(used) {
         let cpuUsageArray = ROOM_CPU_ARRAY[this.room.name] || [];
-        if (cpuUsageArray.length < 100) {
-            cpuUsageArray.push(used)
-        } else {
-            cpuUsageArray.shift();
-            cpuUsageArray.push(used);
-            if (average(cpuUsageArray) > this.CPULimit) {
+        cpuUsageArray.push(used);
+
+        if (cpuUsageArray.length > 100) cpuUsageArray.shift();
+
+        // Only calculate average if needed
+        if (cpuUsageArray.length === 100) {
+            const avgCpu = average(cpuUsageArray);
+            if (avgCpu > this.CPULimit) {
                 let cpuOverCount = this.room.memory.cpuOverage || 0;
                 this.room.memory.cpuOverage = cpuOverCount + 1;
-                log.e(this.room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
+                log.e(`${this.room.name} is using high CPU - ${avgCpu}`);
+
                 if (cpuOverCount >= 50) {
                     this.room.memory.cpuOverage = undefined;
                     this.room.memory.noRemote = Game.time + 5000;
-                    _.filter(Game.creeps, (c) => c.my && c.memory.overlord === this.room.name && c.room.name !== this.room.name && !c.memory.military).forEach((k) => k.suicide());
-                    //Game.notify(room.name + ' remote spawning has been disabled.');
-                    log.e(roomLink(this.room.name) + ' remote spawning has been disabled.');
+                    this.suicideRemoteCreeps();
+                    log.e(`${roomLink(this.room.name)} remote spawning has been disabled.`);
                 }
             } else {
                 if (this.room.memory.cpuOverage) this.room.memory.cpuOverage--;
-                if (this.room.memory.noRemote) {
-                    if (this.room.memory.noRemote <= Game.time) this.room.memory.noRemote = undefined;
-                    else this.room.memory.noRemote *= 0.9;
-                }
+                if (this.room.memory.noRemote) this.handleNoRemote();
             }
         }
+
         ROOM_CPU_ARRAY[this.room.name] = cpuUsageArray;
+    }
+
+    suicideRemoteCreeps() {
+        Object.values(Game.creeps)
+            .filter(creep => creep.my && creep.memory.overlord === this.room.name && creep.room.name !== this.room.name && !creep.memory.military)
+            .forEach(creep => creep.suicide());
+    }
+
+    handleNoRemote() {
+        if (this.room.memory.noRemote <= Game.time) {
+            this.room.memory.noRemote = undefined;
+        } else {
+            this.room.memory.noRemote *= 0.9;
+        }
     }
 }
 

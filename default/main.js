@@ -14,96 +14,106 @@ const profiler = require('tools.profiler');
 if (PROFILER_ENABLED) profiler.enable();
 module.exports.loop = function () {
     profiler.wrap(function () {
-        // Memhack
+        // Memhack Initialization
         tryInitSameMemory();
 
-        // Bucket Cool down Check
-        if (Memory.cpuTracking && Memory.cpuTracking.cooldown) {
-            if (Memory.cpuTracking.cooldown + 50 < Game.time || Game.cpu.bucket > BUCKET_MAX * 0.5) {
+        // CPU Bucket Cooldown Check
+        const cpuTracking = Memory.cpuTracking || {};
+        const currentBucket = Game.cpu.bucket;
+
+        if (cpuTracking.cooldown) {
+            if (cpuTracking.cooldown + 50 < Game.time || currentBucket > BUCKET_MAX * 0.5) {
                 delete Memory.cpuTracking.cooldown;
             } else {
-                let countDown = (Memory.cpuTracking.cooldown + 50) - Game.time;
-                log.e('On CPU Cooldown For ' + countDown + ' more ticks or until the bucket reaches ' + BUCKET_MAX * 0.5 + '. Current Bucket ' + Game.cpu.bucket);
+                const countdown = (cpuTracking.cooldown + 50) - Game.time;
+                log.e(`On CPU Cooldown for ${countdown} more ticks or until the bucket reaches ${BUCKET_MAX * 0.5}. Current Bucket: ${currentBucket}`);
                 return;
             }
-        } else {
-            if (!Memory.cpuTracking) Memory.cpuTracking = {};
-            if (Game.cpu.bucket < BUCKET_MAX * 0.05) {
-                Memory.cpuTracking.cooldown = Game.time;
-                log.e('CPU Bucket Too Low - Cooldown Initiated');
-                return;
-            }
+        } else if (currentBucket < BUCKET_MAX * 0.05) {
+            Memory.cpuTracking = {cooldown: Game.time};
+            log.e('CPU Bucket Too Low - Cooldown Initiated');
+            return;
         }
 
-        // Store owned rooms in array
-        if (!MY_ROOMS || !MY_ROOMS.length || Game.time % 5 === 0) {
-            let myRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my);
-            if (myRooms.length) {
-                global.MY_ROOMS = _.pluck(myRooms, '.name');
-                global.MAX_LEVEL = _.max(myRooms, 'controller.level').controller.level;
-                global.MIN_LEVEL = _.min(myRooms, 'controller.level').controller.level;
-                // Clean cache
-                _.filter(INTEL, (r) => r.owner && r.owner === MY_USERNAME).forEach(function (r) {
-                    if (!MY_ROOMS.includes(r.name)) delete INTEL[r.name];
+        // Store Owned Rooms (Update Every 25 Ticks)
+        if (!global.MY_ROOMS || !global.MAX_LEVEL || Game.time % 25 === 0) {
+            const ownedRooms = Object.values(Game.rooms).filter(
+                (r) => r.controller && r.controller.my
+            );
+            if (ownedRooms.length) {
+                global.MY_ROOMS = ownedRooms.map((r) => r.name);
+                global.MAX_LEVEL = Math.max(...ownedRooms.map((r) => r.controller.level));
+                global.MIN_LEVEL = Math.min(...ownedRooms.map((r) => r.controller.level));
+
+                // Clean INTEL Cache
+                Object.keys(INTEL).forEach((key) => {
+                    if (INTEL[key].owner === MY_USERNAME && !global.MY_ROOMS.includes(key)) {
+                        delete INTEL[key];
+                    }
                 });
             }
         }
 
-        // Initialize the INTEL cache
-        try {
-            if (!segments.retrieveIntel()) return;
-        } catch (e) {
-            log.e('Error retrieving intel cache');
-            log.e(e + ' ' + e.stack);
-            Game.notify(e + ' ' + e.stack);
-        }
+        // Initialize Intel Cache
+        if (!segments.retrieveIntel()) return;
 
-        // Handle auto placing a spawn
-        // Also handles respawns
+        // Auto Respawn Logic
         if (!running) {
-            let ownedRoom = _.find(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my);
-            let spawn = _.find(Game.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.name !== 'auto');
-            let creep = _.find(Game.creeps, (s) => s.my);
+            const ownedRoom = Object.values(Game.rooms).find(
+                (r) => r.controller && r.controller.my
+            );
+            const spawn = Object.values(Game.spawns).find(
+                (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.name !== 'auto'
+            );
+            const creep = Object.values(Game.creeps).find((c) => c.my);
+
             if (ownedRoom && (!spawn || !creep)) {
                 if (!memWipe) {
                     resetMemory();
                     memWipe = true;
                 }
-                if (!spawn) return require('module.roomPlanner').buildRoom(ownedRoom);
-            } else if (spawn) running = true;
+                if (!spawn) {
+                    require('module.roomPlanner').buildRoom(ownedRoom);
+                    return;
+                }
+            } else if (spawn) {
+                running = true;
+            }
         }
 
-        // Handle Pixel Farming
+        // Pixel Farming
         if (PIXEL_FARM && ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
             return require('module.pixelFarm').farm(Game.rooms[Object.keys(Game.rooms)[0]]);
         }
 
-        try {
-            // Handle pixel generation
-            // Generate every 1500 ticks if enabled, no military operations, and we have a full bucket
-            if (GENERATE_PIXELS && Memory.lastPixel + 100 < Game.time && ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) && Game.cpu.bucket >= PIXEL_CPU_COST && !_.find(MY_ROOMS, (r) => INTEL[r] && INTEL[r].threatLevel)) {
-                log.a('Pixel Generated');
-                Game.cpu.generatePixel();
-                return Memory.lastPixel = Game.time;
-            } else if (!Memory.lastPixel) Memory.lastPixel = Game.time;
+        // Pixel Generation (Every 1500 Ticks)
+        if (
+            GENERATE_PIXELS &&
+            (!Memory.lastPixel || Memory.lastPixel + 100 < Game.time) &&
+            currentBucket >= PIXEL_CPU_COST &&
+            !MY_ROOMS.some((r) => INTEL[r].threatLevel)
+        ) {
+            log.a('Pixel Generated');
+            Game.cpu.generatePixel();
+            Memory.lastPixel = Game.time;
+            return;
+        }
 
-            // Misc Tools
+        // Miscellaneous Tools
+        try {
             tools.CPULimits();
             tools.tickLength();
             tools.cleanMemory();
             tools.status();
-            //tools.memHack();
-            // Update allies
             populateLOANlist();
-            // Cleanup Modules
             cleanUp.cleanup();
         } catch (e) {
             log.e('Error with a main tool function');
-            log.e(e + ' ' + e.stack);
-            Game.notify(e + ' ' + e.stack);
+            log.e(`${e} ${e.stack}`);
+            Game.notify(`${e} ${e.stack}`);
         }
 
-        //Hive Mind
+        // Hive Mind
         new hive();
 
         // Save Intel Cache
@@ -111,8 +121,8 @@ module.exports.loop = function () {
             segments.storeIntel();
         } catch (e) {
             log.e('Error saving intel cache');
-            log.e(e + ' ' + e.stack);
-            Game.notify(e + ' ' + e.stack);
+            log.e(`${e} ${e.stack}`);
+            Game.notify(`${e} ${e.stack}`);
         }
     });
 };

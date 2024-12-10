@@ -19,32 +19,41 @@ class Hive {
     constructor() {
         // General housekeeping
         this.houseKeeping();
-        // Segment management
+
+        // Manage segments
         this.segmentManager();
+
         // Manage rooms
         this.overlordManager();
-        // Military creep manager
+
+        // Manage military creeps
         this.militaryCreepManager();
-        // PowerCreep manager
+
+        // Manage Power Creeps
         this.powerCreepManager();
-        // Hud manager
+
+        // Update HUD
         this.hudManager();
-        // Global queue
+
+        // Global Queue (Every 10 Ticks)
         if ((tickTracker['globalQueue'] || 0) + 10 < Game.time) {
             this.globalQueue();
             tickTracker['globalQueue'] = Game.time;
         }
-        // High Command
+
+        // High Command (Every 50 Ticks)
         if ((tickTracker['highCommand'] || 0) + 50 < Game.time) {
             this.highCommand();
             tickTracker['highCommand'] = Game.time;
         }
-        // Lab manager
+
+        // Lab Manager (Every 5 Ticks)
         if ((tickTracker['labManager'] || 0) + 5 < Game.time) {
             this.labManager();
             tickTracker['labManager'] = Game.time;
         }
-        // Expansion manager
+
+        // Expansion Manager (Every 1000 Ticks)
         if ((tickTracker['expansionManager'] || 0) + 1000 < Game.time) {
             this.expansionManager();
             tickTracker['expansionManager'] = Game.time;
@@ -54,14 +63,15 @@ class Hive {
     houseKeeping() {
         // Timing
         Memory.tickCooldowns = undefined;
-        // Silence Alerts
-        if (Game.time % 2500 === 0 || !buildingNotifications) {
+
+        // Silence Alerts (Every 2500 Ticks)
+        if (Game.time % 2500 === 0) {
             buildingNotifications = true;
-            for (let building of _.filter(Game.structures)) {
-                building.notifyWhenAttacked(false);
-            }
+            const structures = Object.values(Game.structures);
+            structures.forEach((building) => building.notifyWhenAttacked(false));
         }
-        // Diplomacy
+
+        // Diplomacy Overlord
         diplomacy.diplomacyOverlord();
     }
 
@@ -94,48 +104,58 @@ class Hive {
     }
 
     militaryCreepManager() {
-        let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => (r.memory.military || !r.memory.overlord) && !r.spawning));
-        for (let creep of militaryCreeps) {
+        const creeps = Object.values(Game.creeps).filter((creep) =>
+            (creep.memory.military || !creep.memory.overlord) && !creep.spawning
+        );
+
+        for (const creep of creeps) {
             try {
                 minionController(creep);
             } catch (e) {
-                if (!errorCount[creep.name]) {
-                    errorCount[creep.name] = 1;
-                    log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name));
-                    log.e(e);
-                    log.e(e.stack);
-                    Game.notify(e);
-                    Game.notify(e.stack);
-                } else errorCount[creep.name] += 1;
-                if (errorCount[creep.name] >= 50) {
-                    log.e(e);
-                    log.e(e.stack);
-                    log.e(creep.name + ' experienced an error in room ' + roomLink(creep.room.name) + ' and has been killed.');
-                    creep.suicide();
-                }
+                this.handleCreepError(creep, e);
             }
         }
     }
 
     overlordManager() {
-        // Overlord loop
-        MY_ROOMS.forEach(function (room) {
-            let activeRoom = Game.rooms[room];
-            // If no longer owned, filter out
-            if (!activeRoom) {
-                global.MY_ROOMS = _.filter(MY_ROOMS, (r) => r !== room);
-                return;
+        const rooms = [...MY_ROOMS]; // Cache rooms to avoid global lookups
+
+        for (const roomName of rooms) {
+            const room = Game.rooms[roomName];
+            if (!room) {
+                global.MY_ROOMS = global.MY_ROOMS.filter((r) => r !== roomName);
+                continue;
             }
+
             try {
-                activeRoom.invaderCheck();
-                activeRoom.cacheRoomIntel();
-                new overlord(activeRoom, CPU_TASK_LIMITS['roomLimit'] * 0.9 / _.size(MY_ROOMS));
+                room.invaderCheck();
+                room.cacheRoomIntel();
+                const roomLimit = (CPU_TASK_LIMITS['roomLimit'] * 0.9) / MY_ROOMS.length;
+                new overlord(room, roomLimit);
             } catch (e) {
-                log.e('Overlord Module experienced an error in room ' + roomLink(room));
+                log.e(`Overlord Module experienced an error in room ${roomLink(roomName)}`);
                 log.e(e.stack);
                 Game.notify(e.stack);
             }
-        })
+        }
+    }
+
+    handleCreepError(creep, error) {
+        if (!errorCount[creep.name]) {
+            errorCount[creep.name] = 1;
+            log.e(`${creep.name} encountered an error in room ${roomLink(creep.room.name)}`);
+            log.e(error);
+            log.e(error.stack);
+            Game.notify(`${error}\n${error.stack}`);
+        } else {
+            errorCount[creep.name]++;
+        }
+
+        if (errorCount[creep.name] >= 50) {
+            log.e(`${creep.name} encountered repeated errors and has been terminated.`);
+            log.e(error.stack);
+            creep.suicide();
+        }
     }
 }
 
