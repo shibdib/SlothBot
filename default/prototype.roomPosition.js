@@ -136,7 +136,7 @@ RoomPosition.prototype.isInBunker = function (range = 0) {
             roomCallback: function () {
                 if (!room) return;
                 let costs = new PathFinder.CostMatrix;
-                room.find(FIND_STRUCTURES).forEach(function (s) {
+                room.find(room.structures).forEach(function (s) {
                     if (OBSTACLE_OBJECT_TYPES.includes(s.structureType) || s.structureType === STRUCTURE_RAMPART) {
                         costs.set(s.pos.x, s.pos.y, 256);
                     }
