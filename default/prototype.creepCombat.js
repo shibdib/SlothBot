@@ -398,7 +398,7 @@ Creep.prototype.fightRampart = function (hostile = undefined) {
         position = target.pos.findInRange(this.room.structures, range, {
             filter: (r) => r.my && r.structureType === STRUCTURE_RAMPART &&
                 !r.pos.checkForObstacleStructure() &&
-                !_.filter(this.room.creeps, (c) => c.memory.assignedRampart === r.id && c.id !== this.id).length &&
+                !_.filter(this.room.myCreeps, (c) => c.memory.assignedRampart === r.id && c.id !== this.id).length &&
                 (!r.pos.checkForCreep() || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))
         })[0];
 
@@ -407,7 +407,7 @@ Creep.prototype.fightRampart = function (hostile = undefined) {
             position = target.pos.findClosestByPath(this.room.structures, {
                 filter: (r) => r.my && r.structureType === STRUCTURE_RAMPART &&
                     !r.pos.checkForObstacleStructure() &&
-                    !_.filter(this.room.creeps, (c) => c.memory.assignedRampart === r.id && c.id !== this.id).length &&
+                    !_.filter(this.room.myCreeps, (c) => c.memory.assignedRampart === r.id && c.id !== this.id).length &&
                     (!r.pos.checkForCreep() || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))
             });
         }
@@ -728,7 +728,7 @@ Creep.prototype.moveToStaging = function () {
     if (this.memory.stagingRoom === this.room.name) {
         if (this.findClosestEnemy()) return this.handleMilitaryCreep(false, true);
         this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 7});
-        let inPlace = _.filter(this.room.creeps, (creep) => creep.memory && creep.memory.destination === this.memory.destination);
+        let inPlace = _.filter(this.room.myCreeps, (creep) => creep.memory.destination === this.memory.destination);
         if (inPlace.length >= this.memory.other.waitFor || this.ticksToLive <= 250) {
             this.memory.stagingComplete = true;
             if (!Memory.targetRooms[this.memory.destination].lastWave || Memory.targetRooms[this.memory.destination].lastWave + 50 < Game.time) {
