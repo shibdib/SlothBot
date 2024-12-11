@@ -46,6 +46,7 @@ class RoleLabTech {
         if (this.emptyLab()) return;
         // Handle storage goods
         if (this.storageControl()) return;
+        this.creep.idleFor(20);
     }
 
     getResource() {
