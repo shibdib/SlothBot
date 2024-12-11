@@ -25,8 +25,6 @@ class RoleRemoteHauler {
         if (this.creep.skSafety()) return true;
         // Attempt to generate safemodes
         if (safemodeGeneration(this.creep)) return true;
-        // Handle robberies
-        if (this.creep.memory.operation === 'robbery') return this.creep.robRoom();
         // Icon
         this.creep.say(ICONS.haul2, true);
         // Check for tow
