@@ -152,12 +152,6 @@ class ModuleBodyGenerator {
                 // Ensure the number of parts doesn't exceed maximum CARRY capacity for the shuttle
                 carry = Math.min(carry, this.energyAmount / BODYPART_COST[CARRY]);
 
-                // Add dynamic scaling for move parts based on shuttle distance efficiency
-                move = 1; // Always add at least one move part
-                if (halfMove) {
-                    move = Math.ceil(carry * 0.5); // Use less move parts if roads are available
-                }
-
                 break;
 
             case 'stationaryHarvester':
