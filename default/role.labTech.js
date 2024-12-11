@@ -156,8 +156,8 @@ class RoleLabTech {
                     storeTarget = Game.getObjectById(this.creep.memory.deliverTo);
                 }
                 // Check if both terminal and storage are near full capacity
-                else if (_.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity() &&
-                    _.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()) {
+                else if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
+                    (this.room.storage && (_.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()))) {
                     storeTarget = 'drop';  // Discard resources if both are full
                 }
                 // Prioritize lab or nuke if they need resources
@@ -246,15 +246,15 @@ class RoleLabTech {
 
     droppedResources() {
         // Check if terminal and storage are near capacity
-        if (this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity() &&
-            _.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()) {
+        if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
+            (this.room.storage && (_.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()))) {
             return false;
         }
 
         // Find the first resource source: tombstone, ruin, or dropped resource
         let resource = this.room.find(FIND_TOMBSTONES, {filter: (r) => _.sum(r.store) > 0})[0] ||
             this.room.find(FIND_RUINS, {filter: (r) => _.sum(r.store) > 0})[0] ||
-            this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY})[0];
+            this.room.find(FIND_DROPPED_RESOURCES)[0];
 
         if (resource) {
             // Handle resource transfer to storage if the creep is carrying anything
@@ -296,8 +296,8 @@ class RoleLabTech {
     }
 
     emptyFactory() {
-        if (this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity() &&
-            _.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()) {
+        if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
+            (this.room.storage && (_.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()))) {
             return false;
         }
 
@@ -386,8 +386,8 @@ class RoleLabTech {
         const storage = this.room.storage;
 
         // Check if terminal and storage are near full capacity
-        if (_.sum(terminal.store) >= terminal.store.getCapacity() * 0.98 &&
-            _.sum(storage.store) >= storage.store.getCapacity() * 0.98) {
+        if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
+            (this.room.storage && (_.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()))) {
             return false;
         }
 
@@ -477,8 +477,8 @@ class RoleLabTech {
         const storage = this.room.storage;
 
         // Check if both terminal and storage are near full capacity
-        if (_.sum(terminal.store) >= terminal.store.getCapacity() * 0.98 &&
-            _.sum(storage.store) >= storage.store.getCapacity() * 0.98) {
+        if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
+            (this.room.storage && (_.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()))) {
             return false;
         }
 
