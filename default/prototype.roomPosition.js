@@ -81,23 +81,41 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
 };
 
 /**
- * Counts open terrain around a POS
- * @param {boolean} borderBuild - Check if the pos is within 2 of an exit
+ * Counts open terrain around a position
+ * @param {boolean} borderBuild - Check if the position is within 2 tiles of an exit
  * @param {boolean} ignore - Ignore all obstructions besides walls
  * @returns {number}
  */
 RoomPosition.prototype.countOpenTerrainAround = function (borderBuild = undefined, ignore = undefined) {
+    const cacheKey = `countOpenTerrain_${this.roomName}_${this.x}_${this.y}_${borderBuild}_${ignore}`;
+    const currentTick = Game.time;
+
+    if (!this._openTerrainCache) {
+        this._openTerrainCache = {}; // Initialize a cache object for open terrain counts
+    }
+
+    if (this._openTerrainCache[cacheKey] && this._openTerrainCache[cacheKey].expiry > currentTick) {
+        return this._openTerrainCache[cacheKey].value; // Return cached result if available and not expired
+    }
+
     let openTerrain = 8;
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
             if (xOff !== 0 || yOff !== 0) {
                 let pos = new RoomPosition(this.x + xOff, this.y + yOff, this.roomName);
-                if (ignore && pos.checkForWall()) openTerrain--;
-                else if (pos.checkForImpassible(undefined, true) || (pos.checkForCreep() && !pos.checkForCreep().hasActiveBodyparts(MOVE))) openTerrain--;
-                if (borderBuild && pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) <= 2) openTerrain--;
+                if (ignore && pos.checkForWall()) {
+                    openTerrain--;
+                } else if (pos.checkForImpassible(undefined, true) || (pos.checkForCreep() && !pos.checkForCreep().hasActiveBodyparts(MOVE))) {
+                    openTerrain--;
+                }
+                if (borderBuild && pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) <= 2) {
+                    openTerrain--;
+                }
             }
         }
     }
+
+    this._openTerrainCache[cacheKey] = {value: openTerrain, expiry: currentTick + 5000}; // Cache the result with expiry
     return openTerrain;
 };
 
@@ -209,7 +227,19 @@ RoomPosition.prototype.lookNearby = function (asArray, range = 1) {
  * @returns {boolean}
  */
 RoomPosition.prototype.checkForWall = function () {
-    return Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) === 1;
+    if (!this._wallCache) {
+        this._wallCache = {}; // Initialize a cache object for walls
+    }
+
+    const cacheKey = `checkForWall_${this.roomName}_${this.x}_${this.y}`;
+
+    if (this._wallCache[cacheKey] !== undefined) {
+        return this._wallCache[cacheKey]; // Return cached result if available
+    }
+
+    const result = Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) === 1;
+    this._wallCache[cacheKey] = result; // Cache the result indefinitely
+    return result;
 };
 
 /**
@@ -217,7 +247,19 @@ RoomPosition.prototype.checkForWall = function () {
  * @returns {boolean}
  */
 RoomPosition.prototype.checkForSwamp = function () {
-    return Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) === 2;
+    if (!this._swampCache) {
+        this._swampCache = {}; // Initialize a cache object for swamps
+    }
+
+    const cacheKey = `checkForSwamp_${this.roomName}_${this.x}_${this.y}`;
+
+    if (this._swampCache[cacheKey] !== undefined) {
+        return this._swampCache[cacheKey]; // Return cached result if available
+    }
+
+    const result = Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) === 2;
+    this._swampCache[cacheKey] = result; // Cache the result indefinitely
+    return result;
 };
 
 /**
@@ -225,7 +267,19 @@ RoomPosition.prototype.checkForSwamp = function () {
  * @returns {boolean}
  */
 RoomPosition.prototype.checkForPlain = function () {
-    return !Game.map.getRoomTerrain(this.roomName).get(this.x, this.y);
+    if (!this._plainCache) {
+        this._plainCache = {}; // Initialize a cache object for plains
+    }
+
+    const cacheKey = `checkForPlain_${this.roomName}_${this.x}_${this.y}`;
+
+    if (this._plainCache[cacheKey] !== undefined) {
+        return this._plainCache[cacheKey]; // Return cached result if available
+    }
+
+    const result = Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) === 0;
+    this._plainCache[cacheKey] = result; // Cache the result indefinitely
+    return result;
 };
 
 /**
@@ -263,26 +317,32 @@ RoomPosition.prototype.checkForBarrierStructure = function () {
 };
 
 /**
- * Check for obstacle structure
- * @returns {*}
+ * Check for obstacle structure with caching and expiry
+ * @returns {boolean} - True if an obstacle structure is found, false otherwise
  */
-global.OBSTACLE_CACHE = {};
+global.OBSTACLE_CACHE = global.OBSTACLE_CACHE || {};
 RoomPosition.prototype.checkForObstacleStructure = function () {
-    const cacheKey = this.x + ',' + this.y + ',' + this.roomName; // Using a unique key for each position.
-    // Check cache first
-    if (OBSTACLE_CACHE && OBSTACLE_CACHE[cacheKey]) {
-        return OBSTACLE_CACHE[cacheKey];
+    const cacheKey = `${this.roomName}_${this.x}_${this.y}`;
+    const currentTick = Game.time;
+
+    // Check cache and expiry
+    if (OBSTACLE_CACHE[cacheKey] && OBSTACLE_CACHE[cacheKey].expiry > currentTick) {
+        return OBSTACLE_CACHE[cacheKey].value;
     }
+
+    // Calculate obstacle presence
     let obstacle = this.lookFor(LOOK_STRUCTURES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
     if (!obstacle) {
-        obstacle = _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART && !s.my && !s.isPublic && !FRIENDLIES.includes(s.owner.username));
+        obstacle = this.lookFor(LOOK_STRUCTURES).some(
+            s => s.structureType === STRUCTURE_RAMPART && !s.my && !s.isPublic && !FRIENDLIES.includes(s.owner.username)
+        );
     }
     if (!obstacle) {
         obstacle = this.lookFor(LOOK_CONSTRUCTION_SITES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
     }
-    // Store the result in the cache
-    if (!OBSTACLE_CACHE) OBSTACLE_CACHE = {};
-    OBSTACLE_CACHE[cacheKey] = obstacle;
+
+    // Cache the result with a 5000-tick expiry
+    OBSTACLE_CACHE[cacheKey] = {value: obstacle, expiry: currentTick + 5000};
 
     return obstacle;
 };
@@ -330,31 +390,64 @@ RoomPosition.prototype.checkForEnergy = function () {
 };
 
 /**
- * Check for all structures
- * @param ramparts
- * @returns {undefined|*}
+ * Check for all structures with optional rampart exclusion
+ * @param {boolean} ramparts - Include ramparts if true
+ * @returns {undefined|Structure|boolean} - Returns the first structure, true/false, or undefined if not in a visible room
  */
 RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
-    if (Game.rooms[this.roomName]) {
-        if (!ramparts) return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD);
-        return this.lookFor(LOOK_STRUCTURES)[0];
-    } else {
-        return undefined;
+    if (!Game.rooms[this.roomName]) {
+        return undefined; // Return undefined if the room is not visible
     }
+
+    const cacheKey = `checkForAllStructure_${this.roomName}_${this.x}_${this.y}_${ramparts}`;
+    const currentTick = Game.time;
+
+    if (!this._structureCache) {
+        this._structureCache = {}; // Initialize a cache object for the position
+    }
+
+    if (this._structureCache[cacheKey] && this._structureCache[cacheKey].expiry > currentTick) {
+        return this._structureCache[cacheKey].value; // Return cached result if available and not expired
+    }
+
+    const structures = this.lookFor(LOOK_STRUCTURES);
+
+    const result = ramparts
+        ? structures[0] || undefined // Cache the first structure if ramparts are included
+        : structures.some(s => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD);
+
+    this._structureCache[cacheKey] = {value: result, expiry: currentTick + 5000}; // Cache the result with expiry
+    return result;
 };
 
 /**
- * Check for impassible
- * @param ignoreWall
- * @param ignoreCreep
- * @returns {boolean}
+ * Check for impassable terrain or structures
+ * @param {boolean} ignoreWall - Whether to ignore walls
+ * @param {boolean} ignoreCreep - Whether to ignore creeps
+ * @returns {boolean} - True if the position is impassable, false otherwise
  */
 RoomPosition.prototype.checkForImpassible = function (ignoreWall = false, ignoreCreep = false) {
-    if (ignoreWall) {
-        if (this.checkForObstacleStructure() || (!ignoreCreep && this.checkForCreep())) return true;
-    } else {
-        if (this.checkForObstacleStructure() || this.checkForWall() || (!ignoreCreep && this.checkForCreep())) return true;
+    const cacheKey = `checkForImpassible_${this.roomName}_${this.x}_${this.y}_${ignoreWall}_${ignoreCreep}`;
+    const currentTick = Game.time;
+
+    if (!this._impassibleCache) {
+        this._impassibleCache = {}; // Initialize a cache object for the position
     }
+
+    if (this._impassibleCache[cacheKey] && this._impassibleCache[cacheKey].expiry > currentTick) {
+        return this._impassibleCache[cacheKey].value; // Return cached result if available and not expired
+    }
+
+    let impassible;
+
+    if (ignoreWall) {
+        impassible = this.checkForObstacleStructure() || (!ignoreCreep && this.checkForCreep());
+    } else {
+        impassible = this.checkForObstacleStructure() || this.checkForWall() || (!ignoreCreep && this.checkForCreep());
+    }
+
+    this._impassibleCache[cacheKey] = {value: impassible, expiry: currentTick + 5000}; // Cache the result with expiry
+    return impassible;
 };
 
 /**
