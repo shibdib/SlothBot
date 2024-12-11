@@ -210,7 +210,7 @@ function auxiliaryOperations() {
                 return findClosestOwnedRoom(t.name, true);
             });
 
-            if (powerRoom && !_.find(Memory.auxiliaryTargets, (target) => target.type === 'power')) {
+            if (powerRoom && powerRoom.name && !_.find(Memory.auxiliaryTargets, (target) => target.type === 'power')) {
                 cache[powerRoom.name] = {tick, type: 'power', level: 1, priority: PRIORITIES.medium};
                 log.a(`Mining operation planned for ${roomLink(powerRoom.name)} (Power Bank Location)`, 'HIGH COMMAND: ');
             }
@@ -218,7 +218,7 @@ function auxiliaryOperations() {
 
         // Commodity Mining
         let commodityRoom = _.find(initialFilter, (r) => r.commodity && getResourceTotal(r.commodity) < DUMP_AMOUNT && findClosestOwnedRoom(r.name, true) <= 8);
-        if (commodityRoom && _.size(_.filter(Memory.auxiliaryTargets, (target) => target.type === 'commodity')) < _.size(MY_ROOMS)) {
+        if (commodityRoom && commodityRoom.name && _.size(_.filter(Memory.auxiliaryTargets, (target) => target.type === 'commodity')) < _.size(MY_ROOMS)) {
             cache[commodityRoom.name] = {tick, type: 'commodity', level: 1, priority: PRIORITIES.medium};
             log.e(JSON.stringify(commodityRoom));
             log.a(`Mining operation planned for ${roomLink(commodityRoom.name)} (Commodity Deposit Location)`, 'HIGH COMMAND: ');
@@ -226,17 +226,9 @@ function auxiliaryOperations() {
 
         // Mineral Mining (rooms with more than 3 sources and minerals)
         let mineralRoom = _.find(initialFilter, (r) => !r.sk && r.sources >= 3 && r.mineralAmount && !MY_MINERALS.includes(r.mineral) && myRoomInSectorCheck(r.name));
-        if (mineralRoom) {
+        if (mineralRoom && mineralRoom.name) {
             cache[mineralRoom.name] = {tick, type: 'mineral', level: 1, priority: PRIORITIES.medium};
             log.a(`Mining operation planned for ${roomLink(mineralRoom.name)} (Mineral Deposit Location)`, 'HIGH COMMAND: ');
-        }
-
-        // Robbery (lootable rooms)
-        let robberyTarget = _.find(initialFilter, (r) => r.loot);
-        let activeRobbery = _.find(Memory.auxiliaryTargets, (target) => target.type === 'robbery');
-        if (robberyTarget && !activeRobbery) {
-            cache[robberyTarget.name] = {tick, type: 'robbery', level: 1, priority: PRIORITIES.high};
-            log.a(`Robbery operation planned for ${roomLink(robberyTarget.name)} (Lootable Room)`, 'HIGH COMMAND: ');
         }
 
         // Update auxiliary targets with the new planned operations
@@ -542,22 +534,6 @@ function manageAuxiliary() {
             case 'mineral':
                 if (!INTEL[key].mineralAmount) {
                     log.a('Canceling mineral mining operation in ' + roomLink(key) + ' as the resource is depleted.', 'HIGH COMMAND: ');
-                    delete Memory.auxiliaryTargets[key];
-                    delete INTEL[key];
-                    continue;
-                }
-                break;
-
-            case 'robbery':
-                if (!INTEL[key].loot) {
-                    log.a('Canceling robbery operation in ' + roomLink(key) + ' as the resource is depleted.', 'HIGH COMMAND: ');
-                    delete Memory.auxiliaryTargets[key];
-                    delete INTEL[key];
-                    continue;
-                }
-                // Check if too many active robberies
-                if (_.filter(Memory.auxiliaryTargets, target => target && target.type === 'robbery').length > 1) {
-                    log.a('Canceling robbery operation in ' + roomLink(key) + ' as we have too many active heists.', 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
                     delete INTEL[key];
                     continue;

@@ -513,8 +513,8 @@ module.exports.globalCreepQueue = function () {
         }
 
         // Handle harass targets
-        if (Memory.harassTargets && Memory.harassTargets.length) {
-            const targetAmount = Math.min(Memory.harassTargets.length * 2, MY_ROOMS.length);
+        if (HARASSMENT_OPERATIONS && Memory.harassTargets && Memory.harassTargets.length) {
+            const targetAmount = Math.min(Memory.harassTargets.length, MY_ROOMS.length);
             if (getCreepCount(undefined, 'longbow', undefined, 'harass') < targetAmount) {
                 const harassTarget = _.sample(_.filter(INTEL, function (r) {
                     return (!r.owner || r.level < 3) && Memory.harassTargets.includes(r.user);
@@ -576,16 +576,6 @@ module.exports.globalCreepQueue = function () {
                 const commoditySpace = operation.space || 1;
                 if (getCreepCount(undefined, 'commodityMiner', key) < commoditySpace) {
                     queueCreep(undefined, priority, {role: 'commodityMiner', destination: key}, true);
-                }
-                break;
-
-            case 'robbery':
-                if (!getCreepCount(undefined, 'remoteHauler', key)) {
-                    queueCreep(undefined, priority, {
-                        role: 'remoteHauler',
-                        destination: key,
-                        operation: 'robbery'
-                    }, true);
                 }
                 break;
 
