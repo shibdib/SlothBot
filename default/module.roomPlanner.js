@@ -413,6 +413,7 @@ function sourceBuilder(room) {
         for (let key in zoneTerrain) {
             let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, source.room.name);
             if (position.checkForWall() || position.checkForAllStructure() || position.getRangeTo(source.room.controller) < 3) continue;
+            position.createConstructionSite(STRUCTURE_LINK);
             break;
         }
     }
