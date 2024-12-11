@@ -90,67 +90,67 @@ module.exports.processBuildQueue = function (room) {
             renewNearbyCreepIfNeeded(room, availableSpawn);
         }
     }
-};
 
 // Helper function to check if the required boosts are available in the room
-function hasRequiredBoosts(room, boostCheck) {
-    for (let boost of BOOST_USE[boostCheck]) {
-        if (room.store(boost) < 500) {
-            return false;
+    function hasRequiredBoosts(room, boostCheck) {
+        for (let boost of BOOST_USE[boostCheck]) {
+            if (room.store(boost) < 500) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Helper function to generate a unique creep name
+    function generateCreepName(role, level, operation) {
+        let name = role.slice(0, 3) + '' + level + '' + getRandomInt(100, 999);
+        if (operation) {
+            name = operation.slice(0, 3) + '' + level + '' + getRandomInt(100, 999);
+        }
+        return name;
+    }
+
+    // Helper function to handle successful spawn
+    function handleSuccessfulSpawn(room, role, queuedBuild, availableSpawn) {
+        lastGlobalSpawn = Game.time;
+        lastBuilt[availableSpawn.room.name] = Game.time;
+
+        if (!queuedBuild.operation) log.d(`${availableSpawn.room.name} Spawning a ${role}`);
+
+        // Remove the spawned role from the queue
+        updateRoomAndGlobalQueue(room, role, queuedBuild.destination);
+    }
+
+    // Helper function to update room and global queues after spawning a creep
+    function updateRoomAndGlobalQueue(room, role, destination) {
+        let roomQueue = room.memory.creepQueue ? JSON.parse(room.memory.creepQueue) : {};
+        let globalQueue = Memory.globalCreepQueue ? JSON.parse(Memory.globalCreepQueue) : {};
+
+        if (globalQueue[role] && destination) {
+            delete globalQueue[role];
+            Memory.globalCreepQueue = JSON.stringify(globalQueue);
+        }
+
+        if (roomQueue[role]) {
+            delete roomQueue[role];
+            room.memory.creepQueue = JSON.stringify(roomQueue);
         }
     }
-    return true;
-}
 
-// Helper function to generate a unique creep name
-function generateCreepName(role, level, operation) {
-    let name = role.slice(0, 3) + '' + level + '' + getRandomInt(100, 999);
-    if (operation) {
-        name = operation.slice(0, 3) + '' + level + '' + getRandomInt(100, 999);
+    // Helper function to renew a nearby creep if necessary
+    function renewNearbyCreepIfNeeded(room, availableSpawn) {
+        const nearbyCreeps = _.filter(room.myCreeps, (c) =>
+            !_.find(c.body, (b) => b.boost) &&
+            c.pos.isNearTo(availableSpawn) &&
+            c.ticksToLive < CREEP_LIFE_TIME
+        );
+
+        if (nearbyCreeps.length) {
+            const creepToRenew = _.min(nearbyCreeps, c => c.ticksToLive);
+            availableSpawn.renewCreep(creepToRenew);
+        }
     }
-    return name;
-}
-
-// Helper function to handle successful spawn
-function handleSuccessfulSpawn(room, role, queuedBuild, availableSpawn) {
-    lastGlobalSpawn = Game.time;
-    lastBuilt[availableSpawn.room.name] = Game.time;
-
-    if (!queuedBuild.operation) log.d(`${availableSpawn.room.name} Spawning a ${role}`);
-
-    // Remove the spawned role from the queue
-    updateRoomAndGlobalQueue(room, role, queuedBuild.destination);
-}
-
-// Helper function to update room and global queues after spawning a creep
-function updateRoomAndGlobalQueue(room, role, destination) {
-    let roomQueue = room.memory.creepQueue ? JSON.parse(room.memory.creepQueue) : {};
-    let globalQueue = Memory.globalCreepQueue ? JSON.parse(Memory.globalCreepQueue) : {};
-
-    if (globalQueue[role] && destination) {
-        delete globalQueue[role];
-        Memory.globalCreepQueue = JSON.stringify(globalQueue);
-    }
-
-    if (roomQueue[role]) {
-        delete roomQueue[role];
-        room.memory.creepQueue = JSON.stringify(roomQueue);
-    }
-}
-
-// Helper function to renew a nearby creep if necessary
-function renewNearbyCreepIfNeeded(room, availableSpawn) {
-    const nearbyCreeps = _.filter(room.myCreeps, (c) =>
-        !_.find(c.body, (b) => b.boost) &&
-        c.pos.isNearTo(availableSpawn) &&
-        c.ticksToLive < CREEP_LIFE_TIME
-    );
-
-    if (nearbyCreeps.length) {
-        const creepToRenew = _.min(nearbyCreeps, c => c.ticksToLive);
-        availableSpawn.renewCreep(creepToRenew);
-    }
-}
+};
 
 let essentialTick = {};
 
@@ -163,7 +163,6 @@ module.exports.essentialCreepQueue = function (room) {
     let harvesterCount = getCreepCount(room, 'stationaryHarvester');
     let haulerCount = getCreepCount(room, 'hauler');
     let shuttleCount = getCreepCount(room, 'shuttle');
-    let upgraderCount = getCreepCount(room, 'upgrader');
     let storageOrTerminal = room.storage || room.terminal || room.memory.hubLink;
 
     // Helper function to queue a creep with the right priority and reboot status
@@ -214,7 +213,7 @@ module.exports.essentialCreepQueue = function (room) {
     let upgraderReboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9;
     let upgraderAmount = 1;
 
-    if (room.level < 7 && room.level === room.controller.level && !upgraderReboot) {
+    if (!room.storage && !upgraderReboot) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         if (container && room.energyState && container.store[RESOURCE_ENERGY] > CONTAINER_CAPACITY * 0.7) {
             upgraderAmount = Math.min(
