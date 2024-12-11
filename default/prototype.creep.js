@@ -438,144 +438,83 @@ Creep.prototype.locateEnergy = function (room = this.room) {
 Creep.prototype.haulerDelivery = function () {
     // If you have a destination, deliver
     if (this.memory.storageDestination) {
-        let storageItem = Game.getObjectById(this.memory.storageDestination);
+        const storageItem = Game.getObjectById(this.memory.storageDestination);
         if (!storageItem || !storageItem.store.getFreeCapacity(RESOURCE_ENERGY)) {
             delete this.memory.storageDestination;
             delete this.memory._shibMove;
             return false;
         }
 
-        if (this.store.getUsedCapacity(RESOURCE_ENERGY) && !storageItem.store.getFreeCapacity(RESOURCE_ENERGY)) {
-            delete this.memory.storageDestination;
-            delete this.memory._shibMove;
-        } else {
-            // Deliver resources
-            for (const resourceType in this.store) {
-                const result = this.transfer(storageItem, resourceType);
-                switch (result) {
-                    case OK:
-                        delete this.memory.storageDestination;
-                        delete this.memory._shibMove;
-                        return true;
-                    case ERR_NOT_IN_RANGE:
-                        this.shibMove(storageItem);
-                        return true;
-                    default:
-                        delete this.memory.storageDestination;
-                        delete this.memory._shibMove;
-                        break;
-                }
+        for (const resourceType in this.store) {
+            const result = this.transfer(storageItem, resourceType);
+            if (result === OK || result === ERR_NOT_IN_RANGE) {
+                if (result === ERR_NOT_IN_RANGE) this.shibMove(storageItem);
+                return true;
             }
         }
+
+        delete this.memory.storageDestination;
+        delete this.memory._shibMove;
         return false;
     }
 
-    // If carrying minerals, deposit in terminal or storage
-    if (_.sum(this.store) > this.store[RESOURCE_ENERGY]) {
-        this.memory.storageDestination = this.room.terminal ? this.room.terminal.id : (this.room.storage ? this.room.storage.id : null);
-        return true;
-    }
-
-    // Handle Tower delivery
-    if (this.room.level >= 3) {
-        let towerFilter = INTEL[this.room.name].threatLevel ?
-            (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY :
-            (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.5;
-
-        let tower = _.filter(this.room.impassibleStructures, towerFilter);
-        if (tower.length) {
-            this.memory.storageDestination = _.min(tower, t => t.store[RESOURCE_ENERGY]).id;
+    // Deposit minerals if present
+    if (Object.keys(this.store).some(resource => resource !== RESOURCE_ENERGY)) {
+        const storageTarget = this.room.terminal || this.room.storage;
+        if (storageTarget) {
+            this.memory.storageDestination = storageTarget.id;
             return true;
         }
     }
 
-    // Handle Spawns/Extensions delivery
-    let energyStructures = this.memory.energyStructures && this.memory.roomEnergyCap === this.room.energyCapacityAvailable ?
-        JSON.parse(this.memory.energyStructures).map(id => Game.getObjectById(id)) :
-        _.filter(this.room.impassibleStructures, (s) =>
-            [STRUCTURE_SPAWN, STRUCTURE_EXTENSION].includes(s.structureType) &&
-            (!ROOM_HARVESTER_EXTENSIONS[s.room.name] || !ROOM_HARVESTER_EXTENSIONS[s.room.name].includes(s.id))
-        );
+    // Handle tower delivery
+    if (this.room.controller.level >= 3) {
+        const towers = this.room.find(FIND_MY_STRUCTURES, {
+            filter: s => s.structureType === STRUCTURE_TOWER &&
+                s.store[RESOURCE_ENERGY] < (this.room.memory.threatLevel ? TOWER_CAPACITY : TOWER_CAPACITY * 0.5)
+        });
 
-    if (!this.memory.energyStructures || this.memory.roomEnergyCap !== this.room.energyCapacityAvailable) {
-        this.memory.energyStructures = JSON.stringify(_.map(energyStructures, 'id'));
-        this.memory.roomEnergyCap = this.room.energyCapacityAvailable;
-    }
-
-    let needyStructure = _.max(
-        _.filter(energyStructures, (s) => s.store.getFreeCapacity(RESOURCE_ENERGY) && !_.find(this.room.myCreeps, (c) => c.memory.storageDestination === s.id && c.memory.role === this.memory.role)),
-        s => this.pos.getRangeTo(s)
-    );
-
-    if (needyStructure) {
-        this.memory.storageDestination = needyStructure.id;
-        return true;
-    }
-
-    // Handle terminal or other structures based on controller level
-    if (this.room.controller && this.room.controller.level >= 6) {
-        if (this.room.terminal && this.room.terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER) {
-            this.memory.storageDestination = this.room.terminal.id;
-            return true;
-        }
-
-        let lab = _.find(this.room.impassibleStructures, s => s.structureType === STRUCTURE_LAB && s.store[RESOURCE_ENERGY] < LAB_ENERGY_CAPACITY);
-        if (lab) {
-            this.memory.storageDestination = lab.id;
-            return true;
-        }
-
-        if (this.room.controller.level >= 8) {
-            let nuke = _.find(this.room.impassibleStructures, s => s.structureType === STRUCTURE_NUKER && s.store[RESOURCE_ENERGY] < NUKER_ENERGY_CAPACITY);
-            if (nuke && this.room.energyState) {
-                this.memory.storageDestination = nuke.id;
-                return true;
-            }
-
-            let power = _.find(this.room.impassibleStructures, s => s.structureType === STRUCTURE_POWER_SPAWN && s.store.getFreeCapacity(RESOURCE_ENERGY));
-            if (power) {
-                this.memory.storageDestination = power.id;
-                return true;
-            }
-        }
-    }
-
-    // Handle terminal or storage if below buffer
-    if (this.room.terminal && this.room.terminal.store.getFreeCapacity() && this.room.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 2) {
-        this.memory.storageDestination = this.room.terminal.id;
-        if (this.memory.role === 'hauler') this.memory.cooldown = true;
-        return true;
-    }
-
-    // Handle container if no controller link, otherwise check hub link
-    if (!this.room.memory.controllerLink || !this.room.memory.hubLink) {
-        let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-        if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > CONTAINER_CAPACITY * 0.5) {
-            this.memory.storageDestination = controllerContainer.id;
-            return true;
-        }
-    } else if (this.room.memory.hubLink) {
-        let hubLink = Game.getObjectById(this.memory.hubLink);
-        if (hubLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY)) {
-            this.memory.storageDestination = hubLink.id;
+        if (towers.length) {
+            this.memory.storageDestination = towers.reduce((a, b) => a.store[RESOURCE_ENERGY] < b.store[RESOURCE_ENERGY] ? a : b).id;
             return true;
         }
     }
 
-    // Handle storage below buffer
-    if (this.room.storage && this.room.storage.store.getFreeCapacity() && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < STORAGE_ENERGY_BUFFER) {
-        this.memory.storageDestination = this.room.storage.id;
-        if (this.memory.role === 'hauler') this.memory.cooldown = true;
+    // Handle spawn/extension delivery
+    const energyStructures = this.room.find(FIND_MY_STRUCTURES, {
+        filter: s => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) &&
+            s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
+    });
+
+    if (energyStructures.length) {
+        this.memory.storageDestination = energyStructures.reduce((a, b) => this.pos.getRangeTo(a) < this.pos.getRangeTo(b) ? a : b).id;
         return true;
     }
 
-    // Final fallback to storage if capacity exists
-    if (this.room.storage && this.room.storage.store.getFreeCapacity()) {
-        this.memory.storageDestination = this.room.storage.id;
-        if (this.memory.role === 'hauler') this.memory.cooldown = true;
+    // Handle higher-level structures (labs, nukers, power spawns)
+    if (this.room.controller.level >= 6) {
+        const specialStructures = this.room.find(FIND_MY_STRUCTURES, {
+            filter: s => (
+                (s.structureType === STRUCTURE_LAB && s.store[RESOURCE_ENERGY] < LAB_ENERGY_CAPACITY) ||
+                (s.structureType === STRUCTURE_NUKER && s.store[RESOURCE_ENERGY] < NUKER_ENERGY_CAPACITY && this.room.energyState) ||
+                (s.structureType === STRUCTURE_POWER_SPAWN && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0)
+            )
+        });
+
+        if (specialStructures.length) {
+            this.memory.storageDestination = specialStructures[0].id;
+            return true;
+        }
+    }
+
+    // Handle storage fallback if below buffer
+    const storageTarget = this.room.storage || this.room.terminal;
+    if (storageTarget && storageTarget.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+        this.memory.storageDestination = storageTarget.id;
         return true;
     }
 
+    // No delivery action performed
     return false;
 };
 
