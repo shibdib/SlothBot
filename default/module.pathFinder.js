@@ -614,9 +614,8 @@ function getStructureMatrix(roomName, creep, matrix, options) {
                 matrix.set(structure.pos.x, structure.pos.y, 256);
             } else if (structure instanceof StructureController) {
                 matrix.set(structure.pos.x, structure.pos.y, 256);
-            } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic) && !obstacle) {
-                if (room.hostileCreeps.length) matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
-                else matrix.set(structure.pos.x, structure.pos.y, 2);
+            } else if (room.hostileCreeps.length && structure instanceof StructureRampart && (structure.my || structure.isPublic) && !obstacle) {
+                matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
             } else if (structure instanceof StructureRampart && (FRIENDLIES.includes(structure.owner.username) && !obstacle)) {
                 matrix.set(structure.pos.x, structure.pos.y, 250);
             } else if (structure instanceof StructureRampart && (!structure.my || !structure.isPublic || obstacle)) {
