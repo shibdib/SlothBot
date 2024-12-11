@@ -91,7 +91,7 @@ function buildFromLayout(room, countCheck) {
             // Build each structure in the designated positions
             for (let buildPos of structure.pos) {
                 let pos = new RoomPosition(room.hub.x + buildPos.x, room.hub.y + buildPos.y, room.name);
-                if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
+                if (!pos.checkForConstructionSites() && !pos.checkForAllStructure()) {
                     pos.createConstructionSite(structure.structureType);
                 }
             }
@@ -260,7 +260,7 @@ function controllerBuilder(room) {
             for (let key in zoneTerrain) {
                 if (_.find(controllerContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK)) break;
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
-                if (position.checkForAllStructure().length || position.checkForImpassible() || position.isNearTo(room.controller)) continue;
+                if (position.checkForAllStructure() || position.checkForImpassible() || position.isNearTo(room.controller)) continue;
                 position.createConstructionSite(STRUCTURE_LINK);
                 break;
             }
@@ -335,11 +335,11 @@ function mineralBuilder(room) {
 
         // Handle thorium extractor on shardSeason
         if (Game.shard.name === 'shardSeason' && mineral.resourceType === RESOURCE_THORIUM) {
-            if (!mineral.pos.checkForAllStructure().length && !mineral.pos.checkForConstructionSites()) {
+            if (!mineral.pos.checkForAllStructure() && !mineral.pos.checkForConstructionSites()) {
                 mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
             }
         } else {
-            if (!mineral.pos.checkForAllStructure().length && !mineral.pos.checkForConstructionSites()) {
+            if (!mineral.pos.checkForAllStructure() && !mineral.pos.checkForConstructionSites()) {
                 mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
             }
         }
@@ -412,8 +412,7 @@ function sourceBuilder(room) {
         let zoneTerrain = source.room.lookForAtArea(LOOK_TERRAIN, sourceContainer.pos.y - 1, sourceContainer.pos.x - 1, sourceContainer.pos.y + 1, sourceContainer.pos.x + 1, true);
         for (let key in zoneTerrain) {
             let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, source.room.name);
-            if (position.checkForAllStructure().length || position.getRangeTo(source.room.controller) < 3) continue;
-            position.createConstructionSite(STRUCTURE_LINK);
+            if (position.checkForWall() || position.checkForAllStructure() || position.getRangeTo(source.room.controller) < 3) continue;
             break;
         }
     }
@@ -442,7 +441,7 @@ function labBuilder(room) {
         // Check if there is a wall in the way and destroy it if needed
         if (pos.checkForBuiltWall()) {
             pos.checkForBuiltWall().destroy();
-        } else if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
+        } else if (!pos.checkForConstructionSites() && !pos.checkForAllStructure()) {
             // Only create a construction site if the position is free and no construction site exists
             pos.createConstructionSite(STRUCTURE_LAB);
         }
@@ -975,7 +974,7 @@ function praiseRoom(room) {
     // Terminal and Mineral
     if (room.controller.level >= 6) {
         // Build extractor
-        if (!room.mineral.pos.checkForAllStructure().length && !room.mineral.pos.checkForConstructionSites()) room.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+        if (!room.mineral.pos.checkForAllStructure() && !room.mineral.pos.checkForConstructionSites()) room.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
         // Build terminal
         if (!room.terminal) {
             for (let xOff = -1; xOff <= 1; xOff++) {
