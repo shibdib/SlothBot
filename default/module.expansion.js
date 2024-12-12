@@ -18,6 +18,7 @@ module.exports.claimNewRoom = function () {
             Memory.nextClaim = undefined;
             claimTarget = undefined;
         } else {
+            claimOperation(claimTarget);
             return;
         }
     }
@@ -116,24 +117,29 @@ module.exports.claimNewRoom = function () {
     }
 
     if (claimTarget) {
-        const limit = roomStatus(MY_ROOMS[0]) === 'novice' ? 3 : Game.gcl.level;
-
-        if (limit > MY_ROOMS.length && MAX_LEVEL >= 4 && !Memory.auxiliaryTargets[claimTarget] && INTEL[claimTarget] && !INTEL[claimTarget].hostile) {
-            Memory.nextClaim = undefined;
-            Memory.auxiliaryTargets = {
-                ...Memory.auxiliaryTargets,
-                [claimTarget]: {
-                    tick: Game.time,
-                    type: 'claim',
-                    priority: 1
-                }
-            };
-            log.a(`Claim Mission for ${roomLink(claimTarget)} initiated.`, 'EXPANSION CONTROL:');
-        } else if (Memory.nextClaim !== claimTarget) {
-            log.a(`Next claim target set to ${roomLink(claimTarget)} once available.`, 'EXPANSION CONTROL:');
-            Memory.nextClaim = claimTarget;
-        }
+        claimOperation(claimTarget);
     } else {
         log.a(`No claim targets found out of ${worthyRooms.length} possible rooms.`, 'EXPANSION CONTROL:');
     }
 };
+
+
+function claimOperation(roomName) {
+    const limit = roomStatus(MY_ROOMS[0]) === 'novice' ? 3 : Game.gcl.level;
+
+    if (limit > MY_ROOMS.length && MAX_LEVEL >= 4 && !Memory.auxiliaryTargets[roomName] && INTEL[roomName] && !INTEL[roomName].hostile) {
+        Memory.nextClaim = undefined;
+        Memory.auxiliaryTargets = {
+            ...Memory.auxiliaryTargets,
+            [roomName]: {
+                tick: Game.time,
+                type: 'claim',
+                priority: 1
+            }
+        };
+        log.a(`Claim Mission for ${roomLink(roomName)} initiated.`, 'EXPANSION CONTROL:');
+    } else if (Memory.nextClaim !== roomName) {
+        log.a(`Next claim target set to ${roomLink(roomName)} once available.`, 'EXPANSION CONTROL:');
+        Memory.nextClaim = roomName;
+    }
+}
