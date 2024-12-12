@@ -28,6 +28,8 @@ class RoleLabTech {
         if (this.creep.memory.resourceNeeded) return this.getResource();
         // Deliver Boosts
         if (this.boostDelivery()) return;
+        // Empty labs with wrong materials
+        if (this.cleanLab()) return;
         // Handle dropped goodies
         if (this.droppedResources()) return;
         // Empty factories
@@ -382,9 +384,6 @@ class RoleLabTech {
     }
 
     mineralHauler() {
-        const terminal = this.room.terminal;
-        const storage = this.room.storage;
-
         // Check if terminal and storage are near full capacity
         if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
             (this.room.storage && (_.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()))) {
@@ -472,10 +471,33 @@ class RoleLabTech {
         return false;
     }
 
-    emptyLab() {
-        const terminal = this.room.terminal;
-        const storage = this.room.storage;
+    cleanLab() {
+        // Check if both terminal and storage are near full capacity
+        if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
+            (this.room.storage && (_.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()))) {
+            return false;
+        }
 
+        // Find a lab with a mineral that doesn't match its required or boost type
+        const stockedLab = _.find(this.room.impassibleStructures, (s) =>
+            s.structureType === STRUCTURE_LAB &&
+            s.mineralType &&
+            s.mineralType !== s.memory.itemNeeded &&
+            s.mineralType !== s.memory.neededBoost &&
+            s.mineralType !== s.room.memory.producingBoost
+        );
+
+        if (stockedLab) {
+            // Assign the mineral type and lab ID to the creep's memory
+            this.creep.memory.resourceNeeded = stockedLab.mineralType;
+            this.creep.memory.withdrawFrom = stockedLab.id;
+            return true;
+        }
+
+        return false;
+    }
+
+    emptyLab() {
         // Check if both terminal and storage are near full capacity
         if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
             (this.room.storage && (_.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()))) {

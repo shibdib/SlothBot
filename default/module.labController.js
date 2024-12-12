@@ -45,9 +45,9 @@ function manageActiveLabs(room) {
                         for (let lab of hub) {
                             lab.memory = undefined;
                         }
-                        return;
+                        break;
                     }
-                    return;
+                    break;
                 case ERR_NOT_ENOUGH_RESOURCES:
                     for (let hubLab of hub) {
                         if (room.store(hubLab.memory.itemNeeded) < 50) {
@@ -57,10 +57,10 @@ function manageActiveLabs(room) {
                             for (let lab of hub) {
                                 lab.memory = undefined;
                             }
-                            return;
+                            break;
                         }
                     }
-                    return;
+                    break;
             }
         }
     }
