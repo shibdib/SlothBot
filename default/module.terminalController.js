@@ -98,7 +98,7 @@ module.exports.terminalControl = function (room) {
     }
 
     // Place buy orders if not in the sale terminal room
-    if (placeBuyOrders(room, globalOrders, myOrders)) return;
+    if (placeBuyOrders(room.terminal, globalOrders, myOrders)) return;
 
     // Handle emergency energy transfers
     if (emergencyEnergy(room.terminal)) return;
@@ -524,7 +524,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
 
                 if (sellOrder && buyAmount >= 50) {
                     buyAmount = Math.min(buyAmount, sellOrder.amount, 2500);
-                    if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
+                    if (Game.market.deal(sellOrder.id, buyAmount, terminal.room.name) === OK) {
                         log.w(`Bought ${buyAmount} ${mineral} for ${sellOrder.price * buyAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
                         spendingMoney -= (sellOrder.price * buyAmount);
                         log.w(`Remaining spending account amount - ${spendingMoney}`, "Market: ");
