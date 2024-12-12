@@ -446,7 +446,12 @@ Creep.prototype.haulerDelivery = function () {
             for (const resourceType in this.store) {
                 const result = this.transfer(storageItem, resourceType);
                 if (result === OK || result === ERR_NOT_IN_RANGE) {
-                    if (result === ERR_NOT_IN_RANGE) this.shibMove(storageItem);
+                    if (result === ERR_NOT_IN_RANGE) {
+                        this.shibMove(storageItem);
+                    } else {
+                        delete this.memory.storageDestination;
+                        delete this.memory._shibMove;
+                    }
                     return true;
                 } else {
                     delete this.memory.storageDestination;
