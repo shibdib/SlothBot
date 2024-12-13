@@ -384,170 +384,167 @@ function getRoomResource(room, resource, unused = false) {
 }
 
 Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
-    // Ensure global INTEL is initialized
     if (!global.INTEL) global.INTEL = {};
     const cache = global.INTEL;
-
-    const roomData = cache[this.name];
     const currentTime = Game.time;
 
-    // Early exit: use cached data if it's still valid
-    if (!force && roomData && roomData.cached + CREEP_LIFE_TIME > currentTime) return;
+    // Early exit if data is still valid
+    if (!force && cache[this.name] && cache[this.name].cached + CREEP_LIFE_TIME > currentTime) return;
 
-    const structures = this.structures || [];
-    const controller = this.controller;
-    const sources = this.sources;
-    const deposits = this.deposits || [];
-    const alliedCreeps = this.alliedCreeps || [];
-    const hostileCreeps = this.hostileCreeps || [];
-
-    // Initialize room intel object
-    const roomIntel = {
+    const roomIntel = cache[this.name] || {
         cached: currentTime,
         name: this.name,
         shardName: Game.shard.name,
-        sources: sources.length,
-        obstacles: isRoomBlocked(this.name),
-        invaderCore: _.some(structures, function (s) {
-            return s.structureType === STRUCTURE_INVADER_CORE;
-        }),
+        sources: 0,
+        obstacles: false,
+        invaderCore: false
     };
 
+    // Update cache timestamp
+    roomIntel.cached = currentTime;
+
+    // Basic room info
+    roomIntel.sources = this.find(FIND_SOURCES).length;
+    roomIntel.obstacles = canPathToAllNeighbors(this); // Assuming this method exists or is defined elsewhere
+    roomIntel.invaderCore = !!this.find(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_INVADER_CORE}}).length;
+
     // Minerals
-    if (this.mineral) {
-        roomIntel.mineral = this.mineral.mineralType;
-        roomIntel.mineralAmount = this.mineral.mineralAmount;
+    const mineral = this.find(FIND_MINERALS)[0];
+    if (mineral) {
+        roomIntel.mineral = mineral.mineralType;
+        roomIntel.mineralAmount = mineral.mineralAmount;
+    } else {
+        delete roomIntel.mineral;
+        delete roomIntel.mineralAmount;
     }
 
-    // Remote sources (only if existing data and not forced)
-    if (roomData && roomData.remoteRoom && !force) {
-        var highestLevelRoom = roomData.remoteRoom[0];
-        for (var i = 0; i < roomData.remoteRoom.length; i++) {
-            var roomName = roomData.remoteRoom[i];
-            var remoteRoom = Game.rooms[roomName];
-            if (remoteRoom && remoteRoom.controller && remoteRoom.controller.level > (Game.rooms[highestLevelRoom] && Game.rooms[highestLevelRoom].controller ? Game.rooms[highestLevelRoom].controller.level : 0)) {
-                highestLevelRoom = roomName;
-            }
-        }
-
-        if (highestLevelRoom) {
-            var remoteMemory = Game.rooms[highestLevelRoom] && Game.rooms[highestLevelRoom].memory.remoteSources || "{}";
-            var remoteData = JSON.parse(remoteMemory);
-
-            for (var j = 0; j < sources.length; j++) {
-                var source = sources[j];
-                if (!remoteData[source.id]) {
-                    var exitDir = Game.map.findExit(this.name, highestLevelRoom);
-                    var exit = source.pos.findClosestByPath(this.find(exitDir));
-                    if (exit) {
-                        var distance = source.pos.getRangeTo(exit);
-                        remoteData[source.id] = {room: this.name, score: distance + 30};
-                    }
-                }
-            }
-
-            if (Game.rooms[highestLevelRoom]) {
-                Game.rooms[highestLevelRoom].memory.remoteSources = JSON.stringify(remoteData);
-            }
-        }
-    }
-
-    // Controller-related data
+    // Controller data
+    const controller = this.controller;
     if (controller) {
         roomIntel.level = controller.level;
         roomIntel.owner = controller.owner ? controller.owner.username : undefined;
         roomIntel.reservation = controller.reservation ? controller.reservation.username : undefined;
         roomIntel.safemode = controller.safeMode ? currentTime + controller.safeMode : undefined;
 
-        // Hub check
-        if (!roomIntel.obstacles && (!roomData || !roomData.hubCheck) && hostileCreeps.length === 0 && sources.length === 2) {
+        // Hub check - only if necessary and no hostiles
+        if (!roomIntel.obstacles && (!cache[this.name] || !cache[this.name].hubCheck) && !this.find(FIND_HOSTILE_CREEPS).length && roomIntel.sources === 2) {
             roomIntel.hubCheck = roomPlanner.hubCheck(this);
         }
 
-        // Handle NCP signage
+        // NCP signage
         if (controller.sign && controller.sign.text) {
-            var signText = controller.sign.text.toLowerCase();
-            if (signText.indexOf("overmind") >= 0 || signText.indexOf("tooangel") >= 0 || signText.indexOf("quorum") >= 0 || signText.indexOf("ᴏᴠᴇʀᴍɪɴᴅ") >= 0 || signText.indexOf("jln") >= 0) {
+            const signText = controller.sign.text.toLowerCase();
+            if (["overmind", "tooangel", "quorum", "ᴏᴠᴇʀᴍɪɴᴅ", "jln"].some(word => signText.includes(word))) {
                 if (!Memory.ncpArray) Memory.ncpArray = [];
                 Memory.ncpArray = _.uniq(Memory.ncpArray.concat([controller.sign.username]));
             }
         }
 
         // Tower and terminal checks
-        roomIntel.towers = _.filter(structures, function (s) {
-            return s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && s.isActive();
+        roomIntel.towers = this.find(FIND_STRUCTURES, {
+            filter: s => s.structureType === STRUCTURE_TOWER &&
+                s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST &&
+                s.isActive()
         }).length;
-        roomIntel.nukeTarget = this.terminal ? this.terminal.pos.posToString() : undefined;
+        roomIntel.nukeTarget = this.terminal ? this.terminal.pos.toString() : undefined;
 
-        // Loot availability
-        roomIntel.loot = hostileCreeps.length === 0 && _.some(structures, function (s) {
-            return (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) &&
+        // Loot check
+        roomIntel.loot = !this.find(FIND_HOSTILE_CREEPS).length && this.find(FIND_STRUCTURES, {
+            filter: s => (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) &&
                 _.sum(s.store) > 0 &&
-                !s.pos.checkForRampart(true);
-        });
+                !s.pos.lookFor(LOOK_STRUCTURES).some(structure => structure.structureType === STRUCTURE_RAMPART)
+        }).length > 0;
+    } else {
+        // Clear controller-related data if no controller
+        delete roomIntel.level;
+        delete roomIntel.owner;
+        delete roomIntel.reservation;
+        delete roomIntel.safemode;
+        delete roomIntel.hubCheck;
+        delete roomIntel.towers;
+        delete roomIntel.nukeTarget;
+        delete roomIntel.loot;
     }
 
     // Special room type checks
-    if (_.some(structures, function (s) {
-        return s.structureType === STRUCTURE_KEEPER_LAIR;
-    })) {
-        roomIntel.sk = true;
-    } else if (sources.length === 0 && _.some(deposits, function (d) {
-        return d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20);
-    })) {
-        var commodityDeposit = _.find(deposits, function (d) {
-            return d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20);
-        });
-        if (commodityDeposit) {
-            roomIntel.commodity = commodityDeposit.depositType;
-        }
+    const structures = this.find(FIND_STRUCTURES);
+    roomIntel.sk = structures.some(s => s.structureType === STRUCTURE_KEEPER_LAIR);
+    const deposits = this.find(FIND_DEPOSITS);
+    if (roomIntel.sources === 0 && deposits.some(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20))) {
         roomIntel.isHighway = true;
+        const commodityDeposit = deposits.find(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20));
+        roomIntel.commodity = commodityDeposit ? commodityDeposit.depositType : undefined;
+    } else {
+        delete roomIntel.isHighway;
+        delete roomIntel.commodity;
     }
 
-    // Cache the updated data
+    // Update cache
     cache[this.name] = roomIntel;
 };
 
-function isRoomBlocked(roomName) {
-    const exits = Game.map.describeExits(roomName);
-    if (!exits) return undefined; // No exits in the room
+/**
+ * Checks if paths can be found from the room controller to all neighboring rooms.
+ * @param {Room} room - The room to check from.
+ * @return {boolean|undefined} - Returns true if paths to all neighbors exist, undefined otherwise.
+ */
+function canPathToAllNeighbors(room) {
+    const controller = room.controller;
+    if (!controller) {
+        return undefined;
+    }
+    if (controller.owner && controller.owner.username === MY_USERNAME) {
+        // If you want to handle owned rooms differently
+        return true; // or another value if you want to skip owned rooms
+    }
 
-    const exitKeys = Object.keys(exits);
-    for (let i = 0; i < exitKeys.length; i++) {
-        for (let j = i + 1; j < exitKeys.length; j++) {
-            const start = new RoomPosition(25, 25, roomName);
-            const path = PathFinder.search(
-                start,
-                {pos: new RoomPosition(25, 25, exits[exitKeys[j]]), range: 1},
-                {
-                    roomCallback: function (roomName) {
-                        const room = Game.rooms[roomName];
-                        if (!room) return;
+    const neighbors = Game.map.describeExits(room.name);
+    const neighborPositions = Object.keys(neighbors).map(exit => neighbors[exit]);
 
-                        const costs = new PathFinder.CostMatrix();
+    for (let neighbor of neighborPositions) {
+        // Find the closest exit to the neighbor's center rather than assuming (25, 25)
+        const exitDir = Game.map.findExit(room.name, neighbor);
+        const exitPos = controller.pos.findClosestByPath(exitDir);
 
-                        // Mark impassable structures
-                        room.impassibleStructures.forEach((structure) => {
+        if (!exitPos) {
+            return undefined;
+        }
+
+        const path = PathFinder.search(
+            controller.pos,
+            {pos: exitPos, range: 1}, // Aim for the exit position itself
+            {
+                maxRooms: 2,
+                plainCost: 2,
+                swampCost: 10,
+                roomCallback: function (roomName) {
+                    let room = Game.rooms[roomName];
+                    if (!room) return false;
+                    let costs = new PathFinder.CostMatrix;
+
+                    room.find(FIND_STRUCTURES).forEach(function (structure) {
+                        if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
                             costs.set(structure.pos.x, structure.pos.y, 255);
-                        });
+                        }
+                    });
 
-                        // Add hostile creeps to impassable list
-                        room.find(FIND_HOSTILE_CREEPS).forEach((creep) => {
-                            costs.set(creep.pos.x, creep.pos.y, 255);
-                        });
+                    room.getTerrain().getRawBuffer().forEach((tile, i) => {
+                        if (tile === TERRAIN_MASK_WALL) {
+                            costs.set(i % 50, Math.floor(i / 50), 255);
+                        }
+                    });
 
-                        return costs;
-                    }
+                    return costs;
                 }
-            );
-
-            // If a path is found, the room isn't blocked
-            if (!path.incomplete) {
-                return undefined;
             }
+        );
+
+        if (path.incomplete) {
+            return undefined;
         }
     }
-    return true; // All paths are blocked
+
+    return true;
 }
 
 
