@@ -4,7 +4,6 @@
 
 const overlord = require('main.overlord');
 const highCommand = require('military.highCommand');
-const labs = require('module.labController');
 const segments = require('module.segmentManager');
 const power = require('module.powerManager');
 const spawning = require('module.creepSpawning');
@@ -47,12 +46,6 @@ class Hive {
             tickTracker['highCommand'] = Game.time;
         }
 
-        // Lab Manager (Every 5 Ticks)
-        if ((tickTracker['labManager'] || 0) + 5 < Game.time) {
-            this.labManager();
-            tickTracker['labManager'] = Game.time;
-        }
-
         // Expansion Manager (Every 1000 Ticks)
         if ((tickTracker['expansionManager'] || 0) + 1000 < Game.time) {
             this.expansionManager();
@@ -81,10 +74,6 @@ class Hive {
 
     highCommand() {
         highCommand.highCommand();
-    }
-
-    labManager() {
-        labs.labManager();
     }
 
     expansionManager() {
