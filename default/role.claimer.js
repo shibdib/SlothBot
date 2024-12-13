@@ -39,7 +39,7 @@ class RoleClaimer {
 
     claimRoom() {
         if (this.creep.room.controller.owner) {
-            cleanRoom(this.room);
+            this.cleanRoom(this.room);
             return this.creep.suicide();
         } else if (!this.creep.pos.findClosestByPath(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER))) {
             INTEL[this.room.name].obstructions = true;
