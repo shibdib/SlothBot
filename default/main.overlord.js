@@ -2,11 +2,12 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-const observers = require('module.observerController');
-const factory = require('module.factoryController');
+const ObserverControl = require('module.observerController');
+const LabControl = require('module.labController');
+const FactoryControl = require('module.factoryController');
 const defense = require('military.defense');
-const links = require('module.linkController');
-const terminals = require('module.terminalController');
+const LinkControl = require('module.linkController');
+const TerminalControl = require('module.terminalController');
 const spawning = require('module.creepSpawning');
 const state = require('module.roomState');
 const planner = require('module.roomPlanner');
@@ -30,6 +31,9 @@ class Overlord {
 
         // Defense Controller
         this.defenseController();
+
+        // Lab Controller
+        this.labController();
 
         // Handle links if room level >= 5
         if (this.room.level >= 5) this.linkController();
@@ -91,11 +95,15 @@ class Overlord {
     }
 
     linkController() {
-        links.linkControl(this.room);
+        new LinkControl().run(this.room);
+    }
+
+    labController() {
+        new LabControl().run(this.room);
     }
 
     terminalController() {
-        terminals.terminalControl(this.room);
+        new TerminalControl().run(this.room);
     }
 
     constructionController() {
@@ -103,11 +111,11 @@ class Overlord {
     }
 
     observerController() {
-        observers.observerControl(this.room);
+        new ObserverControl().run(this.room);
     }
 
     factoryController() {
-        factory.factoryControl(this.room);
+        new FactoryControl().run(this.room);
     }
 
     defenseController() {
