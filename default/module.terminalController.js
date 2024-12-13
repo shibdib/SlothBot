@@ -5,19 +5,17 @@
 /**
  * Created by rober on 6/21/2017.
  */
+let lastPriceAdjust = 0;
+let diplomacyTracker = 0;
+let priceUpdateTracker = {};
+let marketHistoryCache = {};
+let usedTerminals = {};
 
 class TerminalControl {
     constructor() {
         this.tradeAmount = MINERAL_TRADE_AMOUNT;
         this.reactionAmount = REACTION_AMOUNT;
-        this.runOnce = false;
-        this.lastPriceAdjust = 0;
         this.spendingMoney = Memory._banker ? Memory._banker.spendingAccount : 0;
-        this.lastEnergyPurchase = 0;
-        this.priceUpdateTracker = {};
-        this.diplomacyTracker = 0;
-        this.usedTerminals = {};
-        this.marketHistoryCache = {};
     }
 
     run(room) {
@@ -94,9 +92,9 @@ class TerminalControl {
             this.sellPixels(terminal, globalOrders);
         }
 
-        if (this.lastPriceAdjust + 100 < Game.time) {
+        if (lastPriceAdjust + 100 < Game.time) {
             this.pricingUpdate(globalOrders, myOrders);
-            this.lastPriceAdjust = Game.time;
+            lastPriceAdjust = Game.time;
         }
 
         this.orderCleanup(myOrders);
@@ -124,9 +122,9 @@ class TerminalControl {
             let order = myOrders[key];
 
             // Initialize the tracker for this order if it doesn't exist
-            if (!this.priceUpdateTracker[order.id]) {
-                this.priceUpdateTracker[order.id] = {lastChange: 0};
-            } else if (this.priceUpdateTracker[order.id].lastChange + 2000 > Game.time) {
+            if (!priceUpdateTracker[order.id]) {
+                priceUpdateTracker[order.id] = {lastChange: 0};
+            } else if (priceUpdateTracker[order.id].lastChange + 2000 > Game.time) {
                 continue; // Avoid updating prices too often
             }
 
@@ -141,7 +139,7 @@ class TerminalControl {
             // Only change the price if it's necessary and we can afford the cost
             if (currentPrice !== newPrice && cost <= availableCash) {
                 if (Game.market.changeOrderPrice(order.id, newPrice)) {
-                    this.priceUpdateTracker[order.id].lastChange = Game.time;
+                    priceUpdateTracker[order.id].lastChange = Game.time;
                     log.w(`${order.type === ORDER_SELL ? 'Sell' : 'Buy'} order price change ${order.id} new/old ${newPrice}/${currentPrice} Resource - ${order.resourceType}`, "Market: ");
                 }
             }
@@ -525,10 +523,10 @@ class TerminalControl {
 
             // If a needy terminal is found, send the resource
             if (needyTerminal) {
-                if (sendResource(terminal, resource, available, needyTerminal, this.usedTerminals)) return true;
+                if (sendResource(terminal, resource, available, needyTerminal, usedTerminals)) return true;
             } else if (terminal.room.name !== Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].terminal.store.getFreeCapacity()) {
                 // Fallback to sending to the sale terminal if no needy terminal
-                if (sendResource(terminal, resource, available, Memory.saleTerminal.room, this.usedTerminals)) return true;
+                if (sendResource(terminal, resource, available, Memory.saleTerminal.room, usedTerminals)) return true;
             }
         }
         return false;
@@ -623,7 +621,7 @@ class TerminalControl {
                 r.room.name !== terminal.room.name &&
                 !r.room.energyState &&
                 (!r.room.store[RESOURCE_BATTERY] || !r.room.factory) &&
-                (!this.usedTerminals[r.room.name] || this.usedTerminals[r.room.name].tick !== Game.time) &&
+                (!usedTerminals[r.room.name] || usedTerminals[r.room.name].tick !== Game.time) &&
                 r.store.getFreeCapacity() &&
                 Game.market.calcTransactionCost(15000, terminal.room.name, r.room.name) < 1500);
 
@@ -664,8 +662,8 @@ class TerminalControl {
                 switch (terminal.send(resource, requestedAmount, destinationRoom)) {
                     case OK:
                         log.a(`Sent ${requestedAmount} ${resource} To ${roomLink(destinationRoom)} From ${roomLink(terminal.room.name)}`, "Market: ");
-                        this.usedTerminals[terminal.room.name] = {tick: Game.time};
-                        this.usedTerminals[destinationRoom] = {tick: Game.time};
+                        usedTerminals[terminal.room.name] = {tick: Game.time};
+                        usedTerminals[destinationRoom] = {tick: Game.time};
                         return true;
                 }
             }
@@ -825,10 +823,10 @@ class TerminalControl {
     }
 
     latestMarketHistory(resource) {
-        if (!this.marketHistoryCache[resource] || this.marketHistoryCache[resource].tick !== Game.time) {
+        if (!marketHistoryCache[resource] || marketHistoryCache[resource].tick !== Game.time) {
             let history = Game.market.getHistory(resource);
             if (Array.isArray(history) && history.length > 0) {
-                this.marketHistoryCache[resource] = {
+                marketHistoryCache[resource] = {
                     data: {
                         avg: (history.reduce((sum, entry) => sum + entry.avgPrice, 0) / history.length).toFixed(3),
                         highest: Math.max(...history.map(entry => entry.avgPrice)),
@@ -840,7 +838,7 @@ class TerminalControl {
                 return false;
             }
         }
-        return this.marketHistoryCache[resource].data;
+        return marketHistoryCache[resource].data;
     }
 
     profitCheck(force = false) {
@@ -925,7 +923,7 @@ class TerminalControl {
         if (!['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) return;
 
         // Fetch incoming transactions and filter by time
-        let incoming = Game.market.incomingTransactions.filter(t => t && t.time > this.diplomacyTracker);
+        let incoming = Game.market.incomingTransactions.filter(t => t && t.time > diplomacyTracker);
 
         if (incoming.length > 0) {
             // Iterate over incoming trades
@@ -940,7 +938,7 @@ class TerminalControl {
                 }
             }
             // Update the lastCheckedIncoming timestamp
-            this.diplomacyTracker = Math.max(...incoming.map(t => t.time));
+            diplomacyTracker = Math.max(...incoming.map(t => t.time));
         }
 
 // Helper function to determine the multiplier based on the resource type

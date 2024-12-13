@@ -1,10 +1,10 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
+let observedRooms = {};
 
 class ObserverControl {
     constructor() {
-        this.observedRooms = {};
     }
 
     run(room) {
@@ -27,16 +27,16 @@ class ObserverControl {
     }
 
     handleManualObservation(roomName, observer, currentTime) {
-        if (Memory.observeRoom && Memory.observeRoom === this.observedRooms[roomName] && Game.rooms[Memory.observeRoom]) {
+        if (Memory.observeRoom && Memory.observeRoom === observedRooms[roomName] && Game.rooms[Memory.observeRoom]) {
             Game.rooms[Memory.observeRoom].cacheRoomIntel(true);
             if (Memory.targetRooms[Memory.observeRoom]) {
                 observer.operationPlanner(Game.rooms[Memory.observeRoom]);
             }
-            if (Memory.observeRoom === this.observedRooms[roomName]) {
+            if (Memory.observeRoom === observedRooms[roomName]) {
                 console.log(`${roomName} is done observing ${Memory.observeRoom} and will now observe randomly.`);
                 Memory.observeRoom = undefined;
             }
-            this.observedRooms[roomName] = undefined;
+            observedRooms[roomName] = undefined;
             return true;
         }
         return false;
@@ -82,7 +82,7 @@ class ObserverControl {
 
     observeRoom(observer, roomName, targetRoom, currentTime) {
         observer.observeRoom(targetRoom);
-        this.observedRooms[roomName] = targetRoom;
+        observedRooms[roomName] = targetRoom;
         if (Memory.targetRooms[targetRoom]) {
             Memory.targetRooms[targetRoom].observerCheck = currentTime;
         }

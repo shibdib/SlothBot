@@ -1,10 +1,11 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
+let tickTracker = {};
+let cooldownTracker = {};
+
 class FactoryControl {
     constructor() {
-        this.tickTracker = {};
-        this.coolDownTracker = {};
     }
 
     run(room) {
@@ -12,14 +13,14 @@ class FactoryControl {
         if (!factory || room.nukes.length) return;
 
         const currentTime = Game.time;
-        const lastRun = this.tickTracker[room.name] || 0;
-        const coolDown = this.coolDownTracker[room.name] || 0;
+        const lastRun = tickTracker[room.name] || 0;
+        const coolDown = cooldownTracker[room.name] || 0;
 
         if (lastRun + coolDown > currentTime) return;
-        this.tickTracker[room.name] = currentTime;
+        tickTracker[room.name] = currentTime;
 
         if (factory.cooldown) {
-            this.coolDownTracker[room.name] = factory.cooldown + 1;
+            cooldownTracker[room.name] = factory.cooldown + 1;
             return;
         }
 
@@ -46,9 +47,9 @@ class FactoryControl {
         if (factory.memory.producing && this.isValidProductionTarget(factory.memory.producing, room, factoryLevel)) {
             const result = factory.produce(factory.memory.producing);
             if (result === OK) {
-                this.coolDownTracker[room.name] = COMMODITIES[factory.memory.producing].cooldown + 1;
+                cooldownTracker[room.name] = COMMODITIES[factory.memory.producing].cooldown + 1;
             } else {
-                this.coolDownTracker[room.name] = COMMODITIES[factory.memory.producing].cooldown * 0.5;
+                cooldownTracker[room.name] = COMMODITIES[factory.memory.producing].cooldown * 0.5;
             }
         } else if (factory.memory.producing) {
             log.a('Clearing invalid production target ' + factory.memory.producing + ' in ' + roomLink(room.name), 'FACTORY CONTROL:');
