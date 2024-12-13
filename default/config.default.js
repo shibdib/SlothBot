@@ -61,7 +61,7 @@ global.PROTECT_MINERAL = false; // Include mineral in the bunker algorithm
 global.PROTECT_SOURCES = false; // Include sources in the bunker algorithm
 
 // Signing and whatnot
-global.OWNED_ROOM_SIGNS = ["~~~ https://github.com/shibdib/SlothBot ~~~"];
+global.OWNED_ROOM_SIGNS = ["~~~ SlothBot ~~~"];
 global.RESERVE_ROOM_SIGNS = [
     "~~RESTRICTED - Deadly Force Authorized - RESTRICTED~~",
     "You Have Entered the Danger Zone. Good Luck.",

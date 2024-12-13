@@ -510,12 +510,13 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
 
+    /**
     // Handle storage fallback if below buffer
     const storageTarget = this.room.storage || this.room.terminal;
     if (storageTarget && storageTarget.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
         this.memory.storageDestination = storageTarget.id;
         return true;
-    }
+    }**/
 
     // No delivery action performed
     return false;

@@ -1,6 +1,5 @@
 class LinkControl {
     constructor() {
-        this.controllerAlternator = undefined;
     }
 
     run(room) {
