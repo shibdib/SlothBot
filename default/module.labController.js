@@ -1,23 +1,23 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
+let lastRun = {};
+let lastClean = {};
 
 class LabManager {
     constructor() {
         this.primaryLabs = {};
-        this.lastClean = 0;
-        this.lastRun = 0;
     }
 
     run(room) {
         const labs = room.structures.filter(s => s.structureType === STRUCTURE_LAB);
         if (!labs.length) return;
-        if (this.lastClean + 2000 < Game.time) {
-            this.lastClean = Game.time;
+        if (!lastClean[room.name] || lastClean[room.name] + 2000 < Game.time) {
+            lastClean[room.name] = Game.time;
             this.cleanLabs(labs);
         }
-        if (this.lastRun + 5 < Game.time) {
-            this.lastRun = Game.time;
+        if (!lastRun[room.name] || lastRun[room.name] + 5 < Game.time) {
+            lastRun[room.name] = Game.time;
             if (this.shouldManageBoostProduction(room)) this.manageBoostProduction(room);
             this.manageActiveLabs(room);
         }
@@ -101,6 +101,7 @@ class LabManager {
         if (!boost) return;
 
         this.setupProduction(hub, boost, room);
+
     }
 
     getLabHub(room) {
@@ -112,9 +113,7 @@ class LabManager {
                     (lab.pos.x === labHub.x && lab.pos.y === labHub.y + 1))
             );
             this.primaryLabs[room.name] = labs.map(lab => lab.id);
-            return null;
         }
-        console.log(this.primaryLabs[room.name]);
         return this.primaryLabs[room.name].map(id => Game.getObjectById(id));
     }
 
