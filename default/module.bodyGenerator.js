@@ -99,7 +99,7 @@ class ModuleBodyGenerator {
                     work = Math.min(work, 48); // Max work to 48
                     if (this.level === 8) work = 15; // Special case for level 8, reduce work parts for efficiency
                     carry = 1;  // Fixed carry part as we assume it's a stable setup for upgrading
-                    move = 1;   // Always include move part for mobility
+                    move = 0;
                 }
                 // If no controller container exists, we scale work and carry dynamically based on available energy
                 else {
@@ -171,8 +171,7 @@ class ModuleBodyGenerator {
                 // Ensure a minimum of 1 carry part to allow harvesting
                 carry = 1;
 
-                // Always include a move part to move between the source and storage/containers
-                move = 1;
+                move = 0;
 
                 break;
 
@@ -181,7 +180,7 @@ class ModuleBodyGenerator {
                 energyScaling = true;
                 work = Math.floor((this.energyAmount - (BODYPART_COST[MOVE] + BODYPART_COST[CARRY])) / BODYPART_COST[WORK]) || 1;
                 work = Math.min(work, 30);  // Max work to 30
-                move = 1;
+                move = 0;
                 break;
 
             // Military
@@ -390,13 +389,15 @@ class ModuleBodyGenerator {
         // Generate MOVE parts
         let moveArray = [];
         const totalParts = bodyArray.length + healArray.length + toughArray.length;
-        if (move && move > 0) {
-            addBodyParts(move, MOVE, moveArray);
-        } else {
-            const moveParts = halfMove
-                ? Math.ceil(totalParts * 0.5)
-                : totalParts;
-            addBodyParts(moveParts, MOVE, moveArray);
+        if (move !== 0) {
+            if (move && move > 0) {
+                addBodyParts(move, MOVE, moveArray);
+            } else {
+                const moveParts = halfMove
+                    ? Math.ceil(totalParts * 0.5)
+                    : totalParts;
+                addBodyParts(moveParts, MOVE, moveArray);
+            }
         }
 
         // Validate body composition
