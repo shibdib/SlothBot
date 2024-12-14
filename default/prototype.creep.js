@@ -388,15 +388,6 @@ Creep.prototype.locateEnergy = function (room = this.room) {
                 return true;
             }
         }
-        // Dropped Energy
-        if (room.droppedEnergy.length) {
-            let dropped = room.droppedEnergy.reduce((max, r) => (r.amount > max.amount ? r : max), {amount: 0});
-            if (dropped.amount > 0 && !myCreepsFilter(dropped.id)) {
-                this.memory.energyDestination = dropped.id;
-                this.memory.findEnergyCountdown = undefined;
-                return true;
-            }
-        }
         // Container handling for shuttle or remote hauler
         if (this.memory.role === 'shuttle' || this.memory.role === 'remoteHauler' || !room.controller || !room.controller.owner || !room.storage) {
             if (!room.storage && this.memory.role !== 'shuttle' && this.memory.role !== 'remoteHauler' && this.memory.role !== 'hauler') {
@@ -420,6 +411,15 @@ Creep.prototype.locateEnergy = function (room = this.room) {
                     this.memory.findEnergyCountdown = undefined;
                     return true;
                 }
+            }
+        }
+        // Dropped Energy
+        if (room.droppedEnergy.length) {
+            let dropped = room.droppedEnergy.reduce((max, r) => (r.amount > max.amount ? r : max), {amount: 0});
+            if (dropped.amount > 0 && !myCreepsFilter(dropped.id)) {
+                this.memory.energyDestination = dropped.id;
+                this.memory.findEnergyCountdown = undefined;
+                return true;
             }
         }
         // Factory from batteries

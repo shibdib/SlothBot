@@ -136,6 +136,7 @@ class RoleLabTech {
     deliverResource() {
         if (!_.sum(this.creep.store)) return false;  // If the creep has no resources to deliver, return false
 
+        const terminal = this.room.terminal || this.room.storage;
         let storeTarget;
 
         // If no specific delivery target or resource is set, determine where to deliver based on various conditions
@@ -170,16 +171,16 @@ class RoleLabTech {
                 }
                 // Handle various resource storage scenarios
                 else if (_.sum(this.room.storage.store) < this.room.storage.store.getCapacity()) {
-                    if (_.sum(this.room.terminal.store) >= 0.90 * this.room.terminal.store.getCapacity()) storeTarget = this.room.storage;
-                    else if (resourceType === RESOURCE_POWER) storeTarget = this.room.terminal;
-                    else if (resourceType === RESOURCE_ENERGY && this.room.terminal.store[resourceType] < TERMINAL_ENERGY_BUFFER) storeTarget = this.room.terminal;
+                    if (this.room.terminal && _.sum(this.room.terminal.store) >= 0.90 * this.room.terminal.store.getCapacity()) storeTarget = this.room.storage;
+                    else if (resourceType === RESOURCE_POWER) storeTarget = terminal;
+                    else if (resourceType === RESOURCE_ENERGY && terminal.store[resourceType] < TERMINAL_ENERGY_BUFFER) storeTarget = terminal;
                     else if (resourceType === RESOURCE_ENERGY && !this.room.energyState) storeTarget = this.room.storage;
-                    else if (resourceType === RESOURCE_ENERGY) storeTarget = this.room.terminal;
+                    else if (resourceType === RESOURCE_ENERGY) storeTarget = terminal;
                     else if (_.includes(BASE_MINERALS, resourceType) && this.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = this.room.storage;
-                    else if (_.includes(COMPRESSED_COMMODITIES, resourceType) && this.room.terminal.store[resourceType] >= 10000) storeTarget = this.room.storage;
-                    else if (_.includes(ALL_COMMODITIES, resourceType)) storeTarget = this.room.terminal;
+                    else if (_.includes(COMPRESSED_COMMODITIES, resourceType) && terminal.store[resourceType] >= 10000) storeTarget = this.room.storage;
+                    else if (_.includes(ALL_COMMODITIES, resourceType)) storeTarget = terminal;
                     else if (_.includes(ALL_BOOSTS, resourceType) && this.room.storage.store[resourceType] < BOOST_AMOUNT) storeTarget = this.room.storage;
-                    else if (_.includes(ALL_BOOSTS, resourceType)) storeTarget = this.room.terminal;
+                    else if (_.includes(ALL_BOOSTS, resourceType)) storeTarget = terminal;
                     else if (!_.includes(BASE_MINERALS, resourceType) && !_.includes(ALL_COMMODITIES, resourceType) && this.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = this.room.storage;
                 }
 

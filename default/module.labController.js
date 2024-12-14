@@ -33,6 +33,11 @@ class LabManager {
 
         if (!hub) return;
 
+        // Sanity check for broken hub
+        for (const lab of hub) {
+            if (!lab.memory.itemNeeded) return this.stopProduction(room, hub);
+        }
+
         // Visual feedback on what's being produced
         hub[0].say(room.memory.producingBoost);
 
@@ -158,7 +163,7 @@ class LabManager {
 
     cleanLabs(labs) {
         labs.forEach(lab => {
-            if (lab.structureType === STRUCTURE_LAB && lab.memory.neededBoost) {
+            if (lab.memory.neededBoost) {
                 if (!lab.memory.requested || lab.memory.requested + 150 < Game.time || !Game.getObjectById(lab.memory.requestor)) {
                     lab.memory = undefined;
                 }
