@@ -52,10 +52,9 @@ class RoleShuttle {
     }
 
     pickup() {
-        if (!this.creep.memory.cooldown && (this.creep.memory.energyDestination || this.creep.locateEnergy())) {
+        if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
             this.creep.withdrawResource()
         } else {
-            this.creep.memory.cooldown = undefined;
             this.creep.idleFor(10)
         }
     }
