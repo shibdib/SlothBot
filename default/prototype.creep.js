@@ -405,8 +405,8 @@ Creep.prototype.locateEnergy = function (room = this.room) {
             } else {
                 let container = room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER && room.memory.controllerContainer !== s.id
                     && s.store[RESOURCE_ENERGY] > myCreepsFilter(s.id) * (freeCapacity * 0.8));
-                if (container[0]) {
-                    this.memory.energyDestination = container[0].id;
+                if (container.length) {
+                    this.memory.energyDestination = _.sample(container).id;
                     this.memory.findEnergyCountdown = undefined;
                     return true;
                 }
