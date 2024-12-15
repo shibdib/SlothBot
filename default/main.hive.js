@@ -9,8 +9,9 @@ const power = require('module.powerManager');
 const spawning = require('module.creepSpawning');
 const expansion = require('module.expansion');
 const diplomacy = require('module.diplomacy');
-const hud = require('module.hud');
+const HudControl = require('module.hud');
 const profiler = require('tools.profiler');
+const ObserverControl = require("./module.observerController");
 let buildingNotifications;
 let tickTracker = {};
 
@@ -69,7 +70,7 @@ class Hive {
     }
 
     hudManager() {
-        hud.hud();
+        new HudControl().run();
     }
 
     highCommand() {
