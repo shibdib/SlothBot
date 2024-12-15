@@ -322,7 +322,7 @@ Object.defineProperty(Room.prototype, 'nuker', {
 Object.defineProperty(Room.prototype, 'energy', {
     get: function () {
         if (!this._energy) {
-            this._energy = getRoomResource(this, RESOURCE_ENERGY, true) + (getRoomResource(this, RESOURCE_BATTERY, true) * 10);
+            this._energy = getRoomResource(this, RESOURCE_ENERGY, true);
         }
         return this._energy;
     },

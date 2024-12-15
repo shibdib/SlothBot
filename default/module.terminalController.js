@@ -289,44 +289,12 @@ class TerminalControl {
     }
 
     placeBuyOrders(terminal, globalOrders, myOrders) {
-        // Helper function to get the price for buying orders
-        function getOrderPrice(mineral, history, isEnergy = false) {
-            let price = 0.5;
-            let averagePrice;
-            const orderType = isEnergy ? RESOURCE_ENERGY : mineral;
-
-            if (history) averagePrice = history.avg + 0.001;
-
-            const competitorOrder = _.min(globalOrders.filter(order =>
-                !_.includes(MY_ROOMS, order.roomName) && order.resourceType === orderType && order.type === ORDER_BUY), 'price');
-
-            if (competitorOrder) price = competitorOrder.price + 0.001;
-            if (averagePrice && averagePrice > price) price = averagePrice;
-
-            return price;
-        }
-
-        // Helper function to place buy order
-        function createBuyOrder(resourceType, price, buyAmount) {
-            if (buyAmount <= 0) return false;
-            if (Game.market.createOrder({
-                type: ORDER_BUY,
-                resourceType: resourceType,
-                price: price,
-                totalAmount: buyAmount,
-                roomName: terminal.pos.roomName
-            }) === OK) {
-                log.w(`New Buy Order: ${resourceType} at/per ${price} in ${roomLink(terminal.room.name)}`, "Market: ");
-                return true;
-            }
-            return false;
-        }
 
         // Iterate over minerals and handle orders
         for (let mineral of shuffle(BASE_MINERALS)) {
             if (MY_MINERALS && MY_MINERALS.includes(mineral)) continue;
 
-            let target = this.reactionAmount;
+            let target = this.reactionAmount * MY_ROOMS.filter((r) => Game.rooms[r].terminal).length;
             let stored = getResourceTotal(mineral) + (getResourceTotal(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
 
             if (stored < target) {
@@ -381,6 +349,39 @@ class TerminalControl {
                     if (createBuyOrder(RESOURCE_ENERGY, price, 10000)) return true;
                 }
             }
+        }
+
+        // Helper function to get the price for buying orders
+        function getOrderPrice(mineral, history, isEnergy = false) {
+            let price = 0.5;
+            let averagePrice;
+            const orderType = isEnergy ? RESOURCE_ENERGY : mineral;
+
+            if (history) averagePrice = history.avg + 0.001;
+
+            const competitorOrder = _.min(globalOrders.filter(order =>
+                !_.includes(MY_ROOMS, order.roomName) && order.resourceType === orderType && order.type === ORDER_BUY), 'price');
+
+            if (competitorOrder) price = competitorOrder.price + 0.001;
+            if (averagePrice && averagePrice > price) price = averagePrice;
+
+            return price;
+        }
+
+        // Helper function to place buy order
+        function createBuyOrder(resourceType, price, buyAmount) {
+            if (buyAmount <= 0) return false;
+            if (Game.market.createOrder({
+                type: ORDER_BUY,
+                resourceType: resourceType,
+                price: price,
+                totalAmount: buyAmount,
+                roomName: terminal.pos.roomName
+            }) === OK) {
+                log.w(`New Buy Order: ${resourceType} at/per ${price} in ${roomLink(terminal.room.name)}`, "Market: ");
+                return true;
+            }
+            return false;
         }
     }
 

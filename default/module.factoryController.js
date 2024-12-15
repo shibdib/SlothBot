@@ -14,7 +14,7 @@ class FactoryControl {
 
         const currentTime = Game.time;
         const lastRun = tickTracker[room.name] || 0;
-        const coolDown = cooldownTracker[room.name] || 0;
+        const coolDown = cooldownTracker[room.name] || 10;
 
         if (lastRun + coolDown > currentTime) return;
         tickTracker[room.name] = currentTime;
@@ -26,12 +26,6 @@ class FactoryControl {
 
         const energyStored = room.store(RESOURCE_ENERGY, true);
         const factoryLevel = factory.level || (factory.effects && factory.effects.length ? 1 : 0);
-
-        // Prioritize battery conversion to energy if needed
-        if (energyStored < STORAGE_CAPACITY * 0.1 && room.store(RESOURCE_BATTERY) >= 50) {
-            this.setProduction(factory, RESOURCE_ENERGY, 'Converting Battery to Energy');
-            return;
-        }
 
         // Stop current production if conditions are met
         if (factory.memory.producing && this.shouldStopProduction(room, factory, energyStored)) {
@@ -68,11 +62,11 @@ class FactoryControl {
         const batteryStored = room.store(RESOURCE_BATTERY);
 
         // Stop producing batteries if energy is too low
-        if (producing === RESOURCE_BATTERY && energyStored < STORAGE_CAPACITY * 0.1) return true;
+        if (producing === RESOURCE_BATTERY && room.energyState < 2) return true;
 
         // Stop producing energy if we have enough energy or if we've used up batteries
         if (producing === RESOURCE_ENERGY) {
-            return (energyStored > STORAGE_CAPACITY * 0.11 || batteryStored < 50);
+            return (room.energyState > 1 || batteryStored < 50);
         }
 
         // Stop if we have enough of the commodity (adjusted for different resource types)
@@ -97,13 +91,13 @@ class FactoryControl {
         const batteryStored = room.store(RESOURCE_BATTERY);
 
         // Priority: Convert batteries to energy if energy is low but batteries are available
-        if (energyStored < STORAGE_CAPACITY * 0.1 && batteryStored >= 50) {
+        if (!room.energyState && batteryStored >= 50) {
             this.setProduction(factory, RESOURCE_ENERGY, 'Converting Battery to Energy');
             return;
         }
 
         // Produce Battery if there's excess energy
-        if (energyStored > STORAGE_CAPACITY * 0.5) {
+        if (room.energyState > 2) {
             this.setProduction(factory, RESOURCE_BATTERY, 'Producing Battery');
             return;
         }
