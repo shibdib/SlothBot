@@ -83,27 +83,22 @@ class ModuleBodyGenerator {
             case 'upgrader':
                 energyScaling = true;
 
-                // Define work and carry scaling factors based on room state
                 let workScalingFactor = 0.4;
                 let carryScalingFactor = 0.1;
 
-                // If the room's level is less than the controller's level, it's likely a high priority upgrade, so scale work and carry minimally
                 if (this.room.level < this.room.controller.level) {
                     work = 1;
                     carry = 1;
                 }
-                // If the room has a controller container, prioritize upgrader with higher work and fixed carry and move parts
-                else if (this.room.memory.controllerContainer) {
-                    // Energy scaling for work
+                // If we have a storage we should have a stationary upgrader
+                else if (this.room.storage) {
                     work = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 48); // Max work to 48
                     if (this.level === 8) work = 15; // Special case for level 8, reduce work parts for efficiency
                     carry = 1;  // Fixed carry part as we assume it's a stable setup for upgrading
                     move = 0;
                 }
-                // If no controller container exists, we scale work and carry dynamically based on available energy
                 else {
-                    // Work scaling based on available energy (up to a maximum limit)
                     work = Math.floor(this.energyAmount * workScalingFactor / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 5); // Max work to 5
                     carry = Math.floor(this.energyAmount * carryScalingFactor / BODYPART_COST[CARRY]) || 1;
@@ -179,7 +174,7 @@ class ModuleBodyGenerator {
             case 'mineralHarvester':
                 energyScaling = true;
                 work = Math.floor((this.energyAmount - (BODYPART_COST[MOVE] + BODYPART_COST[CARRY])) / BODYPART_COST[WORK]) || 1;
-                work = Math.min(work, 30);  // Max work to 30
+                work = Math.min(work, 50);  // Max work to 50
                 move = 0;
                 break;
 
