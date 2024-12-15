@@ -403,11 +403,10 @@ Creep.prototype.locateEnergy = function (room = this.room) {
                     }
                 }
             } else {
-                let container = room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER && (room.memory.controllerContainer !== s.id || this.memory.findEnergyCountdown >= room.controller.level)
-                    && s.store[RESOURCE_ENERGY] > myCreepsFilter(s.id) * (freeCapacity * 0.8))
-                    .reduce((max, s) => (s.store[RESOURCE_ENERGY] > max.store[RESOURCE_ENERGY] ? s : max), {store: {RESOURCE_ENERGY: 0}});
-                if (container.store[RESOURCE_ENERGY]) {
-                    this.memory.energyDestination = container.id;
+                let container = room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER && room.memory.controllerContainer !== s.id
+                    && s.store[RESOURCE_ENERGY] > myCreepsFilter(s.id) * (freeCapacity * 0.8));
+                if (container[0]) {
+                    this.memory.energyDestination = container[0].id;
                     this.memory.findEnergyCountdown = undefined;
                     return true;
                 }
