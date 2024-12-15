@@ -166,7 +166,7 @@ class ModuleBodyGenerator {
                 // Ensure a minimum of 1 carry part to allow harvesting
                 carry = 1;
 
-                move = 0;
+                if (this.room.storage) move = 0; else move = 1;
 
                 break;
 
