@@ -408,6 +408,16 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     roomIntel.obstacles = canPathToAllNeighbors(this); // Assuming this method exists or is defined elsewhere
     roomIntel.invaderCore = !!this.find(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_INVADER_CORE}}).length;
 
+    // Get remote source data for the highest level room declaring this a remote
+    if (roomIntel.remoteRoom && !force) {
+        let highestLevelRoom = getHighestLevelRemoteRoom(roomIntel.remoteRoom);
+
+        for (const source of this.sources) {
+            let distanceToExit = calculateDistanceToExit(this, source, highestLevelRoom);
+            updateRemoteSourceData(this, highestLevelRoom, source, distanceToExit);
+        }
+    }
+
     // Minerals
     const mineral = this.find(FIND_MINERALS)[0];
     if (mineral) {
@@ -481,6 +491,31 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 
     // Update cache
     cache[this.name] = roomIntel;
+
+    // Helpers
+    function getHighestLevelRemoteRoom(remoteRooms) {
+        return remoteRooms.reduce((highest, room) =>
+                Game.rooms[room] && Game.rooms[room].level > (Game.rooms[highest].level || 0) ? room : highest
+            , remoteRooms[0]);
+    }
+
+    function calculateDistanceToExit(room, source, targetRoom) {
+        let exitDir = Game.map.findExit(room.name, targetRoom);
+        let homeExit = room.find(exitDir);
+        let homeMiddle = _.round(homeExit.length / 2);
+        return source.pos.findPathTo(homeExit[homeMiddle]).length;
+    }
+
+    function updateRemoteSourceData(room, roomName, source, distance) {
+        let remoteSourceData = Game.rooms[roomName].memory.remoteSources || "{}";
+        remoteSourceData = JSON.parse(remoteSourceData);
+        remoteSourceData[source.id] = {
+            room: room.name,
+            source: source.id,
+            score: (distance * 2) + 30
+        };
+        Game.rooms[roomName].memory.remoteSources = JSON.stringify(remoteSourceData);
+    }
 };
 
 /**

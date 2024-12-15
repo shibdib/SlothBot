@@ -331,112 +331,109 @@ module.exports.remoteCreepQueue = function (room) {
 
     // Handle remote haulers if needed
     handleRemoteHaulers(room);
-};
 
-function refreshRemoteRoomTargets(room) {
-    lastRemoteRefresh[room.name] = Game.time;
-    remoteRoomTargets[room.name] = undefined;
+    function refreshRemoteRoomTargets(room) {
+        lastRemoteRefresh[room.name] = Game.time;
+        remoteRoomTargets[room.name] = undefined;
 
-    // Find and filter remote rooms with valid sources and no reservation
-    let remoteRooms = _.filter(Game.map.describeExits(room.name), function (r) {
-        return roomStatus(r) === roomStatus(room.name) &&
-            INTEL[r] && INTEL[r].sources &&
-            !INTEL[r].level &&
-            (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation));
-    });
+        // Find and filter remote rooms with valid sources and no reservation
+        let remoteRooms = _.filter(Game.map.describeExits(room.name), function (r) {
+            return roomStatus(r) === roomStatus(room.name) &&
+                INTEL[r] && INTEL[r].sources &&
+                !INTEL[r].level &&
+                (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation));
+        });
 
-    remoteRoomTargets[room.name] = JSON.stringify(remoteRooms);
-}
+        remoteRoomTargets[room.name] = JSON.stringify(remoteRooms);
+    }
 
-function processRemoteRoom(room, remoteName) {
-    if (shouldSkipRemote(room, remoteName)) return;
+    function processRemoteRoom(room, remoteName) {
+        if (shouldSkipRemote(room, remoteName)) return;
 
-    // Add room to intel tracker
-    trackRemoteRoom(remoteName, room);
+        // Add room to intel tracker
+        trackRemoteRoom(remoteName, room);
 
-    // Check if the remote room is highest level and handle invader cores or invaders
-    let highestLevel = checkHighestLevel(room, remoteName);
-    if (highestLevel) {
-        if (INTEL[remoteName].invaderCore) {
-            handleInvaderCore(room, remoteName);
-        } else if (INTEL[remoteName].threatLevel > 1) {
-            handleThreatLevel(room, remoteName);
-        } else {
-            handleReservation(room, remoteName);
+        // Check if the remote room is highest level and handle invader cores or invaders
+        let highestLevel = checkHighestLevel(room, remoteName);
+        if (highestLevel) {
+            if (INTEL[remoteName].invaderCore) {
+                handleInvaderCore(room, remoteName);
+            } else if (INTEL[remoteName].threatLevel > 1) {
+                handleThreatLevel(room, remoteName);
+            } else {
+                handleReservation(room, remoteName);
+            }
+        }
+
+        // Handle road builder for remotes
+        handleRoadBuilder(room);
+    }
+
+    function shouldSkipRemote(room, remoteName) {
+        if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remoteName)) return true;
+        if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
+        if (INTEL[remoteName].reservation && ![MY_USERNAME, "Invader"].includes(INTEL[remoteName].reservation)) return true;
+        if (INTEL[remoteName].roomHeat > 250) return true;
+        return false;
+    }
+
+    function trackRemoteRoom(remoteName, room) {
+        if (!INTEL[remoteName].remoteRoom || INTEL[remoteName].remoteRoom.indexOf(room.name) === -1) {
+            if (!INTEL[remoteName].remoteRoom) INTEL[remoteName].remoteRoom = [];
+            INTEL[remoteName].remoteRoom.push(room.name);
         }
     }
 
-    // Handle road builder for remotes
-    handleRoadBuilder(room);
-}
-
-function shouldSkipRemote(room, remoteName) {
-    if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remoteName)) return true;
-    if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
-    if (INTEL[remoteName].reservation && ![MY_USERNAME, "Invader"].includes(INTEL[remoteName].reservation)) return true;
-    if (INTEL[remoteName].roomHeat > 250) return true;
-    return false;
-}
-
-function trackRemoteRoom(remoteName, room) {
-    if (!INTEL[remoteName].remoteRoom || INTEL[remoteName].remoteRoom.indexOf(room.name) === -1) {
-        if (!INTEL[remoteName].remoteRoom) INTEL[remoteName].remoteRoom = [];
-        INTEL[remoteName].remoteRoom.push(room.name);
-    }
-}
-
-function checkHighestLevel(room, remoteName) {
-    return INTEL[remoteName].remoteRoom.every(function (r) {
-        return r === room.name || (Game.rooms[r] && Game.rooms[r].level <= room.level);
-    });
-}
-
-function handleInvaderCore(room, remoteName) {
-    if (INTEL[remoteName].sk) return;
-    if (!getCreepCount(undefined, 'attacker', remoteName)) {
-        queueCreep(room, PRIORITIES.remoteHarvester - 1, {
-            role: 'attacker', military: true, destination: remoteName
+    function checkHighestLevel(room, remoteName) {
+        return INTEL[remoteName].remoteRoom.every(function (r) {
+            return r === room.name || (Game.rooms[r] && Game.rooms[r].level <= room.level);
         });
     }
-}
 
-function handleThreatLevel(room, remoteName) {
-    if (INTEL[remoteName].tickDetected + CREEP_LIFE_TIME < Game.time) {
-        if (!getCreepCount(undefined, 'explorer', remoteName)) {
+    function handleInvaderCore(room, remoteName) {
+        if (INTEL[remoteName].sk) return;
+        if (!getCreepCount(undefined, 'attacker', remoteName)) {
             queueCreep(room, PRIORITIES.remoteHarvester - 1, {
-                role: 'explorer', destination: remoteName
-            });
-        }
-    } else if (!INTEL[remoteName].sk) {
-        room.memory.borderPatrol = remoteName;
-    }
-}
-
-function handleReservation(room, remoteName) {
-    if (room.level >= 4 && (!INTEL[remoteName].reservationExpires || Game.time > INTEL[remoteName].reservationExpires) && INTEL[remoteName].sources < 3) {
-        let amount = INTEL[remoteName].reserverCap || 1;
-        if (getCreepCount(undefined, 'reserver', remoteName) < amount) {
-            queueCreep(room, PRIORITIES.reserver + getCreepCount(undefined, 'reserver', remoteName), {
-                role: 'reserver', destination: remoteName
+                role: 'attacker', military: true, destination: remoteName
             });
         }
     }
-}
 
-function handleRoadBuilder(room) {
-    if (getCreepCount(undefined, 'roadBuilder', room.name) < JSON.parse(remoteRoomTargets[room.name]).length * 0.5) {
-        queueCreep(room, PRIORITIES.roadBuilder, {
-            role: 'roadBuilder', misc: JSON.parse(remoteRoomTargets[room.name])
-        });
+    function handleThreatLevel(room, remoteName) {
+        if (INTEL[remoteName].tickDetected + CREEP_LIFE_TIME < Game.time) {
+            if (!getCreepCount(undefined, 'explorer', remoteName)) {
+                queueCreep(room, PRIORITIES.remoteHarvester - 1, {
+                    role: 'explorer', destination: remoteName
+                });
+            }
+        } else if (!INTEL[remoteName].sk) {
+            room.memory.borderPatrol = remoteName;
+        }
     }
-}
 
-function handleRemoteHarvesters(room) {
-    let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-    // Ensure there's a valid remoteSources object and not just a string
-    if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 2) {
-        let remoteSources;
-        try {
+    function handleReservation(room, remoteName) {
+        if (room.level >= 4 && (!INTEL[remoteName].reservationExpires || Game.time > INTEL[remoteName].reservationExpires) && INTEL[remoteName].sources < 3) {
+            let amount = INTEL[remoteName].reserverCap || 1;
+            if (getCreepCount(undefined, 'reserver', remoteName) < amount) {
+                queueCreep(room, PRIORITIES.reserver + getCreepCount(undefined, 'reserver', remoteName), {
+                    role: 'reserver', destination: remoteName
+                });
+            }
+        }
+    }
+
+    function handleRoadBuilder(room) {
+        if (getCreepCount(undefined, 'roadBuilder', room.name) < JSON.parse(remoteRoomTargets[room.name]).length * 0.5) {
+            queueCreep(room, PRIORITIES.roadBuilder, {
+                role: 'roadBuilder', misc: JSON.parse(remoteRoomTargets[room.name])
+            });
+        }
+    }
+
+    function handleRemoteHarvesters(room) {
+        let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
+        if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 2) {
+            let remoteSources;
             // Parse the stringified object to a valid JavaScript object
             remoteSources = JSON.parse(room.memory.remoteSources);
             // Iterate through each source in the remoteSources object
@@ -460,19 +457,17 @@ function handleRemoteHarvesters(room) {
                     }
                 }
             }
-        } catch (e) {
-            console.log("Error parsing remoteSources in room " + room.name + ": " + e);
         }
     }
-}
 
 
-function handleRemoteHaulers(room) {
-    let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-    if (totalHarvesters && totalHarvesters > getCreepCount(undefined, 'remoteHauler', undefined, undefined, room.name)) {
-        queueCreep(room, PRIORITIES.remoteHauler, {role: 'remoteHauler'});
+    function handleRemoteHaulers(room) {
+        let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
+        if (totalHarvesters && totalHarvesters > getCreepCount(undefined, 'remoteHauler', undefined, undefined, room.name)) {
+            queueCreep(room, PRIORITIES.remoteHauler, {role: 'remoteHauler'});
+        }
     }
-}
+};
 
 
 module.exports.globalCreepQueue = function () {
