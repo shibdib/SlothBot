@@ -265,6 +265,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
                     this.shibMove(energyItem);
                     break;
                 default:
+                    this.memory.lastWithdraw = energyItem.id;
                     this.memory.energyDestination = undefined;
                     this.memory._shibMove = undefined;
                     return true;
@@ -509,13 +510,18 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
 
-    /**
+    const controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+    if (controllerContainer && controllerContainer.store.getUsedCapacity() < CONTAINER_CAPACITY * 0.7) {
+        this.memory.storageDestination = controllerContainer.id;
+        return true;
+    }
+
     // Handle storage fallback if below buffer
     const storageTarget = this.room.storage || this.room.terminal;
-    if (storageTarget && storageTarget.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+    if (storageTarget && storageTarget.id !== this.memory.lastWithdraw && storageTarget.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
         this.memory.storageDestination = storageTarget.id;
         return true;
-    }**/
+    }
 
     // No delivery action performed
     return false;
