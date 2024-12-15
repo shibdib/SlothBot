@@ -30,14 +30,14 @@ class RoleLabTech {
         if (this.boostDelivery()) return;
         // Empty labs with wrong materials
         if (this.cleanLab()) return;
+        // Empty mineral harvester container
+        if (this.mineralHauler()) return;
         // Handle dropped goodies
         if (this.droppedResources()) return;
         // Empty factories
         if (this.emptyFactory()) return;
         // Handle terminal goods
         if (this.terminalControl()) return;
-        // Empty mineral harvester container
-        if (this.mineralHauler()) return;
         // Check nuker for ghodium
         if (this.nukeSupplies()) return;
         // Get factory orders
@@ -385,12 +385,6 @@ class RoleLabTech {
     }
 
     mineralHauler() {
-        // Check if terminal and storage are near full capacity
-        if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
-            (this.room.storage && (_.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()))) {
-            return false;
-        }
-
         // Find a container with minerals and valid conditions
         const container = _.find(this.room.structures, (s) =>
             s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) && s.pos.isNearTo(this.room.mineral)
@@ -398,7 +392,8 @@ class RoleLabTech {
 
         if (container) {
             // Assign the first available resource in the container to the creep's memory
-            const resourceType = Object.keys(container.store).find(r => r.amount >= this.creep.store.getCapacity() * 0.1);
+            const resourceType = Object.keys(container.store).find(r => container.store.getUsedCapacity(r) >= container.store.getCapacity() * 0.25 ||
+                !this.room.mineral.mineralAmount);
             if (resourceType) {
                 this.creep.memory.resourceNeeded = resourceType;
                 this.creep.memory.withdrawFrom = container.id;
