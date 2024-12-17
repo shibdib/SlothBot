@@ -29,6 +29,7 @@ class FactoryControl {
 
         // Stop current production if conditions are met
         if (factory.memory.producing && this.shouldStopProduction(room, factory, energyStored)) {
+            log.a('No longer producing ' + factory.memory.producing + ' in ' + roomLink(room.name), 'FACTORY CONTROL:');
             delete factory.memory.producing;
         }
 
@@ -96,15 +97,15 @@ class FactoryControl {
             return;
         }
 
-        // Produce Battery if there's excess energy
-        if (room.energyState > 2) {
+        // Produce Battery if there's excess energy and we're low on room
+        if (room.energyState > 2 && !this.checkStorageSpace(room)) {
             this.setProduction(factory, RESOURCE_BATTERY, 'Producing Battery');
             return;
         }
 
         let resources = shuffle([...BASE_MINERALS, ...ALL_COMMODITIES]);
         for (let resource of resources) {
-            if (this.isValidProductionTarget(resource, room, factoryLevel)) {
+            if (this.isValidProductionTarget(resource, room, factoryLevel) && ![RESOURCE_BATTERY, RESOURCE_ENERGY].includes(resource)) {
                 this.setProduction(factory, resource, 'Producing ' + resource);
                 return;
             }
@@ -118,9 +119,6 @@ class FactoryControl {
 
         // Check if we should produce based on current storage levels
         let productionThreshold = BASE_MINERALS.includes(resource) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
-        // Adjust thresholds for certain commodities, like batteries or energy
-        if (resource === RESOURCE_BATTERY) productionThreshold = STORAGE_CAPACITY * 0.1;
-        if (resource === RESOURCE_ENERGY) productionThreshold = STORAGE_CAPACITY * 0.11;  // Assuming this is the threshold to stop producing energy
 
         if (room.store(resource) >= productionThreshold) return false; // Already have enough
 
@@ -134,6 +132,15 @@ class FactoryControl {
             return room.store(component) >= requiredAmount &&
                 (!COMPRESSED_COMMODITIES.includes(resource) || room.store(component) >= REACTION_AMOUNT * 1.1);
         });
+    }
+
+    checkStorageSpace(room) {
+        if (room.terminal && room.terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.02) {
+            return false;
+        } else if (room.storage && room.storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.02) {
+            return false;
+        }
+        return true;
     }
 }
 
