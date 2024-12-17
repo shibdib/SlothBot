@@ -195,6 +195,7 @@ class RoleDrone {
             let nukeSite, nukeRampart;
             let barrierStructures = _.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART ||
                 s.structureType === STRUCTURE_WALL) && !_.find(this.room.myCreeps, (c) => c.memory.currentTarget === s.id));
+            if (!barrierStructures.length || !this.room.controller || (this.room.controller.owner && this.room.controller !== MY_USERNAME)) return false;
             if (this.room.memory.nuke) {
                 nukeSite = _.filter(this.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5)[0];
                 nukeRampart = _.min(_.filter(barrierStructures, (s) => s.structureType === STRUCTURE_RAMPART && ((s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.hits < (NUKE_DAMAGE[1] * this.room.nukes.length) + 100000) || (s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) === 0 && s.hits < (NUKE_DAMAGE[0] * creep.room.nukes.length) + 100000))), 'hits');
