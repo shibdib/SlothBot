@@ -1033,7 +1033,7 @@ Creep.prototype._moveToSafePosition = function () {
 
 // New method to scan adjacent rooms for potential threats
 Creep.prototype.scanForNearbyThreats = function () {
-    const adjacentRooms = Game.map.describeExits(this.room.name);
+    const adjacentRooms = _.map(Game.map.describeExits(this.room.name));
     for (let roomName of adjacentRooms) {
         let roomIntel = INTEL[roomName];
         if (roomIntel && (roomIntel.threatLevel || roomIntel.hostileStructures)) {

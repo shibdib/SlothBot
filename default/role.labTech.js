@@ -522,7 +522,7 @@ class RoleLabTech {
         const {storage, terminal} = this.room;
 
         // Check if the terminal has capacity to receive resources
-        if (_.sum(terminal.store) >= terminal.store.getCapacity() * 0.9) return false;
+        if (terminal && _.sum(terminal.store) >= terminal.store.getCapacity() * 0.9) return false;
 
         // Sort resources in storage by their quantities in descending order
         const resources = Object.keys(storage.store).sort((a, b) => storage.store[b] - storage.store[a]);
