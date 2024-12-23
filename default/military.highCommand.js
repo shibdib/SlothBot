@@ -356,7 +356,7 @@ function manageAttacks() {
         let type = target.type;
 
         // Skip manual no combat rooms
-        if (target.manual || _.includes(Memory.nonCombatRooms, key)) {
+        if (_.includes(Memory.nonCombatRooms, key)) {
             delete Memory.targetRooms[key];
             log.a('Canceling operation in ' + roomLink(key) + ' as it is set as a manual non-combat room.', 'HIGH COMMAND: ');
             continue;
