@@ -49,7 +49,8 @@ class ExpansionControl {
             (!room.noClaim || room.noClaim < Game.time) &&
             !room.obstructions &&
             (!room.reservation || room.reservation === MY_USERNAME) &&
-            Game.map.findRoute(room.name, this.findClosestOwnedRoom(room.name)).length <= 14 &&
+            findClosestOwnedRoom(room.name, true) <= 14 &&
+            findClosestOwnedRoom(room.name, true) > 1 &&
             roomStatus(room.name) === roomStatus(MY_ROOMS[0])
         );
     }
@@ -72,14 +73,14 @@ class ExpansionControl {
 
         // Penalize failed claim attempts
         if (room.failedClaim) {
-            if (room.failedClaim >= 5) return -Infinity;
+            if (room.failedClaim >= 5) return undefined;
             score -= room.failedClaim * 1000;
         }
 
         // Adjust score based on proximity to friendly rooms
         for (const fRoom of friendlyRooms) {
             const distance = Game.map.findRoute(room.name, fRoom.name).length;
-            if (distance <= 2) return -Infinity; // Too close to allies
+            if (distance <= 2) return undefined; // Too close to allies
             score += this.friendlyRoomScoreAdjustment(distance);
             if (AVOID_ALLIED_SECTORS && sameSectorCheck(room.name, fRoom.name)) score -= 500;
         }
@@ -101,7 +102,7 @@ class ExpansionControl {
             return INTEL[r].user ? sum : sum + (INTEL[r].sources || 0);
         }, 0);
 
-        if (!sourceCount) return -Infinity;
+        if (!sourceCount) return undefined;
         score += sourceCount * 250;
 
         // Penalize swamp terrain
