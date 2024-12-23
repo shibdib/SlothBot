@@ -1005,14 +1005,8 @@ class TerminalControl {
             }
 
             // Check if order is in the sale terminal room
-            if (order.roomName !== Memory.saleTerminal.room) {
+            if (order.type === ORDER_SELL && order.roomName !== Memory.saleTerminal.room) {
                 this.cancelOrder(order, 'Not in the sale terminal room');
-                continue;
-            }
-
-            // Handle buy orders specifically in sale terminal room
-            if (order.type === ORDER_BUY && Memory.saleTerminal && order.roomName !== Memory.saleTerminal.room) {
-                this.cancelOrder(order, 'Buy order not in market room');
                 continue;
             }
 
