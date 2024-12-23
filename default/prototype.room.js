@@ -430,6 +430,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 
     // Controller data
     const controller = this.controller;
+    roomIntel.user = this.user;
     if (controller) {
         roomIntel.level = controller.level;
         roomIntel.owner = controller.owner ? controller.owner.username : undefined;
