@@ -209,15 +209,11 @@ let helpers = function () {
             const myRoom = Game.rooms[key];
             if (!myRoom || myRoom.controller.level < minLevel) continue;
 
-            let distance = Game.map.getRoomLinearDistance(roomName, myRoom.name);
+            let distance = 0;
 
-            // Only use pathfinding if the distance is greater than a threshold
-            if (distance > 25) {
-                // Only call shibRoute if the basic distance is large
-                const path = myRoom.shibRoute(roomName);
-                if (path) {
-                    distance = path.length;
-                }
+            const path = myRoom.shibRoute(roomName);
+            if (path) {
+                distance = path.length;
             }
 
             // If this room is closer, update the closest room and distance

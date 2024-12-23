@@ -16,6 +16,7 @@ class TerminalControl {
         this.tradeAmount = MINERAL_TRADE_AMOUNT;
         this.reactionAmount = REACTION_AMOUNT;
         this.spendingMoney = Memory._banker ? Memory._banker.spendingAccount : 0;
+        if (this.spendingMoney < 0) this.spendingMoney = 0;
     }
 
     run(room) {
