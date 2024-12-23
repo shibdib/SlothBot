@@ -612,7 +612,8 @@ Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, o
     // If there are no construction sites, we're in safe mode, or this is a friendly room, exit early.
     if (!this.room.constructionSites.length ||
         (this.room.controller && this.room.controller.safeMode) ||
-        _.includes(FRIENDLIES, INTEL[this.room.name].user)) {
+        _.includes(FRIENDLIES, INTEL[this.room.name].user) ||
+        _.includes(FRIENDLIES, INTEL[this.room.name].owner)) {
         return false;
     }
 
