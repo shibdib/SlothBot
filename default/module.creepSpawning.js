@@ -236,7 +236,6 @@ module.exports.miscCreepQueue = function (room) {
 
     // Static room info
     let level = getLevel(room);
-    let storageOrTerminal = room.storage || room.terminal;
     let hasConstructionSites = _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
 
     // Helper function to queue a creep if needed
@@ -254,7 +253,7 @@ module.exports.miscCreepQueue = function (room) {
     queueCreepIfNeeded('drone', dronePriority, droneNumber, {reboot: rebootDrone});
 
     // LabTech
-    if (storageOrTerminal && level >= 6) {
+    if (room.storage && level >= 6) {
         if (!getCreepCount(room, 'labTech')) {
             queueCreep(room, PRIORITIES.hauler, {role: 'labTech'});
         }
@@ -444,7 +443,7 @@ module.exports.remoteCreepQueue = function (room) {
                     if (!INTEL[remoteSource.room].threatLevel && !INTEL[remoteSource.room].sk) {
                         // Check if there's already a harvester assigned to this source
                         let assignedHarvester = _.find(Game.creeps, function (c) {
-                            return c.my && c.memory.other.source === sourceKey;
+                            return c.my && c.memory.other && c.memory.other.source === sourceKey;
                         });
                         // If no harvester is assigned, queue one
                         if (!assignedHarvester) {

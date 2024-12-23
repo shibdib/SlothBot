@@ -521,6 +521,9 @@ class RoleLabTech {
     storageControl() {
         const {storage, terminal} = this.room;
 
+        // If no storage return
+        if (!storage) return false;
+
         // Check if the terminal has capacity to receive resources
         if (terminal && _.sum(terminal.store) >= terminal.store.getCapacity() * 0.9) return false;
 
