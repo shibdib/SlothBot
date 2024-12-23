@@ -7,11 +7,10 @@ const highCommand = require('military.highCommand');
 const segments = require('module.segmentManager');
 const power = require('module.powerManager');
 const spawning = require('module.creepSpawning');
-const expansion = require('module.expansion');
+const ExpansionControl = require('module.expansion');
 const diplomacy = require('module.diplomacy');
 const HudControl = require('module.hud');
 const profiler = require('tools.profiler');
-const ObserverControl = require("./module.observerController");
 let buildingNotifications;
 let tickTracker = {};
 
@@ -78,7 +77,7 @@ class Hive {
     }
 
     expansionManager() {
-        expansion.claimNewRoom();
+        new ExpansionControl().run();
     }
 
     globalQueue() {
