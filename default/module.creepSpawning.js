@@ -549,13 +549,13 @@ module.exports.globalCreepQueue = function () {
 
             case 'rebuild':
                 if (!INTEL[key] || !INTEL[key].threatLevel) {
-                    if (getCreepCount(undefined, 'drone', key) < 8) {
+                    if (getCreepCount(undefined, 'drone', key) < _.min(6, MY_ROOMS.length * 3)) {
                         queueCreep(undefined, PRIORITIES.drone + getCreepCount(undefined, 'drone', key), {
                             role: 'drone',
                             destination: key
                         }, true);
                     }
-                } else if (INTEL[key].threatLevel && getCreepCount(undefined, 'longbow', key) < 2) {
+                } else if (INTEL[key].threatLevel && getCreepCount(undefined, 'longbow', key) < INTEL[key].threatLevel) {
                     queueCreep(undefined, priority, {
                         role: 'longbow',
                         destination: key,
