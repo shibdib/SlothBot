@@ -61,25 +61,46 @@ global.PROTECT_MINERAL = false; // Include mineral in the bunker algorithm
 global.PROTECT_SOURCES = false; // Include sources in the bunker algorithm
 
 // Signing and whatnot
-global.OWNED_ROOM_SIGNS = ["~~~ SlothBot ~~~"];
+global.OWNED_ROOM_SIGNS = [
+    "Managed by SlothBot",
+    "This Room is Under SlothBot's Watchful Gaze",
+    "Welcome to SlothBot's Domain",
+    "SlothBot's Territory"
+];
+
 global.RESERVE_ROOM_SIGNS = [
-    "~~RESTRICTED - Deadly Force Authorized - RESTRICTED~~",
-    "You Have Entered the Danger Zone. Good Luck.",
-    "Warning: Spaghetti Monsters Detected",
-    "Unauthorized Access Will Result in Immediate Confusion",
-    "Trespassers Will Be Surprised by Our Lethargy",
-    "Proceed at Your Own Peril - SlothBot Sleeps with One Eye Open"
+    "Protected Territory - Unauthorized Entry Prohibited",
+    "Enter at Your Own Risk - Security Measures in Place",
+    "Beware: Advanced Defense Systems Active",
+    "Private Property - Trespassing Will Be Met with Countermeasures",
+    "Hostile Environment - No Safe Passage",
+    "Warning: Experimental AI Surveillance",
+    "Proceed with Caution - Monitored Area",
+    "Beware: Automated Defenders on Patrol",
+    "Intruders Will Be Met with Aggression",
+    "Restricted Access",
+    "Tread Lightly - You Are on SlothBot's Watch List"
 ];
+
 global.EXPLORED_ROOM_SIGNS = [
-    "We Noticed - We Always Notice",
-    "SlothBot Was Here, And Also There, and Everywhere",
-    "We Know, But We’re Too Lazy to Act on It",
-    "We See You... Staring at Us Through Your Screen",
-    "We’re Watching, But It’s Probably Just a Glitch",
-    "SlothBot: We Explore, But Slowly",
-    "We’ve Seen Your Base, and We’re Not Impressed"
+    "Explored by SlothBot",
+    "SlothBot Surveillance",
+    "Your Moves Are Known",
+    "Observation Complete",
+    "SlothBot: Eyes Everywhere",
+    "SlothBot",
+    "SlothBot Knows",
+    "SlothBot Has Been Here",
+    "This Room's Secrets Are Now SlothBot's",
+    "We've Seen It All",
+    "SlothBot Has Explored Here"
 ];
-global.ATTACK_ROOM_SIGNS = ["~~ALL YOUR BASE BELONG TO ME~~"];
+
+global.ATTACK_ROOM_SIGNS = [
+    "SlothBot Declares War - Resistance is Futile",
+    "Surrender or Face the Wrath of SlothBot",
+    "SlothBot's Offensive - Slow but Inevitable"
+];
 
 // The boosts you want labs to focus on first (resources permitted)
 global.LAB_PRIORITY = [RESOURCE_GHODIUM, RESOURCE_CATALYZED_GHODIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_LEMERGIUM_ACID];
