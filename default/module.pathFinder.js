@@ -445,11 +445,11 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
                 // If room is under attack
                 if (INTEL[roomName] && INTEL[roomName].hostilePower > INTEL[roomName].friendlyPower && INTEL[roomName].tickDetected + 150 > Game.time) return 100;
                 // SK rooms are avoided if not being mined
-                if (INTEL[roomName].sk && INTEL[roomName].user !== MY_USERNAME) return 50;
+                if (INTEL[roomName].sk && INTEL[roomName].user !== MY_USERNAME) return 25;
             } else return 10;
             // Highway
-            if (highway) return 1;
-            return 2;
+            if (highway) return 5;
+            return 7;
         }
     });
     let path = [];
