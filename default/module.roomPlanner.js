@@ -288,31 +288,17 @@ function controllerBuilder(room) {
 function mineralBuilder(room) {
     let extractor = _.find(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR);
 
-    // Step 1: Handle the case where an extractor exists
     if (extractor) {
-        // Destroy thorium extractor when the mineral is depleted
-        if (!extractor.pos.checkForMineral()) {
-            return extractor.destroy();
-        }
-
         let extractorContainer = _.find(extractor.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
-
-        // Step 2: Create a container near the extractor if it doesn't exist
         if (!extractorContainer) {
             room.memory.extractorContainer = undefined;
             if (!_.find(extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)) {
                 createExtractorContainerSite(extractor, room);
             }
         } else {
-            // Step 3: Update memory with container ID based on resource type
-            if (Game.shard.name === 'shardSeason' && extractor.resourceType === RESOURCE_THORIUM) {
-                room.memory.thoriumContainer = extractorContainer.id;
-            } else {
-                room.memory.extractorContainer = extractorContainer.id;
-            }
+            room.memory.extractorContainer = extractorContainer.id;
         }
     } else {
-        // Step 4: Handle the case where no extractor exists
         handleMineralExtractorCreation(room);
     }
 
@@ -330,18 +316,8 @@ function mineralBuilder(room) {
 
     // Helper function to create an extractor for minerals
     function handleMineralExtractorCreation(room) {
-        let mineral = _.find(room.find(FIND_MINERALS), (m) => m.amount > 0);
-        if (!mineral) return;
-
-        // Handle thorium extractor on shardSeason
-        if (Game.shard.name === 'shardSeason' && mineral.resourceType === RESOURCE_THORIUM) {
-            if (!mineral.pos.checkForAllStructure() && !mineral.pos.checkForConstructionSites()) {
-                mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
-            }
-        } else {
-            if (!mineral.pos.checkForAllStructure() && !mineral.pos.checkForConstructionSites()) {
-                mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
-            }
+        if (!room.mineral.pos.checkForAllStructure() && !room.mineral.pos.checkForConstructionSites()) {
+            room.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
         }
     }
 }
