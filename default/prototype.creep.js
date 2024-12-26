@@ -523,6 +523,15 @@ Creep.prototype.haulerDelivery = function () {
         return true;
     }
 
+    // Top up towers if no other tasks
+    if (this.room.controller.level >= 3) {
+        const tower = _.find(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY);
+        if (tower) {
+            this.memory.storageDestination = tower.id;
+            return true;
+        }
+    }
+
     // No delivery action performed
     return false;
 };
