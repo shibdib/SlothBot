@@ -149,7 +149,7 @@ class RoleLabTech {
                 const nuke = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_NUKER && s.store.getFreeCapacity(RESOURCE_GHODIUM));
 
                 // Find a lab that requires a specific resource
-                const lab = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active === true &&
+                const lab = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB &&
                     (!s.mineralType || s.mineralType === resourceType) &&
                     (s.memory.neededBoost === resourceType || s.memory.itemNeeded === resourceType) &&
                     s.store.getFreeCapacity(s.memory.itemNeeded));
@@ -158,16 +158,19 @@ class RoleLabTech {
                 if (this.creep.memory.deliverTo) {
                     storeTarget = Game.getObjectById(this.creep.memory.deliverTo);
                 }
-                // Check if both terminal and storage are near full capacity
-                else if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
-                    (this.room.storage && (_.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()))) {
-                    storeTarget = 'drop';  // Discard resources if both are full
+                // Check if factory needs the resource
+                else if (this.room.factory && this.room.factory.memory.producing && COMMODITIES[this.room.factory.memory.producing].components[resourceType]) {
+                    storeTarget = this.room.factory;
                 }
                 // Prioritize lab or nuke if they need resources
                 else if (lab) {
                     storeTarget = lab;
                 } else if (nuke && this.creep.store[RESOURCE_GHODIUM]) {
                     storeTarget = nuke;
+                } // Check if both terminal and storage are near full capacity
+                else if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
+                    (this.room.storage && (_.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()))) {
+                    storeTarget = 'drop';  // Discard resources if both are full
                 }
                 // Handle various resource storage scenarios
                 else if (_.sum(this.room.storage.store) < this.room.storage.store.getCapacity()) {
