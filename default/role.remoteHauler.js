@@ -95,16 +95,19 @@ class RoleRemoteHauler {
         // If no destination, find one
         if (!this.creep.memory.energyDestination) {
             // Find an available harvester with enough energy
-            const harvester = _.find(Game.creeps, (c) =>
+            const harvester = _.filter(Game.creeps, (c) =>
                 c.my &&
                 c.memory.overlord === this.creep.memory.overlord &&
                 c.memory.role === 'remoteHarvester' &&
-                c.memory.energyAmount >= CONTAINER_CAPACITY * 0.25 &&
-                !_.find(Game.creeps, (h) => h.my && h.memory.energyDestination === c.memory.energyId)
+                c.memory.energyAmount &&
+                (!_.find(Game.creeps, (h) => h.my && h.memory.energyDestination === c.memory.energyId) ||
+                    c.memory.energyAmount >= CONTAINER_CAPACITY * 0.75)
             );
 
-            if (harvester && harvester.memory.energyId) {
-                this.creep.memory.energyDestination = harvester.memory.energyId;
+            if (harvester.length) harvester.sort((a, b) => a.memory.energyAmount - b.memory.energyAmount);
+
+            if (harvester[0] && harvester[0].memory.energyId) {
+                this.creep.memory.energyDestination = harvester[0].memory.energyId;
                 return;
             }
         }
@@ -115,7 +118,7 @@ class RoleRemoteHauler {
         }
 
         // If no resource destination is found, idle for a bit to avoid excessive CPU usage
-        this.creep.idleFor(15);
+        this.creep.idleFor(5);
     }
 }
 

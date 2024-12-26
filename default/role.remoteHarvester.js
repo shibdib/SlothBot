@@ -58,13 +58,13 @@ class RoleRemoteHarvester {
                         }
                         if (this.container && this.container.hits) {
                             if (this.creep.store[RESOURCE_ENERGY] && this.container.hits < this.container.hitsMax * 0.5) return this.creep.repair(this.container);
-                            if (_.sum(this.container.store) >= 1980) {
-                                if (this.creep.memory.assignedHauler && !Game.getObjectById(this.creep.memory.assignedHauler)) this.creep.memory.assignedHauler = undefined;
-                                this.creep.idleFor(20);
-                            } else if (_.sum(this.container.store) >= CONTAINER_CAPACITY * 0.75 && this.container.hits < this.container.hitsMax) {
+                            if (_.sum(this.container.store) >= CONTAINER_CAPACITY * 0.75 && this.container.hits < this.container.hitsMax) {
                                 this.creep.repair(this.container);
-                            } else if (_.sum(this.container.store) >= CONTAINER_CAPACITY) {
+                            } else if (_.sum(this.container.store) >= CONTAINER_CAPACITY * 0.95) {
+                                Game.rooms[this.creep.memory.overlord].memory.additionalRemoteHaulingNeeded = true;
                                 this.creep.idleFor(20);
+                            } else {
+                                Game.rooms[this.creep.memory.overlord].memory.additionalRemoteHaulingNeeded = undefined;
                             }
 
                             this.creep.memory.energyAmount = _.sum(this.container.store);
