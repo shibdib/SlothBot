@@ -437,27 +437,20 @@ module.exports.remoteCreepQueue = function (room) {
         let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
         if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 2) {
             let remoteSources;
-            // Parse the stringified object to a valid JavaScript object
+            // Parse the stringified object to a valid JavaScript object and filter
             remoteSources = JSON.parse(room.memory.remoteSources);
+            const acceptedScore = Math.max(REMOTE_DISTANCE_MAX, _.min(remoteSources, 'score').score);
+            remoteSources = _.filter(remoteSources, (s) => s.score <= acceptedScore && !_.find(Game.creeps, function (c) {
+                return c.my && c.memory.other && c.memory.other.source === s.source;
+            }));
             // Iterate through each source in the remoteSources object
-            for (let sourceKey in remoteSources) {
-                let remoteSource = remoteSources[sourceKey];
-                // Ensure each source has a score property to filter by
-                if (remoteSource.score <= REMOTE_DISTANCE_MAX) {
-                    if (!INTEL[remoteSource.room].threatLevel && !INTEL[remoteSource.room].sk) {
-                        // Check if there's already a harvester assigned to this source
-                        let assignedHarvester = _.find(Game.creeps, function (c) {
-                            return c.my && c.memory.other && c.memory.other.source === sourceKey;
-                        });
-                        // If no harvester is assigned, queue one
-                        if (!assignedHarvester) {
-                            queueCreep(room, PRIORITIES.remoteHarvester, {
-                                role: 'remoteHarvester',
-                                destination: remoteSource.room,
-                                other: {source: sourceKey}
-                            });
-                        }
-                    }
+            for (const source of remoteSources) {
+                if (!INTEL[source.room].threatLevel && !INTEL[source.room].sk) {
+                    queueCreep(room, PRIORITIES.remoteHarvester, {
+                        role: 'remoteHarvester',
+                        destination: source.room,
+                        other: {source: source.source}
+                    });
                 }
             }
         }
