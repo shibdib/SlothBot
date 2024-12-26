@@ -190,7 +190,7 @@ module.exports.essentialCreepQueue = function (room) {
                 haulerPriority = 1;
                 haulerReboot = true;
             }
-            let haulerAmount = room.energyState ? 2 : 1;
+            let haulerAmount = room.level > 5 ? 2 : 1;
             queueCreepIfNeeded('hauler', haulerPriority, haulerAmount, haulerReboot);
         }
 
@@ -198,6 +198,10 @@ module.exports.essentialCreepQueue = function (room) {
         let linkCount = _.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.hubLink && s.id !== room.memory.controllerLink).length;
         let shuttleAmount = 2 - linkCount;
         if (!room.memory.hubLink) shuttleAmount = 2;
+        // If there's a full container at a source we spawn another shuttle regardless of links
+        const fullContainer = _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER
+            && s.id !== s.room.memory.controllerContainer && s.store[RESOURCE_ENERGY] >= CONTAINER_CAPACITY * 0.9);
+        if (fullContainer) shuttleAmount += fullContainer.length;
         if (shuttleAmount > 0) {
             let shuttleReboot = !shuttleCount;
             queueCreepIfNeeded('shuttle', 1, shuttleAmount, shuttleReboot);
