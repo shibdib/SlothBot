@@ -120,9 +120,6 @@ class ModuleBodyGenerator {
                 // Check if roads are built and adjust movement accordingly
                 if (INTEL[this.room.name].roadsBuilt) halfMove = true;
 
-                // Adjust move based on halfMove (if roads are built, use less move)
-                move = halfMove ? Math.ceil(carry * 0.5) : Math.ceil(carry);
-
                 break;
 
             case 'shuttle':
@@ -210,9 +207,6 @@ class ModuleBodyGenerator {
                     rangedAttack = Math.min(rangedAttack, 32);  // Max rangedAttack to 32
                 }
 
-                // Calculate move parts based on attack and ranged attack parts
-                move = Math.floor((attack + rangedAttack) * 0.5);  // Ensure enough move to support both attack and rangedAttack
-
                 break;
 
             case 'longbow':
@@ -269,8 +263,6 @@ class ModuleBodyGenerator {
                     claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
                     claim = Math.min(claim, 20);  // Cap claim to 20 parts
                     halfMove = true;  // Indicate that half of the normal move cost is being used
-                } else {
-                    move = Math.max(1, claim);  // At least one MOVE part required, scaling with claim parts
                 }
                 break;
 
