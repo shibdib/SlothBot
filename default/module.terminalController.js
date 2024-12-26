@@ -315,7 +315,7 @@ class TerminalControl {
 
                 // Avoid duplicates for MMO
                 if (['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
-                    if (_.filter(myOrders, (o) => o.resourceType === mineral && o.type === ORDER_BUY).length) continue;
+                    if (_.filter(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY).length) continue;
 
                     price = getOrderPrice(mineral, this.latestMarketHistory(mineral));
                     buyAmount = Math.min(buyAmount, this.tradeAmount);
