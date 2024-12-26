@@ -572,8 +572,9 @@ module.exports.globalCreepQueue = function () {
             case 'commodity': // Commodity Mining
             case 'mineral': // Middle room mineral mining
                 const commoditySpace = operation.space || 1;
-                if (getCreepCount(undefined, 'commodityMiner', key) < commoditySpace) {
-                    queueCreep(undefined, priority, {role: 'commodityMiner', destination: key}, true);
+                if (getCreepCount(undefined, 'commodityMiner', key) < commoditySpace * 3) {
+                    queueCreep(undefined, priority + getCreepCount(undefined, 'commodityMiner', key),
+                        {role: 'commodityMiner', destination: key}, true);
                 }
                 break;
 
