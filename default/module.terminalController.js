@@ -301,10 +301,9 @@ class TerminalControl {
     }
 
     placeBuyOrders(terminal, globalOrders, myOrders) {
-
         // Iterate over minerals and handle orders
         for (let mineral of shuffle(BASE_MINERALS)) {
-            if (MY_MINERALS[mineral]) continue;
+            if (MY_MINERALS[mineral] || mineral === RESOURCE_ENERGY || mineral === RESOURCE_BATTERY) continue;
 
             let target = this.reactionAmount * MY_ROOMS.filter((r) => Game.rooms[r].terminal).length;
             let stored = getResourceTotal(mineral) + (getResourceTotal(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
@@ -322,11 +321,15 @@ class TerminalControl {
                     if (createBuyOrder(mineral, price, buyAmount)) break;
                 }
 
-                // On demand buy a small amount
-                let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral && order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName)), 'price');
-                if (sellOrder && sellOrder.price * buyAmount > this.spendingMoney) buyAmount = _.floor(this.spendingMoney / sellOrder.price);
+                console.log(mineral)
 
-                if (sellOrder && buyAmount >= 50) {
+                // On demand buy a small amount
+                let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral &&
+                    order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName) && order.price < this.latestMarketHistory(mineral).avg * 1.1), 'price');
+                console.log(sellOrder.id)
+                if (sellOrder.id && sellOrder.price * buyAmount > this.spendingMoney) buyAmount = _.floor(this.spendingMoney / sellOrder.price);
+
+                if (sellOrder.id && buyAmount >= 50) {
                     buyAmount = Math.min(buyAmount, sellOrder.amount, 1000);
                     if (Game.market.deal(sellOrder.id, buyAmount, terminal.room.name) === OK) {
                         log.w(`Bought ${buyAmount} ${mineral} for ${sellOrder.price * buyAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
@@ -344,6 +347,8 @@ class TerminalControl {
             // Buy boosts
             if (BUY_THESE_BOOSTS && BUY_THESE_BOOSTS.length) {
                 for (let mineral of shuffle(BUY_THESE_BOOSTS)) {
+                    const activeBuyOrder = _.some(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY)
+                    if (activeBuyOrder) continue;
                     let stored = getResourceTotal(mineral) || 0;
                     if (stored < BOOST_AMOUNT * (_.size(MY_ROOMS))) {
                         let buyAmount = BOOST_AMOUNT - stored;

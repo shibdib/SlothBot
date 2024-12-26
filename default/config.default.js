@@ -41,7 +41,7 @@ global.ATTACK_COOLDOWN = 4500; //Time between attacks on a room
 global.AVOID_ATTACKING_ALLIANCES = true; // Check LOAN and avoid attacking people in alliances
 
 // Market Settings
-global.BUY_ENERGY = true; // If true it will buy energy when above the buffer
+global.BUY_ENERGY = false; // If true it will buy energy when above the buffer
 global.BUY_ENERGY_CREDIT_BUFFER = 500000; // Stay above this to buy energy
 global.CREDIT_BUFFER = 10000; // Stay above this amount
 global.MINERAL_TRADE_AMOUNT = 10000;  // Hold this much of a mineral before selling
