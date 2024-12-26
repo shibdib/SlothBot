@@ -313,7 +313,7 @@ class TerminalControl {
                 let buyAmount = target - stored;
                 let price;
 
-                // Avoid duplicates for MMO
+                // Buy orders on mmo shards
                 if (['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
                     if (_.filter(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY).length) continue;
 
@@ -321,18 +321,19 @@ class TerminalControl {
                     buyAmount = Math.min(buyAmount, this.tradeAmount);
 
                     if (createBuyOrder(mineral, price, buyAmount)) break;
-                } else {
-                    let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral && order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName)), 'price');
-                    if (sellOrder && sellOrder.price * buyAmount > this.spendingMoney) buyAmount = _.floor(this.spendingMoney / sellOrder.price);
+                }
 
-                    if (sellOrder && buyAmount >= 50) {
-                        buyAmount = Math.min(buyAmount, sellOrder.amount, 2500);
-                        if (Game.market.deal(sellOrder.id, buyAmount, terminal.room.name) === OK) {
-                            log.w(`Bought ${buyAmount} ${mineral} for ${sellOrder.price * buyAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
-                            this.spendingMoney -= (sellOrder.price * buyAmount);
-                            log.w(`Remaining spending account amount - ${this.spendingMoney}`, "Market: ");
-                            break;
-                        }
+                // On demand buy a small amount
+                let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral && order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName)), 'price');
+                if (sellOrder && sellOrder.price * buyAmount > this.spendingMoney) buyAmount = _.floor(this.spendingMoney / sellOrder.price);
+
+                if (sellOrder && buyAmount >= 50) {
+                    buyAmount = Math.min(buyAmount, sellOrder.amount, 1000);
+                    if (Game.market.deal(sellOrder.id, buyAmount, terminal.room.name) === OK) {
+                        log.w(`Bought ${buyAmount} ${mineral} for ${sellOrder.price * buyAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
+                        this.spendingMoney -= (sellOrder.price * buyAmount);
+                        log.w(`Remaining spending account amount - ${this.spendingMoney}`, "Market: ");
+                        break;
                     }
                 }
             }
