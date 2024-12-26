@@ -521,10 +521,8 @@ function roadBuilder(room, layout) {
 }
 
 function rampartBuilder(room, layout = undefined, count = false) {
-    if (room.level < STRUCTURE_RAMPARTS) return; // Ensure ramparts can be built only in appropriate rooms
-
     // Build ramparts around sources, mineral, controller
-    if (room.level >= STRUCTURE_RAMPARTS) {
+    if (room.level >= SPECIAL_RAMPARTS) {
         buildProtectedRamparts(room);
     }
 
@@ -541,6 +539,16 @@ function rampartBuilder(room, layout = undefined, count = false) {
         }
         if (PROTECT_MINERAL) buildRampartAround(room.mineral.pos);
         if (PROTECT_CONTROLLER) buildRampartAround(room.controller.pos);
+        // Handle ramparts on protected structures
+        if (PROTECT_STRUCTURES) {
+            for (let structure of room.structures) {
+                if (protectedStructureTypes.includes(structure.structureType)) {
+                    if (!structure.pos.checkForRampart() && !structure.pos.checkForConstructionSites()) {
+                        structure.pos.createConstructionSite(STRUCTURE_RAMPART);
+                    }
+                }
+            }
+        }
     }
 
     function handleBunkerRamparts(room, layout, count) {
@@ -873,96 +881,6 @@ function findLabHub(room) {
         storedLabPos[room.name] = undefined;
         storedLabPossibles[room.name] = undefined;
         return log.a('Cannot find a lab hub in ' + room.name + '.');
-    }
-}
-
-function praiseRoom(room) {
-    // Abandon praise room at rcl8
-    if (room.controller.level === 8 || !BUILD_PRAISE_ROOMS) return abandonRoom(room.name);
-    // Build spawn, if the spawn exists make sure it has a rampart
-    let spawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN) || _.find(room.constructionSites, (s) => s.structureType === STRUCTURE_SPAWN);
-    if (!spawn) {
-        for (let xOff = -1; xOff <= 1; xOff++) {
-            for (let yOff = -1; yOff <= 1; yOff++) {
-                if (xOff !== 0 || yOff !== 0) {
-                    let pos = new RoomPosition(room.controller.pos.x + xOff, room.controller.pos.y + yOff, room.name);
-                    if (!pos.checkForImpassible() && pos.countOpenTerrainAround() >= 4 && pos.createConstructionSite(STRUCTURE_SPAWN)) return;
-                }
-            }
-        }
-    } else if (!spawn.pos.checkForRampart() && !spawn.pos.checkForConstructionSites()) spawn.pos.createConstructionSite(STRUCTURE_RAMPART);
-    // Bunker Ramparts
-    if (room.controller.level >= 2 && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length) {
-        if (!rampartSpots[room.name] || Math.random() > 0.98) {
-            // Delete old memory
-            room.memory.rampartSpots = undefined;
-            rampartSpots[room.name] = undefined;
-            let rect_array = [];
-            rect_array.push({
-                x1: spawn.pos.x - 4,
-                y1: spawn.pos.y - 4,
-                x2: spawn.pos.x + 4,
-                y2: spawn.pos.y + 4
-            });
-            let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
-            rampartSpots[room.name] = JSON.stringify(minCut.GetCutTiles(room.name, rect_array, bounds));
-        } else if (rampartSpots[room.name]) {
-            let buildPositions = JSON.parse(rampartSpots[room.name]);
-            for (let rampartPos of buildPositions) {
-                let pos = new RoomPosition(rampartPos.x, rampartPos.y, room.name);
-                if (!pos.isNearTo(room.controller) && !pos.isNearTo(room.mineral) && !pos.isNearTo(pos.findClosestByRange(FIND_SOURCES)) && ((isEven(pos.x) && isOdd(pos.y)) || (isOdd(pos.x) && isEven(pos.y))) && !pos.checkForBuiltWall() && !pos.checkForConstructionSites() && pos.isNearTo(pos.findClosestByRange(_.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART)))) {
-                    if (pos.checkForRampart()) pos.checkForRampart().destroy();
-                    if (pos.checkForRoad()) pos.checkForRoad().destroy();
-                    pos.createConstructionSite(STRUCTURE_WALL);
-                    break;
-                } else if (!pos.checkForRampart() && !pos.checkForBuiltWall() && !pos.checkForConstructionSites()) {
-                    pos.createConstructionSite(STRUCTURE_RAMPART);
-                    break;
-                } else if (pos.checkForBuiltWall() && pos.checkForRampart()) {
-                    pos.checkForRampart().destroy();
-                } else if (pos.checkForBuiltWall() && pos.checkForRoad()) {
-                    pos.checkForRoad().destroy();
-                }
-            }
-        }
-    }
-    // Tower
-    if (room.controller.level >= 3) {
-        let towers = _.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER);
-        let towerHub = room.mineral;
-        if (towers.length) towerHub = _.sample(towers);
-        //Build Towers
-        if (CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level] > towers.length && towerHub.pos.countOpenTerrainAround() > 1) {
-            for (let xOff = -1; xOff <= 1; xOff++) {
-                for (let yOff = -1; yOff <= 1; yOff++) {
-                    if (xOff !== 0 || yOff !== 0) {
-                        let pos = new RoomPosition(room.mineral.pos.x + xOff, room.mineral.pos.y + yOff, room.name);
-                        if (!pos.checkForImpassible() && pos.countOpenTerrainAround()) pos.createConstructionSite(STRUCTURE_TOWER);
-                    }
-                }
-            }
-        } else {
-            // Ramparts on Towers
-            towers.forEach(function (t) {
-                if (!t.pos.checkForRampart() && !t.pos.checkForConstructionSites()) t.pos.createConstructionSite(STRUCTURE_RAMPART)
-            })
-        }
-    }
-    // Terminal and Mineral
-    if (room.controller.level >= 6) {
-        // Build extractor
-        if (!room.mineral.pos.checkForAllStructure() && !room.mineral.pos.checkForConstructionSites()) room.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
-        // Build terminal
-        if (!room.terminal) {
-            for (let xOff = -1; xOff <= 1; xOff++) {
-                for (let yOff = -1; yOff <= 1; yOff++) {
-                    if (xOff !== 0 || yOff !== 0) {
-                        let pos = new RoomPosition(room.mineral.pos.x + xOff, room.mineral.pos.y + yOff, room.name);
-                        if (!pos.checkForImpassible() && pos.countOpenTerrainAround()) pos.createConstructionSite(STRUCTURE_TERMINAL);
-                    }
-                }
-            }
-        }
     }
 }
 
