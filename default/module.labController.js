@@ -85,7 +85,7 @@ class LabManager {
     }
 
     stopProduction(room, hub) {
-        log.a(room.name + ' is no longer producing ' + room.memory.producingBoost + ' due to production conditions.');
+        log.a(roomLink(room.name) + ' is no longer producing ' + room.memory.producingBoost + ' due to production conditions.');
         room.memory.producingBoost = undefined;
         this.primaryLabs[room.name] = undefined;
         hub.forEach(lab => lab.memory = undefined);
@@ -147,7 +147,7 @@ class LabManager {
     checkForInputs(room, boost) {
         let components = BOOST_COMPONENTS[boost];
         if (!components || components.length === 0) return false;
-        return components.every(input => room.store(input, true) >= 75);
+        return components.every(input => room.store(input, true) >= 150);
     }
 
     setupProduction(hub, boost, room) {
@@ -158,7 +158,7 @@ class LabManager {
             };
         });
         room.memory.producingBoost = boost;
-        log.a(room.name + ' queued ' + boost + ' for creation.');
+        log.a(roomLink(room.name) + ' queued ' + boost + ' for creation.');
     }
 
     cleanLabs(labs) {
