@@ -321,12 +321,9 @@ class TerminalControl {
                     if (createBuyOrder(mineral, price, buyAmount)) break;
                 }
 
-                console.log(mineral)
-
                 // On demand buy a small amount
                 let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral &&
                     order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName) && order.price < this.latestMarketHistory(mineral).avg * 1.1), 'price');
-                console.log(sellOrder.id)
                 if (sellOrder.id && sellOrder.price * buyAmount > this.spendingMoney) buyAmount = _.floor(this.spendingMoney / sellOrder.price);
 
                 if (sellOrder.id && buyAmount >= 50) {
