@@ -15,12 +15,6 @@ class TerminalControl {
     constructor() {
         this.tradeAmount = MINERAL_TRADE_AMOUNT;
         this.reactionAmount = REACTION_AMOUNT;
-        this.spendingMoney = Memory._banker ? Memory._banker.spendingAccount : 0;
-        // if below 0 or NaN, reset to 0
-        if (isNaN(this.spendingMoney) || this.spendingMoney < 0) {
-            this.spendingMoney = 0;
-            Memory._banker.spendingAccount = 0;
-        }
     }
 
     run(room) {
@@ -107,7 +101,7 @@ class TerminalControl {
             this.placeSellOrders(terminal, globalOrders, myOrders);
         }
 
-        if (this.spendingMoney > 0) {
+        if (Memory._banker.spendingAccount > 0) {
             if (this.dealFinder(terminal, globalOrders)) return;
         }
 
@@ -118,9 +112,9 @@ class TerminalControl {
 
     updateSpendingMoney() {
         if (Memory._banker) {
-            const maxSpending = Math.min(this.spendingMoney, Game.market.credits - (CREDIT_BUFFER * 1.1));
-            this.spendingMoney = _.floor(maxSpending, 1);
-            Memory._banker.spendingAccount = this.spendingMoney;
+            const maxSpending = Math.min(Memory._banker.spendingAccount, Game.market.credits - (CREDIT_BUFFER * 1.1));
+            Memory._banker.spendingAccount = _.floor(maxSpending, 1);
+            Memory._banker.spendingAccount = Memory._banker.spendingAccount;
         }
     }
 
@@ -324,14 +318,14 @@ class TerminalControl {
                 // On demand buy a small amount
                 let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral &&
                     order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName) && order.price < this.latestMarketHistory(mineral).avg * 1.1), 'price');
-                if (sellOrder.id && sellOrder.price * buyAmount > this.spendingMoney) buyAmount = _.floor(this.spendingMoney / sellOrder.price);
+                if (sellOrder.id && sellOrder.price * buyAmount > Memory._banker.spendingAccount) buyAmount = _.floor(Memory._banker.spendingAccount / sellOrder.price);
 
                 if (sellOrder.id && buyAmount >= 50) {
                     buyAmount = Math.min(buyAmount, sellOrder.amount, 1000);
                     if (Game.market.deal(sellOrder.id, buyAmount, terminal.room.name) === OK) {
                         log.w(`Bought ${buyAmount} ${mineral} for ${sellOrder.price * buyAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
-                        this.spendingMoney -= (sellOrder.price * buyAmount);
-                        log.w(`Remaining spending account amount - ${this.spendingMoney}`, "Market: ");
+                        Memory._banker.spendingAccount -= (sellOrder.price * buyAmount);
+                        log.w(`Remaining spending account amount - ${Memory._banker.spendingAccount}`, "Market: ");
                         break;
                     }
                 }
@@ -754,7 +748,7 @@ class TerminalControl {
 
         // Profit Estimation: calculate potential profit margin after transaction costs
         let buyAmount = sellOrder.amount;
-        let maxSpendAmount = this.spendingMoney * 0.1;
+        let maxSpendAmount = Memory._banker.spendingAccount * 0.1;
 
         // Adjust buyAmount based on available spending money
         if (sellOrder.price * buyAmount > maxSpendAmount) {
@@ -772,8 +766,8 @@ class TerminalControl {
         // Attempt the deal
         if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
             log.w(`Bought ${buyAmount} ${sellOrder.resourceType} for ${sellOrder.price * buyAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
-            this.spendingMoney -= (sellOrder.price * buyAmount);  // Deduct from the spending money account
-            log.w(`Remaining spending account: ${this.spendingMoney}`, "Market: ");
+            Memory._banker.spendingAccount -= (sellOrder.price * buyAmount);  // Deduct from the spending money account
+            log.w(`Remaining spending account: ${Memory._banker.spendingAccount}`, "Market: ");
 
             // Now look to sell the item for profit
             let sellOrderList = globalOrders.filter(order =>
@@ -791,8 +785,8 @@ class TerminalControl {
                     switch (Game.market.deal(sellOrderForProfit.id, sellAmount, terminal.pos.roomName)) {
                         case OK:
                             log.w(`Flipped ${sellAmount} ${sellOrder.resourceType} for ${sellOrderForProfit.price * sellAmount} credits. Profit: ${sellAmount * (sellOrderForProfit.price - sellOrder.price)} credits`, "Market: ");
-                            this.spendingMoney += sellAmount * sellOrderForProfit.price;
-                            log.w(`Updated spending account: ${this.spendingMoney}`, "Market: ");
+                            Memory._banker.spendingAccount += sellAmount * sellOrderForProfit.price;
+                            log.w(`Updated spending account: ${Memory._banker.spendingAccount}`, "Market: ");
                             return true;
                     }
                 }
@@ -826,8 +820,8 @@ class TerminalControl {
 
             if (orderResult === OK) {
                 log.w(`Placed Sell Order for ${sellAmount} Pixels at ${sellPrice} credits each.`, "Market: ");
-                this.spendingMoney += sellPrice * sellAmount;  // Update the spending account
-                log.w("New spending account amount - " + this.spendingMoney, "Market: ");
+                Memory._banker.spendingAccount += sellPrice * sellAmount;  // Update the spending account
+                log.w("New spending account amount - " + Memory._banker.spendingAccount, "Market: ");
                 return true;
             } else {
                 log.w("Failed to place Sell Order for Pixels.", "Market: ");
@@ -874,21 +868,21 @@ class TerminalControl {
             // Private server handling (excluding shard0-3)
             if (!['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
                 // Reinvest credits more aggressively when we're not on the public shard
-                this.spendingMoney = Math.max(Game.market.credits - CREDIT_BUFFER, 0); // Ensure spendingMoney is not negative
-                log.w(`New spending account amount (HOURLY UPDATE) - ${this.spendingMoney}`, "Market: ");
+                Memory._banker.spendingAccount = Math.max(Game.market.credits - CREDIT_BUFFER, 0); // Ensure spendingMoney is not negative
+                log.w(`New spending account amount (HOURLY UPDATE) - ${Memory._banker.spendingAccount}`, "Market: ");
             }
             // Cap spending money on official servers
-            else if (Game.market.credits > 150000 && this.spendingMoney > 150000) {
-                this.spendingMoney = 150000;
-                log.w(`New spending account amount (HOURLY UPDATE) - ${this.spendingMoney}`, "Market: ");
+            else if (Game.market.credits > 150000 && Memory._banker.spendingAccount > 150000) {
+                Memory._banker.spendingAccount = 150000;
+                log.w(`New spending account amount (HOURLY UPDATE) - ${Memory._banker.spendingAccount}`, "Market: ");
             }
             // Add 90% of the profit to spending account for the hour to aggressively reinvest
             else if (hourChange > 0) {
-                this.spendingMoney += hourChange * 0.9; // Keep more profit for re-investment
-                log.w(`New spending account amount (HOURLY UPDATE) - ${this.spendingMoney}`, "Market: ");
+                Memory._banker.spendingAccount += hourChange * 0.9; // Keep more profit for re-investment
+                log.w(`New spending account amount (HOURLY UPDATE) - ${Memory._banker.spendingAccount}`, "Market: ");
             } else {
-                this.spendingMoney += hourChange; // If no profit, just adjust with the change
-                log.w(`New spending account amount (HOURLY UPDATE) - ${this.spendingMoney}`, "Market: ");
+                Memory._banker.spendingAccount += hourChange; // If no profit, just adjust with the change
+                log.w(`New spending account amount (HOURLY UPDATE) - ${Memory._banker.spendingAccount}`, "Market: ");
             }
 
             // Track resources for profitable buys
@@ -907,8 +901,8 @@ class TerminalControl {
                             log.w(`Buying ${buyAmount} ${order.resourceType} for ${order.price} credits each.`, "Market: ");
                             if (Game.market.deal(order.id, buyAmount) === OK) {
                                 hourChange -= buyAmount * order.price;  // Deduct the purchase from the profit
-                                this.spendingMoney -= buyAmount * order.price;  // Deduct the purchase from the spending account
-                                log.w(`Bought ${buyAmount} ${order.resourceType} for ${buyAmount * order.price} credits. New spending account amount - ${this.spendingMoney}`, "Market: ");
+                                Memory._banker.spendingAccount -= buyAmount * order.price;  // Deduct the purchase from the spending account
+                                log.w(`Bought ${buyAmount} ${order.resourceType} for ${buyAmount * order.price} credits. New spending account amount - ${Memory._banker.spendingAccount}`, "Market: ");
                             }
                         }
                     }
@@ -923,10 +917,10 @@ class TerminalControl {
             profitTracking.lastInflux = Game.time;
 
             // Random influx when spending money is low
-            if (Game.market.credits > CREDIT_BUFFER && Math.random() > 0.5 && this.spendingMoney < 1000) {
+            if (Game.market.credits > CREDIT_BUFFER && Math.random() > 0.5 && Memory._banker.spendingAccount < 1000) {
                 const bankersCut = (Game.market.credits - CREDIT_BUFFER) * 0.9; // Keep 90% of the influx for buying
-                this.spendingMoney += bankersCut * 0.1; // Allocate 10% for more flexible spending
-                log.w(`New spending account amount (RANDOM INFLUX) - ${this.spendingMoney}`, "Market: ");
+                Memory._banker.spendingAccount += bankersCut * 0.1; // Allocate 10% for more flexible spending
+                log.w(`New spending account amount (RANDOM INFLUX) - ${Memory._banker.spendingAccount}`, "Market: ");
             }
         }
 
@@ -1096,12 +1090,12 @@ class TerminalControl {
                             let potentialProfit = (marketHistory.avg - order.price) * availableAmount;
                             let cost = order.price * availableAmount * 0.05; // 5% fee for extending order
 
-                            if (potentialProfit > cost && cost <= this.spendingMoney * 0.1) {
+                            if (potentialProfit > cost && cost <= Memory._banker.spendingAccount * 0.1) {
                                 // Extend only if profitable and we have funds
                                 if (Game.market.extendOrder(order.id, availableAmount) === OK) {
-                                    this.spendingMoney -= cost;
+                                    Memory._banker.spendingAccount -= cost;
                                     log.w(`Extended sell order ${order.id} by ${availableAmount} ${order.resourceType} in ${roomLink(order.roomName)}`, "Market: ");
-                                    log.w(`Remaining spending account amount - ${this.spendingMoney}`, "Market: ");
+                                    log.w(`Remaining spending account amount - ${Memory._banker.spendingAccount}`, "Market: ");
                                 }
                             }
                         }
