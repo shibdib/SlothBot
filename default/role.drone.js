@@ -66,6 +66,10 @@ class RoleDrone {
     jobManager() {
         // If under attack, waller else chance to be a waller
         if ((INTEL[this.room.name].threatLevel || this.creep.memory.currentTarget) && this.walling()) return;
+        // If already tasked out
+        if (this.creep.memory.task) {
+            if (this.taskedOut()) return;
+        }
         // If praiser needed praise
         if (this.upgrading()) return;
         // If builder needed build
@@ -80,6 +84,20 @@ class RoleDrone {
         else {
             this.creep.memory.task = undefined;
             this.creep.idleFor(5);
+        }
+    }
+
+    taskedOut() {
+        switch (this.creep.memory.task) {
+            case 'upgrade':
+                return this.upgrading();
+            case 'build':
+            case 'repair':
+                return this.building();
+            case 'haul':
+                return this.hauling();
+            case 'waller':
+                return this.walling();
         }
     }
 
@@ -195,7 +213,7 @@ class RoleDrone {
             let nukeSite, nukeRampart;
             let barrierStructures = _.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART ||
                 s.structureType === STRUCTURE_WALL) && !_.find(this.room.myCreeps, (c) => c.memory.currentTarget === s.id));
-            if (!barrierStructures.length || !this.room.controller || (this.room.controller.owner && this.room.controller !== MY_USERNAME)) return false;
+            if (!barrierStructures.length || !this.room.controller || (this.room.controller.owner && this.room.controller.owner.username !== MY_USERNAME)) return false;
             if (this.room.memory.nuke) {
                 nukeSite = _.filter(this.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5)[0];
                 nukeRampart = _.min(_.filter(barrierStructures, (s) => s.structureType === STRUCTURE_RAMPART && ((s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.hits < (NUKE_DAMAGE[1] * this.room.nukes.length) + 100000) || (s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) === 0 && s.hits < (NUKE_DAMAGE[0] * creep.room.nukes.length) + 100000))), 'hits');
@@ -222,14 +240,8 @@ class RoleDrone {
             } else if (nukeRampart && nukeRampart.id) {
                 this.creep.memory.currentTarget = nukeRampart.id;
             } else if (site) {
-                switch (this.creep.build(site)) {
-                    case OK:
-                        this.creep.memory._shibMove = undefined;
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        this.creep.shibMove(site, {range: 3})
-                }
-                this.creep.memory.task = "waller";
+                this.creep.memory.constructionSite = site.id;
+                this.creep.memory.task = "build";
                 return true;
             } else if (barrier.id) {
                 this.creep.memory.currentTarget = barrier.id;
