@@ -385,15 +385,15 @@ class RoleLabTech {
     }
 
     mineralHauler() {
-        // Find a container with minerals and valid conditions
+        // Find a container with resources besides energy
         const container = _.find(this.room.structures, (s) =>
-            s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) && s.pos.isNearTo(this.room.mineral)
+            s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.store[RESOURCE_ENERGY]
         );
 
         if (container) {
             // Assign the first available resource in the container to the creep's memory
             const resourceType = Object.keys(container.store).find(r => container.store.getUsedCapacity(r) >= container.store.getCapacity() * 0.25 ||
-                !this.room.mineral.mineralAmount);
+                !this.room.mineral.mineralAmount || (r !== RESOURCE_ENERGY && !container.pos.isNearTo(this.room.mineral)));
             if (resourceType) {
                 this.creep.memory.resourceNeeded = resourceType;
                 this.creep.memory.withdrawFrom = container.id;
