@@ -43,7 +43,7 @@ global.AVOID_ATTACKING_ALLIANCES = true; // Check LOAN and avoid attacking peopl
 // Market Settings
 global.BUY_ENERGY = true; // If true it will buy energy when above the buffer
 global.BUY_ENERGY_CREDIT_BUFFER = 500000; // Stay above this to buy energy
-global.CREDIT_BUFFER = 5000; // Stay above this amount
+global.CREDIT_BUFFER = 10000; // Stay above this amount
 global.MINERAL_TRADE_AMOUNT = 10000;  // Hold this much of a mineral before selling
 global.BOOST_TRADE_AMOUNT = 15000;  // Hold this much of a boost before selling
 global.REACTION_AMOUNT = 10000; // Minimum amount we aim for base minerals
