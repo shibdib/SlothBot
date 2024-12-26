@@ -313,10 +313,9 @@ class TerminalControl {
                 let buyAmount = target - stored;
                 let price;
 
+                const activeBuyOrder = _.some(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY)
                 // Buy orders on mmo shards
-                if (['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
-                    if (_.filter(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY).length) continue;
-
+                if (!activeBuyOrder && ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
                     price = getOrderPrice(mineral, this.latestMarketHistory(mineral));
                     buyAmount = Math.min(buyAmount, this.tradeAmount);
 
