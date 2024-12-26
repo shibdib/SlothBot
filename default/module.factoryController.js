@@ -110,12 +110,20 @@ class FactoryControl {
                 return;
             }
         }
+
+        // Fallback to battery production if nothing else and we are in energyState 2+
+        if (room.energyState > 2) {
+            this.setProduction(factory, RESOURCE_BATTERY, 'Falling Back To Producing Battery');
+        }
     }
 
     isValidProductionTarget(resource, room, factoryLevel) {
         const commodity = COMMODITIES[resource];
         if (!commodity) return false; // Commodity doesn't exist
         if (commodity.level && commodity.level !== factoryLevel) return false; // Factory level mismatch
+
+        // Always true for energy and battery as its production is handled separately
+        if ([RESOURCE_ENERGY, RESOURCE_BATTERY].includes(resource)) return true;
 
         // Check if we should produce based on current storage levels
         let productionThreshold = BASE_MINERALS.includes(resource) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
@@ -135,12 +143,7 @@ class FactoryControl {
     }
 
     checkStorageSpace(room) {
-        if (room.terminal && room.terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.02) {
-            return false;
-        } else if (room.storage && room.storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.02) {
-            return false;
-        }
-        return true;
+        return !(room.storage && room.storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1);
     }
 }
 
