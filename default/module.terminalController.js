@@ -316,17 +316,19 @@ class TerminalControl {
                 }
 
                 // On demand buy a small amount
-                let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral &&
-                    order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName) && order.price < this.latestMarketHistory(mineral).avg * 1.1), 'price');
-                if (sellOrder.id && sellOrder.price * buyAmount > Memory._banker.spendingAccount) buyAmount = _.floor(Memory._banker.spendingAccount / sellOrder.price);
+                if (stored < target * 0.25) {
+                    let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral &&
+                        order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName) && order.price < this.latestMarketHistory(mineral).avg * 1.1), 'price');
+                    if (sellOrder.id && sellOrder.price * buyAmount > Memory._banker.spendingAccount) buyAmount = _.floor(Memory._banker.spendingAccount / sellOrder.price);
 
-                if (sellOrder.id && buyAmount >= 50) {
-                    buyAmount = Math.min(buyAmount, sellOrder.amount, 1000);
-                    if (Game.market.deal(sellOrder.id, buyAmount, terminal.room.name) === OK) {
-                        log.w(`Bought ${buyAmount} ${mineral} for ${sellOrder.price * buyAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
-                        Memory._banker.spendingAccount -= (sellOrder.price * buyAmount);
-                        log.w(`Remaining spending account amount - ${Memory._banker.spendingAccount}`, "Market: ");
-                        break;
+                    if (sellOrder.id && buyAmount >= 50) {
+                        buyAmount = Math.min(buyAmount, sellOrder.amount, target * 0.3);
+                        if (Game.market.deal(sellOrder.id, buyAmount, terminal.room.name) === OK) {
+                            log.w(`Bought ${buyAmount} ${mineral} for ${sellOrder.price * buyAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
+                            Memory._banker.spendingAccount -= (sellOrder.price * buyAmount);
+                            log.w(`Remaining spending account amount - ${Memory._banker.spendingAccount}`, "Market: ");
+                            break;
+                        }
                     }
                 }
             }
