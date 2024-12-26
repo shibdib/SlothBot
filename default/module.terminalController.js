@@ -16,7 +16,11 @@ class TerminalControl {
         this.tradeAmount = MINERAL_TRADE_AMOUNT;
         this.reactionAmount = REACTION_AMOUNT;
         this.spendingMoney = Memory._banker ? Memory._banker.spendingAccount : 0;
-        if (this.spendingMoney < 0) this.spendingMoney = 0;
+        // if below 0 or NaN, reset to 0
+        if (isNaN(this.spendingMoney) || this.spendingMoney < 0) {
+            this.spendingMoney = 0;
+            Memory._banker.spendingAccount = 0;
+        }
     }
 
     run(room) {
@@ -108,6 +112,8 @@ class TerminalControl {
         }
 
         this.fillBuyOrders(terminal, globalOrders);
+
+        this.placeBuyOrders(terminal, globalOrders, myOrders)
     }
 
     updateSpendingMoney() {
@@ -168,7 +174,9 @@ class TerminalControl {
         if (Game.market.credits <= 0) return false; // Exit if no credits available
 
         for (let resourceType of Object.keys(terminal.store)) {
-            if (resourceType === RESOURCE_ENERGY) continue; // Skip ENERGY for selling
+            // Sell energy and battery only if we have a surplus
+            if ((resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) &&
+                terminal.room.totalEnergyState < 3 && !_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 1)) continue;
 
             let sellAmount = getSellAmount(terminal, resourceType);
             // Skip if no valid sell amount or if there's already an existing sell order
@@ -203,7 +211,10 @@ class TerminalControl {
 
         function getSellAmount(terminal, resourceType) {
             let sellAmount = terminal.store[resourceType];
-
+            // Energy and battery are handled separately
+            if (resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) {
+                _.min(terminal.room.store(resourceType), 10000);
+            } else
             // Handle base minerals and commodities
             if (_.includes(BASE_MINERALS.concat(BASE_COMMODITIES, BASE_COMPOUNDS), resourceType)) {
                 sellAmount = terminal.room.store(resourceType) - REACTION_AMOUNT;
@@ -293,7 +304,7 @@ class TerminalControl {
 
         // Iterate over minerals and handle orders
         for (let mineral of shuffle(BASE_MINERALS)) {
-            if (MY_MINERALS && MY_MINERALS.includes(mineral)) continue;
+            if (MY_MINERALS[mineral]) continue;
 
             let target = this.reactionAmount * MY_ROOMS.filter((r) => Game.rooms[r].terminal).length;
             let stored = getResourceTotal(mineral) + (getResourceTotal(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
@@ -390,13 +401,14 @@ class TerminalControl {
         let spareSpace = terminal.store.getFreeCapacity() + terminal.room.storage.store.getFreeCapacity();
         // Dynamically adjust credit buffer based on current market condition
         let dynamicBuffer = Math.max(CREDIT_BUFFER, Game.market.credits * 0.05);  // 5% of credits as buffer
-        if (spareSpace > STORAGE_CAPACITY * 0.1 && Game.market.credits > dynamicBuffer * 5) return false;
+        if (spareSpace > STORAGE_CAPACITY * 0.2 && Game.market.credits > dynamicBuffer * 5) return false;
 
         // Sort resources and filter based on relevance
         let sortedKeys = Object.keys(terminal.store).sort((a, b) => terminal.store[a] - terminal.store[b]);
 
         for (let resourceType of sortedKeys) {
-            if (resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) continue;
+            if ((resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) &&
+                terminal.room.totalEnergyState < 4 && !_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 1)) continue;
 
             let keepAmount = determineKeepAmount(resourceType);
             let sellAmount = Math.max(terminal.store[resourceType] - keepAmount, 0);
@@ -418,6 +430,7 @@ class TerminalControl {
         function determineKeepAmount(resourceType) {
             // Dynamically adjust based on market conditions and resource needs
             let keepAmount = DUMP_AMOUNT;
+            // If its energy or battery, keep a buffer
             if (_.includes(ALL_COMMODITIES, resourceType)) {
                 keepAmount = getDynamicKeepAmount(resourceType);
             }
@@ -465,8 +478,8 @@ class TerminalControl {
                 let result = Game.market.deal(buyer.id, sellAmount, terminal.pos.roomName);
                 if (result === OK) {
                     log.w(`${terminal.pos.roomName} Sell Off Completed - ${sellAmount} ${resourceType} for ${buyer.price * sellAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
-                    this.spendingMoney += (buyer.price * sellAmount) * 0.75;
-                    log.w(`New spending account amount - ${this.spendingMoney}`, "Market: ");
+                    Memory._banker.spendingAccount += (buyer.price * sellAmount) * 0.75;
+                    log.w(`New spending account amount - ${Memory._banker.spendingAccount}`, "Market: ");
                     return true;
                 }
             }
@@ -513,7 +526,7 @@ class TerminalControl {
 
         for (let resource of sortedKeys) {
             // Skip energy and handle it separately elsewhere
-            if (resource === RESOURCE_ENERGY) continue;
+            if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
 
             let keepAmount = determineKeepAmount(resource);
             let available = Math.max(terminal.room.store(resource) - keepAmount, 0);
@@ -598,7 +611,7 @@ class TerminalControl {
 
     balanceEnergy(terminal) {
         // Check if it's a good time to balance energy
-        if (INTEL[terminal.room.name].threatLevel || terminal.room.nukes.length || !terminal.room.energyState) return;
+        if (INTEL[terminal.room.name].threatLevel || terminal.room.nukes.length || terminal.room.totalEnergyState < 2) return;
 
         // Attempt to find a needy terminal in the room
         let needyTerminal = findNeedyTerminal(terminal);
@@ -621,11 +634,9 @@ class TerminalControl {
             // First, try to find needy terminals within the same criteria
             let needyTerminal = _.find(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL &&
                 r.room.name !== terminal.room.name &&
-                !r.room.energyState &&
-                (!r.room.store[RESOURCE_BATTERY] || !r.room.factory) &&
+                !r.room.totalEnergyState &&
                 (!usedTerminals[r.room.name] || usedTerminals[r.room.name].tick !== Game.time) &&
-                r.store.getFreeCapacity() &&
-                Game.market.calcTransactionCost(15000, terminal.room.name, r.room.name) < 1500);
+                r.store.getFreeCapacity() > 5000);
 
             if (!needyTerminal) {
                 // If no needy terminal found, check for allied needs
@@ -1012,8 +1023,14 @@ class TerminalControl {
             }
 
             // Check credit balance for buying
-            if (order.type === ORDER_BUY && currentCredits < 50) {
+            if (order.type === ORDER_BUY && currentCredits < CREDIT_BUFFER * 0.5) {
                 this.cancelOrder(order, 'Low credits');
+                continue;
+            }
+
+            // Check for buy orders of minerals we mine ourselves
+            if (order.type === ORDER_BUY && MY_MINERALS[order.resourceType]) {
+                this.cancelOrder(order, 'We can mine this ourselves');
                 continue;
             }
 
@@ -1035,8 +1052,14 @@ class TerminalControl {
 
             // Cancel energy orders if surplus detected
             if (order.resourceType === RESOURCE_ENERGY && _.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState > 1)) {
-                this.cancelOrder(order, 'Energy surplus detected');
-                continue;
+                if (order.type === ORDER_BUY && _.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState > 1)) {
+                    this.cancelOrder(order, 'Energy surplus detected');
+                    continue;
+                }
+                if (order.type === ORDER_SELL && _.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 1)) {
+                    this.cancelOrder(order, 'Energy shortage detected');
+                    continue;
+                }
             }
 
             // Cancel fulfilled orders
@@ -1057,19 +1080,32 @@ class TerminalControl {
                 if (terminal && terminal.store[order.resourceType] - order.remainingAmount > 1500) {
                     let availableAmount = terminal.store[order.resourceType] - order.remainingAmount;
                     let marketHistory = this.latestMarketHistory(order.resourceType);
-                    if (marketHistory && order.price < marketHistory.avg * 0.9) { // If current price is significantly below average
-                        let cost = order.price * availableAmount * 0.05;
-                        if (cost <= this.spendingMoney * 0.1) { // Ensure we only extend if it's a small fraction of our spending money
-                            if (Game.market.extendOrder(order.id, availableAmount) === OK) {
-                                this.spendingMoney -= cost;
-                                log.w(`Extended sell order ${order.id} by ${availableAmount} ${order.resourceType} in ${roomLink(order.roomName)}`, "Market: ");
-                                log.w(`Remaining spending account amount - ${this.spendingMoney}`, "Market: ");
-                            }
+
+                    if (marketHistory) {
+                        let currentPriceRatio = order.price / marketHistory.avg;
+                        let cancelThreshold = 0.85; // Cancel if price is 15% below average
+
+                        if (currentPriceRatio < cancelThreshold) {
+                            // If the price is significantly below market average, cancel the order
+                            this.cancelOrder(order, 'Price significantly below market average');
                         } else {
-                            this.cancelOrder(order, 'Insufficient funds for extension');
+                            // If not too far below average, consider extending if it's profitable
+                            let profitMargin = 1.05; // Expect at least 5% profit margin
+                            let potentialProfit = (marketHistory.avg - order.price) * availableAmount;
+                            let cost = order.price * availableAmount * 0.05; // 5% fee for extending order
+
+                            if (potentialProfit > cost && cost <= this.spendingMoney * 0.1) {
+                                // Extend only if profitable and we have funds
+                                if (Game.market.extendOrder(order.id, availableAmount) === OK) {
+                                    this.spendingMoney -= cost;
+                                    log.w(`Extended sell order ${order.id} by ${availableAmount} ${order.resourceType} in ${roomLink(order.roomName)}`, "Market: ");
+                                    log.w(`Remaining spending account amount - ${this.spendingMoney}`, "Market: ");
+                                }
+                            }
                         }
                     } else {
-                        this.cancelOrder(order, 'Current price not significantly below market average');
+                        // No market history available, consider canceling or keeping current strategy
+                        //this.cancelOrder(order, 'No recent market history for pricing decision');
                     }
                 }
             }
@@ -1099,11 +1135,15 @@ class TerminalControl {
                 }
             }
         }
+
+        function isOrderProfitable(order, marketHistory) {
+            return order.price >= marketHistory.lowest * 0.95;
+        }
     }
 
     cancelOrder(order, reason) {
         if (Game.market.cancelOrder(order.id) === OK) {
-            log.e(`Order Cancelled: ${order.id} - ${reason}`, 'MARKET: ');
+            log.e(`Order Cancelled: ${order.id} - ${order.resourceType} - ${reason}`, 'MARKET: ');
         }
     }
 }
