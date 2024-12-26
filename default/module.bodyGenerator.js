@@ -263,22 +263,15 @@ class ModuleBodyGenerator {
                 claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
                 claim = Math.min(claim, 20);  // Cap claim to 20 parts
 
-                // If there's an important construction, override claim with 1 (focus on building)
-                if (this.hasImportantConstruction()) {
-                    claim = 1;  // Set claim to 1 if there's an important construction
-                }
-
                 // If there are roads built in both the current room and the destination room
                 if (INTEL[this.creepInfo.destination] && INTEL[this.creepInfo.destination].roadsBuilt && INTEL[this.room.name].roadsBuilt) {
                     // Reduce the cost of MOVE parts by 50% if roads are built
                     claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
                     claim = Math.min(claim, 20);  // Cap claim to 20 parts
                     halfMove = true;  // Indicate that half of the normal move cost is being used
+                } else {
+                    move = Math.max(1, claim);  // At least one MOVE part required, scaling with claim parts
                 }
-
-                // Ensure that at least one MOVE part is present
-                move = Math.max(1, claim);  // At least one MOVE part required, scaling with claim parts
-
                 break;
 
             case 'remoteHarvester':
