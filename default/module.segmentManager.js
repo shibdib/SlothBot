@@ -117,7 +117,7 @@ function makeRequests() {
     // Base mineral requests && Boost requests
     if (Memory.saleTerminal && Game.rooms[Memory.saleTerminal.room] && Game.rooms[Memory.saleTerminal.room].terminal) {
         for (let resource of BASE_MINERALS) {
-            if (MY_MINERALS && !MY_MINERALS.includes(resource) && Game.rooms[Memory.saleTerminal.room].store(resource) < REACTION_AMOUNT * 3) {
+            if (!MY_MINERALS[resource] && Game.rooms[Memory.saleTerminal.room].store(resource) < REACTION_AMOUNT * 3) {
                 let priority = 0.1;
                 requestArray.push(
                     {

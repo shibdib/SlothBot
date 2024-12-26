@@ -114,7 +114,7 @@ class ExpansionControl {
         }
 
         // Score based on minerals
-        if (!MY_MINERALS.includes(room.mineral)) {
+        if (!MY_MINERALS[room.mineral]) {
             score += this.getMineralBonus(room.mineral);
         } else {
             score -= 1000;

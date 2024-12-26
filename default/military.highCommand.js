@@ -225,7 +225,7 @@ function auxiliaryOperations() {
         }
 
         // Mineral Mining (rooms with more than 3 sources and minerals)
-        let mineralRoom = _.find(initialFilter, (r) => !r.sk && r.sources >= 3 && r.mineralAmount && !MY_MINERALS.includes(r.mineral) && myRoomInSectorCheck(r.name));
+        let mineralRoom = _.find(initialFilter, (r) => !r.sk && r.sources >= 3 && r.mineralAmount && !MY_MINERALS[r.mineral] && myRoomInSectorCheck(r.name));
         if (mineralRoom && mineralRoom.name) {
             cache[mineralRoom.name] = {tick, type: 'mineral', level: 1, priority: PRIORITIES.medium};
             log.a(`Mining operation planned for ${roomLink(mineralRoom.name)} (Mineral Deposit Location)`, 'HIGH COMMAND: ');

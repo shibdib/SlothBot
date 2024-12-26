@@ -43,11 +43,12 @@ module.exports.setRoomState = function (room) {
         room.memory.energyPositive = average(energyIncomeArray) > 0;
         ROOM_ENERGY_INCOME_ARRAY[room.name] = energyIncomeArray;
 
-        // Efficient mineral tracking using an object for quick lookups
-        if (!global.MY_MINERALS) global.MY_MINERALS = {};
-        const mineralType = room.mineral.mineralType;
-        if (mineralType && !global.MY_MINERALS[mineralType]) {
-            global.MY_MINERALS[mineralType] = true; // Track unique minerals
+        // Track mined minerals
+        if (room.level >= 6) {
+            const mineralType = room.mineral.mineralType;
+            if (mineralType && !MY_MINERALS[mineralType]) {
+                MY_MINERALS[mineralType] = true; // Track unique minerals
+            }
         }
 
         // Stats tracking

@@ -122,7 +122,7 @@ let globals = function () {
     global.ROOM_HARVESTER_EXTENSIONS = CACHE.ROOM_HARVESTER_EXTENSIONS = {};
     global.ALLY_HELP_REQUESTS = CACHE.ALLY_HELP_REQUESTS = {};
     global.INTEL = CACHE.INTEL = {};
-    global.MY_MINERALS = CACHE.MY_MINERALS = [];
+    global.MY_MINERALS = CACHE.MY_MINERALS = {};
 
     // Set some diplo stuff
     global.ENEMIES = [];
