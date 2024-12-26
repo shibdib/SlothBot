@@ -130,13 +130,34 @@ Object.defineProperty(Room.prototype, 'impassibleStructures', {
 });
 
 Object.defineProperty(Room.prototype, 'energyState', {
-    get: function () {
+    get: function (batteries = false) {
         if (!this._energyState) {
             if (this.energy >= STORAGE_CAPACITY * 0.5) {
                 this._energyState = 3;
             } else if (this.energy >= STORAGE_CAPACITY * 0.2) {
                 this._energyState = 2;
             } else if (this.energy >= STORAGE_CAPACITY * 0.05 || (!this.storage && !this.terminal)) {
+                this._energyState = 1;
+            } else {
+                this._energyState = 0;
+            }
+        }
+        return this._energyState;
+    },
+    enumerable: false,
+    configurable: true
+});
+
+// Include batteries
+Object.defineProperty(Room.prototype, 'totalEnergyState', {
+    get: function () {
+        let energy = this.energy + ((this.store(RESOURCE_BATTERY) / 50) * 600);
+        if (!this._energyState) {
+            if (energy >= STORAGE_CAPACITY * 0.5) {
+                this._energyState = 3;
+            } else if (energy >= STORAGE_CAPACITY * 0.2) {
+                this._energyState = 2;
+            } else if (energy >= STORAGE_CAPACITY * 0.05 || (!this.storage && !this.terminal)) {
                 this._energyState = 1;
             } else {
                 this._energyState = 0;
