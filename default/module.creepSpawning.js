@@ -252,7 +252,7 @@ module.exports.miscCreepQueue = function (room) {
 
     // Drone Queueing
     let dronePriority = PRIORITIES.drone;
-    let droneNumber = !room.storage || hasConstructionSites ? 6 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] : 3 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level];
+    let droneNumber = !room.storage || hasConstructionSites ? 6 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] : room.energyState ? 4 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] : 1;
     let rebootDrone = room.friendlyCreeps.length <= 3;
     queueCreepIfNeeded('drone', dronePriority, droneNumber, {reboot: rebootDrone});
 
