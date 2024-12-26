@@ -21,6 +21,14 @@ function shibMove(creep, heading, options = {}) {
     // Store source keeper
     if (creep.memory.keeper) options.ignoreKeeper = creep.memory.keeper;
 
+    // Handle tow being set
+    if (creep.memory.towDestination && creep.memory.towCreep) {
+        let towCreep = Game.getObjectById(creep.memory.towCreep);
+        if (!towCreep) {
+            creep.memory.towCreep = undefined;
+        } else if (creep.pos.isNearTo(towCreep)) return;
+    }
+
     // Handle fatigue
     if (!creep.className && (creep.fatigue > 0 || !heading)) {
         if (!creep.memory.military) creep.idleFor(1);
@@ -89,14 +97,6 @@ function shibMove(creep, heading, options = {}) {
     // If a path exists, just execute
     if (creep.memory._shibMove && creep.memory._shibMove.path && creep.memory._shibMove.path.length && !options.getPath) {
         return executePath(creep, creep.memory._shibMove, options, origin, heading);
-    }
-
-    // Handle tow being set
-    if (creep.memory.towDestination && creep.memory.towCreep) {
-        let towCreep = Game.getObjectById(creep.memory.towCreep);
-        if (!towCreep) {
-            creep.memory.towCreep = undefined;
-        } else if (creep.pos.isNearTo(towCreep)) return;
     }
 
     // If tunneling up the ops
