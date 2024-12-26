@@ -759,7 +759,7 @@ function displayQueue(room) {
     let roomQueue = room.memory.creepQueue ? JSON.parse(room.memory.creepQueue) : {};
 
     // Update global queue only if conditions are right
-    if (_.size(globalQueue) && room.level >= 3 && !INTEL[room.name].threatLevel && !importantBuilds) {
+    if (_.size(globalQueue) && room.level >= 3 && room.energyState && !INTEL[room.name].threatLevel && !importantBuilds) {
         let operationQueue = JSON.parse(JSON.stringify(globalQueue));
 
         for (let key in operationQueue) {
