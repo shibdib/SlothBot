@@ -27,8 +27,6 @@ class RoleRoadBuilder {
         }
         // Checks
         if (!this.creep.memory.working) {
-            // Handle movement
-            if (this.creep.pos.roomName !== this.creep.memory.destination) return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 23});
             if (this.creep.isFull) return this.creep.memory.working = true;
             this.creep.memory.constructionSite = undefined;
             this.creep.memory.task = undefined;
@@ -66,6 +64,7 @@ class RoleRoadBuilder {
             this.creep.memory.harvest = undefined;
             if (this.creep.room.name !== this.creep.memory.overlord && this.remoteRoads(this.creep) === false) {
                 INTEL[this.creep.room.name].roadsBuilt = true;
+                INTEL[this.creep.room.name].roadCount = this.creep.room.structures.filter((s) => s.structureType === STRUCTURE_ROAD).length;
             } else INTEL[this.creep.room.name].roadsBuilt = undefined;
             if (this.creep.memory.constructionSite || this.creep.constructionWork()) {
                 if (!Game.getObjectById(this.creep.memory.constructionSite)) return this.creep.memory.constructionSite = undefined;
@@ -79,6 +78,10 @@ class RoleRoadBuilder {
 
     remoteRoads(creep) {
         if (creep.room.name !== creep.memory.destination || creep.room.constructionSites.length >= 2) return;
+        // If the intel cache says roads are built compare the road count
+        if (INTEL[creep.room.name].roadsBuilt) {
+            if (INTEL[creep.room.name].roadCount === creep.room.structures.filter((s) => s.structureType === STRUCTURE_ROAD).length) return true;
+        }
         let skLairs = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR);
         let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
         let homeExit = creep.room.find(goHome);
