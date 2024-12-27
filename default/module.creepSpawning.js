@@ -426,7 +426,7 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function handleRoadBuilder(room) {
-        if (getCreepCount(undefined, 'roadBuilder', room.name) < JSON.parse(remoteRoomTargets[room.name]).length * 0.5) {
+        if (!getCreepCount(undefined, 'roadBuilder', room.name)) {
             queueCreep(room, PRIORITIES.roadBuilder, {
                 role: 'roadBuilder', misc: JSON.parse(remoteRoomTargets[room.name])
             });
