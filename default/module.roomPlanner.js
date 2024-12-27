@@ -1055,7 +1055,8 @@ let protectedStructureTypes = [
     STRUCTURE_OBSERVER,
     STRUCTURE_LINK,
     STRUCTURE_EXTRACTOR,
-    STRUCTURE_LAB
+    STRUCTURE_LAB,
+    STRUCTURE_CONTAINER
 ];
 
 let bunkerTemplate = [
