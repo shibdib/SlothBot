@@ -145,6 +145,16 @@ class RoleRoadBuilder {
         return false;
     }
 
+    getCachedPath(key) {
+        let cache = this.creep.memory.pathCache && this.creep.memory.pathCache[key];
+        if (cache && typeof cache.path === 'string') {
+            return cache;
+        } else {
+            console.log('Invalid or missing cache for key:', key, 'Cache:', cache);
+            return null;
+        }
+    }
+
     buildRoadFromTo(start, end) {
         let key = this.getPathKey(start, end);
         let cachedPath = this.getCachedPath(key);
@@ -155,7 +165,7 @@ class RoleRoadBuilder {
             let path = this.findNewPath(start, end);
             if (path.length) {
                 this.cachePath(key, path);
-                return this.constructFromCachedPath(path);
+                return this.constructFromCachedPath(cachedPath.path); // This should now work as path was just cached
             }
         }
         return false;
@@ -165,30 +175,15 @@ class RoleRoadBuilder {
         return `${from.x}x${from.y}$${to.x}x${to.y}`;
     }
 
-    getCachedPath(key) {
-        let cache = this.creep.memory.pathCache && this.creep.memory.pathCache[key];
-        if (cache && typeof cache.path === 'string') {
-            try {
-                JSON.parse(cache.path);
-                return cache;
-            } catch (e) {
-                console.log(`Invalid path cache for key ${key}`, e);
-                delete this.creep.memory.pathCache[key];
-            }
-        }
-        return null;
-    }
-
     cachePath(key, path) {
         if (!this.creep.memory.pathCache) this.creep.memory.pathCache = {};
-        // Convert path to an array of directions
         let directions = path.map((point, index) => {
             if (index === 0) return null; // first point has no direction from previous
             let prev = path[index - 1];
             return this.getDirection(prev, point);
-        }).filter(d => d !== null).join(''); // Join directions into a string
+        }).filter(d => d !== null).join('');
         this.creep.memory.pathCache[key] = {
-            path: directions,
+            path: directions, // Ensure this is a string
             tick: Game.time
         };
     }
@@ -220,6 +215,11 @@ class RoleRoadBuilder {
     }
 
     constructFromCachedPath(pathString) {
+        if (typeof pathString !== 'string') {
+            console.log('Cached path is not a string:', pathString);
+            return false;
+        }
+
         let pos = this.creep.pos;
         let directions = pathString.split('');
         for (let dir of directions) {
