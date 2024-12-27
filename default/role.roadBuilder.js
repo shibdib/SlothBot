@@ -101,51 +101,64 @@ class RoleRoadBuilder {
     }
 
     buildRoadFromTo(room, start, end) {
-        let target;
         if (!room || !start || !end) return false;
-        if (end instanceof RoomPosition) target = end; else target = end.pos;
-        let path = this.getRoad(room, start.pos, target);
+        let target = end instanceof RoomPosition ? end : end.pos;
+        let path = this.getRoad(room, start, target); // No need for start.pos since start is already a position
+
         if (!path) {
-            path = start.pos.findPathTo(end, {
-                maxOps: 10000,
-                serialize: false,
-                ignoreCreeps: true,
-                maxRooms: 1,
-                costCallback: function (roomName, costMatrix) {
-                    let terrain = Game.map.getRoomTerrain(room.name);
-                    for (let y = 0; y < 50; y++) {
-                        for (let x = 0; x < 50; x++) {
-                            let tile = terrain.get(x, y);
-                            if (tile === 0) costMatrix.set(x, y, 15);
-                            if (tile === 1) {
-                                let tilePos = new RoomPosition(x, y, room.name);
-                                if (tilePos.findInRange(FIND_SOURCES, 1).length || tilePos.findInRange(FIND_MINERALS, 1).length) costMatrix.set(x, y, 256); else costMatrix.set(x, y, 235);
-                            }
-                            if (tile === 2) costMatrix.set(x, y, 15);
-                        }
-                    }
-                    for (let structures of room.structures) {
-                        if (_.includes(OBSTACLE_OBJECT_TYPES, structures.structureType)) {
-                            costMatrix.set(structures.pos.x, structures.pos.y, 256);
-                        } else if (structures.structureType === STRUCTURE_ROAD) {
-                            costMatrix.set(structures.pos.x, structures.pos.y, 1);
-                        } else if (structures.structureType === STRUCTURE_CONTAINER) {
-                            costMatrix.set(structures.pos.x, structures.pos.y, 71);
-                        }
-                    }
-                },
-            });
-            if (path.length) this.cacheRoad(room, start.pos, target, path); else return;
-            for (let point of path) {
-                let pos = new RoomPosition(point.x, point.y, room.name);
-                if (this.buildRoad(pos, room)) return true;
+            path = PathFinder.search(start, {pos: target, range: 1}, {
+                maxOps: 5000, // Reduced from 10000, since often you don't need that many operations
+                plainCost: 2, // Instead of using 15 for plains
+                swampCost: 10, // Instead of 235 for swamps; these are more standard costs
+                roomCallback: this.buildCostMatrix.bind(this, room.name)
+            }).path;
+
+            if (path.length) {
+                this.cacheRoad(room, start, target, path);
+            } else {
+                return false;
             }
         } else {
-            for (let point of JSON.parse(path)) {
-                let pos = new RoomPosition(point.x, point.y, room.name);
-                if (this.buildRoad(pos, room)) return true;
+            path = JSON.parse(path); // If path is cached, it will be a string
+        }
+
+        for (let point of path) {
+            let pos = new RoomPosition(point.x, point.y, room.name);
+            if (this.buildRoad(pos, room)) return true;
+        }
+
+        return false;
+    }
+
+    buildCostMatrix(roomName, costMatrix) {
+        if (!costMatrix) costMatrix = new PathFinder.CostMatrix();
+        let terrain = Game.map.getRoomTerrain(roomName);
+
+        for (let y = 0; y < 50; y++) {
+            for (let x = 0; x < 50; x++) {
+                let tile = terrain.get(x, y);
+                if (tile === TERRAIN_MASK_WALL) {
+                    costMatrix.set(x, y, 255); // Wall is impassable
+                } else {
+                    costMatrix.set(x, y, tile === TERRAIN_MASK_SWAMP ? 10 : 2); // Swamp or plain
+                }
             }
         }
+
+        let room = Game.rooms[roomName];
+        if (room) {
+            room.find(FIND_STRUCTURES).forEach(structure => {
+                if (_.includes(OBSTACLE_OBJECT_TYPES, structure.structureType)) {
+                    costMatrix.set(structure.pos.x, structure.pos.y, 255);
+                } else if (structure.structureType === STRUCTURE_ROAD) {
+                    costMatrix.set(structure.pos.x, structure.pos.y, 1);
+                } else if (structure.structureType === STRUCTURE_CONTAINER) {
+                    costMatrix.set(structure.pos.x, structure.pos.y, 15); // Changed from 71 to a lower cost
+                }
+            });
+        }
+
+        return costMatrix;
     }
 
     buildRoad(position, room) {
