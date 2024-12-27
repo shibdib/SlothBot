@@ -54,20 +54,6 @@ class RoleExplorer {
     }
 
     exploreRoom() {
-        // Sign the controller
-        if (this.room.controller && !this.room.controller.owner && !INTEL[this.room.name].obstructions) {
-            if ((SIGN_CLEANER || !this.room.controller.sign) && (!this.room.controller.sign || (this.room.controller.sign.username !== MY_USERNAME && this.room.controller.sign.username !== 'Screeps'))) {
-                // Else sign it
-                switch (this.creep.signController(this.room.controller, _.sample(EXPLORED_ROOM_SIGNS))) {
-                    case OK:
-                        this.creep.memory.destination = undefined;
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        this.creep.shibMove(this.room.controller);
-                }
-                return;
-            }
-        }
         this.creep.memory.destination = undefined;
         this.creep.memory.lastRoom = this.room.name;
     }
