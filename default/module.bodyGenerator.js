@@ -83,9 +83,6 @@ class ModuleBodyGenerator {
             case 'upgrader':
                 energyScaling = true;
 
-                let workScalingFactor = 0.4;
-                let carryScalingFactor = 0.1;
-
                 if (this.room.level < this.room.controller.level) {
                     work = 1;
                     carry = 1;
@@ -93,15 +90,15 @@ class ModuleBodyGenerator {
                 // If we have a storage we should have a stationary upgrader
                 else if (this.room.storage) {
                     work = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) / BODYPART_COST[WORK]) || 1;
-                    work = Math.min(work, 48); // Max work to 48
-                    if (this.level === 8) work = 15; // Special case for level 8, reduce work parts for efficiency
-                    carry = 1;  // Fixed carry part as we assume it's a stable setup for upgrading
+                    work = Math.min(work, 49); // Max work to 49
+                    if (this.level === 8) work = 15; // Special case for level 8
+                    carry = 1;  // Always have 1 carry part
                     move = 0;
                 }
                 else {
-                    work = Math.floor(this.energyAmount * workScalingFactor / BODYPART_COST[WORK]) || 1;
+                    work = Math.floor(this.energyAmount * 0.4 / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 5); // Max work to 5
-                    carry = Math.floor(this.energyAmount * carryScalingFactor / BODYPART_COST[CARRY]) || 1;
+                    carry = Math.floor(this.energyAmount * 0.1 / BODYPART_COST[CARRY]) || 1;
                     carry = Math.min(carry, 3); // Max carry to 3
 
                     // Half-move if the roads are built, to improve efficiency
@@ -344,7 +341,7 @@ class ModuleBodyGenerator {
         }
 
         // Calculate energy multiplier
-        let energyMulti = energyScaling && this.room.storage && this.room.energyState < 3 ? Math.max(0.05, this.room.energyState / 4) : 1;
+        let energyMulti = energyScaling && this.room.storage && this.room.totalEnergyState < 2 ? Math.max(0.05, this.room.totalEnergyState / 3) : 1;
 
         // Utility function to add body parts
         const addBodyParts = (count, part, array) => {
