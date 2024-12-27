@@ -112,7 +112,7 @@ class FactoryControl {
         }
 
         // Fallback to battery production if nothing else and we are in energyState 2+
-        if (room.energyState > 2) {
+        if (room.energyState > 3) {
             this.setProduction(factory, RESOURCE_BATTERY, 'Falling Back To Producing Battery');
         }
     }
