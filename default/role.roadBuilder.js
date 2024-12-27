@@ -134,7 +134,6 @@ class RoleRoadBuilder {
     buildFromStructures(homeExit) {
         let structures = [
             ...this.creep.room.impassibleStructures.filter(s => s.structureType === STRUCTURE_KEEPER_LAIR),
-            this.creep.room.find(FIND_MINERALS)[0],
             this.creep.room.controller
         ].filter(Boolean);
 
