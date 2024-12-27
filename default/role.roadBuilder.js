@@ -80,7 +80,7 @@ class RoleRoadBuilder {
         if (creep.room.name !== creep.memory.destination || creep.room.constructionSites.length >= 2) return;
         // If the intel cache says roads are built compare the road count
         if (INTEL[creep.room.name].roadsBuilt) {
-            if (INTEL[creep.room.name].roadCount === creep.room.structures.filter((s) => s.structureType === STRUCTURE_ROAD).length) return true;
+            if (INTEL[creep.room.name].roadCount <= creep.room.structures.filter((s) => s.structureType === STRUCTURE_ROAD).length) return true;
         }
         let skLairs = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR);
         let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
@@ -106,14 +106,13 @@ class RoleRoadBuilder {
     buildRoadFromTo(room, start, end) {
         if (!room || !start || !end) return false;
         let target = end instanceof RoomPosition ? end : end.pos;
-        let path = this.getRoad(room, start, target); // No need for start.pos since start is already a position
-
+        let path = this.getRoad(room, start, target);
         if (!path) {
-            path = PathFinder.search(start, {pos: target, range: 1}, {
-                maxOps: 5000, // Reduced from 10000, since often you don't need that many operations
-                plainCost: 2, // Instead of using 15 for plains
-                swampCost: 10, // Instead of 235 for swamps; these are more standard costs
-                roomCallback: this.buildCostMatrix.bind(this, room.name)
+            path = PathFinder.search(start.pos, {pos: target, range: 1}, {
+                heuristicWeight: 0.8,
+                roomCallback: function () {
+                    return buildCostMatrix(room.name);
+                }
             }).path;
 
             if (path.length) {
@@ -131,37 +130,6 @@ class RoleRoadBuilder {
         }
 
         return false;
-    }
-
-    buildCostMatrix(roomName, costMatrix) {
-        if (!costMatrix) costMatrix = new PathFinder.CostMatrix();
-        let terrain = Game.map.getRoomTerrain(roomName);
-
-        for (let y = 0; y < 50; y++) {
-            for (let x = 0; x < 50; x++) {
-                let tile = terrain.get(x, y);
-                if (tile === TERRAIN_MASK_WALL) {
-                    costMatrix.set(x, y, 255); // Wall is impassable
-                } else {
-                    costMatrix.set(x, y, tile === TERRAIN_MASK_SWAMP ? 10 : 2); // Swamp or plain
-                }
-            }
-        }
-
-        let room = Game.rooms[roomName];
-        if (room) {
-            room.find(FIND_STRUCTURES).forEach(structure => {
-                if (_.includes(OBSTACLE_OBJECT_TYPES, structure.structureType)) {
-                    costMatrix.set(structure.pos.x, structure.pos.y, 255);
-                } else if (structure.structureType === STRUCTURE_ROAD) {
-                    costMatrix.set(structure.pos.x, structure.pos.y, 1);
-                } else if (structure.structureType === STRUCTURE_CONTAINER) {
-                    costMatrix.set(structure.pos.x, structure.pos.y, 15); // Changed from 71 to a lower cost
-                }
-            });
-        }
-
-        return costMatrix;
     }
 
     buildRoad(position, room) {
@@ -184,14 +152,11 @@ class RoleRoadBuilder {
     }
 
     getRoad(room, from, to) {
-        if (room.memory._roadCache) room.memory._roadCache = undefined;
         let cache = ROAD_CACHE[room.name] || undefined;
         if (!cache) return;
         let cachedPath = cache[getPathKey(from, to)];
         if (cachedPath) {
             return cachedPath.path;
-        } else {
-
         }
     }
 }
@@ -205,4 +170,42 @@ function getPathKey(from, to) {
 
 function getPosKey(pos) {
     return pos.x + 'x' + pos.y;
+}
+
+
+let roomMatrix = {};
+
+function buildCostMatrix(roomName) {
+    if (roomMatrix[roomName]) return roomMatrix[roomName];
+    let costMatrix = new PathFinder.CostMatrix();
+    let terrain = Game.map.getRoomTerrain(roomName);
+
+    for (let y = 0; y < 50; y++) {
+        for (let x = 0; x < 50; x++) {
+            let tile = terrain.get(x, y);
+            if (tile === TERRAIN_MASK_WALL) {
+                costMatrix.set(x, y, 200);
+            } else if (tile === TERRAIN_MASK_SWAMP) {
+                costMatrix.set(x, y, 50);
+            } else {
+                costMatrix.set(x, y, 25);
+            }
+        }
+    }
+
+    let room = Game.rooms[roomName];
+    if (room) {
+        room.find(FIND_STRUCTURES).forEach(structure => {
+            if (structure.structureType === STRUCTURE_ROAD) {
+                costMatrix.set(structure.pos.x, structure.pos.y, 1);
+            } else if (structure.structureType === STRUCTURE_CONTAINER) {
+                costMatrix.set(structure.pos.x, structure.pos.y, 15);
+            } else if (_.includes(OBSTACLE_OBJECT_TYPES, structure.structureType)) {
+                costMatrix.set(structure.pos.x, structure.pos.y, 255);
+            }
+        });
+    }
+
+    roomMatrix[roomName] = costMatrix;
+    return roomMatrix[roomName];
 }

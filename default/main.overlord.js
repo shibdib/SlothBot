@@ -82,7 +82,7 @@ class Overlord {
     handleCreepError(creep, e) {
         errorCount[creep.name] = (errorCount[creep.name] || 0) + 1;
 
-        if (errorCount[creep.name] >= 10) {
+        if (errorCount[creep.name] >= 9999999999) {
             log.e(`${creep.name} encountered repeated errors and has been terminated.`);
             log.e(e.stack);
             log.e(JSON.stringify(creep.memory));
