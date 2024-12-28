@@ -35,7 +35,7 @@ function handleRepairTowerActions(room, repairTower) {
         return roomRepairTower[room.name] = undefined;
     }
     // Check if room is in a state where we can repair
-    if (repairTower && room.energyState && repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.25) {
+    if (repairTower && repairTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.25) {
         roomRepairTower[room.name] = repairTower.id;
 
         let woundedCreep = findWoundedCreep(room);
@@ -44,7 +44,7 @@ function handleRepairTowerActions(room, repairTower) {
         // Perform healing or repair
         if (woundedCreep) {
             repairTower.heal(woundedCreep);
-        } else if (degradingStructure) {
+        } else if (room.energyState && degradingStructure) {
             repairTower.repair(degradingStructure);
         }
     }
