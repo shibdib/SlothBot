@@ -229,7 +229,8 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
 Creep.prototype.findClosestHostileStructure = function (barriers = true) {
     // Cache hostile structures and filter out friendly ones
     const hostileStructures = _.filter(this.room.impassibleStructures, (s) =>
-        (!s.owner || !FRIENDLIES.includes(s.owner.username)) || s.structureType === STRUCTURE_WALL
+        ((!s.owner || !FRIENDLIES.includes(s.owner.username)) || s.structureType === STRUCTURE_WALL) &&
+        ![STRUCTURE_KEEPER_LAIR, STRUCTURE_CONTROLLER, STRUCTURE_POWER_BANK].includes(s.structureType)
     );
 
     // Return undefined if no hostile structures
@@ -252,7 +253,8 @@ Creep.prototype.findClosestHostileStructure = function (barriers = true) {
     // Pre-filter all structures for later use (eliminating unnecessary checks)
     const structures = _.filter(this.room.structures, (s) =>
         !s.owner || !FRIENDLIES.includes(s.owner.username) &&
-        s.hits && ![STRUCTURE_POWER_BANK, STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_INVADER_CORE, STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_PORTAL].includes(s.structureType)
+        s.hits && ![STRUCTURE_POWER_BANK, STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_INVADER_CORE,
+            STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_PORTAL].includes(s.structureType)
     );
 
     // Check for barriers like walls and ramparts
