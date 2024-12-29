@@ -10,7 +10,9 @@ let rampartSpots = {};
 let tickTracker = {};
 
 module.exports.buildRoom = function (room) {
-    // Only run once per tick
+    // Check if this module has run yet this tick
+    if (!shouldRunAtAll()) return;
+
     let lastRun = tickTracker[room.name] || {};
 
     // Ensure the room has a bunker hub
@@ -19,15 +21,18 @@ module.exports.buildRoom = function (room) {
         if (shouldRunLayout(lastRun)) {
             buildMissingStructures(room);
             lastRun.layout = Game.time + _.random(50, 100);
+            tickTracker['last'] = Game.time + 5;
         }
         // Check if auxiliary buildings need to be built
         else if (shouldRunAuxiliary(lastRun)) {
             buildAuxiliaryStructures(room);
             lastRun.auxiliary = Game.time + _.random(50, 100);
+            tickTracker['last'] = Game.time + 5;
         }
     } else {
         // Find hub if not already found
         findHub(room);
+        tickTracker['last'] = Game.time + 5;
     }
 
     // Update tick tracker
@@ -35,6 +40,11 @@ module.exports.buildRoom = function (room) {
 };
 
 // Helper functions
+function shouldRunAtAll() {
+    let overallLastRun = tickTracker['last'] || 0;
+    return overallLastRun < Game.time;
+}
+
 function shouldRunLayout(lastRun) {
     return (lastRun.layout || 0) < Game.time;
 }
