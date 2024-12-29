@@ -54,7 +54,7 @@ global.DUMP_AMOUNT = 40000; // Fills buys (or if overflowing it will offload to 
 
 // Room Ramparts
 global.BUNKER_LEVEL = 4; // What level do we start building the bunker
-global.SPECIAL_RAMPARTS = 6; // What level do we build ramparts on important structures/controller/sources
+global.SPECIAL_RAMPARTS = 8; // What level do we build ramparts on important structures/controller/sources
 global.RAMPARTS_ONLY = true; // Only build ramparts and not a checkered pattern
 global.PROTECT_STRUCTURES = true; // Rampart significant structures
 global.PROTECT_CONTROLLER = false; // Include controller in the bunker algorithm
