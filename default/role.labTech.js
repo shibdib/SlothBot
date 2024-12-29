@@ -173,7 +173,7 @@ class RoleLabTech {
                     storeTarget = 'drop';  // Discard resources if both are full
                 }
                 // Handle various resource storage scenarios
-                else if (_.sum(this.room.storage.store) < this.room.storage.store.getCapacity()) {
+                else if (this.room.storage && _.sum(this.room.storage.store) < this.room.storage.store.getCapacity()) {
                     if (this.room.terminal && _.sum(this.room.terminal.store) >= 0.90 * this.room.terminal.store.getCapacity()) storeTarget = this.room.storage;
                     else if (resourceType === RESOURCE_POWER) storeTarget = terminal;
                     else if (resourceType === RESOURCE_ENERGY && terminal.store[resourceType] < TERMINAL_ENERGY_BUFFER) storeTarget = terminal;
@@ -197,8 +197,11 @@ class RoleLabTech {
                 }
 
                 // Set memory for store target and delivery resource
-                this.creep.memory.storeTarget = storeTarget.id;
-                this.creep.memory.deliveryResource = resourceType;
+                if (storeTarget) {
+                    this.creep.memory.storeTarget = storeTarget.id;
+                    this.creep.memory.deliveryResource = resourceType;
+                    break;
+                }
             }
         }
         // If store target and resource are already set, transfer the resource
