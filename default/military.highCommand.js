@@ -8,9 +8,10 @@ module.exports.highCommand = function () {
     // Check for flags
     if (_.size(Game.flags)) manualAttacks();
     OPERATION_LIMIT = _.filter(MY_ROOMS, (r) => Game.rooms[r].energyState && Game.rooms[r].level === MAX_LEVEL).length + 1;
-    if (!Memory.nonCombatRooms) Memory.nonCombatRooms = [];
-    if (!Memory.targetRooms) Memory.targetRooms = {};
-    if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
+    // Handle memory initialization
+    if (!Memory.nonCombatRooms || !Memory.nonCombatRooms instanceof Array) Memory.nonCombatRooms = [];
+    if (!Memory.targetRooms || !Memory.targetRooms instanceof Object) Memory.targetRooms = {};
+    if (!Memory.auxiliaryTargets || !Memory.auxiliaryTargets instanceof Object) Memory.auxiliaryTargets = {};
     // Update harasser targets
     Memory.harassTargets = _.filter(Object.keys(Memory._userList), (r) => !_.includes(FRIENDLIES, r) && _.includes(THREATS, r) && userStrength(r) <= MAX_LEVEL);
     // Manage dispatching responders
@@ -258,28 +259,10 @@ function manageResponseForces() {
         // Return the highest priority target based on threat levels and distances
         let potentialTargets = [];
 
-        // Add owned room attacks
-        let ownedRoomAttack = _.findKey(INTEL, (r) => r.owner && r.owner === MY_USERNAME && (r.lastPlayerSighting + 25 > Game.time || Game.rooms[r.name].memory.requestingSupport));
-        if (ownedRoomAttack) {
-            potentialTargets.push({type: 'ownedRoomAttack', room: ownedRoomAttack, priority: 10});
-        }
-
-        // Add invader core threat
-        let invaderCore = _.findKey(INTEL, (r) => !r.sk && !r.towers && r.invaderCore && (!r.responseDispatched || r.responseDispatched + 50 < Game.time) && findClosestOwnedRoom(r.name, true) <= 3);
-        if (invaderCore) {
-            potentialTargets.push({type: 'invaderCore', room: invaderCore, priority: 9});
-        }
-
-        // Add response to high threat rooms
-        let responseTargets = _.max(_.filter(INTEL, (r) => r.threatLevel && r.friendlyPower <= r.hostilePower * 1.2 && !r.sk && r.user === MY_USERNAME && r.lastInvaderCheck + 550 >= Game.time && findClosestOwnedRoom(r.name, true) <= 3), '.threatLevel');
-        if (responseTargets && responseTargets.name) {
-            potentialTargets.push({type: 'responseTarget', room: responseTargets.name, priority: 8});
-        }
-
-        // Add unarmed visitor rooms
-        let unarmedVisitors = _.findKey(INTEL, (r) => r.numberOfHostiles && !r.sk && r.user === MY_USERNAME && (!r.hostilePower || r.hostilePower <= 5) && r.lastInvaderCheck + 550 >= Game.time && (!r.responseDispatched || r.responseDispatched + 100 < Game.time) && findClosestOwnedRoom(r.name, true) <= 3);
-        if (unarmedVisitors) {
-            potentialTargets.push({type: 'unarmedVisitors', room: unarmedVisitors, priority: 7});
+        // Support requested
+        let requestingSupport = _.findKey(INTEL, (r) => r.requestingSupport && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
+        if (requestingSupport) {
+            potentialTargets.push({type: 'ownedRoomAttack', room: requestingSupport, priority: 10});
         }
 
         // Add guard duty rooms
