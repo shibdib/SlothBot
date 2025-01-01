@@ -107,7 +107,7 @@ class Hive {
     }
 
     overlordManager() {
-        const rooms = [...MY_ROOMS]; // Cache rooms to avoid global lookups
+        const rooms = shuffle([...MY_ROOMS]); // Cache rooms to avoid global lookups
 
         for (const roomName of rooms) {
             const room = Game.rooms[roomName];
