@@ -302,8 +302,6 @@ Creep.prototype.findClosestHostileStructure = function (barriers = true) {
  * @returns {boolean}
  */
 Creep.prototype.attackHostile = function (hostile) {
-    if (!this.room.hostileCreeps.length) return false; // No hostile creeps, do nothing
-
     let range = this.pos.getRangeTo(hostile);
     let lastRange = this.memory.lastRange || range;
     this.memory.lastRange = range;
@@ -337,13 +335,13 @@ Creep.prototype.attackHostile = function (hostile) {
     if (this.hasActiveBodyparts(ATTACK)) {
         if (range === 1) {
             this.attack(hostile);
-            this.shibMove(moveTarget, {ignoreCreeps: false, range: 0});
+            if (hostile instanceof Creep) this.move(this.pos.getDirectionTo(hostile));
             return true;
         }
 
         if (range > 1) {
-            if (hostile instanceof Creep && Math.random() > 0.3 && range >= lastRange && range <= 4 &&
-                hostile.hasActiveBodyparts(RANGED_ATTACK) && this.hits < this.hitsMax * 0.95) {
+            if (hostile instanceof Creep && range >= lastRange &&
+                hostile.hasActiveBodyparts(RANGED_ATTACK) && this.hits < this.hitsMax * 0.8) {
                 this.memory.kiteCount = this.memory.kiteCount || 1;
 
                 if (this.memory.kiteCount > 5 || this.hits < this.hitsMax * 0.5) {
@@ -356,6 +354,7 @@ Creep.prototype.attackHostile = function (hostile) {
                 }
                 return true;
             }
+            this.shibMove(moveTarget, {ignoreCreeps: false, range: 1});
             return true;
         }
     }
@@ -521,7 +520,7 @@ Creep.prototype.fightRanged = function (target) {
 
             // Decide on movement post-attack
             if (!shouldKite(target)) {
-                creep.shibMove(target, {range: 1, ignoreCreeps: false});
+                creep.shibMove(target, {range: 3, ignoreCreeps: false});
             }
         } else {
             creep.say('BURN!', true);
