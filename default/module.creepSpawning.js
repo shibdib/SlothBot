@@ -329,7 +329,9 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     // Handle remote harvesters if remote sources are available
-    handleRemoteHarvesters(room);
+    if (!room.memory.noRemote) {
+        handleRemoteHarvesters(room);
+    }
 
     // Handle remote haulers if needed
     handleRemoteHaulers(room);

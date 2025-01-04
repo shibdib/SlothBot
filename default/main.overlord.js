@@ -153,16 +153,16 @@ class Overlord {
 
         // Only calculate average if needed
         if (cpuUsageArray.length === 100) {
-            const avgCpu = average(cpuUsageArray);
+            const avgCpu = average(cpuUsageArray) * 1.1;
             if (avgCpu > this.CPULimit) {
                 let cpuOverCount = this.room.memory.cpuOverage || 0;
                 this.room.memory.cpuOverage = cpuOverCount + 1;
                 log.e(`${this.room.name} is using high CPU - ${avgCpu}`);
 
-                if (cpuOverCount >= 50) {
+                if (cpuOverCount >= 100 && Game.cpu.bucket < BUCKET_MAX * 0.25) {
                     this.room.memory.cpuOverage = undefined;
                     this.room.memory.noRemote = Game.time + 5000;
-                    this.suicideRemoteCreeps();
+                    //this.suicideRemoteCreeps();
                     log.e(`${roomLink(this.room.name)} remote spawning has been disabled.`);
                 }
             } else {
