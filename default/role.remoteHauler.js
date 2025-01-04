@@ -100,8 +100,7 @@ class RoleRemoteHauler {
                 c.memory.overlord === this.creep.memory.overlord &&
                 c.memory.role === 'remoteHarvester' &&
                 c.memory.energyAmount &&
-                (!_.find(Game.creeps, (h) => h.my && h.memory.energyDestination === c.memory.energyId) ||
-                    c.memory.energyAmount >= CONTAINER_CAPACITY * 0.75)
+                !_.find(Game.creeps, (h) => h.my && h.memory.energyDestination === c.memory.energyId)
             );
 
             if (harvester.length) harvester.sort((a, b) => a.memory.energyAmount - b.memory.energyAmount);

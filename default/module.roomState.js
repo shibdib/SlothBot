@@ -3,6 +3,7 @@
  */
 
 let lastStateUpdate = {};
+let energyFillingTracker = {};
 module.exports.setRoomState = function (room) {
     if (!lastStateUpdate[room.name]) {
         lastStateUpdate[room.name] = 0;
@@ -50,6 +51,12 @@ module.exports.setRoomState = function (room) {
                 MY_MINERALS[mineralType] = true; // Track unique minerals
             }
         }
+
+        // Track if the room is filling extensions/spawns fast enough
+        const energyFillingArray = energyFillingTracker[room.name] || [];
+        if (room.totalEnergyState && room.energyCapacityAvailable > room.energyAvailable) energyFillingArray.push(1);
+        else energyFillingArray.pop();
+        room.memory.needsHaulers = energyFillingArray.length > 10;
 
         // Stats tracking
         let stats = room.memory.stats || {};

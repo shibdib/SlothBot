@@ -190,7 +190,7 @@ module.exports.essentialCreepQueue = function (room) {
                 haulerPriority = 1;
                 haulerReboot = true;
             }
-            let haulerAmount = room.level > 5 ? 2 : 1;
+            let haulerAmount = room.memory.needsHaulers ? 2 : 1;
             queueCreepIfNeeded('hauler', haulerPriority, haulerAmount, haulerReboot);
         }
 
