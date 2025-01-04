@@ -265,17 +265,20 @@ class ModuleBodyGenerator {
 
             case 'remoteHarvester':
                 // Base work calculation
-                const workRatio = this.room.level >= 5 ? 0.65 : 0.5;
+                const workRatio = INTEL[this.creepInfo.destination].roadsBuilt ? 0.85 : 0.5;
                 work = Math.floor((this.energyAmount * workRatio) / BODYPART_COST[WORK]) || 1;
 
+                // Set source energy capacity for a reserved room, double it at level 8
+                const SOURCE_CAPACITY = this.room.controller.level === 8 ? SOURCE_ENERGY_CAPACITY * 2 : SOURCE_ENERGY_CAPACITY;
+
                 // SK-specific work adjustment
-                if (this.creepInfo.other.SK && work > SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) {
+                if (this.creepInfo.other.SK && work > SOURCE_ENERGY_KEEPER_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) {
                     work = Math.floor(SOURCE_ENERGY_KEEPER_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 4;
                 }
                 // Reserved source work adjustment
                 else if (INTEL[this.creepInfo.destination].reservation === MY_USERNAME &&
-                    work > SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME) + 1) {
-                    work = Math.floor(SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
+                    work > SOURCE_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME) + 1) {
+                    work = Math.floor(SOURCE_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
                 }
                 // Neutral source work adjustment
                 else if ((!INTEL[this.creepInfo.destination] || INTEL[this.creepInfo.destination].reservation !== MY_USERNAME) &&
