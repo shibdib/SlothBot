@@ -157,7 +157,7 @@ class Overlord {
             if (avgCpu > this.CPULimit) {
                 let cpuOverCount = this.room.memory.cpuOverage || 0;
                 this.room.memory.cpuOverage = cpuOverCount + 1;
-                log.e(`${this.room.name} is using high CPU - ${avgCpu}`);
+                //log.e(`${this.room.name} is using high CPU - ${avgCpu}`);
 
                 if (cpuOverCount >= 100 && Game.cpu.bucket < BUCKET_MAX * 0.25) {
                     this.room.memory.cpuOverage = undefined;
