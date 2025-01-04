@@ -460,7 +460,7 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleRemoteHaulers(room) {
         let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-        if (room.memory.additionalRemoteHaulingNeeded) totalHarvesters *= 2;
+        if (room.memory.additionalRemoteHaulingNeeded) totalHarvesters *= 1.5;
         if (totalHarvesters && totalHarvesters > getCreepCount(undefined, 'remoteHauler', undefined, undefined, room.name)) {
             queueCreep(room, PRIORITIES.remoteHauler, {role: 'remoteHauler'});
         }
