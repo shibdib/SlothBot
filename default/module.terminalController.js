@@ -853,6 +853,7 @@ class TerminalControl {
             let history = Game.market.getHistory(resource);
             if (Array.isArray(history) && history.length > 0) {
                 const prices = history.map(entry => entry.avgPrice);
+                if (prices.length === 0) return false;
                 const totalVolume = history.reduce((sum, entry) => sum + entry.volume, 0);
                 const median = prices.sort((a, b) => a - b)[Math.floor(prices.length / 2)];
                 const mean = prices.reduce((sum, price) => sum + price, 0) / prices.length;
