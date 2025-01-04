@@ -856,7 +856,6 @@ class TerminalControl {
                 const totalVolume = history.reduce((sum, entry) => sum + entry.volume, 0);
                 const median = prices.sort((a, b) => a - b)[Math.floor(prices.length / 2)];
                 const mean = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-                if (!prices[0]) prices[0] = mean;
                 const variance = prices.reduce((sum, price) => sum + Math.pow(price - mean, 2), 0) / prices.length;
                 const stdDev = Math.sqrt(variance);
                 const mode = prices.sort((a, b) =>
@@ -864,6 +863,7 @@ class TerminalControl {
                     - prices.filter(v => v === b).length
                 ).pop();
                 const range = Math.max(...prices) - Math.min(...prices);
+                const lastPrice = prices.length > 0 ? prices[0].toFixed(2) : '0.00';
 
                 marketHistoryCache[resource] = {
                     data: {
@@ -874,7 +874,7 @@ class TerminalControl {
                         trend5: (prices.slice(0, 5).reduce((sum, price) => sum + price, 0) / 5).toFixed(2),
                         trend10: (prices.slice(0, 10).reduce((sum, price) => sum + price, 0) / 10).toFixed(2),
                         trend20: (prices.slice(0, 20).reduce((sum, price) => sum + price, 0) / 20).toFixed(2),
-                        last: prices[0].toFixed(2),
+                        last: lastPrice,
                         totalVolume: totalVolume,
                         median: median.toFixed(2),
                         stdDev: stdDev.toFixed(2),
