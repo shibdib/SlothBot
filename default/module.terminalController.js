@@ -299,26 +299,29 @@ class TerminalControl {
         for (let mineral of shuffle(BASE_MINERALS)) {
             if (MY_MINERALS[mineral] || mineral === RESOURCE_ENERGY || mineral === RESOURCE_BATTERY) continue;
 
-            let target = this.reactionAmount * MY_ROOMS.filter((r) => Game.rooms[r].terminal).length;
+            let target = this.reactionAmount;
             let stored = getResourceTotal(mineral) + (getResourceTotal(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
 
             if (stored < target) {
-                let buyAmount = target - stored;
+                let buyAmount = Math.min(target - stored, 2500);
                 let price;
 
-                const activeBuyOrder = _.some(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY)
-                // Buy orders on mmo shards
-                if (!activeBuyOrder && ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
+                const activeBuyOrder = _.find(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY)
+                // Buy orders
+                if (!activeBuyOrder) {
                     price = getOrderPrice(mineral, this.latestMarketHistory(mineral));
                     buyAmount = Math.min(buyAmount, this.tradeAmount);
 
                     if (createBuyOrder(mineral, price, buyAmount)) break;
                 }
 
-                // On demand buy a small amount
-                if (stored < target * 0.25) {
+                // On demand buy a small amount on mmo shards or buy a larger amount on private servers
+                if (['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) target = target * 0.25;
+                if (stored < target) {
+                    const acceptableMarkup = getAcceptableMarkup(mineral, activeBuyOrder);
                     let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral &&
-                        order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName) && order.price < this.latestMarketHistory(mineral).avg * 1.1), 'price');
+                        order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName) && order.price < this.latestMarketHistory(mineral).avg * acceptableMarkup), 'price');
+
                     if (sellOrder.id && sellOrder.price * buyAmount > Memory._banker.spendingAccount) buyAmount = _.floor(Memory._banker.spendingAccount / sellOrder.price);
 
                     if (sellOrder.id && buyAmount >= 50) {
@@ -393,13 +396,25 @@ class TerminalControl {
             }
             return false;
         }
+
+        // Helper function to determine an acceptable markup for buying orders
+        function getAcceptableMarkup(resourceType, activeBuyOrder) {
+            let markup = 1.2;  // Default markup
+            if (activeBuyOrder) {
+                // Scale markup based on time elapsed since the order was created
+                const timeElapsed = Game.time - activeBuyOrder.created;
+                markup = Math.min(1.0 + (timeElapsed / 10000), 2.5);  // Maximum markup of 150% after 10,000 ticks
+            }
+            return markup;
+        }
     }
 
     fillBuyOrders(terminal, globalOrders) {
         let spareSpace = terminal.store.getFreeCapacity() + terminal.room.storage.store.getFreeCapacity();
         // Dynamically adjust credit buffer based on current market condition
         let dynamicBuffer = Math.max(CREDIT_BUFFER, Game.market.credits * 0.05);  // 5% of credits as buffer
-        if (spareSpace > STORAGE_CAPACITY * 0.2 && Game.market.credits > dynamicBuffer * 5) return false;
+        const spendingAccount = Memory._banker.spendingAccount || 0;
+        if (spareSpace > STORAGE_CAPACITY * 0.2 && spendingAccount > dynamicBuffer * 5) return false;
 
         // Sort resources and filter based on relevance
         let sortedKeys = Object.keys(terminal.store).sort((a, b) => terminal.store[a] - terminal.store[b]);
@@ -438,8 +453,8 @@ class TerminalControl {
         function getDynamicKeepAmount(resourceType) {
             // Implement smarter logic for determining keepAmount based on the current market trend, etc.
             if (COMPRESSED_COMMODITIES.includes(resourceType)) return REACTION_AMOUNT;
-            if (REGIONAL_0_COMMODITIES.includes(resourceType)) return terminal.room.factory !== undefined && terminal.room.factory.effects ? REACTION_AMOUNT * 0.5 : 0;
-            return BASE_COMMODITIES.includes(resourceType) ? REACTION_AMOUNT * 0.5 : 0;
+            if (REGIONAL_0_COMMODITIES.includes(resourceType)) return terminal.room.factory && terminal.room.factory.effects ? REACTION_AMOUNT * 0.5 : 0;
+            if (BASE_COMMODITIES.includes(resourceType)) return terminal.room.factory ? REACTION_AMOUNT * 0.5 : 0;
         }
 
         function findBestBuyer(globalOrders, resourceType, sellAmount) {
@@ -837,11 +852,33 @@ class TerminalControl {
         if (!marketHistoryCache[resource] || marketHistoryCache[resource].tick !== Game.time) {
             let history = Game.market.getHistory(resource);
             if (Array.isArray(history) && history.length > 0) {
+                const prices = history.map(entry => entry.avgPrice);
+                const totalVolume = history.reduce((sum, entry) => sum + entry.volume, 0);
+                const median = prices.sort((a, b) => a - b)[Math.floor(prices.length / 2)];
+                const mean = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+                const variance = prices.reduce((sum, price) => sum + Math.pow(price - mean, 2), 0) / prices.length;
+                const stdDev = Math.sqrt(variance);
+                const mode = prices.sort((a, b) =>
+                    prices.filter(v => v === a).length
+                    - prices.filter(v => v === b).length
+                ).pop();
+                const range = Math.max(...prices) - Math.min(...prices);
+
                 marketHistoryCache[resource] = {
                     data: {
-                        avg: (history.reduce((sum, entry) => sum + entry.avgPrice, 0) / history.length).toFixed(3),
-                        highest: Math.max(...history.map(entry => entry.avgPrice)),
-                        lowest: Math.min(...history.map(entry => entry.avgPrice))
+                        avg: mean.toFixed(2),
+                        highest: Math.max(...prices).toFixed(2),
+                        lowest: Math.min(...prices).toFixed(2),
+                        trend: (prices[0] - prices[prices.length - 1]).toFixed(2),
+                        trend5: (prices.slice(0, 5).reduce((sum, price) => sum + price, 0) / 5).toFixed(2),
+                        trend10: (prices.slice(0, 10).reduce((sum, price) => sum + price, 0) / 10).toFixed(2),
+                        trend20: (prices.slice(0, 20).reduce((sum, price) => sum + price, 0) / 20).toFixed(2),
+                        last: prices[0].toFixed(2),
+                        totalVolume: totalVolume,
+                        median: median.toFixed(2),
+                        stdDev: stdDev.toFixed(2),
+                        mode: mode.toFixed(2),
+                        range: range.toFixed(2)
                     },
                     tick: Game.time
                 };
