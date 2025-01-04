@@ -819,7 +819,7 @@ function getTowDestination(trailer) {
 
 // Helper function to check if towing should timeout
 function shouldTimeout(towStart, trailer, towDestination) {
-    return towStart + 125 < Game.time || !towDestination || trailer.memory.towOptions.range >= trailer.pos.getRangeTo(towDestination);
+    return towStart + 125 < Game.time || !towDestination || !trailer.memory.towOptions || trailer.memory.towOptions.range >= trailer.pos.getRangeTo(towDestination);
 }
 
 // Helper function to reset towing state
