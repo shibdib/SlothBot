@@ -59,7 +59,7 @@ class RoleCommodityMiner {
         // Clear the deposit if needed
         if (!deposit || (!deposit.depositType && !deposit.mineralAmount) || deposit.lastCooldown >= 25) return this.creep.memory.deposit = undefined;
         // Store space
-        if (!Memory.auxiliaryTargets[this.creep.memory.destination].space) Memory.auxiliaryTargets[this.creep.memory.destination].space = deposit.pos.countOpenTerrainAround();
+        if (!Memory.auxiliaryTargets[this.creep.memory.destination].space) this.storeSpace();
         // Refresh the operation
         if (Memory.auxiliaryTargets[this.creep.memory.destination]) Memory.auxiliaryTargets[this.creep.memory.destination].tick = Game.time;
         switch (this.creep.harvest(deposit)) {
@@ -101,13 +101,31 @@ class RoleCommodityMiner {
 
     findDeposit() {
         //Find Deposit
-        let deposit = _.find(this.room.deposits, (d) => !d.lastCooldown || d.lastCooldown < 25) || this.room.mineral;
-        if (deposit && (deposit.depositType || deposit.mineralAmount)) {
-            this.creep.memory.deposit = deposit.id;
-        } else {
+        let deposit = _.filter(this.room.deposits, (d) => !d.lastCooldown || d.lastCooldown < 25 && (d.depositType || d.mineralAmount));
+        // If no deposits check for a mineral
+        if (!deposit.length && !this.room.controller) {
+            deposit = this.room.mineral || undefined;
+            if (deposit) {
+                return this.creep.memory.deposit = deposit.id;
+            }
+        } else if (!deposit.length) {
             INTEL[this.creep.memory.destination].commodity = undefined;
             Memory.auxiliaryTargets[this.creep.memory.destination] = undefined;
+            return this.creep.memory.deposit = undefined;
+        } else {
+            // Choose a random deposit
+            return this.creep.memory.deposit = _.sample(deposit).id;
         }
+    }
+
+    storeSpace() {
+        let deposit = _.filter(this.room.deposits, (d) => !d.lastCooldown || d.lastCooldown < 25);
+        if (!deposit.length) return;
+        let space = 0;
+        for (let dep of deposit) {
+            space += dep.pos.countOpenTerrainAround();
+        }
+        if (space) Memory.auxiliaryTargets[this.creep.memory.destination].space = space;
     }
 }
 
