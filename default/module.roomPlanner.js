@@ -9,9 +9,20 @@ const minCut = require('util.minCut');
 let rampartSpots = {};
 let tickTracker = {};
 
-module.exports.buildRoom = function (room) {
-    // Check if this module has run yet this tick
-    if (!shouldRunAtAll()) return;
+module.exports.buildRoom = function () {
+    let room;
+    // Cycle through rooms
+    if (!tickTracker['lastRoom']) {
+        room = Game.rooms[MY_ROOMS[0]];
+    } else {
+        let index = MY_ROOMS.indexOf(tickTracker['lastRoom']);
+        if (index + 1 >= MY_ROOMS.length) {
+            room = Game.rooms[MY_ROOMS[0]];
+        } else {
+            room = Game.rooms[MY_ROOMS[index + 1]];
+        }
+    }
+    if (!shouldRunAtAll(room)) return;
 
     let lastRun = tickTracker[room.name] || {};
 
@@ -20,28 +31,27 @@ module.exports.buildRoom = function (room) {
         // Check if bunker layout needs to be built
         if (shouldRunLayout(lastRun)) {
             buildMissingStructures(room);
-            lastRun.layout = Game.time + _.random(50, 100);
-            tickTracker['last'] = Game.time + 5;
+            lastRun.layout = Game.time + _.random(25, 100);
         }
         // Check if auxiliary buildings need to be built
         else if (shouldRunAuxiliary(lastRun)) {
             buildAuxiliaryStructures(room);
-            lastRun.auxiliary = Game.time + _.random(50, 100);
-            tickTracker['last'] = Game.time + 5;
+            lastRun.auxiliary = Game.time + _.random(25, 100);
         }
     } else {
         // Find hub if not already found
         findHub(room);
-        tickTracker['last'] = Game.time + 5;
     }
 
     // Update tick tracker
+    tickTracker['lastTick'] = Game.time + 5;
+    tickTracker['lastRoom'] = room.name;
     tickTracker[room.name] = lastRun;
 };
 
 // Helper functions
-function shouldRunAtAll() {
-    let overallLastRun = tickTracker['last'] || 0;
+function shouldRunAtAll(room) {
+    let overallLastRun = tickTracker['lastTick'] || 0;
     return overallLastRun < Game.time;
 }
 
@@ -199,16 +209,11 @@ function hubLink(room) {
     let hubLinkPos = new RoomPosition(room.hub.x, room.hub.y + 1, room.name);
 
     // Check for existing structures at the hubLinkPos
-    let structuresAtPos = hubLinkPos.checkForAllStructure();
-    if (structuresAtPos.length) {
-        // Look for the link structure in the found structures
-        let hubLink = _.find(structuresAtPos, (s) => s.structureType === STRUCTURE_LINK);
-
-        // If a link is found, update the room's memory and return true
-        if (hubLink) {
-            room.memory.hubLink = hubLink.id;
-            return true;
-        }
+    const hubLink = hubLinkPos.checkForAllStructure();
+    // If a link is found, update the room's memory and return true
+    if (hubLink) {
+        room.memory.hubLink = hubLink.id;
+        return true;
     }
 
     // Return false if no valid hub link was found

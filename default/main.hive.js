@@ -11,6 +11,7 @@ const ExpansionControl = require('module.expansion');
 const diplomacy = require('module.diplomacy');
 const HudControl = require('module.hud');
 const profiler = require('tools.profiler');
+const planner = require('module.roomPlanner');
 let buildingNotifications;
 let tickTracker = {};
 
@@ -33,6 +34,9 @@ class Hive {
 
         // Update HUD
         this.hudManager();
+
+        // Handle room building
+        this.constructionController();
 
         // Global Queue (Every 10 Ticks)
         if ((tickTracker['globalQueue'] || 0) + 10 < Game.time) {
@@ -74,6 +78,10 @@ class Hive {
 
     highCommand() {
         highCommand.highCommand();
+    }
+
+    constructionController() {
+        planner.buildRoom();
     }
 
     expansionManager() {

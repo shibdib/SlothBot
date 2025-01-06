@@ -10,7 +10,6 @@ const LinkControl = require('module.linkController');
 const TerminalControl = require('module.terminalController');
 const spawning = require('module.creepSpawning');
 const state = require('module.roomState');
-const planner = require('module.roomPlanner');
 const diplomacy = require('module.diplomacy');
 const profiler = require('tools.profiler');
 let tickTracker = {};
@@ -42,12 +41,6 @@ class Overlord {
         if (this.room.terminal && !this.room.terminal.cooldown && (tracker['terminalController'] || 0) + 100 < Game.time) {
             this.terminalController();
             tracker['terminalController'] = Game.time;
-        }
-
-        // Handle room building with throttle
-        if ((tracker['roomBuilding'] || 0) + 25 < Game.time) {
-            this.constructionController();
-            tracker['roomBuilding'] = Game.time;
         }
 
         // Observer controller for room level >= 8
@@ -106,10 +99,6 @@ class Overlord {
         new TerminalControl().run(this.room);
     }
 
-    constructionController() {
-        planner.buildRoom(this.room);
-    }
-
     observerController() {
         new ObserverControl().run(this.room);
     }
@@ -152,6 +141,7 @@ class Overlord {
         if (cpuUsageArray.length > 100) cpuUsageArray.shift();
 
         // Only calculate average if needed
+        /*
         if (cpuUsageArray.length === 100) {
             const avgCpu = average(cpuUsageArray) * 1.1;
             if (avgCpu > this.CPULimit) {
@@ -169,7 +159,8 @@ class Overlord {
                 if (this.room.memory.cpuOverage) this.room.memory.cpuOverage--;
                 if (this.room.memory.noRemote) this.handleNoRemote();
             }
-        }
+        }*/
+        this.room.memory.noRemote = undefined;
 
         ROOM_CPU_ARRAY[this.room.name] = cpuUsageArray;
     }

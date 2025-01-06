@@ -414,7 +414,7 @@ RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
 
     const result = ramparts
         ? structures[0] || undefined // Cache the first structure if ramparts are included
-        : structures.some(s => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD);
+        : structures.find(s => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD);
 
     this._structureCache[cacheKey] = {value: result, expiry: currentTick + 5000}; // Cache the result with expiry
     return result;
