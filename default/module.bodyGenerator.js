@@ -202,6 +202,7 @@ class ModuleBodyGenerator {
                     // Cap the attack and rangedAttack to reasonable limits
                     attack = Math.min(attack, 32);  // Max attack to 32
                     rangedAttack = Math.min(rangedAttack, 32);  // Max rangedAttack to 32
+                    halfMove = true;
                 }
 
                 break;
@@ -393,6 +394,11 @@ class ModuleBodyGenerator {
             generatedBody = [...toughArray, ...moveArray, ..._.shuffle(bodyArray), ...healArray];
         } else {
             generatedBody = [...toughArray, ..._.shuffle(bodyArray), ...moveArray, ...healArray];
+        }
+
+        // Ensure the body is valid, 50 parts max
+        if (generatedBody.length > 50) {
+            generatedBody = generatedBody.slice(0, 50);
         }
 
         // Cache the generated body
