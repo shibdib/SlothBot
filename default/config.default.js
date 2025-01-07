@@ -20,7 +20,7 @@ global.TOWER_FIRST = false; // Set to true to have towers built before spawns
 // Diplomacy
 global.COMBAT_SERVER = false; // If you'd like to declare everyone hostile
 global.HOSTILES = []; // Manually set players as hostile
-global.MANUAL_FRIENDS = []; // Manually set players as friends (overrides COMBAT_SERVER)
+global.MANUAL_FRIENDS = ["DroidFreak"]; // Manually set players as friends (overrides COMBAT_SERVER)
 global.RAMPART_ACCESS = false // Allow friends and allies access through ramparts. Having this disabled does save CPU.
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
 

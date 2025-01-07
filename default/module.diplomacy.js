@@ -76,6 +76,7 @@ function threatManager() {
     }
 
     // Randomly clean NCP array
+    if (!Memory.ncpArray) Memory.ncpArray = [];
     if (Memory.ncpArray.length && Math.random() > 0.9) {
         Memory.ncpArray = Memory.ncpArray.filter(u => _.pluck(INTEL, 'user').includes(u));
     }
