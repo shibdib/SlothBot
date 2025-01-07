@@ -133,7 +133,7 @@ class ExpansionControl {
     }
 
     friendlyRoomScoreAdjustment(distance) {
-        return distance === 3 ? 2000 : distance < 7 ? 1000 : distance > 15 ? -Infinity : -200 * distance;
+        return distance === 3 ? 2000 : distance < 7 ? 100 : distance > 15 ? -Infinity : 1;
     }
 
     getMineralBonus(mineralType) {
