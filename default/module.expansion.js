@@ -36,6 +36,12 @@ class ExpansionControl {
         this.filterWorthyRooms();
         if (!this.worthyRooms.length) return;
 
+        // Prioritize rooms within the same sector
+        const sameSectorRooms = this.worthyRooms.filter(room => myRoomInSectorCheck(room.name));
+        if (sameSectorRooms.length) {
+            this.worthyRooms = sameSectorRooms;
+        }
+
         this.scoreRooms();
         const max = _.max(this.worthyRooms, 'claimValue');
         this.claimTarget = max ? max.name : undefined;
