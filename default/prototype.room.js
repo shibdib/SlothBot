@@ -459,7 +459,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         roomIntel.safemode = controller.safeMode ? currentTime + controller.safeMode : undefined;
 
         // Hub check - only if necessary and no hostiles
-        if (!roomIntel.obstacles && (!cache[this.name] || !cache[this.name].hubCheck) && !this.find(FIND_HOSTILE_CREEPS).length && roomIntel.sources === 2) {
+        if (!roomIntel.obstacles && roomIntel.sources === 2 && (!cache[this.name] || !cache[this.name].hubCheck) && !this.find(FIND_HOSTILE_CREEPS).length) {
             roomIntel.hubCheck = roomPlanner.hubCheck(this);
         }
 
@@ -478,7 +478,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
                 s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST &&
                 s.isActive()
         }).length;
-        roomIntel.nukeTarget = this.terminal ? this.terminal.pos.toString() : undefined;
+        roomIntel.nukeTarget = this.terminal ? this.terminal.pos.toString() : this.storage ? this.storage.pos.toString() : undefined;
 
         // Loot check
         roomIntel.loot = !this.find(FIND_HOSTILE_CREEPS).length && this.find(FIND_STRUCTURES, {
@@ -548,7 +548,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 function canPathToAllNeighbors(room) {
     const controller = room.controller;
     if (!controller) {
-        return false; // Simplified to return false if there's no controller
+        return false;
     }
 
     // If the room is owned by the player, we assume paths exist
@@ -563,14 +563,14 @@ function canPathToAllNeighbors(room) {
         const exitPos = controller.pos.findClosestByPath(exitDir);
 
         if (!exitPos) {
-            return false; // Simplified to return false if no exit position is found
+            return false;
         }
 
         const path = PathFinder.search(
             controller.pos,
             {pos: exitPos, range: 1},
             {
-                maxRooms: 1, // Simplified to only check within the current room
+                maxRooms: 1,
                 plainCost: 2,
                 swampCost: 10,
                 roomCallback: function (roomName) {
@@ -590,7 +590,7 @@ function canPathToAllNeighbors(room) {
         );
 
         if (path.incomplete) {
-            return false; // Simplified to return false if path is incomplete
+            return false;
         }
     }
 

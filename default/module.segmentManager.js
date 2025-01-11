@@ -74,7 +74,7 @@ module.exports.storeIntel = function () {
 }
 
 function logRequests() {
-    if (!LOANcheck) return;
+    if (!LOAN_CHECK) return;
     // Store last tick
     if (RawMemory.foreignSegment && FRIENDLIES.includes(RawMemory.foreignSegment.username) && RawMemory.foreignSegment.id === 98) {
         ALLY_HELP_REQUESTS[RawMemory.foreignSegment.username] = JSON.parse(RawMemory.foreignSegment.data);

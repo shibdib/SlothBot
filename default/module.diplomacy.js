@@ -7,7 +7,7 @@ let tempHostiles = {};
 module.exports.diplomacyOverlord = function () {
     if (!Memory._userList) Memory._userList = {};
     // Manage friendlies
-    global.FRIENDLIES = _.union(LOANlist, [MY_USERNAME], ['Shibdib'], MANUAL_FRIENDS).filter((u) => !_.find(tempHostiles, (h) => h.user === u && h.tick > Game.time));
+    global.FRIENDLIES = _.union(LOAN_LIST, [MY_USERNAME], ['Shibdib'], MANUAL_FRIENDS).filter((u) => !_.find(tempHostiles, (h) => h.user === u && h.tick > Game.time));
     // Manage threats
     if (Game.time % 5 === 0 && Memory._userList) threatManager();
     // Diplomacy recap

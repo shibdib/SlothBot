@@ -406,60 +406,42 @@ let globals = function () {
         }
     };
 
-    // League Of Automated Nations allied users list by Kamots
-    // Provides global.LOANlist as array of allied usernames. Array is empty if not in an alliance, but still defined.
-    // Updates on 2nd run and then every 1001 ticks or if the global scope gets cleared.
-    // Usage: After you require this file, just add this to anywhere in your main loop to run every tick: global.populateLOANlist();
-    // global.LOANlist will contain an array of usernames after global.populateLOANlist() runs twice in a row (two consecutive ticks).
+    // League Of Automated Nations Alliance and NCP processing
     global.populateLOANlist = function (LOANuser = "LeagueOfAutomatedNations", LOANsegment = 99) {
         const shardNames = ['shard0', 'shard1', 'shard2', 'shard3'];
         if (shardNames.includes(Game.shard.name)) {
-            global.ALLIANCE_DATA = undefined; // To skip running in sim or private servers to avoid errors
-
-            // Initialize memory if necessary
-            if (!Memory.lastLOANtime || !global.LOANlist) {
-                Memory.lastLOANtime = Game.time - 10000;
-                global.LOANlist = [];
-                Memory.LOANalliance = Memory.LOANalliance || "";
-            }
-
-            // Check if it's time to update
-            if (Game.time >= (Memory.lastLOANtime + 1000)) {
-                global.LOANcheck = false;
-                Memory.lastLOANtime = Game.time;
-                RawMemory.setActiveForeignSegment(LOANuser, LOANsegment);
-            } else if (Game.time === Memory.lastLOANtime + 1 && RawMemory.foreignSegment &&
-                RawMemory.foreignSegment.username === LOANuser &&
-                RawMemory.foreignSegment.id === LOANsegment) {
-                global.LOANcheck = true;
-                Memory.lastLOANtime = Game.time;
-
-                if (RawMemory.foreignSegment.data == null) {
-                    // If no data, reset the LOAN list
-                    global.LOANlist = Memory.friendList || [];
-                    Memory.LOANalliance = '';
-                    return false;
-                } else {
-                    // Process the alliance data
-                    const LOANdata = JSON.parse(RawMemory.foreignSegment.data);
+            // Handle alliance data first
+            if (!global.ALLIANCE_DATA || global.ALLIANCE_DATA_AGE + 10000 < Game.time) {
+                global.LOAN_LIST = [...MANUAL_FRIENDS];
+                global.LOAN_CHECK = false;
+                // Check if the segment is set
+                if (RawMemory.foreignSegment && RawMemory.foreignSegment.username === LOANuser && RawMemory.foreignSegment.id === 99) {
+                    global.ALLIANCE_DATA_AGE = Game.time;
                     global.ALLIANCE_DATA = RawMemory.foreignSegment.data;
-                    const LOANdataKeys = Object.keys(LOANdata);
-                    let foundAlliance = false;
-
-                    for (let iL = LOANdataKeys.length - 1; iL >= 0; iL--) {
-                        if (LOANdata[LOANdataKeys[iL]].includes(MY_USERNAME)) {
+                    const data = JSON.parse(RawMemory.foreignSegment.data);
+                    const keys = Object.keys(data);
+                    for (let iL = keys.length - 1; iL >= 0; iL--) {
+                        if (data[keys[iL]].includes(MY_USERNAME)) {
                             global.LOANlist = [...global.LOANlist, ...MANUAL_FRIENDS];
-                            Memory.friendList = global.LOANlist;
-                            Memory.LOANalliance = LOANdataKeys[iL];
-                            foundAlliance = true;
+                            Memory.friendList = global.LOAN_LIST;
+                            global.LOANalliance = keys[iL];
                             break;
                         }
                     }
-
-                    return foundAlliance;
+                } else {
+                    RawMemory.setActiveForeignSegment(LOANuser, 99);
+                }
+            } else if (!global.NCP_DATA || global.NCP_DATA_AGE + 20000 < Game.time) {
+                global.LOAN_CHECK = false;
+                // Check if the segment is set
+                if (RawMemory.foreignSegment && RawMemory.foreignSegment.username === LOANuser && RawMemory.foreignSegment.id === 98) {
+                    global.NCP_DATA_AGE = Game.time;
+                    global.NCP_DATA = RawMemory.foreignSegment.data;
+                    global.LOANcheck = true;
+                } else {
+                    RawMemory.setActiveForeignSegment(LOANuser, 98);
                 }
             }
-
             return true;
         } else {
             // For non-shard environments
@@ -467,6 +449,7 @@ let globals = function () {
             global.LOANlist = [...MANUAL_FRIENDS];
             Memory.LOANalliance = "";
             global.ALLIANCE_DATA = undefined;
+            if (!global.NCP_DATA) global.NCP_DATA = undefined;
             return false;
         }
     };
