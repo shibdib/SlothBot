@@ -272,12 +272,6 @@ module.exports.miscCreepQueue = function (room) {
             });
         }
 
-        // Explorers
-        let roomExplorers = _.filter(Game.creeps, (c) => c.my && c.memory.role === 'explorer' && c.memory.overlord === room.name);
-        if (roomExplorers.length < 9 - MAX_LEVEL) {
-            queueCreep(room, PRIORITIES.extreme + (roomExplorers.length * 0.25), {role: 'explorer'});
-        }
-
         // High Level Assist & Defense
         if (level >= MAX_LEVEL - 1 && level >= 4) {
             let priority = room.energyState ? PRIORITIES.priority : PRIORITIES.secondary;
@@ -471,6 +465,12 @@ module.exports.remoteCreepQueue = function (room) {
 
 module.exports.globalCreepQueue = function () {
     const operations = {...Memory.targetRooms, ...Memory.auxiliaryTargets};
+
+    // Explorers
+    let roomExplorers = _.filter(Game.creeps, (c) => c.my && c.memory.role === 'explorer');
+    if (roomExplorers.length < 9 - MAX_LEVEL) {
+        queueCreep(undefined, PRIORITIES.extreme + (roomExplorers.length * 0.25), {role: 'explorer'});
+    }
 
     // Skip if no operations
     if (_.isEmpty(operations)) return;
