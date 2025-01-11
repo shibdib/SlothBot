@@ -422,9 +422,9 @@ let globals = function () {
                     const keys = Object.keys(data);
                     for (let iL = keys.length - 1; iL >= 0; iL--) {
                         if (data[keys[iL]].includes(MY_USERNAME)) {
-                            global.LOANlist = [...global.LOANlist, ...MANUAL_FRIENDS];
+                            global.LOAN_LIST = [...global.LOAN_LIST, ...MANUAL_FRIENDS];
                             Memory.friendList = global.LOAN_LIST;
-                            global.LOANalliance = keys[iL];
+                            global.LOAN_ALLIANCE = keys[iL];
                             break;
                         }
                     }
@@ -445,9 +445,8 @@ let globals = function () {
             return true;
         } else {
             // For non-shard environments
-            global.LOANcheck = true;
-            global.LOANlist = [...MANUAL_FRIENDS];
-            Memory.LOANalliance = "";
+            global.LOAN_CHECK = true;
+            global.LOAN_LIST = [...MANUAL_FRIENDS];
             global.ALLIANCE_DATA = undefined;
             if (!global.NCP_DATA) global.NCP_DATA = undefined;
             return false;
