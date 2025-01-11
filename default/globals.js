@@ -407,7 +407,7 @@ let globals = function () {
     };
 
     // League Of Automated Nations Alliance and NCP processing
-    global.populateLOANlist = function (LOANuser = "LeagueOfAutomatedNations", LOANsegment = 99) {
+    global.populateLOANlist = function (LOANuser = "PandaMaster", LOANsegment = 99) {
         const shardNames = ['shard0', 'shard1', 'shard2', 'shard3'];
         if (shardNames.includes(Game.shard.name)) {
             // Handle alliance data first
