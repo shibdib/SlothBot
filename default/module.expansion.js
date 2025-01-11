@@ -9,7 +9,7 @@ class ExpansionControl {
     }
 
     run() {
-        if (!MY_ROOMS[0] || Object.keys(INTEL).length < 5) return;
+        if (!MY_ROOMS[0] || Object.keys(INTEL).length < 15) return;
 
         this.findClaimTarget();
 

@@ -426,7 +426,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 
     // Basic room info
     roomIntel.sources = this.find(FIND_SOURCES).length;
-    roomIntel.obstacles = canPathToAllNeighbors(this); // Assuming this method exists or is defined elsewhere
+    roomIntel.obstacles = canPathToAllNeighbors(this);
     roomIntel.invaderCore = !!this.find(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_INVADER_CORE}}).length;
 
     // Get remote source data for the highest level room declaring this a remote
@@ -543,35 +543,34 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 /**
  * Checks if paths can be found from the room controller to all neighboring rooms.
  * @param {Room} room - The room to check from.
- * @return {boolean|undefined} - Returns true if paths to all neighbors exist, undefined otherwise.
+ * @return {boolean} - Returns true if paths to all neighbors exist, false otherwise.
  */
 function canPathToAllNeighbors(room) {
     const controller = room.controller;
     if (!controller) {
-        return undefined;
+        return false; // Simplified to return false if there's no controller
     }
+
+    // If the room is owned by the player, we assume paths exist
     if (controller.owner && controller.owner.username === MY_USERNAME) {
-        // If you want to handle owned rooms differently
-        return true; // or another value if you want to skip owned rooms
+        return true;
     }
 
     const neighbors = Game.map.describeExits(room.name);
-    const neighborPositions = Object.keys(neighbors).map(exit => neighbors[exit]);
-
-    for (let neighbor of neighborPositions) {
-        // Find the closest exit to the neighbor's center rather than assuming (25, 25)
+    for (let exit in neighbors) {
+        const neighbor = neighbors[exit];
         const exitDir = Game.map.findExit(room.name, neighbor);
         const exitPos = controller.pos.findClosestByPath(exitDir);
 
         if (!exitPos) {
-            return undefined;
+            return false; // Simplified to return false if no exit position is found
         }
 
         const path = PathFinder.search(
             controller.pos,
-            {pos: exitPos, range: 1}, // Aim for the exit position itself
+            {pos: exitPos, range: 1},
             {
-                maxRooms: 2,
+                maxRooms: 1, // Simplified to only check within the current room
                 plainCost: 2,
                 swampCost: 10,
                 roomCallback: function (roomName) {
@@ -585,19 +584,13 @@ function canPathToAllNeighbors(room) {
                         }
                     });
 
-                    room.getTerrain().getRawBuffer().forEach((tile, i) => {
-                        if (tile === TERRAIN_MASK_WALL) {
-                            costs.set(i % 50, Math.floor(i / 50), 255);
-                        }
-                    });
-
                     return costs;
                 }
             }
         );
 
         if (path.incomplete) {
-            return undefined;
+            return false; // Simplified to return false if path is incomplete
         }
     }
 
