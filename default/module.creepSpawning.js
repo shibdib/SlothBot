@@ -469,7 +469,7 @@ module.exports.globalCreepQueue = function () {
     // Explorers
     let roomExplorers = _.filter(Game.creeps, (c) => c.my && c.memory.role === 'explorer');
     if (roomExplorers.length < 9 - MAX_LEVEL) {
-        queueCreep(undefined, PRIORITIES.extreme + (roomExplorers.length * 0.25), {role: 'explorer'});
+        queueCreep(undefined, PRIORITIES.extreme + (roomExplorers.length * 0.25), {role: 'explorer'}, true);
     }
 
     // Skip if no operations
