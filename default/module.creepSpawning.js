@@ -118,15 +118,15 @@ module.exports.processBuildQueue = function (room) {
         if (!queuedBuild.operation) log.d(`${availableSpawn.room.name} Spawning a ${role}`);
 
         // Remove the spawned role from the queue
-        updateRoomAndGlobalQueue(room, role, queuedBuild.destination);
+        updateRoomAndGlobalQueue(room, role, queuedBuild.global);
     }
 
     // Helper function to update room and global queues after spawning a creep
-    function updateRoomAndGlobalQueue(room, role, destination) {
+    function updateRoomAndGlobalQueue(room, role, global) {
         let roomQueue = room.memory.creepQueue ? JSON.parse(room.memory.creepQueue) : {};
         let globalQueue = Memory.globalCreepQueue ? JSON.parse(Memory.globalCreepQueue) : {};
 
-        if (globalQueue[role] && destination) {
+        if (globalQueue[role] && global) {
             delete globalQueue[role];
             Memory.globalCreepQueue = JSON.stringify(globalQueue);
         }
@@ -467,9 +467,8 @@ module.exports.globalCreepQueue = function () {
     const operations = {...Memory.targetRooms, ...Memory.auxiliaryTargets};
 
     // Explorers
-    let roomExplorers = _.filter(Game.creeps, (c) => c.my && c.memory.role === 'explorer');
-    if (roomExplorers.length < 9 - MAX_LEVEL) {
-        queueCreep(undefined, PRIORITIES.extreme + (roomExplorers.length * 0.25), {role: 'explorer'}, true);
+    if (getCreepCount(undefined, 'explorer') < 9 - MAX_LEVEL) {
+        queueCreep(undefined, PRIORITIES.extreme + (getCreepCount(undefined, 'explorer') * 0.25), {role: 'explorer'}, true);
     }
 
     // Skip if no operations
@@ -704,7 +703,8 @@ function queueCreep(room = undefined, priority, options = {}, global = false) {
         other: options.other,
         military: options.military,
         operation: options.operation,
-        misc: options.misc
+        misc: options.misc,
+        global: global
     };
     if (global) Memory.globalCreepQueue = JSON.stringify(cache); else room.memory.creepQueue = JSON.stringify(cache);
 }
