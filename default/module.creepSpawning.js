@@ -123,17 +123,19 @@ module.exports.processBuildQueue = function (room) {
 
     // Helper function to update room and global queues after spawning a creep
     function updateRoomAndGlobalQueue(room, role, global) {
-        let roomQueue = room.memory.creepQueue ? JSON.parse(room.memory.creepQueue) : {};
-        let globalQueue = Memory.globalCreepQueue ? JSON.parse(Memory.globalCreepQueue) : {};
+        let roomQueue = CREEP_QUEUES[room.name] ? JSON.parse(CREEP_QUEUES[room.name]) : {};
+        let globalQueue = CREEP_QUEUES["global"] ? JSON.parse(CREEP_QUEUES["global"]) : {};
 
+        console.log(global)
+        console.log(role)
         if (globalQueue[role] && global) {
             delete globalQueue[role];
-            Memory.globalCreepQueue = JSON.stringify(globalQueue);
+            CREEP_QUEUES["global"] = JSON.stringify(globalQueue);
         }
 
         if (roomQueue[role]) {
             delete roomQueue[role];
-            room.memory.creepQueue = JSON.stringify(roomQueue);
+            CREEP_QUEUES[room.name] = JSON.stringify(roomQueue);
         }
     }
 
@@ -684,7 +686,7 @@ module.exports.globalCreepQueue = function () {
 function queueCreep(room = undefined, priority, options = {}, global = false) {
     let cache = {};
     // Set the cache to local or global
-    if (global && Memory.globalCreepQueue) cache = JSON.parse(Memory.globalCreepQueue); else if (room && room.memory.creepQueue) cache = JSON.parse(room.memory.creepQueue);
+    if (global && CREEP_QUEUES['global']) cache = JSON.parse(CREEP_QUEUES['global']); else if (room && CREEP_QUEUES[room.name]) cache = JSON.parse(CREEP_QUEUES[room.name]);
     // Handle a cache sanity check
     if (typeof cache !== 'object') cache = {};
     // Handle overwriting less important creeps
@@ -706,7 +708,7 @@ function queueCreep(room = undefined, priority, options = {}, global = false) {
         misc: options.misc,
         global: global
     };
-    if (global) Memory.globalCreepQueue = JSON.stringify(cache); else room.memory.creepQueue = JSON.stringify(cache);
+    if (global) CREEP_QUEUES['global'] = JSON.stringify(cache); else CREEP_QUEUES[room.name] = JSON.stringify(cache);
 }
 
 /**
@@ -751,8 +753,8 @@ function determineEnergyOrder(room) {
 function displayQueue(room) {
     let queue;
     let importantBuilds = _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    let globalQueue = Memory.globalCreepQueue ? JSON.parse(Memory.globalCreepQueue) : {};
-    let roomQueue = room.memory.creepQueue ? JSON.parse(room.memory.creepQueue) : {};
+    let globalQueue = CREEP_QUEUES["global"] ? JSON.parse(CREEP_QUEUES["global"]) : {};
+    let roomQueue = CREEP_QUEUES[room.name] ? JSON.parse(CREEP_QUEUES[room.name]) : {};
 
     // Update global queue only if conditions are right
     if (_.size(globalQueue) && room.level >= 3 && room.energyState && !INTEL[room.name].threatLevel && !importantBuilds) {

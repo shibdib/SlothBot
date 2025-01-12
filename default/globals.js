@@ -123,6 +123,7 @@ let globals = function () {
     global.ALLY_HELP_REQUESTS = CACHE.ALLY_HELP_REQUESTS = {};
     global.INTEL = CACHE.INTEL = {};
     global.MY_MINERALS = CACHE.MY_MINERALS = {};
+    global.CREEP_QUEUES = CACHE.CREEP_QUEUES = {};
 
     // Set some diplo stuff
     global.ENEMIES = [];
