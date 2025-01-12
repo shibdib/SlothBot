@@ -126,8 +126,6 @@ module.exports.processBuildQueue = function (room) {
         let roomQueue = CREEP_QUEUES[room.name] ? JSON.parse(CREEP_QUEUES[room.name]) : {};
         let globalQueue = CREEP_QUEUES["global"] ? JSON.parse(CREEP_QUEUES["global"]) : {};
 
-        console.log(global)
-        console.log(role)
         if (globalQueue[role] && global) {
             delete globalQueue[role];
             CREEP_QUEUES["global"] = JSON.stringify(globalQueue);
