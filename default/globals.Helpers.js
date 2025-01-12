@@ -157,6 +157,15 @@ let helpers = function () {
     }
 
     /**
+     * Purges the intel cache
+     */
+    global.purgeIntel = function (segment = 0) {
+        log.a('--INTEL CACHE PURGED--', ' ');
+        global.INTEL = {};
+        RawMemory.segments[segment] = undefined;
+    }
+
+    /**
      * Get the strength of a user
      * @param user
      * @returns {number}
