@@ -162,7 +162,6 @@ let helpers = function () {
     global.purgeIntel = function (segment = 0) {
         log.a('--INTEL CACHE PURGED--', ' ');
         global.INTEL = {};
-        RawMemory.segments[segment] = undefined;
     }
 
     /**
