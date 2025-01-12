@@ -426,7 +426,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 
     // Basic room info
     roomIntel.sources = this.find(FIND_SOURCES).length;
-    roomIntel.obstacles = canPathToAllNeighbors(this);
+    roomIntel.obstacles = !canPathToAllNeighbors(this);
     roomIntel.invaderCore = !!this.find(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_INVADER_CORE}}).length;
 
     // Get remote source data for the highest level room declaring this a remote
