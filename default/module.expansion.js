@@ -14,7 +14,11 @@ class ExpansionControl {
         this.findClaimTarget();
 
         if (this.claimTarget) {
-            this.claimOperation(this.claimTarget);
+            const rebuildOperations = Memory.auxiliaryTargets.filter((o) => o.type === 'rebuild') || [];
+            const claimOperations = Memory.auxiliaryTargets.filter((o) => o.type === 'claim') || [];
+            if (rebuildOperations.length + claimOperations.length < 2) {
+                this.claimOperation(this.claimTarget);
+            }
         } else {
             log.a(`No claim targets found out of ${this.worthyRooms.length} possible rooms.`, 'EXPANSION CONTROL:');
         }
