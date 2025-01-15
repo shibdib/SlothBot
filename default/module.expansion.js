@@ -14,9 +14,7 @@ class ExpansionControl {
         this.findClaimTarget();
 
         if (this.claimTarget) {
-            const rebuildOperations = Memory.auxiliaryTargets.filter((o) => o.type === 'rebuild') || [];
-            const claimOperations = Memory.auxiliaryTargets.filter((o) => o.type === 'claim') || [];
-            if (rebuildOperations.length + claimOperations.length < 2) {
+            if (!this.checkForActiveClaims(Memory.auxiliaryTargets)) {
                 this.claimOperation(this.claimTarget);
             }
         } else {
@@ -165,6 +163,17 @@ class ExpansionControl {
             log.a(`Next claim target set to ${roomLink(roomName)} once available.`, 'EXPANSION CONTROL:');
             Memory.nextClaim = roomName;
         }
+    }
+
+    checkForActiveClaims(auxiliaryTargets) {
+        for (let key in auxiliaryTargets) {
+            if (auxiliaryTargets.hasOwnProperty(key)) {
+                if (auxiliaryTargets[key].type === 'rebuild' || auxiliaryTargets[key].type === 'claim') {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
 
