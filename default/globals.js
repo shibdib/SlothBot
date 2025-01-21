@@ -418,8 +418,8 @@ let globals = function () {
                 // Check if the segment is set
                 if (RawMemory.foreignSegment && RawMemory.foreignSegment.username === LOANuser && RawMemory.foreignSegment.id === 99) {
                     global.ALLIANCE_DATA_AGE = Game.time;
-                    global.ALLIANCE_DATA = RawMemory.foreignSegment.data;
                     const data = JSON.parse(RawMemory.foreignSegment.data);
+                    global.ALLIANCE_DATA = data;
                     const keys = Object.keys(data);
                     for (let iL = keys.length - 1; iL >= 0; iL--) {
                         if (data[keys[iL]].includes(MY_USERNAME)) {
