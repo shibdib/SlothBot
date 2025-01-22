@@ -759,7 +759,7 @@ function autoNuke() {
 
 function checkForNap(user) {
     // Return false if we have no alliance data or the user is in our enemies list
-    if (!ALLIANCE_DATA || !NAP_ALLIANCE.length || _.includes(Memory._enemies, user)) {
+    if (!global.LOAN_CHECK || !ALLIANCE_DATA || !NAP_ALLIANCE.length || _.includes(Memory._enemies, user)) {
         return false;
     }
 
