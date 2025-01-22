@@ -29,8 +29,8 @@ class RoleCommodityMiner {
         // Try to boost harvest if possible
         if (this.creep.tryToBoost(['harvest'])) return true;  // Boost work, not harvest (if it’s meant to be harvesting)
 
-        // Old age check
-        if (this.creep.ticksToLive < 150) {
+        // Old age and work/carry part check
+        if (this.creep.ticksToLive < 150 || !this.creep.hasActiveBodyparts(WORK) || !this.creep.hasActiveBodyparts(CARRY)) {
             if (!_.sum(this.creep.store)) {
                 this.creep.suicide();
             } else {
@@ -103,14 +103,15 @@ class RoleCommodityMiner {
         //Find Deposit
         let deposit = _.filter(this.room.deposits, (d) => !d.lastCooldown || d.lastCooldown < 25 && (d.depositType || d.mineralAmount));
         // If no deposits check for a mineral
-        if (!deposit.length && !this.room.controller) {
-            deposit = this.room.mineral || undefined;
+        if (!deposit.length && this.room.mineral && !this.room.controller) {
+            deposit = this.room.mineral;
             if (deposit) {
                 return this.creep.memory.deposit = deposit.id;
             }
         } else if (!deposit.length) {
             INTEL[this.creep.memory.destination].commodity = undefined;
             Memory.auxiliaryTargets[this.creep.memory.destination] = undefined;
+            this.creep.suicide();
             return this.creep.memory.deposit = undefined;
         } else {
             // Choose a random deposit
