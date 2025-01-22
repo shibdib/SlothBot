@@ -412,7 +412,7 @@ let globals = function () {
         const shardNames = ['shard0', 'shard1', 'shard2', 'shard3'];
         if (shardNames.includes(Game.shard.name)) {
             // Handle alliance data first
-            if (!global.ALLIANCE_DATA || global.ALLIANCE_DATA_AGE + 10000 < Game.time) {
+            if (!global.ALLIANCE_DATA_AGE || global.ALLIANCE_DATA_AGE + 10000 < Game.time) {
                 global.LOAN_LIST = [...MANUAL_FRIENDS];
                 global.LOAN_CHECK = false;
                 // Check if the segment is set
@@ -424,21 +424,33 @@ let globals = function () {
                     for (let iL = keys.length - 1; iL >= 0; iL--) {
                         if (data[keys[iL]].includes(MY_USERNAME)) {
                             global.LOAN_LIST = [...global.LOAN_LIST, ...MANUAL_FRIENDS];
-                            Memory.friendList = global.LOAN_LIST;
                             global.LOAN_ALLIANCE = keys[iL];
                             break;
                         }
                     }
                 } else {
+                    // Handle not being able to find the data
+                    if (!global.LOAN_ATTEMPT) global.LOAN_ATTEMPT = 1; else global.LOAN_ATTEMPT++;
+                    if (global.LOAN_ATTEMPT >= 25) {
+                        console.log(`Failed to get alliance data for ${LOANuser} after 25 attempts.`);
+                        global.LOAN_ATTEMPT = 0;
+                        global.ALLIANCE_DATA_AGE = Game.time;
+                        global.NCP_DATA_AGE = Game.time;
+                        global.LOAN_CHECK = true;
+                        global.LOAN_LIST = [...MANUAL_FRIENDS];
+                        global.ALLIANCE_DATA = undefined;
+                        global.NCP_DATA = undefined;
+                        return false;
+                    }
                     RawMemory.setActiveForeignSegment(LOANuser, 99);
                 }
-            } else if (!global.NCP_DATA || global.NCP_DATA_AGE + 20000 < Game.time) {
+            } else if (!global.NCP_DATA_AGE || global.NCP_DATA_AGE + 20000 < Game.time) {
                 global.LOAN_CHECK = false;
                 // Check if the segment is set
                 if (RawMemory.foreignSegment && RawMemory.foreignSegment.username === LOANuser && RawMemory.foreignSegment.id === 98) {
                     global.NCP_DATA_AGE = Game.time;
                     global.NCP_DATA = RawMemory.foreignSegment.data;
-                    global.LOANcheck = true;
+                    global.LOAN_CHECK = true;
                 } else {
                     RawMemory.setActiveForeignSegment(LOANuser, 98);
                 }
