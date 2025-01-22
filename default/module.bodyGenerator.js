@@ -87,8 +87,8 @@ class ModuleBodyGenerator {
                     work = 1;
                     carry = 1;
                 }
-                // If we have a storage we should have a stationary upgrader
-                else if (this.room.storage) {
+                // If we have a controller container
+                else if (this.room.memory.controllerContainer) {
                     work = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 49); // Max work to 49
                     if (this.level === 8) work = 15; // Special case for level 8
