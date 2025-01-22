@@ -270,7 +270,8 @@ class ModuleBodyGenerator {
                 work = Math.floor((this.energyAmount * workRatio) / BODYPART_COST[WORK]) || 1;
 
                 // Set source energy capacity for a reserved room, double it at level 8
-                const SOURCE_CAPACITY = this.room.controller.level === 8 ? SOURCE_ENERGY_CAPACITY * 2 : SOURCE_ENERGY_CAPACITY;
+                // DISABLED FOR NOW
+                const SOURCE_CAPACITY = this.room.controller.level === 9 ? SOURCE_ENERGY_CAPACITY * 2 : SOURCE_ENERGY_CAPACITY;
 
                 // SK-specific work adjustment
                 if (this.creepInfo.other.SK && work > SOURCE_ENERGY_KEEPER_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) {
