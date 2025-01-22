@@ -108,8 +108,6 @@ class ModuleBodyGenerator {
 
             case 'hauler':
             case 'labTech':
-                energyScaling = true;
-
                 // Scale carry based on available energy and limit it by level
                 carry = Math.floor((this.energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
                 carry = Math.min(carry, this.level * 2);  // Max carry to level * 2
