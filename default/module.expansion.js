@@ -168,7 +168,7 @@ class ExpansionControl {
     checkForActiveClaims(auxiliaryTargets) {
         for (let key in auxiliaryTargets) {
             if (auxiliaryTargets.hasOwnProperty(key)) {
-                if (auxiliaryTargets[key].type === 'rebuild' || auxiliaryTargets[key].type === 'claim') {
+                if (auxiliaryTargets[key] && (auxiliaryTargets[key].type === 'rebuild' || auxiliaryTargets[key].type === 'claim')) {
                     return true;
                 }
             }
