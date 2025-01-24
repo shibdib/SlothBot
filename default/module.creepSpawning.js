@@ -217,16 +217,17 @@ module.exports.essentialCreepQueue = function (room) {
     let upgraderReboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9;
     let upgraderAmount = 1;
 
-    if (!room.storage && !upgraderReboot) {
+    if (!upgraderReboot) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         if (container && room.energyState && container.store[RESOURCE_ENERGY] > CONTAINER_CAPACITY * 0.7) {
             upgraderAmount = Math.min(
                 (container.store[RESOURCE_ENERGY] - (CONTAINER_CAPACITY * (0.1 * room.level))) / (50 * room.level),
                 container.pos.countOpenTerrainAround()
             );
-        } else {
+        } else if (!container) {
             upgraderAmount = 3;
         }
+        if (upgraderAmount > 3) upgraderAmount = 3;
     }
 
     queueCreepIfNeeded('upgrader', PRIORITIES.upgrader - (room.energyState * 0.5), upgraderAmount, upgraderReboot);
