@@ -358,6 +358,7 @@ module.exports.remoteCreepQueue = function (room) {
         if (highestLevel) {
             if (INTEL[remoteName].invaderCore) {
                 handleInvaderCore(room, remoteName);
+                handleReservation(room, remoteName);
             } else if (INTEL[remoteName].threatLevel > 1) {
                 handleThreatLevel(room, remoteName);
             } else {
