@@ -207,7 +207,7 @@ function auxiliaryOperations() {
 
         // Power Mining (level 8 and power threshold check)
         if (MAX_LEVEL >= 8 && getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT) {
-            let powerRoom = _.min(_.filter(initialFilter, (r) => r.power && r.power + 1500 >= tick && findClosestOwnedRoom(r.name, true) <= 8), function (t) {
+            let powerRoom = _.min(_.filter(initialFilter, (r) => r.power && r.power - 1500 >= tick && findClosestOwnedRoom(r.name, true) <= 8), function (t) {
                 return findClosestOwnedRoom(t.name, true);
             });
 

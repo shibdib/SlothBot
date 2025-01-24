@@ -410,7 +410,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     const currentTime = Game.time;
 
     // Early exit if data is still valid
-    if (!force && cache[this.name] && cache[this.name].cached + CREEP_LIFE_TIME > currentTime) return;
+    if (!force && cache[this.name] && cache[this.name].cached + (CREEP_LIFE_TIME * 0.5) > currentTime) return;
 
     const roomIntel = cache[this.name] || {
         cached: currentTime,
@@ -501,14 +501,22 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     // Special room type checks
     const structures = this.find(FIND_STRUCTURES);
     roomIntel.sk = structures.some(s => s.structureType === STRUCTURE_KEEPER_LAIR);
-    const deposits = this.find(FIND_DEPOSITS);
-    if (roomIntel.sources === 0 && deposits.some(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20))) {
+    const deposits = this.find(FIND_DEPOSITS).some(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20));
+    const power = this.find(FIND_STRUCTURES).some(s => s.structureType === STRUCTURE_POWER_BANK);
+    if (roomIntel.sources === 0 && (deposits || power)) {
         roomIntel.isHighway = true;
-        const commodityDeposit = deposits.find(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20));
-        roomIntel.commodity = commodityDeposit ? commodityDeposit.depositType : undefined;
+        if (deposits) {
+            const commodityDeposit = this.find(FIND_DEPOSITS).find(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20));
+            roomIntel.commodity = commodityDeposit ? commodityDeposit.depositType : undefined;
+        }
+        if (power) {
+            const powerBank = this.find(FIND_STRUCTURES).find(s => s.structureType === STRUCTURE_POWER_BANK);
+            roomIntel.power = powerBank ? Game.time + powerBank.ticksToDecay : undefined;
+        }
     } else {
         delete roomIntel.isHighway;
         delete roomIntel.commodity;
+        delete roomIntel.power;
     }
 
     // Update cache
