@@ -143,6 +143,7 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
     const hostileStructures = _.filter(this.room.impassibleStructures, (s) =>
         (!s.owner || !FRIENDLIES.includes(s.owner.username)) &&
         (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange)
+        && ![STRUCTURE_KEEPER_LAIR, STRUCTURE_CONTROLLER, STRUCTURE_POWER_BANK].includes(s.structureType)
     );
 
     const hostileCreeps = _.filter(this.room.hostileCreeps, (s) =>
@@ -153,27 +154,23 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
 
     if (!hostileCreeps.length && !hostileStructures.length) return undefined;
 
-    // If we already have a valid target, return it
     if (this.memory.target) {
         let oldTarget = Game.getObjectById(this.memory.target);
         if (oldTarget && (oldTarget instanceof Structure || oldTarget instanceof Creep)) {
             return oldTarget;
         } else {
-            this.memory.target = undefined;  // Reset if invalid target
+            this.memory.target = undefined;
         }
     }
 
-    // Create reusable filter functions
     const isArmedCreep = (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK);
     const inGuardRange = (c) => !guardLocation || c.pos.getRangeTo(guardLocation) < guardRange;
     const isRampartChecked = (c) => !c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000;
 
-    // Helper function to find the closest enemy with filtering and prioritization
     const findClosest = (creeps, filter) => barriersPresent
         ? this.pos.findClosestByPath(creeps, {filter})
         : this.pos.findClosestByRange(creeps, {filter});
 
-    // --- Prioritize Armed Enemies (especially ranged attackers) ---
     let enemy = findClosest(hostileCreeps, (c) =>
         isArmedCreep(c) &&
         (ignoreBorder || (c.pos.x > 0 && c.pos.x < 49 && c.pos.y > 0 && c.pos.y < 49)) &&
@@ -182,7 +179,6 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
     );
     if (enemy) return updateTargetAndReturn(this, enemy);
 
-    // --- Prioritize Hostile Towers (weak ramparts or no ramparts) ---
     enemy = findClosest(hostileStructures, (s) =>
         s.structureType === STRUCTURE_TOWER &&
         isRampartChecked(s) &&
@@ -190,7 +186,6 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
     );
     if (enemy) return updateTargetAndReturn(this, enemy);
 
-    // --- Prioritize Hostile Spawns (weak ramparts or no ramparts) ---
     enemy = findClosest(hostileStructures, (s) =>
         s.structureType === STRUCTURE_SPAWN &&
         isRampartChecked(s) &&
@@ -198,12 +193,17 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
     );
     if (enemy) return updateTargetAndReturn(this, enemy);
 
-    // --- Prioritize unarmed enemies if no armed ones found ---
     enemy = findClosest(hostileCreeps, (c) =>
         !isArmedCreep(c) &&
         (ignoreBorder || (c.pos.x > 0 && c.pos.x < 49 && c.pos.y > 0 && c.pos.y < 49)) &&
         inGuardRange(c) &&
         !c.pos.checkForRampart()
+    );
+    if (enemy) return updateTargetAndReturn(this, enemy);
+
+    enemy = findClosest(hostileStructures, (s) =>
+        isRampartChecked(s) &&
+        s.isActive()
     );
     if (enemy) return updateTargetAndReturn(this, enemy);
 
