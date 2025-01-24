@@ -46,7 +46,7 @@ class RolePowerAttacker {
             }
             switch (this.creep.attack(powerBank)) {
                 case OK:
-                    this.creep.memory.other = {noBump: true}
+                    this.creep.memory.other.stationary = true;
                     break;
                 case ERR_NOT_IN_RANGE:
                     this.creep.shibMove(powerBank);
