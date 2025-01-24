@@ -13,10 +13,10 @@ class RolePowerHealer {
 
     performRoleActions() {
         if (this.housekeeping()) return;
-        if (_.sum(this.creep.store)) {
-            this.deliverResource();
+        if (this.room.name !== this.creep.memory.destination) {
+            this.travel();
         } else {
-            this.findResource();
+            this.healerDuty();
         }
     }
 
