@@ -462,7 +462,7 @@ Creep.prototype.haulerDelivery = function () {
     });
 
     if (energyStructures.length) {
-        this.memory.storageDestination = energyStructures.reduce((a, b) => this.pos.getRangeTo(a) < this.pos.getRangeTo(b) ? a : b).id;
+        this.memory.storageDestination = energyStructures.reduce((a, b) => this.pos.getRangeTo(a) > this.pos.getRangeTo(b) ? a : b).id;
         return true;
     }
 
