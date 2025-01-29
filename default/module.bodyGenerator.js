@@ -108,36 +108,13 @@ class ModuleBodyGenerator {
 
             case 'hauler':
             case 'labTech':
+            case 'shuttle':
                 // Scale carry based on available energy and limit it by level
                 carry = Math.floor((this.energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
                 carry = Math.min(carry, LINK_CAPACITY / CARRY_CAPACITY);  // Max carry to fit a links capacity
 
                 // Check if roads are built and adjust movement accordingly
                 if (INTEL[this.room.name].roadsBuilt) halfMove = true;
-
-                break;
-
-            case 'shuttle':
-                // Dynamic carry calculation based on available energy and max CARRY capacity
-                carry = Math.floor((this.energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
-
-                // Filter sources that do not have a link and have distance to hub
-                let sources = _.filter(this.room.sources, s => !s.memory.link && s.memory.distanceToHub);
-                let farthestSourceDistance = sources.length
-                    ? _.max(sources, 'memory.distanceToHub').memory.distanceToHub * 2 // Maximize distance to hub
-                    : 40; // Default if no sources with distance to hub are found
-
-                // Energy harvested per trip calculation (distance scaled to energy)
-                let energyHarvestedPerTrip = (HARVEST_POWER * 6) * farthestSourceDistance;
-
-                // Scale carry based on harvested energy per trip and max CARRY_CAPACITY
-                carry = Math.min(carry, energyHarvestedPerTrip / CARRY_CAPACITY);
-
-                // If roads are built, reduce movement parts by half for efficiency
-                if (INTEL[this.room.name].roadsBuilt) halfMove = true;
-
-                // Ensure the number of parts doesn't exceed maximum CARRY capacity for the shuttle
-                carry = Math.min(carry, this.energyAmount / BODYPART_COST[CARRY]);
 
                 break;
 
