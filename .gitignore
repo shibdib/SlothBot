@@ -6,6 +6,10 @@
 # User-specific stuff:
 /.idea/
 
+# Non default config file
+config*
+!config.default.js
+
 ## File-based project format:
 ## Plugin-specific files:
 
