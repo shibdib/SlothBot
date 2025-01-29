@@ -288,7 +288,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
     const myCreepsFilter = (destinationId) => myCreeps.filter(c => c.memory.energyDestination === destinationId && c.id !== this.id).length;
 
     // Handle resources in allied rooms
-    if (INTEL[room.name] && INTEL[room.name].owner && INTEL[room.name].owner !== MY_USERNAME) {
+    if (INTEL[room.name] && (!INTEL[room.name].owner || INTEL[room.name].owner !== MY_USERNAME)) {
         // Dropped Energy
         if (room.droppedEnergy.length) {
             let dropped = room.droppedEnergy.find((r) => r.amount >= (myCreepsFilter(r.id) + 1) * (freeCapacity * 0.5));
@@ -308,13 +308,11 @@ Creep.prototype.locateEnergy = function (room = this.room) {
             return true;
         }
         // Container
-        if (!room.storage || !room.storage.store[RESOURCE_ENERGY] || this.memory.role === 'shuttle') {
-            let container = room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER && s.pos.checkForRampart(true) && s.store[RESOURCE_ENERGY] > (myCreepsFilter(s.id) + 1) * (freeCapacity * 0.5))
-                .reduce((max, s) => (s.store[RESOURCE_ENERGY] > max.store[RESOURCE_ENERGY] ? s : max), {store: {RESOURCE_ENERGY: 0}});
-            if (container.store[RESOURCE_ENERGY]) {
-                this.memory.energyDestination = container.id;
-                return true;
-            }
+        let container = room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER && !s.pos.checkForRampart(true))
+            .reduce((max, s) => (s.store[RESOURCE_ENERGY] > max.store[RESOURCE_ENERGY] ? s : max), {store: {RESOURCE_ENERGY: 0}});
+        if (container.store[RESOURCE_ENERGY]) {
+            this.memory.energyDestination = container.id;
+            return true;
         }
     } else {
         // Handle remote haulers pre-storage
