@@ -308,9 +308,8 @@ Creep.prototype.locateEnergy = function (room = this.room) {
             return true;
         }
         // Container
-        let container = room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER && !s.pos.checkForRampart(true))
-            .reduce((max, s) => (s.store[RESOURCE_ENERGY] > max.store[RESOURCE_ENERGY] ? s : max), {store: {RESOURCE_ENERGY: 0}});
-        if (container.store[RESOURCE_ENERGY]) {
+        let container = room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER && !s.pos.checkForRampart(true) && s.store[RESOURCE_ENERGY])[0];
+        if (container) {
             this.memory.energyDestination = container.id;
             return true;
         }
