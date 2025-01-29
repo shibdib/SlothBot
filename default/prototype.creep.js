@@ -482,18 +482,21 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
 
-    const controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && controllerContainer.store.getUsedCapacity() < CONTAINER_CAPACITY * 0.7) {
-        this.memory.storageDestination = controllerContainer.id;
-        return true;
-    }
-    // Top up towers if no other tasks
+    // Top up towers
     if (this.room.controller.level >= 3) {
         const tower = _.find(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY);
         if (tower) {
             this.memory.storageDestination = tower.id;
             return true;
         }
+    }
+
+    const controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+    if (controllerContainer
+        && (!this.room.memory.hubLink || Game.getObjectById(this.room.memory.hubLink).store.getFreeCapacity(RESOURCE_ENERGY) > LINK_CAPACITY * 0.5)
+        && controllerContainer.store.getUsedCapacity() < CONTAINER_CAPACITY * 0.7) {
+        this.memory.storageDestination = controllerContainer.id;
+        return true;
     }
 
     // Handle storage fallback if below buffer
