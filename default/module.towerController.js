@@ -44,7 +44,7 @@ function handleRepairTowerActions(room, repairTower) {
         // Perform healing or repair
         if (woundedCreep) {
             repairTower.heal(woundedCreep);
-        } else if (room.energyState && degradingStructure) {
+        } else if (degradingStructure) {
             repairTower.repair(degradingStructure);
         }
     }
