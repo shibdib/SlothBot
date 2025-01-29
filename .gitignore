@@ -7,8 +7,8 @@
 /.idea/
 
 # Non default config file
-config*
-!config.default.js
+/default/config.*.js
+!/default/config.default.js
 
 ## File-based project format:
 ## Plugin-specific files:
