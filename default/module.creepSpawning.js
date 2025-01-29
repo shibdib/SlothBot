@@ -429,7 +429,7 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleRemoteHarvesters(room) {
         let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-        if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 2) {
+        if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 3) {
             let remoteSources;
             // Parse the stringified object to a valid JavaScript object and filter
             remoteSources = JSON.parse(room.memory.remoteSources);
