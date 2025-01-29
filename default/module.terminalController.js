@@ -908,21 +908,21 @@ class TerminalControl {
             // Private server handling (excluding shard0-3)
             if (!['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
                 // Reinvest credits more aggressively when we're not on the public shard
-                Memory._banker.spendingAccount = Math.max(Game.market.credits - CREDIT_BUFFER, 0); // Ensure spendingMoney is not negative
-                log.w(`New spending account amount (HOURLY UPDATE) - ${Memory._banker.spendingAccount}`, "Market: ");
+                profitTracking.spendingAccount = Math.max(Game.market.credits - CREDIT_BUFFER, 0); // Ensure spendingMoney is not negative
+                log.w(`New spending account amount (HOURLY UPDATE) - ${profitTracking.spendingAccount}`, "Market: ");
             }
             // Cap spending money on official servers
-            else if (Game.market.credits > 150000 && Memory._banker.spendingAccount > 150000) {
-                Memory._banker.spendingAccount = 150000;
-                log.w(`New spending account amount (HOURLY UPDATE) - ${Memory._banker.spendingAccount}`, "Market: ");
+            else if (Game.market.credits > 150000 && profitTracking.spendingAccount > 150000) {
+                profitTracking.spendingAccount = 150000;
+                log.w(`New spending account amount (HOURLY UPDATE) - ${profitTracking.spendingAccount}`, "Market: ");
             }
             // Add 90% of the profit to spending account for the hour to aggressively reinvest
             else if (hourChange > 0) {
-                Memory._banker.spendingAccount += hourChange * 0.9; // Keep more profit for re-investment
-                log.w(`New spending account amount (HOURLY UPDATE) - ${Memory._banker.spendingAccount}`, "Market: ");
+                profitTracking.spendingAccount += hourChange * 0.9; // Keep more profit for re-investment
+                log.w(`New spending account amount (HOURLY UPDATE) - ${profitTracking.spendingAccount}`, "Market: ");
             } else {
-                Memory._banker.spendingAccount += hourChange; // If no profit, just adjust with the change
-                log.w(`New spending account amount (HOURLY UPDATE) - ${Memory._banker.spendingAccount}`, "Market: ");
+                profitTracking.spendingAccount += hourChange; // If no profit, just adjust with the change
+                log.w(`New spending account amount (HOURLY UPDATE) - ${profitTracking.spendingAccount}`, "Market: ");
             }
 
             // Track resources for profitable buys
@@ -941,8 +941,8 @@ class TerminalControl {
                             log.w(`Buying ${buyAmount} ${order.resourceType} for ${order.price} credits each.`, "Market: ");
                             if (Game.market.deal(order.id, buyAmount) === OK) {
                                 hourChange -= buyAmount * order.price;  // Deduct the purchase from the profit
-                                Memory._banker.spendingAccount -= buyAmount * order.price;  // Deduct the purchase from the spending account
-                                log.w(`Bought ${buyAmount} ${order.resourceType} for ${buyAmount * order.price} credits. New spending account amount - ${Memory._banker.spendingAccount}`, "Market: ");
+                                profitTracking.spendingAccount -= buyAmount * order.price;  // Deduct the purchase from the spending account
+                                log.w(`Bought ${buyAmount} ${order.resourceType} for ${buyAmount * order.price} credits. New spending account amount - ${profitTracking.spendingAccount}`, "Market: ");
                             }
                         }
                     }
@@ -957,10 +957,10 @@ class TerminalControl {
             profitTracking.lastInflux = Game.time;
 
             // Random influx when spending money is low
-            if (Game.market.credits > CREDIT_BUFFER && Math.random() > 0.5 && Memory._banker.spendingAccount < 1000) {
+            if (Game.market.credits > CREDIT_BUFFER && Math.random() > 0.5 && profitTracking.spendingAccount < 1000) {
                 const bankersCut = (Game.market.credits - CREDIT_BUFFER) * 0.9; // Keep 90% of the influx for buying
-                Memory._banker.spendingAccount += bankersCut * 0.1; // Allocate 10% for more flexible spending
-                log.w(`New spending account amount (RANDOM INFLUX) - ${Memory._banker.spendingAccount}`, "Market: ");
+                profitTracking.spendingAccount += bankersCut * 0.1; // Allocate 10% for more flexible spending
+                log.w(`New spending account amount (RANDOM INFLUX) - ${profitTracking.spendingAccount}`, "Market: ");
             }
         }
 
