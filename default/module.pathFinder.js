@@ -594,7 +594,7 @@ function getStructureMatrix(roomName, creep, matrix, options) {
         switch (type) {
             case 2:
             case 3:
-                roadCost = 5;
+                roadCost = 2;
                 break;
             default:
                 roadCost = 1;
