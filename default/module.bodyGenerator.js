@@ -110,7 +110,7 @@ class ModuleBodyGenerator {
             case 'labTech':
                 // Scale carry based on available energy and limit it by level
                 carry = Math.floor((this.energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
-                carry = Math.min(carry, this.level * 2);  // Max carry to level * 2
+                carry = Math.min(carry, LINK_CAPACITY / CARRY_CAPACITY);  // Max carry to fit a links capacity
 
                 // Check if roads are built and adjust movement accordingly
                 if (INTEL[this.room.name].roadsBuilt) halfMove = true;
