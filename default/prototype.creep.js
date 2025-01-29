@@ -142,18 +142,6 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
 };
 
 /**
- * Find a mineral
- * @returns {*}
- */
-Creep.prototype.findMineral = function () {
-    const mineral = this.room.mineral;
-    if (mineral) {
-        this.memory.source = mineral.id;
-        return mineral;
-    }
-};
-
-/**
  * Handle SK damage
  * @returns {*|boolean}
  */
@@ -502,7 +490,6 @@ Creep.prototype.haulerDelivery = function () {
         this.memory.storageDestination = controllerContainer.id;
         return true;
     }
-
     // Top up towers if no other tasks
     if (this.room.controller.level >= 3) {
         const tower = _.find(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY);
@@ -513,14 +500,11 @@ Creep.prototype.haulerDelivery = function () {
     }
 
     // Handle storage fallback if below buffer
-    if (this.room.storage && this.room.storage.id !== this.memory.lastWithdraw && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+    if (this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) &&
+        (this.room.storage.id !== this.memory.lastWithdraw || (this.room.memory.hubLink && Game.getObjectById(this.room.memory.hubLink).store.getFreeCapacity(RESOURCE_ENERGY) < LINK_CAPACITY * 0.5))) {
         this.memory.storageDestination = this.room.storage.id;
         return true;
-    } else if (this.room.terminal && this.room.terminal.id !== this.memory.lastWithdraw && this.room.terminal.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-        this.memory.storageDestination = this.room.terminal.id;
-        return true;
     }
-
     // No delivery action performed
     return false;
 };
