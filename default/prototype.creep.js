@@ -503,13 +503,6 @@ Creep.prototype.haulerDelivery = function () {
         return true;
     }
 
-    // Handle storage fallback if below buffer
-    const storageTarget = this.room.storage || this.room.terminal;
-    if (storageTarget && storageTarget.id !== this.memory.lastWithdraw && storageTarget.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-        this.memory.storageDestination = storageTarget.id;
-        return true;
-    }
-
     // Top up towers if no other tasks
     if (this.room.controller.level >= 3) {
         const tower = _.find(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY);
@@ -517,6 +510,15 @@ Creep.prototype.haulerDelivery = function () {
             this.memory.storageDestination = tower.id;
             return true;
         }
+    }
+
+    // Handle storage fallback if below buffer
+    if (this.room.storage && this.room.storage.id !== this.memory.lastWithdraw && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+        this.memory.storageDestination = this.room.storage.id;
+        return true;
+    } else if (this.room.terminal && this.room.terminal.id !== this.memory.lastWithdraw && this.room.terminal.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+        this.memory.storageDestination = this.room.terminal.id;
+        return true;
     }
 
     // No delivery action performed
