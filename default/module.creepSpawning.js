@@ -174,12 +174,7 @@ module.exports.essentialCreepQueue = function (room) {
     }
 
     // Harvesters
-    if (harvesterCount < room.sources.length || (creepExpiringSoon(room.name, 'stationaryHarvester') && harvesterCount === room.sources.length)) {
-        queueCreep(room, PRIORITIES.stationaryHarvester + harvesterCount, {
-            role: 'stationaryHarvester',
-            other: {reboot: !harvesterCount}
-        });
-    }
+    queueCreepIfNeeded('stationaryHarvester', PRIORITIES.stationaryHarvester + harvesterCount, room.sources.length, !harvesterCount)
 
     // Haulers
     if (harvesterCount) {
