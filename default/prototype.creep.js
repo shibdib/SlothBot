@@ -298,12 +298,12 @@ Creep.prototype.locateEnergy = function (room = this.room) {
             }
         }
         // Storage
-        if (room.storage && room.storage.pos.checkForRampart(false) && room.storage.store[RESOURCE_ENERGY]) {
+        if (room.storage && !room.storage.pos.checkForRampart(true) && room.storage.store[RESOURCE_ENERGY]) {
             this.memory.energyDestination = room.storage.id;
             return true;
         }
         // Terminal
-        if (room.terminal && room.terminal.pos.checkForRampart(false) && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
+        if (room.terminal && !room.terminal.pos.checkForRampart(true) && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
             this.memory.energyDestination = room.terminal.id;
             return true;
         }
