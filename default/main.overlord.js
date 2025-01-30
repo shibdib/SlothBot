@@ -193,7 +193,7 @@ function minionController(minion) {
     }
 
     // Return if idle
-    if (minion.idle) return;
+    if (minion.idle || minion.memory.blocked === Game.time) return;
 
     // Track Threat
     diplomacy.trackThreat(minion);
