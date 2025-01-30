@@ -69,6 +69,15 @@ class RoleRemoteHarvester {
 
                             this.creep.memory.energyAmount = _.sum(this.container.store);
                             this.creep.memory.energyId = this.container.id;
+                        } else if (this.container && this.container.progressTotal) {
+                            const dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
+                            if (dropped) {
+                                this.creep.memory.energyAmount = dropped.amount;
+                                this.creep.memory.energyId = dropped.id;
+                                if (dropped.amount > 500 && !this.creep.store.getFreeCapacity()) {
+                                    this.creep.build(this.container);
+                                }
+                            }
                         } else {
                             const dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
                             if (dropped) {

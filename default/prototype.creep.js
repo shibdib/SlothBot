@@ -170,7 +170,7 @@ Creep.prototype.skSafety = function () {
             return this.suicide();
         }
     } else if (this.memory.fledSK) {
-        if (this.memory.fledSK + 15 <= Game.time) this.memory.fledSK = undefined; else this.idleFor(16);
+        if (this.memory.fledSK + 5 <= Game.time) this.memory.fledSK = undefined; else this.idleFor(5);
         return true;
     }
 }
