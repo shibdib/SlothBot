@@ -7,10 +7,9 @@ Creep.prototype.borderPatrol = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
 
-    // 1. Proactive Combat Check
     if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
         if (this.canIWin(50)) {
-            if (this.handleMilitaryCreep() || this.scorchedEarth()) return;
+            if (this.handleMilitaryCreep()) return;
             else return this.shibKite();
         }
     } else {

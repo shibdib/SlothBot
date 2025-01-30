@@ -265,6 +265,24 @@ function manageResponseForces() {
             potentialTargets.push({type: 'ownedRoomAttack', room: requestingSupport, priority: 10});
         }
 
+        // Remote support hostile
+        let remoteSupport = _.findKey(INTEL, (r) => r.threatLevel > 1 && r.remoteRoom && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
+        if (remoteSupport) {
+            potentialTargets.push({type: 'remoteRoomAttack', room: remoteSupport, priority: 9});
+        }
+
+        // Invader Core
+        let invaderCore = _.findKey(INTEL, (r) => r.invaderCore && r.remoteRoom && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
+        if (invaderCore) {
+            potentialTargets.push({type: 'invaderCore', room: invaderCore, priority: 8});
+        }
+
+        // Remote support unarmed
+        let remoteSupportUnarmed = _.findKey(INTEL, (r) => r.threatLevel === 1 && r.remoteRoom && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
+        if (remoteSupportUnarmed) {
+            potentialTargets.push({type: 'unarmedVisitors', room: remoteSupportUnarmed, priority: 7});
+        }
+
         // Add guard duty rooms
         let guard = _.findKey(Memory.targetRooms, (o) => o && o.type === 'guard' && o.level) || _.findKey(Memory.auxiliaryTargets, (o) => o && o.type === 'guard' && o.level);
         if (guard) {
@@ -303,6 +321,11 @@ function manageResponseForces() {
             case 'ownedRoomAttack':
                 INTEL[target.room].responseDispatched = Game.time;
                 assignRespondersToTarget(target.room, 'reassigned to assist in the defense of', INTEL[target.room].hostilePower);
+                break;
+
+            case 'remoteRoomAttack':
+                INTEL[target.room].responseDispatched = Game.time;
+                assignRespondersToTarget(target.room, 'reassigned to re-secure', INTEL[target.room].hostilePower);
                 break;
 
             case 'invaderCore':
