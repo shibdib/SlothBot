@@ -523,6 +523,7 @@ Creep.prototype.constructionWork = function () {
     if (site) {
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
+        this.memory.sitePos = JSON.stringify(site.pos);
         return true;
     }
 
@@ -532,6 +533,7 @@ Creep.prototype.constructionWork = function () {
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         this.memory.targetHits = 12500;
+        this.memory.sitePos = JSON.stringify(site.pos);
         return true;
     }
 
@@ -548,6 +550,7 @@ Creep.prototype.constructionWork = function () {
             this.memory.constructionSite = hostileBarrier.id;
             this.memory.task = 'repair';
             this.memory.targetHits = hostileBarrier.hits + 25000;
+            this.memory.sitePos = JSON.stringify(site.pos);
             return true;
         }
     }
@@ -566,6 +569,7 @@ Creep.prototype.constructionWork = function () {
         if (site) {
             this.memory.constructionSite = site.id;
             this.memory.task = 'build';
+            this.memory.sitePos = JSON.stringify(site.pos);
             return true;
         }
     }
@@ -576,6 +580,7 @@ Creep.prototype.constructionWork = function () {
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         this.memory.targetHits = site.hitsMax * 0.65;
+        this.memory.sitePos = JSON.stringify(site.pos);
         return true;
     }
 
@@ -584,6 +589,7 @@ Creep.prototype.constructionWork = function () {
     if (site) {
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
+        this.memory.sitePos = JSON.stringify(site.pos);
         return true;
     }
 
@@ -593,6 +599,7 @@ Creep.prototype.constructionWork = function () {
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         this.memory.targetHits = site.hitsMax * 0.65;
+        this.memory.sitePos = JSON.stringify(site.pos);
         return true;
     }
 
@@ -602,6 +609,7 @@ Creep.prototype.constructionWork = function () {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
+        this.memory.sitePos = JSON.stringify(site.pos);
         return true;
     }
 
@@ -610,6 +618,7 @@ Creep.prototype.constructionWork = function () {
     if (site) {
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
+        this.memory.sitePos = JSON.stringify(site.pos);
         return true;
     }
 
@@ -619,12 +628,15 @@ Creep.prototype.constructionWork = function () {
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         this.memory.targetHits = site.hitsMax;
+        this.memory.sitePos = JSON.stringify(site.pos);
         return true;
     }
 
     // No construction/repair work found
     this.memory.constructionSite = undefined;
     this.memory.task = undefined;
+    this.memory.sitePos = undefined;
+    this.memory.targetHits = undefined;
     return false;
 };
 
@@ -635,8 +647,16 @@ Creep.prototype.constructionWork = function () {
 Creep.prototype.builderFunction = function () {
     let construction = Game.getObjectById(this.memory.constructionSite);
     if (!construction) {
+        if (this.memory.sitePos && JSON.parse(this.memory.sitePos).roomName !== this.room.name) {
+            const sitePos = JSON.parse(this.memory.sitePos);
+            this.shibMove(new RoomPosition(sitePos.x, sitePos.y, sitePos.roomName), {range: 3});
+            return true;
+        }
+        console.log(this.name)
         this.memory.constructionSite = undefined;
         this.memory.task = undefined;
+        this.memory.siteRoom = undefined;
+        this.memory.targetHits = undefined;
         return false;
     }
 

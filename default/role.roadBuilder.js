@@ -64,7 +64,6 @@ class RoleRoadBuilder {
             this.creep.memory.harvest = undefined;
             // Handle construction
             if (this.creep.memory.constructionSite || this.creep.constructionWork()) {
-                if (!Game.getObjectById(this.creep.memory.constructionSite)) return this.creep.memory.constructionSite = undefined;
                 this.creep.builderFunction();
             } else if (this.creep.room.name !== this.creep.memory.overlord && this.remoteRoads(this.creep) === false) {
                 INTEL[this.creep.room.name].roadsBuilt = true;
