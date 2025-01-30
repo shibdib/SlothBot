@@ -237,7 +237,7 @@ module.exports.miscCreepQueue = function (room) {
     queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
 
     // LabTech
-    if (room.storage && level >= 6) {
+    if (room.terminal && room.storage && level >= 6) {
         if (!getCreepCount(room, 'labTech')) {
             queueCreep(room, PRIORITIES.hauler, {role: 'labTech'});
         }
