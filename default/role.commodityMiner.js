@@ -66,7 +66,7 @@ class RoleCommodityMiner {
         if (Memory.auxiliaryTargets[this.creep.memory.destination]) Memory.auxiliaryTargets[this.creep.memory.destination].tick = Game.time;
         switch (this.creep.harvest(deposit)) {
             case OK:
-                this.creep.memory.other.noBump = true;
+                this.creep.memory.other.stationary = true;
                 break;
             case ERR_NOT_IN_RANGE:
                 this.creep.shibMove(deposit);
@@ -80,7 +80,7 @@ class RoleCommodityMiner {
     }
 
     returnResource() {
-        this.creep.memory.other.noBump = undefined;
+        this.creep.memory.other.stationary = undefined;
         this.creep.memory.closestRoom = this.creep.memory.closestRoom || findClosestOwnedRoom(this.room.name, false, 4);
         if (this.room.name !== this.creep.memory.closestRoom) {
             return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.closestRoom), {range: 23});

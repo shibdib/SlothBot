@@ -991,10 +991,10 @@ Creep.prototype.findDefensivePosition = function (target = this) {
 
         // Move to the rampart if not already there
         if (bestRampart.pos.x !== this.pos.x || bestRampart.pos.y !== this.pos.y) {
-            this.memory.other.noBump = undefined;
+            this.memory.other.stationary = undefined;
             this.shibMove(bestRampart, {range: 0});
         } else {
-            this.memory.other.noBump = true;
+            this.memory.other.stationary = true;
         }
         return true;
     } else {

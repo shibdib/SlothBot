@@ -56,7 +56,7 @@ class RoleUpgrader {
         if (this.creep.memory.working) {
             switch (this.creep.upgradeController(Game.rooms[this.creep.memory.overlord].controller)) {
                 case OK:
-                    this.creep.memory.other.noBump = true;
+                    this.creep.memory.other.stationary = true;
                     return;
                 case ERR_NOT_IN_RANGE:
                     this.creep.shibMove(this.room.controller, {range: 3});
@@ -66,7 +66,7 @@ class RoleUpgrader {
                     this.withdraw();
             }
         } else if (this.creep.memory.energyDestination) {
-            this.creep.memory.other.noBump = undefined;
+            this.creep.memory.other.stationary = undefined;
             this.creep.withdrawResource();
         } else if (this.container && this.container.store[RESOURCE_ENERGY]) {
             this.creep.withdrawResource(this.container);

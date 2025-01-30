@@ -41,14 +41,14 @@ class RoleRoadBuilder {
                     this.creep.memory.other.source = source.id;
                     switch (this.creep.harvest(source)) {
                         case ERR_NOT_IN_RANGE:
-                            this.creep.memory.other.noBump = undefined;
+                            this.creep.memory.other.stationary = undefined;
                             this.creep.shibMove(source);
                             break;
                         case ERR_NOT_ENOUGH_RESOURCES:
                             this.creep.memory.other.source = undefined;
                             break;
                         case OK:
-                            this.creep.memory.other.noBump = true;
+                            this.creep.memory.other.stationary = true;
                             break;
                     }
                 } else {

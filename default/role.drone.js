@@ -102,7 +102,7 @@ class RoleDrone {
     }
 
     energyCollection() {
-        this.creep.memory.other.noBump = undefined;
+        this.creep.memory.other.stationary = undefined;
         this.creep.memory.working = undefined;
         this.creep.memory.constructionSite = undefined;
         this.creep.memory.task = undefined;
@@ -126,7 +126,7 @@ class RoleDrone {
                         this.creep.memory.source = undefined;
                         break;
                     case OK:
-                        this.creep.memory.other.noBump = true;
+                        this.creep.memory.other.stationary = true;
                         break;
                 }
             } else {
@@ -189,7 +189,7 @@ class RoleDrone {
         this.creep.say('Praise!', true);
         switch (this.creep.upgradeController(this.room.controller)) {
             case OK:
-                this.creep.memory.other.noBump = true;
+                this.creep.memory.other.stationary = true;
                 delete this.creep.memory._shibMove;
                 break;
             case ERR_NOT_IN_RANGE:
@@ -202,7 +202,7 @@ class RoleDrone {
         if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return;
         if ((this.creep.memory.task === 'build' || this.creep.memory.task === 'repair') || (this.creep.memory.constructionSite || this.creep.constructionWork())) {
             if (this.creep.builderFunction()) {
-                this.creep.memory.other.noBump = true;
+                this.creep.memory.other.stationary = true;
             }
             return true;
         }
@@ -263,9 +263,9 @@ class RoleDrone {
             target.say(target.hits + ' / ' + this.creep.memory.targetWallHits);
             switch (this.creep.repair(target)) {
                 case OK:
-                    this.creep.memory.other.noBump = true;
+                    this.creep.memory.other.stationary = true;
                     if (target.hits >= this.creep.memory.targetWallHits) {
-                        this.creep.memory.other.noBump = undefined;
+                        this.creep.memory.other.stationary = undefined;
                         this.creep.memory.currentTarget = undefined;
                         this.creep.memory.targetWallHits = undefined;
                     }
