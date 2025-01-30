@@ -165,16 +165,8 @@ module.exports.essentialCreepQueue = function (room) {
     let shuttleCount = getCreepCount(room, 'shuttle');
     let storageOrTerminal = room.storage || room.terminal || room.memory.hubLink;
 
-    // Helper function to queue a creep with the right priority and reboot status
-    function queueCreepIfNeeded(role, priority, numberNeeded, rebootCondition) {
-        let count = getCreepCount(room, role);
-        if (count < numberNeeded || (creepExpiringSoon(room.name, role) && count === numberNeeded)) {
-            queueCreep(room, priority + count, {role, other: {reboot: rebootCondition}});
-        }
-    }
-
     // Harvesters
-    queueCreepIfNeeded('stationaryHarvester', PRIORITIES.stationaryHarvester + harvesterCount, room.sources.length, !harvesterCount)
+    queueCreepIfNeeded(room, 'stationaryHarvester', PRIORITIES.stationaryHarvester + harvesterCount, room.sources.length, !harvesterCount)
 
     // Haulers
     if (harvesterCount) {
@@ -186,7 +178,7 @@ module.exports.essentialCreepQueue = function (room) {
                 haulerReboot = true;
             }
             let haulerAmount = room.memory.needsHaulers ? 2 : 1;
-            queueCreepIfNeeded('hauler', haulerPriority, haulerAmount, haulerReboot);
+            queueCreepIfNeeded(room, 'hauler', haulerPriority, haulerAmount, haulerReboot);
         }
 
         // Spawn shuttles for harvesters with no link
@@ -199,13 +191,13 @@ module.exports.essentialCreepQueue = function (room) {
         if (fullContainer) shuttleAmount += fullContainer.length;
         if (shuttleAmount > 0) {
             let shuttleReboot = !shuttleCount;
-            queueCreepIfNeeded('shuttle', 1, shuttleAmount, shuttleReboot);
+            queueCreepIfNeeded(room, 'shuttle', 1, shuttleAmount, shuttleReboot);
         }
     }
 
     // Local Responder (Defenders)
     if (room.memory.spawnDefenders || room.memory.defenseCooldown > Game.time) {
-        queueCreepIfNeeded('defender', PRIORITIES.defender, 2, true);
+        queueCreepIfNeeded(room, 'defender', PRIORITIES.defender, 2, true);
     }
 
     // Upgrader
@@ -225,7 +217,7 @@ module.exports.essentialCreepQueue = function (room) {
         if (upgraderAmount > 3) upgraderAmount = 3;
     }
 
-    queueCreepIfNeeded('upgrader', PRIORITIES.upgrader - (room.energyState * 0.5), upgraderAmount, upgraderReboot);
+    queueCreepIfNeeded(room, 'upgrader', PRIORITIES.upgrader - (room.energyState * 0.5), upgraderAmount, upgraderReboot);
 };
 
 let miscTick = {};
@@ -239,18 +231,10 @@ module.exports.miscCreepQueue = function (room) {
     let hasConstructionSites = _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL
         && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER);
 
-    // Helper function to queue a creep if needed
-    function queueCreepIfNeeded(role, priority, numberNeeded, extraOptions = {}) {
-        let count = getCreepCount(room, role);
-        if (count < numberNeeded || (creepExpiringSoon(room.name, role) && count === numberNeeded)) {
-            queueCreep(room, priority + count, {role, other: {reboot: extraOptions.reboot}});
-        }
-    }
-
     // Drone Queueing
     let dronePriority = PRIORITIES.drone;
     let droneNumber = !room.memory.controllerContainer || hasConstructionSites ? 6 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] : room.energyState && room.level >= 8 ? 2 : 1;
-    queueCreepIfNeeded('drone', dronePriority, droneNumber, {reboot: room.friendlyCreeps.length <= 3});
+    queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
 
     // LabTech
     if (room.storage && level >= 6) {
@@ -401,11 +385,7 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleThreatLevel(room, remoteName) {
         if (INTEL[remoteName].tickDetected + CREEP_LIFE_TIME < Game.time) {
-            if (!getCreepCount(undefined, 'explorer', remoteName)) {
-                queueCreep(room, PRIORITIES.remoteHarvester - 1, {
-                    role: 'explorer', destination: remoteName
-                });
-            }
+            queueCreepIfNeeded(room, 'explorer', PRIORITIES.secondary, 1, undefined, remoteName);
         } else if (!INTEL[remoteName].sk) {
             room.memory.borderPatrol = remoteName;
         }
@@ -413,39 +393,20 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleReservation(room, remoteName) {
         if (room.level >= 4 && (!INTEL[remoteName].reservationExpires || Game.time > INTEL[remoteName].reservationExpires) && !INTEL[remoteName].sk) {
-            let amount = INTEL[remoteName].reserverCap || 1;
-            if (getCreepCount(undefined, 'reserver', remoteName) < amount) {
-                queueCreep(room, PRIORITIES.reserver + getCreepCount(undefined, 'reserver', remoteName), {
-                    role: 'reserver', destination: remoteName
-                });
-            }
+            queueCreepIfNeeded(room, 'reserver', PRIORITIES.reserver, INTEL[remoteName].reserverCap || 1, undefined, remoteName);
         }
     }
 
     function handleRoadBuilder(room) {
-        if (!getCreepCount(undefined, 'roadBuilder', room.name)) {
-            queueCreep(room, PRIORITIES.roadBuilder, {
-                role: 'roadBuilder', misc: JSON.parse(remoteRoomTargets[room.name])
-            });
-        }
+        queueCreepIfNeeded(room, 'roadBuilder', PRIORITIES.roadBuilder, 1);
     }
 
     function handleSkAttacker(room, remoteName) {
-        if (!getCreepCount(undefined, 'SKAttacker', room.name)) {
-            queueCreep(room, PRIORITIES.remoteHarvester, {
-                role: 'SKAttacker',
-                destination: remoteName,
-            });
-        }
+        queueCreepIfNeeded(room, 'SKAttacker', PRIORITIES.remoteHarvester, 1, undefined, remoteName);
     }
 
     function handleSkMineral(room, remoteName) {
-        if (!getCreepCount(undefined, 'commodityMiner', room.name)) {
-            queueCreep(room, PRIORITIES.remoteHarvester, {
-                role: 'commodityMiner',
-                destination: remoteName,
-            });
-        }
+        queueCreepIfNeeded(room, 'commodityMiner', PRIORITIES.roadBuilder, 1, undefined, remoteName);
     }
 
     function handleRemoteHarvesters(room) {
@@ -475,9 +436,7 @@ module.exports.remoteCreepQueue = function (room) {
     function handleRemoteHaulers(room) {
         let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
         if (room.memory.additionalRemoteHaulingNeeded) totalHarvesters *= 1.5;
-        if (totalHarvesters && totalHarvesters > getCreepCount(undefined, 'remoteHauler', undefined, undefined, room.name)) {
-            queueCreep(room, PRIORITIES.remoteHauler, {role: 'remoteHauler'});
-        }
+        queueCreepIfNeeded(room, 'remoteHauler', PRIORITIES.remoteHauler, totalHarvesters);
     }
 };
 
@@ -691,6 +650,27 @@ module.exports.globalCreepQueue = function () {
     }
 };
 
+/**
+ * Helper function for queuing creeps
+ * @param room - Room object for room creeps
+ * @param role - Creep Role
+ * @param priority - Spawn Priority
+ * @param numberNeeded - How many creeps are needed
+ * @param rebootCondition - Whether this gets flagged for reboot
+ * @param destination - Destination for the creep
+ * @returns {*|number}
+ */
+function queueCreepIfNeeded(room = undefined, role, priority, numberNeeded, rebootCondition = undefined, destination = undefined) {
+    let count = getCreepCount(room, role, destination);
+    const global = !room
+    if (count < numberNeeded || (creepExpiringSoon(room.name, role) && count === numberNeeded)) {
+        queueCreep(room, priority + count, {
+            role: role,
+            destination: destination,
+            other: {reboot: rebootCondition}
+        }, global);
+    }
+}
 
 /**
  * Queue a creep for spawning

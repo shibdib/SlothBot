@@ -649,7 +649,7 @@ Creep.prototype.builderFunction = function () {
     if (!construction) {
         if (this.memory.sitePos && JSON.parse(this.memory.sitePos).roomName !== this.room.name) {
             const sitePos = JSON.parse(this.memory.sitePos);
-            this.shibMove(new RoomPosition(sitePos.x, sitePos.y, sitePos.roomName), {range: 3});
+            this.shibMove(new RoomPosition(sitePos.x, sitePos.y, sitePos.roomName), {range: 1});
             return true;
         }
         this.memory.constructionSite = undefined;

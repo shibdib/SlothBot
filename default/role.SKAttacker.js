@@ -13,7 +13,7 @@ class RoleSKAttacker {
 
     performRoleActions() {
         if (this.housekeeping()) return;
-        if (!this.creep.memory.arrived && this.room.name !== this.creep.memory.destination) {
+        if (!this.creep.memory.keeper && !this.creep.memory.lair && this.room.name !== this.creep.memory.destination) {
             this.travel();
         } else {
             this.creep.memory.arrived = true;
@@ -22,7 +22,7 @@ class RoleSKAttacker {
     }
 
     housekeeping() {
-        if (this.creep.tryToBoost(['attack', 'heal'])) return true;
+        //if (this.creep.tryToBoost(['attack', 'heal'])) return true;
         // Handle invader core in sk
         if (this.room.hostileStructures.length) {
             let core = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0];
@@ -38,7 +38,8 @@ class RoleSKAttacker {
     }
 
     SKAttackerTasks() {
-        let sourceKeeper = Game.getObjectById(this.creep.memory.keeper) || this.creep.pos.findClosestByRange(this.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper'});
+        let sourceKeeper = Game.getObjectById(this.creep.memory.keeper) || this.creep.pos.findClosestByRange(this.room.creeps,
+            {filter: (c) => c.room.name === this.creep.memory.destination && c.owner.username === 'Source Keeper'});
         if (sourceKeeper) {
             this.creep.heal(this.creep);
             this.creep.memory.lair = undefined;
@@ -55,7 +56,8 @@ class RoleSKAttacker {
             }
         } else {
             this.creep.healInRange();
-            let lair = Game.getObjectById(this.creep.memory.lair) || _.min(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR), 'ticksToSpawn');
+            let lair = Game.getObjectById(this.creep.memory.lair) || _.min(_.filter(this.room.structures, (s) =>
+                s.structureType === STRUCTURE_KEEPER_LAIR && s.room.name === s.creep.memory.destination), 'ticksToSpawn');
             this.creep.memory.keeper = undefined;
             this.creep.memory.lair = lair.id;
             if (this.creep.hits === this.creep.hitsMax && this.creep.pos.isNearTo(lair)) this.creep.idleFor(lair.ticksToSpawn - 1); else this.creep.shibMove(lair, {range: 1});

@@ -14,11 +14,12 @@ class RoleCommodityMiner {
     // Placeholder for role-specific actions
     performRoleActions() {
         if (this.housekeeping()) return;
-        if (this.room.name !== this.creep.memory.destination && !_.sum(this.creep.store)) {
+        if (!this.creep.memory.deposit && this.room.name !== this.creep.memory.destination && !_.sum(this.creep.store)) {
             this.travelToDeposit();
         } else if (this.creep.memory.deposit && !this.creep.isFull) {
             this.harvest();
         } else if (_.sum(this.creep.store)) {
+            this.creep.memory.deposit = undefined;
             this.returnResource();
         } else {
             this.findDeposit();
@@ -40,7 +41,7 @@ class RoleCommodityMiner {
         }
 
         // Make sure the operation is active and valid destination exists
-        if (!this.creep.memory.destination || !Memory.auxiliaryTargets[this.creep.memory.destination]) {
+        if (!this.creep.memory.destination || (!Memory.auxiliaryTargets[this.creep.memory.destination] && !INTEL[this.creep.memory.destination].sk)) {
             if (!_.sum(this.creep.store)) {
                 this.creep.suicide();
             } else {
@@ -51,7 +52,8 @@ class RoleCommodityMiner {
     }
 
     travelToDeposit() {
-        return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22});
+        const destination = Game.getObjectById(this.creep.memory.deposit) || new RoomPosition(25, 25, this.creep.memory.destination);
+        return this.creep.shibMove(destination, {range: 1});
     }
 
     harvest() {
@@ -59,7 +61,7 @@ class RoleCommodityMiner {
         // Clear the deposit if needed
         if (!deposit || (!deposit.depositType && !deposit.mineralAmount) || deposit.lastCooldown >= 25) return this.creep.memory.deposit = undefined;
         // Store space
-        if (!Memory.auxiliaryTargets[this.creep.memory.destination].space) this.storeSpace();
+        if (Memory.auxiliaryTargets[this.creep.memory.destination] && !Memory.auxiliaryTargets[this.creep.memory.destination].space) this.storeSpace();
         // Refresh the operation
         if (Memory.auxiliaryTargets[this.creep.memory.destination]) Memory.auxiliaryTargets[this.creep.memory.destination].tick = Game.time;
         switch (this.creep.harvest(deposit)) {
