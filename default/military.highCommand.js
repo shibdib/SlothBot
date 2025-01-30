@@ -266,19 +266,19 @@ function manageResponseForces() {
         }
 
         // Remote support hostile
-        let remoteSupport = _.findKey(INTEL, (r) => r.threatLevel > 1 && r.remoteRoom && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
+        let remoteSupport = _.findKey(INTEL, (r) => r.threatLevel > 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
         if (remoteSupport) {
             potentialTargets.push({type: 'remoteRoomAttack', room: remoteSupport, priority: 9});
         }
 
         // Invader Core
-        let invaderCore = _.findKey(INTEL, (r) => r.invaderCore && r.remoteRoom && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
+        let invaderCore = _.findKey(INTEL, (r) => r.invaderCore && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
         if (invaderCore) {
             potentialTargets.push({type: 'invaderCore', room: invaderCore, priority: 8});
         }
 
         // Remote support unarmed
-        let remoteSupportUnarmed = _.findKey(INTEL, (r) => r.threatLevel === 1 && r.remoteRoom && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
+        let remoteSupportUnarmed = _.findKey(INTEL, (r) => r.threatLevel === 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
         if (remoteSupportUnarmed) {
             potentialTargets.push({type: 'unarmedVisitors', room: remoteSupportUnarmed, priority: 7});
         }

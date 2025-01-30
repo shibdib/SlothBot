@@ -437,6 +437,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             let distanceToExit = calculateDistanceToHub(this, source, highestLevelRoom);
             updateRemoteSourceData(this, highestLevelRoom, source, distanceToExit);
         }
+        roomIntel.activeRemote = Game.time;
     }
 
     // Minerals
