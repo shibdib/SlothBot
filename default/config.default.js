@@ -26,7 +26,7 @@ global.NAP_ALLIANCE = []; // Do not attack members of this alliance
 
 // Remote Mining
 global.REMOTE_MINING = true; // Whether we remote mine or not
-global.REMOTE_DISTANCE_MAX = 100; // Max distance score per source
+global.REMOTE_DISTANCE_MAX = 50; // Max distance score per source
 global.SK_MINING = false; // Do we SK mine
 global.SK_MINING_LEVEL = 8; // What level do we do this (won't work before 7 atm)
 

@@ -434,7 +434,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         let highestLevelRoom = getHighestLevelRemoteRoom(roomIntel.remoteRoom);
 
         for (const source of this.sources) {
-            let distanceToExit = calculateDistanceToExit(this, source, highestLevelRoom);
+            let distanceToExit = calculateDistanceToHub(this, source, highestLevelRoom);
             updateRemoteSourceData(this, highestLevelRoom, source, distanceToExit);
         }
     }
@@ -529,11 +529,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             , remoteRooms[0]);
     }
 
-    function calculateDistanceToExit(room, source, targetRoom) {
-        let exitDir = Game.map.findExit(room.name, targetRoom);
-        let homeExit = room.find(exitDir);
-        let homeMiddle = _.round(homeExit.length / 2);
-        return source.pos.findPathTo(homeExit[homeMiddle]).length;
+    function calculateDistanceToHub(room, source, targetRoom) {
+        const target = Game.rooms[targetRoom].storage || new RoomPosition(Game.rooms[targetRoom].memory.hub.x, Game.rooms[targetRoom].memory.hub.y, targetRoom);
+        return source.pos.findPathTo(target).length;
     }
 
     function updateRemoteSourceData(room, roomName, source, distance) {
@@ -542,7 +540,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         remoteSourceData[source.id] = {
             room: room.name,
             source: source.id,
-            score: (distance * 2) + 30
+            score: distance
         };
         Game.rooms[roomName].memory.remoteSources = JSON.stringify(remoteSourceData);
     }
