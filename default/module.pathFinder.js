@@ -2,7 +2,7 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-const DEFAULT_MAXOPS = 1500;
+const DEFAULT_MAXOPS = 2500;
 const STATE_STUCK = 2;
 const FLEE_RANGE = 4;
 
