@@ -24,14 +24,20 @@ class RoleReserver {
     }
 
     travel() {
-        this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination, {range: 23}));
+        let destination = new RoomPosition(25, 25, this.creep.memory.destination);
+        if (this.creep.memory.controllerTarget) {
+            const controller = JSON.parse(this.creep.memory.controllerTarget)
+            destination = new RoomPosition(controller.x, controller.y, this.creep.memory.destination);
+        }
+        this.creep.shibMove(destination);
     }
 
     getToController() {
+        this.creep.memory.controllerTarget = JSON.stringify(this.room.controller.pos);
         if (!this.creep.pos.isNearTo(this.room.controller)) return this.creep.shibMove(this.room.controller); else this.creep.memory.inPlace = true;
     }
 
-    reserveController() {
+    reserveController(target = undefined) {
         switch (this.creep.reserveController(this.room.controller)) {
             case OK:
                 this.creep.memory.other.stationary = true;
@@ -54,7 +60,7 @@ class RoleReserver {
         }
     }
 
-    attackController() {
+    attackController(target = undefined) {
         switch (this.creep.attackController(this.room.controller)) {
             case OK:
                 this.creep.memory.other.stationary = true;

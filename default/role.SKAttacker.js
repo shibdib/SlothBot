@@ -39,7 +39,7 @@ class RoleSKAttacker {
 
     SKAttackerTasks() {
         let sourceKeeper = Game.getObjectById(this.creep.memory.keeper) || this.creep.pos.findClosestByRange(this.room.creeps,
-            {filter: (c) => c.room.name === this.creep.memory.destination && c.owner.username === 'Source Keeper'});
+            {filter: (c) => c.room.name === this.creep.memory.destination && !FRIENDLIES.includes(c.owner.username)});
         if (sourceKeeper) {
             this.creep.heal(this.creep);
             this.creep.memory.lair = undefined;
