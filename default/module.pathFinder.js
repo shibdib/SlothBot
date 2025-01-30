@@ -479,7 +479,6 @@ function creepBumping(creep, pathInfo, options) {
                 if (bumpCreep.hasActiveBodyparts(MOVE)) {
                     bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
                 } else {
-                    creep.say(1)
                     creep.pull(bumpCreep);
                 }
                 creep.move(creep.pos.getDirectionTo(bumpCreep));
