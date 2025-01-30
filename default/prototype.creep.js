@@ -154,7 +154,7 @@ Creep.prototype.skSafety = function () {
     // handle safe SK movement
     let range = 6;
     if (this.memory.destination && this.memory.destination === this.room.name) range = 8;
-    let lair = this.pos.findClosestByRange(this.room.impassibleStructures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn <= 15 && s.pos.getRangeTo(this) < range});
+    let lair = this.pos.findClosestByRange(this.room.impassibleStructures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn <= 3 && s.pos.getRangeTo(this) < range});
     let SK = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper' && c.pos.getRangeTo(this) < range});
     if (lair || SK) {
         this.memory.fledSK = Game.time;

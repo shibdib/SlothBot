@@ -60,7 +60,7 @@ class RoleSKAttacker {
                 s.structureType === STRUCTURE_KEEPER_LAIR && s.room.name === this.creep.memory.destination), 'ticksToSpawn');
             this.creep.memory.keeper = undefined;
             this.creep.memory.lair = lair.id;
-            if (this.creep.hits === this.creep.hitsMax && this.creep.pos.isNearTo(lair)) this.creep.idleFor(lair.ticksToSpawn - 1); else this.creep.shibMove(lair, {range: 1});
+            if (this.creep.hits === this.creep.hitsMax && this.creep.pos.isNearTo(lair)) this.creep.idleFor(lair.ticksToSpawn - 1); else this.creep.shibMove(lair);
         }
     }
 }

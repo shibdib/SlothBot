@@ -858,7 +858,8 @@ function getSKMatrix(roomName, matrix = undefined, options) {
     return PathFinder.CostMatrix.deserialize(skMatrixCache[roomName]);
 
     function addSksToMatrix(room, matrix, options) {
-        if (room && INTEL[room.name] && INTEL[room.name].sk) {
+        const activeMining = _.filter(room.find(FIND_MY_CREEPS), (c) => c.memory.role === 'SKAttacker' && c.memory.destination === room.name);
+        if (room && !activeMining && INTEL[room.name] && INTEL[room.name].sk) {
             let sks = room.find(FIND_CREEPS, {filter: (c) => c.owner.username === 'Source Keeper'});
             if (options.ignoreKeeper) sks = _.filter(sks, (c) => c.id !== options.ignoreKeeper)
             if (sks.length) {
