@@ -2,7 +2,7 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-const DEFAULT_MAXOPS = 3000;
+const DEFAULT_MAXOPS = 1500;
 const STATE_STUCK = 2;
 const FLEE_RANGE = 4;
 
@@ -26,7 +26,7 @@ function shibMove(creep, heading, options = {}) {
         let towCreep = Game.getObjectById(creep.memory.towCreep);
         if (!towCreep) {
             creep.memory.towCreep = undefined;
-        } else if (creep.pos.isNearTo(towCreep)) return;
+        } else return;
     }
 
     // Handle fatigue
@@ -57,12 +57,6 @@ function shibMove(creep, heading, options = {}) {
     // If the pathing memory entry is missing or wrong recreate it
     if (!creep.memory._shibMove || !creep.memory._shibMove.target || creep.memory._shibMove.targetRoom !== target.roomName || creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y) creep.memory._shibMove = {};
 
-    // If creep has just entered an SK room force a re-path to make sure it doesn't DIE
-    if (INTEL[creep.room.name] && INTEL[creep.room.name].sk && (!creep.memory.skRepath || creep.memory.skRepath !== creep.room.name)) {
-        creep.memory.skRepath = creep.room.name;
-        return creep.memory._shibMove = undefined;
-    } else if (creep.memory.skRepath && creep.memory.skRepath !== creep.room.name) creep.memory.skRepath = undefined;
-
     // Default options
     _.defaults(options, {
         maxOps: DEFAULT_MAXOPS,
@@ -78,12 +72,6 @@ function shibMove(creep, heading, options = {}) {
         options.heuristicWeight = 1;
     }
 
-    // Handle forced creep notice
-    if (creep.memory.noticeCreeps) {
-        delete creep.memory.noticeCreeps;
-        options.ignoreCreeps = false;
-    }
-
     //Clear path if stuck
     if (creep.memory._shibMove.pathPosTime && creep.memory._shibMove.pathPosTime >= STATE_STUCK) {
         if (creepBumping(creep, creep.memory._shibMove, options)) {
@@ -97,6 +85,25 @@ function shibMove(creep, heading, options = {}) {
     // If a path exists, just execute
     if (creep.memory._shibMove && creep.memory._shibMove.path && creep.memory._shibMove.path.length && !options.getPath) {
         return executePath(creep, creep.memory._shibMove, options, origin, heading);
+    }
+
+    // Request a tow truck if needed
+    if (creep.memory.willNeedTow === undefined) creep.memory.willNeedTow = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length;
+    if (!creep.className && creep.memory.willNeedTow && (creep.pos.getRangeTo(heading) > 3 || !creep.hasActiveBodyparts(MOVE))) {
+        if (!creep.memory.towDestination) {
+            creep.memory.towDestination = heading.id || heading;
+            creep.memory.towOptions = options;
+            let towTruck = _.filter(creep.room.creeps, (c) => c.getActiveBodyparts(MOVE) >= creep.body.length * 0.5 && !_.sum(c.store));
+            if (!towTruck.length) towTruck = _.filter(creep.room.creeps, (c) => c.getActiveBodyparts(MOVE) >= 2 && !_.sum(c.store));
+            if (towTruck.length) {
+                const closest = creep.pos.findClosestByRange(towTruck);
+                creep.memory.towCreep = closest.id;
+                closest.memory.trailer = creep.id;
+            }
+        } else if (heading.id && creep.hasActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {
+            creep.memory.towDestination = undefined;
+        }
+        return true;
     }
 
     // If tunneling up the ops
@@ -139,24 +146,9 @@ function shibMove(creep, heading, options = {}) {
         return creep.memory._shibMove = undefined;
     }
 
-    // Request a tow truck if needed
-    if (creep.memory.willNeedTow === undefined) creep.memory.willNeedTow = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length;
-    if (!creep.className && creep.memory.willNeedTow && (creep.pos.getRangeTo(heading) > 3 || !creep.hasActiveBodyparts(MOVE))) {
-        if (!creep.memory.towDestination) {
-            creep.memory.towDestination = heading.id || heading;
-            creep.memory.towOptions = options;
-        } else if (heading.id && creep.hasActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {
-            creep.memory.towDestination = undefined;
-        }
-    }
-
     // Check if target moved
-    if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y || creep.memory._shibMove.target.roomName !== target.roomName) && creep.room.name === target.roomName) {
-        if (heading instanceof Creep || heading instanceof PowerCreep) {
-            creep.memory._shibMove.path = undefined;
-        } else if (creep.memory._shibMove.target.roomName !== target.roomName) {
-            return creep.memory._shibMove = undefined;
-        }
+    if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y) && creep.room.name === target.roomName) {
+        creep.memory._shibMove.path = undefined;
     }
 
     // Set var
@@ -499,7 +491,6 @@ function creepBumping(creep, pathInfo, options) {
         }
     }
     delete creep.memory._shibMove;
-    creep.memory.noticeCreeps = true;
     creep.moveRandom();
     return false;
 }

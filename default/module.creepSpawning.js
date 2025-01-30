@@ -434,7 +434,6 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleRemoteHaulers(room) {
         let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-        if (room.memory.additionalRemoteHaulingNeeded) totalHarvesters *= 1.5;
         queueCreepIfNeeded(room, 'remoteHauler', PRIORITIES.remoteHauler, totalHarvesters);
     }
 };
@@ -543,11 +542,7 @@ module.exports.globalCreepQueue = function () {
 
             case 'commodity': // Commodity Mining
             case 'mineral': // Middle room mineral mining
-                const commoditySpace = operation.space || 1;
-                if (getCreepCount(undefined, 'commodityMiner', key) < commoditySpace * 3) {
-                    queueCreep(undefined, priority + getCreepCount(undefined, 'commodityMiner', key),
-                        {role: 'commodityMiner', destination: key}, true);
-                }
+                queueCreepIfNeeded(undefined, 'commodityMiner', priority, 2, undefined, key);
                 break;
 
             case 'power': // Power Mining
@@ -663,7 +658,7 @@ module.exports.globalCreepQueue = function () {
 function queueCreepIfNeeded(room = undefined, role, priority, numberNeeded, rebootCondition = undefined, destination = undefined, misc = undefined) {
     let count = getCreepCount(room, role, destination);
     const global = !room
-    if (count < numberNeeded || (creepExpiringSoon(room.name, role) && count === numberNeeded)) {
+    if (count < numberNeeded || (room && creepExpiringSoon(room.name, role) && count === numberNeeded)) {
         queueCreep(room, priority + count, {
             role: role,
             destination: destination,
@@ -878,7 +873,7 @@ function getCreepCount(room = undefined, role, destination = undefined, operatio
  * @returns {*|number}
  */
 function creepExpiringSoon(room, role) {
-    let creeps = _.filter(Game.creeps, (r) => r.my && r.memory.role === role && (r.room.name === room || r.memory.destination === room));
+    let creeps = _.filter(Game.creeps, (r) => r.my && r.memory.role === role && (r.room.name === room || r.memory.destination === room || r.memory.overlord === room));
     if (creeps.length) return _.min(creeps, '.ticksToLive').ticksToLive <= (CREEP_SPAWN_TIME * _.size(_.min(creeps, '.ticksToLive').body)) + 15; else return false;
 }
 

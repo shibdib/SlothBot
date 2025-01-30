@@ -7,15 +7,24 @@ const profiler = require("./tools.profiler");
 class RoleRoadBuilder {
     constructor(creep) {
         this.creep = creep;
-        this.processCreep();
+        this.performRoleActions();
     }
 
-    processCreep() {
+    performRoleActions() {
+        if (this.housekeeping()) return;
+        if (!this.creep.memory.working) {
+            this.notWorking();
+        } else {
+            this.working();
+        }
+    }
+
+    housekeeping() {
         this.creep.say('HIGHWAY', true);
         //Invader detection
-        if (this.creep.fleeHome()) return;
+        if (this.creep.fleeHome()) return true;
         // SK Safety
-        if (this.creep.skSafety()) return;
+        if (this.creep.skSafety()) return true;
         // Set destination
         if (!this.creep.memory.destination) {
             let possibles = this.creep.memory.misc;
@@ -23,54 +32,56 @@ class RoleRoadBuilder {
             this.creep.memory.destination = _.sample(possibles);
             this.creep.memory.energyDestination = undefined;
             this.creep.memory.source = undefined;
-            return;
+            return true;
         }
-        // Checks
-        if (!this.creep.memory.working) {
-            if (this.creep.isFull) return this.creep.memory.working = true;
-            this.creep.memory.constructionSite = undefined;
-            this.creep.memory.task = undefined;
-            if (!this.creep.memory.harvest && (this.creep.memory.energyDestination || this.creep.locateEnergy())) {
-                this.creep.say('Energy!', true);
-                this.creep.withdrawResource();
-            } else if (!this.creep.room.level || this.creep.room.level < 3) {
-                this.creep.memory.harvest = true;
-                let source = Game.getObjectById(this.creep.memory.other.source) || this.creep.pos.getClosestSource();
-                if (source) {
-                    this.creep.say('Harvest!', true);
-                    this.creep.memory.other.source = source.id;
-                    switch (this.creep.harvest(source)) {
-                        case ERR_NOT_IN_RANGE:
-                            this.creep.memory.other.stationary = undefined;
-                            this.creep.shibMove(source);
-                            break;
-                        case ERR_NOT_ENOUGH_RESOURCES:
-                            this.creep.memory.other.source = undefined;
-                            break;
-                        case OK:
-                            this.creep.memory.other.stationary = true;
-                            break;
-                    }
-                } else {
-                    delete this.creep.memory.harvest;
-                    delete this.creep.memory.destination;
+    }
+
+    working() {
+        if (!this.creep.store[RESOURCE_ENERGY]) this.creep.memory.working = undefined;
+        // Handle movement
+        if (!this.creep.memory.constructionSite && this.creep.pos.roomName !== this.creep.memory.destination) return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 23});
+        this.creep.memory.other.source = undefined;
+        this.creep.memory.harvest = undefined;
+        // Handle construction
+        if (this.creep.memory.constructionSite || this.creep.constructionWork()) {
+            this.creep.builderFunction();
+        } else if (this.creep.room.name !== this.creep.memory.overlord && this.remoteRoads(this.creep) === false) {
+            INTEL[this.creep.room.name].roadsBuilt = true;
+            INTEL[this.creep.room.name].roadCount = this.creep.room.structures.filter((s) => s.structureType === STRUCTURE_ROAD).length;
+            this.creep.memory.destination = undefined;
+            if (this.creep.memory.overlord === this.creep.room.name) this.creep.idleFor(15);
+        } else INTEL[this.creep.room.name].roadsBuilt = undefined;
+    }
+
+    notWorking() {
+        if (this.creep.isFull) return this.creep.memory.working = true;
+        this.creep.memory.constructionSite = undefined;
+        this.creep.memory.task = undefined;
+        if (!this.creep.memory.harvest && (this.creep.memory.energyDestination || this.creep.locateEnergy())) {
+            this.creep.say('Energy!', true);
+            this.creep.withdrawResource();
+        } else if (!this.creep.room.level || this.creep.room.level < 3) {
+            this.creep.memory.harvest = true;
+            let source = Game.getObjectById(this.creep.memory.other.source) || this.creep.pos.getClosestSource();
+            if (source) {
+                this.creep.say('Harvest!', true);
+                this.creep.memory.other.source = source.id;
+                switch (this.creep.harvest(source)) {
+                    case ERR_NOT_IN_RANGE:
+                        this.creep.memory.other.stationary = undefined;
+                        this.creep.shibMove(source);
+                        break;
+                    case ERR_NOT_ENOUGH_RESOURCES:
+                        this.creep.memory.other.source = undefined;
+                        break;
+                    case OK:
+                        this.creep.memory.other.stationary = true;
+                        break;
                 }
+            } else {
+                delete this.creep.memory.harvest;
+                delete this.creep.memory.destination;
             }
-        } else {
-            if (!this.creep.store[RESOURCE_ENERGY]) this.creep.memory.working = undefined;
-            // Handle movement
-            if (!this.creep.memory.constructionSite && this.creep.pos.roomName !== this.creep.memory.destination) return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 23});
-            this.creep.memory.other.source = undefined;
-            this.creep.memory.harvest = undefined;
-            // Handle construction
-            if (this.creep.memory.constructionSite || this.creep.constructionWork()) {
-                this.creep.builderFunction();
-            } else if (this.creep.room.name !== this.creep.memory.overlord && this.remoteRoads(this.creep) === false) {
-                INTEL[this.creep.room.name].roadsBuilt = true;
-                INTEL[this.creep.room.name].roadCount = this.creep.room.structures.filter((s) => s.structureType === STRUCTURE_ROAD).length;
-                this.creep.memory.destination = undefined;
-                if (this.creep.memory.overlord === this.creep.room.name) this.creep.idleFor(15);
-            } else INTEL[this.creep.room.name].roadsBuilt = undefined;
         }
     }
 

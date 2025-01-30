@@ -22,7 +22,6 @@ class RoleHauler {
 
     housekeeping() {
         this.creep.say(ICONS.haul, true);
-        if (this.creep.towTruck() || (Math.random() > 0.7 && this.creep.wrongRoom())) return true;
     }
 
     deliverResource() {

@@ -103,8 +103,18 @@ class FactoryControl {
             return;
         }
 
-        let resources = shuffle([...BASE_MINERALS, ...ALL_COMMODITIES]);
+        // Try to make stuff
+        const resources = shuffle([...BASE_MINERALS, ...MANUFACTURED_COMMODITIES]);
         for (let resource of resources) {
+            if (this.isValidProductionTarget(resource, room, factoryLevel) && ![RESOURCE_BATTERY, RESOURCE_ENERGY].includes(resource)) {
+                this.setProduction(factory, resource, 'Producing ' + resource);
+                return;
+            }
+        }
+
+        // Compress stuff
+        let compressedResources = shuffle([COMPRESSED_COMMODITIES]);
+        for (let resource of compressedResources) {
             if (this.isValidProductionTarget(resource, room, factoryLevel) && ![RESOURCE_BATTERY, RESOURCE_ENERGY].includes(resource)) {
                 this.setProduction(factory, resource, 'Producing ' + resource);
                 return;

@@ -27,8 +27,6 @@ class RoleRemoteHauler {
         if (safemodeGeneration(this.creep)) return true;
         // Icon
         this.creep.say(ICONS.haul2, true);
-        // Check for tow
-        if (this.creep.towTruck()) return true;
     }
 
     deliverResource() {

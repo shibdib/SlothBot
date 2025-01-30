@@ -219,7 +219,7 @@ function auxiliaryOperations() {
 
         // Commodity Mining
         let commodityRoom = _.find(initialFilter, (r) => r.commodity && getResourceTotal(r.commodity) < DUMP_AMOUNT && findClosestOwnedRoom(r.name, true) <= 8);
-        if (commodityRoom && commodityRoom.name && _.size(_.filter(Memory.auxiliaryTargets, (t) => t && t.type === 'commodity')) < _.size(MY_ROOMS)) {
+        if (commodityRoom && commodityRoom.name && _.size(_.filter(Memory.auxiliaryTargets, (t) => t && t.type === 'commodity')) < 2) {
             cache[commodityRoom.name] = {tick, type: 'commodity', level: 1, priority: PRIORITIES.medium};
             log.e(JSON.stringify(commodityRoom));
             log.a(`Mining operation planned for ${roomLink(commodityRoom.name)} (Commodity Deposit Location)`, 'HIGH COMMAND: ');

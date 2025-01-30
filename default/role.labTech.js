@@ -18,7 +18,6 @@ class RoleLabTech {
 
     housekeeping() {
         this.creep.say(ICONS.reaction, true);
-        if (this.creep.towTruck() || (Math.random() > 0.7 && this.creep.wrongRoom())) return true;
     }
 
     jobManager() {

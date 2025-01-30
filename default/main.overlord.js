@@ -192,6 +192,8 @@ function minionController(minion) {
         minion.memory.notifyDisabled = true;
     }
 
+    if (minion.towTruck()) return;
+
     // Return if idle
     if (minion.idle || minion.memory.blocked === Game.time) return;
 

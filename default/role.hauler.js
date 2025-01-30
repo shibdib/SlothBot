@@ -21,7 +21,6 @@ class RoleHauler {
 
     housekeeping() {
         this.creep.say(ICONS.haul, true);
-        if (this.creep.towTruck()) return true;
     }
 
     deliverResource() {

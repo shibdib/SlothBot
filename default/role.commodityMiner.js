@@ -60,8 +60,6 @@ class RoleCommodityMiner {
         let deposit = Game.getObjectById(this.creep.memory.deposit);
         // Clear the deposit if needed
         if (!deposit || (!deposit.depositType && !deposit.mineralAmount) || deposit.lastCooldown >= 25) return this.creep.memory.deposit = undefined;
-        // Store space
-        if (Memory.auxiliaryTargets[this.creep.memory.destination] && !Memory.auxiliaryTargets[this.creep.memory.destination].space) this.storeSpace();
         // Refresh the operation
         if (Memory.auxiliaryTargets[this.creep.memory.destination]) Memory.auxiliaryTargets[this.creep.memory.destination].tick = Game.time;
         switch (this.creep.harvest(deposit)) {
@@ -81,7 +79,7 @@ class RoleCommodityMiner {
 
     returnResource() {
         this.creep.memory.other.stationary = undefined;
-        this.creep.memory.closestRoom = this.creep.memory.closestRoom || findClosestOwnedRoom(this.room.name, false, 4);
+        this.creep.memory.closestRoom = this.creep.memory.closestRoom || findClosestOwnedRoom(this.room.name, false, 4) || this.creep.memory.overlord;
         if (this.room.name !== this.creep.memory.closestRoom) {
             return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.closestRoom), {range: 23});
         } else {
@@ -119,16 +117,6 @@ class RoleCommodityMiner {
             // Choose a random deposit
             return this.creep.memory.deposit = _.sample(deposit).id;
         }
-    }
-
-    storeSpace() {
-        let deposit = _.filter(this.room.deposits, (d) => !d.lastCooldown || d.lastCooldown < 25);
-        if (!deposit.length) return;
-        let space = 0;
-        for (let dep of deposit) {
-            space += dep.pos.countOpenTerrainAround();
-        }
-        if (space) Memory.auxiliaryTargets[this.creep.memory.destination].space = space;
     }
 }
 

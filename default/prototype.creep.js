@@ -105,14 +105,7 @@ Creep.prototype.getActiveBodyparts = function (type) {
  */
 Creep.prototype.hasActiveBodyparts = function (type) {
     if (this.className) return false;
-    for (let i = this.body.length; i-- > 0;) {
-        if (this.body[i].hits > 0) {
-            if (this.body[i].type === type) {
-                return true;
-            }
-        } else break;
-    }
-    return false;
+    return !!this.body.find(part => part.type === type && part.hits > 0);
 };
 
 /**
@@ -182,10 +175,10 @@ Creep.prototype.skSafety = function () {
 Creep.prototype.opportunisticRepair = function () {
     if (!this.hasActiveBodyparts(WORK) || !this.store[RESOURCE_ENERGY]) return false;
     try {
-        let object = _.filter(this.room.lookForAtArea(LOOK_STRUCTURES, this.pos.y - 3, this.pos.x - 3, this.pos.y + 3, this.pos.x + 3, true), (s) => [STRUCTURE_ROAD, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_CONTAINER].includes(s.structure.structureType) && s.structure.hits < s.structure.hitsMax * 0.75)
-        if (object && object.length) {
+        const structure = this.pos.checkForAllStructure(true);
+        if (structure && structure.hits < structure.hitsMax) {
             this.say("Repairman!", true)
-            this.repair(_.sample(object).structure);
+            this.repair(structure);
         }
     } catch (e) {
     }
@@ -197,7 +190,7 @@ Creep.prototype.opportunisticRepair = function () {
  */
 Creep.prototype.opportunisticFill = function () {
     // Fill nearby energy structures as you pass
-    if (!this.store[RESOURCE_ENERGY]) return false;
+    if (!this.store[RESOURCE_ENERGY] || !this.room.level) return false;
     try {
         let energyStructure = _.find(this.room.lookForAtArea(LOOK_STRUCTURES, this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1, true), (s) => [STRUCTURE_EXTENSION, STRUCTURE_SPAWN].includes(s.structure.structureType) && s.structure.store.getFreeCapacity(RESOURCE_ENERGY))
         if (energyStructure) {
@@ -221,17 +214,16 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
     if (destination) this.memory.energyDestination = destination.id;
     if (this.memory.energyDestination) {
         let energyItem = Game.getObjectById(this.memory.energyDestination);
+        // Sanity check
         if (!energyItem) return this.memory.energyDestination = undefined;
-        if (energyItem.pos.roomName !== this.room.name) return this.shibMove(energyItem);
-        // If resource type is not set, and energy exists in the target, set it as energy. Otherwise, set it as the first resource type.
         if (!energyItem[resourceType] && (!energyItem.store || !energyItem.store[resourceType])) return this.memory.energyDestination = undefined;
+        // Handle things with store
         if (energyItem.store && energyItem.store[resourceType]) {
             switch (this.withdraw(energyItem, resourceType, amount)) {
                 case ERR_INVALID_TARGET:
                     switch (this.pickup(energyItem)) {
                         case ERR_NOT_IN_RANGE:
-                            this.shibMove(energyItem);
-                            break;
+                            return this.shibMove(energyItem);
                         default:
                             this.memory.energyDestination = undefined;
                             this.memory._shibMove = undefined;
@@ -239,8 +231,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
                         case ERR_INVALID_TARGET:
                             switch (energyItem.transfer(this, resourceType, amount)) {
                                 case ERR_NOT_IN_RANGE:
-                                    this.shibMove(energyItem);
-                                    break;
+                                    return this.shibMove(energyItem);
                                 default:
                                     this.memory.energyDestination = undefined;
                                     this.memory._shibMove = undefined;
@@ -250,8 +241,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
                     }
                     break;
                 case ERR_NOT_IN_RANGE:
-                    this.shibMove(energyItem);
-                    break;
+                    return this.shibMove(energyItem);
                 default:
                     this.memory.lastWithdraw = energyItem.id;
                     this.memory.energyDestination = undefined;
@@ -265,8 +255,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
                     this.memory._shibMove = undefined;
                     return true;
                 case ERR_NOT_IN_RANGE:
-                    this.shibMove(energyItem);
-                    break;
+                    return this.shibMove(energyItem);
             }
         } else {
             delete this.memory.energyDestination;
@@ -749,6 +738,9 @@ Creep.prototype.goToHub = function (destination = this.memory.overlord, idleTime
  * @returns {undefined|boolean}
  */
 Creep.prototype.towTruck = function () {
+    // If no assigned trailer, return
+    if (!this.memory.trailer) return false;
+
     // Clear broken trailers
     if (this.memory.trailer && !Game.getObjectById(this.memory.trailer)) {
         this.memory.trailer = undefined;
@@ -757,55 +749,40 @@ Creep.prototype.towTruck = function () {
     // Return early if the creep is carrying anything
     if (_.sum(this.store)) return false;
 
-    // If no trailer, find one to tow
-    if (!this.memory.trailer) {
-        let needsTow = _.filter(this.room.myCreeps, (c) => c.memory.towDestination && !c.memory.towCreep);
-        if (needsTow.length) {
-            // Set start and assign a trailer
-            this.memory.towStart = Game.time;
-            let closestCreep = this.pos.findClosestByRange(needsTow);
-            this.memory.trailer = closestCreep.id;
-            Game.getObjectById(this.memory.trailer).memory.towCreep = this.id;
-            this.memory._shibMove = undefined;
-            return true;
-        }
+    // Handle fatigue
+    if (this.fatigue) return true;
+
+    let trailer = Game.getObjectById(this.memory.trailer);
+    if (!trailer) return false;
+
+    // Handle trailer with no tow destination
+    if (!trailer.memory.towDestination) {
+        this.memory.trailer = undefined;
         return false;
+    }
+
+    this.say('Towing!', true);
+    let towDestination = getTowDestination(trailer);
+
+    // Handle occupied destination
+    if (towDestination && trailer.memory.towOptions && trailer.memory.towOptions.range === 0 && this.pos.isNearTo(towDestination) && towDestination.checkForCreep() && towDestination.checkForCreep().id !== this.id) {
+        trailer.memory.towOptions.range = 1;
+    }
+
+    // Handle towing timeout or reaching destination
+    if (shouldTimeout(this.memory.towStart, trailer, towDestination)) {
+        resetTowingState(trailer);
+        return false;
+    }
+
+    // Move trailer
+    if (this.pull(trailer) === ERR_NOT_IN_RANGE) {
+        adjustMovement(this, trailer);
+        this.shibMove(trailer, {range: 1});
+        return true;
     } else {
-        // Handle fatigue
-        if (this.fatigue) return true;
-
-        let trailer = Game.getObjectById(this.memory.trailer);
-        if (!trailer) return false;
-
-        // Handle trailer with no tow destination
-        if (!trailer.memory.towDestination) {
-            this.memory.trailer = undefined;
-            return false;
-        }
-
-        this.say('Towing!', true);
-        let towDestination = getTowDestination(trailer);
-
-        // Handle occupied destination
-        if (towDestination && trailer.memory.towOptions && trailer.memory.towOptions.range === 0 && this.pos.isNearTo(towDestination) && towDestination.checkForCreep() && towDestination.checkForCreep().id !== this.id) {
-            trailer.memory.towOptions.range = 1;
-        }
-
-        // Handle towing timeout or reaching destination
-        if (shouldTimeout(this.memory.towStart, trailer, towDestination)) {
-            resetTowingState(trailer);
-            return false;
-        }
-
-        // Move trailer
-        if (this.pull(trailer) === ERR_NOT_IN_RANGE) {
-            adjustMovement(this, trailer);
-            this.shibMove(trailer, {range: 1});
-            return true;
-        } else {
-            trailer.move(this);
-            moveToTowDestination(this, trailer, towDestination);
-        }
+        trailer.move(this);
+        moveToTowDestination(this, trailer, towDestination);
     }
 
     return true;

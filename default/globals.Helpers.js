@@ -182,68 +182,60 @@ let helpers = function () {
      * @returns {number|*|number|string}
      */
     global.findClosestOwnedRoom = function (roomName, range = false, minLevel = 1) {
-        // Check if you own the room and if the controller level meets the minimum level
-        const room = Game.rooms[roomName];
-        if (MY_ROOMS.includes(roomName) && room.controller.level >= minLevel) {
-            closestCache[roomName] = {
-                closest: roomName,
-                distance: 0,
-                lastUpdated: Game.time
-            };
-            return range ? 0 : roomName;
+        // Direct check if the current room is owned and meets level criteria
+        if (MY_ROOMS.includes(roomName)) {
+            const room = Game.rooms[roomName];
+            if (room && room.controller && room.controller.level >= minLevel) {
+                if (!closestCache[roomName]) {
+                    closestCache[roomName] = {
+                        closest: roomName,
+                        distance: 0,
+                        lastUpdated: Game.time
+                    };
+                } else {
+                    closestCache[roomName].lastUpdated = Game.time;
+                }
+                return range ? 0 : roomName;
+            }
         }
 
-        // Check if we have a valid cache
+        // Cache check
         const cached = closestCache[roomName];
-        if (cached) {
-            // If the cache is expired (older than 10,000 ticks), invalidate it
-            if (Game.time - cached.lastUpdated > 10000) {
-                delete closestCache[roomName]; // Expire cache
-            } else {
-                // Return the cached value if it's still valid
-                if (cached.ownedCount === MY_ROOMS.length) {
-                    return range ? cached.distance : cached.closest;
+        if (cached && Game.time - cached.lastUpdated < 10000) {
+            return range ? cached.distance : cached.closest;
+        }
+
+        let closest = null;
+        let closestDistance = Infinity;
+
+        // Loop through owned rooms
+        for (let key of MY_ROOMS) {
+            const myRoom = Game.rooms[key];
+            if (myRoom && myRoom.controller && myRoom.controller.level >= minLevel) {
+                let distance = Game.map.getRoomLinearDistance(roomName, key);
+
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closest = key;
+                    // Exit if we find the closest possible (direct neighbor)
+                    if (distance === 1) break;
                 }
             }
         }
 
-        // Initialize cache for this room if not already
-        closestCache[roomName] = {ownedCount: MY_ROOMS.length, lastUpdated: Game.time};
-        let closest = null;
-        let closestDistance = Infinity;
-
-        // Check all owned rooms for proximity
-        for (let key of MY_ROOMS) {
-            const myRoom = Game.rooms[key];
-            if (!myRoom || myRoom.controller.level < minLevel) continue;
-
-            let distance = 0;
-
-            const path = myRoom.shibRoute(roomName);
-            if (path) {
-                distance = path.length;
-            }
-
-            // If this room is closer, update the closest room and distance
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closest = myRoom.name;
-
-                // If we find an optimal room, exit early to avoid unnecessary loops
-                if (distance === 1) break;
-            }
-        }
-
-        // Fallback if no closest room is found, just pick a random spawn
+        // If no valid room was found, use a fallback
         if (!closest) {
-            closest = _.sample(Game.spawns).room.name;
+            let spawnRoom = Game.spawns[Object.keys(Game.spawns)[0]].room.name; // First spawn's room
+            closest = spawnRoom;
             closestDistance = Game.map.getRoomLinearDistance(roomName, closest);
         }
 
-        // Cache the result for future use
-        closestCache[roomName].closest = closest;
-        closestCache[roomName].distance = closestDistance;
-        closestCache[roomName].lastUpdated = Game.time; // Store the time of the cache update
+        // Update cache
+        closestCache[roomName] = {
+            closest: closest,
+            distance: closestDistance,
+            lastUpdated: Game.time
+        };
 
         return range ? closestDistance : closest;
     };

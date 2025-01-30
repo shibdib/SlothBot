@@ -59,8 +59,6 @@ class RoleDrone {
                 }
             }
         }
-        // Trailer at low level
-        if (this.room.controller && this.room.controller.level < 3 && this.creep.towTruck()) return true;
     }
 
     jobManager() {
