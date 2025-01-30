@@ -60,7 +60,12 @@ class RoleRemoteHarvester {
                             if (this.creep.store[RESOURCE_ENERGY] && this.container.hits < this.container.hitsMax * 0.5) return this.creep.repair(this.container);
                             if (_.sum(this.container.store) >= CONTAINER_CAPACITY * 0.75 && this.container.hits < this.container.hitsMax) {
                                 this.creep.repair(this.container);
-                            } else if (_.sum(this.container.store) >= CONTAINER_CAPACITY * 0.95) {
+                            } else if (_.sum(this.container.store) >= CONTAINER_CAPACITY * 0.8) {
+                                // Check if your hauler died
+                                if (this.creep.memory.other.hauler) {
+                                    const hauler = _.find(Game.creeps, (c) => c.my && c.memory.other.harvester === this.creep.id);
+                                    if (!hauler) this.creep.memory.other.hauler = undefined;
+                                }
                                 Game.rooms[this.creep.memory.overlord].memory.additionalRemoteHaulingNeeded = Game.time + 500;
                                 this.creep.idleFor(20);
                             } else if (Game.rooms[this.creep.memory.overlord].memory.additionalRemoteHaulingNeeded < Game.time) {

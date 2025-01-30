@@ -64,58 +64,28 @@ class RoleRemoteHauler {
         // If you have an energy destination, withdraw it
         if (this.creep.memory.energyDestination) {
             return this.creep.withdrawResource();
-        }
-
-        const overlordRoom = Game.rooms[this.creep.memory.overlord];
-        const storage = overlordRoom.storage;
-        const storageCapacity = storage ? storage.store.getCapacity() : 0;
-        const storageUsage = storage ? _.sum(storage.store) : 0;
-
-        // Perform a storage space check
-        if (storage && storageUsage < storageCapacity * 0.8) {
-            // Prioritize dropped resources with significant amounts
-            const droppedResource = this.room.droppedResources.length ?
-                _.max(this.room.droppedResources, 'amount') : null;
-
-            if (droppedResource && droppedResource.amount > this.creep.store.getCapacity() * 0.1) {
-                this.creep.memory.energyDestination = droppedResource.id;
-                return;
-            }
-
-            // Empty ruins if there is usable energy
-            const ruinWithEnergy = _.find(this.room.ruins, (r) => r.store.getUsedCapacity(RESOURCE_ENERGY));
-            if (ruinWithEnergy) {
-                this.creep.memory.energyDestination = ruinWithEnergy.id;
-                return;
-            }
-        }
-
-        // If no destination, find one
-        if (!this.creep.memory.energyDestination) {
+        } else {
             // Find an available harvester with enough energy
-            const harvester = _.filter(Game.creeps, (c) =>
-                c.my &&
-                c.memory.overlord === this.creep.memory.overlord &&
-                c.memory.role === 'remoteHarvester' &&
-                c.memory.energyAmount &&
-                !_.find(Game.creeps, (h) => h.my && h.memory.energyDestination === c.memory.energyId)
-            );
-
-            if (harvester.length) harvester.sort((a, b) => a.memory.energyAmount - b.memory.energyAmount);
-
-            if (harvester[0] && harvester[0].memory.energyId) {
-                this.creep.memory.energyDestination = harvester[0].memory.energyId;
-                return;
+            const harvester = Game.getObjectById(this.creep.memory.other.harvester);
+            if (harvester) {
+                if (harvester.memory.energyId) {
+                    this.creep.memory.energyDestination = harvester.memory.energyId;
+                    return this.creep.withdrawResource();
+                } else {
+                    return this.creep.shibMove(harvester);
+                }
+            } else {
+                this.creep.memory.other.harvester = undefined;
+                const needyHarvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' &&
+                    c.memory.overlord === this.creep.memory.overlord && !c.memory.other.hauler);
+                if (needyHarvester) {
+                    needyHarvester.memory.other.hauler = true;
+                    this.creep.memory.other.harvester = needyHarvester.id;
+                } else {
+                    this.creep.idleFor(10);
+                }
             }
         }
-
-        // If outside of the room, check for nearby energy
-        if (this.room.name !== this.creep.memory.overlord && this.creep.locateEnergy()) {
-            return;
-        }
-
-        // If no resource destination is found, idle for a bit to avoid excessive CPU usage
-        this.creep.idleFor(5);
     }
 }
 

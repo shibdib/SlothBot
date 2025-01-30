@@ -433,8 +433,19 @@ module.exports.remoteCreepQueue = function (room) {
 
 
     function handleRemoteHaulers(room) {
-        let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-        queueCreepIfNeeded(room, 'remoteHauler', PRIORITIES.remoteHauler, totalHarvesters);
+        const totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
+        const totalHaulers = getCreepCount(undefined, 'remoteHauler', undefined, undefined, room.name);
+        if (totalHarvesters > totalHaulers) {
+            const needyHarvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.overlord === room.name && !c.memory.other.hauler);
+            if (needyHarvester) {
+                queueCreep(room, PRIORITIES.remoteHauler, {
+                    role: 'remoteHauler',
+                    destination: room.name,
+                    other: {harvester: needyHarvester.id}
+                });
+                needyHarvester.memory.other.hauler = true;
+            }
+        }
     }
 };
 
@@ -857,7 +868,7 @@ function displayQueue(room) {
  * @returns {*|number}
  */
 function getCreepCount(room = undefined, role, destination = undefined, operation = undefined, overlord = undefined) {
-    if (!destination && !operation && room) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === room.name || c.room.name === room.name)).length;
+    if (!destination && !operation && room) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === room.name || c.room.name === room.name || c.memory.overlord === room.name)).length;
     else if (room && operation && !destination) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === room.name || c.memory.overlord === room.name) && c.memory.operation === operation).length;
     else if (destination && !operation) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === destination || c.memory.overlord === destination)).length;
     else if (!destination && operation) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && c.memory.operation === operation).length;
