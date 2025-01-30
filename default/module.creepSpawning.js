@@ -269,8 +269,7 @@ module.exports.miscCreepQueue = function (room) {
             }
 
             // Border Patrol
-            /*
-            if (room.memory.borderPatrol && !getCreepCount(undefined, 'longbow', room.memory.borderPatrol, 'borderPatrol')) {
+            if (room.memory.borderPatrol && !getCreepCount(room, 'longbow', undefined, 'borderPatrol')) {
                 let power = INTEL[room.memory.borderPatrol] ? INTEL[room.memory.borderPatrol].hostilePower : 1;
                 queueCreep(room, PRIORITIES.remoteHarvester, {
                     role: 'longbow',
@@ -279,7 +278,7 @@ module.exports.miscCreepQueue = function (room) {
                     destination: room.memory.borderPatrol,
                     other: {power: power}
                 });
-            }*/
+            }
         }
     }
 };
