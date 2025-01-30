@@ -19,7 +19,7 @@ class RoleRoadBuilder {
         // Set destination
         if (!this.creep.memory.destination) {
             let possibles = this.creep.memory.misc;
-            possibles = _.filter(possibles, (p) => !INTEL[p] || (!INTEL[p].sk || (SK_MINING && Game.rooms[this.creep.memory.overlord].level >= SK_MINING_LEVEL)))
+            possibles = _.filter(possibles, (p) => !INTEL[p] || (!INTEL[p].sk || (Game.rooms[p] && Game.rooms[p].creeps.filter((c) => c.my && c.memory.role === 'SKAttacker')[0])));
             this.creep.memory.destination = _.sample(possibles);
             this.creep.memory.energyDestination = undefined;
             this.creep.memory.source = undefined;

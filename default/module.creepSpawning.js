@@ -357,6 +357,9 @@ module.exports.remoteCreepQueue = function (room) {
                 handleReservation(room, remoteName);
             } else if (INTEL[remoteName].threatLevel > 1) {
                 handleThreatLevel(room, remoteName);
+            } else if (SK_MINING && room.level >= SK_MINING_LEVEL && INTEL[remoteName].sk) {
+                handleSkAttacker(room, remoteName);
+                handleSkMineral(room, remoteName);
             } else {
                 handleReservation(room, remoteName);
             }
@@ -409,7 +412,7 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function handleReservation(room, remoteName) {
-        if (room.level >= 4 && (!INTEL[remoteName].reservationExpires || Game.time > INTEL[remoteName].reservationExpires) && INTEL[remoteName].sources < 3) {
+        if (room.level >= 4 && (!INTEL[remoteName].reservationExpires || Game.time > INTEL[remoteName].reservationExpires) && !INTEL[remoteName].sk) {
             let amount = INTEL[remoteName].reserverCap || 1;
             if (getCreepCount(undefined, 'reserver', remoteName) < amount) {
                 queueCreep(room, PRIORITIES.reserver + getCreepCount(undefined, 'reserver', remoteName), {
@@ -427,6 +430,24 @@ module.exports.remoteCreepQueue = function (room) {
         }
     }
 
+    function handleSkAttacker(room, remoteName) {
+        if (!getCreepCount(undefined, 'SKAttacker', room.name)) {
+            queueCreep(room, PRIORITIES.remoteHarvester, {
+                role: 'SKAttacker',
+                destination: remoteName,
+            });
+        }
+    }
+
+    function handleSkMineral(room, remoteName) {
+        if (!getCreepCount(undefined, 'commodityMiner', room.name)) {
+            queueCreep(room, PRIORITIES.remoteHarvester, {
+                role: 'commodityMiner',
+                destination: remoteName,
+            });
+        }
+    }
+
     function handleRemoteHarvesters(room) {
         let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
         if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 3) {
@@ -434,12 +455,12 @@ module.exports.remoteCreepQueue = function (room) {
             // Parse the stringified object to a valid JavaScript object and filter
             remoteSources = JSON.parse(room.memory.remoteSources);
             const acceptedScore = Math.max(REMOTE_DISTANCE_MAX, _.min(remoteSources, 'score').score);
-            remoteSources = _.filter(remoteSources, (s) => s.score <= acceptedScore && !_.find(Game.creeps, function (c) {
+            remoteSources = _.filter(remoteSources, (s) => (INTEL[s.room].sk || s.score <= acceptedScore) && !_.find(Game.creeps, function (c) {
                 return c.my && c.memory.other && c.memory.other.source === s.source;
             }));
             // Iterate through each source in the remoteSources object
             for (const source of remoteSources) {
-                if (!INTEL[source.room].threatLevel && !INTEL[source.room].sk) {
+                if (!INTEL[source.room].threatLevel && (!INTEL[source.room].sk || getCreepCount(undefined, 'SKAttacker', source.room))) {
                     queueCreep(room, PRIORITIES.remoteHarvester, {
                         role: 'remoteHarvester',
                         destination: source.room,

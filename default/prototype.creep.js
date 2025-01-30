@@ -652,7 +652,6 @@ Creep.prototype.builderFunction = function () {
             this.shibMove(new RoomPosition(sitePos.x, sitePos.y, sitePos.roomName), {range: 3});
             return true;
         }
-        console.log(this.name)
         this.memory.constructionSite = undefined;
         this.memory.task = undefined;
         this.memory.siteRoom = undefined;
