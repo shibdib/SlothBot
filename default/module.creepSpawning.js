@@ -397,7 +397,7 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function handleRoadBuilder(room) {
-        queueCreepIfNeeded(room, 'roadBuilder', PRIORITIES.roadBuilder, 1);
+        queueCreepIfNeeded(room, 'roadBuilder', PRIORITIES.roadBuilder, 1, undefined, undefined, JSON.parse(remoteRoomTargets[room.name]));
     }
 
     function handleSkAttacker(room, remoteName) {
@@ -657,16 +657,18 @@ module.exports.globalCreepQueue = function () {
  * @param numberNeeded - How many creeps are needed
  * @param rebootCondition - Whether this gets flagged for reboot
  * @param destination - Destination for the creep
+ * @param misc - Misc data for the creep
  * @returns {*|number}
  */
-function queueCreepIfNeeded(room = undefined, role, priority, numberNeeded, rebootCondition = undefined, destination = undefined) {
+function queueCreepIfNeeded(room = undefined, role, priority, numberNeeded, rebootCondition = undefined, destination = undefined, misc = undefined) {
     let count = getCreepCount(room, role, destination);
     const global = !room
     if (count < numberNeeded || (creepExpiringSoon(room.name, role) && count === numberNeeded)) {
         queueCreep(room, priority + count, {
             role: role,
             destination: destination,
-            other: {reboot: rebootCondition}
+            other: {reboot: rebootCondition},
+            misc: misc
         }, global);
     }
 }
