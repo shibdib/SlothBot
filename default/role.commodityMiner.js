@@ -41,7 +41,7 @@ class RoleCommodityMiner {
         }
 
         // Make sure the operation is active and valid destination exists
-        if (!this.creep.memory.destination || (!Memory.auxiliaryTargets[this.creep.memory.destination] && !INTEL[this.creep.memory.destination].sk)) {
+        if (!this.creep.memory.destination || (!Memory.auxiliaryTargets[this.creep.memory.destination] && !INTEL[this.creep.memory.destination] || !INTEL[this.creep.memory.destination].sk)) {
             if (!_.sum(this.creep.store)) {
                 this.creep.suicide();
             } else {
