@@ -8,6 +8,7 @@ let storedLevel = {};
 let remoteRoomTargets = {};
 let lastBuilt = {};
 let creepTTL = {};
+let activeSkMining = {};
 let lastGlobalSpawn = Game.time;
 
 //Build Creeps From Queue
@@ -341,6 +342,7 @@ module.exports.remoteCreepQueue = function (room) {
             } else if (INTEL[remoteName].threatLevel > 1) {
                 handleThreatLevel(room, remoteName);
             } else if (SK_MINING && room.level >= SK_MINING_LEVEL && INTEL[remoteName].sk) {
+                activeSkMining[room.name] = Game.time;
                 handleSkAttacker(room, remoteName);
                 handleSkMineral(room, remoteName);
             } else {
@@ -414,8 +416,9 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteSources;
             // Parse the stringified object to a valid JavaScript object and filter
             remoteSources = JSON.parse(room.memory.remoteSources);
+            const activeSk = activeSkMining[room.name] + CREEP_LIFE_TIME > Game.time;
             const acceptedScore = Math.max(REMOTE_DISTANCE_MAX, _.min(remoteSources, 'score').score);
-            remoteSources = _.filter(remoteSources, (s) => (INTEL[s.room].sk || s.score <= acceptedScore) && !_.find(Game.creeps, function (c) {
+            remoteSources = _.filter(remoteSources, (s) => (INTEL[s.room].sk || (!activeSk && s.score <= acceptedScore)) && !_.find(Game.creeps, function (c) {
                 return c.my && c.memory.other && c.memory.other.source === s.source;
             }));
             // Iterate through each source in the remoteSources object
@@ -553,24 +556,20 @@ module.exports.globalCreepQueue = function () {
 
             case 'commodity': // Commodity Mining
             case 'mineral': // Middle room mineral mining
-                queueCreepIfNeeded(undefined, 'commodityMiner', priority, 2, undefined, key);
+                queueCreepIfNeeded(undefined, 'commodityMiner', priority, 2, undefined, key, undefined, true);
                 break;
 
             case 'power': // Power Mining
-                const powerSpace = operation.space || 1;
-                const powerHealer = getCreepCount(undefined, 'powerHealer', key);
-                const powerAttacker = getCreepCount(undefined, 'powerAttacker', key);
-                const powerHealerTTL = creepTTL[key] && creepTTL[key]['powerHealer'];
-                const powerAttackerTTL = creepTTL[key] && creepTTL[key]['powerAttacker'];
-
-                if (!operation.complete && (powerHealer < powerAttacker * 2 || (powerHealerTTL && powerHealerTTL < 450 && powerHealer < (powerAttacker * 2) + 1))) {
-                    queueCreep(undefined, priority, {role: 'powerHealer', destination: key, military: true}, true);
+                if (!operation.complete) {
+                    const powerSpace = operation.space || 1;
+                    const powerAttacker = getCreepCount(undefined, 'powerAttacker', key);
+                    const powerHealerTTL = creepTTL[key] && creepTTL[key]['powerHealer'];
+                    const powerAttackerTTL = creepTTL[key] && creepTTL[key]['powerAttacker'];
+                    queueCreepIfNeeded(undefined, 'powerHealer', priority, powerAttacker * 1.5, powerHealerTTL && powerHealerTTL < 450, key, undefined, true);
+                    queueCreepIfNeeded(undefined, 'powerAttacker', priority - 1, powerSpace, powerAttackerTTL && powerAttackerTTL < 450, key, undefined, true);
                 }
-                if (!operation.complete && (powerAttacker < powerSpace || (powerAttackerTTL && powerAttackerTTL < 450 && powerAttacker < powerSpace + 1))) {
-                    queueCreep(undefined, priority - 1, {role: 'powerAttacker', destination: key}, true);
-                }
-                if (operation.hauler && getCreepCount(undefined, 'powerHauler', key) < operation.hauler) {
-                    queueCreep(undefined, priority - 1, {role: 'powerHauler', destination: key}, true);
+                if (operation.hauler) {
+                    queueCreepIfNeeded(undefined, 'powerHauler', priority, operation.hauler, undefined, key, undefined, true);
                 }
                 break;
 
@@ -666,7 +665,7 @@ module.exports.globalCreepQueue = function () {
  * @param misc - Misc data for the creep
  * @returns {*|number}
  */
-function queueCreepIfNeeded(room = undefined, role, priority, numberNeeded, rebootCondition = undefined, destination = undefined, misc = undefined) {
+function queueCreepIfNeeded(room = undefined, role, priority, numberNeeded, rebootCondition = undefined, destination = undefined, misc = undefined, closestRoom = undefined) {
     let count = getCreepCount(room, role, destination);
     const global = !room
     if (count < numberNeeded || (room && creepExpiringSoon(room.name, role) && count === numberNeeded)) {
@@ -685,9 +684,10 @@ function queueCreepIfNeeded(room = undefined, role, priority, numberNeeded, rebo
  * @param priority - Spawn Priority
  * @param options - Creep spawn options object
  * @param global - Does this creep go into the global queue
+ * @param closestRoom - Only spawn from the closest room
  * @returns {*|number}
  */
-function queueCreep(room = undefined, priority, options = {}, global = false) {
+function queueCreep(room = undefined, priority, options = {}, global = undefined, closestRoom = undefined) {
     let cache = {};
     // Set the cache to local or global
     if (global && CREEP_QUEUES['global']) cache = JSON.parse(CREEP_QUEUES['global']); else if (room && CREEP_QUEUES[room.name]) cache = JSON.parse(CREEP_QUEUES[room.name]);
@@ -710,7 +710,8 @@ function queueCreep(room = undefined, priority, options = {}, global = false) {
         military: options.military,
         operation: options.operation,
         misc: options.misc,
-        global: global
+        global: global,
+        closestRoom: closestRoom
     };
     if (global) CREEP_QUEUES['global'] = JSON.stringify(cache); else CREEP_QUEUES[room.name] = JSON.stringify(cache);
 }
@@ -766,6 +767,11 @@ function displayQueue(room) {
 
         for (let key in operationQueue) {
             if (operationQueue[key].destination) {
+                // If it requires the closest room, ensure it's the closest room
+                if (operationQueue[key].closestRoom && findClosestOwnedRoom(operationQueue[key].destination, undefined, MAX_LEVEL) !== room.name) {
+                    delete operationQueue[key];
+                    continue;
+                }
                 let body = new generator(room.level, operationQueue[key].role, room, operationQueue[key]).generateBody();
                 // Check for military ops and ensure range sanity
                 let maxRange = 22;

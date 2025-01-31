@@ -2,7 +2,7 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-const DEFAULT_MAXOPS = 2500;
+const DEFAULT_MAXOPS = 3000;
 const STATE_STUCK = 2;
 const FLEE_RANGE = 4;
 
@@ -46,6 +46,7 @@ function shibMove(creep, heading, options = {}) {
             options.range = 23;
         } else {
             creep.memory.repathing = undefined;
+            creep.memory._shibMove = undefined;
         }
     }
 
@@ -318,7 +319,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                     return creep.suicide();
                 } else if (creep.memory.badPathing >= 3) {
                     creep.memory.repathing = Game.map.describeExits(creep.room.name)[Game.map.findExit(creep.room.name, creep.memory.destination)];
-                    if (creep.memory.repathing) return creep.shibMove(new RoomPosition(25, 25, creep.memory.repathing), {range: 23}); else return log.e('Cannot find a path between ' + creep.room.name + ' and ' + creep.memory.destination);
                 }
             }
         } else {
