@@ -41,12 +41,12 @@ class RoleSKAttacker {
         let sourceKeeper = Game.getObjectById(this.creep.memory.keeper) || this.creep.pos.findClosestByRange(this.room.creeps,
             {filter: (c) => c.room.name === this.creep.memory.destination && !FRIENDLIES.includes(c.owner.username)});
         if (sourceKeeper) {
-            this.creep.heal(this.creep);
+            this.creep.healInRange();
             this.creep.memory.lair = undefined;
             this.creep.memory.keeper = sourceKeeper.id;
             switch (this.creep.attack(sourceKeeper)) {
                 case ERR_NOT_IN_RANGE:
-                    if (this.creep.hits < this.creep.hitsMax * 0.8 && this.creep.pos.getRangeTo(sourceKeeper) < 8) return;
+                    if (this.creep.hits < this.creep.hitsMax * 0.8 && this.creep.pos.getRangeTo(sourceKeeper) < 12) return;
                     this.creep.shibMove(sourceKeeper);
                     break;
                 case ERR_NO_BODYPART:
@@ -60,7 +60,8 @@ class RoleSKAttacker {
                 s.structureType === STRUCTURE_KEEPER_LAIR && s.room.name === this.creep.memory.destination), 'ticksToSpawn');
             this.creep.memory.keeper = undefined;
             this.creep.memory.lair = lair.id;
-            if (this.creep.hits === this.creep.hitsMax && this.creep.pos.isNearTo(lair)) this.creep.idleFor(lair.ticksToSpawn - 1); else this.creep.shibMove(lair);
+            if (this.creep.hits < this.creep.hitsMax * 0.8 && this.creep.pos.getRangeTo(lair) < 12) return;
+            if (this.creep.pos.isNearTo(lair)) this.creep.idleFor(lair.ticksToSpawn - 1); else this.creep.shibMove(lair);
         }
     }
 }
