@@ -30,7 +30,7 @@ function shibMove(creep, heading, options = {}) {
     }
 
     // Handle fatigue
-    if (!creep.className && (creep.fatigue > 0 || !heading)) {
+    if (!creep.className && creep.hasActiveBodyparts(MOVE) && (creep.fatigue > 0 || !heading)) {
         if (!creep.memory.military) creep.idleFor(1);
         return creep.room.visual.circle(creep.pos, {
             fill: 'transparent',
@@ -94,15 +94,18 @@ function shibMove(creep, heading, options = {}) {
         if (!creep.memory.towDestination) {
             creep.memory.towDestination = heading.id || heading;
             creep.memory.towOptions = options;
-            let towTruck = _.filter(creep.room.creeps, (c) => c.getActiveBodyparts(MOVE) >= creep.body.length * 0.5 && !_.sum(c.store));
-            if (!towTruck.length) towTruck = _.filter(creep.room.creeps, (c) => c.getActiveBodyparts(MOVE) >= 2 && !_.sum(c.store));
+            creep.say(1)
+        } else if (heading.id && creep.hasActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {
+            creep.memory.towDestination = undefined;
+        }
+        if (!creep.memory.towCreep || !Game.getObjectById(creep.memory.towCreep)) {
+            let towTruck = _.filter(creep.room.creeps, (c) => c.getActiveBodyparts(MOVE) >= creep.body.length * 0.5 && !_.sum(c.store) && !c.memory.trailer);
+            if (!towTruck.length) towTruck = _.filter(creep.room.creeps, (c) => c.getActiveBodyparts(MOVE) >= 2 && !_.sum(c.store) && !c.memory.trailer);
             if (towTruck.length) {
                 const closest = creep.pos.findClosestByRange(towTruck);
                 creep.memory.towCreep = closest.id;
                 closest.memory.trailer = creep.id;
             }
-        } else if (heading.id && creep.hasActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {
-            creep.memory.towDestination = undefined;
         }
         return true;
     }

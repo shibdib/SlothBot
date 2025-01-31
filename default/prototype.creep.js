@@ -740,20 +740,30 @@ Creep.prototype.goToHub = function (destination = this.memory.overlord, idleTime
 Creep.prototype.towTruck = function () {
     // If no assigned trailer, return
     if (!this.memory.trailer) return false;
+    const trailer = Game.getObjectById(this.memory.trailer);
 
     // Clear broken trailers
-    if (this.memory.trailer && !Game.getObjectById(this.memory.trailer)) {
-        this.memory.trailer = undefined;
+    if (!trailer) {
+        this.memory.towStart = undefined;
+        return this.memory.trailer = undefined;
+    }
+
+    // Handle trailer in another room
+    if (trailer.pos.roomName !== this.pos.roomName) {
+        this.say('Lost Trailer!', true);
+        this.memory.towStart = undefined;
+        resetTowingState(trailer);
+        return this.memory.trailer = undefined;
     }
 
     // Return early if the creep is carrying anything
     if (_.sum(this.store)) return false;
 
+    // Set tow start
+    if (!this.memory.towStart) this.memory.towStart = Game.time;
+
     // Handle fatigue
     if (this.fatigue) return true;
-
-    let trailer = Game.getObjectById(this.memory.trailer);
-    if (!trailer) return false;
 
     // Handle trailer with no tow destination
     if (!trailer.memory.towDestination) {
@@ -772,6 +782,8 @@ Creep.prototype.towTruck = function () {
     // Handle towing timeout or reaching destination
     if (shouldTimeout(this.memory.towStart, trailer, towDestination)) {
         resetTowingState(trailer);
+        this.memory.towStart = undefined;
+        this.memory.trailer = undefined;
         return false;
     }
 
@@ -815,11 +827,10 @@ function resetTowingState(trailer) {
 
 // Helper function to adjust movement when pulling
 function adjustMovement(creep, trailer) {
-    if (!creep.memory.lastRangeToTrailer) {
-        creep.memory.lastRangeToTrailer = trailer.pos.getRangeTo(creep);
-    } else if (creep.memory.lastRangeToTrailer < trailer.pos.getRangeTo(creep)) {
+    if (creep.memory.lastRangeToTrailer && creep.memory.lastRangeToTrailer < 5 && creep.memory.lastRangeToTrailer < trailer.pos.getRangeTo(creep)) {
         creep.memory._shibMove = undefined;
     }
+    creep.memory.lastRangeToTrailer = trailer.pos.getRangeTo(creep);
 }
 
 // Helper function to move to tow destination
