@@ -94,8 +94,9 @@ function shibMove(creep, heading, options = {}) {
         if (!creep.memory.towDestination) {
             creep.memory.towDestination = heading.id || heading;
             creep.memory.towOptions = options;
-            creep.say(1)
         } else if (heading.id && creep.hasActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {
+            creep.memory.towDestination = undefined;
+        } else if (creep.pos.isNearTo(heading) && ((heading instanceof RoomPosition && heading.checkForCreep()) || heading.pos.checkForCreep())) {
             creep.memory.towDestination = undefined;
         }
         if (!creep.memory.towCreep || !Game.getObjectById(creep.memory.towCreep)) {

@@ -771,9 +771,14 @@ Creep.prototype.towTruck = function () {
         return false;
     }
 
-    this.say('Towing!', true);
     let towDestination = getTowDestination(trailer);
+    if (!towDestination) {
+        this.memory.towStart = undefined;
+        resetTowingState(trailer);
+        return this.memory.trailer = undefined;
+    }
 
+    this.say('Towing!', true);
     // Handle occupied destination
     if (towDestination && trailer.memory.towOptions && trailer.memory.towOptions.range === 0 && this.pos.isNearTo(towDestination) && towDestination.checkForCreep() && towDestination.checkForCreep().id !== this.id) {
         trailer.memory.towOptions.range = 1;
