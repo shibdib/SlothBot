@@ -282,36 +282,32 @@ class ModuleBodyGenerator {
 
             case 'remoteHauler':
                 const assignedHarvester = Game.getObjectById(this.creepInfo.other.harvester);
-                if (assignedHarvester) {
-                    // Calculate expected harvest amount
-                    const harvestAmount = assignedHarvester.getActiveBodyparts(WORK) * HARVEST_POWER;
-                    const sourceInfo = JSON.parse(this.room.memory.remoteSources)[assignedHarvester.memory.other.source];
-                    const expectedHarvestAmount = harvestAmount * (sourceInfo.score * 2);
+                // Determine carry amount based off the harvesters work count and range
+                const harvestAmount = assignedHarvester.getActiveBodyparts(WORK) * HARVEST_POWER;
+                const range = JSON.parse(this.room.memory.remoteSources)[assignedHarvester.memory.other.source].score || 10;
+                const expectedHarvestAmount = harvestAmount * (range * 2);
+                const desiredCarry = Math.ceil(expectedHarvestAmount / CARRY_CAPACITY) || 1;
+                let workCost = this.room.level < 4 ? 0 : BODYPART_COST[WORK];
+                carry = Math.floor(((this.energyAmount - workCost) * 0.49) / BODYPART_COST[CARRY]) || 1;
 
-                    // Determine desired carry parts
-                    const desiredCarry = Math.ceil(expectedHarvestAmount / CARRY_CAPACITY) || 1;
+                // Try to use the carry amount needed by the harvester
+                carry = Math.min(carry, desiredCarry);
 
-                    // Calculate work based on room level
-                    const work = this.room.level < 4 ? 0 : 1;
-                    const workCost = work * BODYPART_COST[WORK];
+                // Work parts after level 3
+                work = this.room.level >= 4 ? 1 : 0;
 
-                    // Calculate max carry parts based on available energy
-                    let carry = Math.floor(((this.energyAmount - workCost) * 0.49) / BODYPART_COST[CARRY]) || 1;
-
-                    // Limit carry to what's actually needed by the harvester
-                    carry = Math.min(carry, desiredCarry);
-
-                    // Check road infrastructure for movement efficiency
-                    const halfMove = INTEL[assignedHarvester.room.name].roadsBuilt && INTEL[this.room.name].roadsBuilt;
-
-                    // Adjust carry parts based on movement efficiency
-                    const maxParts = halfMove ? 33 : 25;
-                    if (carry + work > maxParts) {
-                        carry = maxParts - work;
-                    }
-                } else {
-                    console.log('Error: Harvester not found for remoteHauler');
+                // Set move if the assigned harvesters intel checks out
+                if (INTEL[assignedHarvester.room.name].roadsBuilt && INTEL[this.room.name].roadsBuilt) {
+                    halfMove = true;
                 }
+
+                // Adjust carry parts to account for halmove setting
+                if (halfMove) {
+                    if (carry + work > 33) carry = 33 - work;
+                } else if (carry + work > 25) {
+                    carry = 25 - work;
+                }
+
                 break;
 
             case 'SKMineral':
