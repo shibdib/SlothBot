@@ -200,11 +200,11 @@ function buildCostMatrix(roomName) {
         for (let x = 0; x < 50; x++) {
             let tile = terrain.get(x, y);
             if (tile === TERRAIN_MASK_WALL) {
-                costMatrix.set(x, y, 100);
+                costMatrix.set(x, y, 220);
             } else if (tile === TERRAIN_MASK_SWAMP) {
-                costMatrix.set(x, y, 2);
+                costMatrix.set(x, y, 20);
             } else {
-                costMatrix.set(x, y, 1);
+                costMatrix.set(x, y, 15);
             }
         }
     }
