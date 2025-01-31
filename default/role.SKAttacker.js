@@ -46,7 +46,7 @@ class RoleSKAttacker {
             this.creep.memory.keeper = sourceKeeper.id;
             switch (this.creep.attack(sourceKeeper)) {
                 case ERR_NOT_IN_RANGE:
-                    if (this.creep.hits < this.creep.hitsMax * 0.8 && this.creep.pos.getRangeTo(sourceKeeper) > 7) return;
+                    if (this.creep.hits < this.creep.hitsMax * 0.8 && this.creep.pos.getRangeTo(sourceKeeper) < 8) return;
                     this.creep.shibMove(sourceKeeper);
                     break;
                 case ERR_NO_BODYPART:
