@@ -152,8 +152,6 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
 
     const barriersPresent = _.some(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
 
-    if (!hostileCreeps.length && !hostileStructures.length) return undefined;
-
     if (this.memory.target) {
         let oldTarget = Game.getObjectById(this.memory.target);
         if (oldTarget && (oldTarget instanceof Structure || oldTarget instanceof Creep)) {
@@ -162,6 +160,8 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
             this.memory.target = undefined;
         }
     }
+
+    if (!hostileCreeps.length && !hostileStructures.length) return undefined;
 
     const isArmedCreep = (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK);
     const inGuardRange = (c) => !guardLocation || c.pos.getRangeTo(guardLocation) < guardRange;
@@ -461,7 +461,7 @@ Creep.prototype.fightRampart = function (hostile = undefined) {
  * @returns {boolean}
  */
 Creep.prototype.fightRanged = function (target) {
-    if (!target || !this.room.hostileCreeps.length || !this.hasActiveBodyparts(RANGED_ATTACK)) return false;
+    if (!target || !this.hasActiveBodyparts(RANGED_ATTACK)) return false;
 
     // Check if already in optimal position (rampart and range)
     if (this.pos.checkForRampart() && this.pos.getRangeTo(target) <= 3) {

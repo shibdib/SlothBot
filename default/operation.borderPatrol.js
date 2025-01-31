@@ -7,11 +7,8 @@ Creep.prototype.borderPatrol = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
 
-    if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
-        if (this.canIWin(50)) {
-            if (this.handleMilitaryCreep()) return;
-            else return this.shibKite();
-        }
+    if (this.canIWin(50) && this.handleMilitaryCreep()) {
+        return;
     } else {
         if (this.memory.destination) {
             // If we are already on a mission, let's move there
