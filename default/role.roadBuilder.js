@@ -99,31 +99,32 @@ class RoleRoadBuilder {
         let homeMiddle = _.round(homeExit.length / 2);
         let containers = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
         for (let container of containers) {
-            if (_.size(Game.constructionSites) >= 70) return;
+            if (_.size(Game.constructionSites) >= 70) return false;
             if (this.buildRoadFromTo(creep.room, container, homeExit[homeMiddle])) return true;
         }
 
-        // Controller
-        return !!(creep.room.controller && this.buildRoadFromTo(creep.room, creep.room.controller, homeExit[homeMiddle]));
-
         // SK Room
         if (INTEL[creep.room.name].sk) {
+            let mineral = creep.room.find(FIND_MINERALS)[0];
+            if (mineral && this.buildRoadFromTo(creep.room, mineral, homeExit[homeMiddle])) return true;
             let skLairs = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR);
             for (let lair of skLairs) {
                 if (_.size(Game.constructionSites) >= 70) return;
                 if (this.buildRoadFromTo(creep.room, lair, homeExit[homeMiddle])) return true;
             }
-            let mineral = creep.room.find(FIND_MINERALS)[0];
-            if (mineral && this.buildRoadFromTo(creep.room, mineral, homeExit[homeMiddle])) return true;
         }
+
+        // Controller
+        return !!(creep.room.controller && this.buildRoadFromTo(creep.room, creep.room.controller, homeExit[homeMiddle]));
     }
 
     buildRoadFromTo(room, start, end) {
         if (!room || !start || !end) return false;
+        let begin = start instanceof RoomPosition ? start : start.pos;
         let target = end instanceof RoomPosition ? end : end.pos;
-        let path = this.getRoad(room, start, target);
+        let path = this.getRoad(room, begin, target);
         if (!path) {
-            path = PathFinder.search(start.pos, {pos: target, range: 1}, {
+            path = PathFinder.search(begin, {pos: target, range: 1}, {
                 heuristicWeight: 0.8,
                 roomCallback: function () {
                     return buildCostMatrix(room.name);
@@ -131,7 +132,7 @@ class RoleRoadBuilder {
             }).path;
 
             if (path.length) {
-                this.cacheRoad(room, start, target, path);
+                this.cacheRoad(room, begin, target, path);
             } else {
                 return false;
             }
@@ -199,11 +200,11 @@ function buildCostMatrix(roomName) {
         for (let x = 0; x < 50; x++) {
             let tile = terrain.get(x, y);
             if (tile === TERRAIN_MASK_WALL) {
-                costMatrix.set(x, y, 200);
+                costMatrix.set(x, y, 100);
             } else if (tile === TERRAIN_MASK_SWAMP) {
-                costMatrix.set(x, y, 50);
+                costMatrix.set(x, y, 2);
             } else {
-                costMatrix.set(x, y, 25);
+                costMatrix.set(x, y, 1);
             }
         }
     }
