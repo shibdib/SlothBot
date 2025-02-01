@@ -432,7 +432,6 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     // Get remote source data for the highest level room declaring this a remote
     if (roomIntel.remoteRoom && !force) {
         let highestLevelRoom = getHighestLevelRemoteRoom(roomIntel.remoteRoom);
-
         for (const source of this.sources) {
             let distanceToExit = calculateDistanceToHub(this, source, highestLevelRoom);
             updateRemoteSourceData(this, highestLevelRoom, source, distanceToExit);
@@ -532,7 +531,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 
     function calculateDistanceToHub(room, source, targetRoom) {
         const target = Game.rooms[targetRoom].storage || new RoomPosition(Game.rooms[targetRoom].memory.bunkerHub.x, Game.rooms[targetRoom].memory.bunkerHub.y, targetRoom);
-        return source.pos.findPathTo(target).length;
+        return source.pos.shibMove(target).path.length;
     }
 
     function updateRemoteSourceData(room, roomName, source, distance) {

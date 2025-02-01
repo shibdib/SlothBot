@@ -17,7 +17,23 @@ const skMatrixCache = CACHE.skMatrixCache = {};
 let globalPathCache = CACHE.globalPathCache = {};
 let globalRouteCache = CACHE.globalRouteCache = {};
 
-function shibMove(creep, heading, options = {}) {
+function shibMove(creep, heading, options = {}, pathOnly = false) {
+    // Make sure origin and target are good
+    let origin = normalizePos(creep);
+    let target = normalizePos(heading);
+    if (!origin || !target) return;
+
+    if (pathOnly) {
+        const cached = getPath(creep, origin, target, undefined);
+        if (cached) return cached;
+        return PathFinder.search(origin, {pos: target, range: options.range}, {
+            maxOps: options.maxOps || DEFAULT_MAXOPS,
+            maxRooms: options.maxRooms || 16,
+            heuristicWeight: options.heuristicWeight || 1,
+            roomCallback: (roomName) => getMatrix(roomName, creep, options),
+        });
+    }
+
     // Store source keeper
     if (creep.memory.keeper) options.ignoreKeeper = creep.memory.keeper;
 
@@ -49,11 +65,6 @@ function shibMove(creep, heading, options = {}) {
             creep.memory._shibMove = undefined;
         }
     }
-
-    // Make sure origin and target are good
-    let origin = normalizePos(creep);
-    let target = normalizePos(heading);
-    if (!origin || !target) return;
 
     // If the pathing memory entry is missing or wrong recreate it
     if (!creep.memory._shibMove || !creep.memory._shibMove.target || creep.memory._shibMove.targetRoom !== target.roomName || creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y) creep.memory._shibMove = {};
@@ -595,7 +606,7 @@ function getStructureMatrix(roomName, creep, matrix, options) {
             default:
                 roadCost = 1;
         }
-        let noWallWrecker = (!creep.className && !creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)) || (INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner));
+        let noWallWrecker = (creep instanceof Creep && !creep.className && !creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)) || (INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner));
         for (let structure of room.structures) {
             const obstacle = structure.pos.checkForObstacleStructure();
             if (structure instanceof StructureWall) {
@@ -660,7 +671,7 @@ function getStructureMatrix(roomName, creep, matrix, options) {
 let creepMatrixTick = {};
 function getCreepMatrix(roomName, creep, matrix, options) {
     let room = Game.rooms[roomName];
-    if (!room) return matrix;
+    if (!room || !(creep instanceof Creep)) return matrix;
     if (!creepMatrixCache[roomName] || options.showMatrix || (!creepMatrixTick[room.name] || Game.time !== creepMatrixTick[room.name])) {
         room.memory.creepMatrixTick = undefined;
         creepMatrixTick[room.name] = Game.time;
@@ -983,16 +994,18 @@ function cachePath(creep, from, to, pathInfo) {
 
 function getPath(creep, from, to, pathInfo) {
     if (!globalPathCache || !_.size(globalPathCache)) return;
-    // Don't get a cached path if creep is stuck
-    if (creep.memory._shibMove && creep.memory._shibMove.pathPosTime && creep.memory._shibMove.pathPosTime >= STATE_STUCK) return;
-    let cache = globalPathCache || {};
-    // Store path based off move weight
-    let options = getMoveWeight(creep, pathInfo.pathOptions);
     let weight = 3;
-    if (options.offRoad) {
-        weight = 1;
-    } else if (options.ignoreRoads) {
-        weight = 2;
+    let cache = globalPathCache || {};
+    if (creep instanceof Creep) {
+        // Don't get a cached path if creep is stuck
+        if (creep.memory._shibMove && creep.memory._shibMove.pathPosTime && creep.memory._shibMove.pathPosTime >= STATE_STUCK) return;
+        // Store path based off move weight
+        let options = getMoveWeight(creep, pathInfo.pathOptions);
+        if (options.offRoad) {
+            weight = 1;
+        } else if (options.ignoreRoads) {
+            weight = 2;
+        }
     }
     let cachedPath = globalPathCache[getPathKey(from, to, weight)];
     // Check for the path reversed
@@ -1037,9 +1050,8 @@ function getMoveWeight(creep, options = {}) {
     // Add weight of trailer
     if (creep.memory.trailer && Game.getObjectById(creep.memory.trailer)) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
     if (move >= weight * 5) {
-        //options.heuristicWeight = 1.1;
         options.offRoad = true;
-    } else if (move >= weight) {
+    } else if (move >= weight || (move === weight && COMBAT_ROLES.contains(creep.memory.role))) {
         options.ignoreRoads = true;
     } else {
         options.offRoad = undefined;
@@ -1093,6 +1105,16 @@ PowerCreep.prototype.shibMove = function (destination, options = {}) {
  */
 Creep.prototype.shibMove = function (destination, options = {}) {
     return shibMove(this, destination, options);
+};
+
+/**
+ * Movement code
+ * @param destination
+ * @param options
+ * @returns {*|boolean|boolean|void|string}
+ */
+RoomPosition.prototype.shibMove = function (destination, options = {}) {
+    return shibMove(this, destination, options, true);
 };
 
 /**
