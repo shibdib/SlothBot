@@ -29,9 +29,18 @@ module.exports.loop = function () {
                 log.e(`On CPU Cooldown for ${countdown} more ticks or until the bucket reaches ${BUCKET_MAX * 0.5}. Current Bucket: ${currentBucket}`);
                 return;
             }
-        } else if (currentBucket < BUCKET_MAX * 0.05) {
-            Memory.cpuTracking = {cooldown: Game.time};
+        } else if (currentBucket < BUCKET_MAX * 0.01) {
+            const cooldown = Game.time;
+            let roomPenalty = Memory.cpuTracking.roomPenalty || 0;
+            let bucketIssueCount = Memory.cpuTracking.bucketIssueCount || 0;
             log.e('CPU Bucket Too Low - Cooldown Initiated');
+            if (bucketIssueCount >= 50) {
+                log.e('Bucket Issue Count Exceeded - Abandoning Worst Room');
+                abandonWorstRoom();
+                bucketIssueCount = 0;
+                roomPenalty = Game.time;
+            }
+            Memory.cpuTracking = {cooldown, bucketIssueCount: bucketIssueCount + 1, roomPenalty: roomPenalty};
             return;
         }
 
@@ -148,4 +157,12 @@ function tryInitSameMemory() {
         global.LastMemory = RawMemory._parsed
     }
     lastMemoryTick = Game.time
+}
+
+function abandonWorstRoom() {
+    let worstRoom = _.min(MY_ROOMS, room => room.controller.level);
+    if (worstRoom) {
+        log.a(`Abandoning ${worstRoom}`);
+        abandonRoom(worstRoom);
+    }
 }

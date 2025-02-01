@@ -149,7 +149,7 @@ class ExpansionControl {
     }
 
     claimOperation(roomName) {
-        const limit = roomStatus(MY_ROOMS[0]) === 'novice' ? 3 : Game.gcl.level;
+        const limit = roomStatus(MY_ROOMS[0]) === 'novice' ? 3 : Memory.cpuTracking.roomPenalty && Memory.cpuTracking.roomPenalty + 50000 > Game.time ? Game.gcl.level - 1 : Game.gcl.level;
 
         if (limit > MY_ROOMS.length && MAX_LEVEL >= 4 && !Memory.auxiliaryTargets[roomName] && INTEL[roomName] && !INTEL[roomName].hostile) {
             Memory.nextClaim = undefined;
