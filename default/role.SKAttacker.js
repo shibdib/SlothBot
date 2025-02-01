@@ -52,6 +52,7 @@ class RoleSKAttacker {
                 case ERR_NO_BODYPART:
                     break;
                 case OK:
+                    this.creep.move(this.creep.pos.getDirectionTo(sourceKeeper));
                     break;
             }
         } else {
