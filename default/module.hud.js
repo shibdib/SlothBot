@@ -4,170 +4,160 @@
 
 class HUD {
     constructor() {
-        if (!Memory.HUD) {
-            Memory.HUD = {
-                GCL_PROGRESS_ARRAY: [],
-                lastTickGCLProgress: 0,
-                RCL_PROGRESS: {},
-                roomLastTickProgress: {}
-            };
-        }
-        this.GCL_PROGRESS_ARRAY = Memory.HUD.GCL_PROGRESS_ARRAY;
-        this.lastTickGCLProgress = Memory.HUD.lastTickGCLProgress;
-        this.RCL_PROGRESS = Memory.HUD.RCL_PROGRESS;
-        this.roomLastTickProgress = Memory.HUD.roomLastTickProgress;
+        this.hudData = Memory.HUD = {
+            ...(Memory.HUD || {}),
+            GCL: {last: Game.gcl.progress, progress: []},
+            RCL: {}
+        };
     }
-
 
     run() {
-        // Avoid new spawn errors and ensure tick info is available
         if (!Memory.tickInfo) return;
 
-        // Always update the HUD every tick
-        let myRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner.username === MY_USERNAME);
-
-        for (let room of myRooms) {
-            // Skip rooms without a controller or insufficient CPU data
-            if (!room || !ROOM_CPU_ARRAY[room.name]) continue;
-
-            this.updateGCLProgress(room);
-            this.updateRCLProgress(room);
-
-            // Display HUD based on the last calculated values
-            this.displayGCLInfo(room);
-            this.displaySafeModeInfo(room);
-            this.displayRCLInfo(room);
-        }
-
-        // Save the memory after all updates
-        this.saveMemory();
-    }
-
-    updateGCLProgress(room) {
-        let progressPerTick = Game.gcl.progress - this.lastTickGCLProgress;
-        this.lastTickGCLProgress = Game.gcl.progress;
-
-        // Only update the array if there's progress made
-        if (progressPerTick > 0) {
-            if (this.GCL_PROGRESS_ARRAY.length < 25) {
-                this.GCL_PROGRESS_ARRAY.push(progressPerTick);
-            } else {
-                this.GCL_PROGRESS_ARRAY.shift();
-                this.GCL_PROGRESS_ARRAY.push(progressPerTick);
-            }
+        for (const room of this.getOwnedRooms()) {
+            this.updateData(room);
+            this.renderDashboard(room);
         }
     }
 
-    updateRCLProgress(room) {
-        if (!room.controller.progressTotal) {
-            // If no progress total, show the controller's level without progress info
-            this.roomLastTickProgress[room.name] = undefined;
-            delete this.RCL_PROGRESS[room.name];
-            return;
-        }
+    getOwnedRooms() {
+        return Object.values(Game.rooms).filter(r => r.controller && r.controller.my);
+    }
 
-        let lastTickProgress = this.roomLastTickProgress[room.name] || room.controller.progress;
-        this.roomLastTickProgress[room.name] = room.controller.progress;
+    updateData(room) {
+        this.updateGCLData();
+        this.updateRCLData(room);
+    }
 
-        let progressPerTick = room.controller.progress - lastTickProgress;
-        if (progressPerTick > 0) {
-            this.RCL_PROGRESS[room.name] = this.RCL_PROGRESS[room.name] || [];
-            if (this.RCL_PROGRESS[room.name].length < 25) {
-                this.RCL_PROGRESS[room.name].push(progressPerTick);
-            } else {
-                this.RCL_PROGRESS[room.name].shift();
-                this.RCL_PROGRESS[room.name].push(progressPerTick);
-            }
+    updateGCLData() {
+        const currentProgress = Game.gcl.progress;
+        if (currentProgress > this.hudData.GCL.last) {
+            this.hudData.GCL.progress.push(currentProgress - this.hudData.GCL.last);
+            if (this.hudData.GCL.progress.length > 25) this.hudData.GCL.progress.shift();
+            this.hudData.GCL.last = currentProgress;
         }
     }
 
-    average(array) {
-        if (!array || array.length === 0) {
-            return 0;  // Return 0 if the array is empty or undefined
-        }
-        return array.reduce((sum, value) => sum + value, 0) / array.length;
-    }
-
-    displayGCLInfo(room) {
-        let progressPerTick = this.average(this.GCL_PROGRESS_ARRAY);
-        let remainingProgress = Game.gcl.progressTotal - Game.gcl.progress;
-
-        let secondsToUpgrade = _.round((remainingProgress / progressPerTick) * Memory.tickInfo.tickLength);
-        let displayTime = this.secondsToReadable(secondsToUpgrade);
-
-        // Draw a GCL progress bar with a gradient color
-        let progressPercent = (Game.gcl.progress / Game.gcl.progressTotal) * 100;
-        room.visual.rect(1, 1, 15, 0.5, {fill: '#808080', opacity: 0.5}); // background bar
-        room.visual.rect(1, 1, 15 * (progressPercent / 100), 0.5, {fill: '#00FF00'}); // active bar
-
-        // Display GCL info with updated time format
-        this.displayText(room, 1, 2, `${ICONS.upgradeController} GCL: ${Game.gcl.level} - ${displayTime} (${_.round(remainingProgress / progressPerTick)} ticks)`);
-    }
-
-    displaySafeModeInfo(room) {
-        if (room.controller.safeMode) {
-            let secondsToNoSafe = room.controller.safeMode * Memory.tickInfo.tickLength;
-            let displayTime = this.secondsToReadable(secondsToNoSafe);
-            room.controller.say(`${displayTime} / ${room.controller.safeMode} ticks.`);
+    updateRCLData(room) {
+        if (!room.controller.progressTotal) return;
+        const currentProgress = room.controller.progress;
+        this.hudData.RCL[room.name] = this.hudData.RCL[room.name] || {last: currentProgress, progress: []};
+        if (currentProgress > this.hudData.RCL[room.name].last) {
+            this.hudData.RCL[room.name].progress.push(currentProgress - this.hudData.RCL[room.name].last);
+            if (this.hudData.RCL[room.name].progress.length > 25) this.hudData.RCL[room.name].progress.shift();
+            this.hudData.RCL[room.name].last = currentProgress;
         }
     }
 
-    displayRCLInfo(room) {
-        let progressPerTick = this.average(this.RCL_PROGRESS[room.name]);
-        let secondsToUpgrade = _.round(((room.controller.progressTotal - room.controller.progress) / progressPerTick) * Memory.tickInfo.tickLength);
-        let ticksToUpgrade = _.round((room.controller.progressTotal - room.controller.progress) / progressPerTick);
-        let displayTime = this.secondsToReadable(secondsToUpgrade);
+    average(arr) {
+        return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+    }
 
-        // Prevent Infinity display by using a fallback
-        if (isNaN(ticksToUpgrade) || ticksToUpgrade === Infinity) {
-            ticksToUpgrade = 'Calculating...';
+    renderDashboard(room) {
+        const x = 1;
+        let y = 1;
+
+        y = this.renderProgressDots(room, x, y, 'GCL', this.getGCLInfo(), '#00B7EB');
+        if (room.level < 8) {
+            y = this.renderProgressDots(room, x, y, 'RCL', this.getRCLInfo(room), '#7D3C98');
         }
-
-        // Draw a RCL progress bar with a gradient color
-        let progressPercent = (room.controller.progress / room.controller.progressTotal) * 100;
-        room.visual.rect(1, 3, 15, 0.5, {fill: '#808080', opacity: 0.5}); // background bar
-        room.visual.rect(1, 3, 15 * (progressPercent / 100), 0.5, {fill: '#00FF00'}); // active bar
-
-        // Display RCL progress or controller level
-        this.displayText(room, 1, 4, `${ICONS.upgradeController} RCL: ${room.controller.level} - ${displayTime} / ${ticksToUpgrade} ticks. (${_.round(this.average(ROOM_CPU_ARRAY[room.name]), 2)}/R.CPU)`);
+        y = this.renderStatusIcon(room, x, y);
+        y = this.renderEnergyInfo(room, x, y);
     }
 
-    displayThreatInfo(room, y) {
-        if (INTEL[room.name] && INTEL[room.name].threatLevel) {
-            this.displayText(room, 1, y, `${ICONS.crossedSword} RESPONSE NEEDED: Threat Level ${INTEL[room.name].threatLevel}`);
-            return y + 1;
-        }
-        return y;
-    }
-
-    displayText(room, x, y, text) {
-        room.visual.text(text, x, y, {align: 'left', opacity: 0.9, font: 'bold 1.5x'});
-    }
-
-    secondsToReadable(seconds) {
-        if (seconds === Infinity || seconds < 0) return 'Calculating...';
-
-        let days = Math.floor(seconds / (24 * 60 * 60));
-        let hours = Math.floor((seconds % (24 * 60 * 60)) / 3600);
-        let minutes = Math.floor((seconds % 3600) / 60);
-        let remainingSeconds = Math.floor(seconds % 60);
-
-        let timeString = '';
-        if (days > 0) timeString += `${days}d `;
-        if (hours > 0 || days > 0) timeString += `${hours}h `;
-        if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes}m `;
-        timeString += `${remainingSeconds}s`;
-
-        return timeString;
-    }
-
-    saveMemory() {
-        Memory.HUD = {
-            GCL_PROGRESS_ARRAY: this.GCL_PROGRESS_ARRAY,
-            lastTickGCLProgress: this.lastTickGCLProgress,
-            RCL_PROGRESS: this.RCL_PROGRESS,
-            roomLastTickProgress: this.roomLastTickProgress
+    getGCLInfo() {
+        const avg = this.average(this.hudData.GCL.progress);
+        const remaining = (Game.gcl.progressTotal - Game.gcl.progress) / avg * Memory.tickInfo.tickLength;
+        return {
+            level: Game.gcl.level,
+            progress: (Game.gcl.progress / Game.gcl.progressTotal) * 100,
+            time: this.timeFormat(remaining)
         };
+    }
+
+    getRCLInfo(room) {
+        const rclData = this.hudData.RCL[room.name] || {progress: []};
+        const avg = this.average(rclData.progress);
+        const remaining = (room.controller.progressTotal - room.controller.progress) / avg * Memory.tickInfo.tickLength;
+        return {
+            level: room.controller.level,
+            progress: (room.controller.progress / room.controller.progressTotal) * 100,
+            time: this.timeFormat(remaining),
+            cpu: this.average(ROOM_CPU_ARRAY[room.name]).toFixed(2)
+        };
+    }
+
+    renderProgressDots(room, x, y, label, info, color) {
+        const dots = Math.round(info.progress / 10); // 10% per dot
+        for (let i = 0; i < 10; i++) {
+            room.visual.circle(x + i, y, {
+                radius: 0.2,
+                fill: i < dots ? color : '#333333',
+                opacity: 1
+            });
+        }
+        room.visual.text(`${label}: ${info.level} (${info.time})`, x + 11, y, {
+            color: color,
+            align: 'left',
+            font: 'bold 1.5x',
+            opacity: 1
+        });
+        return y + 1;
+    }
+
+    renderStatusIcon(room, x, y) {
+        if (room.controller.safeMode) {
+            room.visual.text('⏳', x, y, {color: '#FF4500', align: 'left', font: 'bold 2x'});
+            room.visual.text(`${this.timeFormat(room.controller.safeMode * Memory.tickInfo.tickLength)}`, x + 2, y, {
+                color: '#FF4500',
+                align: 'left',
+                font: '1x'
+            });
+        } else if (INTEL[room.name] && INTEL[room.name].threatLevel) {
+            room.visual.text('⚔️', x, y, {color: '#FF0000', align: 'left', font: 'bold 2x'});
+            room.visual.text(`Level ${INTEL[room.name].threatLevel}`, x + 2, y, {
+                color: '#FF0000',
+                align: 'left',
+                font: '1x'
+            });
+        }
+        return y + 1;
+    }
+
+    renderEnergyInfo(room, x, y) {
+        const storage = room.storage ? room.storage.store[RESOURCE_ENERGY] : 0;
+        const terminal = room.terminal ? room.terminal.store[RESOURCE_ENERGY] : 0;
+        room.visual.text(`⚡ ${storage + terminal}`, x, y, {color: '#FFD700', align: 'left', font: 'bold 1.5x'});
+        return y + 1;
+    }
+
+    renderRoomHealth(room, x, y) {
+        const damaged = room.find(FIND_STRUCTURES).filter(s => s.hits < s.hitsMax * 0.75).length;
+        room.visual.text(`🛠️ ${damaged}`, x, y, {color: '#FF0000', align: 'left', font: 'bold 1.5x'});
+        const defenses = room.find(FIND_STRUCTURES, {filter: {structureType: [STRUCTURE_WALL, STRUCTURE_RAMPART]}});
+        if (defenses.length) {
+            const health = Math.min(...defenses.map(d => d.hits));
+            room.visual.text(`Shield: ${this.formatNumber(health)}`, x + 5, y, {
+                color: '#808080',
+                align: 'left',
+                font: '1x'
+            });
+        }
+        return y + 1;
+    }
+
+    formatNumber(num) {
+        if (num < 1000) return num;
+        const units = ['k', 'M', 'B', 'T'];
+        let unitIndex = Math.floor(Math.log10(num) / 3);
+        let result = num / Math.pow(1000, unitIndex);
+        return result.toFixed(1) + units[unitIndex - 1];
+    }
+
+    timeFormat(seconds) {
+        if (seconds === Infinity || seconds < 0) return 'Calculating...';
+        const [h, m, s] = [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), Math.floor(seconds % 60)];
+        return `${h}h ${m}m ${s}s`.replace(/\b0\w+\s*/g, '');
     }
 }
 
