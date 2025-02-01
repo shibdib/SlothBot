@@ -141,6 +141,7 @@ Creep.prototype.abilityPower = function () {
 Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = false, guardLocation = undefined, guardRange, includeRampart = false) {
     // Cache the required data upfront
     const hostileStructures = _.filter(this.room.impassibleStructures, (s) =>
+        !FRIENDLIES.includes(INTEL[this.room.name].user) &&
         (!s.owner || !FRIENDLIES.includes(s.owner.username)) &&
         (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange)
         && ![STRUCTURE_KEEPER_LAIR, STRUCTURE_CONTROLLER, STRUCTURE_POWER_BANK].includes(s.structureType)
@@ -227,6 +228,9 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
  * @returns {undefined|*}
  */
 Creep.prototype.findClosestHostileStructure = function (barriers = true) {
+    // Check if its a friendly room
+    if (FRIENDLIES.includes(INTEL[this.room.name].user)) return undefined;
+
     // Cache hostile structures and filter out friendly ones
     const hostileStructures = _.filter(this.room.impassibleStructures, (s) =>
         ((!s.owner || !FRIENDLIES.includes(s.owner.username)) || s.structureType === STRUCTURE_WALL) &&
@@ -651,6 +655,9 @@ Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, o
 Creep.prototype.scorchedEarth = function () {
     // Check if the room is in safe mode
     if (this.room.controller && this.room.controller.safeMode) return false;
+
+    // Check if its a friendly room
+    if (FRIENDLIES.includes(INTEL[this.room.name].user)) return false;
 
     // Find the closest hostile structure
     let hostile = this.findClosestHostileStructure(true);
