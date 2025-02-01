@@ -204,8 +204,8 @@ class ModuleBodyGenerator {
                     let totalPower = (rangedAttack * RANGED_ATTACK_POWER) + (heal * HEAL_POWER);
 
                     // Check if the total power exceeds available power
-                    if (totalPower > this.creepInfo.other.power) {
-                        let ratio = this.creepInfo.other.power / totalPower;
+                    if (totalPower > this.creepInfo.other.power * 1.2) {
+                        let ratio = (this.creepInfo.other.power * 1.2) / totalPower;
 
                         // Scale down both rangedAttack and heal to fit within available power
                         rangedAttack = Math.ceil(rangedAttack * ratio);

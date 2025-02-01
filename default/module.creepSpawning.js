@@ -330,6 +330,10 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function processRemoteRoom(room, remoteName) {
+        if (INTEL[remoteName].threatLevel > 1) {
+            handleThreatLevel(room, remoteName);
+        }
+
         if (shouldSkipRemote(room, remoteName)) return;
 
         // Add room to intel tracker
@@ -341,8 +345,6 @@ module.exports.remoteCreepQueue = function (room) {
             if (INTEL[remoteName].invaderCore) {
                 handleInvaderCore(room, remoteName);
                 handleReservation(room, remoteName);
-            } else if (INTEL[remoteName].threatLevel > 1) {
-                handleThreatLevel(room, remoteName);
             } else if (SK_MINING && room.level >= SK_MINING_LEVEL && INTEL[remoteName].sk) {
                 activeSkMining[room.name] = Game.time;
                 handleSkAttacker(room, remoteName);
