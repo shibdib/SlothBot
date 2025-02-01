@@ -66,7 +66,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
     }
 
     function combatAction(creep, hostile, rampart) {
-        if (rampart && creep.hasActiveBodyparts(RANGED_ATTACK) && creep.fightRampart(hostile)) return true;
+        if (rampart && creep.fightRampart(hostile)) return true;
         if (creep.hasActiveBodyparts(ATTACK) && creep.attackHostile(hostile)) return true;
         return !!(creep.hasActiveBodyparts(RANGED_ATTACK) && creep.fightRanged(hostile));
 
@@ -405,7 +405,7 @@ Creep.prototype.fightRampart = function (hostile = undefined) {
 
         if (creep.memory.assignedRampart) {
             position = Game.getObjectById(creep.memory.assignedRampart);
-            if (position && position.pos.getRangeTo(target) > 25) {
+            if (position && target) {
                 delete creep.memory.assignedRampart;
                 position = undefined;
             }
