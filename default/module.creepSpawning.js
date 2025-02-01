@@ -198,7 +198,9 @@ module.exports.essentialCreepQueue = function (room) {
 
     // Local Responder (Defenders)
     if (room.memory.spawnDefenders || room.memory.defenseCooldown > Game.time) {
-        queueCreepIfNeeded(room, 'defender', PRIORITIES.defender, 2, true);
+        let targetAmount = room.hostileCreeps.length ? room.hostileCreeps.length : 2;
+        if (targetAmount > 6) targetAmount = 6;
+        queueCreepIfNeeded(room, 'defender', PRIORITIES.defender, targetAmount);
     }
 
     // Upgrader
@@ -234,7 +236,7 @@ module.exports.miscCreepQueue = function (room) {
 
     // Drone Queueing
     let dronePriority = PRIORITIES.drone;
-    let droneNumber = !room.memory.controllerContainer || hasConstructionSites ? 6 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] : room.energyState && room.level >= 8 ? 2 : 1;
+    let droneNumber = !room.memory.controllerContainer || hasConstructionSites ? 6 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] : room.energyState && room.level >= 6 ? 2 : 1;
     queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
 
     // LabTech
