@@ -12,6 +12,9 @@ module.exports.setRoomState = function (room) {
     if (timeSinceLastStatus >= 10) {
         lastStateUpdate[room.name] = Game.time;
 
+        // Check surrounding rooms for high threat
+        room.memory.earlyWarning = _.some(Game.map.describeExits(room.name), roomName => INTEL[roomName] && INTEL[roomName].threatLevel > 2);
+
         // Request builders only if certain conditions are met
         requestBuilders(room);
 
