@@ -13,7 +13,7 @@ class RoleRemoteHauler {
 
     performRoleActions() {
         if (this.housekeeping()) return;
-        if (_.sum(this.creep.store)) {
+        if (this.creep.memory.hauling) {
             this.deliverResource();
         } else {
             this.findResource();
@@ -73,7 +73,8 @@ class RoleRemoteHauler {
                     this.creep.memory.energyDestination = harvester.memory.energyId;
                     return this.creep.withdrawResource();
                 } else {
-                    return this.creep.shibMove(harvester);
+                    const source = Game.getObjectById(this.creep.memory.other.source);
+                    return this.creep.shibMove(source, {range: 4});
                 }
             } else {
                 this.creep.memory.other.harvester = undefined;
