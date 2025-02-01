@@ -68,7 +68,6 @@ class RoleRemoteHauler {
             // Find an available harvester with enough energy
             const harvester = Game.getObjectById(this.creep.memory.other.harvester);
             if (harvester) {
-                if (!this.creep.memory.other.source) this.creep.memory.other.source = harvester.memory.other.source;
                 if (harvester.memory.energyId) {
                     this.creep.memory.energyDestination = harvester.memory.energyId;
                     return this.creep.withdrawResource();
