@@ -17,7 +17,7 @@ class RoleDefender {
     }
 
     housekeeping() {
-        if (INTEL[this.room.name].threatLevel > 2 && this.creep.tryToBoost(['attack'])) return true;
+        if (INTEL[this.room.name].threatLevel > 2 && this.creep.tryToBoost(['attack', 'ranged'])) return true;
     }
 
     defenseActions() {
