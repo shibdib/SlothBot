@@ -409,9 +409,6 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     const cache = global.INTEL;
     const currentTime = Game.time;
 
-    // Early exit if data is still valid
-    if (!force && cache[this.name] && cache[this.name].cached + (CREEP_LIFE_TIME * 0.5) > currentTime) return;
-
     const roomIntel = cache[this.name] || {
         cached: currentTime,
         name: this.name,
@@ -421,13 +418,32 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         invaderCore: false
     };
 
+    // More frequent checks
+    if (roomIntel.microUpdate + 50 < currentTime) {
+        roomIntel.invaderCore = !!this.find(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_INVADER_CORE}}).length;
+        if (this.controller) {
+            roomIntel.owner = this.controller.owner ? this.controller.owner.username : undefined;
+            roomIntel.reservation = this.controller.reservation ? this.controller.reservation.username : undefined;
+        }
+        if (roomIntel.isHighway) {
+            const commodityDeposit = this.find(FIND_DEPOSITS).find(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20));
+            roomIntel.commodity = commodityDeposit ? commodityDeposit.depositType : undefined;
+            const powerBank = this.find(FIND_STRUCTURES).find(s => s.structureType === STRUCTURE_POWER_BANK);
+            roomIntel.power = powerBank ? Game.time + powerBank.ticksToDecay : undefined;
+        }
+        roomIntel.microUpdate = currentTime;
+        cache[this.name] = roomIntel;
+    }
+
+    // Early exit if data is still valid
+    if (!force && cache[this.name] && cache[this.name].cached + (CREEP_LIFE_TIME * 5) > currentTime) return;
+
     // Update cache timestamp
     roomIntel.cached = currentTime;
 
     // Basic room info
     roomIntel.sources = this.find(FIND_SOURCES).length;
     roomIntel.obstacles = !canPathToAllNeighbors(this);
-    roomIntel.invaderCore = !!this.find(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_INVADER_CORE}}).length;
 
     // Get remote source data for the highest level room declaring this a remote
     if (roomIntel.remoteRoom && !force) {
