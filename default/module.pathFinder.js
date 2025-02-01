@@ -606,7 +606,7 @@ function getStructureMatrix(roomName, creep, matrix, options) {
             default:
                 roadCost = 1;
         }
-        let noWallWrecker = (creep instanceof Creep && !creep.className && !creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)) || (INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner));
+        let noWallWrecker = (creep instanceof Creep && creep.memory.wallWrecker && !creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)) || (INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner));
         for (let structure of room.structures) {
             const obstacle = structure.pos.checkForObstacleStructure();
             if (structure instanceof StructureWall) {

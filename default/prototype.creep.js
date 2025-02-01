@@ -504,7 +504,9 @@ Creep.prototype.haulerDelivery = function () {
  */
 Creep.prototype.constructionWork = function () {
     // Find structures that need repair and are not being worked on by another creep
-    let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax && !_.find(this.room.myCreeps, (c) => c.memory.constructionSite === s.id));
+    let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax &&
+        !_.find(this.room.myCreeps, (c) => c.memory.constructionSite === s.id) &&
+        (INTEL[this.room.name].owner === MY_USERNAME || [STRUCTURE_ROAD, STRUCTURE_CONTAINER].includes(s.structureType)));
     let mySites = _.filter(this.room.constructionSites, (s) => !s.owner || _.includes(FRIENDLIES, s.owner.username));
 
     // Priority 1: Repair/Build Tower
