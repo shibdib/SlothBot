@@ -34,7 +34,7 @@ class RoleRemoteHauler {
             this.creep.memory.storageDestination = undefined;
             this.creep.memory.hauling = undefined;
             return;
-        } else this.creep.memory.hauling = true;
+        }
         // Sanity check for container and non energy
         if (_.sum(this.creep.store) > this.creep.store[RESOURCE_ENERGY] && this.creep.memory.storageDestination &&
             Game.getObjectById(this.creep.memory.storageDestination) instanceof StructureContainer) return this.creep.memory.storageDestination = undefined;
@@ -63,7 +63,10 @@ class RoleRemoteHauler {
     findResource() {
         // If you have an energy destination, withdraw it
         if (this.creep.memory.energyDestination) {
-            return this.creep.withdrawResource();
+            if (this.creep.withdrawResource() || _.sum(this.creep.store)) {
+                this.creep.memory.hauling = true;
+                return true;
+            }
         } else {
             // Find an available harvester with enough energy
             const harvester = Game.getObjectById(this.creep.memory.other.harvester);
