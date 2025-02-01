@@ -20,6 +20,7 @@ class RoleRoadBuilder {
     }
 
     housekeeping() {
+        if (this.creep.tryToBoost(['build'])) return true;
         this.creep.say('HIGHWAY', true);
         //Invader detection
         if (this.creep.fleeHome()) return true;
