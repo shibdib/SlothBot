@@ -416,15 +416,11 @@ module.exports.remoteCreepQueue = function (room) {
     function handleRemoteHarvesters(room) {
         let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
         if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 3) {
-            let remoteSources;
-            // Parse the stringified object to a valid JavaScript object and filter
-            remoteSources = JSON.parse(room.memory.remoteSources);
+            let remoteSources = JSON.parse(room.memory.remoteSources);
             const activeSk = activeSkMining[room.name] + CREEP_LIFE_TIME > Game.time;
             const acceptedScore = Math.max(REMOTE_DISTANCE_MAX, _.min(remoteSources, 'score').score);
-            remoteSources = _.filter(remoteSources, (s) => (INTEL[s.room].sk || (!activeSk && s.score <= acceptedScore)) && !_.find(Game.creeps, function (c) {
-                return c.my && c.memory.other && c.memory.other.source === s.source;
-            }));
-            // Iterate through each source in the remoteSources object
+            remoteSources = _.filter(remoteSources, (s) => (INTEL[s.room].sk || (!activeSk && s.score <= acceptedScore)) &&
+                !_.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === s.source));
             for (const source of remoteSources) {
                 if (shouldSkipRemote(room, source.room)) continue;
                 if (!INTEL[source.room].sk || getCreepCount(undefined, 'SKAttacker', source.room)) {
