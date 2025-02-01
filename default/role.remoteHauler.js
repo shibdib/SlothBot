@@ -68,6 +68,7 @@ class RoleRemoteHauler {
             // Find an available harvester with enough energy
             const harvester = Game.getObjectById(this.creep.memory.other.harvester);
             if (harvester) {
+                if (!this.creep.memory.other.source) this.creep.memory.other.source = harvester.memory.other.source;
                 if (harvester.memory.energyId) {
                     this.creep.memory.energyDestination = harvester.memory.energyId;
                     return this.creep.withdrawResource();
@@ -77,9 +78,8 @@ class RoleRemoteHauler {
             } else {
                 this.creep.memory.other.harvester = undefined;
                 const needyHarvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' &&
-                    c.memory.overlord === this.creep.memory.overlord && !c.memory.other.hauler);
+                    c.memory.other.source === this.creep.memory.other.source);
                 if (needyHarvester) {
-                    needyHarvester.memory.other.hauler = true;
                     this.creep.memory.other.harvester = needyHarvester.id;
                 } else {
                     this.creep.idleFor(10);

@@ -361,6 +361,7 @@ module.exports.remoteCreepQueue = function (room) {
         if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
         if (INTEL[remoteName].reservation && ![MY_USERNAME, "Invader"].includes(INTEL[remoteName].reservation)) return true;
         if (INTEL[remoteName].roomHeat > 250) return true;
+        if (INTEL[remoteName].threatLevel > 1) return true;
         return false;
     }
 
@@ -425,7 +426,8 @@ module.exports.remoteCreepQueue = function (room) {
             }));
             // Iterate through each source in the remoteSources object
             for (const source of remoteSources) {
-                if (!INTEL[source.room].threatLevel && (!INTEL[source.room].sk || getCreepCount(undefined, 'SKAttacker', source.room))) {
+                if (shouldSkipRemote(room, source.room)) continue;
+                if (!INTEL[source.room].sk || getCreepCount(undefined, 'SKAttacker', source.room)) {
                     queueCreep(room, PRIORITIES.remoteHarvester, {
                         role: 'remoteHarvester',
                         destination: source.room,
@@ -436,19 +438,24 @@ module.exports.remoteCreepQueue = function (room) {
         }
     }
 
-
     function handleRemoteHaulers(room) {
-        const totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-        const totalHaulers = getCreepCount(undefined, 'remoteHauler', undefined, undefined, room.name);
-        if (totalHarvesters > totalHaulers) {
-            const needyHarvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.overlord === room.name && !c.memory.other.hauler);
-            if (needyHarvester) {
+        const activeSources = _.filter(JSON.parse(room.memory.remoteSources), (s) =>
+            _.some(Game.creeps, (c) => c.my && c.memory.other && c.memory.other.source === s.source && c.memory.other.harvestPower));
+        for (const source of activeSources) {
+            if (shouldSkipRemote(room, source.room)) continue;
+            const assignedHarvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === source.source);
+            if (!assignedHarvester) continue;
+            const assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.memory.other &&
+                c.memory.other.source === source.source);
+            if (assignedHaulers.length >= 4) continue;
+            const haulingCapacity = _.sum(assignedHaulers, c => c.getActiveBodyparts(CARRY) * 50);
+            const harvestAmount = assignedHarvester.memory.other.harvestPower * (source.score * 2);
+            if (harvestAmount && haulingCapacity < harvestAmount) {
                 queueCreep(room, PRIORITIES.remoteHauler, {
                     role: 'remoteHauler',
                     destination: room.name,
-                    other: {harvester: needyHarvester.id}
+                    other: {harvester: assignedHarvester.id, harvestAmount: harvestAmount, source: source.source}
                 });
-                needyHarvester.memory.other.hauler = true;
             }
         }
     }

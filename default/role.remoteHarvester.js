@@ -53,6 +53,10 @@ class RoleRemoteHarvester {
                         this.creep.idleFor(source.ticksToRegeneration + 1);
                         break;
                     case OK:
+                        if (!this.creep.memory.other.harvestPower) {
+                            // Set harvest amount
+                            this.creep.memory.other.harvestPower = this.creep.getActiveBodyparts(WORK) * HARVEST_POWER;
+                        }
                         if (!this.creep.memory.containerID || !Game.getObjectById(this.creep.memory.containerID)) {
                             this.creep.memory.containerID = harvestDepositContainer(Game.getObjectById(this.creep.memory.other.source), this.creep);
                         }

@@ -280,16 +280,16 @@ class ModuleBodyGenerator {
                 break;
 
             case 'remoteHauler':
+                const workCost = this.room.level < 4 ? 0 : BODYPART_COST[WORK];
+
                 const assignedHarvester = Game.getObjectById(this.creepInfo.other.harvester);
-                // Determine carry amount based off the harvesters work count and range
-                const harvestAmount = assignedHarvester.getActiveBodyparts(WORK) * HARVEST_POWER;
-                const range = JSON.parse(this.room.memory.remoteSources)[assignedHarvester.memory.other.source].score || 10;
-                const expectedHarvestAmount = harvestAmount * (range * 2);
-                const desiredCarry = Math.ceil(expectedHarvestAmount / CARRY_CAPACITY) || 1;
-                let workCost = this.room.level < 4 ? 0 : BODYPART_COST[WORK];
-                carry = Math.floor(((this.energyAmount - workCost) * 0.49) / BODYPART_COST[CARRY]) || 1;
+                const otherAssignedHaulers = _.filter(Game.creeps, c => c.my && c.memory.role === 'remoteHauler' && c.memory.other.harvester === this.creepInfo.other.harvester);
+                const currentHaulingCapacity = _.sum(otherAssignedHaulers, c => c.getActiveBodyparts(CARRY) * 50);
+                const harvestRate = this.creepInfo.other.harvestAmount - currentHaulingCapacity;
+                const desiredCarry = Math.ceil(harvestRate / CARRY_CAPACITY) || 1;
 
                 // Try to use the carry amount needed by the harvester
+                carry = Math.floor(((this.energyAmount - workCost) * 0.49) / BODYPART_COST[CARRY]) || 1;
                 carry = Math.min(carry, desiredCarry);
 
                 // Work parts after level 3
