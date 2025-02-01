@@ -53,7 +53,7 @@ class RoleReserver {
                 } else {
                     ticks = 0;
                 }
-                INTEL[this.room.name].reservationExpires = Game.time + ticks - 2000;
+                INTEL[this.room.name].reservationExpires = Game.time + ticks;
                 break;
             case ERR_NOT_IN_RANGE:
                 this.creep.shibMove(this.room.controller);
