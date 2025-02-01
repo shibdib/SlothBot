@@ -177,16 +177,15 @@ class ModuleBodyGenerator {
                     const energyForRangedAttack = Math.floor((this.energyAmount * 0.45) / BODYPART_COST[RANGED_ATTACK]);
 
                     // Choose to balance between attack and ranged attack based on random chance and room level
-                    if (Math.random() > 0.6 || this.level < 5) {
+                    if (Math.random() > 0.5 || this.level < 5) {
                         attack = energyForAttack || 1;
                     } else {
                         rangedAttack = energyForRangedAttack || 1;
                     }
 
                     // Cap the attack and rangedAttack to reasonable limits
-                    attack = Math.min(attack, 32);  // Max attack to 32
-                    rangedAttack = Math.min(rangedAttack, 32);  // Max rangedAttack to 32
-                    halfMove = true;
+                    attack = Math.min(attack, 25);  // Max attack to 32
+                    rangedAttack = Math.min(rangedAttack, 25);  // Max rangedAttack to 32
                 }
 
                 break;
