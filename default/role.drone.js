@@ -208,77 +208,95 @@ class RoleDrone {
 
     walling() {
         if (!this.creep.memory.currentTarget || !Game.getObjectById(this.creep.memory.currentTarget)) {
-            let nukeSite, nukeRampart;
-            let barrierStructures = _.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_RAMPART ||
-                s.structureType === STRUCTURE_WALL) && !_.find(this.room.myCreeps, (c) => c.memory.currentTarget === s.id));
-            if (!barrierStructures.length || !this.room.controller || (this.room.controller.owner && this.room.controller.owner.username !== MY_USERNAME)) return false;
+            // Reset target if it's null or doesn't exist
+            this.creep.memory.currentTarget = undefined;
+            this.creep.memory.targetWallHits = undefined;
+
+            let barrierStructures = this.room.find(FIND_STRUCTURES, {
+                filter: s => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) &&
+                    !_.find(this.room.myCreeps, c => c.memory.currentTarget === s.id)
+            });
+
+            if (!barrierStructures.length || !this.room.controller ||
+                (this.room.controller.owner && this.room.controller.owner.username !== MY_USERNAME)) {
+                return false;
+            }
+
+            let target;
+
+            // Handle nuke scenarios
             if (this.room.memory.nuke) {
-                nukeSite = _.filter(this.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5)[0];
-                nukeRampart = _.min(_.filter(barrierStructures, (s) => s.structureType === STRUCTURE_RAMPART && ((s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.hits < (NUKE_DAMAGE[1] * this.room.nukes.length) + 100000) || (s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) === 0 && s.hits < (NUKE_DAMAGE[0] * creep.room.nukes.length) + 100000))), 'hits');
-            }
-            let hostileBarrier;
-            if (INTEL[this.room.name].threatLevel) {
-                hostileBarrier = _.min(_.filter(barrierStructures, (s) => s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)), 5)[0]), 'hits');
-            }
-            let barrier = _.min(_.filter(barrierStructures, (s) => s.hits < RAMPART_HITS_MAX[this.room.controller.level] * 0.9), 'hits');
-            let site = _.filter(this.room.constructionSites, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL))[0];
-            if (!hostileBarrier && barrier.id && barrier.hits < 2000) {
-                this.creep.memory.currentTarget = barrier.id;
-                this.creep.shibMove(barrier, {range: 3})
-            } else if (hostileBarrier) {
-                this.creep.memory.currentTarget = hostileBarrier.id;
-            } else if (nukeSite) {
-                switch (this.creep.build(nukeSite)) {
-                    case OK:
-                        this.creep.memory._shibMove = undefined;
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        this.creep.shibMove(nukeSite, {range: 3})
+                let nukeRamparts = barrierStructures.filter(s =>
+                    s.structureType === STRUCTURE_RAMPART &&
+                    s.pos.findInRange(FIND_NUKES, 5).length > 0
+                );
+                if (nukeRamparts.length) {
+                    target = _.min(nukeRamparts, 'hits');
                 }
-            } else if (nukeRampart && nukeRampart.id) {
-                this.creep.memory.currentTarget = nukeRampart.id;
-            } else if (site) {
-                this.creep.memory.constructionSite = site.id;
-                this.creep.memory.task = "build";
-                return true;
-            } else if (barrier.id) {
-                this.creep.memory.currentTarget = barrier.id;
+            }
+
+            // Handle immediate threat from hostile creeps
+            if (!target && INTEL[this.room.name].threatLevel) {
+                let hostileTargets = barrierStructures.filter(s =>
+                    s.pos.findInRange(this.room.hostileCreeps.filter(c =>
+                        c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)
+                    ), 5).length > 0
+                );
+                if (hostileTargets.length) {
+                    target = _.min(hostileTargets, 'hits');
+                }
+            }
+
+            // General maintenance
+            if (!target) {
+                target = _.min(barrierStructures.filter(s =>
+                    s.hits < RAMPART_HITS_MAX[this.room.controller.level] * 0.9
+                ), 'hits');
+            }
+
+            if (target) {
+                this.creep.memory.currentTarget = target.id;
+            } else {
+                // If no repair targets, look for construction sites for walls or ramparts
+                let site = this.room.find(FIND_CONSTRUCTION_SITES, {
+                    filter: s => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL
+                })[0];
+                if (site) {
+                    this.creep.memory.constructionSite = site.id;
+                    this.creep.memory.task = "build";
+                    return true;
+                }
+                return false;  // Nothing to do
             }
         }
+
         let target = Game.getObjectById(this.creep.memory.currentTarget);
         if (target) {
             this.creep.memory.task = "waller";
             if (!this.creep.memory.targetWallHits) {
-                if (target.hits < 10000) {
-                    this.creep.memory.targetWallHits = 25000;
-                } else {
-                    let targetHits = target.hits + 10000;
-                    if (targetHits > RAMPART_HITS_MAX[this.room.controller.level]) targetHits = RAMPART_HITS_MAX[this.room.controller.level];
-                    this.creep.memory.targetWallHits = targetHits;
-                }
+                this.creep.memory.targetWallHits = Math.min(target.hits + 10000, RAMPART_HITS_MAX[this.room.controller.level]);
             }
+
             this.creep.say(ICONS.castle, true);
-            target.say(target.hits + ' / ' + this.creep.memory.targetWallHits);
+            target.say(`${target.hits} / ${this.creep.memory.targetWallHits}`);
+
             switch (this.creep.repair(target)) {
                 case OK:
-                    this.creep.memory.other.stationary = true;
                     if (target.hits >= this.creep.memory.targetWallHits) {
-                        this.creep.memory.other.stationary = undefined;
                         this.creep.memory.currentTarget = undefined;
                         this.creep.memory.targetWallHits = undefined;
                     }
                     break;
                 case ERR_NOT_IN_RANGE:
-                    this.creep.shibMove(target, {range: 3})
+                    this.creep.shibMove(target, {range: 3});
                     break;
                 default:
                     this.creep.memory.currentTarget = undefined;
                     this.creep.memory.targetWallHits = undefined;
             }
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 }
 
