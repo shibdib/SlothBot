@@ -18,7 +18,8 @@ module.exports.loop = function () {
         tryInitSameMemory();
 
         // CPU Bucket Cooldown Check
-        const cpuTracking = Memory.cpuTracking || {};
+        if (!Memory.cpuTracking) Memory.cpuTracking = {};
+        const cpuTracking = Memory.cpuTracking;
         const currentBucket = Game.cpu.bucket;
 
         if (cpuTracking.cooldown) {
