@@ -62,7 +62,6 @@ class RoleRemoteHarvester {
                 if (!this.creep.memory.other.harvestPower) {
                     this.creep.memory.other.harvestPower = this.creep.getActiveBodyparts(WORK) * HARVEST_POWER;
                 }
-
                 // Handle container or construction site
                 if (this.container) {
                     this.handleContainer();
@@ -104,6 +103,9 @@ class RoleRemoteHarvester {
         if (dropped) {
             this.creep.memory.energyAmount = dropped.amount;
             this.creep.memory.energyId = dropped.id;
+            if (dropped.amount > 500) {
+                harvestDepositContainer(Game.getObjectById(this.creep.memory.other.source), this.creep);
+            }
         }
     }
 
