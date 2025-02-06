@@ -70,10 +70,10 @@ class RoleDrone {
         }
         // If praiser needed praise
         if (this.upgrading()) return;
-        // If builder needed build
-        if (this.building()) return;
         // If haulers needed haul
         if (this.hauling()) return;
+        // If builder needed build
+        if (this.building()) return;
         // If walls to repair
         if (this.walling()) return;
         // If nothing else to do upgrade
