@@ -4,7 +4,8 @@
 
 class HUD {
     constructor() {
-        this.hudData = Memory.HUD = {
+        if (Memory.HUD) this.hudData = Memory.HUD;
+        else this.hudData = Memory.HUD = {
             ...(Memory.HUD || {}),
             GCL: {last: Game.gcl.progress, progress: []},
             RCL: {}
@@ -96,10 +97,10 @@ class HUD {
                 opacity: 1
             });
         }
-        room.visual.text(`${label}: ${info.level} (${info.time})`, x + 11, y, {
+        room.visual.text(`${label}: ${info.level} (${info.time})`, x + 10, y, {
             color: color,
             align: 'left',
-            font: 'bold 1.5x',
+            font: '0.5 Tahoma',
             opacity: 1
         });
         return y + 1;
@@ -107,18 +108,18 @@ class HUD {
 
     renderStatusIcon(room, x, y) {
         if (room.controller.safeMode) {
-            room.visual.text('⏳', x, y, {color: '#FF4500', align: 'left', font: 'bold 2x'});
-            room.visual.text(`${this.timeFormat(room.controller.safeMode * Memory.tickInfo.tickLength)}`, x + 2, y, {
+            room.visual.text('⏳', x, y, {color: '#FF4500', align: 'left', font: '0.5 Tahoma'});
+            room.visual.text(`${this.timeFormat(room.controller.safeMode * Memory.tickInfo.tickLength)}`, x + 1, y, {
                 color: '#FF4500',
                 align: 'left',
-                font: '1x'
+                font: '0.5 Tahoma'
             });
         } else if (INTEL[room.name] && INTEL[room.name].threatLevel) {
-            room.visual.text('⚔️', x, y, {color: '#FF0000', align: 'left', font: 'bold 2x'});
-            room.visual.text(`Level ${INTEL[room.name].threatLevel}`, x + 2, y, {
+            room.visual.text('⚔️', x, y, {color: '#FF0000', align: 'left', font: '0.5 Tahoma'});
+            room.visual.text(`Level ${INTEL[room.name].threatLevel}`, x + 1, y, {
                 color: '#FF0000',
                 align: 'left',
-                font: '1x'
+                font: '0.5 Tahoma'
             });
         }
         return y + 1;
@@ -127,13 +128,13 @@ class HUD {
     renderEnergyInfo(room, x, y) {
         const storage = room.storage ? room.storage.store[RESOURCE_ENERGY] : 0;
         const terminal = room.terminal ? room.terminal.store[RESOURCE_ENERGY] : 0;
-        room.visual.text(`⚡ ${storage + terminal}`, x, y, {color: '#FFD700', align: 'left', font: 'bold 1.5x'});
+        room.visual.text(`⚡ ${storage + terminal}`, x, y, {color: '#FFD700', align: 'left', font: '0.5 Tahoma'});
         return y + 1;
     }
 
     renderRoomHealth(room, x, y) {
         const damaged = room.find(FIND_STRUCTURES).filter(s => s.hits < s.hitsMax * 0.75).length;
-        room.visual.text(`🛠️ ${damaged}`, x, y, {color: '#FF0000', align: 'left', font: 'bold 1.5x'});
+        room.visual.text(`🛠️ ${damaged}`, x, y, {color: '#FF0000', align: 'left', font: '0.5 Tahoma'});
         const defenses = room.find(FIND_STRUCTURES, {filter: {structureType: [STRUCTURE_WALL, STRUCTURE_RAMPART]}});
         if (defenses.length) {
             const health = Math.min(...defenses.map(d => d.hits));
