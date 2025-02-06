@@ -487,6 +487,7 @@ function creepBumping(creep, pathInfo, options) {
                     bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
                 } else {
                     creep.pull(bumpCreep);
+                    bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
                 }
                 creep.move(creep.pos.getDirectionTo(bumpCreep));
                 bumpCreep.say(ICONS.traffic, true)
