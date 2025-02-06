@@ -22,8 +22,8 @@ Object.defineProperty(Creep.prototype, "idle", {
             return 0;
         }
         if (!this.memory.idleSet) {
-            if (this.memory.other.stationary) this.memory.idleSet = true;
-            else if (this.memory.role !== 'stationaryHarvester' && this.memory.role !== 'mineralHarvester' && this.memory.role !== 'remoteHarvester' && (this.pos.checkForRoad() || this.pos.checkForContainer() || this.pos.lookForNearby(LOOK_SOURCES, true, 2).length)) {
+            if (this.memory.other.stationary) this.memory.other.stationary = undefined;
+            if (!this.memory.role.includes("Harvester") && (this.pos.checkForRoad() || this.pos.checkForContainer() || this.pos.lookForNearby(LOOK_SOURCES, true, 2).length)) {
                 return this.moveRandom();
             } else this.memory.idleSet = true;
         }
@@ -70,8 +70,6 @@ Object.defineProperty(Creep.prototype, 'combatPower', {
  * @returns {*|boolean}
  */
 Creep.prototype.idleFor = function (ticks = 0) {
-    // No idling in SK rooms
-    if (INTEL[this.room.name] && INTEL[this.room.name].sk) return false;
     if (this.hits < this.hitsMax && this.hasActiveBodyparts(HEAL)) return this.heal(this);
     if (ticks > 0) {
         this.idle = Game.time + ticks;
@@ -166,7 +164,7 @@ Creep.prototype.skSafety = function () {
         if (this.memory.fledSK + 5 <= Game.time) {
             delete this.memory.fledSK;
         } else {
-            this.idleFor(5);
+            this.idleFor(10);
             return true;
         }
     }
@@ -204,11 +202,17 @@ Creep.prototype.opportunisticFill = function () {
 
     // Look for structures in a 3x3 area around the creep
     const nearbyStructures = this.room.lookForAtArea(LOOK_STRUCTURES, this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1, true);
+    const nearbyCreeps = this.room.lookForAtArea(LOOK_CREEPS, this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1, true);
+    const nearbyItems = nearbyStructures.concat(nearbyCreeps);
 
-    for (let structure of nearbyStructures) {
-        if ([STRUCTURE_EXTENSION, STRUCTURE_SPAWN].includes(structure.structure.structureType) &&
-            structure.structure.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-            return this.transfer(structure.structure, RESOURCE_ENERGY) === OK;
+    for (let item of nearbyItems) {
+        if (item.type === LOOK_STRUCTURES) {
+            if ([STRUCTURE_EXTENSION, STRUCTURE_SPAWN].includes(item.structure.structureType) &&
+                item.structure.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+                return this.transfer(item.structure, RESOURCE_ENERGY) === OK;
+            }
+        } else if (item.type === LOOK_CREEPS && item.creep.my && ['upgrader', 'drone'].includes(item.creep.memory.role) && item.creep.store.getFreeCapacity(RESOURCE_ENERGY)) {
+            return this.transfer(item, RESOURCE_ENERGY) === OK;
         }
     }
     return false;
@@ -228,7 +232,10 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
         this.memory.energyDestination = destination.id;
     }
 
-    if (!destination) return false;
+    if (!destination) {
+        this.memory.energyDestination = undefined;
+        return false;
+    }
 
     // Check if the destination has the resource
     if (!destination[resourceType] && (!destination.store || !destination.store[resourceType])) {
@@ -333,9 +340,12 @@ Creep.prototype.locateEnergy = function (room = this.room) {
                 this.memory.energyDestination = hubLink.id;
                 return true;
             }
-            if ((room.storage && room.storage.store[RESOURCE_ENERGY]) ||
-                (room.terminal && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER)) {
-                this.memory.energyDestination = room.storage ? room.storage.id : room.terminal.id;
+            // Storage and terminal, take from whichever has more energy
+            if (room.storage && room.storage.store[RESOURCE_ENERGY] > (room.terminal ? room.terminal.store[RESOURCE_ENERGY] : 0)) {
+                this.memory.energyDestination = room.storage.id;
+                return true;
+            } else if (room.terminal && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
+                this.memory.energyDestination = room.terminal.id;
                 return true;
             }
         }
@@ -343,8 +353,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         // Container handling for specific roles or in rooms without storage
         if (['shuttle', 'remoteHauler'].includes(this.memory.role) || !room.controller || !room.controller.owner || !room.storage) {
             const containers = room.structures.filter(s =>
-                s.structureType === STRUCTURE_CONTAINER &&
-                s.store[RESOURCE_ENERGY] > myCreepsFilter(s.id) * (freeCapacity * 0.8)
+                s.structureType === STRUCTURE_CONTAINER && s.id !== room.memory.controllerContainer
             );
             if (containers.length) {
                 this.memory.energyDestination = _.sample(containers).id;
@@ -354,7 +363,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
 
         // Dropped Energy as last resort
         const dropped = room.droppedEnergy.reduce((max, r) => (r.amount > max.amount ? r : max), {amount: 0});
-        if (dropped.amount > 0 && !myCreepsFilter(dropped.id)) {
+        if (dropped.amount > 0) {
             this.memory.energyDestination = dropped.id;
             return true;
         }
@@ -403,12 +412,6 @@ Creep.prototype.haulerDelivery = function () {
     // Prioritize structures by urgency:
     let targets = [];
 
-    // Spawns and Extensions (high priority)
-    targets = targets.concat(this.room.find(FIND_MY_STRUCTURES, {
-        filter: s => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) &&
-            s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
-    }));
-
     // Towers if below emergency threshold
     if (this.room.controller.level >= 3) {
         let threatLevel = this.room.memory.threatLevel || 0;
@@ -416,19 +419,31 @@ Creep.prototype.haulerDelivery = function () {
         targets = targets.concat(this.room.find(FIND_MY_STRUCTURES, {
             filter: s => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < energyThreshold
         }));
+        if (targets.length) {
+            this.memory.storageDestination = this.pos.findClosestByRange(targets).id;
+            return true;
+        }
     }
 
+    // Spawns and Extensions (high priority)
+    targets = targets.concat(this.room.find(FIND_MY_STRUCTURES, {
+        filter: s => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) &&
+            s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
+    }));
+
     // Controller Container if below threshold and hub link conditions met
-    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && controllerContainer.store.getUsedCapacity() < CONTAINER_CAPACITY * 0.7) {
-        let hubLink = Game.getObjectById(this.room.memory.hubLink);
-        if (!hubLink || hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > LINK_CAPACITY * 0.5) {
-            targets.push(controllerContainer);
+    if (this.room.energyAvailable === this.room.energyCapacityAvailable) {
+        let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+        if (controllerContainer && controllerContainer.store.getUsedCapacity() < CONTAINER_CAPACITY * 0.7) {
+            let hubLink = Game.getObjectById(this.room.memory.hubLink);
+            if (!hubLink || hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > LINK_CAPACITY * 0.5) {
+                targets.push(controllerContainer);
+            }
         }
     }
 
     // Storage as last resort
-    if (this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+    if (!targets.length && this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
         targets.push(this.room.storage);
     }
 
