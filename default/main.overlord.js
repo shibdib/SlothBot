@@ -18,7 +18,6 @@ class Overlord {
     constructor(room, CPULimit) {
         const overlordStart = Game.cpu.getUsed();
         this.room = room;
-        this.CPULimit = CPULimit;
 
         let tracker = tickTracker[this.room.name] || {};
 
