@@ -54,7 +54,7 @@ class RoleShuttle {
         if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
             this.creep.withdrawResource()
         } else {
-            this.creep.idleFor(10)
+            this.creep.idleFor(5)
         }
     }
 }
