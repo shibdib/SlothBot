@@ -435,6 +435,16 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         cache[this.name] = roomIntel;
     }
 
+    // Get remote source data for the highest level room declaring this a remote
+    if (roomIntel.remoteRoom && (!roomIntel.activeRemote || roomIntel.activeRemote + (CREEP_LIFE_TIME * 2) < currentTime)) {
+        let highestLevelRoom = getHighestLevelRemoteRoom(roomIntel.remoteRoom);
+        for (const source of this.sources) {
+            let distanceToExit = calculateDistanceToHub(this, source, highestLevelRoom);
+            updateRemoteSourceData(this, highestLevelRoom, source, distanceToExit);
+        }
+        roomIntel.activeRemote = Game.time;
+    }
+
     // Early exit if data is still valid
     if (!force && cache[this.name] && cache[this.name].cached + (CREEP_LIFE_TIME * 5) > currentTime) return;
 
@@ -444,16 +454,6 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     // Basic room info
     roomIntel.sources = this.find(FIND_SOURCES).length;
     roomIntel.obstacles = !canPathToAllNeighbors(this);
-
-    // Get remote source data for the highest level room declaring this a remote
-    if (roomIntel.remoteRoom && !force) {
-        let highestLevelRoom = getHighestLevelRemoteRoom(roomIntel.remoteRoom);
-        for (const source of this.sources) {
-            let distanceToExit = calculateDistanceToHub(this, source, highestLevelRoom);
-            updateRemoteSourceData(this, highestLevelRoom, source, distanceToExit);
-        }
-        roomIntel.activeRemote = Game.time;
-    }
 
     // Minerals
     const mineral = this.find(FIND_MINERALS)[0];
