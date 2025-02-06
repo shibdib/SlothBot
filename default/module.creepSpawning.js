@@ -192,7 +192,7 @@ module.exports.essentialCreepQueue = function (room) {
         if (fullContainer) shuttleAmount += fullContainer.length;
         if (shuttleAmount > 0) {
             let shuttleReboot = !shuttleCount;
-            queueCreepIfNeeded(room, 'shuttle', 1, shuttleAmount, shuttleReboot);
+            queueCreepIfNeeded(room, 'shuttle', PRIORITIES.hauler + shuttleCount, shuttleAmount, shuttleReboot);
         }
     }
 
@@ -204,7 +204,7 @@ module.exports.essentialCreepQueue = function (room) {
     }
 
     // Upgrader
-    let upgraderReboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9;
+    let upgraderReboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.level !== room.level;
     let upgraderAmount = 1;
 
     if (!upgraderReboot) {
@@ -217,7 +217,7 @@ module.exports.essentialCreepQueue = function (room) {
         } else if (!container) {
             upgraderAmount = 3;
         }
-        if (upgraderAmount > 3) upgraderAmount = 3;
+        if (upgraderAmount > 5) upgraderAmount = 5;
     }
 
     queueCreepIfNeeded(room, 'upgrader', PRIORITIES.upgrader - (room.energyState * 0.5), upgraderAmount, upgraderReboot);
@@ -236,7 +236,7 @@ module.exports.miscCreepQueue = function (room) {
 
     // Drone Queueing
     let dronePriority = PRIORITIES.drone;
-    let droneNumber = !room.memory.controllerContainer || hasConstructionSites ? 6 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] : room.energyState && room.level >= 6 ? 2 : 1;
+    let droneNumber = !room.memory.controllerContainer || hasConstructionSites ? 10 - room.level : room.energyState && room.level >= 6 ? 2 : 1;
     queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
 
     // LabTech
@@ -295,7 +295,7 @@ module.exports.remoteCreepQueue = function (room) {
     room.memory.borderPatrol = undefined;
 
     // Refresh remote room data every 5000 ticks or when room under attack
-    if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + 5000 > Game.time || !INTEL[room.name] || INTEL[room.name].threatLevel > 2) {
+    if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + 5000 > Game.time || INTEL[room.name].threatLevel > 2) {
         refreshRemoteRoomTargets(room);
     }
 
@@ -320,8 +320,7 @@ module.exports.remoteCreepQueue = function (room) {
         // Find and filter remote rooms with valid sources and no reservation
         let remoteRooms = _.filter(Game.map.describeExits(room.name), function (r) {
             return roomStatus(r) === roomStatus(room.name) &&
-                INTEL[r] && INTEL[r].sources &&
-                !INTEL[r].level &&
+                INTEL[r] && INTEL[r].sources && !INTEL[r].level &&
                 (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation));
         });
 
@@ -421,7 +420,7 @@ module.exports.remoteCreepQueue = function (room) {
     function handleRemoteHarvesters(room) {
         if (Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
         let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-        if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 3) {
+        if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 2) {
             let remoteSources = JSON.parse(room.memory.remoteSources);
             const activeSk = activeSkMining[room.name] + CREEP_LIFE_TIME > Game.time;
             const acceptedScore = Math.max(REMOTE_DISTANCE_MAX, _.min(remoteSources, 'score').score);
