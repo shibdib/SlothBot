@@ -493,6 +493,7 @@ let globals = function () {
         while (room.energyCapacityAvailable >= ROOM_ENERGY_CAPACITY[energyLevel]) {
             energyLevel++;
         }
+        if (room.energyCapacityAvailable < ROOM_ENERGY_CAPACITY[energyLevel]) energyLevel--;
         if (energyLevel <= room.controller.level) return energyLevel; else return room.controller.level;
     };
 
