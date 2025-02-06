@@ -533,6 +533,70 @@ function roadBuilder(room, layout) {
 
         return false;
     }
+
+    function buildRoadFromTo(room, start, end) {
+        let target, begin;
+        if (start instanceof RoomPosition) begin = start; else begin = start.pos;
+        if (end instanceof RoomPosition) target = end; else target = end.pos;
+        let path = getRoad(room, begin, target);
+        if (!path) {
+            path = begin.findPathTo(end, {
+                maxOps: 10000,
+                serialize: false,
+                ignoreCreeps: true,
+                maxRooms: 1,
+                costCallback: function (roomName, costMatrix) {
+                    let terrain = Game.map.getRoomTerrain(room.name);
+                    for (let y = 0; y < 50; y++) {
+                        for (let x = 0; x < 50; x++) {
+                            let tile = terrain.get(x, y);
+                            if (tile === 0) costMatrix.set(x, y, 15);
+                            if (tile === 1) {
+                                let tilePos = new RoomPosition(x, y, room.name);
+                                if (tilePos.findInRange(FIND_SOURCES, 1).length || tilePos.findInRange(FIND_MINERALS, 1).length) costMatrix.set(x, y, 256); else costMatrix.set(x, y, 235);
+                            }
+                            if (tile === 2) costMatrix.set(x, y, 15);
+                        }
+                    }
+                    for (let site of room.constructionSites) {
+                        if (site.structureType === STRUCTURE_ROAD) {
+                            costMatrix.set(site.pos.x, site.pos.y, 1);
+                        }
+                    }
+                    for (let structures of room.structures) {
+                        if (_.includes(OBSTACLE_OBJECT_TYPES, structures.structureType)) {
+                            costMatrix.set(structures.pos.x, structures.pos.y, 256);
+                        } else if (structures.structureType === STRUCTURE_CONTAINER) {
+                            costMatrix.set(structures.pos.x, structures.pos.y, 250);
+                        } else if (structures.structureType === STRUCTURE_ROAD) {
+                            costMatrix.set(structures.pos.x, structures.pos.y, 1);
+                        }
+                    }
+                },
+            });
+            if (path.length) cacheRoad(room, begin, target, path); else return;
+            for (let point of path) {
+                let pos = new RoomPosition(point.x, point.y, room.name);
+                if (shouldBuildRoad(pos) && buildRoad(pos)) return true;
+            }
+        } else {
+            for (let point of JSON.parse(path)) {
+                let pos = new RoomPosition(point.x, point.y, room.name);
+                if (shouldBuildRoad(pos) && buildRoad(pos)) return true;
+            }
+        }
+    }
+
+    function buildRoadAround(room, position) {
+        for (let xOff = -1; xOff <= 1; xOff++) {
+            for (let yOff = -1; yOff <= 1; yOff++) {
+                if (xOff !== 0 || yOff !== 0) {
+                    let pos = new RoomPosition(position.x + xOff, position.y + yOff, room.name);
+                    if (shouldBuildRoad(pos) && buildRoad(pos)) return true;
+                }
+            }
+        }
+    }
 }
 
 function rampartBuilder(room, layout = undefined, count = false) {
@@ -896,70 +960,6 @@ function findLabHub(room) {
         storedLabPos[room.name] = undefined;
         storedLabPossibles[room.name] = undefined;
         return log.a('Cannot find a lab hub in ' + room.name + '.');
-    }
-}
-
-function buildRoadFromTo(room, start, end) {
-    let target, begin;
-    if (start instanceof RoomPosition) begin = start; else begin = start.pos;
-    if (end instanceof RoomPosition) target = end; else target = end.pos;
-    let path = getRoad(room, begin, target);
-    if (!path) {
-        path = begin.findPathTo(end, {
-            maxOps: 10000,
-            serialize: false,
-            ignoreCreeps: true,
-            maxRooms: 1,
-            costCallback: function (roomName, costMatrix) {
-                let terrain = Game.map.getRoomTerrain(room.name);
-                for (let y = 0; y < 50; y++) {
-                    for (let x = 0; x < 50; x++) {
-                        let tile = terrain.get(x, y);
-                        if (tile === 0) costMatrix.set(x, y, 15);
-                        if (tile === 1) {
-                            let tilePos = new RoomPosition(x, y, room.name);
-                            if (tilePos.findInRange(FIND_SOURCES, 1).length || tilePos.findInRange(FIND_MINERALS, 1).length) costMatrix.set(x, y, 256); else costMatrix.set(x, y, 235);
-                        }
-                        if (tile === 2) costMatrix.set(x, y, 15);
-                    }
-                }
-                for (let site of room.constructionSites) {
-                    if (site.structureType === STRUCTURE_ROAD) {
-                        costMatrix.set(site.pos.x, site.pos.y, 1);
-                    }
-                }
-                for (let structures of room.structures) {
-                    if (_.includes(OBSTACLE_OBJECT_TYPES, structures.structureType)) {
-                        costMatrix.set(structures.pos.x, structures.pos.y, 256);
-                    } else if (structures.structureType === STRUCTURE_CONTAINER) {
-                        costMatrix.set(structures.pos.x, structures.pos.y, 250);
-                    } else if (structures.structureType === STRUCTURE_ROAD) {
-                        costMatrix.set(structures.pos.x, structures.pos.y, 1);
-                    }
-                }
-            },
-        });
-        if (path.length) cacheRoad(room, begin, target, path); else return;
-        for (let point of path) {
-            let pos = new RoomPosition(point.x, point.y, room.name);
-            if (buildRoad(pos)) return true;
-        }
-    } else {
-        for (let point of JSON.parse(path)) {
-            let pos = new RoomPosition(point.x, point.y, room.name);
-            if (buildRoad(pos)) return true;
-        }
-    }
-}
-
-function buildRoadAround(room, position) {
-    for (let xOff = -1; xOff <= 1; xOff++) {
-        for (let yOff = -1; yOff <= 1; yOff++) {
-            if (xOff !== 0 || yOff !== 0) {
-                let pos = new RoomPosition(position.x + xOff, position.y + yOff, room.name);
-                if (buildRoad(pos)) return true;
-            }
-        }
     }
 }
 
