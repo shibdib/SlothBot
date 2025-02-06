@@ -283,6 +283,7 @@ class ModuleBodyGenerator {
                 const workCost = this.room.level < 4 ? 0 : BODYPART_COST[WORK];
 
                 const assignedHarvester = Game.getObjectById(this.creepInfo.other.harvester);
+                if (!assignedHarvester) return false;
                 const otherAssignedHaulers = _.filter(Game.creeps, c => c.my && c.memory.role === 'remoteHauler' && c.memory.other.harvester === this.creepInfo.other.harvester);
                 const currentHaulingCapacity = _.sum(otherAssignedHaulers, c => c.getActiveBodyparts(CARRY) * 50);
                 const harvestRate = this.creepInfo.other.harvestAmount - currentHaulingCapacity;

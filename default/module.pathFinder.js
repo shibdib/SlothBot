@@ -173,7 +173,7 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
 
     //Execute path if target is valid and path is set
     if (pathInfo.path && pathInfo.path.length && !options.getPath) {
-        executePath(creep, pathInfo, options, origin, heading);
+        return executePath(creep, pathInfo, options, origin, heading);
     } else {
         return shibPath(creep, heading, pathInfo, origin, target, options);
     }
@@ -226,9 +226,9 @@ function executePath(creep, pathInfo, options, origin, heading) {
         if (!options.flee && creep.pos.getRangeTo(heading) <= options.range) {
             creep.memory.towDestination = undefined;
             creep.memory._shibMove = undefined;
-            return false;
         }
         delete pathInfo.path;
+        return false;
     }
 }
 
@@ -527,7 +527,7 @@ function getMatrix(roomName, creep, options) {
     if (!options.ignoreStructures) matrix = getStructureMatrix(roomName, creep, matrix, options);
     if (room && !options.ignoreCreeps) matrix = getCreepMatrix(roomName, creep, matrix, options);
     if (room) matrix = getStationaryCreepsMatrix(roomName, creep, matrix, options);
-    if (room && room.hostileCreeps.length && (creep.className || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.avoidEnemies)) {
+    if (creep instanceof Creep && room && room.hostileCreeps.length && (creep.className || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.avoidEnemies)) {
         matrix = getHostileMatrix(roomName, matrix, options);
         matrix = getOutsideHubMatrix(roomName, matrix, options);
     }
@@ -1169,68 +1169,68 @@ Room.prototype.routeSafe = function (destination = this.name, maxThreat = 2, max
 
 /**
  * Handle kiting with optimized movement and target avoidance
- * @param fleeRange
- * @param target
- * @returns {boolean}
+ * @param {number} fleeRange - The minimum range to keep from threats, defaults to FLEE_RANGE
+ * @param {Creep|Structure} target - The primary target to flee from, if specific
+ * @returns {boolean} - Returns true if kiting was performed, false otherwise
  */
 Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined) {
-    // If the creep can't move or if the room is in safe mode, don't kite
-    if (!this.hasActiveBodyparts(MOVE) || (this.room.controller && this.room.controller.safeMode)) return false;
+    // Check if kiting is necessary or possible
+    if (!this.hasActiveBodyparts(MOVE) || (this.room.controller && this.room.controller.safeMode) || this.pos.checkForRampart()) {
+        return false;
+    }
 
-    // Detect enemies to avoid
-    let avoid = _.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) &&
-        (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) &&
-        this.pos.getRangeTo(c) <= fleeRange + 1
-    ).concat(this.pos.findInRange(this.room.structures, fleeRange + 1, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn <= fleeRange + 2}));
+    // Gather threats to avoid
+    let avoid = gatherThreats(this, fleeRange);
 
-    // If no enemies or threats to avoid, don't need to kite
     if (!avoid.length) return false;
 
-    // If the creep is already in a rampart, it's safe, no need to move
-    if (this.pos.checkForRampart()) return true;
-
-    // Indicate we're running away
+    // Indicate fleeing
     this.say('!!RUN!!', true);
     this.memory.kiteRoom = this.memory.room;
 
-    // Define the avoidance zones
-    let avoidance = _.map(avoid, (c) => ({pos: c.pos, range: fleeRange}));
-
-    // Set movement options
+    // Prepare pathfinding options
     let options = getMoveWeight(this);
-    let creep = this;
 
-    // Perform pathfinding to escape the threats
-    let ret = PathFinder.search(this.pos, avoidance, {
+    // Use pathfinder to flee from threats
+    let ret = PathFinder.search(this.pos, avoid.map(a => ({pos: a.pos, range: fleeRange})), {
         flee: true,
         swampCost: 75,
         plainCost: 3,
         maxRooms: 2,
-        roomCallback: function () {
-            // Generate terrain matrix with added factors for structures and creeps
-            let matrix = getTerrainMatrix(creep.room.name, options);
-            matrix = getStructureMatrix(creep.room.name, creep, matrix, options);
-            matrix = getCreepMatrix(creep.room.name, creep, matrix, options);
-            matrix = getHostileMatrix(creep.room.name, matrix, options);
-            matrix = getSKMatrix(creep.room.name, matrix, options);
-            return matrix;
-        }
+        roomCallback: roomName => generateCostMatrix(roomName, this, options)
     });
 
-    // If a valid path exists, move the creep
+    // If a path is found, move the creep
     if (ret.path.length > 0) {
-        // If this is the squad leader, store the direction for the squad
         if (this.memory.squadLeader === this.id) {
             this.memory.squadKite = this.pos.getDirectionTo(ret.path[0]);
         }
-
-        // Store the last kite direction and move
         this.memory.lastKite = this.pos.getDirectionTo(ret.path[0]);
         this.move(this.pos.getDirectionTo(ret.path[0]));
-
         return true;
     }
 
-    // If no valid path is found, return false (kiting failed)
     return false;
 };
+
+// Helper to gather threats in the vicinity
+function gatherThreats(creep, fleeRange) {
+    return creep.room.find(FIND_HOSTILE_CREEPS, {
+        filter: (c) => !_.includes(FRIENDLIES, c.owner.username) &&
+            (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) &&
+            creep.pos.getRangeTo(c) <= fleeRange + 1
+    }).concat(creep.pos.findInRange(FIND_STRUCTURES, fleeRange + 1, {
+        filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR &&
+            s.ticksToSpawn && s.ticksToSpawn <= fleeRange + 2
+    }));
+}
+
+// Helper to generate the cost matrix for pathfinding
+function generateCostMatrix(roomName, creep, options) {
+    let matrix = new PathFinder.CostMatrix();
+    matrix = getTerrainMatrix(roomName, matrix);
+    matrix = getStructureMatrix(roomName, creep, matrix, options);
+    matrix = getCreepMatrix(roomName, creep, matrix, options);
+    matrix = getHostileMatrix(roomName, matrix, options);
+    return getSKMatrix(roomName, matrix, options);
+}

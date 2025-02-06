@@ -170,7 +170,7 @@ class TerminalControl {
         for (let resourceType of Object.keys(terminal.store)) {
             // Sell energy and battery only if we have a surplus
             if ((resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) &&
-                terminal.room.totalEnergyState < 3 && !_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 1)) continue;
+                (terminal.room.totalEnergyState < 3 || !_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 1))) continue;
 
             let sellAmount = getSellAmount(terminal, resourceType);
             // Skip if no valid sell amount or if there's already an existing sell order
@@ -421,7 +421,7 @@ class TerminalControl {
 
         for (let resourceType of sortedKeys) {
             if ((resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) &&
-                terminal.room.totalEnergyState < 4 && !_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 1)) continue;
+                (terminal.room.totalEnergyState < 3 || !_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 2))) continue;
 
             let keepAmount = determineKeepAmount(resourceType);
             let sellAmount = Math.max(terminal.store[resourceType] - keepAmount, 0);
@@ -1087,12 +1087,12 @@ class TerminalControl {
             }
 
             // Cancel energy orders if surplus detected
-            if (order.resourceType === RESOURCE_ENERGY && _.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState > 1)) {
-                if (order.type === ORDER_BUY && _.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState > 1)) {
+            if (order.resourceType === RESOURCE_ENERGY) {
+                if (order.type === ORDER_BUY && _.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState > 2)) {
                     this.cancelOrder(order, 'Energy surplus detected');
                     continue;
                 }
-                if (order.type === ORDER_SELL && _.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 1)) {
+                if (order.type === ORDER_SELL && _.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 2)) {
                     this.cancelOrder(order, 'Energy shortage detected');
                     continue;
                 }

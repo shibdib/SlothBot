@@ -24,18 +24,15 @@ Creep.prototype.borderPatrol = function () {
         }
 
         if (!this.memory.destination && !this.memory.awaitingOrders) {
-            if (INTEL[this.room.name] && INTEL[this.room.name].sk) {
-                this.memory.destination = this.memory.overlord;
-            } else {
-                this.memory.destination = this.memory.overlord;
-                this.memory.awaitingOrders = true;
-                this.idleFor(5);
-            }
+            this.memory.destination = this.memory.overlord;
+            this.memory.awaitingOrders = true;
         }
 
-        if (this.memory.awaitingOrders && !this.memory.destination) {
+        if (this.memory.awaitingOrders && !this.memory.destination && this.room.name !== this.memory.overlord) {
             this.memory.destination = this.memory.overlord;
             this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
+        } else {
+            if (this.findDefensivePosition()) this.idleFor(5);
         }
     }
 };

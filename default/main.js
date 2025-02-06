@@ -32,15 +32,25 @@ module.exports.loop = function () {
         } else if (currentBucket < BUCKET_MAX * 0.01) {
             const cooldown = Game.time;
             let roomPenalty = Memory.cpuTracking.roomPenalty || 0;
+            let remotePenalty = Memory.cpuTracking.remotePenalty || 0;
             let bucketIssueCount = Memory.cpuTracking.bucketIssueCount || 0;
             log.e('CPU Bucket Too Low - Cooldown Initiated');
-            if (bucketIssueCount >= 50) {
+            if (bucketIssueCount >= 10) {
+                log.e('Bucket Issue Count Exceeded - Disabling Remote Mining');
+                _.filter(Game.creeps, (c) => c.my && ['remoteHarvester', 'remoteHauler', 'SKAttacker'].includes(c.memory.role)).forEach((c) => c.suicide());
+                remotePenalty = Game.time;
+            } else if (bucketIssueCount >= 50) {
                 log.e('Bucket Issue Count Exceeded - Abandoning Worst Room');
                 abandonWorstRoom();
                 bucketIssueCount = 0;
                 roomPenalty = Game.time;
             }
-            Memory.cpuTracking = {cooldown, bucketIssueCount: bucketIssueCount + 1, roomPenalty: roomPenalty};
+            Memory.cpuTracking = {
+                cooldown,
+                bucketIssueCount: bucketIssueCount + 1,
+                roomPenalty: roomPenalty,
+                remotePenalty: remotePenalty
+            };
             return;
         }
 
@@ -160,9 +170,9 @@ function tryInitSameMemory() {
 }
 
 function abandonWorstRoom() {
-    let worstRoom = _.min(MY_ROOMS, room => room.controller.level);
+    let worstRoom = _.min(MY_ROOMS, room => Game.rooms[room].controller.level);
     if (worstRoom) {
         log.a(`Abandoning ${worstRoom}`);
-        abandonRoom(worstRoom);
+        //abandonRoom(Game.rooms[worstRoom]);
     }
 }

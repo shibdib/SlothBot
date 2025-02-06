@@ -61,34 +61,37 @@ class RoleRemoteHauler {
     }
 
     findResource() {
-        // If you have an energy destination, withdraw it
         if (this.creep.memory.energyDestination) {
             if (this.creep.withdrawResource()) {
                 this.creep.memory.hauling = true;
                 return true;
             }
         } else {
-            // Find an available harvester with enough energy
-            const harvester = Game.getObjectById(this.creep.memory.other.harvester);
-            if (harvester) {
+            let harvester = Game.getObjectById(this.creep.memory.other.harvester);
+            if (!harvester) {
+                // Look for a new harvester if current one is missing
+                harvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' &&
+                    c.memory.other.source === this.creep.memory.other.source);
+                if (harvester) {
+                    this.creep.memory.other.harvester = harvester.id;
+                } else {
+                    this.creep.memory.other.harvester = undefined;
+                }
+            } else {
+                this.creep.memory.other.source = harvester.memory.other.source;
                 if (harvester.memory.energyId) {
                     this.creep.memory.energyDestination = harvester.memory.energyId;
                     return this.creep.withdrawResource();
                 } else {
+                    // Move towards the source if no energyId is available
                     const source = Game.getObjectById(this.creep.memory.other.source);
-                    return this.creep.shibMove(source, {range: 4});
-                }
-            } else {
-                this.creep.memory.other.harvester = undefined;
-                const needyHarvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' &&
-                    c.memory.other.source === this.creep.memory.other.source);
-                if (needyHarvester) {
-                    this.creep.memory.other.harvester = needyHarvester.id;
-                } else {
-                    this.creep.idleFor(10);
+                    if (this.creep.shibMove(source, {range: 4})) return true;
                 }
             }
+            this.creep.idleFor(10);
         }
+
+        return false; // If we didn't find a resource or perform an action, return false
     }
 }
 

@@ -1,7 +1,6 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
-const highCommand = require('military.highCommand');
 Creep.prototype.scoutRoom = function () {
     if (!Memory.targetRooms[this.memory.destination]) return this.recycleCreep();
     if (this.room.name !== this.memory.destination) {
@@ -58,14 +57,9 @@ function forwardObserver(room) {
             handleDenialOperation(room);
             break;
         default:
+            updateRoomLevel(room);
             break;
     }
-
-    // Dynamically update room priority based on enemy presence, upgrades, and strategic importance
-    updateRoomPriority(room);
-
-    // Update room level based on hostile creeps or structures
-    updateRoomLevel(room);
 }
 
 // Helper function to handle safemode in the target room
@@ -202,7 +196,7 @@ function updateRoomLevel(room) {
 
     if (room.hostileCreeps.length || room.hostileStructures.length) {
         targetRoom.level = 2; // Major threat level
-    } else if (room.hostileStructures.length) {
+    } else if (room.hostileStructures.length || (Memory.targetRooms[room.name] && Memory.targetRooms[room.name].type === 'hold')) {
         targetRoom.level = 1; // Moderate threat
     } else {
         targetRoom.level = 0; // Low or no threat

@@ -34,6 +34,10 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
 
     if (!hostile) {
         return this.moveToHostileConstructionSites();
+    } else {
+        // Store hostiles position in memory
+        this.memory.target = hostile.id;
+        this.memory.targetPos = JSON.stringify(hostile.pos);
     }
 
     // Handle enemy on rampart
@@ -997,13 +1001,13 @@ Creep.prototype.findDefensivePosition = function (target = this) {
         }
 
         // Move to the rampart if not already there
-        if (bestRampart.pos.x !== this.pos.x || bestRampart.pos.y !== this.pos.y) {
+        if (this.pos.getRangeTo(bestRampart)) {
             this.memory.other.stationary = undefined;
             this.shibMove(bestRampart, {range: 0});
         } else {
             this.memory.other.stationary = true;
+            return true;
         }
-        return true;
     } else {
         // If no rampart is found, move to a safe position (Room center or fallback)
         this._moveToSafePosition();

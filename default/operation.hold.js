@@ -8,9 +8,9 @@ Creep.prototype.holdRoom = function () {
     const sentence = ['Coming', 'For', 'That', 'Booty', this.memory.destination];
     this.say(sentence[Game.time % sentence.length], true);
 
-    // Perform combat and healing if in range
-    this.attackInRange();
-    this.healInRange();
+    if (this.canIWin(50) && this.handleMilitaryCreep()) {
+        return;
+    }
 
     // If not in the destination room, move there
     if (this.room.name !== this.memory.destination) {
@@ -22,22 +22,6 @@ Creep.prototype.holdRoom = function () {
         this.memory.operation = 'borderPatrol';
         return;
     }
-
-    // Announce that we might need to abandon the room
-    const abandonMessage = ['Please', 'Abandon'];
-    this.say(abandonMessage[Game.time % abandonMessage.length], true);
-
-    // Handle combat if hostile creeps or structures are present
-    if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(50)) {
-        // Engage in combat if possible
-        if (this.handleMilitaryCreep() || this.scorchedEarth()) return;
-
-        // If not combat-focused, kite away from enemies
-        return this.shibKite();
-    }
-
-    // If no immediate combat, focus on healing nearby friendly creeps
-    this.healCreeps();
 
     // Call operation manager periodically (every 5 ticks)
     if (Game.time % 5 === 0) {

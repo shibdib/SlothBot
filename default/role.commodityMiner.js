@@ -30,6 +30,9 @@ class RoleCommodityMiner {
         // Try to boost harvest if possible
         if (this.creep.tryToBoost(['harvest'])) return true;  // Boost work, not harvest (if it’s meant to be harvesting)
 
+        // If unsafe return home
+        if (this.creep.skSafety()) return true;
+
         // Old age and work/carry part check
         if (this.creep.ticksToLive < 150 || !this.creep.hasActiveBodyparts(WORK) || !this.creep.hasActiveBodyparts(CARRY)) {
             if (!_.sum(this.creep.store)) {

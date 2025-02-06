@@ -54,7 +54,7 @@ class ObserverControl {
 
     findStrategicTarget(roomName, currentTime) {
         return Object.keys(Memory.targetRooms).find(room =>
-            (Memory.targetRooms[room].type === 'scout' ||
+            Memory.targetRooms[room] && (Memory.targetRooms[room].type === 'scout' ||
                 (!Memory.targetRooms[room].observerCheck || Memory.targetRooms[room].observerCheck + 50 < currentTime)) &&
             Game.map.getRoomLinearDistance(roomName, room) <= OBSERVER_RANGE
         );
@@ -63,14 +63,20 @@ class ObserverControl {
     findRandomTarget(roomName, currentTime) {
         const [x, y] = roomName.match(/\d+/g).map(Number);
         const [eW, nS] = roomName.replace(/[0-9]/g, '').split('');
+
         for (let attempts = 0; attempts < 10; attempts++) {
-            const newX = x + Math.floor(Math.random() * 11) * (Math.random() < 0.5 ? -1 : 1);
-            const newY = y + Math.floor(Math.random() * 11) * (Math.random() < 0.5 ? -1 : 1);
+            // Generate a random point within OBSERVER_RANGE
+            const offsetX = Math.floor(Math.random() * (2 * OBSERVER_RANGE + 1)) - OBSERVER_RANGE;
+            const offsetY = Math.floor(Math.random() * (2 * OBSERVER_RANGE + 1)) - OBSERVER_RANGE;
+
+            const newX = x + offsetX;
+            const newY = y + offsetY;
 
             const directionX = newX < 0 ? 'W' : 'E';
-            const directionY = newY < 0 ? 'S' : 'N';
+            const directionY = newY < 0 ? 'N' : 'S';
             const targetRoom = `${directionX}${Math.abs(newX)}${directionY}${Math.abs(newY)}`;
 
+            // Check if the room is within range, not recently observed, and not closed
             if (Game.map.getRoomLinearDistance(roomName, targetRoom) <= OBSERVER_RANGE &&
                 (!INTEL[targetRoom] || INTEL[targetRoom].tick > currentTime - 50) &&
                 roomStatus(targetRoom) !== 'closed') {

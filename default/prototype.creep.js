@@ -136,37 +136,48 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
 
 /**
  * Handle SK damage
- * @returns {*|boolean}
+ * @returns {boolean}
  */
 Creep.prototype.skSafety = function () {
+    // Check if the creep is damaged
     if (this.hits < this.hitsMax) {
         this.goToHub();
         return true;
     }
+
+    // If there's no controller and no SK intel, or if intel confirms no SK, exit
     if (this.room.controller || (INTEL[this.room.name] && !INTEL[this.room.name].sk)) return false;
-    // handle safe SK movement
-    let range = 6;
-    if (this.memory.destination && this.memory.destination === this.room.name) range = 8;
-    let lair = this.pos.findClosestByRange(this.room.impassibleStructures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn <= 3 && s.pos.getRangeTo(this) < range});
-    let SK = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper' && c.pos.getRangeTo(this) < range});
-    if (lair || SK) {
+
+    const range = 8;
+    const skFilter = (c) => c.owner.username === 'Source Keeper' && c.pos.getRangeTo(this) < range;
+    const lairFilter = (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn && s.ticksToSpawn <= 3 && s.pos.getRangeTo(this) < range;
+
+    let sk = this.pos.findClosestByRange(this.room.creeps, {filter: skFilter});
+    let lair = this.pos.findClosestByRange(this.room.impassibleStructures, {filter: lairFilter});
+
+    if (sk || lair) {
+        // Attempt to kite away from the threat
+        const target = sk || lair;
+        this.shibKite(range + 2, target);
         this.memory.fledSK = Game.time;
-        if (SK) {
-            this.shibKite(range + 2, SK);
-            return true;
-        } else if (lair) {
-            this.shibKite(range + 2, lair);
-            return true;
-        }
-        // Handle invader cores in sk
-        if (_.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0]) {
-            return this.suicide();
-        }
-    } else if (this.memory.fledSK) {
-        if (this.memory.fledSK + 5 <= Game.time) this.memory.fledSK = undefined; else this.idleFor(5);
         return true;
+    } else if (this.memory.fledSK) {
+        // Wait for 5 ticks after fleeing before resuming normal behavior
+        if (this.memory.fledSK + 5 <= Game.time) {
+            delete this.memory.fledSK;
+        } else {
+            this.idleFor(5);
+            return true;
+        }
     }
-}
+
+    // Handle invader cores
+    if (this.room.impassibleStructures.some(s => s.structureType === STRUCTURE_INVADER_CORE)) {
+        return this.suicide() === OK; // Assuming suicide returns OK if successful
+    }
+
+    return false;
+};
 
 /**
  * Opportunistic repair
@@ -189,85 +200,76 @@ Creep.prototype.opportunisticRepair = function () {
  * @returns {boolean}
  */
 Creep.prototype.opportunisticFill = function () {
-    // Fill nearby energy structures as you pass
     if (!this.store[RESOURCE_ENERGY] || !this.room.level) return false;
-    try {
-        let energyStructure = _.find(this.room.lookForAtArea(LOOK_STRUCTURES, this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1, true), (s) => [STRUCTURE_EXTENSION, STRUCTURE_SPAWN].includes(s.structure.structureType) && s.structure.store.getFreeCapacity(RESOURCE_ENERGY))
-        if (energyStructure) {
-            this.transfer(energyStructure.structure, RESOURCE_ENERGY)
-            return true;
-        } else {
-            return false;
+
+    // Look for structures in a 3x3 area around the creep
+    const nearbyStructures = this.room.lookForAtArea(LOOK_STRUCTURES, this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1, true);
+
+    for (let structure of nearbyStructures) {
+        if ([STRUCTURE_EXTENSION, STRUCTURE_SPAWN].includes(structure.structure.structureType) &&
+            structure.structure.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+            return this.transfer(structure.structure, RESOURCE_ENERGY) === OK;
         }
-    } catch (e) {
     }
-}
+    return false;
+};
 
 /**
  * Handle withdrawing from a structure
- * @param destination
- * @param resourceType
- * @param amount
- * @returns {undefined|boolean|void}
+ * @param {Structure|Resource} destination - The structure or resource to withdraw from
+ * @param {string} resourceType - The type of resource to withdraw, defaults to RESOURCE_ENERGY
+ * @param {number} amount - The amount to withdraw, if undefined, withdraw all available
+ * @returns {boolean} - Returns true if successful, false otherwise
  */
 Creep.prototype.withdrawResource = function (destination = undefined, resourceType = RESOURCE_ENERGY, amount = undefined) {
-    if (destination) this.memory.energyDestination = destination.id;
-    if (this.memory.energyDestination) {
-        let energyItem = Game.getObjectById(this.memory.energyDestination);
-        // Sanity check
-        if (!energyItem) return this.memory.energyDestination = undefined;
-        if (!energyItem[resourceType] && (!energyItem.store || !energyItem.store[resourceType])) return this.memory.energyDestination = undefined;
-        // Handle things with store
-        if (energyItem.store && energyItem.store[resourceType]) {
-            switch (this.withdraw(energyItem, resourceType, amount)) {
-                case ERR_INVALID_TARGET:
-                    switch (this.pickup(energyItem)) {
-                        case ERR_NOT_IN_RANGE:
-                            return this.shibMove(energyItem);
-                        default:
-                            this.memory.energyDestination = undefined;
-                            this.memory._shibMove = undefined;
-                            break;
-                        case ERR_INVALID_TARGET:
-                            switch (energyItem.transfer(this, resourceType, amount)) {
-                                case ERR_NOT_IN_RANGE:
-                                    return this.shibMove(energyItem);
-                                default:
-                                    this.memory.energyDestination = undefined;
-                                    this.memory._shibMove = undefined;
-                                    break;
-                            }
-                            break;
-                    }
-                    break;
-                case ERR_NOT_IN_RANGE:
-                    return this.shibMove(energyItem);
-                default:
-                    this.memory.lastWithdraw = energyItem.id;
-                    this.memory.energyDestination = undefined;
-                    this.memory._shibMove = undefined;
-                    return true;
-            }
-        } else if (energyItem.amount) {
-            switch (this.pickup(energyItem)) {
-                case OK:
-                    this.memory.energyDestination = undefined;
-                    this.memory._shibMove = undefined;
-                    return true;
-                case ERR_NOT_IN_RANGE:
-                    return this.shibMove(energyItem);
-            }
-        } else {
+    if (!destination) {
+        destination = Game.getObjectById(this.memory.energyDestination);
+    } else {
+        this.memory.energyDestination = destination.id;
+    }
+
+    if (!destination) return false;
+
+    // Check if the destination has the resource
+    if (!destination[resourceType] && (!destination.store || !destination.store[resourceType])) {
+        delete this.memory.energyDestination;
+        return false;
+    }
+
+    // Handling resources with 'store'
+    if (destination.store && destination.store[resourceType]) {
+        let result = this.withdraw(destination, resourceType, amount);
+        if (result === OK) {
+            this.memory.lastWithdraw = destination.id;
             delete this.memory.energyDestination;
             delete this.memory._shibMove;
+            return true;
+        } else if (result === ERR_NOT_IN_RANGE) {
+            return this.shibMove(destination);
         }
     }
+    // Handling resources without 'store' (like dropped energy)
+    else if (destination.amount) {
+        let result = this.pickup(destination);
+        if (result === OK) {
+            delete this.memory.energyDestination;
+            delete this.memory._shibMove;
+            return true;
+        } else if (result === ERR_NOT_IN_RANGE) {
+            return this.shibMove(destination);
+        }
+    }
+
+    // If we've reached here, something went wrong or the destination is invalid
+    delete this.memory.energyDestination;
+    delete this.memory._shibMove;
+    return false;
 };
 
 /**
  * Locate energy in a room
- * @param room
- * @returns {boolean}
+ * @param {Room} room - The room to search for energy, defaults to the creep's current room
+ * @returns {boolean} - Returns true if energy location was found, false otherwise
  */
 Creep.prototype.locateEnergy = function (room = this.room) {
     // Cache values that are used repeatedly
@@ -276,120 +278,89 @@ Creep.prototype.locateEnergy = function (room = this.room) {
 
     const myCreepsFilter = (destinationId) => myCreeps.filter(c => c.memory.energyDestination === destinationId && c.id !== this.id).length;
 
-    // Handle resources in allied rooms
-    if (INTEL[room.name] && (!INTEL[room.name].owner || INTEL[room.name].owner !== MY_USERNAME)) {
-        // Dropped Energy
-        if (room.droppedEnergy.length) {
-            let dropped = room.droppedEnergy.find((r) => r.amount >= (myCreepsFilter(r.id) + 1) * (freeCapacity * 0.5));
-            if (dropped) {
-                this.memory.energyDestination = dropped.id;
-                return true;
-            }
+    // Simplified check for allied rooms
+    const isAlliedRoom = INTEL[room.name] && INTEL[room.name].owner && INTEL[room.name].owner !== MY_USERNAME;
+
+    if (isAlliedRoom) {
+        // Check for dropped energy first as it's often the quickest pick-up
+        const dropped = room.droppedEnergy.find(r => r.amount >= (myCreepsFilter(r.id) + 1) * (freeCapacity * 0.5));
+        if (dropped) {
+            this.memory.energyDestination = dropped.id;
+            return true;
         }
-        // Storage
+
+        // Then check storage and terminal if accessible
         if (room.storage && !room.storage.pos.checkForRampart(true) && room.storage.store[RESOURCE_ENERGY]) {
             this.memory.energyDestination = room.storage.id;
             return true;
         }
-        // Terminal
         if (room.terminal && !room.terminal.pos.checkForRampart(true) && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
             this.memory.energyDestination = room.terminal.id;
             return true;
         }
-        // Container
-        let container = room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER && !s.pos.checkForRampart(true) && s.store[RESOURCE_ENERGY])[0];
-        if (container) {
-            this.memory.energyDestination = container.id;
-            return true;
-        }
     } else {
         // Handle remote haulers pre-storage
-        if (!room.storage && room.controller && room.controller.owner && this.memory.role !== 'hauler' && this.memory.role !== 'shuttle' && this.memory.role !== 'remoteHauler') {
-            let hauler = room.myCreeps.find(c => c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 3);
+        if (!room.storage && room.controller && room.controller.owner && !['hauler', 'shuttle', 'remoteHauler'].includes(this.memory.role)) {
+            const hauler = myCreeps.find(c => c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 3);
             if (hauler) {
                 this.memory.energyDestination = hauler.id;
                 return true;
             }
-            // Fuel Trucks
-            let fuelTruck = room.myCreeps.find(c => c.memory.role === 'fuelTruck' && c.memory.destination === c.room.name && c.store[RESOURCE_ENERGY]);
-            if (fuelTruck && this.memory.role !== 'fuelTruck') {
-                this.memory.energyDestination = fuelTruck.id;
-                return true;
-            }
         }
-        // Tombstone
-        if (room.tombstones.length) {
-            let tombstone = room.tombstones.find(r => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY]);
-            if (tombstone) {
-                this.memory.energyDestination = tombstone.id;
-                return true;
-            }
+
+        // Check for tombstones, ruins, factory, links, and storage in order of priority
+        const tombstone = room.tombstones.find(r => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY]);
+        if (tombstone) {
+            this.memory.energyDestination = tombstone.id;
+            return true;
         }
-        // Ruins
-        if (room.ruins.length) {
-            let ruin = room.ruins.find(r => r.store[RESOURCE_ENERGY]);
-            if (ruin) {
-                this.memory.energyDestination = ruin.id;
-                return true;
-            }
+
+        const ruin = room.ruins.find(r => r.store[RESOURCE_ENERGY]);
+        if (ruin) {
+            this.memory.energyDestination = ruin.id;
+            return true;
         }
-        // Factory
+
         if (room.factory && (!room.factory.memory.producing || room.factory.memory.producing === RESOURCE_ENERGY) && room.factory.store[RESOURCE_ENERGY]) {
             this.memory.energyDestination = room.factory.id;
             return true;
         }
-        // Links and Storage
+
+        // Check links and storage if not a shuttle
         if (this.memory.role !== 'shuttle') {
-            let hubLink = Game.getObjectById(room.memory.hubLink) || room.impassibleStructures.find(s => s.structureType === STRUCTURE_LINK && s.store[RESOURCE_ENERGY]);
+            const hubLink = Game.getObjectById(room.memory.hubLink) || room.impassibleStructures.find(s => s.structureType === STRUCTURE_LINK && s.store[RESOURCE_ENERGY]);
             if (hubLink && hubLink.store[RESOURCE_ENERGY]) {
                 this.memory.energyDestination = hubLink.id;
                 return true;
             }
-            if (room.storage && room.storage.store[RESOURCE_ENERGY]) {
-                this.memory.energyDestination = room.storage.id;
-                return true;
-            }
-            if (room.terminal && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
-                this.memory.energyDestination = room.terminal.id;
+            if ((room.storage && room.storage.store[RESOURCE_ENERGY]) ||
+                (room.terminal && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER)) {
+                this.memory.energyDestination = room.storage ? room.storage.id : room.terminal.id;
                 return true;
             }
         }
-        // Container handling for shuttle or remote hauler
-        if (this.memory.role === 'shuttle' || this.memory.role === 'remoteHauler' || !room.controller || !room.controller.owner || !room.storage) {
-            if (!room.storage && this.memory.role !== 'shuttle' && this.memory.role !== 'remoteHauler' && this.memory.role !== 'hauler') {
-                if (!room.memory.droneContainer) {
-                    let droneContainer = room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER && room.memory.controllerContainer !== s.id);
-                    if (droneContainer.length > 1) room.memory.droneContainer = droneContainer[0].id;
-                } else {
-                    let droneContainer = Game.getObjectById(room.memory.droneContainer)
-                    if (droneContainer && droneContainer.store[RESOURCE_ENERGY]) {
-                        this.memory.energyDestination = droneContainer.id;
-                        return true;
-                    }
-                }
-            } else {
-                let container = room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER && room.memory.controllerContainer !== s.id
-                    && s.store[RESOURCE_ENERGY] > myCreepsFilter(s.id) * (freeCapacity * 0.8));
-                if (container.length) {
-                    this.memory.energyDestination = _.sample(container).id;
-                    return true;
-                }
-            }
-        }
-        // Dropped Energy
-        if (room.droppedEnergy.length) {
-            let dropped = room.droppedEnergy.reduce((max, r) => (r.amount > max.amount ? r : max), {amount: 0});
-            if (dropped.amount > 0 && !myCreepsFilter(dropped.id)) {
-                this.memory.energyDestination = dropped.id;
+
+        // Container handling for specific roles or in rooms without storage
+        if (['shuttle', 'remoteHauler'].includes(this.memory.role) || !room.controller || !room.controller.owner || !room.storage) {
+            const containers = room.structures.filter(s =>
+                s.structureType === STRUCTURE_CONTAINER &&
+                s.store[RESOURCE_ENERGY] > myCreepsFilter(s.id) * (freeCapacity * 0.8)
+            );
+            if (containers.length) {
+                this.memory.energyDestination = _.sample(containers).id;
                 return true;
             }
         }
-        // Factory from batteries
-        if (room.factory && (!room.factory.memory.producing || room.factory.memory.producing === RESOURCE_ENERGY) && room.factory.store[RESOURCE_ENERGY]) {
-            this.memory.energyDestination = room.factory.id;
+
+        // Dropped Energy as last resort
+        const dropped = room.droppedEnergy.reduce((max, r) => (r.amount > max.amount ? r : max), {amount: 0});
+        if (dropped.amount > 0 && !myCreepsFilter(dropped.id)) {
+            this.memory.energyDestination = dropped.id;
+            return true;
         }
-        return false;
     }
+
+    return false;
 };
 
 /**
@@ -397,104 +368,77 @@ Creep.prototype.locateEnergy = function (room = this.room) {
  * @returns {boolean}
  */
 Creep.prototype.haulerDelivery = function () {
-    // If you have a destination, deliver
+    // Clear destination if invalid or full
     if (this.memory.storageDestination) {
-        const storageItem = Game.getObjectById(this.memory.storageDestination);
-        if (!storageItem || !storageItem.store.getFreeCapacity(RESOURCE_ENERGY)) {
+        let storageItem = Game.getObjectById(this.memory.storageDestination);
+        if (!storageItem || storageItem.store.getFreeCapacity(RESOURCE_ENERGY) === 0) {
             delete this.memory.storageDestination;
             delete this.memory._shibMove;
-        } else {
-            for (const resourceType in this.store) {
-                const result = this.transfer(storageItem, resourceType);
-                if (result === OK || result === ERR_NOT_IN_RANGE) {
-                    if (result === ERR_NOT_IN_RANGE) {
-                        this.shibMove(storageItem);
-                    } else {
-                        delete this.memory.storageDestination;
-                        delete this.memory._shibMove;
-                    }
-                    return true;
-                } else {
-                    delete this.memory.storageDestination;
-                    delete this.memory._shibMove;
-                }
+            return false;
+        }
+
+        // Transfer all resources to the destination
+        for (let resourceType in this.store) {
+            let result = this.transfer(storageItem, resourceType);
+            if (result === OK) {
+                delete this.memory.storageDestination;
+                delete this.memory._shibMove;
+                return true;
+            } else if (result === ERR_NOT_IN_RANGE) {
+                this.shibMove(storageItem);
+                return true;
             }
         }
     }
 
-    // Deposit minerals if present
+    // Check for minerals or non-energy resources
     if (Object.keys(this.store).some(resource => resource !== RESOURCE_ENERGY)) {
-        const storageTarget = this.room.terminal || this.room.storage;
-        if (storageTarget) {
-            this.memory.storageDestination = storageTarget.id;
+        let target = this.room.terminal || this.room.storage;
+        if (target) {
+            this.memory.storageDestination = target.id;
             return true;
         }
     }
 
-    // Handle tower delivery
-    if (this.room.controller.level >= 3) {
-        const towers = this.room.find(FIND_MY_STRUCTURES, {
-            filter: s => s.structureType === STRUCTURE_TOWER &&
-                s.store[RESOURCE_ENERGY] < (this.room.memory.threatLevel ? TOWER_CAPACITY : TOWER_CAPACITY * 0.5)
-        });
+    // Prioritize structures by urgency:
+    let targets = [];
 
-        if (towers.length) {
-            this.memory.storageDestination = towers.reduce((a, b) => a.store[RESOURCE_ENERGY] < b.store[RESOURCE_ENERGY] ? a : b).id;
-            return true;
-        }
-    }
-
-    // Handle spawn/extension delivery
-    const energyStructures = this.room.find(FIND_MY_STRUCTURES, {
+    // Spawns and Extensions (high priority)
+    targets = targets.concat(this.room.find(FIND_MY_STRUCTURES, {
         filter: s => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) &&
             s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
-    });
+    }));
 
-    if (energyStructures.length) {
-        this.memory.storageDestination = energyStructures.reduce((a, b) => this.pos.getRangeTo(a) > this.pos.getRangeTo(b) ? a : b).id;
-        return true;
-    }
-
-    // Handle higher-level structures (labs, nukers, power spawns)
-    if (this.room.controller.level >= 6) {
-        const specialStructures = this.room.find(FIND_MY_STRUCTURES, {
-            filter: s => (
-                (s.structureType === STRUCTURE_LAB && s.store[RESOURCE_ENERGY] < LAB_ENERGY_CAPACITY) ||
-                (s.structureType === STRUCTURE_NUKER && s.store[RESOURCE_ENERGY] < NUKER_ENERGY_CAPACITY && this.room.energyState) ||
-                (s.structureType === STRUCTURE_POWER_SPAWN && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0)
-            )
-        });
-
-        if (specialStructures.length) {
-            this.memory.storageDestination = specialStructures[0].id;
-            return true;
-        }
-    }
-
-    // Top up towers
+    // Towers if below emergency threshold
     if (this.room.controller.level >= 3) {
-        const tower = _.find(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY);
-        if (tower) {
-            this.memory.storageDestination = tower.id;
-            return true;
+        let threatLevel = this.room.memory.threatLevel || 0;
+        let energyThreshold = threatLevel ? TOWER_CAPACITY : TOWER_CAPACITY * 0.5;
+        targets = targets.concat(this.room.find(FIND_MY_STRUCTURES, {
+            filter: s => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < energyThreshold
+        }));
+    }
+
+    // Controller Container if below threshold and hub link conditions met
+    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+    if (controllerContainer && controllerContainer.store.getUsedCapacity() < CONTAINER_CAPACITY * 0.7) {
+        let hubLink = Game.getObjectById(this.room.memory.hubLink);
+        if (!hubLink || hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > LINK_CAPACITY * 0.5) {
+            targets.push(controllerContainer);
         }
     }
 
-    const controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer
-        && (!this.room.memory.hubLink || Game.getObjectById(this.room.memory.hubLink).store.getFreeCapacity(RESOURCE_ENERGY) > LINK_CAPACITY * 0.5)
-        && controllerContainer.store.getUsedCapacity() < CONTAINER_CAPACITY * 0.7) {
-        this.memory.storageDestination = controllerContainer.id;
+    // Storage as last resort
+    if (this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+        targets.push(this.room.storage);
+    }
+
+    // Find closest target
+    let target = this.pos.findClosestByRange(targets);
+    if (target) {
+        this.memory.storageDestination = target.id;
         return true;
     }
 
-    // Handle storage fallback if below buffer
-    if (this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) &&
-        (this.room.storage.id !== this.memory.lastWithdraw || (this.room.memory.hubLink && Game.getObjectById(this.room.memory.hubLink).store.getFreeCapacity(RESOURCE_ENERGY) < LINK_CAPACITY * 0.5))) {
-        this.memory.storageDestination = this.room.storage.id;
-        return true;
-    }
-    // No delivery action performed
     return false;
 };
 
@@ -881,7 +825,7 @@ Creep.prototype.borderCheck = function () {
             if (moveResult === OK) {
                 pathInfo.pathPosTime = 0;
                 pathInfo.lastMoveTick = Game.time;
-                return false; // Path successfully moved
+                return true; // Path successfully moved
             }
         }
 

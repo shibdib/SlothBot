@@ -45,7 +45,7 @@ class Hive {
         }
 
         // High Command (Every 50 Ticks)
-        if ((tickTracker['highCommand'] || 0) + 50 < Game.time) {
+        if ((tickTracker['highCommand'] || 0) + 25 < Game.time) {
             this.highCommand();
             tickTracker['highCommand'] = Game.time;
         }
@@ -171,9 +171,6 @@ function minionController(minion) {
     if (minion.idle) return;
     // Track Threat
     diplomacy.trackThreat(minion);
-    // Combat
-    minion.attackInRange();
-    minion.healInRange();
     // Handle edge cases
     if (minion.borderCheck() || (minion.memory.fleeNukeTime && minion.fleeNukeRoom())) {
         return;

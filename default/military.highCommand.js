@@ -211,7 +211,7 @@ function auxiliaryOperations() {
                 return findClosestOwnedRoom(t.name, true);
             });
 
-            if (powerRoom && powerRoom.name && !_.find(Memory.auxiliaryTargets, (target) => target.type === 'power')) {
+            if (powerRoom && powerRoom.name && !_.find(Memory.auxiliaryTargets, (target) => target && target.type === 'power')) {
                 cache[powerRoom.name] = {tick, type: 'power', level: 1, priority: PRIORITIES.medium};
                 log.a(`Mining operation planned for ${roomLink(powerRoom.name)} (Power Bank Location)`, 'HIGH COMMAND: ');
             }
@@ -361,74 +361,13 @@ function manageAttacks() {
         if (!target) continue;
         let type = target.type;
 
-        // Skip manual no combat rooms
-        if (_.includes(Memory.nonCombatRooms, key)) {
-            delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + roomLink(key) + ' as it is set as a manual non-combat room.', 'HIGH COMMAND: ');
-            continue;
-        }
-
-        // Try to update room intel if missing, and cancel operation if no intel available
-        if (!INTEL[key]) {
-            if (Game.rooms[key]) {
-                Game.rooms[key].cacheRoomIntel();
-            } else if (type !== 'scout' && type !== 'pending') {
-                log.a('Canceling operation in ' + roomLink(key) + ' as we have no intel.', 'HIGH COMMAND: ');
-                delete Memory.targetRooms[key];
-                continue;
-            }
-        }
-
-        // Cancel operation for powerful users or hostile users beyond max level
-        if (INTEL[key] && userStrength(INTEL[key].user) > MAX_LEVEL) {
-            log.a('Canceling operation in ' + roomLink(key) + ' as ' + INTEL[key].user + ' is too powerful.', 'HIGH COMMAND: ');
-            delete Memory.targetRooms[key];
-            continue;
-        }
-
-        // Cancel operation for high-level hostile users detected in the room
-        if (target.userList && target.userList.some(user => userStrength(user) > MAX_LEVEL)) {
-            log.a('Canceling operation in ' + roomLink(key) + ' due to high-level user detection.', 'HIGH COMMAND: ');
-            delete Memory.targetRooms[key];
-            continue;
-        }
-
-        // Skip stale operations
-        if (target.tick + (1500 * staleMulti) < Game.time && !target.lastEnemyKilled ||
-            (target.lastEnemyKilled && target.lastEnemyKilled + (2500 * staleMulti) < Game.time)) {
-            log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
-            delete Memory.targetRooms[key];
-            continue;
-        }
-
-        // Skip if it's targeting our rooms
-        if (INTEL[key] && INTEL[key].user === MY_USERNAME && target.type !== 'guard') {
-            log.a('Canceling operation in ' + roomLink(key) + ' as it is targeting one of our rooms.', 'HIGH COMMAND: ');
-            delete Memory.targetRooms[key];
-            continue;
-        }
-
-        // Skip if it’s an allied room or NAP room
-        if (INTEL[key] && (_.includes(FRIENDLIES, INTEL[key].user) || checkForNap(INTEL[key].user)) && target.type !== 'guard') {
-            log.a('Canceling operation in ' + roomLink(key) + ' as it is targeting an allied or NAP room.', 'HIGH COMMAND: ');
-            delete Memory.targetRooms[key];
-            continue;
-        }
-
-        // Skip no longer hostile rooms
-        if (target.type !== 'guard' && target.type !== 'hold' && INTEL[key] && INTEL[key].user && !Memory._threats.includes(INTEL[key].user)) {
-            log.a('Canceling operation in ' + roomLink(key) + ' as ' + INTEL[key].user + ' is no longer considered a threat.', 'HIGH COMMAND: ');
-            delete Memory.targetRooms[key];
-            continue;
-        }
-
         // Handle room-specific conditions based on the type of operation
         switch (type) {
             case 'test':
                 continue;  // Skip test operations
 
             case 'hold':
-                staleMulti = 100;
+                staleMulti = 1000;
                 if (totalCountFiltered > OPERATION_LIMIT ||
                     (INTEL[key] && (_.includes(FRIENDLIES, INTEL[key].owner) || !INTEL[key].owner || INTEL[key].owner === 'Invader'))) {
                     log.a('Canceling ' + type + ' in ' + roomLink(key) + ' due to high operation count or non-hostile status.', 'HIGH COMMAND: ');
@@ -479,6 +418,67 @@ function manageAttacks() {
             case 'claim':
                 delete Memory.targetRooms[key];
                 continue;
+        }
+
+        // Skip manual no combat rooms
+        if (_.includes(Memory.nonCombatRooms, key)) {
+            delete Memory.targetRooms[key];
+            log.a('Canceling operation in ' + roomLink(key) + ' as it is set as a manual non-combat room.', 'HIGH COMMAND: ');
+            continue;
+        }
+
+        // Try to update room intel if missing, and cancel operation if no intel available
+        if (!INTEL[key]) {
+            if (Game.rooms[key]) {
+                Game.rooms[key].cacheRoomIntel();
+            } else if (type !== 'scout' && type !== 'pending') {
+                log.a('Canceling operation in ' + roomLink(key) + ' as we have no intel.', 'HIGH COMMAND: ');
+                delete Memory.targetRooms[key];
+                continue;
+            }
+        }
+
+        // Cancel operation for powerful users or hostile users beyond max level
+        if (INTEL[key] && userStrength(INTEL[key].user) > MAX_LEVEL) {
+            log.a('Canceling operation in ' + roomLink(key) + ' as ' + INTEL[key].user + ' is too powerful.', 'HIGH COMMAND: ');
+            delete Memory.targetRooms[key];
+            continue;
+        }
+
+        // Cancel operation for high-level hostile users detected in the room
+        if (target.userList && target.userList.some(user => userStrength(user) > MAX_LEVEL)) {
+            log.a('Canceling operation in ' + roomLink(key) + ' due to high-level user detection.', 'HIGH COMMAND: ');
+            delete Memory.targetRooms[key];
+            continue;
+        }
+
+        // Skip stale operations
+        if (target.tick + (CREEP_LIFE_TIME * staleMulti) < Game.time && !target.lastEnemyKilled ||
+            (target.lastEnemyKilled && target.lastEnemyKilled + (2500 * staleMulti) < Game.time)) {
+            log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
+            delete Memory.targetRooms[key];
+            continue;
+        }
+
+        // Skip if it's targeting our rooms
+        if (INTEL[key] && INTEL[key].user === MY_USERNAME && target.type !== 'guard') {
+            log.a('Canceling operation in ' + roomLink(key) + ' as it is targeting one of our rooms.', 'HIGH COMMAND: ');
+            delete Memory.targetRooms[key];
+            continue;
+        }
+
+        // Skip if it’s an allied room or NAP room
+        if (INTEL[key] && (_.includes(FRIENDLIES, INTEL[key].user) || checkForNap(INTEL[key].user)) && target.type !== 'guard') {
+            log.a('Canceling operation in ' + roomLink(key) + ' as it is targeting an allied or NAP room.', 'HIGH COMMAND: ');
+            delete Memory.targetRooms[key];
+            continue;
+        }
+
+        // Skip no longer hostile rooms
+        if (target.type !== 'guard' && target.type !== 'hold' && INTEL[key] && INTEL[key].user && !Memory._threats.includes(INTEL[key].user)) {
+            log.a('Canceling operation in ' + roomLink(key) + ' as ' + INTEL[key].user + ' is no longer considered a threat.', 'HIGH COMMAND: ');
+            delete Memory.targetRooms[key];
+            continue;
         }
 
         // Final checks for stale or problematic operations
