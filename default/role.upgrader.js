@@ -17,8 +17,7 @@ class RoleUpgrader {
 
     performRoleActions() {
         if (this.housekeeping()) return;
-        if (this.creep.memory.other.stationary ||
-            (_.filter(this.creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length > _.filter(this.creep.body, (p) => p.type === MOVE).length)) {
+        if (this.creep.memory.other.noMove || !this.creep.hasActiveBodyparts(MOVE)) {
             this.stationaryUpgrading();
         } else {
             this.mobileUpgrading();
@@ -32,6 +31,7 @@ class RoleUpgrader {
 
     stationaryUpgrading() {
         this.creep.memory.other.stationary = true;
+        this.creep.memory.other.noMove = true;
         // Handle getting in place
         if (!this.creep.memory.inPosition && this.container) {
             if (this.container.pos.checkForCreep() && this.creep.pos.isNearTo(this.container)) this.creep.memory.inPosition = true;
@@ -51,9 +51,7 @@ class RoleUpgrader {
     }
 
     mobileUpgrading() {
-        if (this.creep.isFull) this.creep.memory.working = true;
-        if (!this.creep.store[RESOURCE_ENERGY]) delete this.creep.memory.working;
-        if (this.creep.memory.working) {
+        if (this.creep.store[RESOURCE_ENERGY]) {
             switch (this.creep.upgradeController(Game.rooms[this.creep.memory.overlord].controller)) {
                 case OK:
                     this.creep.memory.other.stationary = true;
@@ -63,14 +61,17 @@ class RoleUpgrader {
                     return;
                 case ERR_NOT_ENOUGH_RESOURCES:
                     // Handle resource withdraw
+                    this.creep.memory.other.stationary = undefined;
                     this.withdraw();
             }
         } else if (this.creep.memory.energyDestination) {
             this.creep.memory.other.stationary = undefined;
             this.creep.withdrawResource();
         } else if (this.container && this.container.store[RESOURCE_ENERGY]) {
+            this.creep.memory.other.stationary = undefined;
             this.creep.withdrawResource(this.container);
         } else if (!this.creep.locateEnergy()) {
+            this.creep.memory.other.stationary = undefined;
             this.creep.idleFor(15);
         }
     }
