@@ -77,6 +77,9 @@ module.exports.loop = function () {
         // Initialize Intel Cache
         if (!segments.retrieveIntel()) return;
 
+        // Initialize Pathing Cache
+        if (!segments.retrievePathing()) return;
+
         // Auto Respawn Logic
         if (!running) {
             const ownedRoom = Object.values(Game.rooms).find(
@@ -136,11 +139,12 @@ module.exports.loop = function () {
         // Hive Mind
         new hive();
 
-        // Save Intel Cache
+        // Save Caches
         try {
             segments.storeIntel();
+            segments.storePathing();
         } catch (e) {
-            log.e('Error saving intel cache');
+            log.e('Error saving caches');
             log.e(`${e} ${e.stack}`);
             Game.notify(`${e} ${e.stack}`);
         }

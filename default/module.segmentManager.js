@@ -2,7 +2,10 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-const activeSegments = [0, 1, 2, 3, 4, 23, 98];
+// 0-3 intel
+// 69 path
+// 70 routes
+const activeSegments = [0, 1, 2, 3, 4, 23, 69, 70, 98];
 
 module.exports.init = function () {
     RawMemory.setActiveSegments(activeSegments);
@@ -68,6 +71,89 @@ module.exports.storeIntel = function () {
             lastIntelStore = Game.time;
         } catch (e) {
             log.e("Error stringifying intel cache, skipping store.", "INTEL MANAGER: ");
+            log.e(e.stack);
+        }
+    }
+}
+
+let pathingSegmentChecked;
+let pathingCheckCounter = 0;
+module.exports.retrievePathing = function () {
+    if (pathingSegmentChecked) return true;
+    // Retrieve pathing and routing cache
+    if (pathingCheckCounter < 5) {
+        if (RawMemory.segments[69]) {
+            pathingSegmentChecked = true;
+            global.CACHE.globalPathCache = JSON.parse(RawMemory.segments[69]) || {};
+            log.e("Pathing segment retrieved, restoring old path cache.", "PATHING MANAGER: ");
+        } else {
+            pathingCheckCounter++;
+            RawMemory.setActiveSegments(activeSegments);
+            log.d("Pathing segment not accessible, enabling the segment for the next tick.", "PATHING MANAGER: ");
+        }
+        if (RawMemory.segments[70]) {
+            pathingSegmentChecked = true;
+            global.CACHE.globalRouteCache = JSON.parse(RawMemory.segments[70]) || {};
+            log.e("Routing segment retrieved, restoring old routing cache.", "PATHING MANAGER: ");
+        } else {
+            pathingCheckCounter++;
+            RawMemory.setActiveSegments(activeSegments);
+            log.d("Routing segment not accessible, enabling the segment for the next tick.", "PATHING MANAGER: ");
+        }
+    } else {
+        pathingSegmentChecked = true;
+        log.e("Pathing/Routing segment not accessible, resetting.", "PATHING MANAGER: ");
+    }
+    return true;
+}
+
+let lastPathingStore;
+module.exports.storePathing = function () {
+    // Don't store if we never retrieved
+    if (!pathingSegmentChecked) {
+        log.d("Pathing segment not accessed, not storing.", "PATHING MANAGER: ");
+        return;
+    }
+    if (!lastPathingStore || lastPathingStore + CREEP_LIFE_TIME < Game.time || Math.random() > 0.95) {
+        // Handle paths
+        // Check for invalid cache
+        if (!_.size(CACHE.globalPathCache)) {
+            return global.CACHE.globalPathCache = {};
+        }
+        let store = JSON.parse(JSON.stringify(CACHE.globalPathCache));
+        try {
+            if (JSON.stringify(store).length >= 95000) {
+                let sorted = _.sortBy(store, 'uses');
+                for (let entry of sorted) {
+                    delete store[entry.name];
+                    if (JSON.stringify(store).length < 75000) break;
+                }
+            }
+            RawMemory.segments[69] = JSON.stringify(store);
+            lastPathingStore = Game.time;
+        } catch (e) {
+            log.e("Error stringifying pathing cache, skipping store.", "PATHING MANAGER: ");
+            log.e(e.stack);
+        }
+
+        // Handle routes
+        // Check for invalid cache
+        if (!_.size(CACHE.globalRouteCache)) {
+            return global.CACHE.globalRouteCache = {};
+        }
+        store = JSON.parse(JSON.stringify(CACHE.globalRouteCache));
+        try {
+            if (JSON.stringify(store).length >= 95000) {
+                let sorted = _.sortBy(store, 'uses');
+                for (let entry of sorted) {
+                    delete store[entry.name];
+                    if (JSON.stringify(store).length < 75000) break;
+                }
+            }
+            RawMemory.segments[70] = JSON.stringify(store);
+            lastPathingStore = Game.time;
+        } catch (e) {
+            log.e("Error stringifying routing cache, skipping store.", "PATHING MANAGER: ");
             log.e(e.stack);
         }
     }
