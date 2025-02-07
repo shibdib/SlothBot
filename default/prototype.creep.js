@@ -348,7 +348,8 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         // Container handling for specific roles or in rooms without storage
         if (['shuttle', 'remoteHauler'].includes(this.memory.role) || !room.controller || !room.controller.owner || !room.storage) {
             potentialEnergy = potentialEnergy.concat(room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER &&
-                s.id !== room.memory.controllerContainer && (!myCreepsFilter(s.id) || s.store[RESOURCE_ENERGY] > (myCreepsFilter(s.id) + 1) * (freeCapacity * 0.5))));
+                s.id !== room.memory.controllerContainer && s.store[RESOURCE_ENERGY]
+                && (!myCreepsFilter(s.id) || s.store[RESOURCE_ENERGY] > (myCreepsFilter(s.id) + 1) * (freeCapacity * 0.5))));
         }
 
         // Find closest energy source
