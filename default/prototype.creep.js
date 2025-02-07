@@ -433,7 +433,7 @@ Creep.prototype.haulerDelivery = function () {
     }));
 
     // Controller Container if below threshold and hub link conditions met
-    if (this.room.energyAvailable === this.room.energyCapacityAvailable) {
+    if (!this.room.memory.controllerLink && this.room.energyAvailable === this.room.energyCapacityAvailable) {
         let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
         if (controllerContainer && controllerContainer.store.getUsedCapacity() < CONTAINER_CAPACITY * 0.7) {
             let hubLink = Game.getObjectById(this.room.memory.hubLink);
@@ -448,9 +448,8 @@ Creep.prototype.haulerDelivery = function () {
         // Check if we pulled from this and idle for a bit if so
         if (this.memory.lastWithdraw === this.room.storage.id && !this.memory.storageCooldown) {
             this.memory.storageCooldown = true;
-            return this.idleFor(15);
+            return this.idleFor(5);
         } else {
-            this.memory.storageCooldown = undefined;
             targets.push(this.room.storage);
         }
     }
@@ -458,6 +457,7 @@ Creep.prototype.haulerDelivery = function () {
     // Find closest target
     let target = this.pos.findClosestByRange(targets);
     if (target) {
+        this.memory.storageCooldown = undefined;
         this.memory.storageDestination = target.id;
         return true;
     }
