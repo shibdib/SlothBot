@@ -76,6 +76,7 @@ Creep.prototype.idleFor = function (ticks = 0) {
     } else {
         delete this.idle;
     }
+    return true;
 };
 
 /**
@@ -316,6 +317,15 @@ Creep.prototype.locateEnergy = function (room = this.room) {
             potentialEnergy = potentialEnergy.concat(myCreeps.find(c => c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 3));
         }
 
+        // Haulers prioritze the hub link
+        if (this.memory.role === 'hauler') {
+            const hubLink = Game.getObjectById(room.memory.hubLink);
+            if (hubLink && hubLink.store[RESOURCE_ENERGY]) {
+                this.memory.energyDestination = hubLink.id;
+                return true;
+            }
+        }
+
         // Check for tombstones, ruins, factory, links, and storage in order of priority
         potentialEnergy = potentialEnergy.concat(room.tombstones.filter(r => r.store[RESOURCE_ENERGY]));
 
@@ -324,14 +334,11 @@ Creep.prototype.locateEnergy = function (room = this.room) {
 
         if (room.factory && (!room.factory.memory.producing || room.factory.memory.producing === RESOURCE_ENERGY) && room.factory.store[RESOURCE_ENERGY]) {
             potentialEnergy.push(room.factory);
-            this.memory.energyDestination = room.factory.id;
-            return true;
         }
 
-        // Check links and storage if not a shuttle
+        // Check terminal and storage if not a shuttle
         if (this.memory.role !== 'shuttle') {
-            const hubLink = Game.getObjectById(room.memory.hubLink) || room.impassibleStructures.find(s => s.structureType === STRUCTURE_LINK && s.store[RESOURCE_ENERGY]
-                && (!myCreepsFilter(s.id) || s.store[RESOURCE_ENERGY] > (myCreepsFilter(s.id) + 1) * (freeCapacity * 0.5)));
+            const hubLink = Game.getObjectById(room.memory.hubLink);
             if (hubLink && hubLink.store[RESOURCE_ENERGY]) {
                 potentialEnergy.push(hubLink);
             }
@@ -437,9 +444,15 @@ Creep.prototype.haulerDelivery = function () {
     }
 
     // Storage
-    if (!targets.length && this.room.storage && this.memory.lastWithdraw !== this.room.storage.id &&
-        this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-        targets.push(this.room.storage);
+    if (!targets.length && this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+        // Check if we pulled from this and idle for a bit if so
+        if (this.memory.lastWithdraw === this.room.storage.id && !this.memory.storageCooldown) {
+            this.memory.storageCooldown = true;
+            return this.idleFor(15);
+        } else {
+            this.memory.storageCooldown = undefined;
+            targets.push(this.room.storage);
+        }
     }
 
     // Find closest target
@@ -495,7 +508,7 @@ Creep.prototype.constructionWork = function () {
             this.memory.constructionSite = hostileBarrier.id;
             this.memory.task = 'repair';
             this.memory.targetHits = hostileBarrier.hits + 25000;
-            this.memory.sitePos = JSON.stringify(site.pos);
+            this.memory.sitePos = JSON.stringify(hostileBarrier.pos);
             return true;
         }
     }
