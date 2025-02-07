@@ -448,7 +448,7 @@ Creep.prototype.haulerDelivery = function () {
         // Check if we pulled from this and idle for a bit if so
         if (this.memory.lastWithdraw === this.room.storage.id && !this.memory.storageCooldown) {
             this.memory.storageCooldown = true;
-            return this.idleFor(5);
+            return false;
         } else {
             targets.push(this.room.storage);
         }
