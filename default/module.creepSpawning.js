@@ -174,7 +174,7 @@ module.exports.essentialCreepQueue = function (room) {
         let haulerPriority = PRIORITIES.hauler;
         let haulerReboot = false;
         if (storageOrTerminal) {
-            let haulerAmount = room.memory.needsHaulers ? 2 : 1;
+            let haulerAmount = room.memory.needsHaulers && room.totalEnergyState > 2 ? 2 : 1;
             if (!haulerCount) {
                 haulerAmount = 1;
                 haulerPriority = 1;
@@ -422,23 +422,15 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleRemoteHarvesters(room) {
         if (Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
-
-        // Determine the target score based on room level
-        const targetScore = room.level < 8 ? REMOTE_DISTANCE_MAX : REMOTE_DISTANCE_MAX * 0.5;
-        const totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-
-        // Check if we need more harvesters
+        let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
         if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 2) {
             let remoteSources = JSON.parse(room.memory.remoteSources);
             const activeSk = activeSkMining[room.name] + CREEP_LIFE_TIME > Game.time;
-            remoteSources = remoteSources.filter(source => {
-                const sourceIntel = INTEL[source.room];
-                return (sourceIntel.sk || (!activeSk && source.score <= targetScore)) &&
-                    !Game.creeps.some(creep => creep.my && creep.memory.role === 'remoteHarvester' && creep.memory.other && creep.memory.other.source === source.source);
-            });
-            for (let source of remoteSources) {
+            const acceptedScore = Math.max(REMOTE_DISTANCE_MAX, _.min(remoteSources, 'score').score);
+            remoteSources = _.filter(remoteSources, (s) => (INTEL[s.room].sk || (!activeSk && s.score <= acceptedScore)) &&
+                !_.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === s.source));
+            for (const source of remoteSources) {
                 if (shouldSkipRemote(room, source.room)) continue;
-                // Check if it's an SK room and if we have attackers for it
                 if (!INTEL[source.room].sk || getCreepCount(undefined, 'SKAttacker', source.room)) {
                     queueCreep(room, PRIORITIES.remoteHarvester, {
                         role: 'remoteHarvester',
