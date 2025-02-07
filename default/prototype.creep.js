@@ -259,6 +259,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
     else if (destination.amount) {
         let result = this.pickup(destination);
         if (result === OK) {
+            this.memory.lastWithdraw = destination.id;
             delete this.memory.energyDestination;
             delete this.memory._shibMove;
             return true;
@@ -435,8 +436,9 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
 
-    // Storage as last resort
-    if (!targets.length && this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+    // Storage
+    if (!targets.length && this.room.storage && this.memory.lastWithdraw !== this.room.storage.id &&
+        this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
         targets.push(this.room.storage);
     }
 
