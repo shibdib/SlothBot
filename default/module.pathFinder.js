@@ -1393,8 +1393,6 @@ Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined)
     let threats = gatherThreats(this, fleeRange);
     if (!threats.length) return false;
 
-    // Indicate fleeing
-    this.say('!!RUN!!', true);
     this.memory.kiteRoom = this.memory.room;
 
     // Prepare pathfinding options

@@ -477,11 +477,6 @@ Creep.prototype.fightRanged = function (target) {
         return true;
     }
 
-    // Kite if can't win or if too close to dangerous enemies
-    if (!this.canIWin(5) || shouldKite(this, target)) {
-        return this.shibKite(3);
-    }
-
     let range = this.pos.getRangeTo(target);
     let hostileNearby = this.pos.findInRange(this.room.hostileCreeps, 3);
 
@@ -496,6 +491,11 @@ Creep.prototype.fightRanged = function (target) {
         handleCloseCombat(this, target, hostileNearby);
     } else {
         handleLongRangeCombat(this, target, hostileNearby);
+    }
+
+    // Kite if can't win or if too close to dangerous enemies
+    if (!this.canIWin(5) || shouldKite(this, target)) {
+        return this.shibKite(3);
     }
 
     return true;
