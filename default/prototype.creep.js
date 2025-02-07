@@ -282,6 +282,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
     // Cache values that are used repeatedly
     const freeCapacity = this.store.getFreeCapacity();
     const myCreeps = room.myCreeps;
+    let potentialEnergy = [];
 
     const myCreepsFilter = (destinationId) => myCreeps.filter(c => c.memory.energyDestination === destinationId && c.id !== this.id).length;
 
@@ -290,82 +291,73 @@ Creep.prototype.locateEnergy = function (room = this.room) {
 
     if (isAlliedRoom) {
         // Check for dropped energy first as it's often the quickest pick-up
-        const dropped = room.droppedEnergy.find(r => r.amount >= (myCreepsFilter(r.id) + 1) * (freeCapacity * 0.5));
-        if (dropped) {
-            this.memory.energyDestination = dropped.id;
-            return true;
-        }
+        potentialEnergy = potentialEnergy.concat(room.droppedEnergy.filter(r => r.amount >= (myCreepsFilter(r.id) + 1) * (freeCapacity * 0.5)));
 
         // Then check storage and terminal if accessible
         if (room.storage && !room.storage.pos.checkForRampart(true) && room.storage.store[RESOURCE_ENERGY]) {
-            this.memory.energyDestination = room.storage.id;
-            return true;
+            potentialEnergy.push(room.storage);
         }
         if (room.terminal && !room.terminal.pos.checkForRampart(true) && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
-            this.memory.energyDestination = room.terminal.id;
-            return true;
+            potentialEnergy.push(room.terminal);
+        }
+        if (potentialEnergy.length) {
+            const closest = this.pos.findClosestByRange(potentialEnergy);
+            if (closest && closest.id) {
+                this.memory.energyDestination = closest.id;
+                return true;
+            }
+        } else {
+            return false;
         }
     } else {
         // Handle remote haulers pre-storage
         if (!room.storage && room.controller && room.controller.owner && !['hauler', 'shuttle', 'remoteHauler'].includes(this.memory.role)) {
-            const hauler = myCreeps.find(c => c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 3);
-            if (hauler) {
-                this.memory.energyDestination = hauler.id;
-                return true;
-            }
+            potentialEnergy = potentialEnergy.concat(myCreeps.find(c => c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 3));
         }
 
         // Check for tombstones, ruins, factory, links, and storage in order of priority
-        const tombstone = room.tombstones.find(r => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY]);
-        if (tombstone) {
-            this.memory.energyDestination = tombstone.id;
-            return true;
-        }
+        potentialEnergy = potentialEnergy.concat(room.tombstones.filter(r => r.store[RESOURCE_ENERGY]));
 
-        const ruin = room.ruins.find(r => r.store[RESOURCE_ENERGY]);
-        if (ruin) {
-            this.memory.energyDestination = ruin.id;
-            return true;
-        }
+        // Ruins
+        potentialEnergy = potentialEnergy.concat(room.ruins.filter(r => r.store[RESOURCE_ENERGY]));
 
         if (room.factory && (!room.factory.memory.producing || room.factory.memory.producing === RESOURCE_ENERGY) && room.factory.store[RESOURCE_ENERGY]) {
+            potentialEnergy.push(room.factory);
             this.memory.energyDestination = room.factory.id;
             return true;
         }
 
         // Check links and storage if not a shuttle
         if (this.memory.role !== 'shuttle') {
-            const hubLink = Game.getObjectById(room.memory.hubLink) || room.impassibleStructures.find(s => s.structureType === STRUCTURE_LINK && s.store[RESOURCE_ENERGY]);
+            const hubLink = Game.getObjectById(room.memory.hubLink) || room.impassibleStructures.find(s => s.structureType === STRUCTURE_LINK && s.store[RESOURCE_ENERGY]
+                && (!myCreepsFilter(s.id) || s.store[RESOURCE_ENERGY] > (myCreepsFilter(s.id) + 1) * (freeCapacity * 0.5)));
             if (hubLink && hubLink.store[RESOURCE_ENERGY]) {
-                this.memory.energyDestination = hubLink.id;
-                return true;
+                potentialEnergy.push(hubLink);
             }
             // Storage and terminal, take from whichever has more energy
             if (room.storage && room.storage.store[RESOURCE_ENERGY] > (room.terminal ? room.terminal.store[RESOURCE_ENERGY] : 0)) {
-                this.memory.energyDestination = room.storage.id;
-                return true;
+                potentialEnergy.push(room.storage);
             } else if (room.terminal && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
-                this.memory.energyDestination = room.terminal.id;
-                return true;
+                potentialEnergy.push(room.terminal);
             }
         }
+
+        // Dropped Energy
+        potentialEnergy = potentialEnergy.concat(room.droppedEnergy.filter(r => r.amount >= (myCreepsFilter(r.id) + 1) * (freeCapacity * 0.5)));
 
         // Container handling for specific roles or in rooms without storage
         if (['shuttle', 'remoteHauler'].includes(this.memory.role) || !room.controller || !room.controller.owner || !room.storage) {
-            const containers = room.structures.filter(s =>
-                s.structureType === STRUCTURE_CONTAINER && s.id !== room.memory.controllerContainer
-            );
-            if (containers.length) {
-                this.memory.energyDestination = _.sample(containers).id;
-                return true;
-            }
+            potentialEnergy = potentialEnergy.concat(room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER &&
+                s.id !== room.memory.controllerContainer && (!myCreepsFilter(s.id) || s.store[RESOURCE_ENERGY] > (myCreepsFilter(s.id) + 1) * (freeCapacity * 0.5))));
         }
 
-        // Dropped Energy as last resort
-        const dropped = room.droppedEnergy.reduce((max, r) => (r.amount > max.amount ? r : max), {amount: 0});
-        if (dropped.amount > 0) {
-            this.memory.energyDestination = dropped.id;
-            return true;
+        // Find closest energy source
+        if (potentialEnergy.length) {
+            const closest = this.pos.findClosestByRange(potentialEnergy);
+            if (closest && closest.id) {
+                this.memory.energyDestination = closest.id;
+                return true;
+            }
         }
     }
 
