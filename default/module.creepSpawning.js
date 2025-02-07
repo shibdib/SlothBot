@@ -453,31 +453,16 @@ module.exports.remoteCreepQueue = function (room) {
     function handleRemoteHaulers(room) {
         if (Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
         if (!room.memory.remoteSources) return;
-        const remoteSources = JSON.parse(room.memory.remoteSources);
         // Find active sources with harvesters
-        const activeSources = remoteSources.filter(source =>
-            Game.creeps.some(creep =>
-                creep.my &&
-                creep.memory.other &&
-                creep.memory.other.source === source.source &&
-                creep.memory.other.harvestPower
-            )
-        );
+        const activeSources = _.filter(JSON.parse(room.memory.remoteSources), (s) =>
+            _.some(Game.creeps, (c) => c.my && c.memory.other && c.memory.other.source === s.source && c.memory.other.harvestPower));
         for (const source of activeSources) {
             if (shouldSkipRemote(room, source.room)) continue;
-            const assignedHarvester = Game.creeps.find(creep =>
-                creep.my &&
-                creep.memory.role === 'remoteHarvester' &&
-                creep.memory.other.source === source.source
-            );
+            const assignedHarvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === source.source);
             if (!assignedHarvester) continue;
             // Count and sum capacity of existing haulers
-            const assignedHaulers = Game.creeps.filter(creep =>
-                creep.my &&
-                creep.memory.role === 'remoteHauler' &&
-                creep.memory.other &&
-                creep.memory.other.source === source.source
-            );
+            const assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.memory.other &&
+                c.memory.other.source === source.source);
             if (assignedHaulers.length >= 2) continue;
             const haulingCapacity = assignedHaulers.reduce((sum, creep) =>
                 sum + creep.getActiveBodyparts(CARRY) * 50, 0
