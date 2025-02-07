@@ -223,6 +223,23 @@ RoomPosition.prototype.lookNearby = function (asArray, range = 1) {
 };
 
 /**
+ * Get position at direction
+ *
+ * @param direction - The direction in question
+ * @returns {RoomPosition} Returns a room position or undefined
+ */
+RoomPosition.prototype.positionAtDirection = function (direction) {
+    let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
+    let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
+    let x = this.x + offsetX[direction];
+    let y = this.y + offsetY[direction];
+    if (x > 49 || x < 0 || y > 49 || y < 0 || !x || !y) {
+        return undefined;
+    }
+    return new RoomPosition(x, y, this.roomName);
+};
+
+/**
  * Check for terrain wall
  * @returns {boolean}
  */

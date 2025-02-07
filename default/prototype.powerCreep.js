@@ -111,7 +111,7 @@ PowerCreep.prototype.borderCheck = function () {
             let origin = normalizePos(this);
             pathInfo.path = pathInfo.path.slice(1);
             let nextDirection = parseInt(pathInfo.path[0], 10);
-            pathInfo.newPos = positionAtDirection(origin, nextDirection);
+            pathInfo.newPos = origin.positionAtDirection(nextDirection);
             switch (this.move(nextDirection)) {
                 case OK:
                     pathInfo.pathPosTime = 0;
@@ -167,14 +167,3 @@ PowerCreep.prototype.fleeNukeRoom = function () {
     if (this.memory.fleeTo && this.room.name !== this.memory.fleeTo) this.shibMove(new RoomPosition(25, 25, this.memory.fleeTo), {range: 23}); else if (this.room.name !== this.memory.fleeTo) this.idleFor(this.memory.fleeNukeTime - Game.time);
     if (!this.memory.fleeTo) this.memory.fleeTo = _.sample(_.filter(MY_ROOMS, (r) => !r.nukes.length)).name;
 };
-
-function positionAtDirection(origin, direction) {
-    let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
-    let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
-    let x = origin.x + offsetX[direction];
-    let y = origin.y + offsetY[direction];
-    if (x > 49 || x < 0 || y > 49 || y < 0 || !x || !y) {
-        return;
-    }
-    return new RoomPosition(x, y, origin.roomName);
-}

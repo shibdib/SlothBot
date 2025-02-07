@@ -183,7 +183,7 @@ function executePath(creep, pathInfo, options, origin, heading) {
     if (pathInfo.newPos && pathInfo.newPos.x === creep.pos.x && pathInfo.newPos.y === creep.pos.y && pathInfo.newPos.roomName === creep.pos.roomName) pathInfo.path = pathInfo.path.slice(1);
     let nextDirection = parseInt(pathInfo.path[0], 10);
     if (nextDirection && pathInfo.newPos) {
-        pathInfo.newPos = positionAtDirection(origin, nextDirection);
+        pathInfo.newPos = origin.positionAtDirection(nextDirection);
         if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName && pathInfo.newPos) {
             // Handle tunneling thru walls/ramps
             if (pathInfo.newPos.checkForBarrierStructure() && (!INTEL[pathInfo.newPos.roomName] || !INTEL[pathInfo.newPos.roomName].owner || !FRIENDLIES.includes(INTEL[pathInfo.newPos.roomName].owner))) {
@@ -247,7 +247,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         pathInfo.target = target;
         pathInfo.path = cached;
         pathInfo.usingCached = true;
-        pathInfo.newPos = positionAtDirection(creep.pos, parseInt(pathInfo.path[0], 10));
+        pathInfo.newPos = creep.pos.positionAtDirection(parseInt(pathInfo.path[0], 10));
         creep.memory._shibMove = pathInfo;
         switch (creep.move(parseInt(pathInfo.path[0], 10))) {
             case OK:
@@ -342,7 +342,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         if (options.confirmPath && ret.path && !ret.incomplete) return ret.path; else if (options.confirmPath && ret.incomplete) return false;
         pathInfo.path = serializePath(creep.pos, ret.path);
         let nextDirection = parseInt(pathInfo.path[0], 10);
-        pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
+        pathInfo.newPos = creep.pos.positionAtDirection(nextDirection);
         pathInfo.target = target;
         if (options.ignoreCreeps && !options.ignoreStructures) cachePath(creep, origin, target, pathInfo);
         delete pathInfo.findAttempt;
@@ -478,7 +478,7 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
 //FUNCTIONS
 function creepBumping(creep, pathInfo, options) {
     if (!pathInfo.newPos) return creep.moveRandom();
-    let nextPosition = positionAtDirection(creep.pos, parseInt(pathInfo.path[0], 10));
+    let nextPosition = creep.pos.positionAtDirection(parseInt(pathInfo.path[0], 10));
     if (nextPosition) {
         let bumpCreep = _.find(nextPosition.lookFor(LOOK_CREEPS), (c) => c.my && !c.fatigue && (!c.memory.other || !c.memory.other.stationary));
         if (bumpCreep) {
@@ -902,17 +902,6 @@ function serializePath(startPos, path, color = _.sample(["orange", "blue", "gree
         startPos = position;
     }
     return serializedPath;
-}
-
-function positionAtDirection(origin, direction) {
-    let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
-    let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
-    let x = origin.x + offsetX[direction];
-    let y = origin.y + offsetY[direction];
-    if (x > 49 || x < 0 || y > 49 || y < 0 || !x || !y) {
-        return;
-    }
-    return new RoomPosition(x, y, origin.roomName);
 }
 
 function cacheRoute(from, to, route, failed = undefined) {
