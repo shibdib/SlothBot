@@ -244,7 +244,7 @@ function handleObstacle(creep, pathInfo, options) {
             !INTEL[pathInfo.newPos.roomName].owner ||
             !FRIENDLIES.includes(INTEL[pathInfo.newPos.roomName].owner))) {
         let barrier = pathInfo.newPos.checkForBarrierStructure();
-        if (canHandleBarrier(creep, options, barrier)) {
+        if (canHandleBarrier(creep, options, barrier, pathInfo)) {
             manageBarrier(creep, barrier, pathInfo);
         } else {
             creep.memory._shibMove = undefined; // Clear path if we can't handle the barrier
@@ -253,7 +253,7 @@ function handleObstacle(creep, pathInfo, options) {
     pathInfo.pathPosTime++;
 }
 
-function canHandleBarrier(creep, options, barrier) {
+function canHandleBarrier(creep, options, barrier, pathInfo) {
     return (options.tunnel ||
             creep.hasActiveBodyparts(ATTACK) ||
             creep.hasActiveBodyparts(WORK) ||
@@ -1171,6 +1171,7 @@ function getPath(creep, from, to, pathInfo = {}) {
 }
 
 function checkPathValidity(cachedPath, creep) {
+    if (!cachedPath.path[0]) return false;
     let room = Game.rooms[cachedPath.path[0].roomName];
     if (!room) return false;
 
