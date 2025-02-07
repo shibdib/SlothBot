@@ -136,7 +136,7 @@ Object.defineProperty(Room.prototype, 'energyState', {
                 this._energyState = 3;
             } else if (this.energy >= STORAGE_CAPACITY * 0.2) {
                 this._energyState = 2;
-            } else if (this.energy >= STORAGE_CAPACITY * 0.05 || (!this.storage && !this.terminal)) {
+            } else if (this.energy >= STORAGE_CAPACITY * 0.05 || (!this.storage || !this.terminal)) {
                 this._energyState = 1;
             } else {
                 this._energyState = 0;
@@ -157,7 +157,7 @@ Object.defineProperty(Room.prototype, 'totalEnergyState', {
                 this._energyState = 3;
             } else if (energy >= STORAGE_CAPACITY * 0.2) {
                 this._energyState = 2;
-            } else if (energy >= STORAGE_CAPACITY * 0.05 || (!this.storage && !this.terminal)) {
+            } else if (energy >= STORAGE_CAPACITY * 0.05 || (!this.storage || !this.terminal)) {
                 this._energyState = 1;
             } else {
                 this._energyState = 0;
