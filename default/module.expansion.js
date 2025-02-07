@@ -4,7 +4,7 @@
 
 class ExpansionControl {
     constructor() {
-        this.claimTarget = undefined;
+        this.claimTarget = Memory.claimTarget || {};
         this.worthyRooms = [];
     }
 
@@ -13,7 +13,7 @@ class ExpansionControl {
 
         this.findClaimTarget();
 
-        if (this.claimTarget) {
+        if (this.claimTarget.room) {
             if (!this.checkForActiveClaims(Memory.auxiliaryTargets)) {
                 this.claimOperation(this.claimTarget);
             }
@@ -23,13 +23,13 @@ class ExpansionControl {
     }
 
     findClaimTarget() {
-        this.claimTarget = Memory.nextClaim;
+        Memory.nextClaim = undefined;
 
-        if (this.claimTarget) {
-            const targetIntel = INTEL[this.claimTarget];
-            if (!targetIntel || targetIntel.owner || targetIntel.reservation) {
-                Memory.nextClaim = undefined;
-                this.claimTarget = undefined;
+        if (this.claimTarget.room) {
+            const targetIntel = INTEL[this.claimTarget.room];
+            if (!targetIntel || targetIntel.owner || targetIntel.reservation || this.claimTarget.tick + CREEP_LIFE_TIME < Game.time) {
+                Memory.claimTarget = {};
+                this.claimTarget = {};
             } else {
                 return; // already have a valid target, proceed to claim operation
             }
@@ -46,7 +46,7 @@ class ExpansionControl {
 
         this.scoreRooms();
         const max = _.max(this.worthyRooms, 'claimValue');
-        this.claimTarget = max ? max.name : undefined;
+        this.claimTarget.room = max ? max.name : undefined;
     }
 
     filterWorthyRooms() {
@@ -148,20 +148,21 @@ class ExpansionControl {
         return bonusTable[mineralType] || 200;
     }
 
-    claimOperation(roomName) {
+    claimOperation(claimTarget) {
+        const roomName = claimTarget.room;
         const limit = roomStatus(MY_ROOMS[0]) === 'novice' ? 3 : Memory.cpuTracking.roomPenalty && Memory.cpuTracking.roomPenalty + 50000 > Game.time ? Game.gcl.level - 1 : Game.gcl.level;
 
-        if (limit > MY_ROOMS.length && MAX_LEVEL >= 4 && !Memory.auxiliaryTargets[roomName] && INTEL[roomName] && !INTEL[roomName].hostile) {
-            Memory.nextClaim = undefined;
+        if (limit > MY_ROOMS.length && MAX_LEVEL >= 4 && !Memory.auxiliaryTargets[roomName]) {
+            Memory.claimTarget = {};
             Memory.auxiliaryTargets[roomName] = {
                 tick: Game.time,
                 type: 'claim',
                 priority: 1
             };
             log.a(`Claim Mission for ${roomLink(roomName)} initiated.`, 'EXPANSION CONTROL:');
-        } else if (Memory.nextClaim !== roomName) {
+        } else if (!Memory.claimTarget || Memory.claimTarget.room !== roomName) {
             log.a(`Next claim target set to ${roomLink(roomName)} once available.`, 'EXPANSION CONTROL:');
-            Memory.nextClaim = roomName;
+            Memory.claimTarget = {room: roomName, tick: Game.time};
         }
     }
 
