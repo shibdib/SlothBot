@@ -232,8 +232,6 @@ class ModuleBodyGenerator {
                 break;
 
             case 'reserver':
-                energyScaling = true;
-
                 // Calculate claim based on energy and the cost of CLAIM and MOVE parts
                 claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
                 claim = Math.min(claim, 20);  // Cap claim to 20 parts
