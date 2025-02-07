@@ -42,7 +42,7 @@ class RoleClaimer {
             this.cleanRoom(this.room);
             return this.creep.suicide();
         } else if (!this.creep.pos.findClosestByPath(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER))) {
-            INTEL[this.room.name].obstructions = true;
+            INTEL[this.room.name].obstacles = true;
             Memory.auxiliaryTargets[this.room.name] = undefined;
             return this.creep.suicide();
         } else if (!this.creep.memory.signed) {

@@ -129,82 +129,82 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
     } else {
         return shibPath(creep, heading, pathInfo, origin, target, options);
     }
-}
 
-function handleTowing(creep) {
-    if (creep.memory.towDestination && creep.memory.towCreep) {
-        let towCreep = Game.getObjectById(creep.memory.towCreep);
-        if (!towCreep) {
-            creep.memory.towCreep = undefined;
-        } else {
-            return;
-        }
-    }
-}
-
-function handleRepathing(creep, heading, options) {
-    if (creep.memory.repathing !== creep.room.name) {
-        heading = new RoomPosition(25, 25, creep.memory.repathing);
-        options.range = 23;
-    } else {
-        creep.memory.repathing = undefined;
-        creep.memory._shibMove = undefined;
-    }
-    return heading;
-}
-
-function isValidPathMemory(pathMemory, target) {
-    return pathMemory && pathMemory.target && pathMemory.targetRoom === target.roomName && pathMemory.target.x === target.x && pathMemory.target.y === target.y;
-}
-
-function handleTowRequest(creep, heading, options) {
-    if (creep.memory.willNeedTow === undefined) {
-        creep.memory.willNeedTow = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length;
-    }
-    if (creep.memory.willNeedTow && (creep.pos.getRangeTo(heading) > 3 || !creep.hasActiveBodyparts(MOVE))) {
-        if (!creep.memory.towDestination) {
-            creep.memory.towDestination = heading.id || heading;
-            creep.memory.towOptions = options;
-        } else if (heading.id && creep.hasActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {
-            creep.memory.towDestination = undefined;
-        } else if (creep.pos.isNearTo(heading) && ((heading instanceof RoomPosition && heading.checkForCreep()) || (heading.pos && heading.pos.checkForCreep()))) {
-            creep.memory.towDestination = undefined;
-        }
-        if (!creep.memory.towCreep || !Game.getObjectById(creep.memory.towCreep)) {
-            let towTruck = findTowTruck(creep);
-            if (towTruck) {
-                creep.memory.towCreep = towTruck.id;
-                towTruck.memory.trailer = creep.id;
+    function handleTowing(creep) {
+        if (creep.memory.towDestination && creep.memory.towCreep) {
+            let towCreep = Game.getObjectById(creep.memory.towCreep);
+            if (!towCreep) {
+                creep.memory.towCreep = undefined;
+            } else {
+                return;
             }
         }
-        return true;
     }
-    return false;
-}
 
-function findTowTruck(creep) {
-    let towTrucks = _.filter(creep.room.creeps, (c) => c.getActiveBodyparts(MOVE) >= creep.body.length * 0.5 && !_.sum(c.store) && !c.memory.trailer);
-    if (!towTrucks.length) {
-        towTrucks = _.filter(creep.room.creeps, (c) => c.getActiveBodyparts(MOVE) >= 2 && !_.sum(c.store) && !c.memory.trailer);
-    }
-    return creep.pos.findClosestByRange(towTrucks);
-}
-
-function handlePortal(creep, heading, options) {
-    if (options.portal) {
-        if (creep.room.name === options.portalDestination) {
-            heading = new RoomPosition(25, 25, options.originalDestination);
-            options.portal = undefined;
-            options.range = 23;
-        } else if (creep.room.name !== creep.memory.portal) {
-            heading = new RoomPosition(25, 25, options.portal);
+    function handleRepathing(creep, heading, options) {
+        if (creep.memory.repathing !== creep.room.name) {
+            heading = new RoomPosition(25, 25, creep.memory.repathing);
             options.range = 23;
         } else {
-            heading = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL);
-            options.range = 0;
+            creep.memory.repathing = undefined;
+            creep.memory._shibMove = undefined;
         }
+        return heading;
     }
-    return heading;  // Return the potentially modified heading
+
+    function isValidPathMemory(pathMemory, target) {
+        return pathMemory && pathMemory.target && pathMemory.targetRoom === target.roomName && pathMemory.target.x === target.x && pathMemory.target.y === target.y;
+    }
+
+    function handleTowRequest(creep, heading, options) {
+        if (creep.memory.willNeedTow === undefined) {
+            creep.memory.willNeedTow = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length;
+        }
+        if (creep.memory.willNeedTow && (creep.pos.getRangeTo(heading) > 3 || !creep.hasActiveBodyparts(MOVE))) {
+            if (!creep.memory.towDestination) {
+                creep.memory.towDestination = heading.id || heading;
+                creep.memory.towOptions = options;
+            } else if (heading.id && creep.hasActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {
+                creep.memory.towDestination = undefined;
+            } else if (creep.pos.isNearTo(heading) && ((heading instanceof RoomPosition && heading.checkForCreep()) || (heading.pos && heading.pos.checkForCreep()))) {
+                creep.memory.towDestination = undefined;
+            }
+            if (!creep.memory.towCreep || !Game.getObjectById(creep.memory.towCreep)) {
+                let towTruck = findTowTruck(creep);
+                if (towTruck) {
+                    creep.memory.towCreep = towTruck.id;
+                    towTruck.memory.trailer = creep.id;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    function findTowTruck(creep) {
+        let towTrucks = _.filter(creep.room.creeps, (c) => c.getActiveBodyparts(MOVE) >= creep.body.length * 0.5 && !_.sum(c.store) && !c.memory.trailer);
+        if (!towTrucks.length) {
+            towTrucks = _.filter(creep.room.creeps, (c) => c.getActiveBodyparts(MOVE) >= 2 && !_.sum(c.store) && !c.memory.trailer);
+        }
+        return creep.pos.findClosestByRange(towTrucks);
+    }
+
+    function handlePortal(creep, heading, options) {
+        if (options.portal) {
+            if (creep.room.name === options.portalDestination) {
+                heading = new RoomPosition(25, 25, options.originalDestination);
+                options.portal = undefined;
+                options.range = 23;
+            } else if (creep.room.name !== creep.memory.portal) {
+                heading = new RoomPosition(25, 25, options.portal);
+                options.range = 23;
+            } else {
+                heading = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL);
+                options.range = 0;
+            }
+        }
+        return heading;  // Return the potentially modified heading
+    }
 }
 
 function executePath(creep, pathInfo, options, origin, heading) {
@@ -236,61 +236,61 @@ function executePath(creep, pathInfo, options, origin, heading) {
         delete pathInfo.path;
         return false;
     }
-}
 
-function handleObstacle(creep, pathInfo, options) {
-    if (pathInfo.newPos.checkForBarrierStructure() &&
-        (!INTEL[pathInfo.newPos.roomName] ||
-            !INTEL[pathInfo.newPos.roomName].owner ||
-            !FRIENDLIES.includes(INTEL[pathInfo.newPos.roomName].owner))) {
-        let barrier = pathInfo.newPos.checkForBarrierStructure();
-        if (canHandleBarrier(creep, options, barrier, pathInfo)) {
-            manageBarrier(creep, barrier, pathInfo);
-        } else {
-            creep.memory._shibMove = undefined; // Clear path if we can't handle the barrier
+    function handleObstacle(creep, pathInfo, options) {
+        if (pathInfo.newPos.checkForBarrierStructure() &&
+            (!INTEL[pathInfo.newPos.roomName] ||
+                !INTEL[pathInfo.newPos.roomName].owner ||
+                !FRIENDLIES.includes(INTEL[pathInfo.newPos.roomName].owner))) {
+            let barrier = pathInfo.newPos.checkForBarrierStructure();
+            if (canHandleBarrier(creep, options, barrier, pathInfo)) {
+                manageBarrier(creep, barrier, pathInfo);
+            } else {
+                creep.memory._shibMove = undefined; // Clear path if we can't handle the barrier
+            }
+        }
+        pathInfo.pathPosTime++;
+    }
+
+    function canHandleBarrier(creep, options, barrier, pathInfo) {
+        return (options.tunnel ||
+                creep.hasActiveBodyparts(ATTACK) ||
+                creep.hasActiveBodyparts(WORK) ||
+                creep.hasActiveBodyparts(RANGED_ATTACK)) &&
+            barrier && pathInfo.path;
+    }
+
+    function manageBarrier(creep, barrier, pathInfo) {
+        creep.memory._shibMove.pathPosTime = 0;
+        if (creep.hasActiveBodyparts(ATTACK) && creep.attack(barrier) === OK) return;
+        if (creep.hasActiveBodyparts(WORK) && creep.dismantle(barrier) === OK) return;
+        if (creep.rangedAttack(barrier) === OK) return;
+
+        // If no attack/dismantle/ranged attack possible, set up trailer for clearing
+        creep.memory.barrierClearing = barrier.id;
+        let trailer = Game.getObjectById(creep.memory.trailer);
+        if (trailer) {
+            trailer.memory.barrierClearing = barrier.id;
+            trailer.memory.towDestination = barrier.id;
         }
     }
-    pathInfo.pathPosTime++;
-}
 
-function canHandleBarrier(creep, options, barrier, pathInfo) {
-    return (options.tunnel ||
-            creep.hasActiveBodyparts(ATTACK) ||
-            creep.hasActiveBodyparts(WORK) ||
-            creep.hasActiveBodyparts(RANGED_ATTACK)) &&
-        barrier && pathInfo.path;
-}
-
-function manageBarrier(creep, barrier, pathInfo) {
-    creep.memory._shibMove.pathPosTime = 0;
-    if (creep.hasActiveBodyparts(ATTACK) && creep.attack(barrier) === OK) return;
-    if (creep.hasActiveBodyparts(WORK) && creep.dismantle(barrier) === OK) return;
-    if (creep.rangedAttack(barrier) === OK) return;
-
-    // If no attack/dismantle/ranged attack possible, set up trailer for clearing
-    creep.memory.barrierClearing = barrier.id;
-    let trailer = Game.getObjectById(creep.memory.trailer);
-    if (trailer) {
-        trailer.memory.barrierClearing = barrier.id;
-        trailer.memory.towDestination = barrier.id;
+    function handleMovement(creep, nextDirection) {
+        switch (creep.move(nextDirection)) {
+            case OK:
+            case ERR_TIRED:
+            case ERR_NO_BODYPART:
+                return;
+            case ERR_BUSY:
+                creep.idleFor(10);
+        }
     }
-}
 
-function handleMovement(creep, nextDirection) {
-    switch (creep.move(nextDirection)) {
-        case OK:
-        case ERR_TIRED:
-        case ERR_NO_BODYPART:
-            return;
-        case ERR_BUSY:
-            creep.idleFor(10);
-    }
-}
-
-function checkIfTargetReached(creep, options, heading) {
-    if (!options.flee && creep.pos.inRangeTo(heading, options.range)) {
-        creep.memory.towDestination = undefined;
-        creep.memory._shibMove = undefined;
+    function checkIfTargetReached(creep, options, heading) {
+        if (!options.flee && creep.pos.inRangeTo(heading, options.range)) {
+            creep.memory.towDestination = undefined;
+            creep.memory._shibMove = undefined;
+        }
     }
 }
 
@@ -314,155 +314,155 @@ function shibPath(creep, heading, pathInfo, origin, target, options = {}) {
     }
 
     return findNewPath(creep, origin, target, pathInfo, options);
-}
 
-function useCachedPath(creep, pathInfo, cached) {
-    pathInfo.findAttempt = undefined;
-    pathInfo.target = pathInfo.target || pathInfo.pathOptions.target;
-    pathInfo.path = cached;
-    pathInfo.usingCached = true;
-    pathInfo.newPos = creep.pos.positionAtDirection(parseInt(pathInfo.path[0], 10));
-    creep.memory._shibMove = pathInfo;
+    function useCachedPath(creep, pathInfo, cached) {
+        pathInfo.findAttempt = undefined;
+        pathInfo.target = pathInfo.target || pathInfo.pathOptions.target;
+        pathInfo.path = cached;
+        pathInfo.usingCached = true;
+        pathInfo.newPos = creep.pos.positionAtDirection(parseInt(pathInfo.path[0], 10));
+        creep.memory._shibMove = pathInfo;
 
-    return moveCreep(creep, parseInt(pathInfo.path[0], 10));
-}
-
-function findNewPath(creep, origin, target, pathInfo, options) {
-    let roomDistance = getRoomDistance(origin, target);
-    options.maxOps = calculateMaxOps(roomDistance);
-
-    let allowedRooms = getAllowedRooms(pathInfo, creep, roomDistance, origin, target, options);
-    if (!allowedRooms) return false;
-
-    let callback = function (roomName) {
-        if (allowedRooms && !_.includes(allowedRooms, roomName)) return false;
-        return getMatrix(roomName, creep, options);
-    };
-
-    let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
-        maxOps: options.maxOps,
-        maxRooms: allowedRooms ? allowedRooms.length + 1 : 2,
-        heuristicWeight: options.heuristicWeight,
-        roomCallback: callback,
-    });
-
-    return handlePathResult(creep, pathInfo, ret, origin, target, options, roomDistance);
-}
-
-function getRoomDistance(origin, target) {
-    return origin.roomName !== target.roomName ? Game.map.getRoomLinearDistance(origin.roomName, target.roomName) : 0;
-}
-
-function calculateMaxOps(roomDistance) {
-    return roomDistance ? DEFAULT_MAXOPS * (roomDistance + 2) : DEFAULT_MAXOPS;
-}
-
-function getAllowedRooms(pathInfo, creep, roomDistance, origin, target, options) {
-    if (roomDistance) {
-        let route = findRoute(origin.roomName, target.roomName, options);
-        if (!route) {
-            return handleNoPathScenario(creep, pathInfo, origin, target, options);
-        }
-        if (!_.includes(route, creep.room.name)) route.unshift(creep.room.name);
-        let immediateArea = expandRoomArea(creep.room.name);
-        return _.uniq(route.concat(immediateArea));
+        return moveCreep(creep, parseInt(pathInfo.path[0], 10));
     }
-    return (pathInfo.route || options.route || [origin.roomName].concat(_.map(Game.map.describeExits(origin.roomName))));
-}
 
-function expandRoomArea(roomName) {
-    let exits = Game.map.describeExits(roomName);
-    if (!exits) return [];
-    return _.uniq(_.flatten(_.map(exits, function (r) {
-        let furtherExits = Game.map.describeExits(r);
-        return furtherExits ? furtherExits : [];
-    })));
-}
+    function findNewPath(creep, origin, target, pathInfo, options) {
+        let roomDistance = getRoomDistance(origin, target);
+        options.maxOps = calculateMaxOps(roomDistance);
 
-function handleNoPathScenario(creep, pathInfo, origin, target, options) {
-    let exitDir = Game.map.findExit(origin.roomName, pathInfo.targetRoom);
-    if (exitDir === ERR_NO_PATH) {
-        let nextRoom = Game.map.findRoute(origin.roomName, pathInfo.targetRoom)[0];
-        exitDir = Game.map.findExit(target.roomName, nextRoom);
+        let allowedRooms = getAllowedRooms(pathInfo, creep, roomDistance, origin, target, options);
+        if (!allowedRooms) return false;
+
+        let callback = function (roomName) {
+            if (allowedRooms && !_.includes(allowedRooms, roomName)) return false;
+            return getMatrix(roomName, creep, options);
+        };
+
+        let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
+            maxOps: options.maxOps,
+            maxRooms: allowedRooms ? allowedRooms.length + 1 : 2,
+            heuristicWeight: options.heuristicWeight,
+            roomCallback: callback,
+        });
+
+        return handlePathResult(creep, pathInfo, ret, origin, target, options, roomDistance);
+    }
+
+    function getRoomDistance(origin, target) {
+        return origin.roomName !== target.roomName ? Game.map.getRoomLinearDistance(origin.roomName, target.roomName) : 0;
+    }
+
+    function calculateMaxOps(roomDistance) {
+        return roomDistance ? DEFAULT_MAXOPS * (roomDistance + 2) : DEFAULT_MAXOPS;
+    }
+
+    function getAllowedRooms(pathInfo, creep, roomDistance, origin, target, options) {
+        if (roomDistance) {
+            let route = findRoute(origin.roomName, target.roomName, options);
+            if (!route) {
+                return handleNoPathScenario(creep, pathInfo, origin, target, options);
+            }
+            if (!_.includes(route, creep.room.name)) route.unshift(creep.room.name);
+            let immediateArea = expandRoomArea(creep.room.name);
+            return _.uniq(route.concat(immediateArea));
+        }
+        return (pathInfo.route || options.route || [origin.roomName].concat(_.map(Game.map.describeExits(origin.roomName))));
+    }
+
+    function expandRoomArea(roomName) {
+        let exits = Game.map.describeExits(roomName);
+        if (!exits) return [];
+        return _.uniq(_.flatten(_.map(exits, function (r) {
+            let furtherExits = Game.map.describeExits(r);
+            return furtherExits ? furtherExits : [];
+        })));
+    }
+
+    function handleNoPathScenario(creep, pathInfo, origin, target, options) {
+        let exitDir = Game.map.findExit(origin.roomName, pathInfo.targetRoom);
         if (exitDir === ERR_NO_PATH) {
-            return creep.moveTo(target);
+            let nextRoom = Game.map.findRoute(origin.roomName, pathInfo.targetRoom)[0];
+            exitDir = Game.map.findExit(target.roomName, nextRoom);
+            if (exitDir === ERR_NO_PATH) {
+                return creep.moveTo(target);
+            }
         }
+        let exit = creep.pos.findClosestByPath(exitDir);
+        target = normalizePos(exit);
+        delete pathInfo.path;
+        options.useFindRoute = false;
+        options.range = 0;
+        return shibPath(creep, target, pathInfo, origin, target, options);
     }
-    let exit = creep.pos.findClosestByPath(exitDir);
-    target = normalizePos(exit);
-    delete pathInfo.path;
-    options.useFindRoute = false;
-    options.range = 0;
-    return shibPath(creep, target, pathInfo, origin, target, options);
-}
 
-function handlePathResult(creep, pathInfo, ret, origin, target, options, roomDistance) {
-    if (ret.incomplete) {
-        return handleIncompletePath(creep, pathInfo, ret, origin, target, options, roomDistance);
-    }
-    if (options.confirmPath && ret.path) return ret.path; // Return path if path confirmation is requested
-
-    pathInfo.path = serializePath(creep.pos, ret.path);
-    let nextDirection = parseInt(pathInfo.path[0], 10);
-    pathInfo.newPos = creep.pos.positionAtDirection(nextDirection);
-    pathInfo.target = target;
-    if (options.ignoreCreeps && !options.ignoreStructures) cachePath(creep, origin, target, pathInfo);
-    delete pathInfo.findAttempt;
-
-    if (options.getPath) return creep.memory.getPath = pathInfo.path;
-    creep.memory._shibMove = pathInfo;
-
-    return moveCreep(creep, nextDirection);
-}
-
-function handleIncompletePath(creep, pathInfo, ret, origin, target, options, roomDistance) {
-    if (!creep.memory.badPathing && roomDistance) {
-        options.maxOps = DEFAULT_MAXOPS * (roomDistance + 5);
-        creep.memory.badPathing = 1;
-        if (origin.roomName !== target.roomName) {
-            deleteRoute(origin.roomName, target.roomName);
-            deleteRoute(creep.roomName, target.roomName);
-            log.e(`Creep ${creep.name} in ${roomLink(creep.room.name)} could not find a path from ${creep.pos.x}.${creep.pos.y}.${creep.pos.roomName} to ${target.x}.${target.y}.${target.roomName} retrying.`, "PATHING ERROR:");
+    function handlePathResult(creep, pathInfo, ret, origin, target, options, roomDistance) {
+        if (ret.incomplete) {
+            return handleIncompletePath(creep, pathInfo, ret, origin, target, options, roomDistance);
         }
-        return shibPath(creep, pathInfo.target || pathInfo.pathOptions.target, pathInfo, origin, target, options);
-    } else if (creep.memory.badPathing) {
-        creep.memory.badPathing++;
-        if (creep.memory.badPathing > 8) {
-            // Handle stuck creep logic here
-            return handleStuckCreep(creep, ret, options);
-        } else if (creep.memory.badPathing >= 3) {
-            creep.memory.repathing = Game.map.describeExits(creep.room.name)[Game.map.findExit(creep.room.name, creep.memory.destination)];
+        if (options.confirmPath && ret.path) return ret.path; // Return path if path confirmation is requested
+
+        pathInfo.path = serializePath(creep.pos, ret.path);
+        let nextDirection = parseInt(pathInfo.path[0], 10);
+        pathInfo.newPos = creep.pos.positionAtDirection(nextDirection);
+        pathInfo.target = target;
+        if (options.ignoreCreeps && !options.ignoreStructures) cachePath(creep, origin, target, pathInfo);
+        delete pathInfo.findAttempt;
+
+        if (options.getPath) return creep.memory.getPath = pathInfo.path;
+        creep.memory._shibMove = pathInfo;
+
+        return moveCreep(creep, nextDirection);
+    }
+
+    function handleIncompletePath(creep, pathInfo, ret, origin, target, options, roomDistance) {
+        if (!creep.memory.badPathing && roomDistance) {
+            options.maxOps = DEFAULT_MAXOPS * (roomDistance + 5);
+            creep.memory.badPathing = 1;
+            if (origin.roomName !== target.roomName) {
+                deleteRoute(origin.roomName, target.roomName);
+                deleteRoute(creep.roomName, target.roomName);
+                log.e(`Creep ${creep.name} in ${roomLink(creep.room.name)} could not find a path from ${creep.pos.x}.${creep.pos.y}.${creep.pos.roomName} to ${target.x}.${target.y}.${target.roomName} retrying.`, "PATHING ERROR:");
+            }
+            return shibPath(creep, pathInfo.target || pathInfo.pathOptions.target, pathInfo, origin, target, options);
+        } else if (creep.memory.badPathing) {
+            creep.memory.badPathing++;
+            if (creep.memory.badPathing > 8) {
+                // Handle stuck creep logic here
+                return handleStuckCreep(creep, ret, options);
+            } else if (creep.memory.badPathing >= 3) {
+                creep.memory.repathing = Game.map.describeExits(creep.room.name)[Game.map.findExit(creep.room.name, creep.memory.destination)];
+            }
+        } else {
+            creep.memory.badPathing--;
         }
-    } else {
-        creep.memory.badPathing--;
+        return false; // Or some default action
     }
-    return false; // Or some default action
-}
 
-function handleStuckCreep(creep, ret, options) {
-    log.e(`${creep.name} is stuck in ${creep.room.name} and is unable to path. Suiciding for CPU efficiency.`);
-    log.e(`Ret - ${JSON.stringify(ret)}`);
-    if (creep.memory.military && creep.memory.destination && (Memory.targetRooms[creep.memory.destination] || Memory.auxiliaryTargets[creep.memory.destination])) {
-        delete Memory.targetRooms[creep.memory.destination];
-        delete Memory.auxiliaryTargets[creep.memory.destination];
-        delete INTEL[creep.memory.destination];
-        log.a(`Canceling operation in ${roomLink(creep.memory.destination)} as we cannot find a path.`, 'HIGH COMMAND: ');
+    function handleStuckCreep(creep, ret, options) {
+        log.e(`${creep.name} is stuck in ${creep.room.name} and is unable to path. Suiciding for CPU efficiency.`);
+        log.e(`Ret - ${JSON.stringify(ret)}`);
+        if (creep.memory.military && creep.memory.destination && (Memory.targetRooms[creep.memory.destination] || Memory.auxiliaryTargets[creep.memory.destination])) {
+            delete Memory.targetRooms[creep.memory.destination];
+            delete Memory.auxiliaryTargets[creep.memory.destination];
+            delete INTEL[creep.memory.destination];
+            log.a(`Canceling operation in ${roomLink(creep.memory.destination)} as we cannot find a path.`, 'HIGH COMMAND: ');
+        }
+        return creep.suicide();
     }
-    return creep.suicide();
-}
 
-function moveCreep(creep, direction) {
-    switch (creep.move(direction)) {
-        case OK:
-        case ERR_TIRED:
-            return true;
-        case ERR_NO_BODYPART:
-            return false;
-        case ERR_BUSY:
-            creep.idleFor(10);
-            return false;
-        default:
-            return false;
+    function moveCreep(creep, direction) {
+        switch (creep.move(direction)) {
+            case OK:
+            case ERR_TIRED:
+                return true;
+            case ERR_NO_BODYPART:
+                return false;
+            case ERR_BUSY:
+                creep.idleFor(10);
+                return false;
+            default:
+                return false;
+        }
     }
 }
 
@@ -573,7 +573,6 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
                 if (intel.user && !FRIENDLIES.includes(intel.user)) {
                     return intel.towers ? Infinity : 75; // Avoid rooms used by others
                 }
-                if (intel.obstructions) return 200; // Room with observed obstructions
                 if (intel.hostilePower > intel.friendlyPower && intel.tickDetected + 150 > Game.time) return 100; // Room under attack
                 if (intel.sk && intel.user !== MY_USERNAME) return 25; // Avoid SK rooms if not being mined
             } else {

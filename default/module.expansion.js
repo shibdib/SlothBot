@@ -53,7 +53,7 @@ class ExpansionControl {
             !room.owner &&
             room.cached + 10000 > Game.time &&
             (!room.noClaim || room.noClaim < Game.time) &&
-            !room.obstructions &&
+            !room.obstacles &&
             (!room.reservation || room.reservation === MY_USERNAME) &&
             findClosestOwnedRoom(room.name, true) <= 14 &&
             findClosestOwnedRoom(room.name, true) > 1 &&
