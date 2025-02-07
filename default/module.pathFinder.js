@@ -23,6 +23,16 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
     let target = normalizePos(heading);
     if (!origin || !target) return;
 
+    // Default options
+    _.defaults(options, {
+        maxOps: DEFAULT_MAXOPS,
+        range: 1,
+        maxRooms: 7,
+        useCache: true,
+        ignoreCreeps: true,
+        heuristicWeight: 3
+    });
+
     if (pathOnly) {
         const cached = getPath(creep, origin, target, undefined);
         if (cached) return cached;
@@ -36,7 +46,8 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
 
     // If in an SK room and no matrix exists, reset it
     if (INTEL[creep.room.name].sk && (!skMatrixCache[creep.room.name] || skMatrixCache[creep.room.name].tick + 150 < Game.time)) {
-        return creep.memory._shibMove = undefined;
+        options.useCache = false;
+        creep.memory._shibMove = undefined;
     }
 
     // Store source keeper
@@ -73,16 +84,6 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
 
     // If the pathing memory entry is missing or wrong recreate it
     if (!creep.memory._shibMove || !creep.memory._shibMove.target || creep.memory._shibMove.targetRoom !== target.roomName || creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y) creep.memory._shibMove = {};
-
-    // Default options
-    _.defaults(options, {
-        maxOps: DEFAULT_MAXOPS,
-        range: 1,
-        maxRooms: 7,
-        useCache: true,
-        ignoreCreeps: true,
-        heuristicWeight: 3
-    });
 
     // If the target is a frequently visited structure we want a more accurate path so bump heuristic
     if (heading instanceof StructureContainer || heading instanceof StructureStorage || heading instanceof StructureTerminal || heading instanceof Source) {
