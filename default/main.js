@@ -32,28 +32,26 @@ module.exports.loop = function () {
             }
         } else if (currentBucket < BUCKET_MAX * 0.01) {
             const cooldown = Game.time;
-            let roomPenalty = Memory.cpuTracking.roomPenalty || 0;
-            let remotePenalty = Memory.cpuTracking.remotePenalty || 0;
-            let bucketIssueCount = Memory.cpuTracking.bucketIssueCount || 0;
+            let {roomPenalty = 0, remotePenalty = 0, bucketIssueCount = 0} = Memory.cpuTracking || {};
             log.e('CPU Bucket Too Low - Cooldown Initiated');
-            if (bucketIssueCount >= 10) {
+            if (bucketIssueCount === 10) {
                 log.e('Bucket Issue Count Exceeded - Disabling Remote Mining');
                 _.filter(Game.creeps, (c) => c.my && ['remoteHarvester', 'remoteHauler', 'SKAttacker'].includes(c.memory.role)).forEach((c) => c.suicide());
                 remotePenalty = Game.time;
             } else if (bucketIssueCount >= 50) {
                 log.e('Bucket Issue Count Exceeded - Abandoning Worst Room');
                 abandonWorstRoom();
-                bucketIssueCount = 0;
                 roomPenalty = Game.time;
+                bucketIssueCount = -1;
             }
             Memory.cpuTracking = {
                 cooldown,
-                bucketIssueCount: bucketIssueCount + 1,
+                bucketIssueCount: bucketIssueCount++,
                 roomPenalty: roomPenalty,
                 remotePenalty: remotePenalty
             };
             return;
-        }
+        } else if (currentBucket === BUCKET_MAX && Memory.cpuTracking.bucketIssueCount > 0) Memory.cpuTracking.bucketIssueCount--;
 
         // Store Owned Rooms (Update Every 25 Ticks)
         if (!global.MY_ROOMS || !global.MAX_LEVEL || Game.time % 25 === 0) {
