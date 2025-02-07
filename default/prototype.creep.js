@@ -146,7 +146,7 @@ Creep.prototype.skSafety = function () {
     // If there's no controller and no SK intel, or if intel confirms no SK, exit
     if (this.room.controller || (INTEL[this.room.name] && !INTEL[this.room.name].sk)) return false;
 
-    const range = 8;
+    const range = 4;
     const skFilter = (c) => c.owner.username === 'Source Keeper' && c.pos.getRangeTo(this) < range;
     const lairFilter = (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn && s.ticksToSpawn <= 3 && s.pos.getRangeTo(this) < range;
 
