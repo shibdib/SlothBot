@@ -71,11 +71,11 @@ class ModuleBodyGenerator {
                 energyScaling = true;
 
                 // Scale work based on available energy, and limit it to 15 parts max
-                work = Math.floor((this.energyAmount * 0.4) / BODYPART_COST[WORK]) || 1;
+                work = Math.floor((this.energyAmount * 0.15) / BODYPART_COST[WORK]) || 1;
                 work = Math.min(work, 15); // Max work to 15
 
                 // Scale carry based on available energy, and limit it to 10 parts max
-                carry = Math.floor((this.energyAmount * 0.1) / BODYPART_COST[CARRY]) || 1;
+                carry = Math.floor((this.energyAmount * 0.35) / BODYPART_COST[CARRY]) || 1;
                 carry = Math.min(carry, 10); // Max carry to 10
 
                 break;
@@ -342,7 +342,8 @@ class ModuleBodyGenerator {
         }
 
         // Calculate energy multiplier
-        let energyMulti = energyScaling && this.room.storage && this.room.totalEnergyState < 2 ? Math.max(0.05, this.room.totalEnergyState / 3) : 1;
+        const multipliers = [0.2, 0.5, 0.75, 1];
+        let energyMulti = energyScaling && this.room.storage ? multipliers[this.room.totalEnergyState] || 1 : 1;
 
         // Utility function to add body parts
         const addBodyParts = (count, part, array) => {
