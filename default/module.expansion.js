@@ -23,8 +23,6 @@ class ExpansionControl {
     }
 
     findClaimTarget() {
-        Memory.nextClaim = undefined;
-
         if (this.claimTarget.room) {
             const targetIntel = INTEL[this.claimTarget.room];
             if (!targetIntel || targetIntel.owner || targetIntel.reservation || this.claimTarget.tick + CREEP_LIFE_TIME < Game.time) {
