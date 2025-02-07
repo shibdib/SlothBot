@@ -524,13 +524,11 @@ function findRoute(origin, destination, options = {}) {
 }
 
 function routeLogic(origin, destination, roomDistance, portalRoom) {
-    // If destination is a direct neighbor, return direct path
     if (Object.values(Game.map.describeExits(origin)).includes(destination)) {
         return [origin, destination];
     }
 
     let portalRoute, start;
-    // Get portal room route if needed
     if (portalRoom) {
         portalRoute = routeLogic(origin, portalRoom.name, roomDistance);
         start = portalRoute ? INTEL[portalRoom.name].portal : portalRoom.name;
@@ -540,32 +538,28 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
 
     let routeSearch = Game.map.findRoute(start, destination, {
         routeCallback: function (roomName) {
-            // Skip origin/destination
             if (roomName === origin || roomName === destination) return 1;
 
-            // Check room status
             let status = roomStatus(roomName);
             if (status === 'closed') return Infinity; // Use Infinity for impassable rooms
 
             let matches = roomName.match(/\d+/);
             let EW = matches ? matches[0] : '0';
-            let NS = matches ? matches[1] || EW : '0'; // If only one match, use it for both EW and NS
+            let NS = matches ? matches[1] || EW : '0';
             let highway = (INTEL[roomName] && INTEL[roomName].isHighway) || EW % 10 === 0 || NS % 10 === 0;
 
-            // Room type checks
             if (!highway && status !== roomStatus(origin)) return Infinity;
             if (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) return 1; // My rooms
 
-            // Check for avoid flagged rooms
             if (Memory.avoidRooms && Memory.avoidRooms.includes(roomName)) return 250;
 
             if (INTEL[roomName]) {
                 let intel = INTEL[roomName];
                 if (intel.user && FRIENDLIES.includes(intel.user)) return 5; // Friendly Rooms
                 if (intel.pathingPenalty && intel.pathingPenalty + CREEP_LIFE_TIME > Game.time) {
-                    return intel.pathingPenalty; // Use penalty directly if still valid
+                    return intel.pathingPenalty;
                 } else if (intel.pathingPenalty) {
-                    delete intel.pathingPenalty; // Clear old penalty
+                    delete intel.pathingPenalty;
                 }
                 if (intel.obstacles) return 250; // Avoid rooms with obstacles
                 if (intel.sk && intel.towers) return Infinity; // Avoid strongholds
@@ -581,7 +575,7 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
 
             // Highway
             if (highway) return 5;
-            return 7; // Default cost for normal rooms
+            return 7;
         }
     });
 
