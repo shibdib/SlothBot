@@ -29,7 +29,7 @@ class RoleRemoteHarvester {
             return this.creep.suicide();
         }
         // Periodically check the container
-        if (this.creep.memory.onContainer && this.container && Math.random() > 0.9 && this.creep.pos.getRangeTo(this.container) > 0) {
+        if (this.creep.memory.onContainer && this.container && Math.random() > 0.9 && this.creep.pos.getRangeTo(this.container)) {
             this.creep.memory.onContainer = undefined;
         }
     }
@@ -43,11 +43,13 @@ class RoleRemoteHarvester {
 
         // Move to or stay on container
         if (this.container && !this.creep.memory.onContainer) {
-            if (this.creep.pos.getRangeTo(this.container) > 0) {
+            if (this.creep.pos.getRangeTo(this.container)) {
                 return this.creep.shibMove(this.container, {range: 0});
             }
             this.creep.memory.onContainer = true;
-        } else if (!this.creep.pos.isNearTo(source)) {
+        } else if (!this.container) {
+            harvestDepositContainer(Game.getObjectById(this.creep.memory.other.source), this.creep);
+        } else if (!this.creep.memory.onContainer && !this.creep.pos.isNearTo(source)) {
             return this.creep.shibMove(source);
         }
 
@@ -103,9 +105,6 @@ class RoleRemoteHarvester {
         if (dropped) {
             this.creep.memory.energyAmount = dropped.amount;
             this.creep.memory.energyId = dropped.id;
-            if (dropped.amount > 500) {
-                harvestDepositContainer(Game.getObjectById(this.creep.memory.other.source), this.creep);
-            }
         }
     }
 
@@ -122,6 +121,7 @@ class RoleRemoteHarvester {
 function harvestDepositContainer(source, creep) {
     let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(source) === 1});
     if (container) {
+        creep.memory.containerID = container.id;
         return container.id;
     } else {
         let site = source.pos.findInRange(creep.room.constructionSites, 3, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
