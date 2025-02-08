@@ -829,7 +829,8 @@ Creep.prototype.findDefensivePosition = function (target = this) {
                 !r.pos.checkForObstacleStructure() &&  // Avoid ramparts with obstacles
                 (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === creep.pos.x && r.pos.y === creep.pos.y)) && // Avoid occupied ramparts
                 (r.my || r.isPublic) &&  // Allow owned or public ramparts
-                (!r.room.hostileCreeps.length || target.id === creep.id || creep.pos.findPathTo(r).length < creep.pos.findPathTo(target).length)  // Prefer ramparts with fewer hostiles
+                (!r.room.hostileCreeps.length || target.id === creep.id || creep.pos.findPathTo(r).length < creep.pos.findPathTo(target).length) &&  // Prefer ramparts with fewer hostiles
+                (r.room.hostileCreeps.length || !r.pos.checkForRoad()) // Avoid roads if no hostiles
         });
     }
 
