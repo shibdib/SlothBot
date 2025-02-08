@@ -306,7 +306,8 @@ module.exports.remoteCreepQueue = function (room) {
     // If we have a contested remote.. contest it
     if (contestedRemotes[room.name]) {
         queueCreepIfNeeded(undefined, 'longbow', PRIORITIES.remoteHarvester + 1, 1, undefined, contestedRemotes[room.name]);
-        if (INTEL[contestedRemotes[room.name]] && !INTEL[contestedRemotes[room.name]].armedHostile) {
+        const intel = INTEL[contestedRemotes[room.name]];
+        if (intel && (!intel.armedHostile || intel.armedHostile + CREEP_LIFE_TIME < Game.time)) {
             handleReservation(room, contestedRemotes[room.name])
         }
     }
