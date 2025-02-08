@@ -29,30 +29,30 @@ Creep.prototype.harass = function () {
         }
     }
 
-    if (this.room.name === this.memory.destination) {
+    if (this.room.name === this.memory.destination || !this.memory.destination) {
         highCommand.generateThreat(this);  // Record threat for the current room
 
         // Handle visited tracking
         let visited = this.memory.other.visited || [];
-        visited.push(this.room.name);
-        this.memory.other.visited = visited;
 
         // Find the next harass target by considering threat level and user activity
         let target = _.min(
             _.filter(INTEL, (r) => {
-                return (!visited.includes(r.name) && (!r.owner || !r.towers) && Memory._threats.includes(r.user) && !r.armedHostile);
+                return (!visited.includes(r.name) && (!r.owner || !r.towers) && Memory._threats.includes(r.user) && !r.armedHostile && !r.safemode);
             }),
             (r) => findClosestOwnedRoom(r.name, true)
         );
 
-        if (target) {
+        if (target && target.name) {
+            visited.push(this.room.name);
+            this.memory.other.visited = visited;
             this.memory.destination = target.name;
             this.say('RE-TASKED', true);
             log.a('Re-tasking harasser ' + this.name + ' to ' + roomLink(target.name) + ' targeting ' + INTEL[target.name].user + ' from ' + roomLink(this.room.name), 'HARASS: ');
         } else if (this.memory.other.visited.length) {
             this.memory.other.visited = [];
         } else {
-            this.idleFor(5);
+            return this.fleeHome(true);
         }
     } else {
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 22});
