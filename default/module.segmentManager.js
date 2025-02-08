@@ -29,17 +29,25 @@ module.exports.retrieveIntel = function () {
     if (intelSegmentChecked) return true;
     // Retrieve intel cache
     if (intelCheckCounter < 5) {
-        if (RawMemory.segments[segmentNumber]) {
-            intelSegmentChecked = true;
-            global.INTEL = JSON.parse(RawMemory.segments[segmentNumber]) || {};
-            log.e("Intel segment retrieved, restoring old intel.", "INTEL MANAGER: ");
+        if (Memory.intelVersion === INTEL_VERSION) {
+            if (RawMemory.segments[segmentNumber]) {
+                intelSegmentChecked = true;
+                global.INTEL = JSON.parse(RawMemory.segments[segmentNumber]) || {};
+                log.e("Intel segment retrieved, restoring old intel.", "INTEL MANAGER: ");
+            } else {
+                intelCheckCounter++;
+                RawMemory.setActiveSegments(activeSegments);
+                log.d("Intel segment not accessible, enabling the segment for the next tick.", "INTEL MANAGER: ");
+            }
         } else {
-            intelCheckCounter++;
-            RawMemory.setActiveSegments(activeSegments);
-            log.d("Intel segment not accessible, enabling the segment for the next tick.", "INTEL MANAGER: ");
+            intelSegmentChecked = true;
+            log.e("Intel update detected, wiping caches.", "INTEL MANAGER: ");
+            RawMemory.segments[segmentNumber] = '';
+            Memory.intelVersion = INTEL_VERSION;
         }
     } else {
         intelSegmentChecked = true;
+        global.INTEL = {};
         log.e("Intel segment not accessible, defaulting to global.", "INTEL MANAGER: ");
     }
     return true;
@@ -52,7 +60,7 @@ module.exports.storeIntel = function () {
         log.d("Intel segment not accessed, not storing.", "INTEL MANAGER: ");
         return;
     }
-    if (!lastIntelStore || lastIntelStore + CREEP_LIFE_TIME < Game.time || Math.random() > 0.95) {
+    if (!lastIntelStore || lastIntelStore + CREEP_LIFE_TIME < Game.time) {
         // Check for invalid cache
         if (!_.size(INTEL) || !INTEL[Object.keys(INTEL)[0]].name) {
             log.e('Invalid intel cache, clearing.', "INTEL MANAGER: ");
@@ -61,8 +69,7 @@ module.exports.storeIntel = function () {
         let store = JSON.parse(JSON.stringify(INTEL));
         try {
             if (JSON.stringify(store).length >= 75000) {
-                let sorted = _.sortBy(store, 'cached');
-                store = _.drop(sorted, sorted.length * (75000 / JSON.stringify(store).length));
+                store = cleanStore(store);
             }
             RawMemory.segments[segmentNumber] = JSON.stringify(store);
             lastIntelStore = Game.time;
@@ -121,7 +128,7 @@ module.exports.storePathing = function () {
         log.d("Pathing segment not accessed, not storing.", "PATHING MANAGER: ");
         return;
     }
-    if (!lastPathingStore || lastPathingStore + 5 < Game.time) {
+    if (!lastPathingStore || lastPathingStore + CREEP_LIFE_TIME < Game.time) {
         // Handle paths
         // Check for invalid cache
         if (!_.size(CACHE.globalPathCache)) {
@@ -130,8 +137,7 @@ module.exports.storePathing = function () {
         let store = JSON.parse(JSON.stringify(CACHE.globalPathCache));
         try {
             if (JSON.stringify(store).length >= 75000) {
-                let sorted = _.sortBy(store, 'uses');
-                store = _.drop(sorted, sorted.length * (75000 / JSON.stringify(store).length));
+                store = cleanStore(store);
             }
             RawMemory.segments[69] = JSON.stringify(store);
             lastPathingStore = Game.time;
@@ -148,8 +154,7 @@ module.exports.storePathing = function () {
         store = JSON.parse(JSON.stringify(CACHE.globalRouteCache));
         try {
             if (JSON.stringify(store).length >= 75000) {
-                let sorted = _.sortBy(store, 'uses');
-                store = _.drop(sorted, sorted.length * (75000 / JSON.stringify(store).length));
+                store = cleanStore(store);
             }
             RawMemory.segments[70] = JSON.stringify(store);
             lastPathingStore = Game.time;
@@ -276,4 +281,29 @@ function makeRequests() {
         }
     }
     RawMemory.segments[98] = JSON.stringify(requestArray);
+}
+
+function cleanStore(store) {
+    let totalSize = 0;
+    let sorted = _.sortBy(Object.values(store), 'cached'); // Use Object.values for less iteration
+    let newStore = {};
+    for (let i = sorted.length - 1; i >= 0; i--) { // Iterate from the end to keep newer data
+        let item = sorted[i];
+        let itemString = JSON.stringify(item);
+        if (totalSize + itemString.length < 75000) {
+            newStore[item.roomName || item.name] = item; // Assuming each item has either roomName or name
+            totalSize += itemString.length;
+        } else {
+            // Optionally, log items that are being dropped
+            log.d(`Dropping item due to size limit: ${item.roomName || item.name}`, "INTEL MANAGER: ");
+            break; // Once we can't add more, stop the loop to save CPU
+        }
+    }
+    for (let key in store) {
+        if (!(key in newStore)) {
+            delete store[key];
+        }
+    }
+    Object.assign(store, newStore);
+    return store;
 }

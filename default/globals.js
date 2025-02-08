@@ -89,8 +89,9 @@ let globals = function () {
         console.log('------------------------------------------------------------------');
     }
 
-    // Pathfinder versioning for cache purposes
-    global.PATHFINDER_VERSION = 3;
+    // Versioning for cache purposes
+    global.PATHFINDER_VERSION = 5;
+    global.INTEL_VERSION = 5;
 
     // Global cache for roles
     global.ROLE_CACHE = {};

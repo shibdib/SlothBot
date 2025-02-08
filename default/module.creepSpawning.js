@@ -285,7 +285,7 @@ module.exports.remoteCreepQueue = function (room) {
     room.memory.borderPatrol = undefined;
 
     // Refresh remote room data every 5000 ticks or when room under attack
-    if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + 5000 > Game.time || INTEL[room.name].threatLevel > 2) {
+    if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + (CREEP_LIFE_TIME * 2) > Game.time || INTEL[room.name].threatLevel > 2) {
         refreshRemoteRoomTargets(room);
     }
 
@@ -323,8 +323,8 @@ module.exports.remoteCreepQueue = function (room) {
         remoteRoomTargets[room.name] = JSON.stringify(remoteRooms);
 
         const contestedRemote = _.find(Game.map.describeExits(room.name), function (r) {
-            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level &&
-                (INTEL[r].reservation || INTEL[r].reservation !== MY_USERNAME || (INTEL[r].user && !_.includes(FRIENDLIES, INTEL[r].user)));
+            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level
+                && (INTEL[r].user && !_.includes(FRIENDLIES, INTEL[r].user));
         });
         if (contestedRemote) contestedRemotes[room.name] = contestedRemote;
     }
@@ -360,6 +360,7 @@ module.exports.remoteCreepQueue = function (room) {
 
     function shouldSkipRemote(room, remoteName) {
         if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remoteName)) return true;
+        if (!INTEL[remoteName]) return true;
         if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
         if (INTEL[remoteName].reservation && ![MY_USERNAME, "Invader"].includes(INTEL[remoteName].reservation)) return true;
         if (INTEL[remoteName].roomHeat > 250) return true;
