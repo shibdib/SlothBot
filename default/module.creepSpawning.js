@@ -501,11 +501,10 @@ module.exports.globalCreepQueue = function () {
         }
 
         // Handle harass targets
-        if (HARASSMENT_OPERATIONS && Memory.harassTargets && Memory.harassTargets.length) {
-            const targetAmount = Math.min(Memory.harassTargets.length, MY_ROOMS.length);
-            if (getCreepCount(undefined, 'longbow', undefined, 'harass') < targetAmount) {
+        if (HARASSMENT_OPERATIONS && Memory._threats && Memory._threats.length) {
+            if (getCreepCount(undefined, 'longbow', undefined, 'harass') < 2) {
                 const harassTarget = _.sample(_.filter(INTEL, function (r) {
-                    return (!r.owner || r.level < 3) && Memory.harassTargets.includes(r.user);
+                    return (!r.owner || !r.towers) && Memory._threats.includes(r.user);
                 }));
                 if (harassTarget) {
                     queueCreep(undefined, PRIORITIES.secondary, {
@@ -564,7 +563,7 @@ module.exports.globalCreepQueue = function () {
                 const remotes = _.filter(_.map(Game.map.describeExits(key)), function (r) {
                     return (!INTEL[r] || !INTEL[r].owner || INTEL[r].threatLevel < 2) && Object.values(Game.map.describeExits(r)).length > 1;
                 });
-                queueCreepIfNeeded(undefined, 'longbow', priority, remotes.length * 0.75, undefined, _.sample(remotes), {remotes: remotes}, true, 'remoteDenial', {target: key});
+                queueCreepIfNeeded(undefined, 'longbow', priority, 1, undefined, _.sample(remotes), {remotes: remotes}, true, 'remoteDenial', {target: key});
                 break;
 
             case 'roomDenial':
