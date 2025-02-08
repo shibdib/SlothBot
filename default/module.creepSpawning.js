@@ -244,7 +244,7 @@ module.exports.miscCreepQueue = function (room) {
 
     // LabTech
     if (room.terminal && room.storage && level >= 6) {
-        queueCreepIfNeeded(room, 'labTech', PRIORITIES.secondary, 1);
+        queueCreepIfNeeded(room, 'labTech', PRIORITIES.hauler + 1, 1);
     }
 
     // If no conflict detected and room level >= 6
