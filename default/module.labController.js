@@ -144,6 +144,7 @@ class LabManager {
                 return boost;
             } else {
                 const components = BOOST_COMPONENTS[boost];
+                if (!components || !components.length) continue;
                 for (boost of components) {
                     let cutOff = this.getProductionCutoffForInit(boost);
                     if (room.store(boost) >= cutOff) continue;
@@ -151,6 +152,7 @@ class LabManager {
                         return boost;
                     } else {
                         const components = BOOST_COMPONENTS[boost];
+                        if (!components || !components.length) continue;
                         for (boost of components) {
                             let cutOff = this.getProductionCutoffForInit(boost);
                             if (room.store(boost) >= cutOff) continue;
@@ -158,6 +160,7 @@ class LabManager {
                                 return boost;
                             } else {
                                 const components = BOOST_COMPONENTS[boost];
+                                if (!components || !components.length) continue;
                                 for (boost of components) {
                                     let cutOff = this.getProductionCutoffForInit(boost);
                                     if (room.store(boost) >= cutOff) continue;
