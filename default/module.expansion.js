@@ -26,6 +26,7 @@ class ExpansionControl {
         if (this.claimTarget.room) {
             const targetIntel = INTEL[this.claimTarget.room];
             if (!targetIntel || targetIntel.owner || targetIntel.reservation || this.claimTarget.tick + CREEP_LIFE_TIME < Game.time) {
+                log.a(`Refreshing claim target. Old claim target - ${this.claimTarget.room}`, 'EXPANSION CONTROL:');
                 Memory.claimTarget = {};
                 this.claimTarget = {};
             } else {
@@ -55,14 +56,21 @@ class ExpansionControl {
             (!room.noClaim || room.noClaim < Game.time) &&
             !room.obstacles &&
             (!room.reservation || room.reservation === MY_USERNAME) &&
+            this.checkNeighboringRooms(room.name) &&
             findClosestOwnedRoom(room.name, true) <= 14 &&
             findClosestOwnedRoom(room.name, true) > 1 &&
             roomStatus(room.name) === roomStatus(MY_ROOMS[0])
         );
     }
 
-    findClosestOwnedRoom(roomName) {
-        return _.min(MY_ROOMS, r => Game.map.findRoute(roomName, r).length);
+    checkNeighboringRooms(roomName) {
+        const neighboring = Object.values(Game.map.describeExits(roomName));
+        for (const neighbor of neighboring) {
+            const intel = INTEL[neighbor];
+            if (!intel) return false;
+            if (intel.owner || intel.reservation) return false;
+        }
+        return true;
     }
 
     scoreRooms() {

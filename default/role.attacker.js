@@ -23,8 +23,8 @@ class RoleAttacker {
             case 'guard':
                 creep.guardRoom();
                 break;
-            case 'hold':
-                creep.holdRoom();
+            case 'roomDenial':
+                creep.denyRoom();
                 break;
             case 'borderPatrol':
                 creep.borderPatrol();

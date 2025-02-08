@@ -113,7 +113,6 @@ let helpers = function () {
         });
     };
 
-
     /**
      * Get the total amount of a resource you have
      * @param resource
@@ -179,9 +178,10 @@ let helpers = function () {
      * @param roomName
      * @param range
      * @param minLevel
+     * @param availableForCombat
      * @returns {number|*|number|string}
      */
-    global.findClosestOwnedRoom = function (roomName, range = false, minLevel = 1) {
+    global.findClosestOwnedRoom = function (roomName, range = false, minLevel = 1, availableForCombat = undefined) {
         // Direct check if the current room is owned and meets level criteria
         if (MY_ROOMS.includes(roomName)) {
             const room = Game.rooms[roomName];
@@ -210,6 +210,7 @@ let helpers = function () {
 
         // Loop through owned rooms
         for (let key of MY_ROOMS) {
+            if (availableForCombat && INTEL[key].availableForCombat) continue;
             const myRoom = Game.rooms[key];
             if (myRoom && myRoom.controller && myRoom.controller.level >= minLevel) {
                 let distance = Game.map.getRoomLinearDistance(roomName, key);

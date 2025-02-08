@@ -27,14 +27,14 @@ class RoleLongbow {
             case 'guard':
                 this.creep.guardRoom();
                 break;
-            case 'hold':
-                this.creep.holdRoom();
+            case 'roomDenial':
+                this.creep.denyRoom();
                 break;
             case 'harass':
                 this.creep.harass();
                 break;
-            case 'denial':
-                this.creep.roomDenial();
+            case 'remoteDenial':
+                this.creep.remoteDenial();
                 break;
         }
     }

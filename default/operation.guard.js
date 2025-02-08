@@ -35,6 +35,19 @@ Creep.prototype.guardRoom = function () {
     // Check for new mission or update orders if necessary
     this.operationManager();
 
-    // Optional: Consider checking adjacent rooms for potential threats
-    this.scanForNearbyThreats();
+    scanForNearbyThreats(this);
+};
+
+function scanForNearbyThreats(creep) {
+    const adjacentRooms = _.map(Game.map.describeExits(creep.room.name));
+    for (let roomName of adjacentRooms) {
+        let roomIntel = INTEL[roomName];
+        if (roomIntel && (roomIntel.threatLevel || roomIntel.hostileStructures)) {
+            log.a('Potential threat detected in ' + roomLink(roomName), 'GUARD: ');
+            if (!creep.memory.destination || creep.memory.destination !== roomName) {
+                creep.memory.destination = roomName;
+                creep.say('Threat Detected', true);
+            }
+        }
+    }
 };

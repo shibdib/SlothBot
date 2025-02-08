@@ -44,10 +44,8 @@ function threatManager() {
 
             if (currentRating > 5) {
                 currentRating -= 0.25;
-                if (currentRating === 0) log.w(`${name} is no longer considered a friend.`);
             } else {
                 currentRating += 0.25;
-                if (currentRating === 0) log.w(`${name} is no longer considered a threat.`);
             }
 
             user.standing = currentRating;
@@ -62,10 +60,6 @@ function threatManager() {
     // Include manual enemies
     Memory._enemies = _.union(Memory._enemies, HOSTILES);
     Memory._threats = _.union(Memory._threats, HOSTILES);
-
-    // Update global variables
-    global.ENEMIES = Memory._enemies;
-    global.THREATS = Memory._threats;
 
     // Handle combat server cases
     if (COMBAT_SERVER) {
@@ -84,6 +78,14 @@ function threatManager() {
     // Deduplicate and clean up threats and enemies lists
     Memory._threats = _.uniq(Memory._threats.filter(Boolean));
     Memory._enemies = _.uniq(Memory._enemies.filter(Boolean));
+
+    // Clean old threats and enemies
+    Memory._threats = _.filter(Memory._threats, (t) => _.find(INTEL, (i) => i.owner === t));
+    Memory._enemies = _.filter(Memory._enemies, (e) => _.find(INTEL, (i) => i.owner === e));
+
+    // Update global variables
+    global.THREATS = Memory._threats;
+    global.ENEMIES = Memory._enemies;
 }
 
 
@@ -181,15 +183,8 @@ module.exports.trackThreat = function (creep) {
 
             if (FRIENDLIES.includes(user)) {
                 standing -= multiplier;
-                log.e(
-                    `${creep.name} took damage in ${roomLink(room.name)}. ${user} temporarily marked hostile. Standing: ${standing}`,
-                    "DIPLOMACY"
-                );
             } else {
                 standing -= 2.5 * multiplier;
-                if (standing % 5 === 0) {
-                    log.e(`${user} attacked us in ${roomLink(room.name)}. Standing: ${standing}`, "DIPLOMACY");
-                }
             }
 
             standing = Math.max(standing, -5004);
@@ -223,10 +218,6 @@ module.exports.trackThreat = function (creep) {
 
             let standing = userEntry.standing || 0;
             standing -= 0.5;
-            log.e(
-                `${creep.name} detected a neutral in ${roomLink(room.name)}. ${user} standing: ${standing}`,
-                "DIPLOMACY"
-            );
 
             standing = Math.max(standing, -5004);
             cache[user] = {standing: standing, lastAction: Game.time, lastChange: Game.time};

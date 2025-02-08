@@ -105,7 +105,7 @@ class TerminalControl {
             if (this.dealFinder(terminal, globalOrders)) return;
         }
 
-        this.fillBuyOrders(terminal, globalOrders);
+        if (this.fillBuyOrders(terminal, globalOrders)) return;
 
         this.placeBuyOrders(terminal, globalOrders, myOrders)
     }
@@ -170,7 +170,7 @@ class TerminalControl {
         for (let resourceType of Object.keys(terminal.store)) {
             // Sell energy and battery only if we have a surplus
             if ((resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) &&
-                (terminal.room.totalEnergyState < 3 || !_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 1))) continue;
+                (terminal.room.energyState < 2 || !_.find(MY_ROOMS, r => Game.rooms[r].terminal && !Game.rooms[r].energyState))) continue;
 
             let sellAmount = getSellAmount(terminal, resourceType);
             // Skip if no valid sell amount or if there's already an existing sell order
@@ -421,7 +421,7 @@ class TerminalControl {
 
         for (let resourceType of sortedKeys) {
             if ((resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) &&
-                (terminal.room.totalEnergyState < 3 || !_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 2))) continue;
+                (terminal.room.energyState < 2 || !_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 2))) continue;
 
             let keepAmount = determineKeepAmount(resourceType);
             let sellAmount = Math.max(terminal.store[resourceType] - keepAmount, 0);
@@ -430,7 +430,7 @@ class TerminalControl {
             let buyer = findBestBuyer(globalOrders, resourceType, sellAmount);
             if (buyer) {
                 if (handleSale(buyer, sellAmount, resourceType)) return true;
-            } else {
+            } else if (terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.1) {
                 // Offload excess resources dynamically
                 if (sellAmount >= keepAmount * 2) {
                     let offloadResult = handleOffload(sellAmount, resourceType);
@@ -475,8 +475,7 @@ class TerminalControl {
                 return costA - costB;  // Prefer cheaper transaction cost
             });
 
-            let bestOrder = sortedOrders[0];
-            return bestOrder;
+            return sortedOrders[0];
         }
 
         function handleSale(buyer, sellAmount, resourceType) {
@@ -488,8 +487,7 @@ class TerminalControl {
             }
 
             if (sellAmount * buyer.price >= 5) {
-                let result = Game.market.deal(buyer.id, sellAmount, terminal.pos.roomName);
-                if (result === OK) {
+                if (Game.market.deal(buyer.id, sellAmount, terminal.pos.roomName) === OK) {
                     log.w(`${terminal.pos.roomName} Sell Off Completed - ${sellAmount} ${resourceType} for ${buyer.price * sellAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
                     Memory._banker.spendingAccount += (buyer.price * sellAmount) * 0.75;
                     log.w(`New spending account amount - ${Memory._banker.spendingAccount}`, "Market: ");
@@ -577,7 +575,6 @@ class TerminalControl {
         function findNeedyTerminal(terminal, resource, available) {
             let needyTerminal = null;
 
-            // If the terminal is in an energy state, search for terminals in need within the same conditions
             if (terminal.room.energyState) {
                 needyTerminal = _.find(Game.structures, r =>
                     r.structureType === STRUCTURE_TERMINAL &&
@@ -624,7 +621,7 @@ class TerminalControl {
 
     balanceEnergy(terminal) {
         // Check if it's a good time to balance energy
-        if (INTEL[terminal.room.name].threatLevel || terminal.room.nukes.length || terminal.room.totalEnergyState < 2) return;
+        if (INTEL[terminal.room.name].threatLevel || terminal.room.nukes.length || terminal.room.energyState < 2) return;
 
         // Attempt to find a needy terminal in the room
         let needyTerminal = findNeedyTerminal(terminal);
@@ -647,7 +644,7 @@ class TerminalControl {
             // First, try to find needy terminals within the same criteria
             let needyTerminal = _.find(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL &&
                 r.room.name !== terminal.room.name &&
-                !r.room.totalEnergyState &&
+                !r.room.energyState &&
                 (!usedTerminals[r.room.name] || usedTerminals[r.room.name].tick !== Game.time) &&
                 r.store.getFreeCapacity() > 5000);
 
@@ -666,7 +663,7 @@ class TerminalControl {
         }
 
         function shouldSendToSaleTerminal(terminal) {
-            return terminal.room.energyState > 2 && terminal.room.name !== Memory.saleTerminal.room &&
+            return terminal.room.energyState > 1 && terminal.room.name !== Memory.saleTerminal.room &&
                 Game.rooms[Memory.saleTerminal.room].terminal.store.getFreeCapacity();
         }
 
@@ -704,7 +701,7 @@ class TerminalControl {
         }
 
         // Identify rooms in urgent need of energy, focusing on those with a threat level of 3 or higher
-        let responseNeeded = _.filter(MY_ROOMS, (r) => r !== terminal.room.name && INTEL[r] && INTEL[r].threatLevel >= 3 && Game.rooms[r].terminal && !Game.rooms[r].energyState);
+        let responseNeeded = _.filter(MY_ROOMS, (r) => r !== terminal.room.name && INTEL[r] && INTEL[r].threatLevel >= 3 && Game.rooms[r].terminal && Game.rooms[r].energyState < 2);
         if (responseNeeded.length === 0) return false;
 
         // Find the room with the lowest energy
@@ -1028,7 +1025,6 @@ class TerminalControl {
     orderCleanup(myOrders) {
         // Ensure myOrders is an object and contains valid order data
         if (typeof myOrders !== 'object' || Object.keys(myOrders).length === 0) {
-            log.e("myOrders is not a valid object or is empty. Skipping order cleanup.", 'MARKET: ');
             return;
         }
 
@@ -1088,7 +1084,7 @@ class TerminalControl {
 
             // Cancel energy orders if surplus detected
             if (order.resourceType === RESOURCE_ENERGY) {
-                if (order.type === ORDER_BUY && _.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState > 2)) {
+                if (order.type === ORDER_BUY && _.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState > 1)) {
                     this.cancelOrder(order, 'Energy surplus detected');
                     continue;
                 }

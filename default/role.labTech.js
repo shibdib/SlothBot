@@ -66,11 +66,11 @@ class RoleLabTech {
             }
 
             // Check terminal, storage, factory, containers, and labs in order
-            else if (this.room.terminal.store[this.creep.memory.resourceNeeded]) {
+            else if (this.room.terminal && this.room.terminal.store[this.creep.memory.resourceNeeded]) {
                 storageSite = this.room.terminal;
-            } else if (this.room.storage.store[this.creep.memory.resourceNeeded]) {
+            } else if (this.room.storage && this.room.storage.store[this.creep.memory.resourceNeeded]) {
                 storageSite = this.room.storage;
-            } else if (this.room.factory.store[this.creep.memory.resourceNeeded] && this.creep.memory.deliverTo !== this.room.factory.id) {
+            } else if (this.room.factory && this.room.factory.store[this.creep.memory.resourceNeeded] && this.creep.memory.deliverTo !== this.room.factory.id) {
                 storageSite = this.room.factory;
             } else if (_.find(this.room.structures, (s) =>
                 s.structureType === STRUCTURE_CONTAINER && s.store[this.creep.memory.resourceNeeded] && this.creep.memory.resourceNeeded !== RESOURCE_ENERGY)) {

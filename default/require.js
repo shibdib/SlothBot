@@ -15,8 +15,8 @@ require('module.pathFinder');
 // Operations
 require("operation.scout");
 require("operation.guard");
-require("operation.hold");
+require("operation.roomDenial");
 require("operation.claimClear");
 require("operation.borderPatrol");
 require("operation.harass"); // Harass random rooms of a specific players remotes
-require("operation.denial"); // Deny individual rooms remotes
+require("operation.remoteDenial"); // Deny individual rooms remotes
