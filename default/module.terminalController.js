@@ -171,6 +171,9 @@ class TerminalControl {
             if ((resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) &&
                 (terminal.room.energyState < 2 || !_.find(MY_ROOMS, r => Game.rooms[r].terminal && !Game.rooms[r].energyState))) continue;
 
+            // No selling boosts if set
+            if (!SELL_BOOSTS && ALL_BOOSTS.includes(resourceType)) continue;
+
             let sellAmount = getSellAmount(terminal, resourceType);
             // Skip if no valid sell amount or if there's already an existing sell order
             if (sellAmount < 100 || hasExistingSellOrder(myOrders, terminal, resourceType)) continue;
@@ -222,7 +225,7 @@ class TerminalControl {
             }
 
             // Handle boosts and power
-            if (_.includes(_.uniq(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS, [RESOURCE_POWER]), resourceType)) {
+            if (_.includes(_.uniq(ALL_BOOSTS, [RESOURCE_POWER]), resourceType)) {
                 sellAmount = terminal.room.store(resourceType) - BOOST_AMOUNT * 1.2;
             }
 
@@ -880,18 +883,22 @@ class TerminalControl {
                     },
                     tick: Game.time
                 };
+            }
+        }
+        // Fallback
+        if (!marketHistoryCache[resource]) {
+            const cheapestOrder = _.min(this.getGlobalOrders().filter(order => order.amount >= 50 && order.resourceType === resource &&
+                order.type === ORDER_SELL), 'price');
+            const highestOrder = _.max(this.getGlobalOrders().filter(order => order.amount >= 50 && order.resourceType === resource &&
+                order.type === ORDER_SELL), 'price');
+            if (cheapestOrder && cheapestOrder.id) {
+                marketHistoryCache[resource] = {};
+                marketHistoryCache[resource].data = {};
+                marketHistoryCache[resource].data.avg = cheapestOrder.price;
+                marketHistoryCache[resource].data.highest = highestOrder.price;
+                marketHistoryCache[resource].data.lowest = cheapestOrder.price;
             } else {
-                const cheapestOrder = _.min(this.getGlobalOrders().filter(order => order.amount >= 50 && order.resourceType === resource &&
-                    order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName)), 'price');
-                const highestOrder = _.max(this.getGlobalOrders().filter(order => order.amount >= 50 && order.resourceType === resource &&
-                    order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName)), 'price');
-                if (cheapestOrder && cheapestOrder.id) {
-                    marketHistoryCache[resource] = {};
-                    marketHistoryCache[resource].data = {};
-                    marketHistoryCache[resource].data.avg = cheapestOrder.price;
-                    marketHistoryCache[resource].data.highest = highestOrder.price;
-                    marketHistoryCache[resource].data.lowest = cheapestOrder.price;
-                }
+                return undefined;
             }
         }
         return marketHistoryCache[resource].data;
@@ -1061,6 +1068,12 @@ class TerminalControl {
             // Check if order is in the sale terminal room
             if (order.type === ORDER_SELL && order.roomName !== Memory.saleTerminal.room) {
                 this.cancelOrder(order, 'Not in the sale terminal room');
+                continue;
+            }
+
+            // Check if boosts and we shouldn't be selling them
+            if (order.type === ORDER_SELL && !SELL_BOOSTS && ALL_BOOSTS.includes(order.resourceType)) {
+                this.cancelOrder(order, 'Boost sales are disabled for this shard');
                 continue;
             }
 

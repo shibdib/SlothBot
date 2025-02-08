@@ -47,6 +47,7 @@ global.CREDIT_BUFFER = 10000; // Stay above this amount
 global.MINERAL_TRADE_AMOUNT = 10000;  // Hold this much of a mineral before selling
 global.REACTION_AMOUNT = 10000; // Minimum amount we aim for base minerals
 global.TERMINAL_ENERGY_BUFFER = 10000; // Keep this much in terminal (Needed for trade)
+global.SELL_BOOSTS = false; // If we should sell spare boosts or not
 global.BOOST_AMOUNT = 15000; // Try to have this much of all applicable boosts
 global.DUMP_AMOUNT = 40000; // Fills buys (or if overflowing it will offload to other terminals)
 
