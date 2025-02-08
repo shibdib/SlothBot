@@ -61,6 +61,18 @@ global.PROTECT_CONTROLLER = false; // Include controller in the bunker algorithm
 global.PROTECT_MINERAL = false; // Include mineral in the bunker algorithm
 global.PROTECT_SOURCES = false; // Include sources in the bunker algorithm
 
+// Energy Targets
+global.ENERGY_TARGETS = {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 25000,
+    5: 50000,
+    6: 125000,
+    7: 250000,
+    8: 500000
+}
+
 // Signing and whatnot
 global.OWNED_ROOM_SIGNS = [
     "Managed by SlothBot",
