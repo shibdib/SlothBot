@@ -14,8 +14,6 @@ const stationaryCreepMatrixCache = CACHE.stationaryCreepMatrixCache = {};
 const hostileMatrixCache = CACHE.hostileMatrixCache = {};
 const outsideHubMatrixCache = CACHE.outsideHubMatrixCache = {};
 const skMatrixCache = CACHE.skMatrixCache = {};
-let globalPathCache = CACHE.globalPathCache = {};
-let globalRouteCache = CACHE.globalRouteCache = {};
 
 function shibMove(creep, heading, options = {}, pathOnly = false) {
     // Make sure origin and target are good
@@ -904,29 +902,29 @@ function serializePath(startPos, path, color = _.sample(["orange", "blue", "gree
 
 function cacheRoute(from, to, route, failed = undefined) {
     let key = from + '_' + to;
-    let cache = globalRouteCache || {};
+    let cache = CACHE.globalRouteCache || {};
     if (typeof cache !== 'object') cache = {};
     let tick = Game.time;
     cache[key] = {
         route: JSON.stringify(route),
         failed: failed,
         uses: 1,
-        tick: tick,
-        created: tick
+        tick: tick
     };
-    globalRouteCache = cache;
+    CACHE.globalRouteCache = cache;
 }
 
 function getRoute(from, to) {
-    if (globalRouteCache) {
-        let cachedRoute = globalRouteCache[from + '_' + to];
+    if (CACHE.globalRouteCache) {
+        let cachedRoute = CACHE.globalRouteCache[from + '_' + to];
         if (cachedRoute) {
             if (cachedRoute.tick + (CREEP_LIFE_TIME * 2) > Game.time) {
                 if (cachedRoute.failed) return 'failed';
                 cachedRoute.uses += 1;
+                CACHE.globalRouteCache[from + '_' + to] = cachedRoute;
                 return JSON.parse(cachedRoute.route);
             } else {
-                delete globalRouteCache[from + '_' + to];
+                delete CACHE.globalRouteCache[from + '_' + to];
             }
         }
     }
@@ -934,7 +932,7 @@ function getRoute(from, to) {
 
 function deleteRoute(from, to) {
     let key = from + '_' + to;
-    if (globalRouteCache[key]) delete globalRouteCache[key];
+    if (CACHE.globalRouteCache[key]) delete CACHE.globalRouteCache[key];
 }
 
 function cachePath(creep, from, to, pathInfo) {
@@ -950,8 +948,8 @@ function cachePath(creep, from, to, pathInfo) {
         weight = 2;
     }
     let key = getPathKey(from, to, weight);
-    if (!globalPathCache || !_.size(globalPathCache)) globalPathCache = {};
-    globalPathCache[key] = {
+    if (!CACHE.globalPathCache || !_.size(CACHE.globalPathCache)) CACHE.globalPathCache = {};
+    CACHE.globalPathCache[key] = {
         path: pathInfo.path,
         key: key,
         structures: creep.room.impassibleStructures.length,
@@ -961,9 +959,9 @@ function cachePath(creep, from, to, pathInfo) {
 }
 
 function getPath(creep, from, to, pathInfo) {
-    if (!globalPathCache || !_.size(globalPathCache)) return;
+    if (!CACHE.globalPathCache || !_.size(CACHE.globalPathCache)) return;
     let weight = 3;
-    let cache = globalPathCache || {};
+    let cache = CACHE.globalPathCache || {};
     if (creep instanceof Creep) {
         // Don't get a cached path if creep is stuck
         if (creep.memory._shibMove && creep.memory._shibMove.pathPosTime && creep.memory._shibMove.pathPosTime >= STATE_STUCK) return;
@@ -975,20 +973,20 @@ function getPath(creep, from, to, pathInfo) {
             weight = 2;
         }
     }
-    let cachedPath = globalPathCache[getPathKey(from, to, weight)];
+    let cachedPath = cache[getPathKey(from, to, weight)];
     // Check for the path reversed
-    if (!cachedPath && globalPathCache[getPathKey(to, from, weight)]) {
-        cachedPath = globalPathCache[getPathKey(to, from, weight)];
+    if (!cachedPath && cache[getPathKey(to, from, weight)]) {
+        cachedPath = cache[getPathKey(to, from, weight)];
         cachedPath.path = reverseString(cachedPath.path);
     }
     if (cachedPath) {
         if (creep.room.impassibleStructures.length === cachedPath.structures && cachedPath.tick + (CREEP_LIFE_TIME * 2) > Game.time) {
             cachedPath.uses += 1;
-            globalPathCache = cache;
+            CACHE.globalPathCache = cache;
             return cachedPath.path;
         } else {
             delete cache[cachedPath.key];
-            globalPathCache = cache;
+            CACHE.globalPathCache = cache;
         }
     }
 }

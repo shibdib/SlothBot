@@ -81,20 +81,20 @@ let pathingCheckCounter = 0;
 module.exports.retrievePathing = function () {
     if (pathingSegmentChecked) return true;
     // Retrieve pathing and routing cache
-    if (pathingCheckCounter < 5) {
+    if (pathingCheckCounter < 25) {
         if (Memory.pathingVersion === PATHFINDER_VERSION) {
-            if (RawMemory.segments[69]) {
+            if (RawMemory.segments[69] !== undefined) {
                 pathingSegmentChecked = true;
-                global.CACHE.globalPathCache = JSON.parse(RawMemory.segments[69]) || {};
+                global.CACHE.globalPathCache = RawMemory.segments[69] ? JSON.parse(RawMemory.segments[69]) : {};
                 log.e("Pathing segment retrieved, restoring old path cache.", "PATHING MANAGER: ");
             } else {
                 pathingCheckCounter++;
                 RawMemory.setActiveSegments(activeSegments);
                 log.d("Pathing segment not accessible, enabling the segment for the next tick.", "PATHING MANAGER: ");
             }
-            if (RawMemory.segments[70]) {
+            if (RawMemory.segments[70] !== undefined) {
                 pathingSegmentChecked = true;
-                global.CACHE.globalRouteCache = JSON.parse(RawMemory.segments[70]) || {};
+                global.CACHE.globalRouteCache = RawMemory.segments[70] ? JSON.parse(RawMemory.segments[70]) : {};
                 log.e("Routing segment retrieved, restoring old routing cache.", "PATHING MANAGER: ");
             } else {
                 pathingCheckCounter++;
@@ -110,6 +110,8 @@ module.exports.retrievePathing = function () {
         }
     } else {
         pathingSegmentChecked = true;
+        global.CACHE.globalPathCache = {};
+        global.CACHE.globalRouteCache = {};
         log.e("Pathing/Routing segment not accessible, resetting.", "PATHING MANAGER: ");
     }
     return true;
@@ -122,7 +124,7 @@ module.exports.storePathing = function () {
         log.d("Pathing segment not accessed, not storing.", "PATHING MANAGER: ");
         return;
     }
-    if (!lastPathingStore || lastPathingStore + CREEP_LIFE_TIME < Game.time || Math.random() > 0.95) {
+    if (!lastPathingStore || lastPathingStore + 5 < Game.time) {
         // Handle paths
         // Check for invalid cache
         if (!_.size(CACHE.globalPathCache)) {
