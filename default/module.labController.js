@@ -122,8 +122,10 @@ class LabManager {
         return this.primaryLabs[room.name].map(id => Game.getObjectById(id));
     }
 
-    findBoostToProduce(room, secondaryLabs) {
-        let boostList = [...new Set([...LAB_PRIORITY, ...BASE_COMPOUNDS, ...TIER_3_BOOSTS, ...TIER_2_BOOSTS, ...TIER_1_BOOSTS])];
+    findBoostToProduce(room) {
+        const priority = this.tryPriority(room);
+        if (priority) return priority;
+        let boostList = [...new Set([...BASE_COMPOUNDS, ...TIER_3_BOOSTS, ...TIER_2_BOOSTS, ...TIER_1_BOOSTS])];
         for (let boost of boostList) {
             let cutOff = this.getProductionCutoffForInit(boost);
             if (room.store(boost) >= cutOff) continue;
@@ -132,6 +134,43 @@ class LabManager {
             }
         }
         return null;
+    }
+
+    tryPriority(room) {
+        for (let boost of LAB_PRIORITY) {
+            let cutOff = this.getProductionCutoffForInit(boost);
+            if (room.store(boost) >= cutOff) continue;
+            if (this.checkForInputs(room, boost)) {
+                return boost;
+            } else {
+                const components = BOOST_COMPONENTS[boost];
+                for (boost of components) {
+                    let cutOff = this.getProductionCutoffForInit(boost);
+                    if (room.store(boost) >= cutOff) continue;
+                    if (this.checkForInputs(room, boost)) {
+                        return boost;
+                    } else {
+                        const components = BOOST_COMPONENTS[boost];
+                        for (boost of components) {
+                            let cutOff = this.getProductionCutoffForInit(boost);
+                            if (room.store(boost) >= cutOff) continue;
+                            if (this.checkForInputs(room, boost)) {
+                                return boost;
+                            } else {
+                                const components = BOOST_COMPONENTS[boost];
+                                for (boost of components) {
+                                    let cutOff = this.getProductionCutoffForInit(boost);
+                                    if (room.store(boost) >= cutOff) continue;
+                                    if (this.checkForInputs(room, boost)) {
+                                        return boost;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     getProductionCutoffForInit(boost) {
