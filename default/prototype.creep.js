@@ -430,10 +430,15 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
 
-    // Spawns and Extensions (high priority)
+    // Spawns and Extensions
     targets = targets.concat(this.room.find(FIND_MY_STRUCTURES, {
         filter: s => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) &&
             s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
+    }));
+
+    // Labs
+    targets = targets.concat(this.room.find(FIND_MY_STRUCTURES, {
+        filter: s => s.structureType === STRUCTURE_LAB && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
     }));
 
     // Controller Container if below threshold and hub link conditions met
