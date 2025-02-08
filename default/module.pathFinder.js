@@ -375,16 +375,16 @@ function findRoute(origin, destination, options = {}) {
     options.portal = undefined;
     let portalRoom;
     let roomDistance = Game.map.getRoomLinearDistance(origin, destination);
-    if (roomDistance > 12) {
+    if (roomDistance > 8) {
         // Check for portals and don't use cached if one exists, if no portal and range is absurd just return
-        portalRoom = _.find(INTEL, (r) => r.portal && Game.map.getRoomLinearDistance(origin, r.name) < 10 && Game.map.getRoomLinearDistance(r.portal, destination) < 10);
+        portalRoom = _.find(INTEL, (r) => r.portal && Game.map.getRoomLinearDistance(origin, r.name) + Game.map.getRoomLinearDistance(r.portal, destination) <= 8);
         if (portalRoom && portalRoom.name) {
             options.portal = portalRoom.name;
             options.portalDestination = INTEL[portalRoom.name].portal;
             options.originalDestination = destination;
             options.portalDistance = Game.map.getRoomLinearDistance(INTEL[portalRoom.name].portal, destination);
             destination = portalRoom.name;
-        } else if (roomDistance > 20) {
+        } else if (roomDistance > 15) {
             return;
         }
     }
@@ -433,6 +433,10 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
             if (INTEL && INTEL[roomName]) {
                 // Friendly Rooms
                 if (INTEL[roomName].user && _.includes(FRIENDLIES, INTEL[roomName].user)) return 5;
+                // Avoid rooms used by others
+                if (INTEL[roomName].user && !_.includes(FRIENDLIES, INTEL[roomName].user)) {
+                    if (INTEL[roomName].towers) return Infinity; else return 75;
+                }
                 // Pathing Penalty Rooms
                 if (INTEL[roomName].pathingPenalty) {
                     if (INTEL[roomName].pathingPenalty + CREEP_LIFE_TIME < Game.time) return 200; else delete INTEL[roomName].pathingPenalty;
@@ -443,10 +447,6 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
                 if (INTEL[roomName].sk && INTEL[roomName].towers) return Infinity;
                 // High Threat
                 if (INTEL[roomName].threatLevel) return 60 * INTEL[roomName].threatLevel;
-                // Avoid rooms used by others
-                if (INTEL[roomName].user && !_.includes(FRIENDLIES, INTEL[roomName].user)) {
-                    if (INTEL[roomName].towers) return Infinity; else return 75;
-                }
                 // If room is under attack
                 if (INTEL[roomName].hostilePower > INTEL[roomName].friendlyPower && INTEL[roomName].tickDetected + 150 > Game.time) return 100;
                 // SK rooms are avoided if not being mined
