@@ -423,6 +423,10 @@ Creep.prototype.haulerDelivery = function () {
         if (targets.length) {
             this.memory.storageDestination = this.pos.findClosestByRange(targets).id;
             return true;
+        } else {
+            targets = targets.concat(this.room.find(FIND_MY_STRUCTURES, {
+                filter: s => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY
+            }));
         }
     }
 
