@@ -160,15 +160,12 @@ module.exports.status = function () {
 
     // Helper function to display harassment info
     function displayHarassmentInfo() {
-        if (Memory.harassTargets && Memory.harassTargets.length) {
+        const activeHarassers = _.filter(Game.creeps, c => c.memory && c.memory.operation === 'harass');
+        if (activeHarassers.length) {
             log.a('----------------------------- HARASSMENT INFO ----------------------------', ' ');
-            log.e(`🎯 Harass Targets: ${Memory.harassTargets.join(", ")}`, ' ');
-
-            const activeHarassers = _.filter(Game.creeps, c => c.memory && c.memory.operation === 'harass');
-            if (activeHarassers.length) {
-                log.e(`⚔️ Active Harassers: ${activeHarassers.length}`, ' ');
-                log.e(`📍 Targets: ${_.pluck(activeHarassers, 'memory.destination').join(", ")}`, ' ');
-            }
+            log.e(`🎯 Harass Targets: ${Memory._threats.join(", ")}`, ' ');
+            log.e(`⚔️ Active Harassers: ${activeHarassers.length}`, ' ');
+            log.e(`📍 Targets: ${_.pluck(activeHarassers, 'memory.destination').join(", ")}`, ' ');
         }
     }
 
