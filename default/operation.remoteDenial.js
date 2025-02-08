@@ -24,7 +24,7 @@ Creep.prototype.remoteDenial = function () {
     }
 
     // If already in the target room
-    if (this.room.name === this.memory.destination) {
+    if (this.room.name === this.memory.destination || !this.memory.destination) {
         highCommand.generateThreat(this);
         if (this.memory.other) highCommand.operationSustainability(this.room, this.memory.other.target);
 
@@ -35,7 +35,7 @@ Creep.prototype.remoteDenial = function () {
                 Memory.targetRooms[this.memory.other.target].level = 1;
             }
         } else {
-            this.memory.destination = _.sample(this.memory.other.remotes);
+            this.memory.destination = _.sample(this.memory.misc.remotes);
             this.say('RETASKED', true);
         }
     } else {
