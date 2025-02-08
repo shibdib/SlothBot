@@ -38,11 +38,7 @@ Creep.prototype.harass = function () {
         // Find the next harass target by considering threat level and user activity
         let target = _.min(
             _.filter(INTEL, (r) => {
-                return (
-                    !visited.includes(r.name) &&
-                    (!r.owner || r.level < 3) &&
-                    Memory._threats.includes(r.user)
-                );
+                return (!visited.includes(r.name) && (!r.owner || !r.towers) && Memory._threats.includes(r.user) && !r.armedHostile);
             }),
             (r) => findClosestOwnedRoom(r.name, true)
         );

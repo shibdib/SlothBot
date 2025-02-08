@@ -410,6 +410,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             const powerBank = this.find(FIND_STRUCTURES).find(s => s.structureType === STRUCTURE_POWER_BANK);
             roomIntel.power = powerBank ? Game.time + powerBank.ticksToDecay : undefined;
         }
+        if (this.hostileCreeps.length) {
+            roomIntel.armedHostile = _.some(this.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
+        }
         roomIntel.microUpdate = currentTime;
         cache[this.name] = roomIntel;
     }
