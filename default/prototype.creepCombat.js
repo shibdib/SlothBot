@@ -693,12 +693,7 @@ Creep.prototype.fleeHome = function (force = false) {
     let closest = this.memory.fleeDestination || findClosestOwnedRoom(this.room.name, false, 3);
     this.memory.fleeDestination = closest;
     if (this.room.name !== closest) {
-        this.say('RUN!', true);
-        let hostile = _.max(_.filter(this.room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)), 'ticksToLive');
-        if (hostile.id && !this.memory.military) {
-            if (hostile.ticksToLive > this.ticksToLive) return this.suicide();
-            this.memory.runCooldown = Game.time + hostile.ticksToLive;
-        } else this.memory.runCooldown = Game.time + 50;
+        this.memory.runCooldown = Game.time + 50;
         this.shibMove(new RoomPosition(25, 25, closest), {range: 23});
     } else if (Game.time <= cooldown) {
         this.idleFor((cooldown - Game.time) / 2);
