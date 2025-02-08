@@ -420,12 +420,12 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
             // Skip origin/destination
             if (roomName === origin || roomName === destination) return 1;
             // Check for closed rooms
-            if (roomStatus(roomName) === 'closed') return 256;
+            if (roomStatus(roomName) === 'closed') return Infinity;
             // Regex highway check
             let [EW, NS] = roomName.match(/\d+/g);
             let highway = (INTEL[roomName] && INTEL[roomName].isHighway) || EW % 10 === 0 || NS % 10 === 0;
             // Add a check for novice/respawn
-            if (!highway && roomStatus(roomName) !== roomStatus(origin)) return 256;
+            if (!highway && roomStatus(roomName) !== roomStatus(origin)) return Infinity;
             // My rooms
             if (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) return 1;
             // Check for avoid flagged rooms
@@ -438,19 +438,17 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
                     if (INTEL[roomName].pathingPenalty + CREEP_LIFE_TIME < Game.time) return 200; else delete INTEL[roomName].pathingPenalty;
                 }
                 // Avoid rooms with obstacles
-                if (INTEL[roomName].obstacles) return 250;
+                if (INTEL[roomName].obstacles) return 200;
                 // Avoid strongholds
-                if (INTEL[roomName].sk && INTEL[roomName].towers) return 256;
+                if (INTEL[roomName].sk && INTEL[roomName].towers) return Infinity;
                 // High Threat
                 if (INTEL[roomName].threatLevel) return 60 * INTEL[roomName].threatLevel;
                 // Avoid rooms used by others
                 if (INTEL[roomName].user && !_.includes(FRIENDLIES, INTEL[roomName].user)) {
-                    if (INTEL[roomName].towers) return 256; else return 75;
+                    if (INTEL[roomName].towers) return Infinity; else return 75;
                 }
-                // If room has observed obstructions
-                if (INTEL[roomName] && INTEL[roomName].obstructions) return 200;
                 // If room is under attack
-                if (INTEL[roomName] && INTEL[roomName].hostilePower > INTEL[roomName].friendlyPower && INTEL[roomName].tickDetected + 150 > Game.time) return 100;
+                if (INTEL[roomName].hostilePower > INTEL[roomName].friendlyPower && INTEL[roomName].tickDetected + 150 > Game.time) return 100;
                 // SK rooms are avoided if not being mined
                 if (INTEL[roomName].sk && INTEL[roomName].user !== MY_USERNAME) return 25;
             } else return 10;
