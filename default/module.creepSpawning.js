@@ -277,6 +277,7 @@ module.exports.miscCreepQueue = function (room) {
 let remoteTick = {};
 let lastRemoteRefresh = {};
 let contestedRemotes = {};
+let blockedRemotes = {};
 
 module.exports.remoteCreepQueue = function (room) {
     if (remoteTick[room.name] + 10 > Game.time) return;
@@ -285,7 +286,7 @@ module.exports.remoteCreepQueue = function (room) {
     room.memory.borderPatrol = undefined;
 
     // Refresh remote room data every 5000 ticks or when room under attack
-    if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + (CREEP_LIFE_TIME * 2) > Game.time || INTEL[room.name].threatLevel > 2) {
+    if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + CREEP_LIFE_TIME > Game.time || INTEL[room.name].threatLevel > 2) {
         refreshRemoteRoomTargets(room);
     }
 
@@ -305,30 +306,40 @@ module.exports.remoteCreepQueue = function (room) {
 
     // If we have a contested remote.. contest it
     if (contestedRemotes[room.name]) {
-        const intel = INTEL[contestedRemotes[room.name]];
-        const count = INTEL[contestedRemotes[room.name]].armedHostile ? 3 : 1;
-        queueCreepIfNeeded(room, 'longbow', PRIORITIES.remoteHarvester + 1, count, undefined, contestedRemotes[room.name]);
-        if (intel && (!intel.armedHostile || intel.armedHostile + CREEP_LIFE_TIME < Game.time)) {
-            handleReservation(room, contestedRemotes[room.name])
-        }
+        handleContestedRoom(room);
+    }
+
+    // If we have a blocked remote.. clean it
+    if (blockedRemotes[room.name]) {
+        handleBlockedRoom(room);
     }
 
     function refreshRemoteRoomTargets(room) {
         lastRemoteRefresh[room.name] = Game.time;
         remoteRoomTargets[room.name] = undefined;
+        const exits = Game.map.describeExits(room.name);
 
-        const remoteRooms = _.filter(Game.map.describeExits(room.name), function (r) {
+        // Handle finding usable remotes
+        const remoteRooms = _.filter(exits, function (r) {
             return roomStatus(r) === roomStatus(room.name) &&
                 INTEL[r] && INTEL[r].sources && !INTEL[r].level &&
                 (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation));
         });
         remoteRoomTargets[room.name] = JSON.stringify(remoteRooms);
 
-        const contestedRemote = _.find(Game.map.describeExits(room.name), function (r) {
-            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level
-                && (INTEL[r].user && !_.includes(FRIENDLIES, INTEL[r].user));
+        // Handle finding contested remotes
+        const contestedRemote = _.find(exits, function (r) {
+            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level && !INTEL[r].obstacles
+                && (INTEL[r].user && INTEL[r].user !== 'Invader' && !_.includes(FRIENDLIES, INTEL[r].user));
         });
         if (contestedRemote) contestedRemotes[room.name] = contestedRemote;
+
+        // Handle finding blocked remotes
+        const blockedRemote = _.find(exits, function (r) {
+            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level && INTEL[r].obstacles
+                && !INTEL[r].reservation;
+        });
+        if (blockedRemote) blockedRemotes[room.name] = blockedRemote;
     }
 
     function processRemoteRoom(room, remoteName) {
@@ -382,6 +393,21 @@ module.exports.remoteCreepQueue = function (room) {
         return INTEL[remoteName].remoteRoom.every(function (r) {
             return r === room.name || (Game.rooms[r] && Game.rooms[r].level <= room.level);
         });
+    }
+
+    function handleContestedRoom(room) {
+        const intel = INTEL[contestedRemotes[room.name]];
+        const count = intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time ? 3 : 1;
+        queueCreepIfNeeded(room, 'longbow', PRIORITIES.remoteHarvester + 1, count, undefined, contestedRemotes[room.name]);
+        if (intel && (!intel.armedHostile || intel.armedHostile + CREEP_LIFE_TIME < Game.time)) {
+            handleReservation(room, contestedRemotes[room.name])
+        }
+    }
+
+    function handleBlockedRoom(room) {
+        if (intel && (!intel.armedHostile || intel.armedHostile + CREEP_LIFE_TIME < Game.time)) {
+            queueCreepIfNeeded(room, 'cleaner', PRIORITIES.secondary, 2, undefined, contestedRemotes[room.name]);
+        }
     }
 
     function handleInvaderCore(room, remoteName) {
