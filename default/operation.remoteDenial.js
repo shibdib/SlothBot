@@ -5,7 +5,6 @@
 const highCommand = require('military.highCommand');
 
 Creep.prototype.remoteDenial = function () {
-    // Boost logic - only boost if needed
     if (this.tryToBoost(['ranged', 'heal'])) return;
 
     let sentence = ['No', 'Remotes', 'Allowed'];

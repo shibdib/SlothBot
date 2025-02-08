@@ -3,7 +3,6 @@
  */
 
 Creep.prototype.guardRoom = function () {
-    // Attempt to boost body parts if possible and beneficial
     if (this.tryToBoost(['ranged', 'heal', 'attack', 'tough'])) return;
 
     let destination = this.memory.destination;

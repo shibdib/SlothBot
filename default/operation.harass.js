@@ -5,7 +5,9 @@
 const highCommand = require('military.highCommand');
 
 Creep.prototype.harass = function () {
-    // If no harass targets are defined, switch to border patrol.
+    if (this.tryToBoost(['ranged', 'heal'])) return;
+
+    // If no harass targets, switch to border patrol.
     if (!Memory._threats || !Memory._threats.length) {
         this.memory.operation = 'borderPatrol';
         return;
