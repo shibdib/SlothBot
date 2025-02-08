@@ -66,9 +66,9 @@ class ModuleBodyGenerator {
                 move = 1;
                 break;
 
-            case 'drone':
             case 'roadBuilder':
-                energyScaling = true;
+            case 'drone':
+                if (this.role === 'roadBuilder') energyScaling = true;
 
                 // Scale work based on available energy, and limit it to 15 parts max
                 work = Math.floor((this.energyAmount * 0.15) / BODYPART_COST[WORK]) || 1;
@@ -340,8 +340,8 @@ class ModuleBodyGenerator {
         }
 
         // Calculate energy multiplier
-        const multipliers = [0.2, 0.5, 0.75, 1];
-        let energyMulti = energyScaling && this.room.storage ? multipliers[this.room.totalEnergyState] || 1 : 1;
+        const multipliers = [0.2, 0.5, 1];
+        let energyMulti = energyScaling && this.room.storage ? multipliers[this.room.energyState] || 1 : 1;
 
         // Utility function to add body parts
         const addBodyParts = (count, part, array) => {
