@@ -11,20 +11,22 @@ Creep.prototype.guardRoom = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
 
-    // Move to the destination room if not there yet
-    if (this.room.name !== destination) {
-        if (this.room.hostileCreeps.length && this.canIWin(50)) {
-            // Engage with hostile creeps if the room is hostile
-            return this.handleMilitaryCreep();
+    // Combat handling
+    if (this.handleMilitaryCreep() || this.scorchedEarth()) return;
+
+    // Healing
+    if (this.hits < this.hitsMax) {
+        if (this.hasActiveBodyparts(HEAL)) {
+            this.findDefensivePosition();
+            return this.heal(this);
+        } else {
+            return this.fleeHome();
         }
-        // Otherwise, move to the room if no hostiles are in range
-        return this.shibMove(new RoomPosition(25, 25, destination), {range: 24});
     }
 
-    // Combat Handling: If there are hostile creeps or structures, engage
-    if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
-        // Prioritize military creep handling or find a defensive position
-        return this.handleMilitaryCreep();
+    // Move to the destination room if not there yet
+    if (this.room.name !== destination) {
+        return this.shibMove(new RoomPosition(25, 25, destination), {range: 24});
     }
 
     // If no enemies, focus on healing or defending

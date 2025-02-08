@@ -8,8 +8,17 @@ Creep.prototype.denyRoom = function () {
     const sentence = ['Coming', 'For', 'That', 'Booty', this.memory.destination];
     this.say(sentence[Game.time % sentence.length], true);
 
-    if (this.canIWin(50) && this.handleMilitaryCreep()) {
-        return;
+    // Combat handling
+    if (this.handleMilitaryCreep() || this.scorchedEarth()) return;
+
+    // Healing
+    if (this.hits < this.hitsMax) {
+        if (this.hasActiveBodyparts(HEAL)) {
+            this.findDefensivePosition();
+            return this.heal(this);
+        } else {
+            return this.fleeHome();
+        }
     }
 
     // If not in the destination room, move there

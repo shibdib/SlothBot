@@ -7,32 +7,44 @@ Creep.prototype.borderPatrol = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
 
-    if (this.canIWin(50) && this.handleMilitaryCreep()) {
-        return;
-    } else {
-        if (this.memory.destination) {
-            // If we are already on a mission, let's move there
-            if (this.room.name !== this.memory.destination) {
-                return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
-            } else {
-                if (!this.room.hostileCreeps.length && !this.room.hostileStructures.length) {
-                    this.memory.destination = undefined;
-                    this.idleFor(5);
-                    return;
-                }
+    // Combat handling
+    if (this.handleMilitaryCreep() || this.scorchedEarth()) return;
+
+    // Healing
+    if (this.hits < this.hitsMax) {
+        if (this.hasActiveBodyparts(HEAL)) {
+            this.findDefensivePosition();
+            return this.heal(this);
+        } else {
+            return this.fleeHome();
+        }
+    }
+
+    // Movement
+    if (this.memory.destination) {
+        // If we are already on a mission, let's move there
+        if (this.room.name !== this.memory.destination) {
+            return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
+        } else {
+            if (!this.room.hostileCreeps.length && !this.room.hostileStructures.length) {
+                this.memory.destination = undefined;
+                this.idleFor(5);
+                return;
             }
         }
+    }
 
-        if (!this.memory.destination && !this.memory.awaitingOrders) {
-            this.memory.destination = this.memory.overlord;
-            this.memory.awaitingOrders = true;
-        }
+    // Awaiting orders
+    if (!this.memory.destination && !this.memory.awaitingOrders) {
+        this.memory.destination = this.memory.overlord;
+        this.memory.awaitingOrders = true;
+    }
 
-        if (this.memory.awaitingOrders && !this.memory.destination && this.room.name !== this.memory.overlord) {
-            this.memory.destination = this.memory.overlord;
-            this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
-        } else {
-            if (this.findDefensivePosition()) this.idleFor(5);
-        }
+    // Idle handling
+    if (this.memory.awaitingOrders && !this.memory.destination && this.room.name !== this.memory.overlord) {
+        this.memory.destination = this.memory.overlord;
+        this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
+    } else {
+        if (this.findDefensivePosition()) this.idleFor(5);
     }
 };

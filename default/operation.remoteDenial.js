@@ -11,8 +11,18 @@ Creep.prototype.remoteDenial = function () {
     let sentence = ['No', 'Remotes', 'Allowed'];
     this.say(sentence[Game.time % sentence.length], true);
 
-    // Combat handling - engage if possible, kite if necessary
+    // Combat handling
     if (this.handleMilitaryCreep() || this.scorchedEarth()) return;
+
+    // Healing
+    if (this.hits < this.hitsMax) {
+        if (this.hasActiveBodyparts(HEAL)) {
+            this.findDefensivePosition();
+            return this.heal(this);
+        } else {
+            return this.fleeHome();
+        }
+    }
 
     // If already in the target room
     if (this.room.name === this.memory.destination) {
