@@ -98,7 +98,7 @@ class FactoryControl {
         }
 
         // Produce Battery if there's excess energy and we're low on room
-        if (room.energyState > 2 && !this.checkStorageSpace(room)) {
+        if (room.energyState > 1 && !this.checkStorageSpace(room)) {
             this.setProduction(factory, RESOURCE_BATTERY, 'Producing Battery');
             return;
         }
@@ -119,11 +119,6 @@ class FactoryControl {
                 this.setProduction(factory, resource, 'Producing ' + resource);
                 return;
             }
-        }
-
-        // Fallback to battery production if nothing else and we are in energyState 2+
-        if (room.energyState > 3) {
-            this.setProduction(factory, RESOURCE_BATTERY, 'Falling Back To Producing Battery');
         }
     }
 

@@ -433,7 +433,7 @@ Creep.prototype.haulerDelivery = function () {
     }));
 
     // Controller Container if below threshold and hub link conditions met
-    if (!this.room.memory.controllerLink && this.room.energyAvailable === this.room.energyCapacityAvailable) {
+    if (!this.room.memory.controllerLink && this.room.energyState && this.room.energyAvailable === this.room.energyCapacityAvailable) {
         let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
         if (controllerContainer && controllerContainer.store.getUsedCapacity() < CONTAINER_CAPACITY * 0.7) {
             let hubLink = Game.getObjectById(this.room.memory.hubLink);
