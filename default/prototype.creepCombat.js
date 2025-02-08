@@ -2,10 +2,6 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-/////////////////////////////////////////////
-/// COMBAT STUFF/////////////////////////////
-/////////////////////////////////////////////
-
 /**
  * Handle military creep
  * @param barrier
@@ -78,63 +74,6 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
 };
 
 /**
- * Get attack/heal power and account for boosts
- * @returns {{meleeAttack: number, rangedAttack: number, attack: number, heal: number, rangedHeal: number}}
- */
-Creep.prototype.abilityPower = function () {
-    let meleePower = 0;
-    let rangedPower = 0;
-    let healPower = 0;
-    let rangedHealPower = 0;
-
-    for (let part of this.body) {
-        if (!part.hits) continue;
-
-        const partType = part.type;
-        const boost = part.boost;
-
-        // Calculate based on part type
-        switch (partType) {
-            case ATTACK:
-                meleePower += boost
-                    ? ATTACK_POWER * BOOSTS[partType][boost].attack
-                    : ATTACK_POWER;
-                break;
-            case RANGED_ATTACK:
-                rangedPower += boost
-                    ? RANGED_ATTACK_POWER * BOOSTS[partType][boost].rangedAttack
-                    : RANGED_ATTACK_POWER;
-                break;
-            case HEAL:
-                healPower += boost
-                    ? HEAL_POWER * BOOSTS[partType][boost].heal
-                    : HEAL_POWER;
-                rangedHealPower += boost
-                    ? RANGED_HEAL_POWER * BOOSTS[partType][boost].heal
-                    : RANGED_HEAL_POWER;
-                break;
-            case TOUGH:
-                if (boost) {
-                    healPower += HEAL_POWER * (1 - BOOSTS[partType][boost].damage);
-                }
-                break;
-            default:
-                // In case of an unexpected part type, you can add a logging mechanism
-                break;
-        }
-    }
-
-    return {
-        attack: meleePower + rangedPower,
-        meleeAttack: meleePower,
-        rangedAttack: rangedPower,
-        heal: healPower,
-        rangedHeal: rangedHealPower
-    };
-};
-
-
-/**
  * Find closest enemy
  * @param barriers
  * @param ignoreBorder
@@ -159,7 +98,8 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
 
     if (this.memory.target) {
         let oldTarget = Game.getObjectById(this.memory.target);
-        if (oldTarget && (oldTarget instanceof Structure || oldTarget instanceof Creep)) {
+        const armedHostile = _.find(hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
+        if (oldTarget && oldTarget instanceof Structure && !armedHostile) {
             return oldTarget;
         } else {
             this.memory.target = undefined;
@@ -494,14 +434,14 @@ Creep.prototype.fightRanged = function (target) {
     }
 
     // Kite if can't win or if too close to dangerous enemies
-    if (!this.canIWin(5) || shouldKite(this, target)) {
-        return this.shibKite(3);
+    if (!this.canIWin(6) || shouldKite(this, target)) {
+        return this.shibKite(5);
     }
 
     return true;
 
     function shouldKite(creep, target) {
-        return target instanceof Creep &&
+        return creep.pos && target instanceof Creep &&
             target.hasActiveBodyparts(ATTACK) &&
             creep.pos.getRangeTo(target) < 3 &&
             (!creep.pos.checkForRampart() && creep.abilityPower().heal < target.abilityPower().attack);
@@ -525,11 +465,6 @@ Creep.prototype.fightRanged = function (target) {
                 creep.say('PEW!', true);
                 creep.rangedAttack(target);
             }
-
-            // Decide on movement post-attack
-            if (!shouldKite(target)) {
-                creep.shibMove(target, {range: 3, ignoreCreeps: false});
-            }
         } else {
             creep.say('BURN!', true);
             if (creep.rangedAttack(target) === ERR_NOT_IN_RANGE) {
@@ -545,7 +480,13 @@ Creep.prototype.fightRanged = function (target) {
 
         // Move towards target, but adjust range based on threat level
         let moveRange = (target instanceof Creep && !target.hasActiveBodyparts(ATTACK)) ? 1 : 3;
-        creep.shibMove(target, {ignoreCreeps: false, range: moveRange});
+
+        // Kite if can't win or if too close to dangerous enemies
+        if (!creep.canIWin(6) || shouldKite(this, target)) {
+            return creep.shibKite(5);
+        } else {
+            return creep.shibMove(target, {ignoreCreeps: false, range: moveRange});
+        }
     }
 }
 
@@ -572,46 +513,6 @@ Creep.prototype.healCreeps = function () {
 };
 
 /**
- * Heal a friendly creep in range or heal self if necessary
- * @returns {boolean}
- */
-Creep.prototype.healInRange = function () {
-    if (!this.hasActiveBodyparts(HEAL)) return false;
-
-    // Heal self if needed
-    if (this.hits < this.hitsMax) {
-        this.heal(this); // Heal self if less than max health
-        return true;
-    }
-
-    // Find the closest injured friendly creep within healing range (3)
-    let injured = _.find(this.room.creeps, (c) =>
-        (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax
-    );
-
-    // If there's an injured creep, attempt to heal them
-    if (injured) {
-        // Find the creep that is within range for healing
-        let healCreep = _.find(this.room.creeps, (c) =>
-            (_.includes(FRIENDLIES, c.owner.username) || c.my) &&
-            c.hits < c.hitsMax &&
-            this.pos.getRangeTo(c) <= 3
-        );
-
-        // If in range to heal, heal them, otherwise use ranged heal
-        if (healCreep) {
-            if (this.pos.isNearTo(healCreep)) {
-                return this.heal(healCreep);
-            } else {
-                return this.rangedHeal(healCreep);
-            }
-        }
-    }
-
-    return false;
-};
-
-/**
  * Stomp sites
  * @param creepCheck
  * @param onlyInBuild
@@ -627,7 +528,7 @@ Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, o
 
     // Try to get the last stomped site from memory or find the closest construction site
     let constructionSite = Game.getObjectById(this.memory.stompSite) || this.pos.findClosestByRange(this.room.constructionSites, {
-        filter: (s) => !onlyInBuild || s.progress
+        filter: (s) => (!onlyInBuild || s.progress) && !s.my
     });
 
     // If a construction site is found, attempt to move to it
@@ -738,55 +639,44 @@ Creep.prototype.attackInRange = function () {
     return false;
 };
 
-
 /**
- * Move to a staging room
- * @returns {boolean|*}
+ * Heal a friendly creep in range or heal self if necessary
+ * @returns {boolean}
  */
-Creep.prototype.moveToStaging = function () {
-    if (!this.memory.other || !this.memory.other.waitFor || this.memory.stagingComplete || this.memory.other.waitFor === 1 || this.ticksToLive <= 250 || !this.memory.destination) return false;
-    // Recycle if operation canceled
-    if (!Memory.targetRooms[this.memory.destination]) return this.suicide();
-    if (this.memory.stagingRoom === this.room.name) {
-        if (this.findClosestEnemy()) return this.handleMilitaryCreep(false, true);
-        this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 7});
-        let inPlace = _.filter(this.room.myCreeps, (creep) => creep.memory.destination === this.memory.destination);
-        if (inPlace.length >= this.memory.other.waitFor || this.ticksToLive <= 250) {
-            this.memory.stagingComplete = true;
-            if (!Memory.targetRooms[this.memory.destination].lastWave || Memory.targetRooms[this.memory.destination].lastWave + 50 < Game.time) {
-                let waves = Memory.targetRooms[this.memory.destination].waves || 0;
-                Memory.targetRooms[this.memory.destination].waves = waves + 1;
-                Memory.targetRooms[this.memory.destination].lastWave = Game.time;
-            }
-            return false;
-        } else {
-            if (this.pos.checkForRoad()) {
-                this.moveRandom();
-            }
-            return true;
-        }
-    } else if (this.memory.stagingRoom) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 6});
+Creep.prototype.healInRange = function () {
+    if (!this.hasActiveBodyparts(HEAL)) return false;
+
+    // Heal self if needed
+    if (this.hits < this.hitsMax) {
+        this.heal(this); // Heal self if less than max health
         return true;
     }
-    let alreadyStaged = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.destination && creep.memory.stagingRoom)[0];
-    if (alreadyStaged) {
-        this.memory.stagingRoom = alreadyStaged.memory.stagingRoom;
-        this.shibMove(alreadyStaged);
-        return true;
-    } else {
-        let route = this.shibRoute(this.memory.destination);
-        let routeLength = route.length;
-        if (routeLength <= 5) {
-            this.memory.stagingRoom = this.memory.overlord;
-            this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 19});
-            return true;
+
+    // Find the closest injured friendly creep within healing range (3)
+    let injured = _.find(this.room.creeps, (c) =>
+        (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax
+    );
+
+    // If there's an injured creep, attempt to heal them
+    if (injured) {
+        // Find the creep that is within range for healing
+        let healCreep = _.find(this.room.creeps, (c) =>
+            (_.includes(FRIENDLIES, c.owner.username) || c.my) &&
+            c.hits < c.hitsMax &&
+            this.pos.getRangeTo(c) <= 3
+        );
+
+        // If in range to heal, heal them, otherwise use ranged heal
+        if (healCreep) {
+            if (this.pos.isNearTo(healCreep)) {
+                return this.heal(healCreep);
+            } else {
+                return this.rangedHeal(healCreep);
+            }
         }
-        let stageHere = _.round(routeLength / 3);
-        this.memory.stagingRoom = route[stageHere];
-        this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 19});
-        return true;
     }
+
+    return false;
 };
 
 /**
@@ -822,8 +712,8 @@ Creep.prototype.fleeHome = function (force = false) {
 
 /**
  * Check if you can win the fight
- * @param range
- * @param inbound
+ * @param {number} [range=50] - The range to check for friendly and hostile units
+ * @param {string[]} [inbound=undefined] - An array of creep IDs that are inbound to help
  * @returns {boolean}
  */
 Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
@@ -833,143 +723,66 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     // Check if we're in a friendly or safe environment
     if (this.room.name === this.memory.overlord || (!this.room.hostileCreeps.length && !this.room.impassibleStructures.some(s => s.structureType === STRUCTURE_TOWER && !_.includes(FRIENDLIES, s.owner.username) && s.isActive()))) return true;
 
-    // Use cached result if available and not outdated
-    if (this.memory.winCache && this.memory.winCache.room === this.room.name && this.memory.winCache.tick + 3 > Game.time) {
-        return this.memory.winCache.result;
-    }
-
     // If no intel, assume we can win
     if (!INTEL[this.room.name]) return true;
 
-    // Evaluate threats
-    const armedHostiles = findArmedHostiles(this, range);
-    const hostileTowers = findHostileTowers(this);
-
-    // Calculate power
-    const hostilePower = this.calculateHostilePower(armedHostiles, hostileTowers);
-    const friendlyPower = this.calculateFriendlyPower(range, inbound);
+    const hostilePower = calculateHostilePower(this, range);
+    const friendlyPower = calculateFriendlyPower(this, range, inbound);
+    const result = canWinBasedOnPower(this, hostilePower, friendlyPower);
 
     // Update INTEL
     INTEL[this.room.name].hostilePower = hostilePower;
     INTEL[this.room.name].friendlyPower = friendlyPower;
 
-    // Determine victory based on power comparison and tactical advantages
-    const result = canWinBasedOnPower(this, hostilePower, friendlyPower, armedHostiles);
-
-    // Cache the result
-    this.memory.winCache = {
-        room: this.room.name,
-        result: result,
-        tick: Game.time
-    };
-
     return result;
 
-    function findArmedHostiles(creep, range) {
-        return creep.room.hostileCreeps.filter(c => (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(HEAL)) && creep.pos.getRangeTo(c) <= range);
-    }
-
-    function findHostileTowers(creep) {
-        return creep.room.impassibleStructures.filter(s =>
+    function calculateHostilePower(creep, range) {
+        let power = 0;
+        const hostiles = creep.room.hostileCreeps.filter(c =>
+            (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(HEAL)) &&
+            creep.pos.getRangeTo(c) <= range
+        );
+        hostiles.forEach(c => power += c.abilityPower().attack + (c.hasActiveBodyparts(HEAL) ? c.abilityPower().heal : 0));
+        const towers = creep.room.impassibleStructures.filter(s =>
             s.structureType === STRUCTURE_TOWER &&
             !_.includes(FRIENDLIES, s.owner.username) &&
             s.isActive() &&
             s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST
         );
-    }
-
-    function calculateHostilePower(creep, hostiles, towers) {
-        let power = 0;
-        hostiles.forEach(c => power += c.abilityPower().attack + (c.hasActiveBodyparts(HEAL) ? c.abilityPower().heal : 0));
-        towers.forEach(t => power += TOWER_POWER_ATTACK);
+        power += towers.length * TOWER_POWER_ATTACK;
         return power;
     }
 
     function calculateFriendlyPower(creep, range, inbound) {
         let friendlyPower = creep.abilityPower().attack + creep.abilityPower().heal;
-        friendlyPower += creep.room.myCreeps.reduce((sum, c) => {
+        const myCreeps = creep.room.find(FIND_MY_CREEPS);
+
+        friendlyPower += myCreeps.reduce((sum, c) => {
             if (c.pos.getRangeTo(creep) <= range || (inbound && inbound.includes(c.id))) {
                 return sum + c.abilityPower().attack + c.abilityPower().heal;
             }
             return sum;
         }, 0);
-        // Add power from friendly towers if any within range
-        friendlyPower += creep.room.structures.reduce((sum, s) =>
-            s.structureType === STRUCTURE_TOWER && s.my && s.pos.getRangeTo(creep) <= range ? sum + TOWER_POWER_ATTACK : sum, 0);
+
+        friendlyPower += creep.room.find(FIND_MY_STRUCTURES, {
+            filter: {structureType: STRUCTURE_TOWER}
+        }).reduce((sum, t) => t.pos.getRangeTo(creep) <= range && t.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST ? sum + TOWER_POWER_ATTACK : sum, 0);
+
         return friendlyPower;
     }
 
-    function canWinBasedOnPower(creep, hostilePower, friendlyPower, armedHostiles) {
-        return creep.hasActiveBodyparts(RANGED_ATTACK) && !armedHostiles.some(c => c.hasActiveBodyparts(RANGED_ATTACK)) ||
-            hostilePower <= friendlyPower ||
-            creep.pos.checkForRampart();
+    function canWinBasedOnPower(creep, hostilePower, friendlyPower) {
+        const onRampart = creep.pos.checkForRampart();
+        const hasRanged = creep.hasActiveBodyparts(RANGED_ATTACK);
+        const noHostileRanged = !creep.room.hostileCreeps.some(c => c.hasActiveBodyparts(RANGED_ATTACK));
+
+        // Check for retreat if health is critically low
+        if (creep.hits / creep.hitsMax < 0.6) return false; // 4. Intelligent retreat based on health percentage
+
+        return (hasRanged && noHostileRanged) ||
+            (onRampart && friendlyPower >= hostilePower * 0.75) ||
+            (friendlyPower > hostilePower);
     }
-};
-
-/**
- * Calculate hostile power within the given range
- * @param {Array} armedHostiles - List of hostile creeps in range
- * @param {Array} hostileTowers - List of hostile towers in range
- * @param {number} range - The range within which the hostile power is being calculated
- * @returns {number} - The total hostile power within the given range
- */
-Creep.prototype.calculateHostilePower = function (armedHostiles, hostileTowers, range) {
-    let hostilePower = 0;
-
-    // Calculate power of hostile creeps within the range
-    armedHostiles.forEach(c => {
-        // Only calculate power for hostiles within the specified range
-        if (this.pos.getRangeTo(c) <= range) {
-            if (c.hasActiveBodyparts(HEAL)) {
-                hostilePower += c.abilityPower().heal;
-            } else if (c.hasActiveBodyparts(RANGED_ATTACK)) {
-                hostilePower += c.abilityPower().rangedAttack;
-            } else if (c.hasActiveBodyparts(ATTACK)) {
-                hostilePower += c.abilityPower().attack;
-            }
-        }
-    });
-
-    // Add power from hostile towers within the range
-    hostileTowers.forEach(tower => {
-        if (this.pos.getRangeTo(tower) <= range) {
-            hostilePower += TOWER_POWER_FROM_RANGE(tower.pos.getRangeTo(this), TOWER_POWER_ATTACK);
-        }
-    });
-
-    return hostilePower;
-};
-
-/**
- * Calculate friendly power within the given range
- * @param {number} range
- * @param {boolean} inbound
- * @returns {number}
- */
-Creep.prototype.calculateFriendlyPower = function (range, inbound) {
-    let friendlyPower = 0;
-
-    // Get friendly creeps
-    let friendlyCreeps = inbound ? _.filter(Game.creeps, c => c.my && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(HEAL)) && c.memory.destination === this.room.name) : this.room.friendlyCreeps;
-
-    // Calculate power of friendly creeps
-    friendlyCreeps.forEach(c => {
-        if (c.hasActiveBodyparts(HEAL)) {
-            friendlyPower += c.abilityPower().heal;
-        } else if (c.hasActiveBodyparts(RANGED_ATTACK)) {
-            friendlyPower += c.abilityPower().rangedAttack;
-        } else if (c.hasActiveBodyparts(ATTACK)) {
-            friendlyPower += c.abilityPower().attack;
-        }
-    });
-
-    // Add power from friendly towers
-    let friendlyTowers = _.filter(this.room.impassibleStructures, s => s.structureType === STRUCTURE_TOWER && _.includes(FRIENDLIES, s.owner.username) && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST);
-    friendlyTowers.forEach(tower => {
-        friendlyPower += TOWER_POWER_FROM_RANGE(tower.pos.getRangeTo(this), TOWER_POWER_ATTACK);
-    });
-
-    return friendlyPower;
 };
 
 /**
@@ -991,7 +804,7 @@ Creep.prototype.findDefensivePosition = function (target = this) {
         bestRampart = Game.getObjectById(this.memory.assignedRampart);
     } else {
         // Find the closest rampart with specific conditions
-        bestRampart = this._findBestRampart(target);
+        bestRampart = findBestRampart(this, target);
     }
 
     if (bestRampart) {
@@ -1010,53 +823,84 @@ Creep.prototype.findDefensivePosition = function (target = this) {
         }
     } else {
         // If no rampart is found, move to a safe position (Room center or fallback)
-        this._moveToSafePosition();
+        moveToSafePosition(this);
     }
 
     return false;
-};
 
-/**
- * Helper function to find the best rampart considering obstacles and pathfinding
- * @param target
- * @returns {StructureRampart|null}
- */
-Creep.prototype._findBestRampart = function (target) {
-    return target.pos.findClosestByPath(this.room.structures, {
-        filter: (r) => r.structureType === STRUCTURE_RAMPART &&
-            !r.pos.checkForObstacleStructure() &&  // Avoid ramparts with obstacles
-            (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y)) && // Avoid occupied ramparts
-            (r.my || r.isPublic) &&  // Allow owned or public ramparts
-            (!r.room.hostileCreeps.length || target.id === this.id || this.pos.findPathTo(r).length < this.pos.findPathTo(target).length)  // Prefer ramparts with fewer hostiles
-    });
-};
-
-/**
- * Helper function to move to a fallback safe position if no rampart is found
- */
-Creep.prototype._moveToSafePosition = function () {
-    const fallbackPosition = new RoomPosition(25, 25, this.room.name);
-    if (this.pos.getRangeTo(fallbackPosition) <= 12) {
-        this.idleFor(5);
-    } else {
-        this.shibMove(fallbackPosition, {range: 12, avoidEnemies: true});
+    function findBestRampart(creep, target) {
+        return target.pos.findClosestByPath(creep.room.structures, {
+            filter: (r) => r.structureType === STRUCTURE_RAMPART &&
+                !r.pos.checkForObstacleStructure() &&  // Avoid ramparts with obstacles
+                (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === creep.pos.x && r.pos.y === creep.pos.y)) && // Avoid occupied ramparts
+                (r.my || r.isPublic) &&  // Allow owned or public ramparts
+                (!r.room.hostileCreeps.length || target.id === creep.id || creep.pos.findPathTo(r).length < creep.pos.findPathTo(target).length)  // Prefer ramparts with fewer hostiles
+        });
     }
-};
 
-// New method to scan adjacent rooms for potential threats
-Creep.prototype.scanForNearbyThreats = function () {
-    const adjacentRooms = _.map(Game.map.describeExits(this.room.name));
-    for (let roomName of adjacentRooms) {
-        let roomIntel = INTEL[roomName];
-        if (roomIntel && (roomIntel.threatLevel || roomIntel.hostileStructures)) {
-            // If a neighboring room has a threat, consider reacting or alerting
-            log.a('Potential threat detected in ' + roomLink(roomName), 'GUARD: ');
-            if (!this.memory.destination || this.memory.destination !== roomName) {
-                // If this creep isn't already assigned to that room, consider re-tasking
-                this.memory.destination = roomName;
-                this.say('Threat Detected', true);
-            }
+    function moveToSafePosition(creep) {
+        const fallbackPosition = new RoomPosition(25, 25, creep.room.name);
+        if (creep.pos.getRangeTo(fallbackPosition) <= 12) {
+            creep.idleFor(5);
+        } else {
+            creep.shibMove(fallbackPosition, {range: 12, avoidEnemies: true});
         }
     }
+};
+
+/**
+ * Get attack/heal power and account for boosts
+ * @returns {{meleeAttack: number, rangedAttack: number, attack: number, heal: number, rangedHeal: number}}
+ */
+Creep.prototype.abilityPower = function () {
+    let meleePower = 0;
+    let rangedPower = 0;
+    let healPower = 0;
+    let rangedHealPower = 0;
+
+    for (let part of this.body) {
+        if (!part.hits) continue;
+
+        const partType = part.type;
+        const boost = part.boost;
+
+        // Calculate based on part type
+        switch (partType) {
+            case ATTACK:
+                meleePower += boost
+                    ? ATTACK_POWER * BOOSTS[partType][boost].attack
+                    : ATTACK_POWER;
+                break;
+            case RANGED_ATTACK:
+                rangedPower += boost
+                    ? RANGED_ATTACK_POWER * BOOSTS[partType][boost].rangedAttack
+                    : RANGED_ATTACK_POWER;
+                break;
+            case HEAL:
+                healPower += boost
+                    ? HEAL_POWER * BOOSTS[partType][boost].heal
+                    : HEAL_POWER;
+                rangedHealPower += boost
+                    ? RANGED_HEAL_POWER * BOOSTS[partType][boost].heal
+                    : RANGED_HEAL_POWER;
+                break;
+            case TOUGH:
+                if (boost) {
+                    healPower += HEAL_POWER * (1 - BOOSTS[partType][boost].damage);
+                }
+                break;
+            default:
+                // In case of an unexpected part type, you can add a logging mechanism
+                break;
+        }
+    }
+
+    return {
+        attack: meleePower + rangedPower,
+        meleeAttack: meleePower,
+        rangedAttack: rangedPower,
+        heal: healPower,
+        rangedHeal: rangedHealPower
+    };
 };
 
