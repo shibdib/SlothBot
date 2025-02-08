@@ -303,9 +303,9 @@ module.exports.remoteCreepQueue = function (room) {
     // Handle remote haulers if needed
     handleRemoteHaulers(room);
 
-    // If we have a contested remote handle it if we have no other border patrol tasks
+    // If we have a contested remote.. contest it
     if (contestedRemotes[room.name]) {
-        if (!room.memory.borderPatrol) room.memory.borderPatrol = contestedRemotes[room.name];
+        queueCreepIfNeeded(undefined, 'longbow', PRIORITIES.remoteHarvester + 1, 1, undefined, contestedRemotes[room.name]);
         if (INTEL[contestedRemotes[room.name]] && !INTEL[contestedRemotes[room.name]].armedHostile) {
             handleReservation(room, contestedRemotes[room.name])
         }

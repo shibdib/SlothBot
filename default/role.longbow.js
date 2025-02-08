@@ -40,10 +40,23 @@ class RoleLongbow {
     }
 
     destinationManagement() {
+        // Combat handling
+        if (this.creep.handleMilitaryCreep() || this.creep.scorchedEarth()) return;
+
+        // Healing
+        if (this.creep.hits < this.creep.hitsMax) {
+            if (this.creep.hasActiveBodyparts(HEAL)) {
+                this.creep.findDefensivePosition();
+                return this.creep.heal(this.creep);
+            } else {
+                return this.creep.fleeHome();
+            }
+        }
+
         if (this.room.name !== this.creep.memory.destination) {
             return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22});
         } else {
-            if (!this.creep.handleMilitaryCreep() && !this.creep.scorchedEarth() && !this.creep.healCreeps()) this.creep.findDefensivePosition();
+            if (this.creep.findDefensivePosition()) this.creep.idleFor(5);
         }
     }
 }
