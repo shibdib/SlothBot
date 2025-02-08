@@ -44,13 +44,10 @@ class Hive {
             tickTracker['globalQueue'] = Game.time;
         }
 
-        // High Command (Every 50 Ticks)
-        if ((tickTracker['highCommand'] || 0) + 25 < Game.time) {
-            this.highCommand();
-            tickTracker['highCommand'] = Game.time;
-        }
+        // High Command
+        this.highCommand();
 
-        // Expansion Manager (Every 1000 Ticks)
+        // Expansion Manager
         if ((tickTracker['expansionManager'] || 0) + 1000 < Game.time) {
             this.expansionManager();
             tickTracker['expansionManager'] = Game.time;
