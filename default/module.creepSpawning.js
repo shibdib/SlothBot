@@ -504,7 +504,8 @@ module.exports.globalCreepQueue = function () {
         if (HARASSMENT_OPERATIONS && Memory._threats && Memory._threats.length) {
             if (getCreepCount(undefined, 'longbow', undefined, 'harass') < 2) {
                 const harassTarget = _.sample(_.filter(INTEL, function (r) {
-                    return (!r.owner || !r.towers) && Memory._threats.includes(r.user) && !r.armedHostile && !r.safemode;
+                    return (!r.owner || !r.towers) && Memory._threats.includes(r.user) &&
+                        (!r.armedHostile || r.armedHostile + CREEP_LIFE_TIME < Game.time) && !r.safemode;
                 }));
                 if (harassTarget) {
                     queueCreep(undefined, PRIORITIES.secondary, {
