@@ -82,23 +82,31 @@ module.exports.retrievePathing = function () {
     if (pathingSegmentChecked) return true;
     // Retrieve pathing and routing cache
     if (pathingCheckCounter < 5) {
-        if (RawMemory.segments[69]) {
-            pathingSegmentChecked = true;
-            global.CACHE.globalPathCache = JSON.parse(RawMemory.segments[69]) || {};
-            log.e("Pathing segment retrieved, restoring old path cache.", "PATHING MANAGER: ");
+        if (Memory.pathingVersion === PATHFINDER_VERSION) {
+            if (RawMemory.segments[69]) {
+                pathingSegmentChecked = true;
+                global.CACHE.globalPathCache = JSON.parse(RawMemory.segments[69]) || {};
+                log.e("Pathing segment retrieved, restoring old path cache.", "PATHING MANAGER: ");
+            } else {
+                pathingCheckCounter++;
+                RawMemory.setActiveSegments(activeSegments);
+                log.d("Pathing segment not accessible, enabling the segment for the next tick.", "PATHING MANAGER: ");
+            }
+            if (RawMemory.segments[70]) {
+                pathingSegmentChecked = true;
+                global.CACHE.globalRouteCache = JSON.parse(RawMemory.segments[70]) || {};
+                log.e("Routing segment retrieved, restoring old routing cache.", "PATHING MANAGER: ");
+            } else {
+                pathingCheckCounter++;
+                RawMemory.setActiveSegments(activeSegments);
+                log.d("Routing segment not accessible, enabling the segment for the next tick.", "PATHING MANAGER: ");
+            }
         } else {
-            pathingCheckCounter++;
-            RawMemory.setActiveSegments(activeSegments);
-            log.d("Pathing segment not accessible, enabling the segment for the next tick.", "PATHING MANAGER: ");
-        }
-        if (RawMemory.segments[70]) {
             pathingSegmentChecked = true;
-            global.CACHE.globalRouteCache = JSON.parse(RawMemory.segments[70]) || {};
-            log.e("Routing segment retrieved, restoring old routing cache.", "PATHING MANAGER: ");
-        } else {
-            pathingCheckCounter++;
-            RawMemory.setActiveSegments(activeSegments);
-            log.d("Routing segment not accessible, enabling the segment for the next tick.", "PATHING MANAGER: ");
+            log.e("Pathfinder update detected, wiping caches.", "PATHING MANAGER: ");
+            RawMemory.segments[69] = '';
+            RawMemory.segments[70] = '';
+            Memory.pathingVersion = PATHFINDER_VERSION;
         }
     } else {
         pathingSegmentChecked = true;

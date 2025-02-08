@@ -89,6 +89,8 @@ let globals = function () {
         console.log('------------------------------------------------------------------');
     }
 
+    // Pathfinder versioning for cache purposes
+    global.PATHFINDER_VERSION = 1;
 
     // Global cache for roles
     global.ROLE_CACHE = {};
@@ -436,7 +438,7 @@ let globals = function () {
                     // Handle not being able to find the data
                     if (!global.LOAN_ATTEMPT) global.LOAN_ATTEMPT = 1; else global.LOAN_ATTEMPT++;
                     if (global.LOAN_ATTEMPT >= 25) {
-                        console.log(`Failed to get alliance data for ${LOANuser} after 25 attempts.`);
+                        console.log(`Failed to get alliance data from ${LOANuser} after 25 attempts.`);
                         global.LOAN_ATTEMPT = 0;
                         global.ALLIANCE_DATA_AGE = Game.time;
                         global.NCP_DATA_AGE = Game.time;
