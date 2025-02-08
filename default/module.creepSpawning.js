@@ -268,7 +268,7 @@ module.exports.miscCreepQueue = function (room) {
         }
         // Border Patrol
         if (room.memory.borderPatrol) {
-            let power = INTEL[room.memory.borderPatrol] ? INTEL[room.memory.borderPatrol].hostilePower : 1;
+            let power = INTEL[room.memory.borderPatrol] ? INTEL[room.memory.borderPatrol].hostilePower : 1000;
             queueCreepIfNeeded(room, 'longbow', PRIORITIES.high, 1, undefined, room.memory.borderPatrol, undefined, undefined, 'borderPatrol', {power: power});
         }
     }
@@ -276,6 +276,7 @@ module.exports.miscCreepQueue = function (room) {
 
 let remoteTick = {};
 let lastRemoteRefresh = {};
+let contestedRemotes = {};
 
 module.exports.remoteCreepQueue = function (room) {
     if (remoteTick[room.name] + 10 > Game.time) return;
@@ -302,18 +303,25 @@ module.exports.remoteCreepQueue = function (room) {
     // Handle remote haulers if needed
     handleRemoteHaulers(room);
 
+    // If we have a contested remote handle it if we have no other border patrol tasks
+    if (contestedRemotes[room.name] && !room.memory.borderPatrol) room.memory.borderPatrol = contestedRemotes[room.name];
+
     function refreshRemoteRoomTargets(room) {
         lastRemoteRefresh[room.name] = Game.time;
         remoteRoomTargets[room.name] = undefined;
 
-        // Find and filter remote rooms with valid sources and no reservation
-        let remoteRooms = _.filter(Game.map.describeExits(room.name), function (r) {
+        const remoteRooms = _.filter(Game.map.describeExits(room.name), function (r) {
             return roomStatus(r) === roomStatus(room.name) &&
                 INTEL[r] && INTEL[r].sources && !INTEL[r].level &&
                 (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation));
         });
-
         remoteRoomTargets[room.name] = JSON.stringify(remoteRooms);
+
+        const contestedRemote = _.find(Game.map.describeExits(room.name), function (r) {
+            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level &&
+                (INTEL[r].reservation || INTEL[r].reservation !== MY_USERNAME || (INTEL[r].user && !_.includes(FRIENDLIES, INTEL[r].user)));
+        });
+        if (contestedRemote) contestedRemotes[room.name] = contestedRemote;
     }
 
     function processRemoteRoom(room, remoteName) {
