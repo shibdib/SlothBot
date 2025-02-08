@@ -36,6 +36,9 @@ module.exports.controller = function (room) {
 
     // Check for foreign hostile attacks and notify
     alertHostileAttack(room);
+
+    // Check surrounding rooms for high threat
+    room.memory.earlyWarning = _.some(Game.map.describeExits(room.name), roomName => INTEL[roomName] && INTEL[roomName].threatLevel > 2);
 };
 
 // Function to reset the structure count every 250 ticks

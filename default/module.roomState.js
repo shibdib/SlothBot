@@ -12,9 +12,6 @@ module.exports.setRoomState = function (room) {
     if (timeSinceLastStatus >= 10) {
         lastStateUpdate[room.name] = Game.time;
 
-        // Check surrounding rooms for high threat
-        room.memory.earlyWarning = _.some(Game.map.describeExits(room.name), roomName => INTEL[roomName] && INTEL[roomName].threatLevel > 2);
-
         // Request builders only if certain conditions are met
         requestBuilders(room);
 
@@ -29,6 +26,10 @@ module.exports.setRoomState = function (room) {
             room.memory.struggling = undefined;
             room.memory.struggleTime = undefined;
         }
+
+        // Track if room is in a state to participate in combat
+        const importantBuilds = _.some(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
+        INTEL[room.name].availableForCombat = !importantBuilds && room.level >= 3 && room.energyState && !INTEL[room.name].threatLevel;
 
         // Energy tracking
         const lastEnergy = room.memory.lastEnergyAmount || 0;
@@ -66,7 +67,6 @@ module.exports.setRoomState = function (room) {
 
         room.memory.stats = stats;
 
-        // Helper function to calculate average of an array
         function average(array) {
             if (!array || array.length === 0) return 0;
             return array.reduce((sum, value) => sum + value, 0) / array.length;
