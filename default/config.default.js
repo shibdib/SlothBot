@@ -114,8 +114,3 @@ global.ATTACK_ROOM_SIGNS = [
     "Surrender or Face the Wrath of SlothBot",
     "SlothBot's Offensive - Slow but Inevitable"
 ];
-
-// The boosts you want labs to focus on first (resources permitted)
-global.LAB_PRIORITY = [RESOURCE_GHODIUM, RESOURCE_CATALYZED_GHODIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_LEMERGIUM_ACID];
-// If credits permit, buy these boosts
-global.BUY_THESE_BOOSTS = [RESOURCE_GHODIUM_ACID, RESOURCE_KEANIUM_ALKALIDE, RESOURCE_LEMERGIUM_ACID];
