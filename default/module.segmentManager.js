@@ -60,12 +60,9 @@ module.exports.storeIntel = function () {
         }
         let store = JSON.parse(JSON.stringify(INTEL));
         try {
-            if (JSON.stringify(store).length >= 95000) {
+            if (JSON.stringify(store).length >= 75000) {
                 let sorted = _.sortBy(store, 'cached');
-                for (let entry of sorted) {
-                    delete store[entry.name];
-                    if (JSON.stringify(store).length < 75000) break;
-                }
+                store = _.drop(sorted, sorted.length * 0.5);
             }
             RawMemory.segments[segmentNumber] = JSON.stringify(store);
             lastIntelStore = Game.time;
@@ -132,12 +129,9 @@ module.exports.storePathing = function () {
         }
         let store = JSON.parse(JSON.stringify(CACHE.globalPathCache));
         try {
-            if (JSON.stringify(store).length >= 95000) {
+            if (JSON.stringify(store).length >= 75000) {
                 let sorted = _.sortBy(store, 'uses');
-                for (let entry of sorted) {
-                    delete store[entry.name];
-                    if (JSON.stringify(store).length < 75000) break;
-                }
+                store = _.drop(sorted, sorted.length * 0.5);
             }
             RawMemory.segments[69] = JSON.stringify(store);
             lastPathingStore = Game.time;
@@ -153,12 +147,9 @@ module.exports.storePathing = function () {
         }
         store = JSON.parse(JSON.stringify(CACHE.globalRouteCache));
         try {
-            if (JSON.stringify(store).length >= 95000) {
+            if (JSON.stringify(store).length >= 75000) {
                 let sorted = _.sortBy(store, 'uses');
-                for (let entry of sorted) {
-                    delete store[entry.name];
-                    if (JSON.stringify(store).length < 75000) break;
-                }
+                store = _.drop(sorted, sorted.length * 0.5);
             }
             RawMemory.segments[70] = JSON.stringify(store);
             lastPathingStore = Game.time;
