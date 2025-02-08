@@ -304,7 +304,12 @@ module.exports.remoteCreepQueue = function (room) {
     handleRemoteHaulers(room);
 
     // If we have a contested remote handle it if we have no other border patrol tasks
-    if (contestedRemotes[room.name] && !room.memory.borderPatrol) room.memory.borderPatrol = contestedRemotes[room.name];
+    if (contestedRemotes[room.name]) {
+        if (!room.memory.borderPatrol) room.memory.borderPatrol = contestedRemotes[room.name];
+        if (INTEL[contestedRemotes[room.name]] && !INTEL[contestedRemotes[room.name]].armedHostile) {
+            handleReservation(room, contestedRemotes[room.name])
+        }
+    }
 
     function refreshRemoteRoomTargets(room) {
         lastRemoteRefresh[room.name] = Game.time;
