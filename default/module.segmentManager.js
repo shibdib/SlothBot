@@ -62,7 +62,7 @@ module.exports.storeIntel = function () {
         try {
             if (JSON.stringify(store).length >= 75000) {
                 let sorted = _.sortBy(store, 'cached');
-                store = _.drop(sorted, sorted.length * 0.5);
+                store = _.drop(sorted, sorted.length * (75000 / JSON.stringify(store).length));
             }
             RawMemory.segments[segmentNumber] = JSON.stringify(store);
             lastIntelStore = Game.time;
@@ -131,7 +131,7 @@ module.exports.storePathing = function () {
         try {
             if (JSON.stringify(store).length >= 75000) {
                 let sorted = _.sortBy(store, 'uses');
-                store = _.drop(sorted, sorted.length * 0.5);
+                store = _.drop(sorted, sorted.length * (75000 / JSON.stringify(store).length));
             }
             RawMemory.segments[69] = JSON.stringify(store);
             lastPathingStore = Game.time;
@@ -149,7 +149,7 @@ module.exports.storePathing = function () {
         try {
             if (JSON.stringify(store).length >= 75000) {
                 let sorted = _.sortBy(store, 'uses');
-                store = _.drop(sorted, sorted.length * 0.5);
+                store = _.drop(sorted, sorted.length * (75000 / JSON.stringify(store).length));
             }
             RawMemory.segments[70] = JSON.stringify(store);
             lastPathingStore = Game.time;
