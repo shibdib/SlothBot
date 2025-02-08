@@ -124,7 +124,7 @@ function dropOff(creep) {
         } else if (overlord.energyState && overlord.nuker && overlord.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
             creep.memory.storageDestination = overlord.nuker.id;
             return true;
-        } else if (overlord.energyState > 1 && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > CONTAINER_CAPACITY * 0.5) {
+        } else if (overlord.energyState && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > CONTAINER_CAPACITY * 0.5) {
             creep.memory.storageDestination = controllerContainer.id;
             return true;
         } else if (overlord.terminal && overlord.terminal.store.getFreeCapacity() > _.sum(creep.store) && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 5) {
