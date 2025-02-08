@@ -435,6 +435,8 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
                 if (INTEL[roomName].user && !_.includes(FRIENDLIES, INTEL[roomName].user)) {
                     if (INTEL[roomName].towers) return Infinity; else return 75;
                 }
+                // Avoid rooms with hostile combat creeps
+                if (INTEL[roomName].armedHostile && INTEL[roomName].armedHostile + CREEP_LIFE_TIME > Game.time) return 240;
                 // Pathing Penalty Rooms
                 if (INTEL[roomName].pathingPenalty) {
                     if (INTEL[roomName].pathingPenalty + CREEP_LIFE_TIME < Game.time) return 200; else delete INTEL[roomName].pathingPenalty;

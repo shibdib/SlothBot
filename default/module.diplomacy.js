@@ -147,7 +147,7 @@ module.exports.trackThreat = function (creep) {
 
         INTEL[room.name].lastCombat = Game.time;
         INTEL[room.name].pathingPenalty = Game.time;
-        INTEL[room.name].armedHostile = true;
+        INTEL[room.name].armedHostile = Game.time;
 
         const isHostileRoom =
             room.controller &&

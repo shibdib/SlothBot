@@ -411,7 +411,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             roomIntel.power = powerBank ? Game.time + powerBank.ticksToDecay : undefined;
         }
         if (this.hostileCreeps.length) {
-            roomIntel.armedHostile = _.some(this.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
+            roomIntel.armedHostile = _.some(this.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) ? Game.time : undefined;
         }
         roomIntel.microUpdate = currentTime;
         cache[this.name] = roomIntel;
