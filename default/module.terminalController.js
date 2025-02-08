@@ -223,7 +223,7 @@ class TerminalControl {
 
             // Handle boosts and power
             if (_.includes(_.uniq(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS, [RESOURCE_POWER]), resourceType)) {
-                sellAmount = terminal.room.store(resourceType) - BOOST_TRADE_AMOUNT;
+                sellAmount = terminal.room.store(resourceType) - BOOST_AMOUNT * 1.2;
             }
 
             if (resourceType === RESOURCE_POWER) {

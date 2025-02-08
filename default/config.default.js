@@ -45,16 +45,14 @@ global.BUY_ENERGY = false; // If true it will buy energy when above the buffer
 global.BUY_ENERGY_CREDIT_BUFFER = 500000; // Stay above this to buy energy
 global.CREDIT_BUFFER = 10000; // Stay above this amount
 global.MINERAL_TRADE_AMOUNT = 10000;  // Hold this much of a mineral before selling
-global.BOOST_TRADE_AMOUNT = 15000;  // Hold this much of a boost before selling
 global.REACTION_AMOUNT = 10000; // Minimum amount we aim for base minerals
 global.TERMINAL_ENERGY_BUFFER = 10000; // Keep this much in terminal (Needed for trade)
-global.STORAGE_ENERGY_BUFFER = 50000; // Keep this much in storage (useful for sieges but may slow down praising if too high)
-global.BOOST_AMOUNT = 10000; // Try to have this much of all applicable boosts
+global.BOOST_AMOUNT = 15000; // Try to have this much of all applicable boosts
 global.DUMP_AMOUNT = 40000; // Fills buys (or if overflowing it will offload to other terminals)
 
 // Room Ramparts
 global.BUNKER_LEVEL = 4; // What level do we start building the bunker
-global.SPECIAL_RAMPARTS = 8; // What level do we build ramparts on important structures/controller/sources
+global.SPECIAL_RAMPARTS = 7; // What level do we build ramparts on important structures/controller/sources
 global.RAMPARTS_ONLY = true; // Only build ramparts and not a checkered pattern
 global.PROTECT_STRUCTURES = true; // Rampart significant structures
 global.PROTECT_CONTROLLER = false; // Include controller in the bunker algorithm
@@ -75,42 +73,17 @@ global.ENERGY_TARGETS = {
 
 // Signing and whatnot
 global.OWNED_ROOM_SIGNS = [
-    "Managed by SlothBot",
-    "This Room is Under SlothBot's Watchful Gaze",
-    "Welcome to SlothBot's Domain",
-    "SlothBot's Territory"
+    "SlothBot"
 ];
 
 global.RESERVE_ROOM_SIGNS = [
-    "Protected Territory - Unauthorized Entry Prohibited",
-    "Enter at Your Own Risk - Security Measures in Place",
-    "Beware: Advanced Defense Systems Active",
-    "Private Property - Trespassing Will Be Met with Countermeasures",
-    "Hostile Environment - No Safe Passage",
-    "Warning: Experimental AI Surveillance",
-    "Proceed with Caution - Monitored Area",
-    "Beware: Automated Defenders on Patrol",
-    "Intruders Will Be Met with Aggression",
-    "Restricted Access",
-    "Tread Lightly - You Are on SlothBot's Watch List"
+    "Protected Territory - Unauthorized Entry Prohibited"
 ];
 
 global.EXPLORED_ROOM_SIGNS = [
-    "Explored by SlothBot",
-    "SlothBot Surveillance",
-    "Your Moves Are Known",
-    "Observation Complete",
-    "SlothBot: Eyes Everywhere",
-    "SlothBot",
-    "SlothBot Knows",
-    "SlothBot Has Been Here",
-    "This Room's Secrets Are Now SlothBot's",
-    "We've Seen It All",
-    "SlothBot Has Explored Here"
+    "Explored by SlothBot"
 ];
 
 global.ATTACK_ROOM_SIGNS = [
-    "SlothBot Declares War - Resistance is Futile",
-    "Surrender or Face the Wrath of SlothBot",
-    "SlothBot's Offensive - Slow but Inevitable"
+    "SlothBot"
 ];
