@@ -1,6 +1,6 @@
 const highCommand = require('military.highCommand');
 
-Creep.prototype.holdRoom = function () {
+Creep.prototype.denyRoom = function () {
     // Boost logic: Only boost if necessary
     if (this.tryToBoost(['ranged', 'heal', 'attack', 'tough'])) return;
 
