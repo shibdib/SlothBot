@@ -434,8 +434,8 @@ Creep.prototype.fightRanged = function (target) {
     }
 
     // Kite if can't win or if too close to dangerous enemies
-    if (!this.canIWin(6) || shouldKite(this, target)) {
-        return this.shibKite(5);
+    if (!this.canIWin(8) || shouldKite(this, target)) {
+        return this.shibKite(7);
     }
 
     return true;
