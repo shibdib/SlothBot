@@ -18,7 +18,6 @@ function threatManager() {
     Memory._badBoyArray = undefined;
     Memory._badBoyList = undefined;
     Memory._nuisance = undefined;
-    Memory._threatList = undefined;
 
     Memory._enemies = [];
     Memory._threats = [];
@@ -122,7 +121,7 @@ module.exports.trackThreat = function (creep) {
                     attacker &&
                     !Memory._threats.includes(attacker.owner.username) &&
                     target &&
-                    Memory._threatList.includes(target.owner.username)
+                    Memory._threats.includes(target.owner.username)
                 );
             }
         );
