@@ -200,7 +200,8 @@ function militaryOperations() {
 
         // Remote Denial
         let activeRemoteDenials = _.filter(Memory.targetRooms, (target) => target && target.type === 'remoteDenial').length || 0;
-        if (activeRemoteDenials < 2) {
+        const denialAmount = HARASSMENT_OPERATIONS ? 1 : _.min(3, MY_ROOMS.length);
+        if (activeRemoteDenials < denialAmount) {
             let target = _.min(_.filter(initialFilter, (r) => r.owner && (ATTACK_LOCALS || _.includes(THREATS, r.user))), function (t) {
                 if (!t.name) return Infinity;
                 return findClosestOwnedRoom(t.name, true);
@@ -848,6 +849,8 @@ module.exports.operationSustainability = function (room, operationRoom = room.na
     // Retrieve the operation object from memory
     let operation = Memory.targetRooms[operationRoom] || Memory.auxiliaryTargets[operationRoom]
         || Memory.targetRooms[room.name] || Memory.auxiliaryTargets[room.name];
+
+    if (!operation) return;
 
     // Mark room as pending if it has a safemode
     if (room.controller && room.controller.safeMode) {
