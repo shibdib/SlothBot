@@ -797,6 +797,7 @@ Creep.prototype.findDefensivePosition = function (target = this) {
     // Use assigned rampart if it exists and no hostiles are present, or with a 25% chance
     if (this.memory.assignedRampart && (!this.room.hostileCreeps.length || Math.random() > 0.25)) {
         bestRampart = Game.getObjectById(this.memory.assignedRampart);
+        if (bestRampart.room.name !== this.room.name) return this.memory.assignedRampart = undefined;
     } else {
         // Find the closest rampart with specific conditions
         bestRampart = findBestRampart(this, target);
