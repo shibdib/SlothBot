@@ -13,7 +13,6 @@ let usedTerminals = {};
 
 class TerminalControl {
     constructor() {
-        this.tradeAmount = MINERAL_TRADE_AMOUNT;
         this.reactionAmount = REACTION_AMOUNT;
     }
 
@@ -310,7 +309,7 @@ class TerminalControl {
                 // Buy orders
                 if (!activeBuyOrder) {
                     price = getOrderPrice(mineral, this.latestMarketHistory(mineral));
-                    buyAmount = Math.min(buyAmount, this.tradeAmount);
+                    buyAmount = Math.min(buyAmount, MINERAL_TRADE_AMOUNT);
 
                     if (createBuyOrder(mineral, price, buyAmount)) break;
                 }
@@ -403,7 +402,8 @@ class TerminalControl {
             if (activeBuyOrder) {
                 // Scale markup based on time elapsed since the order was created
                 const timeElapsed = Game.time - activeBuyOrder.created;
-                markup = Math.min(1.0 + (timeElapsed / 10000), 2.5);  // Maximum markup of 150% after 10,000 ticks
+                const cooldown = ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) ? 10000 : 500;
+                markup = Math.min(1.0 + (timeElapsed / cooldown), 1.5);  // Maximum markup of 150% after cooldown
             }
             return markup;
         }
@@ -881,7 +881,17 @@ class TerminalControl {
                     tick: Game.time
                 };
             } else {
-                return false;
+                const cheapestOrder = _.min(this.getGlobalOrders().filter(order => order.amount >= 50 && order.resourceType === resource &&
+                    order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName)), 'price');
+                const highestOrder = _.max(this.getGlobalOrders().filter(order => order.amount >= 50 && order.resourceType === resource &&
+                    order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName)), 'price');
+                if (cheapestOrder && cheapestOrder.id) {
+                    marketHistoryCache[resource] = {};
+                    marketHistoryCache[resource].data = {};
+                    marketHistoryCache[resource].data.avg = cheapestOrder.price;
+                    marketHistoryCache[resource].data.highest = highestOrder.price;
+                    marketHistoryCache[resource].data.lowest = cheapestOrder.price;
+                }
             }
         }
         return marketHistoryCache[resource].data;
@@ -1073,12 +1083,6 @@ class TerminalControl {
             if (duplicates.length) {
                 this.cancelOrder(order, 'Duplicate order detected');
                 duplicates.forEach(duplicateOrder => Game.market.cancelOrder(duplicateOrder.id));
-                continue;
-            }
-
-            // Resource-specific cancellation based on trade limits
-            if (order.resourceType !== RESOURCE_ENERGY && order.remainingAmount > this.tradeAmount) {
-                this.cancelOrder(order, `Exceeds trade limit (${order.remainingAmount}/${this.tradeAmount})`);
                 continue;
             }
 
