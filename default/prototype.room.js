@@ -398,7 +398,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     };
 
     // More frequent checks
-    if (roomIntel.microUpdate + 50 < currentTime) {
+    if (!roomIntel.microUpdate || roomIntel.microUpdate + 50 < currentTime) {
         roomIntel.invaderCore = !!this.find(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_INVADER_CORE}}).length;
         if (this.controller) {
             roomIntel.owner = this.controller.owner ? this.controller.owner.username : undefined;
@@ -412,6 +412,8 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         }
         if (this.hostileCreeps.length) {
             roomIntel.armedHostile = _.some(this.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) ? Game.time : undefined;
+        } else {
+            roomIntel.armedHostile = undefined;
         }
         roomIntel.microUpdate = currentTime;
         cache[this.name] = roomIntel;
