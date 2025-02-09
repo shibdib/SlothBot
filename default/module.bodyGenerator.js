@@ -191,28 +191,28 @@ class ModuleBodyGenerator {
                 break;
 
             case 'longbow':
-                // Calculate the number of rangedAttack parts (max 17)
-                rangedAttack = Math.floor((this.energyAmount * 0.7) / (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE])) || 1;
-                rangedAttack = Math.min(rangedAttack, 17);  // Cap rangedAttack to 17
-
-                // Calculate the number of heal parts (max 8)
-                heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
-                heal = Math.min(heal, 8);  // Cap heal to 8
+            case 'longbowDuo':
+                if (this.creepInfo.operation === 'roomDenial' && INTEL[this.creepInfo.destination].towers) {
+                    const optimalHeal = 7 * INTEL[this.creepInfo.destination].towers;
+                    heal = Math.floor(this.energyAmount / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
+                    heal = Math.min(heal, optimalHeal);
+                } else {
+                    heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
+                    heal = Math.min(heal, 6);
+                }
+                const remainingEnergy = this.energyAmount - ((heal * BODYPART_COST[HEAL]) + heal * BODYPART_COST[MOVE]);
+                rangedAttack = Math.floor(remainingEnergy / (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE])) || 1;
+                rangedAttack = Math.min(rangedAttack, 25 - heal);
 
                 // Handle scaling down military creeps based on power
                 if (this.creepInfo.other && this.creepInfo.other.power) {
                     let totalPower = (rangedAttack * RANGED_ATTACK_POWER) + (heal * HEAL_POWER);
-
-                    // Check if the total power exceeds available power
                     if (totalPower > this.creepInfo.other.power * 1.2) {
                         let ratio = (this.creepInfo.other.power * 1.2) / totalPower;
-
-                        // Scale down both rangedAttack and heal to fit within available power
                         rangedAttack = Math.ceil(rangedAttack * ratio);
                         heal = Math.ceil(heal * ratio);
                     }
                 }
-
                 break;
 
             case 'cleaner':
@@ -319,8 +319,9 @@ class ModuleBodyGenerator {
                 break;
 
             case 'SKAttacker':
-                attack = 19;
-                heal = 6;
+                attack = 18;
+                rangedAttack = 2;
+                heal = 5;
                 break;
 
             case 'powerAttacker':

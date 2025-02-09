@@ -171,7 +171,7 @@ function militaryOperations() {
 
     // Handle direct room attacks
     if (OFFENSIVE_OPERATIONS && _.size(Memory.targetRooms) < OPERATION_LIMIT) {
-        let initialFilter = _.filter(INTEL, (r) => r.user && userStrength(r.user) <= MAX_LEVEL && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] &&
+        let initialFilter = _.filter(INTEL, (r) => r.user && userStrength(r.user) <= MAX_LEVEL && !_.includes(FRIENDLIES, r.user) && !_.includes(NO_DIRECT_ATTACKS, r.user) && !Memory.targetRooms[r.name] &&
             !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !checkForNap(r.user) && (!r.safemode || r.safemode - 500 < Game.time));
 
         // Room Denial
@@ -198,6 +198,31 @@ function militaryOperations() {
             }
         }
 
+        // Sieges
+        if (activeRoomDenials < 2) {
+            let target = _.min(_.filter(initialFilter, (r) => r.owner && r.towers && siegeLevel(r.towers) && HOLD_SECTOR && myRoomInSectorCheck(r.name)), function (t) {
+                if (!t.name) return Infinity;
+                return findClosestOwnedRoom(t.name, true);
+            });
+            if (target && target.name) {
+                const level = target.towers <= 2 ? 3 : 4;
+                const boosts = true;
+                const cache = Memory.targetRooms || {};
+                const tick = Game.time;
+                cache[target.name] = {
+                    tick: tick,
+                    type: 'roomDenial',
+                    level: level,
+                    priority: getPriority(target.name),
+                    boostsRequired: boosts
+                };
+                Memory.targetRooms = cache;
+                INTEL[target.name].lastOperation = Game.time;
+
+                return log.a('Room Denial operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + findClosestOwnedRoom(target.name, true) + ' rooms away)', 'HIGH COMMAND: ');
+            }
+        }
+
         // Remote Denial
         let activeRemoteDenials = _.filter(Memory.targetRooms, (target) => target && target.type === 'remoteDenial').length || 0;
         const denialAmount = HARASSMENT_OPERATIONS ? 1 : _.min(3, MY_ROOMS.length);
@@ -207,17 +232,25 @@ function militaryOperations() {
                 return findClosestOwnedRoom(t.name, true);
             });
 
+
             if (target && target.name) {
+                // If the enemy room only has one exit, we setup a guard op to camp instead
+                let type = 'remoteDenial';
+                const exits = Game.map.describeExits(target.name);
+                INTEL[target.name].lastOperation = Game.time;
+                if (_.size(exits) === 1) {
+                    target.name = Object.values(Game.map.describeExits(target.name))[0];
+                    type = 'guard'
+                }
                 let cache = Memory.targetRooms || {};
                 let tick = Game.time;
                 cache[target.name] = {
                     tick: tick,
-                    type: 'remoteDenial',
+                    type: type,
                     level: 1,
                     priority: getPriority(target.name)
                 };
                 Memory.targetRooms = cache;
-                INTEL[target.name].lastOperation = Game.time;
 
                 return log.a('Remote Denial operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + findClosestOwnedRoom(target.name, true) + ' rooms away)', 'HIGH COMMAND: ');
             }
@@ -628,7 +661,7 @@ function manualAttacks() {
     for (let name in Game.flags) {
         const flag = Game.flags[name];
         const roomName = flag.pos.roomName;
-        const operation = name.replace(/[^a-z]/gi, '').toLowerCase();
+        const operation = name.replace(/[^a-z]/gi, '');
         const tick = Game.time;
 
         // Define a helper function for flag removal and logging
@@ -968,6 +1001,16 @@ function saveOperation(operationRoom, operation) {
     } else if (Memory.auxiliaryTargets[operationRoom]) {
         Memory.auxiliaryTargets[operationRoom] = operation;
     }
+}
+
+// Check if we have high enough level for the number of towers
+function siegeLevel(towerCount) {
+    if (towerCount === 1 && MAX_LEVEL >= 6) {
+        return true;
+    } else if (towerCount > 1 && MAX_LEVEL >= 7) {
+        return true;
+    }
+    return false;
 }
 
 
