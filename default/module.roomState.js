@@ -15,18 +15,6 @@ module.exports.setRoomState = function (room) {
         // Request builders only if certain conditions are met
         requestBuilders(room);
 
-        // Check if struggling
-        const isStruggling = room.storage && (room.creeps.length < 3 || !room.energyState);
-        if (isStruggling && !room.memory.struggling) {
-            log.a(roomLink(room.name) + ' is struggling.', 'ROOMS');
-            room.memory.struggling = true;
-            room.memory.struggleTime = Game.time;
-        } else if (!isStruggling && room.memory.struggling) {
-            log.a(roomLink(room.name) + ' has recovered to an acceptable level.', 'ROOMS');
-            room.memory.struggling = undefined;
-            room.memory.struggleTime = undefined;
-        }
-
         // Track if room is in a state to participate in combat
         const importantBuilds = _.some(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
         INTEL[room.name].availableForCombat = !importantBuilds && room.level >= 3 && room.energyState && !INTEL[room.name].threatLevel;
@@ -45,11 +33,9 @@ module.exports.setRoomState = function (room) {
         ROOM_ENERGY_INCOME_ARRAY[room.name] = energyIncomeArray;
 
         // Track mined minerals
-        if (room.level >= 6) {
-            const mineralType = room.mineral.mineralType;
-            if (mineralType && !MY_MINERALS[mineralType]) {
-                MY_MINERALS[mineralType] = true;
-            }
+        const mineralType = room.mineral.mineralType;
+        if (mineralType && !MY_MINERALS[mineralType]) {
+            MY_MINERALS[mineralType] = true;
         }
 
         // Track if the room is filling extensions/spawns fast enough
