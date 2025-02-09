@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-module.exports = function (grunt) {
+module.exports = async function (grunt) {
     // --force --host=xxx --email=xxx --pass=xxx
     let host = grunt.option('host');
     let email = grunt.option('email');
@@ -15,7 +15,7 @@ module.exports = function (grunt) {
     moveFilesRecursively('./default/', './upload/');
 
     if (!token) {
-        grunt.initConfig({
+        await grunt.initConfig({
             screeps: {
                 options: {
                     server: {
@@ -34,7 +34,7 @@ module.exports = function (grunt) {
             }
         });
     } else {
-        grunt.initConfig({
+        await grunt.initConfig({
             screeps: {
                 options: {
                     email: email,
@@ -48,6 +48,7 @@ module.exports = function (grunt) {
             }
         });
     }
+    clearDirectory('./upload/')
 };
 
 // Function to move files recursively
