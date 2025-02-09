@@ -26,12 +26,14 @@ Releases represent the "Stable" branch and are deemed working "good enough". Dev
 - Automated Attack Target Code 
 
 ## Setup
-1. For the main server simply fork this repo and sync your github to the game, point it to the src folder.
-2. Private servers you can download this repo, copy the src folder into the applicable server folder.
-3. Modify the config.default.js file for your needs.
+
+1. You either need to setup your IDE to use the grunt file to upload (HIGHLY RECOMMENDED) or... manually seperate the
+   folders.
+2. Modify the config.default.js file for your needs.
 
 ## In The Works
-- Quad/Duo code
+
+- Quad code
 - Smarter boosting
 - Better portal pathing
 
