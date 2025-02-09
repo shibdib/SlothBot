@@ -839,6 +839,9 @@ Creep.prototype.borderCheck = function () {
 
     // If the creep is at the border (x = 0, y = 0, x = 49, or y = 49)
     if (x === 0 || y === 0 || x === 49 || y === 49) {
+        // Still do combat
+        this.attackInRange();
+        this.healInRange(true);
         // Increment borderCountDown for stuck creeps and limit its usage
         this.memory.borderCountDown = (this.memory.borderCountDown || 0) + 1;
 
@@ -851,13 +854,18 @@ Creep.prototype.borderCheck = function () {
             // Remove the first element manually (shift operation)
             pathInfo.path = pathInfo.path.slice(1); // Now the array has one less element
 
-            pathInfo.newPos = this.pos.positionAtDirection(nextDirection);
-            const moveResult = this.move(nextDirection);
+            const nextPos = this.pos.positionAtDirection(nextDirection);
+            if (!nextPos.checkForImpassible()) {
+                pathInfo.newPos = nextPos;
+                const moveResult = this.move(nextDirection);
 
-            if (moveResult === OK) {
-                pathInfo.pathPosTime = 0;
-                pathInfo.lastMoveTick = Game.time;
-                return true; // Path successfully moved
+                if (moveResult === OK) {
+                    pathInfo.pathPosTime = 0;
+                    pathInfo.lastMoveTick = Game.time;
+                    return true; // Path successfully moved
+                }
+            } else {
+                this.memory._shibMove = undefined;
             }
         }
 

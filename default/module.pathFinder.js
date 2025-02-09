@@ -17,7 +17,8 @@ const skMatrixCache = CACHE.skMatrixCache = {};
 
 function shibMove(creep, heading, options = {}, pathOnly = false) {
     // If the target is a creep in another room, change the heading to that room
-    if (heading instanceof Creep && heading.room.name !== creep.room.name) {
+    if (heading instanceof Creep && heading.room.name !== creep.room.name &&
+        Game.map.getRoomLinearDistance(creep.room.name, heading.room.name) > 1) {
         heading = new RoomPosition(25, 25, heading.room.name);
         options.range = 23;
     }
