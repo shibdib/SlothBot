@@ -96,20 +96,13 @@ function updateHostileUsers(room) {
 
 // Handle the "hold" operation type for the room
 function handleRoomDenialOperation(room) {
-    if (INTEL[room.name].towers) {
-        // Convert to denial if towers are detected
-        Memory.targetRooms[room.name].type = 'remoteDenial';
-        Memory.targetRooms[room.name].level = 1;
-        log.a(`Converting room denial operation in ${roomLink(room.name)} to remote denial due to tower detection.`, 'HIGH COMMAND: ');
-        return;
-    }
-
     if (!room.controller || !room.controller.owner) {
         // Cancel hold if room is no longer owned
         log.a(`Canceling room denial operation in ${roomLink(room.name)} as it is no longer owned.`, 'HIGH COMMAND: ');
         delete Memory.targetRooms[room.name];
         return;
     }
+    updateRoomLevel(room);
 
     // Request cleaner and claim attacker if conditions are met
     handleCleanerAndClaimAttacker(room);
@@ -120,7 +113,11 @@ function handleRoomDenialOperation(room) {
 
 // Handle the "scout" operation type for the room
 function handleScoutOperation(room) {
-    if (INTEL[room.name].towers) {
+    if (INTEL[room.name].owner && (!INTEL[room.name].towers || INTEL[room.name].towers <= 2)) {
+        // Convert to hold if room is owned
+        Memory.targetRooms[room.name].type = 'roomDenial';
+        log.a(`Room ${roomLink(room.name)} converted to room denial operation.`, 'HIGH COMMAND: ');
+    } else if (INTEL[room.name].owner && INTEL[room.name].towers > 2) {
         // Convert to denial if towers are detected
         Memory.targetRooms[room.name].type = 'remoteDenial';
         log.a(`Room ${roomLink(room.name)} converted to remote denial operation.`, 'HIGH COMMAND: ');
@@ -133,6 +130,7 @@ function handleScoutOperation(room) {
         Memory.targetRooms[room.name].type = 'guard';
         log.a(`Room ${roomLink(room.name)} converted to guard operation.`, 'HIGH COMMAND: ');
     }
+    updateRoomLevel(room);
 }
 
 // Handle the "denial" operation type for the room
@@ -193,13 +191,21 @@ function adjustPriorityForRoomDenialOperation(room) {
 // Update the level of the room based on hostile presence or structural damage
 function updateRoomLevel(room) {
     const targetRoom = Memory.targetRooms[room.name];
-
-    if (room.hostileCreeps.length || room.hostileStructures.length) {
-        targetRoom.level = 2; // Major threat level
+    const towers = _.filter(room.hostileStructures, (s) => s.structureType === STRUCTURE_TOWER);
+    if (towers.length) {
+        if (towers.length === 1) {
+            targetRoom.level = 3;
+        } else if (towers.length === 2) {
+            targetRoom.level = 4;
+        } else {
+            targetRoom.level = 5;
+        }
+    } else if (room.hostileCreeps.length || room.hostileStructures.length) {
+        targetRoom.level = 2;
     } else if (room.hostileStructures.length || (Memory.targetRooms[room.name] && Memory.targetRooms[room.name].type === 'roomDenial')) {
-        targetRoom.level = 1; // Moderate threat
+        targetRoom.level = 1;
     } else {
-        targetRoom.level = 0; // Low or no threat
+        targetRoom.level = 0;
     }
 }
 

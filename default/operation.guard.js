@@ -3,7 +3,7 @@
  */
 
 Creep.prototype.guardRoom = function () {
-    if (this.tryToBoost(['ranged', 'heal', 'attack', 'tough'])) return;
+    if (this.tryToBoost(['ranged_attack', 'heal', 'attack', 'tough'])) return;
 
     let destination = this.memory.destination;
     let sentence = ['Security', 'Guard', 'For', destination];
@@ -11,7 +11,7 @@ Creep.prototype.guardRoom = function () {
     this.say(sentence[word], true);
 
     // Combat handling
-    if (this.handleMilitaryCreep() || this.scorchedEarth()) return;
+    if (this.handleMilitaryCreep()) return;
 
     // Healing
     if (this.hits < this.hitsMax) {

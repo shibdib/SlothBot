@@ -32,7 +32,7 @@ class RoleCleaner {
         if (!barrier) return this.creep.memory.barrierClearing = undefined;
         if (this.creep.pos.isNearTo(barrier)) {
             if (this.creep.hasActiveBodyparts(WORK)) {
-                return this.creep.dismantle(barrier);
+                if (this.creep.dismantle(barrier) === OK) this.creep.memory.other.stationary = true;
             }
         } else this.creep.shibMove(barrier);
     }
@@ -42,11 +42,73 @@ class RoleCleaner {
     }
 
     cleanRoom() {
-        if (!this.creep.scorchedEarth()) {
+        // If we can't get to the controller or sources, clear a path
+        const blocked = blockedLocations(this.creep);
+        if (blocked) {
+            const destroyThese = findBestCleaningPath(this.creep, blocked);
+            this.creep.memory.barrierClearing = this.creep.pos.findClosestByPath(destroyThese).structure.id;
+        } else if (!this.creep.scorchedEarth()) {
             this.room.cacheRoomIntel(true);
-            this.creep.suicide();
+            //this.creep.suicide();
         }
     }
+}
+
+function blockedLocations(creep) {
+    // Check controller
+    let blocked = !creep.pos.findClosestByPath(creep.room.controller);
+    if (blocked) return creep.room.controller;
+    // Check sources
+    for (const source of creep.room.sources) {
+        if (!creep.pos.findClosestByPath(source)) return source;
+    }
+    // Check exits
+    for (const exit of Game.map.describeExits(creep.room.name)) {
+        if (!creep.pos.findClosestByPath(exit)) return exit;
+    }
+}
+
+function findBestCleaningPath(creep, target) {
+    const room = creep.room;
+    if (!room) return {path: null, structures: []}; // Room not visible
+
+    const costMatrix = new PathFinder.CostMatrix();
+    room.find(FIND_STRUCTURES).forEach(structure => {
+        if (structure.structureType === STRUCTURE_RAMPART || structure.structureType === STRUCTURE_WALL) {
+            // Calculate the cost based on hits, higher hits = higher cost
+            let cost = Math.floor(structure.hits / 100000); // Adjust this divisor as needed
+            // Cap the cost to prevent impassable barriers
+            cost = Math.min(cost, 255); // 255 is the max cost in a CostMatrix
+            costMatrix.set(structure.pos.x, structure.pos.y, cost);
+        }
+    });
+
+    // Pathfinding options
+    const pathOptions = {
+        roomCallback: function (roomName) {
+            if (roomName === room.name) {
+                return costMatrix;
+            }
+            return false;
+        },
+        plainCost: 1,
+        swampCost: 2,
+        maxOps: 2000,
+    };
+    const path = PathFinder.search(creep.pos, {pos: target.pos, range: 1}, pathOptions);
+    let structuresOnPath = [];
+    if (path.path.length > 0) {
+        structuresOnPath = path.path.reduce((acc, pos) => {
+            const structures = room.lookForAt(LOOK_STRUCTURES, pos.x, pos.y);
+            structures.forEach(structure => {
+                if (structure.structureType === STRUCTURE_RAMPART || structure.structureType === STRUCTURE_WALL) {
+                    acc.push({pos: structure.pos, structure: structure});
+                }
+            });
+            return acc;
+        }, []);
+    }
+    return structuresOnPath;
 }
 
 profiler.registerClass(RoleCleaner, 'Cleaner');

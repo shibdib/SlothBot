@@ -5,7 +5,7 @@
 const highCommand = require('military.highCommand');
 
 Creep.prototype.harass = function () {
-    if (this.tryToBoost(['ranged', 'heal'])) return;
+    if (this.tryToBoost(['ranged_attack', 'heal'])) return;
 
     // If no harass targets, switch to border patrol.
     if (!Memory._threats || !Memory._threats.length) {
@@ -17,7 +17,7 @@ Creep.prototype.harass = function () {
     this.say(sentence[Game.time % sentence.length], true);
 
     // Combat handling
-    if (this.handleMilitaryCreep() || this.scorchedEarth()) return;
+    if (this.handleMilitaryCreep()) return;
 
     // Healing
     if (this.hits < this.hitsMax) {

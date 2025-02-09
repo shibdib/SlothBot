@@ -5,13 +5,13 @@
 const highCommand = require('military.highCommand');
 
 Creep.prototype.remoteDenial = function () {
-    if (this.tryToBoost(['ranged', 'heal'])) return;
+    if (this.tryToBoost(['ranged_attack', 'heal'])) return;
 
     let sentence = ['No', 'Remotes', 'Allowed'];
     this.say(sentence[Game.time % sentence.length], true);
 
     // Combat handling
-    if (this.handleMilitaryCreep() || this.scorchedEarth()) return;
+    if (this.handleMilitaryCreep()) return;
 
     // Healing
     if (this.hits < this.hitsMax) {

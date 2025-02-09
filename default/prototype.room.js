@@ -393,7 +393,6 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         name: this.name,
         shardName: Game.shard.name,
         sources: 0,
-        obstacles: false,
         invaderCore: false
     };
 
@@ -437,7 +436,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 
     // Basic room info
     roomIntel.sources = this.find(FIND_SOURCES).length;
-    roomIntel.obstacles = !canPathToAllNeighbors(this);
+    roomIntel.obstacles = !areExitsReachable(this);
 
     // Minerals
     const mineral = this.find(FIND_MINERALS)[0];
@@ -547,59 +546,52 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 };
 
 /**
- * Checks if paths can be found from the room controller to all neighboring rooms.
+ * Checks if an exit tile for every exit is reachable
  * @param {Room} room - The room to check from.
- * @return {boolean} - Returns true if paths to all neighbors exist, false otherwise.
+ * @return {boolean} - Returns true if at least one exit tile is reachable, false otherwise.
  */
-function canPathToAllNeighbors(room) {
-    const controller = room.controller;
-    if (!controller) {
-        return false;
-    }
-
-    // If the room is owned by the player, we assume paths exist
-    if (controller.owner && controller.owner.username === MY_USERNAME) {
+function areExitsReachable(room) {
+    if (!room.controller) {
         return true;
     }
-
-    const neighbors = Game.map.describeExits(room.name);
-    for (let exit in neighbors) {
-        const neighbor = neighbors[exit];
-        const exitDir = Game.map.findExit(room.name, neighbor);
-        const exitPos = controller.pos.findClosestByPath(exitDir);
-
-        if (!exitPos) {
-            return false;
-        }
-
-        const path = PathFinder.search(
-            controller.pos,
-            {pos: exitPos, range: 1},
-            {
-                maxRooms: 1,
-                plainCost: 2,
-                swampCost: 10,
-                roomCallback: function (roomName) {
-                    let room = Game.rooms[roomName];
-                    if (!room) return false;
-                    let costs = new PathFinder.CostMatrix;
-
-                    room.find(FIND_STRUCTURES).forEach(function (structure) {
-                        if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
-                            costs.set(structure.pos.x, structure.pos.y, 255);
-                        }
-                    });
-
-                    return costs;
+    const exits = Object.values(Game.map.describeExits(room.name));
+    for (let exitRoom of exits) {
+        const exitPositions = room.find(room.findExitTo(exitRoom));
+        if (exitPositions.length === 0) continue;
+        let pathsFound = false;
+        for (let exitPos of exitPositions) {
+            const path = PathFinder.search(
+                room.controller.pos,
+                {pos: exitPos, range: 0},
+                {
+                    maxOps: 5000,
+                    plainCost: 1,
+                    swampCost: 1,
+                    roomCallback: function (roomName) {
+                        let room = Game.rooms[roomName];
+                        if (!room) return false;
+                        let costs = new PathFinder.CostMatrix;
+                        room.find(FIND_STRUCTURES).forEach(function (s) {
+                            if (_.union(OBSTACLE_OBJECT_TYPES, [STRUCTURE_RAMPART]).includes(s.structureType)) {
+                                costs.set(s.pos.x, s.pos.y, Infinity);
+                            }
+                        });
+                        room.find(FIND_CREEPS).forEach(function (c) {
+                            costs.set(c.pos.x, c.pos.y, 0);
+                        });
+                        return costs;
+                    }
                 }
+            );
+            if (!path.incomplete) {
+                pathsFound = true;
+                break;
             }
-        );
-
-        if (path.incomplete) {
+        }
+        if (!pathsFound) {
             return false;
         }
     }
-
     return true;
 }
 

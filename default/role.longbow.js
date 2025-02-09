@@ -41,7 +41,7 @@ class RoleLongbow {
 
     destinationManagement() {
         // Combat handling
-        if (this.creep.handleMilitaryCreep() || this.creep.scorchedEarth()) return;
+        if (this.creep.handleMilitaryCreep()) return;
 
         // Healing
         if (this.creep.hits < this.creep.hitsMax) {

@@ -52,11 +52,6 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         return true;
     }
 
-    // Fallback to scorched earth
-    if (this.scorchedEarth()) {
-        return true;
-    }
-
     return this.moveToHostileConstructionSites();
 
     function canEngageCombat(creep) {
@@ -69,7 +64,6 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         if (rampart && creep.fightRampart(hostile)) return true;
         if (creep.hasActiveBodyparts(ATTACK) && creep.attackHostile(hostile)) return true;
         return !!(creep.hasActiveBodyparts(RANGED_ATTACK) && creep.fightRanged(hostile));
-
     }
 };
 
@@ -84,8 +78,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
 Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = false, guardLocation = undefined, guardRange, includeRampart = false) {
     // Cache the required data upfront
     const hostileStructures = _.filter(this.room.impassibleStructures, (s) =>
-        !FRIENDLIES.includes(INTEL[this.room.name].user) &&
-        (!s.owner || !FRIENDLIES.includes(s.owner.username)) &&
+        s.owner && !FRIENDLIES.includes(INTEL[this.room.name].user) && !FRIENDLIES.includes(s.owner.username) &&
         (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange)
         && ![STRUCTURE_KEEPER_LAIR, STRUCTURE_CONTROLLER, STRUCTURE_POWER_BANK].includes(s.structureType)
     );
@@ -138,6 +131,12 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
     );
     if (enemy) return updateTargetAndReturn(this, enemy);
 
+    // Handle attacking rooms with targets behind ramparts
+    if (this.room.controller && !this.pos.findClosestByPath(this.room.controller)) {
+        const destroyThese = findBestCleaningPath(this, this.room.controller);
+        if (destroyThese[0] && destroyThese[0].id) return updateTargetAndReturn(this, this.pos.findClosestByPath(destroyThese));
+    }
+
     enemy = findClosest(hostileCreeps, (c) =>
         !isArmedCreep(c) &&
         (ignoreBorder || (c.pos.x > 0 && c.pos.x < 49 && c.pos.y > 0 && c.pos.y < 49)) &&
@@ -152,7 +151,6 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
     );
     if (enemy) return updateTargetAndReturn(this, enemy);
 
-    // --- Default fallback (if no specific target found) ---
     return undefined;
 
     // Helper function to update memory and return the target
@@ -177,7 +175,7 @@ Creep.prototype.findClosestHostileStructure = function (barriers = true) {
 
     // Cache hostile structures and filter out friendly ones
     const hostileStructures = _.filter(this.room.impassibleStructures, (s) =>
-        ((!s.owner || !FRIENDLIES.includes(s.owner.username)) || s.structureType === STRUCTURE_WALL) &&
+        ((s.owner && !FRIENDLIES.includes(s.owner.username)) || s.structureType === STRUCTURE_WALL) &&
         ![STRUCTURE_KEEPER_LAIR, STRUCTURE_CONTROLLER, STRUCTURE_POWER_BANK].includes(s.structureType)
     );
 
@@ -198,20 +196,13 @@ Creep.prototype.findClosestHostileStructure = function (barriers = true) {
         return invaderCore;
     }
 
-    // Pre-filter all structures for later use (eliminating unnecessary checks)
-    const structures = _.filter(this.room.structures, (s) =>
-        !s.owner || !FRIENDLIES.includes(s.owner.username) &&
-        s.hits && ![STRUCTURE_POWER_BANK, STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_INVADER_CORE,
-            STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_PORTAL].includes(s.structureType)
-    );
-
     // Check for barriers like walls and ramparts
-    const barriersPresent = _.some(structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
+    const barriersPresent = _.some(hostileStructures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
 
     let target;
 
     // Check for active towers/spawns with no ramparts or low rampart hits, prioritize those
-    target = _.find(structures, (s) => {
+    target = _.find(hostileStructures, (s) => {
         return (s.structureType === STRUCTURE_TOWER || s.structureType === STRUCTURE_SPAWN) &&
             (!s.pos.checkForRampart() || s.pos.checkForRampart().hits < 50000) &&
             s.isActive();
@@ -223,6 +214,12 @@ Creep.prototype.findClosestHostileStructure = function (barriers = true) {
     }
 
     // If no towers/spawns found, prioritize any other active hostile structures
+    // Pre-filter all structures for later use (eliminating unnecessary checks)
+    const structures = _.filter(this.room.structures, (s) =>
+        !s.owner || !FRIENDLIES.includes(s.owner.username) &&
+        s.hits && ![STRUCTURE_POWER_BANK, STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_INVADER_CORE,
+            STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_PORTAL].includes(s.structureType)
+    );
     target = _.find(structures, (s) => s.isActive() && ![STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_ROAD, STRUCTURE_CONTAINER].includes(s.structureType));
 
     if (target) {
@@ -232,7 +229,7 @@ Creep.prototype.findClosestHostileStructure = function (barriers = true) {
 
     // If no immediate target found, check for towers/spawns that still have ramparts but are weak
     if (barriers && barriersPresent) {
-        target = _.find(structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) &&
+        target = _.find(hostileStructures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) &&
             (!s.pos.checkForRampart() || s.pos.checkForRampart().hits < 50000));
 
         if (target) {
@@ -457,6 +454,10 @@ Creep.prototype.fightRanged = function (target) {
 
     function handleCloseCombat(creep, target, hostileNearby) {
         if (target instanceof Creep) {
+            // If you can win, move closer
+            if (creep.canIWin(5)) {
+                creep.shibMove(target, {range: 2});
+            }
             // Check for mass attack conditions
             if (creep.pos.findInRange(creep.room.hostileCreeps, 1).length > 1 || creep.pos.getRangeTo(target) === 1) {
                 creep.say('BIG PEW!', true);
@@ -467,7 +468,12 @@ Creep.prototype.fightRanged = function (target) {
             }
         } else {
             creep.say('BURN!', true);
-            if (creep.rangedAttack(target) === ERR_NOT_IN_RANGE) {
+            if (creep.canIWin(5)) {
+                creep.shibMove(target);
+            }
+            if (target.structureType !== STRUCTURE_WALL && creep.pos.isNearTo(target)) {
+                creep.rangedMassAttack();
+            } else if (creep.rangedAttack(target) === ERR_NOT_IN_RANGE) {
                 creep.shibMove(target, {range: 1, ignoreCreeps: false});
             }
         }
@@ -643,7 +649,7 @@ Creep.prototype.attackInRange = function () {
  * Heal a friendly creep in range or heal self if necessary
  * @returns {boolean}
  */
-Creep.prototype.healInRange = function () {
+Creep.prototype.healInRange = function (blinky = undefined) {
     if (!this.hasActiveBodyparts(HEAL)) return false;
 
     // Heal self if needed
@@ -675,6 +681,8 @@ Creep.prototype.healInRange = function () {
             }
         }
     }
+
+    if (blinky) this.heal(this);
 
     return false;
 };
@@ -744,7 +752,9 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
             s.isActive() &&
             s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST
         );
-        power += towers.length * TOWER_POWER_ATTACK;
+        for (const tower of towers) {
+            power += determineTowerDamage(tower.pos.getRangeTo(creep))
+        }
         return power;
     }
 
@@ -901,3 +911,56 @@ Creep.prototype.abilityPower = function () {
     };
 };
 
+// Computes damage of a tower based on range
+function determineTowerDamage(range) {
+    if (range <= 5) {
+        return 600;
+    } else if (range < 20) {
+        return 600 - 450 * (range - 5) / 15;
+    } else {
+        return 150;
+    }
+}
+
+function findBestCleaningPath(creep, target) {
+    const room = creep.room;
+    if (!room) return {path: null, structures: []}; // Room not visible
+
+    const costMatrix = new PathFinder.CostMatrix();
+    room.find(FIND_STRUCTURES).forEach(structure => {
+        if (structure.structureType === STRUCTURE_RAMPART || structure.structureType === STRUCTURE_WALL) {
+            // Calculate the cost based on hits, higher hits = higher cost
+            let cost = Math.floor(structure.hits / 100000); // Adjust this divisor as needed
+            // Cap the cost to prevent impassable barriers
+            cost = Math.min(cost, 255); // 255 is the max cost in a CostMatrix
+            costMatrix.set(structure.pos.x, structure.pos.y, cost);
+        }
+    });
+
+    // Pathfinding options
+    const pathOptions = {
+        roomCallback: function (roomName) {
+            if (roomName === room.name) {
+                return costMatrix;
+            }
+            return false;
+        },
+        plainCost: 1,
+        swampCost: 2,
+        maxOps: 2000,
+    };
+    const path = PathFinder.search(creep.pos, {pos: target.pos, range: 1}, pathOptions);
+    let structuresOnPath = [];
+    if (path.path.length > 0) {
+        structuresOnPath = path.path.reduce((acc, pos) => {
+            const structures = room.lookForAt(LOOK_STRUCTURES, pos.x, pos.y);
+            structures.forEach(structure => {
+                if (structure.structureType === STRUCTURE_RAMPART || structure.structureType === STRUCTURE_WALL) {
+                    acc.push({pos: structure.pos, structure: structure});
+                }
+            });
+            return acc;
+        }, []);
+    }
+    return structuresOnPath;
+}

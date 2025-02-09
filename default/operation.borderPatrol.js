@@ -8,7 +8,7 @@ Creep.prototype.borderPatrol = function () {
     this.say(sentence[word], true);
 
     // Combat handling
-    if (this.handleMilitaryCreep() || this.scorchedEarth()) return;
+    if (this.handleMilitaryCreep()) return;
 
     // Healing
     if (this.hits < this.hitsMax) {
