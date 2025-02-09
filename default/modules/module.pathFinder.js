@@ -121,8 +121,8 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
             creep.memory.towDestination = undefined;
         }
         if (!creep.memory.towCreep || !Game.getObjectById(creep.memory.towCreep)) {
-            let towTruck = _.filter(creep.room.creeps, (c) => c.getActiveBodyparts(MOVE) >= creep.body.length * 0.5 && !_.sum(c.store) && !c.memory.trailer && !c.memory.military);
-            if (!towTruck.length) towTruck = _.filter(creep.room.creeps, (c) => c.getActiveBodyparts(MOVE) >= 2 && !_.sum(c.store) && !c.memory.trailer && !c.memory.military);
+            let towTruck = _.filter(creep.room.myCreeps, (c) => c.getActiveBodyparts(MOVE) >= creep.body.length * 0.5 && !_.sum(c.store) && !c.memory.trailer && !c.memory.military);
+            if (!towTruck.length) towTruck = _.filter(creep.room.myCreeps, (c) => c.getActiveBodyparts(MOVE) >= 2 && !_.sum(c.store) && !c.memory.trailer && !c.memory.military);
             if (towTruck.length) {
                 const closest = creep.pos.findClosestByRange(towTruck);
                 creep.memory.towCreep = closest.id;
