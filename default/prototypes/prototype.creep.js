@@ -855,7 +855,7 @@ Creep.prototype.borderCheck = function () {
             pathInfo.path = pathInfo.path.slice(1); // Now the array has one less element
 
             const nextPos = this.pos.positionAtDirection(nextDirection);
-            if (!nextPos.checkForImpassible()) {
+            if (nextPos && !nextPos.checkForImpassible()) {
                 pathInfo.newPos = nextPos;
                 const moveResult = this.move(nextDirection);
 

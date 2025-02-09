@@ -2,6 +2,7 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 const generator = require('module.bodyGenerator');
+const planner = require("./module.roomPlanner");
 let energyOrder = {};
 let orderStored = {};
 let storedLevel = {};
@@ -522,7 +523,7 @@ module.exports.globalCreepQueue = function () {
 
         // Handle scout if needed (if observer check is missing)
         if (!operation.observerCheck && !opLevel && operation.type !== 'harass' && operation.type !== 'pending') {
-            queueCreepIfNeeded(undefined, 'scout', PRIORITIES.priority, 1, undefined, key, undefined, true);
+            queueCreepIfNeeded(undefined, 'scout', PRIORITIES.priority, 1, undefined, key, undefined);
         }
 
         // Handle harass targets
@@ -545,7 +546,7 @@ module.exports.globalCreepQueue = function () {
 
         switch (operation.type) {
             case 'scout':
-                queueCreepIfNeeded(undefined, 'scout', priority, 1, undefined, key, undefined, true);
+                queueCreepIfNeeded(undefined, 'scout', PRIORITIES.priority, 1, undefined, key);
                 break;
 
             case 'claim':
@@ -685,40 +686,6 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
 }
 
 /**
- * Determine what order energy is used in a room
- * @param room
- */
-function determineEnergyOrder(room) {
-    storedLevel[room.name] = getLevel(room);
-    if (!room.hub.x) {
-        const planner = require('module.roomPlanner');
-        planner.findHub(room);
-        return false;
-    }
-    if (!energyOrder[room.name] || orderStored[room.name] + 750 < Game.time) {
-        let harvester = _.filter(room.myCreeps, (c) => c.memory.role === 'stationaryHarvester' && c.memory.onContainer);
-        let energyStructures = _.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
-        let rangeArray = [];
-        let usedIdArray = [];
-        for (let x = 0; x < energyStructures.length; x++) {
-            let nextClosest;
-            let harvesterExtensions = _.filter(room.impassibleStructures, (s) => !_.includes(usedIdArray, s.id) && (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.pos.findFirstInRange(harvester, 1));
-            if (harvesterExtensions.length) {
-                nextClosest = harvesterExtensions[0];
-            } else {
-                nextClosest = room.hub.findClosestByRange(energyStructures, {filter: (s) => !_.includes(usedIdArray, s.id)});
-            }
-            if (!nextClosest) break;
-            usedIdArray.push(nextClosest.id);
-            rangeArray.push(nextClosest);
-        }
-        energyOrder[room.name] = JSON.stringify(rangeArray);
-        orderStored[room.name] = Game.time;
-    }
-    return true;
-}
-
-/**
  * Display the creep build queue
  * @param room
  * @returns {*}
@@ -738,6 +705,8 @@ function getQueue(room) {
                 let levelTarget = MAX_LEVEL;
                 if (Memory.auxiliaryTargets[destination]) levelTarget--;
                 else if (Memory.targetRooms[destination] && INTEL[destination] && INTEL[destination].user) levelTarget = userStrength(INTEL[destination].user);
+                // Scouts are level 1
+                if (Memory.targetRooms[destination] && Memory.targetRooms[destination].type === 'scout') levelTarget = 1;
                 // If 1 tower, handle with an rcl6 else 7+
                 if (INTEL[destination] && INTEL[destination].towers) {
                     switch (INTEL[destination].towers) {
@@ -938,6 +907,40 @@ function hasRequiredBoosts(room, boostCheck, bodyPartCount) {
         if (room.store(boost) < (30 * bodyPartCount)) {
             return false;
         }
+    }
+    return true;
+}
+
+/**
+ * Determine what order energy is used in a room
+ * @param room
+ */
+function determineEnergyOrder(room) {
+    storedLevel[room.name] = getLevel(room);
+    if (!room.hub.x) {
+        const planner = require('module.roomPlanner');
+        planner.findHub(room);
+        return false;
+    }
+    if (!energyOrder[room.name] || orderStored[room.name] + 750 < Game.time) {
+        let harvester = _.filter(room.myCreeps, (c) => c.memory.role === 'stationaryHarvester' && c.memory.onContainer);
+        let energyStructures = _.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
+        let rangeArray = [];
+        let usedIdArray = [];
+        for (let x = 0; x < energyStructures.length; x++) {
+            let nextClosest;
+            let harvesterExtensions = _.filter(room.impassibleStructures, (s) => !_.includes(usedIdArray, s.id) && (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.pos.findFirstInRange(harvester, 1));
+            if (harvesterExtensions.length) {
+                nextClosest = harvesterExtensions[0];
+            } else {
+                nextClosest = room.hub.findClosestByRange(energyStructures, {filter: (s) => !_.includes(usedIdArray, s.id)});
+            }
+            if (!nextClosest) break;
+            usedIdArray.push(nextClosest.id);
+            rangeArray.push(nextClosest);
+        }
+        energyOrder[room.name] = JSON.stringify(rangeArray);
+        orderStored[room.name] = Game.time;
     }
     return true;
 }

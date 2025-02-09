@@ -412,7 +412,7 @@ function manageResponseForces() {
 
 function manageMilitary() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
-    let totalCountFiltered = _.filter(Memory.targetRooms, target => target && target.type !== 'guard' && target.type !== 'pending').length || 0;
+    let totalCountFiltered = _.filter(Memory.targetRooms, target => target && !target.manual && target.type !== 'guard' && target.type !== 'pending').length || 0;
     let staleMulti = 1;
 
     // Iterate through target rooms
@@ -463,7 +463,7 @@ function manageMilitary() {
             case 'guard':
                 let guardCount = _.filter(Memory.targetRooms, target => target && target.type === 'guard').length || 0;
                 if (guardCount > 2) {
-                    log.a('Canceling guard in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
+                    log.a('Canceling guard in ' + roomLink(key) + ' as we have too many active guard operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     continue;
                 }
@@ -536,7 +536,7 @@ function manageMilitary() {
         }
 
         // Skip no longer hostile rooms
-        if (target.type !== 'guard' && target.type !== 'roomDenial' && INTEL[key] && INTEL[key].user && !Memory._threats.includes(INTEL[key].user)) {
+        if (target.type !== 'scout' && target.type !== 'guard' && target.type !== 'roomDenial' && INTEL[key] && INTEL[key].user && !Memory._threats.includes(INTEL[key].user)) {
             log.a('Canceling operation in ' + roomLink(key) + ' as ' + INTEL[key].user + ' is no longer considered a threat.', 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             continue;
@@ -923,6 +923,10 @@ module.exports.operationSustainability = function (room, operationRoom = room.na
     operation.trackedEnemy = trackedEnemy;
     operation.sustainabilityCheck = Game.time;
     operation.isAtRisk = isAtRisk;
+    if (room.tombstones.length) {
+        const deadEnemy = _.filter(room.tombstones, (t) => !FRIENDLIES.includes(t.creep.owner.username));
+        operation.lastEnemyKilled = _.max(deadEnemy, 'deathTime');
+    }
 
     // Save the updated operation object back to memory
     saveOperation(operationRoom, operation);
