@@ -446,7 +446,7 @@ module.exports.remoteCreepQueue = function (room) {
         if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 2) {
             let remoteSource = JSON.parse(room.memory.remoteSources);
             const activeSk = activeSkMining[room.name] + CREEP_LIFE_TIME > Game.time;
-            const acceptedScore = Math.max(REMOTE_DISTANCE_MAX, _.min(remoteSource, 'score').score);
+            let acceptedScore = !room.energyState || room.level < 8 ? Math.max(REMOTE_DISTANCE_MAX, _.min(remoteSource, 'score').score) : 1;
             remoteSource = _.sortBy(_.filter(remoteSource, (s) => !shouldSkipRemote(room, s.room) &&
                 (INTEL[s.room].sk || (!activeSk && s.score <= acceptedScore))
                 && !_.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === s.source)), 'score')[0];
