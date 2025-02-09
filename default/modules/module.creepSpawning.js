@@ -761,6 +761,12 @@ function getQueue(room) {
                     if (!hasRequiredBoosts(room, 'attack', _.filter(body, (b) => b === ATTACK).length)) {
                         continue;
                     }
+                    if (!hasRequiredBoosts(room, 'ranged_attack', _.filter(body, (b) => b === RANGED_ATTACK).length)) {
+                        continue;
+                    }
+                    if (!hasRequiredBoosts(room, 'tough', _.filter(body, (b) => b === TOUGH).length)) {
+                        continue;
+                    }
                     if (!hasRequiredBoosts(room, 'heal', _.filter(body, (b) => b === HEAL).length)) {
                         continue;
                     }
