@@ -588,7 +588,10 @@ module.exports.globalCreepQueue = function () {
 
             case 'roomDenial':
                 if (opLevel > 1) {
-                    let count = opLevel >= 3 ? opLevel * 2 : 2;
+                    let count = 2;
+                    if (INTEL[key] && INTEL[key].towers) {
+                        count = INTEL[key].towers * 2;
+                    }
                     queueCreepIfNeeded(undefined, 'longbowDuo', priority, count, undefined, key, undefined, true, 'roomDenial');
                 } else {
                     queueCreepIfNeeded(undefined, 'longbow', priority, opLevel, undefined, key, undefined, true, 'roomDenial');
