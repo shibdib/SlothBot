@@ -62,7 +62,7 @@ module.exports.processBuildQueue = function (room) {
             const spawnResult = availableSpawn.spawnCreep(body, name, {
                 memory: {
                     role,
-                    overlord: availableSpawn.room.name,
+                    colony: availableSpawn.room.name,
                     assignedSource,
                     destination,
                     other,
@@ -202,7 +202,7 @@ module.exports.essentialCreepQueue = function (room) {
     if (!upgraderReboot && room.level < 8 && !INTEL[room.name].threatLevel) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         if (container && room.energyState) {
-            upgraderAmount = Math.min(Math.floor((9 - room.level) * (container.store.getUsedCapacity(RESOURCE_ENERGY) / 1000)), container.pos.countOpenTerrainAround());
+            upgraderAmount = Math.min(Math.floor(room.energyState * (container.store.getUsedCapacity(RESOURCE_ENERGY) / 1000)), container.pos.countOpenTerrainAround());
         } else if (!container) {
             upgraderAmount = 3;
         }
@@ -849,26 +849,26 @@ function displayQueue(room, queue) {
  * @param {string|undefined} overlord - The overlord of the creeps.
  * @returns {number} The count of creeps matching the given criteria.
  */
-function getCreepCount(room = undefined, role, destination = undefined, operation = undefined, overlord = undefined) {
+function getCreepCount(room = undefined, role, destination = undefined, operation = undefined, colony = undefined) {
     let filter = c => c.my && c.memory.role === role;
     if (room) {
         let roomName = typeof room === 'string' ? room : room.name;
         filter = c => c.my && c.memory.role === role &&
-            (c.room.name === roomName || c.memory.overlord === roomName || c.memory.destination === roomName);
+            (c.room.name === roomName || c.memory.colony === roomName || c.memory.destination === roomName);
     }
     if (destination) {
         filter = c => c.my && c.memory.role === role &&
-            (c.memory.destination === destination || c.memory.overlord === destination);
+            (c.memory.destination === destination || c.memory.colony === destination);
     }
     if (operation) {
         filter = c => c.my && c.memory.role === role && c.memory.operation === operation;
     }
-    if (overlord) {
-        filter = c => c.my && c.memory.role === role && c.memory.overlord === overlord;
+    if (colony) {
+        filter = c => c.my && c.memory.role === role && c.memory.colony === colony;
     }
     if (destination && operation) {
         filter = c => c.my && c.memory.role === role &&
-            (c.memory.destination === destination || c.memory.overlord === destination) &&
+            (c.memory.destination === destination || c.memory.colony === destination) &&
             c.memory.operation === operation;
     }
     return _.filter(Game.creeps, filter).length;
@@ -884,9 +884,9 @@ function getCreepCount(room = undefined, role, destination = undefined, operatio
 function creepExpiringSoon(room = undefined, role, destination = undefined) {
     if (room instanceof Room) room = room.name;
     const creeps = _.filter(Game.creeps, (c) => c.my && c.memory.role === role &&
-        (c.room.name === room || c.memory.destination === destination || c.memory.overlord === room));
+        (c.room.name === room || c.memory.destination === destination || c.memory.colony === room));
     const spawningCreep = _.find(Game.creeps, (c) => c.my && c.memory.role === role && c.spawning &&
-        (c.room.name === room || c.memory.destination === destination || c.memory.overlord === room));
+        (c.room.name === room || c.memory.destination === destination || c.memory.colony === room));
     if (!creeps.length || spawningCreep) return false;
     let distance = 1;
     if (destination) {

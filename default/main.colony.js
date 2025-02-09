@@ -13,9 +13,9 @@ const state = require('module.roomState');
 const diplomacy = require('module.diplomacy');
 const profiler = require('tools.profiler');
 
-class Overlord {
+class Colony {
     constructor(room) {
-        const overlordStart = Game.cpu.getUsed();
+        const worldStart = Game.cpu.getUsed();
         this.room = room;
 
         // Room state
@@ -46,11 +46,11 @@ class Overlord {
         if (this.room.factory) this.factoryController();
 
         // Store tick tracker and cpu usage data
-        this.storeCpuData(Game.cpu.getUsed() - overlordStart);
+        this.storeCpuData(Game.cpu.getUsed() - worldStart);
     }
 
     creepManager() {
-        const roomCreeps = Object.values(Game.creeps).filter(creep => creep.memory.overlord === this.room.name && !creep.memory.military);
+        const roomCreeps = Object.values(Game.creeps).filter(creep => creep.memory.colony === this.room.name && !creep.memory.military);
         for (const creep of roomCreeps) {
             try {
                 minionController(creep);
@@ -155,7 +155,7 @@ class Overlord {
 
     suicideRemoteCreeps() {
         Object.values(Game.creeps)
-            .filter(creep => creep.my && creep.memory.overlord === this.room.name && creep.room.name !== this.room.name && !creep.memory.military)
+            .filter(creep => creep.my && creep.memory.colony === this.room.name && creep.room.name !== this.room.name && !creep.memory.military)
             .forEach(creep => creep.suicide());
     }
 
@@ -168,8 +168,8 @@ class Overlord {
     }
 }
 
-profiler.registerClass(Overlord, 'Overlord');
-module.exports = Overlord;
+profiler.registerClass(Colony, 'Colony');
+module.exports = Colony;
 
 let errorCount = {};
 

@@ -85,8 +85,8 @@ class RoleRemoteHarvester {
                 return this.creep.repair(this.container);
             } else if (containerStore >= CONTAINER_CAPACITY * 0.8) {
                 this.handleHaulerCheck();
-            } else if (Game.rooms[this.creep.memory.overlord].memory.additionalRemoteHaulingNeeded < Game.time) {
-                Game.rooms[this.creep.memory.overlord].memory.additionalRemoteHaulingNeeded = undefined;
+            } else if (Game.rooms[this.creep.memory.colony].memory.additionalRemoteHaulingNeeded < Game.time) {
+                Game.rooms[this.creep.memory.colony].memory.additionalRemoteHaulingNeeded = undefined;
             }
             this.creep.memory.energyAmount = containerStore;
             this.creep.memory.energyId = this.container.id;
@@ -113,7 +113,7 @@ class RoleRemoteHarvester {
             const hauler = _.find(Game.creeps, (c) => c.my && c.memory.other.harvester === this.creep.id);
             if (!hauler) this.creep.memory.other.hauler = undefined;
         }
-        Game.rooms[this.creep.memory.overlord].memory.additionalRemoteHaulingNeeded = Game.time + 500;
+        Game.rooms[this.creep.memory.colony].memory.additionalRemoteHaulingNeeded = Game.time + 500;
         this.creep.idleFor(20);
     }
 }

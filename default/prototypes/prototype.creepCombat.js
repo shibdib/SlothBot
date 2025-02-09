@@ -724,7 +724,7 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     if (this.room.controller && this.room.controller.safeMode && this.room.controller.owner.username !== MY_USERNAME) return false;
 
     // Check if we're in a friendly or safe environment
-    if (this.room.name === this.memory.overlord || (!this.room.hostileCreeps.length && !this.room.impassibleStructures.some(s => s.structureType === STRUCTURE_TOWER && !_.includes(FRIENDLIES, s.owner.username) && s.isActive()))) return true;
+    if (this.room.name === this.memory.colony || (!this.room.hostileCreeps.length && !this.room.impassibleStructures.some(s => s.structureType === STRUCTURE_TOWER && !_.includes(FRIENDLIES, s.owner.username) && s.isActive()))) return true;
 
     // If no intel, assume we can win
     if (!INTEL[this.room.name]) return true;

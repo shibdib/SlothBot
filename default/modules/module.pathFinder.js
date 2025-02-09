@@ -1014,9 +1014,8 @@ function getMoveWeight(creep, options = {}) {
     // Get weight of creep
     let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
     // Add weight of used carry parts
-    weight += _.ceil(_.sum(creep.store) / 50) || 0;
+    weight += _.ceil(creep.store.getUsedCapacity() / 50) || 0;
     if (!creep.memory._shibMove) creep.memory._shibMove = {};
-    creep.memory._shibMove.weight = weight;
     // Add weight of trailer
     if (creep.memory.trailer && Game.getObjectById(creep.memory.trailer)) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
     if (move >= weight * 5) {

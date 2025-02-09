@@ -112,8 +112,8 @@ Creep.prototype.hasActiveBodyparts = function (type) {
  * @returns {boolean}
  */
 Creep.prototype.wrongRoom = function () {
-    if (this.memory.overlord && this.pos.roomName !== this.memory.overlord) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 23});
+    if (this.pos.roomName !== this.memory.colony) {
+        this.shibMove(new RoomPosition(25, 25, this.memory.colony), {range: 23});
         return true;
     }
 };
@@ -701,7 +701,7 @@ Creep.prototype.builderFunction = function () {
  * @param idleTime
  * @returns {boolean}
  */
-Creep.prototype.goToHub = function (destination = this.memory.overlord, idleTime = 10) {
+Creep.prototype.goToHub = function (destination = this.memory.colony, idleTime = 10) {
     let hub = new RoomPosition(25, 25, destination);
     if (this.pos.getRangeTo(hub) <= 15) {
         this.idleFor(idleTime);
@@ -1065,7 +1065,7 @@ Creep.prototype.recycleCreep = function () {
     if (!this.hasActiveBodyparts(MOVE)) return this.suicide();
     let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
     if (!spawn) {
-        if (this.room.name !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 22})
+        if (this.room.name !== this.memory.colony) return this.shibMove(new RoomPosition(25, 25, this.memory.colony), {range: 22})
         else return this.suicide();
     }
     if (this.store.getUsedCapacity()) {

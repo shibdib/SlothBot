@@ -90,7 +90,7 @@ let globals = function () {
     }
 
     // Versioning for cache purposes
-    global.PATHFINDER_VERSION = 5;
+    global.PATHFINDER_VERSION = 2;
     global.INTEL_VERSION = 5;
 
     // Global cache for roles

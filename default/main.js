@@ -6,7 +6,7 @@
 require("require");
 let memWipe, running;
 const tools = require("tools.misc");
-const hive = require('main.hive');
+const world = require('main.world');
 const segments = require('module.segmentManager');
 const cleanUp = require('module.cleanup');
 const profiler = require('tools.profiler');
@@ -134,8 +134,8 @@ module.exports.loop = function () {
             Game.notify(`${e} ${e.stack}`);
         }
 
-        // Hive Mind
-        new hive();
+        // World
+        new world();
 
         // Save Caches
         try {

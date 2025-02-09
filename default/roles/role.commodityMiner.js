@@ -82,7 +82,7 @@ class RoleCommodityMiner {
 
     returnResource() {
         this.creep.memory.other.stationary = undefined;
-        this.creep.memory.closestRoom = this.creep.memory.closestRoom || findClosestOwnedRoom(this.room.name, false, 4) || this.creep.memory.overlord;
+        this.creep.memory.closestRoom = this.creep.memory.closestRoom || findClosestOwnedRoom(this.room.name, false, 4) || this.creep.memory.colony;
         if (this.room.name !== this.creep.memory.closestRoom) {
             return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.closestRoom), {range: 23});
         } else {

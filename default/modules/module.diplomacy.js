@@ -4,7 +4,7 @@
 
 let tempHostiles = {};
 
-module.exports.diplomacyOverlord = function () {
+module.exports.diplomacyManager = function () {
     if (!Memory._userList) Memory._userList = {};
     // Manage friendlies
     global.FRIENDLIES = _.union(LOAN_LIST, [MY_USERNAME], ['Shibdib'], MANUAL_FRIENDS).filter((u) => !_.find(tempHostiles, (h) => h.user === u && h.tick > Game.time));

@@ -40,7 +40,7 @@ module.exports.CPULimits = function () {
     let totalLimit = Game.cpu.limit;
     CPU_TASK_LIMITS['roomLimit'] = adjustedCPULimit(totalLimit * 0.9, Game.cpu.bucket, 2500);
     CPU_TASK_LIMITS['military'] = adjustedCPULimit(totalLimit * 0.02, Game.cpu.bucket, 2000);
-    CPU_TASK_LIMITS['hiveTasks'] = adjustedCPULimit(totalLimit * 0.08, Game.cpu.bucket, 2500);
+    CPU_TASK_LIMITS['worldTasks'] = adjustedCPULimit(totalLimit * 0.08, Game.cpu.bucket, 2500);
 }
 
 // CPU Limit Tool
@@ -82,7 +82,7 @@ module.exports.status = function () {
             const room = Game.rooms[roomName];
             if (!room || !room.controller) return;
 
-            const roomCreeps = _.filter(Game.creeps, c => c.memory && c.memory.overlord === room.name);
+            const roomCreeps = _.filter(Game.creeps, c => c.memory && c.memory.colony === room.name);
             const avgCpu = ROOM_CPU_ARRAY[room.name] ? (_.round(average(ROOM_CPU_ARRAY[room.name])) || 'No Data') : 'No Data';
             const lowPowerText = room.memory.lowPower ? ' 🔋[LOW POWER]' : '';
             let progress = ((room.controller.progress / room.controller.progressTotal) * 100).toFixed(2) + "%";

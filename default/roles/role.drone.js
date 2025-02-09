@@ -24,7 +24,7 @@ class RoleDrone {
     houseKeeping() {
         if (this.creep.tryToBoost(['build'])) return true;
         // Handle remote drones overlord change
-        if (this.creep.memory.destination && this.creep.memory.overlord !== this.creep.memory.destination) this.creep.memory.overlord = this.creep.memory.destination;
+        if (this.creep.memory.destination && this.creep.memory.colony !== this.creep.memory.destination) this.creep.memory.colony = this.creep.memory.destination;
         // If full clear memory
         if (this.creep.isFull && !this.creep.memory.stationaryHarvester) {
             this.creep.memory.source = undefined;
@@ -42,7 +42,7 @@ class RoleDrone {
         // If damaged move to safety
         if (!this.creep.getActiveBodyparts(WORK) || !this.creep.getActiveBodyparts(CARRY)) return this.creep.goToHub();
         // Handle returning to overlord
-        if (this.room.name !== this.creep.memory.overlord && !this.creep.memory.remoteMining) {
+        if (this.room.name !== this.creep.memory.colony && !this.creep.memory.remoteMining) {
             this.creep.memory.energyDestination = undefined;
             this.creep.goToHub();
             return true;

@@ -36,13 +36,13 @@ Creep.prototype.borderPatrol = function () {
 
     // Awaiting orders
     if (!this.memory.destination && !this.memory.awaitingOrders) {
-        this.memory.destination = this.memory.overlord;
+        this.memory.destination = this.memory.colony;
         this.memory.awaitingOrders = true;
     }
 
     // Idle handling
-    if (this.memory.awaitingOrders && !this.memory.destination && this.room.name !== this.memory.overlord) {
-        this.memory.destination = this.memory.overlord;
+    if (this.memory.awaitingOrders && !this.memory.destination && this.room.name !== this.memory.colony) {
+        this.memory.destination = this.memory.colony;
         this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
     } else {
         if (this.findDefensivePosition()) this.idleFor(5);

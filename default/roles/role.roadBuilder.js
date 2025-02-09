@@ -46,11 +46,11 @@ class RoleRoadBuilder {
         // Handle construction
         if (this.creep.memory.constructionSite || this.creep.constructionWork()) {
             this.creep.builderFunction();
-        } else if (this.creep.room.name !== this.creep.memory.overlord && !this.remoteRoads(this.creep)) {
+        } else if (this.creep.room.name !== this.creep.memory.colony && !this.remoteRoads(this.creep)) {
             INTEL[this.creep.room.name].roadsBuilt = true;
             INTEL[this.creep.room.name].roadCount = this.creep.room.structures.filter((s) => s.structureType === STRUCTURE_ROAD).length;
             this.creep.memory.destination = undefined;
-            if (this.creep.memory.overlord === this.creep.room.name) this.creep.idleFor(15);
+            if (this.creep.memory.colony === this.creep.room.name) this.creep.idleFor(15);
         } else INTEL[this.creep.room.name].roadsBuilt = undefined;
     }
 
@@ -95,7 +95,7 @@ class RoleRoadBuilder {
         }
 
         // Containers
-        let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
+        let goHome = Game.map.findExit(creep.room.name, creep.memory.colony);
         let homeExit = creep.room.find(goHome);
         let homeMiddle = _.round(homeExit.length / 2);
         let containers = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);

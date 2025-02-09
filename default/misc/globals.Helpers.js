@@ -15,7 +15,7 @@ let helpers = function () {
 
         // Suicide all creeps associated with this room
         _.forEach(Game.creeps, (creep) => {
-            if (creep.memory.overlord === room.name) creep.suicide();
+            if (creep.memory.colony === room.name) creep.suicide();
         });
 
         // Remove impassible structures

@@ -105,41 +105,41 @@ function dropOff(creep) {
         }
         return;
     }
-    let overlord = Game.rooms[creep.memory.overlord];
+    let colony = Game.rooms[creep.memory.colony];
     // If carrying minerals deposit in terminal or storage
     if (_.sum(creep.store) > creep.store[RESOURCE_ENERGY]) {
-        if (overlord.terminal) creep.memory.storageDestination = overlord.terminal.id;
-        else if (overlord.storage) creep.memory.storageDestination = overlord.storage.id;
+        if (colony.terminal) creep.memory.storageDestination = colony.terminal.id;
+        else if (colony.storage) creep.memory.storageDestination = colony.storage.id;
         else creep.memory.resourceDelivery = findClosestOwnedRoom(creep.room.name, false, 4);
     } else {
         //Controller
-        let controllerContainer = Game.getObjectById(overlord.memory.controllerContainer);
+        let controllerContainer = Game.getObjectById(colony.memory.controllerContainer);
         let lowTower = _.find(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.7 && !_.find(creep.room.myCreeps, (c) => c.memory.storageDestination === s.id));
         if (lowTower) {
             creep.memory.storageDestination = lowTower.id;
             return true;
-        } else if (overlord.terminal && overlord.terminal.store.getFreeCapacity() > _.sum(creep.store) && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER) {
-            creep.memory.storageDestination = overlord.terminal.id;
+        } else if (colony.terminal && colony.terminal.store.getFreeCapacity() > _.sum(creep.store) && colony.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER) {
+            creep.memory.storageDestination = colony.terminal.id;
             return true;
-        } else if (overlord.energyState && overlord.nuker && overlord.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
-            creep.memory.storageDestination = overlord.nuker.id;
+        } else if (colony.energyState && colony.nuker && colony.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
+            creep.memory.storageDestination = colony.nuker.id;
             return true;
-        } else if (overlord.energyState && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > CONTAINER_CAPACITY * 0.5) {
+        } else if (colony.energyState && controllerContainer && Math.random() + 0.1 > controllerContainer.store.getUsedCapacity() / CONTAINER_CAPACITY) {
             creep.memory.storageDestination = controllerContainer.id;
             return true;
-        } else if (overlord.terminal && overlord.terminal.store.getFreeCapacity() > _.sum(creep.store) && overlord.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 5) {
-            creep.memory.storageDestination = overlord.terminal.id;
+        } else if (colony.terminal && colony.terminal.store.getFreeCapacity() > _.sum(creep.store) && colony.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER * 5) {
+            creep.memory.storageDestination = colony.terminal.id;
             return true;
-        } else if (overlord.energyState < 2 && overlord.storage && overlord.storage.store.getFreeCapacity() > _.sum(creep.store)) {
-            creep.memory.storageDestination = overlord.storage.id;
+        } else if (colony.energyState < 2 && colony.storage && colony.storage.store.getFreeCapacity() > _.sum(creep.store)) {
+            creep.memory.storageDestination = colony.storage.id;
             return true;
-        } else if (overlord.level === overlord.controller.level && controllerContainer && Math.random() < (controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) / CONTAINER_CAPACITY)) {
+        } else if (colony.level === colony.controller.level && controllerContainer && Math.random() < (controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) / CONTAINER_CAPACITY)) {
             creep.memory.storageDestination = controllerContainer.id;
             return true;
         } else if (creep.haulerDelivery()) {
             return true;
-        } else if (creep.pos.getRangeTo(Game.rooms[creep.memory.overlord].controller) > 2) {
-            creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 2});
+        } else if (creep.pos.getRangeTo(Game.rooms[creep.memory.colony].controller) > 2) {
+            creep.shibMove(Game.rooms[creep.memory.colony].controller, {range: 2});
         } else creep.idleFor(5)
     }
 }
@@ -147,7 +147,7 @@ function dropOff(creep) {
 // Generate safemode
 function safemodeGeneration(creep) {
     // Only run in your room and if we haven't checked yet
-    if (creep.memory.safemodeCheck || creep.room.name !== creep.memory.overlord) return false;
+    if (creep.memory.safemodeCheck || creep.room.name !== creep.memory.colony) return false;
     creep.memory.safemodeCheck = true;
     // Check if we can fit it or is it exists
     if (creep.store.getFreeCapacity() < SAFE_MODE_COST || creep.room.store(RESOURCE_GHODIUM) < SAFE_MODE_COST) return false;

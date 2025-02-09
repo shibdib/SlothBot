@@ -2,7 +2,7 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-const overlord = require('main.overlord');
+const colony = require('main.colony');
 const highCommand = require('military.highCommand');
 const segments = require('module.segmentManager');
 const power = require('module.powerManager');
@@ -15,7 +15,7 @@ const planner = require('module.roomPlanner');
 let buildingNotifications;
 let tickTracker = {};
 
-class Hive {
+class World {
     constructor() {
         // General housekeeping
         this.houseKeeping();
@@ -24,7 +24,7 @@ class Hive {
         this.segmentManager();
 
         // Manage rooms
-        this.overlordManager();
+        this.colonyManager();
 
         // Manage military creeps
         this.militaryCreepManager();
@@ -65,8 +65,8 @@ class Hive {
             structures.forEach((building) => building.notifyWhenAttacked(false));
         }
 
-        // Diplomacy Overlord
-        diplomacy.diplomacyOverlord();
+        // Diplomacy Manager
+        diplomacy.diplomacyManager();
     }
 
     hudManager() {
@@ -99,7 +99,7 @@ class Hive {
 
     militaryCreepManager() {
         const creeps = Object.values(Game.creeps).filter((creep) =>
-            (creep.memory.military || !creep.memory.overlord)
+            (creep.memory.military || !creep.memory.colony)
         );
 
         for (const creep of creeps) {
@@ -111,7 +111,7 @@ class Hive {
         }
     }
 
-    overlordManager() {
+    colonyManager() {
         const rooms = shuffle([...MY_ROOMS]); // Cache rooms to avoid global lookups
 
         for (const roomName of rooms) {
@@ -125,9 +125,9 @@ class Hive {
                 room.invaderCheck();
                 room.cacheRoomIntel();
                 const roomLimit = (CPU_TASK_LIMITS['roomLimit'] * 0.9) / MY_ROOMS.length;
-                new overlord(room, roomLimit);
+                new colony(room, roomLimit);
             } catch (e) {
-                log.e(`Overlord Module experienced an error in room ${roomLink(roomName)}`);
+                log.e(`Colony Module experienced an error in room ${roomLink(roomName)}`);
                 log.e(e.stack);
                 Game.notify(e.stack);
             }
@@ -153,8 +153,8 @@ class Hive {
     }
 }
 
-profiler.registerClass(Hive, 'Hive');
-module.exports = Hive;
+profiler.registerClass(World, 'World');
+module.exports = World;
 
 let errorCount = {};
 

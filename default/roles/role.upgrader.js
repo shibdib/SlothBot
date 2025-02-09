@@ -37,13 +37,13 @@ class RoleUpgrader {
             if (this.container.pos.checkForCreep() && this.creep.pos.isNearTo(this.container)) this.creep.memory.inPosition = true;
             else return this.creep.shibMove(this.container, {range: 0});
         }
-        switch (this.creep.upgradeController(Game.rooms[this.creep.memory.overlord].controller)) {
+        switch (this.creep.upgradeController(Game.rooms[this.creep.memory.colony].controller)) {
             case OK:
                 // Handle resource withdraw
                 this.withdraw();
                 return;
             case ERR_NOT_IN_RANGE:
-                return this.creep.shibMove(Game.rooms[this.creep.memory.overlord].controller, {range: 3});
+                return this.creep.shibMove(Game.rooms[this.creep.memory.colony].controller, {range: 3});
             case ERR_NOT_ENOUGH_RESOURCES:
                 // Handle resource withdraw
                 this.withdraw();
@@ -52,7 +52,7 @@ class RoleUpgrader {
 
     mobileUpgrading() {
         if (this.creep.store[RESOURCE_ENERGY]) {
-            switch (this.creep.upgradeController(Game.rooms[this.creep.memory.overlord].controller)) {
+            switch (this.creep.upgradeController(Game.rooms[this.creep.memory.colony].controller)) {
                 case OK:
                     this.creep.memory.other.stationary = true;
                     return;
