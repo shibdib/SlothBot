@@ -42,6 +42,7 @@ class RoleSKAttacker {
             {filter: (c) => c.room.name === this.creep.memory.destination && !FRIENDLIES.includes(c.owner.username)});
         if (sourceKeeper) {
             this.creep.healInRange();
+            this.creep.attackInRange();
             this.creep.memory.lair = undefined;
             this.creep.memory.keeper = sourceKeeper.id;
             switch (this.creep.attack(sourceKeeper)) {

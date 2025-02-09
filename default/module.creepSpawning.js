@@ -282,7 +282,7 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     // Handle remote harvesters if remote sources are available
-    if (!room.memory.noRemote) {
+    if (!room.memory.noRemote && (!room.energyState || room.level < 8)) {
         handleRemoteHarvesters(room);
     }
 
