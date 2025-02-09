@@ -1,6 +1,7 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
+const profiler = require("./tools.profiler");
 let lastRun = {};
 let lastClean = {};
 
@@ -66,11 +67,11 @@ class LabManager {
 
     shouldStopProduction(room) {
         let cutOff = this.getProductionCutoff(room);
-        return Math.random() > 0.8 && room.store(room.memory.producingBoost) > cutOff;
+        return room.store(room.memory.producingBoost) > cutOff;
     }
 
     getProductionCutoff(room) {
-        let baseCutoff = BOOST_AMOUNT * 1.5;
+        let baseCutoff = BOOST_AMOUNT;
         if (room.memory.producingBoost === RESOURCE_GHODIUM) {
             return (NUKER_GHODIUM_CAPACITY * 5) + (SAFE_MODE_COST * 3);
         }
@@ -214,4 +215,5 @@ class LabManager {
     }
 }
 
+profiler.registerClass(LabManager, 'LabManager');
 module.exports = LabManager;

@@ -2,6 +2,8 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
+const profiler = require("./tools.profiler");
+
 class ExpansionControl {
     constructor() {
         this.claimTarget = Memory.claimTarget || {};
@@ -184,4 +186,5 @@ class ExpansionControl {
     }
 }
 
+profiler.registerClass(ExpansionControl, 'ExpansionControl');
 module.exports = ExpansionControl;

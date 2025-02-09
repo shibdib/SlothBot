@@ -1,6 +1,7 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
+const profiler = require("./tools.profiler");
 let observedRooms = {};
 
 class ObserverControl {
@@ -95,4 +96,5 @@ class ObserverControl {
     }
 }
 
+profiler.registerClass(ObserverControl, 'ObserverControl');
 module.exports = ObserverControl;

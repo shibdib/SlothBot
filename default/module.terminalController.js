@@ -2,14 +2,16 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
+const profiler = require("./tools.profiler");
 /**
  * Created by rober on 6/21/2017.
  */
 let lastPriceAdjust = 0;
 let diplomacyTracker = 0;
-let priceUpdateTracker = {};
-let marketHistoryCache = {};
-let usedTerminals = {};
+const priceUpdateTracker = {};
+const marketHistoryCache = {};
+const usedTerminals = {};
+const lastRun = {};
 
 class TerminalControl {
     constructor() {
@@ -17,7 +19,9 @@ class TerminalControl {
     }
 
     run(room) {
-        if (!room.terminal) return;
+        if (!room.terminal || !_.size(MY_MINERALS) || (lastRun[room.name] && lastRun[room.name] + 25 > Game.time)) return;
+
+        lastRun[room.name] = Game.time;
 
         if (Game.shard.name === 'shardSeason') {
             return this.balanceResources(room.terminal);
@@ -891,14 +895,16 @@ class TerminalControl {
                 order.type === ORDER_SELL), 'price');
             const highestOrder = _.max(this.getGlobalOrders().filter(order => order.amount >= 50 && order.resourceType === resource &&
                 order.type === ORDER_SELL), 'price');
+            marketHistoryCache[resource] = {};
+            marketHistoryCache[resource].data = {};
             if (cheapestOrder && cheapestOrder.id) {
-                marketHistoryCache[resource] = {};
-                marketHistoryCache[resource].data = {};
                 marketHistoryCache[resource].data.avg = cheapestOrder.price;
                 marketHistoryCache[resource].data.highest = highestOrder.price;
                 marketHistoryCache[resource].data.lowest = cheapestOrder.price;
             } else {
-                return undefined;
+                marketHistoryCache[resource].data.avg = 50;
+                marketHistoryCache[resource].data.highest = 50;
+                marketHistoryCache[resource].data.lowest = 50;
             }
         }
         return marketHistoryCache[resource].data;
@@ -1197,4 +1203,5 @@ class TerminalControl {
     }
 }
 
+profiler.registerClass(TerminalControl, 'TerminalControl');
 module.exports = TerminalControl;

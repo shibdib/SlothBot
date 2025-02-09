@@ -1,6 +1,7 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
+const profiler = require("./tools.profiler");
 let tickTracker = {};
 let cooldownTracker = {};
 
@@ -152,4 +153,5 @@ class FactoryControl {
     }
 }
 
+profiler.registerClass(FactoryControl, 'FactoryControl');
 module.exports = FactoryControl;

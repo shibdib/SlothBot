@@ -1,3 +1,5 @@
+const profiler = require("./tools.profiler");
+
 class LinkControl {
     constructor() {
     }
@@ -70,4 +72,5 @@ class LinkControl {
     }
 }
 
+profiler.registerClass(LinkControl, 'LinkControl');
 module.exports = LinkControl;

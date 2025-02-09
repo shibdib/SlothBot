@@ -2,6 +2,8 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
+const profiler = require("./tools.profiler");
+
 class HUD {
     constructor() {
         if (Memory.HUD) this.hudData = Memory.HUD;
@@ -162,4 +164,5 @@ class HUD {
     }
 }
 
+profiler.registerClass(HUD, 'HUD');
 module.exports = HUD;
