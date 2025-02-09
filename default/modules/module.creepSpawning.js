@@ -2,7 +2,6 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 const generator = require('module.bodyGenerator');
-const planner = require("./module.roomPlanner");
 let energyOrder = {};
 let orderStored = {};
 let storedLevel = {};

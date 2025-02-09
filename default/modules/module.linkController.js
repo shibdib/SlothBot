@@ -1,4 +1,4 @@
-const profiler = require("./tools.profiler");
+const profiler = require("tools.profiler");
 
 class LinkControl {
     constructor() {
