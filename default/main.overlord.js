@@ -12,14 +12,14 @@ const spawning = require('module.creepSpawning');
 const state = require('module.roomState');
 const diplomacy = require('module.diplomacy');
 const profiler = require('tools.profiler');
-let tickTracker = {};
 
 class Overlord {
-    constructor(room, CPULimit) {
+    constructor(room) {
         const overlordStart = Game.cpu.getUsed();
         this.room = room;
 
-        let tracker = tickTracker[this.room.name] || {};
+        // Room state
+        this.stateController();
 
         // Handle room creeps
         this.creepManager();
@@ -36,11 +36,8 @@ class Overlord {
         // Handle links if room level >= 5
         if (this.room.level >= 5) this.linkController();
 
-        // Handle terminal with cooldown check
-        if (this.room.terminal && !this.room.terminal.cooldown && (tracker['terminalController'] || 0) + 100 < Game.time) {
-            this.terminalController();
-            tracker['terminalController'] = Game.time;
-        }
+        // Handle terminal
+        this.terminalController();
 
         // Observer controller for room level >= 8
         if (this.room.level >= 8) this.observerController();
@@ -48,20 +45,12 @@ class Overlord {
         // Factory controller
         if (this.room.factory) this.factoryController();
 
-        // State controller
-        if ((tracker['stateController'] || 0) + 100 < Game.time) {
-            this.stateController();
-            tracker['stateController'] = Game.time;
-        }
-
         // Store tick tracker and cpu usage data
-        tickTracker[this.room.name] = tracker;
         this.storeCpuData(Game.cpu.getUsed() - overlordStart);
     }
 
     creepManager() {
-        const roomCreeps = Object.values(Game.creeps).filter(creep => creep.memory.overlord === this.room.name && !creep.memory.military && !creep.spawning);
-
+        const roomCreeps = Object.values(Game.creeps).filter(creep => creep.memory.overlord === this.room.name && !creep.memory.military);
         for (const creep of roomCreeps) {
             try {
                 minionController(creep);

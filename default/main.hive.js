@@ -99,7 +99,7 @@ class Hive {
 
     militaryCreepManager() {
         const creeps = Object.values(Game.creeps).filter((creep) =>
-            (creep.memory.military || !creep.memory.overlord) && !creep.spawning
+            (creep.memory.military || !creep.memory.overlord)
         );
 
         for (const creep of creeps) {
