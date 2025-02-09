@@ -5,6 +5,7 @@
 
 # User-specific stuff:
 /.idea/
+/upload/
 
 # Non default config file
 /default/config.*.js
