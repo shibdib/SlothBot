@@ -5,7 +5,7 @@
 const ObserverControl = require('module.observerController');
 const LabControl = require('module.labController');
 const FactoryControl = require('module.factoryController');
-const defense = require('military.defense');
+const DefenseControl = require('module.defense');
 const LinkControl = require('module.linkController');
 const TerminalControl = require('module.terminalController');
 const spawning = require('module.creepSpawning');
@@ -96,7 +96,7 @@ class Colony {
     }
 
     defenseController() {
-        defense.controller(this.room);
+        new DefenseControl(this.room).run();
     }
 
     stateController() {
