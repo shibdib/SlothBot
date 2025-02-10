@@ -2,8 +2,10 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 const profiler = require("tools.profiler");
-let lastRun = {};
-let lastClean = {};
+const runNext = {};
+const lastClean = {};
+const goOverCap = {};
+const productionTracker = {};
 
 class LabManager {
     constructor(room) {
@@ -18,10 +20,12 @@ class LabManager {
             lastClean[room.name] = Game.time;
             this.cleanLabs(labs);
         }
-        if (!lastRun[room.name] || lastRun[room.name] + 5 < Game.time) {
-            lastRun[room.name] = Game.time;
+        if (!runNext[room.name] || runNext[room.name] < Game.time) {
             if (this.shouldManageBoostProduction(room)) this.manageBoostProduction(room);
             this.manageActiveLabs(room);
+            const cooldownLabs = labs.filter((s) => s.cooldown);
+            const cooldown = cooldownLabs.length > 0 ? _.min(cooldownLabs, 'cooldown').cooldown : 15;
+            runNext[room.name] = Game.time + cooldown;
         }
     }
 
@@ -57,6 +61,7 @@ class LabManager {
                     this.stopProduction(room, hub);
                     break;
                 }
+                runNext[room.name]
             } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
                 if (this.checkResourceShortage(room, hub)) {
                     this.stopProduction(room, hub);
@@ -68,7 +73,8 @@ class LabManager {
 
     shouldStopProduction(room) {
         let cutOff = this.getProductionCutoff(room);
-        return room.store(room.memory.producingBoost) > cutOff;
+        return room.store(room.memory.producingBoost) > cutOff || !productionTracker[this.room.name]
+            || productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time;
     }
 
     checkResourceShortage(room, hub) {
@@ -76,9 +82,10 @@ class LabManager {
     }
 
     stopProduction(room, hub) {
-        log.a(roomLink(room.name) + ' is no longer producing ' + room.memory.producingBoost + ' due to production conditions.');
+        if (productionTracker[this.room.name]) log.a(roomLink(room.name) + ' is halting production of ' + room.memory.producingBoost + ' and evaluating needs.');
         room.memory.producingBoost = undefined;
         this.primaryLabs[room.name] = undefined;
+        goOverCap[this.room.name] = undefined;
         hub.forEach(lab => lab.memory = undefined);
     }
 
@@ -116,14 +123,15 @@ class LabManager {
     findBoostToProduce(room) {
         const priority = this.tryPriority(room);
         if (priority) return priority;
-        let boostList = [...new Set([...BASE_COMPOUNDS, ...TIER_3_BOOSTS, ...TIER_2_BOOSTS, ...TIER_1_BOOSTS])];
-        for (let boost of boostList) {
+        let boostList = [...new Set([...BASE_COMPOUNDS, ...TIER_3_BOOSTS, ...TIER_2_BOOSTS, ...TIER_1_BOOSTS, ...LAB_PRIORITY])];
+        for (const boost of shuffle(boostList)) {
             let cutOff = this.getProductionCutoff(boost);
             if (room.store(boost) >= cutOff) continue;
             if (this.checkForInputs(room, boost)) {
                 return boost;
             }
         }
+        goOverCap[room.name] = true;
         return null;
     }
 
@@ -168,10 +176,11 @@ class LabManager {
     }
 
     getProductionCutoff(boost) {
-        if (boost === RESOURCE_GHODIUM) {
+        if (goOverCap[this.room.name]) {
+            return BOOST_AMOUNT(this.room) * 10;
+        } else if (boost === RESOURCE_GHODIUM) {
             return (NUKER_GHODIUM_CAPACITY * 2.5) + (SAFE_MODE_COST * 1.5);
-        }
-        if (LAB_PRIORITY.includes(boost)) {
+        } else if (LAB_PRIORITY.includes(boost)) {
             return BOOST_AMOUNT(this.room) * 2;
         }
         return BOOST_AMOUNT(this.room);
@@ -191,6 +200,7 @@ class LabManager {
             };
         });
         room.memory.producingBoost = boost;
+        productionTracker[this.room.name] = Game.time;
         log.a(roomLink(room.name) + ' queued ' + boost + ' for creation.');
     }
 
