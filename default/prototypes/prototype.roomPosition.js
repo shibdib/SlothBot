@@ -425,16 +425,13 @@ RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
  * @param {boolean} ignoreCreep - Whether to ignore creeps
  * @returns {boolean} - True if the position is impassable, false otherwise
  */
+const impassibleCache = {};
 RoomPosition.prototype.checkForImpassible = function (ignoreWall = false, ignoreCreep = false) {
     const cacheKey = `checkForImpassible_${this.roomName}_${this.x}_${this.y}_${ignoreWall}_${ignoreCreep}`;
     const currentTick = Game.time;
 
-    if (!this._impassibleCache) {
-        this._impassibleCache = {}; // Initialize a cache object for the position
-    }
-
-    if (this._impassibleCache[cacheKey] && this._impassibleCache[cacheKey].expiry > currentTick) {
-        return this._impassibleCache[cacheKey].value; // Return cached result if available and not expired
+    if (impassibleCache[cacheKey] && impassibleCache[cacheKey].tick > currentTick) {
+        return impassibleCache[cacheKey].value; // Return cached result if available and not expired
     }
 
     let impassible;
@@ -445,7 +442,9 @@ RoomPosition.prototype.checkForImpassible = function (ignoreWall = false, ignore
         impassible = this.checkForObstacleStructure() || this.checkForWall() || (!ignoreCreep && this.checkForCreep());
     }
 
-    this._impassibleCache[cacheKey] = {value: impassible, expiry: currentTick + 5000}; // Cache the result with expiry
+    let expires = currentTick + CREEP_LIFE_TIME;
+    if (!ignoreCreep) expires = currentTick + 10;
+    impassibleCache[cacheKey] = {value: impassible, tick: expires}; // Cache the result with expiry
     return impassible;
 };
 
