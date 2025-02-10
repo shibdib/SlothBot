@@ -84,7 +84,8 @@ module.exports.status = function () {
 
             const roomCreeps = _.filter(Game.creeps, c => c.memory && c.memory.colony === room.name);
             const avgCpu = ROOM_CPU_ARRAY[room.name] ? (_.round(average(ROOM_CPU_ARRAY[room.name])) || 'No Data') : 'No Data';
-            const lowPowerText = room.memory.lowPower ? ' 🔋[LOW POWER]' : '';
+            const lowPowerText = room.memory.noRemote ? ' 🔋[CPU SAVING]' : '';
+            const assignmentReady = room.memory.availableForAssignment ? ' 💥 ' : '';
             let progress = ((room.controller.progress / room.controller.progressTotal) * 100).toFixed(2) + "%";
             if (room.controller.level === 8) progress = "Max Level";
             const energyInfo = `Energy: ${room.energy} | Income: ${room.energyIncome}`;
@@ -98,7 +99,7 @@ module.exports.status = function () {
             if (room.controller.level === 8) progressBar = "";
 
             // Log general info along with the progress bar
-            log.e(`${roomLink(room.name)}${lowPowerText} | RCL: ${room.controller.level} | CPU Usage: ${avgCpu} | RCL Progress: ${progress} ${progressBar}`, ' ');
+            log.e(`${assignmentReady}${roomLink(room.name)}${lowPowerText} | RCL: ${room.controller.level} | CPU Usage: ${avgCpu} | RCL Progress: ${progress} ${progressBar}`, ' ');
             log.e(`${energyInfo} | Creeps: ${_.size(roomCreeps)}`, ' ');
         });
 
