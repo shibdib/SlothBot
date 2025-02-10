@@ -52,7 +52,7 @@ class RoleLongbowDuo {
     handleLeader() {
         const partner = Game.getObjectById(this.creep.memory.partner);
         if (!this.creep.pos.isNearTo(partner)) {
-            if (partner.room.name === this.room.name) this.creep.shibMove(partner);
+            if (partner.room.name === this.room.name) this.creep.shibMove(partner); else this.handleSolo();
         } else {
             if (this.creep.memory.operation) {
                 this.operationManagement();
