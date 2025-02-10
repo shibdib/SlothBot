@@ -236,8 +236,7 @@ class RoleLabTech {
     boostDelivery() {
         let lab = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB && s.memory.neededBoost && s.store[s.memory.neededBoost] < s.memory.amount);
         if (lab) {
-            let boostCreep = _.filter(this.room.myCreeps, (c) => c.memory.boosts && c.memory.boosts.boostLab === lab.id)[0];
-            if (boostCreep && this.room.store(lab.memory.neededBoost)) {
+            if (this.room.store(lab.memory.neededBoost)) {
                 if (lab.mineralType && lab.mineralType !== lab.memory.neededBoost) {
                     this.creep.memory.resourceNeeded = lab.mineralType;
                     this.creep.memory.withdrawFrom = lab.id;
