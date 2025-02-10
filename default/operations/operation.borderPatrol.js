@@ -27,7 +27,10 @@ Creep.prototype.borderPatrol = function () {
             return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
         } else {
             if (!this.room.hostileCreeps.length && !this.room.hostileStructures.length) {
-                this.memory.destination = undefined;
+                if (!this.memory.standingGuard) this.memory.standingGuard = Game.time;
+                else if (this.memory.standingGuard + 25 < Game.time) {
+                    this.memory.destination = undefined;
+                }
                 this.idleFor(5);
                 return;
             }
