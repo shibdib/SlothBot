@@ -178,12 +178,13 @@ class RoleLabTech {
                     else if (resourceType === RESOURCE_ENERGY && terminal.store[resourceType] < TERMINAL_ENERGY_BUFFER) storeTarget = terminal;
                     else if (resourceType === RESOURCE_ENERGY && !this.room.energyState) storeTarget = this.room.storage;
                     else if (resourceType === RESOURCE_ENERGY) storeTarget = terminal;
-                    else if (_.includes(BASE_MINERALS, resourceType) && this.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = this.room.storage;
-                    else if (_.includes(COMPRESSED_COMMODITIES, resourceType) && terminal.store[resourceType] >= 10000) storeTarget = this.room.storage;
-                    else if (_.includes(ALL_COMMODITIES, resourceType)) storeTarget = terminal;
-                    else if (_.includes(ALL_BOOSTS, resourceType) && this.room.storage.store[resourceType] < BOOST_AMOUNT) storeTarget = this.room.storage;
-                    else if (_.includes(ALL_BOOSTS, resourceType)) storeTarget = terminal;
-                    else if (!_.includes(BASE_MINERALS, resourceType) && !_.includes(ALL_COMMODITIES, resourceType) && this.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = this.room.storage;
+                    else if (BASE_MINERALS.includes(resourceType) && this.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = this.room.storage;
+                    else if (COMPRESSED_COMMODITIES.includes(resourceType) && terminal.store[resourceType] >= 10000) storeTarget = this.room.storage;
+                    else if (ALL_COMMODITIES.includes(resourceType)) storeTarget = terminal;
+                    else if (LAB_PRIORITY.includes(resourceType) && this.room.storage.store[resourceType] < BOOST_AMOUNT(terminal.room) * 2) storeTarget = this.room.storage;
+                    else if (ALL_BOOSTS.includes(resourceType) && this.room.storage.store[resourceType] < BOOST_AMOUNT(terminal.room)) storeTarget = this.room.storage;
+                    else if (ALL_BOOSTS.includes(resourceType)) storeTarget = terminal;
+                    else if (!BASE_MINERALS.includes(resourceType) && !ALL_COMMODITIES.includes(resourceType) && this.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = this.room.storage;
                 }
 
                 // Handle resource drop if storage is full
@@ -363,8 +364,8 @@ class RoleLabTech {
                     amountNeeded = this.creep.store.getFreeCapacity(resourceType); // Move resources to free up space
                 } else if (_.includes(BASE_MINERALS, resourceType) && (storage.store[resourceType] || 0) < REACTION_AMOUNT) {
                     amountNeeded = REACTION_AMOUNT - (storage.store[resourceType] || 0);
-                } else if (_.includes(ALL_BOOSTS, resourceType) && (storage.store[resourceType] || 0) < BOOST_AMOUNT) {
-                    amountNeeded = BOOST_AMOUNT - (storage.store[resourceType] || 0);
+                } else if (_.includes(ALL_BOOSTS, resourceType) && (storage.store[resourceType] || 0) < BOOST_AMOUNT(terminal.room)) {
+                    amountNeeded = BOOST_AMOUNT(terminal.room) - (storage.store[resourceType] || 0);
                 } else if (resourceType === RESOURCE_ENERGY &&
                     terminal.store[resourceType] > TERMINAL_ENERGY_BUFFER * 5 &&
                     !this.room.energyState) {
@@ -541,8 +542,8 @@ class RoleLabTech {
             // Determine the amount needed for transfer
             if (_.includes(BASE_MINERALS, resourceType) && storage.store[resourceType] > REACTION_AMOUNT) {
                 amountNeeded = storage.store[resourceType] - REACTION_AMOUNT;
-            } else if (_.includes(ALL_BOOSTS, resourceType) && storage.store[resourceType] > BOOST_AMOUNT) {
-                amountNeeded = storage.store[resourceType] - BOOST_AMOUNT;
+            } else if (_.includes(ALL_BOOSTS, resourceType) && storage.store[resourceType] > BOOST_AMOUNT(terminal.room)) {
+                amountNeeded = storage.store[resourceType] - BOOST_AMOUNT(terminal.room);
             } else if (resourceType === RESOURCE_ENERGY) {
                 if (terminal.store[resourceType] < TERMINAL_ENERGY_BUFFER) {
                     amountNeeded = TERMINAL_ENERGY_BUFFER - terminal.store[resourceType];

@@ -89,6 +89,12 @@ let globals = function () {
         console.log('------------------------------------------------------------------');
     }
 
+    // Config
+    global.BOOST_AMOUNT = function (room) {
+        return 5000 * CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level];
+    };
+    global.DUMP_AMOUNT = 40000; // Fills buys (or if overflowing it will offload to other terminals)
+
     // Versioning for cache purposes
     global.PATHFINDER_VERSION = 2;
     global.INTEL_VERSION = 5;

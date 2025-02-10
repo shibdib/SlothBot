@@ -6,8 +6,9 @@ let lastRun = {};
 let lastClean = {};
 
 class LabManager {
-    constructor() {
+    constructor(room) {
         this.primaryLabs = {};
+        this.room = room;
     }
 
     run(room) {
@@ -70,17 +71,6 @@ class LabManager {
         return room.store(room.memory.producingBoost) > cutOff;
     }
 
-    getProductionCutoff(room) {
-        let baseCutoff = BOOST_AMOUNT;
-        if (room.memory.producingBoost === RESOURCE_GHODIUM) {
-            return (NUKER_GHODIUM_CAPACITY * 5) + (SAFE_MODE_COST * 3);
-        }
-        if (LAB_PRIORITY.includes(room.memory.producingBoost)) {
-            return baseCutoff * 2; // Increased cutoff for priority boosts
-        }
-        return baseCutoff;
-    }
-
     checkResourceShortage(room, hub) {
         return hub.some(lab => room.store(lab.memory.itemNeeded) < 50);
     }
@@ -128,7 +118,7 @@ class LabManager {
         if (priority) return priority;
         let boostList = [...new Set([...BASE_COMPOUNDS, ...TIER_3_BOOSTS, ...TIER_2_BOOSTS, ...TIER_1_BOOSTS])];
         for (let boost of boostList) {
-            let cutOff = this.getProductionCutoffForInit(boost);
+            let cutOff = this.getProductionCutoff(boost);
             if (room.store(boost) >= cutOff) continue;
             if (this.checkForInputs(room, boost)) {
                 return boost;
@@ -139,15 +129,15 @@ class LabManager {
 
     tryPriority(room) {
         for (let boost of LAB_PRIORITY) {
-            let cutOff = this.getProductionCutoffForInit(boost);
-            if (room.store(boost) >= cutOff) continue;
+            let cutOff = this.getProductionCutoff(boost);
+            if (getResourceTotal(boost) >= cutOff) continue;
             if (this.checkForInputs(room, boost)) {
                 return boost;
             } else {
                 const components = BOOST_COMPONENTS[boost];
                 if (!components || !components.length) continue;
                 for (boost of components) {
-                    let cutOff = this.getProductionCutoffForInit(boost);
+                    let cutOff = this.getProductionCutoff(boost);
                     if (room.store(boost) >= cutOff) continue;
                     if (this.checkForInputs(room, boost)) {
                         return boost;
@@ -155,7 +145,7 @@ class LabManager {
                         const components = BOOST_COMPONENTS[boost];
                         if (!components || !components.length) continue;
                         for (boost of components) {
-                            let cutOff = this.getProductionCutoffForInit(boost);
+                            let cutOff = this.getProductionCutoff(boost);
                             if (room.store(boost) >= cutOff) continue;
                             if (this.checkForInputs(room, boost)) {
                                 return boost;
@@ -163,7 +153,7 @@ class LabManager {
                                 const components = BOOST_COMPONENTS[boost];
                                 if (!components || !components.length) continue;
                                 for (boost of components) {
-                                    let cutOff = this.getProductionCutoffForInit(boost);
+                                    let cutOff = this.getProductionCutoff(boost);
                                     if (room.store(boost) >= cutOff) continue;
                                     if (this.checkForInputs(room, boost)) {
                                         return boost;
@@ -177,14 +167,14 @@ class LabManager {
         }
     }
 
-    getProductionCutoffForInit(boost) {
+    getProductionCutoff(boost) {
         if (boost === RESOURCE_GHODIUM) {
             return (NUKER_GHODIUM_CAPACITY * 2.5) + (SAFE_MODE_COST * 1.5);
         }
         if (LAB_PRIORITY.includes(boost)) {
-            return BOOST_AMOUNT * 1.5;
+            return BOOST_AMOUNT(this.room) * 2;
         }
-        return BOOST_AMOUNT;
+        return BOOST_AMOUNT(this.room);
     }
 
     checkForInputs(room, boost) {

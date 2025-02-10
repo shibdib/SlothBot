@@ -12,9 +12,6 @@ module.exports.init = function () {
 
     // Track allied requests
     logRequests();
-
-    // Make requests
-    if (Game.time % 50 === 0) makeRequests();
 }
 
 let intelSegmentChecked;
@@ -179,108 +176,6 @@ function logRequests() {
         } catch (e) {
         }
     }
-}
-
-function makeRequests() {
-    RawMemory.setPublicSegments([98])
-    RawMemory.setDefaultPublicSegment(98)
-    let requestArray = [];
-    // Energy requests
-    /**
-    let energyRooms = _.filter(MY_ROOMS, (r) => Game.rooms[r].energyState < 2 && Game.rooms[r].terminal);
-    for (let room of energyRooms) {
-        if (room) {
-            let priority = 0.1;
-            if (Game.rooms[room].memory.spawnDefenders) priority = 1;
-            else if (!Game.rooms[room].energyState) priority = _.round(1 - (Game.rooms[room].energy / ENERGY_AMOUNT[Game.rooms[room].level]), 2);
-            requestArray.push(
-                {
-                    requestType: 0,
-                    resourceType: RESOURCE_ENERGY,
-                    maxAmount: ENERGY_AMOUNT[Game.rooms[room].level] - Game.rooms[room].energy,
-                    roomName: room,
-                    priority: priority
-                }
-            )
-        }
-    }
-     **/
-
-    // Base mineral requests && Boost requests
-    if (Memory.saleTerminal && Game.rooms[Memory.saleTerminal.room] && Game.rooms[Memory.saleTerminal.room].terminal) {
-        for (let resource of BASE_MINERALS) {
-            if (!MY_MINERALS[resource] && Game.rooms[Memory.saleTerminal.room].store(resource) < REACTION_AMOUNT * 3) {
-                let priority = 0.1;
-                requestArray.push(
-                    {
-                        requestType: 0,
-                        resourceType: resource,
-                        maxAmount: (REACTION_AMOUNT * 3) - Game.rooms[Memory.saleTerminal.room].store(resource),
-                        roomName: Memory.saleTerminal.room,
-                        priority: priority
-                    }
-                )
-            }
-        }
-        for (let boost of BUY_THESE_BOOSTS) {
-            if (Game.rooms[Memory.saleTerminal.room] && Game.rooms[Memory.saleTerminal.room].store(boost) < BOOST_AMOUNT * 3) {
-                requestArray.push(
-                    {
-                        requestType: 0,
-                        resourceType: boost,
-                        maxAmount: (BOOST_AMOUNT * 3) - Game.rooms[Memory.saleTerminal.room].store(boost),
-                        roomName: Memory.saleTerminal.room,
-                        priority: 0.1
-                    }
-                )
-            }
-        }
-    }
-
-    // Ghodium requests
-    let terminalRooms = _.filter(MY_ROOMS, (r) => Game.rooms[r].terminal);
-    for (let room of terminalRooms) {
-        if (Game.rooms[room].store(RESOURCE_GHODIUM) < NUKER_GHODIUM_CAPACITY) {
-            requestArray.push(
-                {
-                    requestType: 0,
-                    resourceType: RESOURCE_GHODIUM,
-                    maxAmount: NUKER_GHODIUM_CAPACITY - Game.rooms[room].store(RESOURCE_GHODIUM),
-                    roomName: room,
-                    priority: 0.5
-                }
-            )
-        }
-    }
-
-    // Defense requests
-    let defenseRooms = _.filter(MY_ROOMS, (r) => Game.rooms[r].memory.dangerousAttack || Game.rooms[r].memory.defenseCooldown > Game.time);
-    for (let room of defenseRooms) {
-        let priority = 0.25;
-        if (INTEL[room].threatLevel === 4) priority = 1;
-        requestArray.push(
-            {
-                requestType: 1,
-                roomName: room,
-                priority: priority
-            }
-        )
-    }
-
-    // Attack Requests
-    if (_.size(Game.flags)) {
-        let requestFlag = _.find(Game.flags, (f) => _.startsWith(f.name, 'request'))
-        if (requestFlag) {
-            requestArray.push(
-                {
-                    requestType: 2,
-                    roomName: requestFlag.pos.roomName,
-                    priority: requestFlag.name.match(/\d+$/)[0] || 0.5
-                }
-            )
-        }
-    }
-    RawMemory.segments[98] = JSON.stringify(requestArray);
 }
 
 function cleanStore(store) {

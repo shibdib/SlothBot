@@ -230,7 +230,7 @@ class TerminalControl {
 
             // Handle boosts and power
             if (_.includes(_.uniq(ALL_BOOSTS, [RESOURCE_POWER]), resourceType)) {
-                sellAmount = terminal.room.store(resourceType) - BOOST_AMOUNT * 1.2;
+                sellAmount = terminal.room.store(resourceType) - BOOST_AMOUNT(terminal.room) * 1.2;
             }
 
             if (resourceType === RESOURCE_POWER) {
@@ -352,8 +352,8 @@ class TerminalControl {
                     const activeBuyOrder = _.some(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY)
                     if (activeBuyOrder) continue;
                     let stored = getResourceTotal(mineral) || 0;
-                    if (stored < BOOST_AMOUNT * (_.size(MY_ROOMS))) {
-                        let buyAmount = BOOST_AMOUNT - stored;
+                    if (stored < BOOST_AMOUNT(terminal.room) * MY_ROOMS.length) {
+                        let buyAmount = BOOST_AMOUNT(terminal.room) - stored;
                         price = getOrderPrice(mineral, this.latestMarketHistory(mineral));
 
                         if (createBuyOrder(mineral, price, buyAmount)) break;
@@ -547,10 +547,11 @@ class TerminalControl {
             if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
 
             let keepAmount = determineKeepAmount(resource);
-            let available = Math.max(terminal.room.store(resource) - keepAmount, 0);
+            if (terminal.room.store(resource) < keepAmount) continue;
+            let available = Math.max(terminal.store[resource], 0);
 
             // Skip if available amount is too low
-            if (available <= keepAmount * 0.1 || available < 100) continue;
+            if (available < 100) continue;
 
             let needyTerminal = findNeedyTerminal(terminal, resource, available);
 
@@ -570,7 +571,8 @@ class TerminalControl {
             if (ALL_COMMODITIES.includes(resource) && !COMPRESSED_COMMODITIES.includes(resource) || resource === RESOURCE_OPS || resource === RESOURCE_POWER) {
                 return 0;
             }
-            if (ALL_BOOSTS.includes(resource)) return BOOST_AMOUNT;
+            if (LAB_PRIORITY.includes(resource)) return BOOST_AMOUNT(terminal.room) * 2;
+            if (ALL_BOOSTS.includes(resource)) return BOOST_AMOUNT(terminal.room);
             if (resource === RESOURCE_BATTERY) return 1000;
             if (BASE_MINERALS.includes(resource)) return REACTION_AMOUNT;
             if (COMPRESSED_COMMODITIES.includes(resource)) return 1000;
@@ -584,12 +586,11 @@ class TerminalControl {
 
             if (terminal.room.energyState) {
                 needyTerminal = _.find(Game.structures, r =>
-                    r.structureType === STRUCTURE_TERMINAL &&
-                    !r.room.nukes.length &&
                     r.room.name !== terminal.room.name &&
+                    r.structureType === STRUCTURE_TERMINAL &&
+                    r.store.getFreeCapacity() &&
                     r.room.store(resource) < determineKeepAmount(resource) &&
-                    Game.market.calcTransactionCost(5000, terminal.room.name, r.room.name) < terminal.room.energy * 0.01 &&
-                    r.store.getFreeCapacity()
+                    Game.market.calcTransactionCost(5000, terminal.room.name, r.room.name) < terminal.room.energy * 0.01
                 );
             }
 
