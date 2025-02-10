@@ -25,7 +25,7 @@ class RoleHauler {
 
     deliverResource() {
         this.creep.opportunisticFill();
-        if (!this.creep.haulerDelivery() && _.sum(this.creep.store)) this.creep.idleFor(5)
+        if (!this.creep.haulerDelivery() && _.sum(this.creep.store)) return;
     }
 
     findResource() {
