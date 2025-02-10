@@ -25,9 +25,10 @@ Object.defineProperty(Creep.prototype, "idle", {
             if (this.memory.other.stationary) this.memory.other.stationary = undefined;
             if ((this.pos.checkForRampart() && !this.pos.checkForRoad()) || this.memory.partner) {
                 this.memory.idleSet = true;
-            } else if (Math.min(...Object.values(Game.map.describeExits(this.room.name)).map(exitRoom => Game.map.getRoomLinearDistance(this.room.name, exitRoom))) < 5) {
+            } else if (this.pos.getRangeTo(this.pos.findClosestByRange(this.room.find(FIND_EXIT))) < 5) {
                 const middleOfRoom = new RoomPosition(25, 25, this.room.name);
-                return this.shibMove(middleOfRoom, {range: 10});
+                this.shibMove(middleOfRoom, {range: 10});
+                return true;
             } else if (!this.memory.role.includes("Harvester") && (this.pos.checkForRoad() || this.pos.checkForContainer() || this.pos.lookForNearby(LOOK_SOURCES, true, 2)[0])) {
                 return this.moveRandom();
             } else this.memory.idleSet = true;
@@ -143,34 +144,35 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
  * @returns {boolean}
  */
 Creep.prototype.skSafety = function () {
-    // Check if the creep is damaged
-    const armedEnemies = _.find(this.room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
+    // Check if creep is damaged or if there are armed enemies nearby
+    const armedEnemies = this.room.hostileCreeps.find(c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
     if (this.hits < this.hitsMax || armedEnemies) {
         this.fleeHome(true);
         return true;
     }
 
-    // If there's no controller and no SK intel, or if intel confirms no SK, exit
+    // Exit if there's a controller or no SK threat
     if (this.room.controller || (INTEL[this.room.name] && !INTEL[this.room.name].sk)) return false;
 
     const range = 4;
-    const skFilter = (c) => c.owner.username === 'Source Keeper' && c.pos.getRangeTo(this) < range;
-    const lairFilter = (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn && s.ticksToSpawn <= 3 && s.pos.getRangeTo(this) < range;
+    const skFilter = (c) => c.owner.username === 'Source Keeper' && c.pos.inRangeTo(this, range);
+    const lairFilter = (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn && s.ticksToSpawn <= 3 && s.pos.inRangeTo(this, range);
 
-    let sk = this.pos.findClosestByRange(this.room.creeps, {filter: skFilter});
-    let lair = this.pos.findClosestByRange(this.room.impassibleStructures, {filter: lairFilter});
+    // Look for threats more efficiently
+    const sk = this.room.creeps.find(skFilter);
+    const lair = this.room.impassibleStructures.find(lairFilter);
 
     if (sk || lair) {
-        // Attempt to kite away from the threat
-        const target = sk || lair;
-        this.shibKite(range + 2, target);
+        // Kite away from the threat
+        this.shibKite(range + 2, sk || lair);
         this.memory.fledSK = Game.time;
         return true;
     } else if (this.memory.fledSK) {
-        // Wait for 5 ticks after fleeing before resuming normal behavior
+        // Check if it's time to stop idling
         if (this.memory.fledSK + 5 <= Game.time) {
             delete this.memory.fledSK;
         } else {
+            // Set idle state correctly
             this.idleFor(10);
             return true;
         }
@@ -178,7 +180,7 @@ Creep.prototype.skSafety = function () {
 
     // Handle invader cores
     if (this.room.impassibleStructures.some(s => s.structureType === STRUCTURE_INVADER_CORE)) {
-        return this.suicide() === OK; // Assuming suicide returns OK if successful
+        return this.suicide() === OK;
     }
 
     return false;
