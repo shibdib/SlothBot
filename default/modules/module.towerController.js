@@ -66,7 +66,9 @@ function findDegradingStructure(room) {
 
 // Handle hostile creeps in the room
 function handleHostileCreeps(room) {
-    let hostileCreeps = _.sortBy(room.hostileCreeps, 'hits'); // Sort hostile creeps by their hit points for more efficient targeting
+    let hostileCreeps = _.sortBy(room.hostileCreeps, function (c) {
+        return c.hits + calculateHealPower(room, c);
+    }); // Sort hostile creeps by their hit points for more efficient targeting
     let towers = _.shuffle(_.filter(room.impassibleStructures, s => s.structureType === STRUCTURE_TOWER && s.isActive() && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST));
 
     // If no towers and no safe mode, trigger defender spawning
@@ -83,7 +85,16 @@ function handleHostileCreeps(room) {
         // Check if the enemy creep should be attacked or if defenders should be spawned
         if (shouldAttackHostileCreep(attackPower, healPower, hostileCreeps[i])) {
             room.memory.towerTarget = hostileCreeps[i].id;
-            towers.forEach(tower => tower.attack(hostileCreeps[i]));
+            const targetTank = hostileCreeps[i].hits + healPower;
+            let damageDone = 0;
+            const sortedTowers = _.sortBy(towers, function (t) {
+                return determineDamage(t.pos.getRangeTo(hostileCreeps[i]));
+            })
+            for (const tower of sortedTowers) {
+                tower.attack(hostileCreeps[i]);
+                damageDone += determineDamage(tower.pos.getRangeTo(hostileCreeps[i]));
+                if (damageDone > targetTank) break;
+            }
             break;
         }
 
@@ -101,12 +112,12 @@ function handleHostileCreeps(room) {
 function calculateAttackPower(room, hostileCreep, towers) {
     let attackPower = 0;
 
-    let inMeleeRange = _.filter(room.friendlyCreeps, c => c.hasActiveBodyparts(ATTACK) && c.pos.getRangeTo(hostileCreep) === 1);
-    let inRangedRange = _.filter(room.friendlyCreeps, c => c.hasActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(hostileCreep) <= 3);
+    let inMeleeRange = _.filter(room.friendlyCreeps, c => c.pos.isNearTo(hostileCreep) && c.hasActiveBodyparts(ATTACK));
+    let inRangedRange = _.filter(room.friendlyCreeps, c => c.pos.getRangeTo(hostileCreep) <= 3 && c.hasActiveBodyparts(RANGED_ATTACK));
 
     // Add attack power from friendly creeps
     inMeleeRange.forEach(c => attackPower += c.abilityPower().attack);
-    inRangedRange.forEach(c => attackPower += c.abilityPower().ranged);
+    inRangedRange.forEach(c => attackPower += c.abilityPower().rangedAttack);
 
     // Add tower damage
     towers.forEach(t => attackPower += determineDamage(hostileCreep.pos.getRangeTo(t)));
@@ -115,18 +126,22 @@ function calculateAttackPower(room, hostileCreep, towers) {
 }
 
 // Calculate the heal power of a hostile creep
+const healPowerCache = {};
 function calculateHealPower(room, hostileCreep) {
+    const cacheKey = hostileCreep.id + '.' + _.filter(hostileCreep.body, (b) => b.hits).length;
+    if (healPowerCache[cacheKey]) return healPowerCache[cacheKey];
     let healPower = 0;
 
     if (!room.controller.safeMode) {
         let inRangeMeleeHealers = _.filter(room.hostileCreeps, s => s.pos.isNearTo(hostileCreep) && s.hasActiveBodyparts(HEAL));
-        let inRangeRangedHealers = _.filter(room.hostileCreeps, s => s.pos.getRangeTo(hostileCreep) < 4 && s.hasActiveBodyparts(HEAL));
+        let inRangeRangedHealers = _.filter(room.hostileCreeps, s => s.pos.getRangeTo(hostileCreep) <= 3 && s.hasActiveBodyparts(HEAL));
 
         inRangeMeleeHealers.forEach(c => healPower += c.abilityPower().heal);
         inRangeRangedHealers.forEach(c => healPower += c.abilityPower().rangedHeal);
         healPower += hostileCreep.abilityPower().heal;
     }
 
+    healPowerCache[cacheKey] = healPower;
     return healPower;
 }
 
