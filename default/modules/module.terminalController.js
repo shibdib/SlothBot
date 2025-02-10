@@ -9,7 +9,6 @@ const profiler = require("tools.profiler");
 let lastPriceAdjust = 0;
 let diplomacyTracker = 0;
 const priceUpdateTracker = {};
-const marketHistoryCache = {};
 const usedTerminals = {};
 const lastRun = {};
 
@@ -133,7 +132,7 @@ class TerminalControl {
             }
 
             // Determine the price adjustment strategy based on the order type
-            let newPrice = calculateNewPrice(order, globalOrders, this.latestMarketHistory(order.resourceType));
+            let newPrice = this.calculatePrice(order.type, order.resourceType);
             let currentPrice = order.price;
 
             // Calculate the cost of changing the price (5% market fee)
@@ -147,23 +146,6 @@ class TerminalControl {
                     log.w(`${order.type === ORDER_SELL ? 'Sell' : 'Buy'} order price change ${order.id} new/old ${newPrice}/${currentPrice} Resource - ${order.resourceType}`, "Market: ");
                 }
             }
-        }
-
-        function calculateNewPrice(order, globalOrders, marketHistory) {
-            let newPrice = order.price;
-            let volatility = Math.abs(marketHistory.highest - marketHistory.lowest) / marketHistory.avg; // Volatility index
-
-            if (order.type === ORDER_SELL) {
-                if (volatility > 0.1) { // High volatility
-                    newPrice = marketHistory.highest * 0.99; // Slightly below the peak to encourage quick sales
-                } else {
-                    newPrice = marketHistory.avg * 1.01; // Small premium if market is stable
-                }
-            } else if (order.type === ORDER_BUY) {
-                newPrice = marketHistory.lowest * 1.01; // Slightly above the lowest to outbid competitors
-            }
-            // Cap or floor price based on market conditions or strategy
-            return Math.max(newPrice, marketHistory.lowest * 0.95); // Ensure not too low
         }
     }
 
@@ -182,7 +164,7 @@ class TerminalControl {
             // Skip if no valid sell amount or if there's already an existing sell order
             if (sellAmount < 100 || hasExistingSellOrder(myOrders, terminal, resourceType)) continue;
 
-            let price = getPriceForResource(resourceType, globalOrders, this.latestMarketHistory(resourceType));
+            let price = this.calculatePrice(ORDER_SELL, resourceType);
             let cost = price * sellAmount * 0.05;
 
             // Adjust sell amount based on available credits, ensuring we're not overspending
@@ -191,22 +173,9 @@ class TerminalControl {
             }
 
             // Sell smarter based on the market price and profit margins
-            if (sellAmount > 0 && isProfitableSell(resourceType, sellAmount, price)) {
+            if (sellAmount > 0) {
                 createSellOrder(terminal, resourceType, price, sellAmount);
             }
-        }
-
-        function isProfitableSell(resourceType, sellAmount, price) {
-            let totalCost = price * sellAmount * 0.05; // 5% market fee
-            let totalRevenue = price * sellAmount;
-            let profit = totalRevenue - totalCost;
-
-            // Ensure that the profit margin is above a set threshold (e.g., 10%)
-            let profitMargin = profit / totalRevenue;
-            if (profitMargin > 0.10) {
-                return true; // Profitable sale
-            }
-            return false; // Not profitable enough
         }
 
         function getSellAmount(terminal, resourceType) {
@@ -254,39 +223,6 @@ class TerminalControl {
             );
         }
 
-        function getPriceForResource(resourceType, globalOrders, marketHistory) {
-            let price = 5;  // Default price
-
-            if (marketHistory) {
-                price = marketHistory.avg;
-            } else {
-                // Fallback to competitor's price if no market history
-                let competitorOrder = _.min(globalOrders.filter(order => !_.includes(MY_ROOMS, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL), 'price');
-                if (competitorOrder && competitorOrder.id) {
-                    price = competitorOrder.price - 0.001;  // Slightly undercut competitor
-                }
-            }
-
-            // Adjust price dynamically based on supply and demand (e.g., 5% price increase if low supply)
-            if (isLowSupply(resourceType, marketHistory)) {
-                price *= 1.05;  // Increase price by 5% if supply is low
-            } else if (isHighDemand(marketHistory)) {
-                price *= 0.95;  // Decrease price by 5% if demand is high
-            }
-
-            return price;
-        }
-
-        function isLowSupply(resourceType, marketHistory) {
-            // Example logic to determine low supply based on market history or transaction data
-            return marketHistory && marketHistory.lowest < marketHistory.avg * 0.75;  // Example: low supply if price is significantly below average
-        }
-
-        function isHighDemand(marketHistory) {
-            // Example logic to determine high demand based on market history or transaction data
-            return marketHistory && marketHistory.highest > marketHistory.avg * 1.25;  // Example: high demand if price is significantly above average
-        }
-
         function createSellOrder(terminal, resourceType, price, sellAmount) {
             if (Game.market.createOrder({
                 type: ORDER_SELL,
@@ -315,7 +251,7 @@ class TerminalControl {
                 const activeBuyOrder = _.find(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY)
                 // Buy orders
                 if (!activeBuyOrder) {
-                    price = getOrderPrice(mineral, this.latestMarketHistory(mineral));
+                    price = this.calculatePrice(ORDER_BUY, mineral);
                     buyAmount = Math.min(buyAmount, MINERAL_TRADE_AMOUNT);
 
                     if (createBuyOrder(mineral, price, buyAmount)) break;
@@ -326,7 +262,7 @@ class TerminalControl {
                 if (stored < target) {
                     const acceptableMarkup = getAcceptableMarkup(mineral, activeBuyOrder);
                     let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral &&
-                        order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName) && order.price < this.latestMarketHistory(mineral).avg * acceptableMarkup), 'price');
+                        order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName) && order.price < latestMarketHistory(mineral).avg * acceptableMarkup), 'price');
 
                     if (sellOrder.id && sellOrder.price * buyAmount > Memory._banker.spendingAccount) buyAmount = _.floor(Memory._banker.spendingAccount / sellOrder.price);
 
@@ -354,8 +290,7 @@ class TerminalControl {
                     let stored = getResourceTotal(mineral) || 0;
                     if (stored < BOOST_AMOUNT(terminal.room) * MY_ROOMS.length) {
                         let buyAmount = BOOST_AMOUNT(terminal.room) - stored;
-                        price = getOrderPrice(mineral, this.latestMarketHistory(mineral));
-
+                        price = this.calculatePrice(ORDER_BUY, mineral);
                         if (createBuyOrder(mineral, price, buyAmount)) break;
                     }
                 }
@@ -364,27 +299,10 @@ class TerminalControl {
             // Buy energy
             if (BUY_ENERGY && !_.find(MY_ROOMS, (r) => Game.rooms[r].terminal && Game.rooms[r].energyState > 1)) {
                 if (!_.find(myOrders, (o) => o.resourceType === RESOURCE_ENERGY && o.roomName === terminal.room.name)) {
-                    price = getOrderPrice(RESOURCE_ENERGY, this.latestMarketHistory(RESOURCE_ENERGY), true);
+                    price = this.calculatePrice(ORDER_BUY, RESOURCE_ENERGY);
                     if (createBuyOrder(RESOURCE_ENERGY, price, 10000)) return true;
                 }
             }
-        }
-
-        // Helper function to get the price for buying orders
-        function getOrderPrice(mineral, history, isEnergy = false) {
-            let price = 0.5;
-            let averagePrice;
-            const orderType = isEnergy ? RESOURCE_ENERGY : mineral;
-
-            if (history) averagePrice = history.avg + 0.001;
-
-            const competitorOrder = _.min(globalOrders.filter(order =>
-                !_.includes(MY_ROOMS, order.roomName) && order.resourceType === orderType && order.type === ORDER_BUY), 'price');
-
-            if (competitorOrder) price = competitorOrder.price + 0.001;
-            if (averagePrice && averagePrice > price) price = averagePrice;
-
-            return price;
         }
 
         // Helper function to place buy order
@@ -757,8 +675,8 @@ class TerminalControl {
         // Filter and sort sell orders by price, considering transaction cost and margin for flipping
         let validSellOrders = globalOrders.filter(order =>
             order.type === ORDER_SELL &&
-            this.latestMarketHistory(order.resourceType) &&
-            order.price <= this.latestMarketHistory(order.resourceType).avg * (1 - FLIP_MARGIN_THRESHOLD) &&
+            latestMarketHistory(order.resourceType) &&
+            order.price <= latestMarketHistory(order.resourceType).avg * (1 - FLIP_MARGIN_THRESHOLD) &&
             (!order.roomName || Game.market.calcTransactionCost(order.amount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY] * 0.5)
         );
 
@@ -783,7 +701,7 @@ class TerminalControl {
         if (potentialProfit < MIN_PROFIT_MARGIN) return false;  // Don't execute deal if profit margin is too low
 
         // Log the deal details
-        log.w(`DEAL DEAL DEAL: Buying ${buyAmount} ${sellOrder.resourceType} for ${sellOrder.price} credits. Estimated profit: ${potentialProfit} credits. Average price: ${this.latestMarketHistory(sellOrder.resourceType).avgPrice}`, "Market: ");
+        log.w(`DEAL DEAL DEAL: Buying ${buyAmount} ${sellOrder.resourceType} for ${sellOrder.price} credits. Estimated profit: ${potentialProfit} credits. Average price: ${latestMarketHistory(sellOrder.resourceType).avg}`, "Market: ");
 
         // Attempt the deal
         if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
@@ -821,7 +739,7 @@ class TerminalControl {
         let sellAmount = Game.resources[PIXEL] - PIXEL_BUFFER;
         if (sellAmount >= 10) {
             // Determine the optimal price based on market trends
-            let averagePrice = this.latestMarketHistory(PIXEL).avg;  // Get the latest market average price for PIXEL
+            let averagePrice = latestMarketHistory(PIXEL).avg;  // Get the latest market average price for PIXEL
             let priceMargin = 1.2;  // Add a 20% profit margin over the market average (adjust as needed)
             let sellPrice = averagePrice * priceMargin;
 
@@ -851,64 +769,6 @@ class TerminalControl {
             }
         }
         return false;
-    }
-
-    latestMarketHistory(resource) {
-        if (!marketHistoryCache[resource] || marketHistoryCache[resource].tick !== Game.time) {
-            let history = Game.market.getHistory(resource);
-            if (Array.isArray(history) && history.length > 0) {
-                const prices = history.map(entry => entry.avgPrice);
-                const totalVolume = history.reduce((sum, entry) => sum + entry.volume, 0);
-                const median = prices.sort((a, b) => a - b)[Math.floor(prices.length / 2)];
-                const mean = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-                const variance = prices.reduce((sum, price) => sum + Math.pow(price - mean, 2), 0) / prices.length;
-                const stdDev = Math.sqrt(variance);
-                const mode = prices.sort((a, b) =>
-                    prices.filter(v => v === a).length
-                    - prices.filter(v => v === b).length
-                ).pop();
-                const range = Math.max(...prices) - Math.min(...prices);
-                const lastPrice = prices.length > 0 ? prices[0].toFixed(2) : '0.00';
-
-                marketHistoryCache[resource] = {
-                    data: {
-                        avg: mean.toFixed(2),
-                        highest: Math.max(...prices).toFixed(2),
-                        lowest: Math.min(...prices).toFixed(2),
-                        trend: (prices[0] - prices[prices.length - 1]).toFixed(2),
-                        trend5: (prices.slice(0, 5).reduce((sum, price) => sum + price, 0) / 5).toFixed(2),
-                        trend10: (prices.slice(0, 10).reduce((sum, price) => sum + price, 0) / 10).toFixed(2),
-                        trend20: (prices.slice(0, 20).reduce((sum, price) => sum + price, 0) / 20).toFixed(2),
-                        last: lastPrice,
-                        totalVolume: totalVolume,
-                        median: median.toFixed(2),
-                        stdDev: stdDev.toFixed(2),
-                        mode: mode.toFixed(2),
-                        range: range.toFixed(2)
-                    },
-                    tick: Game.time
-                };
-            }
-        }
-        // Fallback
-        if (!marketHistoryCache[resource]) {
-            const cheapestOrder = _.min(this.getGlobalOrders().filter(order => order.amount >= 50 && order.resourceType === resource &&
-                order.type === ORDER_SELL), 'price');
-            const highestOrder = _.max(this.getGlobalOrders().filter(order => order.amount >= 50 && order.resourceType === resource &&
-                order.type === ORDER_SELL), 'price');
-            marketHistoryCache[resource] = {};
-            marketHistoryCache[resource].data = {};
-            if (cheapestOrder && cheapestOrder.id) {
-                marketHistoryCache[resource].data.avg = cheapestOrder.price;
-                marketHistoryCache[resource].data.highest = highestOrder.price;
-                marketHistoryCache[resource].data.lowest = cheapestOrder.price;
-            } else {
-                marketHistoryCache[resource].data.avg = 50;
-                marketHistoryCache[resource].data.highest = 50;
-                marketHistoryCache[resource].data.lowest = 50;
-            }
-        }
-        return marketHistoryCache[resource].data;
     }
 
     profitCheck(force = false) {
@@ -953,7 +813,7 @@ class TerminalControl {
 
                 // Look for commodities with big price dips
                 globalOrders.forEach(order => {
-                    if (order.type === ORDER_BUY && order.price <= this.latestMarketHistory(order.resourceType).avg * buyingThreshold) {
+                    if (order.type === ORDER_BUY && order.price <= latestMarketHistory(order.resourceType).avg * buyingThreshold) {
                         let availableAmount = order.amount;
 
                         // Only buy when there's enough available funds to avoid excess spending
@@ -1135,7 +995,7 @@ class TerminalControl {
                 let terminal = Game.rooms[order.roomName].terminal;
                 if (terminal && terminal.store[order.resourceType] - order.remainingAmount > 1500) {
                     let availableAmount = terminal.store[order.resourceType] - order.remainingAmount;
-                    let marketHistory = this.latestMarketHistory(order.resourceType);
+                    let marketHistory = latestMarketHistory(order.resourceType);
 
                     if (marketHistory) {
                         let currentPriceRatio = order.price / marketHistory.avg;
@@ -1177,19 +1037,6 @@ class TerminalControl {
                 this.cancelOrder(order, 'Energy shortage in room');
                 continue;
             }
-
-            // Check for significant market price changes
-            let marketHistory = this.latestMarketHistory(order.resourceType);
-            if (marketHistory) {
-                let priceChange = Math.abs(order.price - marketHistory.avg) / marketHistory.avg;
-                if (priceChange > marketPriceChangeThreshold) {
-                    if (order.type === ORDER_BUY && order.price > marketHistory.avg) {
-                        this.cancelOrder(order, 'Market price dropped significantly');
-                    } else if (order.type === ORDER_SELL && order.price < marketHistory.avg) {
-                        this.cancelOrder(order, 'Market price rose significantly');
-                    }
-                }
-            }
         }
 
         function isOrderProfitable(order, marketHistory) {
@@ -1200,6 +1047,27 @@ class TerminalControl {
     cancelOrder(order, reason) {
         if (Game.market.cancelOrder(order.id) === OK) {
             log.e(`Order Cancelled: ${order.id} - ${order.resourceType} - ${reason}`, 'MARKET: ');
+        }
+    }
+
+    calculatePrice(orderType, resource) {
+        let newPrice = 0;
+        const marketHistory = latestMarketHistory(resource);
+        let volatility = Math.abs(marketHistory.highest - marketHistory.lowest) / marketHistory.avg; // Volatility index
+        if (orderType === ORDER_SELL) {
+            const multi = marketHistory.trend > 0 ? 1.01 : 0.99;
+            newPrice = parseFloat(marketHistory.lowest) * multi;
+            if (newPrice === Infinity || newPrice === -Infinity) newPrice = marketHistory.avg;
+            if (marketHistory.trend5 > 0) return Math.max(newPrice, marketHistory.trend5);
+            return Math.max(newPrice, marketHistory.avg * 0.8);
+        } else if (orderType === ORDER_BUY) {
+            if (volatility > 0.1) { // High volatility
+                newPrice = marketHistory.highest * 0.99; // Slightly below the peak to encourage quick sales
+            } else {
+                if (marketHistory.trend5 > 0) newPrice = marketHistory.trend5 * 1.01; else newPrice = marketHistory.avg * 1.01;
+            }
+            if (newPrice === Infinity || newPrice === -Infinity) newPrice = marketHistory.avg;
+            return Math.min(newPrice, marketHistory.lowest);
         }
     }
 }

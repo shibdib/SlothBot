@@ -164,6 +164,94 @@ let helpers = function () {
     }
 
     /**
+     * Get the intel for a room
+     * @param resource
+     */
+    global.market = function (resource = undefined) {
+        const resources = resource ? [resource] : BASE_MINERALS;
+        const headers = ['Property', 'Value'];
+        const widths = [20, 15];
+        for (const item of resources) {
+            const data = latestMarketHistory(item);
+            log.a(`-- MARKET DATA FOR ${item.toUpperCase()} --`, ' ');
+            let headerLine = '';
+            for (let i = 0; i < headers.length; i++) {
+                headerLine += headers[i].padEnd(widths[i], ' ');
+            }
+            log.a(headerLine, ' ');
+            for (const [key, value] of Object.entries(data)) {
+                let row = '';
+                row += key.padEnd(widths[0], ' ');
+                row += String(value).padEnd(widths[1], ' '); // Convert value to string for padding
+                log.e(row, ' ');
+            }
+            log.a('', ' ');
+        }
+    };
+
+    global.latestMarketHistory = function (resource) {
+        if (!MARKET_HISTORY[resource] || MARKET_HISTORY[resource].tick !== Game.time) {
+            let history = Game.market.getHistory(resource);
+            if (Array.isArray(history) && history.length > 0) {
+                const prices = history.map(entry => entry.avgPrice);
+                const totalVolume = history.reduce((sum, entry) => sum + entry.volume, 0);
+                const median = prices.sort((a, b) => a - b)[Math.floor(prices.length / 2)];
+                const mean = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+                const variance = prices.reduce((sum, price) => sum + Math.pow(price - mean, 2), 0) / prices.length;
+                const stdDev = Math.sqrt(variance);
+                const mode = prices.sort((a, b) =>
+                    prices.filter(v => v === a).length
+                    - prices.filter(v => v === b).length
+                ).pop();
+                const range = Math.max(...prices) - Math.min(...prices);
+                const lastPrice = prices.length > 0 ? prices[0].toFixed(2) : '0.00';
+
+                MARKET_HISTORY[resource] = {
+                    data: {
+                        avg: mean.toFixed(2),
+                        highest: Math.max(...prices).toFixed(2),
+                        lowest: Math.min(...prices).toFixed(2),
+                        trend: (prices[0] - prices[prices.length - 1]).toFixed(2),
+                        trend5: (prices.slice(0, 5).reduce((sum, price) => sum + price, 0) / 5).toFixed(2),
+                        trend10: (prices.slice(0, 10).reduce((sum, price) => sum + price, 0) / 10).toFixed(2),
+                        trend20: (prices.slice(0, 20).reduce((sum, price) => sum + price, 0) / 20).toFixed(2),
+                        last: lastPrice,
+                        totalVolume: totalVolume,
+                        median: median.toFixed(2),
+                        stdDev: stdDev.toFixed(2),
+                        mode: mode.toFixed(2),
+                        range: range.toFixed(2)
+                    },
+                    tick: Game.time
+                };
+            }
+        }
+        // Fallback
+        if (!MARKET_HISTORY[resource]) {
+            const cheapestOrder = _.min(getAllOrders().filter(order => order.amount >= 50 && order.resourceType === resource &&
+                order.type === ORDER_SELL && !MY_ROOMS.includes(order.roomName)), 'price');
+            const highestOrder = _.max(getAllOrders().filter(order => order.amount >= 50 && order.resourceType === resource &&
+                order.type === ORDER_SELL && !MY_ROOMS.includes(order.roomName)), 'price');
+            MARKET_HISTORY[resource] = {};
+            MARKET_HISTORY[resource].data = {};
+            if (cheapestOrder && cheapestOrder.id) {
+                MARKET_HISTORY[resource].data.avg = cheapestOrder.price;
+                MARKET_HISTORY[resource].data.highest = highestOrder.price;
+                MARKET_HISTORY[resource].data.lowest = cheapestOrder.price;
+            } else {
+                MARKET_HISTORY[resource].data.avg = 50;
+                MARKET_HISTORY[resource].data.highest = 50;
+                MARKET_HISTORY[resource].data.lowest = 50;
+            }
+        }
+        return MARKET_HISTORY[resource].data;
+
+        function getAllOrders() {
+            return Game.market.getAllOrders()
+        }
+    }
+
+    /**
      * Get the strength of a user
      * @param user
      * @returns {number}
@@ -210,8 +298,8 @@ let helpers = function () {
 
         // Loop through owned rooms
         for (let key of MY_ROOMS) {
-            if (availableForCombat && !INTEL[key].availableForCombat) continue;
             const myRoom = Game.rooms[key];
+            if (availableForCombat && !myRoom.memory.availableForAssignment) continue;
             if (myRoom && myRoom.controller && myRoom.controller.level >= minLevel) {
                 let distance = Game.map.getRoomLinearDistance(roomName, key);
                 // If not an absurd distance, use findRoute
