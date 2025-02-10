@@ -65,6 +65,17 @@ class World {
             structures.forEach((building) => building.notifyWhenAttacked(false));
         }
 
+        // Track mined minerals
+        if (!_.size(MY_MINERALS) || MY_MINERALS.roomCount !== MY_ROOMS.length) {
+            MY_ROOMS.forEach(function (r) {
+                const mineralType = Game.rooms[r].mineral.mineralType;
+                if (mineralType && !MY_MINERALS[mineralType]) {
+                    MY_MINERALS[mineralType] = true;
+                }
+            })
+            MY_MINERALS.roomCount = MY_ROOMS.length;
+        }
+
         // Diplomacy Manager
         diplomacy.diplomacyManager();
     }

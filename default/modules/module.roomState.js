@@ -32,12 +32,6 @@ module.exports.setRoomState = function (room) {
         room.memory.energyPositive = average(energyIncomeArray) > 0;
         ROOM_ENERGY_INCOME_ARRAY[room.name] = energyIncomeArray;
 
-        // Track mined minerals
-        const mineralType = room.mineral.mineralType;
-        if (mineralType && !MY_MINERALS[mineralType]) {
-            MY_MINERALS[mineralType] = true;
-        }
-
         // Track if the room is filling extensions/spawns fast enough
         if (room.energyCapacityAvailable > room.energyAvailable) {
             if (energyFillingTracker[room.name]) energyFillingTracker[room.name]++; else energyFillingTracker[room.name] = 1;
