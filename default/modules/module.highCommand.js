@@ -65,88 +65,6 @@ function checkCooldown(task, cooldown) {
 
 function militaryOperations() {
     if (!Memory._enemies || !Memory._enemies.length) Memory._enemies = [];
-
-    // Ally defense and attack requests handling
-    if (_.size(ALLY_HELP_REQUESTS)) {
-        // First, prioritize defense requests
-        let defenseRequests = _.filter(ALLY_HELP_REQUESTS, (ally) => {
-            return _.some(ally, (r) => r.requestType === 1 && !Memory.targetRooms[r.roomName] && !Memory.nonCombatRooms[r.roomName]);
-        });
-
-        // Sort defense requests by urgency (e.g., time since last attack, distance, etc.)
-        defenseRequests = _.sortBy(defenseRequests, (ally) => {
-            return _.min(_.map(ally, (r) => {
-                // Ensure room name is valid
-                if (!r.roomName) {
-                    console.log('Invalid roomName detected in ally request:', r);
-                    return Infinity; // Return a high value to avoid errors
-                }
-                return Game.map.getRoomLinearDistance(r.roomName, Game.rooms[ally.owner].name);
-            }));
-        });
-
-        // Handle the highest priority defense request
-        if (defenseRequests.length > 0) {
-            let defenseRequest = defenseRequests[0];
-            let targetRoom = defenseRequest.roomName;
-
-            // Ensure the room isn't already being defended by a high priority operation
-            let totalGuards = _.filter(Memory.targetRooms, (target) => target.type === 'guard').length || 0;
-            let lowestGuard = _.max(_.filter(Object.keys(Memory.targetRooms), (target) => Memory.targetRooms[target].type === 'guard'), 'priority');
-
-            if (totalGuards >= 2 && (lowestGuard.priority >= getPriority(targetRoom))) return; // Don't waste resources
-
-            let cache = Memory.targetRooms || {};
-            let tick = Game.time;
-            cache[targetRoom] = {
-                tick: tick,
-                type: 'guard',
-                level: 1,
-                priority: getPriority(targetRoom)
-            };
-            Memory.targetRooms = cache;
-
-            return log.a('ALLY REQUEST!! Guard operation planned for ' + roomLink(targetRoom), 'HIGH COMMAND: ');
-        }
-
-        // If no defense request, handle attack requests (similar logic)
-        let attackRequests = _.filter(ALLY_HELP_REQUESTS, (ally) => {
-            return _.some(ally, (r) => r.requestType === 2 && !Memory.targetRooms[r.roomName]);
-        });
-
-        attackRequests = _.sortBy(attackRequests, (ally) => {
-            return _.min(_.map(ally, (r) => {
-                // Ensure room name is valid
-                if (!r.roomName) {
-                    console.log('Invalid roomName detected in attack request:', r);
-                    return Infinity; // Return a high value to avoid errors
-                }
-                return Game.map.getRoomLinearDistance(r.roomName, Game.rooms[ally.owner].name);
-            }));
-        });
-
-        if (attackRequests.length > 0) {
-            let attackRequest = attackRequests[0];
-            let targetRoom = attackRequest.roomName;
-            let type = 'harass';
-
-            // Check room for additional details (e.g., towers, resources)
-            if (INTEL[targetRoom] && !INTEL[targetRoom].towers) type = 'roomDenial';
-
-            let cache = Memory.targetRooms || {};
-            let tick = Game.time;
-            cache[targetRoom] = {
-                tick: tick,
-                type: type,
-                level: 1,
-                priority: getPriority(targetRoom)
-            };
-            Memory.targetRooms = cache;
-
-            return log.a('ALLY REQUEST!! ' + type + ' operation planned for ' + roomLink(targetRoom), 'HIGH COMMAND: ');
-        }
-    }
-
     // Handle stronghold operations
     let activeStrongholdAttacks = _.find(Memory.targetRooms, (target) => target && target.type === 'stronghold');
     if (!activeStrongholdAttacks) {
@@ -302,7 +220,6 @@ function auxiliaryOperations() {
         let commodityRoom = _.find(initialFilter, (r) => r.commodity && getResourceTotal(r.commodity) < DUMP_AMOUNT && findClosestOwnedRoom(r.name, true) <= 8);
         if (commodityRoom && commodityRoom.name && _.size(_.filter(Memory.auxiliaryTargets, (t) => t && t.type === 'commodity')) < 2) {
             cache[commodityRoom.name] = {tick, type: 'commodity', level: 1, priority: PRIORITIES.medium};
-            log.e(JSON.stringify(commodityRoom));
             log.a(`Mining operation planned for ${roomLink(commodityRoom.name)} (Commodity Deposit Location)`, 'HIGH COMMAND: ');
         }
 
