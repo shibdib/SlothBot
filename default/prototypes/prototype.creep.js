@@ -23,7 +23,12 @@ Object.defineProperty(Creep.prototype, "idle", {
         }
         if (!this.memory.idleSet) {
             if (this.memory.other.stationary) this.memory.other.stationary = undefined;
-            if (!this.memory.role.includes("Harvester") && (this.pos.checkForRoad() || this.pos.checkForContainer() || this.pos.lookForNearby(LOOK_SOURCES, true, 2).length)) {
+            if ((this.pos.checkForRampart() && !this.pos.checkForRoad()) || this.memory.partner) {
+                this.memory.idleSet = true;
+            } else if (Math.min(...Object.values(Game.map.describeExits(this.room.name)).map(exitRoom => Game.map.getRoomLinearDistance(this.room.name, exitRoom))) < 5) {
+                const middleOfRoom = new RoomPosition(25, 25, this.room.name);
+                return this.shibMove(middleOfRoom, {range: 10});
+            } else if (!this.memory.role.includes("Harvester") && (this.pos.checkForRoad() || this.pos.checkForContainer() || this.pos.lookForNearby(LOOK_SOURCES, true, 2)[0])) {
                 return this.moveRandom();
             } else this.memory.idleSet = true;
         }
@@ -139,8 +144,9 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
  */
 Creep.prototype.skSafety = function () {
     // Check if the creep is damaged
-    if (this.hits < this.hitsMax) {
-        this.goToHub();
+    const armedEnemies = _.find(this.room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
+    if (this.hits < this.hitsMax || armedEnemies) {
+        this.fleeHome(true);
         return true;
     }
 
