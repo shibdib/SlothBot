@@ -2,7 +2,7 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-const DEFAULT_MAXOPS = 3000;
+const DEFAULT_MAXOPS = 7500;
 const STATE_STUCK = 2;
 const FLEE_RANGE = 4;
 
@@ -859,14 +859,14 @@ function getSKMatrix(roomName, matrix = undefined, options) {
             if (options.ignoreKeeper) sks = _.filter(sks, (c) => c.id !== options.ignoreKeeper)
             if (sks.length) {
                 for (let sk of sks) {
-                    matrix.set(sk.pos.x, sk.pos.y, 256);
-                    let sites = sk.room.lookForAtArea(LOOK_TERRAIN, sk.pos.y - 7, sk.pos.x - 7, sk.pos.y + 7, sk.pos.x + 7, true);
+                    matrix.set(sk.pos.x, sk.pos.y, Infinity);
+                    let sites = sk.room.lookForAtArea(LOOK_TERRAIN, sk.pos.y - 3, sk.pos.x - 3, sk.pos.y + 3, sk.pos.x + 3, true);
                     for (let site of sites) {
                         let position;
                         try {
                             position = new RoomPosition(site.x, site.y, room.name);
                             if (position && !position.checkForWall()) {
-                                matrix.set(position.x, position.y, 250)
+                                matrix.set(position.x, position.y, Infinity)
                             }
                         } catch (e) {
                         }
