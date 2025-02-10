@@ -66,11 +66,13 @@ class World {
         }
 
         // Track mined minerals
-        if (!_.size(MY_MINERALS) || MY_MINERALS.roomCount !== MY_ROOMS.length) {
+        if (!_.size(MY_MINERALS) || MY_MINERALS.roomCount !== MY_ROOMS.length || Math.random() > 0.95) {
             MY_ROOMS.forEach(function (r) {
-                const mineralType = Game.rooms[r].mineral.mineralType;
-                if (mineralType && !MY_MINERALS[mineralType]) {
-                    MY_MINERALS[mineralType] = true;
+                if (Game.rooms[r].level >= 6) {
+                    const mineral = Game.rooms[r].mineral;
+                    if (!mineral.ticksToRegeneration && !MY_MINERALS[mineral.mineralType]) {
+                        MY_MINERALS[mineral.mineralType] = true;
+                    }
                 }
             })
             MY_MINERALS.roomCount = MY_ROOMS.length;
