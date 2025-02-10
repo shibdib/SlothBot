@@ -130,7 +130,10 @@ class Colony {
 
         if (cpuUsageArray.length === 25) {
             const avgCpu = average(cpuUsageArray);
-            const roomCpuTarget = (Game.cpu.limit * 0.95) / Game.gcl.level
+            let roomCount = MY_ROOMS.length;
+            // If we're RCL8 and have energy, make this more likely
+            if (this.room.level === 8 && this.room.energyState) roomCount *= 1.5
+            const roomCpuTarget = (Game.cpu.limit * 0.95) / roomCount
             if (avgCpu > roomCpuTarget) {
                 let cpuOverCount = this.room.memory.cpuOverage || 0;
                 this.room.memory.cpuOverage = cpuOverCount + 1;
@@ -138,7 +141,8 @@ class Colony {
                     this.room.memory.cpuOverage = undefined;
                     this.room.memory.noRemote = Game.time + (CREEP_LIFE_TIME * 3);
                     this.suicideRemoteCreeps();
-                    log.e(`${roomLink(this.room.name)} remote spawning has been disabled due to cpu usage.`, 'ROOM MANAGER:');
+                    log.e(`${roomLink(this.room.name)} remote spawning has been disabled to conserve CPU.`, 'ROOM MANAGER:');
+                    cpuUsageArray = [];
                 }
             } else {
                 if (this.room.memory.cpuOverage) this.room.memory.cpuOverage--;
