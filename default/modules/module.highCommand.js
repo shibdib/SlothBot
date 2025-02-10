@@ -148,24 +148,28 @@ function militaryOperations() {
     }
 
     // Handle stronghold operations
-    let stronghold = _.sortBy(_.filter(INTEL, (r) => r.sk && r.towers && r.towers < 2 && (myRoomInSectorCheck(r.name) || findClosestOwnedRoom(r.name, true) <= 3)), function (t) {
-        return findClosestOwnedRoom(t.name, true);
-    })[0];
+    let activeStrongholdAttacks = _.find(Memory.targetRooms, (target) => target && target.type === 'stronghold');
+    if (!activeStrongholdAttacks) {
+        let stronghold = _.sortBy(_.filter(INTEL, (r) => r.sk && r.towers && siegeLevel(r.towers) && myRoomInSectorCheck(r.name)), function (t) {
+            return findClosestOwnedRoom(t.name, true);
+        })[0];
 
-    if (stronghold) {
-        let targetRoom = stronghold.name;
-        if (!Memory.targetRooms[targetRoom]) {
-            let cache = Memory.targetRooms || {};
-            let tick = Game.time;
-            cache[targetRoom] = {
-                tick: tick,
-                type: 'stronghold',
-                level: 1,
-                priority: getPriority(targetRoom)
-            };
-            Memory.targetRooms = cache;
+        if (stronghold) {
+            let targetRoom = stronghold.name;
+            if (!Memory.targetRooms[targetRoom]) {
+                let cache = Memory.targetRooms || {};
+                let tick = Game.time;
+                cache[targetRoom] = {
+                    tick: tick,
+                    type: 'stronghold',
+                    level: 1,
+                    priority: getPriority(targetRoom),
+                    boostsRequired: true
+                };
+                Memory.targetRooms = cache;
 
-            return log.a('Stronghold operation planned for ' + roomLink(targetRoom), 'HIGH COMMAND: ');
+                return log.a('Stronghold operation planned for ' + roomLink(targetRoom), 'HIGH COMMAND: ');
+            }
         }
     }
 
@@ -223,30 +227,47 @@ function militaryOperations() {
             }
         }
 
-        // Remote Denial
-        let activeRemoteDenials = _.filter(Memory.targetRooms, (target) => target && target.type === 'remoteDenial').length || 0;
-        const denialAmount = HARASSMENT_OPERATIONS ? 1 : _.min(3, MY_ROOMS.length);
-        if (activeRemoteDenials < denialAmount) {
-            let target = _.min(_.filter(initialFilter, (r) => r.owner && (ATTACK_LOCALS || _.includes(THREATS, r.user))), function (t) {
+        // Remote camping
+        let activeCamping = _.filter(Memory.targetRooms, (target) => target && target.type === 'guard' && target.camping).length || 0;
+        const campingAmount = HARASSMENT_OPERATIONS ? 1 : _.min(3, MY_ROOMS.length);
+        if (activeCamping < campingAmount) {
+            // If the enemy room only has one exit, we setup a guard op to camp instead
+            let target = _.min(_.filter(initialFilter, (r) => r.owner && (ATTACK_LOCALS || _.includes(THREATS, r.user)) && singleRemote(r.name)), function (t) {
                 if (!t.name) return Infinity;
                 return findClosestOwnedRoom(t.name, true);
             });
-
-
             if (target && target.name) {
-                // If the enemy room only has one exit, we setup a guard op to camp instead
-                let type = 'remoteDenial';
-                const exits = Game.map.describeExits(target.name);
                 INTEL[target.name].lastOperation = Game.time;
-                if (_.size(exits) === 1) {
-                    target.name = Object.values(Game.map.describeExits(target.name))[0];
-                    type = 'guard'
-                }
+                target.name = singleRemote(target.name);
                 let cache = Memory.targetRooms || {};
                 let tick = Game.time;
                 cache[target.name] = {
                     tick: tick,
-                    type: type,
+                    type: 'guard',
+                    level: 1,
+                    priority: getPriority(target.name),
+                    camping: true
+                };
+                Memory.targetRooms = cache;
+                return log.a('Remote camping operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + findClosestOwnedRoom(target.name, true) + ' rooms away)', 'HIGH COMMAND: ');
+            }
+        }
+
+        // Remote Denial
+        let activeRemoteDenials = _.filter(Memory.targetRooms, (target) => target && target.type === 'remoteDenial').length || 0;
+        const denialAmount = HARASSMENT_OPERATIONS ? 1 : _.min(3, MY_ROOMS.length);
+        if (activeRemoteDenials < denialAmount) {
+            // If the enemy room only has one exit, we setup a guard op to camp instead
+            let target = _.min(_.filter(initialFilter, (r) => r.owner && (ATTACK_LOCALS || _.includes(THREATS, r.user))), function (t) {
+                if (!t.name) return Infinity;
+                return findClosestOwnedRoom(t.name, true);
+            });
+            if (target && target.name) {
+                let cache = Memory.targetRooms || {};
+                let tick = Game.time;
+                cache[target.name] = {
+                    tick: tick,
+                    type: 'remoteDenial',
                     level: 1,
                     priority: getPriority(target.name)
                 };
@@ -876,6 +897,14 @@ function getPriority(room) {
     else if (range <= 5) return PRIORITIES.high;
     else if (range <= 10) return PRIORITIES.medium;
     else return PRIORITIES.secondary;
+}
+
+function singleRemote(roomName) {
+    const neighbors = Object.values(Game.map.describeExits(roomName));
+    const remotes = _.filter(neighbors, (n) => !INTEL[n] || (!INTEL[n].sources && !INTEL[n].isHighway && !INTEL[n].owner && !INTEL[n].sk));
+    if (remotes.length === 1) {
+        return remotes[0];
+    }
 }
 
 module.exports.operationSustainability = function (room, operationRoom = room.name) {
