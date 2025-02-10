@@ -253,8 +253,12 @@ module.exports.miscCreepQueue = function (room) {
         }
         // Border Patrol
         if (room.memory.borderPatrol) {
-            let power = INTEL[room.memory.borderPatrol] ? INTEL[room.memory.borderPatrol].hostilePower : 1000;
-            queueCreepIfNeeded(room, 'longbow', PRIORITIES.high, 1, undefined, room.memory.borderPatrol, undefined, undefined, 'borderPatrol', {power: power});
+            const power = INTEL[room.memory.borderPatrol] ? INTEL[room.memory.borderPatrol].hostilePower : 1000;
+            if (INTEL[room.memory.borderPatrol].threatLevel < 3) {
+                queueCreepIfNeeded(room, 'longbow', PRIORITIES.high, 1, undefined, room.memory.borderPatrol, undefined, undefined, 'borderPatrol', {power: power});
+            } else {
+                queueCreepIfNeeded(room, 'longbowDuo', PRIORITIES.high, 2, undefined, room.memory.borderPatrol, undefined, undefined, 'borderPatrol', {power: power});
+            }
         }
     }
 };
@@ -322,7 +326,7 @@ module.exports.remoteCreepQueue = function (room) {
         // Handle finding blocked remotes
         const blockedRemote = _.find(exits, function (r) {
             return roomStatus(r) === roomStatus(room.name) && INTEL[r] && !INTEL[r].sk && INTEL[r].sources && !INTEL[r].level && INTEL[r].obstacles
-                && !INTEL[r].reservation;
+                && (!INTEL[r].reservation || INTEL[r].reservation === 'Invader');
         });
         if (blockedRemote) blockedRemotes[room.name] = blockedRemote;
     }
@@ -345,8 +349,7 @@ module.exports.remoteCreepQueue = function (room) {
                 handleReservation(room, remoteName);
             } else if (SK_MINING && room.level >= SK_MINING_LEVEL && INTEL[remoteName].sk) {
                 activeSkMining[room.name] = Game.time;
-                handleSkAttacker(room, remoteName);
-                handleSkMineral(room, remoteName);
+                handleSkCreeps(room, remoteName);
             } else {
                 handleReservation(room, remoteName);
             }
@@ -430,13 +433,9 @@ module.exports.remoteCreepQueue = function (room) {
         queueCreepIfNeeded(room, 'roadBuilder', PRIORITIES.roadBuilder, 1, undefined, undefined, JSON.parse(remoteRoomTargets[room.name]));
     }
 
-    function handleSkAttacker(room, remoteName) {
+    function handleSkCreeps(room, remoteName) {
         if (Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
         queueCreepIfNeeded(room, 'SKAttacker', PRIORITIES.remoteHarvester, 1, undefined, remoteName);
-    }
-
-    function handleSkMineral(room, remoteName) {
-        if (Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
         queueCreepIfNeeded(room, 'commodityMiner', PRIORITIES.roadBuilder, 1, undefined, remoteName);
     }
 
@@ -590,7 +589,7 @@ module.exports.globalCreepQueue = function () {
                 if (opLevel > 1) {
                     let count = 2;
                     if (INTEL[key] && INTEL[key].towers) {
-                        count = INTEL[key].towers * 2;
+                        count = (INTEL[key].towers + 1) * 2;
                     }
                     queueCreepIfNeeded(undefined, 'longbowDuo', priority, count, undefined, key, undefined, true, 'roomDenial');
                 } else {
@@ -609,8 +608,14 @@ module.exports.globalCreepQueue = function () {
                 break;
 
             case 'guard':
-                queueCreepIfNeeded(undefined, 'duo', priority, 2, undefined, key, undefined, true, 'guard');
+                if (opLevel === 1) {
+                    queueCreepIfNeeded(undefined, 'longbow', priority, 1, undefined, key, undefined, true, 'guard');
+                } else if (opLevel > 1) {
+                    queueCreepIfNeeded(undefined, 'longbowDuo', priority, 2, undefined, key, undefined, true, 'guard');
+                }
                 break;
+            case 'stronghold':
+                queueCreepIfNeeded(undefined, 'longbowDuo', priority, 4, undefined, key, undefined, true, 'stronghold');
         }
     }
 };
@@ -642,7 +647,7 @@ function queueCreepIfNeeded(room = undefined, role, priority, numberNeeded, rebo
             misc: misc,
             operation: operation,
             military: !!operation
-        }, global);
+        }, global, closestRoom);
     }
 }
 
@@ -694,26 +699,46 @@ function getQueue(room) {
     let globalQueue = CREEP_QUEUES["global"] ? JSON.parse(CREEP_QUEUES["global"]) : {};
     let roomQueue = CREEP_QUEUES[room.name] ? JSON.parse(CREEP_QUEUES[room.name]) : {};
 
-    // Update global queue only if conditions are right
-    if (_.size(globalQueue) && INTEL[room.name].availableForCombat) {
+    // Update global queue
+    if (_.size(globalQueue)) {
         let operationQueue = JSON.parse(JSON.stringify(globalQueue));
         for (let key in operationQueue) {
             if (operationQueue[key].destination) {
                 const destination = operationQueue[key].destination;
+                // Handle if this is assigned to a different room
+                let assignedRoom = Memory.targetRooms[destination] && Memory.targetRooms[destination].assignedRoom ? Memory.targetRooms[destination].assignedRoom
+                    : Memory.auxiliaryTargets[destination] && Memory.auxiliaryTargets[destination].assignedRoom ? Memory.auxiliaryTargets[destination].assignedRoom
+                        : undefined;
+                if (assignedRoom && assignedRoom !== room.name) {
+                    delete operationQueue[key];
+                    continue;
+                } else if (assignedRoom && assignedRoom === room.name && !INTEL[room.name].availableForCombat) {
+                    if (Memory.targetRooms[destination]) Memory.targetRooms[destination].assignedRoom = undefined;
+                    if (Memory.auxiliaryTargets[destination]) Memory.auxiliaryTargets[destination].assignedRoom = undefined;
+                    log.a(`Unassigning the operation in ${roomLink(destination)} from ${roomLink(assignedRoom)}`, 'OPERATIONS:')
+                    return;
+                }
+                // If not in combat state
+                if (!INTEL[room.name].availableForCombat) {
+                    operationQueue = {};
+                    break;
+                }
                 // Set the level target
                 let levelTarget = MAX_LEVEL;
                 if (Memory.auxiliaryTargets[destination]) levelTarget--;
-                else if (Memory.targetRooms[destination] && INTEL[destination] && INTEL[destination].user) levelTarget = userStrength(INTEL[destination].user);
+                else if (Memory.targetRooms[destination] && INTEL[destination] && INTEL[destination].owner) levelTarget = userStrength(INTEL[destination].owner);
+                else if (Memory.targetRooms[destination] && INTEL[destination] && !INTEL[destination].owner && INTEL[destination].user) levelTarget = userStrength(INTEL[destination].user) - 1;
+                else if (Memory.targetRooms[destination] && INTEL[destination] && !INTEL[destination].user) levelTarget = 4;
                 // Scouts are level 1
                 if (Memory.targetRooms[destination] && Memory.targetRooms[destination].type === 'scout') levelTarget = 1;
                 // If 1 tower, handle with an rcl6 else 7+
                 if (INTEL[destination] && INTEL[destination].towers) {
                     switch (INTEL[destination].towers) {
                         case 1:
-                            levelTarget = Math.max(levelTarget, 6);
+                            levelTarget = 6;
                             break;
                         default:
-                            levelTarget = Math.max(levelTarget, 7);
+                            levelTarget = 7;
                     }
                 }
                 // Check level
@@ -721,38 +746,30 @@ function getQueue(room) {
                     delete operationQueue[key];
                     continue;
                 }
+                // Needs boosts
+                let boostsRequired = false;
+                if ((Memory.targetRooms[destination] && Memory.targetRooms[destination].boostsRequired)
+                    || (Memory.auxiliaryTargets[destination] && Memory.auxiliaryTargets[destination].boostsRequired)) {
+                    boostsRequired = true;
+                }
                 // Generate body
                 let body = new generator(room.level, operationQueue[key].role, room, operationQueue[key]).generateBody();
                 if (!body || !body.length) continue;
-                // Boost checks
-                if (Memory.targetRooms[destination] && Memory.targetRooms[destination].boostsRequired) {
-                    if (!hasRequiredBoosts(room, 'attack', _.filter(body, (b) => b === ATTACK).length)) {
-                        continue;
+                // Handle room assignments
+                if (operationQueue[key].closestRoom) {
+                    if (!assignedRoom) {
+                        assignedRoom = getAssignedRoom(destination, levelTarget, boostsRequired, body);
+                        if (assignedRoom) {
+                            if (Memory.targetRooms[destination] && !Memory.targetRooms[destination].assignedRoom) Memory.targetRooms[destination].assignedRoom = assignedRoom;
+                            if (Memory.auxiliaryTargets[destination] && !Memory.auxiliaryTargets[destination].assignedRoom) Memory.auxiliaryTargets[destination].assignedRoom = assignedRoom;
+                            log.a(`Assigning the operation in ${roomLink(destination)} to ${roomLink(assignedRoom)}`, 'OPERATIONS:')
+                        }
                     }
-                    if (!hasRequiredBoosts(room, 'ranged_attack', _.filter(body, (b) => b === RANGED_ATTACK).length)) {
-                        continue;
-                    }
-                    if (!hasRequiredBoosts(room, 'tough', _.filter(body, (b) => b === TOUGH).length)) {
-                        continue;
-                    }
-                    if (!hasRequiredBoosts(room, 'heal', _.filter(body, (b) => b === HEAL).length)) {
+                    if (assignedRoom !== room.name) {
+                        delete operationQueue[key];
                         continue;
                     }
                 }
-                // Check closest room
-                if (operationQueue[key].closestRoom && findClosestOwnedRoom(destination, undefined, levelTarget, true) !== room.name) {
-                    delete operationQueue[key];
-                    continue;
-                }
-                // Check for military ops and ensure range sanity
-                let maxRange = 22;
-                if (_.includes(body, CLAIM)) maxRange = 12;
-                let range = Game.map.getRoomLinearDistance(room.name, destination);
-                if (range > maxRange) {
-                    delete operationQueue[key];
-                    continue;
-                }
-
                 // Adjust priority based on specific conditions
                 adjustQueuePriority(operationQueue, key, room, operationQueue[key], body);
             }
@@ -769,22 +786,8 @@ function getQueue(room) {
 
     // Helper function to adjust queue priority based on various conditions
     function adjustQueuePriority(operationQueue, key, room, operation, body) {
-        let range = Game.map.getRoomLinearDistance(room.name, operation.destination);
-
-        if (Memory.targetRooms[operation.destination] && Memory.targetRooms[operation.destination].maxLevel > room.level) {
-            delete operationQueue[key];
-            return;
-        }
-
-        // Tweak priority based on distance and energy state
-        let maxRange = _.includes(body, CLAIM) ? 14 : 22;
-        if (range > maxRange) {
-            delete operationQueue[key];
-            return;
-        }
-
         // Adjust priority based on energy state and other conditions
-        if (room.energyState > 1 && room.storage && INTEL[operation.destination] && findClosestOwnedRoom(operation.destination, undefined, room.level) === room.name) {
+        if (room.energyState > 1 && room.storage && INTEL[operation.destination]) {
             operation.priority *= 0.5;
         } else if (!room.energyState) {
             operation.priority *= 6;
@@ -882,17 +885,14 @@ function getCreepCount(room = undefined, role, destination = undefined, operatio
  */
 function creepExpiringSoon(room = undefined, role, destination = undefined) {
     if (room instanceof Room) room = room.name;
+    const count = getCreepCount(room, role, destination);
+    if (!count) return true;
+    // If the creep had to travel, account for that in ticks remaining
+    let distance = destination ? Game.map.getRoomLinearDistance(findClosestOwnedRoom(destination, false, MAX_LEVEL), destination) * 50 : 0;
     const creeps = _.filter(Game.creeps, (c) => c.my && c.memory.role === role &&
         (c.room.name === room || c.memory.destination === destination || c.memory.colony === room));
-    const spawningCreep = _.find(Game.creeps, (c) => c.my && c.memory.role === role && c.spawning &&
-        (c.room.name === room || c.memory.destination === destination || c.memory.colony === room));
-    if (!creeps.length || spawningCreep) return false;
-    let distance = 1;
-    if (destination) {
-        distance = Game.map.getRoomLinearDistance(findClosestOwnedRoom(destination, false, MAX_LEVEL), destination) * 50;
-    }
     const soonestExpiring = _.min(creeps, 'ticksToLive');
-    if (!soonestExpiring || !soonestExpiring.body || !soonestExpiring.body.length) return false;
+    if (!soonestExpiring || soonestExpiring.spawning || !soonestExpiring.id || !soonestExpiring.body || !soonestExpiring.body.length) return false;
     return soonestExpiring.ticksToLive <= ((CREEP_SPAWN_TIME * soonestExpiring.body.length) + distance);
 }
 
@@ -901,10 +901,57 @@ function getPriority(room) {
     if (range <= 1) return PRIORITIES.priority; else if (range <= 3) return PRIORITIES.urgent; else if (range <= 5) return PRIORITIES.high; else if (range <= 10) return PRIORITIES.medium; else return PRIORITIES.secondary;
 }
 
-function hasRequiredBoosts(room, boostCheck, bodyPartCount) {
-    for (let boost of BOOST_USE[boostCheck]) {
-        if (room.store(boost) < (30 * bodyPartCount)) {
-            return false;
+const closestCache = {};
+
+function getAssignedRoom(targetRoom, level, boostsRequired, body) {
+    const cacheKey = targetRoom + '.' + level + '.' + boostsRequired;
+    const cached = closestCache[cacheKey];
+    if (cached && Game.time - cached.lastUpdated < CREEP_LIFE_TIME * 3) {
+        return cached.closest;
+    }
+    let closest = null;
+    let closestDistance = Infinity;
+    for (let key of MY_ROOMS) {
+        // If not available continue
+        if (!INTEL[key].availableForCombat) continue;
+        const myRoom = Game.rooms[key];
+        // If above you spawn count continue
+        const currentAssignments = _.filter(Memory.targetRooms, (r) => r.assignedRoom === key).length + _.filter(Memory.auxiliaryTargets, (r) => r.assignedRoom === key).length;
+        if (currentAssignments >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level]) continue;
+        if (myRoom && myRoom.level >= level) {
+            if (boostsRequired && !hasRequiredBoosts(myRoom, body)) {
+                continue;
+            }
+            let distance = myRoom.shibRoute(targetRoom).length;
+            let maxRange = 22;
+            if (_.includes(body, CLAIM)) maxRange = 12;
+            if (distance > maxRange) continue;
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closest = key;
+                if (distance === 1) break;
+            }
+        }
+    }
+    if (closest) {
+        closestCache[cacheKey] = {
+            closest: closest,
+            lastUpdated: Game.time
+        };
+        return closest;
+    }
+}
+
+function hasRequiredBoosts(room, body) {
+    const checkThese = [];
+    if (body.contains(ATTACK)) checkThese.push(ATTACK);
+    if (body.contains(HEAL)) checkThese.push(HEAL);
+    if (body.contains(RANGED_ATTACK)) checkThese.push(RANGED_ATTACK);
+    for (const part of checkThese) {
+        for (let boost of BOOST_USE[checkThese]) {
+            if (room.store(boost) < (30 * body.filter((p) => p === part).length)) {
+                return false;
+            }
         }
     }
     return true;
