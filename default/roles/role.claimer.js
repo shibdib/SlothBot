@@ -51,7 +51,6 @@ class RoleClaimer {
                     this.creep.shibMove(this.room.controller);
                     break;
                 case OK:
-                    this.room.memory = undefined;
                     this.creep.memory.signed = true;
             }
         } else {
