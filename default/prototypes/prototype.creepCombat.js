@@ -26,6 +26,13 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         return this.fleeHome(true);
     }
 
+    // If we're traveling, dont get actively engaged
+    if (this.memory.destination && this.memory.destination !== this.room.name) {
+        this.attackInRange();
+        this.healInRange();
+        return false;
+    }
+
     let hostile = this.findClosestEnemy(barrier, ignoreBorder, guardLocation, guardRange);
 
     if (!hostile) {
@@ -468,13 +475,14 @@ Creep.prototype.fightRanged = function (target) {
             }
         } else {
             creep.say('BURN!', true);
+            const range = target.structureType !== STRUCTURE_SPAWN ? 1 : 2;
             if (creep.canIWin(5)) {
-                creep.shibMove(target);
+                creep.shibMove(target, {range: range, ignoreCreeps: false});
             }
             if (target.structureType !== STRUCTURE_WALL && creep.pos.isNearTo(target)) {
                 creep.rangedMassAttack();
             } else if (creep.rangedAttack(target) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(target, {range: 1, ignoreCreeps: false});
+                creep.shibMove(target, {range: range, ignoreCreeps: false});
             }
         }
     };
@@ -697,12 +705,12 @@ Creep.prototype.fleeHome = function (force = false) {
     if (this.hits < this.hitsMax) force = true;
     if (!force && !this.memory.runCooldown && (this.hits === this.hitsMax || (!INTEL[this.room.name].lastCombat || INTEL[this.room.name].lastCombat + 10 < Game.time))) return false;
     if (!this.memory.ranFrom) this.memory.ranFrom = this.room.name;
-    let cooldown = this.memory.runCooldown || Game.time + 50;
+    let cooldown = this.memory.runCooldown;
     let closest = this.memory.fleeDestination || findClosestOwnedRoom(this.room.name, false, 3);
     this.memory.fleeDestination = closest;
     if (this.room.name !== closest) {
         this.memory.runCooldown = Game.time + 50;
-        this.shibMove(new RoomPosition(25, 25, closest), {range: 23});
+        this.shibMove(new RoomPosition(25, 25, closest), {range: 15});
     } else if (Game.time <= cooldown) {
         this.idleFor((cooldown - Game.time) / 2);
     } else {
