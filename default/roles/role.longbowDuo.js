@@ -36,8 +36,7 @@ class RoleLongbowDuo {
         }
         // Check and set partner
         if (!this.creep.memory.partner || !Game.getObjectById(this.creep.memory.partner)) {
-            const availablePartner = _.find(this.room.myCreeps, (c) => !c.spawning && c.id !== this.creep.id && c.memory.role === this.creep.memory.role && !c.memory.partner)
-                || _.find(Game.creeps, (c) => c.id !== this.creep.id && c.my && !c.spawning && c.memory.role === this.creep.memory.role && !c.memory.partner);
+            const availablePartner = _.find(Game.creeps, (c) => c.id !== this.creep.id && c.my && !c.spawning && c.memory.role === this.creep.memory.role && !c.memory.partner && c.memory.destination === this.creep.memory.destination);
             if (availablePartner) {
                 this.creep.memory.leader = true;
                 this.creep.memory.partner = availablePartner.id;
