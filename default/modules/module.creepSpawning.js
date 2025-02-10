@@ -106,21 +106,22 @@ module.exports.processBuildQueue = function (room) {
         if (!queuedBuild.operation) log.d(`${availableSpawn.room.name} Spawning a ${role}`);
 
         // Remove the spawned role from the queue
-        updateRoomAndGlobalQueue(room, role, queuedBuild.global);
+        updateRoomAndGlobalQueue(room, role, queuedBuild);
     }
 
     // Helper function to update room and global queues after spawning a creep
-    function updateRoomAndGlobalQueue(room, role, global) {
+    function updateRoomAndGlobalQueue(room, role, building) {
         let roomQueue = CREEP_QUEUES[room.name] ? JSON.parse(CREEP_QUEUES[room.name]) : {};
         let globalQueue = CREEP_QUEUES["global"] ? JSON.parse(CREEP_QUEUES["global"]) : {};
+        const cacheKey = role + '.' + (building.destination || room.name);
 
-        if (globalQueue[role] && global) {
-            delete globalQueue[role];
+        if (globalQueue[cacheKey] && building.global) {
+            delete globalQueue[cacheKey];
             CREEP_QUEUES["global"] = JSON.stringify(globalQueue);
         }
 
-        if (roomQueue[role]) {
-            delete roomQueue[role];
+        if (roomQueue[cacheKey]) {
+            delete roomQueue[cacheKey];
             CREEP_QUEUES[room.name] = JSON.stringify(roomQueue);
         }
     }
@@ -328,7 +329,7 @@ module.exports.remoteCreepQueue = function (room) {
         // Handle finding blocked remotes
         const blockedRemote = _.find(exits, function (r) {
             return roomStatus(r) === roomStatus(room.name) && INTEL[r] && !INTEL[r].sk && INTEL[r].sources && !INTEL[r].level && INTEL[r].obstacles
-                && (!INTEL[r].reservation || INTEL[r].reservation === 'Invader');
+                && !INTEL[r].owner;
         });
         if (blockedRemote) blockedRemotes[room.name] = blockedRemote;
     }
@@ -642,7 +643,7 @@ function queueCreepIfNeeded(room = undefined, role, priority, numberNeeded, rebo
     if (other.target) destination = other.target;
     const count = getCreepCount(room, role, destination);
     const global = !room
-    if (count < numberNeeded || (count === numberNeeded && creepExpiringSoon(room, role, destination))) {
+    if (count < numberNeeded || (count <= numberNeeded && creepExpiringSoon(room, role, destination))) {
         other.reboot = rebootCondition;
         queueCreep(room, priority + count, {
             role: role,
@@ -666,18 +667,19 @@ function queueCreepIfNeeded(room = undefined, role, priority, numberNeeded, rebo
  */
 function queueCreep(room = undefined, priority, options = {}, global = undefined, closestRoom = undefined) {
     let cache = {};
+    const cacheKey = options.role + '.' + (options.destination || room.name);
     // Set the cache to local or global
     if (global && CREEP_QUEUES['global']) cache = JSON.parse(CREEP_QUEUES['global']); else if (room && CREEP_QUEUES[room.name]) cache = JSON.parse(CREEP_QUEUES[room.name]);
     // Handle a cache sanity check
     if (typeof cache !== 'object') cache = {};
     // Handle overwriting less important creeps
-    if (cache[options.role] && cache[options.role].priority <= priority) return; else if (cache[options.role]) delete cache[options.role];
+    if (cache[cacheKey] && cache[cacheKey].priority <= priority) return; else if (cache[cacheKey]) delete cache[cacheKey];
     // Set room name if local
     if (!global) options.room = room.name;
     _.defaults(options, {
         other: {}
     });
-    cache[options.role] = {
+    cache[cacheKey] = {
         cached: Game.time,
         priority: priority,
         role: options.role,
@@ -691,6 +693,39 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
         closestRoom: closestRoom
     };
     if (global) CREEP_QUEUES['global'] = JSON.stringify(cache); else CREEP_QUEUES[room.name] = JSON.stringify(cache);
+}
+
+/**
+ *
+ * @param {object} room - Room object for room creeps
+ * @param {string} role - Role
+ * @param {string} destination - If filtering by destination room name
+ * @param {string} operation - If filtering by operation type
+ * @param {string} colony - If filtering by colony
+ * @returns {*|number}
+ */
+function getCreepCount(room = undefined, role, destination = undefined, operation = undefined, colony = undefined) {
+    if (!destination && !operation && room) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === room.name || c.room.name === room.name || c.memory.colony === room.name)).length;
+    else if (room && operation && !destination) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === room.name || c.memory.colony === room.name) && c.memory.operation === operation).length;
+    else if (destination && !operation) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === destination || c.memory.colony === destination)).length;
+    else if (!destination && operation) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && c.memory.operation === operation).length;
+    else if (destination && operation) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && (c.memory.destination === destination || c.memory.colony === destination) && c.memory.operation === operation).length
+    else if (!destination && !operation && !room && colony) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role && c.memory.colony === colony).length;
+    else if (!destination && !operation && !room) return _.filter(Game.creeps, (c) => c.my && c.memory.role === role).length;
+}
+
+function creepExpiringSoon(room = undefined, role, destination = undefined) {
+    const count = getCreepCount(room, role, destination);
+    if (!count) return true;
+    return false;
+    // If the creep had to travel, account for that in ticks remaining
+    let distance = destination ? Game.map.getRoomLinearDistance(findClosestOwnedRoom(destination, false, MAX_LEVEL), destination) * 50 : 10;
+    const creeps = _.filter(Game.creeps, (c) => c.my && c.memory.role === role &&
+        (c.room.name === room.name || c.memory.destination === destination || c.memory.colony === room.name));
+    const soonestExpiring = _.min(creeps, 'ticksToLive');
+    if (!soonestExpiring || soonestExpiring.spawning) return false;
+    if (soonestExpiring.ticksToLive === undefined) return false;
+    return soonestExpiring.ticksToLive <= ((CREEP_SPAWN_TIME * soonestExpiring.body.length) + distance);
 }
 
 /**
@@ -716,22 +751,21 @@ function getQueue(room) {
                 if (assignedRoom && assignedRoom !== room.name) {
                     delete operationQueue[key];
                     continue;
-                } else if (assignedRoom && assignedRoom === room.name && !INTEL[room.name].availableForCombat) {
-                    if (Memory.targetRooms[destination]) Memory.targetRooms[destination].assignedRoom = undefined;
-                    if (Memory.auxiliaryTargets[destination]) Memory.auxiliaryTargets[destination].assignedRoom = undefined;
-                    log.a(`Unassigning the operation in ${roomLink(destination)} from ${roomLink(assignedRoom)}`, 'OPERATIONS:')
-                    return;
+                } else if (assignedRoom && assignedRoom === room.name && !room.memory.availableForAssignment) {
+                    unassignRoom(room, destination);
+                    operationQueue = {};
+                    break;
                 }
                 // If not in combat state
-                if (!INTEL[room.name].availableForCombat) {
+                if (!room.memory.availableForAssignment) {
                     operationQueue = {};
                     break;
                 }
                 // Set the level target
                 let levelTarget = MAX_LEVEL;
-                if (Memory.auxiliaryTargets[destination]) levelTarget--;
-                else if (Memory.targetRooms[destination] && INTEL[destination] && INTEL[destination].owner) levelTarget = userStrength(INTEL[destination].owner);
-                else if (Memory.targetRooms[destination] && INTEL[destination] && !INTEL[destination].owner && INTEL[destination].user) levelTarget = userStrength(INTEL[destination].user) - 1;
+                if (Memory.auxiliaryTargets[destination]) levelTarget = 4;
+                else if (Memory.targetRooms[destination] && Memory.targetRooms[destination].type === 'roomDenial') levelTarget = userStrength(INTEL[destination].owner);
+                else if (Memory.targetRooms[destination] && INTEL[destination].user) levelTarget = userStrength(INTEL[destination].user) - 1;
                 else if (Memory.targetRooms[destination] && INTEL[destination] && !INTEL[destination].user) levelTarget = 4;
                 // Scouts are level 1
                 if (Memory.targetRooms[destination] && Memory.targetRooms[destination].type === 'scout') levelTarget = 1;
@@ -772,6 +806,12 @@ function getQueue(room) {
                     if (assignedRoom !== room.name) {
                         delete operationQueue[key];
                         continue;
+                    } else if (boostsRequired) {
+                        if (!hasRequiredBoosts(room, body)) {
+                            unassignRoom(room, destination);
+                            delete operationQueue[key];
+                            continue;
+                        }
                     }
                 }
                 // Adjust priority based on specific conditions
@@ -846,82 +886,21 @@ function displayQueue(room, queue) {
     })
 }
 
-/**
- * Counts creeps based on various criteria like role, room, destination, operation, or overlord.
- * @param {Room|string|undefined} room - The room name or Room object where creeps are checked.
- * @param {string} role - The role of the creeps to count.
- * @param {string|undefined} destination - The destination where creeps are headed.
- * @param {string|undefined} operation - The operation creeps are part of.
- * @param {string|undefined} overlord - The overlord of the creeps.
- * @returns {number} The count of creeps matching the given criteria.
- */
-function getCreepCount(room = undefined, role, destination = undefined, operation = undefined, colony = undefined) {
-    let filter = c => c.my && c.memory.role === role;
-    if (room) {
-        let roomName = typeof room === 'string' ? room : room.name;
-        filter = c => c.my && c.memory.role === role &&
-            (c.room.name === roomName || c.memory.colony === roomName || c.memory.destination === roomName);
-    }
-    if (destination) {
-        filter = c => c.my && c.memory.role === role &&
-            (c.memory.destination === destination || c.memory.colony === destination);
-    }
-    if (operation) {
-        filter = c => c.my && c.memory.role === role && c.memory.operation === operation;
-    }
-    if (colony) {
-        filter = c => c.my && c.memory.role === role && c.memory.colony === colony;
-    }
-    if (destination && operation) {
-        filter = c => c.my && c.memory.role === role &&
-            (c.memory.destination === destination || c.memory.colony === destination) &&
-            c.memory.operation === operation;
-    }
-    return _.filter(Game.creeps, filter).length;
-}
-
-/**
- * Checks if any creep of a specific role in or heading to a given location is expiring soon.
- * @param {Room|string|undefined} room - The room or room name where creeps are checked or from where they are departing.
- * @param {string} role - The role of the creeps to check.
- * @param {string|undefined} destination - The destination where creeps are headed.
- * @returns {boolean} True if a creep is expiring soon, false otherwise.
- */
-function creepExpiringSoon(room = undefined, role, destination = undefined) {
-    if (room instanceof Room) room = room.name;
-    const count = getCreepCount(room, role, destination);
-    if (!count) return true;
-    // If the creep had to travel, account for that in ticks remaining
-    let distance = destination ? Game.map.getRoomLinearDistance(findClosestOwnedRoom(destination, false, MAX_LEVEL), destination) * 50 : 0;
-    const creeps = _.filter(Game.creeps, (c) => c.my && c.memory.role === role &&
-        (c.room.name === room || c.memory.destination === destination || c.memory.colony === room));
-    const soonestExpiring = _.min(creeps, 'ticksToLive');
-    if (!soonestExpiring || soonestExpiring.spawning || !soonestExpiring.id || !soonestExpiring.body || !soonestExpiring.body.length) return false;
-    return soonestExpiring.ticksToLive <= ((CREEP_SPAWN_TIME * soonestExpiring.body.length) + distance);
-}
-
 function getPriority(room) {
     let range = findClosestOwnedRoom(room, true)
     if (range <= 1) return PRIORITIES.priority; else if (range <= 3) return PRIORITIES.urgent; else if (range <= 5) return PRIORITIES.high; else if (range <= 10) return PRIORITIES.medium; else return PRIORITIES.secondary;
 }
 
-const closestCache = {};
-
 function getAssignedRoom(targetRoom, level, boostsRequired, body) {
-    const cacheKey = targetRoom + '.' + level + '.' + boostsRequired;
-    const cached = closestCache[cacheKey];
-    if (cached && Game.time - cached.lastUpdated < CREEP_LIFE_TIME * 3) {
-        return cached.closest;
-    }
     let closest = null;
     let closestDistance = Infinity;
     for (let key of MY_ROOMS) {
         // If not available continue
-        if (!INTEL[key].availableForCombat) continue;
         const myRoom = Game.rooms[key];
+        if (!myRoom.memory.availableForAssignment) continue;
         // If above you spawn count continue
-        const currentAssignments = _.filter(Memory.targetRooms, (r) => r.assignedRoom === key).length + _.filter(Memory.auxiliaryTargets, (r) => r.assignedRoom === key).length;
-        if (currentAssignments >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level]) continue;
+        const currentAssignments = _.filter(Memory.targetRooms, (r) => r && r.assignedRoom === key).length + _.filter(Memory.auxiliaryTargets, (r) => r && r.assignedRoom === key).length;
+        if (currentAssignments >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level] * 1.5) continue;
         if (myRoom && myRoom.level >= level) {
             if (boostsRequired && !hasRequiredBoosts(myRoom, body)) {
                 continue;
@@ -938,27 +917,32 @@ function getAssignedRoom(targetRoom, level, boostsRequired, body) {
         }
     }
     if (closest) {
-        closestCache[cacheKey] = {
-            closest: closest,
-            lastUpdated: Game.time
-        };
         return closest;
     }
 }
 
+function unassignRoom(assignedRoom, destination) {
+    if (Memory.targetRooms[destination]) Memory.targetRooms[destination].assignedRoom = undefined;
+    if (Memory.auxiliaryTargets[destination]) Memory.auxiliaryTargets[destination].assignedRoom = undefined;
+    log.a(`Unassigning the operation in ${roomLink(destination)} from ${roomLink(assignedRoom)}`, 'OPERATIONS:')
+}
+
 function hasRequiredBoosts(room, body) {
-    const checkThese = [];
-    if (body.contains(ATTACK)) checkThese.push(ATTACK);
-    if (body.contains(HEAL)) checkThese.push(HEAL);
-    if (body.contains(RANGED_ATTACK)) checkThese.push(RANGED_ATTACK);
-    for (const part of checkThese) {
-        for (let boost of BOOST_USE[checkThese]) {
-            if (room.store(boost) < (30 * body.filter((p) => p === part).length)) {
-                return false;
-            }
-        }
-    }
+    if (body.includes(ATTACK) && !checkBoostType(ATTACK)) return false;
+    if (body.includes(HEAL) && !checkBoostType(HEAL)) return false;
+    //if (body.includes(RANGED_ATTACK) && !checkBoostType(RANGED_ATTACK)) return false;
     return true;
+
+    function checkBoostType(part, tier = undefined) {
+        let present = false;
+        for (let boost of BOOST_USE[part]) {
+            if (room.store(boost) < (30 * body.filter((p) => p === part).length)) {
+                continue;
+            }
+            present = true;
+        }
+        return present;
+    }
 }
 
 /**
