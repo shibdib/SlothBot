@@ -270,11 +270,12 @@ let blockedRemotes = {};
 
 module.exports.remoteCreepQueue = function (room) {
     if (remoteTick[room.name] + 10 > Game.time) return;
+    // Global remote penalty means NO remote activity at all
+    if (Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
     remoteTick[room.name] = Game.time;
-
     room.memory.borderPatrol = undefined;
 
-    // Refresh remote room data every 5000 ticks or when room under attack
+    // Refresh remote room data
     if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + CREEP_LIFE_TIME > Game.time || INTEL[room.name].threatLevel > 2) {
         refreshRemoteRoomTargets(room);
     }
@@ -285,13 +286,14 @@ module.exports.remoteCreepQueue = function (room) {
         remoteRooms.forEach(remoteName => processRemoteRoom(room, remoteName));
     }
 
-    // Handle remote harvesters if remote sources are available
-    if (!room.memory.noRemote && (!room.energyState || room.level < 8)) {
-        handleRemoteHarvesters(room);
-    }
+    // If room remote limited, disable harvesters/haulers/special ops
+    if (room.memory.noRemote) return;
 
-    // Handle remote haulers if needed
-    handleRemoteHaulers(room);
+    // Handle remote harvesters/haulers
+    if (!room.energyState || room.level < 8) {
+        handleRemoteHarvesters(room);
+        handleRemoteHaulers(room);
+    }
 
     // If we have a contested remote.. contest it
     if (contestedRemotes[room.name]) {
@@ -332,31 +334,35 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function processRemoteRoom(room, remoteName) {
-        if (INTEL[remoteName].threatLevel > 1) {
-            handleThreatLevel(room, remoteName);
-        }
-
         if (shouldSkipRemote(room, remoteName)) return;
 
         // Add room to intel tracker
         trackRemoteRoom(remoteName, room);
 
+        // Handle response
+        if (INTEL[remoteName].threatLevel > 1) {
+            return handleThreatLevel(room, remoteName);
+        }
+
         // Check if the remote room is highest level and handle invader cores or invaders
         let highestLevel = checkHighestLevel(room, remoteName);
         if (highestLevel) {
-            if (INTEL[remoteName].invaderCore) {
-                handleInvaderCore(room, remoteName);
-                handleReservation(room, remoteName);
-            } else if (SK_MINING && room.level >= SK_MINING_LEVEL && INTEL[remoteName].sk) {
-                activeSkMining[room.name] = Game.time;
-                handleSkCreeps(room, remoteName);
-            } else {
+            // Reservers for everything but sk
+            if (!INTEL[remoteName].sk) {
                 handleReservation(room, remoteName);
             }
+            // Invader core
+            if (INTEL[remoteName].invaderCore) {
+                handleInvaderCore(room, remoteName);
+            }
+            // Handle road builder for remotes
+            handleRoadBuilder(room);
+            // SK mining
+            if (SK_MINING && INTEL[remoteName].sk && room.level >= SK_MINING_LEVEL) {
+                activeSkMining[room.name] = Game.time;
+                handleSkCreeps(room, remoteName);
+            }
         }
-
-        // Handle road builder for remotes
-        handleRoadBuilder(room);
     }
 
     function shouldSkipRemote(room, remoteName) {
@@ -365,7 +371,6 @@ module.exports.remoteCreepQueue = function (room) {
         if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
         if (INTEL[remoteName].reservation && ![MY_USERNAME, "Invader"].includes(INTEL[remoteName].reservation)) return true;
         if (INTEL[remoteName].roomHeat > 250) return true;
-        if (INTEL[remoteName].threatLevel > 1) return true;
         if (INTEL[remoteName].obstacles) return true;
         return false;
     }
@@ -404,7 +409,6 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function handleInvaderCore(room, remoteName) {
-        if (Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
         if (INTEL[remoteName].sk || INTEL[remoteName].obstacles) return;
         if (!getCreepCount(undefined, 'attacker', remoteName)) {
             queueCreep(room, PRIORITIES.remoteHarvester - 1, {

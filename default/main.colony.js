@@ -126,44 +126,43 @@ class Colony {
         let cpuUsageArray = ROOM_CPU_ARRAY[this.room.name] || [];
         cpuUsageArray.push(used);
 
-        if (cpuUsageArray.length > 100) cpuUsageArray.shift();
+        if (cpuUsageArray.length > 25) cpuUsageArray.shift();
 
-        // Only calculate average if needed
-        /*
-        if (cpuUsageArray.length === 100) {
-            const avgCpu = average(cpuUsageArray) * 1.1;
-            if (avgCpu > this.CPULimit) {
+        if (cpuUsageArray.length === 25) {
+            const avgCpu = average(cpuUsageArray);
+            const roomCpuTarget = (Game.cpu.limit * 0.95) / Game.gcl.level
+            if (avgCpu > roomCpuTarget) {
                 let cpuOverCount = this.room.memory.cpuOverage || 0;
                 this.room.memory.cpuOverage = cpuOverCount + 1;
-                //log.e(`${this.room.name} is using high CPU - ${avgCpu}`);
-
-                if (cpuOverCount >= 100 && Game.cpu.bucket < BUCKET_MAX * 0.25) {
+                if (cpuOverCount >= 25 && Game.cpu.bucket < BUCKET_MAX * 0.25) {
                     this.room.memory.cpuOverage = undefined;
-                    this.room.memory.noRemote = Game.time + 5000;
-                    //this.suicideRemoteCreeps();
-                    log.e(`${roomLink(this.room.name)} remote spawning has been disabled.`);
+                    this.room.memory.noRemote = Game.time + (CREEP_LIFE_TIME * 3);
+                    this.suicideRemoteCreeps();
+                    log.e(`${roomLink(this.room.name)} remote spawning has been disabled due to cpu usage.`, 'ROOM MANAGER:');
                 }
             } else {
                 if (this.room.memory.cpuOverage) this.room.memory.cpuOverage--;
                 if (this.room.memory.noRemote) this.handleNoRemote();
             }
-        }*/
-        this.room.memory.noRemote = undefined;
+        }
 
         ROOM_CPU_ARRAY[this.room.name] = cpuUsageArray;
     }
 
     suicideRemoteCreeps() {
         Object.values(Game.creeps)
-            .filter(creep => creep.my && creep.memory.colony === this.room.name && creep.room.name !== this.room.name && !creep.memory.military)
+            .filter(creep => creep.my && creep.memory.colony === this.room.name && (creep.memory.role.includes('remote') || creep.memory.role.includes('SK')))
             .forEach(creep => creep.suicide());
     }
 
     handleNoRemote() {
         if (this.room.memory.noRemote <= Game.time) {
-            this.room.memory.noRemote = undefined;
-        } else {
-            this.room.memory.noRemote *= 0.9;
+            // If we still have energy.. keep it rocking
+            if (this.room.energyState) {
+                this.room.memory.noRemote = Game.time + (CREEP_LIFE_TIME * 3);
+            } else {
+                this.room.memory.noRemote = undefined;
+            }
         }
     }
 }
