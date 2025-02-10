@@ -2,7 +2,7 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-const highCommand = require('military.highCommand');
+const highCommand = require('module.highCommand');
 
 Creep.prototype.harass = function () {
     if (this.tryToBoost(['ranged_attack', 'heal'])) return;

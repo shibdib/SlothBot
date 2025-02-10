@@ -192,7 +192,9 @@ function adjustPriorityForRoomDenialOperation(room) {
 function updateRoomLevel(room) {
     const targetRoom = Memory.targetRooms[room.name];
     const towers = _.filter(room.hostileStructures, (s) => s.structureType === STRUCTURE_TOWER);
+    const armedCreeps = _.find(room.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
     if (towers.length) {
+        // Towers get special treatment
         if (towers.length === 1) {
             targetRoom.level = 3;
         } else if (towers.length === 2) {
@@ -200,9 +202,14 @@ function updateRoomLevel(room) {
         } else {
             targetRoom.level = 5;
         }
-    } else if (room.hostileCreeps.length || room.hostileStructures.length) {
+    } else if (armedCreeps) {
+        // Armed enemies is level 2
         targetRoom.level = 2;
-    } else if (room.hostileStructures.length || (Memory.targetRooms[room.name] && Memory.targetRooms[room.name].type === 'roomDenial')) {
+    } else if (room.hostileCreeps.length || room.hostileStructures.length) {
+        // Unarmed enemies or structures is level 1
+        targetRoom.level = 1;
+    } else if (Memory.targetRooms[room.name] && ['roomDenial', 'guard'].includes(Memory.targetRooms[room.name].type)) {
+        // Special case for roomDenial and guard always at least 1
         targetRoom.level = 1;
     } else {
         targetRoom.level = 0;

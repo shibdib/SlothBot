@@ -1,4 +1,4 @@
-const highCommand = require('military.highCommand');
+const highCommand = require('module.highCommand');
 
 Creep.prototype.denyRoom = function () {
     if (this.tryToBoost(['ranged_attack', 'heal', 'attack', 'tough'])) return;
