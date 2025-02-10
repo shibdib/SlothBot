@@ -529,7 +529,8 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     }
 
     function calculateDistanceToHub(room, source, targetRoom) {
-        const target = Game.rooms[targetRoom].storage || new RoomPosition(Game.rooms[targetRoom].memory.bunkerHub.x, Game.rooms[targetRoom].memory.bunkerHub.y, targetRoom);
+        const storage = Game.rooms[targetRoom] ? Game.rooms[targetRoom].storage : undefined;
+        const target = storage || new RoomPosition(Game.rooms[targetRoom].memory.bunkerHub.x, Game.rooms[targetRoom].memory.bunkerHub.y, targetRoom);
         return source.pos.shibMove(target).path.length;
     }
 
