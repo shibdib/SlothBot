@@ -144,6 +144,7 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
  * @returns {boolean}
  */
 Creep.prototype.skSafety = function () {
+    if (this.memory.destination && this.memory.destination !== this.room.name) return false;
     // Check if creep is damaged or if there are armed enemies nearby
     const armedEnemies = this.room.hostileCreeps.find(c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
     if (this.hits < this.hitsMax || armedEnemies) {
@@ -920,7 +921,7 @@ Creep.prototype.borderCheck = function () {
 
 // Helper function to find a road near the creep
 function findRoadNearCreep(creep) {
-    return _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.pos.isNearTo(creep));
+    return _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.pos.isNearTo(creep) && !s.pos.checkForImpassible());
 }
 
 
@@ -932,7 +933,7 @@ function findRoadNearCreep(creep) {
  */
 Creep.prototype.tryToBoost = function (bodyPart, tier = undefined) {
     // If they age out or are boosted, don't try again
-    if (this.memory.boostAttempt || this.ticksToLive < 1000) {
+    if (this.memory.boostAttempt || this.ticksToLive < 700) {
         if (!this.memory.boostAttempt && this.memory.boosts) {
             let lab = Game.getObjectById(this.memory.boosts.boostLab);
             if (lab) lab.memory = undefined;
