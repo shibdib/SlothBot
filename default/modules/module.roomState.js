@@ -2,8 +2,9 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-let lastStateUpdate = {};
-let energyFillingTracker = {};
+const lastStateUpdate = {};
+const energyFillingTracker = {};
+const assignmentCooldown = {};
 module.exports.setRoomState = function (room) {
     if (!lastStateUpdate[room.name]) lastStateUpdate[room.name] = 0;
     const timeSinceLastStatus = Game.time - lastStateUpdate[room.name];
@@ -17,7 +18,10 @@ module.exports.setRoomState = function (room) {
 
         // Track if room is in a state to participate in combat
         const importantBuilds = _.some(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-        INTEL[room.name].availableForCombat = !importantBuilds && room.level >= 3 && room.energyState && !INTEL[room.name].threatLevel;
+        if (!room.memory.availableForAssignment || assignmentCooldown[room.name] < Game.time) {
+            assignmentCooldown[room.name] = Game.time + CREEP_LIFE_TIME;
+            room.memory.availableForAssignment = !importantBuilds && room.level >= 3 && room.energyState && !INTEL[room.name].threatLevel;
+        }
 
         // Energy tracking
         const lastEnergy = room.memory.lastEnergyAmount || 0;
