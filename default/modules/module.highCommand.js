@@ -698,6 +698,14 @@ function manualAttacks() {
             continue;
         }
 
+        // Handle forced reassignment
+        if (operation.includes('assign')) {
+            if (Memory.targetRooms[roomName]) Memory.targetRooms[roomName].assignedRoom = undefined;
+            if (Memory.auxiliaryTargets[roomName]) Memory.auxiliaryTargets[roomName].assignedRoom = undefined;
+            removeFlagAndLog('Clearing room assignment for ' + roomLink(roomName));
+            continue;
+        }
+
         // Handle cancellations
         if (operation.includes('cancel')) {
             delete Memory.targetRooms[roomName];
