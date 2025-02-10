@@ -22,20 +22,14 @@ class ModuleBodyGenerator {
         this.room = room;
         this.creepInfo = creepInfo;
         this.energyAmount = room.energyCapacityAvailable;
+        this.boostsRequired = false;
     }
 
     // Method to ensure the energy amount is correct based on conditions
     setEnergyAmount() {
-        if (this.creepInfo.other.reboot || this.room.myCreeps.length <= 2) {
+        if (this.creepInfo.other && this.creepInfo.other.reboot || this.room.myCreeps.length <= 2) {
             this.energyAmount = Math.max(this.room.energyAvailable, 300); // Ensure a minimum of 300 energy
         }
-    }
-
-    // Method to check for important construction sites in the room
-    hasImportantConstruction() {
-        return _.filter(this.room.constructionSites, (s) =>
-            s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART
-        ).length > 0; // Returns true if any important build sites are found
     }
 
     // Method to check if the body is cached for a specific combination
@@ -51,8 +45,12 @@ class ModuleBodyGenerator {
         // Generate cache key and check if it's already cached
         const cacheKey = this.getCacheKey();
         if (bodyCache[cacheKey]) {
-            // If cached, return the cached body
-            return bodyCache[cacheKey];
+            // We cant use cached if we need to generate boosts
+            if (!this.creepInfo.destination || !Memory.targetRooms[this.creepInfo.destination]
+                || !Memory.targetRooms[this.creepInfo.destination].boostsRequired) {
+                // If cached, return the cached body
+                return {body: bodyCache[cacheKey], info: this.creepInfo};
+            }
         }
 
         let bodyArray = [];
@@ -192,10 +190,28 @@ class ModuleBodyGenerator {
 
             case 'longbow':
             case 'longbowDuo':
-                if (this.creepInfo.operation === 'roomDenial' && INTEL[this.creepInfo.destination].towers) {
-                    const optimalHeal = 7 * INTEL[this.creepInfo.destination].towers;
+                if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boostsRequired) {
+                    const towerGroupSize = INTEL[this.creepInfo.destination].towerData.maxDamage / TOWER_POWER_ATTACK;
+                    const damageToTank = Math.max(Math.ceil((INTEL[this.creepInfo.destination].towerData.maxDamage + INTEL[this.creepInfo.destination].towerData.average) / 2), TOWER_POWER_ATTACK * towerGroupSize);
+                    const neededHeals = determineNeededHeals(damageToTank);
+                    let neededBoost = {};
+                    for (const heal in neededHeals) {
+                        if (this.room.boostCheck(undefined, HEAL, neededHeals[heal].tier, neededHeals[heal].amount)) {
+                            neededBoost.boostPart = HEAL;
+                            neededBoost.boost = neededHeals[heal].boost;
+                            neededBoost.boostTier = neededHeals[heal].tier;
+                            neededBoost.amount = neededHeals[heal].amount;
+                            break;
+                        }
+                    }
+                    // No boosts found, break
+                    if (!neededBoost.amount) break;
+                    const optimalHeal = Math.ceil(neededBoost.amount * 0.6);
                     heal = Math.floor(this.energyAmount / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
-                    heal = Math.min(heal, optimalHeal);
+                    // If we can't support the size, break
+                    if (heal < optimalHeal) break;
+                    heal = optimalHeal;
+                    this.creepInfo.neededBoosts = neededBoost;
                 } else {
                     heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
                     heal = Math.min(heal, 6);
@@ -402,7 +418,7 @@ class ModuleBodyGenerator {
         bodyCache[cacheKey] = generatedBody;
 
         // Finally, return the generated body
-        return generatedBody;
+        return {body: generatedBody, info: this.creepInfo};
     }
 
     // Utility function to calculate body cost
@@ -413,3 +429,17 @@ class ModuleBodyGenerator {
 
 profiler.registerClass(ModuleBodyGenerator, 'BodyGenerator');
 module.exports = ModuleBodyGenerator;
+
+function determineNeededHeals(damage) {
+    const healTiers = {};
+    let tier = 0;
+    for (const boost in BOOSTS[HEAL]) {
+        const healPowerPerHeal = HEAL_POWER * BOOSTS[HEAL][boost].heal;
+        healTiers[tier] = {};
+        healTiers[tier].amount = Math.ceil(damage / healPowerPerHeal);
+        healTiers[tier].tier = tier;
+        healTiers[tier].boost = boost;
+        tier++;
+    }
+    return healTiers;
+}

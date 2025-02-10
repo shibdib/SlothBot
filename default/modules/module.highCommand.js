@@ -82,7 +82,7 @@ function militaryOperations() {
                     type: 'stronghold',
                     level: 1,
                     priority: getPriority(targetRoom),
-                    boostsRequired: true
+                    boostsRequired: [HEAL]
                 };
                 Memory.targetRooms = cache;
 
@@ -128,7 +128,6 @@ function militaryOperations() {
             });
             if (target && target.name) {
                 const level = target.towers <= 2 ? 3 : 4;
-                const boosts = true;
                 const cache = Memory.targetRooms || {};
                 const tick = Game.time;
                 cache[target.name] = {
@@ -136,7 +135,7 @@ function militaryOperations() {
                     type: 'roomDenial',
                     level: level,
                     priority: getPriority(target.name),
-                    boostsRequired: boosts
+                    boostsRequired: [HEAL]
                 };
                 Memory.targetRooms = cache;
                 INTEL[target.name].lastOperation = Game.time;

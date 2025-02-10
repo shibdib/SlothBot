@@ -38,7 +38,9 @@ module.exports.processBuildQueue = function (room) {
             if (!role) continue;
 
             // Generate body and check if we can afford it
-            body = new generator(room.level, role, room, topPriority).generateBody();
+            const generatedInfo = new generator(room.level, role, room, topPriority).generateBody();
+            body = generatedInfo.body;
+            topPriority = generatedInfo.info;
             if (!body || !body.length) continue;
 
             const cost = global.UNIT_COST(body);
@@ -53,7 +55,7 @@ module.exports.processBuildQueue = function (room) {
         if (queuedBuild) {
             if (!determineEnergyOrder(room)) return;
 
-            const {role, operation, assignedSource, destination, other, military, misc} = queuedBuild;
+            const {role, operation, assignedSource, destination, other, military, misc, neededBoosts} = queuedBuild;
             const name = generateCreepName(role, room.level, operation);
 
             // Try to spawn the creep
@@ -67,7 +69,8 @@ module.exports.processBuildQueue = function (room) {
                     other,
                     military,
                     operation,
-                    misc
+                    misc,
+                    neededBoosts
                 },
                 energyStructures
             });
@@ -752,7 +755,7 @@ function getQueue(room) {
                     delete operationQueue[key];
                     continue;
                 } else if (assignedRoom && assignedRoom === room.name && !room.memory.availableForAssignment) {
-                    unassignRoom(room, destination);
+                    unassignRoom(room, destination, 'Room is no longer in a assignment ready state.');
                     operationQueue = {};
                     break;
                 }
@@ -785,18 +788,23 @@ function getQueue(room) {
                     continue;
                 }
                 // Needs boosts
-                let boostsRequired = false;
-                if ((Memory.targetRooms[destination] && Memory.targetRooms[destination].boostsRequired)
-                    || (Memory.auxiliaryTargets[destination] && Memory.auxiliaryTargets[destination].boostsRequired)) {
-                    boostsRequired = true;
+                let boostsRequired;
+                if ((Memory.targetRooms[destination] && Memory.targetRooms[destination].boostsRequired)) {
+                    boostsRequired = Memory.targetRooms[destination].boostsRequired;
                 }
                 // Generate body
-                let body = new generator(room.level, operationQueue[key].role, room, operationQueue[key]).generateBody();
-                if (!body || !body.length) continue;
+                let creepInfo = operationQueue[key];
+                const generatedInfo = new generator(room.level, creepInfo.role, room, creepInfo).generateBody();
+                const body = generatedInfo.body;
+                creepInfo = generatedInfo.info;
+                if (!body || !body.length) {
+                    unassignRoom(room, destination, 'Unable to generate needed body.');
+                    continue;
+                }
                 // Handle room assignments
                 if (operationQueue[key].closestRoom) {
                     if (!assignedRoom) {
-                        assignedRoom = getAssignedRoom(destination, levelTarget, boostsRequired, body);
+                        assignedRoom = getAssignedRoom(destination, levelTarget, creepInfo);
                         if (assignedRoom) {
                             if (Memory.targetRooms[destination] && !Memory.targetRooms[destination].assignedRoom) Memory.targetRooms[destination].assignedRoom = assignedRoom;
                             if (Memory.auxiliaryTargets[destination] && !Memory.auxiliaryTargets[destination].assignedRoom) Memory.auxiliaryTargets[destination].assignedRoom = assignedRoom;
@@ -806,16 +814,11 @@ function getQueue(room) {
                     if (assignedRoom !== room.name) {
                         delete operationQueue[key];
                         continue;
-                    } else if (boostsRequired) {
-                        if (!hasRequiredBoosts(room, body)) {
-                            unassignRoom(room, destination);
-                            delete operationQueue[key];
-                            continue;
-                        }
                     }
                 }
                 // Adjust priority based on specific conditions
-                adjustQueuePriority(operationQueue, key, room, operationQueue[key], body);
+                adjustQueuePriority(operationQueue, key, room, creepInfo, body);
+                operationQueue[key] = creepInfo;
             }
         }
 
@@ -865,7 +868,7 @@ function displayQueue(room, queue) {
     if (_.size(queue)) {
         for (let i = 0; i < 5 && i < queue.length; i++) {
             let item = queue[i];
-            let cost = global.UNIT_COST(new generator(room.level, item.role, room, item).generateBody());
+            let cost = global.UNIT_COST(new generator(room.level, item.role, room, item).generateBody().body);
             if (!cost) continue;
             room.visual.text(`${item.priority} ${_.capitalize(item.role)}: ${room.energyAvailable}/${cost} Age: ${Game.time - item.cached}`, 35, yOffset + i, {
                 align: 'left',
@@ -891,7 +894,7 @@ function getPriority(room) {
     if (range <= 1) return PRIORITIES.priority; else if (range <= 3) return PRIORITIES.urgent; else if (range <= 5) return PRIORITIES.high; else if (range <= 10) return PRIORITIES.medium; else return PRIORITIES.secondary;
 }
 
-function getAssignedRoom(targetRoom, level, boostsRequired, body) {
+function getAssignedRoom(targetRoom, level, creepInfo) {
     let closest = null;
     let closestDistance = Infinity;
     for (let key of MY_ROOMS) {
@@ -902,9 +905,10 @@ function getAssignedRoom(targetRoom, level, boostsRequired, body) {
         const currentAssignments = _.filter(Memory.targetRooms, (r) => r && r.assignedRoom === key).length + _.filter(Memory.auxiliaryTargets, (r) => r && r.assignedRoom === key).length;
         if (currentAssignments >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level] * 1.5) continue;
         if (myRoom && myRoom.level >= level) {
-            if (boostsRequired && !hasRequiredBoosts(myRoom, body)) {
-                continue;
-            }
+            // Check body generation
+            const generatedInfo = new generator(myRoom.level, creepInfo.role, myRoom, creepInfo).generateBody();
+            const body = generatedInfo.body;
+            if (!body || !body.length) continue;
             let distance = myRoom.shibRoute(targetRoom).length;
             let maxRange = 22;
             if (_.includes(body, CLAIM)) maxRange = 12;
@@ -921,28 +925,17 @@ function getAssignedRoom(targetRoom, level, boostsRequired, body) {
     }
 }
 
-function unassignRoom(assignedRoom, destination) {
-    if (Memory.targetRooms[destination]) Memory.targetRooms[destination].assignedRoom = undefined;
-    if (Memory.auxiliaryTargets[destination]) Memory.auxiliaryTargets[destination].assignedRoom = undefined;
-    log.a(`Unassigning the operation in ${roomLink(destination)} from ${roomLink(assignedRoom)}`, 'OPERATIONS:')
-}
-
-function hasRequiredBoosts(room, body) {
-    if (body.includes(ATTACK) && !checkBoostType(ATTACK)) return false;
-    if (body.includes(HEAL) && !checkBoostType(HEAL)) return false;
-    //if (body.includes(RANGED_ATTACK) && !checkBoostType(RANGED_ATTACK)) return false;
-    return true;
-
-    function checkBoostType(part, tier = undefined) {
-        let present = false;
-        for (let boost of BOOST_USE[part]) {
-            if (room.store(boost) < (30 * body.filter((p) => p === part).length)) {
-                continue;
-            }
-            present = true;
-        }
-        return present;
+function unassignRoom(assignedRoom, destination, logEntry) {
+    let unassigned = false;
+    if (Memory.targetRooms[destination] && Memory.targetRooms[destination].assignedRoom) {
+        unassigned = true;
+        Memory.targetRooms[destination].assignedRoom = undefined;
     }
+    if (Memory.auxiliaryTargets[destination] && Memory.auxiliaryTargets[destination].assignedRoom) {
+        unassigned = true;
+        Memory.auxiliaryTargets[destination].assignedRoom = undefined;
+    }
+    if (unassigned) log.a(`Unassigning the operation in ${roomLink(destination)} from ${roomLink(assignedRoom)}. ${logEntry}`, 'OPERATIONS:')
 }
 
 /**

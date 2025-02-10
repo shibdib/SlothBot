@@ -23,7 +23,7 @@ Object.defineProperty(Creep.prototype, "idle", {
         }
         if (!this.memory.idleSet) {
             if (this.memory.other.stationary) this.memory.other.stationary = undefined;
-            if ((this.pos.checkForRampart() && !this.pos.checkForRoad()) || this.memory.partner) {
+            if ((this.pos.checkForRampart() && !this.pos.checkForRoad()) || this.memory.partner || !this.hasActiveBodyparts(MOVE)) {
                 this.memory.idleSet = true;
             } else if (this.pos.getRangeTo(this.pos.findClosestByRange(this.room.find(FIND_EXIT))) < 5) {
                 const middleOfRoom = new RoomPosition(25, 25, this.room.name);
@@ -931,7 +931,7 @@ function findRoadNearCreep(creep) {
  * @param tier
  * @returns {boolean}
  */
-Creep.prototype.tryToBoost = function (bodyPart, tier = undefined) {
+Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
     // If they age out or are boosted, don't try again
     if (this.memory.boostAttempt || this.ticksToLive < 700) {
         if (!this.memory.boostAttempt && this.memory.boosts) {
@@ -946,8 +946,16 @@ Creep.prototype.tryToBoost = function (bodyPart, tier = undefined) {
     // Figure out what boosts to get, try to use the most powerful
     if (!this.memory.boosts.requestedBoosts) {
         let available = {};
-        let boostNeeded;
+        let boostNeeded, handledAlready;
+        if (this.memory.neededBoost) {
+            available[this.memory.neededBoost.boost] = {
+                'boost': this.memory.neededBoost.boost,
+                'amount': this.memory.neededBoost.amount * 30
+            };
+            handledAlready = this.memory.neededBoost.boostPart;
+        }
         for (let boostType of bodyPart) {
+            if (handledAlready === boostType) continue;
             switch (boostType) {
                 case 'attack':
                     boostNeeded = this.getActiveBodyparts(ATTACK) * 30;
