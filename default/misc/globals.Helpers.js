@@ -201,7 +201,7 @@ let helpers = function () {
 
         // Cache check
         const cached = closestCache[roomName];
-        if (cached && Game.time - cached.lastUpdated < 10000) {
+        if (cached && Game.time - cached.lastUpdated < CREEP_LIFE_TIME * 3) {
             return range ? cached.distance : cached.closest;
         }
 
@@ -210,11 +210,12 @@ let helpers = function () {
 
         // Loop through owned rooms
         for (let key of MY_ROOMS) {
-            if (availableForCombat && INTEL[key].availableForCombat) continue;
+            if (availableForCombat && !INTEL[key].availableForCombat) continue;
             const myRoom = Game.rooms[key];
             if (myRoom && myRoom.controller && myRoom.controller.level >= minLevel) {
                 let distance = Game.map.getRoomLinearDistance(roomName, key);
-
+                // If not an absurd distance, use findRoute
+                if (distance <= 12) distance = Game.map.findRoute(roomName, key).length;
                 if (distance < closestDistance) {
                     closestDistance = distance;
                     closest = key;
