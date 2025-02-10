@@ -27,7 +27,7 @@ class RoleLongbowDuo {
 
     housekeeping() {
         // Boosting
-        if (this.creep.tryToBoost(['ranged_attack', 'heal'])) return true;
+        if (this.creep.tryToBoost()) return true;
         // Blinky mode
         if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
             this.creep.healInRange(true);

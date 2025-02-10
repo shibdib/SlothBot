@@ -22,7 +22,7 @@ class RoleSKAttacker {
     }
 
     housekeeping() {
-        //if (this.creep.tryToBoost(['attack', 'heal'])) return true;
+        if (this.creep.tryToBoost(['attack'])) return true;
         // Handle invader core in sk
         if (this.room.hostileStructures.length) {
             let core = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0];

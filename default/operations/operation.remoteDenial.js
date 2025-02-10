@@ -5,8 +5,6 @@
 const highCommand = require('module.highCommand');
 
 Creep.prototype.remoteDenial = function () {
-    if (this.tryToBoost(['ranged_attack', 'heal'])) return;
-
     let sentence = ['No', 'Remotes', 'Allowed'];
     this.say(sentence[Game.time % sentence.length], true);
 

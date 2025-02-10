@@ -3,8 +3,6 @@
  */
 
 Creep.prototype.guardRoom = function () {
-    if (this.tryToBoost(['ranged_attack', 'heal', 'attack', 'tough'])) return;
-
     let destination = this.memory.destination;
     let sentence = ['Security', 'Guard', 'For', destination];
     let word = Game.time % sentence.length;

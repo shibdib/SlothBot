@@ -1,8 +1,6 @@
 const highCommand = require('module.highCommand');
 
 Creep.prototype.denyRoom = function () {
-    if (this.tryToBoost(['ranged_attack', 'heal', 'attack', 'tough'])) return;
-
     // Make sure to display status to inform the user what's happening
     const sentence = ['Coming', 'For', 'That', 'Booty', this.memory.destination];
     this.say(sentence[Game.time % sentence.length], true);

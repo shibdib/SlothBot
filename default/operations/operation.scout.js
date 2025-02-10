@@ -116,7 +116,7 @@ function handleScoutOperation(room) {
     if (INTEL[room.name].owner && (!INTEL[room.name].towers || INTEL[room.name].towers <= 2)) {
         // Convert to hold if room is owned
         Memory.targetRooms[room.name].type = 'roomDenial';
-        Memory.targetRooms[room.name].boostsRequired = true;
+        Memory.targetRooms[room.name].boostsRequired = [HEAL];
         log.a(`Room ${roomLink(room.name)} converted to room denial operation.`, 'HIGH COMMAND: ');
     } else if (INTEL[room.name].owner && INTEL[room.name].towers > 2) {
         // Convert to denial if towers are detected

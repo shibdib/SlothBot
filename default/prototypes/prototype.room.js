@@ -772,3 +772,31 @@ Room.prototype.towerData = function () {
         }
     }
 }
+
+Room.prototype.boostCheck = function (body = undefined, parts = undefined, tier = undefined, partCount = 1) {
+    // Handle bodys
+    if (body && body.includes(ATTACK) && !checkBoostType(this, ATTACK, tier)) return false;
+    if (body && body.includes(HEAL) && !checkBoostType(this, HEAL, tier)) return false;
+    //if (body && body.includes(RANGED_ATTACK) && !checkBoostType(this, RANGED_ATTACK, tier)) return false;
+    // Part lookup
+    return !(parts && !checkBoostType(this, parts, tier));
+
+
+    function checkBoostType(room, part, tier = undefined) {
+        let present = false;
+        if (body && body.length && !tier) {
+            for (let boost of BOOST_USE[part]) {
+                if (room.store(boost) < (30 * body.filter((p) => p === part).length)) {
+                    continue;
+                }
+                present = true;
+            }
+        } else {
+            const requestedBoost = BOOST_USE[part][tier];
+            if (room.store(requestedBoost) >= (30 * partCount)) {
+                present = true;
+            }
+        }
+        return present;
+    }
+}
