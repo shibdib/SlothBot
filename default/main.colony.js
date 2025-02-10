@@ -206,6 +206,9 @@ function minionController(minion) {
     // If no role, the minion should suicide
     if (!minion.memory.role) return minion.suicide();
 
+    // If we're fleeing, continue to do so
+    if (minion.memory.runCooldown && Game.time < minion.memory.runCooldown) return minion.fleeHome(true);
+
     // Check if the role is cached
     let Role;
     if (ROLE_CACHE[minion.memory.role]) {
