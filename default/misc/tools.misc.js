@@ -132,6 +132,7 @@ module.exports.status = function () {
                     level = 0,
                     type,
                     priority,
+                    assignedRoom,
                     dDay,
                     enemyDead,
                     friendlyDead,
@@ -141,6 +142,10 @@ module.exports.status = function () {
                 const roomLinkText = roomLink(key);
 
                 let logText = `${_.capitalize(type)} | Level: ${level} | Priority: ${priority} | Room: ${roomLinkText}`;
+
+                if (assignedRoom) {
+                    logText += ` | Assigned Room: ${roomLink(assignedRoom)}`;
+                }
 
                 if (enemyDead || friendlyDead) {
                     logText += ` | 💥 Enemy KIA: ${trackedEnemy.length}/${enemyDead} | 🤝 Friendly KIA: ${trackedFriendly.length}/${friendlyDead}`;
