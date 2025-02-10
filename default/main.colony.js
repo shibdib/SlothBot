@@ -80,7 +80,7 @@ class Colony {
     }
 
     labController() {
-        new LabControl().run(this.room);
+        new LabControl(this.room).run(this.room);
     }
 
     terminalController() {
