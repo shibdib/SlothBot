@@ -809,7 +809,7 @@ class TerminalControl {
             // Track resources for profitable buys
             if (hourChange > 0) {
                 const buyingThreshold = 0.7;  // Buy when price is 30% lower than average
-                const globalOrders = Game.market.getAllOrders();
+                const globalOrders = this.getGlobalOrders();
 
                 // Look for commodities with big price dips
                 globalOrders.forEach(order => {
@@ -1038,10 +1038,6 @@ class TerminalControl {
                 continue;
             }
         }
-
-        function isOrderProfitable(order, marketHistory) {
-            return order.price >= marketHistory.lowest * 0.95;
-        }
     }
 
     cancelOrder(order, reason) {
@@ -1053,21 +1049,39 @@ class TerminalControl {
     calculatePrice(orderType, resource) {
         let newPrice = 0;
         const marketHistory = latestMarketHistory(resource);
-        let volatility = Math.abs(marketHistory.highest - marketHistory.lowest) / marketHistory.avg; // Volatility index
-        if (orderType === ORDER_SELL) {
-            const multi = marketHistory.trend > 0 ? 1.01 : 0.99;
-            newPrice = parseFloat(marketHistory.lowest) * multi;
-            if (newPrice === Infinity || newPrice === -Infinity) newPrice = marketHistory.avg;
-            if (marketHistory.trend5 > 0) return Math.max(newPrice, marketHistory.trend5);
-            return Math.max(newPrice, marketHistory.avg * 0.8);
-        } else if (orderType === ORDER_BUY) {
-            if (volatility > 0.1) { // High volatility
-                newPrice = marketHistory.highest * 0.99; // Slightly below the peak to encourage quick sales
+        // If we lack data, just use basic +/-
+        if (marketHistory.entries >= 20) {
+            let volatility = Math.abs(marketHistory.highest - marketHistory.lowest) / marketHistory.avg; // Volatility index
+            if (orderType === ORDER_SELL) {
+                const multi = marketHistory.trend > 0 ? 1.01 : 0.99;
+                newPrice = parseFloat(marketHistory.lowest) * multi;
+                if (newPrice === Infinity || newPrice === -Infinity) newPrice = marketHistory.avg;
+                if (marketHistory.trend5 > 0) return Math.max(newPrice, marketHistory.trend5);
+                return Math.max(newPrice, marketHistory.avg * 0.8);
             } else {
-                if (marketHistory.trend5 > 0) newPrice = marketHistory.trend5 * 1.01; else newPrice = marketHistory.avg * 1.01;
+                if (volatility > 0.1) { // High volatility
+                    newPrice = marketHistory.highest * 0.99; // Slightly below the peak to encourage quick sales
+                } else {
+                    if (marketHistory.trend5 > 0) newPrice = marketHistory.trend5 * 1.01; else newPrice = marketHistory.avg * 1.01;
+                }
+                if (newPrice === Infinity || newPrice === -Infinity) newPrice = marketHistory.avg;
+                return Math.min(newPrice, marketHistory.lowest);
             }
-            if (newPrice === Infinity || newPrice === -Infinity) newPrice = marketHistory.avg;
-            return Math.min(newPrice, marketHistory.lowest);
+        } else {
+            const orders = this.getGlobalOrders();
+            const lowestSell = _.min(orders.filter((o) => o.type === ORDER_SELL && o.resourceType === resource && !MY_ROOMS.includes(o.roomName)), 'price');
+            const highestBuy = _.max(orders.filter((o) => o.type === ORDER_BUY && o.resourceType === resource && !MY_ROOMS.includes(o.roomName)), 'price');
+            if (orderType === ORDER_SELL) {
+                if (lowestSell && lowestSell.price) {
+                    return Math.min((lowestSell.price - 0.01), (highestBuy.price - 0.01))
+                }
+                return 1;
+            } else {
+                if (highestBuy && highestBuy.price) {
+                    return Math.max((highestBuy.price + 0.01), (highestBuy.price + 0.01))
+                }
+                return 1;
+            }
         }
     }
 }

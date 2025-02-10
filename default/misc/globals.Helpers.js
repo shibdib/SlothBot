@@ -205,6 +205,7 @@ let helpers = function () {
                 ).pop();
                 const range = Math.max(...prices) - Math.min(...prices);
                 const lastPrice = prices.length > 0 ? prices[0].toFixed(2) : '0.00';
+                const entries = history.length;
 
                 MARKET_HISTORY[resource] = {
                     data: {
@@ -220,7 +221,8 @@ let helpers = function () {
                         median: median.toFixed(2),
                         stdDev: stdDev.toFixed(2),
                         mode: mode.toFixed(2),
-                        range: range.toFixed(2)
+                        range: range.toFixed(2),
+                        entries: entries
                     },
                     tick: Game.time
                 };
@@ -243,6 +245,7 @@ let helpers = function () {
                 MARKET_HISTORY[resource].data.highest = 50;
                 MARKET_HISTORY[resource].data.lowest = 50;
             }
+            MARKET_HISTORY[resource].data.entries = 1;
         }
         return MARKET_HISTORY[resource].data;
 
