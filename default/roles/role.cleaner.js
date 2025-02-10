@@ -46,7 +46,7 @@ class RoleCleaner {
         const blocked = blockedLocations(this.creep);
         if (blocked) {
             const destroyThese = findBestCleaningPath(this.creep, blocked);
-            this.creep.memory.barrierClearing = this.creep.pos.findClosestByPath(destroyThese).structure.id;
+            this.creep.memory.barrierClearing = destroyThese[0];
         } else if (!this.creep.scorchedEarth()) {
             this.room.cacheRoomIntel(true);
             //this.creep.suicide();
