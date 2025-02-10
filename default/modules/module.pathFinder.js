@@ -48,6 +48,9 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         });
     }
 
+    // If creep is still spawning, return false
+    if (creep.spawning) return false;
+
     // If in an SK room and no matrix exists, reset it
     if (INTEL[creep.room.name].sk && (!skMatrixCache[creep.room.name] || skMatrixCache[creep.room.name].tick + 150 < Game.time)) {
         options.useCache = false;
