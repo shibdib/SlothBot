@@ -3,7 +3,7 @@
  */
 
 const colony = require('main.colony');
-const highCommand = require('military.highCommand');
+const highCommand = require('module.highCommand');
 const segments = require('module.segmentManager');
 const power = require('module.powerManager');
 const spawning = require('module.creepSpawning');
