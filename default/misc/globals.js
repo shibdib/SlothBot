@@ -140,6 +140,9 @@ let globals = function () {
     global.INTEL = CACHE.INTEL = {};
     global.MY_MINERALS = CACHE.MY_MINERALS = {};
     global.CREEP_QUEUES = CACHE.CREEP_QUEUES = {};
+    global.MARKET_HISTORY = CACHE.MARKET_HISTORY = {};
+    global.ORDER_CACHE = CACHE.ORDER_CACHE = {};
+    global.TOWER_DAMAGE_CACHE = CACHE.TOWER_DAMAGE_CACHE = {};
 
     // Set some diplo stuff
     global.ENEMIES = [];
