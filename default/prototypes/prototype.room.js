@@ -679,7 +679,7 @@ Room.prototype.invaderCheck = function () {
 
     const armedInvaders = _.filter(
         hostileCreeps,
-        (creep) => creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(RANGED_ATTACK) || creep.hasActiveBodyparts(HEAL) || creep.getActiveBodyparts(WORK) >= 4
+        (creep) => creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(RANGED_ATTACK) || creep.hasActiveBodyparts(HEAL) || creep.getActiveBodyparts(WORK)
     );
 
     roomData.tickDetected = Game.time;
