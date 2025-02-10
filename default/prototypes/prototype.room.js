@@ -472,11 +472,13 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         }
 
         // Tower and terminal checks
-        roomIntel.towers = this.find(FIND_STRUCTURES, {
-            filter: s => s.structureType === STRUCTURE_TOWER &&
-                s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST &&
-                s.isActive()
-        }).length;
+        const towers = this.structures.filter((s) => s.structureType === STRUCTURE_TOWER &&
+            s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST &&
+            s.isActive())
+        if (towers.length) {
+            roomIntel.towers = towers.length;
+            roomIntel.towerData = this.towerData();
+        }
         roomIntel.nukeTarget = this.terminal ? this.terminal.pos.toString() : this.storage ? this.storage.pos.toString() : undefined;
 
         // Loot check
@@ -493,6 +495,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         delete roomIntel.safemode;
         delete roomIntel.hubCheck;
         delete roomIntel.towers;
+        delete roomIntel.maxTowerDamage;
         delete roomIntel.nukeTarget;
         delete roomIntel.loot;
     }
@@ -529,12 +532,14 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     }
 
     function calculateDistanceToHub(room, source, targetRoom) {
+        if (!Game.rooms[targetRoom] || !Game.rooms[targetRoom].memory) return Infinity;
         const storage = Game.rooms[targetRoom] ? Game.rooms[targetRoom].storage : undefined;
         const target = storage || new RoomPosition(Game.rooms[targetRoom].memory.bunkerHub.x, Game.rooms[targetRoom].memory.bunkerHub.y, targetRoom);
         return source.pos.shibMove(target).path.length;
     }
 
     function updateRemoteSourceData(room, roomName, source, distance) {
+        if (!Game.rooms[roomName] || !Game.rooms[roomName].memory) return;
         let remoteSourceData = Game.rooms[roomName].memory.remoteSources || "{}";
         remoteSourceData = JSON.parse(remoteSourceData);
         remoteSourceData[source.id] = {
@@ -729,3 +734,41 @@ Room.prototype.invaderCheck = function () {
 
     return roomData.threatLevel > 0;
 };
+
+Room.prototype.towerData = function () {
+    const towers = this.structures.filter((s) => s.structureType === STRUCTURE_TOWER &&
+        s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST &&
+        s.isActive())
+    if (!towers.length) return {damage: 0};
+    let terrain = Game.map.getRoomTerrain(this.name);
+    let maxDamage = 0;
+    let dangerousSpot;
+    const damageTracker = [];
+    for (let y = 0; y < 50; y++) {
+        for (let x = 0; x < 50; x++) {
+            let tile = terrain.get(x, y);
+            const pos = new RoomPosition(x, y, this.name);
+            if (tile !== TERRAIN_MASK_WALL) {
+                let damage = 0;
+                towers.forEach(t => damage += determineDamage(pos.getRangeTo(t)));
+                damageTracker.push(damage);
+                if (damage > maxDamage) {
+                    maxDamage = damage
+                    dangerousSpot = pos;
+                }
+            }
+        }
+    }
+
+    return {maxDamage: maxDamage, position: dangerousSpot, average: average(damageTracker)};
+
+    function determineDamage(range) {
+        if (range <= 5) {
+            return 600;
+        } else if (range < 20) {
+            return 600 - 450 * (range - 5) / 15;
+        } else {
+            return 150;
+        }
+    }
+}
