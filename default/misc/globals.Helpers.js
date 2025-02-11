@@ -86,32 +86,52 @@ let helpers = function () {
      * @returns {boolean}
      */
     global.sameSectorCheck = function (roomA, roomB) {
-        let [EW, NS] = roomA.match(/\d+/g);
-        let roomAEWInt = EW.toString()[0];
-        let roomANSInt = NS.toString()[0];
-        let [EW2, NS2] = roomB.match(/\d+/g);
-        let roomBEWInt = EW2.toString()[0];
-        let roomBNSInt = NS2.toString()[0];
-        return roomAEWInt === roomBEWInt && roomANSInt === roomBNSInt;
+        let [EWNum, NSNum] = roomA.match(/\d+/g);
+        let match = roomA.match(/[a-zA-Z]/g);
+        let EWLetter = match[0];
+        let NSLetter = match[1];
+        let int1 = EWNum.toString()[0];
+        let int2 = NSNum.toString()[0];
+        [EWNum, NSNum] = roomB.match(/\d+/g);
+        match = roomB.match(/[a-zA-Z]/g);
+        let EWLetter2 = match[0];
+        let NSLetter2 = match[1];
+        let intB1 = EWNum.toString()[0];
+        let intB2 = NSNum.toString()[0];
+        if (EWLetter === EWLetter2 && NSLetter === NSLetter2 && isInSameRange(int1, intB1) && isInSameRange(int2, intB2)) return true;
     };
 
     /**
-     * Check if we own any rooms in this rooms sector
-     * @param room Room to compare against
+     * Check if we own any rooms in this room's sector
+     * @param {string} room - Room to compare against
      * @returns {boolean}
      */
     global.myRoomInSectorCheck = function (room) {
-        // Extract the sector information (first digit of EW and NS)
-        let [EW, NS] = room.match(/\d+/g).map(Number);
-        let roomSector = `${String(EW)[0]}${String(NS)[0]}`;
-
-        // Check if any of MY_ROOMS belong to the same sector
-        return MY_ROOMS.some(myRoom => {
-            let [EW2, NS2] = myRoom.match(/\d+/g).map(Number);
-            let myRoomSector = `${String(EW2)[0]}${String(NS2)[0]}`;
-            return roomSector === myRoomSector;
-        });
+        let [EWNum, NSNum] = room.match(/\d+/g);
+        let match = room.match(/[a-zA-Z]/g);
+        let EWLetter = match[0];
+        let NSLetter = match[1];
+        let int1 = EWNum.toString()[0];
+        let int2 = NSNum.toString()[0];
+        for (const myRoom of MY_ROOMS) {
+            let [EWNum, NSNum] = myRoom.match(/\d+/g);
+            let match = myRoom.match(/[a-zA-Z]/g);
+            let EWLetter2 = match[0];
+            let NSLetter2 = match[1];
+            let intB1 = EWNum.toString()[0];
+            let intB2 = NSNum.toString()[0];
+            if (EWLetter === EWLetter2 && NSLetter === NSLetter2 && isInSameRange(int1, intB1) && isInSameRange(int2, intB2)) return true;
+        }
     };
+
+    function isInSameRange(num1, num2) {
+        // Calculate the start of the decade for both numbers
+        let decadeStart1 = Math.floor(num1 / 10) * 10;
+        let decadeStart2 = Math.floor(num2 / 10) * 10;
+
+        // If the start of the decade is the same for both numbers, they're in the same range
+        return decadeStart1 === decadeStart2;
+    }
 
     /**
      * Get the total amount of a resource you have
