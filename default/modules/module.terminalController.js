@@ -457,11 +457,10 @@ class TerminalControl {
     }
 
     balanceResources(terminal) {
-        // Dynamically prioritize resources based on conditions
+        // Sort by most to least
         let sortedKeys = Object.keys(terminal.store).sort((a, b) => terminal.store[b] - terminal.store[a]);
-
         for (let resource of sortedKeys) {
-            // Skip energy and handle it separately elsewhere
+            // Skip energy and handle it separately
             if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
 
             let keepAmount = determineKeepAmount(resource);
@@ -507,7 +506,8 @@ class TerminalControl {
                     r.room.name !== terminal.room.name &&
                     r.structureType === STRUCTURE_TERMINAL &&
                     r.store.getFreeCapacity() &&
-                    r.room.store(resource) < determineKeepAmount(resource) &&
+                    r.room.store(resource) < terminal.room.store(resource) &&
+                    r.room.store(resource) < determineKeepAmount(resource) * 0.8 &&
                     Game.market.calcTransactionCost(5000, terminal.room.name, r.room.name) < terminal.room.energy * 0.01
                 );
             }
@@ -871,7 +871,6 @@ class TerminalControl {
             diplomacyTracker = Math.max(...incoming.map(t => t.time));
         }
 
-// Helper function to determine the multiplier based on the resource type
         function getTradeMultiplier(resourceType) {
             if (_.includes(TIER_1_BOOSTS, resourceType) || _.includes(COMPRESSED_COMMODITIES, resourceType)) {
                 return 750;
