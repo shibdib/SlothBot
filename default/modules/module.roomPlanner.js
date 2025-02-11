@@ -785,11 +785,22 @@ function findHub(room, hubCheck = undefined) {
         });
     }
 
-    let spawn = _.find(room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.name !== 'auto');
-    if (spawn) {
+    let spawns = _.filter(room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.name !== 'auto');
+    let foundOldHub = false;
+    // Try to find the old spot
+    if (room.terminal) {
+        room.memory.bunkerHub = {x: room.terminal.pos.x + 1, y: room.terminal.pos.y - 1};
+        foundOldHub = true;
+    } else if (room.storage) {
+        room.memory.bunkerHub = {x: room.storage.pos.x - 1, y: room.storage.pos.y - 1};
+        foundOldHub = true;
+    } else if (spawns.length) {
+        room.memory.bunkerHub = {x: spawns[0].pos.x + 1, y: spawns[0].y - 1};
+        foundOldHub = true;
+    }
+    if (foundOldHub) {
         log.a('Bunker Hub search complete for ' + room.name + '...');
         log.a('Using existing spawn as hub.');
-        room.memory.bunkerHub = {x: spawn.pos.x + 1, y: spawn.pos.y + 1};
         buildFromLayout(room);
         return true;
     }
