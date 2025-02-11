@@ -17,6 +17,8 @@ class RoleClaimer {
 
         } else if (this.room.name !== this.creep.memory.destination) {
             this.travel();
+        } else if (this.creep.memory.operation === 'claimClear') {
+            this.claimClear();
         } else {
             this.claimRoom();
         }
@@ -25,8 +27,6 @@ class RoleClaimer {
     housekeeping() {
         // If you lost your claim part... die
         if (!this.creep.hasActiveBodyparts(CLAIM)) this.creep.suicide();
-        //Check if claim clear op
-        if (this.creep.memory.operation === 'claimClear') return this.creep.claimClear();
         if (Game.gcl.level <= MY_ROOMS.length) {
             delete Memory.auxiliaryTargets[this.creep.room.name];
             return this.creep.suicide();
@@ -75,6 +75,23 @@ class RoleClaimer {
     cleanRoom() {
         _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_ROAD).forEach((s) => s.destroy());
         _.filter(this.room.constructionSites, (s) => s.owner.username !== MY_USERNAME).forEach((s) => s.remove());
+    }
+
+    claimClear() {
+        if (!this.room.controller.owner) {
+            switch (this.creep.claimController(this.room.controller)) {
+                case ERR_NOT_IN_RANGE:
+                    this.creep.shibMove(this.room.controller);
+                    break;
+                case OK:
+                    this.creep.signController(this.creep.room.controller, 'Cleaning provided by SlothBot');
+                    INTEL[this.creep.room.name] = undefined;
+            }
+        } else {
+            abandonRoom(this.room);
+            if (Memory.auxiliaryTargets) delete Memory.auxiliaryTargets[this.room.name];
+            this.creep.suicide();
+        }
     }
 }
 

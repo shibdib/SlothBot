@@ -261,9 +261,9 @@ module.exports.miscCreepQueue = function (room) {
         if (room.memory.borderPatrol) {
             const power = INTEL[room.memory.borderPatrol] ? INTEL[room.memory.borderPatrol].hostilePower : 1000;
             if (INTEL[room.memory.borderPatrol].threatLevel < 3) {
-                queueCreepIfNeeded(room, 'longbow', PRIORITIES.high, 1, undefined, room.memory.borderPatrol, undefined, undefined, 'borderPatrol', {power: power});
+                queueCreepIfNeeded(room, 'longbow', PRIORITIES.high, 1, undefined, undefined, undefined, undefined, 'borderPatrol', {power: power});
             } else {
-                queueCreepIfNeeded(room, 'longbowDuo', PRIORITIES.high, 2, undefined, room.memory.borderPatrol, undefined, undefined, 'borderPatrol', {power: power});
+                queueCreepIfNeeded(room, 'longbowDuo', PRIORITIES.high, 2, undefined, undefined, undefined, undefined, 'borderPatrol', {power: power});
             }
         }
     }
@@ -409,8 +409,13 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function handleBlockedRoom(room) {
+        const intel = INTEL[blockedRemotes[room.name]];
         if (intel && (!intel.armedHostile || intel.armedHostile + CREEP_LIFE_TIME < Game.time)) {
-            queueCreepIfNeeded(room, 'cleaner', PRIORITIES.secondary, 2, undefined, blockedRemotes[room.name]);
+            if (intel.claimClear && Game.gcl.level > MY_ROOMS.length) {
+                queueCreepIfNeeded(room, 'claimer', PRIORITIES.secondary, 1, undefined, blockedRemotes[room.name], undefined, undefined, 'claimClear');
+            } else {
+                queueCreepIfNeeded(room, 'cleaner', PRIORITIES.secondary, 2, undefined, blockedRemotes[room.name]);
+            }
         }
     }
 

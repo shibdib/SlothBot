@@ -57,7 +57,7 @@ class RoleCleaner {
 function blockedLocations(creep) {
     // Check controller
     let blocked = !creep.pos.findClosestByPath(creep.room.controller);
-    if (blocked) return creep.room.controller;
+    if (blocked) return creep.room.controller; else INTEL[creep.room.name].claimClear = true;
     // Check sources
     for (const source of creep.room.sources) {
         if (!creep.pos.findClosestByPath(source)) return source;
