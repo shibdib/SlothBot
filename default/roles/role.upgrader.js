@@ -34,8 +34,13 @@ class RoleUpgrader {
         this.creep.memory.other.noMove = true;
         // Handle getting in place
         if (!this.creep.memory.inPosition && this.container) {
-            if (this.container.pos.checkForCreep() && this.creep.pos.isNearTo(this.container)) this.creep.memory.inPosition = true;
-            else return this.creep.shibMove(this.container, {range: 0});
+            if (!this.link) {
+                if (this.container.pos.checkForCreep() && this.creep.pos.isNearTo(this.container)) this.creep.memory.inPosition = true;
+                else return this.creep.shibMove(this.container, {range: 0});
+            } else {
+                if (this.container.pos.checkForCreep() && this.creep.pos.isNearTo(this.container) && this.creep.pos.isNearTo(this.link)) this.creep.memory.inPosition = true;
+                else return this.creep.shibMove([this.container, this.link], {range: 1})
+            }
         }
         switch (this.creep.upgradeController(Game.rooms[this.creep.memory.colony].controller)) {
             case OK:
