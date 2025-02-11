@@ -189,7 +189,7 @@ class LabManager {
     checkForInputs(room, boost) {
         let components = BOOST_COMPONENTS[boost];
         if (!components || components.length === 0) return false;
-        return components.every(input => room.store(input, true) >= 150);
+        return components.every(input => room.store(input, true) >= 50 * room.level);
     }
 
     setupProduction(hub, boost, room) {
