@@ -6,7 +6,7 @@ let OPERATION_LIMIT;
 const lastRun = {};
 const tasks = ['housekeeping', 'flags', 'military', 'auxiliary', 'response', 'nukes']
 module.exports.highCommand = function () {
-    OPERATION_LIMIT = _.filter(MY_ROOMS, (r) => Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].energyState).length || 1;
+    OPERATION_LIMIT = _.filter(MY_ROOMS, (r) => Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].memory.availableForAssignment).length || 1;
     // Handle tasks
     for (const task of tasks) {
         switch (task) {
@@ -85,21 +85,20 @@ function militaryOperations() {
                     boostsRequired: [HEAL]
                 };
                 Memory.targetRooms = cache;
-
                 return log.a('Stronghold operation planned for ' + roomLink(targetRoom), 'HIGH COMMAND: ');
             }
         }
     }
 
-    // Handle direct room attacks
     if (OFFENSIVE_OPERATIONS && _.size(Memory.targetRooms) < OPERATION_LIMIT) {
-        let initialFilter = _.filter(INTEL, (r) => r.user && userStrength(r.user) <= MAX_LEVEL && !_.includes(FRIENDLIES, r.user) && !_.includes(NO_DIRECT_ATTACKS, r.user) && !Memory.targetRooms[r.name] &&
-            !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !checkForNap(r.user) && (!r.safemode || r.safemode - 500 < Game.time));
+        let initialFilter = _.filter(INTEL, (r) => r.user && userStrength(r.user) <= MAX_LEVEL && !_.includes([...FRIENDLIES, ...NO_DIRECT_ATTACKS], r.user) &&
+            !_.includes(Memory.nonCombatRooms, r.name) && !checkForNap(r.user) && (!r.safemode || r.safemode - 500 < Game.time));
 
         // Room Denial NO TOWERS
         let activeRoomDenials = _.filter(Memory.targetRooms, (target) => target && target.type === 'roomDenial').length || 0;
         if (activeRoomDenials < 2) {
-            let target = _.min(_.filter(initialFilter, (r) => r.owner && !r.towers && (NEW_SPAWN_DENIAL || (HOLD_SECTOR && myRoomInSectorCheck(r.name)))), function (t) {
+            let target = _.min(_.filter(initialFilter, (r) => r.owner && !r.towers && (NEW_SPAWN_DENIAL || (HOLD_SECTOR && myRoomInSectorCheck(r.name)))
+                && ((r.lastSiege || 0) + ATTACK_COOLDOWN < Game.time)), function (t) {
                 if (!t.name) return Infinity;
                 return findClosestOwnedRoom(t.name, true);
             });
@@ -114,15 +113,15 @@ function militaryOperations() {
                     priority: getPriority(target.name)
                 };
                 Memory.targetRooms = cache;
-                INTEL[target.name].lastOperation = Game.time;
-
+                INTEL[target.name].lastSiege = Game.time;
                 return log.a('Room Denial operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + findClosestOwnedRoom(target.name, true) + ' rooms away)', 'HIGH COMMAND: ');
             }
         }
 
         // Sieges
         if (activeRoomDenials < 2) {
-            let target = _.min(_.filter(initialFilter, (r) => r.owner && r.towers && siegeLevel(r.towers) && HOLD_SECTOR && myRoomInSectorCheck(r.name)), function (t) {
+            let target = _.min(_.filter(initialFilter, (r) => r.owner && r.towers && siegeLevel(r.towers) && HOLD_SECTOR && myRoomInSectorCheck(r.name)
+                && ((r.lastSiege || 0) + ATTACK_COOLDOWN < Game.time)), function (t) {
                 if (!t.name) return Infinity;
                 return findClosestOwnedRoom(t.name, true);
             });
@@ -139,8 +138,7 @@ function militaryOperations() {
                     waveLimit: MAX_LEVEL
                 };
                 Memory.targetRooms = cache;
-                INTEL[target.name].lastOperation = Game.time;
-
+                INTEL[target.name].lastSiege = Game.time;
                 return log.a('Room Denial operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + findClosestOwnedRoom(target.name, true) + ' rooms away)', 'HIGH COMMAND: ');
             }
         }
@@ -150,12 +148,12 @@ function militaryOperations() {
         const campingAmount = HARASSMENT_OPERATIONS ? 1 : _.min(3, MY_ROOMS.length);
         if (activeCamping < campingAmount) {
             // If the enemy room only has one exit, we setup a guard op to camp instead
-            let target = _.min(_.filter(initialFilter, (r) => r.owner && (ATTACK_LOCALS || _.includes(THREATS, r.user)) && singleRemote(r.name)), function (t) {
+            let target = _.min(_.filter(initialFilter, (r) => r.owner && (ATTACK_LOCALS || _.includes(THREATS, r.user) || (HOLD_SECTOR && myRoomInSectorCheck(r.name))) && singleRemote(r.name)
+                && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time)), function (t) {
                 if (!t.name) return Infinity;
                 return findClosestOwnedRoom(t.name, true);
             });
             if (target && target.name) {
-                INTEL[target.name].lastOperation = Game.time;
                 target.name = singleRemote(target.name);
                 let cache = Memory.targetRooms || {};
                 let tick = Game.time;
@@ -167,6 +165,7 @@ function militaryOperations() {
                     camping: true
                 };
                 Memory.targetRooms = cache;
+                INTEL[target.name].lastOperation = Game.time;
                 return log.a('Remote camping operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + findClosestOwnedRoom(target.name, true) + ' rooms away)', 'HIGH COMMAND: ');
             }
         }
@@ -176,7 +175,8 @@ function militaryOperations() {
         const denialAmount = HARASSMENT_OPERATIONS ? 1 : _.min(3, MY_ROOMS.length);
         if (activeRemoteDenials < denialAmount) {
             // If the enemy room only has one exit, we setup a guard op to camp instead
-            let target = _.min(_.filter(initialFilter, (r) => r.owner && (ATTACK_LOCALS || _.includes(THREATS, r.user))), function (t) {
+            let target = _.min(_.filter(initialFilter, (r) => r.owner && (ATTACK_LOCALS || _.includes(THREATS, r.user))
+                && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time)), function (t) {
                 if (!t.name) return Infinity;
                 return findClosestOwnedRoom(t.name, true);
             });
@@ -190,7 +190,7 @@ function militaryOperations() {
                     priority: getPriority(target.name)
                 };
                 Memory.targetRooms = cache;
-
+                INTEL[target.name].lastOperation = Game.time;
                 return log.a('Remote Denial operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + findClosestOwnedRoom(target.name, true) + ' rooms away)', 'HIGH COMMAND: ');
             }
         }
@@ -217,14 +217,14 @@ function auxiliaryOperations() {
         }
 
         // Commodity Mining
-        let commodityRoom = _.find(initialFilter, (r) => r.commodity && getResourceTotal(r.commodity) < DUMP_AMOUNT && findClosestOwnedRoom(r.name, true) <= 8);
+        const commodityRoom = _.find(initialFilter, (r) => r.commodity && getResourceTotal(r.commodity) < DUMP_AMOUNT && findClosestOwnedRoom(r.name, true) <= 8);
         if (commodityRoom && commodityRoom.name && _.size(_.filter(Memory.auxiliaryTargets, (t) => t && t.type === 'commodity')) < 2) {
             cache[commodityRoom.name] = {tick, type: 'commodity', level: 1, priority: PRIORITIES.medium};
             log.a(`Mining operation planned for ${roomLink(commodityRoom.name)} (Commodity Deposit Location)`, 'HIGH COMMAND: ');
         }
 
         // Mineral Mining (rooms with more than 3 sources and minerals)
-        let mineralRoom = _.find(initialFilter, (r) => !r.sk && r.sources >= 3 && r.mineralAmount && !MY_MINERALS[r.mineral] && myRoomInSectorCheck(r.name));
+        const mineralRoom = _.find(initialFilter, (r) => !r.sk && r.sources >= 3 && r.mineralAmount && !MY_MINERALS[r.mineral] && myRoomInSectorCheck(r.name));
         if (mineralRoom && mineralRoom.name) {
             cache[mineralRoom.name] = {tick, type: 'mineral', level: 1, priority: PRIORITIES.medium};
             log.a(`Mining operation planned for ${roomLink(mineralRoom.name)} (Mineral Deposit Location)`, 'HIGH COMMAND: ');
@@ -235,10 +235,10 @@ function auxiliaryOperations() {
     }
 
     // Rebuild allies (if the room needs builders and is not hostile)
-    let needyRoom = _.find(MY_ROOMS, (r) => Game.rooms[r].memory.buildersNeeded && INTEL[r] && !INTEL[r].hostile && !Memory.auxiliaryTargets[r]);
+    const needyRoom = _.find(MY_ROOMS, (r) => Game.rooms[r].memory.buildersNeeded && INTEL[r] && !INTEL[r].hostile && !Memory.auxiliaryTargets[r]);
     if (needyRoom) {
-        let cache = Memory.auxiliaryTargets || {};
-        let tick = Game.time;
+        const cache = Memory.auxiliaryTargets || {};
+        const tick = Game.time;
         cache[needyRoom] = {tick, type: 'rebuild', level: 1, priority: PRIORITIES.priority};
         Memory.auxiliaryTargets = cache;
         log.a(`Rebuild operation planned for ${roomLink(needyRoom)} (Rebuilding Required)`, 'HIGH COMMAND: ');
@@ -365,7 +365,7 @@ function manageMilitary() {
                 continue;  // Skip test operations
 
             case 'roomDenial':
-                staleMulti = 10;
+                staleMulti = 3;
                 if (totalCountFiltered > OPERATION_LIMIT ||
                     (INTEL[key] && (_.includes(FRIENDLIES, INTEL[key].owner) || !INTEL[key].owner || INTEL[key].owner === 'Invader'))) {
                     log.a('Canceling ' + type + ' in ' + roomLink(key) + ' due to high operation count or non-hostile status.', 'HIGH COMMAND: ');
@@ -388,7 +388,6 @@ function manageMilitary() {
 
             case 'harass':
             case 'remoteDenial':
-                staleMulti = 5;
                 if (totalCountFiltered > OPERATION_LIMIT) {
                     log.a('Canceling ' + type + ' in ' + roomLink(key) + ' due to too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
@@ -397,6 +396,7 @@ function manageMilitary() {
                 break;
 
             case 'guard':
+                staleMulti = 3;
                 let guardCount = _.filter(Memory.targetRooms, target => target && target.type === 'guard').length || 0;
                 if (guardCount > 2) {
                     log.a('Canceling guard in ' + roomLink(key) + ' as we have too many active guard operations.', 'HIGH COMMAND: ');
@@ -453,7 +453,7 @@ function manageMilitary() {
 
         // Skip stale operations
         if (target.tick + (ATTACK_COOLDOWN * staleMulti) < Game.time && !target.lastEnemyKilled ||
-            (target.lastEnemyKilled && target.lastEnemyKilled + (ATTACK_COOLDOWN * staleMulti) < Game.time)) {
+            (target.lastEnemyKilled && target.lastEnemyKilled.deathTime + (ATTACK_COOLDOWN * staleMulti) < Game.time)) {
             log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             continue;
@@ -826,7 +826,7 @@ function getPriority(room) {
 
 function singleRemote(roomName) {
     const neighbors = Object.values(Game.map.describeExits(roomName));
-    const remotes = _.filter(neighbors, (n) => !INTEL[n] || (!INTEL[n].sources && !INTEL[n].isHighway && !INTEL[n].owner && !INTEL[n].sk));
+    const remotes = _.filter(neighbors, (n) => !INTEL[n] || (INTEL[n].sources && !INTEL[n].isHighway && !INTEL[n].owner && !INTEL[n].sk));
     if (remotes.length === 1) {
         return remotes[0];
     }
