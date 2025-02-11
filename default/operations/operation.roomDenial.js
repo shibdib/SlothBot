@@ -5,6 +5,17 @@ Creep.prototype.denyRoom = function () {
     const sentence = ['Coming', 'For', 'That', 'Booty', this.memory.destination];
     this.say(sentence[Game.time % sentence.length], true);
 
+    // Track wave if we haven't yet
+    if (this.room.name === this.memory.destination && !this.memory.waveTracked) {
+        if (!Memory.targetRooms[this.room.name].lastWave || Memory.targetRooms[this.room.name].lastWave + 20 < Game.time) {
+            this.memory.waveTracked = true;
+            Memory.targetRooms[this.room.name].lastWave = Game.time;
+            Memory.targetRooms[this.room.name].waves = Memory.targetRooms[this.room.name].waves ? Memory.targetRooms[this.room.name].waves++ : 1;
+        } else {
+            this.memory.waveTracked = true;
+        }
+    }
+
     // Combat handling
     if (this.handleMilitaryCreep()) return;
 
@@ -21,12 +32,6 @@ Creep.prototype.denyRoom = function () {
     // If not in the destination room, move there
     if (this.room.name !== this.memory.destination) {
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
-    }
-
-    // Check if we still have a target room in the memory
-    if (!Memory.targetRooms[this.room.name]) {
-        this.memory.operation = 'borderPatrol';
-        return;
     }
 
     // Call operation manager periodically (every 5 ticks)
