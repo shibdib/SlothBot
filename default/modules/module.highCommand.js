@@ -91,7 +91,7 @@ function militaryOperations() {
     }
 
     if (OFFENSIVE_OPERATIONS && _.size(Memory.targetRooms) < OPERATION_LIMIT) {
-        let initialFilter = _.filter(INTEL, (r) => r.user && userStrength(r.user) <= MAX_LEVEL && !_.includes([...FRIENDLIES, ...NO_DIRECT_ATTACKS], r.user) &&
+        let initialFilter = _.filter(INTEL, (r) => !Memory.targetRooms[r.name] && r.user && userStrength(r.user) <= MAX_LEVEL && !_.includes([...FRIENDLIES, ...NO_DIRECT_ATTACKS], r.user) &&
             !_.includes(Memory.nonCombatRooms, r.name) && !checkForNap(r.user) && (!r.safemode || r.safemode - 500 < Game.time));
 
         // Room Denial NO TOWERS
@@ -354,7 +354,8 @@ function manageMilitary() {
     let staleMulti = 1;
 
     // Iterate through target rooms
-    for (let key in Memory.targetRooms) {
+    const sorted = _.sortBy(Memory.targetRooms, 'tick');
+    for (let key in sorted) {
         let target = Memory.targetRooms[key];
         if (!target) continue;
         let type = target.type;
@@ -452,8 +453,8 @@ function manageMilitary() {
         }
 
         // Skip stale operations
-        if (target.tick + (ATTACK_COOLDOWN * staleMulti) < Game.time && !target.lastEnemyKilled ||
-            (target.lastEnemyKilled && target.lastEnemyKilled.deathTime + (ATTACK_COOLDOWN * staleMulti) < Game.time)) {
+        if (target.tick + (CREEP_LIFE_TIME * staleMulti) < Game.time && !target.lastEnemyKilled ||
+            (target.lastEnemyKilled && target.lastEnemyKilled.deathTime + (CREEP_LIFE_TIME * staleMulti) < Game.time)) {
             log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             continue;
@@ -497,7 +498,8 @@ function manageMilitary() {
 function manageAuxiliary() {
     if (!Memory.auxiliaryTargets || !_.size(Memory.auxiliaryTargets)) return;
 
-    for (let key in Memory.auxiliaryTargets) {
+    const sorted = _.sortBy(Memory.auxiliaryTargets, 'tick');
+    for (let key in sorted) {
         let target = Memory.auxiliaryTargets[key];
         if (!target) continue;
         let type = target.type;

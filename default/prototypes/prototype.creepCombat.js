@@ -139,7 +139,7 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
     if (enemy) return updateTargetAndReturn(this, enemy);
 
     // Handle attacking rooms with targets behind ramparts
-    if (this.room.controller && !this.pos.findClosestByPath(this.room.controller)) {
+    if (this.room.controller && PathFinder.search(this.pos, this.room.controller).incomplete) {
         const destroyThese = findBestCleaningPath(this, this.room.controller);
         if (destroyThese[0]) return updateTargetAndReturn(this, destroyThese[0].structure);
     }

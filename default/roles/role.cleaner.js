@@ -46,6 +46,7 @@ class RoleCleaner {
         const blocked = blockedLocations(this.creep);
         if (blocked) {
             const destroyThese = findBestCleaningPath(this.creep, blocked);
+            if (!destroyThese[0]) return
             this.creep.memory.barrierClearing = destroyThese[0].structure.id;
         } else if (!this.creep.scorchedEarth()) {
             this.room.cacheRoomIntel(true);
@@ -56,15 +57,15 @@ class RoleCleaner {
 
 function blockedLocations(creep) {
     // Check controller
-    let blocked = !creep.pos.findClosestByPath(creep.room.controller);
-    if (blocked) return creep.room.controller; else INTEL[creep.room.name].claimClear = true;
+    if (PathFinder.search(creep.pos, creep.room.controller).incomplete) return creep.room.controller;
+    else INTEL[creep.room.name].claimClear = true;
     // Check sources
     for (const source of creep.room.sources) {
-        if (!creep.pos.findClosestByPath(source)) return source;
+        if (PathFinder.search(creep.pos, source).incomplete) return source;
     }
     // Check exits
     for (const exit of Game.map.describeExits(creep.room.name)) {
-        if (!creep.pos.findClosestByPath(exit)) return exit;
+        if (PathFinder.search(creep.pos, creep.room.findExitTo(exit)).incomplete) return exit;
     }
 }
 
