@@ -60,7 +60,11 @@ class LabManager {
                     this.stopProduction(room, hub);
                     break;
                 }
-                runNext[room.name] = Game.time + REACTION_TIME[room.memory.producingBoost] + 1;
+                const coolDown = Game.time + REACTION_TIME[room.memory.producingBoost] - 1;
+                if (!runNext[room.name] || runNext[room.name] > coolDown || runNext[room.name] <= Game.time) {
+                    runNext[room.name] = coolDown;
+                }
+                if (!productionTracker[this.room.name]) productionTracker[this.room.name] = Game.time;
             } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
                 if (this.shouldStopProduction(room)) {
                     this.stopProduction(room, hub);
@@ -72,8 +76,8 @@ class LabManager {
 
     shouldStopProduction(room) {
         let cutOff = this.getProductionCutoff(room);
-        return room.store(room.memory.producingBoost) > cutOff * 1.1 || !productionTracker[this.room.name]
-            || productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time || this.checkResourceShortage(room, this.hub);
+        return room.store(room.memory.producingBoost) > cutOff * 1.1 || (productionTracker[this.room.name]
+            && productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time) || this.checkResourceShortage(room, this.hub);
     }
 
     checkResourceShortage(room, hub) {
