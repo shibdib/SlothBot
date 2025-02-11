@@ -11,6 +11,7 @@ class LabManager {
     constructor(room) {
         this.primaryLabs = {};
         this.room = room;
+        this.hub = this.getLabHub(room);
     }
 
     run(room) {
@@ -23,9 +24,7 @@ class LabManager {
         if (!runNext[room.name] || runNext[room.name] < Game.time) {
             if (this.shouldManageBoostProduction(room)) this.manageBoostProduction(room);
             this.manageActiveLabs(room);
-            const cooldownLabs = labs.filter((s) => s.cooldown);
-            const cooldown = cooldownLabs.length > 0 ? _.min(cooldownLabs, 'cooldown').cooldown : 15;
-            runNext[room.name] = Game.time + cooldown;
+            if (!runNext[room.name] || runNext[room.name] < Game.time) runNext[room.name] = Game.time + 15;
         }
     }
 
@@ -61,9 +60,9 @@ class LabManager {
                     this.stopProduction(room, hub);
                     break;
                 }
-                runNext[room.name]
+                runNext[room.name] = Game.time + REACTION_TIME[room.memory.producingBoost] + 1;
             } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
-                if (this.checkResourceShortage(room, hub)) {
+                if (this.shouldStopProduction(room)) {
                     this.stopProduction(room, hub);
                     break;
                 }
@@ -73,8 +72,8 @@ class LabManager {
 
     shouldStopProduction(room) {
         let cutOff = this.getProductionCutoff(room);
-        return room.store(room.memory.producingBoost) > cutOff || !productionTracker[this.room.name]
-            || productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time;
+        return room.store(room.memory.producingBoost) > cutOff * 1.1 || !productionTracker[this.room.name]
+            || productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time || this.checkResourceShortage(room, this.hub);
     }
 
     checkResourceShortage(room, hub) {
@@ -82,7 +81,7 @@ class LabManager {
     }
 
     stopProduction(room, hub) {
-        if (productionTracker[this.room.name]) log.a(roomLink(room.name) + ' is halting production of ' + room.memory.producingBoost + ' and evaluating needs.');
+        if (productionTracker[this.room.name]) log.a(roomLink(room.name) + ' is halting production of ' + room.memory.producingBoost + '.');
         room.memory.producingBoost = undefined;
         this.primaryLabs[room.name] = undefined;
         goOverCap[this.room.name] = undefined;
