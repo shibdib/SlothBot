@@ -223,8 +223,10 @@ module.exports.miscCreepQueue = function (room) {
 
     // Static room info
     let level = getLevel(room);
-    let hasConstructionSites = _.find(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL
-        && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER);
+    const importantSites = [STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_LINK, STRUCTURE_TERMINAL, STRUCTURE_STORAGE];
+    const unimportantSite = [STRUCTURE_ROAD, STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_CONTAINER];
+    let hasConstructionSites = _.find(room.constructionSites, (s) => importantSites.includes(s.structureType)
+        || (room.energyState && unimportantSite.includes(s.structureType)));
 
     // Drone Queueing
     let dronePriority = PRIORITIES.drone;
@@ -817,7 +819,8 @@ function getQueue(room) {
                         continue;
                     }
                     // Boost check
-                    if (boostsRequired && !room.boostCheck(body)) {
+                    let tier = Memory.targetRooms[destination] && Memory.targetRooms[destination].boostTier ? Memory.targetRooms[destination].boostTier : undefined;
+                    if (boostsRequired && !room.boostCheck(body, undefined, tier)) {
                         delete operationQueue[key];
                         unassignRoom(room, destination, 'Missing required boosts.');
                         continue;
