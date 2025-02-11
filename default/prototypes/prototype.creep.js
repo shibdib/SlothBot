@@ -840,37 +840,26 @@ function moveToTowDestination(creep, trailer, towDestination) {
     }
 }
 
-
 /**
  * Handle border movement
  * @returns {boolean}
  */
 Creep.prototype.borderCheck = function () {
     const {x, y} = this.pos;
-
     // If the creep is at the border (x = 0, y = 0, x = 49, or y = 49)
     if (x === 0 || y === 0 || x === 49 || y === 49) {
         // Still do combat
         this.attackInRange();
         this.healInRange(true);
-        // Increment borderCountDown for stuck creeps and limit its usage
-        this.memory.borderCountDown = (this.memory.borderCountDown || 0) + 1;
-
         // Continue following path if available and less than 5 iterations
-        if (this.memory._shibMove && this.memory._shibMove.path &&
-            this.memory.borderCountDown < 5 && this.memory._shibMove.path.length) {
+        if (this.memory._shibMove && this.memory._shibMove.path) {
             const pathInfo = this.memory._shibMove;
-            const nextDirection = parseInt(pathInfo.path[0], 10); // Get the first element of the path
-
-            // Remove the first element manually (shift operation)
-            pathInfo.path = pathInfo.path.slice(1); // Now the array has one less element
-
+            const nextDirection = parseInt(pathInfo.path[0], 10);
             const nextPos = this.pos.positionAtDirection(nextDirection);
             if (nextPos && !nextPos.checkForImpassible()) {
                 pathInfo.newPos = nextPos;
-                const moveResult = this.move(nextDirection);
-
-                if (moveResult === OK) {
+                if (this.move(nextDirection) === OK) {
+                    pathInfo.path = pathInfo.path.slice(1);
                     pathInfo.pathPosTime = 0;
                     pathInfo.lastMoveTick = Game.time;
                     return true; // Path successfully moved
@@ -879,7 +868,6 @@ Creep.prototype.borderCheck = function () {
                 this.memory._shibMove = undefined;
             }
         }
-
         // Handle corners directly
         if (x === 0 && y === 0) {
             this.move(BOTTOM_RIGHT);
@@ -907,17 +895,12 @@ Creep.prototype.borderCheck = function () {
                 } else if (y === 49) {
                     options = [TOP, TOP_LEFT, TOP_RIGHT];
                 }
-
                 // Use random movement from the options
                 this.move(_.sample(options));
             }
         }
-
         return true;
     }
-
-    // Reset border countdown when not at the border
-    this.memory.borderCountDown = undefined;
     return false;
 };
 
