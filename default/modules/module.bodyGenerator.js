@@ -191,27 +191,8 @@ class ModuleBodyGenerator {
             case 'longbow':
             case 'longbowDuo':
                 if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boostsRequired) {
-                    const towerGroupSize = INTEL[this.creepInfo.destination].towerData.maxDamage / TOWER_POWER_ATTACK;
-                    const damageToTank = Math.max(Math.ceil((INTEL[this.creepInfo.destination].towerData.maxDamage + INTEL[this.creepInfo.destination].towerData.average) / 2), TOWER_POWER_ATTACK * towerGroupSize);
-                    const neededHeals = determineNeededHeals(damageToTank);
-                    let neededBoost = {};
-                    for (const heal in neededHeals) {
-                        if (this.room.boostCheck(undefined, HEAL, neededHeals[heal].tier, neededHeals[heal].amount)) {
-                            neededBoost.boostPart = HEAL;
-                            neededBoost.boost = neededHeals[heal].boost;
-                            neededBoost.boostTier = neededHeals[heal].tier;
-                            neededBoost.amount = neededHeals[heal].amount;
-                            break;
-                        }
-                    }
-                    // No boosts found, break
-                    if (!neededBoost.amount) break;
-                    const optimalHeal = Math.ceil(neededBoost.amount * 0.6);
-                    heal = Math.floor(this.energyAmount / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
-                    // If we can't support the size, break
-                    if (heal < optimalHeal) break;
-                    heal = optimalHeal;
-                    this.creepInfo.neededBoosts = neededBoost;
+                    heal = checkForNeededHeal(this.creepInfo.destination);
+                    if (!heal) break;
                 } else {
                     heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
                     heal = Math.min(heal, 6);
@@ -429,6 +410,34 @@ class ModuleBodyGenerator {
 
 profiler.registerClass(ModuleBodyGenerator, 'BodyGenerator');
 module.exports = ModuleBodyGenerator;
+
+function checkForNeededHeal(destination, multiplier = 0.6) {
+    const towerGroupSize = INTEL[destination].towerData.maxDamage / TOWER_POWER_ATTACK;
+    const damageToTank = Math.max(Math.ceil((INTEL[destination].towerData.maxDamage + INTEL[destination].towerData.average) / 2), TOWER_POWER_ATTACK * towerGroupSize);
+    const neededHeals = determineNeededHeals(damageToTank);
+    let neededBoost = {};
+    for (const heal in neededHeals) {
+        if (neededHeals[heal].amount > 20) continue;
+        if (this.room.boostCheck(undefined, HEAL, neededHeals[heal].tier, neededHeals[heal].amount)) {
+            neededBoost.boostPart = HEAL;
+            neededBoost.boost = neededHeals[heal].boost;
+            neededBoost.boostTier = neededHeals[heal].tier;
+            neededBoost.amount = neededHeals[heal].amount;
+            break;
+        }
+    }
+    // No boosts found, break
+    if (!neededBoost.amount) return false;
+    // Get optimal heal with some buffer
+    const optimalHeal = Math.ceil(neededBoost.amount * multiplier);
+    let heal = Math.floor(this.energyAmount / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
+    // If we can't support the size, break
+    if (heal < optimalHeal) return false;
+    Memory.targetRooms[destination].boostTier = neededBoost.boostTier;
+    heal = optimalHeal;
+    this.creepInfo.neededBoosts = neededBoost;
+    return heal;
+}
 
 function determineNeededHeals(damage) {
     const healTiers = {};

@@ -1039,11 +1039,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
             let lab = Game.getObjectById(this.memory.boosts.boostLab);
             if (lab) {
                 lab.say(lab.memory.neededBoost);
-                if (!this.pos.isNearTo(lab)) {
-                    this.say(ICONS.boost);
-                    this.shibMove(lab);
-                    return true;
-                } else if (lab.mineralType === lab.memory.neededBoost && lab.store[RESOURCE_ENERGY] && lab.mineralAmount >= amountNeeded) {
+                if (lab.mineralType === lab.memory.neededBoost && lab.store[RESOURCE_ENERGY] && lab.mineralAmount >= amountNeeded) {
                     switch (lab.boostCreep(this)) {
                         case OK:
                             this.memory.boosts.requestedBoosts = _.filter(this.memory.boosts.requestedBoosts, (b) => b['boost'] !== lab.memory.neededBoost);
@@ -1064,6 +1060,9 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                             this.say('Error');
                             return true;
                     }
+                } else if (lab.mineralType === lab.memory.neededBoost && lab.store[RESOURCE_ENERGY] && lab.mineralAmount < amountNeeded) {
+                    this.idleFor(5);
+                    return true;
                 }
             }
         }

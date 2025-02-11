@@ -791,6 +791,11 @@ Room.prototype.boostCheck = function (body = undefined, parts = undefined, tier 
                 }
                 present = true;
             }
+        } else if (body && body.length && tier) {
+            const requestedBoost = BOOST_USE[part][tier];
+            if (room.store(requestedBoost) >= (30 * body.filter((p) => p === part).length)) {
+                present = true;
+            }
         } else {
             const requestedBoost = BOOST_USE[part][tier];
             if (room.store(requestedBoost) >= (30 * partCount)) {
