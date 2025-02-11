@@ -5,15 +5,19 @@ Creep.prototype.denyRoom = function () {
     const sentence = ['Coming', 'For', 'That', 'Booty', this.memory.destination];
     this.say(sentence[Game.time % sentence.length], true);
 
-    // Track wave if we haven't yet
-    if (this.room.name === this.memory.destination && !this.memory.waveTracked) {
-        if (!Memory.targetRooms[this.room.name].lastWave || Memory.targetRooms[this.room.name].lastWave + 20 < Game.time) {
-            this.memory.waveTracked = true;
-            Memory.targetRooms[this.room.name].lastWave = Game.time;
-            Memory.targetRooms[this.room.name].waves = Memory.targetRooms[this.room.name].waves ? Memory.targetRooms[this.room.name].waves++ : 1;
-        } else {
-            this.memory.waveTracked = true;
+    if (this.room.name === this.memory.destination) {
+        // Track wave if we haven't yet
+        if (!this.memory.waveTracked) {
+            if (!Memory.targetRooms[this.room.name].lastWave || Memory.targetRooms[this.room.name].lastWave + 20 < Game.time) {
+                this.memory.waveTracked = true;
+                Memory.targetRooms[this.room.name].lastWave = Game.time;
+                Memory.targetRooms[this.room.name].waves = Memory.targetRooms[this.room.name].waves ? Memory.targetRooms[this.room.name].waves++ : 1;
+            } else {
+                this.memory.waveTracked = true;
+            }
         }
+        // Update sustainability of operation in this room
+        highCommand.operationSustainability(this.room);
     }
 
     // Combat handling
@@ -38,7 +42,4 @@ Creep.prototype.denyRoom = function () {
     if (Game.time % 5 === 0) {
         this.operationManager();
     }
-
-    // Update sustainability of operation in this room
-    highCommand.operationSustainability(this.room);
 };
