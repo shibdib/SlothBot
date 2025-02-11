@@ -38,7 +38,7 @@ global.HOLD_SECTOR = true; // Attack rooms in sectors you have rooms
 global.ATTACK_LOCALS = false; // Attacks targets within range indiscriminately. Bot will still attack aggressors.
 global.NEW_SPAWN_DENIAL = false; // Crush new spawns immediately
 global.NCP_HOSTILE = true; // Always attack users of open source bots
-global.ATTACK_COOLDOWN = 4500; //Time between attacks on a room
+global.ATTACK_COOLDOWN = 1500; //Time between attacks on a room
 global.AVOID_ATTACKING_ALLIANCES = true; // Check LOAN and avoid attacking people in alliances
 
 // Market Settings

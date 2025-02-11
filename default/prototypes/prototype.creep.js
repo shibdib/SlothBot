@@ -590,12 +590,14 @@ Creep.prototype.constructionWork = function () {
     }
 
     // Priority 9: Build any other structures
-    site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    if (site) {
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'build';
-        this.memory.sitePos = JSON.stringify(site.pos);
-        return true;
+    if (this.room.energyState) {
+        site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
+        if (site) {
+            this.memory.constructionSite = site.id;
+            this.memory.task = 'build';
+            this.memory.sitePos = JSON.stringify(site.pos);
+            return true;
+        }
     }
 
     // Priority 10: Repair other structures
@@ -947,12 +949,14 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
     if (!this.memory.boosts.requestedBoosts) {
         let available = {};
         let boostNeeded, handledAlready;
-        if (this.memory.neededBoost) {
-            available[this.memory.neededBoost.boost] = {
-                'boost': this.memory.neededBoost.boost,
-                'amount': this.memory.neededBoost.amount * 30
-            };
-            handledAlready = this.memory.neededBoost.boostPart;
+        if (this.memory.neededBoosts) {
+            if (this.room.store(this.memory.neededBoosts.boost) >= this.getActiveBodyparts(this.memory.neededBoosts.boostPart) * 30) {
+                available[this.memory.neededBoosts.boost] = {
+                    'boost': this.memory.neededBoosts.boost,
+                    'amount': this.getActiveBodyparts(this.memory.neededBoosts.boostPart) * 30
+                };
+                handledAlready = this.memory.neededBoosts.boostPart;
+            }
         }
         for (let boostType of bodyPart) {
             if (handledAlready === boostType) continue;

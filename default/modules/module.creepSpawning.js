@@ -798,6 +798,7 @@ function getQueue(room) {
                 const body = generatedInfo.body;
                 creepInfo = generatedInfo.info;
                 if (!body || !body.length) {
+                    delete operationQueue[key];
                     unassignRoom(room, destination, 'Unable to generate needed body.');
                     continue;
                 }
@@ -813,6 +814,12 @@ function getQueue(room) {
                     }
                     if (assignedRoom !== room.name) {
                         delete operationQueue[key];
+                        continue;
+                    }
+                    // Boost check
+                    if (boostsRequired && !room.boostCheck(body)) {
+                        delete operationQueue[key];
+                        unassignRoom(room, destination, 'Missing required boosts.');
                         continue;
                     }
                 }

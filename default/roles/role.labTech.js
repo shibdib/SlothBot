@@ -454,15 +454,17 @@ class RoleLabTech {
 
     labSupplies() {
         // Find a lab that needs a specific resource
-        const needyLab = _.find(this.room.impassibleStructures, (s) =>
+        const needyLab = _.min(_.filter(this.room.impassibleStructures, (s) =>
             s.structureType === STRUCTURE_LAB &&
             s.memory.itemNeeded &&
             (!s.mineralType || s.mineralType === s.memory.itemNeeded) &&
             s.store.getUsedCapacity(s.memory.itemNeeded) < LAB_MINERAL_CAPACITY * 0.8 &&
             this.room.store(s.memory.itemNeeded, true)
-        );
+        ), function (l) {
+            return l.store.getUsedCapacity(l.memory.itemNeeded)
+        });
 
-        if (needyLab) {
+        if (needyLab && needyLab.id) {
             // Assign the resource and delivery target to the creep's memory
             this.creep.memory.resourceNeeded = needyLab.memory.itemNeeded;
             this.creep.memory.deliverTo = needyLab.id;

@@ -16,6 +16,17 @@ const outsideHubMatrixCache = CACHE.outsideHubMatrixCache = {};
 const skMatrixCache = CACHE.skMatrixCache = {};
 
 function shibMove(creep, heading, options = {}, pathOnly = false) {
+    // Handle multi heading
+    if (Array.isArray(heading)) {
+        let multiHeading = findMultiHeadingPos(heading, options.range);
+        if (!multiHeading) {
+            options.range = 1;
+            heading = heading[0];
+        } else {
+            options.range = 0;
+            heading = multiHeading;
+        }
+    }
     // If the target is a creep in another room, change the heading to that room
     if (heading instanceof Creep && heading.room.name !== creep.room.name &&
         Game.map.getRoomLinearDistance(creep.room.name, heading.room.name) > 1) {
@@ -154,18 +165,6 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         } else {
             heading = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL);
             options.range = 0;
-        }
-    }
-
-    // Handle multi heading
-    if (Array.isArray(heading)) {
-        let multiHeading = findMultiHeadingPos(heading, options.range);
-        if (!multiHeading) {
-            options.range = 1;
-            heading = heading[0];
-        } else {
-            options.range = 0;
-            heading = multiHeading;
         }
     }
 
@@ -1038,7 +1037,7 @@ function findMultiHeadingPos(heading, range) {
         let inRange = target.room.lookForAtArea(LOOK_TERRAIN, target.pos.y - range, target.pos.x - range, target.pos.y + range, target.pos.x + range, true);
         for (let pos of inRange) {
             let position = new RoomPosition(pos.x, pos.y, heading[0].room.name);
-            if (position.checkForWall() || position.checkForImpassible()) continue;
+            if (position.checkForImpassible()) continue;
             positions.push({x: position.x, y: position.y, t: target.id});
         }
     }

@@ -48,6 +48,22 @@ Creep.prototype.borderPatrol = function () {
         this.memory.destination = this.memory.colony;
         this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
     } else {
-        if (this.findDefensivePosition()) this.idleFor(5);
+        scanForNearbyThreats(this);
+        if (!scanForNearbyThreats(this) && this.findDefensivePosition()) this.idleFor(5);
     }
 };
+
+function scanForNearbyThreats(creep) {
+    const adjacentRooms = _.map(Game.map.describeExits(creep.room.name));
+    for (let roomName of adjacentRooms) {
+        let roomIntel = INTEL[roomName];
+        if (roomIntel && (roomIntel.threatLevel || roomIntel.hostileStructures)) {
+            if (!creep.memory.destination || creep.memory.destination !== roomName) {
+                creep.memory.destination = roomName;
+                creep.memory.awaitingOrders = undefined;
+                creep.say('Threat!', true);
+                return true;
+            }
+        }
+    }
+}

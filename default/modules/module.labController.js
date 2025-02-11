@@ -109,6 +109,7 @@ class LabManager {
 
     getLabHub(room) {
         if (!this.primaryLabs[room.name]) {
+            if (!room.memory.labHub) return;
             let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
             let labs = room.impassibleStructures.filter(lab =>
                 lab.structureType === STRUCTURE_LAB &&

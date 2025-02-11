@@ -96,7 +96,7 @@ function militaryOperations() {
         let initialFilter = _.filter(INTEL, (r) => r.user && userStrength(r.user) <= MAX_LEVEL && !_.includes(FRIENDLIES, r.user) && !_.includes(NO_DIRECT_ATTACKS, r.user) && !Memory.targetRooms[r.name] &&
             !_.includes(Memory.nonCombatRooms, r.name) && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time) && !checkForNap(r.user) && (!r.safemode || r.safemode - 500 < Game.time));
 
-        // Room Denial
+        // Room Denial NO TOWERS
         let activeRoomDenials = _.filter(Memory.targetRooms, (target) => target && target.type === 'roomDenial').length || 0;
         if (activeRoomDenials < 2) {
             let target = _.min(_.filter(initialFilter, (r) => r.owner && !r.towers && (NEW_SPAWN_DENIAL || (HOLD_SECTOR && myRoomInSectorCheck(r.name)))), function (t) {
@@ -135,7 +135,8 @@ function militaryOperations() {
                     type: 'roomDenial',
                     level: level,
                     priority: getPriority(target.name),
-                    boostsRequired: [HEAL]
+                    boostsRequired: [HEAL],
+                    waveLimit: MAX_LEVEL
                 };
                 Memory.targetRooms = cache;
                 INTEL[target.name].lastOperation = Game.time;
@@ -364,8 +365,7 @@ function manageMilitary() {
                 continue;  // Skip test operations
 
             case 'roomDenial':
-                staleMulti = 1000;
-                if (target.manual) break;
+                staleMulti = 10;
                 if (totalCountFiltered > OPERATION_LIMIT ||
                     (INTEL[key] && (_.includes(FRIENDLIES, INTEL[key].owner) || !INTEL[key].owner || INTEL[key].owner === 'Invader'))) {
                     log.a('Canceling ' + type + ' in ' + roomLink(key) + ' due to high operation count or non-hostile status.', 'HIGH COMMAND: ');
@@ -388,8 +388,7 @@ function manageMilitary() {
 
             case 'harass':
             case 'remoteDenial':
-                staleMulti = 100;
-                if (target.manual) break;
+                staleMulti = 5;
                 if (totalCountFiltered > OPERATION_LIMIT) {
                     log.a('Canceling ' + type + ' in ' + roomLink(key) + ' due to too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
@@ -417,6 +416,8 @@ function manageMilitary() {
                 delete Memory.targetRooms[key];
                 continue;
         }
+
+        if (target.manual) staleMulti *= 2;
 
         // Skip manual no combat rooms
         if (_.includes(Memory.nonCombatRooms, key)) {
@@ -451,8 +452,8 @@ function manageMilitary() {
         }
 
         // Skip stale operations
-        if (target.tick + (CREEP_LIFE_TIME * staleMulti) < Game.time && !target.lastEnemyKilled ||
-            (target.lastEnemyKilled && target.lastEnemyKilled + (2500 * staleMulti) < Game.time)) {
+        if (target.tick + (ATTACK_COOLDOWN * staleMulti) < Game.time && !target.lastEnemyKilled ||
+            (target.lastEnemyKilled && target.lastEnemyKilled + (ATTACK_COOLDOWN * staleMulti) < Game.time)) {
             log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             continue;
@@ -480,7 +481,7 @@ function manageMilitary() {
         }
 
         // Final checks for stale or problematic operations
-        if (target.waves && target.waves >= 5) {
+        if (target.waves && target.waves >= target.waveLimit) {
             log.a('Canceling operation in ' + roomLink(key) + ' due to max waves reached.', 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             continue;
@@ -912,7 +913,7 @@ function markAsPending(operationRoom, room) {
 function processTombstones(tombstones, friendlyList, deadCount, trackedList, minTTL = 5) {
     let relevantTombstones = _.filter(tombstones, (s) => (friendlyList ? _.includes(friendlyList, s.creep.owner.username) : !_.includes(FRIENDLIES, s.creep.owner.username)));
     for (let tombstone of relevantTombstones) {
-        if (_.includes(trackedList, tombstone.id) || tombstone.creep.ticksToLive <= minTTL) continue;
+        if (_.includes(trackedList, tombstone.id)) continue;
         deadCount += UNIT_COST(tombstone.creep.body);
         trackedList.push(tombstone.id);
     }
