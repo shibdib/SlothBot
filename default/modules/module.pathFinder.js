@@ -131,7 +131,7 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
             creep.memory.towOptions = options;
         } else if (heading.id && creep.hasActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {
             creep.memory.towDestination = undefined;
-        } else if (creep.pos.isNearTo(heading) && ((heading instanceof RoomPosition && heading.checkForCreep()) || heading.pos.checkForCreep())) {
+        } else if (creep.pos.isNearTo(heading) && ((heading instanceof RoomPosition && heading.checkForCreep()) || (heading instanceof RoomObject && heading.pos.checkForCreep()))) {
             creep.memory.towDestination = undefined;
         }
         if (!creep.memory.towCreep || !Game.getObjectById(creep.memory.towCreep)) {
