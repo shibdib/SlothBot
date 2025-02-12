@@ -811,6 +811,14 @@ function getQueue(room) {
                 }
                 // Handle room assignments
                 if (operationQueue[key].closestRoom) {
+                    // Sanity check
+                    if (!Memory.targetRooms[destination] && !Memory.auxiliaryTargets[destination]) {
+                        const assigned = Memory.targetRooms[destination] && Memory.targetRooms[destination].assignedRoom ? Memory.targetRooms[destination].assignedRoom :
+                            Memory.auxiliaryTargets[destination] && Memory.auxiliaryTargets[destination].assignedRoom ? Memory.auxiliaryTargets[destination].assignedRoom : undefined;
+                        if (assigned) unassignRoom(assigned, destination, 'The mission no longer exists.')
+                        delete operationQueue[key];
+                        continue;
+                    }
                     if (!assignedRoom) {
                         assignedRoom = getAssignedRoom(destination, levelTarget, creepInfo);
                         if (assignedRoom) {
