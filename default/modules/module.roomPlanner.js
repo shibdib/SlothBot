@@ -45,13 +45,14 @@ module.exports.buildRoom = function () {
     // If no lab hub is set, find and assign one
     if (!room.memory.labHub) return findLabHub(room);
 
+    if (!room.memory.towerHubs) findTowerHub(room);
+
     // Update tick tracker
     tickTracker['lastTick'] = Game.time + 5;
     tickTracker['lastRoom'] = room.name;
     tickTracker[room.name] = lastRun;
 };
 
-// Helper functions
 function shouldRunAtAll(room) {
     let overallLastRun = tickTracker['lastTick'] || 0;
     return overallLastRun < Game.time;
@@ -89,27 +90,27 @@ function buildFromLayout(room, countCheck) {
     let filter = [];
 
     // Check if initial spawn is present
-    let builtSpawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN);
-    let builtTower = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER);
     let initialSpawn = _.find(Game.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my);
 
     // Determine which structures to build based on conditions
     if (!initialSpawn) {
         // No initial spawn: prioritize spawn structure
         filter = _.filter(bunkerTemplate, (s) => s.structureType === STRUCTURE_SPAWN);
-    } else if (TOWER_FIRST && !builtSpawn && !builtTower && initialSpawn) {
-        // If towers should be built first: prioritize tower
-        filter = _.filter(countCheck, (s) => s.structureType === STRUCTURE_TOWER);
     } else {
         // Build other structures based on controller level
         filter = _.filter(countCheck, (s) => CONTROLLER_STRUCTURES[s.structureType][room.controller.level]);
+    }
+
+    // Handle towers
+    if (room.memory.towerHubs && room.memory.towerHubs.length) {
+        filter = _.filter(filter, (s) => s.structureType !== STRUCTURE_TOWER);
+        towerBuilder(room);
     }
 
     if (filter.length) {
         for (let structure of filter) {
             // Only build certain structures based on controller level and priorities
             if (shouldSkipStructure(room, structure)) continue;
-
             // Build each structure in the designated positions
             for (let buildPos of structure.pos) {
                 let pos = new RoomPosition(room.hub.x + buildPos.x, room.hub.y + buildPos.y, room.name);
@@ -220,6 +221,36 @@ function hubLink(room) {
 
     // Return false if no valid hub link was found
     return false;
+}
+
+function towerBuilder(room) {
+    // Cycle thru the hubs
+    let index = tickTracker['lastTowerHub'] || 0;
+    let hub;
+    if (index + 1 >= room.memory.towerHubs.length) {
+        index = 0;
+        hub = room.memory.towerHubs[index];
+    } else {
+        hub = room.memory.towerHubs[index + 1];
+    }
+
+    // Handle tower placement
+    const towerHub = new RoomPosition(hub.x, hub.y, room.name);
+    const towers = room.structures.filter((s) => s.structureType === STRUCTURE_TOWER);
+    const towerSites = room.constructionSites.filter((s) => s.structureType === STRUCTURE_TOWER);
+    if (CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level] > towers.length + towerSites.length) {
+        tickTracker['lastTowerHub'] = index;
+        for (let xOff = -1; xOff <= 1; xOff++) {
+            for (let yOff = -1; yOff <= 1; yOff++) {
+                if (xOff === 0 && yOff === 0) continue;
+                const targetPos = new RoomPosition(towerHub.x + xOff, towerHub.y + yOff, towerHub.roomName);
+                const structurePresent = targetPos.checkForAllStructure();
+                if (structurePresent && structurePresent.structureType === STRUCTURE_TOWER) continue;
+                else if (structurePresent) structurePresent.destroy();
+                else if (targetPos.createConstructionSite(STRUCTURE_TOWER) === OK) return true;
+            }
+        }
+    }
 }
 
 function controllerBuilder(room) {
@@ -460,6 +491,9 @@ function roadBuilder(room, layout) {
     // Layout roads
     if (buildLayoutRoads(room, layout)) return true;
 
+    // Tower roads
+    if (room.memory.towerHubs.length && buildTowerRoads(room)) return true;
+
     // RCL 6+ lab and mineral roads
     if (room.level >= 6 && buildMineralAndLabRoads(room)) return true;
 
@@ -470,7 +504,6 @@ function roadBuilder(room, layout) {
         let neighboring = Game.map.describeExits(spawn.pos.roomName);
         if (!neighboring) return false;
 
-        // Predefine direction to exit mapping
         let directionToExit = {
             '1': FIND_EXIT_TOP,
             '3': FIND_EXIT_RIGHT,
@@ -478,7 +511,6 @@ function roadBuilder(room, layout) {
             '7': FIND_EXIT_LEFT
         };
 
-        // Iterate over the possible directions
         for (let direction in directionToExit) {
             if (neighboring[direction]) {
                 let exits = spawn.room.find(directionToExit[direction]);
@@ -502,6 +534,15 @@ function roadBuilder(room, layout) {
             if (buildRoad(pos)) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    function buildTowerRoads(room) {
+        const towers = room.structures.filter((s) => s.structureType === STRUCTURE_TOWER);
+        const spawn = _.find(room.impassibleStructures.filter(s => s.structureType === STRUCTURE_SPAWN));
+        for (const tower of towers) {
+            if (buildRoadFromTo(room, spawn, tower)) return true;
         }
         return false;
     }
@@ -705,7 +746,12 @@ function rampartBuilder(room, layout = undefined, count = false) {
             const labHub = room.memory.labHub;
             rectArray.push({x1: labHub.x - 3, y1: labHub.y - 3, x2: labHub.x + 3, y2: labHub.y + 3});
         }
-
+        // Tower hub
+        if (room.memory.towerHubs && room.memory.towerHubs.length) {
+            for (const towerHub of room.memory.towerHubs) {
+                rectArray.push({x1: towerHub.x - 2, y1: towerHub.y - 2, x2: towerHub.x + 2, y2: towerHub.y + 2});
+            }
+        }
         // Set bounds
         for (let key in rectArray) {
             let rect = rectArray[key];
@@ -1010,6 +1056,54 @@ function findLabHub(room) {
     }
 }
 
+function findTowerHub(room) {
+    room.memory.towerHubs = [];
+    const towers = room.structures.filter((s) => s.structureType === STRUCTURE_TOWER);
+    towers.forEach((t) => t.destroy())
+    const towerSites = room.constructionSites.filter((s) => s.structureType === STRUCTURE_TOWER);
+    towerSites.forEach((t) => t.remove())
+    // Get and store all the exit tiles
+    const exitTiles = [];
+    const neighboring = Game.map.describeExits(room.name);
+    let directionToExit = {'1': FIND_EXIT_TOP, '3': FIND_EXIT_RIGHT, '5': FIND_EXIT_BOTTOM, '7': FIND_EXIT_LEFT};
+    for (let direction in directionToExit) {
+        if (neighboring[direction]) {
+            let exits = room.find(directionToExit[direction]);
+            let middle = Math.floor(exits.length / 2);
+            exitTiles.push(exits[middle])
+        }
+    }
+    // Find the spot that deal the most damage with space around it
+    const hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+    const labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
+    let topDamage = {};
+    let topPos = {};
+    for (const exit of exitTiles) {
+        topDamage[exit.x + '.' + exit.y] = 0;
+        topPos[exit.x + '.' + exit.y] = undefined;
+        let damage = 0;
+        const exitPos = new RoomPosition(exit.x, exit.y, room.name);
+        for (let x = 0; x < 50; x++) {
+            for (let y = 0; y < 50; y++) {
+                // Set and check
+                const pos = new RoomPosition(x, y, room.name);
+                if (pos.checkForWall() || pos.getRangeTo(pos.findClosestByRange(FIND_SOURCES)) < 4 || pos.getRangeTo(room.mineral) < 4
+                    || pos.getRangeTo(room.controller) < 4 || pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) < 7 || pos.countOpenTerrainAround() < (8 / exitTiles.length)) continue;
+                damage = determineTowerDamage(exitPos.getRangeTo(pos));
+                if (damage > topDamage[exit.x + '.' + exit.y]) {
+                    topDamage[exit.x + '.' + exit.y] = damage;
+                    topPos[exit.x + '.' + exit.y] = pos;
+                }
+            }
+        }
+        if (topPos[exit.x + '.' + exit.y].getRangeTo(hub) < 9 || topPos[exit.x + '.' + exit.y].getRangeTo(labHub) < 6) {
+            return room.memory.towerHubs = [];
+        } else {
+            room.memory.towerHubs.push({x: topPos[exit.x + '.' + exit.y].x, y: topPos[exit.x + '.' + exit.y].y});
+        }
+    }
+}
+
 // Helper function to check if the position is valid for a rampart
 function isValidRampartPosition(position) {
     return !position.checkForWall() &&
@@ -1073,6 +1167,16 @@ function findBestContainerPos(source) {
         }
     }
     return bestPos;
+}
+
+function determineTowerDamage(range) {
+    if (range <= 5) {
+        return 600;
+    } else if (range < 20) {
+        return 600 - 450 * (range - 5) / 15;
+    } else {
+        return 150;
+    }
 }
 
 let protectedStructureTypes = [
