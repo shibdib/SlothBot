@@ -80,13 +80,11 @@ class RoleRemoteHauler {
             } else {
                 const droppedRemoteLoot = harvester.room.droppedResources;
                 if (droppedRemoteLoot.length) {
-                    this.creep.memory.energyDestination = droppedRemoteLoot[0].id;
-                    return this.creep.withdrawResource();
+                    return this.creep.memory.energyDestination = droppedRemoteLoot[0].id;
                 }
                 this.creep.memory.other.source = harvester.memory.other.source;
                 if (harvester.memory.energyId) {
-                    this.creep.memory.energyDestination = harvester.memory.energyId;
-                    return this.creep.withdrawResource();
+                    return this.creep.memory.energyDestination = harvester.memory.energyId;
                 } else {
                     // Move towards the source if no energyId is available
                     const source = Game.getObjectById(this.creep.memory.other.source);

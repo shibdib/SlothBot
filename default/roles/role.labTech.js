@@ -82,7 +82,7 @@ class RoleLabTech {
                 storageSite = _.max(_.filter(this.room.impassibleStructures, (s) =>
                     s.structureType === STRUCTURE_LAB && s.mineralType === this.creep.memory.resourceNeeded &&
                     s.mineralType !== s.memory.itemNeeded && s.mineralType !== s.memory.neededBoost), function (s) {
-                    return s.store.getUsedCapacity(this.creep.memory.resourceNeeded)
+                    return s.store.getUsedCapacity()
                 });
             }
         } else {
