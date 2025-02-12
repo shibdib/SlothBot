@@ -27,9 +27,8 @@ Creep.prototype.guardRoom = function () {
     }
 
     // If no enemies, focus on healing or defending
-    if (!this.healCreeps()) {
-        this.findDefensivePosition();  // Move to a defensive position if no healing needed
-    }
+    this.healInRange();
+    this.findDefensivePosition();
 
     // Check for new mission or update orders if necessary
     this.operationManager();
