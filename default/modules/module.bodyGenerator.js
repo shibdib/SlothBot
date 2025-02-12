@@ -127,7 +127,6 @@ class ModuleBodyGenerator {
 
 
             case 'mineralHarvester':
-                energyScaling = true;
                 work = Math.floor((this.energyAmount - (BODYPART_COST[MOVE] + BODYPART_COST[CARRY])) / BODYPART_COST[WORK]) || 1;
                 work = Math.min(work, 50);  // Max work to 50
                 move = 0;
