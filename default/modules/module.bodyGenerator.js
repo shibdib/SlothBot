@@ -66,84 +66,63 @@ class ModuleBodyGenerator {
 
             case 'roadBuilder':
             case 'drone':
-                if (this.role === 'roadBuilder') energyScaling = true;
+                energyScaling = true;
 
-                // Scale work based on available energy, and limit it to 15 parts max
                 work = Math.floor((this.energyAmount * 0.15) / BODYPART_COST[WORK]) || 1;
-                work = Math.min(work, 15); // Max work to 15
+                work = Math.min(work, 15);
 
-                // Scale carry based on available energy, and limit it to 10 parts max
                 carry = Math.floor((this.energyAmount * 0.35) / BODYPART_COST[CARRY]) || 1;
-                carry = Math.min(carry, 10); // Max carry to 10
-
+                carry = Math.min(carry, 10);
                 break;
 
             case 'upgrader':
                 energyScaling = true;
 
-                if (this.room.level < this.room.controller.level) {
+                if (this.room.level < this.room.controller.level || this.creepInfo.reboot) {
                     work = 1;
                     carry = 1;
-                }
-                // If we have a controller container
-                else if (this.room.memory.controllerContainer) {
+                } else if (this.room.memory.controllerContainer) {
                     work = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) / BODYPART_COST[WORK]) || 1;
-                    work = Math.min(work, 49); // Max work to 49
-                    if (this.level === 8) work = 15; // Special case for level 8
-                    carry = 1;  // Always have 1 carry part
+                    work = Math.min(work, 49);
+                    if (this.level === 8) Math.min(work, 15);
+                    carry = 1;
                     move = 0;
-                }
-                else {
+                } else {
                     work = Math.floor(this.energyAmount * 0.4 / BODYPART_COST[WORK]) || 1;
-                    work = Math.min(work, 5); // Max work to 5
+                    work = Math.min(work, 15);
                     carry = Math.floor(this.energyAmount * 0.1 / BODYPART_COST[CARRY]) || 1;
-                    carry = Math.min(carry, 3); // Max carry to 3
+                    carry = Math.min(carry, 10);
 
-                    // Half-move if the roads are built, to improve efficiency
                     if (INTEL[this.room.name].roadsBuilt) halfMove = true;
                 }
                 break;
 
             case 'labTech':
-                // Scale carry based on available energy and limit it by level
-                carry = Math.floor((this.energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
-                carry = Math.min(carry, 10);
+                carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
+                carry = Math.min(carry, 12);
 
-                // Check if roads are built and adjust movement accordingly
                 if (INTEL[this.room.name].roadsBuilt) halfMove = true;
-
                 break;
 
             case 'hauler':
             case 'shuttle':
-                // Scale carry based on available energy and limit it by level
-                carry = Math.floor((this.energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
-                carry = Math.min(carry, LINK_CAPACITY / CARRY_CAPACITY);  // Max carry to fit a links capacity
+                carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
+                carry = Math.min(carry, LINK_CAPACITY / CARRY_CAPACITY);
 
-                // Check if roads are built and adjust movement accordingly
                 if (INTEL[this.room.name].roadsBuilt) halfMove = true;
-
                 break;
 
             case 'stationaryHarvester':
-                // Goal is to have enough WORK parts to empty a source in half of its lifetime
                 work = Math.floor((this.energyAmount - (BODYPART_COST[MOVE] + BODYPART_COST[CARRY])) / BODYPART_COST[WORK]) || 1;
-
-                // If there's a power creep with PWR_REGEN_SOURCE, adjust the work calculation
+                // Handle power creep stuff
                 let powerCreep = _.find(Game.powerCreeps, c => c.my && c.memory.destinationRoom === this.room.name && c.powers[PWR_REGEN_SOURCE]);
                 if (powerCreep) {
-                    // Include the additional energy regeneration from PWR_REGEN_SOURCE
                     work = (SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME);
                 } else {
-                    // Without power creep, base the work on the source energy capacity and harvest power
                     work = Math.min(work, (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1);
                 }
-
-                // Ensure a minimum of 1 carry part to allow harvesting
                 carry = 1;
-
-                if (this.room.storage) move = 0; else move = 1;
-
+                move = 1;
                 break;
 
 
@@ -156,36 +135,38 @@ class ModuleBodyGenerator {
 
             // Military
             case 'attacker':
-                tough = Math.floor((this.energyAmount * 0.02) / BODYPART_COST[TOUGH]) || 1;
-                tough = Math.min(tough, 3);  // Max tough to 3
-                attack = Math.floor((this.energyAmount * 0.48) / BODYPART_COST[ATTACK]) || 1;
-                attack = Math.min(attack, 20);  // Max attack to 20
+                attack = Math.floor(this.energyAmount / (BODYPART_COST[ATTACK] + BODYPART_COST[MOVE])) || 1;
+                attack = Math.min(attack, 25);
                 break;
 
             case 'defender':
                 rangedAttack = 0;
                 attack = 0;
-
                 // Basic defender logic for lower levels
                 if (this.room.level < 3) {
                     attack = 1;
-                } else {
-                    // For higher-level rooms, balance attack and rangedAttack
-                    const energyForAttack = Math.floor((this.energyAmount * 0.45) / BODYPART_COST[ATTACK]);
-                    const energyForRangedAttack = Math.floor((this.energyAmount * 0.45) / BODYPART_COST[RANGED_ATTACK]);
-
-                    // Choose to balance between attack and ranged attack based on random chance and room level
-                    if (Math.random() > 0.5 || this.level < 5) {
-                        attack = energyForAttack || 1;
+                } else if (this.room.level < 7) {
+                    attack = Math.floor(this.energyAmount / (BODYPART_COST[ATTACK] + BODYPART_COST[MOVE]));
+                    rangedAttack = Math.floor(this.energyAmount / (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE]));
+                    if (Math.random() > 0.5) {
+                        attack = 0;
+                        rangedAttack = Math.min(rangedAttack, 25);
                     } else {
-                        rangedAttack = energyForRangedAttack || 1;
+                        attack = Math.min(attack, 25);
+                        rangedAttack = 0;
                     }
-
-                    // Cap the attack and rangedAttack to reasonable limits
-                    attack = Math.min(attack, 25);  // Max attack to 32
-                    rangedAttack = Math.min(rangedAttack, 25);  // Max rangedAttack to 32
+                } else {
+                    halfMove = true;
+                    attack = Math.floor(this.energyAmount / (BODYPART_COST[ATTACK] + (BODYPART_COST[MOVE] * 0.5)));
+                    rangedAttack = Math.floor(this.energyAmount / (BODYPART_COST[RANGED_ATTACK] + (BODYPART_COST[MOVE] * 0.5)));
+                    if (Math.random() > 0.5) {
+                        attack = 0;
+                        rangedAttack = Math.min(rangedAttack, 32);
+                    } else {
+                        attack = Math.min(attack, 32);
+                        rangedAttack = 0;
+                    }
                 }
-
                 break;
 
             case 'longbow':
@@ -218,14 +199,13 @@ class ModuleBodyGenerator {
                 break;
 
             case 'claimAttacker':
-                claim = Math.floor((this.energyAmount * 0.50) / BODYPART_COST[CLAIM]) || 1;
+                claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
                 claim = Math.min(claim, 25);  // Max claim to 25
                 break;
 
             case 'claimer':
                 claim = 1;
-                move = Math.floor(this.energyAmount - BODYPART_COST[CLAIM]) || 1;
-                move = Math.min(move, 5);  // Max move to 5
+                move = 2;
                 break;
 
             case 'reserver':
@@ -247,31 +227,21 @@ class ModuleBodyGenerator {
                 const workRatio = INTEL[this.creepInfo.destination].roadsBuilt ? 0.85 : 0.5;
                 work = Math.floor((this.energyAmount * workRatio) / BODYPART_COST[WORK]) || 1;
 
-                // Set source energy capacity for a reserved room, double it at level 8
-                // DISABLED FOR NOW
-                const SOURCE_CAPACITY = this.room.controller.level === 9 ? SOURCE_ENERGY_CAPACITY * 2 : SOURCE_ENERGY_CAPACITY;
-
-                // SK-specific work adjustment
+                // Set source energy capacity for a reserved room, double it at level 7 for CPU
+                const SOURCE_CAPACITY = this.room.controller.level >= 7 ? SOURCE_ENERGY_CAPACITY * 2 : SOURCE_ENERGY_CAPACITY;
                 if (INTEL[this.creepInfo.destination].sk && work > SOURCE_ENERGY_KEEPER_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) {
                     work = Math.floor(SOURCE_ENERGY_KEEPER_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 4;
-                }
-                // Reserved source work adjustment
-                else if (INTEL[this.creepInfo.destination].reservation === MY_USERNAME &&
+                } else if (INTEL[this.creepInfo.destination].reservation === MY_USERNAME &&
                     work > SOURCE_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME) + 1) {
                     work = Math.floor(SOURCE_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
-                }
-                // Neutral source work adjustment
-                else if ((!INTEL[this.creepInfo.destination] || INTEL[this.creepInfo.destination].reservation !== MY_USERNAME) &&
+                } else if ((!INTEL[this.creepInfo.destination] || INTEL[this.creepInfo.destination].reservation !== MY_USERNAME) &&
                     work > SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME) + 1) {
                     work = Math.floor(SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
                 }
-
                 carry = 1;
 
                 // Check for roads and halfMove setting
-                if (INTEL[this.creepInfo.destination].roadsBuilt && INTEL[this.room.name].roadsBuilt) {
-                    halfMove = true;
-                }
+                if (INTEL[this.creepInfo.destination].roadsBuilt) halfMove = true;
                 break;
 
             case 'remoteHauler':
@@ -332,7 +302,7 @@ class ModuleBodyGenerator {
             case 'fuelTruck':
             case 'robber':
             case 'powerHauler':
-                carry = Math.floor((this.energyAmount * 0.5) / BODYPART_COST[CARRY]) || 1;
+                carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
                 carry = Math.min(carry, 25);
                 break;
         }
