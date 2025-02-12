@@ -142,27 +142,19 @@ RoomPosition.prototype.getAdjacentPositionAtRange = function (target, range = 3)
  *
  * @returns {boolean}
  */
-RoomPosition.prototype.isInBunker = function (range = 0) {
-    let room = Game.rooms[this.roomName];
-    if (!room.memory.bunkerHub) return false;
-    let closestExit = this.findClosestByRange(FIND_EXIT);
-    let path = PathFinder.search(
-        this, {pos: closestExit, range: 0},
-        {
-            plainCost: 1,
-            swampCost: 1,
-            roomCallback: function () {
-                if (!room) return;
-                let costs = new PathFinder.CostMatrix;
-                room.find(room.structures).forEach(function (s) {
-                    if (OBSTACLE_OBJECT_TYPES.includes(s.structureType) || s.structureType === STRUCTURE_RAMPART) {
-                        costs.set(s.pos.x, s.pos.y, 256);
-                    }
-                });
-                return costs;
-            },
+RoomPosition.prototype.isInBunker = function () {
+    const room = Game.rooms[this.roomName];
+    if (!room.memory.bunkerHub || room.level < BUNKER_LEVEL) return false;
+    const hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+    const costMatrix = new PathFinder.CostMatrix();
+    const ramparts = room.structures.filter((s) => s.structureType === STRUCTURE_RAMPART || OBSTACLE_OBJECT_TYPES.includes(s.structureType));
+    for (let ramp of ramparts) costMatrix.set(ramp.pos.x, ramp.pos.y, Infinity);
+    const path = PathFinder.search(hub, {pos: this, range: 0}, {
+        roomCallback: function (roomName) {
+            if (roomName === room.name) return costMatrix;
+            return false;
         }
-    );
+    });
     return !path.incomplete;
 };
 
