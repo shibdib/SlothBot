@@ -89,17 +89,17 @@ module.exports.status = function () {
             let progress = ((room.controller.progress / room.controller.progressTotal) * 100).toFixed(2) + "%";
             if (room.controller.level === 8) progress = "Max Level";
             const energyInfo = `Energy: ${room.energy} | Income: ${room.energyIncome}`;
-
-            // Create a progress bar string (use '=' for progress, '-' for empty space)
-            const progressBarLength = 20;  // Length of the progress bar
-            const progressRatio = room.controller.progress / room.controller.progressTotal;  // Calculate progress ratio
-            const filledLength = Math.floor(progressBarLength * progressRatio);  // Calculate how many characters to fill
-            const emptyLength = progressBarLength - filledLength;  // Calculate remaining empty space
-            let progressBar = `[${'X'.repeat(filledLength)}${'-'.repeat(emptyLength)}]`;  // Build the progress bar
+            const progressBarLength = 20;
+            const progressRatio = room.controller.progress / room.controller.progressTotal;
+            const filledLength = Math.floor(progressBarLength * progressRatio);
+            const emptyLength = progressBarLength - filledLength;
+            let progressBar = `[${'X'.repeat(filledLength)}${'-'.repeat(emptyLength)}]`;
             if (room.controller.level === 8) progressBar = "";
+            const resource = room.mineral.mineralType;
+            const resourceActive = !room.mineral.ticksToRegeneration ? '*' : ' ';
 
             // Log general info along with the progress bar
-            log.e(`${assignmentReady}${roomLink(room.name)}${lowPowerText} | RCL: ${room.controller.level} | CPU Usage: ${avgCpu} | RCL Progress: ${progress} ${progressBar}`, ' ');
+            log.e(`${assignmentReady}${roomLink(room.name)}${lowPowerText} | ${resource}${resourceActive} | RCL: ${room.controller.level} | CPU Usage: ${avgCpu} | RCL Progress: ${progress} ${progressBar}`, ' ');
             log.e(`${energyInfo} | Creeps: ${_.size(roomCreeps)}`, ' ');
         });
 
