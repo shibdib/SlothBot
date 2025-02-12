@@ -85,7 +85,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
 Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = false, guardLocation = undefined, guardRange, includeRampart = false) {
     // Cache the required data upfront
     const hostileStructures = _.filter(this.room.impassibleStructures, (s) =>
-        s.owner && !FRIENDLIES.includes(INTEL[this.room.name].user) && !FRIENDLIES.includes(s.owner.username) &&
+        s.owner && !FRIENDLIES.includes(s.owner.username) &&
         (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange)
         && ![STRUCTURE_KEEPER_LAIR, STRUCTURE_CONTROLLER, STRUCTURE_POWER_BANK].includes(s.structureType)
     );
@@ -98,7 +98,7 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
 
     if (this.memory.target) {
         let oldTarget = Game.getObjectById(this.memory.target);
-        const armedHostile = _.find(hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
+        const armedHostile = _.find(hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || (MY_ROOMS.includes(this.room.name) && c.hasActiveBodyparts(WORK)));
         if (oldTarget && oldTarget instanceof Structure && !armedHostile) {
             return oldTarget;
         } else {
@@ -108,7 +108,7 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
 
     if (!hostileCreeps.length && !hostileStructures.length) return undefined;
 
-    const isArmedCreep = (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK);
+    const isArmedCreep = (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || (MY_ROOMS.includes(this.room.name) && c.hasActiveBodyparts(WORK));
     const inGuardRange = (c) => !guardLocation || c.pos.getRangeTo(guardLocation) < guardRange;
     const isRampartChecked = (c) => !c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000;
 
@@ -139,7 +139,7 @@ Creep.prototype.findClosestEnemy = function (barriers = true, ignoreBorder = fal
     if (enemy) return updateTargetAndReturn(this, enemy);
 
     // Handle attacking rooms with targets behind ramparts
-    if (this.room.controller && PathFinder.search(this.pos, this.room.controller).incomplete) {
+    if (this.room.controller && !FRIENDLIES.includes(INTEL[this.room.name].user) && PathFinder.search(this.pos, this.room.controller).incomplete) {
         const destroyThese = findBestCleaningPath(this, this.room.controller);
         if (destroyThese[0]) return updateTargetAndReturn(this, destroyThese[0].structure);
     }

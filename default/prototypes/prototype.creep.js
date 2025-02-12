@@ -23,7 +23,7 @@ Object.defineProperty(Creep.prototype, "idle", {
         }
         if (!this.memory.idleSet) {
             if (this.memory.other.stationary) this.memory.other.stationary = undefined;
-            if ((this.pos.checkForRampart() && !this.pos.checkForRoad()) || this.memory.partner || !this.hasActiveBodyparts(MOVE)) {
+            if (this.pos.checkForRampart() || this.memory.partner || !this.hasActiveBodyparts(MOVE)) {
                 this.memory.idleSet = true;
             } else if (this.pos.getRangeTo(this.pos.findClosestByRange(this.room.find(FIND_EXIT))) < 5) {
                 const middleOfRoom = new RoomPosition(25, 25, this.room.name);
