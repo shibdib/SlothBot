@@ -789,13 +789,13 @@ function findHub(room, hubCheck = undefined) {
     let foundOldHub = false;
     // Try to find the old spot
     if (room.terminal) {
-        room.memory.bunkerHub = {x: room.terminal.pos.x + 1, y: room.terminal.pos.y - 1};
+        room.memory.bunkerHub = {x: room.terminal.pos.x + 1, y: room.terminal.pos.y};
         foundOldHub = true;
     } else if (room.storage) {
-        room.memory.bunkerHub = {x: room.storage.pos.x - 1, y: room.storage.pos.y - 1};
+        room.memory.bunkerHub = {x: room.storage.pos.x - 1, y: room.storage.pos.y};
         foundOldHub = true;
     } else if (spawns.length) {
-        room.memory.bunkerHub = {x: spawns[0].pos.x + 1, y: spawns[0].y - 1};
+        room.memory.bunkerHub = {x: spawns[0].pos.x + 1, y: spawns[0].y + 1};
         foundOldHub = true;
     }
     if (foundOldHub) {
@@ -886,7 +886,7 @@ function findHub(room, hubCheck = undefined) {
 
     function handleNoValidPosition(room, hubCheck) {
         if (hubCheck) return undefined;
-        abandonRoom(room);
+        //abandonRoom(room);
         storedPos[room.name] = undefined;
         storedPossibles[room.name] = undefined;
         return log.a(room.name + ' has been abandoned due to being unable to find a suitable layout.');

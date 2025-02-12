@@ -147,9 +147,8 @@ function calculateHealPower(room, hostileCreep) {
 
 // Determine if we should attack a hostile creep based on attack and heal power
 function shouldAttackHostileCreep(attackPower, healPower, hostileCreep) {
-
     // Only attack if we can do more damage than the heal power, or if it is an invader (who should always be attacked)
-    return (attackPower > healPower && (hostileCreep.owner.username === 'Invader' || hostileCreep.hits > healPower));
+    return (attackPower > healPower);
 }
 
 // Determine if we should spawn defenders based on the attack and heal power

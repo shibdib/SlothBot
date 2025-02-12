@@ -45,7 +45,6 @@ global.AVOID_ATTACKING_ALLIANCES = true; // Check LOAN and avoid attacking peopl
 global.BUY_ENERGY = false; // If true it will buy energy when above the buffer
 global.BUY_ENERGY_CREDIT_BUFFER = 500000; // Stay above this to buy energy
 global.CREDIT_BUFFER = 10000; // Stay above this amount
-global.MINERAL_TRADE_AMOUNT = 10000;  // Hold this much of a mineral before selling
 global.REACTION_AMOUNT = 10000; // Minimum amount we aim for base minerals
 global.TERMINAL_ENERGY_BUFFER = 10000; // Keep this much in terminal (Needed for trade)
 global.SELL_BOOSTS = false; // If we should sell spare boosts or not

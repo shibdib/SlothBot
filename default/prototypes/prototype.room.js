@@ -162,11 +162,7 @@ Object.defineProperty(Room.prototype, 'hostileStructures', {
 Object.defineProperty(Room.prototype, 'droppedResources', {
     get: function () {
         if (!this._droppedResources) {
-            if (!this._droppedResources) {
-                this._droppedResources = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY});
-            } else {
-                this._droppedResources = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY && r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
-            }
+            this._droppedResources = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY});
         }
         return this._droppedResources;
     },

@@ -21,7 +21,7 @@ class LinkControl {
         this.setControllerLink(room, links, controllerLink);
 
         // Ensure hub link is valid or delete from memory if not
-        if (!hubLink) delete room.memory.hubLink;
+        if (!hubLink || !(hubLink instanceof StructureLink)) delete room.memory.hubLink;
 
         // Process links and handle energy transfer
         links.forEach(link => this.processLink(link, room, hubLink, controllerLink));

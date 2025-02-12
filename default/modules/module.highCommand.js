@@ -354,8 +354,7 @@ function manageMilitary() {
     let staleMulti = 1;
 
     // Iterate through target rooms
-    const sorted = _.sortBy(Memory.targetRooms, 'tick');
-    for (let key in sorted) {
+    for (let key in Memory.targetRooms) {
         let target = Memory.targetRooms[key];
         if (!target) continue;
         let type = target.type;
@@ -381,9 +380,9 @@ function manageMilitary() {
 
             case 'pending':
                 if (target.dDay - 50 <= Game.time) {
-                    target.type = 'roomDenial';
+                    target.type = 'scout';
                     target.tick = Game.time;
-                    log.a('Pending expired in ' + roomLink(key) + ' switching to a hold.', 'HIGH COMMAND: ');
+                    log.a('Pending expired in ' + roomLink(key) + ' switching to a scout.', 'HIGH COMMAND: ');
                 }
                 continue;
 
@@ -498,8 +497,7 @@ function manageMilitary() {
 function manageAuxiliary() {
     if (!Memory.auxiliaryTargets || !_.size(Memory.auxiliaryTargets)) return;
 
-    const sorted = _.sortBy(Memory.auxiliaryTargets, 'tick');
-    for (let key in sorted) {
+    for (let key in Memory.auxiliaryTargets) {
         let target = Memory.auxiliaryTargets[key];
         if (!target) continue;
         let type = target.type;
@@ -604,10 +602,9 @@ function manualAttacks() {
         const operation = name.replace(/[^a-z]/gi, '');
         const tick = Game.time;
 
-        // Define a helper function for flag removal and logging
-        function removeFlagAndLog(message) {
-            log.a(message, 'HIGH COMMAND: ');
-            flag.remove();
+        // D flags are used to simulate attackers, do not remove
+        if (operation.toLowerCase() === 'd') {
+            continue;
         }
 
         // Handle nukes
@@ -710,6 +707,11 @@ function manualAttacks() {
                 manual: true
             };
             removeFlagAndLog('Manual ' + operation + ' task in ' + roomLink(roomName) + ' has been initiated.');
+        }
+
+        function removeFlagAndLog(message) {
+            log.a(message, 'HIGH COMMAND: ');
+            flag.remove();
         }
     }
 }

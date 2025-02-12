@@ -14,7 +14,6 @@ const lastRun = {};
 
 class TerminalControl {
     constructor() {
-        this.reactionAmount = REACTION_AMOUNT;
     }
 
     run(room) {
@@ -239,26 +238,25 @@ class TerminalControl {
     placeBuyOrders(terminal, globalOrders, myOrders) {
         // Iterate over minerals and handle orders
         for (let mineral of shuffle(BASE_MINERALS)) {
-            if (MY_MINERALS[mineral] || mineral === RESOURCE_ENERGY || mineral === RESOURCE_BATTERY) continue;
+            if (mineral === RESOURCE_ENERGY || mineral === RESOURCE_BATTERY) continue;
 
             let target = this.reactionAmount;
             let stored = getResourceTotal(mineral) + (getResourceTotal(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
 
             if (stored < target) {
-                let buyAmount = Math.min(target - stored, 2500);
+                let buyAmount = Math.min(target - stored, REACTION_AMOUNT);
                 let price;
 
-                const activeBuyOrder = _.find(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY)
-                // Buy orders
-                if (!activeBuyOrder) {
-                    price = this.calculatePrice(ORDER_BUY, mineral);
-                    buyAmount = Math.min(buyAmount, MINERAL_TRADE_AMOUNT);
+                // On demand buy a small amount on mmo shards or buy a larger amount on private servers
+                if (['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) || MY_MINERALS[mineral]) target = target * 0.5;
 
+                // Buy orders
+                const activeBuyOrder = _.find(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY)
+                if (!activeBuyOrder && !MY_MINERALS[mineral]) {
+                    price = this.calculatePrice(ORDER_BUY, mineral);
+                    buyAmount = Math.min(buyAmount, REACTION_AMOUNT);
                     if (createBuyOrder(mineral, price, buyAmount)) break;
                 }
-
-                // On demand buy a small amount on mmo shards or buy a larger amount on private servers
-                if (['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) target = target * 0.25;
                 if (stored < target) {
                     const acceptableMarkup = getAcceptableMarkup(mineral, activeBuyOrder);
                     let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral &&

@@ -48,6 +48,7 @@ class RoleMineralHarvester {
             }
         } else if (Math.random() > 0.9) this.creep.memory.onContainer = undefined;
         let extractor = Game.getObjectById(this.creep.memory.extractor);
+        if (!extractor) return this.creep.suicide();
         if (Game.getObjectById(this.room.memory.extractorContainer) && _.sum(Game.getObjectById(this.room.memory.extractorContainer).store) === 2000
             && !this.creep.pos.getRangeTo(Game.getObjectById(this.room.memory.extractorContainer))) return this.creep.idleFor(25);
         if (extractor.cooldown && extractor.pos.getRangeTo(this.creep) < 2) {

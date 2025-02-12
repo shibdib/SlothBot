@@ -247,9 +247,15 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
         return false;
     }
 
-    // Check if the destination has the resource
-    if (!destination[resourceType] && (!destination.store || !destination.store[resourceType])) {
+    if (destination.resourceType && destination.resourceType !== resourceType) {
+        resourceType = destination.resourceType;
+    } else if (!destination[resourceType] && (!destination.store || !destination.store[resourceType])) {
         delete this.memory.energyDestination;
+        return false;
+    }
+
+    if (!destination) {
+        this.memory.energyDestination = undefined;
         return false;
     }
 
@@ -591,13 +597,13 @@ Creep.prototype.constructionWork = function () {
 
     // Priority 9: Build any other structures
     if (this.room.energyState) {
-        site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-        if (site) {
-            this.memory.constructionSite = site.id;
-            this.memory.task = 'build';
-            this.memory.sitePos = JSON.stringify(site.pos);
-            return true;
-        }
+    }
+    site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
+    if (site) {
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'build';
+        this.memory.sitePos = JSON.stringify(site.pos);
+        return true;
     }
 
     // Priority 10: Repair other structures
@@ -854,7 +860,7 @@ Creep.prototype.borderCheck = function () {
         // Continue following path if available and less than 5 iterations
         if (this.memory._shibMove && this.memory._shibMove.path) {
             const pathInfo = this.memory._shibMove;
-            const nextDirection = parseInt(pathInfo.path[0], 10);
+            const nextDirection = pathInfo.path[0];
             const nextPos = this.pos.positionAtDirection(nextDirection);
             if (nextPos && !nextPos.checkForImpassible()) {
                 pathInfo.newPos = nextPos;
@@ -862,7 +868,8 @@ Creep.prototype.borderCheck = function () {
                     pathInfo.path = pathInfo.path.slice(1);
                     pathInfo.pathPosTime = 0;
                     pathInfo.lastMoveTick = Game.time;
-                    return true; // Path successfully moved
+                    this.memory._shibMove = pathInfo;
+                    return true;
                 }
             } else {
                 this.memory._shibMove = undefined;

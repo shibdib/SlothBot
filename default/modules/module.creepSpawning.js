@@ -277,7 +277,7 @@ let blockedRemotes = {};
 module.exports.remoteCreepQueue = function (room) {
     if (remoteTick[room.name] + 10 > Game.time) return;
     // Global remote penalty means NO remote activity at all
-    if (Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
+    if (Memory.cpuTracking && Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
     remoteTick[room.name] = Game.time;
     room.memory.borderPatrol = undefined;
 

@@ -19,8 +19,9 @@ let helpers = function () {
         });
 
         // Remove impassible structures
-        if (room.impassibleStructures.length) {
-            room.impassibleStructures.forEach(structure => structure.destroy());
+        const cleanThese = room.structures.filter((s) => ![STRUCTURE_ROAD, STRUCTURE_CONTROLLER].includes(s.structureType));
+        if (cleanThese.length) {
+            cleanThese.forEach(structure => structure.destroy());
         }
 
         // Remove construction sites
@@ -280,7 +281,7 @@ let helpers = function () {
      * @returns {number}
      */
     global.userStrength = function (user) {
-        return _.max(_.filter(INTEL, (r) => r.owner === user), 'level').level || 0;
+        return _.max(_.filter(INTEL, (r) => r && r.owner === user), 'level').level || 0;
     }
 
     let closestCache = {};
