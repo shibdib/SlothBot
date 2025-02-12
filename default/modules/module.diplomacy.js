@@ -79,8 +79,8 @@ function threatManager() {
     Memory._enemies = _.uniq(Memory._enemies.filter(Boolean));
 
     // Clean old threats and enemies
-    Memory._threats = _.filter(Memory._threats, (t) => _.find(INTEL, (i) => i.owner === t));
-    Memory._enemies = _.filter(Memory._enemies, (e) => _.find(INTEL, (i) => i.owner === e));
+    Memory._threats = _.filter(Memory._threats, (t) => _.find(INTEL, (i) => i && i.owner === t));
+    Memory._enemies = _.filter(Memory._enemies, (e) => _.find(INTEL, (i) => i && i.owner === e));
 
     // Update global variables
     global.THREATS = Memory._threats;
