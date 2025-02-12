@@ -149,6 +149,8 @@ RoomPosition.prototype.isInBunker = function () {
     const costMatrix = new PathFinder.CostMatrix();
     const ramparts = room.structures.filter((s) => s.structureType === STRUCTURE_RAMPART || OBSTACLE_OBJECT_TYPES.includes(s.structureType));
     for (let ramp of ramparts) costMatrix.set(ramp.pos.x, ramp.pos.y, Infinity);
+    const rampartSites = room.constructionSites.filter((s) => s.structureType === STRUCTURE_RAMPART || OBSTACLE_OBJECT_TYPES.includes(s.structureType));
+    for (let ramp of rampartSites) costMatrix.set(ramp.pos.x, ramp.pos.y, Infinity);
     const path = PathFinder.search(hub, {pos: this, range: 0}, {
         roomCallback: function (roomName) {
             if (roomName === room.name) return costMatrix;

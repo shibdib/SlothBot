@@ -464,7 +464,7 @@ function roadBuilder(room, layout) {
     if (room.level >= 6 && buildMineralAndLabRoads(room)) return true;
 
     // RCL 7+ we build rampart roads
-    if (room.level >= 7 && buildRoadsForRamparts(room)) return true;
+    if (room.level >= BUNKER_LEVEL && buildRoadsForRamparts(room)) return true;
 
     function buildRoadToNeighborExits(spawn, room) {
         let neighboring = Game.map.describeExits(spawn.pos.roomName);
