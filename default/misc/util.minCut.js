@@ -32,8 +32,7 @@ function room_2d_array(roomname, bounds = {x1: 0, y1: 0, x2: 49, y2: 49}) {
     for (; i <= imax; i++) {
         j = bounds.y1;
         for (; j <= jmax; j++) {
-            let pos = new RoomPosition(i, j, roomname);
-            if ((terrain.get(i, j) !== TERRAIN_MASK_WALL || (pos && _.filter(pos.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_ROAD)[0])) && (!pos || !pos.checkForBarrierStructure())) {
+            if (terrain.get(i, j) !== TERRAIN_MASK_WALL) {
                 room_2d[i][j] = NORMAL; // mark unwalkable
                 if (i === bounds.x1 || j === bounds.y1 || i === bounds.x2 || j === bounds.y2)
                     room_2d[i][j] = TO_EXIT; // Sink Tiles mark from given bounds
@@ -190,18 +189,15 @@ var util_mincut = {
     // Function to create Source, Sink, Tiles arrays: takes a rectangle-Array as input for Tiles that are to Protect
     // rects have top-left/bot_right Coordinates {x1,y1,x2,y2}
     create_graph: function (roomname, rect, bounds) {
-        let room_array = room_2d_array(roomname, bounds); // An Array with Terrain information: -1 not usable, 2 Sink (Leads to Exit)
-        // For all Rectangles, set edges as source (to protect area) and area as unused
+        let room_array = room_2d_array(roomname, bounds);
         let r = null;
         let j = 0;
         const jmax = rect.length;
-        // Check bounds
         if (bounds.x1 >= bounds.x2 || bounds.y1 >= bounds.y2 ||
             bounds.x1 < 0 || bounds.y1 < 0 || bounds.x2 > 49 || bounds.y2 > 49)
             return console.log('ERROR: Invalid bounds', JSON.stringify(bounds));
         for (; j < jmax; j++) {
             r = rect[j];
-            // Dirty fix for shared coordinates
             if (r.x1 === r.x2 || r.y1 === r.y2) {
                 if (r.x1 === r.x2) {
                     if (Math.random() > 0.5) {
@@ -222,7 +218,6 @@ var util_mincut = {
                     }
                 }
             }
-            // Test sizes of rectangles
             if (r.x1 >= r.x2 || r.y1 >= r.y2) {
                 return console.log('ERROR: Rectangle Nr.', j, JSON.stringify(r), 'invalid.');
             } else if (r.x1 < bounds.x1 || r.x2 > bounds.x2 || r.y1 < bounds.y1 || r.y2 > bounds.y2) {
@@ -245,7 +240,6 @@ var util_mincut = {
             }
 
         }
-        // ********************** Visualisierung
         if (1 > 2) {
             let visual = new RoomVisual(roomname);
             let x = 0;
@@ -265,19 +259,9 @@ var util_mincut = {
                 }
             }
         }
-
-        // initialise graph
-        // possible 2*50*50 +2 (st) Vertices (Walls etc set to unused later)
         let g = new Graph(2 * 50 * 50 + 2);
         let infini = Number.MAX_VALUE;
         let surr = [[0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1]];
-        // per Tile (0 in Array) top + bot with edge of c=1 from top to bott  (use every tile once!)
-        // infini edge from bot to top vertices of adjacent tiles if they not protected (array =1) (no reverse edges in normal graph)
-        // per prot. Tile (1 in array) Edge from source to this tile with infini cap.
-        // per exit Tile (2in array) Edge to sink with infini cap.
-        // source is at  pos 2*50*50, sink at 2*50*50+1 as first tile is 0,0 => pos 0
-        // top vertices <-> x,y : v=y*50+x   and x= v % 50  y=v/50 (math.floor?)
-        // bot vertices <-> top + 2500
         let source = 2 * 50 * 50;
         let sink = 2 * 50 * 50 + 1;
         let top = 0;
@@ -313,16 +297,14 @@ var util_mincut = {
                     g.New_edge(top, sink, infini);
                 }
             }
-        } // graph finished
+        }
         return g;
     },
-    delete_tiles_to_dead_ends: function (roomname, cut_tiles_array) { // Removes unneccary cut-tiles if bounds are set to include some 	dead ends
-        // Get Terrain and set all cut-tiles as unwalkable
+    delete_tiles_to_dead_ends: function (roomname, cut_tiles_array) {
         let room_array = room_2d_array(roomname);
         for (let i = cut_tiles_array.length - 1; i >= 0; i--) {
             room_array[cut_tiles_array[i].x][cut_tiles_array[i].y] = UNWALKABLE;
         }
-        // Floodfill from exits: save exit tiles in array and do a bfs-like search
         let unvisited_pos = [];
         let y = 0;
         const max = 49;
@@ -335,7 +317,6 @@ var util_mincut = {
             if (room_array[x][1] === TO_EXIT) unvisited_pos.push(50 + x)
             if (room_array[x][48] === TO_EXIT) unvisited_pos.push(2400 + x) // 50*48=2400
         }
-        // Iterate over all unvisited TO_EXIT- Tiles and mark neigbours as TO_EXIT tiles, if walkable (NORMAL), and add to unvisited
         let surr = [[0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1]];
         let index, dx, dy;
         while (unvisited_pos.length > 0) {
@@ -351,7 +332,6 @@ var util_mincut = {
                 }
             }
         }
-        // Remove min-Cut-Tile if there is no TO-EXIT  surrounding it
         let leads_to_exit = false;
         for (let i = cut_tiles_array.length - 1; i >= 0; i--) {
             leads_to_exit = false;
@@ -369,7 +349,6 @@ var util_mincut = {
             }
         }
     },
-    // Function for user: calculate min cut tiles from room, rect[]
     GetCutTiles: function (roomname, rect, bounds = {
         x1: 0,
         y1: 0,
@@ -378,30 +357,26 @@ var util_mincut = {
     }, verbose = false, visualize = false) {
         let graph = util_mincut.create_graph(roomname, rect, bounds);
         if (!graph) return undefined;
-        let source = 2 * 50 * 50; // Position Source / Sink in Room-Graph
+        let source = 2 * 50 * 50;
         let sink = 2 * 50 * 50 + 1;
         let count = graph.Calcmincut(source, sink);
         if (verbose) console.log('NUmber of Tiles in Cut:', count);
         let positions = [];
         if (count > 0) {
             let cut_edges = graph.Bfsthecut(source);
-            // Get Positions from Edge
             let u, x, y;
             let i = 0;
             const imax = cut_edges.length;
             for (; i < imax; i++) {
-                u = cut_edges[i];// x= v % 50  y=v/50 (math.floor?)
+                u = cut_edges[i];
                 x = u % 50;
                 y = Math.floor(u / 50);
                 positions.push({"x": x, "y": y});
             }
         }
-        // if bounds are given,
-        // try to dectect islands of walkable tiles, which are not conntected to the exits, and delete them from the cut-tiles
         let whole_room = (bounds.x1 === 0 && bounds.y1 === 0 && bounds.x2 === 49 && bounds.y2 === 49);
         if (positions.length > 0 && !whole_room)
             util_mincut.delete_tiles_to_dead_ends(roomname, positions);
-        // Visualise Result
         if (visualize && positions.length > 0) {
             let visual = new RoomVisual(roomname);
             for (let i = positions.length - 1; i >= 0; i--) {
@@ -412,19 +387,12 @@ var util_mincut = {
     },
     // Example function: demonstrates how to get a min cut with 2 rectangles, which define a "to protect" area
     test: function (roomname) {
-        //let room=Game.rooms[roomname];
-        //if (!room)
-        //    return 'O noes, no room';
         let cpu = Game.cpu.getUsed();
-        // Rectangle Array, the Rectangles will be protected by the returned tiles
         let rect_array = [];
         rect_array.push({x1: 20, y1: 6, x2: 28, y2: 27});
         rect_array.push({x1: 29, y1: 13, x2: 34, y2: 16});
-        // Boundary Array for Maximum Range
         let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
-        // Get Min cut
-        let positions = util_mincut.GetCutTiles(roomname, rect_array, bounds); // Positions is an array where to build walls/ramparts
-        // Test output
+        let positions = util_mincut.GetCutTiles(roomname, rect_array, bounds);
         console.log('Positions returned', positions.length);
         cpu = Game.cpu.getUsed() - cpu;
         console.log('Needed', cpu, ' cpu time');
