@@ -25,6 +25,9 @@ class TerminalControl {
             return this.balanceResources(room.terminal);
         }
 
+        // Handle distribution first
+        if (this.emergencyEnergy(room.terminal) || this.balanceResources(room.terminal) || this.balanceResources(room.terminal) || this.balanceEnergy(room.terminal)) return;
+
         this.initializeSaleTerminal();
 
         const myOrders = Game.market.orders;
@@ -35,10 +38,6 @@ class TerminalControl {
         } else {
             if (this.placeBuyOrders(room.terminal, globalOrders, myOrders)) return;
         }
-
-        if (this.emergencyEnergy(room.terminal)) return;
-        if (this.balanceResources(room.terminal)) return;
-        this.balanceEnergy(room.terminal);
     }
 
     initializeSaleTerminal() {
