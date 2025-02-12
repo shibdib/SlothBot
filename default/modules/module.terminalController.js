@@ -993,22 +993,15 @@ class TerminalControl {
                 if (terminal && terminal.store[order.resourceType] - order.remainingAmount > 1500) {
                     let availableAmount = terminal.store[order.resourceType] - order.remainingAmount;
                     let marketHistory = latestMarketHistory(order.resourceType);
-
                     if (marketHistory) {
                         let currentPriceRatio = order.price / marketHistory.avg;
-                        let cancelThreshold = 0.85; // Cancel if price is 15% below average
-
-                        if (currentPriceRatio < cancelThreshold) {
-                            // If the price is significantly below market average, cancel the order
+                        let cancelThreshold = 0.85;
+                        if (currentPriceRatio < cancelThreshold && marketHistory.entries >= 20) {
                             this.cancelOrder(order, 'Price significantly below market average');
                         } else {
-                            // If not too far below average, consider extending if it's profitable
-                            let profitMargin = 1.05; // Expect at least 5% profit margin
                             let potentialProfit = (marketHistory.avg - order.price) * availableAmount;
-                            let cost = order.price * availableAmount * 0.05; // 5% fee for extending order
-
+                            let cost = order.price * availableAmount * 0.05;
                             if (potentialProfit > cost && cost <= Memory._banker.spendingAccount * 0.1) {
-                                // Extend only if profitable and we have funds
                                 if (Game.market.extendOrder(order.id, availableAmount) === OK) {
                                     Memory._banker.spendingAccount -= cost;
                                     log.w(`Extended sell order ${order.id} by ${availableAmount} ${order.resourceType} in ${roomLink(order.roomName)}`, "Market: ");
@@ -1016,9 +1009,6 @@ class TerminalControl {
                                 }
                             }
                         }
-                    } else {
-                        // No market history available, consider canceling or keeping current strategy
-                        //this.cancelOrder(order, 'No recent market history for pricing decision');
                     }
                 }
             }
