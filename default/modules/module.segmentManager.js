@@ -57,12 +57,18 @@ module.exports.storeIntel = function () {
         log.d("Intel segment not accessed, not storing.", "INTEL MANAGER: ");
         return;
     }
-    if (!lastIntelStore || lastIntelStore + CREEP_LIFE_TIME < Game.time) {
+    if (!lastIntelStore || lastIntelStore + CREEP_LIFE_TIME < Game.time || INTEL_ROOM_PURGE.length) {
         // Check for invalid cache
         if (!_.size(INTEL) || !INTEL[Object.keys(INTEL)[0]].name) {
             log.e('Invalid intel cache, clearing.', "INTEL MANAGER: ");
             return global.INTEL = {};
         }
+        // Purge any rooms as required
+        if (INTEL_ROOM_PURGE.length) {
+            INTEL_ROOM_PURGE.forEach((r) => INTEL[r] = undefined);
+            global.INTEL_ROOM_PURGE = [];
+        }
+        // Store the data
         let store = JSON.parse(JSON.stringify(INTEL));
         try {
             if (JSON.stringify(store).length >= 75000) {

@@ -46,7 +46,7 @@ module.exports.loop = function () {
                 }
             } else if (bucketIssueCount >= 50) {
                 log.e('Bucket Issue Count Exceeded - Abandoning Worst Room');
-                abandonWorstRoom();
+                //abandonWorstRoom();
                 roomPenalty = Game.time;
                 bucketIssueCount = 0;
             }
@@ -73,7 +73,7 @@ module.exports.loop = function () {
                 // Clean INTEL Cache
                 Object.keys(INTEL).forEach((key) => {
                     if (INTEL[key].owner === MY_USERNAME && !global.MY_ROOMS.includes(key)) {
-                        delete INTEL[key];
+                        purgeIntel(key);
                     }
                 });
             }
@@ -97,7 +97,7 @@ module.exports.loop = function () {
 
             if (ownedRoom && (!spawn || !creep)) {
                 if (!memWipe) {
-                    resetMemory();
+                    //resetMemory();
                     memWipe = true;
                 }
                 if (!spawn) {

@@ -526,7 +526,7 @@ function manageAuxiliary() {
                 if (INTEL[key].power - 100 < Game.time) {
                     log.a('Canceling power mining operation in ' + roomLink(key) + ' as the resource is about to expire.', 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
-                    delete INTEL[key];
+                    purgeIntel(key);
                     continue;
                 }
                 if (getResourceTotal(RESOURCE_POWER) >= DUMP_AMOUNT) {
@@ -540,7 +540,7 @@ function manageAuxiliary() {
                 if (!INTEL[key].mineralAmount) {
                     log.a('Canceling mineral mining operation in ' + roomLink(key) + ' as the resource is depleted.', 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
-                    delete INTEL[key];
+                    purgeIntel(key);
                     continue;
                 }
                 break;
@@ -549,7 +549,7 @@ function manageAuxiliary() {
                 if (!MY_ROOMS.includes(key)) {
                     log.a('Canceling rebuild operation in ' + roomLink(key) + ' as we are no longer needed.', 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
-                    delete INTEL[key];
+                    purgeIntel(key);
                     continue;
                 }
                 if (INTEL[key].hostile) {
@@ -626,7 +626,7 @@ function manualAttacks() {
         if (operation.includes('cancel')) {
             delete Memory.targetRooms[roomName];
             delete Memory.auxiliaryTargets[roomName];
-            delete INTEL[roomName];
+            purgeIntel(roomName);
             removeFlagAndLog('Canceling operation in ' + roomLink(roomName) + ' at your request.');
             continue;
         }

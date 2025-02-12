@@ -179,9 +179,16 @@ let helpers = function () {
     /**
      * Purges the intel cache
      */
-    global.purgeIntel = function (segment = 0) {
-        log.a('--INTEL CACHE PURGED--', ' ');
-        global.INTEL = {};
+    global.INTEL_ROOM_PURGE = [];
+    global.purgeIntel = function (roomName, segment = 0) {
+        if (!roomName) {
+            log.a('--INTEL CACHE PURGED--', ' ');
+            global.INTEL = {};
+        } else {
+            log.a(`--INTEL PURGED FOR ${roomLink(roomName)}--`, ' ');
+            global.INTEL[roomName] = undefined;
+            INTEL_ROOM_PURGE.push(roomName)
+        }
     }
 
     /**
