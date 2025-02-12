@@ -14,7 +14,7 @@ Object.defineProperty(Creep.prototype, "idle", {
             return 0;
         }
         // Handle flee if hostile is gone
-        if (this.memory.runCooldown && this.memory.ranFrom && !INTEL[this.memory.ranFrom].numberOfHostiles) {
+        if (this.memory.runCooldown && this.memory.ranFrom && INTEL[this.memory.ranFrom] && !INTEL[this.memory.ranFrom].numberOfHostiles) {
             delete this.idle;
             delete this.memory.idle;
             delete this.memory.ranFrom;
