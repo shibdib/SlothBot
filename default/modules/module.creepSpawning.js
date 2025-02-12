@@ -83,7 +83,7 @@ module.exports.processBuildQueue = function (room) {
                 energyOrder[availableSpawn.room.name] = undefined;  // Reset energy order
                 return;
             } else {
-                log.e(`Spawn error in ${availableSpawn.room.name} code ${spawnResult}. Name - ${name}. Body - ${body}`);
+                log.d(`Spawn error in ${availableSpawn.room.name} code ${spawnResult}. Name - ${name}. Body - ${body}`);
                 return;
             }
         } else {
