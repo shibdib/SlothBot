@@ -7,7 +7,8 @@ Object.defineProperty(Creep.prototype, "idle", {
     configurable: true,
     get: function () {
         if (this.memory.idle === undefined) return 0;
-        if (this.memory.idle <= Game.time || (this.ticksToLive >= 1485 || this.hasActiveBodyparts(CLAIM)) || this.room.hostileCreeps.length) {
+        if (this.memory.idle <= Game.time || (this.ticksToLive >= 1485 || this.hasActiveBodyparts(CLAIM))
+            || this.room.hostileCreeps.length || INTEL[this.room.name].threatLevel) {
             delete this.idle;
             delete this.memory.idle;
             delete this.memory.idleSet;
