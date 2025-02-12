@@ -444,7 +444,7 @@ function roadBuilder(room, layout) {
     let spawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN);
     if (!spawn) return false;
 
-    // Try to build road from spawn to source containers
+    // Source roads
     let sourceContainers = room.sources.map(source => Game.getObjectById(source.memory.container)).filter(container => container);
     for (let container of sourceContainers) {
         if (buildRoadFromTo(room, spawn, container)) {
@@ -452,22 +452,24 @@ function roadBuilder(room, layout) {
         }
     }
 
-    // Try to build road from spawn to controller container
+    // Controller roads
     let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
     if (controllerContainer && buildRoadFromTo(room, spawn, controllerContainer)) {
         return true;
     }
 
-    // Try to build road to neighboring exits
+    // Exit Roads
     if (buildRoadToNeighborExits(spawn, room)) return true;
 
-    // Try to build roads based on bunker layout
-    if (buildBunkerRoads(room, layout)) return true;
+    // Layout roads
+    if (buildLayoutRoads(room, layout)) return true;
 
-    // Try to build roads for minerals, harvesters, and labs if room level is 6 or higher
-    return room.level >= 6 && buildMineralAndLabRoads(room);
+    // RCL 6+ lab and mineral roads
+    if (room.level >= 6 && buildMineralAndLabRoads(room)) return true;
 
-    // Helper function to build roads to neighboring exits
+    // RCL 7+ we build rampart roads
+    if (room.level >= 7 && buildRoadsForRamparts(room)) return true;
+
     function buildRoadToNeighborExits(spawn, room) {
         let neighboring = Game.map.describeExits(spawn.pos.roomName);
         if (!neighboring) return false;
@@ -494,43 +496,49 @@ function roadBuilder(room, layout) {
         return false;
     }
 
-    // Helper function to build bunker roads based on layout
-    function buildBunkerRoads(room, layout) {
+    function buildLayoutRoads(room, layout) {
         let roadStructures = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD);
         // Flatten the positions using `map` followed by `concat`
         let allPositions = [].concat(...roadStructures.map(s => s.pos));
 
         for (let structure of allPositions) {
             let pos = new RoomPosition(room.hub.x + structure.x, room.hub.y + structure.y, room.name);
-            if (shouldBuildRoad(pos)) {
-                if (pos.createConstructionSite(STRUCTURE_ROAD) === OK) {
-                    return true;
-                }
+            if (buildRoad(pos)) {
+                return true;
             }
         }
         return false;
     }
 
-    // Helper function to check if a road should be built at a position
-    function shouldBuildRoad(pos) {
-        return !pos.checkForRoad() && !pos.checkForConstructionSites() && !pos.checkForImpassible() && !pos.checkForWall();
-    }
-
-    // Helper function to build roads for minerals, harvesters, and labs if room level is 6 or higher
     function buildMineralAndLabRoads(room) {
         let container = Game.getObjectById(room.memory.extractorContainer);
-        let spawn = _.sample(room.impassibleStructures.filter(s => s.structureType === STRUCTURE_SPAWN));
+        let spawn = _.find(room.impassibleStructures.filter(s => s.structureType === STRUCTURE_SPAWN));
         if (container && spawn && buildRoadFromTo(room, spawn, container)) return true;
-
         let labs = room.impassibleStructures.filter(s => s.structureType === STRUCTURE_LAB);
         if (labs.length) {
             let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
             for (let lab of labs) {
-                if (buildRoadAround(room, lab.pos)) return true;
                 if (buildRoadFromTo(room, lab, hub)) return true;
             }
         }
+        return false;
+    }
 
+    function buildRoadsForRamparts(room) {
+        let ramparts = room.structures.filter((s) => s.structureType === STRUCTURE_RAMPART && !s.pos.checkForObstacleStructure() && !s.pos.checkForRoad());
+        let buildCounter = 0;
+        // Build roads on ramparts
+        for (const rampart of ramparts) {
+            if (buildCounter >= 4) return true;
+            if (buildRoad(rampart.pos)) buildCounter++
+        }
+        // Build roads from ramparts to hub
+        const spawn = _.find(room.impassibleStructures.filter(s => s.structureType === STRUCTURE_SPAWN));
+        ramparts = room.structures.filter((s) => s.structureType === STRUCTURE_RAMPART && s.pos.checkForRoad());
+        for (const rampart of ramparts) {
+            if (buildCounter >= 4) return true;
+            if (buildRoadFromTo(room, rampart, spawn)) buildCounter++
+        }
         return false;
     }
 
@@ -577,12 +585,12 @@ function roadBuilder(room, layout) {
             if (path.length) cacheRoad(room, begin, target, path); else return;
             for (let point of path) {
                 let pos = new RoomPosition(point.x, point.y, room.name);
-                if (shouldBuildRoad(pos) && buildRoad(pos)) return true;
+                if (buildRoad(pos)) return true;
             }
         } else {
             for (let point of JSON.parse(path)) {
                 let pos = new RoomPosition(point.x, point.y, room.name);
-                if (shouldBuildRoad(pos) && buildRoad(pos)) return true;
+                if (buildRoad(pos)) return true;
             }
         }
     }
@@ -592,9 +600,17 @@ function roadBuilder(room, layout) {
             for (let yOff = -1; yOff <= 1; yOff++) {
                 if (xOff !== 0 || yOff !== 0) {
                     let pos = new RoomPosition(position.x + xOff, position.y + yOff, room.name);
-                    if (shouldBuildRoad(pos) && buildRoad(pos)) return true;
+                    if (buildRoad(pos)) return true;
                 }
             }
+        }
+    }
+
+    function buildRoad(pos) {
+        if (pos.checkForRoad() || pos.checkForConstructionSites() || pos.checkForImpassible() || pos.checkForWall()) {
+            return false;
+        } else if (pos.createConstructionSite(STRUCTURE_ROAD) === OK) {
+            return true;
         }
     }
 }
@@ -998,19 +1014,6 @@ function isValidRampartPosition(position) {
     return !position.checkForWall() &&
         !position.checkForConstructionSites() &&
         !position.checkForRampart();
-}
-
-
-function buildRoad(position) {
-    if (position.checkForImpassible(true)) {
-        return false;
-    } else if (position.checkForRoad()) {
-        return false;
-    } else {
-        if (position.createConstructionSite(STRUCTURE_ROAD) === OK) {
-            return true;
-        }
-    }
 }
 
 function cacheRoad(room, from, to, path) {
