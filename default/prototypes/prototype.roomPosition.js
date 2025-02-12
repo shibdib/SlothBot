@@ -102,14 +102,21 @@ RoomPosition.prototype.countOpenTerrainAround = function (borderBuild = undefine
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
             if (xOff !== 0 || yOff !== 0) {
-                let pos = new RoomPosition(this.x + xOff, this.y + yOff, this.roomName);
-                if (ignore && pos.checkForWall()) {
-                    openTerrain--;
-                } else if (pos.checkForImpassible(undefined, true) || (pos.checkForCreep() && !pos.checkForCreep().hasActiveBodyparts(MOVE))) {
+                let pos;
+                try {
+                    pos = new RoomPosition(this.x + xOff, this.y + yOff, this.roomName);
+                } catch (e) {
                     openTerrain--;
                 }
-                if (borderBuild && pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) <= 2) {
-                    openTerrain--;
+                if (pos) {
+                    if (ignore && pos.checkForWall()) {
+                        openTerrain--;
+                    } else if (pos.checkForImpassible(undefined, true) || (pos.checkForCreep() && !pos.checkForCreep().hasActiveBodyparts(MOVE))) {
+                        openTerrain--;
+                    }
+                    if (borderBuild && pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) <= 2) {
+                        openTerrain--;
+                    }
                 }
             }
         }
