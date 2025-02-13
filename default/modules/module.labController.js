@@ -22,29 +22,22 @@ class LabManager {
             this.cleanLabs(labs);
         }
         if (!runNext[room.name] || runNext[room.name] < Game.time) {
-            if (this.shouldManageBoostProduction(room)) this.manageBoostProduction(room);
+            this.manageBoostProduction(room);
             this.manageActiveLabs(room);
             if (!runNext[room.name] || runNext[room.name] < Game.time) runNext[room.name] = Game.time + 15;
         }
     }
 
-    shouldManageBoostProduction(room) {
-        return Game.time % 100 === 0 || !this.primaryLabs[room.name] || !room.memory.producingBoost;
-    }
-
     manageActiveLabs(room) {
-        if (!room.memory.producingBoost) return;
-        let hub = this.getLabHub(room);
-
-        if (!hub) return;
+        if (!room.memory.producingBoost || !this.hub) return;
 
         // Sanity check for broken hub
-        for (const lab of hub) {
-            if (!lab.memory.itemNeeded) return this.stopProduction(room, hub);
+        for (const lab of this.hub) {
+            if (!lab.memory.itemNeeded) return this.stopProduction(room);
         }
 
         // Visual feedback on what's being produced
-        hub[0].say(room.memory.producingBoost);
+        this.hub[0].say(room.memory.producingBoost);
 
         let secondaryLabs = room.impassibleStructures.filter(lab =>
             !lab.cooldown && lab.structureType === STRUCTURE_LAB &&
@@ -54,42 +47,32 @@ class LabManager {
         );
 
         for (let target of secondaryLabs) {
-            let result = target.runReaction(hub[0], hub[1]);
+            let result = target.runReaction(this.hub[0], this.hub[1]);
             if (result === OK) {
-                if (this.shouldStopProduction(room)) {
-                    this.stopProduction(room, hub);
-                    break;
-                }
+                this.shouldStopProduction(room);
                 const coolDown = Game.time + REACTION_TIME[room.memory.producingBoost] - 1;
                 if (!runNext[room.name] || runNext[room.name] > coolDown || runNext[room.name] <= Game.time) {
                     runNext[room.name] = coolDown;
                 }
                 if (!productionTracker[this.room.name]) productionTracker[this.room.name] = Game.time;
             } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
-                if (this.shouldStopProduction(room)) {
-                    this.stopProduction(room, hub);
-                    break;
-                }
+                this.shouldStopProduction(room);
             }
         }
     }
 
     shouldStopProduction(room) {
-        let cutOff = this.getProductionCutoff(room);
-        return room.store(room.memory.producingBoost) > cutOff * 1.1 || (productionTracker[this.room.name]
-            && productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time) || this.checkResourceShortage(room, this.hub);
+        const stop = room.store(room.memory.producingBoost) > this.getProductionCutoff(room) || (productionTracker[this.room.name]
+            && productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time) || this.hub.some(lab => room.store(lab.memory.itemNeeded) < 50);
+        if (stop) this.stopProduction(room);
     }
 
-    checkResourceShortage(room, hub) {
-        return hub.some(lab => room.store(lab.memory.itemNeeded) < 50);
-    }
-
-    stopProduction(room, hub) {
+    stopProduction(room) {
         if (productionTracker[this.room.name]) log.a(roomLink(room.name) + ' is halting production of ' + room.memory.producingBoost + '.');
         room.memory.producingBoost = undefined;
         this.primaryLabs[room.name] = undefined;
         goOverCap[this.room.name] = undefined;
-        hub.forEach(lab => lab.memory = undefined);
+        this.hub.forEach(lab => lab.memory = undefined);
     }
 
     manageBoostProduction(room) {
@@ -107,21 +90,6 @@ class LabManager {
         if (!boost) return;
 
         this.setupProduction(hub, boost, room);
-
-    }
-
-    getLabHub(room) {
-        if (!this.primaryLabs[room.name]) {
-            if (!room.memory.labHub) return;
-            let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
-            let labs = room.impassibleStructures.filter(lab =>
-                lab.structureType === STRUCTURE_LAB &&
-                ((lab.pos.x === labHub.x && lab.pos.y === labHub.y) ||
-                    (lab.pos.x === labHub.x && lab.pos.y === labHub.y + 1))
-            );
-            this.primaryLabs[room.name] = labs.map(lab => lab.id);
-        }
-        return this.primaryLabs[room.name].map(id => Game.getObjectById(id));
     }
 
     findBoostToProduce(room) {
@@ -143,7 +111,7 @@ class LabManager {
         for (let boost of LAB_PRIORITY) {
             let cutOff = this.getProductionCutoff(boost);
             if (getResourceTotal(boost) >= cutOff) continue;
-            if (this.checkForInputs(room, boost)) {
+            if (this.checkForInputs(room)) {
                 return boost;
             } else {
                 const components = BOOST_COMPONENTS[boost];
@@ -193,7 +161,7 @@ class LabManager {
     checkForInputs(room, boost) {
         let components = BOOST_COMPONENTS[boost];
         if (!components || components.length === 0) return false;
-        return components.every(input => room.store(input, true) >= 50 * room.level);
+        return components.every(input => room.store(input) >= 50 * room.level);
     }
 
     setupProduction(hub, boost, room) {
@@ -216,6 +184,20 @@ class LabManager {
                 }
             }
         });
+    }
+
+    getLabHub(room) {
+        if (!this.primaryLabs[room.name]) {
+            if (!room.memory.labHub) return;
+            let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
+            let labs = room.impassibleStructures.filter(lab =>
+                lab.structureType === STRUCTURE_LAB &&
+                ((lab.pos.x === labHub.x && lab.pos.y === labHub.y) ||
+                    (lab.pos.x === labHub.x && lab.pos.y === labHub.y + 1))
+            );
+            this.primaryLabs[room.name] = labs.map(lab => lab.id);
+        }
+        return this.primaryLabs[room.name].map(id => Game.getObjectById(id));
     }
 }
 
