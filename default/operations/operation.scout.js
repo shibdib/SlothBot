@@ -69,7 +69,7 @@ function updateRoomSafemode(room) {
     targetRoom = {
         ...targetRoom,
         tick,
-        type: 'pending',
+        type: 'remoteDenial',
         dDay: tick + room.controller.safeMode,
         observerCheck: tick
     };
@@ -113,19 +113,15 @@ function handleRoomDenialOperation(room) {
 
 // Handle the "scout" operation type for the room
 function handleScoutOperation(room) {
-    if (INTEL[room.name].owner && (!INTEL[room.name].towers || INTEL[room.name].towers <= 2)) {
+    if (INTEL[room.name].owner && (!INTEL[room.name].towers || INTEL[room.name].towers <= 3)) {
         // Convert to hold if room is owned
         Memory.targetRooms[room.name].type = 'roomDenial';
-        Memory.targetRooms[room.name].boostsRequired = [HEAL];
+        if (INTEL[room.name].towers) Memory.targetRooms[room.name].boostsRequired = [HEAL];
         log.a(`Room ${roomLink(room.name)} converted to room denial operation.`, 'HIGH COMMAND: ');
-    } else if (INTEL[room.name].owner && INTEL[room.name].towers > 2) {
+    } else if (INTEL[room.name].owner && INTEL[room.name].towers > 3) {
         // Convert to denial if towers are detected
         Memory.targetRooms[room.name].type = 'remoteDenial';
         log.a(`Room ${roomLink(room.name)} converted to remote denial operation.`, 'HIGH COMMAND: ');
-    } else if (INTEL[room.name].owner) {
-        // Convert to hold if room is owned
-        Memory.targetRooms[room.name].type = 'roomDenial';
-        log.a(`Room ${roomLink(room.name)} converted to room denial operation.`, 'HIGH COMMAND: ');
     } else {
         // Default to guard operation if no owner
         Memory.targetRooms[room.name].type = 'guard';
