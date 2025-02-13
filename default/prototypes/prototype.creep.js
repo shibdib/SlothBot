@@ -970,10 +970,9 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                 case 'move':
                     boostNeeded = this.getActiveBodyparts(MOVE) * 30;
                     break;
-                case 'upgrade':
-                case 'build':
-                case 'harvest':
-                case 'dismantle':
+                case 'work':
+                    if (this.memory.role === 'drone') boostType = 'build';
+                    if (this.memory.role === 'cleaner' || this.memory.role === 'siegeDuo') boostType = 'dismantle';
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
                     break;
             }
