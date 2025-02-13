@@ -602,23 +602,18 @@ module.exports.globalCreepQueue = function () {
 
             case 'roomDenial':
                 // If this room doesn't spawn defenders we use dismantlers otherwise blinky
+                let count = 1;
+                if (INTEL[key].towers) {
+                    count = (INTEL[key].towers + 1) * 2;
+                }
                 if (INTEL[key].noActiveDefenders) {
-                    if (opLevel > 1) {
-                        let count = 2;
-                        if (INTEL[key] && INTEL[key].towers) {
-                            count = (INTEL[key].towers + 1) * 2;
-                        }
+                    if (INTEL[key].towers) {
                         queueCreepIfNeeded(undefined, 'siegeDuo', priority, count, undefined, key, undefined, true, 'roomDenial');
                     } else {
                         queueCreepIfNeeded(undefined, 'cleaner', priority, opLevel, undefined, key, undefined, true, 'roomDenial');
-                        queueCreepIfNeeded(undefined, 'longbow', priority, opLevel, undefined, key, undefined, true, 'roomDenial');
                     }
                 } else {
                     if (opLevel > 1) {
-                        let count = 2;
-                        if (INTEL[key] && INTEL[key].towers) {
-                            count = (INTEL[key].towers + 1) * 2;
-                        }
                         queueCreepIfNeeded(undefined, 'longbowDuo', priority, count, undefined, key, undefined, true, 'roomDenial');
                     } else {
                         queueCreepIfNeeded(undefined, 'longbow', priority, opLevel, undefined, key, undefined, true, 'roomDenial');
