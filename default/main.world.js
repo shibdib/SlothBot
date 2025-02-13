@@ -178,7 +178,11 @@ function minionController(minion) {
         minion.memory.notifyDisabled = true;
     }
     // Handle idle
-    if (minion.idle) return;
+    if (minion.idle || minion.memory.blocked === Game.time) {
+        minion.attackInRange();
+        minion.healInRange();
+        return;
+    }
     // Track Threat
     diplomacy.trackThreat(minion);
     // Handle edge cases
