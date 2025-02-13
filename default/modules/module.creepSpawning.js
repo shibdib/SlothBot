@@ -535,7 +535,7 @@ module.exports.globalCreepQueue = function () {
         }
 
         // Handle scout if needed (if observer check is missing)
-        if (!operation.observerCheck && !opLevel && operation.type !== 'harass' && operation.type !== 'pending') {
+        if (!operation.observerCheck && !opLevel) {
             queueCreepIfNeeded(undefined, 'scout', PRIORITIES.priority, 1, undefined, key, undefined);
         }
 
@@ -601,14 +601,28 @@ module.exports.globalCreepQueue = function () {
                 break;
 
             case 'roomDenial':
-                if (opLevel > 1) {
-                    let count = 2;
-                    if (INTEL[key] && INTEL[key].towers) {
-                        count = (INTEL[key].towers + 1) * 2;
+                // If this room doesn't spawn defenders we use dismantlers otherwise blinky
+                if (INTEL[key].noActiveDefenders) {
+                    if (opLevel > 1) {
+                        let count = 2;
+                        if (INTEL[key] && INTEL[key].towers) {
+                            count = (INTEL[key].towers + 1) * 2;
+                        }
+                        queueCreepIfNeeded(undefined, 'siegeDuo', priority, count, undefined, key, undefined, true, 'roomDenial');
+                    } else {
+                        queueCreepIfNeeded(undefined, 'cleaner', priority, opLevel, undefined, key, undefined, true, 'roomDenial');
+                        queueCreepIfNeeded(undefined, 'longbow', priority, opLevel, undefined, key, undefined, true, 'roomDenial');
                     }
-                    queueCreepIfNeeded(undefined, 'longbowDuo', priority, count, undefined, key, undefined, true, 'roomDenial');
                 } else {
-                    queueCreepIfNeeded(undefined, 'longbow', priority, opLevel, undefined, key, undefined, true, 'roomDenial');
+                    if (opLevel > 1) {
+                        let count = 2;
+                        if (INTEL[key] && INTEL[key].towers) {
+                            count = (INTEL[key].towers + 1) * 2;
+                        }
+                        queueCreepIfNeeded(undefined, 'longbowDuo', priority, count, undefined, key, undefined, true, 'roomDenial');
+                    } else {
+                        queueCreepIfNeeded(undefined, 'longbow', priority, opLevel, undefined, key, undefined, true, 'roomDenial');
+                    }
                 }
                 if (operation.claimAttacker) {
                     queueCreepIfNeeded(undefined, 'claimAttacker', priority, 1, undefined, key, undefined, true, 'roomDenial');
