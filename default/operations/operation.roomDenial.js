@@ -16,6 +16,15 @@ Creep.prototype.denyRoom = function () {
                 this.memory.waveTracked = true;
             }
         }
+        // Track if active defenders spawn or not
+        if (!this.memory.activeTracked || this.memory.activeTracked + 100 < Game.time) {
+            if (this.memory.activeTracked) {
+                const armedHostiles = this.room.creeps.filter((c) => !c.my && (c.hasActiveBodyparts(ATTACK) || !c.hasActiveBodyparts(RANGED_ATTACK)));
+                if (!armedHostiles.length) INTEL[this.room.name].noActiveDefenders = true;
+            } else {
+                this.memory.activeTracked = Game.time;
+            }
+        }
         // Update sustainability of operation in this room
         highCommand.operationSustainability(this.room);
     }
