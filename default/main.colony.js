@@ -67,7 +67,7 @@ class Colony {
             log.e(`${creep.name} encountered repeated errors and has been terminated.`);
             log.e(e.stack);
             log.e(JSON.stringify(creep.memory));
-            //creep.suicide();
+            creep.suicide();
         } else if (errorCount[creep.name] === 1) {
             log.e(`${creep.name} encountered an error in room ${roomLink(creep.room.name)}`);
             log.e(e.stack);
@@ -84,7 +84,7 @@ class Colony {
     }
 
     terminalController() {
-        new TerminalControl().run(this.room);
+        new TerminalControl(this.room).run();
     }
 
     observerController() {

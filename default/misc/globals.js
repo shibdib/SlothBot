@@ -96,7 +96,7 @@ let globals = function () {
     global.DUMP_AMOUNT = 40000; // Fills buys (or if overflowing it will offload to other terminals)
 
     // Versioning for cache purposes
-    global.PATHFINDER_VERSION = 2;
+    global.PATHFINDER_VERSION = 22;
     global.INTEL_VERSION = 5;
 
     // Global cache for roles
@@ -143,6 +143,7 @@ let globals = function () {
     global.MARKET_HISTORY = CACHE.MARKET_HISTORY = {};
     global.ORDER_CACHE = CACHE.ORDER_CACHE = {};
     global.TOWER_DAMAGE_CACHE = CACHE.TOWER_DAMAGE_CACHE = {};
+    global.ROOM_RAMPART_SPOTS = CACHE.ROOM_RAMPART_SPOTS = {};
 
     // Set some diplo stuff
     global.ENEMIES = [];

@@ -186,7 +186,7 @@ let helpers = function () {
             global.INTEL = {};
         } else {
             log.a(`--INTEL PURGED FOR ${roomLink(roomName)}--`, ' ');
-            global.INTEL[roomName] = undefined;
+            global.INTEL[roomName] = {cached: 0};
             INTEL_ROOM_PURGE.push(roomName)
         }
     }
@@ -369,6 +369,12 @@ let helpers = function () {
      */
     global.difference = function (num1, num2) {
         return (num1 > num2) ? num1 - num2 : num2 - num1
+    }
+
+    global.objFilter = function (obj, predicate) {
+        return Object.keys(obj)
+            .filter(key => predicate(obj[key]))
+            .reduce((res, key) => (res[key] = obj[key], res), {});
     }
 
     /**

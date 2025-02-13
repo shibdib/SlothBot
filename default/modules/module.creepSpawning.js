@@ -260,7 +260,7 @@ module.exports.miscCreepQueue = function (room) {
         // Border Patrol
         if (room.memory.borderPatrol) {
             const power = INTEL[room.memory.borderPatrol] ? INTEL[room.memory.borderPatrol].hostilePower : 1000;
-            if (INTEL[room.memory.borderPatrol].threatLevel < 3) {
+            if (power < 15 * room.level) {
                 queueCreepIfNeeded(room, 'longbow', PRIORITIES.high, 1, undefined, undefined, undefined, undefined, 'borderPatrol', {power: power});
             } else {
                 queueCreepIfNeeded(room, 'longbowDuo', PRIORITIES.high, 2, undefined, undefined, undefined, undefined, 'borderPatrol', {power: power});
