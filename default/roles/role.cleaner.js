@@ -23,13 +23,13 @@ class RoleCleaner {
     }
 
     housekeeping() {
-        if (this.creep.tryToBoost(['dismantle'])) return true;
+        if (this.creep.tryToBoost([WORK])) return true;
         this.creep.say('NOM!', true);
     }
 
     barrierCleaning() {
-        let barrier = Game.getObjectById(this.creep.memory.barrierClearing);
-        if (!barrier) return this.creep.memory.barrierClearing = undefined;
+        let barrier = Game.getObjectById(this.creep.memory.target);
+        if (!barrier) return this.creep.memory.target = undefined;
         if (this.creep.pos.isNearTo(barrier)) {
             if (this.creep.hasActiveBodyparts(WORK)) {
                 if (this.creep.dismantle(barrier) === OK) this.creep.memory.other.stationary = true;
@@ -45,7 +45,7 @@ class RoleCleaner {
         // If we can't get to the controller or sources, clear a path
         const blocked = blockedLocations(this.creep);
         if (blocked && blocked.length) {
-            this.creep.memory.barrierClearing = blocked[0].structure.id;
+            this.creep.memory.target = blocked[0].structure.id;
         } else if (!this.creep.scorchedEarth()) {
             this.room.cacheRoomIntel(true);
             this.creep.suicide();

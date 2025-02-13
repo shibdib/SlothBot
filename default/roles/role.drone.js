@@ -22,7 +22,7 @@ class RoleDrone {
     }
 
     houseKeeping() {
-        if (this.creep.tryToBoost(['build'])) return true;
+        if (this.creep.tryToBoost([WORK])) return true;
         // Handle remote drones overlord change
         if (this.creep.memory.destination && this.creep.memory.colony !== this.creep.memory.destination) this.creep.memory.colony = this.creep.memory.destination;
         // If full clear memory
