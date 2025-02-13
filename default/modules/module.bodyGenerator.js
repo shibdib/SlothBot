@@ -400,7 +400,7 @@ class ModuleBodyGenerator {
         let neededBoost = {};
         for (const heal in neededHeals) {
             if (neededHeals[heal].amount * multiplier > 15) continue;
-            if (this.room.boostCheck(undefined, HEAL, neededHeals[heal].tier, neededHeals[heal].amount)) {
+            if (this.room.store(neededHeals[heal].boost) > 30 * neededHeals[heal].amount) {
                 neededBoost.boostPart = HEAL;
                 neededBoost.boost = neededHeals[heal].boost;
                 neededBoost.boostTier = neededHeals[heal].tier;
@@ -427,7 +427,7 @@ module.exports = ModuleBodyGenerator;
 function determineNeededHeals(damage) {
     const healTiers = {};
     let tier = 0;
-    for (const boost in BOOST_USE[HEAL]) {
+    for (const boost in BOOSTS[HEAL]) {
         const healPowerPerHeal = HEAL_POWER * BOOSTS[HEAL][boost].heal;
         healTiers[tier] = {};
         healTiers[tier].amount = Math.ceil(damage / healPowerPerHeal);
