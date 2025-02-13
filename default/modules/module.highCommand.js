@@ -319,7 +319,7 @@ function manageMilitary() {
                 continue;  // Skip test operations
 
             case 'roomDenial':
-                staleMulti = 3;
+                staleMulti = 5;
                 if (activeSiegeOperations > SIEGE_LIMIT ||
                     (INTEL[key] && (_.includes(FRIENDLIES, INTEL[key].owner) || !INTEL[key].owner || INTEL[key].owner === 'Invader'))) {
                     log.a('Canceling ' + type + ' in ' + roomLink(key) + ' due to high operation count or non-hostile status.', 'HIGH COMMAND: ');
@@ -351,7 +351,7 @@ function manageMilitary() {
             case 'guard':
                 staleMulti = 3;
                 if (activeNonSiegeOperations > OPERATION_LIMIT) {
-                    log.a('Canceling guard in ' + roomLink(key) + ' as we have too many active guard operations.', 'HIGH COMMAND: ');
+                    log.a('Canceling ' + type + ' in ' + roomLink(key) + ' due to too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     activeNonSiegeOperations--;
                     INTEL[key].lastOperation = Game.time;

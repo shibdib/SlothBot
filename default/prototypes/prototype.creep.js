@@ -926,7 +926,7 @@ function findRoadNearCreep(creep) {
  */
 Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
     // If they age out or are boosted, don't try again
-    if (this.memory.boostAttempt || this.ticksToLive < 700) {
+    if (this.memory.boostAttempt) {
         if (!this.memory.boostAttempt && this.memory.boosts) {
             let lab = Game.getObjectById(this.memory.boosts.boostLab);
             if (lab) lab.memory = undefined;
@@ -1023,7 +1023,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                         Game.getObjectById(this.memory.boosts.boostLab).memory = undefined;
                     }
                     this.memory.boosts = undefined;
-                    return this.memory.boostAttempt = true;
+                    if (!this.memory.neededBoosts) return this.memory.boostAttempt = true; else return true;
                 }
             }
             let lab = Game.getObjectById(this.memory.boosts.boostLab);
@@ -1061,7 +1061,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
             Game.getObjectById(this.memory.boosts.boostLab).memory = undefined;
         }
         this.memory.boosts = undefined;
-        return this.memory.boostAttempt = true;
+        if (!this.memory.neededBoosts) return this.memory.boostAttempt = true; else return true;
     }
     return true;
 };
@@ -1075,7 +1075,10 @@ Creep.prototype.recycleCreep = function () {
     if (!this.hasActiveBodyparts(MOVE)) return this.suicide();
     let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
     if (!spawn) {
-        if (this.room.name !== this.memory.colony) return this.shibMove(new RoomPosition(25, 25, this.memory.colony), {range: 22})
+        if (this.room.name !== this.memory.colony) {
+            this.shibMove(new RoomPosition(25, 25, this.memory.colony), {range: 22})
+            return true;
+        }
         else return this.suicide();
     }
     if (this.store.getUsedCapacity()) {
@@ -1096,10 +1099,10 @@ Creep.prototype.recycleCreep = function () {
             log.d('Creep - ' + this.name + ' successfully recycled in ' + this.room.name, 'RECYCLING:');
             break;
         case ERR_NOT_IN_RANGE:
-            return this.shibMove(spawn);
         case ERR_BUSY:
-            this.suicide();
+            this.shibMove(spawn);
     }
+    return true;
 };
 
 /**

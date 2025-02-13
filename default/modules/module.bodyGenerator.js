@@ -392,14 +392,14 @@ class ModuleBodyGenerator {
         return body.reduce((cost, part) => cost + BODYPART_COST[part], 0);
     }
 
-    checkForNeededHeal(room, multiplier = 0.6) {
+    checkForNeededHeal(room, multiplier = 0.51) {
         if (!INTEL[this.creepInfo.destination] || !INTEL[this.creepInfo.destination].towerData) return false;
         const towerGroupSize = INTEL[this.creepInfo.destination].towerData.maxDamage / TOWER_POWER_ATTACK;
         const damageToTank = Math.max(Math.ceil((INTEL[this.creepInfo.destination].towerData.maxDamage + INTEL[this.creepInfo.destination].towerData.average) / 2), TOWER_POWER_ATTACK * towerGroupSize);
         const neededHeals = determineNeededHeals(damageToTank);
         let neededBoost = {};
         for (const heal in neededHeals) {
-            if (neededHeals[heal].amount > 24) continue;
+            if (neededHeals[heal].amount * multiplier > 15) continue;
             if (this.room.boostCheck(undefined, HEAL, neededHeals[heal].tier, neededHeals[heal].amount)) {
                 neededBoost.boostPart = HEAL;
                 neededBoost.boost = neededHeals[heal].boost;
@@ -412,13 +412,12 @@ class ModuleBodyGenerator {
         if (!neededBoost.amount) return false;
         // Get optimal heal with some buffer
         const optimalHeal = Math.ceil(neededBoost.amount * multiplier);
-        let heal = Math.floor(this.energyAmount / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
         // If we can't support the size, break
-        if (heal < optimalHeal) return false;
+        const maxHeals = Math.floor(this.energyAmount / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
+        if (maxHeals < optimalHeal) return false;
         Memory.targetRooms[this.creepInfo.destination].boostTier = neededBoost.boostTier;
-        heal = optimalHeal;
         this.creepInfo.neededBoosts = neededBoost;
-        return heal;
+        return optimalHeal;
     }
 }
 
@@ -428,7 +427,7 @@ module.exports = ModuleBodyGenerator;
 function determineNeededHeals(damage) {
     const healTiers = {};
     let tier = 0;
-    for (const boost in BOOSTS[HEAL]) {
+    for (const boost in BOOST_USE[HEAL]) {
         const healPowerPerHeal = HEAL_POWER * BOOSTS[HEAL][boost].heal;
         healTiers[tier] = {};
         healTiers[tier].amount = Math.ceil(damage / healPowerPerHeal);

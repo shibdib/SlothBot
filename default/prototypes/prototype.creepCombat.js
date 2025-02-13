@@ -526,16 +526,16 @@ Creep.prototype.attackInRange = function () {
 Creep.prototype.healInRange = function (blinky = undefined) {
     if (!this.hasActiveBodyparts(HEAL)) return false;
 
-    // Heal self if needed
-    if (this.hits < this.hitsMax) {
-        this.heal(this); // Heal self if less than max health
-        return true;
-    }
-
     // Find the closest injured friendly creep within healing range (3)
     let injured = _.find(this.room.creeps, (c) =>
         (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax
     );
+
+    // Heal self if needed
+    if (this.hits < this.hitsMax && (!injured || (injured.hits / injured.hitsMax) < (this.hits / this.hitsMax))) {
+        this.heal(this); // Heal self if less than max health
+        return true;
+    }
 
     // If there's an injured creep, attempt to heal them
     if (injured) {
