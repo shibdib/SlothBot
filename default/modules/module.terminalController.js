@@ -588,7 +588,7 @@ class TerminalControl {
                 if (lowestSell && lowestSell.price) {
                     return Math.min((lowestSell.price - 0.01), (highestBuy.price * 0.5))
                 } else if (highestBuy && highestBuy.price) {
-                    return highestBuy.price * 0.5;
+                    return Math.max(highestBuy.price * 0.5, 0.05);
                 }
                 return 1;
             } else {
