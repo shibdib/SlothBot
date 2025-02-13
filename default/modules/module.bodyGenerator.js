@@ -171,7 +171,7 @@ class ModuleBodyGenerator {
             case 'longbow':
             case 'longbowDuo':
                 if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boostsRequired) {
-                    heal = this.checkForNeededHeal();
+                    heal = this.checkForNeededHeal(this.room);
                     if (!heal) break;
                 } else {
                     heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
@@ -189,6 +189,22 @@ class ModuleBodyGenerator {
                         rangedAttack = Math.ceil(rangedAttack * ratio);
                         heal = Math.ceil(heal * ratio);
                     }
+                }
+                break;
+
+            case 'siegeDuo':
+                const healerDuo = _.find(Game.creeps, (c) => c.my && c.memory.role === 'siegeDuo' && c.hasActiveBodyparts(HEAL) && !c.memory.partner);
+                if (!healerDuo) {
+                    if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boostsRequired) {
+                        heal = this.checkForNeededHeal(this.room, 1);
+                        if (!heal) break;
+                    } else {
+                        heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
+                        heal = Math.min(heal, 6);
+                    }
+                } else {
+                    work = Math.floor(this.energyAmount / (BODYPART_COST[WORK] + BODYPART_COST[MOVE])) || 1;
+                    work = Math.min(work, 25);  // Max work to 25
                 }
                 break;
 
@@ -383,7 +399,7 @@ class ModuleBodyGenerator {
         const neededHeals = determineNeededHeals(damageToTank);
         let neededBoost = {};
         for (const heal in neededHeals) {
-            if (neededHeals[heal].amount > 20) continue;
+            if (neededHeals[heal].amount > 24) continue;
             if (this.room.boostCheck(undefined, HEAL, neededHeals[heal].tier, neededHeals[heal].amount)) {
                 neededBoost.boostPart = HEAL;
                 neededBoost.boost = neededHeals[heal].boost;
