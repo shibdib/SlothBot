@@ -29,11 +29,7 @@ class RoleLongbowDuo {
         // Boosting
         if (this.creep.tryToBoost([RANGED_ATTACK, HEAL])) return true;
         // Blinky mode
-        if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
-            this.creep.healInRange(true);
-        } else {
-            this.creep.healInRange();
-        }
+        this.creep.healInRange(this.room.hostileCreeps.length || this.room.hostileStructures.length);
         // Check and set partner
         if (!this.creep.memory.partner || !Game.getObjectById(this.creep.memory.partner)) {
             const availablePartner = _.find(Game.creeps, (c) => c.id !== this.creep.id && c.my && !c.spawning && c.memory.role === this.creep.memory.role && !c.memory.partner && c.memory.destination === this.creep.memory.destination);
@@ -50,8 +46,11 @@ class RoleLongbowDuo {
 
     handleLeader() {
         const partner = Game.getObjectById(this.creep.memory.partner);
-        if (!this.creep.pos.isNearTo(partner)) {
-            if (partner.room.name === this.room.name) this.creep.shibMove(partner); else this.handleSolo();
+        if (!this.creep.pos.isNearTo(partner) || partner.fatigue) {
+            if (partner.room.name === this.room.name) {
+                this.creep.attackInRange();
+                this.creep.shibMove(partner);
+            } else this.handleSolo();
         } else {
             if (this.creep.memory.operation) {
                 this.operationManagement();
