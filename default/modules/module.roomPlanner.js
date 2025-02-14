@@ -191,7 +191,7 @@ function auxiliaryBuilding(room) {
     function buildRoads(room, layout) {
         if (room.level >= ROAD_LEVEL && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length < 3 && !roadBuilder(room, layout)) {
             INTEL[room.name].roadsBuilt = true;
-            return true;
+            return false;
         } else {
             INTEL[room.name].roadsBuilt = undefined;
         }
@@ -236,7 +236,7 @@ function auxiliaryBuilding(room) {
 function hubLink(room) {
     // If the hub link already exists in memory, return early
     if (room.memory.hubLink && Game.getObjectById(room.memory.hubLink)) {
-        return true;
+        return false;
     }
 
     // Clear hubLink memory if the link is not found or doesn't exist
