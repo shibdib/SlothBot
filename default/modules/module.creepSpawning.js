@@ -208,7 +208,7 @@ module.exports.essentialCreepQueue = function (room) {
     let upgraderReboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.level !== room.level || room.memory.dangerousAttack;
     let upgraderAmount = 1;
 
-    if (!upgraderReboot && room.level < 8 && !INTEL[room.name].threatLevel) {
+    if (!upgraderReboot && room.level < 8) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         if (container && room.energyState) {
             upgraderAmount = Math.min(Math.floor(room.energyState * (container.store.getUsedCapacity(RESOURCE_ENERGY) / 1000)), container.pos.countOpenTerrainAround());
