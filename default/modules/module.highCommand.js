@@ -83,8 +83,8 @@ function militaryOperations() {
             && r.owner && userStrength(r.owner) <= MAX_LEVEL - 1 && ![...FRIENDLIES, ...NO_DIRECT_ATTACKS].includes(r.owner) &&
             !Memory.nonCombatRooms.includes(r.name) && !checkForNap(r.owner) && (ATTACK_LOCALS || THREATS.includes(r.owner) || (HOLD_SECTOR && myRoomInSectorCheck(r.name)))
             && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time));
-        const activeNonSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o.type !== 'roomDenial' && !o.dDay));
-        const activeSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o.type === 'roomDenial' || o.dDay));
+        const activeNonSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && o.type !== 'roomDenial' && !o.dDay));
+        const activeSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && o.type === 'roomDenial' || o.dDay));
 
         // Standard operations
         if (activeNonSiegeOperations < OPERATION_LIMIT) {
@@ -186,7 +186,7 @@ function setTarget(room) {
 }
 
 function manageResponseForces() {
-    let idleResponders = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders);
+    let idleResponders = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && (!c.memory.partner || c.memory.leader));
     if (!idleResponders.length) return;
 
     let activeResponders = _.filter(Game.creeps, (c) => c.memory && !c.memory.awaitingOrders);

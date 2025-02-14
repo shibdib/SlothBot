@@ -768,7 +768,7 @@ Creep.prototype.pairUp = function () {
     if (!this.memory.partner || !Game.getObjectById(this.memory.partner)) {
         // Look for partners with the same task
         let availablePartner = _.find(Game.creeps, (c) => c.id !== this.id && c.my && !c.spawning && ['longbow', 'longbowDuo'].includes(c.memory.role) &&
-            !c.memory.partner && c.memory.destination === this.memory.destination && (!c.memory.operation || c.memory.operation === this.memory.operation));
+            !c.memory.partner && c.memory.destination && c.memory.destination === this.memory.destination && (!c.memory.operation || c.memory.operation === this.memory.operation));
         if (availablePartner) {
             if (handleSettingPermanent(this, availablePartner)) return true;
         } else if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {

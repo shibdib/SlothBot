@@ -57,12 +57,15 @@ function scanForNearbyThreats(creep) {
     const adjacentRooms = _.map(Game.map.describeExits(creep.room.name));
     for (let roomName of adjacentRooms) {
         let roomIntel = INTEL[roomName];
-        if (roomIntel && (roomIntel.threatLevel || roomIntel.hostileStructures)) {
-            if (!creep.memory.destination || creep.memory.destination !== roomName) {
-                creep.memory.destination = roomName;
-                creep.memory.awaitingOrders = undefined;
-                creep.say('Threat!', true);
-                return true;
+        if (roomIntel) {
+            if (roomIntel.towers) continue;
+            if (roomIntel.threatLevel || roomIntel.hostileStructures) {
+                if (!creep.memory.destination || creep.memory.destination !== roomName) {
+                    creep.memory.destination = roomName;
+                    creep.memory.awaitingOrders = undefined;
+                    creep.say('Threat!', true);
+                    return true;
+                }
             }
         }
     }
