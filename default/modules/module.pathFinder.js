@@ -929,13 +929,18 @@ function getMoveWeight(creep, options = {}) {
     }
     let move = creep.getActiveBodyparts(MOVE);
     // Get weight of creep
-    let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
+    let weight = creep.body.filter((p) => p.type !== MOVE && p.type !== CARRY).length;
     // Add weight of used carry parts
     weight += _.ceil(_.sum(creep.store) / 50) || 0;
-    if (!creep.memory._shibMove) creep.memory._shibMove = {};
     // Add weight of trailer
-    if (creep.memory.trailer && Game.getObjectById(creep.memory.trailer)) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
-    creep.memory.weight = weight;
+    if (creep.memory.trailer) {
+        const trailer = Game.getObjectById(creep.memory.trailer);
+        if (trailer && creep.pos.isNearTo(trailer)) {
+            weight += trailer.body.filter((p) => p.type !== MOVE && p.type !== CARRY).length;
+        } else if (!trailer) {
+            creep.memory.trailer = undefined;
+        }
+    }
     if (move >= weight * 5) {
         options.offRoad = true;
     } else if (move >= weight || (move === weight && COMBAT_ROLES.contains(creep.memory.role))) {
