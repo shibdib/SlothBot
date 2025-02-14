@@ -136,7 +136,7 @@ Object.defineProperty(Room.prototype, 'energyState', {
             const target = this.level === 8 ? 1000000 : Math.min((constructionCost(this.controller.level + 1) - constructionCost(this.controller.level)) * 1.5, 1500000);
             if (energy > target || (!this.storage && !this.terminal)) {
                 this._energyState = 2;
-            } else if (energy > target * 0.75 || (!this.storage || !this.terminal)) {
+            } else if (energy > target * 0.75) {
                 this._energyState = 1;
             } else {
                 this._energyState = 0;
