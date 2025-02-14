@@ -111,9 +111,9 @@ class World {
     }
 
     militaryCreepManager() {
-        const creeps = Object.values(Game.creeps).filter((creep) =>
+        const creeps = shuffle(Object.values(Game.creeps).filter((creep) =>
             (creep.memory.military || !creep.memory.colony)
-        );
+        ));
 
         for (const creep of creeps) {
             try {

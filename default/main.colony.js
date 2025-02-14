@@ -50,7 +50,7 @@ class Colony {
     }
 
     creepManager() {
-        const roomCreeps = Object.values(Game.creeps).filter(creep => creep.memory.colony === this.room.name && !creep.memory.military);
+        const roomCreeps = shuffle(Object.values(Game.creeps).filter(creep => creep.memory.colony === this.room.name && !creep.memory.military));
         for (const creep of roomCreeps) {
             try {
                 minionController(creep);
