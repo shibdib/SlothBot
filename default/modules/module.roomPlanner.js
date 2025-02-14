@@ -96,6 +96,9 @@ function buildFromLayout(room, countCheck) {
     if (!initialSpawn) {
         // No initial spawn: prioritize spawn structure
         filter = _.filter(bunkerTemplate, (s) => s.structureType === STRUCTURE_SPAWN);
+    } else if (TOWER_FIRST) {
+        // If tower first, we do that
+        filter = _.filter(countCheck, (s) => s.structureType === STRUCTURE_SPAWN);
     } else {
         // Build other structures based on controller level
         filter = _.filter(countCheck, (s) => CONTROLLER_STRUCTURES[s.structureType][room.controller.level]);
