@@ -153,11 +153,11 @@ RoomPosition.prototype.isInBunker = function () {
     const room = Game.rooms[this.roomName];
     if (!room.memory.bunkerHub || room.level < BUNKER_LEVEL) return false;
     const hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+    let spots = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
+    if (!spots.length) return false;
+    spots = spots.map(p => new RoomPosition(p.x, p.y, room.name));
     const costMatrix = new PathFinder.CostMatrix();
-    const ramparts = room.structures.filter((s) => s.structureType === STRUCTURE_RAMPART || OBSTACLE_OBJECT_TYPES.includes(s.structureType));
-    for (let ramp of ramparts) costMatrix.set(ramp.pos.x, ramp.pos.y, Infinity);
-    const rampartSites = room.constructionSites.filter((s) => s.structureType === STRUCTURE_RAMPART || OBSTACLE_OBJECT_TYPES.includes(s.structureType));
-    for (let ramp of rampartSites) costMatrix.set(ramp.pos.x, ramp.pos.y, Infinity);
+    for (let spot of spots) costMatrix.set(spot.pos.x, spot.pos.y, Infinity);
     const path = PathFinder.search(hub, {pos: this, range: 0}, {
         roomCallback: function (roomName) {
             if (roomName === room.name) return costMatrix;
