@@ -378,6 +378,7 @@ module.exports.remoteCreepQueue = function (room) {
     function shouldSkipRemote(room, remoteName) {
         if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remoteName)) return true;
         if (!INTEL[remoteName]) return true;
+        if (INTEL[remoteName].sk && room.level < SK_MINING_LEVEL) return true;
         if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
         if (INTEL[remoteName].reservation && ![MY_USERNAME, "Invader"].includes(INTEL[remoteName].reservation)) return true;
         if (INTEL[remoteName].roomHeat > 250) return true;
@@ -463,10 +464,8 @@ module.exports.remoteCreepQueue = function (room) {
         let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
         if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 2) {
             let remoteSource = JSON.parse(room.memory.remoteSources);
-            const activeSk = activeSkMining[room.name] + CREEP_LIFE_TIME > Game.time;
-            let acceptedScore = !room.energyState || room.level < 8 ? Math.max(REMOTE_DISTANCE_MAX, _.min(remoteSource, 'score').score) : 1;
-            remoteSource = _.sortBy(_.filter(remoteSource, (s) => !shouldSkipRemote(room, s.room) &&
-                (INTEL[s.room].sk || (!activeSk && s.score <= acceptedScore))
+            const acceptedScore = Math.max(REMOTE_DISTANCE_MAX, _.min(remoteSource, 'score').score);
+            remoteSource = _.sortBy(_.filter(remoteSource, (s) => s.score <= acceptedScore
                 && !_.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === s.source)), 'score')[0];
             if (remoteSource && remoteSource.room && (!INTEL[remoteSource.room].sk || getCreepCount(undefined, 'SKAttacker', remoteSource.room))) {
                 queueCreep(room, PRIORITIES.remoteHarvester, {
