@@ -22,6 +22,7 @@ class RoleShuttle {
 
     housekeeping() {
         this.creep.say(ICONS.haul, true);
+        this.creep.opportunisticFill();
     }
 
     hauling() {
@@ -39,7 +40,6 @@ class RoleShuttle {
                 }
             }
         } else {
-            this.creep.opportunisticFill();
             // If we have an energy state and a storage, store in the controller container. Otherwise store in storage.
             if (!this.creep.memory.storageDestination) {
                 let controllerContainer = Game.getObjectById(this.creep.room.memory.controllerContainer);

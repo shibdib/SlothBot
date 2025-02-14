@@ -21,10 +21,10 @@ class RoleHauler {
 
     housekeeping() {
         this.creep.say(ICONS.haul, true);
+        this.creep.opportunisticFill();
     }
 
     deliverResource() {
-        this.creep.opportunisticFill();
         if (!this.creep.haulerDelivery() && _.sum(this.creep.store)) return;
     }
 
