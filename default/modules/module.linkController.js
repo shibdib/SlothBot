@@ -18,7 +18,7 @@ class LinkControl {
         let controllerLink = Game.getObjectById(room.memory.controllerLink);
 
         // Set controller link if not already set
-        this.setControllerLink(room, links, controllerLink);
+        if (!controllerLink || !(controllerLink instanceof StructureLink)) this.setControllerLink(room, links, controllerLink);
 
         // Ensure hub link is valid or delete from memory if not
         if (!hubLink || !(hubLink instanceof StructureLink)) delete room.memory.hubLink;
@@ -28,30 +28,32 @@ class LinkControl {
     }
 
     setControllerLink(room, links, controllerLink) {
-        if (!controllerLink) {
-            controllerLink = links.find(s => s.pos.findInRange(room.structures, 2,
-                {filter: f => f.structureType === STRUCTURE_CONTROLLER}
-            )[0]);
-            if (controllerLink) room.memory.controllerLink = controllerLink.id;
-        }
+        controllerLink = links.find(s => s.pos.findInRange(room.structures, 2,
+            {filter: f => f.structureType === STRUCTURE_CONTROLLER}
+        )[0]);
+        if (controllerLink) room.memory.controllerLink = controllerLink.id;
     }
 
     processLink(link, room, hubLink, controllerLink) {
-        // Skip processing if energy transfer is unnecessary
         if (link.id === room.memory.hubLink && link.room.energyAvailable !== link.room.energyCapacityAvailable) return;
 
-        let upgrader = room.creeps.find(c => c.memory && c.memory.role === 'upgrader');
+        // Controller link only shares if room is under attack
+        if (link.id === room.memory.controllerLink && !room.memory.dangerousAttack) return;
+
+        const upgrader = room.creeps.find(c => c.memory && c.memory.role === 'upgrader' && c.memory.inPosition);
 
         // Simplified energy transfer logic
-        if (hubLink && !hubLink.room.energyState) {
+        if (upgrader && controllerLink && controllerLink.store[RESOURCE_ENERGY] < 100 && Math.random() > 0.8) {
+            link.transferEnergy(controllerLink);
+        } else if (hubLink && !hubLink.room.energyState) {
             link.transferEnergy(hubLink);
-        } else if (upgrader && controllerLink && controllerLink.store[RESOURCE_ENERGY] < 50) {
+        } else if (upgrader && controllerLink && controllerLink.store[RESOURCE_ENERGY] < 100) {
             link.transferEnergy(controllerLink);
         } else if (hubLink && hubLink.store[RESOURCE_ENERGY] < 400) {
             link.transferEnergy(hubLink);
         } else if (controllerLink && controllerLink.store[RESOURCE_ENERGY] < 200) {
             link.transferEnergy(controllerLink);
-        } else if (hubLink && hubLink.store[RESOURCE_ENERGY] < 750) {
+        } else if (hubLink && hubLink.store[RESOURCE_ENERGY] < LINK_CAPACITY) {
             link.transferEnergy(hubLink);
         } else {
             this.transferEnergyBetweenLinks(link, room);
