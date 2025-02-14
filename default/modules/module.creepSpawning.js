@@ -594,10 +594,10 @@ module.exports.globalCreepQueue = function () {
             case 'roomDenial':
                 // If this room doesn't spawn defenders we use dismantlers otherwise blinky
                 let count = 1;
-                if (INTEL[key].towers) {
+                if (INTEL[key] && INTEL[key].towers) {
                     count = (INTEL[key].towers + 1) * 2;
                 }
-                if (INTEL[key].noActiveDefenders) {
+                if (INTEL[key] && INTEL[key].noActiveDefenders) {
                     if (INTEL[key].towers) {
                         queueCreepIfNeeded(undefined, 'siegeDuo', priority, count, undefined, key, undefined, true, 'roomDenial');
                     } else {
@@ -933,6 +933,8 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
             const generatedInfo = new generator(myRoom.level, creepInfo.role, myRoom, creepInfo).generateBody();
             const body = generatedInfo.body;
             if (!body || !body.length) continue;
+            const route = myRoom.shibRoute(targetRoom);
+            if (!route || !route.length) continue;
             let distance = myRoom.shibRoute(targetRoom).length;
             let maxRange = 22;
             if (_.includes(body, CLAIM)) maxRange = 12;
