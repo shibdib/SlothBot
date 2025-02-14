@@ -68,10 +68,10 @@ class ModuleBodyGenerator {
             case 'drone':
                 energyScaling = true;
 
-                work = Math.floor((this.energyAmount * 0.15) / BODYPART_COST[WORK]) || 1;
+                work = Math.floor((this.energyAmount * 0.25) / BODYPART_COST[WORK]) || 1;
                 work = Math.min(work, 15);
 
-                carry = Math.floor((this.energyAmount * 0.35) / BODYPART_COST[CARRY]) || 1;
+                carry = Math.floor((this.energyAmount * 0.25) / BODYPART_COST[CARRY]) || 1;
                 carry = Math.min(carry, 10);
                 break;
 
