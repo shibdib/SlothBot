@@ -39,6 +39,7 @@ class RoleUpgrader {
                 else return this.creep.shibMove(this.container, {range: 0});
             } else {
                 if (this.container.pos.checkForCreep() && this.creep.pos.isNearTo(this.container) && this.creep.pos.isNearTo(this.link)) this.creep.memory.inPosition = true;
+                else if (!this.container.pos.checkForCreep()) return this.creep.shibMove(this.container, {range: 0})
                 else return this.creep.shibMove([this.container, this.link], {range: 1})
             }
         }

@@ -816,7 +816,6 @@ Creep.prototype.towTruck = function () {
     return true;
 };
 
-// Helper function to get tow destination
 function getTowDestination(trailer) {
     let towDestination;
     if (trailer.memory.towDestination && trailer.memory.towDestination.x) {
@@ -827,12 +826,10 @@ function getTowDestination(trailer) {
     return towDestination;
 }
 
-// Helper function to check if towing should timeout
 function shouldTimeout(towStart, trailer, towDestination) {
     return towStart + 125 < Game.time || !towDestination || !trailer.memory.towOptions || trailer.memory.towOptions.range >= trailer.pos.getRangeTo(towDestination);
 }
 
-// Helper function to reset towing state
 function resetTowingState(trailer) {
     trailer.memory._shibMove = undefined;
     trailer.memory.towCreep = undefined;
@@ -841,7 +838,6 @@ function resetTowingState(trailer) {
     trailer.memory.towOptions = undefined;
 }
 
-// Helper function to adjust movement when pulling
 function adjustMovement(creep, trailer) {
     if (creep.memory.lastRangeToTrailer && creep.memory.lastRangeToTrailer < 5 && creep.memory.lastRangeToTrailer < trailer.pos.getRangeTo(creep)) {
         creep.memory._shibMove = undefined;
@@ -849,7 +845,6 @@ function adjustMovement(creep, trailer) {
     creep.memory.lastRangeToTrailer = trailer.pos.getRangeTo(creep);
 }
 
-// Helper function to move to tow destination
 function moveToTowDestination(creep, trailer, towDestination) {
     if (!towDestination || creep.pos.getRangeTo(towDestination) === trailer.memory.towOptions.range) {
         creep.move(creep.pos.getDirectionTo(trailer));
