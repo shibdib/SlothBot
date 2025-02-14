@@ -415,7 +415,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
     }
 
     // Handle on-ramp ramparts
-    if (room.level >= BUNKER_LEVEL && onRampRamparts(room)) {
+    if (room.level >= SPECIAL_RAMPARTS && onRampRamparts(room)) {
         return true;
     }
 
@@ -485,10 +485,10 @@ function rampartBuilder(room, layout = undefined, count = false) {
         for (let structure of layout) {
             for (let buildPos of structure.pos) {
                 rectArray.push({
-                    x1: (buildPos.x + room.hub.x) - 3,
-                    y1: (buildPos.y + room.hub.y) - 3,
-                    x2: (buildPos.x + room.hub.x) + 3,
-                    y2: (buildPos.y + room.hub.y) + 3
+                    x1: (buildPos.x + room.hub.x) - 2,
+                    y1: (buildPos.y + room.hub.y) - 2,
+                    x2: (buildPos.x + room.hub.x) + 2,
+                    y2: (buildPos.y + room.hub.y) + 2
                 });
             }
         }
@@ -533,6 +533,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
                 }
             }
         }
+        if (cycles || inBuild.length) return true;
     }
 
     function addExistingRampartsToSpots(room, spots) {
