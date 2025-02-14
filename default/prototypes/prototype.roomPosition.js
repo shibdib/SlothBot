@@ -157,7 +157,7 @@ RoomPosition.prototype.isInBunker = function () {
     if (!spots.length) return false;
     spots = spots.map(p => new RoomPosition(p.x, p.y, room.name));
     const costMatrix = new PathFinder.CostMatrix();
-    for (let spot of spots) costMatrix.set(spot.pos.x, spot.pos.y, Infinity);
+    for (let spot of spots) costMatrix.set(spot.x, spot.y, Infinity);
     const path = PathFinder.search(hub, {pos: this, range: 0}, {
         roomCallback: function (roomName) {
             if (roomName === room.name) return costMatrix;
