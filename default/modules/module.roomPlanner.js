@@ -128,23 +128,53 @@ function shouldSkipStructure(room, structure) {
         ![STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(structure.structureType);
 }
 
+function towerBuilder(room) {
+    // Cycle thru the hubs
+    let index = tickTracker['lastTowerHub'] || 0;
+    let hub;
+    if (index + 1 >= room.memory.towerHubs.length) {
+        index = 0;
+        hub = room.memory.towerHubs[index];
+    } else {
+        hub = room.memory.towerHubs[index + 1];
+    }
+
+    // Handle tower placement
+    const towerHub = new RoomPosition(hub.x, hub.y, room.name);
+    const towers = room.structures.filter((s) => s.structureType === STRUCTURE_TOWER);
+    const towerSites = room.constructionSites.filter((s) => s.structureType === STRUCTURE_TOWER);
+    if (CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level] > towers.length + towerSites.length) {
+        tickTracker['lastTowerHub'] = index;
+        for (let xOff = -1; xOff <= 1; xOff++) {
+            for (let yOff = -1; yOff <= 1; yOff++) {
+                if (xOff === 0 && yOff === 0) continue;
+                const targetPos = new RoomPosition(towerHub.x + xOff, towerHub.y + yOff, towerHub.roomName);
+                const structurePresent = targetPos.checkForAllStructure();
+                if (structurePresent && structurePresent.structureType === STRUCTURE_TOWER) continue;
+                else if (structurePresent) structurePresent.destroy();
+                else if (targetPos.createConstructionSite(STRUCTURE_TOWER) === OK) return true;
+            }
+        }
+    }
+}
+
 function auxiliaryBuilding(room) {
     // Initialize layout from the bunker template
     let layout = bunkerTemplate;
 
     // Build necessary structures for sources, controller, ramparts, roads, etc.
-    sourceBuilder(room);
-    controllerBuilder(room);
-    rampartBuilder(room, layout);
-    buildRoads(room, layout);
+    if (sourceBuilder(room)) return;
+    if (controllerBuilder(room)) return;
+    if (rampartBuilder(room, layout)) return;
 
     // Handle hub and lab constructions
     if (room.storage) {
+        if (buildRoads(room, layout)) return;
         if (room.level >= 5) {
-            hubLink(room);
+            if (hubLink(room)) return true;
             if (room.level >= 6) {
-                labBuilder(room);
                 mineralBuilder(room);
+                labBuilder(room);
             }
         }
     } else {
@@ -158,6 +188,7 @@ function auxiliaryBuilding(room) {
     function buildRoads(room, layout) {
         if (room.level >= 3 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length < 3 && !roadBuilder(room, layout)) {
             INTEL[room.name].roadsBuilt = true;
+            return true;
         } else {
             INTEL[room.name].roadsBuilt = undefined;
         }
@@ -223,32 +254,71 @@ function hubLink(room) {
     return false;
 }
 
-function towerBuilder(room) {
-    // Cycle thru the hubs
-    let index = tickTracker['lastTowerHub'] || 0;
-    let hub;
-    if (index + 1 >= room.memory.towerHubs.length) {
-        index = 0;
-        hub = room.memory.towerHubs[index];
-    } else {
-        hub = room.memory.towerHubs[index + 1];
+function sourceBuilder(room) {
+    if (room.controller.level >= 2) {
+        for (let source of room.sources) {
+            if (buildSourceContainer(source, room)) return true;
+            if (buildSourceLink(source, room)) return true;
+        }
     }
 
-    // Handle tower placement
-    const towerHub = new RoomPosition(hub.x, hub.y, room.name);
-    const towers = room.structures.filter((s) => s.structureType === STRUCTURE_TOWER);
-    const towerSites = room.constructionSites.filter((s) => s.structureType === STRUCTURE_TOWER);
-    if (CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level] > towers.length + towerSites.length) {
-        tickTracker['lastTowerHub'] = index;
-        for (let xOff = -1; xOff <= 1; xOff++) {
-            for (let yOff = -1; yOff <= 1; yOff++) {
-                if (xOff === 0 && yOff === 0) continue;
-                const targetPos = new RoomPosition(towerHub.x + xOff, towerHub.y + yOff, towerHub.roomName);
-                const structurePresent = targetPos.checkForAllStructure();
-                if (structurePresent && structurePresent.structureType === STRUCTURE_TOWER) continue;
-                else if (structurePresent) structurePresent.destroy();
-                else if (targetPos.createConstructionSite(STRUCTURE_TOWER) === OK) return true;
+    // Helper function to handle the creation of source containers
+    function buildSourceContainer(source, room) {
+        let sourceContainer = Game.getObjectById(source.memory.containerID) || _.find(source.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
+        if (!sourceContainer) {
+            source.memory.container = undefined;
+            let sourceBuild = _.find(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
+            if (!sourceBuild) {
+                let containerSite = findBestContainerPos(source);
+                if (containerSite && !containerSite.checkForConstructionSites()) {
+                    if (containerSite.createConstructionSite(STRUCTURE_CONTAINER) === OK) return true;
+                }
             }
+        } else {
+            if (!source.memory.distanceToHub) {
+                source.memory.distanceToHub = source.pos.findPathTo(room.hub).length;
+            }
+            source.memory.container = sourceContainer.id;
+        }
+    }
+
+    // Helper function to handle the creation of source links
+    function buildSourceLink(source, room) {
+        const sourceContainer = Game.getObjectById(source.memory.container);
+        if (sourceContainer && Game.getObjectById(room.memory.hubLink)) {
+            let sourceLink = _.find(sourceContainer.pos.findInRange(room.impassibleStructures, 1), (s) => s.structureType === STRUCTURE_LINK);
+            let sourceBuild = _.find(sourceContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK);
+            // If no link exists and there is space to build, create one
+            if (!sourceLink && !sourceBuild && sourceContainer.pos.countOpenTerrainAround()) {
+                clearOldLink(source);
+                if (createSourceLink(source, sourceContainer)) return true;
+            } else if (sourceLink) {
+                source.memory.link = sourceLink.id;
+            }
+        }
+    }
+
+    // Helper function to clear old source links
+    function clearOldLink(source) {
+        if (source.memory.link && Game.getObjectById(source.memory.link)) {
+            const oldLink = Game.getObjectById(source.memory.link);
+            const oldRampart = oldLink.pos.checkForRampart();
+            if (oldRampart) oldRampart.destroy();
+            oldLink.destroy();
+            log.e('Cleared incorrect source link in ' + roomLink(source.room.name), "ROOM PLANNER:");
+        }
+        source.memory.link = undefined;
+    }
+
+    // Helper function to create a new source link
+    function createSourceLink(source, sourceContainer) {
+        let zoneTerrain = source.room.lookForAtArea(LOOK_TERRAIN, sourceContainer.pos.y - 1, sourceContainer.pos.x - 1, sourceContainer.pos.y + 1, sourceContainer.pos.x + 1, true);
+        const controllerContainer = Game.getObjectById(room.memory.controllerContainer);
+        for (let key in zoneTerrain) {
+            let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, source.room.name);
+            if (position.checkForWall() || position.checkForAllStructure() || position.isNearTo(controllerContainer)) continue;
+            if (position.createConstructionSite(STRUCTURE_LINK) === OK) return true;
+            break;
         }
     }
 }
@@ -289,7 +359,7 @@ function controllerBuilder(room) {
                 // Find the closest position to the hub and create the container construction site
                 let closestPos = getClosestPosition(possibles, room.hub);
                 if (closestPos) {
-                    closestPos.createConstructionSite(STRUCTURE_CONTAINER);
+                    if (closestPos.createConstructionSite(STRUCTURE_CONTAINER) === OK) return true;
                 }
             }
         } else {
@@ -309,7 +379,7 @@ function controllerBuilder(room) {
                 if (_.find(controllerContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK)) break;
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
                 if (position.checkForAllStructure() || position.checkForImpassible() || position.isNearTo(room.controller)) continue;
-                position.createConstructionSite(STRUCTURE_LINK);
+                if (position.createConstructionSite(STRUCTURE_LINK) === OK) return true;
                 break;
             }
         } else {
@@ -323,7 +393,7 @@ function controllerBuilder(room) {
         let closestRange = Infinity;
         for (let pos of positions) {
             pos = new RoomPosition(pos.x, pos.y, room.name);
-            const range = pos.getRangeTo(hub);
+            const range = pos.findPathTo(hub).length;
             if (range < closestRange) {
                 closestPos = pos;
                 closestRange = range;
@@ -333,137 +403,194 @@ function controllerBuilder(room) {
     }
 }
 
-function mineralBuilder(room) {
-    let extractor = _.find(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR);
+function rampartBuilder(room, layout = undefined, count = false) {
+    // Bunker
+    if (room.level >= BUNKER_LEVEL && handleBunkerRamparts(room, layout, count)) {
+        return true;
+    }
 
-    if (extractor) {
-        let extractorContainer = _.find(extractor.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
-        if (!extractorContainer) {
-            room.memory.extractorContainer = undefined;
-            if (!_.find(extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)) {
-                createExtractorContainerSite(extractor, room);
-            }
+    // Handle individual ramparts on structures/etc..
+    if (room.level >= SPECIAL_RAMPARTS && buildProtectedRamparts(room)) {
+        return true;
+    }
+
+    // Handle on-ramp ramparts
+    if (room.level >= BUNKER_LEVEL && onRampRamparts(room)) {
+        return true;
+    }
+
+    function handleBunkerRamparts(room, layout, count) {
+        if (!ROOM_RAMPART_SPOTS[room.name]) {
+            return initializeRampartSpots(room, layout, count);
         } else {
-            room.memory.extractorContainer = extractorContainer.id;
+            return placeRamparts(room, count);
         }
-    } else {
-        handleMineralExtractorCreation(room);
     }
 
-    // Helper function to create a construction site for a container near the extractor
-    function createExtractorContainerSite(extractor, room) {
-        let containerSpots = room.lookForAtArea(LOOK_TERRAIN, extractor.pos.y - 1, extractor.pos.x - 1, extractor.pos.y + 1, extractor.pos.x + 1, true);
-        for (let key in containerSpots) {
-            let position = new RoomPosition(containerSpots[key].x, containerSpots[key].y, room.name);
-            if (position && position.getRangeTo(extractor) === 1 && !position.checkForImpassible()) {
-                position.createConstructionSite(STRUCTURE_CONTAINER);
-                break;
+    function buildProtectedRamparts(room) {
+        if (PROTECT_SOURCES) {
+            for (let source of room.sources) {
+                buildRampartAround(source.pos);
             }
         }
-    }
-
-    // Helper function to create an extractor for minerals
-    function handleMineralExtractorCreation(room) {
-        if (!room.mineral.pos.checkForAllStructure() && !room.mineral.pos.checkForConstructionSites()) {
-            room.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
-        }
-    }
-}
-
-function sourceBuilder(room) {
-    if (room.controller.level >= 2) {
-        for (let source of room.sources) {
-            buildSourceContainer(source, room);
-            buildSourceLink(source, room);
-        }
-    }
-
-    // Helper function to handle the creation of source containers
-    function buildSourceContainer(source, room) {
-        let sourceContainer = Game.getObjectById(source.memory.containerID) || _.find(source.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
-
-        // If no container exists, create one
-        if (!sourceContainer) {
-            source.memory.container = undefined;
-            let sourceBuild = _.find(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
-
-            if (!sourceBuild) {
-                let containerSite = findBestContainerPos(source);
-                if (containerSite && !containerSite.checkForConstructionSites()) {
-                    containerSite.createConstructionSite(STRUCTURE_CONTAINER);
+        if (PROTECT_MINERAL) buildRampartAround(room.mineral.pos);
+        if (PROTECT_CONTROLLER) buildRampartAround(room.controller.pos);
+        // Handle ramparts on protected structures
+        if (PROTECT_STRUCTURES) {
+            for (let structure of room.structures) {
+                if (protectedStructureTypes.includes(structure.structureType)) {
+                    if (!structure.pos.checkForRampart() && !structure.pos.checkForConstructionSites()) {
+                        structure.pos.createConstructionSite(STRUCTURE_RAMPART);
+                    }
                 }
             }
-        } else {
-            // Store distance for shuttles if not already stored
-            if (!source.memory.distanceToHub) {
-                source.memory.distanceToHub = source.pos.findPathTo(room.hub).length;
-            }
-            source.memory.container = sourceContainer.id;
         }
     }
 
-    // Helper function to handle the creation of source links
-    function buildSourceLink(source, room) {
-        let sourceContainer = Game.getObjectById(source.memory.container);
-
-        if (sourceContainer && Game.getObjectById(room.memory.hubLink)) {
-            let sourceLink = _.find(sourceContainer.pos.findInRange(room.impassibleStructures, 1), (s) => s.structureType === STRUCTURE_LINK);
-
-            // If no link exists and there is space to build, create one
-            if (!sourceLink && sourceContainer.pos.countOpenTerrainAround() > 1) {
-                clearOldLink(source);
-                createSourceLink(source, sourceContainer);
-            } else if (sourceLink) {
-                source.memory.link = sourceLink.id;
+    function onRampRamparts(room) {
+        const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
+        if (!ramparts || !ramparts.length) return false;
+        const rampartPositions = ramparts.map(p => new RoomPosition(p.x, p.y, room.name));
+        const roads = room.structures.filter((s) => s.structureType === STRUCTURE_ROAD && !s.pos.checkForRampart());
+        let counter = 0;
+        for (const road of roads) {
+            if (counter >= 3) return true;
+            const rangeFromRampart = road.pos.getRangeTo(road.pos.findClosestByRange(rampartPositions));
+            if (rangeFromRampart <= 2 && road.pos.isInBunker()) {
+                if (road.pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
             }
         }
     }
 
-    // Helper function to clear old source links
-    function clearOldLink(source) {
-        if (source.memory.link && Game.getObjectById(source.memory.link)) {
-            const oldLink = Game.getObjectById(source.memory.link);
-            const oldRampart = oldLink.pos.checkForRampart();
-            if (oldRampart) oldRampart.destroy();
-            oldLink.destroy();
-            log.e('Cleared incorrect source link in ' + roomLink(source.room.name), "ROOM PLANNER:");
-        }
-        source.memory.link = undefined;
-    }
+    function initializeRampartSpots(room, layout, count) {
+        ROOM_RAMPART_SPOTS[room.name] = undefined;
+        let rectArray = getProtectedAreaBounds(layout, room);
+        let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
 
-    // Helper function to create a new source link
-    function createSourceLink(source, sourceContainer) {
-        let zoneTerrain = source.room.lookForAtArea(LOOK_TERRAIN, sourceContainer.pos.y - 1, sourceContainer.pos.x - 1, sourceContainer.pos.y + 1, sourceContainer.pos.x + 1, true);
-        for (let key in zoneTerrain) {
-            let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, source.room.name);
-            if (position.checkForWall() || position.checkForAllStructure() || position.getRangeTo(source.room.controller) < 3) continue;
-            position.createConstructionSite(STRUCTURE_LINK);
-            break;
+        try {
+            ROOM_RAMPART_SPOTS[room.name] = JSON.stringify(minCut.GetCutTiles(room.name, rectArray, bounds));
+        } catch (e) {
+            log.e('MinCut Error in room ' + room.name);
+            log.e(e.stack);
+        }
+
+        // Count ramparts if requested
+        if (count && ROOM_RAMPART_SPOTS[room.name]) {
+            return _.size(JSON.parse(ROOM_RAMPART_SPOTS[room.name]));
         }
     }
-}
 
-function labBuilder(room) {
-    // Check the current number of built labs
-    let builtLabs = _.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB).length;
-
-    // Check if there's already a construction site for labs
-    let labInBuild = _.find(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB);
-
-    // If the required number of labs are built, or there's already a construction site, skip further building
-    if (CONTROLLER_STRUCTURES[STRUCTURE_LAB][room.controller.level] <= builtLabs || labInBuild) return;
-
-    // Define the lab hub position from memory
-    let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
-
-    // Iterate through the lab template to place lab construction sites
-    for (let structure of labTemplate) {
-        let pos = new RoomPosition(labHub.x + structure.x, labHub.y + structure.y, room.name);
-        if (pos.checkForBuiltWall()) {
-            pos.checkForBuiltWall().destroy();
-        } else if (!pos.checkForConstructionSites() && !pos.checkForAllStructure()) {
-            pos.createConstructionSite(STRUCTURE_LAB);
+    function getProtectedAreaBounds(layout, room) {
+        let rectArray = [];
+        for (let structure of layout) {
+            for (let buildPos of structure.pos) {
+                rectArray.push({
+                    x1: (buildPos.x + room.hub.x) - 3,
+                    y1: (buildPos.y + room.hub.y) - 3,
+                    x2: (buildPos.x + room.hub.x) + 3,
+                    y2: (buildPos.y + room.hub.y) + 3
+                });
+            }
         }
+        // Lab hub
+        if (room.memory.labHub) {
+            const labHub = room.memory.labHub;
+            rectArray.push({x1: labHub.x - 3, y1: labHub.y - 3, x2: labHub.x + 3, y2: labHub.y + 3});
+        }
+        // Tower hub
+        if (room.memory.towerHubs && room.memory.towerHubs.length) {
+            for (const towerHub of room.memory.towerHubs) {
+                rectArray.push({x1: towerHub.x - 2, y1: towerHub.y - 2, x2: towerHub.x + 2, y2: towerHub.y + 2});
+            }
+        }
+        // Set bounds
+        for (let key in rectArray) {
+            let rect = rectArray[key];
+            rect.x1 = Math.max(rect.x1, 2);
+            rect.y1 = Math.max(rect.y1, 2);
+            rect.x2 = Math.min(rect.x2, 47);
+            rect.y2 = Math.min(rect.y2, 47);
+        }
+        return rectArray;
+    }
+
+    function placeRamparts(room) {
+        let spots = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
+        if (!spots || !spots.length) {
+            addExistingRampartsToSpots(room, spots);
+        }
+
+        let buildPositions = spots.map(p => new RoomPosition(p.x, p.y, room.name));
+        let inBuild = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length;
+
+        // Avoid exceeding 5 constructions at a time
+        let cycles = 0;
+        for (let pos of buildPositions) {
+            if (cycles + inBuild >= 5) return true;
+            if (shouldBuildRampartAtPosition(pos, room)) {
+                if (pos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
+                    cycles++;
+                }
+            }
+        }
+    }
+
+    function addExistingRampartsToSpots(room, spots) {
+        // Only add existing ramparts or walls once
+        let existingRamparts = _.filter(room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
+        existingRamparts.forEach((b) => spots.push({x: b.pos.x, y: b.pos.y}));
+    }
+
+    function shouldBuildRampartAtPosition(pos, room) {
+        // General rampart check based on proximity to important structures
+        if (isNearProtectedStructure(pos, room)) {
+            return !pos.checkForRampart() && !pos.checkForConstructionSites();
+        }
+
+        // Handle tunnels
+        if (pos.checkForWall() && pos.checkForRoad()) {
+            return handleTunnelRampart(pos);
+        }
+
+        return !pos.checkForBarrierStructure() && !pos.checkForConstructionSites();
+    }
+
+    function isNearProtectedStructure(pos, room) {
+        return pos.isNearTo(room.controller) || pos.isNearTo(room.mineral) || pos.isNearTo(pos.findClosestByRange(FIND_SOURCES));
+    }
+
+    function handleTunnelRampart(pos) {
+        for (let xOff = -1; xOff <= 1; xOff++) {
+            for (let yOff = -1; yOff <= 1; yOff++) {
+                if (xOff !== 0 || yOff !== 0) {
+                    let newPos = new RoomPosition(pos.x + xOff, pos.y + yOff, pos.roomName);
+                    if (!newPos.checkForWall() && !newPos.checkForBarrierStructure() && !newPos.checkForConstructionSites() &&
+                        newPos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    function buildRampartAround(position) {
+        // Loop through a 3x3 area around the position
+        for (let xOff = -1; xOff <= 1; xOff++) {
+            for (let yOff = -1; yOff <= 1; yOff++) {
+                // Skip the center position
+                if (xOff === 0 && yOff === 0) continue;
+
+                let targetPos = new RoomPosition(position.x + xOff, position.y + yOff, position.roomName);
+
+                // Check if the position is valid for placing a rampart
+                if (isValidRampartPosition(targetPos)) {
+                    targetPos.createConstructionSite(STRUCTURE_RAMPART);
+                    return true; // Stop after placing one rampart
+                }
+            }
+        }
+        return false; // Return false if no valid position was found
     }
 }
 
@@ -652,194 +779,64 @@ function roadBuilder(room, layout) {
     }
 }
 
-function rampartBuilder(room, layout = undefined, count = false) {
-    // Bunker
-    if (room.level >= BUNKER_LEVEL && handleBunkerRamparts(room, layout, count)) {
-        return;
-    }
+function labBuilder(room) {
+    // Check the current number of built labs
+    let builtLabs = _.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB).length;
 
-    // Handle individual ramparts on structures/etc..
-    if (room.level >= SPECIAL_RAMPARTS && buildProtectedRamparts(room)) {
-        return;
-    }
+    // Check if there's already a construction site for labs
+    let labInBuild = _.find(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB);
 
-    // Handle on-ramp ramparts
-    if (room.level >= BUNKER_LEVEL && onRampRamparts(room)) {
-        return;
-    }
+    // If the required number of labs are built, or there's already a construction site, skip further building
+    if (CONTROLLER_STRUCTURES[STRUCTURE_LAB][room.controller.level] <= builtLabs || labInBuild) return;
 
-    function handleBunkerRamparts(room, layout, count) {
-        if (!ROOM_RAMPART_SPOTS[room.name]) {
-            return initializeRampartSpots(room, layout, count);
+    // Define the lab hub position from memory
+    let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
+
+    // Iterate through the lab template to place lab construction sites
+    for (let structure of labTemplate) {
+        let pos = new RoomPosition(labHub.x + structure.x, labHub.y + structure.y, room.name);
+        if (pos.checkForBuiltWall()) {
+            pos.checkForBuiltWall().destroy();
+        } else if (!pos.checkForConstructionSites() && !pos.checkForAllStructure()) {
+            pos.createConstructionSite(STRUCTURE_LAB);
+        }
+    }
+}
+
+function mineralBuilder(room) {
+    let extractor = _.find(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR);
+
+    if (extractor) {
+        let extractorContainer = _.find(extractor.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
+        if (!extractorContainer) {
+            room.memory.extractorContainer = undefined;
+            if (!_.find(extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)) {
+                createExtractorContainerSite(extractor, room);
+            }
         } else {
-            return placeRamparts(room, count);
+            room.memory.extractorContainer = extractorContainer.id;
         }
+    } else {
+        handleMineralExtractorCreation(room);
     }
 
-    function buildProtectedRamparts(room) {
-        if (PROTECT_SOURCES) {
-            for (let source of room.sources) {
-                buildRampartAround(source.pos);
-            }
-        }
-        if (PROTECT_MINERAL) buildRampartAround(room.mineral.pos);
-        if (PROTECT_CONTROLLER) buildRampartAround(room.controller.pos);
-        // Handle ramparts on protected structures
-        if (PROTECT_STRUCTURES) {
-            for (let structure of room.structures) {
-                if (protectedStructureTypes.includes(structure.structureType)) {
-                    if (!structure.pos.checkForRampart() && !structure.pos.checkForConstructionSites()) {
-                        structure.pos.createConstructionSite(STRUCTURE_RAMPART);
-                    }
-                }
+    // Helper function to create a construction site for a container near the extractor
+    function createExtractorContainerSite(extractor, room) {
+        let containerSpots = room.lookForAtArea(LOOK_TERRAIN, extractor.pos.y - 1, extractor.pos.x - 1, extractor.pos.y + 1, extractor.pos.x + 1, true);
+        for (let key in containerSpots) {
+            let position = new RoomPosition(containerSpots[key].x, containerSpots[key].y, room.name);
+            if (position && position.getRangeTo(extractor) === 1 && !position.checkForImpassible()) {
+                position.createConstructionSite(STRUCTURE_CONTAINER);
+                break;
             }
         }
     }
 
-    function onRampRamparts(room) {
-        const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
-        if (!ramparts || !ramparts.length) return false;
-        const rampartPositions = ramparts.map(p => new RoomPosition(p.x, p.y, room.name));
-        const roads = room.structures.filter((s) => s.structureType === STRUCTURE_ROAD && !s.pos.checkForRampart());
-        let counter = 0;
-        for (const road of roads) {
-            if (counter >= 3) return true;
-            const rangeFromRampart = road.pos.getRangeTo(road.pos.findClosestByRange(rampartPositions));
-            if (rangeFromRampart <= 2 && road.pos.isInBunker()) {
-                if (road.pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
-            }
+    // Helper function to create an extractor for minerals
+    function handleMineralExtractorCreation(room) {
+        if (!room.mineral.pos.checkForAllStructure() && !room.mineral.pos.checkForConstructionSites()) {
+            room.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
         }
-    }
-
-    function initializeRampartSpots(room, layout, count) {
-        ROOM_RAMPART_SPOTS[room.name] = undefined;
-        let rectArray = getProtectedAreaBounds(layout, room);
-        let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
-
-        try {
-            ROOM_RAMPART_SPOTS[room.name] = JSON.stringify(minCut.GetCutTiles(room.name, rectArray, bounds));
-        } catch (e) {
-            log.e('MinCut Error in room ' + room.name);
-            log.e(e.stack);
-        }
-
-        // Count ramparts if requested
-        if (count && ROOM_RAMPART_SPOTS[room.name]) {
-            return _.size(JSON.parse(ROOM_RAMPART_SPOTS[room.name]));
-        }
-    }
-
-    function getProtectedAreaBounds(layout, room) {
-        let rectArray = [];
-        for (let structure of layout) {
-            for (let buildPos of structure.pos) {
-                rectArray.push({
-                    x1: (buildPos.x + room.hub.x) - 3,
-                    y1: (buildPos.y + room.hub.y) - 3,
-                    x2: (buildPos.x + room.hub.x) + 3,
-                    y2: (buildPos.y + room.hub.y) + 3
-                });
-            }
-        }
-        // Lab hub
-        if (room.memory.labHub) {
-            const labHub = room.memory.labHub;
-            rectArray.push({x1: labHub.x - 3, y1: labHub.y - 3, x2: labHub.x + 3, y2: labHub.y + 3});
-        }
-        // Tower hub
-        if (room.memory.towerHubs && room.memory.towerHubs.length) {
-            for (const towerHub of room.memory.towerHubs) {
-                rectArray.push({x1: towerHub.x - 2, y1: towerHub.y - 2, x2: towerHub.x + 2, y2: towerHub.y + 2});
-            }
-        }
-        // Set bounds
-        for (let key in rectArray) {
-            let rect = rectArray[key];
-            rect.x1 = Math.max(rect.x1, 2);
-            rect.y1 = Math.max(rect.y1, 2);
-            rect.x2 = Math.min(rect.x2, 47);
-            rect.y2 = Math.min(rect.y2, 47);
-        }
-        return rectArray;
-    }
-
-    function placeRamparts(room) {
-        let spots = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
-        if (!spots || !spots.length) {
-            addExistingRampartsToSpots(room, spots);
-        }
-
-        let buildPositions = spots.map(p => new RoomPosition(p.x, p.y, room.name));
-        let inBuild = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length;
-
-        // Avoid exceeding 5 constructions at a time
-        let cycles = 0;
-        for (let pos of buildPositions) {
-            if (cycles + inBuild >= 5) return true;
-            if (shouldBuildRampartAtPosition(pos, room)) {
-                if (pos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
-                    cycles++;
-                }
-            }
-        }
-    }
-
-    function addExistingRampartsToSpots(room, spots) {
-        // Only add existing ramparts or walls once
-        let existingRamparts = _.filter(room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
-        existingRamparts.forEach((b) => spots.push({x: b.pos.x, y: b.pos.y}));
-    }
-
-    function shouldBuildRampartAtPosition(pos, room) {
-        // General rampart check based on proximity to important structures
-        if (isNearProtectedStructure(pos, room)) {
-            return !pos.checkForRampart() && !pos.checkForConstructionSites();
-        }
-
-        // Handle tunnels
-        if (pos.checkForWall() && pos.checkForRoad()) {
-            return handleTunnelRampart(pos);
-        }
-
-        return !pos.checkForBarrierStructure() && !pos.checkForConstructionSites();
-    }
-
-    function isNearProtectedStructure(pos, room) {
-        return pos.isNearTo(room.controller) || pos.isNearTo(room.mineral) || pos.isNearTo(pos.findClosestByRange(FIND_SOURCES));
-    }
-
-    function handleTunnelRampart(pos) {
-        for (let xOff = -1; xOff <= 1; xOff++) {
-            for (let yOff = -1; yOff <= 1; yOff++) {
-                if (xOff !== 0 || yOff !== 0) {
-                    let newPos = new RoomPosition(pos.x + xOff, pos.y + yOff, pos.roomName);
-                    if (!newPos.checkForWall() && !newPos.checkForBarrierStructure() && !newPos.checkForConstructionSites() &&
-                        newPos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    function buildRampartAround(position) {
-        // Loop through a 3x3 area around the position
-        for (let xOff = -1; xOff <= 1; xOff++) {
-            for (let yOff = -1; yOff <= 1; yOff++) {
-                // Skip the center position
-                if (xOff === 0 && yOff === 0) continue;
-
-                let targetPos = new RoomPosition(position.x + xOff, position.y + yOff, position.roomName);
-
-                // Check if the position is valid for placing a rampart
-                if (isValidRampartPosition(targetPos)) {
-                    targetPos.createConstructionSite(STRUCTURE_RAMPART);
-                    return true; // Stop after placing one rampart
-                }
-            }
-        }
-        return false; // Return false if no valid position was found
     }
 }
 
