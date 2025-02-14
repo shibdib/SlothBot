@@ -56,7 +56,9 @@ class RoleLongbowDuo {
         if (!this.creep.pos.isNearTo(partner) || partner.fatigue) {
             if (partner.room.name === this.room.name) this.creep.shibMove(partner); else this.handleSolo();
         } else {
-            if (this.creep.memory.destination) {
+            if (this.creep.memory.operation) {
+                this.operationManagement();
+            } else if (this.creep.memory.destination) {
                 this.destinationManagement();
             }
         }
@@ -75,6 +77,17 @@ class RoleLongbowDuo {
         if (this.creep.findDefensivePosition()) this.creep.idleFor(5);
     }
 
+    operationManagement() {
+        switch (this.creep.memory.operation) {
+            case 'stronghold':
+                this.creep.strongholdAttack();
+                break;
+            case 'roomDenial':
+                this.creep.denyRoom();
+                break;
+        }
+    }
+
     destinationManagement() {
         if (this.room.name !== this.creep.memory.destination) {
             return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22});
@@ -82,7 +95,7 @@ class RoleLongbowDuo {
             // If we can't get to the controller or sources, clear a path
             if (!this.creep.scorchedEarth()) {
                 this.room.cacheRoomIntel(true);
-                this.creep.suicide();
+                this.creep.recycleCreep();
             }
         }
     }
