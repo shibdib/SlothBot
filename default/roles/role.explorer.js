@@ -54,12 +54,28 @@ class RoleExplorer {
     }
 
     exploreRoom() {
+        if (SIGN_ROOMS && this.creep.memory.lastRoom !== this.room.name) return this.signRooms();
         this.creep.memory.destination = undefined;
         this.creep.memory.lastRoom = this.room.name;
     }
 
     travel() {
         this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 10});
+    }
+
+    signRooms() {
+        if (this.room.controller && (!this.room.controller.sign || this.room.controller.sign.username !== MY_USERNAME)) {
+            switch (this.creep.signController(this.room.controller, _.sample(EXPLORED_ROOM_SIGNS) + ` - ` + Game.time)) {
+                case ERR_NOT_IN_RANGE:
+                    if (!this.creep.memory.signAttempt) this.creep.memory.signAttempt = Game.time;
+                    else if (this.creep.memory.signAttempt + 50 < Game.time) {
+                        this.creep.memory.signAttempt = undefined;
+                        return this.creep.memory.lastRoom = this.room.name;
+                    }
+                    return this.creep.shibMove(this.room.controller);
+            }
+        }
+        this.creep.memory.lastRoom = this.room.name;
     }
 }
 

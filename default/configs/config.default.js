@@ -69,6 +69,7 @@ global.ENERGY_TARGETS = {
 }
 
 // Signing and whatnot
+global.SIGN_ROOMS = true;
 global.OWNED_ROOM_SIGNS = [
     "SlothBot"
 ];
