@@ -185,9 +185,11 @@ let helpers = function () {
             log.a('--INTEL CACHE PURGED--', ' ');
             global.INTEL = {};
         } else {
+            const intel = INTEL;
             log.a(`--INTEL PURGED FOR ${roomLink(roomName)}--`, ' ');
-            global.INTEL[roomName] = {cached: 0};
+            delete intel[roomName];
             INTEL_ROOM_PURGE.push(roomName)
+            global.INTEL = intel;
         }
     }
 
