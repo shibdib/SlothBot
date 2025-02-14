@@ -17,5 +17,6 @@ require("operation.scout");
 require("operation.guard");
 require("operation.roomDenial");
 require("operation.borderPatrol");
-require("operation.harass"); // Harass random rooms of a specific players remotes
-require("operation.remoteDenial"); // Deny individual rooms remotes
+require("operation.harass");
+require("operation.remoteDenial");
+require("operation.stronghold");
