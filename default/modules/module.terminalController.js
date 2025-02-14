@@ -28,6 +28,7 @@ class TerminalControl {
             this.pricingUpdate(globalOrders, myOrders);
             this.orderCleanup(myOrders);
             if (['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) && SELL_PIXELS) this.sellPixels();
+            lastRun['updates'] = Game.time;
         }
 
         if (Game.shard.name === 'shardSeason') {
