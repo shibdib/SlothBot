@@ -45,7 +45,7 @@ module.exports.buildRoom = function () {
     // If no lab hub is set, find and assign one
     if (!room.memory.labHub) return findLabHub(room);
 
-    if (!room.memory.towerHubs) findTowerHub(room);
+    if (!room.memory.towerHubs && BETA_TOWERS) findTowerHub(room);
 
     // Update tick tracker
     tickTracker['lastTick'] = Game.time + 5;
@@ -102,7 +102,7 @@ function buildFromLayout(room, countCheck) {
     }
 
     // Handle towers
-    if (room.memory.towerHubs && room.memory.towerHubs.length) {
+    if (BETA_TOWERS && room.memory.towerHubs && room.memory.towerHubs.length) {
         filter = _.filter(filter, (s) => s.structureType !== STRUCTURE_TOWER);
         towerBuilder(room);
     }
@@ -404,6 +404,13 @@ function controllerBuilder(room) {
 }
 
 function rampartBuilder(room, layout = undefined, count = false) {
+    // Clean old ramparts
+    if (Memory.rampartVersion !== RAMPART_VERSION) {
+        Memory.rampartVersion = RAMPART_VERSION;
+        MY_ROOMS.forEach((r) => Game.rooms[r].structures.filter((s) => s.structureType === STRUCTURE_RAMPART || (s.structureType === STRUCTURE_ROAD && s.pos.checkForRampart())).forEach((q) => q.destroy()));
+        for (const i in Game.constructionSites) Game.constructionSites[i].remove();
+    }
+
     // Bunker
     if (room.level >= BUNKER_LEVEL && handleBunkerRamparts(room, layout, count)) {
         return true;
@@ -414,8 +421,8 @@ function rampartBuilder(room, layout = undefined, count = false) {
         return true;
     }
 
-    // Handle on-ramp ramparts
-    if (room.level >= SPECIAL_RAMPARTS && onRampRamparts(room)) {
+    // Handle protective ramparts
+    if (room.level >= SPECIAL_RAMPARTS && protectiveRamparts(room)) {
         return true;
     }
 
@@ -447,7 +454,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
         }
     }
 
-    function onRampRamparts(room) {
+    function protectiveRamparts(room) {
         const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
         if (!ramparts || !ramparts.length) return false;
         const rampartPositions = ramparts.map(p => new RoomPosition(p.x, p.y, room.name));
@@ -458,6 +465,14 @@ function rampartBuilder(room, layout = undefined, count = false) {
             const rangeFromRampart = road.pos.getRangeTo(road.pos.findClosestByRange(rampartPositions));
             if (rangeFromRampart <= 2 && road.pos.isInBunker()) {
                 if (road.pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
+            }
+        }
+        const vulnerableStructures = room.structures.filter((s) => !s.pos.checkForRampart());
+        for (const structure of vulnerableStructures) {
+            if (counter >= 3) return true;
+            const rangeFromRampart = structure.pos.getRangeTo(structure.pos.findClosestByRange(rampartPositions));
+            if (rangeFromRampart <= 2 && structure.pos.isInBunker()) {
+                if (structure.pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
             }
         }
     }
@@ -485,10 +500,10 @@ function rampartBuilder(room, layout = undefined, count = false) {
         for (let structure of layout) {
             for (let buildPos of structure.pos) {
                 rectArray.push({
-                    x1: (buildPos.x + room.hub.x) - 2,
-                    y1: (buildPos.y + room.hub.y) - 2,
-                    x2: (buildPos.x + room.hub.x) + 2,
-                    y2: (buildPos.y + room.hub.y) + 2
+                    x1: (buildPos.x + room.hub.x) - 1,
+                    y1: (buildPos.y + room.hub.y) - 1,
+                    x2: (buildPos.x + room.hub.x) + 1,
+                    y2: (buildPos.y + room.hub.y) + 1
                 });
             }
         }
@@ -496,12 +511,6 @@ function rampartBuilder(room, layout = undefined, count = false) {
         if (room.memory.labHub) {
             const labHub = room.memory.labHub;
             rectArray.push({x1: labHub.x - 3, y1: labHub.y - 3, x2: labHub.x + 3, y2: labHub.y + 3});
-        }
-        // Tower hub
-        if (room.memory.towerHubs && room.memory.towerHubs.length) {
-            for (const towerHub of room.memory.towerHubs) {
-                rectArray.push({x1: towerHub.x - 2, y1: towerHub.y - 2, x2: towerHub.x + 2, y2: towerHub.y + 2});
-            }
         }
         // Set bounds
         for (let key in rectArray) {
