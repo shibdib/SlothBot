@@ -166,8 +166,7 @@ module.exports.essentialCreepQueue = function (room) {
         let haulerPriority = PRIORITIES.hauler;
         let haulerReboot = false;
         if (storageOrTerminal) {
-            //let haulerAmount = room.memory.needsHaulers && room.energyState > 1 ? 2 : 1;
-            let haulerAmount = 2;
+            let haulerAmount = room.memory.needsHaulers && room.energyState > 1 ? 2 : 1;
             if (!haulerCount) {
                 haulerPriority = 1;
                 haulerReboot = true;
@@ -294,7 +293,7 @@ module.exports.remoteCreepQueue = function (room) {
     // Process remote rooms
     if (remoteRoomTargets[room.name]) {
         let remoteRooms = JSON.parse(remoteRoomTargets[room.name]);
-        remoteRooms.forEach(remoteName => processRemoteRoom(room, remoteName));
+        remoteRooms.forEach(remoteName => processRemoteSpecificTasks(room, remoteName));
     }
 
     // If room remote limited, disable harvesters/haulers/special ops
@@ -316,34 +315,7 @@ module.exports.remoteCreepQueue = function (room) {
         handleBlockedRoom(room);
     }
 
-    function refreshRemoteRoomTargets(room) {
-        lastRemoteRefresh[room.name] = Game.time;
-        remoteRoomTargets[room.name] = undefined;
-        const exits = Game.map.describeExits(room.name);
-
-        // Handle finding usable remotes
-        const remoteRooms = _.filter(exits, function (r) {
-            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level && !INTEL[r].obstacles &&
-                (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation));
-        });
-        remoteRoomTargets[room.name] = JSON.stringify(remoteRooms);
-
-        // Handle finding contested remotes
-        const contestedRemote = _.find(exits, function (r) {
-            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && !INTEL[r].sk && INTEL[r].sources && !INTEL[r].level && !INTEL[r].obstacles
-                && (INTEL[r].user && INTEL[r].user !== 'Invader' && !_.includes(FRIENDLIES, INTEL[r].user));
-        });
-        if (contestedRemote) contestedRemotes[room.name] = contestedRemote;
-
-        // Handle finding blocked remotes
-        const blockedRemote = _.find(exits, function (r) {
-            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && !INTEL[r].sk && INTEL[r].sources && !INTEL[r].level && INTEL[r].obstacles
-                && !INTEL[r].owner;
-        });
-        if (blockedRemote) blockedRemotes[room.name] = blockedRemote;
-    }
-
-    function processRemoteRoom(room, remoteName) {
+    function processRemoteSpecificTasks(room, remoteName) {
         if (shouldSkipRemote(room, remoteName)) return;
 
         // Add room to intel tracker
@@ -465,7 +437,7 @@ module.exports.remoteCreepQueue = function (room) {
         if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 2) {
             let remoteSource = JSON.parse(room.memory.remoteSources);
             const acceptedScore = Math.max(REMOTE_DISTANCE_MAX, _.min(remoteSource, 'score').score);
-            remoteSource = _.sortBy(_.filter(remoteSource, (s) => s.score <= acceptedScore
+            remoteSource = _.sortBy(_.filter(remoteSource, (s) => !shouldSkipRemote(room, s.room) && s.score <= acceptedScore
                 && !_.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === s.source)), 'score')[0];
             if (remoteSource && remoteSource.room && (!INTEL[remoteSource.room].sk || getCreepCount(undefined, 'SKAttacker', remoteSource.room))) {
                 queueCreep(room, PRIORITIES.remoteHarvester, {
@@ -508,6 +480,33 @@ module.exports.remoteCreepQueue = function (room) {
                 });
             }
         }
+    }
+
+    function refreshRemoteRoomTargets(room) {
+        lastRemoteRefresh[room.name] = Game.time;
+        remoteRoomTargets[room.name] = undefined;
+        const exits = Game.map.describeExits(room.name);
+
+        // Handle finding usable remotes
+        const remoteRooms = _.filter(exits, function (r) {
+            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level && !INTEL[r].obstacles &&
+                (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation));
+        });
+        remoteRoomTargets[room.name] = JSON.stringify(remoteRooms);
+
+        // Handle finding contested remotes
+        const contestedRemote = _.find(exits, function (r) {
+            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && !INTEL[r].sk && INTEL[r].sources && !INTEL[r].level && !INTEL[r].obstacles
+                && (INTEL[r].user && INTEL[r].user !== 'Invader' && !_.includes(FRIENDLIES, INTEL[r].user));
+        });
+        if (contestedRemote) contestedRemotes[room.name] = contestedRemote;
+
+        // Handle finding blocked remotes
+        const blockedRemote = _.find(exits, function (r) {
+            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && !INTEL[r].sk && INTEL[r].sources && !INTEL[r].level && INTEL[r].obstacles
+                && !INTEL[r].owner;
+        });
+        if (blockedRemote) blockedRemotes[room.name] = blockedRemote;
     }
 };
 
@@ -745,7 +744,7 @@ function creepExpiringSoon(room = undefined, role, destination = undefined) {
     if (!count) return true;
     return false;
     // If the creep had to travel, account for that in ticks remaining
-    let distance = destination ? Game.map.getRoomLinearDistance(findClosestOwnedRoom(destination, false, MAX_LEVEL), destination) * 50 : 10;
+    let distance = destination ? Game.map.getRoomLinearDistance(findClosestOwnedRoom(destination, false, MAX_LEVEL), destination) * 50 : 0;
     const creeps = _.filter(Game.creeps, (c) => c.my && c.memory.role === role &&
         (c.room.name === room.name || c.memory.destination === destination || c.memory.colony === room.name));
     const soonestExpiring = _.min(creeps, 'ticksToLive');
