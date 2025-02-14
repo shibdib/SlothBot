@@ -412,10 +412,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         }
         // Sk rooms can sometimes have towers spawn
         if (roomIntel.sk) {
-            const towers = this.structures.filter((s) => s.structureType === STRUCTURE_TOWER &&
-                s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST &&
-                s.isActive())
+            const towers = this.structures.filter((s) => s.structureType === STRUCTURE_TOWER);
             if (towers.length) {
+                purgeBadRoute(this.name);
                 roomIntel.towers = towers.length;
                 roomIntel.towerData = this.towerData();
             }
@@ -482,6 +481,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST &&
             s.isActive())
         if (towers.length) {
+            purgeBadRoute(this.name);
             roomIntel.towers = towers.length;
             roomIntel.towerData = this.towerData();
         }
@@ -620,16 +620,14 @@ Room.prototype.invaderCheck = function () {
     const previousCheck = roomData.lastInvaderCheck || Game.time;
 
     // If invader check is recent, return early
-    if (roomData.lastInvaderCheck + 15 > Game.time) return;
+    const cooldown = !!this.hostileCreeps.length ? 3 : 15;
+    if (roomData.lastInvaderCheck + cooldown > Game.time) return false;
 
     roomData.lastInvaderCheck = Game.time;
 
     // If the room is owned/reserved by someone else or too far from your rooms, clear data
-    if (
-        (roomData.owner && roomData.owner !== MY_USERNAME) ||
-        (roomData.reservation && roomData.reservation !== MY_USERNAME) ||
-        findClosestOwnedRoom(this.name, true) > 2
-    ) {
+    if ((roomData.owner && roomData.owner !== MY_USERNAME) || (roomData.reservation && roomData.reservation !== MY_USERNAME)
+        || findClosestOwnedRoom(this.name, true) > 2) {
         // Reset the room data
         Object.assign(roomData, {
             numberOfHostiles: undefined,

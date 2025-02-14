@@ -90,18 +90,20 @@ module.exports.retrievePathing = function () {
     // Retrieve pathing and routing cache
     if (pathingCheckCounter < 25) {
         if (Memory.pathingVersion === PATHFINDER_VERSION) {
+            // Paths
             if (RawMemory.segments[69] !== undefined) {
                 pathingSegmentChecked = true;
-                global.CACHE.globalPathCache = RawMemory.segments[69] ? JSON.parse(RawMemory.segments[69]) : {};
+                CACHE.globalPathCache = JSON.parse(RawMemory.segments[69]);
                 log.e("Pathing segment retrieved, restoring old path cache.", "PATHING MANAGER: ");
             } else {
                 pathingCheckCounter++;
                 RawMemory.setActiveSegments(activeSegments);
                 log.d("Pathing segment not accessible, enabling the segment for the next tick.", "PATHING MANAGER: ");
             }
+            // Routes
             if (RawMemory.segments[70] !== undefined) {
                 pathingSegmentChecked = true;
-                global.CACHE.globalRouteCache = RawMemory.segments[70] ? JSON.parse(RawMemory.segments[70]) : {};
+                CACHE.ROUTE_CACHE = JSON.parse(RawMemory.segments[70]);
                 log.e("Routing segment retrieved, restoring old routing cache.", "PATHING MANAGER: ");
             } else {
                 pathingCheckCounter++;
@@ -118,7 +120,7 @@ module.exports.retrievePathing = function () {
     } else {
         pathingSegmentChecked = true;
         global.CACHE.globalPathCache = {};
-        global.CACHE.globalRouteCache = {};
+        global.CACHE.ROUTE_CACHE = {};
         log.e("Pathing/Routing segment not accessible, resetting.", "PATHING MANAGER: ");
     }
     return true;
@@ -151,10 +153,10 @@ module.exports.storePathing = function () {
 
         // Handle routes
         // Check for invalid cache
-        if (!_.size(CACHE.globalRouteCache)) {
-            return global.CACHE.globalRouteCache = {};
+        if (!_.size(CACHE.ROUTE_CACHE)) {
+            return global.CACHE.ROUTE_CACHE = {};
         }
-        store = JSON.parse(JSON.stringify(CACHE.globalRouteCache));
+        store = JSON.parse(JSON.stringify(CACHE.ROUTE_CACHE));
         try {
             if (JSON.stringify(store).length >= 75000) {
                 store = cleanStore(store);

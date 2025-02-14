@@ -261,7 +261,7 @@ module.exports.miscCreepQueue = function (room) {
         if (room.memory.borderPatrol) {
             const power = INTEL[room.memory.borderPatrol] ? INTEL[room.memory.borderPatrol].hostilePower : 50;
             const count = Math.min(power / (15 * room.level), 4)
-            queueCreepIfNeeded(room, 'longbow', PRIORITIES.high, count, undefined, undefined, undefined, undefined, 'borderPatrol', {power: power});
+            queueCreepIfNeeded(room, 'longbow', PRIORITIES.remoteHarvester - 1, count, undefined, undefined, undefined, undefined, 'borderPatrol', {power: power});
         }
     }
 };
@@ -398,11 +398,7 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleInvaderCore(room, remoteName) {
         if (INTEL[remoteName].sk || INTEL[remoteName].obstacles) return;
-        if (!getCreepCount(undefined, 'attacker', remoteName)) {
-            queueCreep(room, PRIORITIES.remoteHarvester - 1, {
-                role: 'attacker', military: true, destination: remoteName
-            });
-        }
+        queueCreepIfNeeded(room, 'attacker', PRIORITIES.remoteHarvester - 1, 1, undefined, remoteName);
     }
 
     function handleThreatLevel(room, remoteName) {
@@ -492,7 +488,7 @@ module.exports.remoteCreepQueue = function (room) {
         const surroundingRooms = getSurroundingRooms(room.name);
         const remoteRooms = surroundingRooms.filter(function (r) {
             return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level && !INTEL[r].obstacles &&
-                (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation)) && Game.map.findRoute(room.name, r) <= 2;
+                (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation)) && Game.map.findRoute(room.name, r).length <= 2;
         });
         remoteRoomTargets[room.name] = JSON.stringify(remoteRooms);
 
@@ -550,12 +546,7 @@ module.exports.globalCreepQueue = function () {
                         (!r.armedHostile || r.armedHostile + CREEP_LIFE_TIME < Game.time) && !r.safemode;
                 }));
                 if (harassTarget) {
-                    queueCreep(undefined, PRIORITIES.secondary, {
-                        role: 'longbow',
-                        destination: harassTarget.name,
-                        operation: 'harass',
-                        military: true
-                    }, true);
+                    queueCreepIfNeeded(undefined, 'longbow', PRIORITIES.secondary, 1, undefined, key, undefined, undefined, 'harass');
                 }
             }
         }
@@ -732,13 +723,13 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
  * @returns {*|number}
  */
 function getCreepCount(room = undefined, role, destination = undefined, operation = undefined, colony = undefined) {
-    if (!destination && !operation && room) return _.filter(Game.creeps, (c) => c.my && (c.memory.role === role || c.memory.oldRole === role) && (c.memory.destination === room.name || c.room.name === room.name || c.memory.colony === room.name)).length;
-    else if (room && operation && !destination) return _.filter(Game.creeps, (c) => c.my && (c.memory.role === role || c.memory.oldRole === role) && (c.memory.destination === room.name || c.memory.colony === room.name) && c.memory.operation === operation).length;
-    else if (destination && !operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role === role || c.memory.oldRole === role) && (c.memory.destination === destination || c.memory.colony === destination)).length;
-    else if (!destination && operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role === role || c.memory.oldRole === role) && c.memory.operation === operation).length;
-    else if (destination && operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role === role || c.memory.oldRole === role) && (c.memory.destination === destination || c.memory.colony === destination) && c.memory.operation === operation).length
-    else if (!destination && !operation && !room && colony) return _.filter(Game.creeps, (c) => c.my && (c.memory.role === role || c.memory.oldRole === role) && c.memory.colony === colony).length;
-    else if (!destination && !operation && !room) return _.filter(Game.creeps, (c) => c.my && (c.memory.role === role || c.memory.oldRole === role)).length;
+    if (!destination && !operation && room) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === room.name || c.room.name === room.name || c.memory.colony === room.name)).length;
+    else if (room && operation && !destination) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === room.name || c.memory.colony === room.name) && c.memory.operation === operation).length;
+    else if (destination && !operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === destination || c.memory.colony === destination)).length;
+    else if (!destination && operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && c.memory.operation === operation).length;
+    else if (destination && operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === destination || c.memory.colony === destination) && c.memory.operation === operation).length
+    else if (!destination && !operation && !room && colony) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && c.memory.colony === colony).length;
+    else if (!destination && !operation && !room) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role)).length;
 }
 
 function creepExpiringSoon(room = undefined, role, destination = undefined) {
@@ -747,7 +738,7 @@ function creepExpiringSoon(room = undefined, role, destination = undefined) {
     return false;
     // If the creep had to travel, account for that in ticks remaining
     let distance = destination ? Game.map.getRoomLinearDistance(findClosestOwnedRoom(destination, false, MAX_LEVEL), destination) * 50 : 0;
-    const creeps = _.filter(Game.creeps, (c) => c.my && c.memory.role === role &&
+    const creeps = _.filter(Game.creeps, (c) => c.my && c.memory.role.includes(role) &&
         (c.room.name === room.name || c.memory.destination === destination || c.memory.colony === room.name));
     const soonestExpiring = _.min(creeps, 'ticksToLive');
     if (!soonestExpiring || soonestExpiring.spawning) return false;
