@@ -565,10 +565,10 @@ function getStructureMatrix(roomName, creep, matrix, options) {
     }
     // Check if matrix is cached and usable
     if (!structureMatrixCache[roomName + type] || options.showMatrix || options.tunnel
-        || Game.time > structureMatrixCache[roomName + type].tick + (CREEP_LIFE_TIME * 25) || structureMatrixCache[roomName + type].count !== room.structures.length) {
+        || Game.time > structureMatrixCache[roomName + type].tick + (CREEP_LIFE_TIME * 25) || structureMatrixCache[roomName + type].count !== (room.structures.length + room.constructionSites.length)) {
         structureMatrixCache[roomName + type] = addStructuresToMatrix(room, creep, matrix, type, options).serialize();
         structureMatrixCache[roomName + type].tick = Game.time;
-        structureMatrixCache[roomName + type].count = room.structures.length;
+        structureMatrixCache[roomName + type].count = room.structures.length + room.constructionSites.length;
     }
     return PathFinder.CostMatrix.deserialize(structureMatrixCache[roomName + type]);
 
