@@ -782,22 +782,26 @@ Creep.prototype.pairUp = function () {
     function handleSettingPermanent(creep, partner) {
         creep.memory.leader = true;
         creep.memory.partner = partner.id;
-        creep.memory.oldRole = partner.memory.role;
+        creep.memory.oldRole = undefined;
         creep.memory.role = 'longbowDuo';
+        creep.say('PAIRED', true);
         partner.memory.partner = creep.id;
-        partner.memory.oldRole = partner.memory.role;
+        partner.memory.oldRole = undefined;
         partner.memory.role = 'longbowDuo';
+        partner.say('PAIRED', true);
         return true;
     }
 
     function handleSettingTemporary(creep) {
         const availablePartner = _.find(creep.room.myCreeps, (c) => c.id !== this.id && !c.spawning && ['longbow', 'longbowDuo'].includes(c.memory.role) && !c.memory.partner);
         if (availablePartner) {
+            availablePartner.say('PAIRED', true);
             availablePartner.memory.leader = true;
             availablePartner.memory.partner = creep.id;
             availablePartner.memory.oldRole = availablePartner.memory.role;
             availablePartner.memory.role = 'longbowDuo';
             availablePartner.memory.temporaryPartner = true;
+            creep.say('PAIRED', true);
             creep.memory.temporaryPartner = true;
             creep.memory.partner = availablePartner.id;
             creep.memory.oldRole = availablePartner.memory.role;
@@ -808,6 +812,7 @@ Creep.prototype.pairUp = function () {
 
     function handleClearingTemporary(creep) {
         if ((creep.memory.temporaryPartner || creep.memory.oldRole) && !creep.room.hostileCreeps.length && !creep.room.hostileStructures.length) {
+            creep.say('UNPAIR', true);
             creep.memory.leader = undefined;
             creep.memory.partner = undefined;
             creep.memory.temporaryPartner = undefined;
@@ -815,6 +820,7 @@ Creep.prototype.pairUp = function () {
             creep.memory.oldRole = undefined;
             const partner = Game.getObjectById(creep.memory.partner);
             if (partner) {
+                partner.say('UNPAIR', true);
                 partner.memory.leader = undefined;
                 partner.memory.partner = undefined;
                 partner.memory.temporaryPartner = undefined;
