@@ -20,7 +20,7 @@ module.exports.setRoomState = function (room) {
         const importantBuilds = _.some(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
         if (!room.memory.availableForAssignment || assignmentCooldown[room.name] < Game.time) {
             assignmentCooldown[room.name] = Game.time + CREEP_LIFE_TIME;
-            room.memory.availableForAssignment = !importantBuilds && room.level >= 3 && room.energyState && !INTEL[room.name].threatLevel;
+            room.memory.availableForAssignment = !importantBuilds && room.level >= 3 && room.energyState && !room.memory.dangerousAttack;
         }
 
         // Energy tracking

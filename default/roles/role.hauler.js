@@ -12,7 +12,7 @@ class RoleHauler {
 
     performRoleActions() {
         this.housekeeping()
-        if (_.sum(this.creep.store)) {
+        if (_.sum(this.creep.store) > this.creep.store.getCapacity() * 0.2) {
             this.deliverResource();
         } else {
             this.findResource();

@@ -82,8 +82,8 @@ class ModuleBodyGenerator {
                     work = 1;
                     carry = 1;
                 } else if (this.room.memory.controllerContainer) {
-                    work = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) / BODYPART_COST[WORK]) || 1;
-                    work = Math.min(work, 49);
+                    work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
+                    work = Math.min(work, 50);
                     if (this.level === 8) Math.min(work, 15);
                     carry = 1;
                     move = 0;
@@ -127,7 +127,7 @@ class ModuleBodyGenerator {
 
 
             case 'mineralHarvester':
-                work = Math.floor((this.energyAmount - (BODYPART_COST[MOVE] + BODYPART_COST[CARRY])) / BODYPART_COST[WORK]) || 1;
+                work = Math.floor(this.energyAmount / BODYPART_COST[WORK]) || 1;
                 work = Math.min(work, 50);  // Max work to 50
                 move = 0;
                 break;

@@ -6,8 +6,6 @@ const profiler = require("tools.profiler");
 /**
  * Created by rober on 6/21/2017.
  */
-let lastPriceAdjust = 0;
-let diplomacyTracker = 0;
 const priceUpdateTracker = {};
 const usedTerminals = {};
 const lastRun = {};
@@ -28,7 +26,7 @@ class TerminalControl {
         if (!lastRun['updates'] || lastRun['updates'] + 50 < Game.time) {
             this.updateSpendingMoney();
             this.pricingUpdate(globalOrders, myOrders);
-            this.orderCleanup();
+            this.orderCleanup(myOrders);
             if (['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) && SELL_PIXELS) this.sellPixels();
         }
 
@@ -112,7 +110,7 @@ class TerminalControl {
                     if (sellOrder.id && sellOrder.price * buyAmount > Memory._banker.spendingAccount) buyAmount = _.floor(Memory._banker.spendingAccount / sellOrder.price);
 
                     if (sellOrder.id && buyAmount >= 50) {
-                        buyAmount = Math.min(buyAmount, sellOrder.amount, target * 0.3);
+                        buyAmount = Math.min(buyAmount, sellOrder.amount);
                         if (Game.market.deal(sellOrder.id, buyAmount, terminal.room.name) === OK) {
                             log.w(`Bought ${buyAmount} ${mineral} for ${sellOrder.price * buyAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
                             Memory._banker.spendingAccount -= (sellOrder.price * buyAmount);
@@ -234,7 +232,8 @@ class TerminalControl {
     }
 
     quickSell(terminal, globalOrders) {
-        let spareSpace = terminal.store.getFreeCapacity() + terminal.room.storage.store.getFreeCapacity();
+        const storageSpace = terminal.room.storage ? terminal.room.storage.store.getFreeCapacity() : 0;
+        const spareSpace = terminal.store.getFreeCapacity() + storageSpace;
         // Dynamically adjust credit buffer based on current market condition
         let dynamicBuffer = Math.max(CREDIT_BUFFER, Game.market.credits * 0.20);
         const spendingAccount = Memory._banker.spendingAccount || 0;
@@ -409,11 +408,11 @@ class TerminalControl {
     }
 
     emergencyEnergy(terminal) {
-        if (!terminal.energyState || !terminal.store[RESOURCE_ENERGY] || INTEL[terminal.room.name].requestingSupport || INTEL[terminal.room.name].threatLevel || terminal.room.nukes.length) {
+        if (!terminal.energyState || !terminal.store[RESOURCE_ENERGY] || terminal.room.memory.dangerousAttack || INTEL[terminal.room.name].threatLevel || terminal.room.nukes.length) {
             return false;
         }
 
-        let responseNeeded = _.filter(MY_ROOMS, (r) => r !== terminal.room.name && INTEL[r] && INTEL[r].threatLevel >= 3 && Game.rooms[r].terminal && !Game.rooms[r].energyState);
+        let responseNeeded = _.filter(MY_ROOMS, (r) => r !== terminal.room.name && INTEL[r] && Game.rooms[r].memory.dangerousAttack && Game.rooms[r].terminal && !Game.rooms[r].energyState);
         if (!responseNeeded.length) return false;
 
         let lowestEnergyRoom = _.min(responseNeeded, (r) => Game.rooms[r].energy);
@@ -569,8 +568,8 @@ class TerminalControl {
                 const multi = marketHistory.trend > 0 ? 1.01 : 0.99;
                 newPrice = parseFloat(marketHistory.lowest) * multi;
                 if (newPrice === Infinity || newPrice === -Infinity) newPrice = marketHistory.avg;
-                if (marketHistory.trend5 > 0) return Math.max(newPrice, marketHistory.trend5);
-                return Math.max(newPrice, marketHistory.avg * 0.8);
+                if (marketHistory.trend5 > 0) return Math.max(newPrice, marketHistory.trend5, 0.05);
+                return Math.max(newPrice, marketHistory.avg * 0.8, 0.05);
             } else {
                 if (volatility > 0.1) { // High volatility
                     newPrice = marketHistory.highest * 0.99; // Slightly below the peak to encourage quick sales
@@ -586,7 +585,9 @@ class TerminalControl {
             const highestBuy = _.max(orders.filter((o) => o.type === ORDER_BUY && o.resourceType === resource && !MY_ROOMS.includes(o.roomName)), 'price');
             if (orderType === ORDER_SELL) {
                 if (lowestSell && lowestSell.price) {
-                    return Math.min((lowestSell.price - 0.01), (highestBuy.price * 0.5))
+                    let price = lowestSell.price - 0.01;
+                    if (price < highestBuy.price) price = highestBuy.price;
+                    return Math.max(price, 0.05);
                 } else if (highestBuy && highestBuy.price) {
                     return Math.max(highestBuy.price * 0.5, 0.05);
                 }

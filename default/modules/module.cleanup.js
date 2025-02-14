@@ -26,14 +26,6 @@ module.exports.cleanup = function () {
                 delete Memory.flags[name];
             }
         }
-
-        // Suicide bugged creeps
-        const buggedCreeps = _.filter(Game.creeps, function (c) {
-            return !c.memory || !c.memory.role;
-        });
-        for (let i = 0; i < buggedCreeps.length; i++) {
-            buggedCreeps[i].suicide();
-        }
     }
 };
 

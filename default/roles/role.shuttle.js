@@ -13,7 +13,7 @@ class RoleShuttle {
 
     performRoleActions() {
         if (this.housekeeping()) return;
-        if (_.sum(this.creep.store)) {
+        if (_.sum(this.creep.store) > this.creep.store.getCapacity() * 0.2) {
             this.hauling();
         } else {
             this.pickup();
@@ -46,7 +46,7 @@ class RoleShuttle {
                 if (this.creep.room.storage && this.creep.room.energyState > 1 && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 100) this.creep.memory.storageDestination = controllerContainer.id;
                 else if (this.creep.room.storage) this.creep.memory.storageDestination = this.creep.room.storage.id;
             }
-            if (!this.creep.haulerDelivery()) this.creep.idleFor(5)
+            if (!this.creep.haulerDelivery()) this.creep.idleFor(this.creep.room.level)
         }
     }
 
@@ -54,7 +54,7 @@ class RoleShuttle {
         if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
             this.creep.withdrawResource()
         } else {
-            this.creep.idleFor(5)
+            this.creep.idleFor(this.creep.room.level)
         }
     }
 }

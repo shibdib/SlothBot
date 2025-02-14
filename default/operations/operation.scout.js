@@ -89,14 +89,23 @@ function handleRoomDenialOperation(room) {
         delete Memory.targetRooms[room.name];
         return;
     }
+
+    const spawnsTowers = room.structures.find((s) => s.structureType === STRUCTURE_TOWER || s.structureType === STRUCTURE_SPAWN);
+    Memory.targetRooms[room.name].camping = !!spawnsTowers;
+
     updateRoomLevel(room);
     handleCleanerAndClaimAttacker(room);
 }
 
 function handleScoutOperation(room) {
-    if (INTEL[room.name].owner && (!INTEL[room.name].towers || INTEL[room.name].towers <= 3)) {
+    room.cacheRoomIntel(true)
+    const towers = room.structures.filter((s) => s.structureType === STRUCTURE_TOWER);
+    if (INTEL[room.name].sk && towers.length) {
+        Memory.targetRooms[room.name].type = 'stronghold';
+        Memory.targetRooms[room.name].boostsRequired = [HEAL];
+    } else if (INTEL[room.name].owner && (!INTEL[room.name].towers || towers.length <= 3)) {
         Memory.targetRooms[room.name].type = 'roomDenial';
-        if (INTEL[room.name].towers) Memory.targetRooms[room.name].boostsRequired = [HEAL];
+        if (towers.length) Memory.targetRooms[room.name].boostsRequired = [HEAL];
         log.a(`Room ${roomLink(room.name)} converted to room denial operation.`, 'HIGH COMMAND: ');
     } else if (INTEL[room.name].owner && INTEL[room.name].towers > 3) {
         Memory.targetRooms[room.name].type = 'remoteDenial';
@@ -140,11 +149,11 @@ function updateRoomLevel(room) {
     const armedCreeps = room.hostileCreeps.find((c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
     if (towers.length) {
         if (towers.length === 1) {
-            targetRoom.level = 3;
+            targetRoom.level = 2;
         } else if (towers.length === 2) {
-            targetRoom.level = 4;
+            targetRoom.level = 3;
         } else {
-            targetRoom.level = 5;
+            targetRoom.level = 4;
         }
     } else if (armedCreeps) {
         targetRoom.level = 2;

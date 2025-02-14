@@ -8,7 +8,7 @@ Object.defineProperty(Creep.prototype, "idle", {
     get: function () {
         if (this.memory.idle === undefined) return 0;
         if (this.memory.idle <= Game.time || (this.ticksToLive >= 1485 || this.hasActiveBodyparts(CLAIM))
-            || this.room.hostileCreeps.length || INTEL[this.room.name].threatLevel) {
+            || this.room.hostileCreeps.length || (INTEL[this.room.name] && INTEL[this.room.name].threatLevel)) {
             delete this.idle;
             delete this.memory.idle;
             delete this.memory.idleSet;
@@ -23,10 +23,11 @@ Object.defineProperty(Creep.prototype, "idle", {
             return 0;
         }
         if (!this.memory.idleSet) {
+            const militaryCreep = this.hasActiveBodyparts(ATTACK) || this.hasActiveBodyparts(RANGED_ATTACK);
             if (this.memory.other.stationary) this.memory.other.stationary = undefined;
-            if (this.pos.checkForRampart() || this.memory.partner || !this.hasActiveBodyparts(MOVE)) {
+            if ((militaryCreep && this.pos.checkForRampart()) || this.memory.partner || !this.hasActiveBodyparts(MOVE)) {
                 this.memory.idleSet = true;
-            } else if (this.pos.getRangeTo(this.pos.findClosestByRange(this.room.find(FIND_EXIT))) < 5) {
+            } else if (this.pos.getRangeTo(this.pos.findClosestByRange(this.room.find(FIND_EXIT))) < 8) {
                 const middleOfRoom = new RoomPosition(25, 25, this.room.name);
                 this.shibMove(middleOfRoom, {range: 10});
                 return true;
@@ -212,10 +213,14 @@ Creep.prototype.opportunisticFill = function () {
     if (!this.store[RESOURCE_ENERGY] || !this.room.level) return false;
 
     // Look for structures in a 3x3 area around the creep
-    const nearbyStructures = this.room.lookForAtArea(LOOK_STRUCTURES, this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1, true);
-    const nearbyCreeps = this.room.lookForAtArea(LOOK_CREEPS, this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1, true);
-    const nearbyItems = nearbyStructures.concat(nearbyCreeps);
-
+    let nearbyStructures, nearbyCreeps, nearbyItems;
+    try {
+        nearbyStructures = this.room.lookForAtArea(LOOK_STRUCTURES, this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1, true);
+        nearbyCreeps = this.room.lookForAtArea(LOOK_CREEPS, this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1, true);
+        nearbyItems = nearbyStructures.concat(nearbyCreeps);
+    } catch (e) {
+        return false;
+    }
     for (let item of nearbyItems) {
         if (item.type === LOOK_STRUCTURES) {
             if ([STRUCTURE_EXTENSION, STRUCTURE_SPAWN].includes(item.structure.structureType) &&
@@ -250,9 +255,12 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
 
     if (destination.resourceType && destination.resourceType !== resourceType) {
         resourceType = destination.resourceType;
-    } else if (!destination[resourceType] && (!destination.store || !destination.store[resourceType])) {
-        delete this.memory.energyDestination;
-        return false;
+    } else if (destination.store && !destination.store[resourceType]) {
+        resourceType = Object.keys(destination.store)[0];
+        if (!resourceType) {
+            delete this.memory.energyDestination;
+            return false;
+        }
     }
 
     if (!destination) {
@@ -331,6 +339,11 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         // Handle remote haulers pre-storage
         if (!room.storage && room.controller && room.controller.owner && !['hauler', 'shuttle', 'remoteHauler'].includes(this.memory.role)) {
             potentialEnergy = potentialEnergy.concat(myCreeps.find(c => c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 3));
+        }
+
+        // Drones can steal everything early levels, prevent that
+        if (!room.storage && this.memory.role === 'drone') {
+            if (room.energyAvailable < room.energyCapacityAvailable) return false;
         }
 
         // Haulers prioritze the hub link
@@ -432,7 +445,7 @@ Creep.prototype.haulerDelivery = function () {
     // Towers if below emergency threshold
     if (this.room.controller.level >= 3) {
         let threatLevel = this.room.memory.threatLevel || 0;
-        let energyThreshold = threatLevel ? TOWER_CAPACITY : TOWER_CAPACITY * 0.5;
+        let energyThreshold = threatLevel ? TOWER_CAPACITY : TOWER_CAPACITY * ((this.room.energyAvailable / this.room.energyCapacityAvailable) * 0.5);
         targets = targets.concat(this.room.find(FIND_MY_STRUCTURES, {
             filter: s => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < energyThreshold
         }));
@@ -661,6 +674,7 @@ Creep.prototype.builderFunction = function () {
         construction.say(construction.hits + '/' + construction.hitsMax);
         switch (this.repair(construction)) {
             case OK:
+                if (this.pos.isNearTo(this.pos.findClosestByRange(FIND_SOURCES))) this.moveRandom();
                 this.memory.other.stationary = true;
                 return true;
             case ERR_NOT_IN_RANGE:
@@ -686,6 +700,7 @@ Creep.prototype.builderFunction = function () {
         construction.say(construction.progress + '/' + construction.progressTotal);
         switch (this.build(construction)) {
             case OK:
+                if (this.pos.isNearTo(this.pos.findClosestByRange(FIND_SOURCES))) this.moveRandom();
                 this.memory.other.stationary = true;
                 return true;
             case ERR_NOT_IN_RANGE:
@@ -907,9 +922,8 @@ Creep.prototype.borderCheck = function () {
                 this.move(_.sample(options));
             }
         }
-        return true;
+        this.memory.moveBlocked = Game.time;
     }
-    return false;
 };
 
 // Helper function to find a road near the creep
@@ -955,7 +969,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                 case 'attack':
                     boostNeeded = this.getActiveBodyparts(ATTACK) * 30;
                     break;
-                case 'ranged':
+                case 'ranged_attack':
                     boostNeeded = this.getActiveBodyparts(RANGED_ATTACK) * 30;
                     break;
                 case 'tough':
@@ -1034,6 +1048,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                         case OK:
                             this.memory.boosts.requestedBoosts = _.filter(this.memory.boosts.requestedBoosts, (b) => b['boost'] !== lab.memory.neededBoost);
                             lab.memory.neededBoost = undefined;
+                            this.memory.hasBoosted = true;
                             this.say(ICONS.greenCheck);
                             return true;
                         case ERR_NOT_IN_RANGE:
@@ -1061,7 +1076,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
             Game.getObjectById(this.memory.boosts.boostLab).memory = undefined;
         }
         this.memory.boosts = undefined;
-        if (!this.memory.neededBoosts) return this.memory.boostAttempt = true; else return true;
+        if (!this.memory.neededBoosts || this.memory.hasBoosted) return this.memory.boostAttempt = true; else return true;
     }
     return true;
 };

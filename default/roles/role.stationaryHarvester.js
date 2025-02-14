@@ -40,7 +40,7 @@ class RoleStationaryHarvester {
             if (!container && this.creep.store[RESOURCE_ENERGY]) {
                 source.memory.container = undefined;
                 let dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
-                if (dropped && dropped.amount >= 750) {
+                if (dropped && dropped.amount >= 250) {
                     let site = this.creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
                     if (site) {
                         this.creep.build(site);
@@ -85,15 +85,6 @@ class RoleStationaryHarvester {
                     this.creep.memory.onContainer = true;
                 }
             }
-        }
-    }
-
-    findResource() {
-        if (!this.creep.memory.energyDestination) this.creep.memory._shibMove = undefined;
-        if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
-            this.creep.withdrawResource()
-        } else {
-            this.creep.idleFor(5);
         }
     }
 }

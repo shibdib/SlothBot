@@ -178,7 +178,7 @@ function minionController(minion) {
         minion.memory.notifyDisabled = true;
     }
     // Handle idle
-    if (minion.idle || minion.memory.blocked === Game.time) {
+    if (minion.idle) {
         minion.attackInRange();
         minion.healInRange();
         return;
@@ -186,9 +186,11 @@ function minionController(minion) {
     // Track Threat
     diplomacy.trackThreat(minion);
     // Handle edge cases
-    if (minion.borderCheck() || (minion.memory.fleeNukeTime && minion.fleeNukeRoom())) {
+    if (minion.memory.fleeNukeTime && minion.fleeNukeRoom()) {
         return;
     }
+    // Border
+    minion.borderCheck();
     // Report intel chance
     if (!MY_ROOMS.includes(minion.room.name)) {
         minion.room.invaderCheck();

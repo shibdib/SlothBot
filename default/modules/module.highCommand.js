@@ -68,13 +68,14 @@ function checkCooldown(task, cooldown) {
 function militaryOperations() {
     if (!Memory._enemies || !Memory._enemies.length) Memory._enemies = [];
     // Handle stronghold operations
-    let activeStrongholdAttacks = _.find(Memory.targetRooms, (target) => target && target.type === 'stronghold');
+    let activeStrongholdAttacks = _.find(Memory.targetRooms, (t) => t && t.type === 'stronghold');
     if (!activeStrongholdAttacks) {
-        let stronghold = _.sortBy(_.filter(INTEL, (r) => r && r.sk && r.towers && siegeLevel(r.towers) && myRoomInSectorCheck(r.name)), function (t) {
+        let stronghold = _.min(_.filter(INTEL, (r) => r && r.sk && r.towers && siegeLevel(r.towers) && myRoomInSectorCheck(r.name)), function (t) {
+            if (!t.name) return Infinity;
             return findClosestOwnedRoom(t.name, true);
-        })[0];
+        });
 
-        if (stronghold) setTarget(stronghold.name, 'stronghold', 1, [HEAL]);
+        if (stronghold && stronghold.name) setTarget(stronghold.name, 'stronghold', 1, [HEAL]);
     }
 
     if (OFFENSIVE_OPERATIONS) {
@@ -208,19 +209,19 @@ function manageResponseForces() {
         }
 
         // Remote support hostile
-        let remoteSupport = _.findKey(INTEL, (r) => r.threatLevel > 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
+        let remoteSupport = _.findKey(INTEL, (r) => r && r.threatLevel > 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
         if (remoteSupport) {
             potentialTargets.push({type: 'remoteRoomAttack', room: remoteSupport, priority: 9});
         }
 
         // Invader Core
-        let invaderCore = _.findKey(INTEL, (r) => r.invaderCore && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
+        let invaderCore = _.findKey(INTEL, (r) => r && r.invaderCore && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
         if (invaderCore) {
             potentialTargets.push({type: 'invaderCore', room: invaderCore, priority: 8});
         }
 
         // Remote support unarmed
-        let remoteSupportUnarmed = _.findKey(INTEL, (r) => r.threatLevel === 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
+        let remoteSupportUnarmed = _.findKey(INTEL, (r) => r && r.threatLevel === 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
         if (remoteSupportUnarmed) {
             potentialTargets.push({type: 'unarmedVisitors', room: remoteSupportUnarmed, priority: 7});
         }
@@ -319,6 +320,10 @@ function manageMilitary() {
                 continue;  // Skip test operations
 
             case 'roomDenial':
+                if (target.camping) {
+                    staleMulti = 9999;
+                    break;
+                }
                 staleMulti = 5;
                 if (activeSiegeOperations > SIEGE_LIMIT ||
                     (INTEL[key] && (_.includes(FRIENDLIES, INTEL[key].owner) || !INTEL[key].owner || INTEL[key].owner === 'Invader'))) {
@@ -358,6 +363,10 @@ function manageMilitary() {
                     continue;
                 }
                 staleMulti *= (target.level + 1);
+                break;
+
+            case 'stronghold':
+                staleMulti = 5;
                 break;
 
             case 'power':
@@ -450,7 +459,7 @@ function manageMilitary() {
             continue;
         }
 
-        if (target.friendlyDead && target.tick + 1750 && target.friendlyDead > (target.enemyDead || 1000) * staleMulti) {
+        if (target.friendlyDead && target.tick + CREEP_LIFE_TIME && target.friendlyDead > (target.enemyDead || 1000)) {
             log.a('Canceling operation in ' + roomLink(key) + ' due to heavy casualties.', 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             INTEL[key].lastOperation = Game.time;
@@ -824,20 +833,9 @@ module.exports.operationSustainability = function (room, operationRoom = room.na
     let trackedEnemy = operation.trackedEnemy || [];
     let isAtRisk = false; // Flag to track if the operation is at risk
 
-    // Process friendly tombstones
+    // Process tombstones
     friendlyDead = processTombstones(room.tombstones, FRIENDLIES, friendlyDead, trackedFriendly, 5);
-
-    // Process friendly forces (add unit cost if friendly is critically low)
-    friendlyDead = processFriendlyForces(room, friendlyDead, trackedFriendly);
-
-    // Process enemy tombstones and enemy forces
     enemyDead = processTombstones(room.tombstones, null, enemyDead, trackedEnemy, 10);
-    let enemyReinforcements = assessEnemyReinforcements(room);
-
-    // If enemy reinforcements are coming and the room is not reinforced, mark operation at risk
-    if (enemyReinforcements > 0 && !isRoomReinforced(room)) {
-        isAtRisk = true;
-    }
 
     // Update the operation object with new statistics
     operation.friendlyDead = friendlyDead;
@@ -885,34 +883,6 @@ function processTombstones(tombstones, friendlyList, deadCount, trackedList, min
         trackedList.push(tombstone.id);
     }
     return deadCount;
-}
-
-// Process friendly forces (creeps), updating dead count if needed
-function processFriendlyForces(room, friendlyDead, trackedFriendly) {
-    let friendlyForces = _.filter(room.creeps, (c) => c.memory && c.memory.military);
-    let enemyForces = _.filter(room.creeps, (c) => !c.memory);
-
-    // Check if a friendly force is critically low and add its cost to dead count
-    if (friendlyForces.length === 1 && friendlyForces[0].hits < friendlyForces[0].hitsMax * 0.15 && enemyForces.length && !_.includes(trackedFriendly, friendlyForces[0].id)) {
-        friendlyDead += UNIT_COST(friendlyForces[0].body);
-        trackedFriendly.push(friendlyForces[0].id);
-    }
-
-    return friendlyDead;
-}
-
-// Assess the number of incoming enemy reinforcements
-function assessEnemyReinforcements(room) {
-    // Placeholder logic for determining incoming enemy reinforcements. This can be expanded to consider hostile structures, power creeps, etc.
-    let enemyUnits = _.filter(Game.creeps, (c) => !c.my && c.pos.roomName === room.name && !c.memory.exemptReinforcements);
-    return enemyUnits.length;
-}
-
-// Check if the room is adequately reinforced by friendly forces
-function isRoomReinforced(room) {
-    // Placeholder logic for checking if the room is reinforced. Can consider friendly creep numbers, presence of defenses, etc.
-    let friendlyReinforcements = _.filter(Game.creeps, (c) => c.my && c.pos.roomName === room.name && c.memory.military);
-    return friendlyReinforcements.length > 5;  // Simple threshold; this can be adjusted based on strategy.
 }
 
 // Save the operation object back into memory

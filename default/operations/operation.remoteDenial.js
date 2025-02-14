@@ -27,10 +27,12 @@ Creep.prototype.remoteDenial = function () {
         if (this.memory.other) highCommand.operationSustainability(this.room, this.memory.other.target);
 
         if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(50)) {
-            if (this.room.hostileCreeps.length) {
-                Memory.targetRooms[this.memory.other.target].level = 2;
-            } else {
-                Memory.targetRooms[this.memory.other.target].level = 1;
+            if (Memory.targetRooms[this.memory.other.target]) {
+                if (this.room.hostileCreeps.length) {
+                    Memory.targetRooms[this.memory.other.target].level = 2;
+                } else {
+                    Memory.targetRooms[this.memory.other.target].level = 1;
+                }
             }
         } else {
             this.memory.destination = _.sample(this.memory.misc.remotes);

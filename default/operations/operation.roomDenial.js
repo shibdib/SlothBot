@@ -37,16 +37,6 @@ Creep.prototype.denyRoom = function () {
     // Combat handling
     if (this.handleMilitaryCreep()) return;
 
-    // Healing
-    if (this.hits < this.hitsMax) {
-        if (this.hasActiveBodyparts(HEAL)) {
-            this.findDefensivePosition();
-            return this.heal(this);
-        } else {
-            return this.fleeHome();
-        }
-    }
-
     // If not in the destination room, move there
     if (this.room.name !== this.memory.destination) {
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});

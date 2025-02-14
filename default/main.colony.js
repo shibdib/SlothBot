@@ -186,7 +186,7 @@ function minionController(minion) {
     if (minion.towTruck()) return;
 
     // Return if idle
-    if (minion.idle || minion.memory.blocked === Game.time) return;
+    if (minion.idle) return;
 
     // Track Threat
     diplomacy.trackThreat(minion);
@@ -196,9 +196,12 @@ function minionController(minion) {
     minion.healInRange();
 
     // Handle edge cases (border or nuke flee)
-    if (minion.borderCheck() || (minion.memory.fleeNukeTime && minion.fleeNukeRoom())) {
+    if (minion.memory.fleeNukeTime && minion.fleeNukeRoom()) {
         return;
     }
+
+    // Border
+    minion.borderCheck();
 
     // Report intel if outside MY_ROOMS
     if (!MY_ROOMS.includes(minion.room.name)) {

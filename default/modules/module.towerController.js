@@ -97,7 +97,7 @@ function handleHostileCreeps(room) {
             }
             break;
         } else if (room.energyState) {
-            towerRepairRamparts(room);
+            combatRepair(room);
         }
 
         // If the hostile creep has enough healing power, spawn defenders
@@ -110,11 +110,14 @@ function handleHostileCreeps(room) {
     }
 }
 
-function towerRepairRamparts(room) {
+function combatRepair(room) {
     const enemies = room.creeps.filter((c) => !c.my && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(WORK) || c.hasActiveBodyparts(RANGED_ATTACK)));
+    const damagedCreep = findWoundedCreep(room);
     const ramparts = room.structures.filter((s) => s.structureType === STRUCTURE_RAMPART && s.hits < 1000000 && s.pos.findInRange(enemies, 8).length);
-    if (ramparts.length) {
-        const towers = room.structures.filter((s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] > TOWER_ENERGY_COST);
+    const towers = room.structures.filter((s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] > TOWER_ENERGY_COST);
+    if (damagedCreep) {
+        towers.forEach((t) => t.heal(damagedCreep))
+    } else if (ramparts.length) {
         towers.forEach((t) => t.repair(_.min(ramparts, 'hits')))
     }
 }

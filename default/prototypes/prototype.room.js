@@ -430,7 +430,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     roomIntel.cached = currentTime;
 
     // Basic room info
-    roomIntel.sources = this.find(FIND_SOURCES).length;
+    roomIntel.sources = this.sources.length;
     roomIntel.obstacles = !areExitsReachable(this);
 
     // Minerals
@@ -489,8 +489,6 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         delete roomIntel.reservation;
         delete roomIntel.safemode;
         delete roomIntel.hubCheck;
-        delete roomIntel.towers;
-        delete roomIntel.maxTowerDamage;
         delete roomIntel.nukeTarget;
         delete roomIntel.loot;
     }
@@ -498,6 +496,16 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     // Special room type checks
     const structures = this.find(FIND_STRUCTURES);
     roomIntel.sk = structures.some(s => s.structureType === STRUCTURE_KEEPER_LAIR);
+    // Sk rooms can have towers
+    if (roomIntel.sk) {
+        const towers = this.structures.filter((s) => s.structureType === STRUCTURE_TOWER &&
+            s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST &&
+            s.isActive())
+        if (towers.length) {
+            roomIntel.towers = towers.length;
+            roomIntel.towerData = this.towerData();
+        }
+    }
     const deposits = this.find(FIND_DEPOSITS).some(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20));
     const power = this.find(FIND_STRUCTURES).some(s => s.structureType === STRUCTURE_POWER_BANK);
     if (roomIntel.sources === 0 && (deposits || power)) {
