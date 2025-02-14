@@ -17,6 +17,10 @@ const outsideHubMatrixCache = CACHE.outsideHubMatrixCache = {};
 const skMatrixCache = CACHE.skMatrixCache = {};
 
 function shibMove(creep, heading, options = {}, pathOnly = false) {
+    // Handle move blocked
+    if (heading instanceof Creep && creep.memory.moveBlocked === Game.time) {
+        return true;
+    }
     // Handle multi heading
     if (Array.isArray(heading)) {
         let multiHeading = findMultiHeadingPos(heading, options.range);
@@ -232,17 +236,17 @@ function executePath(creep, pathInfo, options, origin, heading) {
 }
 
 function shibPath(creep, heading, pathInfo, origin, target, options) {
+    let cached, roomDistance, allowedRooms;
+    pathInfo.pathOptions = options;
     // If we're right next to it just move
     if (creep.pos.isNearTo(heading) && options.range === 0) {
         creep.memory._shibMove = undefined;
         return creep.move(creep.pos.getDirectionTo(heading));
     }
-    let cached;
-    pathInfo.pathOptions = options;
-    if (!target) return creep.moveRandom();
+    // Check for a cached path
     if (options.useCache && !INTEL[creep.room.name].threatLevel && !options.tunnel) cached = getPath(creep, origin, target, pathInfo);
+    // If cache path exists use it;
     if (cached && options.ignoreCreeps) {
-        pathInfo.findAttempt = undefined;
         pathInfo.target = target;
         pathInfo.path = cached;
         pathInfo.usingCached = true;
@@ -250,7 +254,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         creep.memory._shibMove = pathInfo;
         switch (creep.move(parseInt(pathInfo.path[0], 10))) {
             case OK:
-                creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'red'});
                 return true;
             case ERR_TIRED:
                 return true;
@@ -260,94 +263,51 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 creep.idleFor(10);
                 return false;
         }
+        return true;
+    }
+    // Check if its multi room or not
+    if (origin.roomName !== target.roomName) {
+        roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName)
+        options.maxOps = DEFAULT_MAXOPS * (roomDistance + 1);
     } else {
-        let roomDistance = 0;
-        if (origin.roomName !== target.roomName) {
-            roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName)
-            options.maxOps = DEFAULT_MAXOPS * (roomDistance + 1);
-        } else {
-            // Ops for single room travel much lower
-            options.maxOps = DEFAULT_MAXOPS;
+        options.maxOps = DEFAULT_MAXOPS;
+    }
+    // Set allowed rooms if they were manually set
+    allowedRooms = pathInfo.route || options.route;
+    // If multi room find the route
+    if (roomDistance) {
+        let route = findRoute(origin.roomName, target.roomName, options);
+        if (route) {
+            // If the current room name is missing, add it to the front
+            if (!route.includes(creep.room.name)) route.unshift(creep.room.name);
+            allowedRooms = route;
+            pathInfo.route = route;
         }
-        pathInfo.usingCached = undefined;
-        let allowedRooms = pathInfo.route || options.route;
-        if (roomDistance) {
-            options.heuristicWeight = 1.2;
-            let route = findRoute(origin.roomName, target.roomName, options);
-            if (route) {
-                if (!_.includes(route, creep.room.name)) route.unshift(creep.room.name);
-                // Include the immediate surrounding rooms and their neighbors
-                let immediateArea = [];
-                //_.map(Game.map.describeExits(creep.room.name)).forEach(r => immediateArea = immediateArea.concat(_.map(Game.map.describeExits(r))));
-                allowedRooms = _.uniq(route.concat(immediateArea));
-                pathInfo.route = route;
-            } else {
-                let exitDir = Game.map.findExit(origin.roomName, pathInfo.targetRoom);
-                if (exitDir === ERR_NO_PATH) {
-                    let nextRoom = Game.map.findRoute(origin.roomName, pathInfo.targetRoom)[0];
-                    exitDir = Game.map.findExit(target.roomName, nextRoom);
-                    if (exitDir === ERR_NO_PATH) {
-                        return creep.moveTo(target);
-                    }
-                }
-                let exit = creep.pos.findClosestByPath(exitDir);
-                target = normalizePos(exit);
-                delete pathInfo.path;
-                options.useFindRoute = false;
-                options.range = 0;
-                return shibPath(creep, target, pathInfo, origin, target, options);
-            }
-        }
-        if (!allowedRooms) allowedRooms = [origin.roomName].concat(_.map(Game.map.describeExits(origin.roomName)));
-        let callback = (roomName) => {
-            if (allowedRooms && !allowedRooms.includes(roomName)) return false;
+    }
+    // If no route/allowed rooms got set, use the current room and neighbors
+    if (!allowedRooms) allowedRooms = [origin.roomName].concat(Object.values(Game.map.describeExits(origin.roomName)));
+    // Pathfinder
+    const result = PathFinder.search(origin, {pos: target, range: options.range}, {
+        maxOps: options.maxOps,
+        maxRooms: allowedRooms.length,
+        heuristicWeight: options.heuristicWeight,
+        roomCallback: function (roomName) {
+            if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
             return getMatrix(roomName, creep, options);
-        };
-        let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
-            maxOps: options.maxOps,
-            maxRooms: allowedRooms.length + 1,
-            heuristicWeight: options.heuristicWeight,
-            roomCallback: callback,
-        });
-        if (ret.incomplete) {
-            if (!creep.memory.badPathing && roomDistance) {
-                options.maxOps = DEFAULT_MAXOPS * (roomDistance + 5);
-                creep.memory.badPathing = 1;
-                if (origin.roomName !== target.roomName) {
-                    deleteRoute(origin.roomName, target.roomName);
-                    deleteRoute(creep.roomName, target.roomName);
-                }
-                return shibPath(creep, heading, pathInfo, origin, target, options);
-            } else if (creep.memory.badPathing) {
-                creep.memory.badPathing++;
-                if (creep.memory.badPathing > 8) {
-                    log.d(creep.name + ' is stuck in ' + creep.room.name + ' and is unable to path from ' + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + '. Suiciding for the good of the CPU.');
-                    log.d('Ret - ' + JSON.stringify(ret));
-                    if (allowedRooms) log.d('Path - ' + allowedRooms);
-                    if (creep.memory.destination && (Memory.targetRooms[creep.memory.destination] || Memory.auxiliaryTargets[creep.memory.destination])) {
-                        delete Memory.targetRooms[creep.memory.destination];
-                        delete Memory.auxiliaryTargets[creep.memory.destination];
-                        purgeIntel(creep.memory.destination);
-                        log.e('Canceling operation in ' + roomLink(creep.memory.destination) + ' as we cannot find a path.', 'HIGH COMMAND: ');
-                    }
-                    return creep.suicide();
-                } else if (creep.memory.badPathing >= 3) {
-                    creep.memory.repathing = Game.map.describeExits(creep.room.name)[Game.map.findExit(creep.room.name, creep.memory.destination)];
-                }
-            }
-        } else {
-            if (creep.memory.badPathing) creep.memory.badPathing--;
         }
-        if (options.confirmPath && ret.path && !ret.incomplete) return ret.path; else if (options.confirmPath && ret.incomplete) return false;
-        pathInfo.path = serializePath(creep.pos, ret.path);
-        let nextDirection = parseInt(pathInfo.path[0], 10);
-        pathInfo.newPos = creep.pos.positionAtDirection(nextDirection);
+    });
+    // Handle success
+    if (!result.incomplete) {
         pathInfo.target = target;
-        if (options.ignoreCreeps && !options.ignoreStructures) cachePath(creep, origin, target, pathInfo);
-        delete pathInfo.findAttempt;
-        if (options.getPath) return creep.memory.getPath = pathInfo.path;
+        pathInfo.path = serializePath(creep.pos, result.path);
+        pathInfo.usingCached = true;
+        pathInfo.newPos = creep.pos.positionAtDirection(parseInt(pathInfo.path[0], 10));
         creep.memory._shibMove = pathInfo;
-        switch (creep.move(nextDirection)) {
+        // Cache the path
+        if (options.ignoreCreeps) cachePath(creep, origin, target, pathInfo);
+        // Store path if requested
+        if (options.getPath) return creep.memory.getPath = pathInfo.path;
+        switch (creep.move(parseInt(pathInfo.path[0], 10))) {
             case OK:
                 return true;
             case ERR_TIRED:
@@ -357,6 +317,27 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             case ERR_BUSY:
                 creep.idleFor(10);
                 return false;
+        }
+        return true;
+    }
+    // Handle failed
+    if (!creep.memory.badPathing && roomDistance) {
+        creep.memory.badPathing = 1;
+        deleteRoute(origin.roomName, target.roomName);
+        deleteRoute(creep.roomName, target.roomName);
+    } else {
+        if (creep.memory.badPathing) creep.memory.badPathing++; else creep.memory.badPathing = 1;
+        if (creep.memory.badPathing > 10) {
+            log.d(creep.name + ' is stuck in ' + creep.room.name + ' and is unable to path from ' + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + '. Suiciding for the good of the CPU.');
+            log.d('Ret - ' + JSON.stringify(result));
+            if (allowedRooms) log.d('Path - ' + allowedRooms);
+            if (creep.memory.destination && (Memory.targetRooms[creep.memory.destination] || Memory.auxiliaryTargets[creep.memory.destination])) {
+                delete Memory.targetRooms[creep.memory.destination];
+                delete Memory.auxiliaryTargets[creep.memory.destination];
+                purgeIntel(creep.memory.destination);
+                log.d('Canceling operation in ' + roomLink(creep.memory.destination) + ' as we cannot find a path.', 'HIGH COMMAND: ');
+            }
+            //return creep.suicide();
         }
     }
 }
@@ -496,14 +477,13 @@ function creepBumping(creep, pathInfo, options) {
                 bumpCreep.memory._shibMove.path = undefined;
                 bumpCreep.memory._shibMove.pathPosTime = undefined;
             }
-            bumpCreep.memory.blocked = Game.time;
+            bumpCreep.memory.moveBlocked = Game.time;
             return true;
         } else {
             creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
         }
     }
     delete creep.memory._shibMove;
-    creep.moveRandom();
     return false;
 }
 
@@ -526,7 +506,7 @@ function getMatrix(roomName, creep, options) {
     matrix = getStructureMatrix(roomName, creep, matrix, options);
     if (!options.ignoreCreeps) matrix = getCreepMatrix(roomName, creep, matrix, options);
     matrix = getStationaryCreepsMatrix(roomName, creep, matrix, options);
-    if (creep instanceof Creep && room && armedEnemies.length && (creep.className || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.avoidEnemies)) {
+    if (creep instanceof Creep && armedEnemies.length && (creep.className || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.avoidEnemies)) {
         matrix = getHostileMatrix(roomName, matrix, options);
         matrix = getOutsideHubMatrix(roomName, matrix, options);
     }
@@ -611,10 +591,8 @@ function getStructureMatrix(roomName, creep, matrix, options) {
                 } else {
                     matrix.set(structure.pos.x, structure.pos.y, 200);
                 }
-            } else if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
-                matrix.set(structure.pos.x, structure.pos.y, 256);
-            } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()
-                && room.hostileCreeps.length && structure.pos.checkForRampart()) {
+            } else if (room.hostileCreeps.length && structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()
+                && structure.pos.checkForRampart()) {
                 matrix.set(structure.pos.x, structure.pos.y, roadCost * 0.5);
             } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()) {
                 matrix.set(structure.pos.x, structure.pos.y, roadCost);
@@ -632,11 +610,15 @@ function getStructureMatrix(roomName, creep, matrix, options) {
                 }
             } else if (structure instanceof StructureContainer) {
                 matrix.set(structure.pos.x, structure.pos.y, 75);
+            } else if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
+                matrix.set(structure.pos.x, structure.pos.y, 256);
+            } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure()) {
+                matrix.set(structure.pos.x, structure.pos.y, roadCost * 5);
             } else {
                 matrix.set(structure.pos.x, structure.pos.y, 256);
             }
         }
-        let blockingSites = _.filter(room.constructionSites, (s) => (s.my && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART) || (!s.my && _.includes(FRIENDLIES, s.owner.username)));
+        let blockingSites = _.filter(room.constructionSites, (s) => (s.my && OBSTACLE_OBJECT_TYPES.includes(s.structureType)) || (!s.my && _.includes(FRIENDLIES, s.owner.username)));
         for (let site of blockingSites) {
             matrix.set(site.pos.x, site.pos.y, 256);
         }
