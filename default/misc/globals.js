@@ -98,6 +98,10 @@ let globals = function () {
     // Versioning for cache purposes
     global.PATHFINDER_VERSION = 2;
     global.INTEL_VERSION = 5;
+    global.RAMPART_VERSION = 1;
+
+    // Beta features
+    global.BETA_TOWERS = false;
 
     // Global cache for roles
     global.ROLE_CACHE = {};
