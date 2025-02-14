@@ -436,7 +436,8 @@ module.exports.remoteCreepQueue = function (room) {
         let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
         if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 2) {
             let remoteSource = JSON.parse(room.memory.remoteSources);
-            const acceptedScore = Math.max(REMOTE_DISTANCE_MAX, _.min(remoteSource, 'score').score);
+            let acceptedScore = !room.terminal ? REMOTE_DISTANCE_MAX * 2 : REMOTE_DISTANCE_MAX;
+            acceptedScore = Math.max(acceptedScore, _.min(remoteSource, 'score').score);
             remoteSource = _.sortBy(_.filter(remoteSource, (s) => !shouldSkipRemote(room, s.room) && s.score <= acceptedScore
                 && !_.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === s.source)), 'score')[0];
             if (remoteSource && remoteSource.room && (!INTEL[remoteSource.room].sk || getCreepCount(undefined, 'SKAttacker', remoteSource.room))) {
@@ -462,7 +463,7 @@ module.exports.remoteCreepQueue = function (room) {
             // Count and sum capacity of existing haulers
             const assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.memory.other &&
                 c.memory.other.source === source.source);
-            if (assignedHaulers.length >= 2) continue;
+            if (assignedHaulers.length >= 4) continue;
             const haulingCapacity = assignedHaulers.reduce((sum, creep) =>
                 sum + creep.getActiveBodyparts(CARRY) * 50, 0
             );
@@ -488,9 +489,10 @@ module.exports.remoteCreepQueue = function (room) {
         const exits = Game.map.describeExits(room.name);
 
         // Handle finding usable remotes
-        const remoteRooms = _.filter(exits, function (r) {
+        const surroundingRooms = getSurroundingRooms(room.name);
+        const remoteRooms = surroundingRooms.filter(function (r) {
             return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level && !INTEL[r].obstacles &&
-                (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation));
+                (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation)) && Game.map.findRoute(room.name, r) <= 2;
         });
         remoteRoomTargets[room.name] = JSON.stringify(remoteRooms);
 
