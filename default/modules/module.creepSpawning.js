@@ -539,7 +539,7 @@ module.exports.globalCreepQueue = function () {
         }
 
         // Handle harass targets
-        if (HARASSMENT_OPERATIONS && Memory._threats && Memory._threats.length) {
+        if (HARASSMENT_OPERATIONS && THREATS && THREATS.length && objFilter(INTEL, (i) => THREATS.includes(i.user)).length) {
             const amount = _.filter(MY_ROOMS, (r) => Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].memory.availableForAssignment).length * 0.25 || 1
             queueCreepIfNeeded(undefined, 'longbow', PRIORITIES.secondary, amount, undefined, key, undefined, undefined, 'harass');
         }
