@@ -185,11 +185,10 @@ let helpers = function () {
             log.a('--INTEL CACHE PURGED--', ' ');
             global.INTEL = {};
         } else {
-            const intel = INTEL;
+            const intel = global.INTEL;
             log.a(`--INTEL PURGED FOR ${roomLink(roomName)}--`, ' ');
-            delete intel[roomName];
+            intel[roomName] = undefined;
             INTEL_ROOM_PURGE.push(roomName)
-            global.INTEL = intel;
         }
     }
 
@@ -401,6 +400,43 @@ let helpers = function () {
 
         return CACHE.ROOM_STATUS[roomName];
     };
+
+    /**
+     * Get all the surrounding rooms regardless of connection
+     * @param {string} roomName - The name of the room.
+     * @returns {array} Array of rooms names
+     */
+    global.getSurroundingRooms = function (roomName) {
+        const match = roomName.match(/([WE])(\d+)([NS])(\d+)/);
+        if (!match) return [];
+        const [, EW, E, NS, N] = match;
+        const ECoord = parseInt(E);
+        const W = EW === 'W';
+        const NCoord = parseInt(N);
+        const S = NS === 'S';
+        const rooms = {};
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                let newECoord = ECoord + dx;
+                let newW = W;
+                let newNCoord = NCoord + dy;
+                let newS = S;
+                if (newECoord < 0) {
+                    newECoord = Math.abs(newECoord) - 1;
+                    newW = !newW;
+                }
+                if (newNCoord < 0) {
+                    newNCoord = Math.abs(newNCoord) - 1;
+                    newS = !newS;
+                }
+                let newRoomName = `${newW ? 'W' : 'E'}${newECoord}${newS ? 'S' : 'N'}${newNCoord}`;
+                if (Game.map.getRoomLinearDistance(roomName, newRoomName) === 1) {
+                    rooms[newRoomName] = true;
+                }
+            }
+        }
+        return Object.keys(rooms);
+    }
 }
 
 module.exports = helpers;
