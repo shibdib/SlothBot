@@ -268,6 +268,19 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
         return false;
     }
 
+    // Handle taking from creeps
+    if (destination instanceof Creep) {
+        let result = destination.transfer(this, resourceType, amount);
+        if (result === OK) {
+            this.memory.lastWithdraw = destination.id;
+            delete this.memory.energyDestination;
+            delete this.memory._shibMove;
+            return true;
+        } else if (result === ERR_NOT_IN_RANGE) {
+            return this.shibMove(destination);
+        }
+    }
+
     // Handling resources with 'store'
     if (destination.store && destination.store[resourceType]) {
         let result = this.withdraw(destination, resourceType, amount);
@@ -343,6 +356,13 @@ Creep.prototype.locateEnergy = function (room = this.room) {
 
         // Drones can steal everything early levels, prevent that
         if (!room.storage && this.memory.role === 'drone') {
+            if (potentialEnergy.length) {
+                const closest = this.pos.findClosestByRange(potentialEnergy);
+                if (closest && closest.id) {
+                    this.memory.energyDestination = closest.id;
+                    return true;
+                }
+            }
             if (room.energyAvailable < room.energyCapacityAvailable) return false;
         }
 
