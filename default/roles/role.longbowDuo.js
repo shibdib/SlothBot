@@ -27,21 +27,11 @@ class RoleLongbowDuo {
 
     housekeeping() {
         // Boosting
-        if (this.creep.tryToBoost([RANGED_ATTACK, HEAL])) return true;
+        if (this.creep.tryToBoost([])) return true;
         // Blinky mode
         this.creep.healInRange(this.room.hostileCreeps.length || this.room.hostileStructures.length);
-        // Check and set partner
-        if (!this.creep.memory.partner || !Game.getObjectById(this.creep.memory.partner)) {
-            const availablePartner = _.find(Game.creeps, (c) => c.id !== this.creep.id && c.my && !c.spawning && c.memory.role === this.creep.memory.role && !c.memory.partner && c.memory.destination === this.creep.memory.destination);
-            if (availablePartner) {
-                this.creep.memory.leader = true;
-                this.creep.memory.partner = availablePartner.id;
-                availablePartner.memory.partner = this.creep.id;
-            } else {
-                this.creep.memory.leader = undefined;
-                this.creep.memory.partner = undefined;
-            }
-        }
+        // Check and set partner if conditions warrant
+        this.creep.pairUp();
     }
 
     handleLeader() {
@@ -61,16 +51,13 @@ class RoleLongbowDuo {
     }
 
     handleFollower() {
+        this.creep.attackInRange();
         const partner = Game.getObjectById(this.creep.memory.partner);
         this.creep.shibMove(partner, {range: 0});
         if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
             const partnerTarget = Game.getObjectById(partner.memory.target);
             if (partnerTarget && this.creep.pos.getRangeTo(partnerTarget) <= 3) {
                 this.creep.rangedAttack(partnerTarget);
-            } else if (partnerTarget && partner.pos.getRangeTo(partnerTarget) <= 3) {
-                this.creep.attackInRange();
-            } else {
-                this.creep.attackInRange();
             }
         } else if (partner.memory.idle) {
             this.creep.memory.idle = partner.memory.idle;

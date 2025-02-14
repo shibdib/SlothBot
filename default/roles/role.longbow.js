@@ -12,11 +12,21 @@ class RoleLongbow {
     }
 
     performRoleActions() {
+        if (this.housekeeping()) return;
         if (this.creep.memory.operation) {
             this.operationManagement();
         } else if (this.creep.memory.destination) {
             this.destinationManagement();
         }
+    }
+
+    housekeeping() {
+        // Boosting
+        if (this.creep.tryToBoost([])) return true;
+        // Blinky mode
+        this.creep.healInRange(this.room.hostileCreeps.length || this.room.hostileStructures.length);
+        // Check and set partner if conditions warrant
+        if (this.creep.pairUp()) return true;
     }
 
     operationManagement() {

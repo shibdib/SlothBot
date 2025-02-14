@@ -363,10 +363,19 @@ Creep.prototype.fightRanged = function (target) {
             }
         } else {
             creep.say('BURN!', true);
-            const range = target.structureType !== STRUCTURE_SPAWN ? 1 : 2;
+            let rampartEnemies = [];
+            if (target.pos.checkForRampart()) {
+                rampartEnemies = creep.pos.findInRange(creep.room.hostileCreeps, 2, {filter: (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)});
+            }
+
+            // Handle movement
+            if (rampartEnemies.length || !creep.canIWin(2)) return creep.shibKite(3)
+            const range = target.structureType !== STRUCTURE_SPAWN && !rampartEnemies.length ? 1 : 2;
             if (creep.canIWin(5)) {
                 creep.shibMove(target, {range: range, ignoreCreeps: false});
             }
+
+            // Handle attack
             if (target.structureType !== STRUCTURE_WALL && creep.pos.isNearTo(target)) {
                 creep.rangedMassAttack();
             } else if (creep.rangedAttack(target) === ERR_NOT_IN_RANGE) {
@@ -751,6 +760,45 @@ Creep.prototype.abilityPower = function () {
         rangedHeal: rangedHealPower
     };
 };
+
+Creep.prototype.pairUp = function () {
+    if (!this.memory.partner || !Game.getObjectById(this.memory.partner)) {
+        // Look for partners with the same task
+        let availablePartner = _.find(Game.creeps, (c) => c.id !== this.id && c.my && !c.spawning && ['longbow', 'longbowDuo'].includes(c.memory.role) && !c.memory.partner && c.memory.destination === this.memory.destination);
+        if (availablePartner) {
+            this.memory.leader = true;
+            this.memory.partner = availablePartner.id;
+            availablePartner.memory.partner = this.id;
+            return true;
+        } else if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
+            availablePartner = _.find(this.room.myCreeps, (c) => c.id !== this.id && !c.spawning && ['longbow', 'longbowDuo'].includes(c.memory.role) && !c.memory.partner);
+            if (availablePartner) {
+                availablePartner.memory.leader = true;
+                availablePartner.memory.partner = this.id;
+                if (availablePartner.memory.role !== 'longbowDuo') {
+                    availablePartner.memory.oldRole = availablePartner.memory.role;
+                    availablePartner.memory.role = 'longbowDuo';
+                }
+                availablePartner.memory.temporaryPartner = true;
+                this.memory.temporaryPartner = true;
+                this.memory.partner = availablePartner.id;
+                return true;
+            } else {
+                this.memory.leader = undefined;
+                this.memory.partner = undefined;
+            }
+        }
+    } else if (this.memory.temporaryPartner && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) {
+        this.memory.leader = undefined;
+        this.memory.partner = undefined;
+        this.memory.temporaryPartner = undefined;
+        const partner = Game.getObjectById(this.memory.partner);
+        partner.memory.leader = undefined;
+        partner.memory.partner = undefined;
+        partner.memory.temporaryPartner = undefined;
+        if (partner.memory.oldRole) partner.memory.role = partner.memory.oldRole;
+    }
+}
 
 // Computes damage of a tower based on range
 function determineTowerDamage(range) {
