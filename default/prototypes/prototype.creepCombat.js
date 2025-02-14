@@ -762,45 +762,67 @@ Creep.prototype.abilityPower = function () {
 };
 
 Creep.prototype.pairUp = function () {
+    // Handle clearing temporary
+    if (handleClearingTemporary(this)) return true;
+    // Find partners
     if (!this.memory.partner || !Game.getObjectById(this.memory.partner)) {
         // Look for partners with the same task
         let availablePartner = _.find(Game.creeps, (c) => c.id !== this.id && c.my && !c.spawning && ['longbow', 'longbowDuo'].includes(c.memory.role) && !c.memory.partner && c.memory.destination === this.memory.destination);
         if (availablePartner) {
-            this.memory.leader = true;
-            this.memory.partner = availablePartner.id;
-            this.memory.oldRole = availablePartner.memory.role;
-            this.memory.role = 'longbowDuo';
-            availablePartner.memory.partner = this.id;
-            availablePartner.memory.oldRole = availablePartner.memory.role;
-            availablePartner.memory.role = 'longbowDuo';
-            return true;
+            if (handleSettingPermanent(this, availablePartner)) return true;
         } else if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
-            availablePartner = _.find(this.room.myCreeps, (c) => c.id !== this.id && !c.spawning && ['longbow', 'longbowDuo'].includes(c.memory.role) && !c.memory.partner);
-            if (availablePartner) {
-                availablePartner.memory.leader = true;
-                availablePartner.memory.partner = this.id;
-                availablePartner.memory.oldRole = availablePartner.memory.role;
-                availablePartner.memory.role = 'longbowDuo';
-                availablePartner.memory.temporaryPartner = true;
-                this.memory.temporaryPartner = true;
-                this.memory.partner = availablePartner.id;
-                this.memory.oldRole = availablePartner.memory.role;
-                this.memory.role = 'longbowDuo';
-                return true;
-            }
+            if (handleSettingTemporary(this)) return true;
         }
         this.memory.leader = undefined;
         this.memory.partner = undefined;
-    } else if (this.memory.temporaryPartner && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) {
-        this.memory.leader = undefined;
-        this.memory.partner = undefined;
-        this.memory.temporaryPartner = undefined;
-        const partner = Game.getObjectById(this.memory.partner);
-        partner.memory.leader = undefined;
-        partner.memory.partner = undefined;
-        partner.memory.temporaryPartner = undefined;
-        if (partner.memory.oldRole) partner.memory.role = partner.memory.oldRole;
         if (this.memory.oldRole) this.memory.role = this.memory.oldRole;
+        this.memory.oldRole = undefined;
+    }
+
+    function handleSettingPermanent(creep, partner) {
+        creep.memory.leader = true;
+        creep.memory.partner = partner.id;
+        creep.memory.oldRole = partner.memory.role;
+        creep.memory.role = 'longbowDuo';
+        partner.memory.partner = creep.id;
+        partner.memory.oldRole = partner.memory.role;
+        partner.memory.role = 'longbowDuo';
+        return true;
+    }
+
+    function handleSettingTemporary(creep) {
+        const availablePartner = _.find(creep.room.myCreeps, (c) => c.id !== this.id && !c.spawning && ['longbow', 'longbowDuo'].includes(c.memory.role) && !c.memory.partner);
+        if (availablePartner) {
+            availablePartner.memory.leader = true;
+            availablePartner.memory.partner = creep.id;
+            availablePartner.memory.oldRole = availablePartner.memory.role;
+            availablePartner.memory.role = 'longbowDuo';
+            availablePartner.memory.temporaryPartner = true;
+            creep.memory.temporaryPartner = true;
+            creep.memory.partner = availablePartner.id;
+            creep.memory.oldRole = availablePartner.memory.role;
+            creep.memory.role = 'longbowDuo';
+            return true;
+        }
+    }
+
+    function handleClearingTemporary(creep) {
+        if ((creep.memory.temporaryPartner || creep.memory.oldRole) && !creep.room.hostileCreeps.length && !creep.room.hostileStructures.length) {
+            creep.memory.leader = undefined;
+            creep.memory.partner = undefined;
+            creep.memory.temporaryPartner = undefined;
+            if (creep.memory.oldRole) creep.memory.role = creep.memory.oldRole;
+            creep.memory.oldRole = undefined;
+            const partner = Game.getObjectById(creep.memory.partner);
+            if (partner) {
+                partner.memory.leader = undefined;
+                partner.memory.partner = undefined;
+                partner.memory.temporaryPartner = undefined;
+                if (partner.memory.oldRole) partner.memory.role = partner.memory.oldRole;
+                partner.memory.oldRole = undefined;
+            }
+            return true;
+        }
     }
 }
 

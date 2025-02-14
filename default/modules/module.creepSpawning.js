@@ -259,12 +259,9 @@ module.exports.miscCreepQueue = function (room) {
         }
         // Border Patrol
         if (room.memory.borderPatrol) {
-            const power = INTEL[room.memory.borderPatrol] ? INTEL[room.memory.borderPatrol].hostilePower : 1000;
-            if (power < 15 * room.level) {
-                queueCreepIfNeeded(room, 'longbow', PRIORITIES.high, 1, undefined, undefined, undefined, undefined, 'borderPatrol', {power: power});
-            } else {
-                queueCreepIfNeeded(room, 'longbowDuo', PRIORITIES.high, 2, undefined, undefined, undefined, undefined, 'borderPatrol', {power: power});
-            }
+            const power = INTEL[room.memory.borderPatrol] ? INTEL[room.memory.borderPatrol].hostilePower : 50;
+            const count = Math.min(power / (15 * room.level), 4)
+            queueCreepIfNeeded(room, 'longbow', PRIORITIES.high, count, undefined, undefined, undefined, undefined, 'borderPatrol', {power: power});
         }
     }
 };
@@ -280,13 +277,16 @@ module.exports.remoteCreepQueue = function (room) {
     if (Memory.cpuTracking && Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
 
     // If under attack, no spawning remotes
-    if (room.memory.dangerousAttack) return;
+    if (room.memory.dangerousAttack) {
+        remoteRoomTargets[room.name] = undefined;
+        return;
+    }
 
     remoteTick[room.name] = Game.time;
     room.memory.borderPatrol = undefined;
 
     // Refresh remote room data
-    if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + CREEP_LIFE_TIME > Game.time || INTEL[room.name].threatLevel > 2) {
+    if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + CREEP_LIFE_TIME > Game.time) {
         refreshRemoteRoomTargets(room);
     }
 

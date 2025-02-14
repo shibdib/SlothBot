@@ -186,7 +186,7 @@ function auxiliaryBuilding(room) {
 
     // Helper function to build roads and manage their construction
     function buildRoads(room, layout) {
-        if (room.level >= 3 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length < 3 && !roadBuilder(room, layout)) {
+        if (room.level >= ROAD_LEVEL && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length < 3 && !roadBuilder(room, layout)) {
             INTEL[room.name].roadsBuilt = true;
             return true;
         } else {

@@ -3,13 +3,10 @@
  */
 
 // BACKUP THIS FILE BETWEEN UPDATES!!!!!!!
-// Use this to modify how your overlord bot runs
 
 
 // General Settings
 global.STATUS_COOLDOWN = 180; // Seconds between console status reports
-global.SIGN_CLEANER = true; // Clean room signs away with explorers
-global.AVOID_ALLIED_SECTORS = true; // Try not to claim rooms in allied sectors
 global.GENERATE_PIXELS = false; // Generate pixels when feasible (not in war)
 global.PIXEL_FARM = false; // Use this on spawn ins, bot will do nothing but farm pixels and keep the room from decaying
 global.SELL_PIXELS = false; // Sell pixels
@@ -18,6 +15,7 @@ global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
 global.TOWER_FIRST = false; // Set to true to have towers built before spawns
 
 // Diplomacy
+global.AVOID_ALLIED_SECTORS = true; // Try not to claim rooms in allied sectors
 global.COMBAT_SERVER = false; // If you'd like to declare everyone hostile
 global.HOSTILES = []; // Manually set players as hostile
 global.MANUAL_FRIENDS = []; // Manually set players as friends (overrides COMBAT_SERVER)
@@ -37,7 +35,7 @@ global.HARASSMENT_OPERATIONS = false; // Random harassing attacks
 global.HOLD_SECTOR = true; // Attack rooms in sectors you have rooms
 global.ATTACK_LOCALS = false; // Attacks targets within range indiscriminately. Bot will still attack aggressors.
 global.NEW_SPAWN_DENIAL = false; // Crush new spawns immediately
-global.NCP_HOSTILE = true; // Always attack users of open source bots
+global.NCP_HOSTILE = false; // Always attack users of open source bots
 global.ATTACK_COOLDOWN = 3000; //Time between attacks on a room
 global.AVOID_ATTACKING_ALLIANCES = true; // Check LOAN and avoid attacking people in alliances
 
@@ -49,13 +47,14 @@ global.REACTION_AMOUNT = 10000; // Minimum amount we aim for base minerals
 global.TERMINAL_ENERGY_BUFFER = 10000; // Keep this much in terminal (Needed for trade)
 global.SELL_BOOSTS = false; // If we should sell spare boosts or not
 
-// Room Ramparts
-global.BUNKER_LEVEL = 4; // What level do we start building the bunker
-global.SPECIAL_RAMPARTS = 7; // What level do we build ramparts on important structures/controller/sources
+// Room Build
+global.BUNKER_LEVEL = 5; // What level do we start building the bunker
+global.SPECIAL_RAMPARTS = 7; // What level do we build ramparts on important structures/controller/sources/on-ramps
 global.PROTECT_STRUCTURES = true; // Rampart significant structures (tied to the above)
-global.PROTECT_CONTROLLER = false; // Include controller in the bunker algorithm
-global.PROTECT_MINERAL = false; // Include mineral in the bunker algorithm
-global.PROTECT_SOURCES = false; // Include sources in the bunker algorithm
+global.PROTECT_CONTROLLER = true; // Build ramparts around the controller
+global.PROTECT_MINERAL = false; // Build ramparts around the mineral
+global.PROTECT_SOURCES = false; // Build ramparts around the source
+global.ROAD_LEVEL = 4 // What level to build roads
 
 // Energy Targets
 global.ENERGY_TARGETS = {
