@@ -540,15 +540,8 @@ module.exports.globalCreepQueue = function () {
 
         // Handle harass targets
         if (HARASSMENT_OPERATIONS && Memory._threats && Memory._threats.length) {
-            if (getCreepCount(undefined, 'longbow', undefined, 'harass') < 2) {
-                const harassTarget = _.sample(_.filter(INTEL, function (r) {
-                    return (!r.owner || !r.towers) && Memory._threats.includes(r.user) &&
-                        (!r.armedHostile || r.armedHostile + CREEP_LIFE_TIME < Game.time) && !r.safemode;
-                }));
-                if (harassTarget) {
-                    queueCreepIfNeeded(undefined, 'longbow', PRIORITIES.secondary, 1, undefined, key, undefined, undefined, 'harass');
-                }
-            }
+            const amount = _.filter(MY_ROOMS, (r) => Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].memory.availableForAssignment).length * 0.25 || 1
+            queueCreepIfNeeded(undefined, 'longbow', PRIORITIES.secondary, amount, undefined, key, undefined, undefined, 'harass');
         }
 
         switch (operation.type) {
