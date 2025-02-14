@@ -403,6 +403,17 @@ let helpers = function () {
     };
 
     /**
+     * Find and purge all routes containing a room
+     * @param {string} roomName - The name of the room whose status is to be retrieved.
+     * @returns {void}
+     */
+    global.purgeBadRoute = function (roomName) {
+        let routeCache = ROUTE_CACHE;
+        routeCache = objFilter(routeCache, (r) => !JSON.parse(r.route).includes(roomName));
+        CACHE.ROUTE_CACHE = routeCache;
+    }
+
+    /**
      * Get all the surrounding rooms regardless of connection
      * @param {string} roomName - The name of the room.
      * @returns {array} Array of rooms names

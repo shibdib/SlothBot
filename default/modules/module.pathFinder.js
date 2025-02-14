@@ -137,8 +137,10 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
             creep.memory.towDestination = undefined;
         }
         if (!creep.memory.towCreep || !Game.getObjectById(creep.memory.towCreep)) {
-            let towTruck = _.filter(creep.room.myCreeps, (c) => c.getActiveBodyparts(MOVE) >= creep.body.length * 0.5 && !_.sum(c.store) && !c.memory.trailer && !c.memory.military);
-            if (!towTruck.length) towTruck = _.filter(creep.room.myCreeps, (c) => c.getActiveBodyparts(MOVE) >= 2 && !_.sum(c.store) && !c.memory.trailer && !c.memory.military);
+            let towTruck = _.filter(creep.room.myCreeps, (c) => c.getActiveBodyparts(MOVE) >= creep.body.length * 0.5 && !_.sum(c.store) && !c.memory.trailer
+                && !c.hasActiveBodyparts(ATTACK) && !c.hasActiveBodyparts(RANGED_ATTACK) && !c.hasActiveBodyparts(HEAL));
+            if (!towTruck.length) towTruck = _.filter(creep.room.myCreeps, (c) => c.getActiveBodyparts(MOVE) >= 2 && !_.sum(c.store) && !c.memory.trailer
+                && !c.hasActiveBodyparts(ATTACK) && !c.hasActiveBodyparts(RANGED_ATTACK) && !c.hasActiveBodyparts(HEAL));
             if (towTruck.length) {
                 const closest = creep.pos.findClosestByRange(towTruck);
                 creep.memory.towCreep = closest.id;
@@ -289,7 +291,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     // Pathfinder
     const result = PathFinder.search(origin, {pos: target, range: options.range}, {
         maxOps: options.maxOps,
-        maxRooms: allowedRooms.length,
+        maxRooms: allowedRooms.length * 1.5,
         heuristicWeight: options.heuristicWeight,
         roomCallback: function (roomName) {
             if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
@@ -823,7 +825,7 @@ function serializePath(startPos, path, color = _.sample(["orange", "blue", "gree
 
 function cacheRoute(from, to, route, failed = undefined) {
     let key = from + '_' + to;
-    let cache = CACHE.globalRouteCache || {};
+    let cache = ROUTE_CACHE || {};
     if (typeof cache !== 'object') cache = {};
     let tick = Game.time;
     cache[key] = {
@@ -832,20 +834,20 @@ function cacheRoute(from, to, route, failed = undefined) {
         uses: 1,
         tick: tick
     };
-    CACHE.globalRouteCache = cache;
+    CACHE.ROUTE_CACHE = cache;
 }
 
 function getRoute(from, to) {
-    if (CACHE.globalRouteCache) {
-        let cachedRoute = CACHE.globalRouteCache[from + '_' + to];
+    if (ROUTE_CACHE) {
+        let cachedRoute = ROUTE_CACHE[from + '_' + to];
         if (cachedRoute) {
             if (cachedRoute.tick + (CREEP_LIFE_TIME * 2) > Game.time) {
                 if (cachedRoute.failed) return 'failed';
                 cachedRoute.uses += 1;
-                CACHE.globalRouteCache[from + '_' + to] = cachedRoute;
+                CACHE.ROUTE_CACHE[from + '_' + to] = cachedRoute;
                 return JSON.parse(cachedRoute.route);
             } else {
-                delete CACHE.globalRouteCache[from + '_' + to];
+                delete CACHE.ROUTE_CACHE[from + '_' + to];
             }
         }
     }
@@ -853,7 +855,7 @@ function getRoute(from, to) {
 
 function deleteRoute(from, to) {
     let key = from + '_' + to;
-    if (CACHE.globalRouteCache[key]) delete CACHE.globalRouteCache[key];
+    if (CACHE.ROUTE_CACHE[key]) delete CACHE.ROUTE_CACHE[key];
 }
 
 function cachePath(creep, from, to, pathInfo) {

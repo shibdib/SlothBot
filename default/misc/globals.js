@@ -136,6 +136,7 @@ let globals = function () {
 
     //Cache stuff
     global.CACHE = {};
+    global.ROUTE_CACHE = CACHE.ROUTE_CACHE = {};
     global.ROAD_CACHE = CACHE.ROAD_CACHE = {};
     global.ROOM_CPU_ARRAY = CACHE.ROOM_CPU_ARRAY = {};
     global.ROOM_ENERGY_INCOME_ARRAY = CACHE.ROOM_ENERGY_INCOME_ARRAY = {};

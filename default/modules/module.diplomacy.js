@@ -137,6 +137,12 @@ module.exports.trackThreat = function (creep) {
             Memory._userList[coopUser] = userEntry;
         }
     }
+    // Handle updating rooms with towers
+    const tower = creep.room.structures.find((s) => !s.my && s.structureType === STRUCTURE_TOWER);
+    if (tower && !INTEL[creep.room.name].towers) {
+        creep.room.cacheRoomIntel(true);
+        purgeBadRoute(creep.room.name);
+    }
 
     // Ignore scouts and explorers
     if (memory.role === "scout" || memory.role === "explorer") return;
@@ -153,6 +159,7 @@ module.exports.trackThreat = function (creep) {
             room.controller &&
             ((room.controller.owner && room.controller.owner.username !== MY_USERNAME) ||
                 (room.controller.reservation && room.controller.reservation.username !== MY_USERNAME));
+        if (isHostileRoom) purgeBadRoute(creep.room.name);
         if (isHostileRoom && memory.destination !== room.name) return;
 
         const nearbyHostiles = _.uniq(
