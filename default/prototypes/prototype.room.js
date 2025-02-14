@@ -394,6 +394,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     // More frequent checks
     if (!roomIntel.microUpdate || roomIntel.microUpdate + 50 < currentTime) {
         roomIntel.invaderCore = !!this.find(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_INVADER_CORE}}).length;
+        roomIntel.user = this.user;
         if (this.controller) {
             roomIntel.owner = this.controller.owner ? this.controller.owner.username : undefined;
             roomIntel.reservation = this.controller.reservation ? this.controller.reservation.username : undefined;
@@ -408,6 +409,16 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             roomIntel.armedHostile = _.some(this.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) ? Game.time : undefined;
         } else {
             roomIntel.armedHostile = undefined;
+        }
+        // Sk rooms can sometimes have towers spawn
+        if (roomIntel.sk) {
+            const towers = this.structures.filter((s) => s.structureType === STRUCTURE_TOWER &&
+                s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST &&
+                s.isActive())
+            if (towers.length) {
+                roomIntel.towers = towers.length;
+                roomIntel.towerData = this.towerData();
+            }
         }
         roomIntel.microUpdate = currentTime;
         cache[this.name] = roomIntel;
@@ -496,16 +507,6 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     // Special room type checks
     const structures = this.find(FIND_STRUCTURES);
     roomIntel.sk = structures.some(s => s.structureType === STRUCTURE_KEEPER_LAIR);
-    // Sk rooms can have towers
-    if (roomIntel.sk) {
-        const towers = this.structures.filter((s) => s.structureType === STRUCTURE_TOWER &&
-            s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST &&
-            s.isActive())
-        if (towers.length) {
-            roomIntel.towers = towers.length;
-            roomIntel.towerData = this.towerData();
-        }
-    }
     const deposits = this.find(FIND_DEPOSITS).some(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20));
     const power = this.find(FIND_STRUCTURES).some(s => s.structureType === STRUCTURE_POWER_BANK);
     if (roomIntel.sources === 0 && (deposits || power)) {
