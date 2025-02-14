@@ -768,26 +768,29 @@ Creep.prototype.pairUp = function () {
         if (availablePartner) {
             this.memory.leader = true;
             this.memory.partner = availablePartner.id;
+            this.memory.oldRole = availablePartner.memory.role;
+            this.memory.role = 'longbowDuo';
             availablePartner.memory.partner = this.id;
+            availablePartner.memory.oldRole = availablePartner.memory.role;
+            availablePartner.memory.role = 'longbowDuo';
             return true;
         } else if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
             availablePartner = _.find(this.room.myCreeps, (c) => c.id !== this.id && !c.spawning && ['longbow', 'longbowDuo'].includes(c.memory.role) && !c.memory.partner);
             if (availablePartner) {
                 availablePartner.memory.leader = true;
                 availablePartner.memory.partner = this.id;
-                if (availablePartner.memory.role !== 'longbowDuo') {
-                    availablePartner.memory.oldRole = availablePartner.memory.role;
-                    availablePartner.memory.role = 'longbowDuo';
-                }
+                availablePartner.memory.oldRole = availablePartner.memory.role;
+                availablePartner.memory.role = 'longbowDuo';
                 availablePartner.memory.temporaryPartner = true;
                 this.memory.temporaryPartner = true;
                 this.memory.partner = availablePartner.id;
+                this.memory.oldRole = availablePartner.memory.role;
+                this.memory.role = 'longbowDuo';
                 return true;
-            } else {
-                this.memory.leader = undefined;
-                this.memory.partner = undefined;
             }
         }
+        this.memory.leader = undefined;
+        this.memory.partner = undefined;
     } else if (this.memory.temporaryPartner && !this.room.hostileCreeps.length && !this.room.hostileStructures.length) {
         this.memory.leader = undefined;
         this.memory.partner = undefined;
@@ -797,6 +800,7 @@ Creep.prototype.pairUp = function () {
         partner.memory.partner = undefined;
         partner.memory.temporaryPartner = undefined;
         if (partner.memory.oldRole) partner.memory.role = partner.memory.oldRole;
+        if (this.memory.oldRole) this.memory.role = this.memory.oldRole;
     }
 }
 
