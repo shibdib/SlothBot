@@ -56,22 +56,10 @@ global.PROTECT_MINERAL = false; // Build ramparts around the mineral
 global.PROTECT_SOURCES = false; // Build ramparts around the source
 global.ROAD_LEVEL = 4 // What level to build roads
 
-// Energy Targets
-global.ENERGY_TARGETS = {
-    1: 0,
-    2: 0,
-    3: 0,
-    4: 50000,
-    5: 100000,
-    6: 250000,
-    7: 500000,
-    8: 500000
-}
-
 // Signing and whatnot
 global.SIGN_ROOMS = true;
 global.OWNED_ROOM_SIGNS = [
-    "SlothBot"
+    "SlothBot by Shibdib"
 ];
 
 global.RESERVE_ROOM_SIGNS = [

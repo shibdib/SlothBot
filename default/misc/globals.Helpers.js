@@ -373,6 +373,12 @@ let helpers = function () {
         return (num1 > num2) ? num1 - num2 : num2 - num1
     }
 
+    /**
+     * Filters an object
+     * @param obj
+     * @param predicate
+     * @returns {object}
+     */
     global.objFilter = function (obj, predicate) {
         return Object.keys(obj)
             .filter(key => predicate(obj[key]))
@@ -448,6 +454,27 @@ let helpers = function () {
             }
         }
         return Object.keys(rooms);
+    }
+
+    /**
+     * Gets the energy cost of all buildings at that level
+     * @param {int} level - The name of the room whose status is to be retrieved.
+     * @returns {int}
+     */
+    let storedCost = {};
+    global.constructionCost = function (level) {
+        if (storedCost[level]) return storedCost[level];
+        const levelCost = {};
+        for (const structure in CONTROLLER_STRUCTURES) {
+            if ([STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL].includes(structure)) continue;
+            for (const key in CONTROLLER_STRUCTURES[structure]) {
+                if (!levelCost[key]) levelCost[key] = 0;
+                const count = CONTROLLER_STRUCTURES[structure][key];
+                levelCost[key] += CONSTRUCTION_COST[structure] * count;
+            }
+        }
+        storedCost = levelCost;
+        return storedCost[level];
     }
 }
 
