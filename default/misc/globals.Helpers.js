@@ -185,6 +185,7 @@ let helpers = function () {
             log.a('--INTEL CACHE PURGED--', ' ');
             global.INTEL = {};
         } else {
+            return;
             const intel = global.INTEL;
             log.a(`--INTEL PURGED FOR ${roomLink(roomName)}--`, ' ');
             intel[roomName] = undefined;
