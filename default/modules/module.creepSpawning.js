@@ -411,7 +411,7 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function handleReservation(room, remoteName) {
-        if (room.level >= 4 && (!INTEL[remoteName].reservationExpires || (INTEL[remoteName].reservationExpires - CREEP_LIFE_TIME) < Game.time) && !INTEL[remoteName].sk) {
+        if (room.level >= 4 && getCreepCount(undefined, 'remoteHarvester', remoteName) && (!INTEL[remoteName].reservationExpires || (INTEL[remoteName].reservationExpires - CREEP_LIFE_TIME) < Game.time) && !INTEL[remoteName].sk) {
             const count = INTEL[remoteName].reserverCap && INTEL[remoteName].reserverCap < 3 ? INTEL[remoteName].reserverCap : INTEL[remoteName].reserverCap && INTEL[remoteName].reserverCap > 3 ? 3 : 1
             queueCreepIfNeeded(room, 'reserver', PRIORITIES.reserver, count, undefined, remoteName);
         }
