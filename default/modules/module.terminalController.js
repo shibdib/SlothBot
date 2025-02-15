@@ -18,6 +18,9 @@ class TerminalControl {
     run() {
         if (!this.room.terminal || !_.size(MY_MINERALS) || (lastRun[this.room.name] && lastRun[this.room.name] + 25 > Game.time)) return;
 
+        // Make sure banker is set
+        if (!Memory._banker) Memory._banker = {};
+
         lastRun[this.room.name] = Game.time;
 
         const myOrders = Game.market.orders;

@@ -7,8 +7,8 @@ let SIEGE_LIMIT;
 const lastRun = {};
 const tasks = ['housekeeping', 'flags', 'military', 'auxiliary', 'response', 'nukes']
 module.exports.highCommand = function () {
-    OPERATION_LIMIT = _.filter(MY_ROOMS, (r) => Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].memory.availableForAssignment).length * 0.5;
-    SIEGE_LIMIT = _.filter(MY_ROOMS, (r) => Game.rooms[r].level >= MAX_LEVEL && Game.rooms[r].memory.availableForAssignment).length * 0.5;
+    OPERATION_LIMIT = Math.ceil(MY_ROOMS.filter((r) => Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].memory.availableForAssignment).length * 0.5);
+    SIEGE_LIMIT = Math.ceil(MY_ROOMS.filter((r) => Game.rooms[r].level >= MAX_LEVEL && Game.rooms[r].memory.availableForAssignment).length * 0.5);
     // Handle tasks
     for (const task of tasks) {
         switch (task) {
@@ -74,7 +74,6 @@ function militaryOperations() {
             if (!t.name) return Infinity;
             return findClosestOwnedRoom(t.name, true);
         });
-
         if (stronghold && stronghold.name) setTarget(stronghold.name);
     }
 
@@ -105,7 +104,7 @@ function militaryOperations() {
             if (target && target.name) setTarget(target.name);
 
         } // Room Sieges
-        else if (activeSiegeOperations < SIEGE_LIMIT) {
+        if (activeSiegeOperations < SIEGE_LIMIT) {
             // No Towers
             let target = _.min(_.filter(initialFilter, (r) => r.owner && !r.towers
                 && ((r.lastSiege || 0) + (ATTACK_COOLDOWN * 2) < Game.time) && !r.safemode), function (t) {
@@ -320,8 +319,7 @@ function manageMilitary() {
                     break;
                 }
                 staleMulti = 5;
-                if (activeSiegeOperations > SIEGE_LIMIT ||
-                    (INTEL[key] && (_.includes(FRIENDLIES, INTEL[key].owner) || !INTEL[key].owner || INTEL[key].owner === 'Invader'))) {
+                if (activeSiegeOperations > SIEGE_LIMIT || !INTEL[key] || FRIENDLIES.includes(INTEL[key].owner)) {
                     log.a('Canceling ' + type + ' in ' + roomLink(key) + ' due to high operation count or non-hostile status.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     activeSiegeOperations--;

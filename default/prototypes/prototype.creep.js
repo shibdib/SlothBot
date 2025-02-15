@@ -288,10 +288,10 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
             this.memory.lastWithdraw = destination.id;
             delete this.memory.energyDestination;
             delete this.memory._shibMove;
-            return true;
         } else if (result === ERR_NOT_IN_RANGE) {
-            return this.shibMove(destination);
+            this.shibMove(destination);
         }
+        return true;
     }
     // Handling resources without 'store' (like dropped energy)
     else if (destination.amount) {
@@ -300,10 +300,10 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
             this.memory.lastWithdraw = destination.id;
             delete this.memory.energyDestination;
             delete this.memory._shibMove;
-            return true;
         } else if (result === ERR_NOT_IN_RANGE) {
-            return this.shibMove(destination);
+            this.shibMove(destination);
         }
+        return true;
     }
 
     // If we've reached here, something went wrong or the destination is invalid
@@ -630,8 +630,6 @@ Creep.prototype.constructionWork = function () {
     }
 
     // Priority 9: Build any other structures
-    if (this.room.energyState) {
-    }
     site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
     if (site) {
         this.memory.constructionSite = site.id;

@@ -217,14 +217,14 @@ function executePath(creep, pathInfo, options, origin, heading) {
         creep.memory._shibMove = pathInfo;
         switch (creep.move(nextDirection)) {
             case OK:
-                break;
+                return true;
             case ERR_TIRED:
-                break;
+                return true;
             case ERR_NO_BODYPART:
-                break;
+                return false;
             case ERR_BUSY:
                 creep.idleFor(10);
-                return;
+                return false;
         }
     } else {
         // Check if target reached

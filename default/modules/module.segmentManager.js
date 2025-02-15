@@ -91,20 +91,28 @@ module.exports.retrievePathing = function () {
     if (pathingCheckCounter < 25) {
         if (Memory.pathingVersion === PATHFINDER_VERSION) {
             // Paths
-            if (RawMemory.segments[69] !== undefined) {
+            if (RawMemory.segments[69] !== undefined && _.size(RawMemory.segments[69])) {
                 pathingSegmentChecked = true;
                 CACHE.globalPathCache = JSON.parse(RawMemory.segments[69]);
                 log.e("Pathing segment retrieved, restoring old path cache.", "PATHING MANAGER: ");
+            } else if (RawMemory.segments[69] !== undefined && !_.size(RawMemory.segments[69])) {
+                pathingSegmentChecked = true;
+                CACHE.ROUTE_CACHE = {};
+                log.e("Pathing segment retrieved and is empty, refreshing path cache.", "PATHING MANAGER: ");
             } else {
                 pathingCheckCounter++;
                 RawMemory.setActiveSegments(activeSegments);
                 log.d("Pathing segment not accessible, enabling the segment for the next tick.", "PATHING MANAGER: ");
             }
             // Routes
-            if (RawMemory.segments[70] !== undefined) {
+            if (RawMemory.segments[70] !== undefined && _.size(RawMemory.segments[70])) {
                 pathingSegmentChecked = true;
                 CACHE.ROUTE_CACHE = JSON.parse(RawMemory.segments[70]);
                 log.e("Routing segment retrieved, restoring old routing cache.", "PATHING MANAGER: ");
+            } else if (RawMemory.segments[70] !== undefined && !_.size(RawMemory.segments[70])) {
+                pathingSegmentChecked = true;
+                CACHE.ROUTE_CACHE = {};
+                log.e("Routing segment retrieved and is empty, refreshing routing cache.", "PATHING MANAGER: ");
             } else {
                 pathingCheckCounter++;
                 RawMemory.setActiveSegments(activeSegments);

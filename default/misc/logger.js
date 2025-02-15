@@ -74,14 +74,7 @@ class Log {
             this.cprint(custom + ' ' + message, this.LOGGING_LEVEL.ERROR, '#e59821');
         } else {
             this.cprint('ERROR: ' + message, this.LOGGING_LEVEL.ERROR, '#e59821');
-            if (!Memory.errorLogs) Memory.errorLogs = JSON.stringify([]);
-            let logTracker = JSON.parse(Memory.errorLogs)
-            if (!logTracker.includes(message)) {
-                const date = new Date();
-                if (logTracker.length >= 25) logTracker.pop();
-                logTracker.push(`${date.toLocaleString()} - ${message}`);
-            }
-            Memory.errorLogs = JSON.stringify(logTracker);
+            Memory.errorLogs = undefined
         }
     }
 

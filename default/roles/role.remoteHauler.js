@@ -13,7 +13,7 @@ class RoleRemoteHauler {
 
     performRoleActions() {
         if (this.housekeeping()) return;
-        if (this.creep.memory.hauling || this.creep.isFull) {
+        if (this.creep.isFull) {
             this.deliverResource();
         } else if (this.creep.memory.operation) {
             this.specialDuty();
@@ -34,7 +34,6 @@ class RoleRemoteHauler {
     deliverResource() {
         if (!_.sum(this.creep.store)) {
             this.creep.memory.storageDestination = undefined;
-            this.creep.memory.hauling = undefined;
             return;
         }
         // Sanity check for container and non energy
@@ -65,7 +64,6 @@ class RoleRemoteHauler {
     findResource() {
         if (this.creep.memory.energyDestination) {
             if (this.creep.withdrawResource()) {
-                this.creep.memory.hauling = true;
                 return true;
             }
         } else {
@@ -106,7 +104,6 @@ class RoleRemoteHauler {
             this.findResource();
             if (this.creep.memory.energyDestination) {
                 if (this.creep.withdrawResource()) {
-                    this.creep.memory.hauling = true;
                     return true;
                 }
             }

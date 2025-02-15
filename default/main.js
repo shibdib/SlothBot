@@ -91,21 +91,19 @@ module.exports.loop = function () {
                 const ownedRoom = Object.values(Game.rooms).find(
                     (r) => r.controller && r.controller.my
                 );
-                const spawn = Object.values(Game.spawns).find(
-                    (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.name !== 'auto'
-                );
-                const creep = Object.values(Game.creeps).find((c) => c.my);
+                const spawn = objFilter(Game.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
+                const creeps = objFilter(Game.creeps, (s) => s.my);
 
-                if (ownedRoom && (!spawn || !creep)) {
+                if (ownedRoom && ((!_.size(spawn) && !_.size(creeps)) || (_.size(spawn) === 1 && !_.size(creeps)))) {
                     if (!memWipe) {
-                        //resetMemory();
+                        resetMemory();
                         memWipe = true;
                     }
-                    if (!spawn) {
+                    if (!_.size(spawn)) {
                         require('module.roomPlanner').buildRoom(ownedRoom);
                         return;
                     }
-                } else if (spawn) {
+                } else if (_.size(spawn)) {
                     running = true;
                 }
             }
