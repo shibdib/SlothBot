@@ -122,7 +122,7 @@ class ModuleBodyGenerator {
                     work = Math.min(work, (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1);
                 }
                 carry = 1;
-                move = 1;
+                move = !!this.room.storage ? 0 : 1;
                 break;
 
 
