@@ -40,8 +40,8 @@ class RoleStationaryHarvester {
             if (!container && this.creep.store[RESOURCE_ENERGY]) {
                 source.memory.container = undefined;
                 let dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
-                if (dropped && dropped.amount >= 250) {
-                    let site = this.creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
+                let site = this.creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
+                if (site && dropped && dropped.amount >= 250) {
                     if (site) {
                         this.creep.build(site);
                         this.creep.pickup(dropped);
@@ -61,6 +61,15 @@ class RoleStationaryHarvester {
                 case OK:
                     // Set stationary so we don't get bumped
                     this.creep.memory.other.stationary = true;
+                    // Check if the link is still good
+                    if (!this.creep.memory.other.linkCheck && container && source.memory.link) {
+                        const link = Game.getObjectById(source.memory.link);
+                        if (!link || !link.pos.isNearTo(container)) {
+                            if (link) link.destroy();
+                            source.memory.link = undefined;
+                        }
+                        this.creep.memory.other.linkCheck = true;
+                    }
                     // If we have a link and container, empty the container of overflow
                     if (source.memory.link && container && container.store[RESOURCE_ENERGY]) this.creep.withdraw(container, RESOURCE_ENERGY);
                     // Every other tick check for deposit ability

@@ -12,6 +12,13 @@ class RoleUpgrader {
         if (!this.container) this.room.memory.controllerContainer = undefined;
         this.link = Game.getObjectById(this.room.memory.controllerLink);
         if (!this.link) this.room.memory.controllerLink = undefined;
+        else if (!this.creep.memory.other.linkCheck) {
+            if (this.container && !this.link.pos.isNearTo(this.container)) {
+                this.link.destroy();
+                this.room.memory.controllerLink = undefined;
+            }
+            this.creep.memory.other.linkCheck = true;
+        }
         this.performRoleActions();
     }
 
