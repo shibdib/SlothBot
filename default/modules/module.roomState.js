@@ -18,7 +18,7 @@ module.exports.setRoomState = function (room) {
 
         // Track if room is in a state to participate in combat
         const importantBuilds = _.some(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-        if (!room.memory.availableForAssignment || assignmentCooldown[room.name] < Game.time) {
+        if (!room.memory.availableForAssignment || !assignmentCooldown[room.name] || assignmentCooldown[room.name] < Game.time) {
             assignmentCooldown[room.name] = Game.time + CREEP_LIFE_TIME;
             room.memory.availableForAssignment = !importantBuilds && room.level >= 3 && room.energyState && !room.memory.dangerousAttack;
         }
