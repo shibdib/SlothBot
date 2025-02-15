@@ -258,7 +258,7 @@ function hubLink(room) {
 }
 
 function sourceBuilder(room) {
-    if (room.controller.level >= 2) {
+    if (room.controller.level >= 3) {
         for (let source of room.sources) {
             if (buildSourceContainer(source, room)) return true;
             if (buildSourceLink(source, room)) return true;
