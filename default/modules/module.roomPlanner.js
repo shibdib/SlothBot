@@ -91,14 +91,15 @@ function buildFromLayout(room, countCheck) {
 
     // Check if initial spawn is present
     let initialSpawn = _.find(Game.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my);
+    const roomTower = room.structures.find((s) => s.structureType === STRUCTURE_SPAWN && s.my);
 
     // Determine which structures to build based on conditions
     if (!initialSpawn) {
         // No initial spawn: prioritize spawn structure
-        filter = _.filter(bunkerTemplate, (s) => s.structureType === STRUCTURE_SPAWN);
-    } else if (TOWER_FIRST) {
+        filter = bunkerTemplate.find((s) => s.structureType === STRUCTURE_SPAWN);
+    } else if (TOWER_FIRST && !roomTower && MY_ROOMS.length > 1) {
         // If tower first, we do that
-        filter = _.filter(countCheck, (s) => s.structureType === STRUCTURE_SPAWN);
+        filter = bunkerTemplate.find((s) => s.structureType === STRUCTURE_TOWER);
     } else {
         // Build other structures based on controller level
         filter = _.filter(countCheck, (s) => CONTROLLER_STRUCTURES[s.structureType][room.controller.level]);
