@@ -35,11 +35,7 @@ class RoleCommodityMiner {
 
         // Old age and work/carry part check
         if (this.creep.ticksToLive < 150 || !this.creep.hasActiveBodyparts(WORK) || !this.creep.hasActiveBodyparts(CARRY)) {
-            if (!_.sum(this.creep.store)) {
-                this.creep.suicide();
-            } else {
-                this.creep.recycleCreep();
-            }
+            this.creep.recycleCreep();
             return true;
         }
 

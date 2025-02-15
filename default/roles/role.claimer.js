@@ -29,7 +29,7 @@ class RoleClaimer {
         if (!this.creep.hasActiveBodyparts(CLAIM)) this.creep.suicide();
         if (Game.gcl.level <= MY_ROOMS.length) {
             delete Memory.auxiliaryTargets[this.creep.room.name];
-            return this.creep.suicide();
+            return this.creep.recycleCreep();
         }
     }
 
@@ -40,11 +40,11 @@ class RoleClaimer {
     claimRoom() {
         if (this.creep.room.controller.owner) {
             this.cleanRoom(this.room);
-            return this.creep.suicide();
+            return this.creep.recycleCreep();
         } else if (!this.creep.pos.findClosestByPath(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER))) {
             INTEL[this.room.name].obstacles = true;
             Memory.auxiliaryTargets[this.room.name] = undefined;
-            return this.creep.suicide();
+            return this.creep.recycleCreep();
         } else if (!this.creep.memory.signed) {
             switch (this.creep.signController(this.room.controller, _.sample(OWNED_ROOM_SIGNS))) {
                 case ERR_NOT_IN_RANGE:
@@ -90,7 +90,7 @@ class RoleClaimer {
         } else {
             abandonRoom(this.room);
             if (Memory.auxiliaryTargets) delete Memory.auxiliaryTargets[this.room.name];
-            this.creep.suicide();
+            this.creep.recycleCreep();
         }
     }
 }

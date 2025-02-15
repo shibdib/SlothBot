@@ -25,7 +25,7 @@ class RoleMineralHarvester {
         // Check if mineral depleted
         if (this.creep.memory.other.assignedMineral && Game.getObjectById(this.creep.memory.other.assignedMineral).mineralAmount === 0) {
             log.a(this.room.name + ' supply of ' + Game.getObjectById(this.creep.memory.other.assignedMineral).mineralType + ' has been depleted.');
-            return this.creep.suicide();
+            return this.creep.recycleCreep();
         }
     }
 
@@ -34,7 +34,7 @@ class RoleMineralHarvester {
         if (extractor) {
             this.creep.memory.extractor = extractor.id;
         } else {
-            this.creep.suicide();
+            this.creep.recycleCreep();
         }
     }
 
@@ -48,7 +48,7 @@ class RoleMineralHarvester {
             }
         } else if (Math.random() > 0.9) this.creep.memory.onContainer = undefined;
         let extractor = Game.getObjectById(this.creep.memory.extractor);
-        if (!extractor) return this.creep.suicide();
+        if (!extractor) return this.creep.recycleCreep();
         if (Game.getObjectById(this.room.memory.extractorContainer) && _.sum(Game.getObjectById(this.room.memory.extractorContainer).store) === 2000
             && !this.creep.pos.getRangeTo(Game.getObjectById(this.room.memory.extractorContainer))) return this.creep.idleFor(25);
         if (extractor.cooldown && extractor.pos.getRangeTo(this.creep) < 2) {

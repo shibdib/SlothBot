@@ -26,7 +26,7 @@ class RoleRemoteHarvester {
         // Handle room reservation/ownership
         if (this.room.controller && (this.room.controller.reservation && this.room.controller.reservation.username !== MY_USERNAME)) {
             this.room.cacheRoomIntel(true);
-            return this.creep.suicide();
+            return this.creep.recycleCreep();
         }
         // Periodically check the container
         if (this.creep.memory.onContainer && this.container && Math.random() > 0.9 && this.creep.pos.getRangeTo(this.container)) {

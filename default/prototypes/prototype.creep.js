@@ -1102,7 +1102,8 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
  */
 Creep.prototype.recycleCreep = function () {
     // If no moves, suicide
-    if (!this.hasActiveBodyparts(MOVE)) return this.suicide();
+    if (!this.hasActiveBodyparts(MOVE) && !MY_ROOMS.includes(this.room.name)) return this.suicide();
+    this.memory.recycling = true;
     let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
     if (!spawn) {
         if (this.room.name !== this.memory.colony) {

@@ -199,6 +199,9 @@ function minionController(minion) {
     // Run role
     if (!minion.memory.role) return minion.suicide();
 
+    // If being recycled do that
+    if (minion.memory.recycling) return minion.recycleCreep();
+
     // Check if the role is cached
     let Role;
     if (ROLE_CACHE[minion.memory.role]) {

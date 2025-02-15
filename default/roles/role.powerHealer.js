@@ -21,7 +21,7 @@ class RolePowerHealer {
     }
 
     housekeeping() {
-        if (!Memory.auxiliaryTargets[this.creep.memory.destination]) return this.creep.suicide();
+        if (!Memory.auxiliaryTargets[this.creep.memory.destination]) return this.creep.recycleCreep();
     }
 
     travel() {

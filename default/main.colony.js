@@ -67,7 +67,7 @@ class Colony {
             log.e(`${creep.name} encountered repeated errors and has been terminated.`);
             log.e(e.stack);
             log.e(JSON.stringify(creep.memory));
-            creep.suicide();
+            creep.recycleCreep();
         } else if (errorCount[creep.name] === 1) {
             log.e(`${creep.name} encountered an error in room ${roomLink(creep.room.name)}`);
             log.e(e.stack);
@@ -210,10 +210,13 @@ function minionController(minion) {
     }
 
     // If no role, the minion should suicide
-    if (!minion.memory.role) return minion.suicide();
+    if (!minion.memory.role) return minion.recycleCreep();
 
     // If we're fleeing, continue to do so
     if (minion.memory.runCooldown && Game.time < minion.memory.runCooldown) return minion.fleeHome(true);
+
+    // If being recycled do that
+    if (minion.memory.recycling) return minion.recycleCreep();
 
     // Check if the role is cached
     let Role;

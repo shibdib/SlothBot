@@ -31,7 +31,7 @@ class RoleClaimAttacker {
             this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22});
             return true;
         } else if (this.creep.room.controller && this.creep.room.controller.upgradeBlocked > this.creep.ticksToLive) {
-            this.creep.suicide();
+            this.creep.recycleCreep();
             return true;
         }
     }

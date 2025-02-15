@@ -28,7 +28,7 @@ class RoleSKAttacker {
             let core = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0];
             if (core) {
                 this.room.cacheRoomIntel(true);
-                return this.creep.suicide();
+                return this.creep.recycleCreep();
             }
         }
     }

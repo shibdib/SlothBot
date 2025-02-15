@@ -21,6 +21,7 @@ class RoleDefender {
     }
 
     defenseActions() {
+        if (!INTEL[this.room.name].threatLevel && this.creep.ticksToLive <= 100) return this.creep.recycleCreep();
         if (!this.creep.handleMilitaryCreep() && this.creep.findDefensivePosition(this.creep)) this.creep.idleFor(5);
     }
 }
