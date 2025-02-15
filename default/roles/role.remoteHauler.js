@@ -13,7 +13,7 @@ class RoleRemoteHauler {
 
     performRoleActions() {
         if (this.housekeeping()) return;
-        if (this.creep.isFull) {
+        if (this.creep.isFull || _.sum(this.creep.store)) {
             this.deliverResource();
         } else if (this.creep.memory.operation) {
             this.specialDuty();
