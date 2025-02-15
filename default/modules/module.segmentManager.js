@@ -76,6 +76,7 @@ module.exports.storeIntel = function () {
             }
             RawMemory.segments[segmentNumber] = JSON.stringify(store);
             lastIntelStore = Game.time;
+            global.INTEL = store;
         } catch (e) {
             log.e("Error stringifying intel cache, skipping store.", "INTEL MANAGER: ");
             log.e(e.stack);
