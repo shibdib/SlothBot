@@ -54,6 +54,8 @@ function threatManager() {
 module.exports.trackThreat = function (creep) {
     const {room, hits, hitsMax, memory} = creep;
 
+    if (!INTEL[creep.room.name]) return creep.room.cacheRoomIntel();
+
     // Handle updating rooms with towers
     const tower = creep.room.structures.find((s) => !s.my && s.structureType === STRUCTURE_TOWER);
     if (tower && !INTEL[creep.room.name].towers) {
