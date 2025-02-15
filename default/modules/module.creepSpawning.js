@@ -179,7 +179,8 @@ module.exports.essentialCreepQueue = function (room) {
         let shuttleAmount = 2 - linkCount;
         if (!room.memory.hubLink) shuttleAmount = 2;
         const fullContainer = room.structures.find((s) => s.structureType === STRUCTURE_CONTAINER && s.id !== s.room.memory.controllerContainer && s.store[RESOURCE_ENERGY] >= CONTAINER_CAPACITY * 0.9);
-        if (fullContainer) shuttleAmount += 1;
+        const massivePiles = room.droppedEnergy.find((e) => e.amount >= CONTAINER_CAPACITY * 0.9);
+        if (fullContainer || massivePiles) shuttleAmount += 1;
         if (shuttleAmount > 0) {
             let shuttleReboot = !shuttleCount;
             queueCreepIfNeeded(room, 'shuttle', PRIORITIES.hauler + shuttleCount, shuttleAmount, shuttleReboot);
@@ -197,7 +198,7 @@ module.exports.essentialCreepQueue = function (room) {
     let hasConstructionSites = room.constructionSites.find((s) => importantSites.includes(s.structureType)
         || (room.energyState && unimportantSite.includes(s.structureType)));
     let dronePriority = PRIORITIES.drone;
-    let droneNumber = !room.memory.controllerContainer || hasConstructionSites ? (10 - room.level) :
+    let droneNumber = !room.memory.controllerContainer || hasConstructionSites ? (12 - room.level) :
         room.memory.dangerousAttack && room.energyState ? 3 : room.energyState > 1 && room.level >= 6 ? 2 : 1;
     queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
 
@@ -283,8 +284,9 @@ module.exports.remoteCreepQueue = function (room) {
     room.memory.borderPatrol = undefined;
 
     // Refresh remote room data
-    if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + CREEP_LIFE_TIME > Game.time) {
+    if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + CREEP_LIFE_TIME > Game.time || INTEL[room.name].refreshRemotes) {
         refreshRemoteRoomTargets(room);
+        INTEL[room.name].refreshRemotes = undefined;
     }
 
     // Process remote rooms
@@ -456,7 +458,7 @@ module.exports.remoteCreepQueue = function (room) {
             // Count and sum capacity of existing haulers
             const assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.memory.other &&
                 c.memory.other.source === source.source);
-            if (assignedHaulers.length >= 4) continue;
+            if (assignedHaulers.length >= 2) continue;
             const haulingCapacity = assignedHaulers.reduce((sum, creep) =>
                 sum + creep.getActiveBodyparts(CARRY) * 50, 0
             );
