@@ -12,7 +12,7 @@
  * @returns {boolean}
  */
 RoomPosition.prototype.checkIfOutOfBounds = function () {
-    return this.x > 46 || this.x < 3 || this.y > 46 || this.y < 3;
+    return this.x >= 49 || this.x <= 1 || this.y >= 49 || this.y <= 1;
 };
 
 /**
