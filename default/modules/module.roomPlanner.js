@@ -190,7 +190,7 @@ function auxiliaryBuilding(room) {
 
     // Helper function to build roads and manage their construction
     function buildRoads(room, layout) {
-        if (room.level >= ROAD_LEVEL && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length < 3 && !roadBuilder(room, layout)) {
+        if (room.level >= ROAD_LEVEL && room.constructionSites.filter((s) => s.structureType === STRUCTURE_ROAD).length < 3 && !roadBuilder(room, layout)) {
             INTEL[room.name].roadsBuilt = true;
             return false;
         } else {
@@ -320,7 +320,7 @@ function sourceBuilder(room) {
         const controllerContainer = Game.getObjectById(room.memory.controllerContainer);
         for (let key in zoneTerrain) {
             let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, source.room.name);
-            if (position.checkForWall() || position.checkForAllStructure() || position.isNearTo(controllerContainer)) continue;
+            if (position.checkForWall() || position.checkForAllStructure() || position.isNearTo(controllerContainer) || position.checkIfOutOfBounds()) continue;
             if (position.createConstructionSite(STRUCTURE_LINK) === OK) return true;
             break;
         }
@@ -1151,16 +1151,6 @@ function getPathKey(from, to) {
 
 function getPosKey(pos) {
     return pos.x + 'x' + pos.y;
-}
-
-function containsObject(obj, list) {
-    let i;
-    for (i = 0; i < list.length; i++) {
-        if (list[i] === obj) {
-            return true;
-        }
-    }
-    return false;
 }
 
 function findBestContainerPos(source) {
