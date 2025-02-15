@@ -178,10 +178,7 @@ module.exports.essentialCreepQueue = function (room) {
         let linkCount = room.impassibleStructures.filter((s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.hubLink && s.id !== room.memory.controllerLink).length;
         let shuttleAmount = 2 - linkCount;
         if (!room.memory.hubLink) shuttleAmount = 2;
-        const fullContainer = room.find(FIND_STRUCTURES, {
-            filter: (s) => s.structureType === STRUCTURE_CONTAINER
-                && s.id !== s.room.memory.controllerContainer && s.store[RESOURCE_ENERGY] >= CONTAINER_CAPACITY * 0.9
-        })[0];
+        const fullContainer = room.structures.find((s) => s.structureType === STRUCTURE_CONTAINER && s.id !== s.room.memory.controllerContainer && s.store[RESOURCE_ENERGY] >= CONTAINER_CAPACITY * 0.9);
         if (fullContainer) shuttleAmount += 1;
         if (shuttleAmount > 0) {
             let shuttleReboot = !shuttleCount;
@@ -197,10 +194,10 @@ module.exports.essentialCreepQueue = function (room) {
     }
 
     // Drone Queueing
-    let hasConstructionSites = _.find(room.constructionSites, (s) => importantSites.includes(s.structureType)
+    let hasConstructionSites = room.constructionSites.find((s) => importantSites.includes(s.structureType)
         || (room.energyState && unimportantSite.includes(s.structureType)));
     let dronePriority = PRIORITIES.drone;
-    let droneNumber = !room.memory.controllerContainer || hasConstructionSites ? (10 - room.level) * 0.5 :
+    let droneNumber = !room.memory.controllerContainer || hasConstructionSites ? (10 - room.level) :
         room.memory.dangerousAttack && room.energyState ? 3 : room.energyState > 1 && room.level >= 6 ? 2 : 1;
     queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
 
@@ -292,7 +289,7 @@ module.exports.remoteCreepQueue = function (room) {
 
     // Process remote rooms
     if (remoteRoomTargets[room.name]) {
-        let remoteRooms = JSON.parse(remoteRoomTargets[room.name]);
+        let remoteRooms = remoteRoomTargets[room.name];
         remoteRooms.forEach(remoteName => processRemoteSpecificTasks(room, remoteName));
     }
 
@@ -412,13 +409,13 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleReservation(room, remoteName) {
         if (room.level >= 4 && getCreepCount(undefined, 'remoteHarvester', remoteName) && (!INTEL[remoteName].reservationExpires || (INTEL[remoteName].reservationExpires - CREEP_LIFE_TIME) < Game.time) && !INTEL[remoteName].sk) {
-            const count = INTEL[remoteName].reserverCap && INTEL[remoteName].reserverCap < 3 ? INTEL[remoteName].reserverCap : INTEL[remoteName].reserverCap && INTEL[remoteName].reserverCap > 3 ? 3 : 1
+            const count = !room.energyState ? 1 : INTEL[remoteName].reserverCap && INTEL[remoteName].reserverCap < 3 ? INTEL[remoteName].reserverCap : INTEL[remoteName].reserverCap && INTEL[remoteName].reserverCap > 3 ? 3 : 1
             queueCreepIfNeeded(room, 'reserver', PRIORITIES.reserver, count, undefined, remoteName);
         }
     }
 
     function handleRoadBuilder(room) {
-        queueCreepIfNeeded(room, 'roadBuilder', PRIORITIES.roadBuilder, 1, undefined, undefined, JSON.parse(remoteRoomTargets[room.name]));
+        queueCreepIfNeeded(room, 'roadBuilder', PRIORITIES.roadBuilder, 1, undefined, undefined, remoteRoomTargets[room.name]);
     }
 
     function handleSkCreeps(room, remoteName) {
@@ -490,7 +487,7 @@ module.exports.remoteCreepQueue = function (room) {
             return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level && !INTEL[r].obstacles &&
                 (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation)) && Game.map.findRoute(room.name, r).length <= 2;
         });
-        remoteRoomTargets[room.name] = JSON.stringify(remoteRooms);
+        remoteRoomTargets[room.name] = remoteRooms;
 
         // Handle finding contested remotes
         const contestedRemote = _.find(exits, function (r) {
@@ -534,7 +531,7 @@ module.exports.globalCreepQueue = function () {
         }
 
         // Handle scout if needed (if observer check is missing)
-        if (!operation.observerCheck) {
+        if (!operation.observerCheck && !opLevel) {
             queueCreepIfNeeded(undefined, 'scout', 1, 1, undefined, key, undefined, true);
         }
 
