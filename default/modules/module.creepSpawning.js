@@ -534,7 +534,7 @@ module.exports.globalCreepQueue = function () {
         }
 
         // Handle scout if needed (if observer check is missing)
-        if (!operation.observerCheck && !opLevel) {
+        if (!operation.observerCheck) {
             queueCreepIfNeeded(undefined, 'scout', 1, 1, undefined, key, undefined, true);
         }
 
@@ -704,39 +704,6 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
         closestRoom: closestRoom
     };
     if (global) CREEP_QUEUES['global'] = JSON.stringify(cache); else CREEP_QUEUES[room.name] = JSON.stringify(cache);
-}
-
-/**
- *
- * @param {object} room - Room object for room creeps
- * @param {string} role - Role
- * @param {string} destination - If filtering by destination room name
- * @param {string} operation - If filtering by operation type
- * @param {string} colony - If filtering by colony
- * @returns {*|number}
- */
-function getCreepCount(room = undefined, role, destination = undefined, operation = undefined, colony = undefined) {
-    if (!destination && !operation && room) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === room.name || c.room.name === room.name || c.memory.colony === room.name)).length;
-    else if (room && operation && !destination) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === room.name || c.memory.colony === room.name) && c.memory.operation === operation).length;
-    else if (destination && !operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === destination || c.memory.colony === destination)).length;
-    else if (!destination && operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && c.memory.operation === operation).length;
-    else if (destination && operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === destination || c.memory.colony === destination) && c.memory.operation === operation).length
-    else if (!destination && !operation && !room && colony) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && c.memory.colony === colony).length;
-    else if (!destination && !operation && !room) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role)).length;
-}
-
-function creepExpiringSoon(room = undefined, role, destination = undefined) {
-    const count = getCreepCount(room, role, destination);
-    if (!count) return true;
-    return false;
-    // If the creep had to travel, account for that in ticks remaining
-    let distance = destination ? Game.map.getRoomLinearDistance(findClosestOwnedRoom(destination, false, MAX_LEVEL), destination) * 50 : 0;
-    const creeps = _.filter(Game.creeps, (c) => c.my && c.memory.role.includes(role) &&
-        (c.room.name === room.name || c.memory.destination === destination || c.memory.colony === room.name));
-    const soonestExpiring = _.min(creeps, 'ticksToLive');
-    if (!soonestExpiring || soonestExpiring.spawning) return false;
-    if (soonestExpiring.ticksToLive === undefined) return false;
-    return soonestExpiring.ticksToLive <= ((CREEP_SPAWN_TIME * soonestExpiring.body.length) + distance);
 }
 
 /**
@@ -915,7 +882,7 @@ function displayQueue(room, queue) {
 
 function getPriority(room) {
     let range = findClosestOwnedRoom(room, true)
-    if (range <= 1) return PRIORITIES.priority; else if (range <= 3) return PRIORITIES.urgent; else if (range <= 5) return PRIORITIES.high; else if (range <= 10) return PRIORITIES.medium; else return PRIORITIES.secondary;
+    if (range <= 2) return PRIORITIES.priority; else if (range <= 5) return PRIORITIES.urgent; else if (range <= 7) return PRIORITIES.high; else if (range <= 10) return PRIORITIES.medium; else return PRIORITIES.secondary;
 }
 
 function getAssignedRoom(targetRoom, level, creepInfo) {
@@ -999,4 +966,37 @@ function determineEnergyOrder(room) {
         orderStored[room.name] = Game.time;
     }
     return true;
+}
+
+/**
+ *
+ * @param {object} room - Room object for room creeps
+ * @param {string} role - Role
+ * @param {string} destination - If filtering by destination room name
+ * @param {string} operation - If filtering by operation type
+ * @param {string} colony - If filtering by colony
+ * @returns {*|number}
+ */
+function getCreepCount(room = undefined, role, destination = undefined, operation = undefined, colony = undefined) {
+    if (!destination && !operation && room) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === room.name || c.room.name === room.name || c.memory.colony === room.name)).length;
+    else if (room && operation && !destination) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === room.name || c.memory.colony === room.name) && c.memory.operation === operation).length;
+    else if (destination && !operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === destination || c.memory.colony === destination)).length;
+    else if (!destination && operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && c.memory.operation === operation).length;
+    else if (destination && operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === destination || c.memory.colony === destination) && c.memory.operation === operation).length
+    else if (!destination && !operation && !room && colony) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && c.memory.colony === colony).length;
+    else if (!destination && !operation && !room) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role)).length;
+}
+
+function creepExpiringSoon(room = undefined, role, destination = undefined) {
+    const count = getCreepCount(room, role, destination);
+    if (!count) return true;
+    return false;
+    // If the creep had to travel, account for that in ticks remaining
+    let distance = destination ? Game.map.getRoomLinearDistance(findClosestOwnedRoom(destination, false, MAX_LEVEL), destination) * 50 : 0;
+    const creeps = _.filter(Game.creeps, (c) => c.my && c.memory.role.includes(role) &&
+        (c.room.name === room.name || c.memory.destination === destination || c.memory.colony === room.name));
+    const soonestExpiring = _.min(creeps, 'ticksToLive');
+    if (!soonestExpiring || soonestExpiring.spawning) return false;
+    if (soonestExpiring.ticksToLive === undefined) return false;
+    return soonestExpiring.ticksToLive <= ((CREEP_SPAWN_TIME * soonestExpiring.body.length) + distance);
 }
