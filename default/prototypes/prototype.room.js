@@ -391,45 +391,52 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         invaderCore: false
     };
 
-    // More frequent checks
+// More frequent checks
     if (!roomIntel.microUpdate || roomIntel.microUpdate + 50 < currentTime) {
-        roomIntel.invaderCore = !!this.find(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_INVADER_CORE}}).length;
+        const structures = this.find(FIND_STRUCTURES);
+        const deposits = this.find(FIND_DEPOSITS);
+        // Check for invader core
+        roomIntel.invaderCore = !!structures.filter(s => s.structureType === STRUCTURE_INVADER_CORE).length;
+        // Update user and controller information
         roomIntel.user = this.user;
         if (this.controller) {
             roomIntel.owner = this.controller.owner ? this.controller.owner.username : undefined;
             roomIntel.reservation = this.controller.reservation ? this.controller.reservation.username : undefined;
         }
+        // Check for highway-related intel
         if (roomIntel.isHighway) {
-            const commodityDeposit = this.find(FIND_DEPOSITS).find(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20));
+            const commodityDeposit = deposits.find(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20));
             roomIntel.commodity = commodityDeposit ? commodityDeposit.depositType : undefined;
-            const powerBank = this.find(FIND_STRUCTURES).find(s => s.structureType === STRUCTURE_POWER_BANK);
+
+            const powerBank = structures.find(s => s.structureType === STRUCTURE_POWER_BANK);
             roomIntel.power = powerBank ? Game.time + powerBank.ticksToDecay : undefined;
         }
-        if (this.hostileCreeps.length) {
-            roomIntel.armedHostile = _.some(this.hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) ? Game.time : undefined;
-        } else {
-            roomIntel.armedHostile = undefined;
-        }
-        // Sk rooms can sometimes have towers spawn
+        // Check for hostile creeps with attack capabilities
+        roomIntel.armedHostile = this.hostileCreeps.length > 0 && _.some(this.hostileCreeps, c =>
+            c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)
+        ) ? Game.time : undefined;
+        // Check for towers in SK rooms
         if (roomIntel.sk) {
-            const towers = this.structures.filter((s) => s.structureType === STRUCTURE_TOWER);
+            const towers = structures.filter(s => s.structureType === STRUCTURE_TOWER);
             if (towers.length) {
                 purgeBadRoute(this.name);
                 roomIntel.towers = towers.length;
                 roomIntel.towerData = this.towerData();
             }
         }
+        // Update micro update timestamp and cache
         roomIntel.microUpdate = currentTime;
         cache[this.name] = roomIntel;
     }
 
     // Get remote source data for the highest level room declaring this a remote
-    if (roomIntel.remoteRoom && (!roomIntel.activeRemote || roomIntel.activeRemote + (CREEP_LIFE_TIME * 2) < currentTime)) {
+    if (roomIntel.remoteRoom && (!roomIntel.activeRemote || roomIntel.activeRemote + CREEP_LIFE_TIME < currentTime)) {
         let highestLevelRoom = getHighestLevelRemoteRoom(roomIntel.remoteRoom);
         for (const source of this.sources) {
             let distanceToExit = calculateDistanceToHub(this, source, highestLevelRoom);
             updateRemoteSourceData(this, highestLevelRoom, source, distanceToExit);
         }
+        INTEL[roomIntel.remoteRoom].refreshRemotes = true;
         roomIntel.activeRemote = Game.time;
     }
 
