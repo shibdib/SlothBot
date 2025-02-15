@@ -21,7 +21,7 @@ module.exports.buildRoom = function () {
             room = Game.rooms[MY_ROOMS[index + 1]];
         }
     }
-    if (!shouldRunAtAll(room)) return;
+    if (!shouldRunAtAll()) return;
 
     let lastRun = tickTracker[room.name] || {};
 
@@ -30,12 +30,12 @@ module.exports.buildRoom = function () {
         // Check if bunker layout needs to be built
         if (shouldRunLayout(lastRun)) {
             buildMissingStructures(room);
-            lastRun.layout = Game.time + _.random(25, 100);
+            lastRun.task = 'layout';
         }
         // Check if auxiliary buildings need to be built
         else if (shouldRunAuxiliary(lastRun)) {
             buildAuxiliaryStructures(room);
-            lastRun.auxiliary = Game.time + _.random(25, 100);
+            lastRun.task = 'auxiliary';
         }
     } else {
         // Find hub if not already found
@@ -43,27 +43,27 @@ module.exports.buildRoom = function () {
     }
 
     // If no lab hub is set, find and assign one
-    if (!room.memory.labHub) return findLabHub(room);
+    if (!room.memory.labHub) findLabHub(room);
 
     if (!room.memory.towerHubs && BETA_TOWERS) findTowerHub(room);
 
     // Update tick tracker
-    tickTracker['lastTick'] = Game.time + 5;
+    tickTracker['lastTick'] = Game.time + 2;
     tickTracker['lastRoom'] = room.name;
     tickTracker[room.name] = lastRun;
 };
 
-function shouldRunAtAll(room) {
+function shouldRunAtAll() {
     let overallLastRun = tickTracker['lastTick'] || 0;
     return overallLastRun < Game.time;
 }
 
 function shouldRunLayout(lastRun) {
-    return (lastRun.layout || 0) < Game.time;
+    return !lastRun.task || lastRun.task === 'auxiliary';
 }
 
 function shouldRunAuxiliary(lastRun) {
-    return (lastRun.auxiliary || 0) < Game.time;
+    return !lastRun.task || lastRun.task === 'layout';
 }
 
 function buildMissingStructures(room) {
@@ -77,12 +77,12 @@ function buildMissingStructures(room) {
 }
 
 function countExistingStructures(room, structureType) {
-    return _.filter(room.structures, (s) => s.structureType === structureType).length +
-        _.filter(room.constructionSites, (s) => s.structureType === structureType).length;
+    return room.structures.filter((s) => s.structureType === structureType).length +
+        room.constructionSites.filter((s) => s.structureType === structureType).length;
 }
 
 function buildAuxiliaryStructures(room) {
-    let builtSpawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN);
+    let builtSpawn = room.impassibleStructures.find((s) => s.structureType === STRUCTURE_SPAWN);
     if (builtSpawn) auxiliaryBuilding(room);
 }
 
@@ -96,10 +96,10 @@ function buildFromLayout(room, countCheck) {
     // Determine which structures to build based on conditions
     if (!initialSpawn) {
         // No initial spawn: prioritize spawn structure
-        filter = bunkerTemplate.find((s) => s.structureType === STRUCTURE_SPAWN);
+        filter = bunkerTemplate.filter((s) => s.structureType === STRUCTURE_SPAWN);
     } else if (TOWER_FIRST && !roomTower && MY_ROOMS.length > 1) {
         // If tower first, we do that
-        filter = bunkerTemplate.find((s) => s.structureType === STRUCTURE_TOWER);
+        filter = bunkerTemplate.filter((s) => s.structureType === STRUCTURE_TOWER);
     } else {
         // Build other structures based on controller level
         filter = _.filter(countCheck, (s) => CONTROLLER_STRUCTURES[s.structureType][room.controller.level]);
