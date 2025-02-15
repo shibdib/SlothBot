@@ -354,18 +354,6 @@ Creep.prototype.locateEnergy = function (room = this.room) {
             potentialEnergy = potentialEnergy.concat(myCreeps.find(c => c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 3));
         }
 
-        // Drones can steal everything early levels, prevent that
-        if (!room.storage && this.memory.role === 'drone') {
-            if (potentialEnergy.length) {
-                const closest = this.pos.findClosestByRange(potentialEnergy);
-                if (closest && closest.id) {
-                    this.memory.energyDestination = closest.id;
-                    return true;
-                }
-            }
-            if (room.energyAvailable < room.energyCapacityAvailable) return false;
-        }
-
         // Haulers prioritze the hub link
         if (this.memory.role === 'hauler') {
             const hubLink = Game.getObjectById(room.memory.hubLink);
@@ -400,7 +388,8 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         }
 
         // Dropped Energy
-        potentialEnergy = potentialEnergy.concat(room.droppedEnergy.filter(r => r.amount >= (myCreepsFilter(r.id) + 1) * (freeCapacity * 0.5)));
+        const filterPenalty = this.memory.role === 'drone' ? 2 : 1;
+        potentialEnergy = potentialEnergy.concat(room.droppedEnergy.filter(r => r.amount >= (myCreepsFilter(r.id) + filterPenalty) * (freeCapacity * 0.5)));
 
         // Container handling for specific roles or in rooms without storage
         if (['shuttle', 'remoteHauler'].includes(this.memory.role) || !room.controller || !room.controller.owner || !room.storage) {
