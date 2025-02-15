@@ -217,7 +217,7 @@ function sendHostileNotification(room, hostileOwners) {
     Game.notify('----------------------');
 
     log.a('----------------------');
-    log.a(`${historyLink} - Enemy detected, room is now in FPCON DELTA.`);
+    log.a(`${roomLink(room.name)} - Enemy detected, room is now in FPCON DELTA.`);
     log.a('----------------------');
     log.a(`${INTEL[room.name].numberOfHostiles} - Foreign Hostiles Reported`);
     log.a('----------------------');

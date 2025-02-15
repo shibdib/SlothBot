@@ -375,7 +375,7 @@ module.exports.remoteCreepQueue = function (room) {
         const intel = INTEL[contestedRemotes[room.name]];
         // Duos if actively contested otherwise just a longbow
         if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) {
-            queueCreepIfNeeded(room, 'longbowDuo', PRIORITIES.remoteHarvester + 1, 2, undefined, contestedRemotes[room.name]);
+            queueCreepIfNeeded(room, 'longbowDuo', PRIORITIES.remoteHarvester + 1, 4, undefined, contestedRemotes[room.name]);
         } else {
             queueCreepIfNeeded(room, 'longbow', PRIORITIES.remoteHarvester + 1, 1, undefined, contestedRemotes[room.name]);
         }
@@ -494,8 +494,8 @@ module.exports.remoteCreepQueue = function (room) {
 
         // Handle finding contested remotes
         const contestedRemote = _.find(exits, function (r) {
-            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && !INTEL[r].sk && INTEL[r].sources && !INTEL[r].level && !INTEL[r].obstacles
-                && (INTEL[r].user && INTEL[r].user !== 'Invader' && !_.includes(FRIENDLIES, INTEL[r].user));
+            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && !INTEL[r].sk && !INTEL[r].safemode && !INTEL[r].towers
+                && INTEL[r].sources && !INTEL[r].obstacles && INTEL[r].user && INTEL[r].user !== 'Invader' && !_.includes(FRIENDLIES, INTEL[r].user);
         });
         if (contestedRemote) contestedRemotes[room.name] = contestedRemote;
 
