@@ -34,7 +34,7 @@ class DefenseManager {
         }
 
         // Check surrounding rooms for high threat
-        this.room.memory.earlyWarning = _.some(Game.map.describeExits(this.room.name), roomName => INTEL[roomName] && INTEL[roomName].threatLevel > 2);
+        this.room.memory.earlyWarning = _.some(Game.map.describeExits(this.room.name), roomName => INTEL[roomName] && INTEL[roomName].threatLevel > 3);
     }
 
     resetStructureCount() {
