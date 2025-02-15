@@ -42,7 +42,7 @@ class RoleDrone {
         // If damaged move to safety
         if (!this.creep.getActiveBodyparts(WORK) || !this.creep.getActiveBodyparts(CARRY)) return this.creep.goToHub();
         // Handle returning to overlord
-        if (this.room.name !== this.creep.memory.colony && !this.creep.memory.remoteMining) {
+        if (this.room.name !== this.creep.memory.colony && !this.creep.memory.remoteMining && !this.creep.memory.energyDestination) {
             this.creep.memory.energyDestination = undefined;
             this.creep.goToHub();
             return true;
