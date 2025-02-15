@@ -715,16 +715,14 @@ Room.prototype.invaderCheck = function () {
     // Determine threat level
     const updateThreatLevel = () => {
         if (!armedInvaders.length) return 1;
-        if (armedInvaders[0].owner.username === 'Invader' && ownerArray.length === 1) return 2;
-        if (armedInvaders[0].owner.username !== 'Invader' && ownerArray.length === 1) {
-            roomData.lastPlayerSighting = Game.time;
-            return 3;
-        }
         if (armedInvaders.length > 1 && (armedInvaders[0].owner.username !== 'Invader' || ownerArray.length > 1)) {
             roomData.lastPlayerSighting = Game.time;
             return 4;
-        }
-        return 0;
+        } else if (armedInvaders[0].owner.username !== 'Invader' && ownerArray.length === 1) {
+            roomData.lastPlayerSighting = Game.time;
+            return 3;
+        } else if (armedInvaders[0].owner.username === 'Invader' && ownerArray.length === 1) return 2;
+        else return 0;
     };
 
     roomData.threatLevel = updateThreatLevel();
