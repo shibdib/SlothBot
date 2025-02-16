@@ -57,10 +57,11 @@ function findWoundedCreep(room) {
 
 // Find structures that are degrading and need repair
 function findDegradingStructure(room) {
+    const multi = !!room.energyState ? 2 : 1;
     return _.find(room.structures, s =>
-        (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.25) ||
-        (s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.2) ||
-        ((s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 10000)
+        (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * (0.25 & multi)) ||
+        (s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * (0.2 & multi)) ||
+        ((s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < (room.energyState > 1 ? (1000000 * room.level) : 10000))
     );
 }
 
