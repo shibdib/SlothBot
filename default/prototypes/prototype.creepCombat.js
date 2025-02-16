@@ -779,19 +779,19 @@ Creep.prototype.pairUp = function () {
 
     function handleSettingPermanent(creep) {
         if (creep.memory.role.includes('Duo')) {
-            const availablePartner = _.find(Game.creeps, (c) => c.id !== this.id && c.my && !c.spawning && creep.memory.role === c.memory.role &&
-                !c.memory.partner && c.memory.destination && c.memory.destination === this.memory.destination && (!c.memory.operation || c.memory.operation === this.memory.operation));
+            const availablePartner = _.find(Game.creeps, (c) => c.id !== creep.id && c.my && !c.spawning && creep.memory.role === c.memory.role &&
+                !c.memory.partner && c.memory.destination && c.memory.destination === creep.memory.destination && (!c.memory.operation || c.memory.operation === creep.memory.operation));
             if (availablePartner) {
                 creep.memory.leader = true;
-                creep.memory.partner = partner.id;
+                creep.memory.partner = availablePartner.id;
                 creep.memory.oldRole = undefined;
                 creep.memory.role = 'longbowDuo';
                 creep.say('PAIRED', true);
-                partner.memory.leader = undefined;
-                partner.memory.partner = creep.id;
-                partner.memory.oldRole = undefined;
-                partner.memory.role = 'longbowDuo';
-                partner.say('PAIRED', true);
+                availablePartner.memory.leader = undefined;
+                availablePartner.memory.partner = creep.id;
+                availablePartner.memory.oldRole = undefined;
+                availablePartner.memory.role = 'longbowDuo';
+                availablePartner.say('PAIRED', true);
                 return true;
             }
         }
