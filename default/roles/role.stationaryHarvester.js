@@ -105,7 +105,7 @@ function depositEnergy(creep) {
     // Fill nearby
     if (extensionFiller(creep)) return;
     if (container && container.hits < container.hitsMax * 0.5) return creep.repair(container);
-    if (source.memory.link && creep.room.memory.hubLink) {
+    if (source.memory.link && (creep.room.memory.hubLink || creep.room.memory.controllerLink)) {
         let link = Game.getObjectById(source.memory.link);
         if (link && link.store[RESOURCE_ENERGY] < LINK_CAPACITY) {
             creep.transfer(link, RESOURCE_ENERGY);
