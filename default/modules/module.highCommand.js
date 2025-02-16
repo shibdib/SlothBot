@@ -83,7 +83,7 @@ function militaryOperations() {
             !Memory.nonCombatRooms.includes(r.name) && !checkForNap(r.owner) && (ATTACK_LOCALS || THREATS.includes(r.owner) || (HOLD_SECTOR && myRoomInSectorCheck(r.name)))
             && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time));
         const activeNonSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && o.type !== 'roomDenial' && !o.dDay));
-        const activeSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && o.type === 'roomDenial' || o.dDay));
+        const activeSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && (o.type === 'roomDenial' || o.dDay)));
 
         // Standard operations
         if (activeNonSiegeOperations < OPERATION_LIMIT) {
@@ -293,8 +293,8 @@ function manageResponseForces() {
 
 function manageMilitary() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
-    let activeNonSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o.type !== 'roomDenial' && !o.dDay));
-    let activeSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o.type === 'roomDenial' || o.dDay));
+    let activeNonSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && o.type !== 'roomDenial' && !o.dDay));
+    let activeSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && o.type === 'roomDenial' || o.dDay));
     let staleMulti = 1;
 
     // Iterate through target rooms
@@ -497,7 +497,6 @@ function manageAuxiliary() {
                 if (INTEL[key].power - 100 < Game.time) {
                     log.a('Canceling power mining operation in ' + roomLink(key) + ' as the resource is about to expire.', 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
-                    purgeIntel(key);
                     continue;
                 }
                 if (getResourceTotal(RESOURCE_POWER) >= DUMP_AMOUNT) {
@@ -511,7 +510,6 @@ function manageAuxiliary() {
                 if (!INTEL[key].mineralAmount) {
                     log.a('Canceling mineral mining operation in ' + roomLink(key) + ' as the resource is depleted.', 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
-                    purgeIntel(key);
                     continue;
                 }
                 break;
@@ -520,7 +518,6 @@ function manageAuxiliary() {
                 if (!MY_ROOMS.includes(key)) {
                     log.a('Canceling rebuild operation in ' + roomLink(key) + ' as we are no longer needed.', 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
-                    purgeIntel(key);
                     continue;
                 }
                 if (INTEL[key].hostile) {
