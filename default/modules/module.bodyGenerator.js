@@ -66,7 +66,7 @@ class ModuleBodyGenerator {
 
             case 'roadBuilder':
             case 'drone':
-                energyScaling = true;
+                if (this.role === 'roadBuilder') energyScaling = true;
 
                 work = Math.floor((this.energyAmount * 0.25) / BODYPART_COST[WORK]) || 1;
                 work = Math.min(work, 15);
