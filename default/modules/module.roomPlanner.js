@@ -91,7 +91,7 @@ function buildFromLayout(room, countCheck) {
 
     // Check if initial spawn is present
     let initialSpawn = _.find(Game.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my);
-    const roomTower = room.structures.find((s) => s.structureType === STRUCTURE_SPAWN && s.my);
+    const roomTower = room.structures.find((s) => s.structureType === STRUCTURE_TOWER && s.my);
 
     // Determine which structures to build based on conditions
     if (!initialSpawn) {
@@ -412,13 +412,8 @@ function rampartBuilder(room, layout = undefined, count = false) {
         return true;
     }
 
-    // Handle individual ramparts on structures/etc..
-    if (room.level >= SPECIAL_RAMPARTS && buildProtectedRamparts(room)) {
-        return true;
-    }
-
     // Handle protective ramparts
-    if (room.level >= SPECIAL_RAMPARTS && protectiveRamparts(room)) {
+    if (room.level >= SPECIAL_RAMPARTS && buildProtectiveRamparts(room)) {
         return true;
     }
 
@@ -430,7 +425,19 @@ function rampartBuilder(room, layout = undefined, count = false) {
         }
     }
 
-    function buildProtectedRamparts(room) {
+    function buildProtectiveRamparts(room) {
+        const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
+        if (!ramparts || !ramparts.length) return false;
+        let counter = 0;
+        const rampartPositions = ramparts.map(p => new RoomPosition(p.x, p.y, room.name));
+        const vulnerableStructures = room.structures.filter((s) => !s.pos.checkForRampart());
+        for (const structure of vulnerableStructures) {
+            if (counter >= 3) return true;
+            const rangeFromRampart = structure.pos.getRangeTo(structure.pos.findClosestByRange(rampartPositions));
+            if (rangeFromRampart <= 2 && structure.pos.isInBunker()) {
+                if (structure.pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
+            }
+        }
         if (PROTECT_SOURCES) {
             for (let source of room.sources) {
                 buildRampartAround(source.pos);
@@ -441,34 +448,12 @@ function rampartBuilder(room, layout = undefined, count = false) {
         // Handle ramparts on protected structures
         if (PROTECT_STRUCTURES) {
             for (let structure of room.structures) {
+                if (counter >= 3) return true;
                 if (protectedStructureTypes.includes(structure.structureType)) {
                     if (!structure.pos.checkForRampart() && !structure.pos.checkForConstructionSites()) {
-                        structure.pos.createConstructionSite(STRUCTURE_RAMPART);
+                        if (structure.pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
                     }
                 }
-            }
-        }
-    }
-
-    function protectiveRamparts(room) {
-        const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
-        if (!ramparts || !ramparts.length) return false;
-        const rampartPositions = ramparts.map(p => new RoomPosition(p.x, p.y, room.name));
-        const roads = room.structures.filter((s) => s.structureType === STRUCTURE_ROAD && !s.pos.checkForRampart());
-        let counter = 0;
-        for (const road of roads) {
-            if (counter >= 3) return true;
-            const rangeFromRampart = road.pos.getRangeTo(road.pos.findClosestByRange(rampartPositions));
-            if (rangeFromRampart <= 2 && road.pos.isInBunker()) {
-                if (road.pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
-            }
-        }
-        const vulnerableStructures = room.structures.filter((s) => !s.pos.checkForRampart());
-        for (const structure of vulnerableStructures) {
-            if (counter >= 3) return true;
-            const rangeFromRampart = structure.pos.getRangeTo(structure.pos.findClosestByRange(rampartPositions));
-            if (rangeFromRampart <= 2 && structure.pos.isInBunker()) {
-                if (structure.pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
             }
         }
     }
