@@ -236,7 +236,7 @@ function auxiliaryBuilding(room) {
 
 function hubLink(room) {
     // If the hub link already exists in memory, return early
-    if (room.memory.hubLink && Game.getObjectById(room.memory.hubLink)) {
+    if ((room.memory.hubLink && Game.getObjectById(room.memory.hubLink)) || room.level < 7) {
         return false;
     }
 
@@ -252,6 +252,8 @@ function hubLink(room) {
     if (hubLink) {
         room.memory.hubLink = hubLink.id;
         return true;
+    } else {
+        if (hubLinkPos.createConstructionSite(STRUCTURE_LINK) === OK) return true;
     }
 
     // Return false if no valid hub link was found
@@ -289,7 +291,7 @@ function sourceBuilder(room) {
     // Helper function to handle the creation of source links
     function buildSourceLink(source, room) {
         const sourceContainer = Game.getObjectById(source.memory.container);
-        if (sourceContainer && Game.getObjectById(room.memory.hubLink)) {
+        if (sourceContainer && (Game.getObjectById(room.memory.controllerLink) || Game.getObjectById(room.memory.hubLink))) {
             let sourceLink = _.find(sourceContainer.pos.findInRange(room.impassibleStructures, 1), (s) => s.structureType === STRUCTURE_LINK);
             let sourceBuild = _.find(sourceContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK);
             // If no link exists and there is space to build, create one
@@ -329,22 +331,16 @@ function sourceBuilder(room) {
 
 function controllerBuilder(room) {
     let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
-
-    // Step 1: Build a container near the controller if it doesn't exist
     if (!controllerContainer && room.controller.level >= 2) {
         controllerContainer = room.controller.pos.findInRange(room.structures, 3, {
             filter: (s) => s.structureType === STRUCTURE_CONTAINER &&
                 !s.pos.isNearTo(s.pos.findClosestByRange(FIND_SOURCES)) &&
                 !s.pos.isNearTo(s.pos.findClosestByRange(FIND_MINERALS))
         })[0];
-
-        // If no container found, create a new one
         if (!controllerContainer) {
             let controllerBuild = room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 3, {
                 filter: (s) => s.structureType === STRUCTURE_CONTAINER
             })[0];
-
-            // If no construction site exists, choose the best position and create a new construction site
             if (!controllerBuild) {
                 let possibles = [];
                 for (let xOff = -2; xOff <= 2; xOff++) {
@@ -359,8 +355,6 @@ function controllerBuilder(room) {
                         }
                     }
                 }
-
-                // Find the closest position to the hub and create the container construction site
                 let closestPos = getClosestPosition(possibles, room.hub);
                 if (closestPos) {
                     if (closestPos.createConstructionSite(STRUCTURE_CONTAINER) === OK) return true;
@@ -371,8 +365,7 @@ function controllerBuilder(room) {
         }
     }
 
-    // Step 2: Build a link near the container if conditions are met (controller level 7+)
-    if (controllerContainer && !room.memory.controllerLink && room.controller.level >= 7) {
+    if (controllerContainer && !room.memory.controllerLink && room.controller.level >= 5) {
         let controllerLink = _.find(controllerContainer.pos.findInRange(room.impassibleStructures, 1), (s) => s.structureType === STRUCTURE_LINK);
 
         if (!controllerLink) {
@@ -391,7 +384,6 @@ function controllerBuilder(room) {
         }
     }
 
-    // Helper function to get the closest position to the hub
     function getClosestPosition(positions, hub) {
         let closestPos = null;
         let closestRange = Infinity;
@@ -1206,10 +1198,6 @@ let bunkerTemplate = [
     {
         "structureType": STRUCTURE_FACTORY,
         "pos": [{"x": 0, "y": 2}]
-    },
-    {
-        "structureType": STRUCTURE_LINK,
-        "pos": [{"x": 0, "y": 1}]
     },
     {
         "structureType": STRUCTURE_TERMINAL,
