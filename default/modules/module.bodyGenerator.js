@@ -184,11 +184,12 @@ class ModuleBodyGenerator {
                 // Handle scaling down military creeps based on power
                 if (this.creepInfo.other && this.creepInfo.other.power) {
                     let totalPower = (rangedAttack * RANGED_ATTACK_POWER) + (heal * HEAL_POWER);
-                    if (totalPower > this.creepInfo.other.power * 1.2) {
-                        let ratio = (this.creepInfo.other.power * 1.2) / totalPower;
+                    if (totalPower > this.creepInfo.other.power) {
+                        let ratio = (this.creepInfo.other.power) / totalPower;
                         rangedAttack = Math.ceil(rangedAttack * ratio);
                         heal = Math.ceil(heal * ratio);
                     }
+                    this.room.memory.additionalPowerNeeded = totalPower < this.creepInfo.other.power ? true : undefined;
                 }
                 break;
 

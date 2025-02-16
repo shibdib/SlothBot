@@ -199,7 +199,7 @@ module.exports.essentialCreepQueue = function (room) {
         || (room.energyState && unimportantSite.includes(s.structureType)));
     let dronePriority = PRIORITIES.drone;
     let droneNumber = !room.memory.controllerContainer || hasConstructionSites ? (12 - room.level) :
-        room.memory.dangerousAttack && room.energyState ? 3 : room.energyState > 1 && room.level >= 6 ? 2 : 1;
+        !room.storage ? Math.max(7 - room.level, 1) : room.memory.dangerousAttack && room.energyState ? 3 : room.energyState > 1 && room.level >= 6 ? 2 : 1;
     queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
 
     // Upgrader
@@ -257,8 +257,9 @@ module.exports.miscCreepQueue = function (room) {
         }
         // Border Patrol
         if (room.memory.borderPatrol) {
-            const power = INTEL[room.memory.borderPatrol] ? INTEL[room.memory.borderPatrol].hostilePower : 50;
-            const count = Math.min(power / (15 * room.level), 4)
+            const power = INTEL[room.memory.borderPatrol] ? (INTEL[room.memory.borderPatrol].hostilePower * 1.5) : 50;
+            let count = Math.min(power / (10 * room.level), 4);
+            if (room.memory.additionalPowerNeeded) count++;
             queueCreepIfNeeded(room, 'longbow', PRIORITIES.remoteHarvester - 1, count, undefined, undefined, undefined, undefined, 'borderPatrol', {power: power});
         }
     }
