@@ -766,11 +766,8 @@ Creep.prototype.pairUp = function () {
     if (handleClearingTemporary(this)) return true;
     // Find partners
     if (!this.memory.partner || !Game.getObjectById(this.memory.partner)) {
-        // Look for partners with the same task
-        let availablePartner = _.find(Game.creeps, (c) => c.id !== this.id && c.my && !c.spawning && ['longbow', 'longbowDuo'].includes(c.memory.role) &&
-            !c.memory.partner && c.memory.destination && c.memory.destination === this.memory.destination && (!c.memory.operation || c.memory.operation === this.memory.operation));
-        if (availablePartner) {
-            if (handleSettingPermanent(this, availablePartner)) return true;
+        if (handleSettingPermanent(this)) {
+            return true;
         } else if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
             if (handleSettingTemporary(this)) return true;
         }
@@ -780,18 +777,24 @@ Creep.prototype.pairUp = function () {
         this.memory.oldRole = undefined;
     }
 
-    function handleSettingPermanent(creep, partner) {
-        creep.memory.leader = true;
-        creep.memory.partner = partner.id;
-        creep.memory.oldRole = undefined;
-        creep.memory.role = 'longbowDuo';
-        creep.say('PAIRED', true);
-        partner.memory.leader = undefined;
-        partner.memory.partner = creep.id;
-        partner.memory.oldRole = undefined;
-        partner.memory.role = 'longbowDuo';
-        partner.say('PAIRED', true);
-        return true;
+    function handleSettingPermanent(creep) {
+        if (creep.memory.role.includes('Duo')) {
+            const availablePartner = _.find(Game.creeps, (c) => c.id !== this.id && c.my && !c.spawning && creep.memory.role === c.memory.role &&
+                !c.memory.partner && c.memory.destination && c.memory.destination === this.memory.destination && (!c.memory.operation || c.memory.operation === this.memory.operation));
+            if (availablePartner) {
+                creep.memory.leader = true;
+                creep.memory.partner = partner.id;
+                creep.memory.oldRole = undefined;
+                creep.memory.role = 'longbowDuo';
+                creep.say('PAIRED', true);
+                partner.memory.leader = undefined;
+                partner.memory.partner = creep.id;
+                partner.memory.oldRole = undefined;
+                partner.memory.role = 'longbowDuo';
+                partner.say('PAIRED', true);
+                return true;
+            }
+        }
     }
 
     function handleSettingTemporary(creep) {

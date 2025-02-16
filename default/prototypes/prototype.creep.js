@@ -24,8 +24,8 @@ Object.defineProperty(Creep.prototype, "idle", {
         }
         if (!this.memory.idleSet) {
             const militaryCreep = this.hasActiveBodyparts(ATTACK) || this.hasActiveBodyparts(RANGED_ATTACK);
-            if (this.memory.other.stationary) this.memory.other.stationary = undefined;
-            if ((militaryCreep && this.pos.checkForRampart()) || this.memory.partner || !this.hasActiveBodyparts(MOVE)) {
+            if ((militaryCreep && this.pos.checkForRampart()) || this.memory.partner || !this.hasActiveBodyparts(MOVE)
+                || (this.memory.other && this.memory.other.stationary)) {
                 this.memory.idleSet = true;
             } else if (this.pos.getRangeTo(this.pos.findClosestByRange(this.room.find(FIND_EXIT))) < 8) {
                 const middleOfRoom = new RoomPosition(25, 25, this.room.name);

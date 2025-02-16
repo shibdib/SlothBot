@@ -482,6 +482,7 @@ function creepBumping(creep, pathInfo, options) {
             bumpCreep.memory.moveBlocked = Game.time;
             return true;
         } else {
+            creep.moveRandom();
             creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
         }
     }

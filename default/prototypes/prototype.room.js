@@ -436,7 +436,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             let distanceToExit = calculateDistanceToHub(this, source, highestLevelRoom);
             updateRemoteSourceData(this, highestLevelRoom, source, distanceToExit);
         }
-        INTEL[roomIntel.remoteRoom].refreshRemotes = true;
+        if (INTEL[roomIntel.remoteRoom]) INTEL[roomIntel.remoteRoom].refreshRemotes = true;
         roomIntel.activeRemote = Game.time;
     }
 

@@ -134,29 +134,6 @@ class HUD {
         return y + 1;
     }
 
-    renderRoomHealth(room, x, y) {
-        const damaged = room.find(FIND_STRUCTURES).filter(s => s.hits < s.hitsMax * 0.75).length;
-        room.visual.text(`🛠️ ${damaged}`, x, y, {color: '#FF0000', align: 'left', font: '0.5 Tahoma'});
-        const defenses = room.find(FIND_STRUCTURES, {filter: {structureType: [STRUCTURE_WALL, STRUCTURE_RAMPART]}});
-        if (defenses.length) {
-            const health = Math.min(...defenses.map(d => d.hits));
-            room.visual.text(`Shield: ${this.formatNumber(health)}`, x + 5, y, {
-                color: '#808080',
-                align: 'left',
-                font: '1x'
-            });
-        }
-        return y + 1;
-    }
-
-    formatNumber(num) {
-        if (num < 1000) return num;
-        const units = ['k', 'M', 'B', 'T'];
-        let unitIndex = Math.floor(Math.log10(num) / 3);
-        let result = num / Math.pow(1000, unitIndex);
-        return result.toFixed(1) + units[unitIndex - 1];
-    }
-
     timeFormat(seconds) {
         if (seconds === Infinity || seconds < 0) return 'Calculating...';
         const [h, m, s] = [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), Math.floor(seconds % 60)];

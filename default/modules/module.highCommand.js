@@ -74,7 +74,7 @@ function militaryOperations() {
             if (!t.name) return Infinity;
             return findClosestOwnedRoom(t.name, true);
         });
-        if (stronghold && stronghold.name) setTarget(stronghold.name);
+        if (stronghold && stronghold.name) setTarget(stronghold.name, 'stronghold', 1, [HEAL]);
     }
 
     if (OFFENSIVE_OPERATIONS) {
@@ -93,7 +93,7 @@ function militaryOperations() {
                 return findClosestOwnedRoom(t.name, true);
             });
             if (target && target.name) {
-                setTarget(singleRemote(target.name));
+                setTarget(singleRemote(target.name), 'guard');
             }
 
             // Active remote denial
@@ -101,7 +101,7 @@ function militaryOperations() {
                 if (!t.name) return Infinity;
                 return findClosestOwnedRoom(t.name, true);
             });
-            if (target && target.name) setTarget(target.name);
+            if (target && target.name) setTarget(target.name, 'remoteDenial');
 
         } // Room Sieges
         if (activeSiegeOperations < SIEGE_LIMIT) {
@@ -111,7 +111,7 @@ function militaryOperations() {
                 if (!t.name) return Infinity;
                 return findClosestOwnedRoom(t.name, true);
             });
-            if (target && target.name) setTarget(target.name);
+            if (target && target.name) setTarget(target.name, 'roomDenial');
 
             // Towers
             target = _.min(_.filter(initialFilter, (r) => r.owner && r.towers && siegeLevel(r.towers)
@@ -119,7 +119,7 @@ function militaryOperations() {
                 if (!t.name) return Infinity;
                 return findClosestOwnedRoom(t.name, true);
             });
-            if (target && target.name) setTarget(target.name);
+            if (target && target.name) setTarget(target.name, 'roomDenial', target.towers <= 2 ? 3 : 4, [HEAL]);
         }
     }
 }
@@ -172,16 +172,20 @@ function auxiliaryOperations() {
     }
 }
 
-function setTarget(room) {
+function setTarget(room, operation, level = 1, boosts = undefined, military = true) {
     let cache = Memory.targetRooms || {};
+    if (!military) cache = Memory.auxiliaryTargets || {};
     cache[room] = {
         tick: Game.time,
-        type: 'scout',
-        level: 1,
-        priority: getPriority(room)
+        type: operation,
+        level: level,
+        boostsRequired: boosts,
+        priority: getPriority(room),
+        waveLimit: MAX_LEVEL
     };
-    Memory.targetRooms = cache;
-    return log.a(`Scout operation planned for ${roomLink(room)} owned by ${INTEL[room].owner} (Nearest Friendly Room - ${findClosestOwnedRoom(room, true)} rooms away)`, 'HIGH COMMAND: ');
+    if (military) Memory.targetRooms = cache; else Memory.auxiliaryTargets = cache;
+    if (operation !== 'roomDenial') INTEL[room].lastOperation = Game.time; else INTEL[room].lastSiege = Game.time;
+    return log.a(`${operation} operation planned for ${roomLink(room)} owned by ${INTEL[room].owner} (Nearest Friendly Room - ${findClosestOwnedRoom(room, true)} rooms away)`, 'HIGH COMMAND: ');
 }
 
 function manageResponseForces() {

@@ -43,15 +43,15 @@ class LinkControl {
         const upgrader = room.creeps.find(c => c.memory && c.memory.role === 'upgrader' && c.memory.inPosition);
 
         // Simplified energy transfer logic
-        if (upgrader && controllerLink && controllerLink.store[RESOURCE_ENERGY] < 100 && Math.random() > 0.8) {
+        if (upgrader && controllerLink && controllerLink.store[RESOURCE_ENERGY] < LINK_CAPACITY * 0.2 && Math.random() > 0.8) {
             link.transferEnergy(controllerLink);
         } else if (hubLink && !hubLink.room.energyState) {
             link.transferEnergy(hubLink);
-        } else if (upgrader && controllerLink && controllerLink.store[RESOURCE_ENERGY] < 100) {
+        } else if (upgrader && controllerLink && controllerLink.store[RESOURCE_ENERGY] < LINK_CAPACITY * 0.1) {
             link.transferEnergy(controllerLink);
         } else if (hubLink && hubLink.store[RESOURCE_ENERGY] < 400) {
             link.transferEnergy(hubLink);
-        } else if (controllerLink && controllerLink.store[RESOURCE_ENERGY] < 200) {
+        } else if (controllerLink && controllerLink.store[RESOURCE_ENERGY] < LINK_CAPACITY * 0.7) {
             link.transferEnergy(controllerLink);
         } else if (hubLink && hubLink.store[RESOURCE_ENERGY] < LINK_CAPACITY) {
             link.transferEnergy(hubLink);
