@@ -199,7 +199,7 @@ module.exports.essentialCreepQueue = function (room) {
         || (room.energyState && unimportantSite.includes(s.structureType)));
     let dronePriority = PRIORITIES.drone;
     let droneNumber = !room.memory.controllerContainer || hasConstructionSites ? (12 - room.level) :
-        !room.storage ? Math.max(7 - room.level, 1) : room.memory.dangerousAttack && room.energyState ? 3 : room.energyState > 1 && room.level >= 6 ? 2 : 1;
+        !room.storage ? Math.max(7 - room.level, 1) : room.memory.dangerousAttack && room.energyState ? 3 : room.energyState && room.level >= BUNKER_LEVEL ? 2 : 1;
     queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
 
     // Upgrader
@@ -555,7 +555,7 @@ module.exports.globalCreepQueue = function () {
 
             case 'rebuild':
                 if (!INTEL[key] || !INTEL[key].threatLevel) {
-                    queueCreepIfNeeded(undefined, 'drone', PRIORITIES.drone + getCreepCount(undefined, 'drone', key), 6, undefined, key);
+                    queueCreepIfNeeded(undefined, 'drone', PRIORITIES.drone, 6, undefined, key);
                 } else if (INTEL[key].threatLevel) {
                     queueCreepIfNeeded(undefined, 'longbowDuo', PRIORITIES.priority, INTEL[key].threatLevel, undefined, key, undefined, true, 'guard');
                 }
@@ -931,7 +931,7 @@ function unassignRoom(assignedRoom, destination, logEntry) {
     if (unassigned) log.a(`Unassigning the operation in ${roomLink(destination)} from ${roomLink(assignedRoom)}. ${logEntry}`, 'OPERATIONS:')
 }
 
-const importantSites = [STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_LINK, STRUCTURE_TERMINAL, STRUCTURE_STORAGE];
+const importantSites = [STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_LINK, STRUCTURE_TERMINAL, STRUCTURE_STORAGE, STRUCTURE_LAB];
 const unimportantSite = [STRUCTURE_ROAD, STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_CONTAINER];
 
 /**
