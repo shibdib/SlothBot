@@ -270,7 +270,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     // Check if its multi room or not
     if (origin.roomName !== target.roomName) {
         roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName)
-        options.maxOps = DEFAULT_MAXOPS * (roomDistance + 1);
+        options.maxOps = DEFAULT_MAXOPS * (roomDistance + 4);
     } else {
         options.maxOps = DEFAULT_MAXOPS;
     }
@@ -411,16 +411,16 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
             // My rooms
             if (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) return 1;
             // Check for avoid flagged rooms
-            if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) return 250;
+            if (Memory.avoidRooms && Memory.avoidRooms.includes(roomName)) return 250;
             if (INTEL && INTEL[roomName]) {
                 // Friendly Rooms
-                if (INTEL[roomName].user && _.includes(FRIENDLIES, INTEL[roomName].user)) return 5;
+                if (INTEL[roomName].user && FRIENDLIES.includes(INTEL[roomName].user)) return 5;
                 // Avoid rooms used by others
-                if (INTEL[roomName].user && !_.includes(FRIENDLIES, INTEL[roomName].user)) {
+                if (INTEL[roomName].user && !FRIENDLIES.includes(INTEL[roomName].user)) {
                     if (INTEL[roomName].towers) return Infinity; else return 75;
                 }
                 // Avoid rooms with hostile combat creeps
-                if (INTEL[roomName].armedHostile && INTEL[roomName].armedHostile + CREEP_LIFE_TIME > Game.time) return 240;
+                if (INTEL[roomName].armedHostile && INTEL[roomName].armedHostile + CREEP_LIFE_TIME > Game.time) return 120;
                 // Pathing Penalty Rooms
                 if (INTEL[roomName].pathingPenalty) {
                     if (INTEL[roomName].pathingPenalty + CREEP_LIFE_TIME < Game.time) return 200; else delete INTEL[roomName].pathingPenalty;
@@ -428,7 +428,7 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
                 // Avoid rooms with obstacles
                 if (INTEL[roomName].obstacles) return 200;
                 // Avoid strongholds
-                if (INTEL[roomName].sk && INTEL[roomName].towers) return Infinity;
+                if (INTEL[roomName].sk && INTEL[roomName].towers) return 250;
                 // High Threat
                 if (INTEL[roomName].threatLevel) return 60 * INTEL[roomName].threatLevel;
                 // If room is under attack
@@ -437,7 +437,7 @@ function routeLogic(origin, destination, roomDistance, portalRoom) {
                 if (INTEL[roomName].sk && INTEL[roomName].user !== MY_USERNAME) return 25;
             } else return 10;
             // Highway
-            if (highway || INTEL[roomName].isHighway) return 4;
+            if (highway || INTEL[roomName].isHighway) return 5;
             return 7;
         }
     });
