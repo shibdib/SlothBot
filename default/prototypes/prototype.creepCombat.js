@@ -389,7 +389,9 @@ Creep.prototype.fightRanged = function (target) {
         creep.attackInRange();
 
         // Move towards target, but adjust range based on threat level
-        let moveRange = (target instanceof Creep && !target.hasActiveBodyparts(ATTACK)) ? 1 : 3;
+        let nearbyMelee = creep.room.hostileCreeps.filter((c) => c.hasActiveBodyparts(ATTACK) && c.pos.getRangeTo(creep) <= 6);
+        if (nearbyMelee.length) nearbyMelee = creep.pos.findClosestByPath(nearbyMelee);
+        let moveRange = (nearbyMelee ? 4 : target instanceof Creep && !target.hasActiveBodyparts(ATTACK)) ? 1 : 3;
 
         // Kite if can't win or if too close to dangerous enemies
         if (!creep.canIWin(6) || shouldKite(this, target)) {
