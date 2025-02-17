@@ -742,7 +742,8 @@ function getQueue(room) {
                 // Set the level target
                 let levelTarget = MAX_LEVEL;
                 if (Memory.auxiliaryTargets[destination]) levelTarget = 4;
-                else if (Memory.targetRooms[destination] && Memory.targetRooms[destination].type === 'roomDenial') levelTarget = userStrength(INTEL[destination].owner);
+                else if (findClosestOwnedRoom(destination, true) <= DEFENSIVE_BUBBLE) levelTarget = MAX_LEVEL - 1;
+                else if (Memory.targetRooms[destination] && Memory.targetRooms[destination].type === 'roomDenial') levelTarget = 4;
                 else if (Memory.targetRooms[destination] && INTEL[destination] && INTEL[destination].user) levelTarget = userStrength(INTEL[destination].user) - 1;
                 else if (Memory.targetRooms[destination] && INTEL[destination] && !INTEL[destination].user) levelTarget = 4;
                 // If 1 tower, handle with an rcl6 else 7+

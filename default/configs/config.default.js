@@ -38,6 +38,7 @@ global.NEW_SPAWN_DENIAL = false; // Crush new spawns immediately
 global.NCP_HOSTILE = false; // Always attack users of open source bots
 global.ATTACK_COOLDOWN = 3000; //Time between attacks on a room
 global.AVOID_ATTACKING_ALLIANCES = true; // Check LOAN and avoid attacking people in alliances
+global.DEFENSIVE_BUBBLE = 3; // What range are we more aggressive
 
 // Market Settings
 global.BUY_ENERGY = false; // If true it will buy energy when above the buffer
