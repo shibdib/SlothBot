@@ -579,7 +579,6 @@ function getStructureMatrix(roomName, creep, matrix, options) {
     if (options.offRoad || options.tunnel) type = 3; else if (options.ignoreRoads) type = 2;
     if (options.squad) type = 4;
     // If we can't see into the room, try to use an old matrix
-    if (creep.id === '67b57ee42732fa0521ea2cc5') console.log(type, options.squad)
     if (!room) {
         if (structureMatrixCache[roomName + type]) return PathFinder.CostMatrix.deserialize(structureMatrixCache[roomName + type]);
         else return matrix;
