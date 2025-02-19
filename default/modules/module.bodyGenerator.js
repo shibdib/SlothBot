@@ -76,12 +76,18 @@ class ModuleBodyGenerator {
                 break;
 
             case 'upgrader':
-                energyScaling = true;
-
-                if (this.room.level < this.room.controller.level || this.creepInfo.reboot) {
+                if (this.room.memory.controllerLink) {
+                    work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
+                    if (this.room.level < 6) work = Math.min(work, 10);
+                    else if (this.room.level === 6) work = Math.min(work, 19);
+                    else work = Math.min(work, 22);
+                    carry = 1;
+                    move = 0;
+                } else if (this.room.level < this.room.controller.level || this.creepInfo.reboot) {
                     work = 1;
                     carry = 1;
                 } else if (this.room.memory.controllerContainer) {
+                    energyScaling = true;
                     work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 50);
                     if (this.level === 8) Math.min(work, 15);
@@ -144,7 +150,7 @@ class ModuleBodyGenerator {
                 // Basic defender logic for lower levels
                 if (this.room.level < 3) {
                     attack = 1;
-                } else if (this.room.level < 7) {
+                } else if (this.room.level < BUNKER_LEVEL) {
                     attack = Math.floor(this.energyAmount / (BODYPART_COST[ATTACK] + BODYPART_COST[MOVE]));
                     rangedAttack = Math.floor(this.energyAmount / (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE]));
                     if (Math.random() > 0.5) {
@@ -169,7 +175,7 @@ class ModuleBodyGenerator {
                 break;
 
             case 'longbow':
-            case 'longbowDuo':
+            case 'longbowSquad':
                 if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boostsRequired) {
                     heal = this.checkForNeededHeal(this.room);
                     if (!heal) break;
