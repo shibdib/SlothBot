@@ -177,7 +177,7 @@ module.exports.essentialCreepQueue = function (room) {
         // Spawn shuttles for harvesters with no link
         let linkCount = room.impassibleStructures.filter((s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.hubLink && s.id !== room.memory.controllerLink).length;
         let shuttleAmount = 2 - linkCount;
-        if (!room.memory.hubLink) shuttleAmount = 2;
+        if (!room.memory.hubLink && !shuttleAmount) shuttleAmount = 1;
         const fullContainer = room.structures.find((s) => s.structureType === STRUCTURE_CONTAINER && s.id !== s.room.memory.controllerContainer && s.store[RESOURCE_ENERGY] >= CONTAINER_CAPACITY * 0.9);
         const massivePiles = room.droppedEnergy.find((e) => e.amount >= CONTAINER_CAPACITY * 0.9);
         if (fullContainer || massivePiles) shuttleAmount += 1;
@@ -376,6 +376,7 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleContestedRoom(room) {
         const intel = INTEL[contestedRemotes[room.name]];
+        if (!room.energyState) return contestedRemotes[room.name] = undefined;
         if (intel.contestingCount > room.level * 2) {
             log.a(`${roomLink(room.name)} is not longer contesting ${roomLink(contestedRemotes[room.name])} due to casualties.`, "HIGH COMMAND:")
             INTEL[contestedRemotes[room.name]].lastContest = Game.time;

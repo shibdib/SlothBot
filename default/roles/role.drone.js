@@ -77,7 +77,7 @@ class RoleDrone {
         // If walls to repair
         if (this.walling()) return;
         // If nothing else to do upgrade
-        if (this.upgrading(true)) return;
+        if (this.room.energyState && this.upgrading(true)) return;
         // Otherwise idle
         else {
             this.creep.memory.task = undefined;
@@ -277,6 +277,13 @@ class RoleDrone {
             this.creep.memory.task = "waller";
             if (!this.creep.memory.targetWallHits) {
                 this.creep.memory.targetWallHits = Math.min(target.hits + 10000, RAMPART_HITS_MAX[this.room.controller.level]);
+            }
+
+            // No walling at low room state
+            if (!this.room.energyState && this.creep.memory.targetWallHits > 500000) {
+                this.creep.memory.currentTarget = undefined;
+                this.creep.memory.targetWallHits = undefined;
+                return false;
             }
 
             this.creep.say(ICONS.castle, true);
