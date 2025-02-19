@@ -537,7 +537,7 @@ function getTerrainMatrix(roomName, options) {
             case 3:
                 break;
             default:
-                plainCost = 1;
+                plainCost = 4;
                 swampCost = 25;
         }
         // Squad matrix has higher costs in tiles neighboring swamps and walls
@@ -579,6 +579,7 @@ function getStructureMatrix(roomName, creep, matrix, options) {
     if (options.offRoad || options.tunnel) type = 3; else if (options.ignoreRoads) type = 2;
     if (options.squad) type = 4;
     // If we can't see into the room, try to use an old matrix
+    if (creep.id === '67b57ee42732fa0521ea2cc5') console.log(type, options.squad)
     if (!room) {
         if (structureMatrixCache[roomName + type]) return PathFinder.CostMatrix.deserialize(structureMatrixCache[roomName + type]);
         else return matrix;
@@ -949,14 +950,9 @@ function reverseString(str) {
 }
 
 function getMoveWeight(creep, options = {}) {
-    // Handle PC or offRoad being set already
-    if (creep.className || options.offRoad) {
-        options.offRoad = true;
+    // Handle PC
+    if (creep.className) {
         //options.heuristicWeight = 1.1;
-        return options;
-    }
-    // Handle ignoreRoads being set already
-    if (options.ignoreRoads) {
         return options;
     }
     let move = creep.getActiveBodyparts(MOVE);
