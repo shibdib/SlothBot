@@ -62,7 +62,8 @@ class RoleLongbowSquad {
         // If we can fight ramparts, do so
 
         // Manage squad
-        let ready = !squad.find((c) => !c || !c.pos.isNearTo(this.creep));
+        const acceptableRange = this.room.hostileCreeps.length || this.room.hostileStructures.length ? 3 : 1;
+        let ready = !squad.find((c) => !c || c.pos.getRangeTo(this.creep) > acceptableRange);
         let rampartMode;
         if (this.room.hostileCreeps.length && this.creep.fightFromRampart()) rampartMode = true;
         for (const squadRole in this.creep.memory.squadRoles) {
