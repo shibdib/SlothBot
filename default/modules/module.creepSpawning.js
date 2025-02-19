@@ -631,7 +631,7 @@ module.exports.globalCreepQueue = function () {
                     }
                 } else {
                     if (opLevel > 1) {
-                        queueCreepIfNeeded(undefined, 'longbowSquad', priority, count, undefined, key, {waitFor: count}, true, 'roomDenial');
+                        queueCreepIfNeeded(undefined, 'longbowSquad', priority, count, undefined, key, {waitFor: Math.min(count, 4)}, true, 'roomDenial');
                     } else {
                         queueCreepIfNeeded(undefined, 'longbow', priority, opLevel, undefined, key, undefined, true, 'roomDenial');
                     }

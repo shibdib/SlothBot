@@ -177,7 +177,9 @@ class ModuleBodyGenerator {
             case 'longbow':
             case 'longbowSquad':
                 if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boostsRequired) {
-                    heal = this.checkForNeededHeal(this.room);
+                    let multi = 0.51;
+                    if (this.creepInfo.misc && this.creepInfo.misc.waitFor === 4) multi = 0.25;
+                    heal = this.checkForNeededHeal(this.room, multi);
                     if (!heal) break;
                 } else {
                     heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
