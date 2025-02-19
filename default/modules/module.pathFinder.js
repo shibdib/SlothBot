@@ -336,7 +336,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             if (creep.memory.destination && (Memory.targetRooms[creep.memory.destination] || Memory.auxiliaryTargets[creep.memory.destination])) {
                 delete Memory.targetRooms[creep.memory.destination];
                 delete Memory.auxiliaryTargets[creep.memory.destination];
-                purgeIntel(creep.memory.destination);
                 log.d('Canceling operation in ' + roomLink(creep.memory.destination) + ' as we cannot find a path.', 'HIGH COMMAND: ');
             }
             //return creep.suicide();
@@ -380,7 +379,6 @@ function findRoute(origin, destination, options = {}) {
         if (Memory.targetRooms[destination] || Memory.auxiliaryTargets[destination]) {
             delete Memory.targetRooms[destination];
             delete Memory.auxiliaryTargets[destination];
-            purgeIntel(destination);
             log.a('Canceling operation in ' + roomLink(destination) + ' as we cannot find a route.', 'HIGH COMMAND: ');
         }
         log.a('No route found between ' + roomLink(origin) + ' and ' + roomLink(destination), 'PATHING:');
@@ -520,7 +518,9 @@ function getMatrix(roomName, creep, options) {
 function getTerrainMatrix(roomName, options) {
     let type = 1;
     if (options.offRoad || options.tunnel) type = 3; else if (options.ignoreRoads) type = 2;
-    if (!terrainMatrixCache[roomName + type] || options.showMatrix) {
+    // Handle squad stuff
+    if (options.squad) type = 4;
+    if ((!INTEL[roomName] || !INTEL[roomName].refreshCaches) && (!terrainMatrixCache[roomName + type] || options.showMatrix)) {
         terrainMatrixCache[roomName + type] = addTerrainToMatrix(roomName, type).serialize();
     }
     return PathFinder.CostMatrix.deserialize(terrainMatrixCache[roomName + type]);
@@ -535,21 +535,37 @@ function getTerrainMatrix(roomName, options) {
                 swampCost = 25;
                 break;
             case 3:
-            case 4:
-                plainCost = 0;
-                swampCost = 0;
                 break;
             default:
-                plainCost = 6;
+                plainCost = 1;
                 swampCost = 25;
         }
+        // Squad matrix has higher costs in tiles neighboring swamps and walls
         for (let y = 0; y < 50; y++) {
             for (let x = 0; x < 50; x++) {
                 let tile = terrain.get(x, y);
-                if (tile === TERRAIN_MASK_WALL) matrix.set(x, y, 256);
+                if (tile === TERRAIN_MASK_WALL) {
+                    matrix.set(x, y, 256);
+                    if (options.squad) {
+                        for (let i = -1; i < 2; i++) {
+                            for (let j = -1; j < 2; j++) {
+                                matrix.set(x + i, y + j, 200);
+                            }
+                        }
+                    }
+                }
                 // Handle exits
                 else if (x === 0 || x === 49 || y === 0 || y === 49) matrix.set(x, y, 10);
-                else if (tile === TERRAIN_MASK_SWAMP) matrix.set(x, y, swampCost);
+                else if (tile === TERRAIN_MASK_SWAMP) {
+                    matrix.set(x, y, swampCost);
+                    if (options.squad) {
+                        for (let i = -1; i < 2; i++) {
+                            for (let j = -1; j < 2; j++) {
+                                matrix.set(x + i, y + j, swampCost * 0.5);
+                            }
+                        }
+                    }
+                }
                 else matrix.set(x, y, plainCost);
             }
         }
@@ -561,14 +577,15 @@ function getStructureMatrix(roomName, creep, matrix, options) {
     let room = Game.rooms[roomName];
     let type = 1;
     if (options.offRoad || options.tunnel) type = 3; else if (options.ignoreRoads) type = 2;
+    if (options.squad) type = 4;
     // If we can't see into the room, try to use an old matrix
     if (!room) {
         if (structureMatrixCache[roomName + type]) return PathFinder.CostMatrix.deserialize(structureMatrixCache[roomName + type]);
         else return matrix;
     }
     // Check if matrix is cached and usable
-    if (!structureMatrixCache[roomName + type] || options.showMatrix || options.tunnel
-        || Game.time > structureMatrixCache[roomName + type].tick + (CREEP_LIFE_TIME * 25) || structureMatrixCache[roomName + type].count !== (room.structures.length + room.constructionSites.length)) {
+    if ((!INTEL[roomName] || !INTEL[roomName].refreshCaches) && (!structureMatrixCache[roomName + type] || options.showMatrix || options.tunnel
+        || Game.time > structureMatrixCache[roomName + type].tick + (CREEP_LIFE_TIME * 25) || structureMatrixCache[roomName + type].count !== (room.structures.length + room.constructionSites.length))) {
         structureMatrixCache[roomName + type] = addStructuresToMatrix(room, creep, matrix, type, options).serialize();
         structureMatrixCache[roomName + type].tick = Game.time;
         structureMatrixCache[roomName + type].count = room.structures.length + room.constructionSites.length;
@@ -588,6 +605,9 @@ function getStructureMatrix(roomName, creep, matrix, options) {
         }
         let noWallWrecker = (creep instanceof Creep && ((INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner)) || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK))));
         for (let structure of room.structures) {
+            if (options.squad && structure.structureType === STRUCTURE_ROAD) {
+                continue;
+            }
             if (structure instanceof StructureWall) {
                 if (noWallWrecker) {
                     matrix.set(structure.pos.x, structure.pos.y, 256);
@@ -619,6 +639,15 @@ function getStructureMatrix(roomName, creep, matrix, options) {
                 matrix.set(structure.pos.x, structure.pos.y, roadCost * 5);
             } else {
                 matrix.set(structure.pos.x, structure.pos.y, 256);
+            }
+            // Handle setting the position around the structure for squads
+            if (options.squad && OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
+                let positions = structure.pos.lookForNearby(LOOK_TERRAIN, 1);
+                for (let position of positions) {
+                    const currentCost = matrix.get(position.x, position.y);
+                    if (currentCost > 200) continue;
+                    else matrix.set(position.x, position.y, 200);
+                }
             }
         }
         let blockingSites = _.filter(room.constructionSites, (s) => (s.my && OBSTACLE_OBJECT_TYPES.includes(s.structureType)) || (!s.my && _.includes(FRIENDLIES, s.owner.username)));
@@ -999,6 +1028,7 @@ PowerCreep.prototype.shibMove = function (destination, options = {}) {
  * @returns {*|boolean|boolean|void|string}
  */
 Creep.prototype.shibMove = function (destination, options = {}) {
+    if (options.squad || this.memory.squadMembers) return this.shibSquadMovement(destination, options);
     return shibMove(this, destination, options);
 };
 
@@ -1063,12 +1093,120 @@ Room.prototype.routeSafe = function (destination = this.name, maxThreat = 2, max
 };
 
 /**
+ * Handle squad movement
+ * @param {RoomPosition} [target] - The primary target to flee from, if specific
+ * @param {object} [options] - Pathing options
+ * @returns {boolean} - Returns true if kiting was performed, false otherwise
+ */
+Creep.prototype.shibSquadMovement = function (target = undefined, options = {}) {
+    if (!this.memory._shibSquadMove) this.memory._shibSquadMove = {};
+    options.squad = true;
+
+    target = normalizePos(target);
+    const targetKey = getPosKey(target);
+
+    // Check if the target hasn't change and we still have a path
+    if (this.memory._shibSquadMove.target === targetKey && this.memory._shibSquadMove.path && this.memory._shibSquadMove.path.length) {
+        if (squadMove(this, this.memory._shibSquadMove.path)) return true;
+    }
+
+    const origin = this.pos;
+    this.memory._shibSquadMove.target = targetKey;
+
+    let allowedRooms;
+    if (Game.map.getRoomLinearDistance(this.room.name, target.roomName) > 2) {
+        let route = findRoute(origin.roomName, target.roomName, options);
+        if (route) {
+            // If the current room name is missing, add it to the front
+            if (!route.includes(this.room.name)) route.unshift(this.room.name);
+            allowedRooms = route;
+        }
+    }
+    // If no route/allowed rooms got set, use the current room and neighbors
+    if (!allowedRooms) allowedRooms = [origin.roomName].concat(Object.values(Game.map.describeExits(origin.roomName)));
+
+    // Prepare pathfinding options
+    options = getMoveWeight(this, options);
+
+    let result = PathFinder.search(this.pos, target, {
+        maxOps: options.maxOps,
+        maxRooms: allowedRooms.length * 1.5,
+        heuristicWeight: options.heuristicWeight,
+        roomCallback: function (roomName) {
+            if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
+            return getMatrix(roomName, this, options);
+        }
+    });
+
+    // If a path is found, move the creep
+    if (result.path.length > 0) {
+        if (squadMove(this, serializePath(this.pos, result.path))) return true;
+    }
+
+    return false;
+};
+
+/**
+ * Handle squad kiting
+ * @param {number} [fleeRange=FLEE_RANGE] - The minimum range to keep from threats
+ * @param {object} [options] - Pathing options
+ * @returns {boolean} - Returns true if kiting was performed, false otherwise
+ */
+Creep.prototype.shibSquadKite = function (fleeRange = FLEE_RANGE, options = {}) {
+    if (!this.memory._shibSquadMove) this.memory._shibSquadMove = {};
+    options.squad = true;
+
+    // Gather threats to avoid
+    let threats = gatherThreats(this, fleeRange);
+
+    // Use pathfinder to flee from threats
+    let fleeGoals = threats.map(a => ({pos: a.pos, range: fleeRange + 2}));
+    let result = PathFinder.search(this.pos, fleeGoals, {
+        flee: true,
+        swampCost: 180,
+        plainCost: 3,
+        maxRooms: 2,
+        roomCallback: roomName => getMatrix(roomName, this, options)
+    });
+
+    // If a path is found, move the creep
+    if (result.path.length > 0) {
+        if (squadMove(this, result.path)) return true;
+    }
+
+    return false;
+};
+
+function squadMove(creep, path) {
+    const move = parseInt(path[0], 10);
+    creep.move(move);
+    path = path.slice(1);
+    if (creep.memory.squadMembers) {
+        for (let member of creep.memory.squadMembers) {
+            let memberCreep = Game.getObjectById(member);
+            if (memberCreep && memberCreep.pos.getRangeTo(creep) <= 1) {
+                const posAtDirection = memberCreep.pos.positionAtDirection(move);
+                if (!posAtDirection || !(posAtDirection instanceof RoomPosition)) continue;
+                if (posAtDirection.checkForImpassible(false, true)) {
+                    memberCreep.shibMove(creep, {range: 0});
+                } else memberCreep.move(move);
+            }
+        }
+    }
+    creep.memory._shibSquadMove.path = path;
+    return true;
+}
+
+/**
  * Handle kiting with optimized movement and target avoidance
  * @param {number} [fleeRange=FLEE_RANGE] - The minimum range to keep from threats
  * @param {Creep|Structure} [target] - The primary target to flee from, if specific
  * @returns {boolean} - Returns true if kiting was performed, false otherwise
  */
 Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined) {
+    // Handle squad kiting
+    if (this.memory.squadMembers) return this.shibSquadKite(fleeRange);
+
     // Early exit if kiting isn't possible or necessary
     if (!this.hasActiveBodyparts(MOVE) || (this.room.controller && this.room.controller.safeMode) || this.pos.checkForRampart()) {
         return false;
@@ -1084,22 +1222,18 @@ Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined)
     let options = getMoveWeight(this);
 
     // Use pathfinder to flee from threats
-    let fleeGoals = threats.map(a => ({pos: a.pos, range: fleeRange}));
+    let fleeGoals = threats.map(a => ({pos: a.pos, range: fleeRange + 2}));
     let result = PathFinder.search(this.pos, fleeGoals, {
         flee: true,
         swampCost: 180,
         plainCost: 3,
         maxRooms: 2,
-        roomCallback: roomName => generateCostMatrix(roomName, this, options)
+        roomCallback: roomName => getMatrix(roomName, this, options)
     });
 
     // If a path is found, move the creep
     if (result.path.length > 0) {
         let direction = this.pos.getDirectionTo(result.path[0]);
-        if (this.memory.squadLeader === this.id) {
-            this.memory.squadKite = direction;
-        }
-        this.memory.lastKite = direction;
         this.move(direction);
         return true;
     }
@@ -1117,16 +1251,4 @@ function gatherThreats(creep, fleeRange) {
         filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR &&
             s.ticksToSpawn && s.ticksToSpawn <= fleeRange + 2
     }));
-}
-
-// Helper to generate the cost matrix for pathfinding
-function generateCostMatrix(roomName, creep, options) {
-    // Do not flee into enemy owned rooms with towers
-    if (INTEL[roomName] && INTEL[roomName].owner && INTEL[roomName].owner !== MY_USERNAME && INTEL[roomName].towers) return false;
-    let matrix = new PathFinder.CostMatrix();
-    matrix = getTerrainMatrix(roomName, matrix);
-    matrix = getStructureMatrix(roomName, creep, matrix, options);
-    matrix = getCreepMatrix(roomName, creep, matrix, options);
-    matrix = getHostileMatrix(roomName, matrix, options);
-    return getSKMatrix(roomName, matrix, options);
 }

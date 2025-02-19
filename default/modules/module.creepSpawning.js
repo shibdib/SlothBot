@@ -207,13 +207,16 @@ module.exports.essentialCreepQueue = function (room) {
     let upgraderAmount = 1;
 
     if (!upgraderReboot && room.level < 8) {
-        let container = Game.getObjectById(room.memory.controllerContainer);
-        if (container && room.energyState) {
-            upgraderAmount = Math.min(Math.floor(room.energyState * (container.store.getUsedCapacity(RESOURCE_ENERGY) / 1000)), container.pos.countOpenTerrainAround());
-        } else if (!container) {
-            upgraderAmount = 3;
+        // If there's no controller link, calculate upgrader amount based on energy state
+        if (!room.memory.controllerLink) {
+            let container = Game.getObjectById(room.memory.controllerContainer);
+            if (container && room.energyState) {
+                upgraderAmount = Math.min(Math.floor(room.energyState * (container.store.getUsedCapacity(RESOURCE_ENERGY) / 1000)), container.pos.countOpenTerrainAround());
+            } else if (!container) {
+                upgraderAmount = 3;
+            }
+            if (upgraderAmount > 5) upgraderAmount = 5;
         }
-        if (upgraderAmount > 5) upgraderAmount = 5;
     }
 
     queueCreepIfNeeded(room, 'upgrader', PRIORITIES.upgrader, upgraderAmount, upgraderReboot);
@@ -233,7 +236,7 @@ module.exports.miscCreepQueue = function (room) {
 
     // LabTech
     if (room.terminal && room.storage && level >= 6) {
-        queueCreepIfNeeded(room, 'labTech', PRIORITIES.hauler + 1, 1);
+        queueCreepIfNeeded(room, 'labTech', PRIORITIES.secondary, 1);
     }
 
     // If no conflict detected and room level >= 6
@@ -252,7 +255,7 @@ module.exports.miscCreepQueue = function (room) {
             // Assist with Defense (Longbow for Guard)
             let needsDefense = _.find(MY_ROOMS, (r) => r !== room.name && (Game.rooms[r].memory.dangerousAttack || Game.rooms[r].memory.defenseCooldown > Game.time) && room.routeSafe(r, 3, 999, 15));
             if (needsDefense) {
-                queueCreepIfNeeded(room, 'longbowDuo', room.energyState > 1 ? PRIORITIES.priority : PRIORITIES.secondary, 2, undefined, needsDefense, undefined, undefined, 'guard');
+                queueCreepIfNeeded(room, 'longbowSquad', room.energyState > 1 ? PRIORITIES.priority : PRIORITIES.secondary, 2, undefined, needsDefense, {waitFor: 2}, undefined, 'guard');
             }
         }
         // Border Patrol
@@ -373,11 +376,21 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleContestedRoom(room) {
         const intel = INTEL[contestedRemotes[room.name]];
+        if (intel.contestingCount > room.level * 2) {
+            log.a(`${roomLink(room.name)} is not longer contesting ${roomLink(contestedRemotes[room.name])} due to casualties.`, "HIGH COMMAND:")
+            INTEL[contestedRemotes[room.name]].lastContest = Game.time;
+            INTEL[contestedRemotes[room.name]].contestingCount = 0;
+            return contestedRemotes[room.name] = undefined;
+        }
         // Duos if actively contested otherwise just a longbow
         if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) {
-            queueCreepIfNeeded(room, 'longbowDuo', PRIORITIES.remoteHarvester + 1, 4, undefined, contestedRemotes[room.name]);
+            if (queueCreepIfNeeded(room, 'longbowSquad', PRIORITIES.remoteHarvester + 1, 4, undefined, contestedRemotes[room.name], {waitFor: 4})) {
+                if (!intel.contestingCount) INTEL[contestedRemotes[room.name]].contestingCount = 1; else INTEL[contestedRemotes[room.name]].contestingCount++
+            }
         } else {
-            queueCreepIfNeeded(room, 'longbow', PRIORITIES.remoteHarvester + 1, 1, undefined, contestedRemotes[room.name]);
+            if (queueCreepIfNeeded(room, 'longbow', PRIORITIES.remoteHarvester + 1, 1, undefined, contestedRemotes[room.name])) {
+                if (!intel.contestingCount) INTEL[contestedRemotes[room.name]].contestingCount = 1; else INTEL[contestedRemotes[room.name]].contestingCount++
+            }
         }
         // Reservers if safe
         if (!intel.armedHostile || intel.armedHostile + CREEP_LIFE_TIME < Game.time) {
@@ -418,7 +431,9 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function handleRoadBuilder(room) {
-        queueCreepIfNeeded(room, 'roadBuilder', PRIORITIES.roadBuilder, 1, undefined, undefined, remoteRoomTargets[room.name]);
+        if (getCreepCount(room, 'remoteHarvester')) {
+            queueCreepIfNeeded(room, 'roadBuilder', PRIORITIES.roadBuilder, 1);
+        }
     }
 
     function handleSkCreeps(room, remoteName) {
@@ -495,9 +510,17 @@ module.exports.remoteCreepQueue = function (room) {
         // Handle finding contested remotes
         const contestedRemote = _.find(exits, function (r) {
             return roomStatus(r) === roomStatus(room.name) && INTEL[r] && !INTEL[r].sk && !INTEL[r].safemode && !INTEL[r].towers
-                && INTEL[r].sources && !INTEL[r].obstacles && INTEL[r].user && INTEL[r].user !== 'Invader' && !_.includes(FRIENDLIES, INTEL[r].user);
+                && INTEL[r].sources && !INTEL[r].obstacles && INTEL[r].user && INTEL[r].user !== 'Invader' && !_.includes(FRIENDLIES, INTEL[r].user)
+                && (INTEL[r].lastContest || 0) + (CREEP_LIFE_TIME * 4) < Game.time;
         });
-        if (contestedRemote) contestedRemotes[room.name] = contestedRemote;
+        if (contestedRemote) {
+            if (contestedRemotes[room.name] && contestedRemotes[room.name] !== contestedRemote) {
+                INTEL[contestedRemote].contestingCount = 0;
+                INTEL[contestedRemotes[room.name]].lastContest = Game.time;
+                log.a(`${roomLink(room.name)} is now contesting ${roomLink(contestedRemote)}.`, "HIGH COMMAND:");
+            }
+            contestedRemotes[room.name] = contestedRemote;
+        }
 
         // Handle finding blocked remotes
         const blockedRemote = _.find(exits, function (r) {
@@ -557,7 +580,7 @@ module.exports.globalCreepQueue = function () {
                 if (!INTEL[key] || !INTEL[key].threatLevel) {
                     queueCreepIfNeeded(undefined, 'drone', PRIORITIES.drone, 6, undefined, key);
                 } else if (INTEL[key].threatLevel) {
-                    queueCreepIfNeeded(undefined, 'longbowDuo', PRIORITIES.priority, INTEL[key].threatLevel, undefined, key, undefined, true, 'guard');
+                    queueCreepIfNeeded(undefined, 'longbowSquad', PRIORITIES.priority, 4, undefined, key, {waitFor: 4}, true, 'guard');
                 }
                 break;
 
@@ -587,7 +610,10 @@ module.exports.globalCreepQueue = function () {
                 if (opLevel < 2) {
                     queueCreepIfNeeded(undefined, 'longbow', priority, 2, undefined, _.sample(remotes), {remotes: remotes}, true, 'remoteDenial', {target: key});
                 } else {
-                    queueCreepIfNeeded(undefined, 'longbowDuo', priority, 2, undefined, _.sample(remotes), {remotes: remotes}, true, 'remoteDenial', {target: key});
+                    queueCreepIfNeeded(undefined, 'longbowSquad', priority, 2, undefined, _.sample(remotes), {
+                        remotes: remotes,
+                        waitFor: 2
+                    }, true, 'remoteDenial', {target: key});
                 }
                 break;
 
@@ -605,7 +631,7 @@ module.exports.globalCreepQueue = function () {
                     }
                 } else {
                     if (opLevel > 1) {
-                        queueCreepIfNeeded(undefined, 'longbowDuo', priority, count, undefined, key, undefined, true, 'roomDenial');
+                        queueCreepIfNeeded(undefined, 'longbowSquad', priority, count, undefined, key, {waitFor: count}, true, 'roomDenial');
                     } else {
                         queueCreepIfNeeded(undefined, 'longbow', priority, opLevel, undefined, key, undefined, true, 'roomDenial');
                     }
@@ -626,7 +652,7 @@ module.exports.globalCreepQueue = function () {
                 if (opLevel === 1) {
                     queueCreepIfNeeded(undefined, 'longbow', priority, 1, undefined, key, undefined, true, 'guard');
                 } else if (opLevel > 1) {
-                    queueCreepIfNeeded(undefined, 'longbowDuo', priority, 2, undefined, key, undefined, true, 'guard');
+                    queueCreepIfNeeded(undefined, 'longbowSquad', priority, 2, undefined, key, {waitFor: 2}, true, 'guard');
                 }
                 break;
             case 'stronghold':
@@ -656,7 +682,7 @@ function queueCreepIfNeeded(room = undefined, role, priority, numberNeeded, rebo
     const global = !room
     if (count < numberNeeded || (count <= numberNeeded && creepExpiringSoon(room, role, destination))) {
         other.reboot = rebootCondition;
-        queueCreep(room, priority + count, {
+        return queueCreep(room, priority + count, {
             role: role,
             destination: destination,
             other: other,
@@ -704,6 +730,7 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
         closestRoom: closestRoom
     };
     if (global) CREEP_QUEUES['global'] = JSON.stringify(cache); else CREEP_QUEUES[room.name] = JSON.stringify(cache);
+    return true;
 }
 
 /**

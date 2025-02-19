@@ -4,7 +4,7 @@
 
 const profiler = require("tools.profiler");
 
-class RoleLongbowDuo {
+class RoleLongbowSquad {
     constructor(creep) {
         this.creep = creep;
         this.room = creep.room;
@@ -101,5 +101,5 @@ class RoleLongbowDuo {
     }
 }
 
-profiler.registerClass(RoleLongbowDuo, 'LongbowDuo');
-module.exports = RoleLongbowDuo;
+profiler.registerClass(RoleLongbowSquad, 'longbowSquad');
+module.exports = RoleLongbowSquad;
