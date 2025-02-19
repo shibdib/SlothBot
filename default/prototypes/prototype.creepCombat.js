@@ -241,61 +241,6 @@ Creep.prototype.attackHostile = function (hostile) {
 };
 
 /**
- * Handle rampart fighting
- * @param hostile
- * @returns {boolean}
- */
-Creep.prototype.fightFromRampart = function (hostile = undefined) {
-    let target = hostile || this.findClosestEnemy(false, true);
-
-    // Quick checks to avoid unnecessary processing
-    if (!target || !target.pos ||
-        !(this.hasActiveBodyparts(ATTACK) || this.hasActiveBodyparts(RANGED_ATTACK)) ||
-        (target instanceof Creep && !(target.hasActiveBodyparts(ATTACK) || target.hasActiveBodyparts(RANGED_ATTACK)))) {
-        return false;
-    }
-
-    // Manage rampart assignment
-    let position = getAssignedRampart(this, target);
-    if (!position) return false; // No suitable rampart found or too far
-
-    // Assign or reassign rampart every 3 ticks or if not assigned
-    if (!this.memory.assignedRampart || (Game.time % 3 === 0)) {
-        this.memory.assignedRampart = position.id;
-    }
-
-    // Handle combat
-    performCombat(this, target, position);
-    return true;
-
-    function performCombat(creep, target, position) {
-        // Move to rampart if not already on it
-        if (creep.pos.getRangeTo(position) > 0) {
-            creep.shibMove(position, {range: 0, avoidEnemies: true});
-            return;
-        }
-        // Ranged combat
-        if (creep.hasActiveBodyparts(RANGED_ATTACK)) {
-            let range = creep.pos.getRangeTo(target);
-            if (range <= 3) {
-                let threats = creep.pos.findInRange(creep.room.hostileCreeps, 3, {
-                    filter: (c) => !FRIENDLIES.includes(c.owner.username)
-                });
-                if (threats.length > 1) {
-                    creep.rangedMassAttack();
-                } else {
-                    creep.rangedAttack(target);
-                }
-            }
-        }
-        // Melee combat
-        if (creep.pos.getRangeTo(target) === 1 && creep.hasActiveBodyparts(ATTACK)) {
-            creep.attack(target);
-        }
-    }
-};
-
-/**
  * Handle ranged fighting with optimal movement and targeting
  * @param target
  * @returns {boolean}
@@ -310,7 +255,6 @@ Creep.prototype.fightRanged = function (target) {
     }
 
     let range = this.pos.getRangeTo(target);
-    let hostileNearby = this.pos.findInRange(this.room.hostileCreeps, 3);
 
     // Find rampart for cover if available
     let rampartCover = findRampartCover(this, target);
@@ -349,10 +293,6 @@ Creep.prototype.fightRanged = function (target) {
 
     function handleCloseCombat(creep, target) {
         if (target instanceof Creep) {
-            // If you can win, move closer
-            if (creep.canIWin(5)) {
-                creep.shibMove(target, {range: 2});
-            }
             // Check for mass attack conditions
             if (creep.pos.findInRange(creep.room.hostileCreeps, 1).length > 1 || creep.pos.getRangeTo(target) === 1) {
                 creep.say('BIG PEW!', true);
@@ -361,25 +301,31 @@ Creep.prototype.fightRanged = function (target) {
                 creep.say('PEW!', true);
                 creep.rangedAttack(target);
             }
+            // Check for nearby melee creeps
+            const meleeEnemies = creep.room.hostileCreeps.find((c) => c.hasActiveBodyparts(ATTACK) && c.pos.getRangeTo(creep) <= 4);
+            // If you can win, move closer
+            if (creep.canIWin(5) && !meleeEnemies) {
+                creep.shibMove(target, {range: 2});
+            } else {
+                creep.shibKite(6)
+            }
         } else {
             creep.say('BURN!', true);
             let rampartEnemies = [];
             if (target.pos.checkForRampart()) {
                 rampartEnemies = creep.pos.findInRange(creep.room.hostileCreeps, 2, {filter: (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)});
             }
-
+            // Handle attack
+            if (target.structureType !== STRUCTURE_WALL && creep.pos.isNearTo(target)) {
+                creep.rangedMassAttack();
+            }
             // Handle movement
             if (rampartEnemies.length || !creep.canIWin(2)) return creep.shibKite(3)
             const range = target.structureType !== STRUCTURE_SPAWN && !rampartEnemies.length ? 1 : 2;
             if (creep.canIWin(5)) {
                 creep.shibMove(target, {range: range, ignoreCreeps: false});
-            }
-
-            // Handle attack
-            if (target.structureType !== STRUCTURE_WALL && creep.pos.isNearTo(target)) {
-                creep.rangedMassAttack();
-            } else if (creep.rangedAttack(target) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(target, {range: range, ignoreCreeps: false});
+            } else {
+                return creep.shibKite(6)
             }
         }
     };
@@ -401,6 +347,61 @@ Creep.prototype.fightRanged = function (target) {
         }
     }
 }
+
+/**
+ * Handle rampart fighting
+ * @param hostile
+ * @returns {boolean}
+ */
+Creep.prototype.fightFromRampart = function (hostile = undefined) {
+    let target = hostile || this.findClosestEnemy(false, true);
+
+    // Quick checks to avoid unnecessary processing
+    if (!target || !target.pos ||
+        !(this.hasActiveBodyparts(ATTACK) || this.hasActiveBodyparts(RANGED_ATTACK)) ||
+        (target instanceof Creep && !(target.hasActiveBodyparts(ATTACK) || target.hasActiveBodyparts(RANGED_ATTACK)))) {
+        return false;
+    }
+
+    // Manage rampart assignment
+    let position = getAssignedRampart(this, target);
+    if (!position) return false; // No suitable rampart found or too far
+
+    // Assign or reassign rampart every 3 ticks or if not assigned
+    if (!this.memory.assignedRampart || (Game.time % 3 === 0)) {
+        this.memory.assignedRampart = position.id;
+    }
+
+    // Handle combat
+    performCombat(this, target, position);
+    return true;
+
+    function performCombat(creep, target, position) {
+        // Move to rampart if not already on it
+        if (creep.pos.getRangeTo(position) > 0) {
+            creep.shibMove(position, {range: 0});
+            return;
+        }
+        // Ranged combat
+        if (creep.hasActiveBodyparts(RANGED_ATTACK)) {
+            let range = creep.pos.getRangeTo(target);
+            if (range <= 3) {
+                let threats = creep.pos.findInRange(creep.room.hostileCreeps, 3, {
+                    filter: (c) => !FRIENDLIES.includes(c.owner.username)
+                });
+                if (threats.length > 1) {
+                    creep.rangedMassAttack();
+                } else {
+                    creep.rangedAttack(target);
+                }
+            }
+        }
+        // Melee combat
+        if (creep.pos.getRangeTo(target) === 1 && creep.hasActiveBodyparts(ATTACK)) {
+            creep.attack(target);
+        }
+    }
+};
 
 /**
  * Stomp sites
@@ -763,75 +764,83 @@ Creep.prototype.abilityPower = function () {
     };
 };
 
-Creep.prototype.pairUp = function () {
+Creep.prototype.groupUp = function () {
     // Handle clearing temporary
-    if (handleClearingTemporary(this)) return true;
+    if (handleClearingTemporaryGroup(this)) return true;
     // Find partners
-    if (!this.memory.partner || !Game.getObjectById(this.memory.partner)) {
-        if (handleSettingPermanent(this)) {
+    if (!this.memory.grouped || (this.memory.leader && this.memory.squadMembers.length < 3)) {
+        if (handleSettingPermanentGroup(this)) {
             return true;
         } else if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
-            if (handleSettingTemporary(this)) return true;
+            if (handleSettingTemporaryGroup(this)) return true;
         }
-        this.memory.leader = undefined;
-        this.memory.partner = undefined;
-        if (this.memory.oldRole) this.memory.role = this.memory.oldRole;
-        this.memory.oldRole = undefined;
+    } else if (this.memory.partner && this.memory.leader) {
     }
 
-    function handleSettingPermanent(creep) {
-        if (creep.memory.role.includes('Duo')) {
-            const availablePartner = _.find(Game.creeps, (c) => c.id !== creep.id && c.my && !c.spawning && creep.memory.role === c.memory.role &&
-                !c.memory.partner && c.memory.destination && c.memory.destination === creep.memory.destination && (!c.memory.operation || c.memory.operation === creep.memory.operation));
-            if (availablePartner) {
-                creep.memory.leader = true;
-                creep.memory.partner = availablePartner.id;
-                creep.memory.oldRole = undefined;
-                creep.memory.role = 'longbowDuo';
-                creep.say('PAIRED', true);
-                availablePartner.memory.leader = undefined;
-                availablePartner.memory.partner = creep.id;
-                availablePartner.memory.oldRole = undefined;
-                availablePartner.memory.role = 'longbowDuo';
-                availablePartner.say('PAIRED', true);
-                return true;
-            }
+    function handleSettingPermanentGroup(creep) {
+        if (!creep.memory.leader) {
+            const currentGroups = _.find(Game.creeps, (c) => c.my && c.memory.role === 'longbowSquad' && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3);
+            if (currentGroups) return false;
         }
-    }
-
-    function handleSettingTemporary(creep) {
-        const availablePartner = _.find(creep.room.myCreeps, (c) => c.id !== creep.id && !c.spawning && ['longbow', 'longbowDuo'].includes(c.memory.role) && !c.memory.partner);
-        if (availablePartner) {
-            availablePartner.say('PAIRED', true);
-            availablePartner.memory.leader = undefined;
-            availablePartner.memory.partner = creep.id;
-            availablePartner.memory.oldRole = availablePartner.memory.role;
-            availablePartner.memory.role = 'longbowDuo';
-            availablePartner.memory.temporaryPartner = true;
-            creep.say('PAIRED', true);
+        const availablePartners = _.filter(Game.creeps, (c) => c.id !== creep.id && c.my && !c.spawning && creep.memory.role === c.memory.role &&
+            !c.memory.grouped && c.memory.destination && c.memory.destination === creep.memory.destination && (!c.memory.operation || c.memory.operation === creep.memory.operation));
+        if (availablePartners.length) {
             creep.memory.leader = true;
-            creep.memory.partner = availablePartner.id;
-            creep.memory.oldRole = availablePartner.memory.role;
-            creep.memory.role = 'longbowDuo';
-            creep.memory.temporaryPartner = true;
+            creep.memory.grouped = true;
+            creep.memory.oldRole = undefined;
+            creep.memory.role = 'longbowSquad';
+            if (!creep.memory.squadMembers) creep.memory.squadMembers = [];
+            for (const partner of availablePartners) {
+                if (creep.memory.squadMembers.length < 3) {
+                    creep.memory.squadMembers.push(partner.id);
+                    partner.memory.grouped = true;
+                    partner.memory.groupLeader = creep.id;
+                    partner.memory.oldRole = undefined;
+                    partner.memory.role = 'longbowSquad';
+                }
+            }
             return true;
         }
     }
 
-    function handleClearingTemporary(creep) {
-        if ((creep.memory.temporaryPartner || creep.memory.oldRole) && !creep.room.hostileCreeps.length && !creep.room.hostileStructures.length) {
+    function handleSettingTemporaryGroup(creep) {
+        const availablePartners = _.filter(creep.room.myCreeps, (c) => c.id !== creep.id && !c.spawning && c.memory.role.includes('longbow') && !c.memory.grouped);
+        if (availablePartners.length) {
+            creep.memory.leader = true;
+            creep.memory.grouped = true;
+            creep.memory.oldRole = creep.memory.role;
+            creep.memory.role = 'longbowSquad';
+            creep.memory.temporarySquad = true;
+            if (!creep.memory.squadMembers) creep.memory.squadMembers = [];
+            for (const partner of availablePartners) {
+                if (creep.memory.squadMembers.length < 3) {
+                    creep.memory.squadMembers.push(partner.id);
+                    partner.memory.grouped = true;
+                    partner.memory.groupLeader = creep.id;
+                    partner.memory.oldRole = partner.memory.role;
+                    partner.memory.role = 'longbowSquad';
+                    partner.memory.temporarySquad = true;
+                }
+            }
+            return true;
+        }
+    }
+
+    function handleClearingTemporaryGroup(creep) {
+        if ((creep.memory.temporarySquad || creep.memory.oldRole) && !creep.room.hostileCreeps.length && !creep.room.hostileStructures.length) {
             creep.say('UNPAIR', true);
             creep.memory.leader = undefined;
-            creep.memory.partner = undefined;
-            creep.memory.temporaryPartner = undefined;
+            creep.memory.grouped = undefined;
+            creep.memory.groupLeader = undefined;
+            creep.memory.squadMembers = undefined;
             if (creep.memory.oldRole) creep.memory.role = creep.memory.oldRole;
             creep.memory.oldRole = undefined;
             const partner = Game.getObjectById(creep.memory.partner);
             if (partner) {
                 partner.say('UNPAIR', true);
                 partner.memory.leader = undefined;
-                partner.memory.partner = undefined;
-                partner.memory.temporaryPartner = undefined;
+                partner.memory.grouped = undefined;
+                partner.memory.groupLeader = undefined;
                 if (partner.memory.oldRole) partner.memory.role = partner.memory.oldRole;
                 partner.memory.oldRole = undefined;
             }

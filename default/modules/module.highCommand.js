@@ -294,7 +294,7 @@ function manageResponseForces() {
 function manageMilitary() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
     let activeNonSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && o.type !== 'roomDenial' && !o.dDay));
-    let activeSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && o.type === 'roomDenial' || o.dDay));
+    let activeSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && (o.type === 'roomDenial' || o.dDay)));
     let staleMulti = 1;
 
     // Iterate through target rooms
@@ -594,7 +594,6 @@ function manualAttacks() {
         if (operation.includes('cancel')) {
             delete Memory.targetRooms[roomName];
             delete Memory.auxiliaryTargets[roomName];
-            purgeIntel(roomName);
             removeFlagAndLog('Canceling operation in ' + roomLink(roomName) + ' at your request.');
             continue;
         }

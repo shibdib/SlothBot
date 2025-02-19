@@ -76,7 +76,6 @@ function cleanRoomIntel() {
             (intel.cached + 20000 < Game.time && intel.important) ||
             (findClosestOwnedRoom(roomName, true) > 10 && intel.cached + 5000 < Game.time)
         ) {
-            purgeIntel(roomName);
         }
     }
 

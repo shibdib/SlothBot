@@ -38,7 +38,7 @@ function threatManager() {
         }
         if (currentRating < -5) Memory._threats.push(name);
 
-        user.standing = currentRating;
+        user.standing = Math.round(currentRating * 100) / 100;
         Memory._userList[name] = user;
     }
 

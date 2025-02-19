@@ -1038,8 +1038,10 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                     if (Game.getObjectById(this.memory.boosts.boostLab)) {
                         Game.getObjectById(this.memory.boosts.boostLab).memory = undefined;
                     }
-                    this.memory.boosts = undefined;
-                    if (!this.memory.neededBoosts) return this.memory.boostAttempt = true; else return true;
+                    if (!this.ticksToLive < CREEP_LIFE_TIME * 0.5) {
+                        this.memory.boosts = undefined;
+                        return this.memory.boostAttempt = true;
+                    } else return true;
                 }
             }
             let lab = Game.getObjectById(this.memory.boosts.boostLab);

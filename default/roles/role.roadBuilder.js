@@ -27,11 +27,12 @@ class RoleRoadBuilder {
         if (this.creep.skSafety()) return true;
         // Set destination
         if (!this.creep.memory.destination) {
-            let possibles = this.creep.memory.misc;
-            possibles = _.filter(possibles, (p) => !INTEL[p] || (!INTEL[p].sk || (Game.rooms[p] && Game.rooms[p].creeps.filter((c) => c.my && c.memory.role === 'SKAttacker')[0])));
-            this.creep.memory.destination = _.sample(possibles);
-            this.creep.memory.energyDestination = undefined;
-            this.creep.memory.source = undefined;
+            const remoteHarvesters = objFilter(Game.creeps, (c) => c.my && c.memory.colony === this.creep.memory.colony && c.memory.role === 'remoteHarvester');
+            if (_.size(remoteHarvesters)) {
+                this.creep.memory.destination = _.sample(_.pluck(remoteHarvesters, 'memory.destination'));
+            } else {
+                this.creep.fleeHome(true);
+            }
             return true;
         }
     }
@@ -82,6 +83,8 @@ class RoleRoadBuilder {
                 delete this.creep.memory.harvest;
                 delete this.creep.memory.destination;
             }
+        } else {
+            this.creep.memory.harvest = undefined;
         }
     }
 
@@ -115,7 +118,23 @@ class RoleRoadBuilder {
         }
 
         // Controller
-        return !!(creep.room.controller && this.buildRoadFromTo(creep.room, creep.room.controller, homeExit[homeMiddle]));
+        if (creep.room.controller && this.buildRoadFromTo(creep.room, creep.room.controller, homeExit[homeMiddle])) return true;
+
+        // Active neighbors
+        const neighboringRooms = Object.values(Game.map.describeExits(creep.room.name));
+        for (const neighbor of neighboringRooms) {
+            if (!Game.rooms[neighbor]) continue;
+            const neighborRoom = Game.rooms[neighbor];
+            const neighborHarvester = neighborRoom.myCreeps.find((c) => c.memory.role === 'remoteHarvester');
+            if (neighborHarvester) {
+                let exit = Game.map.findExit(creep.room.name, creep.memory.colony);
+                let exitTiles = creep.room.find(exit);
+                let exitMiddle = _.round(exitTiles.length / 2);
+                if (_.size(Game.constructionSites) >= 70) return false;
+                const start = creep.room.controller || creep.room.sources[0];
+                if (this.buildRoadFromTo(creep.room, start, exitTiles[exitMiddle])) return true;
+            }
+        }
     }
 
     buildRoadFromTo(room, start, end) {
@@ -200,11 +219,11 @@ function buildCostMatrix(roomName) {
         for (let x = 0; x < 50; x++) {
             let tile = terrain.get(x, y);
             if (tile === TERRAIN_MASK_WALL) {
-                costMatrix.set(x, y, 220);
+                costMatrix.set(x, y, 250);
             } else if (tile === TERRAIN_MASK_SWAMP) {
-                costMatrix.set(x, y, 20);
+                costMatrix.set(x, y, 45);
             } else {
-                costMatrix.set(x, y, 15);
+                costMatrix.set(x, y, 10);
             }
         }
     }

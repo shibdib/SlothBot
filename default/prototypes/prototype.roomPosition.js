@@ -177,6 +177,7 @@ RoomPosition.prototype.isInBunker = function () {
  * @returns {object} Returns an object/array of the results
  */
 RoomPosition.prototype.lookForNearby = function (lookFor, asArray = true, range = 1) {
+    if (!Game.rooms[this.roomName]) return undefined;
     return Game.rooms[this.roomName].lookForAtArea(
         lookFor,
         Math.max(0, this.y - range),

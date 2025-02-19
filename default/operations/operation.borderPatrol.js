@@ -59,7 +59,7 @@ function scanForNearbyThreats(creep) {
         let roomIntel = INTEL[roomName];
         if (roomIntel) {
             if (roomIntel.towers) continue;
-            if (roomIntel.threatLevel || roomIntel.hostileStructures) {
+            if (roomIntel.threatLevel) {
                 if (!creep.memory.destination || creep.memory.destination !== roomName) {
                     creep.memory.destination = roomName;
                     creep.memory.awaitingOrders = undefined;

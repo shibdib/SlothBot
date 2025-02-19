@@ -241,10 +241,9 @@ function addThreat(room) {
             let cache = Memory._userList || {};
             let standing;
             if (cache[user]) {
-                standing = cache[user]['standing'] + 0.25;
-                if (standing >= 1500) standing = 1500;
+                standing = cache[user]['standing'] - 0.25;
             } else if (!cache[user]) {
-                standing = 25;
+                standing = 0;
                 log.e(roomLink(room.name) + ' has detected a neutral.' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
             }
             cache[user] = {
