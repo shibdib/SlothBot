@@ -59,13 +59,23 @@ class RoleLongbowSquad {
             }
         }
 
+        // If we can fight ramparts, do so
+
         // Manage squad
         let ready = !squad.find((c) => !c || !c.pos.isNearTo(this.creep));
+        let rampartMode;
+        if (this.room.hostileCreeps.length && this.creep.fightFromRampart()) rampartMode = true;
         for (const squadRole in this.creep.memory.squadRoles) {
             const squadMate = Game.getObjectById(this.creep.memory.squadRoles[squadRole]);
             if (!squadMate) {
                 this.creep.memory.squadRoles[squadRole] = undefined;
                 this.creep.memory.squadMembers = _.filter(this.creep.memory.squadMembers, (c) => c !== this.creep.memory.squadRoles[squadRole]);
+                continue;
+            }
+
+            // Have everyone fight from ramparts if possible
+            if (rampartMode) {
+                squadMate.fightFromRampart();
                 continue;
             }
 
@@ -84,6 +94,7 @@ class RoleLongbowSquad {
                 }
             }
         }
+        if (rampartMode) return;
 
         // Handle waiting for squad
         if (!ready || (this.creep.memory.misc && this.creep.memory.misc.waitFor && this.creep.memory.misc.waitFor > this.creep.memory.squadMembers.length + 1)) {
