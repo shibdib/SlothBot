@@ -90,7 +90,6 @@ class ModuleBodyGenerator {
                     energyScaling = true;
                     work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 50);
-                    if (this.level === 8) Math.min(work, 15);
                     carry = 1;
                     move = 0;
                 } else {
@@ -101,6 +100,7 @@ class ModuleBodyGenerator {
 
                     if (INTEL[this.room.name].roadsBuilt) halfMove = true;
                 }
+                if (this.level === 8) Math.min(work, 15);
                 break;
 
             case 'labTech':
