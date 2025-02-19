@@ -48,6 +48,10 @@ class RoleLongbowSquad {
         // If a squad mate is fatigued and nearby, wait
         if (this.creep.fatigue) return;
         for (const squadMate of squad) {
+            if (!squadMate || !Game.getObjectById(squadMate.id)) {
+                this.creep.memory.squadMembers = _.filter(this.creep.memory.squadMembers, (c) => c);
+                continue;
+            }
             if (squadMate && squadMate.fatigue) {
                 if (this.creep.pos.isNearTo(squadMate)) {
                     return;
@@ -56,7 +60,7 @@ class RoleLongbowSquad {
         }
 
         // Manage squad
-        let ready = !squad.find((c) => !c.pos.isNearTo(this.creep));
+        let ready = !squad.find((c) => !c || !c.pos.isNearTo(this.creep));
         for (const squadRole in this.creep.memory.squadRoles) {
             const squadMate = Game.getObjectById(this.creep.memory.squadRoles[squadRole]);
             if (!squadMate) {
