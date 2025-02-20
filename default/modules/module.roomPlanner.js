@@ -19,7 +19,7 @@ module.exports.buildRoom = function () {
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
         // Check if bunker layout needs to be built
         if (shouldRunLayout(lastRun)) {
-            buildMissingStructures(room);
+            buildMissingStructures(room, room.controller.level);
             lastRun.task = 'layout';
         }
         // Check if auxiliary buildings need to be built
