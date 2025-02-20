@@ -76,16 +76,17 @@ class ModuleBodyGenerator {
                 break;
 
             case 'upgrader':
-                if (this.room.memory.controllerLink) {
+                if (this.room.level < this.room.controller.level || this.creepInfo.other.reboot) {
+                    work = 1;
+                    carry = 1;
+                } else if (this.room.memory.controllerLink) {
                     work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
                     if (this.room.level < 6) work = Math.min(work, 10);
                     else if (this.room.level === 6) work = Math.min(work, 19);
                     else work = Math.min(work, 22);
+                    if (this.room.energyState < 2) work *= 0.7;
                     carry = 1;
                     move = 0;
-                } else if (this.room.level < this.room.controller.level || this.creepInfo.reboot) {
-                    work = 1;
-                    carry = 1;
                 } else if (this.room.memory.controllerContainer) {
                     energyScaling = true;
                     work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;

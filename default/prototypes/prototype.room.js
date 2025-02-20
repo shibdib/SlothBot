@@ -131,6 +131,7 @@ Object.defineProperty(Room.prototype, 'impassibleStructures', {
 
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
+        if (!this.controller) return 2;
         if (!this._energyState) {
             let energy = this.energy + ((this.store(RESOURCE_BATTERY) / 50) * 600);
             let target = this.level === 8 ? 1000000 : Math.min((constructionCost(this.controller.level + 1) - constructionCost(this.controller.level)) * 1.5, 1500000);

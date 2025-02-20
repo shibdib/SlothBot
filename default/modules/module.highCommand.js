@@ -7,8 +7,8 @@ let SIEGE_LIMIT;
 const lastRun = {};
 const tasks = ['housekeeping', 'flags', 'military', 'auxiliary', 'response', 'nukes']
 module.exports.highCommand = function () {
-    OPERATION_LIMIT = Math.ceil(MY_ROOMS.filter((r) => Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].memory.availableForAssignment).length * 0.5);
-    SIEGE_LIMIT = Math.ceil(MY_ROOMS.filter((r) => Game.rooms[r].level >= MAX_LEVEL && Game.rooms[r].memory.availableForAssignment).length * 0.5);
+    OPERATION_LIMIT = Math.ceil(MY_ROOMS.filter((r) => Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].memory.availableForAssignment).length * 0.5) || 1;
+    SIEGE_LIMIT = Math.ceil(MY_ROOMS.filter((r) => Game.rooms[r].level >= MAX_LEVEL && Game.rooms[r].memory.availableForAssignment).length * 0.5) || 1;
     // Handle tasks
     for (const task of tasks) {
         switch (task) {
@@ -70,7 +70,8 @@ function militaryOperations() {
     // Handle stronghold operations
     let activeStrongholdAttacks = _.find(Memory.targetRooms, (t) => t && t.type === 'stronghold');
     if (!activeStrongholdAttacks) {
-        let stronghold = _.min(_.filter(INTEL, (r) => r && r.sk && r.towers && siegeLevel(r.towers) && myRoomInSectorCheck(r.name)), function (t) {
+        let stronghold = _.min(_.filter(INTEL, (r) => r && r.sk && !Memory.targetRooms[r.name] && r.towers && siegeLevel(r.towers) && myRoomInSectorCheck(r.name)
+            && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time)), function (t) {
             if (!t.name) return Infinity;
             return findClosestOwnedRoom(t.name, true);
         });
@@ -185,7 +186,7 @@ function setTarget(room, operation, level = 1, boosts = undefined, military = tr
     };
     if (military) Memory.targetRooms = cache; else Memory.auxiliaryTargets = cache;
     if (operation !== 'roomDenial') INTEL[room].lastOperation = Game.time; else INTEL[room].lastSiege = Game.time;
-    return log.a(`${operation} operation planned for ${roomLink(room)} owned by ${INTEL[room].owner} (Nearest Friendly Room - ${findClosestOwnedRoom(room, true)} rooms away)`, 'HIGH COMMAND: ');
+    return log.a(`${operation} operation planned for ${roomLink(room)} owned by ${INTEL[room].owner || 'N/A'} (Nearest Friendly Room - ${findClosestOwnedRoom(room, true)} rooms away)`, 'HIGH COMMAND: ');
 }
 
 function manageResponseForces() {
@@ -207,7 +208,7 @@ function manageResponseForces() {
         }
 
         // Remote support hostile
-        let remoteSupport = _.findKey(INTEL, (r) => r && r.threatLevel > 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
+        let remoteSupport = _.findKey(INTEL, (r) => r && r.threatLevel > 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.responseDispatched + 50 < Game.time) && findClosestOwnedRoom(r.name, true) <= 1);
         if (remoteSupport) {
             potentialTargets.push({type: 'remoteRoomAttack', room: remoteSupport, priority: 9});
         }

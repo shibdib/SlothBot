@@ -62,13 +62,17 @@ class LabManager {
     }
 
     shouldStopProduction(room) {
-        const stop = room.store(room.memory.producingBoost) > this.getProductionCutoff(room) || (productionTracker[this.room.name]
-            && productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time) || this.hub.some(lab => room.store(lab.memory.itemNeeded) < 50);
-        if (stop) this.stopProduction(room);
+        if (room.store(room.memory.producingBoost) > this.getProductionCutoff(room.memory.producingBoost)) {
+            this.stopProduction(room, 'Boost cap reached.');
+        } else if (productionTracker[this.room.name] && productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time) {
+            this.stopProduction(room, 'Production time exceeded.');
+        } else if (this.hub.some(lab => room.store(lab.memory.itemNeeded) < 50)) {
+            this.stopProduction(room, 'Not enough resources.');
+        }
     }
 
-    stopProduction(room) {
-        if (productionTracker[this.room.name]) log.a(roomLink(room.name) + ' is halting production of ' + room.memory.producingBoost + '.');
+    stopProduction(room, message) {
+        if (productionTracker[this.room.name]) log.a(`${roomLink(room.name)} is halting production of ${room.memory.producingBoost}. ${message || ''}`);
         room.memory.producingBoost = undefined;
         this.primaryLabs[room.name] = undefined;
         goOverCap[this.room.name] = undefined;
@@ -148,10 +152,10 @@ class LabManager {
     }
 
     getProductionCutoff(boost) {
-        if (goOverCap[this.room.name]) {
-            return BOOST_AMOUNT(this.room) * 10;
-        } else if (boost === RESOURCE_GHODIUM) {
+        if (boost === RESOURCE_GHODIUM) {
             return (NUKER_GHODIUM_CAPACITY * 2.5) + (SAFE_MODE_COST * 1.5);
+        } else if (goOverCap[this.room.name]) {
+            return BOOST_AMOUNT(this.room) * 10;
         } else if (LAB_PRIORITY.includes(boost)) {
             return BOOST_AMOUNT(this.room) * 2;
         }

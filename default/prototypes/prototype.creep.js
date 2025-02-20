@@ -6,7 +6,7 @@
 Object.defineProperty(Creep.prototype, "idle", {
     configurable: true,
     get: function () {
-        if (this.memory.idle === undefined) return 0;
+        if (this.memory.idle === undefined || this.memory.grouped) return 0;
         if (this.memory.idle <= Game.time || (this.ticksToLive >= 1485 || this.hasActiveBodyparts(CLAIM))
             || this.room.hostileCreeps.length || (INTEL[this.room.name] && INTEL[this.room.name].threatLevel)) {
             delete this.idle;
@@ -163,7 +163,7 @@ Creep.prototype.skSafety = function () {
 
     // Look for threats more efficiently
     const sk = this.room.creeps.find(skFilter);
-    const lair = this.room.impassibleStructures.find(lairFilter);
+    const lair = this.room.structures.find(lairFilter);
 
     if (sk || lair) {
         // Kite away from the threat
@@ -618,13 +618,15 @@ Creep.prototype.constructionWork = function () {
         return true;
     }
 
-    // Priority 9: Build any other structures
-    site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    if (site) {
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'build';
-        this.memory.sitePos = JSON.stringify(site.pos);
-        return true;
+    // Priority 9: Build any other structures if the room has energy
+    if (this.room.energyState) {
+        site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
+        if (site) {
+            this.memory.constructionSite = site.id;
+            this.memory.task = 'build';
+            this.memory.sitePos = JSON.stringify(site.pos);
+            return true;
+        }
     }
 
     // Priority 10: Repair other structures

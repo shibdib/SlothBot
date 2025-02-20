@@ -9,19 +9,9 @@ const minCut = require('util.minCut')
 let tickTracker = {};
 
 module.exports.buildRoom = function () {
-    let room;
-    // Cycle through rooms
-    if (!tickTracker['lastRoom']) {
-        room = Game.rooms[MY_ROOMS[0]];
-    } else {
-        let index = MY_ROOMS.indexOf(tickTracker['lastRoom']);
-        if (index + 1 >= MY_ROOMS.length) {
-            room = Game.rooms[MY_ROOMS[0]];
-        } else {
-            room = Game.rooms[MY_ROOMS[index + 1]];
-        }
-    }
     if (!shouldRunAtAll()) return;
+
+    let room = getNextRoom();
 
     let lastRun = tickTracker[room.name] || {};
 
@@ -53,6 +43,14 @@ module.exports.buildRoom = function () {
     tickTracker[room.name] = lastRun;
 };
 
+function getNextRoom() {
+    const rooms = MY_ROOMS.map(name => Game.rooms[name]).filter(r => r);
+    if (!rooms.length) return null;
+
+    const lastIndex = tickTracker.lastRoom ? MY_ROOMS.indexOf(tickTracker.lastRoom) : -1;
+    return rooms[(lastIndex + 1) % rooms.length] || rooms[0];
+}
+
 function shouldRunAtAll() {
     let overallLastRun = tickTracker['lastTick'] || 0;
     return overallLastRun < Game.time;
@@ -66,19 +64,20 @@ function shouldRunAuxiliary(lastRun) {
     return !lastRun.task || lastRun.task === 'layout';
 }
 
-function buildMissingStructures(room) {
-    let countCheck = _.filter(bunkerTemplate, (s) =>
-        ![STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD].includes(s.structureType) &&
-        CONTROLLER_STRUCTURES[s.structureType][room.controller.level] > countExistingStructures(room, s.structureType)
-    );
-    if (countCheck.length) {
-        buildFromLayout(room, countCheck);
-    }
+function getStructureCounts(room) {
+    const counts = {};
+    room.structures.forEach(s => counts[s.structureType] = (counts[s.structureType] || 0) + 1);
+    room.constructionSites.forEach(s => counts[s.structureType] = (counts[s.structureType] || 0) + 1);
+    return counts;
 }
 
-function countExistingStructures(room, structureType) {
-    return room.structures.filter((s) => s.structureType === structureType).length +
-        room.constructionSites.filter((s) => s.structureType === structureType).length;
+function buildMissingStructures(room, level) {
+    const existingCounts = getStructureCounts(room);
+    const countCheck = bunkerTemplate.filter(s =>
+        ![STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD].includes(s.structureType) &&
+        CONTROLLER_STRUCTURES[s.structureType][level] > (existingCounts[s.structureType] || 0)
+    );
+    if (countCheck.length) buildFromLayout(room, countCheck);
 }
 
 function buildAuxiliaryStructures(room) {
@@ -87,37 +86,24 @@ function buildAuxiliaryStructures(room) {
 }
 
 function buildFromLayout(room, countCheck) {
+    const initialSpawn = _.find(Game.structures, s => s.structureType === STRUCTURE_SPAWN && s.my);
+    const roomTower = room.structures.find(s => s.structureType === STRUCTURE_TOWER && s.my);
     let filter = [];
 
-    // Check if initial spawn is present
-    let initialSpawn = _.find(Game.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my);
-    const roomTower = room.structures.find((s) => s.structureType === STRUCTURE_TOWER && s.my);
-
-    // Determine which structures to build based on conditions
     if (!initialSpawn) {
-        // No initial spawn: prioritize spawn structure
-        filter = bunkerTemplate.filter((s) => s.structureType === STRUCTURE_SPAWN);
+        filter = bunkerTemplate.filter(s => s.structureType === STRUCTURE_SPAWN);
     } else if (TOWER_FIRST && !roomTower && MY_ROOMS.length > 1) {
-        // If tower first, we do that
-        filter = bunkerTemplate.filter((s) => s.structureType === STRUCTURE_TOWER);
+        filter = bunkerTemplate.filter(s => s.structureType === STRUCTURE_TOWER);
     } else {
-        // Build other structures based on controller level
-        filter = _.filter(countCheck, (s) => CONTROLLER_STRUCTURES[s.structureType][room.controller.level]);
-    }
-
-    // Handle towers
-    if (BETA_TOWERS && room.memory.towerHubs && room.memory.towerHubs.length) {
-        filter = _.filter(filter, (s) => s.structureType !== STRUCTURE_TOWER);
-        towerBuilder(room);
+        filter = countCheck.filter(s => CONTROLLER_STRUCTURES[s.structureType][room.controller.level]);
     }
 
     if (filter.length) {
-        for (let structure of filter) {
-            // Only build certain structures based on controller level and priorities
+        const hub = room.hub;
+        for (const structure of filter) {
             if (shouldSkipStructure(room, structure)) continue;
-            // Build each structure in the designated positions
-            for (let buildPos of structure.pos) {
-                let pos = new RoomPosition(room.hub.x + buildPos.x, room.hub.y + buildPos.y, room.name);
+            for (const buildPos of structure.pos) {
+                const pos = new RoomPosition(hub.x + buildPos.x, hub.y + buildPos.y, room.name);
                 if (!pos.checkForConstructionSites() && !pos.checkForAllStructure()) {
                     pos.createConstructionSite(structure.structureType);
                 }
@@ -130,36 +116,6 @@ function buildFromLayout(room, countCheck) {
 function shouldSkipStructure(room, structure) {
     return room.controller.level !== room.level &&
         ![STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(structure.structureType);
-}
-
-function towerBuilder(room) {
-    // Cycle thru the hubs
-    let index = tickTracker['lastTowerHub'] || 0;
-    let hub;
-    if (index + 1 >= room.memory.towerHubs.length) {
-        index = 0;
-        hub = room.memory.towerHubs[index];
-    } else {
-        hub = room.memory.towerHubs[index + 1];
-    }
-
-    // Handle tower placement
-    const towerHub = new RoomPosition(hub.x, hub.y, room.name);
-    const towers = room.structures.filter((s) => s.structureType === STRUCTURE_TOWER);
-    const towerSites = room.constructionSites.filter((s) => s.structureType === STRUCTURE_TOWER);
-    if (CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level] > towers.length + towerSites.length) {
-        tickTracker['lastTowerHub'] = index;
-        for (let xOff = -1; xOff <= 1; xOff++) {
-            for (let yOff = -1; yOff <= 1; yOff++) {
-                if (xOff === 0 && yOff === 0) continue;
-                const targetPos = new RoomPosition(towerHub.x + xOff, towerHub.y + yOff, towerHub.roomName);
-                const structurePresent = targetPos.checkForAllStructure();
-                if (structurePresent && structurePresent.structureType === STRUCTURE_TOWER) continue;
-                else if (structurePresent) structurePresent.destroy();
-                else if (targetPos.createConstructionSite(STRUCTURE_TOWER) === OK) return true;
-            }
-        }
-    }
 }
 
 function auxiliaryBuilding(room) {
@@ -261,71 +217,49 @@ function hubLink(room) {
 }
 
 function sourceBuilder(room) {
-    if (room.controller.level >= 3) {
-        for (let source of room.sources) {
-            if (buildSourceContainer(source, room)) return true;
-            if (buildSourceLink(source, room)) return true;
-        }
-    }
+    if (room.controller.level < 3) return false;
 
-    // Helper function to handle the creation of source containers
+    const sources = room.sources;
+    for (let i = 0; i < sources.length; i++) {
+        if (buildSourceContainer(sources[i], room)) return true;
+        if (buildSourceLink(sources[i], room)) return true;
+    }
+    return false;
+
     function buildSourceContainer(source, room) {
-        let sourceContainer = Game.getObjectById(source.memory.containerID) || _.find(source.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
-        if (!sourceContainer) {
+        let container = Game.getObjectById(source.memory.containerID) ||
+            source.pos.findInRange(room.structures, 1).find(s => s.structureType === STRUCTURE_CONTAINER);
+        if (!container) {
             source.memory.container = undefined;
-            let sourceBuild = _.find(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
-            if (!sourceBuild) {
-                let containerSite = findBestContainerPos(source);
-                if (containerSite && !containerSite.checkForConstructionSites()) {
-                    if (containerSite.createConstructionSite(STRUCTURE_CONTAINER) === OK) return true;
-                }
+            if (!source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).some(s => s.structureType === STRUCTURE_CONTAINER)) {
+                const pos = findBestContainerPos(source);
+                if (pos && !pos.checkForConstructionSites() &&
+                    pos.createConstructionSite(STRUCTURE_CONTAINER) === OK) return true;
             }
         } else {
             if (!source.memory.distanceToHub) {
                 source.memory.distanceToHub = source.pos.findPathTo(room.hub).length;
             }
-            source.memory.container = sourceContainer.id;
+            source.memory.container = container.id;
         }
+        return false;
     }
 
-    // Helper function to handle the creation of source links
     function buildSourceLink(source, room) {
-        const sourceContainer = Game.getObjectById(source.memory.container);
-        if (sourceContainer && (Game.getObjectById(room.memory.controllerLink) || Game.getObjectById(room.memory.hubLink))) {
-            let sourceLink = _.find(sourceContainer.pos.findInRange(room.impassibleStructures, 1), (s) => s.structureType === STRUCTURE_LINK);
-            let sourceBuild = _.find(sourceContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK);
-            // If no link exists and there is space to build, create one
-            if (!sourceLink && !sourceBuild && sourceContainer.pos.countOpenTerrainAround()) {
-                clearOldLink(source);
-                if (createSourceLink(source, sourceContainer)) return true;
-            } else if (sourceLink) {
-                source.memory.link = sourceLink.id;
-            }
-        }
-    }
+        const container = Game.getObjectById(source.memory.container);
+        if (!container || (!Game.getObjectById(room.memory.controllerLink) && !Game.getObjectById(room.memory.hubLink))) return false;
 
-    // Helper function to clear old source links
-    function clearOldLink(source) {
-        if (source.memory.link && Game.getObjectById(source.memory.link)) {
-            const oldLink = Game.getObjectById(source.memory.link);
-            const oldRampart = oldLink.pos.checkForRampart();
-            if (oldRampart) oldRampart.destroy();
-            oldLink.destroy();
-            log.e('Cleared incorrect source link in ' + roomLink(source.room.name), "ROOM PLANNER:");
+        const link = container.pos.findInRange(room.impassibleStructures, 1).find(s => s.structureType === STRUCTURE_LINK);
+        if (link) {
+            source.memory.link = link.id;
+            return false;
         }
-        source.memory.link = undefined;
-    }
 
-    // Helper function to create a new source link
-    function createSourceLink(source, sourceContainer) {
-        let zoneTerrain = source.room.lookForAtArea(LOOK_TERRAIN, sourceContainer.pos.y - 1, sourceContainer.pos.x - 1, sourceContainer.pos.y + 1, sourceContainer.pos.x + 1, true);
-        const controllerContainer = Game.getObjectById(room.memory.controllerContainer);
-        for (let key in zoneTerrain) {
-            let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, source.room.name);
-            if (position.checkForWall() || position.checkForAllStructure() || position.isNearTo(controllerContainer) || position.checkIfOutOfBounds()) continue;
-            if (position.createConstructionSite(STRUCTURE_LINK) === OK) return true;
-            break;
-        }
+        if (container.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).some(s => s.structureType === STRUCTURE_LINK) ||
+            !container.pos.countOpenTerrainAround()) return false;
+
+        clearOldLink(source);
+        return createSourceLink(source, container);
     }
 }
 

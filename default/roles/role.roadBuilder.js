@@ -30,6 +30,7 @@ class RoleRoadBuilder {
             const remoteHarvesters = objFilter(Game.creeps, (c) => c.my && c.memory.colony === this.creep.memory.colony && c.memory.role === 'remoteHarvester');
             if (_.size(remoteHarvesters)) {
                 this.creep.memory.destination = _.sample(_.pluck(remoteHarvesters, 'memory.destination'));
+                if (this.creep.memory.destination === this.creep.room.name) this.creep.idleFor(15);
             } else {
                 this.creep.fleeHome(true);
             }
@@ -51,7 +52,9 @@ class RoleRoadBuilder {
             INTEL[this.creep.room.name].roadCount = this.creep.room.structures.filter((s) => s.structureType === STRUCTURE_ROAD).length;
             this.creep.memory.destination = undefined;
             if (this.creep.memory.colony === this.creep.room.name) this.creep.idleFor(15);
-        } else INTEL[this.creep.room.name].roadsBuilt = undefined;
+        } else {
+            INTEL[this.creep.room.name].roadsBuilt = undefined;
+        }
     }
 
     notWorking() {

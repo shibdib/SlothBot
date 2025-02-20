@@ -35,79 +35,106 @@ class RoleLongbowSquad {
     }
 
     handleLeader() {
-        this.creep.attackInRange();
-        const squad = this.creep.memory.squadMembers.map(id => Game.getObjectById(id));
+        const creep = this.creep;
+        const memory = creep.memory;
 
-        // If no squad, remove leader
-        if (!squad.length) {
-            this.creep.memory.grouped = undefined;
-            this.creep.memory.leader = undefined;
+        // Early attack and fatigue checks
+        creep.attackInRange();
+        if (creep.fatigue) return;
+
+        // Squad initialization and validation
+        if (!memory.squadMembers || !memory.squadMembers.length) {
+            delete memory.squadMembers;
+            delete memory.squadRoles;
+            delete memory.grouped;
+            delete memory.leader;
             return;
         }
 
-        // If a squad mate is fatigued and nearby, wait
-        if (this.creep.fatigue) return;
-        for (const squadMate of squad) {
-            if (!squadMate || !Game.getObjectById(squadMate.id)) {
-                this.creep.memory.squadMembers = _.filter(this.creep.memory.squadMembers, (c) => c);
+        // Cache frequently accessed properties
+        const squadMembers = memory.squadMembers;
+        const squadRoles = memory.squadRoles || {};
+        const room = creep.room;
+        const hostileCreeps = room.hostileCreeps;
+        const hostileStructures = room.hostileStructures;
+
+        // Clean invalid squad members and check fatigue
+        let hasFatiguedMate = false;
+        for (let i = squadMembers.length - 1; i >= 0; i--) {
+            const mate = Game.getObjectById(squadMembers[i]);
+            if (!mate) {
+                squadMembers.splice(i, 1);
+                delete squadRoles[squadMembers[i]];
                 continue;
             }
-            if (squadMate && squadMate.fatigue) {
-                if (this.creep.pos.isNearTo(squadMate)) {
-                    return;
-                }
+            if (mate.fatigue && creep.pos.isNearTo(mate)) {
+                hasFatiguedMate = true;
+                break;
             }
         }
+        if (hasFatiguedMate) return;
 
-        // If we can fight ramparts, do so
+        // Rampart mode decision
+        const rampartMode = hostileCreeps.length && creep.fightFromRampart();
 
-        // Manage squad
-        const acceptableRange = this.room.hostileCreeps.length || this.room.hostileStructures.length ? 3 : 1;
-        let ready = !squad.find((c) => !c || c.pos.getRangeTo(this.creep) > acceptableRange);
-        let rampartMode;
-        if (this.room.hostileCreeps.length && this.creep.fightFromRampart()) rampartMode = true;
-        for (const squadRole in this.creep.memory.squadRoles) {
-            const squadMate = Game.getObjectById(this.creep.memory.squadRoles[squadRole]);
-            if (!squadMate) {
-                this.creep.memory.squadRoles[squadRole] = undefined;
-                this.creep.memory.squadMembers = _.filter(this.creep.memory.squadMembers, (c) => c !== this.creep.memory.squadRoles[squadRole]);
+        // Squad readiness check
+        const acceptableRange = (hostileCreeps.length || hostileStructures.length) ? 3 : 1;
+        const squad = squadMembers.map(id => Game.getObjectById(id));
+        const isReady = squad.every(c => c && c.pos.getRangeTo(creep) <= acceptableRange) &&
+            (acceptableRange === 1 || isQuadPacked(squad.concat(creep)));
+
+        // Manage squad members
+        for (const role in squadRoles) {
+            const mate = Game.getObjectById(squadRoles[role]);
+            if (!mate) {
+                delete squadRoles[role];
+                const index = squadMembers.indexOf(squadRoles[role]);
+                if (index !== -1) squadMembers.splice(index, 1);
                 continue;
             }
 
-            // Have everyone fight from ramparts if possible
             if (rampartMode) {
-                squadMate.fightFromRampart();
+                mate.fightFromRampart();
                 continue;
             }
 
-            // Formation fixing
-            if (!ready || (!this.creep.memory._shibSquadMove || !this.creep.memory._shibSquadMove.path || !this.creep.memory._shibSquadMove.path.length)) {
-                const squadPos = new RoomPosition(this.creep.pos.x + squadRolePositions[squadMate.memory.squadRole][0].x, this.creep.pos.y + squadRolePositions[squadMate.memory.squadRole][0].y, this.creep.room.name);
-                if (!squadMate.pos.isEqualTo(squadPos)) {
-                    if (!squadPos.checkForImpassible()) {
-                        squadMate.shibMove(squadPos, {range: 0, ignoreCreeps: false});
-                    } else {
-                        const squadPos1 = new RoomPosition(this.creep.pos.x + squadRolePositions[squadMate.memory.squadRole][1].x, this.creep.pos.y + squadRolePositions[squadMate.memory.squadRole][1].y, this.creep.room.name);
-                        squadMate.shibMove(squadPos1, {range: 0, ignoreCreeps: false});
+            // Formation management
+            if (!isReady || (!memory._shibSquadMove || !memory._shibSquadMove.path || !memory._shibSquadMove.path.length)) {
+                const posOffset = squadRolePositions[mate.memory.squadRole];
+                let targetPos = new RoomPosition(
+                    creep.pos.x + posOffset[0].x,
+                    creep.pos.y + posOffset[0].y,
+                    room.name
+                );
+
+                if (!mate.pos.isEqualTo(targetPos)) {
+                    if (targetPos.checkForImpassible()) {
+                        targetPos = new RoomPosition(
+                            creep.pos.x + posOffset[1].x,
+                            creep.pos.y + posOffset[1].y,
+                            room.name
+                        );
                     }
-                } else if (this.creep.memory.idle) {
-                    squadMate.memory.idle = this.creep.memory.idle;
+                    mate.shibMove(targetPos, {range: 0, ignoreCreeps: false});
+                } else if (memory.idle) {
+                    mate.memory.idle = memory.idle;
                 }
             }
         }
         if (rampartMode) return;
 
-        // Handle waiting for squad
-        if (!ready || (this.creep.memory.misc && this.creep.memory.misc.waitFor && this.creep.memory.misc.waitFor > this.creep.memory.squadMembers.length + 1)) {
-            return this.creep.handleMilitaryCreep();
+        // Handle squad assembly and operations
+        if (!isReady || (memory.misc && memory.misc.waitFor > squadMembers.length + 1)) {
+            creep.handleMilitaryCreep() || creep.findDefensivePosition();
+            return;
         }
 
-        if (this.creep.memory.operation) {
+        if (memory.operation) {
             this.operationManagement();
-        } else if (this.creep.memory.destination) {
+        } else if (memory.destination) {
             this.destinationManagement();
         } else {
-            this.creep.handleMilitaryCreep();
+            creep.handleMilitaryCreep();
         }
     }
 
@@ -192,6 +219,17 @@ class RoleLongbowSquad {
         }
     }
 }
+
+function isQuadPacked(creeps) {
+    if (creeps.length !== 4) return false
+    for (let i = 0; i < creeps.length; i++) {
+        for (let j = i + 1; j < creeps.length; j++) {
+            if (!creeps[i].pos.isNearTo(creeps[j].pos)) return false
+        }
+    }
+    return true
+}
+
 
 const squadRolePositions = {
     1: [{x: 0, y: 1}, {x: 0, y: -1}],

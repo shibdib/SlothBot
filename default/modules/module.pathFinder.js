@@ -535,9 +535,11 @@ function getTerrainMatrix(roomName, options) {
                 swampCost = 25;
                 break;
             case 3:
+                plainCost = 1;
+                swampCost = 1;
                 break;
             default:
-                plainCost = 4;
+                plainCost = 5;
                 swampCost = 25;
         }
         // Squad matrix has higher costs in tiles neighboring swamps and walls
@@ -561,7 +563,7 @@ function getTerrainMatrix(roomName, options) {
                     if (options.squad) {
                         for (let i = -1; i < 2; i++) {
                             for (let j = -1; j < 2; j++) {
-                                matrix.set(x + i, y + j, swampCost * 0.5);
+                                matrix.set(x + i, y + j, plainCost * 1.5);
                             }
                         }
                     }
@@ -598,10 +600,10 @@ function getStructureMatrix(roomName, creep, matrix, options) {
         switch (type) {
             case 2:
             case 3:
-                roadCost = 4;
+                roadCost = 5;
                 break;
             default:
-                roadCost = 2;
+                roadCost = 1;
         }
         let noWallWrecker = (creep instanceof Creep && ((INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner)) || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK))));
         for (let structure of room.structures) {
@@ -721,7 +723,7 @@ function getStationaryCreepsMatrix(roomName, creep, matrix, options) {
         for (let creep of creeps) {
             // Sanity check
             if (!creep.memory || !creep.memory.other) continue;
-            if (creep.memory.other.stationary || !creep.hasActiveBodyparts(MOVE)) {
+            if (creep.memory.other.stationary || !creep.hasActiveBodyparts(MOVE) || creep.memory.grouped) {
                 matrix.set(creep.pos.x, creep.pos.y, 200);
                 if (options.showMatrix) new RoomVisual(room.name).text('IMP', creep.pos.x, creep.pos.y, {
                     color: 'white',

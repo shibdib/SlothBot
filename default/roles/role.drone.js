@@ -77,7 +77,7 @@ class RoleDrone {
         // If walls to repair
         if (this.walling()) return;
         // If nothing else to do upgrade
-        if (this.room.energyState && this.upgrading(true)) return;
+        if (this.room.energyState > 1 && this.upgrading(true)) return;
         // Otherwise idle
         else {
             this.creep.memory.task = undefined;

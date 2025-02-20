@@ -198,15 +198,16 @@ module.exports.essentialCreepQueue = function (room) {
     let hasConstructionSites = room.constructionSites.find((s) => importantSites.includes(s.structureType)
         || (room.energyState && unimportantSite.includes(s.structureType)));
     let dronePriority = PRIORITIES.drone;
-    let droneNumber = !room.memory.controllerContainer || hasConstructionSites ? (12 - room.level) :
+    let droneNumber = !room.energyState ? 1 : !room.memory.controllerContainer || hasConstructionSites ? (12 - room.level) :
         !room.storage ? Math.max(7 - room.level, 1) : room.memory.dangerousAttack && room.energyState ? 3 : room.energyState && room.level >= BUNKER_LEVEL ? 2 : 1;
     queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
 
     // Upgrader
-    let upgraderReboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.level !== room.level || room.memory.dangerousAttack;
-    let upgraderAmount = 1;
+    const upgraderReboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.level !== room.level;
+    const noUpgraderNeeded = room.memory.dangerousAttack || !room.energyState;
+    let upgraderAmount = noUpgraderNeeded ? 0 : 1;
 
-    if (!upgraderReboot && room.level < 8) {
+    if (!upgraderReboot && !noUpgraderNeeded) {
         // If there's no controller link, calculate upgrader amount based on energy state
         if (!room.memory.controllerLink) {
             let container = Game.getObjectById(room.memory.controllerContainer);
@@ -353,7 +354,7 @@ module.exports.remoteCreepQueue = function (room) {
     function shouldSkipRemote(room, remoteName) {
         if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remoteName)) return true;
         if (!INTEL[remoteName]) return true;
-        if (INTEL[remoteName].sk && room.level < SK_MINING_LEVEL) return true;
+        if (INTEL[remoteName].sk && (room.level < SK_MINING_LEVEL || !SK_MINING)) return true;
         if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
         if (INTEL[remoteName].reservation && ![MY_USERNAME, "Invader"].includes(INTEL[remoteName].reservation)) return true;
         if (INTEL[remoteName].roomHeat > 250) return true;
@@ -376,7 +377,7 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleContestedRoom(room) {
         const intel = INTEL[contestedRemotes[room.name]];
-        if (!room.energyState) return contestedRemotes[room.name] = undefined;
+        if (room.energyState < 2) return contestedRemotes[room.name] = undefined;
         if (intel.contestingCount > room.level * 2) {
             log.a(`${roomLink(room.name)} is not longer contesting ${roomLink(contestedRemotes[room.name])} due to casualties.`, "HIGH COMMAND:")
             INTEL[contestedRemotes[room.name]].lastContest = Game.time;
@@ -416,7 +417,9 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function handleThreatLevel(room, remoteName) {
-        if (Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
+        // Only border patrol for immediate exits
+        const colonyExits = Object.values(Game.map.describeExits(room.name));
+        if (!colonyExits.includes(remoteName)) return;
         if (INTEL[remoteName].tickDetected + CREEP_LIFE_TIME < Game.time) {
             queueCreepIfNeeded(room, 'explorer', PRIORITIES.secondary, 1, undefined, remoteName);
         } else if (!INTEL[remoteName].sk) {
@@ -450,9 +453,11 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteSource = JSON.parse(room.memory.remoteSources);
             let acceptedScore = !room.terminal ? REMOTE_DISTANCE_MAX * 2 : REMOTE_DISTANCE_MAX;
             acceptedScore = Math.max(acceptedScore, _.min(remoteSource, 'score').score);
-            remoteSource = _.sortBy(_.filter(remoteSource, (s) => !shouldSkipRemote(room, s.room) && s.score <= acceptedScore
-                && !_.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === s.source)), 'score')[0];
-            if (remoteSource && remoteSource.room && (!INTEL[remoteSource.room].sk || getCreepCount(undefined, 'SKAttacker', remoteSource.room))) {
+            remoteSource = _.min(_.filter(remoteSource, (s) => !shouldSkipRemote(room, s.room) && (s.score <= acceptedScore || (INTEL[s.room].sk && s.score <= acceptedScore * 2))
+                && !_.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === s.source)
+                && (!INTEL[s.room].sk || getCreepCount(undefined, 'SKAttacker', remoteSource.room))), 'score');
+            if (remoteSource && remoteSource.room) {
+                if (room.name === 'W5N8') console.log('remoteSource', remoteSource.room);
                 queueCreep(room, PRIORITIES.remoteHarvester, {
                     role: 'remoteHarvester',
                     destination: remoteSource.room,
@@ -463,7 +468,6 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function handleRemoteHaulers(room) {
-        if (Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
         if (!room.memory.remoteSources) return;
         // Find active sources with harvesters
         const activeSources = _.filter(JSON.parse(room.memory.remoteSources), (s) =>
@@ -500,13 +504,29 @@ module.exports.remoteCreepQueue = function (room) {
         remoteRoomTargets[room.name] = undefined;
         const exits = Game.map.describeExits(room.name);
 
-        // Handle finding usable remotes
+        // Find usable remotes
         const surroundingRooms = getSurroundingRooms(room.name);
-        const remoteRooms = surroundingRooms.filter(function (r) {
+        let remoteTargets = surroundingRooms.filter(function (r) {
             return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level && !INTEL[r].obstacles &&
-                (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || !_.includes(FRIENDLIES, INTEL[r].reservation)) && Game.map.findRoute(room.name, r).length <= 2;
+                (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME) && Game.map.findRoute(room.name, r).length <= 2;
         });
-        remoteRoomTargets[room.name] = remoteRooms;
+        for (const rooms of surroundingRooms) {
+            if (roomStatus(rooms) === roomStatus(room.name)) {
+                const surroundingRoomsTwo = getSurroundingRooms(rooms);
+                const remoteRooms = surroundingRoomsTwo.filter(function (r) {
+                    return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level && !INTEL[r].obstacles &&
+                        (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME) && Game.map.findRoute(room.name, r).length <= 2;
+                });
+                remoteTargets = remoteTargets.concat(remoteRooms);
+            }
+        }
+        remoteRoomTargets[room.name] = remoteTargets;
+
+        // Filter remote sources of rooms that are not in the list
+        if (room.memory.remoteSources) {
+            const remoteSources = JSON.parse(room.memory.remoteSources);
+            room.memory.remoteSources = JSON.stringify(objFilter(remoteSources, (s) => remoteRoomTargets[room.name].includes(s.room)));
+        }
 
         // Handle finding contested remotes
         const contestedRemote = _.find(exits, function (r) {
@@ -678,6 +698,7 @@ module.exports.globalCreepQueue = function () {
  * @returns {*|number}
  */
 function queueCreepIfNeeded(room = undefined, role, priority, numberNeeded, rebootCondition = undefined, destination = undefined, misc = undefined, closestRoom = undefined, operation = undefined, other = {}) {
+    if (numberNeeded <= 0) return false;
     if (other.target) destination = other.target;
     const count = getCreepCount(room, role, destination);
     const global = !room
@@ -858,8 +879,6 @@ function getQueue(room) {
             operation.priority *= 0.5;
         } else if (!room.energyState) {
             operation.priority *= 6;
-        } else {
-            operation.priority += 1;
         }
 
         // Ensure minimum priority is 2

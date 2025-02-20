@@ -34,12 +34,8 @@ class TerminalControl {
             lastRun['updates'] = Game.time;
         }
 
-        if (Game.shard.name === 'shardSeason') {
-            return this.balanceResources(this.room.terminal);
-        }
-
         // Handle distribution first
-        if (this.emergencyEnergy(this.room.terminal) || this.balanceResources(this.room.terminal) || this.balanceResources(this.room.terminal) || this.balanceEnergy(this.room.terminal)) return;
+        if (this.emergencyEnergy(this.room.terminal) || this.balanceResources(this.room.terminal) || this.balanceEnergy(this.room.terminal)) return;
 
         // Handle market
         if (this.placeSellOrders(this.room.terminal, globalOrders, myOrders) || this.quickSell(this.room.terminal, globalOrders) || this.placeBuyOrders(this.room.terminal, globalOrders, myOrders)) return;
@@ -367,7 +363,7 @@ class TerminalControl {
     }
 
     balanceEnergy(terminal) {
-        if (INTEL[terminal.room.name].threatLevel || terminal.room.nukes.length || terminal.room.energyState < 2) return;
+        if (INTEL[terminal.room.name].threatLevel || terminal.room.nukes.length || !terminal.room.energyState) return;
 
         let needyTerminal = findNeedyTerminal(terminal);
         if (needyTerminal) {
