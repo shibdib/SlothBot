@@ -101,20 +101,16 @@ class RoleLongbowSquad {
             // Formation management
             if (!isReady || (!memory._shibSquadMove || !memory._shibSquadMove.path || !memory._shibSquadMove.path.length)) {
                 const posOffset = squadRolePositions[squadMate.memory.squadRole];
-                if (!posOffset || !posOffset[0]) continue;
-                let targetPos = new RoomPosition(
-                    creep.pos.x + posOffset[0].x,
-                    creep.pos.y + posOffset[0].y,
-                    creep.room.name
-                );
+                let newX = Math.max(0, Math.min(49, creep.pos.x + posOffset[0].x));
+                let newY = Math.max(0, Math.min(49, creep.pos.y + posOffset[0].y));
+
+                let targetPos = new RoomPosition(newX, newY, creep.room.name);
 
                 if (!squadMate.pos.isEqualTo(targetPos)) {
                     if (targetPos.checkForImpassible()) {
-                        targetPos = new RoomPosition(
-                            creep.pos.x + posOffset[1].x,
-                            creep.pos.y + posOffset[1].y,
-                            creep.room.name
-                        );
+                        newX = Math.max(0, Math.min(49, creep.pos.x + posOffset[1].x));
+                        newY = Math.max(0, Math.min(49, creep.pos.y + posOffset[1].y));
+                        targetPos = new RoomPosition(newX, newY, creep.room.name);
                     }
                     squadMate.shibMove(targetPos, {range: 0, ignoreCreeps: false});
                 } else if (memory.idle) {
