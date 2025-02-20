@@ -19,12 +19,33 @@ RoomPosition.prototype.checkIfOutOfBounds = function () {
  * Find the closest source
  * @returns {*}
  */
+const SOURCE_CACHE = {};
 RoomPosition.prototype.getClosestSource = function () {
-    let source = this.findClosestByRange(FIND_SOURCES_ACTIVE, {filter: (s) => s.pos.countOpenTerrainAround() > _.filter(Game.rooms[this.roomName].creeps, (c) => c.memory && c.memory.other.source === s.id).length});
-    if (!source) {
-        source = this.findClosestByRange(FIND_SOURCES, {filter: (s) => s.pos.countOpenTerrainAround() > _.filter(Game.rooms[this.roomName].creeps, (c) => c.memory && c.memory.other.source === s.id).length});
+    const roomName = this.roomName;
+    const room = Game.rooms[roomName];
+    if (!room) return undefined;
+    if (!SOURCE_CACHE[roomName] || SOURCE_CACHE[roomName].tick !== Game.time) {
+        const sources = room.find(FIND_SOURCES);
+        const creepAssignments = _.countBy(room.creeps, function (c) {
+            return c.memory && c.memory.other && c.memory.other.source ? c.memory.other.source : null;
+        });
+        SOURCE_CACHE[roomName] = {
+            sources: sources.map(function (s) {
+                const openSpots = s.pos.countOpenTerrainAround();
+                const assigned = creepAssignments[s.id] || 0;
+                return {source: s, active: s.energy > 0, priority: openSpots - assigned};
+            }),
+            tick: Game.time
+        };
     }
-    return source;
+    const cachedSources = SOURCE_CACHE[roomName].sources;
+    let activeSource = _.find(cachedSources, function (s) {
+        return s.active && s.priority > 0;
+    });
+    if (!activeSource) activeSource = _.find(cachedSources, function (s) {
+        return s.priority > 0;
+    });
+    return activeSource ? this.findClosestByRange(_.map(cachedSources, 'source')) : undefined;
 };
 
 /**
@@ -86,43 +107,54 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
  * @param {boolean} ignore - Ignore all obstructions besides walls
  * @returns {number}
  */
-RoomPosition.prototype.countOpenTerrainAround = function (borderBuild = undefined, ignore = undefined) {
-    const cacheKey = `countOpenTerrain_${this.roomName}_${this.x}_${this.y}_${borderBuild}_${ignore}`;
+RoomPosition.prototype.countOpenTerrainAround = function (borderBuild, ignore) {
+    const cacheKey = 'countOpenTerrain_' + this.roomName + '_' + this.x + '_' + this.y + '_' + (borderBuild || false) + '_' + (ignore || false);
     const currentTick = Game.time;
 
-    if (!this._openTerrainCache) {
-        this._openTerrainCache = {}; // Initialize a cache object for open terrain counts
-    }
+    if (!this._openTerrainCache) this._openTerrainCache = {};
+    const cached = this._openTerrainCache[cacheKey];
+    if (cached && cached.expiry > currentTick) return cached.value;
 
-    if (this._openTerrainCache[cacheKey] && this._openTerrainCache[cacheKey].expiry > currentTick) {
-        return this._openTerrainCache[cacheKey].value; // Return cached result if available and not expired
-    }
+    let openTerrain = 0; // Start at 0, increment for valid positions
+    const offsets = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+    const terrain = Game.map.getRoomTerrain(this.roomName);
+    const room = Game.rooms[this.roomName];
 
-    let openTerrain = 8;
-    for (let xOff = -1; xOff <= 1; xOff++) {
-        for (let yOff = -1; yOff <= 1; yOff++) {
-            if (xOff !== 0 || yOff !== 0) {
-                let pos;
-                try {
-                    pos = new RoomPosition(this.x + xOff, this.y + yOff, this.roomName);
-                } catch (e) {
-                    openTerrain--;
-                }
-                if (pos) {
-                    if (ignore && pos.checkForWall()) {
-                        openTerrain--;
-                    } else if (pos.checkForImpassible(undefined, true) || (pos.checkForCreep() && !pos.checkForCreep().hasActiveBodyparts(MOVE))) {
-                        openTerrain--;
-                    }
-                    if (borderBuild && pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) <= 2) {
-                        openTerrain--;
-                    }
-                }
+    for (let i = 0; i < offsets.length; i++) {
+        const x = this.x + offsets[i][0];
+        const y = this.y + offsets[i][1];
+        if (x < 0 || x > 49 || y < 0 || y > 49) continue;
+
+        const tile = terrain.get(x, y);
+        let isOpen = true;
+
+        if (ignore) {
+            if (tile === TERRAIN_MASK_WALL) isOpen = false;
+        } else {
+            const pos = new RoomPosition(x, y, this.roomName);
+            if (tile === TERRAIN_MASK_WALL || (room && pos.checkForObstacleStructure()) ||
+                (!ignore && room && pos.checkForCreep() && !pos.checkForCreep().hasActiveBodyparts(MOVE))) {
+                isOpen = false;
             }
         }
+
+        if (borderBuild && room) {
+            const exitKey = 'exit_' + x + '_' + y + '_' + roomName;
+            if (!this._exitCache) this._exitCache = {};
+            let exitRange = this._exitCache[exitKey];
+            if (!exitRange || exitRange.tick !== currentTick) {
+                const pos = new RoomPosition(x, y, roomName);
+                exitRange = {value: pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)), tick: currentTick};
+                this._exitCache[exitKey] = exitRange;
+            }
+            if (exitRange.value <= 2) isOpen = false;
+        }
+
+        if (isOpen) openTerrain++;
     }
 
-    this._openTerrainCache[cacheKey] = {value: openTerrain, expiry: currentTick + 5000}; // Cache the result with expiry
+    const expiry = ignore ? currentTick + 1500 : currentTick + 10; // 1500 for static, 10 for dynamic
+    this._openTerrainCache[cacheKey] = {value: openTerrain, expiry: expiry};
     return openTerrain;
 };
 
@@ -149,20 +181,42 @@ RoomPosition.prototype.getAdjacentPositionAtRange = function (target, range = 3)
  *
  * @returns {boolean}
  */
+const BUNKER_CACHE = {};
 RoomPosition.prototype.isInBunker = function () {
     const room = Game.rooms[this.roomName];
-    if (!room.memory.bunkerHub || room.level < BUNKER_LEVEL) return false;
+    if (!room || !room.memory.bunkerHub || room.level < BUNKER_LEVEL) return false;
+
     const hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-    let spots = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
-    if (!spots.length) return false;
-    spots = spots.map(p => new RoomPosition(p.x, p.y, room.name));
+    const roomName = this.roomName;
+
+    if (!BUNKER_CACHE[roomName] || BUNKER_CACHE[roomName].tick !== Game.time) {
+        const spots = JSON.parse(ROOM_RAMPART_SPOTS[roomName] || '[]');
+        BUNKER_CACHE[roomName] = {
+            spots: spots.map(function (p) {
+                return new RoomPosition(p.x, p.y, roomName);
+            }),
+            minX: _.min(spots, 'x').x,
+            maxX: _.max(spots, 'x').x,
+            minY: _.min(spots, 'y').y,
+            maxY: _.max(spots, 'y').y,
+            tick: Game.time
+        };
+    }
+
+    const cache = BUNKER_CACHE[roomName];
+    if (!cache.spots.length) return false;
+
+    // Heuristic: Check if within bounding box and reasonable range
+    if (this.x < cache.minX || this.x > cache.maxX || this.y < cache.minY || this.y > cache.maxY ||
+        this.getRangeTo(hub) > 10) return false;
+
     const costMatrix = new PathFinder.CostMatrix();
-    for (let spot of spots) costMatrix.set(spot.x, spot.y, Infinity);
+    for (let spot of cache.spots) costMatrix.set(spot.x, spot.y, Infinity);
     const path = PathFinder.search(hub, {pos: this, range: 0}, {
-        roomCallback: function (roomName) {
-            if (roomName === room.name) return costMatrix;
-            return false;
-        }
+        roomCallback: function (name) {
+            return name === roomName ? costMatrix : false;
+        },
+        maxOps: 1000 // Limit ops
     });
     return !path.incomplete;
 };
@@ -323,28 +377,33 @@ RoomPosition.prototype.checkForBarrierStructure = function () {
  */
 global.OBSTACLE_CACHE = global.OBSTACLE_CACHE || {};
 RoomPosition.prototype.checkForObstacleStructure = function () {
-    const cacheKey = `${this.roomName}_${this.x}_${this.y}`;
+    const cacheKey = this.roomName + '_' + this.x + '_' + this.y;
     const currentTick = Game.time;
 
-    // Check cache and expiry
-    if (OBSTACLE_CACHE[cacheKey] && OBSTACLE_CACHE[cacheKey].expiry > currentTick) {
-        return OBSTACLE_CACHE[cacheKey].value;
+    const cached = OBSTACLE_CACHE[cacheKey];
+    if (cached && cached.expiry > currentTick) return cached.value;
+
+    const structures = this.lookFor(LOOK_STRUCTURES);
+    let obstacle = false;
+    for (let s of structures) {
+        if (OBSTACLE_OBJECT_TYPES.includes(s.structureType) ||
+            (s.structureType === STRUCTURE_RAMPART && !s.my && !s.isPublic && !FRIENDLIES.includes(s.owner.username))) {
+            obstacle = true;
+            break;
+        }
     }
 
-    // Calculate obstacle presence
-    let obstacle = this.lookFor(LOOK_STRUCTURES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
     if (!obstacle) {
-        obstacle = this.lookFor(LOOK_STRUCTURES).some(
-            s => s.structureType === STRUCTURE_RAMPART && !s.my && !s.isPublic && !FRIENDLIES.includes(s.owner.username)
-        );
-    }
-    if (!obstacle) {
-        obstacle = this.lookFor(LOOK_CONSTRUCTION_SITES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
+        const sites = this.lookFor(LOOK_CONSTRUCTION_SITES);
+        for (let s of sites) {
+            if (OBSTACLE_OBJECT_TYPES.includes(s.structureType)) {
+                obstacle = true;
+                break;
+            }
+        }
     }
 
-    // Cache the result with a 5000-tick expiry
     OBSTACLE_CACHE[cacheKey] = {value: obstacle, expiry: currentTick + 5000};
-
     return obstacle;
 };
 
@@ -427,26 +486,26 @@ RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
  * @param {boolean} ignoreCreep - Whether to ignore creeps
  * @returns {boolean} - True if the position is impassable, false otherwise
  */
-const impassibleCache = {};
-RoomPosition.prototype.checkForImpassible = function (ignoreWall = false, ignoreCreep = false) {
-    const cacheKey = `checkForImpassible_${this.roomName}_${this.x}_${this.y}_${ignoreWall}_${ignoreCreep}`;
+const IMPASSIBLE_CACHE = {};
+RoomPosition.prototype.checkForImpassible = function (ignoreWall, ignoreCreep) {
+    const cacheKey = 'imp_' + this.roomName + '_' + this.x + '_' + this.y + '_' + (ignoreWall || false) + '_' + (ignoreCreep || false);
     const currentTick = Game.time;
 
-    if (impassibleCache[cacheKey] && impassibleCache[cacheKey].tick > currentTick) {
-        return impassibleCache[cacheKey].value; // Return cached result if available and not expired
+    const cached = IMPASSIBLE_CACHE[cacheKey];
+    if (cached && cached.tick > currentTick) return cached.value;
+
+    const terrain = Game.map.getRoomTerrain(this.roomName).get(this.x, this.y);
+    let impassible = false;
+
+    if (!ignoreWall && terrain === TERRAIN_MASK_WALL) impassible = true;
+    else {
+        const room = Game.rooms[this.roomName];
+        if (room && this.checkForObstacleStructure()) impassible = true;
+        else if (!ignoreCreep && room && this.checkForCreep()) impassible = true;
     }
 
-    let impassible;
-
-    if (ignoreWall) {
-        impassible = this.checkForObstacleStructure() || (!ignoreCreep && this.checkForCreep());
-    } else {
-        impassible = this.checkForObstacleStructure() || this.checkForWall() || (!ignoreCreep && this.checkForCreep());
-    }
-
-    let expires = currentTick + CREEP_LIFE_TIME;
-    if (!ignoreCreep) expires = currentTick + 10;
-    impassibleCache[cacheKey] = {value: impassible, tick: expires}; // Cache the result with expiry
+    const expiry = ignoreCreep ? currentTick + CREEP_LIFE_TIME : currentTick + 10;
+    IMPASSIBLE_CACHE[cacheKey] = {value: impassible, tick: expiry};
     return impassible;
 };
 

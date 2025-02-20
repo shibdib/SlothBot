@@ -85,8 +85,8 @@ class RoleLongbowSquad {
 
         // Manage squad members
         for (const role in squadRoles) {
-            const mate = Game.getObjectById(squadRoles[role]);
-            if (!mate) {
+            const squadMate = Game.getObjectById(squadRoles[role]);
+            if (!squadMate) {
                 delete squadRoles[role];
                 const index = squadMembers.indexOf(squadRoles[role]);
                 if (index !== -1) squadMembers.splice(index, 1);
@@ -94,30 +94,31 @@ class RoleLongbowSquad {
             }
 
             if (rampartMode) {
-                mate.fightFromRampart();
+                squadMate.fightFromRampart();
                 continue;
             }
 
             // Formation management
             if (!isReady || (!memory._shibSquadMove || !memory._shibSquadMove.path || !memory._shibSquadMove.path.length)) {
-                const posOffset = squadRolePositions[mate.memory.squadRole];
+                const posOffset = squadRolePositions[squadMate.memory.squadRole];
+                if (!posOffset || !posOffset[0]) continue;
                 let targetPos = new RoomPosition(
                     creep.pos.x + posOffset[0].x,
                     creep.pos.y + posOffset[0].y,
-                    room.name
+                    creep.room.name
                 );
 
-                if (!mate.pos.isEqualTo(targetPos)) {
+                if (!squadMate.pos.isEqualTo(targetPos)) {
                     if (targetPos.checkForImpassible()) {
                         targetPos = new RoomPosition(
                             creep.pos.x + posOffset[1].x,
                             creep.pos.y + posOffset[1].y,
-                            room.name
+                            creep.room.name
                         );
                     }
-                    mate.shibMove(targetPos, {range: 0, ignoreCreeps: false});
+                    squadMate.shibMove(targetPos, {range: 0, ignoreCreeps: false});
                 } else if (memory.idle) {
-                    mate.memory.idle = memory.idle;
+                    squadMate.memory.idle = memory.idle;
                 }
             }
         }

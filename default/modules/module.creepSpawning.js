@@ -9,6 +9,7 @@ let remoteRoomTargets = {};
 let lastBuilt = {};
 let creepTTL = {};
 let activeSkMining = {};
+const CREEP_COUNT_CACHE = {};
 let lastGlobalSpawn = Game.time;
 
 //Build Creeps From Queue
@@ -145,18 +146,41 @@ module.exports.processBuildQueue = function (room) {
 };
 
 let essentialTick = {};
-
+const ROOM_STATE_CACHE = {};
 module.exports.essentialCreepQueue = function (room) {
     if (essentialTick[room.name] + 10 > Game.time) return;
-
     essentialTick[room.name] = Game.time;
 
+    // Precompute room state
+    if (!ROOM_STATE_CACHE[room.name] || ROOM_STATE_CACHE[room.name].tick !== Game.time) {
+        const linkCount = _.filter(room.impassibleStructures, function (s) {
+            return s.structureType === STRUCTURE_LINK && s.id !== room.memory.hubLink && s.id !== room.memory.controllerLink;
+        }).length;
+        const constructionSites = room.constructionSites;
+        const hasImportantSites = _.some(constructionSites, function (s) {
+            return importantSites.includes(s.structureType) || (room.energyState && unimportantSite.includes(s.structureType));
+        });
+        ROOM_STATE_CACHE[room.name] = {
+            level: getLevel(room),
+            linkCount: linkCount,
+            hasConstructionSites: hasImportantSites,
+            storageOrTerminal: room.storage || room.terminal || room.memory.hubLink,
+            fullContainer: _.find(room.structures, function (s) {
+                return s.structureType === STRUCTURE_CONTAINER && s.id !== room.memory.controllerContainer && s.store[RESOURCE_ENERGY] >= CONTAINER_CAPACITY * 0.9;
+            }),
+            massivePiles: _.find(room.droppedEnergy, function (e) {
+                return e.amount >= CONTAINER_CAPACITY * 0.9;
+            }),
+            tick: Game.time
+        };
+    }
+
+    const state = ROOM_STATE_CACHE[room.name];
+
     // Static room info
-    let level = getLevel(room);
     let harvesterCount = getCreepCount(room, 'stationaryHarvester');
     let haulerCount = getCreepCount(room, 'hauler');
     let shuttleCount = getCreepCount(room, 'shuttle');
-    let storageOrTerminal = room.storage || room.terminal || room.memory.hubLink;
 
     // Harvesters
     queueCreepIfNeeded(room, 'stationaryHarvester', PRIORITIES.stationaryHarvester + harvesterCount, room.sources.length, !harvesterCount)
@@ -165,7 +189,7 @@ module.exports.essentialCreepQueue = function (room) {
     if (harvesterCount) {
         let haulerPriority = PRIORITIES.hauler;
         let haulerReboot = false;
-        if (storageOrTerminal) {
+        if (state.storageOrTerminal) {
             let haulerAmount = room.memory.needsHaulers && room.energyState > 1 ? 2 : 1;
             if (!haulerCount) {
                 haulerPriority = 1;
@@ -175,12 +199,9 @@ module.exports.essentialCreepQueue = function (room) {
         }
 
         // Spawn shuttles for harvesters with no link
-        let linkCount = room.impassibleStructures.filter((s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.hubLink && s.id !== room.memory.controllerLink).length;
-        let shuttleAmount = 2 - linkCount;
+        let shuttleAmount = 2 - state.linkCount;
         if (!room.memory.hubLink && !shuttleAmount) shuttleAmount = 1;
-        const fullContainer = room.structures.find((s) => s.structureType === STRUCTURE_CONTAINER && s.id !== s.room.memory.controllerContainer && s.store[RESOURCE_ENERGY] >= CONTAINER_CAPACITY * 0.9);
-        const massivePiles = room.droppedEnergy.find((e) => e.amount >= CONTAINER_CAPACITY * 0.9);
-        if (fullContainer || massivePiles) shuttleAmount += 1;
+        if (state.fullContainer || state.massivePiles) shuttleAmount += 1;
         if (shuttleAmount > 0) {
             let shuttleReboot = !shuttleCount;
             queueCreepIfNeeded(room, 'shuttle', PRIORITIES.hauler + shuttleCount, shuttleAmount, shuttleReboot);
@@ -195,15 +216,13 @@ module.exports.essentialCreepQueue = function (room) {
     }
 
     // Drone Queueing
-    let hasConstructionSites = room.constructionSites.find((s) => importantSites.includes(s.structureType)
-        || (room.energyState && unimportantSite.includes(s.structureType)));
     let dronePriority = PRIORITIES.drone;
-    let droneNumber = !room.energyState ? 1 : !room.memory.controllerContainer || hasConstructionSites ? (12 - room.level) :
-        !room.storage ? Math.max(7 - room.level, 1) : room.memory.dangerousAttack && room.energyState ? 3 : room.energyState && room.level >= BUNKER_LEVEL ? 2 : 1;
+    let droneNumber = !room.energyState ? 1 : !room.memory.controllerContainer || state.hasConstructionSites ? (12 - room.level) :
+        !room.storage ? Math.max(7 - state.level, 1) : room.memory.dangerousAttack && room.energyState ? 3 : room.energyState && room.level >= BUNKER_LEVEL ? 2 : 1;
     queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
 
     // Upgrader
-    const upgraderReboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[level] * 0.9 || room.controller.level !== room.level;
+    const upgraderReboot = room.controller.ticksToDowngrade <= CONTROLLER_DOWNGRADE[state.level] * 0.9 || room.controller.level !== room.level;
     const noUpgraderNeeded = room.memory.dangerousAttack || !room.energyState;
     let upgraderAmount = noUpgraderNeeded ? 0 : 1;
 
@@ -766,8 +785,9 @@ function getQueue(room) {
     let roomQueue = CREEP_QUEUES[room.name] ? JSON.parse(CREEP_QUEUES[room.name]) : {};
 
     // Update global queue
+    let operationQueue = {};
     if (_.size(globalQueue)) {
-        let operationQueue = JSON.parse(JSON.stringify(globalQueue));
+        operationQueue = JSON.parse(JSON.stringify(globalQueue));
         for (let key in operationQueue) {
             if (operationQueue[key].destination) {
                 const destination = operationQueue[key].destination;
@@ -862,15 +882,14 @@ function getQueue(room) {
                 operationQueue[key] = creepInfo;
             }
         }
-
-        queue = _.sortBy(Object.assign({}, operationQueue, roomQueue), 'priority');
-    } else if (_.size(roomQueue)) {
-        queue = _.sortBy(Object.assign({}, roomQueue), 'priority');
     }
 
-    displayQueue(room, queue);
-
-    return queue;
+    const sortedQueue = _.sortBy(Object.assign({}, operationQueue, roomQueue), 'priority');
+    if (!room._sortedQueue || room._sortedQueue.tick !== Game.time) {
+        room._sortedQueue = {queue: sortedQueue, tick: Game.time};
+    }
+    displayQueue(room, room._sortedQueue.queue);
+    return room._sortedQueue.queue;
 
     // Helper function to adjust queue priority based on various conditions
     function adjustQueuePriority(operationQueue, key, room, operation, body) {
@@ -894,38 +913,35 @@ function getQueue(room) {
 }
 
 function displayQueue(room, queue) {
-    let activeSpawns = _.filter(room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.spawning);
+    const activeSpawns = _.filter(room.impassibleStructures, function (s) {
+        return s.my && s.structureType === STRUCTURE_SPAWN && s.spawning;
+    });
     if (!_.size(queue) && !activeSpawns.length) return;
 
     let yOffset = 1;
-
-    // Display Queue Heading
     room.visual.text('Creep Build Queue', 35, yOffset, {align: 'left', opacity: 0.8});
     yOffset++;
 
-    // Display Queue Information
-    if (_.size(queue)) {
-        for (let i = 0; i < 5 && i < queue.length; i++) {
-            let item = queue[i];
-            let cost = global.UNIT_COST(new generator(room.level, item.role, room, item).generateBody().body);
-            if (!cost) continue;
-            room.visual.text(`${item.priority} ${_.capitalize(item.role)}: ${room.energyAvailable}/${cost} Age: ${Game.time - item.cached}`, 35, yOffset + i, {
-                align: 'left',
-                opacity: 0.8
-            });
-        }
-        yOffset += _.size(queue.slice(0, 5));
+    const limit = Math.min(5, queue.length);
+    for (let i = 0; i < limit; i++) {
+        let item = queue[i];
+        let cost = global.UNIT_COST(new generator(room.level, item.role, room, item).generateBody().body);
+        if (!cost) continue;
+        room.visual.text(`${item.priority} ${_.capitalize(item.role)}: ${room.energyAvailable}/${cost} Age: ${Game.time - item.cached}`, 35, yOffset + i, {
+            align: 'left',
+            opacity: 0.8
+        });
     }
+    yOffset += limit;
 
-    // Display Spawning Information
-    activeSpawns.forEach(spawn => {
+    for (let spawn of activeSpawns) {
         let spawningCreep = Game.creeps[spawn.spawning.name];
         room.visual.text(`Spawning - ${_.capitalize(spawningCreep.name.split("_")[0])} - Ticks: ${spawn.spawning.remainingTime}`, 35, yOffset, {
             align: 'left',
             opacity: 0.8
         });
         yOffset++;
-    })
+    }
 }
 
 function getPriority(room) {
@@ -1016,6 +1032,57 @@ function determineEnergyOrder(room) {
     return true;
 }
 
+function updateCreepCountCache() {
+    const currentTick = Game.time;
+    if (!CREEP_COUNT_CACHE.tick || CREEP_COUNT_CACHE.tick !== currentTick) {
+        const counts = {};
+        for (let creep of Object.values(Game.creeps)) {
+            if (!creep.my) continue;
+            const role = creep.memory.role || creep.memory.oldRole || '';
+            const destination = creep.memory.destination || creep.room.name;
+            const colony = creep.memory.colony || creep.room.name;
+            const operation = creep.memory.operation || '';
+
+            // 1. Room-based
+            if (creep.room.name) {
+                const roomKey = `${role}_${creep.room.name}_noDest_noOp`;
+                counts[roomKey] = (counts[roomKey] || 0) + 1;
+            }
+            // 2. Room and operation
+            if (creep.room.name && operation) {
+                const roomOpKey = `${role}_${creep.room.name}_noDest_${operation}`;
+                counts[roomOpKey] = (counts[roomOpKey] || 0) + 1;
+            }
+            // 3. Destination only
+            if (destination) {
+                const destKey = `${role}_${destination}_noOp`;
+                counts[destKey] = (counts[destKey] || 0) + 1;
+            }
+            // 4. Operation only
+            if (operation) {
+                const opKey = `${role}_noDest_${operation}`;
+                counts[opKey] = (counts[opKey] || 0) + 1;
+            }
+            // 5. Destination and operation
+            if (destination && operation) {
+                const destOpKey = `${role}_${destination}_${operation}`;
+                counts[destOpKey] = (counts[destOpKey] || 0) + 1;
+            }
+            // 6. Colony only
+            if (colony) {
+                const colonyKey = `${role}_noDest_noOp_${colony}`;
+                counts[colonyKey] = (counts[colonyKey] || 0) + 1;
+            }
+            // 7. Role only
+            const roleOnlyKey = `${role}_noDest_noOp_noColony`;
+            counts[roleOnlyKey] = (counts[roleOnlyKey] || 0) + 1;
+        }
+
+        CREEP_COUNT_CACHE.counts = counts;
+        CREEP_COUNT_CACHE.tick = currentTick;
+    }
+}
+
 /**
  *
  * @param {object} room - Room object for room creeps
@@ -1026,13 +1093,33 @@ function determineEnergyOrder(room) {
  * @returns {*|number}
  */
 function getCreepCount(room = undefined, role, destination = undefined, operation = undefined, colony = undefined) {
-    if (!destination && !operation && room) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === room.name || c.room.name === room.name || c.memory.colony === room.name)).length;
-    else if (room && operation && !destination) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === room.name || c.memory.colony === room.name) && c.memory.operation === operation).length;
-    else if (destination && !operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === destination || c.memory.colony === destination)).length;
-    else if (!destination && operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && c.memory.operation === operation).length;
-    else if (destination && operation) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && (c.memory.destination === destination || c.memory.colony === destination) && c.memory.operation === operation).length
-    else if (!destination && !operation && !room && colony) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role) && c.memory.colony === colony).length;
-    else if (!destination && !operation && !room) return _.filter(Game.creeps, (c) => c.my && (c.memory.role.includes(role) || c.memory.oldRole === role)).length;
+    // Ensure cache is up-to-date
+    updateCreepCountCache();
+    const counts = CREEP_COUNT_CACHE.counts;
+
+    if (!destination && !operation && room) {
+        const key = `${role}_${room.name}_noDest_noOp`;
+        return counts[key] || 0;
+    } else if (room && operation && !destination) {
+        const key = `${role}_${room.name}_noDest_${operation}`;
+        return counts[key] || 0;
+    } else if (destination && !operation) {
+        const key = `${role}_${destination}_noOp`;
+        return counts[key] || 0;
+    } else if (!destination && operation) {
+        const key = `${role}_noDest_${operation}`;
+        return counts[key] || 0;
+    } else if (destination && operation) {
+        const key = `${role}_${destination}_${operation}`;
+        return counts[key] || 0;
+    } else if (!destination && !operation && !room && colony) {
+        const key = `${role}_noDest_noOp_${colony}`;
+        return counts[key] || 0;
+    } else if (!destination && !operation && !room) {
+        const key = `${role}_noDest_noOp_noColony`;
+        return counts[key] || 0;
+    }
+    return 0;
 }
 
 function creepExpiringSoon(room = undefined, role, destination = undefined) {

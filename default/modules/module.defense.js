@@ -3,7 +3,8 @@
  */
 const profiler = require("tools.profiler");
 const towers = require('module.towerController');
-let structureCount = {};
+const STRUCTURE_CACHE = {};
+const ROOM_STATE_CACHE = {};
 
 class DefenseManager {
     constructor(room) {
@@ -38,114 +39,140 @@ class DefenseManager {
     }
 
     resetStructureCount() {
-        if (!structureCount[this.room.name] || structureCount[this.room.name].tick + CREEP_LIFE_TIME < Game.time || structureCount[this.room.name].level !== this.room.level) {
-            structureCount[this.room.name] = undefined;
-            const criticalStructures = _.filter(this.room.structures, (s) =>
-                [STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_TOWER, STRUCTURE_TERMINAL, STRUCTURE_STORAGE, STRUCTURE_RAMPART].includes(s.structureType));
-            structureCount[this.room.name] = {
-                tick: Game.time,
+        const roomName = this.room.name;
+        const currentTick = Game.time;
+
+        // Use cached data if valid, update only if expired or level changed
+        if (!STRUCTURE_CACHE[roomName] || STRUCTURE_CACHE[roomName].tick !== currentTick || STRUCTURE_CACHE[roomName].level !== this.room.level) {
+            const criticalStructures = [];
+            const structures = this.room.structures;
+            for (let s of structures) {
+                if ([STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_TOWER, STRUCTURE_TERMINAL, STRUCTURE_STORAGE, STRUCTURE_RAMPART].includes(s.structureType)) {
+                    criticalStructures.push(s);
+                }
+            }
+            STRUCTURE_CACHE[roomName] = {
+                tick: currentTick,
                 count: criticalStructures.length,
-                level: this.room.level
+                level: this.room.level,
+                structures: criticalStructures // Store for reuse
             };
         }
     }
 
     rampartManager() {
-        // Exit early if rampart access is disabled
+        const roomName = this.room.name;
+        const currentTick = Game.time;
+
+        // Cache room state once per tick
+        if (!ROOM_STATE_CACHE[roomName] || ROOM_STATE_CACHE[roomName].tick !== currentTick) {
+            const ramparts = [];
+            const allies = [];
+            const hostileCreeps = this.room.hostileCreeps;
+            const structures = this.room.structures;
+            const creeps = this.room.creeps;
+
+            for (let s of structures) {
+                if (s.structureType === STRUCTURE_RAMPART) ramparts.push(s);
+            }
+            for (let c of creeps) {
+                if (_.includes(FRIENDLIES, c.owner.username) && !c.my) allies.push(c);
+            }
+
+            ROOM_STATE_CACHE[roomName] = {
+                ramparts: ramparts,
+                allies: allies,
+                hostileCreeps: hostileCreeps,
+                tick: currentTick
+            };
+        }
+
+        const state = ROOM_STATE_CACHE[roomName];
+
         if (!RAMPART_ACCESS) {
             Memory._rampartsSet = true;
-            _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic).forEach((rampart) => rampart.setPublic(false));
+            for (let rampart of state.ramparts) {
+                if (rampart.isPublic) rampart.setPublic(false);
+            }
             return;
         }
 
-        // Reset rampartsSet flag when rampart access is allowed
         Memory._rampartsSet = undefined;
 
-        // Open all ramparts if there are no hostile creeps
-        if (!this.room.room.hostileCreeps.length) {
-            _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic).forEach((rampart) => rampart.setPublic(true));
+        if (!state.hostileCreeps.length) {
+            for (let rampart of state.ramparts) {
+                if (!rampart.isPublic) rampart.setPublic(true);
+            }
             return;
         }
 
-        // Handle ramparts based on the presence of friendly or hostile creeps
-        const allies = _.filter(this.room.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my);
-        const hostileCreeps = this.room.hostileCreeps;
-
-        // If there are allies in the room
-        if (allies.length) {
-            // Close ramparts near enemies
-            _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic)
-                .forEach((rampart) => {
-                    const closestHostile = rampart.pos.findClosestByRange(hostileCreeps);
+        if (state.allies.length) {
+            for (let rampart of state.ramparts) {
+                if (rampart.isPublic) {
+                    const closestHostile = rampart.pos.findClosestByRange(state.hostileCreeps);
                     if (closestHostile && rampart.pos.getRangeTo(closestHostile) <= 1) {
                         rampart.setPublic(false);
                     }
-                });
-
-            // Open ramparts that are not too close to enemies
-            _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic)
-                .forEach((rampart) => {
-                    const closestHostile = rampart.pos.findClosestByRange(hostileCreeps);
+                } else {
+                    const closestHostile = rampart.pos.findClosestByRange(state.hostileCreeps);
                     if (closestHostile && rampart.pos.getRangeTo(closestHostile) > 1) {
                         rampart.setPublic(true);
                     }
-                });
-        }
-        // If no allies but hostile creeps are present
-        else if (hostileCreeps.length) {
-            // Close public ramparts that are exposed to enemies
-            _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic)
-                .forEach((rampart) => rampart.setPublic(false));
+                }
+            }
+        } else if (state.hostileCreeps.length) {
+            for (let rampart of state.ramparts) {
+                if (rampart.isPublic) rampart.setPublic(false);
+            }
         }
 
-        // Close ramparts that are protecting structures or are in the way
-        _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && s.pos.checkForObstacleStructure())
-            .forEach((rampart) => rampart.setPublic(false));
+        for (let rampart of state.ramparts) {
+            if (rampart.isPublic && rampart.pos.checkForObstacleStructure()) {
+                rampart.setPublic(false);
+            }
+        }
     }
 
     handleNukeAttack() {
-        // Find all nukes in the room
-        let nukes = this.room.find(FIND_NUKES);
+        const currentTick = Game.time;
+        const roomName = this.room.name;
+
+        if (currentTick % 100 !== 0) return;
+
+        const nukes = this.room.find(FIND_NUKES);
         if (!nukes.length) {
             this.room.memory.nuke = undefined;
             return false;
         }
 
-        // Determine when the closest nuke will land
         this.room.memory.nuke = _.min(nukes, 'timeToLand').timeToLand;
 
-        // Identify the launch room and track its owner for MAD (Mutually Assured Destruction) purposes
-        let launchRoom = _.sample(nukes).launchRoomName;
+        const launchRoom = nukes[0].launchRoomName;
         if (INTEL[launchRoom] && INTEL[launchRoom].owner) {
             let nukeTargets = Memory.MAD || [];
             nukeTargets.push(INTEL[launchRoom].owner);
             Memory.MAD = _.uniq(nukeTargets);
         }
 
-        // If the nuke is landing in less than 75 ticks, order the creeps to flee
+        const criticalStructures = STRUCTURE_CACHE[roomName].structures.filter(function (s) {
+            return [STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN].includes(s.structureType);
+        });
+
         for (let nuke of nukes) {
             if (nuke.timeToLand <= 75) {
-                // Fleeing logic: assign a time to flee and the room to flee to
-                for (let c of nuke.room.myCreeps) {
-                    c.memory.fleeNukeTime = Game.time + nuke.timeToLand + 2;
-                    c.memory.fleeNukeRoom = nuke.room.name;
+                for (let c of this.room.myCreeps) {
+                    c.memory.fleeNukeTime = currentTick + nuke.timeToLand + 2;
+                    c.memory.fleeNukeRoom = roomName;
                 }
                 return true;
             }
 
-            // Protect important structures by creating ramparts around them
-            let structures = nuke.pos.findInRange(nuke.room.structures, 5, {
-                filter: (s) => [
-                    STRUCTURE_SPAWN,
-                    STRUCTURE_STORAGE,
-                    STRUCTURE_TERMINAL,
-                    STRUCTURE_FACTORY,
-                    STRUCTURE_POWER_SPAWN
-                ].includes(s.structureType)
-            });
+            const nearbyStructures = [];
+            for (let s of criticalStructures) {
+                if (nuke.pos.getRangeTo(s.pos) <= 5) nearbyStructures.push(s);
+            }
 
-            // Create ramparts if they don't exist
-            for (let structure of structures) {
+            for (let structure of nearbyStructures) {
                 if (structure.pos.checkForConstructionSites() || structure.pos.checkForRampart()) continue;
                 structure.pos.createConstructionSite(STRUCTURE_RAMPART);
             }
@@ -173,14 +200,10 @@ class DefenseManager {
     }
 
     safeModeManager() {
-        // Ensure camping enemies continue to gain threat even if no creeps present.
         addThreat(this.room);
 
-        // Handle an active safemode
         if (this.room.controller.safeMode) {
             this.room.memory.defenseCooldown = undefined;
-
-            // Setup defense cooldown based on when safemode ends
             if (this.room.controller.safeMode < 750 && this.room.level >= 5) {
                 let endingTick = Game.time + this.room.controller.safeMode;
                 this.room.memory.defenseCooldown = endingTick + CREEP_LIFE_TIME * 0.5;
@@ -188,16 +211,15 @@ class DefenseManager {
             return;
         }
 
-        // Check for available SafeMode
-        const activeSafemode = _.find(MY_ROOMS, (r) => Game.rooms[r].controller.safeMode);
+        const activeSafemode = _.find(MY_ROOMS, function (r) {
+            return Game.rooms[r].controller.safeMode;
+        });
         if (activeSafemode || !this.room.controller.safeModeAvailable || this.room.controller.safeModeCooldown) return;
 
-        // Get critical structures
-        const criticalStructures = _.filter(this.room.structures, (s) =>
-            [STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_TOWER, STRUCTURE_TERMINAL, STRUCTURE_STORAGE, STRUCTURE_RAMPART].includes(s.structureType));
+        const cachedCount = STRUCTURE_CACHE[this.room.name].count;
+        const currentCriticalCount = STRUCTURE_CACHE[this.room.name].structures.length;
 
-        // If attack events happened last tick, react to them
-        if (criticalStructures.length < structureCount[this.room.name].count && this.room.memory.dangerousAttack) {
+        if (currentCriticalCount < cachedCount && this.room.memory.dangerousAttack) {
             activateSafeMode(this.room);
         }
     }

@@ -114,7 +114,7 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
 
     let enemy = findClosest(hostileCreeps, (c) =>
         isArmedCreep(c) &&
-        (ignoreBorder || (c.pos.x > 0 && c.pos.x < 49 && c.pos.y > 0 && c.pos.y < 49)) &&
+        (!ignoreBorder || (c.pos.x > 0 && c.pos.x < 49 && c.pos.y > 0 && c.pos.y < 49)) &&
         inGuardRange(c) &&
         !c.pos.checkForRampart() // Avoid ramparts
     );
@@ -142,7 +142,7 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
 
     enemy = findClosest(hostileCreeps, (c) =>
         !isArmedCreep(c) &&
-        (ignoreBorder || (c.pos.x > 0 && c.pos.x < 49 && c.pos.y > 0 && c.pos.y < 49)) &&
+        (!ignoreBorder || (c.pos.x > 0 && c.pos.x < 49 && c.pos.y > 0 && c.pos.y < 49)) &&
         inGuardRange(c) &&
         !c.pos.checkForRampart()
     );
@@ -832,6 +832,7 @@ Creep.prototype.groupUp = function () {
             creep.memory.leader = undefined;
             creep.memory.grouped = undefined;
             creep.memory.groupLeader = undefined;
+            creep.memory.temporarySquad = undefined;
             creep.memory.squadMembers = undefined;
             if (creep.memory.oldRole) creep.memory.role = creep.memory.oldRole;
             creep.memory.oldRole = undefined;
@@ -841,6 +842,7 @@ Creep.prototype.groupUp = function () {
                 partner.memory.leader = undefined;
                 partner.memory.grouped = undefined;
                 partner.memory.groupLeader = undefined;
+                partner.memory.temporarySquad = undefined;
                 if (partner.memory.oldRole) partner.memory.role = partner.memory.oldRole;
                 partner.memory.oldRole = undefined;
             }
