@@ -619,14 +619,12 @@ Creep.prototype.constructionWork = function () {
     }
 
     // Priority 9: Build any other structures if the room has energy
-    if (this.room.energyState) {
-        site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-        if (site) {
-            this.memory.constructionSite = site.id;
-            this.memory.task = 'build';
-            this.memory.sitePos = JSON.stringify(site.pos);
-            return true;
-        }
+    site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && (!s.room.storage || (s.room.energy * 0.9 > s.progressTotal - s.progress)));
+    if (site) {
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'build';
+        this.memory.sitePos = JSON.stringify(site.pos);
+        return true;
     }
 
     // Priority 10: Repair other structures

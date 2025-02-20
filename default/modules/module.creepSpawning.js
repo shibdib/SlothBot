@@ -476,7 +476,6 @@ module.exports.remoteCreepQueue = function (room) {
                 && !_.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === s.source)
                 && (!INTEL[s.room].sk || getCreepCount(undefined, 'SKAttacker', remoteSource.room))), 'score');
             if (remoteSource && remoteSource.room) {
-                if (room.name === 'W5N8') console.log('remoteSource', remoteSource.room);
                 queueCreep(room, PRIORITIES.remoteHarvester, {
                     role: 'remoteHarvester',
                     destination: remoteSource.room,
@@ -780,7 +779,6 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
  * @returns {*}
  */
 function getQueue(room) {
-    let queue;
     let globalQueue = CREEP_QUEUES["global"] ? JSON.parse(CREEP_QUEUES["global"]) : {};
     let roomQueue = CREEP_QUEUES[room.name] ? JSON.parse(CREEP_QUEUES[room.name]) : {};
 
