@@ -68,15 +68,23 @@ class ModuleBodyGenerator {
             case 'drone':
                 if (this.role === 'roadBuilder') energyScaling = true;
 
+                if (this.room.state === ROOM_STATES.STOCKPILING) {
+                    work = 1;
+                    carry = 1;
+                    break;
+                }
+
                 work = Math.floor((this.energyAmount * 0.25) / BODYPART_COST[WORK]) || 1;
                 work = Math.min(work, 15);
 
                 carry = Math.floor((this.energyAmount * 0.25) / BODYPART_COST[CARRY]) || 1;
                 carry = Math.min(carry, 10);
+
+                if (INTEL[this.room.name].roadsBuilt) halfMove = true;
                 break;
 
             case 'upgrader':
-                if (this.room.level < this.room.controller.level || this.creepInfo.other.reboot) {
+                if (![ROOM_STATES.UPGRADING, ROOM_STATES.ATTACKING].includes(this.room.state)) {
                     work = 1;
                     carry = 1;
                 } else if (this.room.memory.controllerLink) {

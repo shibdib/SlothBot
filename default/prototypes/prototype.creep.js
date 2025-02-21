@@ -452,7 +452,7 @@ Creep.prototype.haulerDelivery = function () {
     let targets = [];
 
     // Towers if below emergency threshold
-    if (this.room.controller.level >= 3) {
+    if (this.room.controller && this.room.controller.level >= 3) {
         let threatLevel = this.room.memory.threatLevel || 0;
         let energyThreshold = threatLevel ? TOWER_CAPACITY : TOWER_CAPACITY * ((this.room.energyAvailable / this.room.energyCapacityAvailable) * 0.5);
         targets = targets.concat(this.room.find(FIND_MY_STRUCTURES, {
@@ -1011,6 +1011,13 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
         }
         this.memory.boosts.requestedBoosts = available;
     } else if (_.size(this.memory.boosts.requestedBoosts)) {
+        // Handle if this creep is in a squad and needs to renew first
+        if (this.memory.misc && this.memory.misc.waitFor > 1) {
+            let leader = this.memory.leader ? this : Game.getObjectById(this.memory.groupLeader);
+            const squadSize = leader ? leader.memory.squadMembers.length : 1;
+            if (squadSize < this.memory.misc.waitFor) return this.idleFor(5);
+        }
+        if (!this.memory.hasBoosted && this.ticksToLive < CREEP_LIFE_TIME * 0.8) return this.handleRenewing();
         for (let requestedBoost of Object.keys(this.memory.boosts.requestedBoosts)) {
             let amountNeeded = this.memory.boosts.requestedBoosts[requestedBoost]['amount'];
             let boostNeeded = this.memory.boosts.requestedBoosts[requestedBoost]['boost'];
@@ -1117,6 +1124,29 @@ Creep.prototype.recycleCreep = function () {
     switch (spawn.recycleCreep(this)) {
         case OK:
             log.d('Creep - ' + this.name + ' successfully recycled in ' + this.room.name, 'RECYCLING:');
+            break;
+        case ERR_NOT_IN_RANGE:
+        case ERR_BUSY:
+            this.shibMove(spawn);
+    }
+    return true;
+};
+
+/**
+ * Handle creep renewing
+ * @returns {boolean}
+ */
+Creep.prototype.handleRenewing = function () {
+    let spawn = this.room.impassibleStructures.find((s) => s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning);
+    if (!spawn) {
+        if (this.room.name !== this.memory.colony) {
+            this.shibMove(new RoomPosition(25, 25, this.memory.colony), {range: 22})
+            return true;
+        }
+    } else return this.idleFor(5);
+    // Clear role to queue replacement if needed
+    switch (spawn.renewCreep(this)) {
+        case OK:
             break;
         case ERR_NOT_IN_RANGE:
         case ERR_BUSY:

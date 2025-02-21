@@ -8,7 +8,7 @@ Creep.prototype.denyRoom = function () {
     if (this.room.name === this.memory.destination) {
         // Track wave if we haven't yet
         if (!this.memory.waveTracked) {
-            if (!Memory.targetRooms[this.room.name].lastWave || Memory.targetRooms[this.room.name].lastWave + 20 < Game.time) {
+            if (Memory.targetRooms[this.room.name] && (!Memory.targetRooms[this.room.name].lastWave || Memory.targetRooms[this.room.name].lastWave + 20 < Game.time)) {
                 this.memory.waveTracked = true;
                 Memory.targetRooms[this.room.name].lastWave = Game.time;
                 Memory.targetRooms[this.room.name].waves = Memory.targetRooms[this.room.name].waves ? Memory.targetRooms[this.room.name].waves++ : 1;
@@ -34,11 +34,11 @@ Creep.prototype.denyRoom = function () {
         highCommand.operationSustainability(this.room);
     }
 
-    // Combat handling
-    if (this.handleMilitaryCreep()) return;
-
     // If not in the destination room, move there
     if (this.room.name !== this.memory.destination) {
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
     }
+
+    // Combat handling
+    if (this.handleMilitaryCreep()) return;
 };

@@ -175,24 +175,22 @@ function dropOff(creep) {
 
     if (lowTower) {
         memory.storageDestination = lowTower.id;
-    } else if (colony.terminal &&
-        colony.terminal.store.getFreeCapacity() > storeSum &&
-        colony.terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER) {
-        memory.storageDestination = colony.terminal.id;
-    } else if (colony.energyState &&
-        colony.nuker &&
-        colony.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
-        memory.storageDestination = colony.nuker.id;
-    } else if (colony.energyState > 1 &&
-        controllerContainer &&
-        Math.random() + 0.1 > controllerContainer.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY) {
-        memory.storageDestination = controllerContainer.id;
-    } else if (colony.energyState < 2 &&
-        colony.storage &&
+    } else if (colony.storage && colony.state === ROOM_STATES.STOCKPILING &&
         colony.storage.store.getFreeCapacity() > storeSum) {
         memory.storageDestination = colony.storage.id;
-    } else if (colony.level === colony.controller.level &&
-        controllerContainer &&
+    } else if (colony.terminal && colony.terminal.store.getFreeCapacity() > storeSum &&
+        colony.terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER) {
+        memory.storageDestination = colony.terminal.id;
+    } else if (colony.energyState && colony.nuker &&
+        colony.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
+        memory.storageDestination = colony.nuker.id;
+    } else if (colony.energyState > 1 && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) &&
+        Math.random() + 0.1 > controllerContainer.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY) {
+        memory.storageDestination = controllerContainer.id;
+    } else if (colony.energyState < 2 && colony.storage &&
+        colony.storage.store.getFreeCapacity() > storeSum) {
+        memory.storageDestination = colony.storage.id;
+    } else if (colony.level === colony.controller.level && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) &&
         Math.random() < (controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) / CONTAINER_CAPACITY)) {
         memory.storageDestination = controllerContainer.id;
     } else if (creep.haulerDelivery()) {

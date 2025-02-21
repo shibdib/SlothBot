@@ -103,6 +103,17 @@ let globals = function () {
     // Beta features
     global.BETA_TOWERS = false;
 
+    // Room states
+    global.ROOM_STATES = {
+        BUILDING: 'building',
+        STOCKPILING: 'stockpiling',
+        UPGRADING: 'upgrading',
+        DEFENDING: 'defending',
+        ATTACKING: 'attacking',
+        UNSET: 'unset'
+    };
+    global.STATE_COOLDOWN = 5000;
+
     // Global cache for roles
     global.ROLE_CACHE = {};
 

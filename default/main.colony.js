@@ -9,7 +9,6 @@ const DefenseControl = require('module.defense');
 const LinkControl = require('module.linkController');
 const TerminalControl = require('module.terminalController');
 const spawning = require('module.creepSpawning');
-const state = require('module.roomState');
 const diplomacy = require('module.diplomacy');
 const profiler = require('tools.profiler');
 
@@ -17,9 +16,6 @@ class Colony {
     constructor(room) {
         const worldStart = Game.cpu.getUsed();
         this.room = room;
-
-        // Room state
-        this.stateController();
 
         // Handle room creeps
         this.creepManager();
@@ -97,10 +93,6 @@ class Colony {
 
     defenseController() {
         new DefenseControl(this.room).run();
-    }
-
-    stateController() {
-        state.setRoomState(this.room);
     }
 
     creepSpawningController() {

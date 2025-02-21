@@ -26,12 +26,12 @@ class RoleLongbowSquad {
     }
 
     housekeeping() {
+        // Group
+        this.creep.groupUp();
         // Boosting
-        if (this.creep.tryToBoost([])) return true;
+        if (this.creep.tryToBoost([RANGED_ATTACK])) return true;
         // Blinky mode
         this.creep.healInRange(this.room.hostileCreeps.length || this.room.hostileStructures.length);
-        // Check and set partner if conditions warrant
-        this.creep.groupUp();
     }
 
     handleLeader() {
@@ -58,30 +58,23 @@ class RoleLongbowSquad {
         const hostileCreeps = room.hostileCreeps;
         const hostileStructures = room.hostileStructures;
 
-        // Clean invalid squad members and check fatigue
-        let hasFatiguedMate = false;
-        for (let i = squadMembers.length - 1; i >= 0; i--) {
-            const mate = Game.getObjectById(squadMembers[i]);
-            if (!mate) {
-                squadMembers.splice(i, 1);
-                delete squadRoles[squadMembers[i]];
-                continue;
-            }
-            if (mate.fatigue && creep.pos.isNearTo(mate)) {
-                hasFatiguedMate = true;
-                break;
-            }
-        }
-        if (hasFatiguedMate) return;
-
         // Rampart mode decision
         const rampartMode = hostileCreeps.length && creep.fightFromRampart();
 
         // Squad readiness check
-        const acceptableRange = (hostileCreeps.length || hostileStructures.length) ? 3 : 1;
+        const groupUp = hostileCreeps.length > 0 || hostileStructures.length > 0 || this.nearDestination(creep) || (INTEL[creep.room.name] && INTEL[creep.room.name].user !== MY_USERNAME);
+        creep.memory.groupUp = groupUp;
         const squad = squadMembers.map(id => Game.getObjectById(id));
-        const isReady = squad.every(c => c && c.pos.getRangeTo(creep) <= acceptableRange) &&
-            (acceptableRange === 1 || isQuadPacked(squad.concat(creep)));
+        const isReady = isQuadPacked(squad.concat(creep));
+
+        // Check for fatigued squad members
+        if (groupUp) {
+            const fatigueDetected = squadMembers.find(function (c) {
+                const sM = Game.getObjectById(c);
+                if (sM && sM.room.name === creep.room.name && sM.fatigue) return true;
+            })
+            if (fatigueDetected) return;
+        }
 
         // Manage squad members
         for (const role in squadRoles) {
@@ -99,20 +92,23 @@ class RoleLongbowSquad {
             }
 
             // Formation management
-            if (!isReady || (!memory._shibSquadMove || !memory._shibSquadMove.path || !memory._shibSquadMove.path.length)) {
-                const posOffset = squadRolePositions[squadMate.memory.squadRole];
-                let newX = Math.max(0, Math.min(49, creep.pos.x + posOffset[0].x));
-                let newY = Math.max(0, Math.min(49, creep.pos.y + posOffset[0].y));
-
-                let targetPos = new RoomPosition(newX, newY, creep.room.name);
-
-                if (!squadMate.pos.isEqualTo(targetPos)) {
-                    if (targetPos.checkForImpassible()) {
-                        newX = Math.max(0, Math.min(49, creep.pos.x + posOffset[1].x));
-                        newY = Math.max(0, Math.min(49, creep.pos.y + posOffset[1].y));
-                        targetPos = new RoomPosition(newX, newY, creep.room.name);
+            if (groupUp) {
+                // Handle needing to regroup, find an open space in the room to group up
+                if (creep.memory.findRegroup) {
+                    if (!isReady) {
+                        const clearSpot = findClosestClear2x2(creep);
+                        if (clearSpot) {
+                            this.reformSquad(creep, squadMate);
+                            creep.shibMove(clearSpot, {range: 0});
+                        }
+                    } else {
+                        this.creep.memory.findRegroup = undefined;
                     }
-                    squadMate.shibMove(targetPos, {range: 0, ignoreCreeps: false});
+                }
+                this.reformSquad(creep, squadMate);
+            } else {
+                if (squadMate.pos.getRangeTo(creep) > 1) {
+                    squadMate.shibMove(creep, {range: 1, ignoreCreeps: false});
                 } else if (memory.idle) {
                     squadMate.memory.idle = memory.idle;
                 }
@@ -121,8 +117,7 @@ class RoleLongbowSquad {
         if (rampartMode) return;
 
         // Handle squad assembly and operations
-        if (!isReady || (memory.misc && memory.misc.waitFor > squadMembers.length + 1)) {
-            creep.handleMilitaryCreep() || creep.findDefensivePosition();
+        if ((groupUp && !isReady) || (memory.misc && memory.misc.waitFor > squadMembers.length + 1)) {
             return;
         }
 
@@ -215,16 +210,108 @@ class RoleLongbowSquad {
             this.creep.memory.squadRole = 3;
         }
     }
+
+    reformSquad(creep, squadMate) {
+        const posOffset = squadRolePositions[squadMate.memory.squadRole];
+        let newX = Math.max(0, Math.min(49, creep.pos.x + posOffset[0].x));
+        let newY = Math.max(0, Math.min(49, creep.pos.y + posOffset[0].y));
+
+        let targetPos = new RoomPosition(newX, newY, creep.room.name);
+
+        if (!squadMate.pos.isEqualTo(targetPos)) {
+            if (targetPos.checkForImpassible()) {
+                newX = Math.max(0, Math.min(49, creep.pos.x + posOffset[1].x));
+                newY = Math.max(0, Math.min(49, creep.pos.y + posOffset[1].y));
+                targetPos = new RoomPosition(newX, newY, creep.room.name);
+            }
+            squadMate.shibMove(targetPos, {range: 0, ignoreCreeps: false});
+        } else if (creep.memory.idle) {
+            squadMate.memory.idle = creep.memory.idle;
+        }
+    }
+
+    nearDestination(leader) {
+        if (!leader.memory.destination) return true;
+        return Game.map.getRoomLinearDistance(this.creep.room.name, leader.memory.destination) <= 1;
+    }
 }
 
 function isQuadPacked(creeps) {
-    if (creeps.length !== 4) return false
     for (let i = 0; i < creeps.length; i++) {
         for (let j = i + 1; j < creeps.length; j++) {
+            if (!creeps[i]) continue;
+            // Return true near border
+            if (creeps[i].pos.x <= 1 || creeps[i].pos.x >= 48 || creeps[i].pos.y <= 1 || creeps[i].pos.y >= 48) return true
             if (!creeps[i].pos.isNearTo(creeps[j].pos)) return false
         }
     }
     return true
+}
+
+// Function to find the closest clear 2x2 space
+function findClosestClear2x2(creep) {
+    const room = creep.room;
+    const startPos = creep.pos;
+
+    // Search range - adjust as needed
+    const range = 10;
+
+    // Get terrain data for the room
+    const terrain = new Room.Terrain(room.name);
+
+    // Store the best position found
+    let closestPos = null;
+    let closestDist = Infinity;
+
+    // Check positions around the creep within range
+    for (let x = Math.max(0, startPos.x - range); x <= Math.min(49, startPos.x + range - 1); x++) {
+        for (let y = Math.max(0, startPos.y - range); y <= Math.min(49, startPos.y + range - 1); y++) {
+            // Check if this is a valid 2x2 spot
+            if (isClear2x2(room, terrain, x, y, creep)) {
+                const dist = startPos.getRangeTo(x, y);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closestPos = new RoomPosition(x, y, room.name);
+                }
+            }
+        }
+    }
+
+    return closestPos;
+}
+
+// Helper function to check if a 2x2 area is clear
+function isClear2x2(room, terrain, x, y, creep) {
+    // Ensure we're not checking outside room bounds (room is 50x50)
+    if (x >= 49 || y >= 49) return false;
+
+    // If creep is there return true
+    if (creep.pos.x === x && creep.pos.y === y) return true;
+
+    // Check all 4 tiles in the 2x2 grid
+    for (let dx = 0; dx < 2; dx++) {
+        for (let dy = 0; dy < 2; dy++) {
+            const checkX = x + dx;
+            const checkY = y + dy;
+
+            // Check terrain (0 = plain, 1 = wall, 2 = swamp)
+            if (terrain.get(checkX, checkY) === TERRAIN_MASK_WALL) {
+                return false;
+            }
+
+            // Check for structures and creeps
+            const objects = room.lookAt(checkX, checkY);
+            for (const obj of objects) {
+                if (obj.type === LOOK_CREEPS ||
+                    (obj.type === LOOK_STRUCTURES &&
+                        OBSTACLE_OBJECT_TYPES.includes(obj.structure.structureType))) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
 }
 
 

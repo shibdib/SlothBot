@@ -139,11 +139,11 @@ RoomPosition.prototype.countOpenTerrainAround = function (borderBuild, ignore) {
         }
 
         if (borderBuild && room) {
-            const exitKey = 'exit_' + x + '_' + y + '_' + roomName;
+            const exitKey = 'exit_' + x + '_' + y + '_' + this.roomName;
             if (!this._exitCache) this._exitCache = {};
             let exitRange = this._exitCache[exitKey];
             if (!exitRange || exitRange.tick !== currentTick) {
-                const pos = new RoomPosition(x, y, roomName);
+                const pos = new RoomPosition(x, y, this.roomName);
                 exitRange = {value: pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)), tick: currentTick};
                 this._exitCache[exitKey] = exitRange;
             }

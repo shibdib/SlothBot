@@ -10,6 +10,7 @@ const spawning = require('module.creepSpawning');
 const ExpansionControl = require('module.expansion');
 const diplomacy = require('module.diplomacy');
 const HudControl = require('module.hud');
+const StateManager = require('module.stateManager');
 const profiler = require('tools.profiler');
 const planner = require('module.roomPlanner');
 let buildingNotifications;
@@ -22,6 +23,9 @@ class World {
 
         // Manage segments
         this.segmentManager();
+
+        // Manage room states
+        this.stateManager();
 
         // Manage rooms
         this.colonyManager();
@@ -84,6 +88,10 @@ class World {
 
     hudManager() {
         new HudControl().run();
+    }
+
+    stateManager() {
+        new StateManager().run();
     }
 
     highCommand() {

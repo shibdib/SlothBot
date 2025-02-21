@@ -329,11 +329,11 @@ let helpers = function () {
         // Loop through owned rooms
         for (let key of MY_ROOMS) {
             const myRoom = Game.rooms[key];
-            if (availableForCombat && !myRoom.memory.availableForAssignment) continue;
+            if (availableForCombat && myRoom.state !== ROOM_STATES.ATTACKING) continue;
             if (myRoom && myRoom.controller && myRoom.controller.level >= minLevel) {
                 let distance = Game.map.getRoomLinearDistance(roomName, key);
                 // If not an absurd distance, use findRoute
-                if (distance <= 12) distance = Game.map.findRoute(roomName, key).length;
+                if (distance <= 6) distance = myRoom.shibRoute(key).length;
                 if (distance < closestDistance) {
                     closestDistance = distance;
                     closest = key;
@@ -345,8 +345,8 @@ let helpers = function () {
 
         // If no valid room was found, use a fallback
         if (!closest) {
-            let spawnRoom = Game.spawns[Object.keys(Game.spawns)[0]].room.name; // First spawn's room
-            closest = spawnRoom;
+             // First spawn's room
+            closest = Game.spawns[Object.keys(Game.spawns)[0]].room.name;
             closestDistance = Game.map.getRoomLinearDistance(roomName, closest);
         }
 

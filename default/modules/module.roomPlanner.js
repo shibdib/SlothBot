@@ -77,7 +77,7 @@ function buildMissingStructures(room, level) {
         ![STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD].includes(s.structureType) &&
         CONTROLLER_STRUCTURES[s.structureType][level] > (existingCounts[s.structureType] || 0)
     );
-    if (countCheck.length) buildFromLayout(room, countCheck);
+    if (countCheck && countCheck.length) buildFromLayout(room, countCheck);
 }
 
 function buildAuxiliaryStructures(room) {

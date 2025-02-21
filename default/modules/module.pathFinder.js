@@ -501,7 +501,7 @@ function getTerrainMatrix(roomName, options) {
                     if (options.squad) {
                         for (let i = -1; i < 2; i++) {
                             for (let j = -1; j < 2; j++) {
-                                matrix.set(x + i, y + j, plainCost * 1.5);
+                                matrix.set(x + i, y + j, plainCost * 5);
                             }
                         }
                     }
@@ -1034,14 +1034,15 @@ Creep.prototype.shibSquadMovement = function (target = undefined, options = {}) 
 
     // Check if the target hasn't change and we still have a path
     if (this.memory._shibSquadMove.target === targetKey && this.memory._shibSquadMove.path && this.memory._shibSquadMove.path.length) {
-        if (squadMove(this, this.memory._shibSquadMove.path)) return true;
+        if (squadMove(this, this.memory._shibSquadMove.path)) return true; else return false;
     }
 
     const origin = this.pos;
     this.memory._shibSquadMove.target = targetKey;
 
     let allowedRooms;
-    if (Game.map.getRoomLinearDistance(this.room.name, target.roomName) > 2) {
+    const range = Game.map.getRoomLinearDistance(this.room.name, target.roomName)
+    if (range > 2) {
         let route = findRoute(origin.roomName, target.roomName, options);
         if (route) {
             // If the current room name is missing, add it to the front
@@ -1056,7 +1057,7 @@ Creep.prototype.shibSquadMovement = function (target = undefined, options = {}) 
     options = getMoveWeight(this, options);
 
     let result = PathFinder.search(this.pos, target, {
-        maxOps: options.maxOps,
+        maxOps: DEFAULT_MAXOPS * range,
         maxRooms: allowedRooms.length * 1.5,
         heuristicWeight: options.heuristicWeight,
         roomCallback: function (roomName) {
@@ -1106,18 +1107,38 @@ Creep.prototype.shibSquadKite = function (fleeRange = FLEE_RANGE, options = {}) 
 
 function squadMove(creep, path) {
     const move = parseInt(path[0], 10);
-    creep.move(move);
     path = path.slice(1);
     if (creep.memory.squadMembers) {
-        for (let member of creep.memory.squadMembers) {
-            let memberCreep = Game.getObjectById(member);
-            if (memberCreep && memberCreep.pos.getRangeTo(creep) <= 1) {
+        // Check if all squad members will be able to move
+        let blocked = false;
+        if (creep.memory.groupUp) {
+            for (let member of creep.memory.squadMembers) {
+                let memberCreep = Game.getObjectById(member);
                 const posAtDirection = memberCreep.pos.positionAtDirection(move);
                 if (!posAtDirection || !(posAtDirection instanceof RoomPosition)) continue;
-                if (posAtDirection.checkForImpassible(false, true)) {
-                    memberCreep.shibMove(creep, {range: 0});
-                } else memberCreep.move(move);
+                const creepAtPos = posAtDirection.checkForCreep();
+                if ((creepAtPos && !creepAtPos.my) || posAtDirection.checkForImpassible(false, true)) {
+                    blocked = true;
+                    break;
+                }
             }
+        }
+        if (!blocked) {
+            creep.move(move);
+            for (let member of creep.memory.squadMembers) {
+                let memberCreep = Game.getObjectById(member);
+                if (memberCreep && memberCreep.pos.getRangeTo(creep) <= 1) {
+                    const posAtDirection = memberCreep.pos.positionAtDirection(move);
+                    if (!posAtDirection || !(posAtDirection instanceof RoomPosition)) continue;
+                    if (posAtDirection.checkForImpassible(false, true)) {
+                        memberCreep.shibMove(creep, {range: 0});
+                    } else memberCreep.move(move);
+                }
+            }
+        } else {
+            creep.memory.findRegroup = true;
+            creep.memory._shibSquadMove = undefined;
+            return false;
         }
     }
     creep.memory._shibSquadMove.path = path;
