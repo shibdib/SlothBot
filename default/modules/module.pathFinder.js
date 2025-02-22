@@ -1114,6 +1114,7 @@ function squadMove(creep, path) {
         if (creep.memory.groupUp) {
             for (let member of creep.memory.squadMembers) {
                 let memberCreep = Game.getObjectById(member);
+                if (!memberCreep) continue;
                 const posAtDirection = memberCreep.pos.positionAtDirection(move);
                 if (!posAtDirection || !(posAtDirection instanceof RoomPosition)) continue;
                 const creepAtPos = posAtDirection.checkForCreep();

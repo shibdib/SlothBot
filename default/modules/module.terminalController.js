@@ -363,7 +363,7 @@ class TerminalControl {
     }
 
     balanceEnergy(terminal) {
-        if (INTEL[terminal.room.name].threatLevel || terminal.room.nukes.length || !terminal.room.energyState) return;
+        if (terminal.room.memory.dangerousAttack || !terminal.room.energyState) return;
 
         let needyTerminal = findNeedyTerminal(terminal);
         if (needyTerminal) {
