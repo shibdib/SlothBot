@@ -13,6 +13,9 @@ module.exports.buildRoom = function () {
 
     let room = getNextRoom();
 
+    tickTracker['lastTick'] = Game.time + 15;
+    tickTracker['lastRoom'] = room.name;
+
     let lastRun = tickTracker[room.name] || {};
 
     // Ensure the room has a bunker hub
@@ -38,8 +41,6 @@ module.exports.buildRoom = function () {
     if (!room.memory.towerHubs && BETA_TOWERS) findTowerHub(room);
 
     // Update tick tracker
-    tickTracker['lastTick'] = Game.time + 2;
-    tickTracker['lastRoom'] = room.name;
     tickTracker[room.name] = lastRun;
 };
 
@@ -791,7 +792,7 @@ let storedPos = {};
 let storedPossibles = {};
 function findHub(room, hubCheck = undefined) {
     if (room.controller.owner && room.controller.owner.username === MY_USERNAME && room.memory.bunkerHub && room.memory.bunkerHub.x && room.memory.bunkerHub.y) {
-        return buildFromLayout(room);
+        return true;
     }
 
     // Destroy all non-ally structures
@@ -819,7 +820,6 @@ function findHub(room, hubCheck = undefined) {
     if (foundOldHub) {
         log.a('Bunker Hub search complete for ' + room.name + '...');
         log.a('Using existing spawn as hub.');
-        buildFromLayout(room);
         return true;
     }
 
@@ -865,7 +865,6 @@ function findHub(room, hubCheck = undefined) {
             log.a('Final possible count: ' + _.size(possiblePos));
             let choice = _.sample(possiblePos);
             room.memory.bunkerHub = {x: choice.x, y: choice.y};
-            buildFromLayout(room);
             storedPos[room.name] = undefined;
             storedPossibles[room.name] = undefined;
             return true;
