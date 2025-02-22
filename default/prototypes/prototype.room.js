@@ -403,7 +403,6 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         cached: currentTime,
         name: this.name,
         shardName: Game.shard.name,
-        sources: 0,
         invaderCore: false
     };
 

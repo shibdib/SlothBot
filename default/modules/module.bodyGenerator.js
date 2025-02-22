@@ -84,7 +84,7 @@ class ModuleBodyGenerator {
                 break;
 
             case 'upgrader':
-                if (![ROOM_STATES.UPGRADING, ROOM_STATES.ATTACKING].includes(this.room.state)) {
+                if (![ROOM_STATES.UPGRADING, ROOM_STATES.ATTACKING].includes(this.room.state) && this.room.storage) {
                     work = 1;
                     carry = 1;
                 } else if (this.room.memory.controllerLink) {

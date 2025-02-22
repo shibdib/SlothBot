@@ -146,66 +146,26 @@ module.exports.processBuildQueue = function (room) {
 };
 
 let essentialTick = {};
-const ROOM_STATE_CACHE = {};
 module.exports.essentialCreepQueue = function (room) {
     if (essentialTick[room.name] + 10 > Game.time) return;
     essentialTick[room.name] = Game.time;
 
-    // Precompute room state
-    if (!ROOM_STATE_CACHE[room.name] || ROOM_STATE_CACHE[room.name].tick !== Game.time) {
-        const linkCount = _.filter(room.impassibleStructures, function (s) {
-            return s.structureType === STRUCTURE_LINK && s.id !== room.memory.hubLink && s.id !== room.memory.controllerLink;
-        }).length;
-        const constructionSites = room.constructionSites;
-        const hasImportantSites = _.some(constructionSites, function (s) {
-            return importantSites.includes(s.structureType) || (room.energyState && unimportantSite.includes(s.structureType));
-        });
-        ROOM_STATE_CACHE[room.name] = {
-            level: getLevel(room),
-            linkCount: linkCount,
-            hasConstructionSites: hasImportantSites,
-            storageOrTerminal: room.storage || room.terminal || room.memory.hubLink,
-            fullContainer: _.find(room.structures, function (s) {
-                return s.structureType === STRUCTURE_CONTAINER && s.id !== room.memory.controllerContainer && s.store[RESOURCE_ENERGY] >= CONTAINER_CAPACITY * 0.9;
-            }),
-            massivePiles: _.find(room.droppedEnergy, function (e) {
-                return e.amount >= CONTAINER_CAPACITY * 0.9;
-            }),
-            tick: Game.time
-        };
-    }
-
-    const state = ROOM_STATE_CACHE[room.name];
-
-    // Static room info
-    let harvesterCount = getCreepCount(room, 'stationaryHarvester');
-    let haulerCount = getCreepCount(room, 'hauler');
-    let shuttleCount = getCreepCount(room, 'shuttle');
-
     // Harvesters
+    let harvesterCount = getCreepCount(room, 'stationaryHarvester');
     queueCreepIfNeeded(room, 'stationaryHarvester', PRIORITIES.stationaryHarvester + harvesterCount, room.sources.length, !harvesterCount)
 
     // Haulers
     if (harvesterCount) {
         let haulerPriority = PRIORITIES.hauler;
         let haulerReboot = false;
-        if (state.storageOrTerminal) {
+        if (room.storage) {
             let haulerAmount = room.memory.needsHaulers && room.energyState > 1 ? 2 : 1;
-            if (!haulerCount) {
-                haulerPriority = 1;
-                haulerReboot = true;
-            }
-            queueCreepIfNeeded(room, 'hauler', haulerPriority, haulerAmount, haulerReboot);
+            queueCreepIfNeeded(room, 'hauler', haulerPriority, haulerAmount, !getCreepCount(room, 'hauler'));
         }
 
         // Spawn shuttles for harvesters with no link
-        let shuttleAmount = 2 - state.linkCount;
-        if (!room.memory.hubLink && !shuttleAmount) shuttleAmount = 1;
-        if (state.fullContainer || state.massivePiles) shuttleAmount += 1;
-        if (shuttleAmount > 0) {
-            let shuttleReboot = !shuttleCount;
-            queueCreepIfNeeded(room, 'shuttle', PRIORITIES.hauler + shuttleCount, shuttleAmount, shuttleReboot);
-        }
+        const shuttleAmount = room.level < 7 ? 2 : 0;
+        queueCreepIfNeeded(room, 'shuttle', PRIORITIES.hauler + getCreepCount(room, 'shuttle'), shuttleAmount);
     }
 
     // Local Responder (Defenders)
@@ -217,8 +177,8 @@ module.exports.essentialCreepQueue = function (room) {
 
     // Drone Queueing
     let dronePriority = PRIORITIES.drone;
-    let droneNumber = room.state === ROOM_STATES.BUILDING ? (12 - room.level) :
-        !room.storage ? Math.max(7 - state.level, 1) : room.state === ROOM_STATES.DEFENDING && room.energyState ? 3 :
+    let droneNumber = room.state === ROOM_STATES.BUILDING ? (10 - room.level) :
+        !room.storage ? Math.max(7 - room.level, 1) : room.state === ROOM_STATES.DEFENDING && room.energyState ? 3 :
             room.state === ROOM_STATES.UPGRADING && room.level >= BUNKER_LEVEL ? 2 : 1;
     queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
 
@@ -248,18 +208,15 @@ module.exports.miscCreepQueue = function (room) {
     // If under attack, no spawning misc
     if (room.memory.dangerousAttack) return;
 
-    // Static room info
-    let level = room.level;
-
     // LabTech
-    if (room.terminal && room.storage && level >= 6) {
+    if (room.terminal && room.storage) {
         queueCreepIfNeeded(room, 'labTech', PRIORITIES.hauler, 1);
     }
 
     // If no conflict detected and room level >= 6
     if (!room.nukes.length && !INTEL[room.name].threatLevel) {
         // Explorers
-        if (room.level < 8) queueCreepIfNeeded(room, 'explorer', PRIORITIES.secondary, 1)
+        if (room.level < 8) queueCreepIfNeeded(room, 'explorer', PRIORITIES.high + getCreepCount(room, 'explorer'), (10 - room.level) / MY_ROOMS.length)
 
         // Mineral Harvester
         if (room.level >= 6 && room.memory.extractorContainer && room.mineral.mineralAmount) {
@@ -267,7 +224,7 @@ module.exports.miscCreepQueue = function (room) {
         }
 
         // High Level Assist & Defense
-        if (level >= MAX_LEVEL - 1 && level >= 4) {
+        if (room.level >= MAX_LEVEL - 1 && room.level >= 4) {
             // Assist with Defense (Longbow for Guard)
             let needsDefense = _.find(MY_ROOMS, (r) => r !== room.name && (Game.rooms[r].memory.dangerousAttack || Game.rooms[r].memory.defenseCooldown > Game.time) && room.routeSafe(r, 3, 999, 15));
             if (needsDefense) {
@@ -280,11 +237,7 @@ module.exports.miscCreepQueue = function (room) {
             const power = INTEL[room.memory.borderPatrol] ? (INTEL[room.memory.borderPatrol].hostilePower * 1.5) : 50;
             let count = Math.min(power / (10 * room.level), 2);
             if (room.memory.additionalPowerNeeded) count++;
-            if (count === 1) {
-                queueCreepIfNeeded(room, 'longbow', PRIORITIES.remoteHarvester - 1, count, undefined, room.memory.borderPatrol, undefined, undefined, 'borderPatrol', {power: power});
-            } else {
-                queueCreepIfNeeded(room, 'longbowSquad', PRIORITIES.remoteHarvester - 1, count, undefined, room.memory.borderPatrol, {waitFor: count}, undefined, 'borderPatrol', {power: power});
-            }
+            queueCreepIfNeeded(room, 'longbow', PRIORITIES.remoteHarvester - 1, count, undefined, room.memory.borderPatrol, undefined, undefined, 'borderPatrol', {power: power});
         }
     }
 };
@@ -455,7 +408,7 @@ module.exports.remoteCreepQueue = function (room) {
     function handleRemoteHarvesters(room) {
         if (Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
         let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-        if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 2.5) {
+        if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 5) {
             let remoteSource = JSON.parse(room.memory.remoteSources);
             let acceptedScore = room.state === ROOM_STATES.STOCKPILING ? REMOTE_DISTANCE_MAX * 2 : REMOTE_DISTANCE_MAX;
             acceptedScore = Math.max(acceptedScore, _.min(remoteSource, 'score').score);
@@ -463,7 +416,7 @@ module.exports.remoteCreepQueue = function (room) {
                 && !_.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === s.source)
                 && (!INTEL[s.room].sk || getCreepCount(undefined, 'SKAttacker', remoteSource.room))), 'score');
             if (remoteSource && remoteSource.room) {
-                queueCreep(room, PRIORITIES.remoteHarvester, {
+                queueCreep(room, PRIORITIES.remoteHarvester + getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name), {
                     role: 'remoteHarvester',
                     destination: remoteSource.room,
                     other: {source: remoteSource.source}
@@ -503,20 +456,20 @@ module.exports.remoteCreepQueue = function (room) {
         // Find usable remotes
         const surroundingRooms = getSurroundingRooms(room.name);
         let remoteTargets = surroundingRooms.filter(function (r) {
-            return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level && !INTEL[r].obstacles &&
+            return r.name !== room.name && roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].owner && !INTEL[r].obstacles &&
                 (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME) && Game.map.findRoute(room.name, r).length <= 2;
         });
         for (const rooms of surroundingRooms) {
             if (roomStatus(rooms) === roomStatus(room.name)) {
                 const surroundingRoomsTwo = getSurroundingRooms(rooms);
                 const remoteRooms = surroundingRoomsTwo.filter(function (r) {
-                    return roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].level && !INTEL[r].obstacles &&
+                    return r.name !== room.name && roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].owner && !INTEL[r].obstacles &&
                         (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME) && Game.map.findRoute(room.name, r).length <= 2;
                 });
                 remoteTargets = remoteTargets.concat(remoteRooms);
             }
         }
-        remoteRoomTargets[room.name] = remoteTargets;
+        remoteRoomTargets[room.name] = _.uniq(remoteTargets);
 
         // Filter remote sources of rooms that are not in the list
         if (room.memory.remoteSources) {
@@ -1023,7 +976,7 @@ function updateCreepCountCache() {
 
             // 1. Room-based
             if (creep.room.name) {
-                const roomKey = `${role}_${creep.room.name}_noDest_noOp`;
+                const roomKey = `${role}_${colony}_noDest_noOp`;
                 counts[roomKey] = (counts[roomKey] || 0) + 1;
             }
             // 2. Room and operation
