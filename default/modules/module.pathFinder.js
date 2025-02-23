@@ -398,19 +398,21 @@ function creepBumping(creep, pathInfo, options) {
     if (!pathInfo.newPos) return creep.moveRandom();
     let nextPosition = creep.pos.positionAtDirection(parseInt(pathInfo.path[0], 10));
     if (nextPosition) {
-        let bumpCreep = _.find(nextPosition.lookFor(LOOK_CREEPS), (c) => c.my && !c.fatigue && (!c.memory.other || !c.memory.other.stationary) && c.hasActiveBodyparts(MOVE) && !c.memory.grouped);
+        let bumpCreep = _.find(nextPosition.lookFor(LOOK_CREEPS), (c) => c.my && !c.fatigue && (!c.memory.other || !c.memory.other.stationary) && !c.memory.grouped);
         if (bumpCreep) {
             // Handle duos
             if (creep.memory.partner && bumpCreep.id === creep.memory.partner) return false;
-            if (!creep.className && !creep.memory.trailer) {
+            if (!bumpCreep.hasActiveBodyparts(MOVE)) {
+                creep.pull(bumpCreep);
+                bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
+            } else if (!creep.className && !creep.memory.trailer) {
                 bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
                 creep.move(creep.pos.getDirectionTo(bumpCreep));
-                bumpCreep.say(ICONS.traffic, true)
             } else {
                 bumpCreep.moveRandom();
                 creep.move(creep.pos.getDirectionTo(bumpCreep));
-                bumpCreep.say(ICONS.traffic, true)
             }
+            bumpCreep.say(ICONS.traffic, true)
             if (bumpCreep.memory._shibMove) {
                 bumpCreep.memory._shibMove.path = undefined;
                 bumpCreep.memory._shibMove.pathPosTime = undefined;

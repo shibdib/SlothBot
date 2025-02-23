@@ -21,7 +21,7 @@ module.exports.tickLength = function () {
         tickLengthArray.shift();
         tickLengthArray.push(tickLength)
     }
-    Memory.tickInfo.tickLength = average(tickLengthArray);
+    Memory.tickInfo.tickLength = _.round(average(tickLengthArray), 3);
 }
 
 // Handle cleaning memory for respawn
@@ -170,7 +170,7 @@ module.exports.status = function () {
         const activeHarassers = _.filter(Game.creeps, c => c.memory && c.memory.operation === 'harass');
         if (activeHarassers.length) {
             log.a('----------------------------- HARASSMENT INFO ----------------------------', ' ');
-            log.e(`🎯 Harass Targets: ${Memory._threats.join(", ")}`, ' ');
+            log.e(`🎯 Harass Targets: ${THREATS.join(", ")}`, ' ');
             log.e(`⚔️ Active Harassers: ${activeHarassers.length}`, ' ');
             log.e(`📍 Targets: ${_.pluck(activeHarassers, 'memory.destination').join(", ")}`, ' ');
         }
@@ -178,9 +178,9 @@ module.exports.status = function () {
 
     // Helper function to display diplomatic info
     function displayDiplomaticInfo() {
-        if (Memory._enemies && Memory._enemies.length) {
+        if (ENEMIES && ENEMIES.length) {
             log.a('------------------------------ DIPLOMATIC INFO ----------------------------', ' ');
-            log.e(`⚔️ Enemies: ${Memory._enemies.join(", ")}`, ' ');
+            log.e(`⚔️ Enemies: ${ENEMIES.join(", ")}`, ' ');
         }
     }
 };

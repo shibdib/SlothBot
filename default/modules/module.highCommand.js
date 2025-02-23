@@ -66,7 +66,6 @@ function checkCooldown(task, cooldown) {
 }
 
 function militaryOperations() {
-    if (!Memory._enemies || !Memory._enemies.length) Memory._enemies = [];
     // Handle stronghold operations
     let activeStrongholdAttacks = _.find(Memory.targetRooms, (t) => t && t.type === 'stronghold');
     if (!activeStrongholdAttacks) {
@@ -762,7 +761,7 @@ function autoNuke() {
 
 function checkForNap(user) {
     // Return false if we have no alliance data or the user is in our enemies list
-    if (!global.LOAN_CHECK || !ALLIANCE_DATA || !NAP_ALLIANCE.length || _.includes(Memory._enemies, user)) {
+    if (!global.LOAN_CHECK || !ALLIANCE_DATA || !NAP_ALLIANCE.length || _.includes(ENEMIES, user)) {
         return false;
     }
 

@@ -175,6 +175,9 @@ function dropOff(creep) {
 
     if (lowTower) {
         memory.storageDestination = lowTower.id;
+    } else if (!colony.terminal && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) &&
+        Math.random() > controllerContainer.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY) {
+        memory.storageDestination = controllerContainer.id;
     } else if (colony.storage && colony.state === ROOM_STATES.STOCKPILING &&
         colony.storage.store.getFreeCapacity() > storeSum) {
         memory.storageDestination = colony.storage.id;

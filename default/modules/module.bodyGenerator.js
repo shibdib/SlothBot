@@ -84,7 +84,7 @@ class ModuleBodyGenerator {
                 break;
 
             case 'upgrader':
-                if (![ROOM_STATES.UPGRADING, ROOM_STATES.ATTACKING].includes(this.room.state) && this.room.storage) {
+                if (![ROOM_STATES.UPGRADING, ROOM_STATES.ATTACKING].includes(this.room.state) && this.room.terminal) {
                     work = 1;
                     carry = 1;
                 } else if (this.room.memory.controllerLink) {
@@ -96,7 +96,6 @@ class ModuleBodyGenerator {
                     carry = 1;
                     move = 0;
                 } else if (this.room.memory.controllerContainer) {
-                    energyScaling = true;
                     work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 50);
                     carry = 1;

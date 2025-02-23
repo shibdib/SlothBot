@@ -249,7 +249,7 @@ Object.defineProperty(Room.prototype, 'hostileCreeps', {
 Object.defineProperty(Room.prototype, 'friendlyCreeps', {
     get: function () {
         if (!this._friendlyCreeps) {
-            this._friendlyCreeps = _.filter(this.creeps, (c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && !_.includes(Memory._threats, c.owner.username));
+            this._friendlyCreeps = _.filter(this.creeps, (c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && !_.includes(THREATS, c.owner.username));
         }
         return this._friendlyCreeps;
     },
@@ -260,7 +260,7 @@ Object.defineProperty(Room.prototype, 'friendlyCreeps', {
 Object.defineProperty(Room.prototype, 'alliedCreeps', {
     get: function () {
         if (!this._alliedCreeps) {
-            this._alliedCreeps = _.filter(this.creeps, (c) => !c.my && _.includes(FRIENDLIES, c.owner.username) && !_.includes(Memory._threats, c.owner.username));
+            this._alliedCreeps = _.filter(this.creeps, (c) => !c.my && _.includes(FRIENDLIES, c.owner.username) && !_.includes(THREATS, c.owner.username));
         }
         return this._alliedCreeps;
     },

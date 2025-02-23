@@ -14,9 +14,6 @@ module.exports.diplomacyManager = function () {
 };
 
 function threatManager() {
-    if (!Memory._enemies) Memory._enemies = [];
-    if (!Memory._threats) Memory._threats = [];
-
     // Process user standings
     for (const name in Memory._userList) {
         // Sanity checks
@@ -34,21 +31,17 @@ function threatManager() {
         }
 
         if (currentRating < -250) {
-            Memory._enemies.push(name);
+            ENEMIES.push(name);
         }
-        if (currentRating < -5) Memory._threats.push(name);
+        if (currentRating < -5) THREATS.push(name);
 
         user.standing = Math.round(currentRating * 100) / 100;
         Memory._userList[name] = user;
     }
 
     // Include manual enemies
-    Memory._enemies = _.union(Memory._enemies, HOSTILES);
-    Memory._threats = _.union(Memory._threats, HOSTILES);
-
-    // Update global variables
-    global.THREATS = Memory._threats;
-    global.ENEMIES = Memory._enemies;
+    global.ENEMIES = _.union(ENEMIES, HOSTILES);
+    global.THREATS = _.union(THREATS, HOSTILES);
 }
 
 module.exports.trackThreat = function (creep) {
