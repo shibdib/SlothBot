@@ -74,7 +74,7 @@ class World {
             MY_ROOMS.forEach(function (r) {
                 if (Game.rooms[r].level >= 6) {
                     const mineral = Game.rooms[r].mineral;
-                    if (!mineral.ticksToRegeneration && !MY_MINERALS[mineral.mineralType]) {
+                    if (!MY_MINERALS[mineral.mineralType]) {
                         MY_MINERALS[mineral.mineralType] = true;
                     }
                 }

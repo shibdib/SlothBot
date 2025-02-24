@@ -660,44 +660,20 @@ function roadBuilder(room, layout) {
         if (end instanceof RoomPosition) target = end; else target = end.pos;
         let path = getRoad(room, begin, target);
         if (!path) {
-            path = begin.findPathTo(end, {
-                maxOps: 10000,
-                serialize: false,
-                ignoreCreeps: true,
-                maxRooms: 1,
-                costCallback: function (roomName, costMatrix) {
-                    const terrain = Game.map.getRoomTerrain(room.name);
-                    for (let y = 0; y < 50; y++) {
-                        for (let x = 0; x < 50; x++) {
-                            let tile = terrain.get(x, y);
-                            if (tile === 0) costMatrix.set(x, y, 15);
-                            if (tile === 1) {
-                                let tilePos = new RoomPosition(x, y, room.name);
-                                if (tilePos.findInRange(FIND_SOURCES, 1).length || tilePos.findInRange(FIND_MINERALS, 1).length) costMatrix.set(x, y, 256); else costMatrix.set(x, y, 235);
-                            }
-                            if (tile === 2) costMatrix.set(x, y, 15);
-                        }
-                    }
-                    for (let site of room.constructionSites) {
-                        if (site.structureType === STRUCTURE_ROAD) {
-                            costMatrix.set(site.pos.x, site.pos.y, 1);
-                        }
-                    }
-                    for (let structures of room.structures) {
-                        if (_.includes(OBSTACLE_OBJECT_TYPES, structures.structureType)) {
-                            costMatrix.set(structures.pos.x, structures.pos.y, 256);
-                        } else if (structures.structureType === STRUCTURE_CONTAINER) {
-                            costMatrix.set(structures.pos.x, structures.pos.y, 250);
-                        } else if (structures.structureType === STRUCTURE_ROAD) {
-                            costMatrix.set(structures.pos.x, structures.pos.y, 1);
-                        }
-                    }
-                },
-            });
-            if (path.length) cacheRoad(room, begin, target, path); else return;
-            for (let point of path) {
-                let pos = new RoomPosition(point.x, point.y, room.name);
-                if (buildRoad(pos)) return true;
+            path = PathFinder.search(begin, {pos: target, range: 1}, {
+                heuristicWeight: 0.8,
+                roomCallback: function (roomName) {
+                    return buildCostMatrix(roomName);
+                }
+            }).path;
+            if (path.length) {
+                cacheRoad(room, begin, target, path);
+                for (let point of path) {
+                    let pos = new RoomPosition(point.x, point.y, room.name);
+                    if (buildRoad(pos)) return true;
+                }
+            } else {
+                return false;
             }
         } else {
             for (let point of JSON.parse(path)) {
@@ -705,6 +681,36 @@ function roadBuilder(room, layout) {
                 if (buildRoad(pos)) return true;
             }
         }
+    }
+
+    function buildCostMatrix(roomName) {
+        let costMatrix = new PathFinder.CostMatrix();
+        let terrain = Game.map.getRoomTerrain(roomName);
+        for (let y = 0; y < 50; y++) {
+            for (let x = 0; x < 50; x++) {
+                let tile = terrain.get(x, y);
+                if (tile === TERRAIN_MASK_WALL) {
+                    costMatrix.set(x, y, Infinity);
+                } else if (tile === TERRAIN_MASK_SWAMP) {
+                    costMatrix.set(x, y, 45);
+                } else {
+                    costMatrix.set(x, y, 10);
+                }
+            }
+        }
+        let room = Game.rooms[roomName];
+        if (room) {
+            room.find(FIND_STRUCTURES).forEach(structure => {
+                if (structure.structureType === STRUCTURE_ROAD) {
+                    costMatrix.set(structure.pos.x, structure.pos.y, 1);
+                } else if (structure.structureType === STRUCTURE_CONTAINER) {
+                    costMatrix.set(structure.pos.x, structure.pos.y, 15);
+                } else if (_.includes(OBSTACLE_OBJECT_TYPES, structure.structureType)) {
+                    costMatrix.set(structure.pos.x, structure.pos.y, Infinity);
+                }
+            });
+        }
+        return costMatrix;
     }
 
     function buildRoadAround(room, position) {

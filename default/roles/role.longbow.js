@@ -26,7 +26,7 @@ class RoleLongbow {
         // Blinky mode
         this.creep.healInRange(this.room.hostileCreeps.length || this.room.hostileStructures.length);
         // Check and set partner if conditions warrant
-        if (this.creep.groupUp()) return true;
+        if (this.creep.formSquad()) return true;
     }
 
     operationManagement() {

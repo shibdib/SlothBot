@@ -28,8 +28,9 @@ class RoleReserver {
         if (this.creep.memory.controllerTarget) {
             const controller = JSON.parse(this.creep.memory.controllerTarget)
             destination = new RoomPosition(controller.x, controller.y, this.creep.memory.destination);
+            return this.creep.shibMove(destination);
         }
-        this.creep.shibMove(destination);
+        this.creep.shibMove(destination, {range: 23});
     }
 
     getToController() {

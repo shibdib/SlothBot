@@ -37,6 +37,8 @@ class RoleLabTech {
         if (this.emptyFactory()) return;
         // Handle terminal goods
         if (this.terminalControl()) return;
+        // Handle storage goods
+        if (this.storageControl()) return;
         // Check nuker for ghodium
         if (this.nukeSupplies()) return;
         // Get factory orders
@@ -45,8 +47,6 @@ class RoleLabTech {
         if (this.labSupplies()) return;
         // Empty labs
         if (this.emptyLab()) return;
-        // Handle storage goods
-        if (this.storageControl()) return;
         this.creep.idleFor(20);
     }
 
@@ -550,7 +550,7 @@ class RoleLabTech {
             } else if (resourceType === RESOURCE_ENERGY) {
                 if (terminal.store[resourceType] < TERMINAL_ENERGY_BUFFER) {
                     amountNeeded = TERMINAL_ENERGY_BUFFER - terminal.store[resourceType];
-                } else if (this.room.energyState) {
+                } else if (this.room.energyState && terminal.store[resourceType] < TERMINAL_ENERGY_BUFFER * 10) {
                     amountNeeded = storage.store[resourceType];
                 }
             } else if (_.includes(COMPRESSED_COMMODITIES, resourceType) && terminal.store[resourceType] < 10000) {

@@ -3,8 +3,9 @@
  */
 
 const profiler = require("tools.profiler");
+const stagingPos = {};
 
-class RoleLongbowSquad {
+class RoleTestSquad {
     constructor(creep) {
         this.creep = creep;
         this.room = creep.room;
@@ -42,12 +43,6 @@ class RoleLongbowSquad {
         for (const member of creep.memory.squadMembers) {
             const memberCreep = Game.getObjectById(member);
             if (!memberCreep) creep.memory.squadMembers = creep.memory.squadMembers.filter((c) => c !== member);
-        }
-
-        // If empty squad, ungroup
-        if (!creep.memory.squadMembers.length) {
-            creep.memory.grouped = undefined;
-            return this.handleSolo();
         }
 
         // Squad readiness check
@@ -258,5 +253,5 @@ function trySlide(creep, squadPositions, occupiedPositions, leader) {
     return null;
 }
 
-profiler.registerClass(RoleLongbowSquad, 'longbowSquad');
-module.exports = RoleLongbowSquad;
+profiler.registerClass(RoleTestSquad, 'testSquad');
+module.exports = RoleTestSquad;

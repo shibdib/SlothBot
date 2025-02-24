@@ -398,7 +398,7 @@ function creepBumping(creep, pathInfo, options) {
     if (!pathInfo.newPos) return creep.moveRandom();
     let nextPosition = creep.pos.positionAtDirection(parseInt(pathInfo.path[0], 10));
     if (nextPosition) {
-        let bumpCreep = _.find(nextPosition.lookFor(LOOK_CREEPS), (c) => c.my && !c.fatigue && (!c.memory.other || !c.memory.other.stationary) && !c.memory.grouped);
+        let bumpCreep = _.find(nextPosition.lookFor(LOOK_CREEPS), (c) => c.my && !c.fatigue && (!c.memory.other || !c.memory.other.stationary));
         if (bumpCreep) {
             // Handle duos
             if (creep.memory.partner && bumpCreep.id === creep.memory.partner) return false;
@@ -491,7 +491,9 @@ function getTerrainMatrix(roomName, options) {
                     if (options.squad) {
                         for (let i = -1; i < 2; i++) {
                             for (let j = -1; j < 2; j++) {
-                                matrix.set(x + i, y + j, 200);
+                                const currentCost = matrix.get(x + i, y + j);
+                                if (currentCost >= 100) continue;
+                                matrix.set(x + i, y + j, 100);
                             }
                         }
                     }
@@ -503,6 +505,8 @@ function getTerrainMatrix(roomName, options) {
                     if (options.squad) {
                         for (let i = -1; i < 2; i++) {
                             for (let j = -1; j < 2; j++) {
+                                const currentCost = matrix.get(x + i, y + j);
+                                if (currentCost >= plainCost * 5) continue;
                                 matrix.set(x + i, y + j, plainCost * 5);
                             }
                         }
@@ -545,50 +549,53 @@ function getStructureMatrix(roomName, creep, matrix, options) {
             default:
                 roadCost = 1;
         }
-        let noWallWrecker = (creep instanceof Creep && ((INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner)) || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK))));
-        for (let structure of room.structures) {
-            if (options.squad && structure.structureType === STRUCTURE_ROAD) {
-                continue;
-            }
-            if (structure instanceof StructureWall) {
-                if (noWallWrecker) {
-                    matrix.set(structure.pos.x, structure.pos.y, 256);
-                } else {
-                    matrix.set(structure.pos.x, structure.pos.y, 200);
-                }
-            } else if (room.hostileCreeps.length && structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()
-                && structure.pos.checkForRampart()) {
-                matrix.set(structure.pos.x, structure.pos.y, roadCost * 0.5);
-            } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()) {
-                matrix.set(structure.pos.x, structure.pos.y, roadCost);
-            } else if (structure instanceof StructurePortal) {
-                matrix.set(structure.pos.x, structure.pos.y, 200);
-            } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic) && !structure.pos.checkForObstacleStructure()) {
-                if (room.hostileCreeps.length) matrix.set(structure.pos.x, structure.pos.y, roadCost);
-            } else if (structure instanceof StructureRampart && (FRIENDLIES.includes(structure.owner.username) && !structure.pos.checkForObstacleStructure())) {
-                matrix.set(structure.pos.x, structure.pos.y, 250);
-            } else if (structure instanceof StructureRampart && (!structure.my || !structure.isPublic || structure.pos.checkForObstacleStructure())) {
-                if (noWallWrecker) {
-                    matrix.set(structure.pos.x, structure.pos.y, 256);
-                } else {
-                    matrix.set(structure.pos.x, structure.pos.y, 150);
-                }
-            } else if (structure instanceof StructureContainer) {
-                matrix.set(structure.pos.x, structure.pos.y, 75);
-            } else if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
-                matrix.set(structure.pos.x, structure.pos.y, 256);
-            } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure()) {
-                matrix.set(structure.pos.x, structure.pos.y, roadCost * 5);
-            } else {
-                matrix.set(structure.pos.x, structure.pos.y, 256);
-            }
+        // Squad just avoids all structures
+        if (options.squad) {
             // Handle setting the position around the structure for squads
-            if (options.squad && OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
-                let positions = structure.pos.lookForNearby(LOOK_TERRAIN, 1);
-                for (let position of positions) {
-                    const currentCost = matrix.get(position.x, position.y);
-                    if (currentCost > 200) continue;
-                    else matrix.set(position.x, position.y, 200);
+            for (let structure of room.structures) {
+                if (options.squad && OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
+                    let positions = structure.pos.lookForNearby(LOOK_TERRAIN, true, 2);
+                    for (let position of positions) {
+                        const currentCost = matrix.get(position.x, position.y);
+                        if (currentCost >= 100) continue;
+                        else matrix.set(position.x, position.y, 100);
+                    }
+                }
+            }
+        } else {
+            let noWallWrecker = (creep instanceof Creep && ((INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner)) || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK))));
+            for (let structure of room.structures) {
+                if (structure instanceof StructureWall) {
+                    if (noWallWrecker) {
+                        matrix.set(structure.pos.x, structure.pos.y, 256);
+                    } else {
+                        matrix.set(structure.pos.x, structure.pos.y, 200);
+                    }
+                } else if (room.hostileCreeps.length && structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()
+                    && structure.pos.checkForRampart()) {
+                    matrix.set(structure.pos.x, structure.pos.y, roadCost * 0.5);
+                } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()) {
+                    matrix.set(structure.pos.x, structure.pos.y, roadCost);
+                } else if (structure instanceof StructurePortal) {
+                    matrix.set(structure.pos.x, structure.pos.y, 200);
+                } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic) && !structure.pos.checkForObstacleStructure()) {
+                    if (room.hostileCreeps.length) matrix.set(structure.pos.x, structure.pos.y, roadCost);
+                } else if (structure instanceof StructureRampart && (FRIENDLIES.includes(structure.owner.username) && !structure.pos.checkForObstacleStructure())) {
+                    matrix.set(structure.pos.x, structure.pos.y, 250);
+                } else if (structure instanceof StructureRampart && (!structure.my || !structure.isPublic || structure.pos.checkForObstacleStructure())) {
+                    if (noWallWrecker) {
+                        matrix.set(structure.pos.x, structure.pos.y, 256);
+                    } else {
+                        matrix.set(structure.pos.x, structure.pos.y, 150);
+                    }
+                } else if (structure instanceof StructureContainer) {
+                    matrix.set(structure.pos.x, structure.pos.y, 75);
+                } else if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
+                    matrix.set(structure.pos.x, structure.pos.y, 256);
+                } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure()) {
+                    matrix.set(structure.pos.x, structure.pos.y, roadCost * 5);
+                } else {
+                    matrix.set(structure.pos.x, structure.pos.y, 256);
                 }
             }
         }
@@ -957,7 +964,8 @@ PowerCreep.prototype.shibMove = function (destination, options = {}) {
  * @returns {*|boolean|boolean|void|string}
  */
 Creep.prototype.shibMove = function (destination, options = {}) {
-    if (options.squad || this.memory.squadMembers) return this.shibSquadMovement(destination, options);
+    if (!options.forceSolo && (options.squad || this.memory.grouped)) return this.shibSquadMovement(destination, options);
+    this.memory._shibSquadMove = undefined;
     return shibMove(this, destination, options);
 };
 
@@ -1108,6 +1116,13 @@ Creep.prototype.shibSquadKite = function (fleeRange = FLEE_RANGE, options = {}) 
 };
 
 function squadMove(creep, path) {
+    // Check if any member has fatigue
+    let wait = false;
+    creep.memory.squadMembers.forEach(function (c) {
+        const member = Game.getObjectById(c);
+        if (member.fatigue || creep.fatigue) return wait = true;
+    })
+    if (wait) return false;
     const move = parseInt(path[0], 10);
     path = path.slice(1);
     if (creep.memory.squadMembers) {

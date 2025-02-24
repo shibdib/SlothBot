@@ -53,23 +53,7 @@ class RoleRemoteHauler {
 
         const storageId = this.memory.storageDestination;
         if (storageId) {
-            const storageItem = Game.getObjectById(storageId);
-            if (!storageItem) {
-                this.memory.storageDestination = undefined;
-                return;
-            }
-            for (const resourceType in this.store) {
-                const result = this.creep.transfer(storageItem, resourceType);
-                if (result === ERR_NOT_IN_RANGE) {
-                    this.creep.shibMove(storageItem);
-                    return;
-                }
-                if (result === OK) {
-                    delete this.memory.resourceDelivery;
-                    delete this.memory.storageDestination;
-                    delete this.memory._shibMove;
-                }
-            }
+            this.creep.haulerDelivery()
         } else {
             dropOff(this.creep);
         }
@@ -190,19 +174,13 @@ function dropOff(creep) {
     } else if (colony.energyState > 1 && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) &&
         Math.random() + 0.1 > controllerContainer.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY) {
         memory.storageDestination = controllerContainer.id;
-    } else if (colony.energyState < 2 && colony.storage &&
-        colony.storage.store.getFreeCapacity() > storeSum) {
+    } else if (colony.storage && colony.storage.store.getFreeCapacity() > storeSum) {
         memory.storageDestination = colony.storage.id;
     } else if (colony.level === colony.controller.level && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) &&
         Math.random() < (controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) / CONTAINER_CAPACITY)) {
         memory.storageDestination = controllerContainer.id;
     } else if (creep.haulerDelivery()) {
-        return;
-    } else if (creep.pos.getRangeTo(colony.controller) > 2) {
-        creep.shibMove(colony.controller, {range: 2});
-    } else {
-        creep.idleFor(5);
-    }
+    } else creep.idleFor(5);
 }
 
 function safemodeGeneration(creep) {

@@ -59,9 +59,14 @@ class ModuleBodyGenerator {
         // Generate body parts based on role
         switch (this.role) {
             case 'explorer':
-            case 'tester':
             case 'scout':
                 move = 1;
+                break;
+
+
+            case 'testSquad':
+                heal = 1;
+                rangedAttack = 1;
                 break;
 
             case 'roadBuilder':

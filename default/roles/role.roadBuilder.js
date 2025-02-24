@@ -134,8 +134,8 @@ class RoleRoadBuilder {
         if (!path) {
             path = PathFinder.search(begin, {pos: target, range: 1}, {
                 heuristicWeight: 0.8,
-                roomCallback: function () {
-                    return buildCostMatrix(room.name);
+                roomCallback: function (roomName) {
+                    return buildCostMatrix(roomName);
                 }
             }).path;
 
@@ -208,7 +208,7 @@ function buildCostMatrix(roomName) {
         for (let x = 0; x < 50; x++) {
             let tile = terrain.get(x, y);
             if (tile === TERRAIN_MASK_WALL) {
-                costMatrix.set(x, y, 250);
+                costMatrix.set(x, y, Infinity);
             } else if (tile === TERRAIN_MASK_SWAMP) {
                 costMatrix.set(x, y, 45);
             } else {
@@ -225,7 +225,7 @@ function buildCostMatrix(roomName) {
             } else if (structure.structureType === STRUCTURE_CONTAINER) {
                 costMatrix.set(structure.pos.x, structure.pos.y, 15);
             } else if (_.includes(OBSTACLE_OBJECT_TYPES, structure.structureType)) {
-                costMatrix.set(structure.pos.x, structure.pos.y, 255);
+                costMatrix.set(structure.pos.x, structure.pos.y, Infinity);
             }
         });
     }

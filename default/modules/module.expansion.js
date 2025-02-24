@@ -133,7 +133,7 @@ class ExpansionControl {
         if (!MY_MINERALS[room.mineral]) {
             score += this.getMineralBonus(room.mineral);
         } else {
-            score -= 1000;
+            score *= 0.5;
         }
 
         // Prioritize rooms in the same sector

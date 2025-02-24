@@ -49,7 +49,7 @@ class Colony {
         const roomCreeps = shuffle(Object.values(Game.creeps).filter(creep => creep.memory.colony === this.room.name && !creep.memory.military));
         for (const creep of roomCreeps) {
             try {
-                minionController(creep);
+                this.minionController(creep);
             } catch (e) {
                 this.handleCreepError(creep, e);
             }
@@ -161,64 +161,64 @@ class Colony {
             }
         }
     }
+
+    minionController(minion) {
+        // Disable notifications if not already disabled
+        if (!minion.memory.notifyDisabled) {
+            minion.notifyWhenAttacked(false);
+            minion.memory.notifyDisabled = true;
+        }
+
+        if (minion.towTruck()) return;
+
+        // Return if idle
+        if (minion.idle) return;
+
+        // Track Threat
+        diplomacy.trackThreat(minion);
+
+        // Combat Actions
+        minion.attackInRange();
+        minion.healInRange();
+
+        // Handle edge cases (border or nuke flee)
+        if (minion.memory.fleeNukeTime && minion.fleeNukeRoom()) {
+            return;
+        }
+
+        // Border
+        minion.borderCheck();
+
+        // Report intel if outside MY_ROOMS
+        if (!MY_ROOMS.includes(minion.room.name)) {
+            minion.room.invaderCheck();
+            minion.room.cacheRoomIntel(false, minion);
+        }
+
+        // If no role, the minion should suicide
+        if (!minion.memory.role) return minion.recycleCreep();
+
+        // If we're fleeing, continue to do so
+        if (minion.memory.runCooldown && Game.time < minion.memory.runCooldown) return minion.fleeHome(true);
+
+        // If being recycled do that
+        if (minion.memory.recycling) return minion.recycleCreep();
+
+        // Check if the role is cached
+        let Role;
+        if (ROLE_CACHE[minion.memory.role]) {
+            Role = ROLE_CACHE[minion.memory.role];
+        } else {
+            // Load the role and cache it
+            Role = require('role.' + minion.memory.role);
+            ROLE_CACHE[minion.memory.role] = Role;
+        }
+
+        new Role(minion);
+    }
 }
 
 profiler.registerClass(Colony, 'Colony');
 module.exports = Colony;
 
 let errorCount = {};
-
-function minionController(minion) {
-    // Disable notifications if not already disabled
-    if (!minion.memory.notifyDisabled) {
-        minion.notifyWhenAttacked(false);
-        minion.memory.notifyDisabled = true;
-    }
-
-    if (minion.towTruck()) return;
-
-    // Return if idle
-    if (minion.idle) return;
-
-    // Track Threat
-    diplomacy.trackThreat(minion);
-
-    // Combat Actions
-    minion.attackInRange();
-    minion.healInRange();
-
-    // Handle edge cases (border or nuke flee)
-    if (minion.memory.fleeNukeTime && minion.fleeNukeRoom()) {
-        return;
-    }
-
-    // Border
-    minion.borderCheck();
-
-    // Report intel if outside MY_ROOMS
-    if (!MY_ROOMS.includes(minion.room.name)) {
-        minion.room.invaderCheck();
-        minion.room.cacheRoomIntel(false, minion);
-    }
-
-    // If no role, the minion should suicide
-    if (!minion.memory.role) return minion.recycleCreep();
-
-    // If we're fleeing, continue to do so
-    if (minion.memory.runCooldown && Game.time < minion.memory.runCooldown) return minion.fleeHome(true);
-
-    // If being recycled do that
-    if (minion.memory.recycling) return minion.recycleCreep();
-
-    // Check if the role is cached
-    let Role;
-    if (ROLE_CACHE[minion.memory.role]) {
-        Role = ROLE_CACHE[minion.memory.role];
-    } else {
-        // Load the role and cache it
-        Role = require('role.' + minion.memory.role);
-        ROLE_CACHE[minion.memory.role] = Role;
-    }
-
-    new Role(minion);
-}

@@ -104,12 +104,12 @@ class TerminalControl {
                 }
                 if (stored < target) {
                     const acceptableMarkup = getAcceptableMarkup(mineral, activeBuyOrder);
-                    let sellOrder = _.min(globalOrders.filter(order => order.amount >= 50 && order.resourceType === mineral &&
-                        order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName) && order.price < latestMarketHistory(mineral).avg * acceptableMarkup), 'price');
+                    let sellOrder = _.min(globalOrders.filter(order => order.amount >= 100 && order.resourceType === mineral &&
+                        order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName) && order.price <= latestMarketHistory(mineral).avg * acceptableMarkup), 'price');
 
                     if (sellOrder.id && sellOrder.price * buyAmount > Memory._banker.spendingAccount) buyAmount = _.floor(Memory._banker.spendingAccount / sellOrder.price);
 
-                    if (sellOrder.id && buyAmount >= 50) {
+                    if (sellOrder.id && buyAmount >= 100) {
                         buyAmount = Math.min(buyAmount, sellOrder.amount);
                         if (Game.market.deal(sellOrder.id, buyAmount, terminal.room.name) === OK) {
                             log.w(`Bought ${buyAmount} ${mineral} for ${sellOrder.price * buyAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
@@ -171,7 +171,7 @@ class TerminalControl {
                 // Scale markup based on time elapsed since the order was created
                 const timeElapsed = Game.time - activeBuyOrder.created;
                 const cooldown = ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) ? 10000 : 500;
-                markup = Math.min(1.0 + (timeElapsed / cooldown), 1.5);  // Maximum markup of 150% after cooldown
+                markup = Math.min(1.0 + (timeElapsed / cooldown), 2.0);  // Maximum markup of 200% after cooldown
             }
             return markup;
         }

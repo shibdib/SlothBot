@@ -11,7 +11,7 @@
  * @param guardRange
  * @returns {boolean|*}
  */
-Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true, ignoreBorder = false, guardLocation = undefined, guardRange = 8) {
+Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true, ignoreBorder = true, guardLocation = undefined, guardRange = 8) {
     if (this.room.controller && this.room.controller.safeMode && this.room.user !== MY_USERNAME) {
         return false;
     }
@@ -764,89 +764,41 @@ Creep.prototype.abilityPower = function () {
     };
 };
 
-Creep.prototype.groupUp = function () {
-    // Handle clearing temporary
-    if (handleClearingTemporaryGroup(this)) return true;
+Creep.prototype.formSquad = function () {
     // Find partners
-    if (!this.memory.grouped || (this.memory.leader && this.memory.squadMembers.length < 3)) {
-        if (handleSettingPermanentGroup(this)) {
-            return true;
-        } else if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
-            if (handleSettingTemporaryGroup(this)) return true;
-        }
-    } else if (this.memory.partner && this.memory.leader) {
+    if (!this.memory.grouped) {
+        findGroup(this);
     }
 
-    function handleSettingPermanentGroup(creep) {
-        if (!creep.memory.leader) {
-            const currentGroups = _.find(Game.creeps, (c) => c.my && c.memory.role === 'longbowSquad' && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3);
-            if (currentGroups) return false;
+    function findGroup(creep) {
+        const currentGroups = _.find(creep.room.myCreeps, (c) => c.memory.role === creep.memory.role && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3);
+        if (currentGroups) {
+            creep.memory.grouped = true;
+            creep.memory.groupLeader = currentGroups.id;
+            currentGroups.memory.grouped = true;
+            currentGroups.memory.squadMembers.push(creep.id);
+        } else {
+            creep.memory.leader = true;
+            creep.memory.squadMembers = [];
         }
-        const availablePartners = _.filter(Game.creeps, (c) => c.id !== creep.id && c.my && !c.spawning && creep.memory.role === c.memory.role &&
-            !c.memory.grouped && c.memory.destination && c.memory.destination === creep.memory.destination && (!c.memory.operation || c.memory.operation === creep.memory.operation));
-        if (availablePartners.length) {
+    }
+}
+Creep.prototype.formSquadDebug = function () {
+    // Find partners
+    if (!this.memory.grouped) {
+        findGroup(this);
+    }
+
+    function findGroup(creep) {
+        const currentGroups = _.find(creep.room.myCreeps, (c) => c.memory.role === creep.memory.role && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3);
+        if (currentGroups) {
+            creep.memory.grouped = true;
+            creep.memory.groupLeader = currentGroups.id;
+            currentGroups.memory.squadMembers.push(creep.id);
+        } else {
             creep.memory.leader = true;
             creep.memory.grouped = true;
-            creep.memory.oldRole = undefined;
-            creep.memory.role = 'longbowSquad';
-            if (!creep.memory.squadMembers) creep.memory.squadMembers = [];
-            for (const partner of availablePartners) {
-                if (creep.memory.squadMembers.length < 3) {
-                    creep.memory.squadMembers.push(partner.id);
-                    partner.memory.grouped = true;
-                    partner.memory.groupLeader = creep.id;
-                    partner.memory.oldRole = undefined;
-                    partner.memory.role = 'longbowSquad';
-                }
-            }
-            return true;
-        }
-    }
-
-    function handleSettingTemporaryGroup(creep) {
-        const availablePartners = _.filter(creep.room.myCreeps, (c) => c.id !== creep.id && !c.spawning && c.memory.role.includes('longbow') && !c.memory.grouped);
-        if (availablePartners.length) {
-            creep.memory.leader = true;
-            creep.memory.grouped = true;
-            creep.memory.oldRole = creep.memory.role;
-            creep.memory.role = 'longbowSquad';
-            creep.memory.temporarySquad = true;
-            if (!creep.memory.squadMembers) creep.memory.squadMembers = [];
-            for (const partner of availablePartners) {
-                if (creep.memory.squadMembers.length < 3) {
-                    creep.memory.squadMembers.push(partner.id);
-                    partner.memory.grouped = true;
-                    partner.memory.groupLeader = creep.id;
-                    partner.memory.oldRole = partner.memory.role;
-                    partner.memory.role = 'longbowSquad';
-                    partner.memory.temporarySquad = true;
-                }
-            }
-            return true;
-        }
-    }
-
-    function handleClearingTemporaryGroup(creep) {
-        if ((creep.memory.temporarySquad || creep.memory.oldRole) && !creep.room.hostileCreeps.length && !creep.room.hostileStructures.length) {
-            creep.say('UNPAIR', true);
-            creep.memory.leader = undefined;
-            creep.memory.grouped = undefined;
-            creep.memory.groupLeader = undefined;
-            creep.memory.temporarySquad = undefined;
-            creep.memory.squadMembers = undefined;
-            if (creep.memory.oldRole) creep.memory.role = creep.memory.oldRole;
-            creep.memory.oldRole = undefined;
-            const partner = Game.getObjectById(creep.memory.partner);
-            if (partner) {
-                partner.say('UNPAIR', true);
-                partner.memory.leader = undefined;
-                partner.memory.grouped = undefined;
-                partner.memory.groupLeader = undefined;
-                partner.memory.temporarySquad = undefined;
-                if (partner.memory.oldRole) partner.memory.role = partner.memory.oldRole;
-                partner.memory.oldRole = undefined;
-            }
-            return true;
+            creep.memory.squadMembers = [];
         }
     }
 }
