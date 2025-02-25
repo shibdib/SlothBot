@@ -7,8 +7,8 @@ let SIEGE_LIMIT;
 const lastRun = {};
 const tasks = ['housekeeping', 'flags', 'military', 'auxiliary', 'response', 'nukes']
 module.exports.highCommand = function () {
-    OPERATION_LIMIT = Math.ceil(MY_ROOMS.filter((r) => Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].state === ROOM_STATES.ATTACKING).length * 0.5) || 1;
-    SIEGE_LIMIT = Math.ceil(MY_ROOMS.filter((r) => Game.rooms[r].level >= 7 && Game.rooms[r].state === ROOM_STATES.ATTACKING).length * 0.5);
+    OPERATION_LIMIT = Math.ceil(MY_ROOMS.filter((r) => Game.rooms[r].level >= 5 && Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].energyState).length * 0.5) || 1;
+    SIEGE_LIMIT = Math.ceil(MY_ROOMS.filter((r) => Game.rooms[r].level >= 7 && Game.rooms[r].energyState).length * 0.5);
     // Handle tasks
     for (const task of tasks) {
         switch (task) {
@@ -195,31 +195,36 @@ function manageResponseForces() {
     let activeResponders = _.filter(Game.creeps, (c) => c.memory && !c.memory.awaitingOrders);
     let friendlyResponsePower = 0;
 
+    // Get the highest-priority target based on the current situation
+    let target = getPriorityTarget();
+
+    trackPower();
+
     // Helper function to prioritize targets based on threat and distance
     function getPriorityTarget() {
         // Return the highest priority target based on threat levels and distances
         let potentialTargets = [];
 
         // Support requested
-        let requestingSupport = _.findKey(INTEL, (r) => r && r.requestingSupport && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
+        let requestingSupport = _.findKey(INTEL, (r) => r && r.requestingSupport);
         if (requestingSupport) {
             potentialTargets.push({type: 'ownedRoomAttack', room: requestingSupport, priority: 10});
         }
 
         // Remote support hostile
-        let remoteSupport = _.findKey(INTEL, (r) => r && r.threatLevel > 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.responseDispatched + 50 < Game.time) && findClosestOwnedRoom(r.name, true) <= 1);
+        let remoteSupport = _.findKey(INTEL, (r) => r && r.threatLevel > 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.friendlyPower < r.hostilePower) && findClosestOwnedRoom(r.name, true) <= 1);
         if (remoteSupport) {
             potentialTargets.push({type: 'remoteRoomAttack', room: remoteSupport, priority: 9});
         }
 
         // Invader Core
-        let invaderCore = _.findKey(INTEL, (r) => r && r.invaderCore && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
+        let invaderCore = _.findKey(INTEL, (r) => r && r.invaderCore && r.activeRemote + CREEP_LIFE_TIME > Game.time && !r.responseDispatched);
         if (invaderCore) {
             potentialTargets.push({type: 'invaderCore', room: invaderCore, priority: 8});
         }
 
         // Remote support unarmed
-        let remoteSupportUnarmed = _.findKey(INTEL, (r) => r && r.threatLevel === 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.responseDispatched + 50 < Game.time));
+        let remoteSupportUnarmed = _.findKey(INTEL, (r) => r && r.threatLevel === 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && !r.responseDispatched);
         if (remoteSupportUnarmed) {
             potentialTargets.push({type: 'unarmedVisitors', room: remoteSupportUnarmed, priority: 7});
         }
@@ -253,9 +258,6 @@ function manageResponseForces() {
         }
     }
 
-    // Get the highest-priority target based on the current situation
-    let target = getPriorityTarget();
-
     if (target) {
         // Assign responders based on target type
         switch (target.type) {
@@ -287,6 +289,23 @@ function manageResponseForces() {
             case 'guard':
                 assignRespondersToTarget(target.room, 'reassigned to help guard', 0);
                 break;
+        }
+    }
+
+    function trackPower() {
+        const respondingPatrols = objFilter(Game.creeps, (c) => c.my && c.memory.destination && c.memory.operation === 'borderPatrol');
+        const incomingPower = {};
+        for (const key in respondingPatrols) {
+            const patrol = respondingPatrols[key];
+            if (!incomingPower[patrol.memory.destination]) incomingPower[patrol.memory.destination] = {
+                power: 0,
+                room: patrol.memory.destination
+            };
+            incomingPower[patrol.memory.destination].power += patrol.abilityPower();
+        }
+        for (const key in incomingPower) {
+            const i = incomingPower[key];
+            INTEL[i.room].friendlyPower = i.power;
         }
     }
 }

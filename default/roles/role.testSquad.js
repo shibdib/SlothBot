@@ -51,8 +51,7 @@ class RoleTestSquad {
 
         if (isReady) {
             if (!creep.memory.initialFormUp) creep.memory.initialFormUp = true;
-            if (creep.memory.operation) this.operationManagement(); else if (creep.memory.destination) this.destinationManagement();
-            else if (!creep.handleMilitaryCreep()) creep.findDefensivePosition();
+            if (creep.memory.operation) this.operationManagement(); else this.destinationManagement();
         } else {
             creep.shibMove(this.findStaging(creep), {range: 0, forceSolo: true})
         }
@@ -68,8 +67,6 @@ class RoleTestSquad {
         } else {
             // Double check that you're in the squad
             if (!leader.memory.squadMembers.includes(this.creep.id)) leader.memory.squadMembers.push(this.creep.id);
-            // Move to leader if in different room
-            if (this.creep.room.name !== leader.room.name) return this.creep.shibMove(leader);
             // Get in position
             this.getInPosition(this.creep, leader);
             // Attack target
@@ -151,8 +148,8 @@ class RoleTestSquad {
             }
         }
 
-        if (this.room.name !== this.creep.memory.destination) {
-            return this.creep.shibSquadMovement(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22});
+        if (this.room.name !== 'E5N7') {
+            return this.creep.shibSquadMovement(new RoomPosition(25, 25, 'E5N7'), {range: 22});
         } else {
             // Combat handling
             if (this.creep.handleMilitaryCreep()) return;
@@ -169,6 +166,8 @@ class RoleTestSquad {
         for (let i = 0; i < creeps.length; i++) {
             for (let j = i + 1; j < creeps.length; j++) {
                 if (!creeps[i]) continue;
+                // Handle non hostile rooms
+                if (!creeps[i].room.hostileCreeps.length && !creeps[i].room.hostileStructures.length && !this.nearDestination(leader)) continue;
                 // Return true near border
                 if (creeps[i].pos.x <= 1 || creeps[i].pos.x >= 48 || creeps[i].pos.y <= 1 || creeps[i].pos.y >= 48) continue;
                 // Return true if not in the same room
@@ -213,7 +212,7 @@ class RoleTestSquad {
                             break;
                         }
                         const posToCheck = new RoomPosition(checkX, checkY, room.name);
-                        if (posToCheck.checkIfOutOfBounds() || [TERRAIN_MASK_SWAMP, TERRAIN_MASK_WALL].includes(terrain.get(checkX, checkY))) {
+                        if (posToCheck.checkIfOutOfBounds() || [TERRAIN_MASK_WALL].includes(terrain.get(checkX, checkY))) {
                             isClear = false;
                             break;
                         }

@@ -110,6 +110,7 @@ let globals = function () {
         UPGRADING: 'upgrading',
         DEFENDING: 'defending',
         ATTACKING: 'attacking',
+        IDLE: 'idle',
         UNSET: 'unset'
     };
     global.STATE_COOLDOWN = 5000;

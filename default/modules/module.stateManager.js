@@ -69,17 +69,15 @@ class StateManager {
             return room.memory.stateInformation = stateInformation;
         }
 
-        // If we're energy rich and have threats, set state to attacking
-        const attackingRooms = MY_ROOMS.filter(r => r !== room.name && Game.rooms[r].state === ROOM_STATES.ATTACKING).length;
-        if (room.energyState > 1 && THREATS.length && MAX_LEVEL >= 5 && room.level >= MAX_LEVEL && attackingRooms < MY_ROOMS.length * 0.25) {
-            stateInformation.roomState = ROOM_STATES.ATTACKING;
+        // If we're rich and not attacking, upgrade
+        if (room.energyState && room.level < 8) {
+            stateInformation.roomState = ROOM_STATES.UPGRADING;
             stateInformation.lastChange = Game.time;
             return room.memory.stateInformation = stateInformation;
         }
 
-        // If we're rich and not attacking, upgrade
-        if (room.energyState) {
-            stateInformation.roomState = ROOM_STATES.UPGRADING;
+        if (room.level === 8 && room.energyState > 2) {
+            stateInformation.roomState = ROOM_STATES.IDLE;
             stateInformation.lastChange = Game.time;
             return room.memory.stateInformation = stateInformation;
         }

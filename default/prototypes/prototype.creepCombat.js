@@ -269,11 +269,6 @@ Creep.prototype.fightRanged = function (target) {
         handleLongRangeCombat(this, target);
     }
 
-    // Kite if can't win or if too close to dangerous enemies
-    if (!this.canIWin(8) || shouldKite(this, target)) {
-        return this.shibKite(7);
-    }
-
     return true;
 
     function shouldKite(creep, target) {
@@ -306,6 +301,8 @@ Creep.prototype.fightRanged = function (target) {
             // If you can win, move closer
             if (creep.canIWin(5) && !meleeEnemies) {
                 creep.shibMove(target, {range: 2});
+            } else if (creep.canIWin(5) && meleeEnemies) {
+                creep.shibKite(3)
             } else {
                 creep.shibKite(6)
             }
@@ -343,7 +340,7 @@ Creep.prototype.fightRanged = function (target) {
         if (!creep.canIWin(6) || shouldKite(this, target)) {
             return creep.shibKite(5);
         } else {
-            return creep.shibMove(target, {ignoreCreeps: false, range: moveRange});
+            return creep.shibMove(target, {range: moveRange});
         }
     }
 }
@@ -774,8 +771,10 @@ Creep.prototype.formSquad = function () {
         const currentGroups = _.find(creep.room.myCreeps, (c) => c.memory.role === creep.memory.role && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3);
         if (currentGroups) {
             creep.memory.grouped = true;
+            creep.memory.role = 'longbowSquad';
             creep.memory.groupLeader = currentGroups.id;
             currentGroups.memory.grouped = true;
+            currentGroups.memory.role = 'longbowSquad';
             currentGroups.memory.squadMembers.push(creep.id);
         } else {
             creep.memory.leader = true;

@@ -149,6 +149,7 @@ let essentialTick = {};
 module.exports.essentialCreepQueue = function (room) {
     if (essentialTick[room.name] + 10 > Game.time) return;
     essentialTick[room.name] = Game.time;
+    //if (room.name === 'E5N9' && INTEL['E5N7'] && INTEL['E5N7'].owner) queueCreepIfNeeded(room, 'testSquad', 1, 4, undefined, undefined, {waitFor: 4})
 
     // Harvesters
     let harvesterCount = getCreepCount(room, 'stationaryHarvester');
@@ -228,11 +229,19 @@ module.exports.miscCreepQueue = function (room) {
         }
 
         // Border Patrol
-        if (room.memory.borderPatrol) {
-            const power = INTEL[room.memory.borderPatrol] ? (INTEL[room.memory.borderPatrol].hostilePower * 1.5) : 50;
-            let count = Math.min(power / (10 * room.level), 2);
-            if (room.memory.additionalPowerNeeded) count++;
-            queueCreepIfNeeded(room, 'longbow', PRIORITIES.remoteHarvester - 1, count, undefined, room.memory.borderPatrol, undefined, undefined, 'borderPatrol', {power: power});
+        if (room.energyState) {
+            const needsBorderResponse = MY_ROOMS.find((r) => Game.rooms[r].memory.requestingBorderResponse);
+            const borderResponse = !!room.memory.borderPatrol ? room.memory.borderPatrol : needsBorderResponse ? Game.rooms[needsBorderResponse].memory.requestingBorderResponse : undefined;
+            if (borderResponse) {
+                const power = INTEL[room.memory.borderPatrol] ? (INTEL[room.memory.borderPatrol].hostilePower * 1.5) - INTEL[room.memory.borderPatrol].friendlyPower || 0 : 50;
+                if (power > 0) {
+                    queueCreepIfNeeded(room, 'longbow', PRIORITIES.remoteHarvester - 1, 1, undefined, room.memory.borderPatrol, undefined, undefined, 'borderPatrol', {power: power});
+                }
+            }
+        } else if (room.memory.borderPatrol) {
+            room.memory.requestingBorderResponse = room.memory.borderPatrol;
+        } else {
+            room.memory.requestingBorderResponse = undefined;
         }
     }
 };
@@ -243,6 +252,7 @@ let contestedRemotes = {};
 let blockedRemotes = {};
 module.exports.remoteCreepQueue = function (room) {
     if (remoteTick[room.name] + 10 > Game.time) return;
+
     // Global remote penalty means NO remote activity at all
     if (Memory.cpuTracking && Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
 
@@ -268,7 +278,7 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     // If room remote limited, disable harvesters/haulers/special ops
-    if (room.memory.noRemote) return;
+    if (room.memory.noRemote || room.state === ROOM_STATES.IDLE) return;
 
     // Handle remote harvesters/haulers
     if (!room.energyState || room.level < 8) {
@@ -720,19 +730,9 @@ function getQueue(room) {
                 let assignedRoom = Memory.targetRooms[destination] && Memory.targetRooms[destination].assignedRoom ? Memory.targetRooms[destination].assignedRoom
                     : Memory.auxiliaryTargets[destination] && Memory.auxiliaryTargets[destination].assignedRoom ? Memory.auxiliaryTargets[destination].assignedRoom
                         : undefined;
-                const priority = getPriority(destination);
                 if (assignedRoom && assignedRoom !== room.name) {
                     delete operationQueue[key];
                     continue;
-                } else if (assignedRoom && assignedRoom === room.name && ![ROOM_STATES.ATTACKING, ROOM_STATES.UPGRADING].includes(room.state) && priority > PRIORITIES.urgent) {
-                    unassignRoom(room, destination, 'Room is no longer in a assignment ready state.');
-                    operationQueue = {};
-                    break;
-                }
-                // If not in combat state
-                if (![ROOM_STATES.ATTACKING, ROOM_STATES.UPGRADING].includes(room.state) && priority > PRIORITIES.urgent) {
-                    operationQueue = {};
-                    break;
                 }
                 // Set the level target
                 let levelTarget = MAX_LEVEL;
@@ -827,7 +827,7 @@ function getQueue(room) {
                     creep.priority *= 6;
                 }
             }
-            creep.priority /= (sizeFactor * spawnCount);
+            //creep.priority /= (sizeFactor * spawnCount);
             creep.priority = Math.max(1, Math.round(creep.priority));
             queue[key] = creep;
         }
@@ -878,11 +878,7 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
     for (let key of MY_ROOMS) {
         // If not available continue
         const myRoom = Game.rooms[key];
-        // Combat ops only go to attacking rooms unless urgent or higher
-        const priority = getPriority(targetRoom);
-        if (Memory.targetRooms[targetRoom] && myRoom.state !== ROOM_STATES.ATTACKING && priority > PRIORITIES.urgent) continue;
-        // Auxiliary go to attacking and upgrading rooms
-        if (Memory.auxiliaryTargets[targetRoom] && ![ROOM_STATES.ATTACKING, ROOM_STATES.UPGRADING].includes(myRoom.state)) continue;
+        if (!myRoom.energyState) continue
         // If above you spawn count continue
         const currentAssignments = Memory.targetRooms[targetRoom] ? _.filter(Memory.targetRooms, (r) => r && r.assignedRoom === key).length : _.filter(Memory.auxiliaryTargets, (r) => r && r.assignedRoom === key).length;
         if (currentAssignments >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level] * 1.5) continue;

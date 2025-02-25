@@ -3,6 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
+const stagingPos = {};
 
 class RoleLongbowSquad {
     constructor(creep) {
@@ -44,12 +45,6 @@ class RoleLongbowSquad {
             if (!memberCreep) creep.memory.squadMembers = creep.memory.squadMembers.filter((c) => c !== member);
         }
 
-        // If empty squad, ungroup
-        if (!creep.memory.squadMembers.length) {
-            creep.memory.grouped = undefined;
-            return this.handleSolo();
-        }
-
         // Squad readiness check
         const squad = creep.memory.squadMembers.map(id => Game.getObjectById(id));
         const isReady = this.hasFullSquad(creep) && this.isQuadPacked(squad.concat(creep), creep);
@@ -57,7 +52,7 @@ class RoleLongbowSquad {
         if (isReady) {
             if (!creep.memory.initialFormUp) creep.memory.initialFormUp = true;
             if (creep.memory.operation) this.operationManagement(); else if (creep.memory.destination) this.destinationManagement();
-            else if (!creep.handleMilitaryCreep()) creep.findDefensivePosition();
+            else creep.handleMilitaryCreep();
         } else {
             creep.shibMove(this.findStaging(creep), {range: 0, forceSolo: true})
         }
@@ -73,8 +68,6 @@ class RoleLongbowSquad {
         } else {
             // Double check that you're in the squad
             if (!leader.memory.squadMembers.includes(this.creep.id)) leader.memory.squadMembers.push(this.creep.id);
-            // Move to leader if in different room
-            if (this.creep.room.name !== leader.room.name) return this.creep.shibMove(leader);
             // Get in position
             this.getInPosition(this.creep, leader);
             // Attack target
@@ -174,6 +167,8 @@ class RoleLongbowSquad {
         for (let i = 0; i < creeps.length; i++) {
             for (let j = i + 1; j < creeps.length; j++) {
                 if (!creeps[i]) continue;
+                // Handle non hostile rooms
+                if (!creeps[i].room.hostileCreeps.length && !creeps[i].room.hostileStructures.length && !this.nearDestination(leader)) continue;
                 // Return true near border
                 if (creeps[i].pos.x <= 1 || creeps[i].pos.x >= 48 || creeps[i].pos.y <= 1 || creeps[i].pos.y >= 48) continue;
                 // Return true if not in the same room
@@ -218,7 +213,7 @@ class RoleLongbowSquad {
                             break;
                         }
                         const posToCheck = new RoomPosition(checkX, checkY, room.name);
-                        if (posToCheck.checkIfOutOfBounds() || [TERRAIN_MASK_SWAMP, TERRAIN_MASK_WALL].includes(terrain.get(checkX, checkY))) {
+                        if (posToCheck.checkIfOutOfBounds() || [TERRAIN_MASK_WALL].includes(terrain.get(checkX, checkY))) {
                             isClear = false;
                             break;
                         }

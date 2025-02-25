@@ -57,6 +57,7 @@ function findWoundedCreep(room) {
 
 // Find structures that are degrading and need repair
 function findDegradingStructure(room) {
+    if (!room.energyState) return;
     const multi = [ROOM_STATES.UPGRADING, ROOM_STATES.ATTACKING].includes(room.state) ? 2 : 1;
     return _.find(room.structures, s =>
         (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * (0.25 & multi)) ||

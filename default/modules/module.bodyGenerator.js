@@ -53,6 +53,11 @@ class ModuleBodyGenerator {
             }
         }
 
+        // Check if body is set in the creep info
+        if (this.creepInfo.body) {
+            return {body: this.creepInfo.body, info: this.creepInfo};
+        }
+
         let bodyArray = [];
         let work, claim, carry, move, tough, attack, rangedAttack, heal, energyScaling, halfMove;
 
@@ -124,9 +129,15 @@ class ModuleBodyGenerator {
                 break;
 
             case 'hauler':
-            case 'shuttle':
                 carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
                 carry = Math.min(carry, LINK_CAPACITY / CARRY_CAPACITY);
+
+                if (INTEL[this.room.name].roadsBuilt) halfMove = true;
+                break;
+
+            case 'shuttle':
+                carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
+                carry = Math.min(carry, (LINK_CAPACITY * 0.5) / CARRY_CAPACITY);
 
                 if (INTEL[this.room.name].roadsBuilt) halfMove = true;
                 break;

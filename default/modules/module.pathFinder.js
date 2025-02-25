@@ -947,6 +947,21 @@ function getPosKey(pos) {
     return pos.x + 'x' + pos.y + pos.roomName;
 }
 
+function parsePosKey(key) {
+    // Match the pattern: digits, 'x', digits, room name
+    const match = key.match(/^(\d+)x(\d+)([EW]\d+[NS]\d+)$/);
+    if (!match) {
+        throw new Error(`Invalid position key: ${key}`);
+    }
+
+    const [, x, y, roomName] = match;
+    return {
+        x: parseInt(x, 10),
+        y: parseInt(y, 10),
+        roomName
+    };
+}
+
 /**
  * Movement code
  * @param destination
@@ -1043,8 +1058,16 @@ Creep.prototype.shibSquadMovement = function (target = undefined, options = {}) 
     const targetKey = getPosKey(target);
 
     // Check if the target hasn't change and we still have a path
-    if (this.memory._shibSquadMove.target === targetKey && this.memory._shibSquadMove.path && this.memory._shibSquadMove.path.length) {
-        if (squadMove(this, this.memory._shibSquadMove.path)) return true; else return false;
+    if (this.memory._shibSquadMove.path && this.memory._shibSquadMove.path.length) {
+        if (this.memory._shibSquadMove.target === targetKey) {
+            if (squadMove(this, this.memory._shibSquadMove.path)) return true; else return false;
+        } else {
+            const parsed = parsePosKey(this.memory._shibSquadMove.target);
+            const oldPos = new RoomPosition(parsed.x, parsed.y, parsed.roomName);
+            if (oldPos.getRangeTo(target) <= options.range) {
+                if (squadMove(this, this.memory._shibSquadMove.path)) return true; else return false;
+            }
+        }
     }
 
     const origin = this.pos;
@@ -1066,10 +1089,9 @@ Creep.prototype.shibSquadMovement = function (target = undefined, options = {}) 
     // Prepare pathfinding options
     options = getMoveWeight(this, options);
 
-    let result = PathFinder.search(this.pos, target, {
+    let result = PathFinder.search(this.pos, {pos: target, range: options.range}, {
         maxOps: DEFAULT_MAXOPS * range,
         maxRooms: allowedRooms.length * 1.5,
-        heuristicWeight: options.heuristicWeight,
         roomCallback: function (roomName) {
             if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
             return getMatrix(roomName, this, options);
@@ -1099,12 +1121,14 @@ Creep.prototype.shibSquadKite = function (fleeRange = FLEE_RANGE, options = {}) 
 
     // Use pathfinder to flee from threats
     let fleeGoals = threats.map(a => ({pos: a.pos, range: fleeRange + 2}));
+    let allowedRooms = [this.pos.roomName].concat(Object.values(Game.map.describeExits(this.pos.roomName)));
     let result = PathFinder.search(this.pos, fleeGoals, {
         flee: true,
-        swampCost: 180,
-        plainCost: 3,
-        maxRooms: 2,
-        roomCallback: roomName => getMatrix(roomName, this, options)
+        maxRooms: allowedRooms.length * 1.5,
+        roomCallback: function (roomName) {
+            if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
+            return getMatrix(roomName, this, options);
+        }
     });
 
     // If a path is found, move the creep
@@ -1118,12 +1142,16 @@ Creep.prototype.shibSquadKite = function (fleeRange = FLEE_RANGE, options = {}) 
 function squadMove(creep, path) {
     // Check if any member has fatigue
     let wait = false;
+    if (!creep.memory.squadMembers) return false;
     creep.memory.squadMembers.forEach(function (c) {
         const member = Game.getObjectById(c);
         if (member.fatigue || creep.fatigue) return wait = true;
     })
     if (wait) return false;
     const move = parseInt(path[0], 10);
+    // Check position at direction
+    const newPos = creep.pos.positionAtDirection(move);
+    if (newPos && newPos.checkForImpassible(false, true)) return creep.memory._shibSquadMove = undefined;
     path = path.slice(1);
     if (creep.memory.squadMembers) {
         // Check if all squad members will be able to move
@@ -1189,12 +1217,14 @@ Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined)
 
     // Use pathfinder to flee from threats
     let fleeGoals = threats.map(a => ({pos: a.pos, range: fleeRange + 2}));
+    let allowedRooms = [this.pos.roomName].concat(Object.values(Game.map.describeExits(this.pos.roomName)));
     let result = PathFinder.search(this.pos, fleeGoals, {
         flee: true,
-        swampCost: 180,
-        plainCost: 3,
-        maxRooms: 2,
-        roomCallback: roomName => getMatrix(roomName, this, options)
+        maxRooms: allowedRooms.length * 1.5,
+        roomCallback: function (roomName) {
+            if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
+            return getMatrix(roomName, this, options);
+        }
     });
 
     // If a path is found, move the creep
