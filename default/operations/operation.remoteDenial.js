@@ -35,7 +35,9 @@ Creep.prototype.remoteDenial = function () {
                 }
             }
         } else {
-            this.memory.destination = _.sample(this.memory.misc.remotes);
+            const remotes = Object.values(Game.map.describeExits(this.memory.other.target)).filter((n) =>
+                (!INTEL[n] || !INTEL[n].user || INTEL[n].user === INTEL[this.memory.other.target].owner) && Object.values(Game.map.describeExits(n)).length > 1);
+            this.memory.destination = _.sample(remotes);
             this.say('RETASKED', true);
         }
     } else {

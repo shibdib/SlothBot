@@ -59,9 +59,7 @@ class ExpansionControl {
             !room.obstacles &&
             (!room.reservation || room.reservation === MY_USERNAME) &&
             this.checkNeighboringRooms(room.name) &&
-            findClosestOwnedRoom(room.name, true) <= 14 &&
-            findClosestOwnedRoom(room.name, true) > 1 &&
-            roomStatus(room.name) === roomStatus(MY_ROOMS[0])
+            findClosestOwnedRoom(room.name, true) <= 14
         );
     }
 
@@ -70,7 +68,7 @@ class ExpansionControl {
         for (const neighbor of neighboring) {
             const intel = INTEL[neighbor];
             if (!intel) return false;
-            if (intel.owner || intel.reservation) return false;
+            if (intel.owner) return false;
         }
         return true;
     }

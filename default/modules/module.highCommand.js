@@ -79,7 +79,7 @@ function militaryOperations() {
 
     if (OFFENSIVE_OPERATIONS) {
         let initialFilter = _.filter(INTEL, (r) => r.cached + CREEP_LIFE_TIME * 4 > Game.time && !Memory.targetRooms[r.name]
-            && r.owner && userStrength(r.owner) <= MAX_LEVEL + 1 && ![...FRIENDLIES, ...NO_DIRECT_ATTACKS].includes(r.owner) &&
+            && r.owner && userStrength(r.owner) <= MAX_LEVEL && ![...FRIENDLIES, ...NO_DIRECT_ATTACKS].includes(r.owner) &&
             !Memory.nonCombatRooms.includes(r.name) && !checkForNap(r.owner) &&
             (ATTACK_LOCALS || THREATS.includes(r.owner) || (HOLD_SECTOR && myRoomInSectorCheck(r.name)) || findClosestOwnedRoom(r.name, true) <= DEFENSIVE_BUBBLE)
             && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time));
@@ -418,7 +418,7 @@ function manageMilitary() {
         }
 
         // Cancel operation for powerful users or hostile users beyond max level
-        if (!target.manual && INTEL[key] && userStrength(INTEL[key].user) > MAX_LEVEL && findClosestOwnedRoom(key, true) > DEFENSIVE_BUBBLE) {
+        if (!target.manual && INTEL[key] && userStrength(INTEL[key].user) > MAX_LEVEL) {
             log.a('Canceling operation in ' + roomLink(key) + ' as ' + INTEL[key].user + ' is too powerful.', 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             INTEL[key].lastOperation = Game.time;

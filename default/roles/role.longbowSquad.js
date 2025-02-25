@@ -67,7 +67,8 @@ class RoleLongbowSquad {
             this.handleSolo();
         } else {
             // Double check that you're in the squad
-            if (!leader.memory.squadMembers.includes(this.creep.id)) leader.memory.squadMembers.push(this.creep.id);
+            if (!leader.memory.squadMembers) leader.memory.squadMembers = [this.creep.id];
+            else if (!leader.memory.squadMembers.includes(this.creep.id)) leader.memory.squadMembers.push(this.creep.id);
             // Get in position
             this.getInPosition(this.creep, leader);
             // Attack target

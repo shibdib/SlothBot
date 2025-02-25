@@ -90,7 +90,7 @@ class ModuleBodyGenerator {
                 carry = Math.floor((this.energyAmount * 0.25) / BODYPART_COST[CARRY]) || 1;
                 carry = Math.min(carry, 10);
 
-                if (INTEL[this.room.name].roadsBuilt) halfMove = true;
+                if (!this.creepInfo.destination && INTEL[this.room.name].roadsBuilt) halfMove = true;
                 break;
 
             case 'upgrader':

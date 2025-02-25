@@ -377,14 +377,14 @@ function findRoute(origin, destination, options = {}) {
                 (intel && !intel.isHighway && roomStatus(roomName) !== roomStatus(origin))) return Infinity;
             if (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) return 1;
             if (Memory.avoidRooms && Memory.avoidRooms.includes(roomName)) return 250;
-            if (!intel) return 10;
+            if (!intel || intel.cached + 10000 < Game.time) return 20;
             if (intel.user && FRIENDLIES.includes(intel.user)) return 5;
-            if (intel.user && !FRIENDLIES.includes(intel.user)) return intel.towers ? Infinity : 75;
-            if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) return 120;
+            if (intel.user && !FRIENDLIES.includes(intel.user)) return intel.towers ? Infinity : 20;
+            if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) return 50;
             if (intel.obstacles) return 200;
             if (intel.sk && intel.towers) return 250;
             if (intel.threatLevel) return 60 * intel.threatLevel;
-            return intel.isHighway ? 5 : 7;
+            return intel.isHighway ? 3 : 7;
         }
     });
 
@@ -1074,14 +1074,11 @@ Creep.prototype.shibSquadMovement = function (target = undefined, options = {}) 
     this.memory._shibSquadMove.target = targetKey;
 
     let allowedRooms;
-    const range = Game.map.getRoomLinearDistance(this.room.name, target.roomName)
-    if (range > 2) {
-        let route = findRoute(origin.roomName, target.roomName, options);
-        if (route) {
-            // If the current room name is missing, add it to the front
-            if (!route.includes(this.room.name)) route.unshift(this.room.name);
-            allowedRooms = route;
-        }
+    let route = findRoute(origin.roomName, target.roomName, options);
+    if (route) {
+        // If the current room name is missing, add it to the front
+        if (!route.includes(this.room.name)) route.unshift(this.room.name);
+        allowedRooms = route;
     }
     // If no route/allowed rooms got set, use the current room and neighbors
     if (!allowedRooms) allowedRooms = [origin.roomName].concat(Object.values(Game.map.describeExits(origin.roomName)));
@@ -1127,6 +1124,7 @@ Creep.prototype.shibSquadKite = function (fleeRange = FLEE_RANGE, options = {}) 
         maxRooms: allowedRooms.length * 1.5,
         roomCallback: function (roomName) {
             if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
+            if (INTEL[roomName] && INTEL[roomName].owner && !FRIENDLIES.includes(INTEL[roomName].owner)) return false;
             return getMatrix(roomName, this, options);
         }
     });
@@ -1223,6 +1221,7 @@ Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined)
         maxRooms: allowedRooms.length * 1.5,
         roomCallback: function (roomName) {
             if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
+            if (INTEL[roomName] && INTEL[roomName].owner && !FRIENDLIES.includes(INTEL[roomName].owner)) return false;
             return getMatrix(roomName, this, options);
         }
     });

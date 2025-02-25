@@ -108,22 +108,38 @@ class RoleRoadBuilder {
         if (!destination) destination = new RoomPosition(Game.rooms[creep.memory.colony].memory.bunkerHub.x, Game.rooms[creep.memory.colony].memory.bunkerHub.y, creep.memory.colony);
         for (let container of containers) {
             if (_.size(Game.constructionSites) >= 70) return false;
-            if (this.buildRoadFromTo(creep.room, container, destination)) return true;
+            if (this.buildRoadFromTo(creep.room, container, homeExit[homeMiddle])) return true;
         }
 
         // SK Room
         if (INTEL[creep.room.name].sk) {
             let mineral = creep.room.find(FIND_MINERALS)[0];
-            if (mineral && this.buildRoadFromTo(creep.room, mineral, destination)) return true;
+            if (mineral && this.buildRoadFromTo(creep.room, mineral, homeExit[homeMiddle])) return true;
             let skLairs = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR);
             for (let lair of skLairs) {
                 if (_.size(Game.constructionSites) >= 70) return;
-                if (this.buildRoadFromTo(creep.room, lair, destination)) return true;
+                if (this.buildRoadFromTo(creep.room, lair, homeExit[homeMiddle])) return true;
             }
         }
 
         // Controller
-        if (creep.room.controller && this.buildRoadFromTo(creep.room, creep.room.controller, destination)) return true;
+        if (creep.room.controller && this.buildRoadFromTo(creep.room, creep.room.controller, homeExit[homeMiddle])) return true;
+
+        // Active neighbors
+        const neighboringRooms = Object.values(Game.map.describeExits(creep.room.name));
+        for (const neighbor of neighboringRooms) {
+            if (!Game.rooms[neighbor]) continue;
+            const neighborRoom = Game.rooms[neighbor];
+            const neighborHarvester = neighborRoom.myCreeps.find((c) => c.memory.role === 'remoteHarvester');
+            if (neighborHarvester) {
+                let exit = Game.map.findExit(creep.room.name, neighbor);
+                let exitTiles = creep.room.find(exit);
+                let exitMiddle = _.round(exitTiles.length / 2);
+                if (_.size(Game.constructionSites) >= 70) return false;
+                const start = creep.room.controller || creep.room.sources[0];
+                if (this.buildRoadFromTo(creep.room, start, exitTiles[exitMiddle])) return true;
+            }
+        }
     }
 
     buildRoadFromTo(room, start, end) {

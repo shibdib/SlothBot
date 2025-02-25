@@ -548,7 +548,7 @@ module.exports.globalCreepQueue = function () {
                 break;
 
             case 'claim':
-                queueCreepIfNeeded(undefined, 'claimer', priority, 1, undefined, key, undefined, true);
+                queueCreepIfNeeded(undefined, 'claimer', priority, 1, undefined, key);
                 break;
 
             case 'rebuild':
@@ -580,10 +580,10 @@ module.exports.globalCreepQueue = function () {
 
             case 'remoteDenial':
                 const remotes = _.filter(_.map(Game.map.describeExits(key)), function (r) {
-                    return (!INTEL[r] || !INTEL[r].owner || INTEL[r].threatLevel < 2) && Object.values(Game.map.describeExits(r)).length > 1;
+                    return (!INTEL[r] || !INTEL[r].owner) && Object.values(Game.map.describeExits(r)).length > 1;
                 });
                 if (opLevel < 2) {
-                    queueCreepIfNeeded(undefined, 'longbow', priority, 2, undefined, _.sample(remotes), {remotes: remotes}, true, 'remoteDenial', {target: key});
+                    queueCreepIfNeeded(undefined, 'longbow', priority, 1, undefined, _.sample(remotes), {remotes: remotes}, true, 'remoteDenial', {target: key});
                 } else {
                     queueCreepIfNeeded(undefined, 'longbowSquad', priority, 2, undefined, _.sample(remotes), {
                         remotes: remotes,
@@ -738,11 +738,11 @@ function getQueue(room) {
                 let levelTarget = MAX_LEVEL;
                 if (Memory.auxiliaryTargets[destination]) levelTarget = 4;
                 else if (findClosestOwnedRoom(destination, true) <= DEFENSIVE_BUBBLE) levelTarget = MAX_LEVEL - 1;
-                else if (Memory.targetRooms[destination] && Memory.targetRooms[destination].type === 'roomDenial') levelTarget = 4;
+                else if (Memory.targetRooms[destination] && Memory.targetRooms[destination].type === 'roomDenial') {
+                    levelTarget = INTEL[destination] && INTEL[destination].towers ? 7 : 4;
+                }
                 else if (Memory.targetRooms[destination] && INTEL[destination] && INTEL[destination].user) levelTarget = userStrength(INTEL[destination].user) - 1;
                 else if (Memory.targetRooms[destination] && INTEL[destination] && !INTEL[destination].user) levelTarget = 4;
-                // If towers
-                if (INTEL[destination] && INTEL[destination].towers) levelTarget = 7;
                 // Scouts are level 1
                 if (Memory.targetRooms[destination] && Memory.targetRooms[destination].type === 'scout') levelTarget = 1;
                 // If this is anything more than a duo, needs to be level 7+
@@ -957,7 +957,7 @@ function updateCreepCountCache() {
         const counts = {};
         for (let creep of Object.values(Game.creeps)) {
             if (!creep.my) continue;
-            const role = creep.memory.role || creep.memory.oldRole || '';
+            const role = creep.memory.oldRole || creep.memory.role || '';
             const destination = creep.memory.destination || creep.room.name;
             const colony = creep.memory.colony || creep.room.name;
             const operation = creep.memory.operation || '';
