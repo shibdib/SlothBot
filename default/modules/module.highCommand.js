@@ -79,10 +79,11 @@ function militaryOperations() {
 
     if (OFFENSIVE_OPERATIONS) {
         let initialFilter = _.filter(INTEL, (r) => r.cached + CREEP_LIFE_TIME * 4 > Game.time && !Memory.targetRooms[r.name]
-            && r.owner && (userStrength(r.owner) <= MAX_LEVEL - 1 || findClosestOwnedRoom(r.name, true) <= DEFENSIVE_BUBBLE) && ![...FRIENDLIES, ...NO_DIRECT_ATTACKS].includes(r.owner) &&
-            !Memory.nonCombatRooms.includes(r.name) && !checkForNap(r.owner) && (ATTACK_LOCALS || THREATS.includes(r.owner) || (HOLD_SECTOR && myRoomInSectorCheck(r.name)))
+            && r.owner && userStrength(r.owner) <= MAX_LEVEL + 1 && ![...FRIENDLIES, ...NO_DIRECT_ATTACKS].includes(r.owner) &&
+            !Memory.nonCombatRooms.includes(r.name) && !checkForNap(r.owner) &&
+            (ATTACK_LOCALS || THREATS.includes(r.owner) || (HOLD_SECTOR && myRoomInSectorCheck(r.name)) || findClosestOwnedRoom(r.name, true) <= DEFENSIVE_BUBBLE)
             && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time));
-        const activeNonSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && o.type !== 'roomDenial' && !o.dDay));
+        const activeNonSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && !['roomDenial', 'stronghold'].includes(o.type) && !o.dDay));
         const activeSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && (o.type === 'roomDenial' || o.dDay)));
 
         // Standard operations
@@ -312,7 +313,7 @@ function manageResponseForces() {
 
 function manageMilitary() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
-    let activeNonSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && o.type !== 'roomDenial' && !o.dDay));
+    let activeNonSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && !['roomDenial', 'stronghold'].includes(o.type) && !o.dDay));
     let activeSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && (o.type === 'roomDenial' || o.dDay)));
     let staleMulti = 1;
 
@@ -458,7 +459,8 @@ function manageMilitary() {
         }
 
         // Skip no longer hostile rooms
-        if (target.type !== 'scout' && target.type !== 'guard' && target.type !== 'roomDenial' && INTEL[key] && INTEL[key].user && !Memory._threats.includes(INTEL[key].user)) {
+        if (target.type !== 'scout' && target.type !== 'guard' && target.type !== 'roomDenial' && INTEL[key] && INTEL[key].user
+            && !THREATS.includes(INTEL[key].user) && findClosestOwnedRoom(key, true) > DEFENSIVE_BUBBLE) {
             log.a('Canceling operation in ' + roomLink(key) + ' as ' + INTEL[key].user + ' is no longer considered a threat.', 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             INTEL[key].lastOperation = Game.time;
