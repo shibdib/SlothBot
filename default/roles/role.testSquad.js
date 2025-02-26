@@ -30,7 +30,7 @@ class RoleTestSquad {
         // Group
         this.creep.formSquadDebug();
         // Boosting
-        if (this.creep.tryToBoost([])) return true;
+        if (this.creep.tryToBoost([RANGED_ATTACK, HEAL])) return true;
         // Blinky mode
         this.creep.healInRange(this.room.hostileCreeps.length || this.room.hostileStructures.length);
     }
@@ -91,7 +91,7 @@ class RoleTestSquad {
             : [{dx: 0, dy: -1}, {dx: -1, dy: 0}, {dx: -1, dy: -1}];
         const leaderPos = leader.pos;
         const absolutePositions = squadPositions.map(offset => {
-            const pos = new RoomPosition(leaderPos.x + offset.dx, leaderPos.y + offset.dy, leaderPos.roomName);
+            const pos = new RoomPosition(Math.min(49, leaderPos.x + offset.dx), Math.min(49, leaderPos.y + offset.dy), leaderPos.roomName);
             return (pos.x < 0 || pos.x > 49 || pos.y < 0 || pos.y > 49) ? null : pos;
         }).filter(pos => pos);
         const creepPos = creep.pos;
@@ -148,8 +148,8 @@ class RoleTestSquad {
             }
         }
 
-        if (this.room.name !== 'E5N7') {
-            return this.creep.shibSquadMovement(new RoomPosition(25, 25, 'E5N7'), {range: 22});
+        if (this.room.name !== 'W8N7') {
+            return this.creep.shibSquadMovement(new RoomPosition(25, 25, 'W8N7'), {range: 22});
         } else {
             // Combat handling
             if (this.creep.handleMilitaryCreep()) return;

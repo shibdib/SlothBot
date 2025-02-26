@@ -169,7 +169,7 @@ class World {
         if (errorCount[creep.name] >= 50) {
             log.e(`${creep.name} encountered repeated errors and has been terminated.`);
             log.e(error.stack);
-            creep.suicide();
+            //creep.suicide();
         }
     }
 }

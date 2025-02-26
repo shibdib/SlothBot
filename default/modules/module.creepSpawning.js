@@ -30,37 +30,34 @@ module.exports.processBuildQueue = function (room) {
 
     for (let availableSpawn of availableSpawns) {
         let queuedBuild;
-        let body = [];  // Ensure body is always defined before use
-
-        // Try to pick a build target from the queue
+        let body = [];
         for (let topPriority of queue) {
-            // Skip if no role is defined
             const {role, other} = topPriority;
             if (!role) continue;
 
-            // Generate body and check if we can afford it
             const generatedInfo = new generator(room.level, role, room, topPriority).generateBody();
             body = generatedInfo.body;
             topPriority = generatedInfo.info;
             if (!body || !body.length) continue;
 
             const cost = global.UNIT_COST(body);
-            if (cost > room.energyCapacityAvailable) continue;  // Can't afford the creep
-            if (cost > room.energyAvailable && cost <= room.energyCapacityAvailable) return;  // Can't afford yet, exit early
+            if (cost > room.energyCapacityAvailable) continue;
+            if (cost > room.energyAvailable && cost <= room.energyCapacityAvailable) return;
 
-            queuedBuild = topPriority;  // We found a build target
+            queuedBuild = topPriority;
             break;
         }
 
-        // If a build target was found, try to spawn it
         if (queuedBuild) {
             if (!determineEnergyOrder(room)) return;
 
             const {role, operation, assignedSource, destination, other, military, misc, neededBoosts} = queuedBuild;
             const name = generateCreepName(role, room.level, operation);
 
-            // Try to spawn the creep
             const energyStructures = energyOrder[availableSpawn.room.name] ? JSON.parse(energyOrder[availableSpawn.room.name]) : undefined;
+            const moveParts = _.filter(body, (b) => b === MOVE).length;
+            const attackParts = _.filter(body, (b) => b === ATTACK).length;
+            const healParts = _.filter(body, (b) => b === HEAL).length;
             const spawnResult = availableSpawn.spawnCreep(body, name, {
                 memory: {
                     role,
@@ -71,7 +68,8 @@ module.exports.processBuildQueue = function (room) {
                     military,
                     operation,
                     misc,
-                    neededBoosts
+                    neededBoosts,
+                    canTow: moveParts >= 2 && !attackParts && !healParts
                 },
                 energyStructures
             });
@@ -88,7 +86,6 @@ module.exports.processBuildQueue = function (room) {
                 return;
             }
         } else {
-            // Try to renew a nearby creep if no build is queued
             renewNearbyCreepIfNeeded(room, availableSpawn);
         }
     }
@@ -109,7 +106,6 @@ module.exports.processBuildQueue = function (room) {
 
         if (!queuedBuild.operation) log.d(`${availableSpawn.room.name} Spawning a ${role}`);
 
-        // Remove the spawned role from the queue
         updateRoomAndGlobalQueue(room, role, queuedBuild);
     }
 
@@ -149,7 +145,7 @@ let essentialTick = {};
 module.exports.essentialCreepQueue = function (room) {
     if (essentialTick[room.name] + 10 > Game.time) return;
     essentialTick[room.name] = Game.time;
-    //if (room.name === 'E5N9' && INTEL['E5N7'] && INTEL['E5N7'].owner) queueCreepIfNeeded(room, 'testSquad', 1, 4, undefined, undefined, {waitFor: 4})
+    //if (room.name === 'W4N9') queueCreepIfNeeded(room, 'testSquad', 1, 4, undefined, undefined, {waitFor: 4})
 
     // Harvesters
     let harvesterCount = getCreepCount(room, 'stationaryHarvester');
@@ -159,7 +155,7 @@ module.exports.essentialCreepQueue = function (room) {
     if (harvesterCount) {
         let haulerPriority = PRIORITIES.hauler;
         if (room.storage) {
-            let haulerAmount = room.memory.needsHaulers && room.energyState > 1 ? 2 : 1;
+            let haulerAmount = room.level >= 7 && room.energyState ? 2 : 1;
             queueCreepIfNeeded(room, 'hauler', haulerPriority, haulerAmount, !getCreepCount(room, 'hauler'));
         }
         const shuttleAmount = room.level < 6 ? 2 : room.level === 6 ? 1 : 0;
@@ -177,7 +173,7 @@ module.exports.essentialCreepQueue = function (room) {
     let dronePriority = PRIORITIES.drone;
     let droneNumber = room.state === ROOM_STATES.BUILDING ? (10 - room.level) :
         !room.storage ? Math.max(7 - room.level, 1) : room.state === ROOM_STATES.DEFENDING && room.energyState ? 3 :
-            room.state === ROOM_STATES.UPGRADING && room.level >= BUNKER_LEVEL ? 2 : 1;
+            room.state === ROOM_STATES.UPGRADING && room.level >= BUNKER_LEVEL && room.energyState > 1 ? 2 : 1;
     queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
 
     // Upgrader
@@ -393,7 +389,7 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleReservation(room, remoteName) {
         if (room.level >= 4 && getCreepCount(undefined, 'remoteHarvester', remoteName) && (!INTEL[remoteName].reservationExpires || (INTEL[remoteName].reservationExpires - CREEP_LIFE_TIME) < Game.time) && !INTEL[remoteName].sk) {
-            const count = !room.energyState ? 1 : INTEL[remoteName].reserverCap && INTEL[remoteName].reserverCap < 3 ? INTEL[remoteName].reserverCap : INTEL[remoteName].reserverCap && INTEL[remoteName].reserverCap > 3 ? 3 : 1
+            const count = !room.energyState || room.level >= 7 ? 1 : INTEL[remoteName].reserverCap && INTEL[remoteName].reserverCap < 3 ? INTEL[remoteName].reserverCap : INTEL[remoteName].reserverCap && INTEL[remoteName].reserverCap > 3 ? 3 : 1
             queueCreepIfNeeded(room, 'reserver', PRIORITIES.reserver, count, undefined, remoteName);
         }
     }
@@ -439,7 +435,7 @@ module.exports.remoteCreepQueue = function (room) {
             const assignedHarvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === source.source);
             if (!assignedHarvester) continue;
             const assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.memory.other && c.memory.other.source === source.source);
-            const haulerCap = room.state === ROOM_STATES.STOCKPILING ? 3 : 1;
+            const haulerCap = room.state === ROOM_STATES.STOCKPILING ? 2 : 1;
             if (assignedHaulers.length >= haulerCap) continue;
             const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
             const harvestAmount = assignedHarvester.memory.other.harvestPower * (source.score * 2);

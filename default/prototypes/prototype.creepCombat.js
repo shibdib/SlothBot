@@ -793,14 +793,18 @@ Creep.prototype.formSquadDebug = function () {
     }
 
     function findGroup(creep) {
-        const currentGroups = _.find(creep.room.myCreeps, (c) => c.memory.role === creep.memory.role && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3);
+        const currentGroups = _.find(creep.room.myCreeps, (c) => c.id !== creep.id && c.memory.role === creep.memory.role && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3);
         if (currentGroups) {
             creep.memory.grouped = true;
+            creep.memory.leader = undefined;
+            creep.memory.squadMembers = undefined;
+            creep.memory.oldRole = creep.memory.role;
             creep.memory.groupLeader = currentGroups.id;
+            currentGroups.memory.grouped = true;
+            currentGroups.memory.oldRole = currentGroups.memory.role;
             currentGroups.memory.squadMembers.push(creep.id);
         } else {
             creep.memory.leader = true;
-            creep.memory.grouped = true;
             creep.memory.squadMembers = [];
         }
     }

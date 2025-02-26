@@ -6,7 +6,7 @@
 Object.defineProperty(Creep.prototype, "idle", {
     configurable: true,
     get: function () {
-        if (this.memory.idle === undefined || this.memory.grouped) return 0;
+        if (this.memory.idle === undefined) return 0;
         if (this.memory.idle <= Game.time || (this.ticksToLive >= 1485 || this.hasActiveBodyparts(CLAIM))
             || this.room.hostileCreeps.length || (INTEL[this.room.name] && INTEL[this.room.name].threatLevel)) {
             delete this.idle;
@@ -24,8 +24,7 @@ Object.defineProperty(Creep.prototype, "idle", {
         }
         if (!this.memory.idleSet) {
             const militaryCreep = this.hasActiveBodyparts(ATTACK) || this.hasActiveBodyparts(RANGED_ATTACK);
-            if ((militaryCreep && this.pos.checkForRampart()) || this.memory.partner || !this.hasActiveBodyparts(MOVE)
-                || (this.memory.other && this.memory.other.stationary)) {
+            if ((militaryCreep && this.pos.checkForRampart()) || !this.hasActiveBodyparts(MOVE)) {
                 this.memory.idleSet = true;
             } else if (this.pos.getRangeTo(this.pos.findClosestByRange(this.room.find(FIND_EXIT))) < 8) {
                 const middleOfRoom = new RoomPosition(25, 25, this.room.name);
@@ -1012,12 +1011,12 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
         this.memory.boosts.requestedBoosts = available;
     } else if (_.size(this.memory.boosts.requestedBoosts)) {
         // Handle if this creep is in a squad and needs to renew first
+        if (!this.memory.boosts.boostLab && !this.memory.hasBoosted && this.ticksToLive < CREEP_LIFE_TIME * 0.8) return this.handleRenewing();
         if (this.memory.misc && this.memory.misc.waitFor > 1) {
             let leader = this.memory.leader ? this : Game.getObjectById(this.memory.groupLeader);
-            const squadSize = leader ? leader.memory.squadMembers.length : 1;
+            const squadSize = leader ? leader.memory.squadMembers.length + 1 : 1;
             if (squadSize < this.memory.misc.waitFor) return this.idleFor(5);
         }
-        if (!this.memory.hasBoosted && this.ticksToLive < CREEP_LIFE_TIME * 0.8) return this.handleRenewing();
         for (let requestedBoost of Object.keys(this.memory.boosts.requestedBoosts)) {
             let amountNeeded = this.memory.boosts.requestedBoosts[requestedBoost]['amount'];
             let boostNeeded = this.memory.boosts.requestedBoosts[requestedBoost]['boost'];
@@ -1064,15 +1063,13 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                             return true;
                         case ERR_NOT_IN_RANGE:
                             this.say(ICONS.boost);
-                            this.shibMove(lab);
+                            this.shibMove(lab, {forceSolo: true});
                             return true;
                         case ERR_NOT_ENOUGH_RESOURCES:
                             this.say('Waiting...');
-                            //this.idleFor(5);
+                            this.idleFor(5);
                             return true;
                         default:
-                            this.memory.boosts.requestedBoosts = _.filter(this.memory.boosts.requestedBoosts, (b) => b['boost'] !== lab.memory.neededBoost);
-                            lab.memory.neededBoost = undefined;
                             this.say('Error');
                             return true;
                     }
@@ -1142,15 +1139,15 @@ Creep.prototype.handleRenewing = function () {
         if (this.room.name !== this.memory.colony) {
             this.shibMove(new RoomPosition(25, 25, this.memory.colony), {range: 22})
             return true;
-        }
-    } else return this.idleFor(5);
+        } else return this.idleFor(5);
+    }
     // Clear role to queue replacement if needed
     switch (spawn.renewCreep(this)) {
         case OK:
             break;
         case ERR_NOT_IN_RANGE:
         case ERR_BUSY:
-            this.shibMove(spawn);
+            this.shibMove(spawn, {forceSolo: true});
     }
     return true;
 };

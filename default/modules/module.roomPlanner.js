@@ -575,6 +575,9 @@ function roadBuilder(room, layout) {
     // RCL 7+ we build rampart roads
     if (room.level >= BUNKER_LEVEL && buildRoadsForRamparts(room)) return true;
 
+    // Handle redundant roads
+    //removeRedundantRoads(room, layout);
+
     function buildRoadToNeighborExits(spawn, room) {
         let neighboring = Game.map.describeExits(spawn.pos.roomName);
         if (!neighboring) return false;
@@ -601,9 +604,7 @@ function roadBuilder(room, layout) {
 
     function buildLayoutRoads(room, layout) {
         let roadStructures = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD);
-        // Flatten the positions using `map` followed by `concat`
         let allPositions = [].concat(...roadStructures.map(s => s.pos));
-
         for (let structure of allPositions) {
             let pos = new RoomPosition(room.hub.x + structure.x, room.hub.y + structure.y, room.name);
             if (buildRoad(pos)) {
@@ -729,6 +730,35 @@ function roadBuilder(room, layout) {
             return false;
         } else if (pos.createConstructionSite(STRUCTURE_ROAD) === OK) {
             return true;
+        }
+    }
+
+    function findRedundantRoads(room, layout) {
+        const roads = room.find(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_ROAD}});
+        let roadStructures = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD);
+        let allPositions = [].concat(...roadStructures.map(s => s.pos));
+        const protectedPositions = allPositions.map(structure =>
+            new RoomPosition(room.hub.x + structure.x, room.hub.y + structure.y, room.name)
+        );
+        const redundant = [];
+        for (const road of roads) {
+            if (protectedPositions.some(pos => pos.isEqualTo(road.pos))) continue;
+            if (road.pos.checkForRampart()) continue;
+            if (redundant.length >= 5) return redundant;
+            const area = room.lookAtArea(road.pos.y - 1, road.pos.x - 1, road.pos.y + 1, road.pos.x + 1, true);
+            const nearbyRoads = area.filter(obj => obj.type === 'structure' && obj.structure.structureType === STRUCTURE_ROAD);
+            if (nearbyRoads.length >= 5) { // 3 neighbors + itself
+                redundant.push(road);
+            }
+        }
+        return redundant;
+    }
+
+    function removeRedundantRoads(room) {
+        const targets = findRedundantRoads(room);
+        if (targets.length) ROAD_CACHE[room.name] = undefined;
+        for (const road of targets) {
+            road.destroy();
         }
     }
 }

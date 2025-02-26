@@ -12,7 +12,10 @@ class RoleReserver {
     }
 
     performRoleActions() {
-        if (this.room.name !== this.creep.memory.destination) {
+        if (this.creep.skSafety()) {
+            this.creep.memory.other.stationary = undefined;
+            return true;
+        } else if (this.room.name !== this.creep.memory.destination) {
             this.travel()
         } else if (!this.creep.memory.inPlace) {
             this.getToController();
@@ -38,7 +41,7 @@ class RoleReserver {
         if (!this.creep.pos.isNearTo(this.room.controller)) return this.creep.shibMove(this.room.controller); else this.creep.memory.inPlace = true;
     }
 
-    reserveController(target = undefined) {
+    reserveController() {
         switch (this.creep.reserveController(this.room.controller)) {
             case OK:
                 this.creep.memory.other.stationary = true;
@@ -46,22 +49,17 @@ class RoleReserver {
                     let signs = RESERVE_ROOM_SIGNS;
                     this.creep.signController(this.creep.room.controller, _.sample(signs));
                     this.creep.memory.signed = true;
-                    if (!INTEL[this.room.name].reserverCap) INTEL[this.room.name].reserverCap = this.room.controller.pos.countOpenTerrainAround();
                 }
-                let ticks;
-                if (this.room.controller.reservation && this.room.controller.reservation.username === MY_USERNAME) {
-                    ticks = this.room.controller.reservation['ticksToEnd'] || 0;
-                } else {
-                    ticks = 0;
-                }
-                INTEL[this.room.name].reservationExpires = Game.time + ticks;
                 break;
             case ERR_NOT_IN_RANGE:
                 this.creep.shibMove(this.room.controller);
         }
+        const ticks = this.room.controller.reservation && this.room.controller.reservation.username === MY_USERNAME ? this.room.controller.reservation.ticksToEnd : 0;
+        INTEL[this.room.name].reservationExpires = Game.time + ticks;
+        if (!INTEL[this.room.name].reserverCap) INTEL[this.room.name].reserverCap = this.room.controller.pos.countOpenTerrainAround();
     }
 
-    attackController(target = undefined) {
+    attackController() {
         switch (this.creep.attackController(this.room.controller)) {
             case OK:
                 this.creep.memory.other.stationary = true;

@@ -68,12 +68,6 @@ class ModuleBodyGenerator {
                 move = 1;
                 break;
 
-
-            case 'testSquad':
-                heal = 1;
-                rangedAttack = 1;
-                break;
-
             case 'roadBuilder':
             case 'drone':
                 if (this.role === 'roadBuilder') energyScaling = true;
@@ -199,6 +193,7 @@ class ModuleBodyGenerator {
                 break;
 
             case 'longbow':
+            case 'testSquad':
             case 'longbowSquad':
                 if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boostsRequired) {
                     let multi = 0.51;

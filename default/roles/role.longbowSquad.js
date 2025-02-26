@@ -93,7 +93,7 @@ class RoleLongbowSquad {
             : [{dx: 0, dy: -1}, {dx: -1, dy: 0}, {dx: -1, dy: -1}];
         const leaderPos = leader.pos;
         const absolutePositions = squadPositions.map(offset => {
-            const pos = new RoomPosition(leaderPos.x + offset.dx, leaderPos.y + offset.dy, leaderPos.roomName);
+            const pos = new RoomPosition(Math.min(49, leaderPos.x + offset.dx), Math.min(49, leaderPos.y + offset.dy), leaderPos.roomName);
             return (pos.x < 0 || pos.x > 49 || pos.y < 0 || pos.y > 49) ? null : pos;
         }).filter(pos => pos);
         const creepPos = creep.pos;
@@ -161,7 +161,7 @@ class RoleLongbowSquad {
 
     hasFullSquad(creep) {
         if (creep.memory.initialFormUp || !creep.memory.misc || !creep.memory.misc.waitFor) return true;
-        return creep.memory.misc.waitFor <= creep.memory.squadMembers.length + 1;
+        return creep.memory.misc.waitFor <= creep.memory.squadMembers.length + 1 || creep.ticksToLive < CREEP_LIFE_TIME * 0.5;
     }
 
     isQuadPacked(creeps, leader) {

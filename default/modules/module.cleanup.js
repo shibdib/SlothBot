@@ -8,6 +8,7 @@ module.exports.cleanup = function () {
         cleanConstructionSites();
         cleanStructureMemory();
         cleanStructures();
+        cleanPathingCaches();
     }
     if (Game.time % EST_TICKS_PER_DAY === 0) {
         // Uncomment to enable: cleanRoomIntel();
@@ -116,3 +117,20 @@ function cleanStructures() {
         structures[i].destroy();
     }
 }
+
+const cleanPathingCaches = () => {
+    const now = Game.time;
+    const routeCache = CACHE.ROUTE_CACHE;
+    const pathCache = CACHE.globalPathCache;
+
+    for (let key in routeCache) {
+        if (now - routeCache[key].tick > 500) {
+            delete routeCache[key];
+        }
+    }
+    for (let key in pathCache) {
+        if (now - pathCache[key].tick > 200) {
+            delete pathCache[key];
+        }
+    }
+};

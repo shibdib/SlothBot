@@ -393,7 +393,7 @@ class TerminalControl {
                 requestedAmount = 500;
             }
             if (requestedAmount > availableAmount) requestedAmount = availableAmount;
-            if (requestedAmount > 0) {
+            if (requestedAmount > 2500) {
                 // Send the resource
                 switch (terminal.send(resource, requestedAmount, destinationRoom)) {
                     case OK:
