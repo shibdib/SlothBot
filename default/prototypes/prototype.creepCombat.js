@@ -536,36 +536,20 @@ Creep.prototype.healInRange = function (blinky = undefined) {
     if (!this.hasActiveBodyparts(HEAL)) return false;
 
     // Find the closest injured friendly creep within healing range (3)
-    let injured = _.find(this.room.creeps, (c) =>
-        (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax
-    );
+    let injured = this.room.creeps.filter((c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax && this.pos.getRangeTo(c) <= 3);
+    if (injured.length) injured = _.min(injured, (c) => c.hits / c.hitsMax);
 
     // Heal self if needed
     if (this.hits < this.hitsMax && (!injured || (injured.hits / injured.hitsMax) < (this.hits / this.hitsMax))) {
-        this.heal(this); // Heal self if less than max health
+        this.heal(this);
         return true;
-    }
-
-    // If there's an injured creep, attempt to heal them
-    if (injured) {
-        // Find the creep that is within range for healing
-        let healCreep = _.find(this.room.creeps, (c) =>
-            (_.includes(FRIENDLIES, c.owner.username) || c.my) &&
-            c.hits < c.hitsMax &&
-            this.pos.getRangeTo(c) <= 3
-        );
-
-        // If in range to heal, heal them, otherwise use ranged heal
-        if (healCreep) {
-            if (this.pos.isNearTo(healCreep)) {
-                return this.heal(healCreep);
-            } else {
-                return this.rangedHeal(healCreep);
-            }
+    } else if (injured) {
+        if (this.pos.isNearTo(injured)) {
+            return this.heal(injured);
+        } else {
+            return this.rangedHeal(injured);
         }
-    }
-
-    if (blinky) this.heal(this);
+    } else if (blinky) this.heal(this);
 
     return false;
 };

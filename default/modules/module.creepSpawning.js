@@ -814,6 +814,7 @@ function getQueue(room) {
             const creep = queue[key];
             const body = creep.body ? creep.body : new generator(room.level, creep.role, room, creep).generateBody().body
             creep.body = body;
+            if (!body || !body.length) continue;
             const buildTime = body.length * CREEP_SPAWN_TIME;
             const sizeFactor = Math.max(1, 50 / buildTime);
             if (creep.destination && (Memory.targetRooms[creep.destination] || Memory.auxiliaryTargets[creep.destination])) {

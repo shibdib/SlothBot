@@ -7,15 +7,7 @@ const DEFAULT_HEURISTIC = 2.5;
 const STATE_STUCK = 2;
 const FLEE_RANGE = 4;
 
-const MATRIX_CACHE = {}; // Global cache
-const terrainMatrixCache = CACHE.terrainMatrixCache = {};
-const exitsMatrixCache = CACHE.exitsMatrixCache = {};
-const structureMatrixCache = CACHE.structureMatrixCache = {};
-const creepMatrixCache = CACHE.creepMatrixCache = {};
-const stationaryCreepMatrixCache = CACHE.stationaryCreepMatrixCache = {};
-const hostileMatrixCache = CACHE.hostileMatrixCache = {};
-const outsideHubMatrixCache = CACHE.outsideHubMatrixCache = {};
-const skMatrixCache = CACHE.skMatrixCache = {};
+const MATRIX_CACHE = {};
 const TOW_TRUCK_CACHE = {};
 
 function shibMove(creep, heading, options = {}, pathOnly = false) {
@@ -78,12 +70,6 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
             radius: 0.55,
             stroke: 'black'
         });
-    }
-
-    // If in an SK room and no matrix exists, reset it
-    if (INTEL[creep.room.name].sk && (!skMatrixCache[creep.room.name] || skMatrixCache[creep.room.name].tick + 150 < Game.time)) {
-        options.useCache = false;
-        creep.memory._shibMove = undefined;
     }
 
     // Store source keeper
@@ -385,11 +371,9 @@ function creepBumping(creep, pathInfo, options) {
     if (nextPosition) {
         let bumpCreep = _.find(nextPosition.lookFor(LOOK_CREEPS), (c) => c.my && !c.fatigue && (!c.memory.other || !c.memory.other.stationary));
         if (bumpCreep) {
-            // Handle duos
-            if (creep.memory.partner && bumpCreep.id === creep.memory.partner) return false;
             if (!bumpCreep.hasActiveBodyparts(MOVE)) {
                 creep.pull(bumpCreep);
-                bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
+                creep.move(creep.pos.getDirectionTo(bumpCreep));
             } else if (!creep.className && !creep.memory.trailer) {
                 bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
                 creep.move(creep.pos.getDirectionTo(bumpCreep));
@@ -656,8 +640,8 @@ function getStationaryCreepsMatrix(roomName, creep, matrix, options) {
                 matrix.set(creep.pos.x, creep.pos.y, 200);
                 if (options.squad) {
                     for (let vector of formationVectors) {
-                        const newX = creep.pos.pos.x + vector.x
-                        const newY = creep.pos.pos.y + vector.y
+                        const newX = creep.pos.x + vector.x
+                        const newY = creep.pos.y + vector.y
                         if (newX < 0 || newX > 49 || newY < 0 || newY > 49) continue;
                         const currentCost = matrix.get(newX, newY);
                         if (currentCost >= 200) continue;
