@@ -94,11 +94,11 @@ module.exports.retrievePathing = function () {
             // Paths
             if (RawMemory.segments[69] !== undefined && _.size(RawMemory.segments[69])) {
                 pathingSegmentChecked = true;
-                CACHE.globalPathCache = JSON.parse(RawMemory.segments[69]);
+                CACHE.PATH_CACHE = JSON.parse(RawMemory.segments[69]);
                 log.e("Pathing segment retrieved, restoring old path cache.", "PATHING MANAGER: ");
             } else if (RawMemory.segments[69] !== undefined && !_.size(RawMemory.segments[69])) {
                 pathingSegmentChecked = true;
-                CACHE.ROUTE_CACHE = {};
+                CACHE.PATH_CACHE = {};
                 log.e("Pathing segment retrieved and is empty, refreshing path cache.", "PATHING MANAGER: ");
             } else {
                 pathingCheckCounter++;
@@ -128,7 +128,7 @@ module.exports.retrievePathing = function () {
         }
     } else {
         pathingSegmentChecked = true;
-        global.CACHE.globalPathCache = {};
+        global.CACHE.PATH_CACHE = {};
         global.CACHE.ROUTE_CACHE = {};
         log.e("Pathing/Routing segment not accessible, resetting.", "PATHING MANAGER: ");
     }
@@ -145,10 +145,10 @@ module.exports.storePathing = function () {
     if (!lastPathingStore || lastPathingStore + CREEP_LIFE_TIME < Game.time) {
         // Handle paths
         // Check for invalid cache
-        if (!_.size(CACHE.globalPathCache)) {
-            return global.CACHE.globalPathCache = {};
+        if (!_.size(CACHE.PATH_CACHE)) {
+            return global.CACHE.PATH_CACHE = {};
         }
-        let store = JSON.parse(JSON.stringify(CACHE.globalPathCache));
+        let store = JSON.parse(JSON.stringify(CACHE.PATH_CACHE));
         try {
             if (JSON.stringify(store).length >= 75000) {
                 store = cleanStore(store);

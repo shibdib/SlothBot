@@ -121,7 +121,7 @@ function cleanStructures() {
 const cleanPathingCaches = () => {
     const now = Game.time;
     const routeCache = CACHE.ROUTE_CACHE;
-    const pathCache = CACHE.globalPathCache;
+    const pathCache = CACHE.PATH_CACHE;
 
     for (let key in routeCache) {
         if (now - routeCache[key].tick > 500) {
