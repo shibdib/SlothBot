@@ -28,12 +28,13 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
 
     let hostile = this.findClosestEnemy(barrier, ignoreBorder, guardLocation, guardRange);
 
-    if (!hostile) {
-        return this.moveToHostileConstructionSites();
-    } else {
-        // Store hostiles position in memory
+    if (hostile) {
         this.memory.target = hostile.id;
         this.memory.targetPos = JSON.stringify(hostile.pos);
+    } else {
+        this.memory.target = undefined;
+        this.memory.targetPos = undefined;
+        return false;
     }
 
     // Handle enemy on rampart
@@ -772,7 +773,7 @@ Creep.prototype.formSquad = function () {
 }
 Creep.prototype.formSquadDebug = function () {
     // Find partners
-    if (!this.memory.grouped) {
+    if (!this.memory.grouped && !this.spawning) {
         findGroup(this);
     }
 
