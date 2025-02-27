@@ -96,7 +96,7 @@ let globals = function () {
     global.DUMP_AMOUNT = 40000; // Fills buys (or if overflowing it will offload to other terminals)
 
     // Versioning for cache purposes
-    global.PATHFINDER_VERSION = 1;
+    global.PATHFINDER_VERSION = 3;
     global.INTEL_VERSION = 5;
     global.RAMPART_VERSION = 1;
 
@@ -149,6 +149,7 @@ let globals = function () {
     //Cache stuff
     global.CACHE = {};
     global.ROUTE_CACHE = CACHE.ROUTE_CACHE = {};
+    global.PATH_CACHE = CACHE.PATH_CACHE = {};
     global.ROAD_CACHE = CACHE.ROAD_CACHE = {};
     global.ROOM_CPU_ARRAY = CACHE.ROOM_CPU_ARRAY = {};
     global.ROOM_ENERGY_INCOME_ARRAY = CACHE.ROOM_ENERGY_INCOME_ARRAY = {};
