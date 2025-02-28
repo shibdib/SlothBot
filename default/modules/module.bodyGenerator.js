@@ -72,7 +72,7 @@ class ModuleBodyGenerator {
             case 'drone':
                 if (this.role === 'roadBuilder') energyScaling = true;
 
-                if (this.room.state === ROOM_STATES.STOCKPILING) {
+                if (!this.room.energyState) {
                     work = 1;
                     carry = 1;
                     break;
@@ -88,7 +88,7 @@ class ModuleBodyGenerator {
                 break;
 
             case 'upgrader':
-                if (![ROOM_STATES.UPGRADING, ROOM_STATES.ATTACKING].includes(this.room.state) && this.room.level > 6) {
+                if (!this.room.energyState && this.room.level > 6) {
                     work = 1;
                     carry = 1;
                 } else if (this.room.memory.controllerLink) {

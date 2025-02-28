@@ -32,60 +32,7 @@ class StateManager {
         // Request builders only if certain conditions are met
         this.requestBuilders(room);
 
-        // Check last state change
-        if (!room.memory.stateInformation) room.memory.stateInformation = {};
-        const stateInformation = room.memory.stateInformation;
-        const lastStateChange = stateInformation.lastChange || 0;
-        const currentState = stateInformation.roomState || 'unset';
-
-        // If we're under attack, set state to defending regardless of cooldown
-        if (room.memory.dangerousAttack) {
-            stateInformation.roomState = ROOM_STATES.DEFENDING;
-            stateInformation.lastChange = Game.time;
-            return room.memory.stateInformation = stateInformation;
-        }
-
-        // If we have important things to build, building state. Otherwise, default to stockpiling.
-        const importantBuilds = _.some(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-        if (importantBuilds) {
-            if (currentState !== ROOM_STATES.BUILDING) {
-                stateInformation.roomState = ROOM_STATES.BUILDING;
-                stateInformation.lastChange = Game.time;
-            }
-            return room.memory.stateInformation = stateInformation;
-        } else if (!importantBuilds && currentState === ROOM_STATES.BUILDING) {
-            stateInformation.roomState = ROOM_STATES.UNSET;
-            stateInformation.lastChange = 0;
-            return room.memory.stateInformation = stateInformation;
-        }
-
-        // Check if we're in cooldown period and not unset
-        if (lastStateChange + STATE_COOLDOWN > Game.time && currentState !== ROOM_STATES.UNSET) return;
-
-        // If we have no energy, set state to stockpiling
-        if (!room.energyState) {
-            stateInformation.roomState = ROOM_STATES.STOCKPILING;
-            stateInformation.lastChange = Game.time;
-            return room.memory.stateInformation = stateInformation;
-        }
-
-        // If we're rich and not attacking, upgrade
-        if (room.energyState && room.level < 8) {
-            stateInformation.roomState = ROOM_STATES.UPGRADING;
-            stateInformation.lastChange = Game.time;
-            return room.memory.stateInformation = stateInformation;
-        }
-
-        if (room.level === 8 && room.energyState > 2) {
-            stateInformation.roomState = ROOM_STATES.IDLE;
-            stateInformation.lastChange = Game.time;
-            return room.memory.stateInformation = stateInformation;
-        }
-
-        // Default to stockpiling
-        stateInformation.roomState = ROOM_STATES.STOCKPILING;
-        stateInformation.lastChange = Game.time;
-        return room.memory.stateInformation = stateInformation;
+        room.memory.stateInformation = undefined;
     }
 
     energyTracking(room) {

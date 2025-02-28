@@ -129,19 +129,6 @@ Object.defineProperty(Room.prototype, 'downgraded', {
     configurable: true
 });
 
-Object.defineProperty(Room.prototype, 'state', {
-    get: function () {
-        if (!this._roomState) {
-            if (this.memory.stateInformation) {
-                this._roomState = this.memory.stateInformation.roomState;
-            } else this._roomState = 'unset';
-        }
-        return this._roomState;
-    },
-    enumerable: false,
-    configurable: true
-});
-
 Object.defineProperty(Room.prototype, 'impassibleStructures', {
     get: function () {
         if (!this._impassibleStructures) {

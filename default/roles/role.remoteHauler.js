@@ -165,7 +165,7 @@ function dropOff(creep) {
     } else if (colony.energyState && colony.nuker &&
         colony.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
         memory.storageDestination = colony.nuker.id;
-    } else if (colony.storage && colony.state === ROOM_STATES.STOCKPILING &&
+    } else if (colony.storage && !colony.energyState &&
         colony.storage.store.getFreeCapacity() > storeSum) {
         memory.storageDestination = colony.storage.id;
     } else if (colony.terminal && colony.terminal.store.getFreeCapacity() > storeSum &&
