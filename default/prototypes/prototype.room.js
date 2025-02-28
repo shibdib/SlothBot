@@ -397,18 +397,15 @@ function getRoomResource(room, resource, unused = false) {
 }
 
 Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
-    if (!global.INTEL) global.INTEL = {};
-    const cache = global.INTEL;
     const currentTime = Game.time;
 
-    const roomIntel = cache[this.name] || {
-        cached: currentTime,
+    const roomIntel = INTEL[this.name] || {
         name: this.name,
         shardName: Game.shard.name,
         invaderCore: false
     };
+    roomIntel.lastObservation = currentTime;
 
-// More frequent checks
     if (!roomIntel.microUpdate || roomIntel.microUpdate + 50 < currentTime) {
         const structures = this.find(FIND_STRUCTURES);
         const deposits = this.find(FIND_DEPOSITS);
@@ -443,7 +440,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         }
         // Update micro update timestamp and cache
         roomIntel.microUpdate = currentTime;
-        cache[this.name] = roomIntel;
+        INTEL[this.name] = roomIntel;
     }
 
     // Get remote source data for the highest level room declaring this a remote
@@ -465,7 +462,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     }
 
     // Early exit if data is still valid
-    if (!force && cache[this.name] && cache[this.name].cached + (CREEP_LIFE_TIME * 5) > currentTime) return;
+    if (!force && INTEL[this.name] && INTEL[this.name].cached + (CREEP_LIFE_TIME * 5) > currentTime) return INTEL[this.name] = roomIntel;
 
     // Update cache timestamp
     roomIntel.cached = currentTime;
@@ -494,7 +491,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         roomIntel.safemode = controller.safeMode ? currentTime + controller.safeMode : undefined;
 
         // Hub check - only if necessary and no hostiles
-        if (!roomIntel.obstacles && roomIntel.sources === 2 && (!cache[this.name] || !cache[this.name].hubCheck) && !this.find(FIND_HOSTILE_CREEPS).length) {
+        if (!roomIntel.obstacles && roomIntel.sources === 2 && (!INTEL[this.name] || !INTEL[this.name]) && !this.find(FIND_HOSTILE_CREEPS).length) {
             roomIntel.hubCheck = roomPlanner.hubCheck(this);
         }
 
@@ -559,7 +556,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     }
 
     // Update cache
-    cache[this.name] = roomIntel;
+    INTEL[this.name] = roomIntel;
 
     function calculateDistanceToHub(room, source, targetRoom) {
         if (!Game.rooms[targetRoom] || !Game.rooms[targetRoom].memory) return Infinity;

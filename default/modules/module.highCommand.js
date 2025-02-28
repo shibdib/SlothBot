@@ -74,7 +74,6 @@ function militaryOperations() {
                 tick: Game.time,
                 type: op.type || 'guard',
                 level: op.level || 1,
-                boostsRequired: op.boosts,
                 priority: op.priority || PRIORITIES.high,
                 waveLimit: MAX_LEVEL,
                 manual: true
@@ -94,7 +93,7 @@ function militaryOperations() {
             if (!t.name) return Infinity;
             return findClosestOwnedRoom(t.name, true);
         });
-        if (stronghold && stronghold.name) setTarget(stronghold.name, 'stronghold', 1, [HEAL]);
+        if (stronghold && stronghold.name) setTarget(stronghold.name, 'stronghold', 1);
     }
 
     if (OFFENSIVE_OPERATIONS) {
@@ -140,7 +139,7 @@ function militaryOperations() {
                 if (!t.name) return Infinity;
                 return findClosestOwnedRoom(t.name, true);
             });
-            if (target && target.name) setTarget(target.name, 'roomDenial', target.towers <= 2 ? 3 : 4, [HEAL]);
+            if (target && target.name) setTarget(target.name, 'roomDenial', target.towers <= 2 ? 3 : 4);
         }
     }
 }
@@ -193,14 +192,13 @@ function auxiliaryOperations() {
     }
 }
 
-function setTarget(room, operation, level = 1, boosts = undefined, military = true) {
+function setTarget(room, operation, level = 1, military = true) {
     let cache = Memory.targetRooms || {};
     if (!military) cache = Memory.auxiliaryTargets || {};
     cache[room] = {
         tick: Game.time,
         type: operation,
         level: level,
-        boostsRequired: boosts,
         priority: getPriority(room),
         waveLimit: MAX_LEVEL
     };
@@ -789,8 +787,7 @@ function autoNuke() {
             cache[MADTarget.name] = {
                 tick: Game.time,
                 type: 'remoteDenial',
-                dDay: Game.time + NUKE_LAND_TIME,
-                observerCheck: Game.time
+                dDay: Game.time + NUKE_LAND_TIME
             };
             Memory.targetRooms = cache;
 

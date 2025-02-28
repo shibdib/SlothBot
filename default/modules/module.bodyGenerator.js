@@ -47,7 +47,7 @@ class ModuleBodyGenerator {
         if (bodyCache[cacheKey]) {
             // We cant use cached if we need to generate boosts
             if (!this.creepInfo.destination || !Memory.targetRooms[this.creepInfo.destination]
-                || !Memory.targetRooms[this.creepInfo.destination].boostsRequired) {
+                || !Memory.targetRooms[this.creepInfo.destination].boosts) {
                 // If cached, return the cached body
                 return {body: bodyCache[cacheKey], info: this.creepInfo};
             }
@@ -195,7 +195,7 @@ class ModuleBodyGenerator {
             case 'longbow':
             case 'testSquad':
             case 'longbowSquad':
-                if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boostsRequired) {
+                if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
                     let multi = 0.51;
                     if (this.creepInfo.misc && this.creepInfo.misc.waitFor === 4) multi = 0.25;
                     heal = this.checkForNeededHeal(this.room, multi);
@@ -223,7 +223,7 @@ class ModuleBodyGenerator {
             case 'siegeDuo':
                 const healerDuo = _.find(Game.creeps, (c) => c.my && c.memory.role === 'siegeDuo' && c.hasActiveBodyparts(HEAL) && !c.memory.partner);
                 if (!healerDuo) {
-                    if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boostsRequired) {
+                    if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
                         heal = this.checkForNeededHeal(this.room, 1);
                         if (!heal) break;
                     } else {
