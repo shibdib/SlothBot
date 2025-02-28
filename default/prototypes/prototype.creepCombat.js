@@ -116,9 +116,9 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
 
     // Handle attacking rooms with targets behind ramparts
     const target = hostileStructures.find((s) => s.structureType === STRUCTURE_SPAWN) || hostileStructures.find((s) => s.structureType === STRUCTURE_TOWER) || this.room.controller;
-    if (this.room.controller && !FRIENDLIES.includes(INTEL[this.room.name].user) && findBestCleaningPath(this, target).length) {
-        const destroyThese = findBestCleaningPath(this, target);
-        if (destroyThese[0]) return updateTargetAndReturn(this, destroyThese[0].structure);
+    if (target && !FRIENDLIES.includes(INTEL[this.room.name].user) && findBestCleaningPath(this, target).length) {
+        const destroyThese = findBestCleaningPath(this, target)[0];
+        if (destroyThese) return updateTargetAndReturn(this, destroyThese);
     }
 
     let enemy = findClosest(hostileCreeps, (c) =>
@@ -816,7 +816,7 @@ function findBestCleaningPath(creep, target) {
     room.find(FIND_STRUCTURES).forEach(structure => {
         if (structure.structureType === STRUCTURE_RAMPART || structure.structureType === STRUCTURE_WALL) {
             // Calculate the cost based on hits, higher hits = higher cost
-            let cost = Math.floor(structure.hits / 10000); // Adjust this divisor as needed
+            let cost = Math.floor(structure.hits / 250000); // Adjust this divisor as needed
             // Cap the cost to prevent impassable barriers
             cost = Math.min(cost, 255); // 255 is the max cost in a CostMatrix
             costMatrix.set(structure.pos.x, structure.pos.y, cost);
@@ -836,20 +836,30 @@ function findBestCleaningPath(creep, target) {
         maxOps: 2000,
     };
     const path = PathFinder.search(creep.pos, {pos: target.pos, range: 1}, pathOptions);
-    let structuresOnPath = [];
-    if (path.path.length > 0) {
-        structuresOnPath = path.path.reduce((acc, pos) => {
-            let structures = room.lookForAt(LOOK_STRUCTURES, pos.x, pos.y);
-            if (creep.memory.grouped) structures.concat(room.lookForAt(LOOK_STRUCTURES, pos.x - 1, pos.y)).concat(room.lookForAt(LOOK_STRUCTURES, pos.x, pos.y + 1)).concat(room.lookForAt(LOOK_STRUCTURES, pos.x + 1, pos.y + 1));
-            structures.forEach(structure => {
-                if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
-                    acc.push({pos: structure.pos, structure: structure});
+    const structures = room.find(FIND_STRUCTURES);
+    const checked = new Set();
+    const impassableStructures = [];
+
+    // Check each position in path and range 1 around it
+    for (const pathPos of path.path) {
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                const x = pathPos.x + dx;
+                const y = pathPos.y + dy;
+                if (x < 0 || x > 49 || y < 0 || y > 49) continue;
+                const posKey = `${x},${y}`;
+                if (checked.has(posKey)) continue;
+                checked.add(posKey);
+                const structs = structures.filter(s => s.pos.x === x && s.pos.y === y);
+                for (const struct of structs) {
+                    if (OBSTACLE_OBJECT_TYPES.includes(struct.structureType) || struct.structureType === STRUCTURE_RAMPART) {
+                        impassableStructures.push(struct);
+                    }
                 }
-            });
-            return acc;
-        }, []);
+            }
+        }
     }
-    return structuresOnPath;
+    return impassableStructures;
 }
 
 function getAssignedRampart(creep, target = undefined) {
