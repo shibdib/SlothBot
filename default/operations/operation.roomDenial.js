@@ -34,9 +34,12 @@ Creep.prototype.denyRoom = function () {
         highCommand.operationSustainability(this.room);
     }
 
-    // If not in the destination room, move there
-    if (this.room.name !== this.memory.destination) {
-        return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
+    // Handle staging and moving to destination
+    if (!this.memory.misc || !this.memory.misc.stagingRoom) this.memory.misc.stagingRoom = INTEL[this.memory.destination].stagingRoom || this.memory.destination;
+    let destination = this.memory.misc && this.memory.misc.stagingRoom && !this.memory.misc.staged ? this.memory.misc.stagingRoom : this.memory.destination;
+    if (this.room.name !== destination) {
+        if (this.memory.misc && this.memory.misc.stagingRoom && this.memory.misc.stagingRoom === this.room.name) return this.memory.misc.staged = true;
+        return this.shibMove(new RoomPosition(25, 25, destination), {range: 23});
     }
 
     // Combat handling
