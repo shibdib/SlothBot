@@ -1054,9 +1054,10 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
             }
             let lab = Game.getObjectById(this.memory.boosts.boostLab);
             if (lab) {
+                this.say(1)
                 // Verify the body parts are boosted
                 const targetParts = this.body.find((p) => p.type === boostType && !p.boost);
-                if (!targetParts) {
+                if (!targetParts && this.memory.hasBoosted && this.memory.hasBoosted.includes(lab.memory.neededBoost)) {
                     this.memory.boosts.requestedBoosts = _.filter(this.memory.boosts.requestedBoosts, (b) => b['boost'] !== lab.memory.neededBoost);
                     lab.memory.amount -= amountNeeded;
                     // Check if other creeps have this lab queued up for this boost
@@ -1065,11 +1066,12 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                     this.say(ICONS.greenCheck);
                     return true;
                 } else {
+                    this.say(12)
                     lab.say(lab.memory.neededBoost);
                     if (lab.mineralType === lab.memory.neededBoost && lab.store[RESOURCE_ENERGY] && lab.mineralAmount >= lab.memory.amount) {
                         switch (lab.boostCreep(this)) {
                             case OK:
-                                this.memory.hasBoosted = true;
+                                if (!this.memory.hasBoosted) this.memory.hasBoosted = [lab.memory.neededBoost]; else this.memory.hasBoosted.push(lab.memory.neededBoost);
                                 this.say(ICONS.testFinished);
                                 return true;
                             case ERR_NOT_ENOUGH_RESOURCES:
