@@ -200,7 +200,7 @@ class LabManager {
                 this.primaryLabs[room.name] = hubLabs.map(lab => lab.id);
             }
         }
-        return this.primaryLabs[room.name].map(id => Game.getObjectById(id));
+        if (this.primaryLabs[room.name]) return this.primaryLabs[room.name].map(id => Game.getObjectById(id));
     }
 }
 

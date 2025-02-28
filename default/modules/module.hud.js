@@ -53,6 +53,7 @@ class HUD {
     }
 
     average(arr) {
+        if (!arr) return 0;
         return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
     }
 
