@@ -36,14 +36,16 @@ class RoleLabTech {
         if (this.droppedResources()) return;
         // Empty factories
         if (this.emptyFactory()) return;
+        // Power Manager
+        if (this.powerManager()) return;
+        // Get factory orders
+        if (this.factorySupplies()) return;
         // Handle terminal goods
         if (this.terminalControl()) return;
         // Handle storage goods
         if (this.storageControl()) return;
         // Check nuker for ghodium
         if (this.nukeSupplies()) return;
-        // Get factory orders
-        if (this.factorySupplies()) return;
         // Get lab orders
         if (this.labSupplies()) return;
         // Empty labs
@@ -173,22 +175,18 @@ class RoleLabTech {
                 else if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
                     (this.room.storage && (_.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()))) {
                     storeTarget = 'drop';  // Discard resources if both are full
-                }
-                // Handle various resource storage scenarios
-                else if (this.room.storage && _.sum(this.room.storage.store) < this.room.storage.store.getCapacity()) {
-                    if (this.room.terminal && _.sum(this.room.terminal.store) >= 0.90 * this.room.terminal.store.getCapacity()) storeTarget = this.room.storage;
-                    else if (resourceType === RESOURCE_POWER) storeTarget = terminal;
-                    else if (resourceType === RESOURCE_ENERGY && terminal.store[resourceType] < TERMINAL_ENERGY_BUFFER) storeTarget = terminal;
-                    else if (resourceType === RESOURCE_ENERGY && !this.room.energyState) storeTarget = this.room.storage;
-                    else if (resourceType === RESOURCE_ENERGY) storeTarget = terminal;
-                    else if (BASE_MINERALS.includes(resourceType) && this.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = this.room.storage;
-                    else if (COMPRESSED_COMMODITIES.includes(resourceType) && terminal.store[resourceType] >= 10000) storeTarget = this.room.storage;
-                    else if (ALL_COMMODITIES.includes(resourceType)) storeTarget = terminal;
-                    else if (LAB_PRIORITY.includes(resourceType) && this.room.storage.store[resourceType] < BOOST_AMOUNT(terminal.room) * 2) storeTarget = this.room.storage;
-                    else if (ALL_BOOSTS.includes(resourceType) && this.room.storage.store[resourceType] < BOOST_AMOUNT(terminal.room)) storeTarget = this.room.storage;
-                    else if (ALL_BOOSTS.includes(resourceType)) storeTarget = terminal;
-                    else if (!BASE_MINERALS.includes(resourceType) && !ALL_COMMODITIES.includes(resourceType) && this.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = this.room.storage;
-                }
+                } else if (this.room.terminal && _.sum(this.room.terminal.store) >= 0.90 * this.room.terminal.store.getCapacity()) storeTarget = this.room.storage;
+                else if (resourceType === RESOURCE_POWER) storeTarget = terminal;
+                else if (resourceType === RESOURCE_ENERGY && terminal.store[resourceType] < TERMINAL_ENERGY_BUFFER) storeTarget = terminal;
+                else if (resourceType === RESOURCE_ENERGY && !this.room.energyState) storeTarget = this.room.storage;
+                else if (resourceType === RESOURCE_ENERGY) storeTarget = terminal;
+                else if (BASE_MINERALS.includes(resourceType) && this.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = this.room.storage;
+                else if (COMPRESSED_COMMODITIES.includes(resourceType) && terminal.store[resourceType] >= 10000) storeTarget = this.room.storage;
+                else if (ALL_COMMODITIES.includes(resourceType)) storeTarget = terminal;
+                else if (LAB_PRIORITY.includes(resourceType) && this.room.storage.store[resourceType] < BOOST_AMOUNT(terminal.room) * 2) storeTarget = this.room.storage;
+                else if (ALL_BOOSTS.includes(resourceType) && this.room.storage.store[resourceType] < BOOST_AMOUNT(terminal.room)) storeTarget = this.room.storage;
+                else if (ALL_BOOSTS.includes(resourceType)) storeTarget = terminal;
+                else if (!BASE_MINERALS.includes(resourceType) && !ALL_COMMODITIES.includes(resourceType) && this.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = this.room.storage;
 
                 // Handle resource drop if storage is full
                 if (storeTarget === 'drop') {
@@ -400,6 +398,22 @@ class RoleLabTech {
         }
 
         return false; // No action needed
+    }
+
+    powerManager() {
+        const powerSpawn = this.room.impassibleStructures.find((s) => s.structureType === STRUCTURE_POWER_SPAWN);
+        if (!powerSpawn || !this.room.energyState) return false;
+        if (powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > POWER_SPAWN_ENERGY_CAPACITY * 0.5) {
+            this.creep.memory.resourceNeeded = RESOURCE_ENERGY;
+            this.creep.memory.amountNeeded = powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY);
+            this.creep.memory.deliverTo = powerSpawn.id;
+            return true;
+        } else if (this.room.store(RESOURCE_POWER) && powerSpawn.store.getFreeCapacity(RESOURCE_POWER)) {
+            this.creep.memory.resourceNeeded = RESOURCE_POWER;
+            this.creep.memory.amountNeeded = powerSpawn.store.getFreeCapacity(RESOURCE_POWER);
+            this.creep.memory.deliverTo = powerSpawn.id;
+            return true;
+        }
     }
 
     mineralHauler() {
