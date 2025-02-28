@@ -20,7 +20,10 @@ Creep.prototype.operationManager = function () {
 };
 
 StructureObserver.prototype.operationPlanner = function (room) {
-    return forwardObserver(room);
+    if (!room) return;
+    room.invaderCheck();
+    room.cacheRoomIntel();
+    if (Memory.targetRooms[room.name]) return operationPlanner(room);
 };
 
 function operationPlanner(room, creep = undefined) {
@@ -28,11 +31,14 @@ function operationPlanner(room, creep = undefined) {
     if (Memory.targetRooms[room.name]) {
         forwardObserver(room);
         if (creep && !creep.moveToHostileConstructionSites(false, true)) creep.idleFor(25);
+    } else {
+        room.cacheRoomIntel();
     }
 }
 
 // Observer tasks
 function forwardObserver(room) {
+    room.cacheRoomIntel();
     const targetRoom = Memory.targetRooms[room.name];
     if (!targetRoom) return false;
 
@@ -69,8 +75,7 @@ function updateRoomSafemode(room) {
         ...targetRoom,
         tick,
         type: 'remoteDenial',
-        dDay: tick + room.controller.safeMode,
-        observerCheck: tick
+        dDay: tick + room.controller.safeMode
     };
     Memory.targetRooms[room.name] = targetRoom;
 }
@@ -105,10 +110,10 @@ function handleScoutOperation(room) {
     const towers = room.structures.filter((s) => s.structureType === STRUCTURE_TOWER);
     if (INTEL[room.name].sk && towers.length) {
         Memory.targetRooms[room.name].type = 'stronghold';
-        Memory.targetRooms[room.name].boostsRequired = [HEAL];
+        Memory.targetRooms[room.name].boosts = [HEAL];
     } else if (INTEL[room.name].owner && (!INTEL[room.name].towers || towers.length <= 3)) {
         Memory.targetRooms[room.name].type = 'roomDenial';
-        if (towers.length) Memory.targetRooms[room.name].boostsRequired = [HEAL];
+        if (towers.length) Memory.targetRooms[room.name].boosts = [HEAL];
         log.a(`Room ${roomLink(room.name)} converted to room denial operation.`, 'HIGH COMMAND: ');
     } else if (INTEL[room.name].owner && INTEL[room.name].towers > 3) {
         Memory.targetRooms[room.name].type = 'remoteDenial';
@@ -167,5 +172,5 @@ function updateRoomLevel(room) {
     } else {
         targetRoom.level = 0;
     }
-    if (!towers.length) targetRoom.boostsRequired = undefined;
+    if (!towers.length) targetRoom.boosts = undefined;
 }
