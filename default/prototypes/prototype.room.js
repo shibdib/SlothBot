@@ -528,6 +528,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     } else {
         // Clear controller-related data if no controller
         delete roomIntel.level;
+        delete roomIntel.attackDirection;
         delete roomIntel.owner;
         delete roomIntel.reservation;
         delete roomIntel.safemode;
@@ -626,7 +627,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 
     function determineBestAttackRoute(room) {
         const roomExits = Object.values(Game.map.describeExits(room.name));
-        const barriers = room.impassibleStructures.filter(s => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
+        const barriers = room.structures.filter(s => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
         const viableExits = roomExits.filter(exit => !INTEL[exit] || !INTEL[exit].owner || INTEL[exit].owner === MY_USERNAME);
         if (viableExits.length > 0) {
             let bestExit = room.findExitTo(viableExits[0]);
@@ -635,7 +636,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             for (const exit of viableExits) {
                 const exitDirection = room.findExitTo(exit);
                 const exitTiles = room.find(exitDirection);
-                exitTiles.filter((t) => t.getRangeTo(t.findClosestByRange(barriers)) <= 2);
+                exitTiles.filter((t) => t.getRangeTo(t.findClosestByRange(barriers)) > 2);
                 if (!exitTiles.length) continue;
                 const exitTile = exitTiles[0];
                 const attackRoute = room.findPath(room.controller.pos, exitTile, {
@@ -652,7 +653,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
                 })
                 if (barrierCount <= lowestBarrierCount) {
                     lowestBarrierCount = barrierCount;
-                    bestExit = exitDirection;
+                    bestExit = Object.values(Game.map.describeExits(room.name))[exitDirection];
                 }
             }
             return bestExit;
