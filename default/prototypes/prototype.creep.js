@@ -489,6 +489,18 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
 
+    // Nuker
+    const nuker = this.room.impassibleStructures.find((s) => s.structureType === STRUCTURE_NUKER && s.store.getFreeCapacity(RESOURCE_ENERGY));
+    if (!targets.length && nuker && this.room.energyState) {
+        targets.push(nuker);
+    }
+
+    // Terminal
+    const terminalAmount = !!this.room.energyState ? TERMINAL_ENERGY_BUFFER * 10 : TERMINAL_ENERGY_BUFFER;
+    if (!targets.length && this.room.terminal && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < terminalAmount) {
+        targets.push(this.room.terminal);
+    }
+
     // Storage
     if (!targets.length && this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
         // Check if we pulled from this and idle for a bit if so

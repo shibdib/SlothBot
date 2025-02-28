@@ -17,15 +17,25 @@ class LabManager {
     run(room) {
         const labs = room.structures.filter(s => s.structureType === STRUCTURE_LAB);
         if (!labs.length) return;
-        if (!lastClean[room.name] || lastClean[room.name] + 2000 < Game.time) {
-            lastClean[room.name] = Game.time;
-            this.cleanLabs(labs);
-        }
         if (!runNext[room.name] || runNext[room.name] < Game.time) {
             this.manageBoostProduction(room);
             this.manageActiveLabs(room);
             if (!runNext[room.name] || runNext[room.name] < Game.time) runNext[room.name] = Game.time + 15;
         }
+    }
+
+    manageBoostProduction(room) {
+        if (room.memory.producingBoost) return;
+        let hub = this.getLabHub(room);
+        if (!hub) return;
+        let secondaryLabs = room.impassibleStructures.filter(lab =>
+            lab.structureType === STRUCTURE_LAB && !this.primaryLabs[room.name].includes(lab.id)
+        );
+        if (secondaryLabs.length < 1 || hub.length < 2) return;
+        let boost = this.findBoostToProduce(room, secondaryLabs);
+        if (!boost) return;
+
+        this.setupProduction(hub, boost, room);
     }
 
     manageActiveLabs(room) {
@@ -77,23 +87,6 @@ class LabManager {
         this.primaryLabs[room.name] = undefined;
         goOverCap[this.room.name] = undefined;
         this.hub.forEach(lab => lab.memory = undefined);
-    }
-
-    manageBoostProduction(room) {
-        if (room.memory.producingBoost) return;
-        let hub = this.getLabHub(room);
-        if (!hub) return;
-
-        let secondaryLabs = room.impassibleStructures.filter(lab =>
-            lab.structureType === STRUCTURE_LAB && !this.primaryLabs[room.name].includes(lab.id)
-        );
-
-        if (secondaryLabs.length < 1 || hub.length < 2) return;
-
-        let boost = this.findBoostToProduce(room, secondaryLabs);
-        if (!boost) return;
-
-        this.setupProduction(hub, boost, room);
     }
 
     findBoostToProduce(room) {
@@ -194,12 +187,18 @@ class LabManager {
         if (!this.primaryLabs[room.name]) {
             if (!room.memory.labHub) return;
             let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
-            let labs = room.impassibleStructures.filter(lab =>
+            // Clear a bad hub if we have labs but not at the hub
+            const labs = room.impassibleStructures.filter((s) => s.my && s.structureType === STRUCTURE_LAB);
+            const hubLabs = labs.filter(lab =>
                 lab.structureType === STRUCTURE_LAB &&
                 ((lab.pos.x === labHub.x && lab.pos.y === labHub.y) ||
                     (lab.pos.x === labHub.x && lab.pos.y === labHub.y + 1))
             );
-            this.primaryLabs[room.name] = labs.map(lab => lab.id);
+            if (labs.length && !hubLabs.length) {
+                return room.memory.labHub = undefined;
+            } else if (hubLabs.length) {
+                this.primaryLabs[room.name] = hubLabs.map(lab => lab.id);
+            }
         }
         return this.primaryLabs[room.name].map(id => Game.getObjectById(id));
     }

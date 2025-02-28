@@ -27,6 +27,7 @@ class RoleLabTech {
         if (this.creep.memory.resourceNeeded) return this.getResource();
         // Deliver Boosts
         if (this.boostDelivery()) return;
+        // Make sure labs have energy
         if (this.labEnergy()) return;
         // Empty labs with wrong materials
         if (this.cleanLab()) return;
@@ -40,14 +41,14 @@ class RoleLabTech {
         if (this.powerManager()) return;
         // Get factory orders
         if (this.factorySupplies()) return;
-        // Handle terminal goods
-        if (this.terminalControl()) return;
-        // Handle storage goods
-        if (this.storageControl()) return;
         // Check nuker for ghodium
         if (this.nukeSupplies()) return;
         // Get lab orders
         if (this.labSupplies()) return;
+        // Handle terminal goods
+        if (this.terminalControl()) return;
+        // Handle storage goods
+        if (this.storageControl()) return;
         // Empty labs
         if (this.emptyLab()) return;
         this.creep.idleFor(20);
@@ -69,10 +70,10 @@ class RoleLabTech {
             }
 
             // Check terminal, storage, factory, containers, and labs in order
-            else if (this.room.terminal && this.room.terminal.store[this.creep.memory.resourceNeeded]) {
-                storageSite = this.room.terminal;
-            } else if (this.room.storage && this.room.storage.store[this.creep.memory.resourceNeeded]) {
+            else if (this.room.storage && this.room.storage.store[this.creep.memory.resourceNeeded]) {
                 storageSite = this.room.storage;
+            } else if (this.room.terminal && this.room.terminal.store[this.creep.memory.resourceNeeded]) {
+                storageSite = this.room.terminal;
             } else if (this.room.factory && this.room.factory.store[this.creep.memory.resourceNeeded] && this.creep.memory.deliverTo !== this.room.factory.id) {
                 storageSite = this.room.factory;
             } else if (_.find(this.room.structures, (s) =>
@@ -329,10 +330,12 @@ class RoleLabTech {
             for (let resource of Object.keys(factory.store)) {
                 // Check if the resource is not part of the components needed for production
                 if (!COMMODITIES[factory.memory.producing].components[resource]) {
-                    this.creep.memory.resourceNeeded = resource;
-                    this.creep.memory.withdrawFrom = factory.id;
-                    this.creep.memory.empty = true;
-                    return true;
+                    if (factory.memory.producing !== resource || factory.store.getFreeCapacity(resource) < FACTORY_CAPACITY * 0.5) {
+                        this.creep.memory.resourceNeeded = resource;
+                        this.creep.memory.withdrawFrom = factory.id;
+                        this.creep.memory.empty = true;
+                        return true;
+                    }
                 }
             }
         }

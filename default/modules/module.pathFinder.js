@@ -367,7 +367,12 @@ function creepBumping(creep, pathInfo, options) {
     if (nextPosition) {
         let bumpCreep = _.find(nextPosition.lookFor(LOOK_CREEPS), (c) => c.my && !c.fatigue && (!c.memory.other || !c.memory.other.stationary));
         if (bumpCreep) {
-            if (!bumpCreep.hasActiveBodyparts(MOVE)) {
+            if (creep.memory.trailer) {
+                const trailer = Game.getObjectById(creep.memory.trailer);
+                if (trailer && trailer.pos.isNearTo(creep)) {
+                    bumpCreep.moveRandom();
+                }
+            } else if (!bumpCreep.hasActiveBodyparts(MOVE)) {
                 creep.pull(bumpCreep);
                 creep.move(creep.pos.getDirectionTo(bumpCreep));
             } else if (!creep.className && !creep.memory.trailer) {
