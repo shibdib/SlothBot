@@ -65,10 +65,10 @@ class RoleStationaryHarvester {
                     // Check if the link is still good
                     if (!this.creep.memory.other.linkCheck && container && source.memory.link) {
                         const link = Game.getObjectById(source.memory.link);
-                        if (!link || !link.pos.isNearTo(container)) {
+                        if (!link || !link.pos.isNearTo(container) || !link.isActive()) {
                             if (link) link.destroy();
                             source.memory.link = undefined;
-                        }
+                        } else this.creep.memory.link = link.id;
                         this.creep.memory.other.linkCheck = true;
                     }
                     // If we have a link and container, empty the container of overflow

@@ -162,8 +162,8 @@ module.exports.essentialCreepQueue = function (room) {
             let haulerAmount = room.level >= 7 && room.energyState ? 2 : 1;
             queueCreepIfNeeded(room, 'hauler', haulerPriority, haulerAmount, !getCreepCount(room, 'hauler'));
         }
-        const shuttleAmount = room.level < 6 ? 2 : room.level === 6 ? 1 : 0;
-        queueCreepIfNeeded(room, 'shuttle', PRIORITIES.hauler + getCreepCount(room, 'shuttle'), shuttleAmount);
+        const harvestersWithoutLink = room.myCreeps.filter(c => c.memory.role === 'stationaryHarvester' && c.memory.other.linkCheck && !c.memory.link);
+        queueCreepIfNeeded(room, 'shuttle', PRIORITIES.hauler + getCreepCount(room, 'shuttle'), harvestersWithoutLink.length);
     }
 
     // Local Responder (Defenders)
