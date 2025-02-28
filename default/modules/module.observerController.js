@@ -34,7 +34,7 @@ class ObserverControl {
                 observer.operationPlanner(Game.rooms[Memory.observeRoom]);
             }
             if (Memory.observeRoom === observedRooms[roomName]) {
-                console.log(`${roomName} is done observing ${Memory.observeRoom} and will now observe randomly.`);
+                log.a(`${roomName} is done observing ${Memory.observeRoom} and will now observe randomly.`);
                 Memory.observeRoom = undefined;
             }
             observedRooms[roomName] = undefined;
@@ -44,11 +44,6 @@ class ObserverControl {
     }
 
     selectObservationTarget(roomName, currentTime) {
-        // Check for manual observation request
-        if (Memory.observeRoom && Game.map.getRoomLinearDistance(roomName, Memory.observeRoom) <= OBSERVER_RANGE) {
-            return Memory.observeRoom;
-        }
-
         // Strategic observation
         return this.findStrategicTarget(roomName, currentTime) || this.findRandomTarget(roomName, currentTime);
     }
@@ -62,29 +57,30 @@ class ObserverControl {
     }
 
     findRandomTarget(roomName, currentTime) {
-        const [x, y] = roomName.match(/\d+/g).map(Number);
-        const [eW, nS] = roomName.replace(/[0-9]/g, '').split('');
+        const [, eW, xStr, nS, yStr] = roomName.match(/^([EW])(\d+)([NS])(\d+)$/);
+        const x = (eW === 'W' ? -1 : 1) * (xStr | 0);
+        const y = (nS === 'N' ? -1 : 1) * (yStr | 0);
+        const timeThreshold = currentTime - 50;
+        let validCount = 0;
+        const len = VALID_OFFSETS.length;
+        const validIndices = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            const [dx, dy] = VALID_OFFSETS[i];
+            const newX = x + dx;
+            const newY = y + dy;
+            const room = `${DIRS.x[newX >= 0]}${Math.abs(newX)}${DIRS.y[newY >= 0]}${Math.abs(newY)}`;
 
-        for (let attempts = 0; attempts < 10; attempts++) {
-            // Generate a random point within OBSERVER_RANGE
-            const offsetX = Math.floor(Math.random() * (2 * OBSERVER_RANGE + 1)) - OBSERVER_RANGE;
-            const offsetY = Math.floor(Math.random() * (2 * OBSERVER_RANGE + 1)) - OBSERVER_RANGE;
-
-            const newX = x + offsetX;
-            const newY = y + offsetY;
-
-            const directionX = newX < 0 ? 'W' : 'E';
-            const directionY = newY < 0 ? 'N' : 'S';
-            const targetRoom = `${directionX}${Math.abs(newX)}${directionY}${Math.abs(newY)}`;
-
-            // Check if the room is within range, not recently observed, and not closed
-            if (Game.map.getRoomLinearDistance(roomName, targetRoom) <= OBSERVER_RANGE &&
-                (!INTEL[targetRoom] || INTEL[targetRoom].tick > currentTime - 50) &&
-                roomStatus(targetRoom) !== 'closed') {
-                return targetRoom;
+            const intel = INTEL[room];
+            if ((!intel || intel.tick <= timeThreshold) && roomStatus(room) !== 'closed') {
+                validIndices[validCount++] = i;
             }
         }
-        return null; // No valid random target found
+        if (validCount === 0) return null;
+        const chosenIdx = validIndices[Math.random() * validCount | 0];
+        const [dx, dy] = VALID_OFFSETS[chosenIdx];
+        const newX = x + dx;
+        const newY = y + dy;
+        return `${DIRS.x[newX >= 0]}${Math.abs(newX)}${DIRS.y[newY >= 0]}${Math.abs(newY)}`;
     }
 
     observeRoom(observer, roomName, targetRoom, currentTime) {
@@ -92,6 +88,20 @@ class ObserverControl {
         observedRooms[roomName] = targetRoom;
         if (Memory.targetRooms[targetRoom]) {
             Memory.targetRooms[targetRoom].observerCheck = currentTime;
+        }
+    }
+}
+
+const DIRS = {
+    x: {true: 'E', false: 'W'},
+    y: {true: 'S', false: 'N'}
+};
+
+const VALID_OFFSETS = [];
+for (let dx = -OBSERVER_RANGE; dx <= OBSERVER_RANGE; dx++) {
+    for (let dy = -OBSERVER_RANGE; dy <= OBSERVER_RANGE; dy++) {
+        if (dx * dx + dy * dy <= OBSERVER_RANGE * OBSERVER_RANGE) {
+            VALID_OFFSETS.push([dx, dy]);
         }
     }
 }
