@@ -28,7 +28,7 @@ class RoleTestSquad {
 
     housekeeping() {
         // Group
-        this.creep.formSquadDebug();
+        this.creep.formSquad();
         // Boosting
         if (this.creep.tryToBoost([])) return true;
         // Blinky mode

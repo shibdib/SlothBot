@@ -30,7 +30,7 @@ class RoleLongbowSquad {
         // Group
         this.creep.formSquad();
         // Boosting
-        if (this.creep.tryToBoost([])) return true;
+        if (this.creep.tryToBoost([HEAL])) return true;
         // Blinky mode
         this.creep.healInRange(this.room.hostileCreeps.length || this.room.hostileStructures.length);
     }
@@ -40,6 +40,8 @@ class RoleLongbowSquad {
         creep.attackInRange();
 
         // Check squad members
+        if (this.squadRenewal(creep)) return true;
+        ;
         for (const member of creep.memory.squadMembers) {
             const memberCreep = Game.getObjectById(member);
             if (!memberCreep) creep.memory.squadMembers = creep.memory.squadMembers.filter((c) => c !== member);
@@ -76,7 +78,7 @@ class RoleLongbowSquad {
             if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
                 const partnerTarget = Game.getObjectById(leader.memory.target);
                 if (partnerTarget && this.creep.pos.getRangeTo(partnerTarget) <= 3) {
-                    this.creep.rangedAttack(partnerTarget);
+                    if (this.creep.pos.isNearTo(partnerTarget)) this.creep.rangedMassAttack(); else this.creep.rangedAttack(partnerTarget);
                 }
             }
         }
@@ -163,7 +165,6 @@ class RoleLongbowSquad {
         if (creep.memory.initialFormUp || !creep.memory.misc || !creep.memory.misc.waitFor) return true;
         // Check if any squadmember needs to renew
         const squad = creep.memory.squadMembers.map(id => Game.getObjectById(id));
-        if (squad.some(c => c && !c.memory.hasBoosted && c.handleRenewing(CREEP_LIFE_TIME * 0.8))) return _.min(squad, c => c.ticksToLive).handleRenewing(CREEP_LIFE_TIME * 0.8);
         if (squad.some(c => !c.memory.boostAttempt)) return false;
         return creep.memory.misc.waitFor <= creep.memory.squadMembers.length + 1;
     }
@@ -183,6 +184,12 @@ class RoleLongbowSquad {
     nearDestination(leader) {
         if (!leader.memory.destination) return false;
         return Game.map.getRoomLinearDistance(this.creep.room.name, leader.memory.destination) <= 1;
+    }
+
+    squadRenewal(creep) {
+        if (!creep.memory.hasBoosted && !creep.boostAttempt && creep.handleRenewing(CREEP_LIFE_TIME * 0.8)) return creep.handleRenewing(CREEP_LIFE_TIME * 0.8);
+        const squad = creep.memory.squadMembers.map(id => Game.getObjectById(id));
+        if (squad.some(c => c && !c.memory.hasBoosted && !c.memory.boostAttempt && c.handleRenewing(CREEP_LIFE_TIME * 0.8))) return _.min(squad, c => c.ticksToLive).handleRenewing(CREEP_LIFE_TIME * 0.8);
     }
 
     findStaging(creep) {

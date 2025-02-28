@@ -91,11 +91,17 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
     if (this.memory.target) {
         let oldTarget = Game.getObjectById(this.memory.target);
         const armedHostile = _.find(hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || (MY_ROOMS.includes(this.room.name) && c.hasActiveBodyparts(WORK)));
-        if (oldTarget && oldTarget instanceof Structure && !armedHostile) {
+        if (oldTarget && oldTarget instanceof Structure && !armedHostile && 1 > 2) {
             return oldTarget;
         } else {
             this.memory.target = undefined;
         }
+    }
+
+    // Handle a blocking creep for squads
+    if (this.memory.blockingCreep) {
+        const blocker = Game.getObjectById(this.memory.blockingCreep);
+        if (blocker) return blocker;
     }
 
     if (!hostileCreeps.length && !hostileStructures.length) return undefined;
@@ -137,6 +143,24 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
     );
     if (enemy) return updateTargetAndReturn(this, enemy);
 
+    enemy = findClosest(hostileStructures, (s) =>
+        s.structureType === STRUCTURE_TOWER &&
+        s.isActive()
+    );
+    if (enemy) return updateTargetAndReturn(this, enemy);
+
+    enemy = findClosest(hostileStructures, (s) =>
+        s.structureType === STRUCTURE_SPAWN &&
+        s.isActive()
+    );
+    if (enemy) return updateTargetAndReturn(this, enemy);
+
+    enemy = findClosest(hostileStructures, (s) =>
+        isRampartChecked(s) &&
+        s.isActive()
+    );
+    if (enemy) return updateTargetAndReturn(this, enemy);
+
     enemy = findClosest(hostileCreeps, (c) =>
         !isArmedCreep(c) &&
         (!ignoreBorder || (c.pos.x > 0 && c.pos.x < 49 && c.pos.y > 0 && c.pos.y < 49)) &&
@@ -144,12 +168,6 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
         !c.pos.checkForRampart()
     );
     if (enemy && !structuresOnly) return updateTargetAndReturn(this, enemy);
-
-    enemy = findClosest(hostileStructures, (s) =>
-        isRampartChecked(s) &&
-        s.isActive()
-    );
-    if (enemy) return updateTargetAndReturn(this, enemy);
 
     return undefined;
 
@@ -741,37 +759,21 @@ Creep.prototype.abilityPower = function () {
 
 Creep.prototype.formSquad = function () {
     // Find partners
-    if (!this.memory.grouped) {
-        findGroup(this);
-    }
-
-    function findGroup(creep) {
-        const currentGroups = _.find(creep.room.myCreeps, (c) => c.id !== creep.id && c.memory.role === creep.memory.role && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3);
-        if (currentGroups) {
-            creep.memory.grouped = true;
-            creep.memory.leader = undefined;
-            creep.memory.squadMembers = undefined;
-            creep.memory.oldRole = creep.memory.role;
-            creep.memory.role = 'longbowSquad';
-            creep.memory.groupLeader = currentGroups.id;
-            currentGroups.memory.grouped = true;
-            currentGroups.memory.oldRole = currentGroups.memory.role;
-            currentGroups.memory.role = 'longbowSquad';
-            currentGroups.memory.squadMembers.push(creep.id);
-        } else {
-            creep.memory.leader = true;
-            creep.memory.squadMembers = [];
-        }
-    }
-}
-Creep.prototype.formSquadDebug = function () {
-    // Find partners
     if (!this.memory.grouped && !this.spawning) {
         findGroup(this);
+    } else if (!this.memory.leader) {
+        const leader = Game.getObjectById(this.memory.groupLeader);
+        if (!leader) {
+            this.memory.grouped = undefined;
+            this.memory.leader = undefined;
+            this.memory.squadMembers = undefined;
+            this.memory.oldRole = this.memory.role;
+            this.memory.role = this.memory.oldRole;
+        }
     }
 
     function findGroup(creep) {
-        let currentGroups = creep.room.myCreeps.filter((c) => c.id !== creep.id && c.memory.role === creep.memory.role && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3);
+        let currentGroups = creep.room.myCreeps.filter((c) => c.id !== creep.id && (c.memory.role.includes(creep.memory.role) || creep.memory.role.includes(c.memory.role)) && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3);
         if (currentGroups.length) {
             currentGroups = _.max(currentGroups, c => c.memory.squadMembers.length);
             creep.memory.grouped = true;
