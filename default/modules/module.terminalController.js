@@ -35,7 +35,7 @@ class TerminalControl {
         }
 
         // Handle distribution first
-        if (this.emergencyEnergy(this.room.terminal) || this.balanceResources(this.room.terminal) || this.balanceEnergy(this.room.terminal)) return;
+        if (this.emergencyEnergy(this.room.terminal) || this.balanceEnergy(this.room.terminal) || this.balanceResources(this.room.terminal)) return;
 
         // Handle market
         if (this.placeSellOrders(this.room.terminal, globalOrders, myOrders) || this.quickSell(this.room.terminal, globalOrders) || this.placeBuyOrders(this.room.terminal, globalOrders, myOrders)) return;
@@ -343,6 +343,7 @@ class TerminalControl {
             let needyTerminal = _.find(Game.structures, r =>
                 r.room.name !== terminal.room.name &&
                 r.structureType === STRUCTURE_TERMINAL &&
+                (!usedTerminals[r.room.name] || usedTerminals[r.room.name].tick + 10 < Game.time) &&
                 r.store.getFreeCapacity() &&
                 r.room.store(resource) < this.determineKeepAmount(resource) &&
                 Game.market.calcTransactionCost(available, terminal.room.name, r.room.name) < terminal.room.energy * 0.01
@@ -359,7 +360,7 @@ class TerminalControl {
                 case OK:
                     log.a(`Balancing ${available} ${resource} to ${roomLink(destinationRoom)} from ${roomLink(terminal.room.name)}`, "Market: ");
                     usedTerminals[destinationRoom] = {tick: Game.time};
-                    usedTerminals[terminal.room.name] = {tick: Game.time};
+                    usedTerminals[terminal.room.name] = {tick: Game.time + 50};
                     return true;
             }
         }
@@ -368,41 +369,37 @@ class TerminalControl {
     balanceEnergy(terminal) {
         if (terminal.room.memory.dangerousAttack || !terminal.room.energyState) return;
 
-        let needyTerminal = findNeedyTerminal(terminal);
-        if (needyTerminal) {
-            sendEnergyOrBattery(terminal, needyTerminal);
+        const poorestRoom = findNeedyTerminal();
+        if (poorestRoom && poorestRoom !== terminal.room.name && Game.rooms[poorestRoom].energy < terminal.room.energy) {
+            sendEnergyOrBattery(terminal, poorestRoom);
             return true;
         }
         return false;
 
-        function findNeedyTerminal(terminal) {
-            // First, try to find needy terminals within the same criteria
-            let needyTerminal = _.find(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL &&
-                r.room.name !== terminal.room.name &&
-                !r.room.energyState &&
-                (!usedTerminals[r.room.name] || usedTerminals[r.room.name].tick !== Game.time) &&
-                r.store.getFreeCapacity() > 5000);
-            return needyTerminal ? needyTerminal.room.name : null;
+        function findNeedyTerminal() {
+            return MY_ROOMS.filter((r) => Game.rooms[r].terminal).sort((a, b) => Game.rooms[a].energy - Game.rooms[b].energy)[0];
         }
 
         function sendEnergyOrBattery(terminal, destinationRoom) {
             let resource = RESOURCE_ENERGY;
+            let minimum = 5000;
             let availableAmount = terminal.store[resource] - TERMINAL_ENERGY_BUFFER;
-            let requestedAmount = 15000;
+            let requestedAmount = Game.rooms[destinationRoom].energy - terminal.room.energy;
             // If factory exists, prefer sending batteries
-            if (terminal.room.factory && resource === RESOURCE_ENERGY) {
+            if (Game.rooms[destinationRoom].factory && terminal.store[RESOURCE_BATTERY]) {
                 resource = RESOURCE_BATTERY;
                 availableAmount = terminal.store[RESOURCE_BATTERY];
                 requestedAmount = 500;
+                minimum = 50;
             }
             if (requestedAmount > availableAmount) requestedAmount = availableAmount;
-            if (requestedAmount > 2500) {
+            if (requestedAmount > minimum) {
                 // Send the resource
                 switch (terminal.send(resource, requestedAmount, destinationRoom)) {
                     case OK:
                         log.a(`Sent ${requestedAmount} ${resource} To ${roomLink(destinationRoom)} From ${roomLink(terminal.room.name)}`, "Market: ");
                         usedTerminals[terminal.room.name] = {tick: Game.time};
-                        usedTerminals[destinationRoom] = {tick: Game.time};
+                        usedTerminals[destinationRoom] = {tick: Game.time + 500};
                         return true;
                 }
             }
