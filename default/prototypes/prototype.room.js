@@ -118,6 +118,17 @@ Object.defineProperty(Room.prototype, 'structures', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'downgraded', {
+    get: function () {
+        if (!this._downgraded) {
+            this._downgraded = this.find(FIND_STRUCTURES).some((s) => !s.isActive());
+        }
+        return this._downgraded;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'state', {
     get: function () {
         if (!this._roomState) {
@@ -147,7 +158,7 @@ Object.defineProperty(Room.prototype, 'energyState', {
         if (!this.controller) return 2;
         if (!this._energyState) {
             let energy = this.energy + ((this.store(RESOURCE_BATTERY) / 50) * 600);
-            let target = this.level === 8 ? 1000000 : Math.min((constructionCost(this.controller.level + 1) - constructionCost(this.controller.level)) * 1.5, 1500000);
+            let target = this.level === 8 ? 200000 : Math.min((constructionCost(this.controller.level + 1) - constructionCost(this.controller.level)) * 1.5, 1500000);
             // Lower target if not near upgrade
             if (this.level < 8 && this.controller.progress / this.controller.progressTotal < 0.8) target *= 0.25;
             if (energy > target * 2) {
@@ -336,7 +347,7 @@ Object.defineProperty(Room.prototype, 'nuker', {
 Object.defineProperty(Room.prototype, 'energy', {
     get: function () {
         if (!this._energy) {
-            this._energy = getRoomResource(this, RESOURCE_ENERGY, true);
+            this._energy = this.store(RESOURCE_ENERGY) + ((this.store(RESOURCE_BATTERY) / 50) * 600);
         }
         return this._energy;
     },
