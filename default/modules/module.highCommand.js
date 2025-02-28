@@ -80,6 +80,11 @@ function militaryOperations() {
                 manual: true
             };
         }
+        // Clean old manual operations
+        for (const key in Memory.targetRooms) {
+            if (!Memory.targetRooms[key].manual) continue;
+            if (!MANUAL_OPERATIONS.find((o) => o.room === key)) delete Memory.targetRooms[key];
+        }
     }
     // Handle stronghold operations
     let activeStrongholdAttacks = _.find(Memory.targetRooms, (t) => t && t.type === 'stronghold');
