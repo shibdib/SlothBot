@@ -57,6 +57,9 @@ global.PROTECT_MINERAL = false; // Build ramparts around the mineral
 global.PROTECT_SOURCES = false; // Build ramparts around the source
 global.ROAD_LEVEL = 4 // What level to build roads
 
+// Manual Operations
+global.MANUAL_OPERATIONS = []; // Manually set rooms to attack
+
 // Signing and whatnot
 global.SIGN_ROOMS = true;
 global.OWNED_ROOM_SIGNS = [

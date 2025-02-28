@@ -66,6 +66,21 @@ function checkCooldown(task, cooldown) {
 }
 
 function militaryOperations() {
+    // Handle manual operations
+    if (MANUAL_OPERATIONS.length) {
+        for (const op of MANUAL_OPERATIONS) {
+            if (Memory.targetRooms[op.room]) continue;
+            Memory.targetRooms[op.room] = {
+                tick: Game.time,
+                type: op.type || 'guard',
+                level: op.level || 1,
+                boostsRequired: op.boosts,
+                priority: op.priority || PRIORITIES.high,
+                waveLimit: MAX_LEVEL,
+                manual: true
+            };
+        }
+    }
     // Handle stronghold operations
     let activeStrongholdAttacks = _.find(Memory.targetRooms, (t) => t && t.type === 'stronghold');
     if (!activeStrongholdAttacks) {
@@ -320,7 +335,7 @@ function manageMilitary() {
     // Iterate through target rooms
     for (let key in Memory.targetRooms) {
         let target = Memory.targetRooms[key];
-        if (!target) continue;
+        if (!target || target.manual) continue;
         let type = target.type;
 
         // Handle rooms with a d-day

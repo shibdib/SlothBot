@@ -26,8 +26,13 @@ module.exports.processBuildQueue = function (room) {
     buildTick[room.name] = currentTick;
 
     // Get available spawns
-    const availableSpawns = _.filter(room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning && s.isActive());
-
+    const totalSpawns = room.impassibleStructures.filter((s) => s.my && s.structureType === STRUCTURE_SPAWN);
+    // If we have creeps needing renewal and more than 1 spawn, reserve one for them
+    const renewalCreep = room.myCreeps.find((c) => c.memory.needsRenewal);
+    let availableSpawns = totalSpawns.filter((s) => s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning);
+    if (renewalCreep && totalSpawns.length > 1) {
+        availableSpawns = totalSpawns.filter((s) => s.id !== totalSpawns[0].id && s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning);
+    }
     for (let availableSpawn of availableSpawns) {
         let queuedBuild;
         let body = [];
@@ -145,7 +150,6 @@ let essentialTick = {};
 module.exports.essentialCreepQueue = function (room) {
     if (essentialTick[room.name] + 10 > Game.time) return;
     essentialTick[room.name] = Game.time;
-    //if (room.name === 'W4N9') queueCreepIfNeeded(room, 'testSquad', 1, 4, undefined, undefined, {waitFor: 4})
 
     // Harvesters
     let harvesterCount = getCreepCount(room, 'stationaryHarvester');
@@ -177,7 +181,7 @@ module.exports.essentialCreepQueue = function (room) {
     queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
 
     // Upgrader
-    const noUpgraderNeeded = ![ROOM_STATES.UPGRADING, ROOM_STATES.ATTACKING].includes(room.state) && room.terminal;
+    const noUpgraderNeeded = ![ROOM_STATES.UPGRADING, ROOM_STATES.ATTACKING].includes(room.state) && room.level > 6;
     let upgraderAmount = noUpgraderNeeded ? 0 : 1;
     if (!noUpgraderNeeded) {
         let container = Game.getObjectById(room.memory.controllerContainer);
@@ -409,7 +413,7 @@ module.exports.remoteCreepQueue = function (room) {
     function handleRemoteHarvesters(room) {
         if (Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
         let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-        if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 5) {
+        if (room.memory.remoteSources && totalHarvesters < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] * 2.5) {
             let remoteSource = JSON.parse(room.memory.remoteSources);
             let acceptedScore = room.state === ROOM_STATES.STOCKPILING ? REMOTE_DISTANCE_MAX * 2 : REMOTE_DISTANCE_MAX;
             acceptedScore = Math.max(acceptedScore, _.min(remoteSource, 'score').score);
@@ -435,7 +439,7 @@ module.exports.remoteCreepQueue = function (room) {
             const assignedHarvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === source.source);
             if (!assignedHarvester) continue;
             const assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.memory.other && c.memory.other.source === source.source);
-            const haulerCap = room.state === ROOM_STATES.STOCKPILING ? 2 : 1;
+            const haulerCap = room.state === ROOM_STATES.STOCKPILING ? 1 : 1;
             if (assignedHaulers.length >= haulerCap) continue;
             const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
             const harvestAmount = assignedHarvester.memory.other.harvestPower * (source.score * 2);
@@ -622,8 +626,10 @@ module.exports.globalCreepQueue = function () {
             case 'guard':
                 if (opLevel === 1) {
                     queueCreepIfNeeded(undefined, 'longbow', priority, 1, undefined, key, undefined, true, 'guard');
-                } else if (opLevel > 1) {
+                } else if (opLevel === 2) {
                     queueCreepIfNeeded(undefined, 'longbowSquad', priority, 2, undefined, key, {waitFor: 2}, true, 'guard');
+                } else {
+                    queueCreepIfNeeded(undefined, 'longbowSquad', priority, 4, undefined, key, {waitFor: 4}, true, 'guard');
                 }
                 break;
             case 'stronghold':
@@ -775,8 +781,9 @@ function getQueue(room) {
                     if (!assignedRoom) {
                         assignedRoom = getAssignedRoom(destination, levelTarget, creepInfo);
                         if (assignedRoom) {
-                            if (Memory.targetRooms[destination] && !Memory.targetRooms[destination].assignedRoom) Memory.targetRooms[destination].assignedRoom = assignedRoom;
-                            if (Memory.auxiliaryTargets[destination] && !Memory.auxiliaryTargets[destination].assignedRoom) Memory.auxiliaryTargets[destination].assignedRoom = assignedRoom;
+                            const assignment = {assignedRoom: assignedRoom, assignedAt: Game.time};
+                            if (Memory.targetRooms[destination]) Memory.targetRooms[destination] = {...Memory.targetRooms[destination], ...assignment};
+                            else Memory.auxiliaryTargets[destination] = {...Memory.auxiliaryTargets[destination], ...assignment};
                             log.a(`Assigning the operation in ${roomLink(destination)} to ${roomLink(assignedRoom)}`, 'OPERATIONS:')
                         }
                     }
@@ -878,7 +885,7 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
         if (!myRoom.energyState) continue
         // If above you spawn count continue
         const currentAssignments = Memory.targetRooms[targetRoom] ? _.filter(Memory.targetRooms, (r) => r && r.assignedRoom === key).length : _.filter(Memory.auxiliaryTargets, (r) => r && r.assignedRoom === key).length;
-        if (currentAssignments >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level] * 1.5) continue;
+        if (currentAssignments >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level]) continue;
         if (myRoom && myRoom.level >= level) {
             // Check body generation
             const generatedInfo = new generator(myRoom.level, creepInfo.role, myRoom, creepInfo).generateBody();
