@@ -30,7 +30,7 @@ class RolePowerHauler {
 
     pickupResource() {
         if (this.room.name !== this.creep.memory.destination) {
-            return this.creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
+            return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 23});
         }
         let power = this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_POWER})[0];
         if (power) {
