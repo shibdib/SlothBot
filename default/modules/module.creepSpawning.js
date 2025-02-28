@@ -536,6 +536,11 @@ module.exports.globalCreepQueue = function () {
             queueCreepIfNeeded(undefined, 'scout', 1, 1, undefined, key, undefined, true);
         }
 
+        if (!INTEL[key]) {
+            queueCreepIfNeeded(undefined, 'scout', 1, 1, undefined, key);
+            continue;
+        }
+
         // Handle harass targets
         if (HARASSMENT_OPERATIONS && THREATS && THREATS.length && objFilter(INTEL, (i) => THREATS.includes(i.user)).length) {
             const amount = _.filter(MY_ROOMS, (r) => Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].memory.availableForAssignment).length * 0.25 || 1
