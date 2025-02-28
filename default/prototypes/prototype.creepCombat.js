@@ -88,20 +88,20 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
 
     const barriersPresent = _.some(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
 
-    if (this.memory.target) {
-        let oldTarget = Game.getObjectById(this.memory.target);
-        const armedHostile = _.find(hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || (MY_ROOMS.includes(this.room.name) && c.hasActiveBodyparts(WORK)));
-        if (oldTarget && oldTarget instanceof Structure && !armedHostile && 1 > 2) {
-            return oldTarget;
-        } else {
-            this.memory.target = undefined;
-        }
-    }
-
     // Handle a blocking creep for squads
     if (this.memory.blockingCreep) {
         const blocker = Game.getObjectById(this.memory.blockingCreep);
         if (blocker) return blocker;
+    }
+
+    if (this.memory.target) {
+        let oldTarget = Game.getObjectById(this.memory.target);
+        const armedHostile = _.find(hostileCreeps, (c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || (MY_ROOMS.includes(this.room.name) && c.hasActiveBodyparts(WORK)));
+        if (oldTarget && oldTarget instanceof Structure && !armedHostile) {
+            return oldTarget;
+        } else {
+            this.memory.target = undefined;
+        }
     }
 
     if (!hostileCreeps.length && !hostileStructures.length) return undefined;
@@ -144,6 +144,12 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
     if (enemy) return updateTargetAndReturn(this, enemy);
 
     enemy = findClosest(hostileStructures, (s) =>
+        isRampartChecked(s) &&
+        s.isActive()
+    );
+    if (enemy) return updateTargetAndReturn(this, enemy);
+
+    enemy = findClosest(hostileStructures, (s) =>
         s.structureType === STRUCTURE_TOWER &&
         s.isActive()
     );
@@ -151,12 +157,6 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
 
     enemy = findClosest(hostileStructures, (s) =>
         s.structureType === STRUCTURE_SPAWN &&
-        s.isActive()
-    );
-    if (enemy) return updateTargetAndReturn(this, enemy);
-
-    enemy = findClosest(hostileStructures, (s) =>
-        isRampartChecked(s) &&
         s.isActive()
     );
     if (enemy) return updateTargetAndReturn(this, enemy);
@@ -816,27 +816,18 @@ function findBestCleaningPath(creep, target) {
     room.find(FIND_STRUCTURES).forEach(structure => {
         if (structure.structureType === STRUCTURE_RAMPART || structure.structureType === STRUCTURE_WALL) {
             // Calculate the cost based on hits, higher hits = higher cost
-            let cost = Math.floor(structure.hits / 250000); // Adjust this divisor as needed
-            // Cap the cost to prevent impassable barriers
-            cost = Math.min(cost, 255); // 255 is the max cost in a CostMatrix
+            let cost = Math.round(255 * (structure.hits / structure.hitsMax));
             costMatrix.set(structure.pos.x, structure.pos.y, cost);
         }
     });
 
-    // Pathfinding options
-    const pathOptions = {
-        roomCallback: function (roomName) {
-            if (roomName === room.name) {
-                return costMatrix;
+    const path = PathFinder.search(creep.pos, {pos: target.pos, range: 1},
+        {
+            roomCallback: function (roomName) {
+                if (!creep.memory.grouped) return costMatrix;
+                return getSquadMatrix(roomName);
             }
-            return false;
-        },
-        plainCost: 1,
-        swampCost: 2,
-        maxOps: 2000,
-    };
-    const path = PathFinder.search(creep.pos, {pos: target.pos, range: 1}, pathOptions);
-    const structures = room.find(FIND_STRUCTURES);
+        });
     const checked = new Set();
     const impassableStructures = [];
 
@@ -850,16 +841,58 @@ function findBestCleaningPath(creep, target) {
                 const posKey = `${x},${y}`;
                 if (checked.has(posKey)) continue;
                 checked.add(posKey);
-                const structs = structures.filter(s => s.pos.x === x && s.pos.y === y);
+                const structs = room.structures.filter(s => s.pos.x === x && s.pos.y === y);
                 for (const struct of structs) {
                     if (OBSTACLE_OBJECT_TYPES.includes(struct.structureType) || struct.structureType === STRUCTURE_RAMPART) {
-                        impassableStructures.push(struct);
+                        if (struct.structureType !== STRUCTURE_CONTROLLER) impassableStructures.push(struct);
                     }
                 }
             }
         }
     }
     return impassableStructures;
+
+    function getSquadMatrix(roomName) {
+        return getCachedMatrix(roomName, `squad`, 10, () => buildSquadMatrix(roomName));
+
+        function buildSquadMatrix(roomName) {
+            let matrix = new PathFinder.CostMatrix();
+            let terrain = Game.map.getRoomTerrain(roomName);
+            const plainCost = 1;
+            const swampCost = 25
+            for (let y = 0; y < 50; y++) {
+                for (let x = 0; x < 50; x++) {
+                    let tile = terrain.get(x, y);
+                    if (tile === TERRAIN_MASK_WALL) {
+                        matrix.set(x, y, 256);
+                        for (let vector of formationVectors) {
+                            const newX = x + vector.x;
+                            const newY = y + vector.y;
+                            if (newX < 0 || newX > 49 || newY < 0 || newY > 49) continue;
+                            const currentCost = matrix.get(newX, newY);
+                            if (currentCost >= 256) continue;
+                            matrix.set(newX, newY, 256);
+                        }
+                    } else if (x <= 1 || x >= 48 || y <= 1 || y >= 48) {
+                        matrix.set(x, y, 10);
+                    } else if (tile === TERRAIN_MASK_SWAMP) {
+                        matrix.set(x, y, swampCost);
+                        for (let vector of formationVectors) {
+                            const newX = x + vector.x;
+                            const newY = y + vector.y;
+                            if (newX < 0 || newX > 49 || newY < 0 || newY > 49) continue;
+                            const currentCost = matrix.get(newX, newY);
+                            if (currentCost >= swampCost) continue;
+                            matrix.set(newX, newY, swampCost);
+                        }
+                    } else {
+                        matrix.set(x, y, plainCost);
+                    }
+                }
+            }
+            return matrix;
+        }
+    }
 }
 
 function getAssignedRampart(creep, target = undefined) {
