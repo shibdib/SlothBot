@@ -2,7 +2,7 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-const DEFAULT_MAXOPS = 700;
+const DEFAULT_MAXOPS = 1500;
 const DEFAULT_HEURISTIC = 2.5;
 const STATE_STUCK = 2;
 const FLEE_RANGE = 4;
@@ -284,8 +284,8 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     if (!allowedRooms) allowedRooms = [origin.roomName].concat(Object.values(Game.map.describeExits(origin.roomName)));
     // Pathfinder
     const result = PathFinder.search(origin, {pos: target, range: options.range}, {
-        maxOps: options.maxOps,
-        maxRooms: roomDistance ? roomDistance + 2 : 1,
+        maxOps: roomDistance ? options.maxOps * roomDistance : options.maxOps,
+        maxRooms: allowedRooms.length ? allowedRooms.length + 2 : 1,
         heuristicWeight: options.heuristicWeight,
         roomCallback: function (roomName) {
             if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
@@ -305,6 +305,11 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         if (options.getPath) return creep.memory.getPath = pathInfo.path;
         return executePath(creep, pathInfo, options, origin, heading);
     }
+    if (!creep.memory.repathAttempt || creep.memory.repathAttempt + 10 < Game.time) {
+        creep.memory.repathAttempt = Game.time;
+        options.range = options.range + 1;
+        return shibPath(creep, heading, pathInfo, origin, target, options);
+    }
     // Handle failed
     if (!creep.memory.badPathing && roomDistance) {
         creep.memory.badPathing = 1;
@@ -313,15 +318,20 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     } else {
         if (creep.memory.badPathing) creep.memory.badPathing++; else creep.memory.badPathing = 1;
         if (creep.memory.badPathing > 10) {
-            log.d(creep.name + ' is stuck in ' + creep.room.name + ' and is unable to path from ' + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + '. Suiciding for the good of the CPU.');
-            log.d('Ret - ' + JSON.stringify(result));
-            if (allowedRooms) log.d('Path - ' + allowedRooms);
-            if (creep.memory.destination && (Memory.targetRooms[creep.memory.destination] || Memory.auxiliaryTargets[creep.memory.destination])) {
-                delete Memory.targetRooms[creep.memory.destination];
-                delete Memory.auxiliaryTargets[creep.memory.destination];
-                log.d('Canceling operation in ' + roomLink(creep.memory.destination) + ' as we cannot find a path.', 'HIGH COMMAND: ');
+            if (!roomDistance) {
+                log.e(creep.name + ' is stuck in ' + creep.room.name + ' and is unable to path from ' + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + '. Suiciding for the good of the CPU.');
+                log.e('Ret - ' + JSON.stringify(result));
+                if (allowedRooms) log.d('Path - ' + allowedRooms);
+                if (creep.memory.destination && (Memory.targetRooms[creep.memory.destination] || Memory.auxiliaryTargets[creep.memory.destination])) {
+                    delete Memory.targetRooms[creep.memory.destination];
+                    delete Memory.auxiliaryTargets[creep.memory.destination];
+                    delete INTEL[creep.memory.destination]
+                    log.e('Canceling operation in ' + roomLink(creep.memory.destination) + ' as we cannot find a path.', 'HIGH COMMAND: ');
+                }
+                return creep.suicide();
+            } else {
+                creep.moveTo(target);
             }
-            //return creep.suicide();
         }
     }
 }
@@ -349,10 +359,9 @@ function findRoute(origin, destination, options = {}) {
             if (Memory.avoidRooms && Memory.avoidRooms.includes(roomName)) return 250;
             if (!intel || intel.cached + 10000 < Game.time) return 50;
             if (intel.user && FRIENDLIES.includes(intel.user)) return 5;
-            if (intel.user && !FRIENDLIES.includes(intel.user)) return intel.towers ? Infinity : 20;
+            if (intel.user && !FRIENDLIES.includes(intel.user)) return intel.towers ? Infinity : 10;
             if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) return 50;
             if (intel.obstacles) return 200;
-            if (intel.sk && options.squad) return 250;
             if (intel.sk && intel.towers) return 250;
             if (intel.threatLevel) return 60 * intel.threatLevel;
             return intel.isHighway ? 3 : 7;
@@ -408,6 +417,20 @@ function normalizePos(destination) {
     return destination;
 }
 
+function visualizeCostMatrix(costMatrix, roomName) {
+    const visual = new RoomVisual(roomName);
+
+    for (let x = 0; x < 50; x++) {
+        for (let y = 0; y < 50; y++) {
+            const cost = costMatrix.get(x, y);
+            if (cost > 0) { // Only show non-zero costs for clarity
+                visual.text(cost, x, y, {color: '#ffffff', font: 0.5});
+                // Or use circles: visual.circle(x, y, { radius: 0.2, fill: getColorForCost(cost) });
+            }
+        }
+    }
+}
+
 function getMatrix(roomName, creep, options) {
     const room = Game.rooms[roomName];
     let armedEnemies = [];
@@ -418,9 +441,10 @@ function getMatrix(roomName, creep, options) {
     matrix = getStationaryCreepsMatrix(roomName, creep, matrix, options);
     if (creep instanceof Creep && armedEnemies.length) {
         if (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) matrix = getHostileMatrix(roomName, matrix, options);
-        matrix = getOutsideHubMatrix(roomName, matrix, options);
+        //matrix = getOutsideHubMatrix(roomName, matrix, options);
     }
     matrix = getSKMatrix(roomName, matrix, options);
+    //if (roomName === 'W4N9' && !options.squad) visualizeCostMatrix(matrix, roomName);
     return matrix;
 }
 
@@ -511,11 +535,30 @@ function getStructureMatrix(roomName, creep, matrix, options) {
             default:
                 roadCost = 1;
         }
-        // Squad just avoids all structures
-        if (options.squad) {
-            // Handle setting the position around the structure for squads
-            for (let structure of room.structures) {
-                if (options.squad && OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
+        let noWallWrecker = (creep instanceof Creep && ((INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner)) || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK))));
+        for (let structure of room.structures) {
+            if (room.hostileCreeps.length && structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()
+                && structure.pos.checkForRampart()) {
+                matrix.set(structure.pos.x, structure.pos.y, roadCost * 0.5);
+            } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()) {
+                matrix.set(structure.pos.x, structure.pos.y, roadCost);
+            } else if (structure instanceof StructurePortal) {
+                matrix.set(structure.pos.x, structure.pos.y, 200);
+            } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic) && !structure.pos.checkForObstacleStructure()) {
+                if (room.hostileCreeps.length) matrix.set(structure.pos.x, structure.pos.y, roadCost);
+            } else if (structure instanceof StructureRampart && (FRIENDLIES.includes(structure.owner.username) && !structure.pos.checkForObstacleStructure())) {
+                matrix.set(structure.pos.x, structure.pos.y, 200);
+            } else if (structure instanceof StructureRampart && (!structure.my || !structure.isPublic || structure.pos.checkForObstacleStructure())) {
+                if (noWallWrecker) {
+                    matrix.set(structure.pos.x, structure.pos.y, 256);
+                } else {
+                    matrix.set(structure.pos.x, structure.pos.y, 150);
+                }
+            } else if (structure instanceof StructureContainer) {
+                matrix.set(structure.pos.x, structure.pos.y, 75);
+            } else if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
+                matrix.set(structure.pos.x, structure.pos.y, 256);
+                if (type === 4) {
                     for (let vector of formationVectors) {
                         const newX = structure.pos.x + vector.x
                         const newY = structure.pos.y + vector.y
@@ -525,48 +568,16 @@ function getStructureMatrix(roomName, creep, matrix, options) {
                         matrix.set(newX, newY, Infinity);
                     }
                 }
-            }
-        } else {
-            let noWallWrecker = (creep instanceof Creep && ((INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner)) || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK))));
-            for (let structure of room.structures) {
-                if (structure instanceof StructureWall) {
-                    if (noWallWrecker) {
-                        matrix.set(structure.pos.x, structure.pos.y, 256);
-                    } else {
-                        matrix.set(structure.pos.x, structure.pos.y, 200);
-                    }
-                } else if (room.hostileCreeps.length && structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()
-                    && structure.pos.checkForRampart()) {
-                    matrix.set(structure.pos.x, structure.pos.y, roadCost * 0.5);
-                } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()) {
-                    matrix.set(structure.pos.x, structure.pos.y, roadCost);
-                } else if (structure instanceof StructurePortal) {
-                    matrix.set(structure.pos.x, structure.pos.y, 200);
-                } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic) && !structure.pos.checkForObstacleStructure()) {
-                    if (room.hostileCreeps.length) matrix.set(structure.pos.x, structure.pos.y, roadCost);
-                } else if (structure instanceof StructureRampart && (FRIENDLIES.includes(structure.owner.username) && !structure.pos.checkForObstacleStructure())) {
-                    matrix.set(structure.pos.x, structure.pos.y, 250);
-                } else if (structure instanceof StructureRampart && (!structure.my || !structure.isPublic || structure.pos.checkForObstacleStructure())) {
-                    if (noWallWrecker) {
-                        matrix.set(structure.pos.x, structure.pos.y, 256);
-                    } else {
-                        matrix.set(structure.pos.x, structure.pos.y, 150);
-                    }
-                } else if (structure instanceof StructureContainer) {
-                    matrix.set(structure.pos.x, structure.pos.y, 75);
-                } else if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
-                    matrix.set(structure.pos.x, structure.pos.y, 256);
-                } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure()) {
-                    matrix.set(structure.pos.x, structure.pos.y, roadCost * 5);
-                } else {
-                    matrix.set(structure.pos.x, structure.pos.y, 256);
-                }
+            } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure()) {
+                matrix.set(structure.pos.x, structure.pos.y, roadCost * 5);
+            } else {
+                matrix.set(structure.pos.x, structure.pos.y, 255);
             }
         }
-        let blockingSites = _.filter(room.constructionSites, (s) => (s.my && OBSTACLE_OBJECT_TYPES.includes(s.structureType)) || (!s.my && _.includes(FRIENDLIES, s.owner.username)));
+        let blockingSites = _.filter(room.constructionSites, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) && (s.my || (!s.my && _.includes(FRIENDLIES, s.owner.username))));
         for (let site of blockingSites) {
             matrix.set(site.pos.x, site.pos.y, 256);
-            if (options.squad) {
+            if (type === 4) {
                 for (let vector of formationVectors) {
                     const newX = site.pos.x + vector.x
                     const newY = site.pos.y + vector.y
@@ -1006,12 +1017,12 @@ Creep.prototype.shibSquadMovement = function (target = undefined, options = {}) 
     // Check if the target hasn't change and we still have a path
     if (this.memory._shibSquadMove.target && this.memory._shibSquadMove.path && this.memory._shibSquadMove.path.length) {
         if (this.memory._shibSquadMove.target === targetKey) {
-            if (squadMove(this, this.memory._shibSquadMove.path)) return true; else return false;
+            return squadMove(this, this.memory._shibSquadMove.path);
         } else {
             const parsed = parsePosKey(this.memory._shibSquadMove.target);
             const oldPos = new RoomPosition(parsed.x, parsed.y, parsed.roomName);
             if (oldPos.getRangeTo(target) <= options.range) {
-                if (squadMove(this, this.memory._shibSquadMove.path)) return true; else return false;
+                return squadMove(this, this.memory._shibSquadMove.path);
             }
         }
     }
@@ -1043,7 +1054,7 @@ Creep.prototype.shibSquadMovement = function (target = undefined, options = {}) 
 
     // If a path is found, move the creep
     if (result.path.length > 0) {
-        if (squadMove(this, serializePath(this.pos, result.path))) return true;
+        return squadMove(this, serializePath(this.pos, result.path));
     }
 
     return false;
@@ -1099,21 +1110,10 @@ function squadMove(creep, path) {
     path = path.slice(1);
     if (creep.memory.squadMembers) {
         // Check if all squad members will be able to move
-        let blocked = false;
-        if (creep.memory.groupUp) {
-            for (let member of creep.memory.squadMembers) {
-                let memberCreep = Game.getObjectById(member);
-                if (!memberCreep) continue;
-                const posAtDirection = memberCreep.pos.positionAtDirection(move);
-                if (!posAtDirection || !(posAtDirection instanceof RoomPosition)) continue;
-                const creepAtPos = posAtDirection.checkForCreep();
-                if ((creepAtPos && !creepAtPos.my) || posAtDirection.checkForImpassible(false, true)) {
-                    blocked = true;
-                    break;
-                }
-            }
-        }
-        if (!blocked) {
+        if (!canSquadMove(creep, move)) {
+            creep.memory._shibSquadMove = undefined;
+            return false;
+        } else {
             creep.move(move);
             for (let member of creep.memory.squadMembers) {
                 let memberCreep = Game.getObjectById(member);
@@ -1125,14 +1125,83 @@ function squadMove(creep, path) {
                     } else memberCreep.move(move);
                 }
             }
-        } else {
-            creep.memory.findRegroup = true;
-            creep.memory._shibSquadMove = undefined;
-            return false;
         }
     }
     creep.memory._shibSquadMove.path = path;
     return true;
+
+    function canSquadMove(creep, direction) {
+        return creep.memory.squadMembers.every(memberId => {
+            const member = Game.getObjectById(memberId);
+            if (!member) return true; // Skip missing members
+            const nextPos = member.pos.positionAtDirection(direction);
+            return nextPos && !nextPos.checkForImpassible(false, true) && !isOccupiedByEnemy(nextPos);
+        });
+    }
+
+    function isOccupiedByEnemy(pos) {
+        const creepAtPos = pos.lookFor(LOOK_CREEPS)[0];
+        return creepAtPos && !creepAtPos.my;
+    }
+}
+
+function squadMoveNew(creep, path) {
+    if (!creep.memory.squadMembers || !creep.memory.squadMembers.length || !path || !path.length) {
+        creep.memory._shibSquadMove = undefined;
+        return false;
+    }
+
+    if (isSquadFatigued(creep)) return false;
+
+    const moveDirection = parseInt(path[0], 10);
+    const newPos = creep.pos.positionAtDirection(moveDirection);
+
+    // Handle squad movement
+    if (!canSquadMove(creep, moveDirection)) {
+        creep.memory._shibSquadMove = undefined;
+        return false;
+    } else {
+        path = path.slice(1);
+        creep.move(moveDirection);
+        moveSquadMembers(creep, moveDirection);
+        creep.memory._shibSquadMove.path = path;
+        return true;
+    }
+
+    function isSquadFatigued(creep) {
+        if (creep.fatigue) return true;
+        return creep.memory.squadMembers.some(memberId => {
+            const member = Game.getObjectById(memberId);
+            return member.fatigue > 0;
+        });
+    }
+
+    function canSquadMove(creep, direction) {
+        return creep.memory.squadMembers.every(memberId => {
+            const member = Game.getObjectById(memberId);
+            if (!member) return true; // Skip missing members
+            const nextPos = member.pos.positionAtDirection(direction);
+            return nextPos && !nextPos.checkForImpassible(false, true) && !isOccupiedByEnemy(nextPos);
+        });
+    }
+
+    function moveSquadMembers(creep, direction) {
+        creep.memory.squadMembers.forEach(memberId => {
+            const member = Game.getObjectById(memberId);
+            if (!member || member.pos.getRangeTo(creep) > 1) return;
+            const nextPos = member.pos.positionAtDirection(direction);
+            if (!nextPos || nextPos.checkForImpassible()) {
+                member.shibMove(creep, {range: 0});
+            } else {
+                member.move(direction);
+            }
+        });
+    }
+
+    function isOccupiedByEnemy(pos) {
+        const creepAtPos = pos.lookFor(LOOK_CREEPS)[0];
+        return creepAtPos && !creepAtPos.my;
+    }
 }
 
 /**

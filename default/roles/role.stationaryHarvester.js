@@ -12,6 +12,7 @@ class RoleStationaryHarvester {
     }
 
     performRoleActions() {
+        //if (this.creep.id ==='67c119bddaa16e04f1589692') this.creep.pathingDebug();
         if (!this.creep.memory.other.source) {
             this.findSource();
         } else {

@@ -47,7 +47,7 @@ class TerminalControl {
 
     updateSpendingMoney() {
         if (Memory._banker) {
-            Memory._banker.spendingAccount = Game.market.credits - (CREDIT_BUFFER * 1.1);
+            Memory._banker.spendingAccount = Game.market.credits - (CREDIT_BUFFER * 0.5);
         }
     }
 
@@ -85,8 +85,9 @@ class TerminalControl {
         for (let mineral of shuffle(BASE_MINERALS)) {
             if (mineral === RESOURCE_ENERGY || mineral === RESOURCE_BATTERY) continue;
 
-            let target = REACTION_AMOUNT;
-            let stored = getResourceTotal(mineral) + (getResourceTotal(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
+            let target = REACTION_AMOUNT * 0.9;
+            //let stored = getResourceTotal(mineral) + (getResourceTotal(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
+            let stored = terminal.room.store(mineral) + (terminal.room.store(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
 
             if (stored < target) {
                 let buyAmount = Math.min(target - stored, REACTION_AMOUNT);
@@ -104,18 +105,18 @@ class TerminalControl {
                 }
                 if (stored < target) {
                     const acceptableMarkup = getAcceptableMarkup(mineral, activeBuyOrder);
-                    let sellOrder = _.min(globalOrders.filter(order => order.amount >= 100 && order.resourceType === mineral &&
+                    let sellOrder = _.min(globalOrders.filter(order => order.resourceType === mineral &&
                         order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName) && order.price <= latestMarketHistory(mineral).avg * acceptableMarkup), 'price');
-
-                    if (sellOrder.id && sellOrder.price * buyAmount > Memory._banker.spendingAccount) buyAmount = _.floor(Memory._banker.spendingAccount / sellOrder.price);
-
-                    if (sellOrder.id && buyAmount >= 100) {
-                        buyAmount = Math.min(buyAmount, sellOrder.amount);
-                        if (Game.market.deal(sellOrder.id, buyAmount, terminal.room.name) === OK) {
-                            log.w(`Bought ${buyAmount} ${mineral} for ${sellOrder.price * buyAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
-                            Memory._banker.spendingAccount -= (sellOrder.price * buyAmount);
-                            log.w(`Remaining spending account amount - ${Memory._banker.spendingAccount}`, "Market: ");
-                            break;
+                    if (sellOrder.id) {
+                        if (sellOrder.amount < buyAmount) buyAmount = Math.min(buyAmount, sellOrder.amount);
+                        if (sellOrder.price * buyAmount > Memory._banker.spendingAccount) buyAmount = _.floor(Memory._banker.spendingAccount / sellOrder.price);
+                        if (buyAmount >= 100) {
+                            if (Game.market.deal(sellOrder.id, buyAmount, terminal.room.name) === OK) {
+                                if (buyAmount >= 5000) log.w(`Bought ${buyAmount} ${mineral} for ${sellOrder.price * buyAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
+                                Memory._banker.spendingAccount -= (sellOrder.price * buyAmount);
+                                if (buyAmount >= 5000) log.w(`Remaining spending account amount - ${Memory._banker.spendingAccount}`, "Market: ");
+                                break;
+                            }
                         }
                     }
                 }
@@ -170,7 +171,7 @@ class TerminalControl {
             if (activeBuyOrder) {
                 // Scale markup based on time elapsed since the order was created
                 const timeElapsed = Game.time - activeBuyOrder.created;
-                const cooldown = ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) ? 10000 : 500;
+                const cooldown = ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) ? 10000 : 10;
                 markup = Math.min(1.0 + (timeElapsed / cooldown), 2.0);  // Maximum markup of 200% after cooldown
             }
             return markup;
@@ -245,6 +246,9 @@ class TerminalControl {
         for (let resourceType of sortedKeys) {
             if ((resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) &&
                 (terminal.room.energyState < 2 || !_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 2))) continue;
+
+            // No selling base minerals if any room is short
+            if (BASE_MINERALS.includes(resourceType) && MY_ROOMS.some(r => Game.rooms[r].terminal && Game.rooms[r].store(resourceType) < REACTION_AMOUNT)) continue;
 
             let keepAmount = this.determineKeepAmount(resourceType);
             let sellAmount = Math.max(terminal.store[resourceType] - keepAmount, 0);
@@ -340,7 +344,6 @@ class TerminalControl {
                 r.room.name !== terminal.room.name &&
                 r.structureType === STRUCTURE_TERMINAL &&
                 r.store.getFreeCapacity() &&
-                r.room.store(resource) < terminal.room.store(resource) &&
                 r.room.store(resource) < this.determineKeepAmount(resource) &&
                 Game.market.calcTransactionCost(available, terminal.room.name, r.room.name) < terminal.room.energy * 0.01
             );

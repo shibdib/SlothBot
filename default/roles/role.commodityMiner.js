@@ -40,12 +40,8 @@ class RoleCommodityMiner {
         }
 
         // Make sure the operation is active and valid destination exists
-        if (!this.creep.memory.destination || (!Memory.auxiliaryTargets[this.creep.memory.destination] && (!INTEL[this.creep.memory.destination] || !INTEL[this.creep.memory.destination].sk))) {
-            if (!_.sum(this.creep.store)) {
-                this.creep.suicide();
-            } else {
-                this.creep.recycleCreep();
-            }
+        if (!this.creep.memory.destination || !Memory.auxiliaryTargets[this.creep.memory.destination]) {
+            this.creep.recycleCreep();
             return true;
         }
     }
@@ -110,7 +106,7 @@ class RoleCommodityMiner {
         } else if (!deposit.length) {
             INTEL[this.creep.memory.destination].commodity = undefined;
             Memory.auxiliaryTargets[this.creep.memory.destination] = undefined;
-            this.creep.suicide();
+            this.creep.recycleCreep();
             return this.creep.memory.deposit = undefined;
         } else {
             // Choose a random deposit

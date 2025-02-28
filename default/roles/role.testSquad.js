@@ -30,7 +30,7 @@ class RoleTestSquad {
         // Group
         this.creep.formSquadDebug();
         // Boosting
-        if (this.creep.tryToBoost([RANGED_ATTACK, HEAL])) return true;
+        if (this.creep.tryToBoost([])) return true;
         // Blinky mode
         this.creep.healInRange(this.room.hostileCreeps.length || this.room.hostileStructures.length);
     }
@@ -51,7 +51,8 @@ class RoleTestSquad {
 
         if (isReady) {
             if (!creep.memory.initialFormUp) creep.memory.initialFormUp = true;
-            if (creep.memory.operation) this.operationManagement(); else this.destinationManagement();
+            if (creep.memory.operation) this.operationManagement(); else if (creep.memory.destination) this.destinationManagement();
+            else creep.handleMilitaryCreep();
         } else {
             creep.shibMove(this.findStaging(creep), {range: 0, forceSolo: true})
         }
@@ -65,6 +66,8 @@ class RoleTestSquad {
             this.creep.memory.groupLeader = undefined;
             this.handleSolo();
         } else {
+            // Set destination to leaders
+            this.creep.memory.destination = leader.memory.destination;
             // Double check that you're in the squad
             if (!leader.memory.squadMembers.includes(this.creep.id)) leader.memory.squadMembers.push(this.creep.id);
             // Get in position
@@ -138,39 +141,39 @@ class RoleTestSquad {
     }
 
     destinationManagement() {
-
-        // Healing
-        if (this.creep.hits < this.creep.hitsMax) {
-            if (this.creep.hasActiveBodyparts(HEAL)) {
-                return this.creep.heal(this.creep);
-            } else {
-                return this.creep.fleeHome();
-            }
-        }
-
-        if (this.room.name !== 'W8N7') {
-            return this.creep.shibSquadMovement(new RoomPosition(25, 25, 'W8N7'), {range: 22});
+        let destination = this.creep.memory.misc && this.creep.memory.misc.stagingRoom && !this.creep.memory.misc.staged ? this.creep.memory.misc.stagingRoom : this.creep.memory.destination;
+        if (this.room.name !== destination) {
+            return this.creep.shibSquadMovement(new RoomPosition(25, 25, destination), {range: 22});
         } else {
             // Combat handling
-            if (this.creep.handleMilitaryCreep()) return;
-            if (this.creep.findDefensivePosition()) this.creep.idleFor(5);
+            const squad = this.creep.memory.squadMembers.map(id => Game.getObjectById(id));
+            const isReady = this.hasFullSquad(this.creep) && this.isQuadPacked(squad.concat(this.creep), this.creep);
+            // Handle staging
+            if (this.creep.memory.misc && this.creep.memory.misc.stagingRoom && this.creep.memory.misc.stagingRoom === this.room.name) return this.creep.memory.misc.staged = true;
+            if (isReady) {
+                if (this.creep.handleMilitaryCreep()) return;
+                if (this.creep.findDefensivePosition()) this.creep.idleFor(5);
+            } else {
+                this.creep.shibMove(this.findStaging(this.creep), {range: 0, forceSolo: true});
+            }
         }
     }
 
     hasFullSquad(creep) {
         if (creep.memory.initialFormUp || !creep.memory.misc || !creep.memory.misc.waitFor) return true;
+        // Check if any squadmember needs to renew
+        const squad = creep.memory.squadMembers.map(id => Game.getObjectById(id));
+        if (squad.some(c => c && !c.memory.hasBoosted && c.handleRenewing(CREEP_LIFE_TIME * 0.8))) return _.min(squad, c => c.ticksToLive).handleRenewing(CREEP_LIFE_TIME * 0.8);
+        if (squad.some(c => !c.memory.boostAttempt)) return false;
         return creep.memory.misc.waitFor <= creep.memory.squadMembers.length + 1;
     }
 
     isQuadPacked(creeps, leader) {
         for (let i = 0; i < creeps.length; i++) {
             for (let j = i + 1; j < creeps.length; j++) {
-                if (!creeps[i]) continue;
-                // Handle non hostile rooms
+                if (!creeps[i] || creeps[i].pos.roomName !== creeps[j].pos.roomName || creeps[i].pos.roomName !== leader.pos.roomName) continue;
                 if (!creeps[i].room.hostileCreeps.length && !creeps[i].room.hostileStructures.length && !this.nearDestination(leader)) continue;
-                // Return true near border
-                if (creeps[i].pos.x <= 1 || creeps[i].pos.x >= 48 || creeps[i].pos.y <= 1 || creeps[i].pos.y >= 48) continue;
-                // Return true if not in the same room
+                if (creeps[i].pos.x <= 0 || creeps[i].pos.x >= 49 || creeps[i].pos.y <= 0 || creeps[i].pos.y >= 49) continue;
                 if (!creeps[i].pos.isNearTo(creeps[j].pos) && (!this.nearDestination(leader) || creeps[i].pos.roomName === leader.pos.roomName) && !creeps[i].pos.checkIfOutOfBounds()) return false
             }
         }
@@ -191,7 +194,7 @@ class RoleTestSquad {
         const terrain = room.getTerrain();
 
         const offsets = [
-            {x: -1, y: 0}, {x: 0, y: 0}, {x: 0, y: 1}, {x: 1, y: 0}, {x: 1, y: 1}
+            {x: 0, y: 0}, {x: 0, y: 1}, {x: 1, y: 0}, {x: 1, y: 1}
         ];
 
         const maxRange = 30;

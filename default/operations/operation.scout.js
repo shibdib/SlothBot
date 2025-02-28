@@ -53,6 +53,9 @@ function forwardObserver(room) {
         case 'remoteDenial':
             handleRemoteDenialOperation(room);
             break;
+        case 'guard':
+            handleRemoteDenialOperation(room);
+            break;
         default:
             updateRoomLevel(room);
             break;
@@ -156,9 +159,9 @@ function updateRoomLevel(room) {
             targetRoom.level = 4;
         }
     } else if (armedCreeps) {
-        targetRoom.level = 2;
+        targetRoom.level = 3;
     } else if (room.hostileCreeps.length || room.hostileStructures.length) {
-        targetRoom.level = 1;
+        targetRoom.level = 2;
     } else if (Memory.targetRooms[room.name] && Memory.targetRooms[room.name].type === 'guard') {
         targetRoom.level = 1;
     } else {

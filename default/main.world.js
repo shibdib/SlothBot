@@ -187,8 +187,6 @@ function minionController(minion) {
     }
     // Handle idle
     if (minion.idle) {
-        minion.attackInRange();
-        minion.healInRange();
         return;
     }
     // Track Threat

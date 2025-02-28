@@ -177,10 +177,6 @@ class Colony {
         // Track Threat
         diplomacy.trackThreat(minion);
 
-        // Combat Actions
-        minion.attackInRange();
-        minion.healInRange();
-
         // Handle edge cases (border or nuke flee)
         if (minion.memory.fleeNukeTime && minion.fleeNukeRoom()) {
             return;

@@ -874,7 +874,7 @@ Creep.prototype.borderCheck = function () {
         // Still do combat
         this.attackInRange();
         this.healInRange(true);
-        // Continue following path if available and less than 5 iterations
+        // Continue following path if available
         if (this.memory._shibMove && this.memory._shibMove.path) {
             const pathInfo = this.memory._shibMove;
             const nextDirection = pathInfo.path[0];
@@ -996,7 +996,8 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                     if (boostNeeded && this.room.store(boost) >= boostNeeded) {
                         available[boost] = {
                             'boost': boost,
-                            'amount': boostNeeded
+                            'amount': boostNeeded,
+                            'type': boostType
                         };
                         break;
                     }
@@ -1011,7 +1012,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
         this.memory.boosts.requestedBoosts = available;
     } else if (_.size(this.memory.boosts.requestedBoosts)) {
         // Handle if this creep is in a squad and needs to renew first
-        if (!this.memory.boosts.boostLab && !this.memory.hasBoosted && this.ticksToLive < CREEP_LIFE_TIME * 0.8) return this.handleRenewing();
+        if (!this.memory.boosts.boostLab && !this.memory.hasBoosted && this.handleRenewing(CREEP_LIFE_TIME * 0.95)) return this.handleRenewing(CREEP_LIFE_TIME * 0.95);
         if (this.memory.misc && this.memory.misc.waitFor > 1) {
             let leader = this.memory.leader ? this : Game.getObjectById(this.memory.groupLeader);
             const squadSize = leader ? leader.memory.squadMembers.length + 1 : 1;
@@ -1020,6 +1021,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
         for (let requestedBoost of Object.keys(this.memory.boosts.requestedBoosts)) {
             let amountNeeded = this.memory.boosts.requestedBoosts[requestedBoost]['amount'];
             let boostNeeded = this.memory.boosts.requestedBoosts[requestedBoost]['boost'];
+            let boostType = this.memory.boosts.requestedBoosts[requestedBoost]['type'];
             // 0 check
             if (!amountNeeded) return false;
             // Check if boost is low, if so restart
@@ -1037,7 +1039,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                     lab.memory.paused = true;
                     this.memory.boosts.boostLab = lab.id;
                     lab.memory.neededBoost = boostNeeded;
-                    lab.memory.amount = amountNeeded;
+                    if (!lab.memory.amount) lab.memory.amount = amountNeeded; else lab.memory.amount += amountNeeded;
                     lab.memory.requestor = this.id;
                     lab.memory.requested = Game.time;
                 } else {
@@ -1052,30 +1054,42 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
             }
             let lab = Game.getObjectById(this.memory.boosts.boostLab);
             if (lab) {
-                lab.say(lab.memory.neededBoost);
-                if (lab.mineralType === lab.memory.neededBoost && lab.store[RESOURCE_ENERGY] && lab.mineralAmount >= amountNeeded) {
-                    switch (lab.boostCreep(this)) {
-                        case OK:
-                            this.memory.boosts.requestedBoosts = _.filter(this.memory.boosts.requestedBoosts, (b) => b['boost'] !== lab.memory.neededBoost);
-                            lab.memory.neededBoost = undefined;
-                            this.memory.hasBoosted = true;
-                            this.say(ICONS.greenCheck);
-                            return true;
-                        case ERR_NOT_IN_RANGE:
-                            this.say(ICONS.boost);
-                            this.shibMove(lab, {forceSolo: true});
-                            return true;
-                        case ERR_NOT_ENOUGH_RESOURCES:
-                            this.say('Waiting...');
-                            this.idleFor(5);
-                            return true;
-                        default:
-                            this.say('Error');
-                            return true;
-                    }
-                } else if (lab.mineralType === lab.memory.neededBoost && lab.store[RESOURCE_ENERGY] && lab.mineralAmount < amountNeeded) {
-                    this.idleFor(5);
+                // Verify the body parts are boosted
+                const targetParts = this.body.find((p) => p.type === boostType && !p.boost);
+                if (!targetParts) {
+                    this.memory.boosts.requestedBoosts = _.filter(this.memory.boosts.requestedBoosts, (b) => b['boost'] !== lab.memory.neededBoost);
+                    lab.memory.amount -= amountNeeded;
+                    // Check if other creeps have this lab queued up for this boost
+                    const otherCreeps = this.room.creeps.find(c => c.id !== this.id && c.memory.boosts && c.memory.boosts.boostLab === lab.id && c.memory.boosts.requestedBoosts[lab.memory.neededBoost]);
+                    if (!otherCreeps) lab.memory.neededBoost = undefined;
+                    this.say(ICONS.greenCheck);
                     return true;
+                } else {
+                    lab.say(lab.memory.neededBoost);
+                    if (lab.mineralType === lab.memory.neededBoost && lab.store[RESOURCE_ENERGY] && lab.mineralAmount >= lab.memory.amount) {
+                        switch (lab.boostCreep(this)) {
+                            case OK:
+                                this.memory.hasBoosted = true;
+                                this.say(ICONS.testFinished);
+                                return true;
+                            case ERR_NOT_ENOUGH_RESOURCES:
+                            case ERR_NOT_IN_RANGE:
+                                this.say(ICONS.boost);
+                                this.shibMove(lab, {forceSolo: true});
+                                return true;
+                            default:
+                                this.say('Error');
+                                return true;
+                        }
+                    } else {
+                        if (this.room.store(boostNeeded) < lab.memory.amount) {
+                            let lab = Game.getObjectById(this.memory.boosts.boostLab);
+                            if (lab) lab.memory = undefined;
+                            this.memory.boosts = undefined;
+                            return true;
+                        }
+                        if (!this.memory.hasBoosted && this.handleRenewing(CREEP_LIFE_TIME * 0.95)) return this.handleRenewing(CREEP_LIFE_TIME * 0.95);
+                    }
                 }
             }
         }
@@ -1102,8 +1116,10 @@ Creep.prototype.recycleCreep = function () {
         if (this.room.name !== this.memory.colony) {
             this.shibMove(new RoomPosition(25, 25, this.memory.colony), {range: 22})
             return true;
+        } else {
+            console.log(this.name)
+            return this.suicide();
         }
-        else return this.suicide();
     }
     if (this.store.getUsedCapacity()) {
         let deliver = this.room.terminal || this.room.storage;
@@ -1133,21 +1149,28 @@ Creep.prototype.recycleCreep = function () {
  * Handle creep renewing
  * @returns {boolean}
  */
-Creep.prototype.handleRenewing = function () {
+Creep.prototype.handleRenewing = function (targetTicks) {
+    if (this.ticksToLive > targetTicks || this.memory.hasBoosted) {
+        this.memory.needsRenewal = undefined;
+        return false;
+    }
+    this.memory.needsRenewal = true;
     let spawn = this.room.impassibleStructures.find((s) => s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning);
     if (!spawn) {
         if (this.room.name !== this.memory.colony) {
             this.shibMove(new RoomPosition(25, 25, this.memory.colony), {range: 22})
-            return true;
-        } else return this.idleFor(5);
-    }
-    // Clear role to queue replacement if needed
-    switch (spawn.renewCreep(this)) {
-        case OK:
-            break;
-        case ERR_NOT_IN_RANGE:
-        case ERR_BUSY:
-            this.shibMove(spawn, {forceSolo: true});
+        } else {
+            this.idleFor(5);
+        }
+    } else {
+        switch (spawn.renewCreep(this)) {
+            case OK:
+                this.memory.boostAttempt = undefined;
+                break;
+            case ERR_NOT_IN_RANGE:
+            case ERR_BUSY:
+                this.shibMove(spawn, {forceSolo: true});
+        }
     }
     return true;
 };

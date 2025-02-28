@@ -27,6 +27,7 @@ class RoleLabTech {
         if (this.creep.memory.resourceNeeded) return this.getResource();
         // Deliver Boosts
         if (this.boostDelivery()) return;
+        if (this.labEnergy()) return;
         // Empty labs with wrong materials
         if (this.cleanLab()) return;
         // Empty mineral harvester container
@@ -251,6 +252,16 @@ class RoleLabTech {
             } else {
                 delete lab.memory;
             }
+        }
+    }
+
+    labEnergy() {
+        let lab = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB && s.store.getFreeCapacity(RESOURCE_ENERGY));
+        if (lab) {
+            this.creep.memory.resourceNeeded = RESOURCE_ENERGY;
+            this.creep.memory.amountNeeded = lab.store.getFreeCapacity(RESOURCE_ENERGY);
+            this.creep.memory.deliverTo = lab.id;
+            return true;
         }
     }
 

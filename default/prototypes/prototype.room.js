@@ -448,10 +448,17 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 
     // Get remote source data for the highest level room declaring this a remote
     if (roomIntel.remoteRoom && (!roomIntel.activeRemote || roomIntel.activeRemote + CREEP_LIFE_TIME < currentTime)) {
-        let highestLevelRoom = getHighestLevelRemoteRoom(roomIntel.remoteRoom);
+        let lowestScore;
+        let lowestRoom = roomIntel.remoteRoom[0];
         for (const source of this.sources) {
-            let distanceToExit = calculateDistanceToHub(this, source, highestLevelRoom);
-            updateRemoteSourceData(this, highestLevelRoom, source, distanceToExit);
+            for (const room of roomIntel.remoteRoom) {
+                let distanceToExit = calculateDistanceToHub(this, source, room);
+                if (!lowestScore || distanceToExit < lowestScore) {
+                    lowestScore = distanceToExit;
+                    lowestRoom = room;
+                }
+            }
+            if (lowestScore) updateRemoteSourceData(this, lowestRoom, source, lowestScore);
         }
         if (INTEL[roomIntel.remoteRoom]) INTEL[roomIntel.remoteRoom].refreshRemotes = true;
         roomIntel.activeRemote = Game.time;
@@ -508,8 +515,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             purgeBadRoute(this.name);
             roomIntel.towers = towers.length;
             roomIntel.towerData = this.towerData();
+            roomIntel.attackDirection = determineBestAttackRoute(this);
+            roomIntel.nukeTarget = this.terminal ? this.terminal.pos.toString() : this.storage ? this.storage.pos.toString() : undefined;
         }
-        roomIntel.nukeTarget = this.terminal ? this.terminal.pos.toString() : this.storage ? this.storage.pos.toString() : undefined;
 
         // Loot check
         roomIntel.loot = !this.find(FIND_HOSTILE_CREEPS).length && this.find(FIND_STRUCTURES, {
@@ -552,13 +560,6 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     // Update cache
     cache[this.name] = roomIntel;
 
-    // Helpers
-    function getHighestLevelRemoteRoom(remoteRooms) {
-        return remoteRooms.reduce((highest, room) =>
-                Game.rooms[room] && Game.rooms[room].level > (Game.rooms[highest].level || 0) ? room : highest
-            , remoteRooms[0]);
-    }
-
     function calculateDistanceToHub(room, source, targetRoom) {
         if (!Game.rooms[targetRoom] || !Game.rooms[targetRoom].memory) return Infinity;
         const storage = Game.rooms[targetRoom] ? Game.rooms[targetRoom].storage : undefined;
@@ -577,57 +578,87 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         };
         Game.rooms[roomName].memory.remoteSources = JSON.stringify(remoteSourceData);
     }
-};
 
-/**
- * Checks if an exit tile for every exit is reachable
- * @param {Room} room - The room to check from.
- * @return {boolean} - Returns true if at least one exit tile is reachable, false otherwise.
- */
-function areExitsReachable(room) {
-    if (!room.controller) {
-        return true;
-    }
-    const exits = Object.values(Game.map.describeExits(room.name));
-    for (let exitRoom of exits) {
-        const exitPositions = room.find(room.findExitTo(exitRoom));
-        if (exitPositions.length === 0) continue;
-        let pathsFound = false;
-        for (let exitPos of exitPositions) {
-            const path = PathFinder.search(
-                room.controller.pos,
-                {pos: exitPos, range: 0},
-                {
-                    maxOps: 5000,
-                    plainCost: 1,
-                    swampCost: 1,
-                    roomCallback: function (roomName) {
-                        let room = Game.rooms[roomName];
-                        if (!room) return false;
-                        let costs = new PathFinder.CostMatrix;
-                        room.find(FIND_STRUCTURES).forEach(function (s) {
-                            if (_.union(OBSTACLE_OBJECT_TYPES, [STRUCTURE_RAMPART]).includes(s.structureType)) {
-                                costs.set(s.pos.x, s.pos.y, Infinity);
-                            }
-                        });
-                        room.find(FIND_CREEPS).forEach(function (c) {
-                            costs.set(c.pos.x, c.pos.y, 0);
-                        });
-                        return costs;
+    function areExitsReachable(room) {
+        if (!room.controller) {
+            return true;
+        }
+        const exits = Object.values(Game.map.describeExits(room.name));
+        for (let exitRoom of exits) {
+            const exitPositions = room.find(room.findExitTo(exitRoom));
+            if (exitPositions.length === 0) continue;
+            let pathsFound = false;
+            for (let exitPos of exitPositions) {
+                const path = PathFinder.search(
+                    room.controller.pos,
+                    {pos: exitPos, range: 0},
+                    {
+                        maxOps: 5000,
+                        plainCost: 1,
+                        swampCost: 1,
+                        roomCallback: function (roomName) {
+                            let room = Game.rooms[roomName];
+                            if (!room) return false;
+                            let costs = new PathFinder.CostMatrix;
+                            room.find(FIND_STRUCTURES).forEach(function (s) {
+                                if (_.union(OBSTACLE_OBJECT_TYPES, [STRUCTURE_RAMPART]).includes(s.structureType)) {
+                                    costs.set(s.pos.x, s.pos.y, Infinity);
+                                }
+                            });
+                            room.find(FIND_CREEPS).forEach(function (c) {
+                                costs.set(c.pos.x, c.pos.y, 0);
+                            });
+                            return costs;
+                        }
                     }
+                );
+                if (!path.incomplete) {
+                    pathsFound = true;
+                    break;
                 }
-            );
-            if (!path.incomplete) {
-                pathsFound = true;
-                break;
+            }
+            if (!pathsFound) {
+                return false;
             }
         }
-        if (!pathsFound) {
-            return false;
+        return true;
+    }
+
+    function determineBestAttackRoute(room) {
+        const roomExits = Object.values(Game.map.describeExits(room.name));
+        const barriers = room.impassibleStructures.filter(s => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
+        const viableExits = roomExits.filter(exit => !INTEL[exit] || !INTEL[exit].owner || INTEL[exit].owner === MY_USERNAME);
+        if (viableExits.length > 0) {
+            let bestExit = room.findExitTo(viableExits[0]);
+            if (!barriers.length) return bestExit;
+            let lowestBarrierCount = 0;
+            for (const exit of viableExits) {
+                const exitDirection = room.findExitTo(exit);
+                const exitTiles = room.find(exitDirection);
+                exitTiles.filter((t) => t.getRangeTo(t.findClosestByRange(barriers)) <= 2);
+                if (!exitTiles.length) continue;
+                const exitTile = exitTiles[0];
+                const attackRoute = room.findPath(room.controller.pos, exitTile, {
+                    ignoreCreeps: true,
+                    ignoreDestructibleStructures: true,
+                    ignoreRoads: true
+                });
+                let barrierCount = 0;
+                attackRoute.forEach(tile => {
+                    tile = new RoomPosition(tile.x, tile.y, room.name);
+                    if (tile.lookFor(LOOK_STRUCTURES).find(s => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL)) {
+                        barrierCount += 1;
+                    }
+                })
+                if (barrierCount <= lowestBarrierCount) {
+                    lowestBarrierCount = barrierCount;
+                    bestExit = exitDirection;
+                }
+            }
+            return bestExit;
         }
     }
-    return true;
-}
+};
 
 
 let invaderAlert = {};

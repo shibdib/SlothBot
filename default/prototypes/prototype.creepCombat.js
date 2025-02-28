@@ -48,11 +48,6 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         return true;
     }
 
-    // Healing as priority if healing body parts available
-    if (this.hasActiveBodyparts(HEAL) && this.healInRange()) {
-        return true;
-    }
-
     return this.moveToHostileConstructionSites();
 
     function canEngageCombat(creep) {
@@ -113,6 +108,13 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
         ? this.pos.findClosestByPath(creeps, {filter})
         : this.pos.findClosestByRange(creeps, {filter});
 
+    // Handle attacking rooms with targets behind ramparts
+    const target = hostileStructures.find((s) => s.structureType === STRUCTURE_SPAWN) || hostileStructures.find((s) => s.structureType === STRUCTURE_TOWER) || this.room.controller;
+    if (this.room.controller && !FRIENDLIES.includes(INTEL[this.room.name].user) && findBestCleaningPath(this, target).length) {
+        const destroyThese = findBestCleaningPath(this, target);
+        if (destroyThese[0]) return updateTargetAndReturn(this, destroyThese[0].structure);
+    }
+
     let enemy = findClosest(hostileCreeps, (c) =>
         isArmedCreep(c) &&
         (!ignoreBorder || (c.pos.x > 0 && c.pos.x < 49 && c.pos.y > 0 && c.pos.y < 49)) &&
@@ -134,12 +136,6 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
         s.isActive()
     );
     if (enemy) return updateTargetAndReturn(this, enemy);
-
-    // Handle attacking rooms with targets behind ramparts
-    if (this.room.controller && !FRIENDLIES.includes(INTEL[this.room.name].user) && findBestCleaningPath(this, this.room.controller).length) {
-        const destroyThese = findBestCleaningPath(this, this.room.controller);
-        if (destroyThese[0]) return updateTargetAndReturn(this, destroyThese[0].structure);
-    }
 
     enemy = findClosest(hostileCreeps, (c) =>
         !isArmedCreep(c) &&
@@ -316,7 +312,7 @@ Creep.prototype.fightRanged = function (target) {
             // Handle attack
             if (target.structureType !== STRUCTURE_WALL && creep.pos.isNearTo(target)) {
                 creep.rangedMassAttack();
-            }
+            } else creep.rangedAttack(target);
             // Handle movement
             if (rampartEnemies.length || !creep.canIWin(2)) return creep.shibKite(3)
             const range = target.structureType !== STRUCTURE_SPAWN && !rampartEnemies.length ? 1 : 2;
@@ -543,16 +539,13 @@ Creep.prototype.healInRange = function (blinky = undefined) {
     // Heal self if needed
     if (this.hits < this.hitsMax && (!injured || (injured.hits / injured.hitsMax) < (this.hits / this.hitsMax))) {
         this.heal(this);
-        return true;
     } else if (injured) {
         if (this.pos.isNearTo(injured)) {
-            return this.heal(injured);
+            this.heal(injured);
         } else {
-            return this.rangedHeal(injured);
+            this.rangedHeal(injured);
         }
     } else if (blinky) this.heal(this);
-
-    return false;
 };
 
 /**
@@ -778,8 +771,9 @@ Creep.prototype.formSquadDebug = function () {
     }
 
     function findGroup(creep) {
-        const currentGroups = _.find(creep.room.myCreeps, (c) => c.id !== creep.id && c.memory.role === creep.memory.role && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3);
-        if (currentGroups) {
+        let currentGroups = creep.room.myCreeps.filter((c) => c.id !== creep.id && c.memory.role === creep.memory.role && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3);
+        if (currentGroups.length) {
+            currentGroups = _.max(currentGroups, c => c.memory.squadMembers.length);
             creep.memory.grouped = true;
             creep.memory.leader = undefined;
             creep.memory.squadMembers = undefined;
@@ -806,6 +800,12 @@ function determineTowerDamage(range) {
     }
 }
 
+Creep.prototype.pathingDebug = function () {
+    const spawn = this.room.find(FIND_MY_SPAWNS)[0];
+    const cleaningPath = findBestCleaningPath(this, spawn);
+    console.log(`Cleaning path: ${JSON.stringify(cleaningPath)}`);
+}
+
 function findBestCleaningPath(creep, target) {
     const room = creep.room;
     if (!room) return {path: null, structures: []}; // Room not visible
@@ -814,7 +814,7 @@ function findBestCleaningPath(creep, target) {
     room.find(FIND_STRUCTURES).forEach(structure => {
         if (structure.structureType === STRUCTURE_RAMPART || structure.structureType === STRUCTURE_WALL) {
             // Calculate the cost based on hits, higher hits = higher cost
-            let cost = Math.floor(structure.hits / 100000); // Adjust this divisor as needed
+            let cost = Math.floor(structure.hits / 10000); // Adjust this divisor as needed
             // Cap the cost to prevent impassable barriers
             cost = Math.min(cost, 255); // 255 is the max cost in a CostMatrix
             costMatrix.set(structure.pos.x, structure.pos.y, cost);
@@ -837,9 +837,10 @@ function findBestCleaningPath(creep, target) {
     let structuresOnPath = [];
     if (path.path.length > 0) {
         structuresOnPath = path.path.reduce((acc, pos) => {
-            const structures = room.lookForAt(LOOK_STRUCTURES, pos.x, pos.y);
+            let structures = room.lookForAt(LOOK_STRUCTURES, pos.x, pos.y);
+            if (creep.memory.grouped) structures.concat(room.lookForAt(LOOK_STRUCTURES, pos.x - 1, pos.y)).concat(room.lookForAt(LOOK_STRUCTURES, pos.x, pos.y + 1)).concat(room.lookForAt(LOOK_STRUCTURES, pos.x + 1, pos.y + 1));
             structures.forEach(structure => {
-                if (structure.structureType === STRUCTURE_RAMPART || structure.structureType === STRUCTURE_WALL) {
+                if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
                     acc.push({pos: structure.pos, structure: structure});
                 }
             });
