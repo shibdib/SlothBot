@@ -181,9 +181,8 @@ module.exports.essentialCreepQueue = function (room) {
     queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
 
     // Upgrader
-    const noUpgraderNeeded = ![ROOM_STATES.UPGRADING, ROOM_STATES.ATTACKING].includes(room.state) && room.level > 6;
-    let upgraderAmount = noUpgraderNeeded ? 0 : 1;
-    if (!noUpgraderNeeded) {
+    let upgraderAmount = 1;
+    if (room.energyState || room.level < 7) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         const stateNeeded = !!room.memory.controllerLink ? 2 : 1;
         if (container && room.energyState >= stateNeeded) {
@@ -192,8 +191,8 @@ module.exports.essentialCreepQueue = function (room) {
             upgraderAmount = 3;
         }
         if (room.memory.controllerLink && upgraderAmount > 3) upgraderAmount = 3; else if (upgraderAmount > 5) upgraderAmount = 5;
-        queueCreepIfNeeded(room, 'upgrader', PRIORITIES.upgrader, upgraderAmount || 1);
     }
+    queueCreepIfNeeded(room, 'upgrader', PRIORITIES.upgrader, upgraderAmount);
 };
 
 let miscTick = {};
@@ -531,11 +530,6 @@ module.exports.globalCreepQueue = function () {
             operation.priority = priority;
         }
 
-        // Handle scout if needed (if observer check is missing)
-        if (!operation.observerCheck && !opLevel) {
-            queueCreepIfNeeded(undefined, 'scout', 1, 1, undefined, key, undefined, true);
-        }
-
         if (!INTEL[key]) {
             queueCreepIfNeeded(undefined, 'scout', 1, 1, undefined, key);
             continue;
@@ -600,9 +594,14 @@ module.exports.globalCreepQueue = function () {
             case 'roomDenial':
                 // If this room doesn't spawn defenders we use dismantlers otherwise blinky
                 let count = 1;
+                let boost = [RANGED_ATTACK];
                 if (INTEL[key] && INTEL[key].towers) {
                     count = INTEL[key].towers * 2;
+                    boost.push(HEAL);
+                } else {
+                    boost = boost.filter((b) => b !== HEAL);
                 }
+                Memory.targetRooms[key].boost = boost;
                 if (INTEL[key] && INTEL[key].noActiveDefenders) {
                     if (INTEL[key].towers) {
                         queueCreepIfNeeded(undefined, 'siegeDuo', priority, count, undefined, key, undefined, true, 'roomDenial');
@@ -638,6 +637,7 @@ module.exports.globalCreepQueue = function () {
                 }
                 break;
             case 'stronghold':
+                Memory.targetRooms[key].boost = [HEAL];
                 queueCreepIfNeeded(undefined, 'siegeDuo', priority, opLevel * 2, undefined, key, undefined, true, 'roomDenial');
                 if (operation.loot) queueCreepIfNeeded(undefined, 'remoteHauler', priority, 2, undefined, key, undefined, true, 'roomDenial');
         }
@@ -759,11 +759,6 @@ function getQueue(room) {
                     delete operationQueue[key];
                     continue;
                 }
-                // Needs boosts
-                let boostsRequired;
-                if ((Memory.targetRooms[destination] && Memory.targetRooms[destination].boostsRequired)) {
-                    boostsRequired = Memory.targetRooms[destination].boostsRequired;
-                }
                 // Generate body
                 const generatedInfo = new generator(room.level, creepInfo.role, room, creepInfo).generateBody();
                 const body = generatedInfo.body;
@@ -796,12 +791,15 @@ function getQueue(room) {
                         delete operationQueue[key];
                         continue;
                     }
-                    // Boost check
-                    let tier = Memory.targetRooms[destination] && Memory.targetRooms[destination].boostTier ? Memory.targetRooms[destination].boostTier : undefined;
-                    if (boostsRequired && !room.boostCheck(body, undefined, tier)) {
-                        delete operationQueue[key];
-                        unassignRoom(room, destination, 'Missing required boosts.');
-                        continue;
+                    // Needs heal boosts
+                    const healBoostsRequired = Memory.targetRooms[destination] && Memory.targetRooms[destination].boosts && Memory.targetRooms[destination].boosts.includes(HEAL);
+                    if (healBoostsRequired) {
+                        let tier = Memory.targetRooms[destination] && Memory.targetRooms[destination].boostTier ? Memory.targetRooms[destination].boostTier : undefined;
+                        if (!room.boostCheck(body, undefined, tier)) {
+                            delete operationQueue[key];
+                            unassignRoom(room, destination, 'Missing required boosts.');
+                            continue;
+                        }
                     }
                 }
                 // Adjust priority based on specific conditions
@@ -887,7 +885,7 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
     for (let key of MY_ROOMS) {
         // If not available continue
         const myRoom = Game.rooms[key];
-        if (!myRoom.energyState) continue
+        if (!myRoom.energyState || myRoom.controller.level !== myRoom.level || myRoom.downgraded) continue
         // If above you spawn count continue
         const currentAssignments = Memory.targetRooms[targetRoom] ? _.filter(Memory.targetRooms, (r) => r && r.assignedRoom === key).length : _.filter(Memory.auxiliaryTargets, (r) => r && r.assignedRoom === key).length;
         if (currentAssignments >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level]) continue;
