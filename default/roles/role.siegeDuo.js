@@ -53,14 +53,14 @@ class RoleSiegeDuo {
 
     handleLeader() {
         const partner = Game.getObjectById(this.creep.memory.partner);
-        if (!this.creep.pos.isNearTo(partner) || partner.fatigue) {
-            if (partner.room.name === this.room.name) this.creep.shibMove(partner); else this.handleSolo();
+        const isReady = this.hasFullSquad(this.creep) && this.isPartnerNearby(partner, this.creep);
+
+        if (isReady) {
+            if (!this.creep.memory.initialFormUp) this.creep.memory.initialFormUp = true;
+            if (this.creep.memory.operation) this.operationManagement(); else if (this.creep.memory.destination) this.destinationManagement();
+            else this.creep.handleMilitaryCreep();
         } else {
-            if (this.creep.memory.operation) {
-                this.operationManagement();
-            } else if (this.creep.memory.destination) {
-                this.destinationManagement();
-            }
+            this.creep.findDefensivePosition();
         }
     }
 
@@ -98,6 +98,27 @@ class RoleSiegeDuo {
                 this.creep.recycleCreep();
             }
         }
+    }
+
+    hasFullSquad(creep) {
+        if (creep.memory.initialFormUp) return true;
+        // Check if any squadmember needs to renew
+        const partner = Game.getObjectById(this.creep.memory.partner);
+        if (!partner.memory.boostAttempt) return false;
+        return !!partner;
+    }
+
+    isPartnerNearby(partner, leader) {
+        if (!partner || partner.pos.roomName !== partner.pos.roomName || partner.pos.roomName !== leader.pos.roomName) return true;
+        if (!partner.room.hostileCreeps.length && !partner.room.hostileStructures.length && !this.nearDestination(leader)) return true;
+        if (partner.pos.x <= 0 || partner.pos.x >= 49 || partner.pos.y <= 0 || partner.pos.y >= 49) return true;
+        if (!partner.pos.isNearTo(leader.pos) && (!this.nearDestination(leader) || partner.pos.roomName === leader.pos.roomName) && !partner.pos.checkIfOutOfBounds()) return false
+        return true
+    }
+
+    nearDestination(leader) {
+        if (!leader.memory.destination) return false;
+        return Game.map.getRoomLinearDistance(this.creep.room.name, leader.memory.destination) <= 1;
     }
 }
 
