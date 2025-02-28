@@ -413,6 +413,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         roomIntel.user = this.user;
         if (this.controller) {
             roomIntel.owner = this.controller.owner ? this.controller.owner.username : undefined;
+            if (roomIntel.owner) {
+                roomIntel.attackDirection = determineBestAttackRoute(this);
+            }
             roomIntel.reservation = this.controller.reservation ? this.controller.reservation.username : undefined;
         }
         // Check for highway-related intel
@@ -510,7 +513,6 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             purgeBadRoute(this.name);
             roomIntel.towers = towers.length;
             roomIntel.towerData = this.towerData();
-            roomIntel.attackDirection = determineBestAttackRoute(this);
             roomIntel.nukeTarget = this.terminal ? this.terminal.pos.toString() : this.storage ? this.storage.pos.toString() : undefined;
         }
 
