@@ -57,7 +57,7 @@ module.exports.storeIntel = function () {
         log.d("Intel segment not accessed, not storing.", "INTEL MANAGER: ");
         return;
     }
-    if (!lastIntelStore || lastIntelStore + CREEP_LIFE_TIME < Game.time || INTEL_ROOM_PURGE.length) {
+    if (!lastIntelStore || lastIntelStore + CREEP_LIFE_TIME < Game.time || INTEL_ROOM_PURGE.length || Memory.forceIntel) {
         // Check for invalid cache
         if (!_.size(INTEL) || !INTEL[Object.keys(INTEL)[0]].name) {
             log.e('Invalid intel cache, clearing.', "INTEL MANAGER: ");
