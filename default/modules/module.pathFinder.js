@@ -1130,12 +1130,15 @@ function squadMove(creep, path) {
             const member = Game.getObjectById(memberId);
             if (!member) return true; // Skip missing members
             const nextPos = member.pos.positionAtDirection(direction);
-            return nextPos && !nextPos.checkForImpassible(false, true) && !isOccupiedByEnemy(nextPos);
+            if (!nextPos) return true;
+            return nextPos && !nextPos.checkForImpassible(false, true) && !isOccupiedByEnemy(creep, nextPos);
         });
     }
 
-    function isOccupiedByEnemy(pos) {
+    function isOccupiedByEnemy(creep, pos) {
         const creepAtPos = pos.lookFor(LOOK_CREEPS)[0];
+        if (creepAtPos && !FRIENDLIES.includes(creepAtPos.owner.username)) creep.memory.blockingCreep = creepAtPos.id;
+        else creep.memory.blockingCreep = undefined;
         return creepAtPos && !creepAtPos.my;
     }
 }
