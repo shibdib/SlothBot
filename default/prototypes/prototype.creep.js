@@ -1045,7 +1045,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
             }
             // Find a lab to boost the creep if none exist, idle.
             if (!this.memory.boosts.boostLab || !Game.getObjectById(this.memory.boosts.boostLab).memory.neededBoost) {
-                let lab = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB && s.store[RESOURCE_ENERGY] > 0 &&
+                let lab = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB && s.active() && s.store[RESOURCE_ENERGY] > 0 &&
                     (s.mineralType === boostNeeded || !s.memory.itemNeeded) && (!s.memory.neededBoost || s.memory.neededBoost === boostNeeded));
                 if (lab) {
                     lab.memory.paused = true;
