@@ -221,7 +221,7 @@ class ModuleBodyGenerator {
                 break;
 
             case 'siegeDuo':
-                const healerDuo = _.find(Game.creeps, (c) => c.my && c.memory.role === 'siegeDuo' && c.hasActiveBodyparts(HEAL) && !c.memory.partner);
+                const healerDuo = _.find(this.room.myCreeps, (c) => c.memory.role === 'siegeDuo' && c.hasActiveBodyparts(HEAL) && !c.memory.partner);
                 if (!healerDuo) {
                     if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
                         heal = this.checkForNeededHeal(this.room, 1);
