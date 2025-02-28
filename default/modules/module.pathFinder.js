@@ -3,7 +3,6 @@
  */
 
 const DEFAULT_MAXOPS = 1500;
-const DEFAULT_HEURISTIC = 2.5;
 const STATE_STUCK = 2;
 const FLEE_RANGE = 4;
 
@@ -44,8 +43,7 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         range: 1,
         maxRooms: 7,
         useCache: true,
-        ignoreCreeps: true,
-        heuristicWeight: DEFAULT_HEURISTIC
+        ignoreCreeps: true
     });
 
     if (pathOnly) {
@@ -234,10 +232,9 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     pathInfo.pathOptions = options;
     const pathKey = `${origin.roomName}_${origin.x}_${origin.y}_${target.roomName}_${target.x}_${target.y}`;
     // Early exit for adjacent targets
-    if (origin.roomName === target.roomName && creep.pos.isNearTo(heading) && options.range === 0) {
+    if (origin.roomName === target.roomName && creep.pos.isNearTo(heading)) {
         creep.memory._shibMove = undefined;
-        const direction = creep.pos.getDirectionTo(heading);
-        if (creep.move(direction) === OK) return true;
+        return creep.move(creep.pos.getDirectionTo(heading));
     }
     // Check for a cached path
     if (options.useCache && !INTEL[creep.room.name].threatLevel && !options.tunnel) cached = getPath(creep, origin, target, pathInfo);
@@ -248,18 +245,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         pathInfo.usingCached = true;
         pathInfo.newPos = creep.pos.positionAtDirection(parseInt(pathInfo.path[0], 10));
         creep.memory._shibMove = pathInfo;
-        switch (creep.move(parseInt(pathInfo.path[0], 10))) {
-            case OK:
-                return true;
-            case ERR_TIRED:
-                return true;
-            case ERR_NO_BODYPART:
-                return false;
-            case ERR_BUSY:
-                creep.idleFor(10);
-                return false;
-        }
-        return true;
+        return executePath(creep, pathInfo, options, origin, heading);
     }
     // Check if its multi room or not
     if (origin.roomName !== target.roomName) {
@@ -286,7 +272,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     const result = PathFinder.search(origin, {pos: target, range: options.range}, {
         maxOps: roomDistance ? options.maxOps * roomDistance : options.maxOps,
         maxRooms: allowedRooms.length ? allowedRooms.length + 2 : 1,
-        heuristicWeight: options.heuristicWeight,
         roomCallback: function (roomName) {
             if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
             return getMatrix(roomName, creep, options);
@@ -304,6 +289,8 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         if (options.ignoreCreeps) cachePath(creep, origin, target, pathInfo);
         if (options.getPath) return creep.memory.getPath = pathInfo.path;
         return executePath(creep, pathInfo, options, origin, heading);
+    } else {
+        return creep.moveTo(target);
     }
     if (!creep.memory.repathAttempt || creep.memory.repathAttempt + 10 < Game.time) {
         creep.memory.repathAttempt = Game.time;
@@ -444,7 +431,7 @@ function getMatrix(roomName, creep, options) {
         //matrix = getOutsideHubMatrix(roomName, matrix, options);
     }
     matrix = getSKMatrix(roomName, matrix, options);
-    //if (roomName === 'W4N9' && !options.squad) visualizeCostMatrix(matrix, roomName);
+    //if (roomName === 'W4N9' && options.squad) visualizeCostMatrix(matrix, roomName);
     return matrix;
 }
 
@@ -484,31 +471,11 @@ function getTerrainMatrix(roomName, options) {
             for (let x = 0; x < 50; x++) {
                 let tile = terrain.get(x, y);
                 if (tile === TERRAIN_MASK_WALL) {
-                    matrix.set(x, y, Infinity);
-                    if (options.squad) {
-                        for (let vector of formationVectors) {
-                            const newX = x + vector.x;
-                            const newY = y + vector.y;
-                            if (newX < 0 || newX > 49 || newY < 0 || newY > 49) continue;
-                            const currentCost = matrix.get(newX, newY);
-                            if (currentCost >= Infinity) continue;
-                            matrix.set(newX, newY, Infinity);
-                        }
-                    }
+                    matrix.set(x, y, 256);
                 } else if (x === 0 || x === 49 || y === 0 || y === 49) {
                     matrix.set(x, y, 10);
                 } else if (tile === TERRAIN_MASK_SWAMP) {
                     matrix.set(x, y, swampCost);
-                    if (options.squad) {
-                        for (let vector of formationVectors) {
-                            const newX = x + vector.x;
-                            const newY = y + vector.y;
-                            if (newX < 0 || newX > 49 || newY < 0 || newY > 49) continue;
-                            const currentCost = matrix.get(newX, newY);
-                            if (currentCost >= plainCost * 10) continue;
-                            matrix.set(newX, newY, plainCost * 10);
-                        }
-                    }
                 } else {
                     matrix.set(x, y, plainCost);
                 }
@@ -558,16 +525,6 @@ function getStructureMatrix(roomName, creep, matrix, options) {
                 matrix.set(structure.pos.x, structure.pos.y, 75);
             } else if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
                 matrix.set(structure.pos.x, structure.pos.y, 256);
-                if (type === 4) {
-                    for (let vector of formationVectors) {
-                        const newX = structure.pos.x + vector.x
-                        const newY = structure.pos.y + vector.y
-                        if (newX < 0 || newX > 49 || newY < 0 || newY > 49) continue;
-                        const currentCost = matrix.get(newX, newY);
-                        if (currentCost >= Infinity) continue;
-                        matrix.set(newX, newY, Infinity);
-                    }
-                }
             } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure()) {
                 matrix.set(structure.pos.x, structure.pos.y, roadCost * 5);
             } else {
@@ -577,16 +534,6 @@ function getStructureMatrix(roomName, creep, matrix, options) {
         let blockingSites = _.filter(room.constructionSites, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) && (s.my || (!s.my && _.includes(FRIENDLIES, s.owner.username))));
         for (let site of blockingSites) {
             matrix.set(site.pos.x, site.pos.y, 256);
-            if (type === 4) {
-                for (let vector of formationVectors) {
-                    const newX = site.pos.x + vector.x
-                    const newY = site.pos.y + vector.y
-                    if (newX < 0 || newX > 49 || newY < 0 || newY > 49) continue;
-                    const currentCost = matrix.get(newX, newY);
-                    if (currentCost >= 256) continue;
-                    matrix.set(newX, newY, 256);
-                }
-            }
         }
         //Sources
         for (let source of room.sources) {
@@ -635,16 +582,6 @@ function getStationaryCreepsMatrix(roomName, creep, matrix, options) {
             if (!creep.memory || !creep.memory.other) continue;
             if (creep.memory.other.stationary || !creep.hasActiveBodyparts(MOVE) || creep.memory.grouped) {
                 matrix.set(creep.pos.x, creep.pos.y, 200);
-                if (options.squad) {
-                    for (let vector of formationVectors) {
-                        const newX = creep.pos.x + vector.x
-                        const newY = creep.pos.y + vector.y
-                        if (newX < 0 || newX > 49 || newY < 0 || newY > 49) continue;
-                        const currentCost = matrix.get(newX, newY);
-                        if (currentCost >= 200) continue;
-                        matrix.set(newX, newY, 200);
-                    }
-                }
                 if (options.showMatrix) new RoomVisual(room.name).text('IMP', creep.pos.x, creep.pos.y, {
                     color: 'white',
                     font: 0.4
@@ -742,6 +679,64 @@ function getSKMatrix(roomName, matrix = undefined, options) {
                             }
                         } catch (e) {
                         }
+                    }
+                }
+            }
+        }
+        return matrix;
+    }
+}
+
+function getSquadMatrix(roomName) {
+    return getCachedMatrix(roomName, `squad`, 10, () => buildSquadMatrix(roomName));
+
+    function buildSquadMatrix(roomName) {
+        let matrix = new PathFinder.CostMatrix();
+        let terrain = Game.map.getRoomTerrain(roomName);
+        const plainCost = 1;
+        const swampCost = 25
+        for (let y = 0; y < 50; y++) {
+            for (let x = 0; x < 50; x++) {
+                let tile = terrain.get(x, y);
+                if (tile === TERRAIN_MASK_WALL) {
+                    matrix.set(x, y, 256);
+                    for (let vector of formationVectors) {
+                        const newX = x + vector.x;
+                        const newY = y + vector.y;
+                        if (newX < 0 || newX > 49 || newY < 0 || newY > 49) continue;
+                        const currentCost = matrix.get(newX, newY);
+                        if (currentCost >= 256) continue;
+                        matrix.set(newX, newY, 256);
+                    }
+                } else if (x <= 1 || x >= 48 || y <= 1 || y >= 48) {
+                    matrix.set(x, y, 10);
+                } else if (tile === TERRAIN_MASK_SWAMP) {
+                    matrix.set(x, y, swampCost);
+                    for (let vector of formationVectors) {
+                        const newX = x + vector.x;
+                        const newY = y + vector.y;
+                        if (newX < 0 || newX > 49 || newY < 0 || newY > 49) continue;
+                        const currentCost = matrix.get(newX, newY);
+                        if (currentCost >= swampCost) continue;
+                        matrix.set(newX, newY, swampCost);
+                    }
+                } else {
+                    matrix.set(x, y, plainCost);
+                }
+            }
+        }
+        const room = Game.rooms[roomName];
+        if (room) {
+            for (let structure of room.structures) {
+                if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
+                    matrix.set(structure.pos.x, structure.pos.y, 256);
+                    for (let vector of formationVectors) {
+                        const newX = structure.pos.x + vector.x
+                        const newY = structure.pos.y + vector.y
+                        if (newX < 0 || newX > 49 || newY < 0 || newY > 49) continue;
+                        const currentCost = matrix.get(newX, newY);
+                        if (currentCost >= 255) continue;
+                        matrix.set(newX, newY, 255);
                     }
                 }
             }
@@ -1048,7 +1043,7 @@ Creep.prototype.shibSquadMovement = function (target = undefined, options = {}) 
         maxRooms: allowedRooms.length * 1.5,
         roomCallback: function (roomName) {
             if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
-            return getMatrix(roomName, this, options);
+            return getSquadMatrix(roomName);
         }
     });
 
@@ -1082,7 +1077,7 @@ Creep.prototype.shibSquadKite = function (fleeRange = FLEE_RANGE, options = {}) 
         roomCallback: function (roomName) {
             if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
             if (INTEL[roomName] && INTEL[roomName].owner && !FRIENDLIES.includes(INTEL[roomName].owner)) return false;
-            return getMatrix(roomName, this, options);
+            return getSquadMatrix(roomName);
         }
     });
 
@@ -1136,65 +1131,6 @@ function squadMove(creep, path) {
             if (!member) return true; // Skip missing members
             const nextPos = member.pos.positionAtDirection(direction);
             return nextPos && !nextPos.checkForImpassible(false, true) && !isOccupiedByEnemy(nextPos);
-        });
-    }
-
-    function isOccupiedByEnemy(pos) {
-        const creepAtPos = pos.lookFor(LOOK_CREEPS)[0];
-        return creepAtPos && !creepAtPos.my;
-    }
-}
-
-function squadMoveNew(creep, path) {
-    if (!creep.memory.squadMembers || !creep.memory.squadMembers.length || !path || !path.length) {
-        creep.memory._shibSquadMove = undefined;
-        return false;
-    }
-
-    if (isSquadFatigued(creep)) return false;
-
-    const moveDirection = parseInt(path[0], 10);
-    const newPos = creep.pos.positionAtDirection(moveDirection);
-
-    // Handle squad movement
-    if (!canSquadMove(creep, moveDirection)) {
-        creep.memory._shibSquadMove = undefined;
-        return false;
-    } else {
-        path = path.slice(1);
-        creep.move(moveDirection);
-        moveSquadMembers(creep, moveDirection);
-        creep.memory._shibSquadMove.path = path;
-        return true;
-    }
-
-    function isSquadFatigued(creep) {
-        if (creep.fatigue) return true;
-        return creep.memory.squadMembers.some(memberId => {
-            const member = Game.getObjectById(memberId);
-            return member.fatigue > 0;
-        });
-    }
-
-    function canSquadMove(creep, direction) {
-        return creep.memory.squadMembers.every(memberId => {
-            const member = Game.getObjectById(memberId);
-            if (!member) return true; // Skip missing members
-            const nextPos = member.pos.positionAtDirection(direction);
-            return nextPos && !nextPos.checkForImpassible(false, true) && !isOccupiedByEnemy(nextPos);
-        });
-    }
-
-    function moveSquadMembers(creep, direction) {
-        creep.memory.squadMembers.forEach(memberId => {
-            const member = Game.getObjectById(memberId);
-            if (!member || member.pos.getRangeTo(creep) > 1) return;
-            const nextPos = member.pos.positionAtDirection(direction);
-            if (!nextPos || nextPos.checkForImpassible()) {
-                member.shibMove(creep, {range: 0});
-            } else {
-                member.move(direction);
-            }
         });
     }
 
