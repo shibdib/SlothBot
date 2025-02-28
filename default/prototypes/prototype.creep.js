@@ -1045,7 +1045,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
             }
             // Find a lab to boost the creep if none exist, idle.
             if (!this.memory.boosts.boostLab || !Game.getObjectById(this.memory.boosts.boostLab).memory.neededBoost) {
-                let lab = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB && s.active() && s.store[RESOURCE_ENERGY] > 0 &&
+                let lab = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB && s.isActive() && s.store[RESOURCE_ENERGY] > 0 &&
                     (s.mineralType === boostNeeded || !s.memory.itemNeeded) && (!s.memory.neededBoost || s.memory.neededBoost === boostNeeded));
                 if (lab) {
                     lab.memory.paused = true;
@@ -1066,7 +1066,6 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
             }
             let lab = Game.getObjectById(this.memory.boosts.boostLab);
             if (lab) {
-                this.say(1)
                 // Verify the body parts are boosted
                 const targetParts = this.body.find((p) => p.type === boostType && !p.boost);
                 if (!targetParts && this.memory.hasBoosted && this.memory.hasBoosted.includes(lab.memory.neededBoost)) {
@@ -1078,7 +1077,6 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                     this.say(ICONS.greenCheck);
                     return true;
                 } else {
-                    this.say(12)
                     lab.say(lab.memory.neededBoost);
                     if (lab.mineralType === lab.memory.neededBoost && lab.store[RESOURCE_ENERGY] && lab.mineralAmount >= lab.memory.amount) {
                         switch (lab.boostCreep(this)) {
@@ -1101,6 +1099,8 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                             if (lab) lab.memory = undefined;
                             this.memory.boosts = undefined;
                             return true;
+                        } else if (!this.pos.isNearTo(lab)) {
+                            this.shibMove(lab, {forceSolo: true});
                         }
                         if (!this.memory.hasBoosted && this.handleRenewing(CREEP_LIFE_TIME * 0.95)) return this.handleRenewing(CREEP_LIFE_TIME * 0.95);
                     }
