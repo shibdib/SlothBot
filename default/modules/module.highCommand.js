@@ -88,7 +88,8 @@ function militaryOperations() {
     // Handle stronghold operations
     let activeStrongholdAttacks = _.find(Memory.targetRooms, (t) => t && t.type === 'stronghold');
     if (!activeStrongholdAttacks) {
-        let stronghold = _.min(_.filter(INTEL, (r) => r && r.sk && !Memory.targetRooms[r.name] && r.towers && siegeLevel(r.towers) && myRoomInSectorCheck(r.name)
+        let stronghold = _.min(_.filter(INTEL, (r) => r && r.sk && !Memory.targetRooms[r.name] &&
+            (r.invaderCore && r.invaderCore + CREEP_LIFE_TIME > Game.time) && r.towers && siegeLevel(r.towers) && myRoomInSectorCheck(r.name)
             && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time)), function (t) {
             if (!t.name) return Infinity;
             return findClosestOwnedRoom(t.name, true);
@@ -389,7 +390,7 @@ function manageMilitary() {
                 break;
 
             case 'guard':
-                staleMulti = 3;
+                staleMulti *= (target.level + 1);
                 if (activeNonSiegeOperations > OPERATION_LIMIT) {
                     log.a('Canceling ' + type + ' in ' + roomLink(key) + ' due to too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
@@ -397,11 +398,17 @@ function manageMilitary() {
                     INTEL[key].lastOperation = Game.time;
                     continue;
                 }
-                staleMulti *= (target.level + 1);
                 break;
 
             case 'stronghold':
                 staleMulti = 5;
+                if (!INTEL[key] || !INTEL[key].invaderCore || INTEL[key].invaderCore < Game.time) {
+                    log.a('Canceling ' + type + ' in ' + roomLink(key) + ' as the invader core is gone.', 'HIGH COMMAND: ');
+                    delete Memory.targetRooms[key];
+                    activeNonSiegeOperations--;
+                    INTEL[key].lastOperation = Game.time;
+                    continue;
+                }
                 break;
 
             case 'power':

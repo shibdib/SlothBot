@@ -64,7 +64,7 @@ class RoleExplorer {
     }
 
     signRooms() {
-        if (this.room.controller && (!this.room.controller.sign || this.room.controller.sign.username !== MY_USERNAME)) {
+        if (this.room.controller && (!this.room.controller.sign || this.room.controller.sign.username !== MY_USERNAME) && this.creep.pos.findClosestByPath(this.room.controller)) {
             switch (this.creep.signController(this.room.controller, _.sample(EXPLORED_ROOM_SIGNS) + ` - ` + Game.time)) {
                 case ERR_NOT_IN_RANGE:
                     if (!this.creep.memory.signAttempt) this.creep.memory.signAttempt = Game.time;
@@ -93,7 +93,7 @@ function pathableExit(creep, exitPosition) {
         maxRooms: 0,
         roomCallback: roomCallback,
     });
-    return search.incomplete !== undefined;
+    return search.incomplete !== true && search.path.length > 3;
 }
 
 profiler.registerClass(RoleExplorer, 'Explorer');

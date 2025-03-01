@@ -853,7 +853,7 @@ function findBestCleaningPath(creep, target) {
     return impassableStructures;
 
     function getSquadMatrix(roomName) {
-        return getCachedMatrix(roomName, `squad`, 10, () => buildSquadMatrix(roomName));
+        return buildSquadMatrix(roomName);
 
         function buildSquadMatrix(roomName) {
             let matrix = new PathFinder.CostMatrix();
@@ -894,6 +894,13 @@ function findBestCleaningPath(creep, target) {
         }
     }
 }
+
+const formationVectors = [
+    {x: 0, y: 0}, // top-left
+    {x: 0, y: -1}, // top-right
+    {x: -1, y: 0}, // bottom-left
+    {x: -1, y: -1}, // bottom-right
+]
 
 function getAssignedRampart(creep, target = undefined) {
     let range = creep.hasActiveBodyparts(RANGED_ATTACK) ? 3 : 1;

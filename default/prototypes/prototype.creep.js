@@ -335,7 +335,8 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         if (room.storage && !room.storage.pos.checkForRampart(true) && room.storage.store[RESOURCE_ENERGY]) {
             potentialEnergy.push(room.storage);
         }
-        if (room.terminal && !room.terminal.pos.checkForRampart(true) && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
+        if (room.terminal && !room.terminal.pos.checkForRampart(true)
+            && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER && (!room.storage || room.terminal.store[RESOURCE_ENERGY] > room.storage.store[RESOURCE_ENERGY])) {
             potentialEnergy.push(room.terminal);
         }
         if (potentialEnergy.length) {
@@ -496,8 +497,8 @@ Creep.prototype.haulerDelivery = function () {
     }
 
     // Terminal
-    const terminalAmount = !!this.room.energyState ? TERMINAL_ENERGY_BUFFER * 10 : TERMINAL_ENERGY_BUFFER;
-    if (!targets.length && this.room.terminal && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < terminalAmount) {
+    const terminalAmount = this.room.energyState ? TERMINAL_ENERGY_BUFFER * 10 : TERMINAL_ENERGY_BUFFER;
+    if (!targets.length && this.room.terminal && this.room.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < terminalAmount) {
         targets.push(this.room.terminal);
     }
 

@@ -32,16 +32,19 @@ Creep.prototype.denyRoom = function () {
 
         // Update sustainability of operation in this room
         highCommand.operationSustainability(this.room);
+
+        // Combat handling
+        if (this.handleMilitaryCreep()) return;
     }
 
     // Handle staging and moving to destination
-    if (!this.memory.misc || !this.memory.misc.stagingRoom) this.memory.misc.stagingRoom = INTEL[this.memory.destination].stagingRoom || this.memory.destination;
+    if (!this.memory.misc || !this.memory.misc.stagingRoom) {
+        if (!this.memory.misc) this.memory.misc = {};
+        this.memory.misc.stagingRoom = INTEL[this.memory.destination].attackDirection ? Game.map.describeExits(this.memory.destination)[INTEL[this.memory.destination].attackDirection] : this.memory.destination;
+    }
+    if (this.memory.misc && this.memory.misc.stagingRoom && this.memory.misc.stagingRoom === this.room.name) this.memory.misc.staged = true;
     let destination = this.memory.misc && this.memory.misc.stagingRoom && !this.memory.misc.staged ? this.memory.misc.stagingRoom : this.memory.destination;
     if (this.room.name !== destination) {
-        if (this.memory.misc && this.memory.misc.stagingRoom && this.memory.misc.stagingRoom === this.room.name) return this.memory.misc.staged = true;
         return this.shibMove(new RoomPosition(25, 25, destination), {range: 23});
     }
-
-    // Combat handling
-    if (this.handleMilitaryCreep()) return;
 };

@@ -98,8 +98,8 @@ function handleRoomDenialOperation(room) {
         return;
     }
 
-    const spawnsTowers = room.structures.find((s) => s.structureType === STRUCTURE_TOWER || s.structureType === STRUCTURE_SPAWN);
-    Memory.targetRooms[room.name].camping = !!spawnsTowers;
+    const towers = room.structures.find((s) => s.structureType === STRUCTURE_TOWER);
+    Memory.targetRooms[room.name].camping = !!towers;
 
     updateRoomLevel(room);
     handleCleanerAndClaimAttacker(room);

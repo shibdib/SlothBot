@@ -63,28 +63,17 @@ class FactoryControl {
         const commodity = COMMODITIES[producing];
         const batteryStored = room.store(RESOURCE_BATTERY);
 
-        // Stop producing batteries if energy is too low
         if (producing === RESOURCE_BATTERY && room.energyState < 2) return true;
-
-        // Stop producing energy if we have enough energy or if we've used up batteries
-        if (producing === RESOURCE_ENERGY) {
+        else if (producing === RESOURCE_ENERGY) {
             return (room.energyState > 1 || batteryStored < 50);
-        }
-
-        // Stop if we have enough of the commodity (adjusted for different resource types)
-        if (producing !== RESOURCE_ENERGY && producing !== RESOURCE_BATTERY) {
-            let productionThreshold = BASE_MINERALS.includes(producing) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
+        } else if (producing !== RESOURCE_ENERGY && producing !== RESOURCE_BATTERY && !COMPRESSED_COMMODITIES.includes(producing)) {
+            let productionThreshold = BASE_MINERALS.includes(producing) ? REACTION_AMOUNT : DUMP_AMOUNT * 0.9;
             if (room.store(producing) >= productionThreshold) return true;
-        }
-
-        // Stop if we lack components for compressed commodities
-        if (COMPRESSED_COMMODITIES.includes(producing) &&
+        } else if (COMPRESSED_COMMODITIES.includes(producing) &&
             Object.keys(commodity.components).some(resource =>
                 resource !== RESOURCE_ENERGY && room.store(resource) < REACTION_AMOUNT * 0.5
             )) return true;
-
-        // Stop if we need energy for production but don't have it
-        if (commodity.components[RESOURCE_ENERGY] && !room.energyState) return true;
+        else if (commodity.components[RESOURCE_ENERGY] && !room.energyState) return true;
 
         return false;
     }

@@ -132,7 +132,8 @@ Object.defineProperty(Room.prototype, 'downgraded', {
 Object.defineProperty(Room.prototype, 'impassibleStructures', {
     get: function () {
         if (!this._impassibleStructures) {
-            this._impassibleStructures = _.filter(this.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
+            this._impassibleStructures = _.filter(this.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) ||
+                (s.structureType === STRUCTURE_RAMPART && !FRIENDLIES.includes(s.owner.username)));
         }
         return this._impassibleStructures;
     },
@@ -144,7 +145,7 @@ Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
         if (!this.controller) return 2;
         if (!this._energyState) {
-            let energy = this.energy + ((this.store(RESOURCE_BATTERY) / 50) * 600);
+            let energy = this.rawEnergy;
             let target = this.level === 8 ? 200000 : Math.min((constructionCost(this.controller.level + 1) - constructionCost(this.controller.level)) * 1.5, 1500000);
             // Lower target if not near upgrade
             if (this.level < 8 && this.controller.progress / this.controller.progressTotal < 0.8) target *= 0.25;
@@ -334,9 +335,20 @@ Object.defineProperty(Room.prototype, 'nuker', {
 Object.defineProperty(Room.prototype, 'energy', {
     get: function () {
         if (!this._energy) {
-            this._energy = this.store(RESOURCE_ENERGY) + ((this.store(RESOURCE_BATTERY) / 50) * 600);
+            this._energy = this.store(RESOURCE_ENERGY, true) + ((this.store(RESOURCE_BATTERY) / 50) * 600);
         }
         return this._energy;
+    },
+    enumerable: false,
+    configurable: true
+});
+
+Object.defineProperty(Room.prototype, 'rawEnergy', {
+    get: function () {
+        if (!this._rawEnergy) {
+            this._rawEnergy = this.store(RESOURCE_ENERGY, true);
+        }
+        return this._rawEnergy;
     },
     enumerable: false,
     configurable: true
@@ -399,8 +411,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 
     const roomIntel = INTEL[this.name] || {
         name: this.name,
-        shardName: Game.shard.name,
-        invaderCore: false
+        shardName: Game.shard.name
     };
     roomIntel.lastObservation = currentTime;
 
@@ -408,7 +419,14 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         const structures = this.find(FIND_STRUCTURES);
         const deposits = this.find(FIND_DEPOSITS);
         // Check for invader core
-        roomIntel.invaderCore = !!structures.filter(s => s.structureType === STRUCTURE_INVADER_CORE).length;
+        const invaderCore = structures.find(s => s.structureType === STRUCTURE_INVADER_CORE);
+        if (invaderCore) {
+            const ticks = invaderCore.effects.find(e => e.effect === EFFECT_COLLAPSE_TIMER) ? Game.time + invaderCore.effects.find(e => e.effect === EFFECT_COLLAPSE_TIMER).ticksRemaining :
+                invaderCore.effects.find(e => e.effect === EFFECT_INVULNERABILITY) ? Game.time + 50000 + invaderCore.effects.find(e => e.effect === EFFECT_INVULNERABILITY).ticksRemaining : undefined;
+            roomIntel.invaderCore = ticks;
+        } else {
+            roomIntel.invaderCore = undefined;
+        }
         // Update user and controller information
         roomIntel.user = this.user;
         if (this.controller) {
@@ -437,6 +455,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
                 purgeBadRoute(this.name);
                 roomIntel.towers = towers.length;
                 roomIntel.towerData = this.towerData();
+            } else {
+                roomIntel.towers = undefined;
+                roomIntel.towerData = undefined;
             }
         }
         // Update micro update timestamp and cache
@@ -471,6 +492,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     // Basic room info
     roomIntel.sources = this.sources.length;
     roomIntel.obstacles = !areExitsReachable(this);
+    roomIntel.swampRoom = swampRoom(this.name);
 
     // Minerals
     const mineral = this.find(FIND_MINERALS)[0];
@@ -558,6 +580,23 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     // Update cache
     INTEL[this.name] = roomIntel;
 
+    function swampRoom(roomName) {
+        const terrain = Game.map.getRoomTerrain(roomName);
+        let swampCount = 0;
+        let plainsCount = 0;
+        for (let x = 0; x < 50; x++) {
+            for (let y = 0; y < 50; y++) {
+                const tile = terrain.get(x, y);
+                if (tile === TERRAIN_MASK_SWAMP) {
+                    swampCount++;
+                } else if (tile === 0) {
+                    plainsCount++;
+                }
+            }
+        }
+        return swampCount > plainsCount;
+    }
+
     function calculateDistanceToHub(room, source, targetRoom) {
         if (!Game.rooms[targetRoom] || !Game.rooms[targetRoom].memory) return Infinity;
         const storage = Game.rooms[targetRoom] ? Game.rooms[targetRoom].storage : undefined;
@@ -623,12 +662,12 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     }
 
     function determineBestAttackRoute(room) {
-        const roomExits = Object.values(Game.map.describeExits(room.name));
         const barriers = room.structures.filter(s => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
+        if (!barriers.length) return undefined;
+        const roomExits = Object.values(Game.map.describeExits(room.name));
         const viableExits = roomExits.filter(exit => !INTEL[exit] || !INTEL[exit].owner || INTEL[exit].owner === MY_USERNAME);
         if (viableExits.length > 0) {
             let bestExit = room.findExitTo(viableExits[0]);
-            if (!barriers.length) return bestExit;
             let lowestBarrierCount = 0;
             for (const exit of viableExits) {
                 const exitDirection = room.findExitTo(exit);
@@ -650,7 +689,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
                 })
                 if (barrierCount <= lowestBarrierCount) {
                     lowestBarrierCount = barrierCount;
-                    bestExit = Object.values(Game.map.describeExits(room.name))[exitDirection];
+                    bestExit = Game.map.describeExits(room.name)[exitDirection];
                 }
             }
             return bestExit;

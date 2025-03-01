@@ -41,7 +41,7 @@ class RoleLongbowSquad {
 
         // Check squad members
         if (this.squadRenewal(creep)) return true;
-        ;
+
         for (const member of creep.memory.squadMembers) {
             const memberCreep = Game.getObjectById(member);
             if (!memberCreep) creep.memory.squadMembers = creep.memory.squadMembers.filter((c) => c !== member);

@@ -58,6 +58,7 @@ module.exports.storeIntel = function () {
         return;
     }
     if (!lastIntelStore || lastIntelStore + CREEP_LIFE_TIME < Game.time || INTEL_ROOM_PURGE.length || Memory.forceIntel) {
+        Memory.forceIntel = undefined;
         // Check for invalid cache
         if (!_.size(INTEL) || !INTEL[Object.keys(INTEL)[0]].name) {
             log.e('Invalid intel cache, clearing.', "INTEL MANAGER: ");
@@ -182,14 +183,14 @@ module.exports.storePathing = function () {
 function logRequests() {
     if (!LOAN_CHECK) return;
     // Store last tick
-    if (RawMemory.foreignSegment && FRIENDLIES.includes(RawMemory.foreignSegment.username) && RawMemory.foreignSegment.id === 98) {
+    if (RawMemory.foreignSegment && FRIENDLIES.includes(RawMemory.foreignSegment.username) && RawMemory.foreignSegment.id === 90) {
         ALLY_HELP_REQUESTS[RawMemory.foreignSegment.username] = JSON.parse(RawMemory.foreignSegment.data);
     }
     // Lookup and store for review next tick
     let filtered = _.filter(FRIENDLIES, (f) => f !== MY_USERNAME);
     if (filtered.length) {
         try {
-            RawMemory.setActiveForeignSegment(filtered[Game.time % filtered.length], 98);
+            RawMemory.setActiveForeignSegment(filtered[Game.time % filtered.length], 90);
         } catch (e) {
         }
     }
