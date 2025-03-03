@@ -828,9 +828,7 @@ Room.prototype.invaderCheck = function () {
 };
 
 Room.prototype.towerData = function () {
-    const towers = this.structures.filter((s) => s.structureType === STRUCTURE_TOWER &&
-        s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST &&
-        s.isActive())
+    const towers = this.structures.filter((s) => s.structureType === STRUCTURE_TOWER)
     if (!towers.length) return {damage: 0};
     let terrain = Game.map.getRoomTerrain(this.name);
     let maxDamage = 0;
