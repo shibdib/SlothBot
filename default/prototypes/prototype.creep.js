@@ -255,11 +255,8 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
     if (destination.resourceType && destination.resourceType !== resourceType) {
         resourceType = destination.resourceType;
     } else if (destination.store && !destination.store[resourceType]) {
-        resourceType = Object.keys(destination.store)[0];
-        if (!resourceType) {
-            delete this.memory.energyDestination;
-            return false;
-        }
+        delete this.memory.energyDestination;
+        return false;
     }
 
     if (!destination) {
@@ -392,7 +389,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         potentialEnergy = potentialEnergy.concat(room.droppedEnergy.filter(r => r.amount >= (myCreepsFilter(r.id) + filterPenalty) * (freeCapacity * 0.5)));
 
         // Container handling for specific roles or in rooms without storage
-        if (['shuttle', 'remoteHauler'].includes(this.memory.role) || !room.controller || !room.controller.owner || !room.storage) {
+        if (['shuttle', 'remoteHauler', 'drone'].includes(this.memory.role) || !room.controller || !room.controller.owner || !room.storage || room.myCreeps.length < 4) {
             potentialEnergy = potentialEnergy.concat(room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER &&
                 s.id !== room.memory.controllerContainer && s.store[RESOURCE_ENERGY]
                 && (!myCreepsFilter(s.id) || s.store[RESOURCE_ENERGY] > (myCreepsFilter(s.id) + 1) * (freeCapacity * 0.5))));

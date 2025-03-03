@@ -272,6 +272,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     const result = PathFinder.search(origin, {pos: target, range: options.range}, {
         maxOps: roomDistance ? options.maxOps * roomDistance : options.maxOps,
         maxRooms: allowedRooms.length ? allowedRooms.length + 2 : 1,
+        heuristicWeight: 1,
         roomCallback: function (roomName) {
             if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
             return getMatrix(roomName, creep, options);
@@ -323,6 +324,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     }
 }
 
+const NO_RAMPART_CODE = []
 function findRoute(origin, destination, options = {}) {
     if (origin === destination) return [origin];
     _.defaults(options, {useCache: true});
@@ -330,7 +332,8 @@ function findRoute(origin, destination, options = {}) {
     const cacheKey = origin + '_' + destination;
     const cached = options.useCache && ROUTE_CACHE[cacheKey];
     if (cached && cached.tick + 500 > Game.time) {
-        return cached.failed ? [] : JSON.parse(cached.route);
+        const route = typeof cached.route === 'string' ? JSON.parse(cached.route) : cached.route
+        return cached.failed ? [] : route;
     }
 
     const roomDistance = Game.map.getRoomLinearDistance(origin, destination);
@@ -342,11 +345,11 @@ function findRoute(origin, destination, options = {}) {
             const intel = INTEL[roomName];
             if (roomStatus(roomName) === 'closed' ||
                 (intel && !intel.isHighway && roomStatus(roomName) !== roomStatus(origin))) return Infinity;
-            if (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) return 1;
             if (Memory.avoidRooms && Memory.avoidRooms.includes(roomName)) return 250;
             if (!intel || intel.cached + 10000 < Game.time) return 50;
-            if (intel.user && FRIENDLIES.includes(intel.user)) return 5;
-            if (intel.user && !FRIENDLIES.includes(intel.user)) return intel.towers ? Infinity : 10;
+            if (intel.user && intel.user === MY_USERNAME) return 1;
+            if (intel.user && FRIENDLIES.includes(intel.user) && !NO_RAMPART_CODE.includes(intel.user)) return 5;
+            if (intel.user && !FRIENDLIES.includes(intel.user)) return intel.towers ? Infinity : 25;
             if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) return 50;
             if (intel.obstacles) return 200;
             if (intel.sk && intel.towers) return 250;
@@ -429,14 +432,14 @@ function getMatrix(roomName, creep, options) {
     if (room) armedEnemies = room.hostileCreeps.filter((c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
     let matrix = getTerrainMatrix(roomName, options);
     matrix = getStructureMatrix(roomName, creep, matrix, options);
-    if (!options.ignoreCreeps) matrix = getCreepMatrix(roomName, creep, matrix, options);
+    matrix = getCreepMatrix(roomName, creep, matrix, options);
     matrix = getStationaryCreepsMatrix(roomName, creep, matrix, options);
     if (creep instanceof Creep && armedEnemies.length) {
         if (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) matrix = getHostileMatrix(roomName, matrix, options);
         //matrix = getOutsideHubMatrix(roomName, matrix, options);
     }
     matrix = getSKMatrix(roomName, matrix, options);
-    //if (roomName === 'W4N9' && options.squad) visualizeCostMatrix(matrix, roomName);
+    //if (creep.id === '67c4950f3862fb05f9d87baf') visualizeCostMatrix(matrix, roomName);
     return matrix;
 }
 
@@ -468,7 +471,7 @@ function getTerrainMatrix(roomName, options) {
                 swampCost = 1;
                 break;
             default:
-                plainCost = 1;
+                plainCost = 3;
                 swampCost = 25;
         }
         // Squad matrix has higher costs in tiles neighboring swamps and walls
@@ -553,7 +556,7 @@ function getStructureMatrix(roomName, creep, matrix, options) {
 
 function getCreepMatrix(roomName, creep, matrix, options) {
     const room = Game.rooms[roomName];
-    if (!room || !(creep instanceof Creep)) return matrix;
+    if (!room || !(creep instanceof Creep) || (!options.ignoreCreeps && (!INTEL[roomName] || !INTEL[roomName].owner || !FRIENDLIES.includes(INTEL[roomName].owner)))) return matrix;
     return getCachedMatrix(roomName, 'creeps', 1, () => addCreepsToMatrix(room, matrix, creep, options));
 
     function addCreepsToMatrix(room, matrix, creep = undefined, options) {

@@ -15,7 +15,7 @@ class RoleLongbowSquad {
     performRoleActions() {
         if (this.housekeeping()) return;
         // If partner set
-        if (this.creep.memory.grouped) {
+        if (this.creep.memory.grouped || this.creep.memory.leader) {
             if (this.creep.memory.leader) {
                 this.handleLeader();
             } else {
@@ -187,6 +187,7 @@ class RoleLongbowSquad {
     }
 
     squadRenewal(creep) {
+        if (creep.memory.initialFormUp || creep.room.level < 7) return;
         if (!creep.memory.hasBoosted && !creep.boostAttempt && creep.handleRenewing(CREEP_LIFE_TIME * 0.8)) return creep.handleRenewing(CREEP_LIFE_TIME * 0.8);
         const squad = creep.memory.squadMembers.map(id => Game.getObjectById(id));
         if (squad.some(c => c && !c.memory.hasBoosted && !c.memory.boostAttempt && c.handleRenewing(CREEP_LIFE_TIME * 0.8))) return _.min(squad, c => c.ticksToLive).handleRenewing(CREEP_LIFE_TIME * 0.8);

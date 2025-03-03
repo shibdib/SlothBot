@@ -410,8 +410,12 @@ let helpers = function () {
      */
     global.purgeBadRoute = function (roomName) {
         let routeCache = ROUTE_CACHE;
-        routeCache = objFilter(routeCache, (r) => !JSON.parse(r.route).includes(roomName));
-        CACHE.ROUTE_CACHE = routeCache;
+        try {
+            routeCache = objFilter(routeCache, (r) => !JSON.parse(r.route).includes(roomName));
+            CACHE.ROUTE_CACHE = routeCache;
+        } catch (e) {
+
+        }
     }
 
     /**

@@ -13,6 +13,7 @@ global.SELL_PIXELS = false; // Sell pixels
 global.PIXEL_BUFFER = 1000; // Sell any pixels above this amount
 global.DESIRED_LOGGING_LEVEL = 4; //Set level 1-5 (5 being most info)
 global.TOWER_FIRST = false; // Set to true to have towers built before spawns
+global.FORCE_CLAIM = undefined;
 
 // Diplomacy
 global.AVOID_ALLIED_SECTORS = true; // Try not to claim rooms in allied sectors

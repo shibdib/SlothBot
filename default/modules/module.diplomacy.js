@@ -30,10 +30,10 @@ function threatManager() {
             user.lastChange = Game.time;
         }
 
-        if (currentRating < -250) {
+        if (currentRating < -250 || (COMBAT_SERVER && !FRIENDLIES.includes(name))) {
             ENEMIES.push(name);
         }
-        if (currentRating < -5) THREATS.push(name);
+        if (currentRating < -5 && !FRIENDLIES.includes(name)) THREATS.push(name);
 
         user.standing = Math.round(currentRating * 100) / 100;
         Memory._userList[name] = user;
@@ -55,12 +55,6 @@ module.exports.trackThreat = function (creep) {
         creep.room.cacheRoomIntel(true);
         purgeBadRoute(creep.room.name);
     }
-
-    // Ignore scouts and explorers
-    if (memory.role === "scout" || memory.role === "explorer") return;
-
-    // We only track threat near our own rooms
-    if (!FRIENDLIES.includes(INTEL[room.name].user) && findClosestOwnedRoom(creep.room.name, true) > 2) return false;
 
     // Process damage detection
     if (hits < memory._lastHits || hitsMax) {
@@ -89,7 +83,7 @@ module.exports.trackThreat = function (creep) {
             const userEntry = cache[user] || {};
             let standing = userEntry.standing || 0;
 
-            const multiplier = INTEL[room.name] && INTEL[room.name].user === MY_USERNAME ? 10 : 5;
+            const multiplier = INTEL[room.name] && INTEL[room.name].user === MY_USERNAME ? 3 : 0.25;
 
             if (FRIENDLIES.includes(user)) {
                 standing -= multiplier;

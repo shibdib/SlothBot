@@ -87,20 +87,26 @@ function buildAuxiliaryStructures(room) {
 }
 
 function buildFromLayout(room, countCheck) {
+    const hub = room.hub;
     const initialSpawn = _.find(Game.structures, s => s.structureType === STRUCTURE_SPAWN && s.my);
     const roomTower = room.structures.find(s => s.structureType === STRUCTURE_TOWER && s.my);
+    const roomSpawn = room.structures.find(s => s.structureType === STRUCTURE_SPAWN && s.my);
     let filter = [];
 
     if (!initialSpawn) {
         filter = bunkerTemplate.filter(s => s.structureType === STRUCTURE_SPAWN);
     } else if (TOWER_FIRST && !roomTower && MY_ROOMS.length > 1) {
         filter = bunkerTemplate.filter(s => s.structureType === STRUCTURE_TOWER);
+    } else if (!roomSpawn) {
+        const spawnPos = bunkerTemplate.filter(s => s.structureType === STRUCTURE_SPAWN)[0].pos[0];
+        const pos = new RoomPosition(hub.x + spawnPos.x, hub.y + spawnPos.y, room.name);
+        if (!pos.checkForRampart()) pos.createConstructionSite(STRUCTURE_RAMPART); else if (pos.checkForRampart().hits >= 25000) pos.createConstructionSite(STRUCTURE_SPAWN);
+        return;
     } else {
         filter = countCheck.filter(s => CONTROLLER_STRUCTURES[s.structureType][room.controller.level]);
     }
 
     if (filter.length) {
-        const hub = room.hub;
         for (const structure of filter) {
             if (shouldSkipStructure(room, structure)) continue;
             for (const buildPos of structure.pos) {

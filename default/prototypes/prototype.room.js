@@ -146,7 +146,7 @@ Object.defineProperty(Room.prototype, 'energyState', {
         if (!this.controller) return 2;
         if (!this._energyState) {
             let energy = this.rawEnergy;
-            let target = this.level === 8 ? 200000 : Math.min((constructionCost(this.controller.level + 1) - constructionCost(this.controller.level)) * 1.5, 1500000);
+            let target = this.level === 8 ? 250000 : Math.min((constructionCost(this.controller.level + 1) - constructionCost(this.controller.level)) * 1.1, 250000);
             // Lower target if not near upgrade
             if (this.level < 8 && this.controller.progress / this.controller.progressTotal < 0.8) target *= 0.25;
             if (energy > target * 2) {

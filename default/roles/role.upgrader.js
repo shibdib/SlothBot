@@ -37,6 +37,7 @@ class RoleUpgrader {
     }
 
     stationaryUpgrading() {
+        if (!this.container) return this.creep.recycleCreep();
         this.creep.memory.other.stationary = true;
         this.creep.memory.other.noMove = true;
         // Handle getting in place
@@ -45,7 +46,7 @@ class RoleUpgrader {
                 if (this.container.pos.checkForCreep() && this.creep.pos.isNearTo(this.container)) this.creep.memory.inPosition = true;
                 else return this.creep.shibMove(this.container, {range: 0});
             } else {
-                if (this.container.pos.checkForCreep() && this.creep.pos.isNearTo(this.container) && this.creep.pos.isNearTo(this.link)) this.creep.memory.inPosition = true;
+                if (this.container.pos.checkForCreep() && (this.creep.pos.isNearTo(this.container) || this.creep.pos.isNearTo(this.link))) this.creep.memory.inPosition = true;
                 else if (!this.container.pos.checkForCreep()) return this.creep.shibMove(this.container, {range: 0})
                 else return this.creep.shibMove([this.container, this.link], {range: 1})
             }
@@ -91,9 +92,9 @@ class RoleUpgrader {
 
     withdraw() {
         // Handle resource withdraw
-        if (this.link && this.link.store[RESOURCE_ENERGY]) {
+        if (this.link && this.creep.pos.isNearTo(this.link) && this.link.store[RESOURCE_ENERGY]) {
             this.creep.withdrawResource(this.link);
-        } else if (this.container && this.container.store[RESOURCE_ENERGY]) {
+        } else if (this.container && this.creep.pos.isNearTo(this.container) && this.container.store[RESOURCE_ENERGY]) {
             this.creep.withdrawResource(this.container);
         }
     }

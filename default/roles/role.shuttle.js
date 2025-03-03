@@ -40,13 +40,11 @@ class RoleShuttle {
                 }
             }
         } else {
-            // If we have an energy state and a storage, store in the controller container. Otherwise store in storage.
             if (!this.creep.memory.storageDestination) {
                 let controllerContainer = Game.getObjectById(this.creep.room.memory.controllerContainer);
                 if (this.creep.room.storage && this.creep.room.energyState > 1 && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 100) this.creep.memory.storageDestination = controllerContainer.id;
-                else if (this.creep.room.storage) this.creep.memory.storageDestination = this.creep.room.storage.id;
-            }
-            if (!this.creep.haulerDelivery()) this.creep.idleFor(this.creep.room.level)
+                else if (this.creep.room.storage) this.creep.memory.storageDestination = this.creep.room.storage.id; else this.creep.haulerDelivery();
+            } else if (!this.creep.haulerDelivery()) this.creep.idleFor(this.creep.room.level)
         }
     }
 

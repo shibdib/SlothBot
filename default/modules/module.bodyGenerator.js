@@ -72,7 +72,7 @@ class ModuleBodyGenerator {
             case 'drone':
                 if (this.role === 'roadBuilder') energyScaling = true;
 
-                if (!this.room.energyState) {
+                if (this.room.myCreeps.length < 5) {
                     work = 1;
                     carry = 1;
                     break;
@@ -224,7 +224,7 @@ class ModuleBodyGenerator {
                 const healerDuo = _.find(this.room.myCreeps, (c) => c.memory.role === 'siegeDuo' && c.hasActiveBodyparts(HEAL) && !c.memory.partner);
                 if (!healerDuo) {
                     if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
-                        heal = this.checkForNeededHeal(this.room, 1);
+                        heal = this.checkForNeededHeal(this.room, 1.1);
                         if (!heal) break;
                     } else {
                         heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));

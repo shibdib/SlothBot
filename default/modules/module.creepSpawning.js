@@ -157,13 +157,12 @@ module.exports.essentialCreepQueue = function (room) {
 
     // Haulers
     if (harvesterCount) {
-        let haulerPriority = PRIORITIES.hauler;
         if (room.storage) {
             let haulerAmount = room.level >= 7 && room.energyState ? 2 : 1;
-            queueCreepIfNeeded(room, 'hauler', haulerPriority, haulerAmount, !getCreepCount(room, 'hauler'));
+            queueCreepIfNeeded(room, 'hauler', PRIORITIES.hauler, haulerAmount, !getCreepCount(room, 'hauler'));
         }
-        const harvestersWithoutLink = room.myCreeps.filter(c => c.memory.role === 'stationaryHarvester' && c.memory.other.linkCheck && !c.memory.link);
-        queueCreepIfNeeded(room, 'shuttle', PRIORITIES.hauler + getCreepCount(room, 'shuttle'), harvestersWithoutLink.length);
+        const shuttleCount = !room.memory.hubLink ? 2 : 0;
+        queueCreepIfNeeded(room, 'shuttle', PRIORITIES.hauler + getCreepCount(room, 'shuttle'), shuttleCount);
     }
 
     // Local Responder (Defenders)
@@ -185,9 +184,8 @@ module.exports.essentialCreepQueue = function (room) {
     let upgraderAmount = 1;
     if (room.energyState || room.level < 7) {
         let container = Game.getObjectById(room.memory.controllerContainer);
-        const stateNeeded = !!room.memory.controllerLink ? 2 : 1;
-        if (container && room.energyState >= stateNeeded) {
-            upgraderAmount = Math.min(Math.floor(room.energyState * (container.store.getUsedCapacity(RESOURCE_ENERGY) / 1000)), container.pos.countOpenTerrainAround());
+        if (container) {
+            upgraderAmount = Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround());
         } else if (!container) {
             upgraderAmount = 3;
         }
@@ -229,7 +227,7 @@ module.exports.miscCreepQueue = function (room) {
         }
 
         // Border Patrol
-        if (room.energyState) {
+        if (room.energyState || (room.memory.borderPatrol && INTEL[room.memory.borderPatrol].threatLevel < 3)) {
             const needsBorderResponse = MY_ROOMS.find((r) => Game.rooms[r].memory.requestingBorderResponse);
             const borderResponse = !!room.memory.borderPatrol ? room.memory.borderPatrol : needsBorderResponse ? Game.rooms[needsBorderResponse].memory.requestingBorderResponse : undefined;
             if (borderResponse) {
@@ -531,14 +529,14 @@ module.exports.globalCreepQueue = function () {
             operation.priority = priority;
         }
 
-        if (!INTEL[key]) {
+        if (!INTEL[key] && !operation.manual) {
             queueCreepIfNeeded(undefined, 'scout', 1, 1, undefined, key);
             continue;
         }
 
         // Handle harass targets
         if (HARASSMENT_OPERATIONS && THREATS && THREATS.length && objFilter(INTEL, (i) => THREATS.includes(i.user)).length) {
-            const amount = _.filter(MY_ROOMS, (r) => Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].memory.availableForAssignment).length * 0.25 || 1
+            const amount = _.filter(MY_ROOMS, (r) => Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].energyState).length * 0.25 || 1
             queueCreepIfNeeded(undefined, 'longbow', PRIORITIES.secondary, Math.min(amount, objFilter(INTEL, (i) => THREATS.includes(i.user)).length), undefined, key, undefined, undefined, 'harass');
         }
 
@@ -554,8 +552,10 @@ module.exports.globalCreepQueue = function () {
             case 'rebuild':
                 if (!INTEL[key] || !INTEL[key].threatLevel) {
                     queueCreepIfNeeded(undefined, 'drone', PRIORITIES.drone, 6, undefined, key);
-                } else if (INTEL[key].threatLevel) {
-                    queueCreepIfNeeded(undefined, 'longbowSquad', PRIORITIES.priority, 4, undefined, key, {waitFor: 4}, true, 'guard');
+                }
+                if (INTEL[key].threatLevel || ENEMIES.length) {
+                    const count = INTEL[key].threatLevel ? 4 : 2;
+                    queueCreepIfNeeded(undefined, 'longbowSquad', PRIORITIES.priority, count, undefined, key);
                 }
                 break;
 

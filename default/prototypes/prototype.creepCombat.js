@@ -639,9 +639,11 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
 
     function calculateFriendlyPower(creep, range, inbound) {
         let friendlyPower = creep.abilityPower().attack + creep.abilityPower().heal;
-        const myCreeps = creep.room.find(FIND_MY_CREEPS);
+        const myCreeps = creep.room.myCreeps.filter((c) => c.id !== creep.id);
+        const alliedCreeps = creep.room.creeps.filter(c => FRIENDLIES.includes(c.owner.username));
+        const friendlyCreeps = myCreeps.concat(alliedCreeps);
 
-        friendlyPower += myCreeps.reduce((sum, c) => {
+        friendlyPower += friendlyCreeps.reduce((sum, c) => {
             if (c.pos.getRangeTo(creep) <= range || (inbound && inbound.includes(c.id))) {
                 return sum + c.abilityPower().attack + c.abilityPower().heal;
             }
@@ -780,6 +782,7 @@ Creep.prototype.formSquad = function () {
             creep.memory.leader = undefined;
             creep.memory.squadMembers = undefined;
             creep.memory.oldRole = creep.memory.role;
+            creep.memory.role = 'longbowSquad';
             creep.memory.groupLeader = currentGroups.id;
             currentGroups.memory.grouped = true;
             currentGroups.memory.oldRole = currentGroups.memory.role;

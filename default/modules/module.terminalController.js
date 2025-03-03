@@ -96,6 +96,25 @@ class TerminalControl {
                 // On demand buy a small amount on mmo shards or buy a larger amount on private servers
                 if (['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) || MY_MINERALS[mineral]) target = target * 0.5;
 
+                // Allied requests
+                const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
+                const resourceRequests = requests.resource ? requests.resource : [];
+                if (resourceRequests) {
+                    const request = resourceRequests.find((r) => r.resourceType === mineral);
+                    if (!request || !request.amount) {
+                        buyAmount = Math.min(target - stored, REACTION_AMOUNT);
+                        resourceRequests.push({
+                            resourceType: mineral,
+                            amount: buyAmount,
+                            priority: 0.2,
+                            roomName: terminal.room.name
+                        });
+                    }
+                    ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;
+                }
+
+                if (Game.market.credits < CREDIT_BUFFER * 0.6) continue;
+
                 // Buy orders
                 const activeBuyOrder = _.find(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY)
                 if (!activeBuyOrder && !MY_MINERALS[mineral]) {
@@ -103,6 +122,7 @@ class TerminalControl {
                     buyAmount = Math.min(buyAmount, REACTION_AMOUNT);
                     if (createBuyOrder(mineral, price, buyAmount)) break;
                 }
+
                 if (stored < target) {
                     const acceptableMarkup = getAcceptableMarkup(mineral, activeBuyOrder);
                     let sellOrder = _.min(globalOrders.filter(order => order.resourceType === mineral &&
@@ -119,6 +139,15 @@ class TerminalControl {
                             }
                         }
                     }
+                }
+            } else {
+                // Clean allied requests
+                const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
+                const resourceRequests = requests.resource ? requests.resource : [];
+                const request = resourceRequests.find((r) => r.resourceType === mineral);
+                if (request) {
+                    resourceRequests.splice(resourceRequests.indexOf(request), 1);
+                    ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;
                 }
             }
         }
@@ -340,7 +369,7 @@ class TerminalControl {
 
             if (available < 100) continue;
 
-            let needyTerminal = _.find(Game.structures, r =>
+            const needyTerminal = _.find(Game.structures, r =>
                 r.room.name !== terminal.room.name &&
                 r.structureType === STRUCTURE_TERMINAL &&
                 (!usedTerminals[r.room.name] || usedTerminals[r.room.name].tick + 10 < Game.time) &&
@@ -349,8 +378,21 @@ class TerminalControl {
                 Game.market.calcTransactionCost(available, terminal.room.name, r.room.name) < terminal.room.energy * 0.01
             );
 
-            if (needyTerminal) {
-                if (sendResource(terminal, resource, available, needyTerminal.room.name, usedTerminals)) return true;
+            let targetRoom;
+            if (needyTerminal) targetRoom = needyTerminal.room.name;
+            else {
+                for (const key in ALLY_HELP_REQUESTS) {
+                    if (key === MY_USERNAME) continue;
+                    const ally = ALLY_HELP_REQUESTS[key];
+                    if (ally && ally.requests && ally.requests.resource && ally.requests.resource.find((re) => re.resourceType === resource)) {
+                        targetRoom = ally.requests.resource.find((re) => re.resourceType === resource).roomName;
+                        break;
+                    }
+                }
+            }
+
+            if (targetRoom) {
+                if (sendResource(terminal, resource, available, targetRoom, usedTerminals)) return true;
             }
         }
         return false;
@@ -377,7 +419,10 @@ class TerminalControl {
         return false;
 
         function findNeedyTerminal() {
-            return MY_ROOMS.filter((r) => Game.rooms[r].terminal).sort((a, b) => Game.rooms[a].energy - Game.rooms[b].energy)[0];
+            const myRooms = MY_ROOMS.filter((r) => Game.rooms[r].terminal).sort((a, b) => Game.rooms[a].energy - Game.rooms[b].energy)[0];
+            if (myRooms) return myRooms;
+            const needyAllies = ALLY_HELP_REQUESTS.filter((r) => r.requests && r.requests.funnel).sort((a, b) => a.requests.funnel.maxAmount - b.requests.funnel.maxAmount)[0];
+            if (needyAllies) return needyAllies.roomName;
         }
 
         function sendEnergyOrBattery(terminal, destinationRoom) {

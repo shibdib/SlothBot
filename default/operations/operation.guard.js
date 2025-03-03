@@ -8,28 +8,16 @@ Creep.prototype.guardRoom = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
 
-    // Combat handling
-    if (this.handleMilitaryCreep()) return;
-
-    // Healing
-    if (this.hits < this.hitsMax) {
-        if (this.hasActiveBodyparts(HEAL)) {
-            this.findDefensivePosition();
-            return this.heal(this);
-        } else {
-            return this.fleeHome();
-        }
-    }
+    this.attackInRange();
+    this.healInRange();
 
     // Move to the destination room if not there yet
     if (this.room.name !== destination) {
         return this.shibMove(new RoomPosition(25, 25, destination), {range: 24});
+    } else {
+        // Check for new mission or update orders if necessary
+        this.operationManager();
+        // Combat handling
+        if (this.handleMilitaryCreep() || this.findDefensivePosition()) return;
     }
-
-    // If no enemies, focus on healing or defending
-    this.healInRange();
-    this.findDefensivePosition();
-
-    // Check for new mission or update orders if necessary
-    this.operationManager();
 };

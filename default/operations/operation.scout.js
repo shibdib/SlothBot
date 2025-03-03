@@ -59,9 +59,6 @@ function forwardObserver(room) {
         case 'remoteDenial':
             handleRemoteDenialOperation(room);
             break;
-        case 'guard':
-            handleRemoteDenialOperation(room);
-            break;
         default:
             updateRoomLevel(room);
             break;

@@ -6,7 +6,7 @@ const profiler = require("tools.profiler");
 
 class ExpansionControl {
     constructor() {
-        this.claimTarget = Memory.claimTarget || {};
+        this.claimTarget = Memory.claimTarget || FORCE_CLAIM || {};
         this.worthyRooms = [];
     }
 
@@ -28,12 +28,26 @@ class ExpansionControl {
         if (this.claimTarget.room) {
             const targetIntel = INTEL[this.claimTarget.room];
             if (!targetIntel || targetIntel.owner || targetIntel.reservation || this.claimTarget.tick + CREEP_LIFE_TIME < Game.time) {
+                if (FORCE_CLAIM && (!INTEL[Memory.forceClaim] || !INTEL[Memory.forceClaim].owner)) {
+                    this.claimTarget.room = FORCE_CLAIM;
+                    this.claimTarget.tick = Game.time;
+                    Memory.claimTarget = this.claimTarget;
+                    return;
+                }
                 log.a(`Refreshing claim target. Old claim target - ${this.claimTarget.room}`, 'EXPANSION CONTROL:');
                 Memory.claimTarget = {};
                 this.claimTarget = {};
             } else {
                 return; // already have a valid target, proceed to claim operation
             }
+        }
+
+        if (FORCE_CLAIM && (!INTEL[Memory.forceClaim] || !INTEL[Memory.forceClaim].owner)) {
+            this.claimTarget = {};
+            this.claimTarget.room = FORCE_CLAIM;
+            this.claimTarget.tick = Game.time;
+            Memory.claimTarget = this.claimTarget;
+            return;
         }
 
         this.filterWorthyRooms();

@@ -5,7 +5,7 @@
 // 0-3 intel
 // 69 path
 // 70 routes
-const activeSegments = [0, 1, 2, 3, 4, 23, 69, 70, 98];
+const activeSegments = [0, 1, 2, 3, 4, 23, 69, 70, 77, 98];
 
 module.exports.init = function () {
     RawMemory.setActiveSegments(activeSegments);
@@ -183,17 +183,31 @@ module.exports.storePathing = function () {
 function logRequests() {
     if (!LOAN_CHECK) return;
     // Store last tick
-    if (RawMemory.foreignSegment && FRIENDLIES.includes(RawMemory.foreignSegment.username) && RawMemory.foreignSegment.id === 90) {
+    if (RawMemory.foreignSegment && FRIENDLIES.includes(RawMemory.foreignSegment.username) && RawMemory.foreignSegment.id === 77) {
         ALLY_HELP_REQUESTS[RawMemory.foreignSegment.username] = JSON.parse(RawMemory.foreignSegment.data);
     }
     // Lookup and store for review next tick
     let filtered = _.filter(FRIENDLIES, (f) => f !== MY_USERNAME);
     if (filtered.length) {
         try {
-            RawMemory.setActiveForeignSegment(filtered[Game.time % filtered.length], 90);
+            RawMemory.setActiveForeignSegment(filtered[Game.time % filtered.length], 77);
         } catch (e) {
         }
     }
+    // Store your own requests
+    const myRequest = ALLY_HELP_REQUESTS[MY_USERNAME] || {
+        requests: {
+            resource: [],
+            defense: [],
+            attack: [],
+            player: [],
+            work: [],
+            funnel: [],
+            room: []
+        }
+    };
+    ALLY_HELP_REQUESTS[MY_USERNAME] = myRequest;
+    RawMemory.segments[77] = JSON.stringify(myRequest);
 }
 
 function cleanStore(store) {

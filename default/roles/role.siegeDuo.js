@@ -67,6 +67,9 @@ class RoleSiegeDuo {
     handleFollower() {
         const partner = Game.getObjectById(this.creep.memory.partner);
         this.creep.shibMove(partner, {range: 0});
+        if (!partner) {
+            return this.creep.memory.partner = undefined;
+        }
         if (partner.memory.idle) {
             this.creep.memory.idle = partner.memory.idle;
         }

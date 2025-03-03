@@ -11,9 +11,6 @@ Creep.prototype.harass = function () {
     let sentence = ['MURDER', 'MODE', 'ACTIVATED', '--', 'DANGER', '--'];
     this.say(sentence[Game.time % sentence.length], true);
 
-    // If no harass targets, switch to border patrol.
-    if (!this.memory.threats) this.memory.threats = THREATS;
-
     this.healInRange();
 
     if (this.room.name === this.memory.destination || !this.memory.destination) {
@@ -25,7 +22,7 @@ Creep.prototype.harass = function () {
         // Find the next harass target by considering threat level and user activity
         let target = _.min(
             _.filter(INTEL, (r) => {
-                return (!visited.includes(r.name) && (!r.owner || !r.towers) && this.memory.threats.includes(r.user)
+                return (!visited.includes(r.name) && (!r.owner || !r.towers) && THREATS.includes(r.user)
                     && (!r.armedHostile || r.armedHostile + CREEP_LIFE_TIME < Game.time) && !r.safemode);
             }),
             (r) => findClosestOwnedRoom(r.name, true)
