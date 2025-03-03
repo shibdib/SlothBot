@@ -81,57 +81,69 @@ let helpers = function () {
     };
 
     /**
-     * Check if rooms share a sector
-     * @param roomA
-     * @param roomB
+     * Check if two rooms share the same sector (5x5 grid)
+     * @param {string} roomA - First room name (e.g., "E5N3")
+     * @param {string} roomB - Second room name (e.g., "E7N4")
      * @returns {boolean}
      */
     global.sameSectorCheck = function (roomA, roomB) {
-        let [EWNum, NSNum] = roomA.match(/\d+/g);
-        let match = roomA.match(/[a-zA-Z]/g);
-        let EWLetter = match[0];
-        let NSLetter = match[1];
-        let int1 = EWNum.toString()[0];
-        let int2 = NSNum.toString()[0];
-        [EWNum, NSNum] = roomB.match(/\d+/g);
-        match = roomB.match(/[a-zA-Z]/g);
-        let EWLetter2 = match[0];
-        let NSLetter2 = match[1];
-        let intB1 = EWNum.toString()[0];
-        let intB2 = NSNum.toString()[0];
-        if (EWLetter === EWLetter2 && NSLetter === NSLetter2 && isInSameRange(int1, intB1) && isInSameRange(int2, intB2)) return true;
+        const coordsA = getRoomCoords(roomA);
+        const coordsB = getRoomCoords(roomB);
+        if (isNaN(coordsA.x) || isNaN(coordsA.y) || isNaN(coordsB.x) || isNaN(coordsB.y)) {
+            return false;
+        }
+        if ((coordsA.x < 0) !== (coordsB.x < 0) || (coordsA.y < 0) !== (coordsB.y < 0)) {
+            return false;
+        }
+        const sectorX_A = Math.floor(Math.abs(coordsA.x) / 5);
+        const sectorY_A = Math.floor(Math.abs(coordsA.y) / 5);
+        const sectorX_B = Math.floor(Math.abs(coordsB.x) / 5);
+        const sectorY_B = Math.floor(Math.abs(coordsB.y) / 5);
+        return sectorX_A === sectorX_B && sectorY_A === sectorY_B;
     };
 
     /**
-     * Check if we own any rooms in this room's sector
-     * @param {string} room - Room to compare against
+     * Check if any owned room is in the same sector as the given room
+     * @param {string} room - Room to compare against (e.g., "E5N3")
      * @returns {boolean}
      */
     global.myRoomInSectorCheck = function (room) {
-        let [EWNum, NSNum] = room.match(/\d+/g);
-        let match = room.match(/[a-zA-Z]/g);
-        let EWLetter = match[0];
-        let NSLetter = match[1];
-        let int1 = EWNum.toString()[0];
-        let int2 = NSNum.toString()[0];
-        for (const myRoom of MY_ROOMS) {
-            let [EWNum, NSNum] = myRoom.match(/\d+/g);
-            let match = myRoom.match(/[a-zA-Z]/g);
-            let EWLetter2 = match[0];
-            let NSLetter2 = match[1];
-            let intB1 = EWNum.toString()[0];
-            let intB2 = NSNum.toString()[0];
-            if (EWLetter === EWLetter2 && NSLetter === NSLetter2 && isInSameRange(int1, intB1) && isInSameRange(int2, intB2)) return true;
+        const coords = getRoomCoords(room);
+        if (isNaN(coords.x) || isNaN(coords.y) || !Array.isArray(MY_ROOMS)) {
+            return false;
         }
+        const sectorX = Math.floor(Math.abs(coords.x) / 5);
+        const sectorY = Math.floor(Math.abs(coords.y) / 5);
+        const xIsNegative = coords.x < 0;
+        const yIsNegative = coords.y < 0;
+        for (const myRoom of MY_ROOMS) {
+            const myCoords = getRoomCoords(myRoom);
+            if (isNaN(myCoords.x) || isNaN(myCoords.y)) continue;
+            if ((myCoords.x < 0) === xIsNegative && (myCoords.y < 0) === yIsNegative) {
+                const mySectorX = Math.floor(Math.abs(myCoords.x) / 5);
+                const mySectorY = Math.floor(Math.abs(myCoords.y) / 5);
+                if (sectorX === mySectorX && sectorY === mySectorY) {
+                    return true;
+                }
+            }
+        }
+        return false;
     };
 
-    function isInSameRange(num1, num2) {
-        // Calculate the start of the decade for both numbers
-        let decadeStart1 = Math.floor(num1 / 10) * 10;
-        let decadeStart2 = Math.floor(num2 / 10) * 10;
-
-        // If the start of the decade is the same for both numbers, they're in the same range
-        return decadeStart1 === decadeStart2;
+    /**
+     * Convert room name to coordinates efficiently
+     * @param {string} roomName - Room name (e.g., "E5N3")
+     * @returns {Object} - { x: number, y: number }
+     */
+    function getRoomCoords(roomName) {
+        const isWest = roomName[0] === 'W';
+        const nsIndex = roomName.indexOf('N') !== -1 ? roomName.indexOf('N') : roomName.indexOf('S');
+        const x = parseInt(roomName.slice(1, nsIndex));
+        const y = parseInt(roomName.slice(nsIndex + 1));
+        return {
+            x: isWest ? -x : x,
+            y: roomName[nsIndex] === 'S' ? -y : y
+        };
     }
 
     /**
