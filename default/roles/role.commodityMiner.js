@@ -96,7 +96,7 @@ class RoleCommodityMiner {
 
     findDeposit() {
         //Find Deposit
-        let deposit = _.filter(this.room.deposits, (d) => !d.lastCooldown || d.lastCooldown < 25 && (d.depositType || d.mineralAmount));
+        let deposit = _.filter(this.room.deposits, (d) => !d.lastCooldown || d.lastCooldown < 35 && (d.depositType || d.mineralAmount));
         // If no deposits check for a mineral
         if (!deposit.length && this.room.mineral && !this.room.controller) {
             deposit = this.room.mineral;

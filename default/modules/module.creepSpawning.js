@@ -561,7 +561,7 @@ module.exports.globalCreepQueue = function () {
 
             case 'commodity': // Commodity Mining
             case 'mineral': // Middle room mineral mining
-                queueCreepIfNeeded(undefined, 'commodityMiner', PRIORITIES.secondary, 2, undefined, key, undefined, true);
+                queueCreepIfNeeded(undefined, 'commodityMiner', PRIORITIES.secondary, 3, undefined, key, undefined, true);
                 break;
 
             case 'power': // Power Mining
