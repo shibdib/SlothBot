@@ -889,7 +889,7 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
         if (!myRoom.energyState || myRoom.controller.level !== myRoom.level || myRoom.downgraded) continue
         // If above you spawn count continue
         const currentAssignments = Memory.targetRooms[targetRoom] ? _.filter(Memory.targetRooms, (r) => r && r.assignedRoom === key).length : _.filter(Memory.auxiliaryTargets, (r) => r && r.assignedRoom === key).length;
-        if (currentAssignments >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level]) continue;
+        if (currentAssignments >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level] * 1.5) continue;
         if (myRoom && myRoom.level >= level) {
             // Check body generation
             const generatedInfo = new generator(myRoom.level, creepInfo.role, myRoom, creepInfo).generateBody();
