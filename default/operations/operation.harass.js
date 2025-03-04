@@ -2,20 +2,17 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-const highCommand = require('module.highCommand');
-
 Creep.prototype.harass = function () {
     // Combat handling
+    if (!this.canIWin(50)) return this.fleeHome();
     if (this.handleMilitaryCreep()) return;
+
+    this.attackInRange();
 
     let sentence = ['MURDER', 'MODE', 'ACTIVATED', '--', 'DANGER', '--'];
     this.say(sentence[Game.time % sentence.length], true);
 
-    this.healInRange();
-
     if (this.room.name === this.memory.destination || !this.memory.destination) {
-        highCommand.generateThreat(this);  // Record threat for the current room
-
         // Handle visited tracking
         let visited = this.memory.other.visited || [];
 

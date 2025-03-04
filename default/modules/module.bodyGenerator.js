@@ -187,15 +187,13 @@ class ModuleBodyGenerator {
                     }
                 }
                 break;
-
-            case 'harasser':
-                rangedAttack = 1;
-                break;
-
             case 'longbow':
             case 'testSquad':
             case 'longbowSquad':
-                if (this.creepInfo && Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
+                if (this.creepInfo && this.creepInfo.operation === 'harass') {
+                    rangedAttack = 1;
+                    break;
+                } else if (this.creepInfo && Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
                     let multi = 0.51;
                     if (this.creepInfo.misc && this.creepInfo.misc.waitFor === 4) multi = 0.25;
                     heal = this.checkForNeededHeal(this.room, multi);
