@@ -482,7 +482,7 @@ function getTerrainMatrix(roomName, options) {
                 if (tile === TERRAIN_MASK_WALL) {
                     matrix.set(x, y, 256);
                 } else if (x === 0 || x === 49 || y === 0 || y === 49) {
-                    matrix.set(x, y, 10);
+                    if (!options.flee) matrix.set(x, y, 10); else matrix.set(x, y, 1);
                 } else if (tile === TERRAIN_MASK_SWAMP) {
                     matrix.set(x, y, swampCost);
                 } else {
@@ -1091,6 +1091,7 @@ Creep.prototype.shibSquadMovement = function (target = undefined, options = {}) 
 Creep.prototype.shibSquadKite = function (fleeRange = FLEE_RANGE, options = {}) {
     if (!this.memory._shibSquadMove) this.memory._shibSquadMove = {};
     options.squad = true;
+    options.flee = true;
 
     // Gather threats to avoid
     let threats = gatherThreats(this, fleeRange);
@@ -1193,6 +1194,7 @@ Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined)
 
     // Prepare pathfinding options
     let options = getMoveWeight(this);
+    options.flee = true;
 
     // Use pathfinder to flee from threats
     let fleeGoals = threats.map(a => ({pos: a.pos, range: fleeRange + 2}));
