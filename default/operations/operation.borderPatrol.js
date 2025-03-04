@@ -20,11 +20,25 @@ Creep.prototype.borderPatrol = function () {
         }
     }
 
+    // Determine creep/squad power
+    let combatPower = this.abilityPower().attack + this.abilityPower().heal;
+    if (this.memory.squadMembers) {
+        for (const member of this.memory.squadMembers) {
+            if (this.room.creeps[member]) {
+                combatPower += this.room.creeps[member].abilityPower().attack + this.room.creeps[member].abilityPower().heal;
+            }
+        }
+    }
+
     // Movement
     if (this.memory.destination) {
-        // If we are already on a mission, let's move there
-        if (this.room.name !== this.memory.destination) {
-            return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
+        // If we can't win, let's move back home
+        if (INTEL[this.memory.destination] && INTEL[this.memory.destination].hostilePower > combatPower) {
+            if (!this.memory.squadMembers || this.memory.squadMembers.length < 3) this.memory.needsMoreSquadMembers = true;
+            return this.fleeHome(true);
+        } else if (this.room.name !== this.memory.destination) {
+            this.memory.needsMoreSquadMembers = undefined;
+            return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 20});
         } else {
             if (!this.room.hostileCreeps.length && !this.room.hostileStructures.length) {
                 if (!this.memory.standingGuard) this.memory.standingGuard = Game.time;
@@ -39,6 +53,7 @@ Creep.prototype.borderPatrol = function () {
 
     // Awaiting orders
     if (!this.memory.destination && !this.memory.awaitingOrders) {
+        this.memory.needsMoreSquadMembers = undefined;
         this.memory.destination = this.memory.colony;
         this.memory.awaitingOrders = true;
     }
