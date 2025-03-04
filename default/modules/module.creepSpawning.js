@@ -874,7 +874,8 @@ function displayQueue(room, queue) {
         let item = queue[i];
         let cost = global.UNIT_COST(item.body);
         if (!cost) continue;
-        room.visual.text(`${item.priority} ${_.capitalize(item.role)}: ${room.energyAvailable}/${cost} Age: ${Game.time - item.cached}`, 35, yOffset + i, {
+        const show = item.operation || item.role;
+        room.visual.text(`${item.priority} ${_.capitalize(show)}: ${room.energyAvailable}/${cost} Age: ${Game.time - item.cached}`, 35, yOffset + i, {
             align: 'left',
             opacity: 0.8
         });
