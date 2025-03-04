@@ -16,7 +16,7 @@ class RoleCommodityMiner {
         if (this.housekeeping()) return;
         if (!this.creep.memory.deposit && this.room.name !== this.creep.memory.destination && !_.sum(this.creep.store)) {
             this.travelToDeposit();
-        } else if (this.creep.memory.deposit && !this.creep.isFull) {
+        } else if (this.creep.memory.deposit && !this.creep.isFull && this.creep.ticksToLive > this.creep.memory.tickCutoff) {
             this.harvest();
         } else if (_.sum(this.creep.store)) {
             this.creep.memory.deposit = undefined;
@@ -33,8 +33,14 @@ class RoleCommodityMiner {
         // If unsafe return home
         if (this.creep.skSafety()) return true;
 
+        // Set dropoff
+        this.creep.memory.closestRoom = this.creep.memory.closestRoom || findClosestOwnedRoom(this.room.name, false, 4) || this.creep.memory.colony;
+
+        // Set tick cutoff
+        if (!this.creep.memory.tickCutoff) this.creep.memory.tickCutoff = (Game.map.getRoomLinearDistance(this.creep.memory.closestRoom, this.creep.memory.destination) + 3) * 50;
+
         // Old age and work/carry part check
-        if (this.creep.ticksToLive < 150 || !this.creep.hasActiveBodyparts(WORK) || !this.creep.hasActiveBodyparts(CARRY)) {
+        if (this.creep.ticksToLive < this.creep.memory.tickCutoff || !this.creep.hasActiveBodyparts(WORK) || !this.creep.hasActiveBodyparts(CARRY)) {
             this.creep.recycleCreep();
             return true;
         }
@@ -54,7 +60,7 @@ class RoleCommodityMiner {
     harvest() {
         let deposit = Game.getObjectById(this.creep.memory.deposit);
         // Clear the deposit if needed
-        if (!deposit || (!deposit.depositType && !deposit.mineralAmount) || deposit.lastCooldown >= 25) return this.creep.memory.deposit = undefined;
+        if (!deposit || (!deposit.depositType && !deposit.mineralAmount) || deposit.lastCooldown >= 30) return this.creep.memory.deposit = undefined;
         // Refresh the operation
         if (Memory.auxiliaryTargets[this.creep.memory.destination]) Memory.auxiliaryTargets[this.creep.memory.destination].tick = Game.time;
         switch (this.creep.harvest(deposit)) {
@@ -96,21 +102,21 @@ class RoleCommodityMiner {
 
     findDeposit() {
         //Find Deposit
-        let deposit = _.filter(this.room.deposits, (d) => !d.lastCooldown || d.lastCooldown < 35 && (d.depositType || d.mineralAmount));
+        let deposit = _.find(this.room.deposits, (d) => (!d.lastCooldown || d.lastCooldown < 35) && (d.depositType || d.mineralAmount));
         // If no deposits check for a mineral
-        if (!deposit.length && this.room.mineral && !this.room.controller) {
+        if (!deposit && this.room.mineral && !this.room.controller) {
             deposit = this.room.mineral;
             if (deposit) {
                 return this.creep.memory.deposit = deposit.id;
             }
-        } else if (!deposit.length) {
+        } else if (!deposit) {
             INTEL[this.creep.memory.destination].commodity = undefined;
             Memory.auxiliaryTargets[this.creep.memory.destination] = undefined;
             this.creep.recycleCreep();
             return this.creep.memory.deposit = undefined;
         } else {
             // Choose a random deposit
-            return this.creep.memory.deposit = _.sample(deposit).id;
+            return this.creep.memory.deposit = deposit.id;
         }
     }
 }
