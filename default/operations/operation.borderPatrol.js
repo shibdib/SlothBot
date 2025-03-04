@@ -8,7 +8,7 @@ Creep.prototype.borderPatrol = function () {
     this.say(sentence[word], true);
 
     // Combat handling
-    if (this.handleMilitaryCreep()) return;
+    if (this.handleMilitaryCreep(false, true, false)) return;
 
     // Healing
     if (this.hits < this.hitsMax) {
@@ -21,11 +21,11 @@ Creep.prototype.borderPatrol = function () {
     }
 
     // Determine creep/squad power
-    let combatPower = this.abilityPower().attack + this.abilityPower().heal;
+    let combatPower = abilityPower(this.body).attack + abilityPower(this.body).heal;
     if (this.memory.squadMembers) {
         for (const member of this.memory.squadMembers) {
             if (this.room.creeps[member]) {
-                combatPower += this.room.creeps[member].abilityPower().attack + this.room.creeps[member].abilityPower().heal;
+                combatPower += abilityPower(this.room.creeps[member].body).attack + abilityPower(this.room.creeps[member].body).heal;
             }
         }
     }
