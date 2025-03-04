@@ -27,7 +27,7 @@ class ModuleBodyGenerator {
 
     // Method to ensure the energy amount is correct based on conditions
     setEnergyAmount() {
-        if (this.creepInfo.other && this.creepInfo.other.reboot || this.room.myCreeps.length <= 2) {
+        if (this.creepInfo && this.creepInfo.other && this.creepInfo.other.reboot || this.room.myCreeps.length <= 2) {
             this.energyAmount = Math.max(this.room.energyAvailable, 300); // Ensure a minimum of 300 energy
         }
     }
@@ -46,15 +46,15 @@ class ModuleBodyGenerator {
         const cacheKey = this.getCacheKey();
         if (bodyCache[cacheKey]) {
             // We cant use cached if we need to generate boosts
-            if (!this.creepInfo.destination || !Memory.targetRooms[this.creepInfo.destination]
-                || !Memory.targetRooms[this.creepInfo.destination].boosts) {
+            if (this.creepInfo && (!this.creepInfo.destination || !Memory.targetRooms[this.creepInfo.destination]
+                || !Memory.targetRooms[this.creepInfo.destination].boosts)) {
                 // If cached, return the cached body
                 return {body: bodyCache[cacheKey], info: this.creepInfo};
             }
         }
 
         // Check if body is set in the creep info
-        if (this.creepInfo.body) {
+        if (this.creepInfo && this.creepInfo.body) {
             return {body: this.creepInfo.body, info: this.creepInfo};
         }
 
@@ -88,14 +88,10 @@ class ModuleBodyGenerator {
                 break;
 
             case 'upgrader':
-                if (!this.room.energyState && this.room.level > 6) {
-                    work = 1;
-                    carry = 1;
-                } else if (this.room.memory.controllerLink) {
+                if (this.room.memory.controllerLink) {
                     work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
-                    if (this.room.level < 6) work = Math.min(work, 10);
-                    else if (this.room.level === 6) work = Math.min(work, 19);
-                    else work = Math.min(work, 22);
+                    if (this.room.level <= 6) work = Math.min(work, 20);
+                    else work = Math.min(work, 30);
                     if (this.room.energyState < 2) work *= 0.7;
                     carry = 1;
                     move = 0;
@@ -192,10 +188,14 @@ class ModuleBodyGenerator {
                 }
                 break;
 
+            case 'harasser':
+                rangedAttack = 1;
+                break;
+
             case 'longbow':
             case 'testSquad':
             case 'longbowSquad':
-                if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
+                if (this.creepInfo && Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
                     let multi = 0.51;
                     if (this.creepInfo.misc && this.creepInfo.misc.waitFor === 4) multi = 0.25;
                     heal = this.checkForNeededHeal(this.room, multi);
@@ -209,7 +209,7 @@ class ModuleBodyGenerator {
                 rangedAttack = Math.min(rangedAttack, 25 - heal);
 
                 // Handle scaling down military creeps based on power
-                if (this.creepInfo.other && this.creepInfo.other.power) {
+                if (this.creepInfo && this.creepInfo.other && this.creepInfo.other.power) {
                     let totalPower = (rangedAttack * RANGED_ATTACK_POWER) + (heal * HEAL_POWER);
                     if (totalPower > this.creepInfo.other.power) {
                         let ratio = (this.creepInfo.other.power) / totalPower;

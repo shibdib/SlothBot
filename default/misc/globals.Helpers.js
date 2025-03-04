@@ -423,7 +423,7 @@ let helpers = function () {
     global.purgeBadRoute = function (roomName) {
         let routeCache = ROUTE_CACHE;
         try {
-            routeCache = objFilter(routeCache, (r) => !JSON.parse(r.route).includes(roomName));
+            routeCache = _.filter(routeCache, (r) => !JSON.parse(r.route).includes(roomName));
             CACHE.ROUTE_CACHE = routeCache;
         } catch (e) {
 
@@ -487,6 +487,62 @@ let helpers = function () {
         storedCost = levelCost;
         return storedCost[level];
     }
+
+    global.abilityPower = function (body) {
+        let meleePower = 0;
+        let rangedPower = 0;
+        let healPower = 0;
+        let rangedHealPower = 0;
+
+        for (let part of body) {
+            let partType, boost;
+            if (typeof part === 'string') {
+                partType = part;
+                boost = undefined;
+            } else {
+                if (!part.hits) continue;
+                partType = part.type;
+                boost = part.boost;
+            }
+
+            // Calculate based on part type
+            switch (partType) {
+                case ATTACK:
+                    meleePower += boost
+                        ? (ATTACK_POWER * 0.5) * BOOSTS[partType][boost].attack
+                        : (ATTACK_POWER * 0.5);
+                    break;
+                case RANGED_ATTACK:
+                    rangedPower += boost
+                        ? RANGED_ATTACK_POWER * BOOSTS[partType][boost].rangedAttack
+                        : RANGED_ATTACK_POWER;
+                    break;
+                case HEAL:
+                    healPower += boost
+                        ? HEAL_POWER * BOOSTS[partType][boost].heal
+                        : HEAL_POWER;
+                    rangedHealPower += boost
+                        ? RANGED_HEAL_POWER * BOOSTS[partType][boost].heal
+                        : RANGED_HEAL_POWER;
+                    break;
+                case TOUGH:
+                    if (boost) {
+                        healPower += HEAL_POWER * (1 - BOOSTS[partType][boost].damage);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return {
+            attack: meleePower + rangedPower,
+            meleeAttack: meleePower,
+            rangedAttack: rangedPower,
+            heal: healPower,
+            rangedHeal: rangedHealPower
+        };
+    };
 }
 
 module.exports = helpers;

@@ -199,7 +199,7 @@ function auxiliaryBuilding(room) {
 
 function hubLink(room) {
     // If the hub link already exists in memory, return early
-    if ((room.memory.hubLink && Game.getObjectById(room.memory.hubLink)) || room.level < 7) {
+    if ((room.memory.hubLink && Game.getObjectById(room.memory.hubLink)) || room.level < 5) {
         return false;
     }
 
@@ -254,7 +254,7 @@ function sourceBuilder(room) {
     // Helper function to handle the creation of source links
     function buildSourceLink(source, room) {
         const sourceContainer = Game.getObjectById(source.memory.container);
-        if (sourceContainer && (Game.getObjectById(room.memory.controllerLink) || Game.getObjectById(room.memory.hubLink))) {
+        if (sourceContainer && Game.getObjectById(room.memory.controllerLink) && Game.getObjectById(room.memory.hubLink)) {
             let sourceLink = _.find(sourceContainer.pos.findInRange(room.impassibleStructures, 1), (s) => s.structureType === STRUCTURE_LINK);
             let sourceBuild = _.find(sourceContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK);
             // If no link exists and there is space to build, create one
