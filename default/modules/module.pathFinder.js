@@ -354,6 +354,7 @@ function findRoute(origin, destination, options = {}) {
             if (intel.obstacles) return 200;
             if (intel.sk && intel.towers) return 250;
             if (intel.threatLevel) return 60 * intel.threatLevel;
+            if (intel.swampRoom) return 15;
             return intel.isHighway ? 3 : 7;
         }
     });
@@ -436,7 +437,7 @@ function getMatrix(roomName, creep, options) {
     matrix = getStationaryCreepsMatrix(roomName, creep, matrix, options);
     if (creep instanceof Creep && armedEnemies.length) {
         if (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) matrix = getHostileMatrix(roomName, matrix, options);
-        //matrix = getOutsideHubMatrix(roomName, matrix, options);
+        matrix = getOutsideHubMatrix(roomName, matrix, options);
     }
     matrix = getSKMatrix(roomName, matrix, options);
     //if (creep.id === '67c4950f3862fb05f9d87baf') visualizeCostMatrix(matrix, roomName);
@@ -746,6 +747,24 @@ function getSquadMatrix(roomName) {
                         if (currentCost >= 255) continue;
                         matrix.set(newX, newY, 255);
                     }
+                } else if (structure instanceof StructureRampart && !structure.my) {
+                    matrix.set(structure.pos.x, structure.pos.y, 256);
+                    for (let vector of formationVectors) {
+                        const newX = structure.pos.x + vector.x
+                        const newY = structure.pos.y + vector.y
+                        if (newX < 0 || newX > 49 || newY < 0 || newY > 49) continue;
+                        const currentCost = matrix.get(newX, newY);
+                        if (currentCost >= 255) continue;
+                        matrix.set(newX, newY, 255);
+                    }
+                }
+            }
+            let creeps = room.creeps;
+            for (let creep of creeps) {
+                if (creep.my && creep.memory.other.stationary || !creep.hasActiveBodyparts(MOVE)) {
+                    matrix.set(creep.pos.x, creep.pos.y, 200);
+                } else if (!creep.my) {
+                    matrix.set(creep.pos.x, creep.pos.y, 20);
                 }
             }
         }
@@ -1180,7 +1199,7 @@ Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined)
     let allowedRooms = [this.pos.roomName].concat(Object.values(Game.map.describeExits(this.pos.roomName)));
     let result = PathFinder.search(this.pos, fleeGoals, {
         flee: true,
-        maxRooms: allowedRooms.length * 1.5,
+        maxRooms: allowedRooms.length + 1,
         roomCallback: function (roomName) {
             if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
             if (INTEL[roomName] && INTEL[roomName].owner && !FRIENDLIES.includes(INTEL[roomName].owner)) return false;
