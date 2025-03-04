@@ -60,7 +60,7 @@ class RoleCommodityMiner {
     harvest() {
         let deposit = Game.getObjectById(this.creep.memory.deposit);
         // Clear the deposit if needed
-        if (!deposit || (!deposit.depositType && !deposit.mineralAmount) || deposit.lastCooldown >= 30) return this.creep.memory.deposit = undefined;
+        if (!deposit || (!deposit.depositType && !deposit.mineralAmount)) return this.creep.memory.deposit = undefined;
         // Refresh the operation
         if (Memory.auxiliaryTargets[this.creep.memory.destination]) Memory.auxiliaryTargets[this.creep.memory.destination].tick = Game.time;
         switch (this.creep.harvest(deposit)) {
@@ -102,7 +102,7 @@ class RoleCommodityMiner {
 
     findDeposit() {
         //Find Deposit
-        let deposit = _.find(this.room.deposits, (d) => (!d.lastCooldown || d.lastCooldown < 35) && (d.depositType || d.mineralAmount));
+        let deposit = _.find(this.room.deposits, (d) => (d.depositType || d.mineralAmount));
         // If no deposits check for a mineral
         if (!deposit && this.room.mineral && !this.room.controller) {
             deposit = this.room.mineral;

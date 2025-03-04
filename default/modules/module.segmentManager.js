@@ -6,9 +6,12 @@
 // 69 path
 // 70 routes
 const activeSegments = [0, 1, 2, 3, 4, 23, 69, 70, 77, 98];
+const publicSegments = [77];
 
 module.exports.init = function () {
     RawMemory.setActiveSegments(activeSegments);
+    RawMemory.setPublicSegments(publicSegments);
+    RawMemory.setDefaultPublicSegment(publicSegments[0]);
 
     // Track allied requests
     logRequests();

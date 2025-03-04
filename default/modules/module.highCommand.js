@@ -165,7 +165,8 @@ function auxiliaryOperations() {
         }
 
         // Commodity Mining
-        const commodityRoom = _.find(initialFilter, (r) => r.commodity && r.commodityCooldown < 20 && getResourceTotal(r.commodity) < DUMP_AMOUNT && findClosestOwnedRoom(r.name, true) <= 8);
+        const commodityCutoff = Game.market.credits < CREDIT_BUFFER * 2 ? 150 : 40;
+        const commodityRoom = _.find(initialFilter, (r) => r.commodity && r.commodityCooldown < commodityCutoff && getResourceTotal(r.commodity) < DUMP_AMOUNT && findClosestOwnedRoom(r.name, true) <= 8);
         if (commodityRoom && commodityRoom.name && _.size(_.filter(Memory.auxiliaryTargets, (t) => t && t.type === 'commodity')) < 2) {
             cache[commodityRoom.name] = {tick, type: 'commodity', level: 1, priority: PRIORITIES.medium};
             log.a(`Mining operation planned for ${roomLink(commodityRoom.name)} (Commodity Deposit Location)`, 'HIGH COMMAND: ');

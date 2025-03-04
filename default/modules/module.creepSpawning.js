@@ -120,7 +120,7 @@ module.exports.processBuildQueue = function (room) {
         let globalQueue = CREEP_QUEUES["global"] ? JSON.parse(CREEP_QUEUES["global"]) : {};
         const cacheKey = role + '.' + (building.destination || room.name);
 
-        if (globalQueue[cacheKey] && building.global) {
+        if ((globalQueue[cacheKey] || globalQueue[role + '.global']) && building.global) {
             delete globalQueue[cacheKey];
             CREEP_QUEUES["global"] = JSON.stringify(globalQueue);
         }
@@ -129,6 +129,7 @@ module.exports.processBuildQueue = function (room) {
             delete roomQueue[cacheKey];
             CREEP_QUEUES[room.name] = JSON.stringify(roomQueue);
         }
+
     }
 
     // Helper function to renew a nearby creep if necessary
@@ -161,7 +162,7 @@ module.exports.essentialCreepQueue = function (room) {
             let haulerAmount = room.level >= 7 && room.energyState ? 2 : 1;
             queueCreepIfNeeded(room, 'hauler', PRIORITIES.hauler, haulerAmount, !getCreepCount(room, 'hauler'));
         }
-        const shuttleCount = !room.memory.hubLink ? 2 : 0;
+        const shuttleCount = room.level < 7 ? 2 : 0;
         queueCreepIfNeeded(room, 'shuttle', PRIORITIES.hauler + getCreepCount(room, 'shuttle'), shuttleCount);
     }
 
@@ -430,11 +431,11 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteSource = JSON.parse(room.memory.remoteSources);
             let acceptedScore = !room.energyState ? REMOTE_DISTANCE_MAX * 2 : REMOTE_DISTANCE_MAX;
             acceptedScore = Math.max(acceptedScore, _.min(remoteSource, 'score').score);
-            remoteSource = _.min(_.filter(remoteSource, (s) => !shouldSkipRemote(room, s.room) && s.score <= acceptedScore
+            remoteSource = _.min(_.filter(remoteSource, (s) => remoteRoomTargets[room.name].includes(s.room) && !shouldSkipRemote(room, s.room) && s.score <= acceptedScore
                 && !_.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === s.source)
                 && (!INTEL[s.room].sk || getCreepCount(undefined, 'SKAttacker', remoteSource.room))), 'score');
             if (remoteSource && remoteSource.room) {
-                queueCreep(room, PRIORITIES.remoteHarvester + getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name), {
+                queueCreep(room, PRIORITIES.remoteHarvester + getCreepCount(undefined, 'remoteHarvester', remoteSource.room), {
                     role: 'remoteHarvester',
                     destination: remoteSource.room,
                     other: {source: remoteSource.source}
@@ -488,12 +489,6 @@ module.exports.remoteCreepQueue = function (room) {
             }
         }
         remoteRoomTargets[room.name] = _.uniq(remoteTargets);
-
-        // Filter remote sources of rooms that are not in the list
-        if (room.memory.remoteSources) {
-            const remoteSources = JSON.parse(room.memory.remoteSources);
-            room.memory.remoteSources = JSON.stringify(_.filter(remoteSources, (s) => remoteRoomTargets[room.name].includes(s.room)));
-        }
 
         // Handle finding contested remotes
         const contestedRemote = _.find(exits, function (r) {
@@ -703,7 +698,7 @@ function queueCreepIfNeeded(room = undefined, role, priority, numberNeeded, rebo
  */
 function queueCreep(room = undefined, priority, options = {}, global = undefined, closestRoom = undefined) {
     let cache = {};
-    const roomKey = room ? room.name : options.destination ? options.destination : 'global';
+    const roomKey = options.destination ? options.destination : room ? room.name : 'global';
     const cacheKey = options.role + '.' + roomKey;
     // Set the cache to local or global
     if (global && CREEP_QUEUES['global']) cache = JSON.parse(CREEP_QUEUES['global']); else if (room && CREEP_QUEUES[room.name]) cache = JSON.parse(CREEP_QUEUES[room.name]);

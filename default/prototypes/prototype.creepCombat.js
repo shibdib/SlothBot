@@ -75,11 +75,15 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
 Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorder = false, guardLocation = undefined, guardRange, includeRampart = false) {
     // If this is a structures only op, set that
     if (!structuresOnly && (this.hasActiveBodyparts(WORK))) structuresOnly = true;
+    // Cores only in friendly rooms
+    let invaderCore;
+    if (this.hasActiveBodyparts(ATTACK)) invaderCore = true;
     // Cache the required data upfront
     const hostileStructures = _.filter(this.room.impassibleStructures, (s) =>
         s.owner && !FRIENDLIES.includes(s.owner.username) &&
         (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange)
-        && ![STRUCTURE_KEEPER_LAIR, STRUCTURE_CONTROLLER, STRUCTURE_POWER_BANK].includes(s.structureType)
+        && ![STRUCTURE_KEEPER_LAIR, STRUCTURE_CONTROLLER, STRUCTURE_POWER_BANK].includes(s.structureType) &&
+        (invaderCore || s.structureType !== STRUCTURE_INVADER_CORE)
     );
 
     const hostileCreeps = _.filter(this.room.hostileCreeps, (s) =>

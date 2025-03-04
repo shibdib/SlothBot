@@ -4,8 +4,7 @@
 
 Creep.prototype.harass = function () {
     // Combat handling
-    if (!this.canIWin(50)) return this.fleeHome();
-    if (this.handleMilitaryCreep()) return;
+    if (this.canIWin(50) && this.handleMilitaryCreep()) return;
 
     this.attackInRange();
 

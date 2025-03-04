@@ -472,7 +472,7 @@ function getTerrainMatrix(roomName, options) {
                 swampCost = 1;
                 break;
             default:
-                plainCost = 3;
+                plainCost = 4;
                 swampCost = 25;
         }
         // Squad matrix has higher costs in tiles neighboring swamps and walls
@@ -506,7 +506,7 @@ function getStructureMatrix(roomName, creep, matrix, options) {
         switch (type) {
             case 2:
             case 3:
-                roadCost = 5;
+                roadCost = 10;
                 break;
             default:
                 roadCost = 1;

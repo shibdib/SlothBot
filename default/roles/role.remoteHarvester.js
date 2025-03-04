@@ -29,7 +29,7 @@ class RoleRemoteHarvester {
             return this.creep.recycleCreep();
         }
         // Periodically check the container
-        if (this.creep.memory.onContainer && this.container && Math.random() > 0.9 && this.creep.pos.getRangeTo(this.container)) {
+        if (this.creep.memory.onContainer && this.container && this.creep.pos.getRangeTo(this.container)) {
             this.creep.memory.onContainer = undefined;
         }
     }
