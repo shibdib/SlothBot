@@ -15,7 +15,7 @@ module.exports.towerControl = function (room) {
 
     if (room.hostileCreeps.length) {
         handleHostileCreeps(room);
-    } else if (repairTower) {
+    } else if (repairTower && room.energyState) {
         handleRepairTowerActions(room, repairTower);
     }
 };
@@ -131,8 +131,8 @@ function calculateAttackPower(room, hostileCreep, towers) {
     let inRangedRange = _.filter(room.friendlyCreeps, c => c.pos.getRangeTo(hostileCreep) <= 3 && c.hasActiveBodyparts(RANGED_ATTACK));
 
     // Add attack power from friendly creeps
-    inMeleeRange.forEach(c => attackPower += c.abilityPower().attack);
-    inRangedRange.forEach(c => attackPower += c.abilityPower().rangedAttack);
+    inMeleeRange.forEach(c => attackPower += abilityPower(c.body).attack);
+    inRangedRange.forEach(c => attackPower += abilityPower(c.body).rangedAttack);
 
     // Add tower damage
     towers.forEach(t => attackPower += determineDamage(hostileCreep.pos.getRangeTo(t)));
@@ -151,9 +151,9 @@ function calculateHealPower(room, hostileCreep) {
         let inRangeMeleeHealers = _.filter(room.hostileCreeps, s => s.pos.isNearTo(hostileCreep) && s.hasActiveBodyparts(HEAL));
         let inRangeRangedHealers = _.filter(room.hostileCreeps, s => s.pos.getRangeTo(hostileCreep) <= 3 && s.hasActiveBodyparts(HEAL));
 
-        inRangeMeleeHealers.forEach(c => healPower += c.abilityPower().heal);
-        inRangeRangedHealers.forEach(c => healPower += c.abilityPower().rangedHeal);
-        healPower += hostileCreep.abilityPower().heal;
+        inRangeMeleeHealers.forEach(c => healPower += abilityPower(c.body).heal);
+        inRangeRangedHealers.forEach(c => healPower += abilityPower(c.body).rangedHeal);
+        healPower += abilityPower(hostileCreep.body).heal;
     }
 
     healPowerCache[cacheKey] = healPower;

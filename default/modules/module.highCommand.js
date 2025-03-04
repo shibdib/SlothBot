@@ -103,8 +103,8 @@ function militaryOperations() {
             !Memory.nonCombatRooms.includes(r.name) && !checkForNap(r.owner) &&
             (ATTACK_LOCALS || THREATS.includes(r.owner) || (HOLD_SECTOR && myRoomInSectorCheck(r.name)) || findClosestOwnedRoom(r.name, true) <= DEFENSIVE_BUBBLE)
             && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time));
-        const activeNonSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && !['roomDenial', 'stronghold'].includes(o.type) && !o.dDay));
-        const activeSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && (o.type === 'roomDenial' || o.dDay)));
+        const activeNonSiegeOperations = _.size(_.filter(Memory.targetRooms, (o) => o && !['roomDenial', 'stronghold'].includes(o.type) && !o.dDay));
+        const activeSiegeOperations = _.size(_.filter(Memory.targetRooms, (o) => o && (o.type === 'roomDenial' || o.dDay)));
 
         // Standard operations
         if (activeNonSiegeOperations < OPERATION_LIMIT) {
@@ -165,7 +165,7 @@ function auxiliaryOperations() {
         }
 
         // Commodity Mining
-        const commodityRoom = _.find(initialFilter, (r) => r.commodity && getResourceTotal(r.commodity) < DUMP_AMOUNT && findClosestOwnedRoom(r.name, true) <= 8);
+        const commodityRoom = _.find(initialFilter, (r) => r.commodity && r.commodityCooldown < 20 && getResourceTotal(r.commodity) < DUMP_AMOUNT && findClosestOwnedRoom(r.name, true) <= 8);
         if (commodityRoom && commodityRoom.name && _.size(_.filter(Memory.auxiliaryTargets, (t) => t && t.type === 'commodity')) < 2) {
             cache[commodityRoom.name] = {tick, type: 'commodity', level: 1, priority: PRIORITIES.medium};
             log.a(`Mining operation planned for ${roomLink(commodityRoom.name)} (Commodity Deposit Location)`, 'HIGH COMMAND: ');
@@ -264,7 +264,7 @@ function manageResponseForces() {
         let responsePower = friendlyResponsePower;
         for (let creep of _.filter(activeResponders, (c) => c.memory.destination === targetRoom)) responsePower += creep.combatPower;
 
-        for (let creep of _.sortBy(idleResponders, (c) => Game.map.getRoomLinearDistance(c.pos.roomName, targetRoom))) {
+        for (let creep of _.sortBy(idleResponders, (c) => Game.map.getRoomLinearDistance(c.pos.roomName, targetRoom) < 4)) {
             if (responsePower >= requiredPower) break; // Stop assigning if we've achieved the required power
 
             responsePower += creep.combatPower;
@@ -313,7 +313,7 @@ function manageResponseForces() {
     }
 
     function trackPower() {
-        const respondingPatrols = objFilter(Game.creeps, (c) => c.my && c.memory.destination && c.memory.operation === 'borderPatrol');
+        const respondingPatrols = _.filter(Game.creeps, (c) => c.my && c.memory.destination && c.memory.operation === 'borderPatrol');
         const incomingPower = {};
         for (const key in respondingPatrols) {
             const patrol = respondingPatrols[key];
@@ -321,7 +321,7 @@ function manageResponseForces() {
                 power: 0,
                 room: patrol.memory.destination
             };
-            incomingPower[patrol.memory.destination].power += patrol.abilityPower();
+            incomingPower[patrol.memory.destination].power += abilityPower(patrol.body);
         }
         for (const key in incomingPower) {
             const i = incomingPower[key];
@@ -332,8 +332,8 @@ function manageResponseForces() {
 
 function manageMilitary() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
-    let activeNonSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && !['roomDenial', 'stronghold'].includes(o.type) && !o.dDay));
-    let activeSiegeOperations = _.size(objFilter(Memory.targetRooms, (o) => o && (o.type === 'roomDenial' || o.dDay)));
+    let activeNonSiegeOperations = _.size(_.filter(Memory.targetRooms, (o) => o && !['roomDenial', 'stronghold'].includes(o.type) && !o.dDay));
+    let activeSiegeOperations = _.size(_.filter(Memory.targetRooms, (o) => o && (o.type === 'roomDenial' || o.dDay)));
     let staleMulti = 1;
 
     // Iterate through target rooms

@@ -91,8 +91,8 @@ module.exports.loop = function () {
                 const ownedRoom = Object.values(Game.rooms).find(
                     (r) => r.controller && r.controller.my
                 );
-                const spawn = objFilter(Game.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
-                const creeps = objFilter(Game.creeps, (s) => s.my);
+                const spawn = _.filter(Game.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
+                const creeps = _.filter(Game.creeps, (s) => s.my);
 
                 if (ownedRoom && ((!_.size(spawn) && !_.size(creeps)) || (_.size(spawn) === 1 && !_.size(creeps)))) {
                     if (!memWipe) {

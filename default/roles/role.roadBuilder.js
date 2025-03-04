@@ -27,7 +27,7 @@ class RoleRoadBuilder {
         if (this.creep.skSafety()) return true;
         // Set destination
         if (!this.creep.memory.destination) {
-            const remoteHarvesters = objFilter(Game.creeps, (c) => c.my && c.memory.colony === this.creep.memory.colony && c.memory.role === 'remoteHarvester');
+            const remoteHarvesters = _.filter(Game.creeps, (c) => c.my && c.memory.colony === this.creep.memory.colony && c.memory.role === 'remoteHarvester');
             if (_.size(remoteHarvesters)) {
                 this.creep.memory.destination = _.sample(_.pluck(remoteHarvesters, 'memory.destination'));
                 if (this.creep.memory.destination === this.creep.room.name) this.creep.idleFor(15);

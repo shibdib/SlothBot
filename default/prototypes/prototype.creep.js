@@ -61,8 +61,8 @@ Object.defineProperty(Creep.prototype, 'combatPower', {
     get: function () {
         if (!this._combatPower) {
             let power = 0;
-            if (this.hasActiveBodyparts(HEAL)) power += this.abilityPower().heal;
-            if (this.hasActiveBodyparts(ATTACK) || this.hasActiveBodyparts(RANGED_ATTACK)) power += this.abilityPower().attack;
+            if (this.hasActiveBodyparts(HEAL)) power += abilityPower(this.body).heal;
+            if (this.hasActiveBodyparts(ATTACK) || this.hasActiveBodyparts(RANGED_ATTACK)) power += abilityPower(this.body).attack;
             this._combatPower = power;
         }
         return this._combatPower;
@@ -145,7 +145,6 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
  * @returns {boolean}
  */
 Creep.prototype.skSafety = function () {
-    if (this.memory.destination && this.memory.destination !== this.room.name) return false;
     // Check if creep is damaged or if there are armed enemies nearby
     const armedEnemies = this.room.hostileCreeps.find(c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
     if (this.hits < this.hitsMax || armedEnemies) {
@@ -351,8 +350,8 @@ Creep.prototype.locateEnergy = function (room = this.room) {
             potentialEnergy = potentialEnergy.concat(myCreeps.find(c => c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 3));
         }
 
-        // Haulers prioritze the hub link
-        if (this.memory.role === 'hauler') {
+        // Haulers prioritze the hub link at max level
+        if (this.memory.role === 'hauler' && room.level > 7) {
             const hubLink = Game.getObjectById(room.memory.hubLink);
             if (hubLink && hubLink.store[RESOURCE_ENERGY]) {
                 this.memory.energyDestination = hubLink.id;
@@ -372,10 +371,6 @@ Creep.prototype.locateEnergy = function (room = this.room) {
 
         // Check terminal and storage if not a shuttle
         if (this.memory.role !== 'shuttle') {
-            const hubLink = Game.getObjectById(room.memory.hubLink);
-            if (hubLink && hubLink.store[RESOURCE_ENERGY]) {
-                potentialEnergy.push(hubLink);
-            }
             // Storage and terminal, take from whichever has more energy
             if (room.storage && room.storage.store[RESOURCE_ENERGY] > (room.terminal ? room.terminal.store[RESOURCE_ENERGY] : 0)) {
                 potentialEnergy.push(room.storage);
@@ -470,6 +465,14 @@ Creep.prototype.haulerDelivery = function () {
         filter: s => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) &&
             s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
     }));
+
+    // Hub link pre level 8
+    if (this.room.level < 8) {
+        const hubLink = Game.getObjectById(this.room.memory.hubLink);
+        if (hubLink && hubLink.store[RESOURCE_ENERGY] < LINK_CAPACITY) {
+            targets.push(hubLink);
+        }
+    }
 
     // Labs
     targets = targets.concat(this.room.find(FIND_MY_STRUCTURES, {

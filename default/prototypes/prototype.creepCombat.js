@@ -290,7 +290,7 @@ Creep.prototype.fightRanged = function (target) {
         return creep.pos && target instanceof Creep &&
             target.hasActiveBodyparts(ATTACK) &&
             creep.pos.getRangeTo(target) < 3 &&
-            (!creep.pos.checkForRampart() && creep.abilityPower().heal < target.abilityPower().attack);
+            (!creep.pos.checkForRampart() && abilityPower(creep.body).heal < abilityPower(creep.body).attack);
     }
 
     function findRampartCover(creep, target) {
@@ -624,7 +624,7 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
             (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(HEAL)) &&
             creep.pos.getRangeTo(c) <= range
         );
-        hostiles.forEach(c => power += c.abilityPower().attack + (c.hasActiveBodyparts(HEAL) ? c.abilityPower().heal : 0));
+        hostiles.forEach(c => power += abilityPower(c.body).attack + (c.hasActiveBodyparts(HEAL) ? abilityPower(c.body).heal : 0));
         const towers = creep.room.impassibleStructures.filter(s =>
             s.structureType === STRUCTURE_TOWER &&
             !_.includes(FRIENDLIES, s.owner.username) &&
@@ -638,14 +638,14 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     }
 
     function calculateFriendlyPower(creep, range, inbound) {
-        let friendlyPower = creep.abilityPower().attack + creep.abilityPower().heal;
+        let friendlyPower = abilityPower(creep.body).attack + abilityPower(creep.body).heal;
         const myCreeps = creep.room.myCreeps.filter((c) => c.id !== creep.id);
         const alliedCreeps = creep.room.creeps.filter(c => FRIENDLIES.includes(c.owner.username) && !c.my);
         const friendlyCreeps = myCreeps.concat(alliedCreeps);
 
         friendlyPower += friendlyCreeps.reduce((sum, c) => {
             if (c.pos.getRangeTo(creep) <= range || (inbound && inbound.includes(c.id))) {
-                return sum + c.abilityPower().attack + c.abilityPower().heal;
+                return sum + abilityPower(c.body).attack + abilityPower(c.body).heal;
             }
             return sum;
         }, 0);
@@ -701,62 +701,6 @@ Creep.prototype.findDefensivePosition = function (target) {
             creep.shibMove(fallbackPosition, {range: 12, avoidEnemies: true});
         }
     }
-};
-
-/**
- * Get attack/heal power and account for boosts
- * @returns {{meleeAttack: number, rangedAttack: number, attack: number, heal: number, rangedHeal: number}}
- */
-Creep.prototype.abilityPower = function () {
-    let meleePower = 0;
-    let rangedPower = 0;
-    let healPower = 0;
-    let rangedHealPower = 0;
-
-    for (let part of this.body) {
-        if (!part.hits) continue;
-
-        const partType = part.type;
-        const boost = part.boost;
-
-        // Calculate based on part type
-        switch (partType) {
-            case ATTACK:
-                meleePower += boost
-                    ? ATTACK_POWER * BOOSTS[partType][boost].attack
-                    : ATTACK_POWER;
-                break;
-            case RANGED_ATTACK:
-                rangedPower += boost
-                    ? RANGED_ATTACK_POWER * BOOSTS[partType][boost].rangedAttack
-                    : RANGED_ATTACK_POWER;
-                break;
-            case HEAL:
-                healPower += boost
-                    ? HEAL_POWER * BOOSTS[partType][boost].heal
-                    : HEAL_POWER;
-                rangedHealPower += boost
-                    ? RANGED_HEAL_POWER * BOOSTS[partType][boost].heal
-                    : RANGED_HEAL_POWER;
-                break;
-            case TOUGH:
-                if (boost) {
-                    healPower += HEAL_POWER * (1 - BOOSTS[partType][boost].damage);
-                }
-                break;
-            default:
-                // In case of an unexpected part type, you can add a logging mechanism
-                break;
-        }
-    }
-
-    return {
-        attack: meleePower + rangedPower,
-        meleeAttack: meleePower,
-        rangedAttack: rangedPower,
-        heal: healPower,
-        rangedHeal: rangedHealPower
-    };
 };
 
 Creep.prototype.formSquad = function () {

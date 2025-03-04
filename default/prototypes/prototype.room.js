@@ -440,6 +440,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         if (roomIntel.isHighway) {
             const commodityDeposit = deposits.find(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20));
             roomIntel.commodity = commodityDeposit ? commodityDeposit.depositType : undefined;
+            roomIntel.commodityCooldown = commodityDeposit ? commodityDeposit.lastCooldown : undefined;
 
             const powerBank = structures.find(s => s.structureType === STRUCTURE_POWER_BANK);
             roomIntel.power = powerBank ? Game.time + powerBank.ticksToDecay : undefined;
