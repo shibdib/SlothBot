@@ -13,6 +13,8 @@ class RoleAttacker {
     performRoleActions() {
         if (this.creep.memory.operation) {
             this.operationSelection(this.creep);
+        } else if (this.creep.memory.misc && this.creep.memory.misc.guardDog) {
+            this.guardDog(this.creep);
         } else {
             this.unassignedTasks(this.creep);
         }
@@ -30,6 +32,24 @@ class RoleAttacker {
                 creep.borderPatrol();
                 break;
         }
+    }
+
+    guardDog(creep) {
+        creep.say('Woof!', true);
+        if (creep.canIWin(5) && creep.handleMilitaryCreep()) return;
+        if (!creep.memory.leader) {
+            const needsDog = _.find(Game.creeps, (c) => c.my && c.memory.leader && c.memory.squadMembers.length && (!c.memory.dog || !Game.getObjectById(c.memory.dog)));
+            if (needsDog) {
+                creep.memory.leader = needsDog.id;
+                needsDog.memory.dog = creep.id;
+            } else {
+                creep.idleFor(5);
+            }
+            return;
+        }
+        const leader = Game.getObjectById(creep.memory.leader);
+        if (!leader) return creep.memory.leader = undefined;
+        if (creep.room.name !== leader.room.name || creep.pos.getRangeTo(leader) > 3) return creep.shibMove(leader, {range: 3});
     }
 
     unassignedTasks(creep) {

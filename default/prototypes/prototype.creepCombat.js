@@ -640,7 +640,7 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     function calculateFriendlyPower(creep, range, inbound) {
         let friendlyPower = creep.abilityPower().attack + creep.abilityPower().heal;
         const myCreeps = creep.room.myCreeps.filter((c) => c.id !== creep.id);
-        const alliedCreeps = creep.room.creeps.filter(c => FRIENDLIES.includes(c.owner.username));
+        const alliedCreeps = creep.room.creeps.filter(c => FRIENDLIES.includes(c.owner.username) && !c.my);
         const friendlyCreeps = myCreeps.concat(alliedCreeps);
 
         friendlyPower += friendlyCreeps.reduce((sum, c) => {
@@ -776,6 +776,7 @@ Creep.prototype.formSquad = function () {
 
     function findGroup(creep) {
         let currentGroups = creep.room.myCreeps.filter((c) => c.id !== creep.id && (c.memory.role.includes(creep.memory.role) || creep.memory.role.includes(c.memory.role)) && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3);
+        if (creep.memory.operation === 'borderPatrol') currentGroups = _.filter(Game.creeps, (c) => c.my && c.id !== creep.id && (c.memory.role.includes(creep.memory.role) || creep.memory.role.includes(c.memory.role)) && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3)
         if (currentGroups.length) {
             currentGroups = _.max(currentGroups, c => c.memory.squadMembers.length);
             creep.memory.grouped = true;
@@ -789,6 +790,8 @@ Creep.prototype.formSquad = function () {
             currentGroups.memory.squadMembers.push(creep.id);
         } else {
             creep.memory.leader = true;
+            creep.memory.oldRole = creep.memory.role;
+            creep.memory.role = 'longbowSquad';
             creep.memory.squadMembers = [];
         }
     }

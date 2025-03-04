@@ -185,7 +185,7 @@ module.exports.essentialCreepQueue = function (room) {
     if (room.energyState || room.level < 7) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         if (container) {
-            upgraderAmount = Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround());
+            upgraderAmount = Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround()) || 1;
         } else if (!container) {
             upgraderAmount = 3;
         }
@@ -227,7 +227,10 @@ module.exports.miscCreepQueue = function (room) {
         }
 
         // Border Patrol
-        if (room.energyState || (room.memory.borderPatrol && INTEL[room.memory.borderPatrol].threatLevel < 3)) {
+        const needyBorderPatrol = room.myCreeps.find((c) => c.memory.operation === 'borderPatrol' && c.memory.needsMoreSquadMembers);
+        if (needyBorderPatrol) {
+            queueCreepIfNeeded(room, 'longbow', PRIORITIES.remoteHarvester - 1, 4, undefined, needyBorderPatrol.memory.destination, undefined, undefined, 'borderPatrol');
+        } else if (room.energyState || (room.memory.borderPatrol && INTEL[room.memory.borderPatrol].threatLevel < 3)) {
             const needsBorderResponse = MY_ROOMS.find((r) => Game.rooms[r].memory.requestingBorderResponse);
             const borderResponse = !!room.memory.borderPatrol ? room.memory.borderPatrol : needsBorderResponse ? Game.rooms[needsBorderResponse].memory.requestingBorderResponse : undefined;
             if (borderResponse) {
@@ -240,6 +243,12 @@ module.exports.miscCreepQueue = function (room) {
             room.memory.requestingBorderResponse = room.memory.borderPatrol;
         } else {
             room.memory.requestingBorderResponse = undefined;
+        }
+
+        // Guard Dogs
+        const needsDog = _.find(room.myCreeps, (c) => c.memory.leader && c.memory.squadMembers && c.memory.squadMembers.length && (!c.memory.dog || !Game.getObjectById(c.memory.dog)));
+        if (needsDog) {
+            queueCreepIfNeeded(room, 'attacker', PRIORITIES.medium, 1, undefined, undefined, {guardDog: true});
         }
     }
 };
