@@ -469,7 +469,7 @@ Creep.prototype.haulerDelivery = function () {
     // Hub link pre level 8
     if (this.room.level < 8) {
         const hubLink = Game.getObjectById(this.room.memory.hubLink);
-        if (hubLink && hubLink.store[RESOURCE_ENERGY] < LINK_CAPACITY) {
+        if (hubLink && !hubLink.cooldown && hubLink.store[RESOURCE_ENERGY] < LINK_CAPACITY * 0.5) {
             targets.push(hubLink);
         }
     }
