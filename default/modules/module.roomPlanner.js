@@ -409,7 +409,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
         if (PROTECT_MINERAL) buildRampartAround(room.mineral.pos);
         if (PROTECT_CONTROLLER) buildRampartAround(room.controller.pos);
         // Handle ramparts on protected structures
-        if (PROTECT_STRUCTURES) {
+        if (PROTECT_STRUCTURES && room.level >= 8) {
             for (let structure of room.structures) {
                 if (counter >= 3) return true;
                 if (protectedStructureTypes.includes(structure.structureType)) {
@@ -644,18 +644,19 @@ function roadBuilder(room, layout) {
     }
 
     function buildRoadsForRamparts(room) {
-        let ramparts = room.structures.filter((s) => s.structureType === STRUCTURE_RAMPART && !s.pos.checkForObstacleStructure() && !s.pos.checkForRoad());
-        let buildCounter = 0;
-        // Build roads on ramparts
-        for (const rampart of ramparts) {
-            if (buildCounter >= 4) return true;
-            if (buildRoad(rampart.pos)) buildCounter++
-        }
-        // Build roads from ramparts to hub
+        const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
+        if (!ramparts || !ramparts.length) return false;
+        const rampartPositions = ramparts.map(p => new RoomPosition(p.x, p.y, room.name));
         const spawn = _.find(room.impassibleStructures.filter(s => s.structureType === STRUCTURE_SPAWN));
-        ramparts = room.structures.filter((s) => s.structureType === STRUCTURE_RAMPART && s.pos.checkForRoad());
-        for (const rampart of ramparts) {
-            if (buildCounter >= 4) return true;
+        let buildCounter = 0;
+        for (let pos of rampartPositions) {
+            if (buildCounter >= 5) return true;
+            if (!pos.checkForRoad() && pos.checkForRampart()) {
+                if (buildRoad(pos)) buildCounter++
+            }
+        }
+        for (const rampart of rampartPositions) {
+            if (buildCounter >= 5) return true;
             if (buildRoadFromTo(room, rampart, spawn)) buildCounter++
         }
         return false;

@@ -9,9 +9,7 @@ Creep.prototype.scoutRoom = function () {
             offRoad: true
         });
     }
-    if (!this.shibKite()) {
-        this.moveToHostileConstructionSites();
-    }
+    if (!this.hide()) this.idleFor(10);
     return operationPlanner(this.room, this);
 };
 
@@ -30,7 +28,6 @@ function operationPlanner(room, creep = undefined) {
     // Handle forward observer
     if (Memory.targetRooms[room.name]) {
         forwardObserver(room);
-        if (creep && !creep.moveToHostileConstructionSites(false, true)) creep.idleFor(25);
     } else {
         room.cacheRoomIntel();
     }
@@ -42,7 +39,7 @@ function forwardObserver(room) {
     const targetRoom = Memory.targetRooms[room.name];
     if (!targetRoom) return false;
 
-    if (room.controller && room.controller.safeMode) {
+    if (room.controller && room.controller.safeMode && !FRIENDLIES.includes(room.controller.owner.username)) {
         updateRoomSafemode(room);
         return;
     }
@@ -160,13 +157,12 @@ function updateRoomLevel(room) {
         } else {
             targetRoom.level = 4;
         }
-    } else if (armedCreeps) {
-        targetRoom.level = 3;
-    } else if (room.hostileCreeps.length || room.hostileStructures.length) {
+    } else if (armedCreeps || (Memory.targetRooms[room.name].type === 'guard' && room.controller && room.controller.safeMode < CREEP_LIFE_TIME)) {
         targetRoom.level = 2;
-    } else if (Memory.targetRooms[room.name] && Memory.targetRooms[room.name].type === 'guard') {
+    } else if (room.hostileCreeps.length || room.hostileStructures.length) {
         targetRoom.level = 1;
     } else {
+        if (Memory.targetRooms[room.name].type === 'guard') targetRoom.builders = FRIENDLIES.includes(room.controller.owner.username);
         targetRoom.level = 0;
     }
     if (!towers.length) targetRoom.boosts = undefined;

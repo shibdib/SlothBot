@@ -12,6 +12,7 @@ class RoleDrone {
     }
 
     performRoleActions() {
+        this.creep.say('🤖', true);
         if (this.houseKeeping()) return;
         if (!this.creep.memory.working) {
             if (this.creep.isFull) return this.creep.memory.working = true;
@@ -22,11 +23,11 @@ class RoleDrone {
     }
 
     houseKeeping() {
+        // SK Safety
+        if (this.creep.skSafety()) return true;
         if (this.creep.tryToBoost([WORK])) return true;
-        // Handle remote drones overlord change
-        if (this.creep.memory.destination && this.creep.memory.colony !== this.creep.memory.destination) this.creep.memory.colony = this.creep.memory.destination;
         // If full clear memory
-        if (this.creep.isFull && !this.creep.memory.stationaryHarvester) {
+        if (this.creep.isFull) {
             this.creep.memory.source = undefined;
             this.creep.memory.harvest = undefined;
             this.creep.memory.remoteMining = undefined;
@@ -42,9 +43,10 @@ class RoleDrone {
         // If damaged move to safety
         if (!this.creep.getActiveBodyparts(WORK) || !this.creep.getActiveBodyparts(CARRY)) return this.creep.goToHub();
         // Handle returning to overlord
-        if (this.room.name !== this.creep.memory.colony && !this.creep.memory.remoteMining && !this.creep.memory.energyDestination) {
+        if (this.creep.memory.destination && this.room.name !== this.creep.memory.destination && !this.creep.memory.remoteMining && !this.creep.memory.energyDestination) {
             this.creep.memory.energyDestination = undefined;
-            this.creep.goToHub();
+            const destination = new RoomPosition(25, 25, this.creep.memory.destination);
+            this.creep.shibMove(destination, {range: 20});
             return true;
         }
         // Handle case of carry something besides energy
@@ -100,6 +102,7 @@ class RoleDrone {
     }
 
     energyCollection() {
+        if (this.creep.isFull) return;
         this.creep.memory.other.stationary = undefined;
         this.creep.memory.working = undefined;
         this.creep.memory.constructionSite = undefined;
@@ -113,8 +116,6 @@ class RoleDrone {
             if (source && (!INTEL[this.room.name].owner || INTEL[this.room.name].owner === MY_USERNAME) && (!INTEL[this.room.name].reservation || INTEL[this.room.name].reservation === MY_USERNAME)) {
                 this.creep.room.memory.droneSource = source.id;
                 this.creep.memory.harvest = true;
-                // Set a stationary harvester on new spawns
-                if (!spawn && !_.find(this.room.myCreeps, (c) => c.id !== this.creep.id && c.memory.stationaryHarvester) && _.find(this.room.myCreeps, (c) => c.id !== this.creep.id && c.memory.role === 'drone')) this.creep.memory.stationaryHarvester = true;
                 this.creep.say('Harvest!', true);
                 this.creep.memory.source = source.id;
                 switch (this.creep.harvest(source)) {
@@ -185,6 +186,7 @@ class RoleDrone {
                 return false;
             }
         }
+        if (!this.room.controller || !this.room.controller.owner || this.room.controller.owner.username !== MY_USERNAME) return false;
         this.creep.memory.task = 'upgrade';
         this.creep.say('Praise!', true);
         switch (this.creep.upgradeController(this.room.controller)) {

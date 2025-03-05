@@ -159,7 +159,7 @@ function dropOff(creep) {
 
     if (lowTower) {
         memory.storageDestination = lowTower.id;
-    } else if (!colony.terminal && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) &&
+    } else if (!colony.terminal && !colony.memory.hubLink && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) &&
         Math.random() > controllerContainer.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY) {
         memory.storageDestination = controllerContainer.id;
     } else if (colony.energyState && colony.nuker &&

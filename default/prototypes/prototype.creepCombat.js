@@ -90,7 +90,8 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
         (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange) && !s.pos.checkForRampart()
     );
 
-    const barriersPresent = _.some(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
+    const barriersPresent = _.some(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART)
+        && (!this.room.controller || !this.room.controller.owner || !FRIENDLIES.includes(this.room.controller.owner.username));
 
     // Handle a blocking creep for squads
     if (this.memory.blockingCreep) {
@@ -867,7 +868,7 @@ function getAssignedRampart(creep, target = undefined) {
         }
     }
     if (!position) {
-        let filter = (r) => r.my && r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && !creep.room.myCreeps.some(c => c.memory.assignedRampart === r.id && c.id !== creep.id);
+        let filter = (r) => r.my && r.structureType === STRUCTURE_RAMPART && r.pos.isInBunker() && !r.pos.checkForObstacleStructure() && !creep.room.myCreeps.some(c => c.memory.assignedRampart === r.id && c.id !== creep.id);
         position = target ? target.pos.findInRange(creep.room.structures, range, {filter})[0] || target.pos.findClosestByPath(creep.room.structures, {filter}) : creep.pos.findClosestByPath(creep.room.structures, {filter});
     }
     return position;

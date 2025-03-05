@@ -141,9 +141,11 @@ Object.defineProperty(Room.prototype, 'impassibleStructures', {
     configurable: true
 });
 
+const ENERGY_STATE_CACHE = {};
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
         if (!this.controller) return 2;
+        if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + 500 < Game.time) return ENERGY_STATE_CACHE[this.name].state;
         if (!this._energyState) {
             let energy = this.rawEnergy;
             let target = this.level === 8 ? 250000 : Math.min((constructionCost(this.controller.level + 1) - constructionCost(this.controller.level)) * 1.1, 250000);
@@ -158,7 +160,48 @@ Object.defineProperty(Room.prototype, 'energyState', {
             } else {
                 this._energyState = 0;
             }
+            // Handle funneling
+            if (this.terminal && energy < target) {
+                const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
+                let funnelRequests = requests.funnel ? requests.funnel : [];
+                if (funnelRequests) {
+                    funnelRequests = funnelRequests.filter((r) => r.roomName !== this.name);
+                    const goalType = this.level === 6 ? 1 : this.level === 7 ? 2 : 0;
+                    funnelRequests.push({
+                        goalType: goalType,
+                        maxAmount: (target * 1.2) - energy,
+                        timeout: Game.time + CREEP_LIFE_TIME,
+                        roomName: this.name
+                    });
+                    ALLY_HELP_REQUESTS[MY_USERNAME].requests.funnel = funnelRequests;
+                }
+                let resourceRequests = requests.resource ? requests.resource : [];
+                if (resourceRequests) {
+                    resourceRequests = resourceRequests.filter((r) => (r.resourceType !== RESOURCE_ENERGY && r.roomName === this.name) || r.roomName !== this.name);
+                    resourceRequests.push({
+                        resourceType: RESOURCE_ENERGY,
+                        amount: (target * 1.2) - energy,
+                        priority: 1 - (energy / target),
+                        roomName: this.name
+                    });
+                    ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;
+                }
+            } else {
+                const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
+                let funnelRequests = requests.funnel ? requests.funnel : [];
+                if (funnelRequests) {
+                    funnelRequests = funnelRequests.filter((r) => r.roomName !== this.name);
+                    ALLY_HELP_REQUESTS[MY_USERNAME].requests.funnel = funnelRequests;
+                }
+                const resourceRequests = requests.resource ? requests.resource : [];
+                const request = resourceRequests.find((r) => r.resourceType === RESOURCE_ENERGY && r.roomName === this.name);
+                if (request) {
+                    resourceRequests.splice(resourceRequests.indexOf(request), 1);
+                    ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;
+                }
+            }
         }
+        ENERGY_STATE_CACHE[this.name] = {state: this._energyState, tick: Game.time};
         return this._energyState;
     },
     enumerable: false,
@@ -437,13 +480,20 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             roomIntel.reservation = this.controller.reservation ? this.controller.reservation.username : undefined;
         }
         // Check for highway-related intel
-        if (roomIntel.isHighway) {
-            const commodityDeposit = deposits.find(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20));
+        if (this.sources.length === 0) {
+            // Commodities
+            const commodityDeposit = deposits.find(d => d.ticksToDecay >= 2000);
             roomIntel.commodity = commodityDeposit ? commodityDeposit.depositType : undefined;
             roomIntel.commodityCooldown = commodityDeposit ? commodityDeposit.lastCooldown : undefined;
-
+            // Power
             const powerBank = structures.find(s => s.structureType === STRUCTURE_POWER_BANK);
             roomIntel.power = powerBank ? Game.time + powerBank.ticksToDecay : undefined;
+            // Portals
+            const portal = structures.find(s => s.structureType === STRUCTURE_PORTAL);
+            roomIntel.portal = portal ? JSON.stringify({
+                destination: portal.destination,
+                ticks: portal.ticksToDecay
+            }) : undefined;
         }
         // Check for hostile creeps with attack capabilities
         roomIntel.armedHostile = this.hostileCreeps.length > 0 && _.some(this.hostileCreeps, c =>
@@ -467,11 +517,12 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     }
 
     // Get remote source data for the highest level room declaring this a remote
-    if (roomIntel.remoteRoom && (!roomIntel.activeRemote || roomIntel.activeRemote + CREEP_LIFE_TIME < currentTime)) {
+    if (this.sources.length && roomIntel.remoteRoom && (!ROOM_REMOTE_TARGETS[roomIntel.remoteRoom] || !ROOM_REMOTE_TARGETS[roomIntel.remoteRoom].find(s => s.room === this.name))) {
         let lowestScore;
         let lowestRoom = roomIntel.remoteRoom[0];
         for (const source of this.sources) {
             for (const room of roomIntel.remoteRoom) {
+                if (!MY_ROOMS.includes(room)) continue;
                 let distanceToExit = calculateDistanceToHub(this, source, room);
                 if (!lowestScore || distanceToExit < lowestScore) {
                     lowestScore = distanceToExit;
@@ -560,19 +611,8 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     // Special room type checks
     const structures = this.find(FIND_STRUCTURES);
     roomIntel.sk = structures.some(s => s.structureType === STRUCTURE_KEEPER_LAIR);
-    const deposits = this.find(FIND_DEPOSITS).some(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20));
-    const power = this.find(FIND_STRUCTURES).some(s => s.structureType === STRUCTURE_POWER_BANK);
-    if (roomIntel.sources === 0 && (deposits || power)) {
-        roomIntel.isHighway = true;
-        if (deposits) {
-            const commodityDeposit = this.find(FIND_DEPOSITS).find(d => d.ticksToDecay >= 2000 && (!d.lastCooldown || d.lastCooldown <= 20));
-            roomIntel.commodity = commodityDeposit ? commodityDeposit.depositType : undefined;
-        }
-        if (power) {
-            const powerBank = this.find(FIND_STRUCTURES).find(s => s.structureType === STRUCTURE_POWER_BANK);
-            roomIntel.power = powerBank ? Game.time + powerBank.ticksToDecay : undefined;
-        }
-    } else {
+    roomIntel.isHighway = roomIntel.sources === 0;
+    if (roomIntel.sources !== 0) {
         delete roomIntel.isHighway;
         delete roomIntel.commodity;
         delete roomIntel.power;
@@ -606,15 +646,15 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     }
 
     function updateRemoteSourceData(room, roomName, source, distance) {
-        if (!Game.rooms[roomName] || !Game.rooms[roomName].memory) return;
-        let remoteSourceData = Game.rooms[roomName].memory.remoteSources || "{}";
-        remoteSourceData = JSON.parse(remoteSourceData);
-        remoteSourceData[source.id] = {
-            room: room.name,
-            source: source.id,
-            score: distance
-        };
-        Game.rooms[roomName].memory.remoteSources = JSON.stringify(remoteSourceData);
+        const remoteTargets = ROOM_REMOTE_TARGETS[roomName] || [];
+        if (!remoteTargets.find(s => s.source === source.id)) {
+            remoteTargets.push({
+                room: room.name,
+                source: source.id,
+                score: distance
+            });
+        }
+        ROOM_REMOTE_TARGETS[roomName] = remoteTargets;
     }
 
     function areExitsReachable(room) {

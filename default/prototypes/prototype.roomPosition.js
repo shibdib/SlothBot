@@ -206,9 +206,7 @@ RoomPosition.prototype.isInBunker = function () {
     const cache = BUNKER_CACHE[roomName];
     if (!cache.spots.length) return false;
 
-    // Heuristic: Check if within bounding box and reasonable range
-    if (this.x < cache.minX || this.x > cache.maxX || this.y < cache.minY || this.y > cache.maxY ||
-        this.getRangeTo(hub) > 10) return false;
+    if (this.x < cache.minX || this.x > cache.maxX || this.y < cache.minY || this.y > cache.maxY) return false;
 
     const costMatrix = new PathFinder.CostMatrix();
     for (let spot of cache.spots) costMatrix.set(spot.x, spot.y, Infinity);

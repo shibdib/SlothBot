@@ -90,6 +90,10 @@ class RoleLongbowSquad {
 
     getInPosition(creep, leader) {
         if (!leader || !leader.pos || !creep || !creep.pos) return false;
+        if (leader.room.name !== creep.room.name) {
+            const pos = new RoomPosition(25, 25, leader.room.name);
+            return creep.shibMove(pos, {range: 22, forceSolo: true});
+        }
         const squadOrientation = leader.memory.squadOrientation || 0;
         const squadPositions = squadOrientation === 0
             ? [{dx: 0, dy: 1}, {dx: 1, dy: 0}, {dx: 1, dy: 1}]
@@ -117,7 +121,7 @@ class RoleLongbowSquad {
             : null;
         const target = closest || leaderPos;
         return target && !creepPos.isEqualTo(target)
-            ? creep.moveTo(target, {range: closest ? 0 : 1}) === OK
+            ? creep.shibMove(target, {range: closest ? 0 : 1, forceSolo: true}) === OK
             : false;
     }
 

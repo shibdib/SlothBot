@@ -34,11 +34,11 @@ class TerminalControl {
             lastRun['updates'] = Game.time;
         }
 
-        // Handle distribution first
-        if (this.emergencyEnergy(this.room.terminal) || this.balanceEnergy(this.room.terminal) || this.balanceResources(this.room.terminal)) return;
-
         // Handle market
         if (this.placeSellOrders(this.room.terminal, globalOrders, myOrders) || this.quickSell(this.room.terminal, globalOrders) || this.placeBuyOrders(this.room.terminal, globalOrders, myOrders)) return;
+
+        // Handle distribution
+        if (this.emergencyEnergy(this.room.terminal) || this.balanceEnergy(this.room.terminal) || this.balanceResources(this.room.terminal)) return;
     }
 
     getGlobalOrders() {
@@ -86,11 +86,10 @@ class TerminalControl {
             if (mineral === RESOURCE_ENERGY || mineral === RESOURCE_BATTERY) continue;
 
             let target = REACTION_AMOUNT * 0.9;
-            //let stored = getResourceTotal(mineral) + (getResourceTotal(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
             let stored = terminal.room.store(mineral) + (terminal.room.store(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
+            let buyAmount = Math.min(target - stored, REACTION_AMOUNT);
 
-            if (stored < target) {
-                let buyAmount = Math.min(target - stored, REACTION_AMOUNT);
+            if (stored < target && buyAmount > 0) {
                 let price;
 
                 // On demand buy a small amount on mmo shards or buy a larger amount on private servers
@@ -98,18 +97,15 @@ class TerminalControl {
 
                 // Allied requests
                 const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
-                const resourceRequests = requests.resource ? requests.resource : [];
+                let resourceRequests = requests.resource ? requests.resource : [];
                 if (resourceRequests) {
-                    const request = resourceRequests.find((r) => r.resourceType === mineral);
-                    if (!request || !request.amount) {
-                        buyAmount = Math.min(target - stored, REACTION_AMOUNT);
-                        resourceRequests.push({
-                            resourceType: mineral,
-                            amount: buyAmount,
-                            priority: 0.2,
-                            roomName: terminal.room.name
-                        });
-                    }
+                    resourceRequests = resourceRequests.filter((r) => (r.resourceType !== mineral && r.roomName === terminal.room.name) || r.roomName !== terminal.room.name);
+                    resourceRequests.push({
+                        resourceType: mineral,
+                        amount: buyAmount,
+                        priority: 0.2,
+                        roomName: terminal.room.name
+                    });
                     ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;
                 }
 
@@ -144,7 +140,7 @@ class TerminalControl {
                 // Clean allied requests
                 const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
                 const resourceRequests = requests.resource ? requests.resource : [];
-                const request = resourceRequests.find((r) => r.resourceType === mineral);
+                const request = resourceRequests.find((r) => r.resourceType === mineral && r.roomName === terminal.room.name);
                 if (request) {
                     resourceRequests.splice(resourceRequests.indexOf(request), 1);
                     ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;

@@ -321,9 +321,10 @@ Creep.prototype.locateEnergy = function (room = this.room) {
     const myCreepsFilter = (destinationId) => myCreeps.filter(c => c.memory.energyDestination === destinationId && c.id !== this.id).length;
 
     // Simplified check for allied rooms
-    const isAlliedRoom = INTEL[room.name] && INTEL[room.name].owner && INTEL[room.name].owner !== MY_USERNAME;
+    const isAlliedRoom = this.room.controller && this.room.controller.owner && !this.room.controller.my;
 
     if (isAlliedRoom) {
+        if (this.room.controller.safeMode) return;
         // Check for dropped energy first as it's often the quickest pick-up
         potentialEnergy = potentialEnergy.concat(room.droppedEnergy.filter(r => r.amount >= (myCreepsFilter(r.id) + 1) * (freeCapacity * 0.5)));
 
@@ -467,7 +468,7 @@ Creep.prototype.haulerDelivery = function () {
     }));
 
     // Hub link pre level 8
-    if (this.room.level < 8) {
+    if (this.room.level < 8 && this.room.memory.hubLink && (this.room.energyAvailable === this.room.energyCapacityAvailable || this.room.energyState || Math.random() < 0.5)) {
         const hubLink = Game.getObjectById(this.room.memory.hubLink);
         if (hubLink && !hubLink.cooldown && hubLink.store[RESOURCE_ENERGY] < LINK_CAPACITY * 0.5) {
             targets.push(hubLink);
@@ -532,7 +533,7 @@ Creep.prototype.constructionWork = function () {
     // Find structures that need repair and are not being worked on by another creep
     let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax &&
         !_.find(this.room.myCreeps, (c) => c.memory.constructionSite === s.id) &&
-        (INTEL[this.room.name].owner === MY_USERNAME || [STRUCTURE_ROAD, STRUCTURE_CONTAINER].includes(s.structureType)));
+        (INTEL[this.room.name].owner === MY_USERNAME || [STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_WALL, STRUCTURE_RAMPART].includes(s.structureType)));
     let mySites = _.filter(this.room.constructionSites, (s) => !s.owner || _.includes(FRIENDLIES, s.owner.username));
 
     // Priority 1: Repair/Build Tower
@@ -568,6 +569,26 @@ Creep.prototype.constructionWork = function () {
             this.memory.task = 'repair';
             this.memory.targetHits = hostileBarrier.hits + 25000;
             this.memory.sitePos = JSON.stringify(hostileBarrier.pos);
+            return true;
+        }
+    }
+
+    // Special case to prioritize walls in a safemode
+    if (this.room.controller && (this.room.controller.safeMode || (this.room.controller.owner && this.room.controller.owner.username !== MY_USERNAME))) {
+        site = _.filter(mySites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
+        if (site.length) {
+            site = this.pos.findClosestByRange(site);
+            this.memory.constructionSite = site.id;
+            this.memory.task = 'build';
+            this.memory.sitePos = JSON.stringify(site.pos);
+            return true;
+        }
+        site = structures.filter((s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 500000);
+        if (site.length) {
+            this.memory.constructionSite = _.min(site, 'hits').id;
+            this.memory.task = 'repair';
+            this.memory.targetHits = 502500;
+            this.memory.sitePos = JSON.stringify(_.min(site, 'hits').pos);
             return true;
         }
     }
@@ -1132,7 +1153,6 @@ Creep.prototype.recycleCreep = function () {
             this.shibMove(new RoomPosition(25, 25, this.memory.colony), {range: 22})
             return true;
         } else {
-            console.log(this.name)
             return this.suicide();
         }
     }
@@ -1220,7 +1240,7 @@ Creep.prototype.moveRandom = function () {
         let pos = this.pos.getAdjacentPosition(direction);
 
         // Only move if valid position and no obstacles (no need to check exit, wall, structure, or creep each time)
-        if (pos && !pos.checkForObstacleStructure() && !pos.checkForWall()) {
+        if (pos && !pos.checkForObstacleStructure() && !pos.checkForWall() && !pos.checkIfOutOfBounds()) {
             this.move(direction);
             return; // Move and exit the function immediately
         }

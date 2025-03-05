@@ -92,10 +92,13 @@ class RoleUpgrader {
 
     withdraw() {
         // Handle resource withdraw
+        const nearbyUpgrader = this.creep.pos.lookForNearby(LOOK_CREEPS, true, 1).find(c => c && c.memory && c.id !== this.creep.id && c.memory.role === 'upgrader' && c.store[RESOURCE_ENERGY]);
         if (this.link && this.creep.pos.isNearTo(this.link) && this.link.store[RESOURCE_ENERGY]) {
             this.creep.withdrawResource(this.link);
         } else if (this.container && this.creep.pos.isNearTo(this.container) && this.container.store[RESOURCE_ENERGY]) {
             this.creep.withdrawResource(this.container);
+        } else if (nearbyUpgrader && nearbyUpgrader.store[RESOURCE_ENERGY]) {
+            this.creep.withdrawResource(nearbyUpgrader);
         }
     }
 }

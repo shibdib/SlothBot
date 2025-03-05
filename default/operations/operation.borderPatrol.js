@@ -64,7 +64,8 @@ Creep.prototype.borderPatrol = function () {
         this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
     } else {
         scanForNearbyThreats(this);
-        if (!scanForNearbyThreats(this) && this.findDefensivePosition()) this.idleFor(5);
+        if (this.ticksToLive <= 500) this.memory.operation = 'harass';
+        else if (!scanForNearbyThreats(this) && this.findDefensivePosition()) this.idleFor(5);
     }
 };
 

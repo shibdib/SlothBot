@@ -92,7 +92,6 @@ class ModuleBodyGenerator {
                     work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
                     if (this.room.level <= 6) work = Math.min(work, 20);
                     else work = Math.min(work, 30);
-                    if (this.room.energyState < 2) work *= 0.7;
                     carry = 1;
                     move = 0;
                 } else if (this.room.memory.controllerContainer) {
