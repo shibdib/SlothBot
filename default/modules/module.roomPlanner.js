@@ -174,6 +174,7 @@ function auxiliaryBuilding(room) {
     function removeExcessRoads(room) {
         let noRoad = _.filter(room.impassibleStructures, (s) => s.pos.checkForRoad());
         if (noRoad.length) {
+            ROAD_CACHE[room.name] = undefined;
             noRoad.forEach((s) => s.pos.checkForRoad().destroy());
         }
     }
@@ -362,6 +363,7 @@ function controllerBuilder(room) {
     }
 }
 
+const quadTraps = {};
 function rampartBuilder(room, layout = undefined, count = false) {
     // Clean old ramparts
     if (Memory.rampartVersion !== RAMPART_VERSION) {
@@ -377,6 +379,11 @@ function rampartBuilder(room, layout = undefined, count = false) {
 
     // Handle protective ramparts
     if (room.level >= SPECIAL_RAMPARTS && buildProtectiveRamparts(room)) {
+        return true;
+    }
+
+    // Handle quad traps
+    if (room.level >= SPECIAL_RAMPARTS && buildQuadTraps(room)) {
         return true;
     }
 
@@ -419,6 +426,49 @@ function rampartBuilder(room, layout = undefined, count = false) {
                 }
             }
         }
+    }
+
+    function buildQuadTraps(room) {
+        if (!quadTraps[room.name]) {
+            return setQuadTraps(room);
+        } else {
+            let counter = 0;
+            for (const trap of quadTraps[room.name]) {
+                if (counter >= 3) return true;
+                const pos = new RoomPosition(trap.x, trap.y, room.name);
+                if (pos.checkForImpassible(false, true) || pos.isNearTo(room.controller) ||
+                    pos.isNearTo(room.mineral) || pos.isNearTo(pos.findClosestByRange(room.sources))) continue;
+                if (pos.createConstructionSite(STRUCTURE_WALL) === OK) counter++;
+            }
+        }
+    }
+
+    function setQuadTraps(room) {
+        const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
+        if (!ramparts || !ramparts.length) return false;
+        const rampartPositions = ramparts.map(p => new RoomPosition(p.x, p.y, room.name));
+        const hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+        const trapLocations = quadTraps[room.name] || [];
+        for (const position of rampartPositions) {
+            let dx = 0;
+            let dy = 0;
+            if (position.x < hub.x) dx = -1;
+            else if (position.x > hub.x) dx = 1;
+            if (position.y < hub.y) dy = -1;
+            else if (position.y > hub.y) dy = 1;
+            const posX = position.x + dx;
+            const posY = position.y + dy;
+            if (posX < 0 || posX > 49 || posY < 0 || posY > 49) continue;
+            const pos = new RoomPosition(posX, posY, room.name);
+            const structures = pos.lookFor(LOOK_STRUCTURES);
+            const isOccupied = structures.some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
+            const terrain = pos.lookFor(LOOK_TERRAIN)[0];
+            if (isOccupied || terrain === 'wall') continue;
+            if ((posX + posY) % 2 === 0) {
+                trapLocations.push({x: posX, y: posY});
+            }
+        }
+        return quadTraps[room.name] = trapLocations;
     }
 
     function initializeRampartSpots(room, layout, count) {
