@@ -546,7 +546,7 @@ Creep.prototype.constructionWork = function () {
     }
 
     // Priority 2: Repair Rampart below 5000 hits
-    site = _.find(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000);
+    site = _.find(structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 5000);
     if (site) {
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
@@ -574,7 +574,8 @@ Creep.prototype.constructionWork = function () {
     }
 
     // Special case to prioritize walls in a safemode
-    if (this.room.controller && (this.room.controller.safeMode || (this.room.controller.owner && this.room.controller.owner.username !== MY_USERNAME))) {
+    const spawn = this.room.structures.find((s) => s.structureType === STRUCTURE_SPAWN);
+    if (spawn && this.room.controller && (this.room.controller.safeMode || (this.room.controller.owner && this.room.controller.owner.username !== MY_USERNAME))) {
         site = _.filter(mySites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
         if (site.length) {
             site = this.pos.findClosestByRange(site);
