@@ -23,7 +23,8 @@ class RoleCleaner {
     }
 
     housekeeping() {
-        if (this.creep.tryToBoost([WORK])) return true;
+        // Boosting
+        if (this.creep.tryToBoost()) return true;
         this.creep.say('NOM!', true);
     }
 

@@ -21,7 +21,8 @@ class RoleMineralHarvester {
     }
 
     housekeeping() {
-        if (this.creep.tryToBoost(['harvest'])) return true;
+        // Boosting
+        if (this.creep.tryToBoost()) return true;
         // Check if mineral depleted
         if (this.creep.memory.other.assignedMineral && Game.getObjectById(this.creep.memory.other.assignedMineral).mineralAmount === 0) {
             log.a(this.room.name + ' supply of ' + Game.getObjectById(this.creep.memory.other.assignedMineral).mineralType + ' has been depleted.');

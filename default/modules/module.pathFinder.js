@@ -394,7 +394,7 @@ function creepBumping(creep, pathInfo, options) {
             bumpCreep.memory.moveBlocked = Game.time;
             return true;
         } else {
-            creep.moveRandom();
+            if (Math.random() > 0.75) creep.moveRandom();
             creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
         }
     }
@@ -437,7 +437,7 @@ function getMatrix(roomName, creep, options) {
     matrix = getStationaryCreepsMatrix(roomName, creep, matrix, options);
     if (creep instanceof Creep && armedEnemies.length) {
         if (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) matrix = getHostileMatrix(roomName, matrix, options);
-        matrix = getOutsideHubMatrix(roomName, matrix, options);
+        //matrix = getOutsideHubMatrix(roomName, matrix, options);
     }
     matrix = getSKMatrix(roomName, matrix, options);
     //if (creep.id === '67c4950f3862fb05f9d87baf') visualizeCostMatrix(matrix, roomName);
@@ -557,18 +557,18 @@ function getStructureMatrix(roomName, creep, matrix, options) {
 
 function getCreepMatrix(roomName, creep, matrix, options) {
     const room = Game.rooms[roomName];
-    if (!room || !(creep instanceof Creep) || (!options.ignoreCreeps && (!INTEL[roomName] || !INTEL[roomName].owner || !FRIENDLIES.includes(INTEL[roomName].owner)))) return matrix;
+    if (!room || !(creep instanceof Creep) || (!options.ignoreCreeps && (!INTEL[roomName] || !INTEL[roomName].owner))) return matrix;
     return getCachedMatrix(roomName, 'creeps', 1, () => addCreepsToMatrix(room, matrix, creep, options));
 
     function addCreepsToMatrix(room, matrix, creep = undefined, options) {
         if (!room) return matrix;
         let creeps = room.creeps;
-        if (!room.hostileCreeps.length && creep) {
+        if (creep) {
             creeps = creep.pos.findInRange(FIND_CREEPS, 5);
             creeps = creeps.concat(creep.pos.findInRange(FIND_POWER_CREEPS, 5));
         }
         for (let key in creeps) {
-            matrix.set(creeps[key].pos.x, creeps[key].pos.y, 0xff);
+            matrix.set(creeps[key].pos.x, creeps[key].pos.y, 100);
             if (options.showMatrix) new RoomVisual(room.name).text('IMP', creeps[key].pos.x, creeps[key].pos.y, {
                 color: 'white',
                 font: 0.4

@@ -27,8 +27,8 @@ class RoleCommodityMiner {
     }
 
     housekeeping() {
-        // Try to boost harvest if possible
-        if (this.creep.tryToBoost(['harvest'])) return true;  // Boost work, not harvest (if it’s meant to be harvesting)
+        // Boosting
+        if (this.creep.tryToBoost()) return true;
 
         // If unsafe return home
         if (this.creep.skSafety()) return true;

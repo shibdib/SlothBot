@@ -30,7 +30,7 @@ class RoleLongbowSquad {
         // Group
         this.creep.formSquad();
         // Boosting
-        if (this.creep.tryToBoost([HEAL])) return true;
+        if (this.creep.tryToBoost()) return true;
         // Blinky mode
         this.creep.healInRange(this.room.hostileCreeps.length || this.room.hostileStructures.length);
     }

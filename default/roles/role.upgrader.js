@@ -32,8 +32,8 @@ class RoleUpgrader {
     }
 
     housekeeping() {
-        // Boost
-        if (this.creep.tryToBoost(['upgrade'])) return true;
+        // Boosting
+        if (this.creep.tryToBoost()) return true;
     }
 
     stationaryUpgrading() {

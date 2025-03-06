@@ -147,7 +147,7 @@ module.exports.essentialCreepQueue = function (room) {
     if (room.memory.spawnDefenders || room.memory.defenseCooldown > Game.time) {
         let targetAmount = room.hostileCreeps.length ? room.hostileCreeps.length : 2;
         if (targetAmount > 4) targetAmount = 4;
-        queueCreepIfNeeded(room, 'defender', PRIORITIES.defender, targetAmount);
+        queueCreepIfNeeded(room, 'defender', PRIORITIES.defender, targetAmount, undefined, undefined, {boosts: [ATTACK, RANGED_ATTACK]});
     }
 
     // Drone Queueing
@@ -156,7 +156,7 @@ module.exports.essentialCreepQueue = function (room) {
     let droneNumber = importantBuilds ? (10 - room.level) :
         !room.storage ? Math.max(7 - room.level, 1) : room.memory.spawnDefenders && room.energyState ? 3 :
             room.level >= BUNKER_LEVEL && room.energyState ? 2 : 1;
-    queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3);
+    queueCreepIfNeeded(room, 'drone', dronePriority, droneNumber, room.friendlyCreeps.length <= 3, undefined, {boosts: [WORK]});
 
     // Harvesters
     let harvesterCount = getCreepCount(room, 'stationaryHarvester');
@@ -184,7 +184,7 @@ module.exports.essentialCreepQueue = function (room) {
             }
             if (upgraderAmount > 5) upgraderAmount = 5;
         } else if (room.level < 8 && room.energyState) upgraderAmount = 1 + room.energyState;
-        queueCreepIfNeeded(room, 'upgrader', PRIORITIES.upgrader, upgraderAmount);
+        queueCreepIfNeeded(room, 'upgrader', PRIORITIES.upgrader, upgraderAmount, undefined, undefined, {boosts: [WORK]});
     }
 };
 
@@ -206,7 +206,7 @@ module.exports.miscCreepQueue = function (room) {
 
     // Mineral Harvester
     if (room.level >= 6 && room.memory.extractorContainer && room.mineral.mineralAmount) {
-        queueCreepIfNeeded(room, 'mineralHarvester', PRIORITIES.mineralHarvester, 1, undefined, undefined, undefined, undefined, undefined, {assignedMineral: room.mineral.id});
+        queueCreepIfNeeded(room, 'mineralHarvester', PRIORITIES.mineralHarvester, 1, undefined, undefined, {boosts: [WORK]}, undefined, undefined, {assignedMineral: room.mineral.id});
     }
 
     // High Level Assist & Defense
@@ -214,7 +214,10 @@ module.exports.miscCreepQueue = function (room) {
         // Assist with Defense (Longbow for Guard)
         let needsDefense = _.find(MY_ROOMS, (r) => r !== room.name && (Game.rooms[r].memory.dangerousAttack || Game.rooms[r].memory.defenseCooldown > Game.time) && room.routeSafe(r, 3, 999, 15));
         if (needsDefense) {
-            queueCreepIfNeeded(room, 'longbowSquad', room.energyState > 1 ? PRIORITIES.priority : PRIORITIES.secondary, 2, undefined, needsDefense, {waitFor: 2}, undefined, 'guard');
+            queueCreepIfNeeded(room, 'longbowSquad', room.energyState > 1 ? PRIORITIES.priority : PRIORITIES.secondary, 2, undefined, needsDefense, {
+                waitFor: 2,
+                boosts: [RANGED_ATTACK, HEAL]
+            }, undefined, 'guard');
         }
     }
 
@@ -245,7 +248,10 @@ module.exports.miscCreepQueue = function (room) {
     if (room.energyState) {
         const needsDog = _.find(room.myCreeps, (c) => c.memory.leader && c.memory.squadMembers && c.memory.squadMembers.length && (!c.memory.dog || !Game.getObjectById(c.memory.dog)));
         if (needsDog) {
-            queueCreepIfNeeded(room, 'attacker', PRIORITIES.medium, 1, undefined, undefined, {guardDog: true});
+            queueCreepIfNeeded(room, 'attacker', PRIORITIES.medium, 1, undefined, undefined, {
+                guardDog: true,
+                boosts: [ATTACK]
+            });
         }
     }
 };
@@ -536,7 +542,7 @@ module.exports.globalCreepQueue = function () {
         }
 
         if (operation.builders) {
-            queueCreepIfNeeded(undefined, 'drone', priority, 6, undefined, key);
+            queueCreepIfNeeded(undefined, 'drone', PRIORITIES.drone + 1, 6, undefined, key);
         }
 
         if ((!INTEL[key] && !operation.manual) || !opLevel) {
@@ -554,18 +560,26 @@ module.exports.globalCreepQueue = function () {
                 break;
 
             case 'rebuild':
-                if (!INTEL[key] || !INTEL[key].threatLevel) {
-                    queueCreepIfNeeded(undefined, 'drone', PRIORITIES.drone, 6, undefined, key);
+                if (!INTEL[key] || !INTEL[key].lastPlayerSighting || INTEL[key].lastPlayerSighting + 500 < Game.time) {
+                    queueCreepIfNeeded(undefined, 'drone', PRIORITIES.drone, 6, undefined, key, {boosts: [WORK]});
                 }
-                if (INTEL[key].threatLevel || ENEMIES.length) {
+                if (INTEL[key].threatLevel) {
+                    if (INTEL[key].threatLevel > 1) {
+                        const maxLevelOfAttacker = userStrength(_.max(INTEL[key].hostileOwners, (o) => userStrength(o)));
+                        if ((maxLevelOfAttacker >= 7 && MAX_LEVEL < 7) || (maxLevelOfAttacker > MAX_LEVEL + 1)) continue;
+                    }
                     const count = INTEL[key].threatLevel ? 4 : 2;
-                    queueCreepIfNeeded(undefined, 'longbowSquad', PRIORITIES.priority, count, undefined, key);
+                    const boosts = INTEL[key].threatLevel > 2 ? [RANGED_ATTACK, HEAL] : undefined;
+                    queueCreepIfNeeded(undefined, 'longbowSquad', PRIORITIES.drone + 1, count, undefined, key, {
+                        waitFor: count,
+                        boosts: boosts
+                    }, true);
                 }
                 break;
 
             case 'commodity': // Commodity Mining
             case 'mineral': // Middle room mineral mining
-                queueCreepIfNeeded(undefined, 'commodityMiner', PRIORITIES.secondary, 3, undefined, key, undefined, true);
+                queueCreepIfNeeded(undefined, 'commodityMiner', PRIORITIES.secondary, 3, undefined, key, {boosts: [WORK]}, true);
                 break;
 
             case 'power': // Power Mining
@@ -574,8 +588,8 @@ module.exports.globalCreepQueue = function () {
                     const powerAttacker = getCreepCount(undefined, 'powerAttacker', key);
                     const powerHealerTTL = creepTTL[key] && creepTTL[key]['powerHealer'];
                     const powerAttackerTTL = creepTTL[key] && creepTTL[key]['powerAttacker'];
-                    queueCreepIfNeeded(undefined, 'powerHealer', priority, powerAttacker * 1.5, powerHealerTTL && powerHealerTTL < 450, key, undefined, true);
-                    queueCreepIfNeeded(undefined, 'powerAttacker', priority - 1, powerSpace, powerAttackerTTL && powerAttackerTTL < 450, key, undefined, true);
+                    queueCreepIfNeeded(undefined, 'powerHealer', priority, powerAttacker * 1.5, powerHealerTTL && powerHealerTTL < 450, key, {boosts: [HEAL]}, true);
+                    queueCreepIfNeeded(undefined, 'powerAttacker', priority - 1, powerSpace, powerAttackerTTL && powerAttackerTTL < 450, key, {boosts: [ATTACK]}, true);
                 }
                 if (operation.hauler) {
                     queueCreepIfNeeded(undefined, 'powerHauler', priority, operation.hauler, undefined, key, undefined, true);
@@ -591,7 +605,8 @@ module.exports.globalCreepQueue = function () {
                 } else {
                     queueCreepIfNeeded(undefined, 'longbowSquad', priority, 2, undefined, _.sample(remotes), {
                         remotes: remotes,
-                        waitFor: 2
+                        waitFor: 2,
+                        boosts: [RANGED_ATTACK, HEAL]
                     }, true, 'remoteDenial', {target: key});
                 }
                 break;
@@ -636,7 +651,10 @@ module.exports.globalCreepQueue = function () {
                 if (opLevel === 1) {
                     queueCreepIfNeeded(undefined, 'longbowSquad', priority, 2, undefined, key, {waitFor: 2}, true, 'guard');
                 } else if (opLevel > 1) {
-                    queueCreepIfNeeded(undefined, 'longbowSquad', priority, 4, undefined, key, {waitFor: 4}, true, 'guard');
+                    queueCreepIfNeeded(undefined, 'longbowSquad', priority, 4, undefined, key, {
+                        waitFor: 4,
+                        boosts: [RANGED_ATTACK, HEAL]
+                    }, true, 'guard');
                 }
                 break;
             case 'stronghold':
@@ -835,7 +853,7 @@ function getQueue(room) {
             if (creep.destination && (Memory.targetRooms[creep.destination] || Memory.auxiliaryTargets[creep.destination])) {
                 if (room.energyState > 1) {
                     creep.priority *= 0.5;
-                } else if (!room.energyState) {
+                } else if (!room.energyState && (!Memory.auxiliaryTargets[creep.destination] || Memory.auxiliaryTargets[creep.destination].type !== 'rebuild')) {
                     creep.priority *= 6;
                 }
             }

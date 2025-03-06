@@ -32,6 +32,9 @@ class StateManager {
         // Request builders only if certain conditions are met
         this.requestBuilders(room);
 
+        // Funnel requests
+        this.funnelRequest(room);
+
         room.memory.stateInformation = undefined;
     }
 
@@ -90,6 +93,30 @@ class StateManager {
         const buildersNeeded = !(hasSpawn && hasTower);
         if (room.memory.buildersNeeded !== buildersNeeded) {
             room.memory.buildersNeeded = buildersNeeded;
+        }
+    }
+
+    funnelRequest(room) {
+        const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
+        if (room.terminal && room.level < 8) {
+            let funnelRequests = requests.funnel ? requests.funnel : [];
+            if (funnelRequests) {
+                funnelRequests = funnelRequests.filter((r) => r.roomName !== room.name);
+                const goalType = room.level === 6 ? 1 : room.level === 7 ? 2 : 0;
+                funnelRequests.push({
+                    goalType: goalType,
+                    maxAmount: Math.min((room.controller.progressTotal - room.controller.progress) - room.energy, 200000),
+                    timeout: Game.time + CREEP_LIFE_TIME,
+                    roomName: room.name
+                });
+                ALLY_HELP_REQUESTS[MY_USERNAME].requests.funnel = funnelRequests;
+            }
+        } else {
+            let funnelRequests = requests.funnel ? requests.funnel : [];
+            if (funnelRequests) {
+                funnelRequests = funnelRequests.filter((r) => r.roomName !== room.name);
+                ALLY_HELP_REQUESTS[MY_USERNAME].requests.funnel = funnelRequests;
+            }
         }
     }
 }

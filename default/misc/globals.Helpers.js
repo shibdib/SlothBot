@@ -311,7 +311,7 @@ let helpers = function () {
      * @param availableForCombat
      * @returns {number|*|number|string}
      */
-    global.findClosestOwnedRoom = function (roomName, range = false, minLevel = 1, availableForCombat = undefined) {
+    global.findClosestOwnedRoom = function (roomName, range = false, minLevel = 1, includeAllies = undefined) {
         // Direct check if the current room is owned and meets level criteria
         if (MY_ROOMS.includes(roomName)) {
             const room = Game.rooms[roomName];
@@ -330,7 +330,8 @@ let helpers = function () {
         }
 
         // Cache check
-        const cached = closestCache[roomName];
+        const cacheKey = `${roomName}_${minLevel}_${includeAllies}`;
+        const cached = closestCache[cacheKey];
         if (cached && Game.time - cached.lastUpdated < CREEP_LIFE_TIME * 3) {
             return range ? cached.distance : cached.closest;
         }
@@ -339,10 +340,9 @@ let helpers = function () {
         let closestDistance = Infinity;
 
         // Loop through owned rooms
+        const checkRooms = includeAllies ? MY_ROOMS.concat(_.pluck(_.filter(INTEL, (r) => r.owner && FRIENDLIES.includes(r.owner) && r.level >= minLevel), 'name')) : MY_ROOMS;
         for (let key of MY_ROOMS) {
-            const myRoom = Game.rooms[key];
-            if (availableForCombat && !myRoom.energyState) continue;
-            if (myRoom && myRoom.controller && myRoom.controller.level >= minLevel) {
+            if (INTEL[key].level >= minLevel) {
                 let distance = Game.map.getRoomLinearDistance(roomName, key);
                 if (distance < closestDistance) {
                     closestDistance = distance;
@@ -361,7 +361,7 @@ let helpers = function () {
         }
 
         // Update cache
-        closestCache[roomName] = {
+        closestCache[cacheKey] = {
             closest: closest,
             distance: closestDistance,
             lastUpdated: Game.time

@@ -27,7 +27,7 @@ class RoleSiegeDuo {
 
     housekeeping() {
         // Boosting
-        if (this.creep.tryToBoost([WORK, HEAL])) return true;
+        if (this.creep.tryToBoost()) return true;
         // Blinky mode
         if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
             this.creep.healInRange(true);

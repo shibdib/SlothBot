@@ -145,9 +145,13 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
  * @returns {boolean}
  */
 Creep.prototype.skSafety = function () {
+    if (this.room.controller) {
+        if (this.room.controller.safeMode) return false;
+        if (this.room.controller.owner && FRIENDLIES.includes(this.room.controller.owner.username) && this.room.structures.find(s => s.structureType === STRUCTURE_TOWER)) return false;
+    }
     // Check if creep is damaged or if there are armed enemies nearby
     const armedEnemies = this.room.hostileCreeps.find(c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
-    if (this.hits < this.hitsMax || armedEnemies) {
+    if (this.hits < this.hitsMax || (armedEnemies && this.pos.getRangeTo(this.pos.findClosestByRange(armedEnemies)) <= 7)) {
         this.fleeHome(true);
         return true;
     }
@@ -999,6 +1003,9 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                 handledAlready = this.memory.neededBoosts.boostPart;
             }
         }
+        if (this.memory.misc && this.memory.misc.boosts) {
+            bodyPart = _.union(bodyPart, this.memory.misc.boosts);
+        }
         for (let boostType of bodyPart) {
             if (handledAlready === boostType) continue;
             switch (boostType) {
@@ -1022,7 +1029,9 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                     break;
                 case 'work':
                     if (this.memory.role === 'drone') boostType = 'build';
-                    if (this.memory.role === 'cleaner' || this.memory.role === 'siegeDuo') boostType = 'dismantle';
+                    else if (this.memory.role === 'upgrader') boostType = 'upgrade';
+                    else if (this.memory.role === 'cleaner' || this.memory.role === 'siegeDuo') boostType = 'dismantle';
+                    else if (this.memory.role === 'commodityMiner' || this.memory.role === 'mineralHarvester') boostType = 'harvest';
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
                     break;
             }

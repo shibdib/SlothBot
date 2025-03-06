@@ -25,7 +25,8 @@ class RoleDrone {
     houseKeeping() {
         // SK Safety
         if (this.creep.skSafety()) return true;
-        if (this.creep.tryToBoost([WORK])) return true;
+        // Boosting
+        if (this.creep.tryToBoost()) return true;
         // If full clear memory
         if (this.creep.isFull) {
             this.creep.memory.source = undefined;
@@ -112,7 +113,9 @@ class RoleDrone {
             this.creep.say('Energy!', true);
             this.creep.withdrawResource();
         } else if (!spawn || !this.room.storage) {
-            let source = Game.getObjectById(this.creep.room.memory.droneSource) || Game.getObjectById(this.creep.memory.source) || this.creep.pos.getClosestSource();
+            let source;
+            if (!spawn) source = this.creep.pos.getClosestSource();
+            else source = Game.getObjectById(this.creep.room.memory.droneSource) || Game.getObjectById(this.creep.memory.source) || this.creep.pos.getClosestSource();
             if (source && (!INTEL[this.room.name].owner || INTEL[this.room.name].owner === MY_USERNAME) && (!INTEL[this.room.name].reservation || INTEL[this.room.name].reservation === MY_USERNAME)) {
                 this.creep.room.memory.droneSource = source.id;
                 this.creep.memory.harvest = true;

@@ -577,12 +577,12 @@ Creep.prototype.healInRange = function (blinky = undefined) {
  * @returns {*|boolean}
  */
 Creep.prototype.fleeHome = function (force = false) {
-    if (this.room.controller && this.room.controller.owner && this.room.controller.owner.username === MY_USERNAME && !this.memory.runCooldown) return false;
+    if (this.room.controller && this.room.controller.owner && FRIENDLIES.includes(this.room.controller.owner.username) && this.room.structures.find(s => s.structureType === STRUCTURE_TOWER)) return false;
     if (this.hits < this.hitsMax) force = true;
     if (!force && !this.memory.runCooldown && (this.hits === this.hitsMax || (!INTEL[this.room.name].lastCombat || INTEL[this.room.name].lastCombat + 10 < Game.time))) return false;
     if (!this.memory.ranFrom) this.memory.ranFrom = this.room.name;
     let cooldown = this.memory.runCooldown;
-    let closest = this.memory.fleeDestination || findClosestOwnedRoom(this.room.name, false, 3);
+    let closest = this.memory.fleeDestination || findClosestOwnedRoom(this.room.name, false, 3, true);
     this.memory.fleeDestination = closest;
     if (this.room.name !== closest) {
         this.memory.runCooldown = Game.time + 50;

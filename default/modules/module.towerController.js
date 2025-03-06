@@ -84,7 +84,7 @@ function handleHostileCreeps(room) {
         let healPower = calculateHealPower(room, hostileCreeps[i]);
 
         // Check if the enemy creep should be attacked or if defenders should be spawned
-        if (shouldAttackHostileCreep(attackPower, healPower, hostileCreeps[i])) {
+        if (attackPower > healPower) {
             room.memory.towerTarget = hostileCreeps[i].id;
             const targetTank = hostileCreeps[i].hits + healPower;
             let damageDone = 0;
@@ -102,7 +102,7 @@ function handleHostileCreeps(room) {
         }
 
         // If the hostile creep has enough healing power, spawn defenders
-        if (shouldSpawnDefenders(attackPower, healPower)) {
+        if (healPower * 2 > attackPower) {
             room.memory.dangerousAttack = true;
             room.memory.spawnDefenders = true;
             room.memory.defenseCooldown = Game.time + CREEP_LIFE_TIME;
@@ -158,43 +158,6 @@ function calculateHealPower(room, hostileCreep) {
 
     healPowerCache[cacheKey] = healPower;
     return healPower;
-}
-
-// Determine if we should attack a hostile creep based on attack and heal power
-function shouldAttackHostileCreep(attackPower, healPower, hostileCreep) {
-    // Only attack if we can do more damage than the heal power, or if it is an invader (who should always be attacked)
-    return (attackPower > healPower);
-}
-
-// Determine if we should spawn defenders based on the attack and heal power
-function shouldSpawnDefenders(attackPower, healPower) {
-    // If the heal power of the enemy is greater than twice the attack power, we should spawn defenders
-    return healPower * 2 > attackPower;
-}
-
-// Handle nuke rampart repair logic
-function handleNukeRampartRepair(room, towers) {
-    room.memory.towerTarget = undefined;
-
-    let nukeRampart = findNukeRampart(room);
-    if (nukeRampart) {
-        towers.forEach(tower => tower.repair(nukeRampart));
-    }
-}
-
-// Find the appropriate rampart to repair in case of a nuke
-function findNukeRampart(room) {
-    let inRangeStructures = _.filter(room.impassibleStructures, s =>
-        s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.pos.checkForRampart() && s.pos.checkForRampart().hits < NUKE_DAMAGE[2] + 15000
-    );
-
-    if (!inRangeStructures.length) {
-        inRangeStructures = _.filter(room.impassibleStructures, s =>
-            !s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) && s.pos.checkForRampart() && s.pos.checkForRampart().hits < NUKE_DAMAGE[0] + 15000
-        );
-    }
-
-    return inRangeStructures.length ? inRangeStructures[0].pos.checkForRampart() : null;
 }
 
 // Computes damage of a tower based on range

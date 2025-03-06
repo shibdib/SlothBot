@@ -160,21 +160,9 @@ Object.defineProperty(Room.prototype, 'energyState', {
             } else {
                 this._energyState = 0;
             }
-            // Handle funneling
+            // Handle energy requests
+            const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
             if (this.terminal && energy < target) {
-                const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
-                let funnelRequests = requests.funnel ? requests.funnel : [];
-                if (funnelRequests) {
-                    funnelRequests = funnelRequests.filter((r) => r.roomName !== this.name);
-                    const goalType = this.level === 6 ? 1 : this.level === 7 ? 2 : 0;
-                    funnelRequests.push({
-                        goalType: goalType,
-                        maxAmount: (target * 1.2) - energy,
-                        timeout: Game.time + CREEP_LIFE_TIME,
-                        roomName: this.name
-                    });
-                    ALLY_HELP_REQUESTS[MY_USERNAME].requests.funnel = funnelRequests;
-                }
                 let resourceRequests = requests.resource ? requests.resource : [];
                 if (resourceRequests) {
                     resourceRequests = resourceRequests.filter((r) => (r.resourceType !== RESOURCE_ENERGY && r.roomName === this.name) || r.roomName !== this.name);
@@ -187,12 +175,6 @@ Object.defineProperty(Room.prototype, 'energyState', {
                     ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;
                 }
             } else {
-                const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
-                let funnelRequests = requests.funnel ? requests.funnel : [];
-                if (funnelRequests) {
-                    funnelRequests = funnelRequests.filter((r) => r.roomName !== this.name);
-                    ALLY_HELP_REQUESTS[MY_USERNAME].requests.funnel = funnelRequests;
-                }
                 const resourceRequests = requests.resource ? requests.resource : [];
                 const request = resourceRequests.find((r) => r.resourceType === RESOURCE_ENERGY && r.roomName === this.name);
                 if (request) {
@@ -770,7 +752,8 @@ Room.prototype.invaderCheck = function () {
             requestingSupport: undefined,
             invaderTTL: undefined,
             roomHeat: undefined,
-            threatLevel: undefined
+            threatLevel: undefined,
+            hostileOwners: undefined
         });
         return false;
     }
@@ -798,7 +781,8 @@ Room.prototype.invaderCheck = function () {
                 friendlyPower: undefined,
                 hostilePower: undefined,
                 requestingSupport: undefined,
-                invaderTTL: undefined
+                invaderTTL: undefined,
+                hostileOwners: undefined
             });
         }
         return false;
@@ -851,9 +835,11 @@ Room.prototype.invaderCheck = function () {
         const boosted = armedInvaders.find((c) => c.owner.username !== 'Invader' && c.body.find((b) => b.type === HEAL && b.boost));
         if (armedInvaders.length > 1 && (armedInvaders[0].owner.username !== 'Invader' || ownerArray.length > 1)) {
             roomData.lastPlayerSighting = Game.time;
+            roomData.hostileOwners = ownerArray;
             return boosted ? 5 : 4;
         } else if (armedInvaders[0].owner.username !== 'Invader' && ownerArray.length === 1) {
             roomData.lastPlayerSighting = Game.time;
+            roomData.hostileOwners = ownerArray;
             return 3;
         } else if (armedInvaders[0].owner.username === 'Invader' && ownerArray.length === 1) return 2;
         else return 0;

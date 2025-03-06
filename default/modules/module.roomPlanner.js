@@ -89,13 +89,13 @@ function buildAuxiliaryStructures(room) {
 function buildFromLayout(room, countCheck) {
     const hub = room.hub;
     const initialSpawn = _.find(Game.structures, s => s.structureType === STRUCTURE_SPAWN && s.my);
-    const roomTower = room.structures.find(s => s.structureType === STRUCTURE_TOWER && s.my);
-    const roomSpawn = room.structures.find(s => s.structureType === STRUCTURE_SPAWN && s.my);
+    const roomTower = room.impassibleStructures.find(s => s.structureType === STRUCTURE_TOWER && s.my);
+    const roomSpawn = room.impassibleStructures.find(s => s.structureType === STRUCTURE_SPAWN && s.my);
     let filter = [];
 
     if (!initialSpawn) {
         filter = bunkerTemplate.filter(s => s.structureType === STRUCTURE_SPAWN);
-    } else if (TOWER_FIRST && !roomTower && MY_ROOMS.length > 1) {
+    } else if ((TOWER_FIRST && !roomTower && MY_ROOMS.length > 1) || (room.controller.level >= 3 && !roomTower)) {
         filter = bunkerTemplate.filter(s => s.structureType === STRUCTURE_TOWER);
     } else if (!roomSpawn) {
         const spawnPos = bunkerTemplate.filter(s => s.structureType === STRUCTURE_SPAWN)[0].pos[0];
@@ -452,10 +452,12 @@ function rampartBuilder(room, layout = undefined, count = false) {
         for (const position of rampartPositions) {
             let dx = 0;
             let dy = 0;
-            if (position.x < hub.x) dx = -1;
-            else if (position.x > hub.x) dx = 1;
-            if (position.y < hub.y) dy = -1;
-            else if (position.y > hub.y) dy = 1;
+            if (position.x === hub.x - 1) dx = 0;
+            else if (position.x < hub.x) dx = -1;
+            else if (position.x >= hub.x) dx = 1;
+            if (position.y === hub.y - 1) dy = 0;
+            else if (position.y < hub.y) dy = -1;
+            else if (position.y >= hub.y) dy = 1;
             const posX = position.x + dx;
             const posY = position.y + dy;
             if (posX < 0 || posX > 49 || posY < 0 || posY > 49) continue;
