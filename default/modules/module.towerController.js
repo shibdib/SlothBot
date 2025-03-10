@@ -15,7 +15,7 @@ module.exports.towerControl = function (room) {
 
     if (room.hostileCreeps.length) {
         handleHostileCreeps(room);
-    } else if (repairTower && room.energyState) {
+    } else if (repairTower) {
         handleRepairTowerActions(room, repairTower);
     }
 };
@@ -44,7 +44,7 @@ function handleRepairTowerActions(room, repairTower) {
         // Perform healing or repair
         if (woundedCreep) {
             repairTower.heal(woundedCreep);
-        } else if (degradingStructure) {
+        } else if (degradingStructure && room.energyState) {
             repairTower.repair(degradingStructure);
         }
     }
@@ -80,10 +80,15 @@ function handleHostileCreeps(room) {
     }
 
     for (let i = 0; i < hostileCreeps.length; i++) {
+        if (hostileCreeps[i].pos.checkIfOutOfBounds()) continue;
         let attackPower = calculateAttackPower(room, hostileCreeps[i], towers);
         let healPower = calculateHealPower(room, hostileCreeps[i]);
 
         // Check if the enemy creep should be attacked or if defenders should be spawned
+        room.visual.text(attackPower + ' / ' + healPower, hostileCreeps[i].pos.x, hostileCreeps[i].pos.y, {
+            align: 'left',
+            opacity: 0.8
+        });
         if (attackPower > healPower) {
             room.memory.towerTarget = hostileCreeps[i].id;
             const targetTank = hostileCreeps[i].hits + healPower;

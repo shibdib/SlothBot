@@ -351,14 +351,15 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         }
     } else {
         // Handle remote haulers pre-storage
-        if (!room.storage && room.controller && room.controller.owner && !['hauler', 'shuttle', 'remoteHauler'].includes(this.memory.role)) {
-            potentialEnergy = potentialEnergy.concat(myCreeps.find(c => c.memory.role === 'remoteHauler' && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 3));
+        if (!room.storage && room.controller && room.controller.owner && !['hauler', 'shuttle', 'remoteHauler', 'upgrader'].includes(this.memory.role)) {
+            potentialEnergy = potentialEnergy.concat(myCreeps.find(c => ['remoteHauler', 'powerHauler'].includes(c.memory.role) && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 10));
         }
 
-        // Haulers prioritze the hub link at max level
-        if (this.memory.role === 'hauler' && room.level > 7) {
+        if (this.memory.role === 'hauler') {
             const hubLink = Game.getObjectById(room.memory.hubLink);
-            if (hubLink && hubLink.store[RESOURCE_ENERGY]) {
+            const controllerLink = Game.getObjectById(room.memory.controllerLink);
+            const upgrader = room.myCreeps.find(c => c.memory.role === 'upgrader' && c.memory.other && c.memory.other.stationary);
+            if (hubLink && hubLink.store[RESOURCE_ENERGY] && (!this.room.storage || !this.room.storage.store[RESOURCE_ENERGY] || this.room.level === 8 || !this.room.energyState || !upgrader || !controllerLink || controllerLink.store[RESOURCE_ENERGY] > LINK_CAPACITY * 0.5)) {
                 this.memory.energyDestination = hubLink.id;
                 return true;
             }
@@ -377,7 +378,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         // Check terminal and storage if not a shuttle
         if (this.memory.role !== 'shuttle') {
             // Storage and terminal, take from whichever has more energy
-            if (room.storage && room.storage.store[RESOURCE_ENERGY] > (room.terminal ? room.terminal.store[RESOURCE_ENERGY] : 0)) {
+            if (room.storage && room.storage.store[RESOURCE_ENERGY] > (room.terminal ? room.terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER : 0)) {
                 potentialEnergy.push(room.storage);
             } else if (room.terminal && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
                 potentialEnergy.push(room.terminal);
@@ -472,16 +473,16 @@ Creep.prototype.haulerDelivery = function () {
     }));
 
     // Hub link pre level 8
-    if (this.room.level < 8 && this.room.memory.hubLink && (this.room.energyAvailable === this.room.energyCapacityAvailable || this.room.energyState || Math.random() < 0.5)) {
-        const hubLink = Game.getObjectById(this.room.memory.hubLink);
-        if (hubLink && !hubLink.cooldown && hubLink.store[RESOURCE_ENERGY] < LINK_CAPACITY * 0.5) {
+    const hubLink = Game.getObjectById(this.room.memory.hubLink);
+    if (this.room.level < 8 && hubLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) && (this.room.energyAvailable === this.room.energyCapacityAvailable || Math.random() > 0.5) && this.room.energyState) {
+        if (!hubLink.cooldown || hubLink.cooldown <= 10) {
             targets.push(hubLink);
         }
     }
 
     // Labs
     targets = targets.concat(this.room.find(FIND_MY_STRUCTURES, {
-        filter: s => s.structureType === STRUCTURE_LAB && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
+        filter: s => s.structureType === STRUCTURE_LAB && s.store.getFreeCapacity(RESOURCE_ENERGY)
     }));
 
     // Controller Container if below threshold and hub link conditions met
@@ -657,7 +658,7 @@ Creep.prototype.constructionWork = function () {
     }
 
     // Priority 9: Build any other structures if the room has energy
-    site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && (!s.room.storage || (s.room.energy * 0.9 > s.progressTotal - s.progress)));
+    site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && (!s.room.storage || s.room.energyState || (s.room.energy * 0.9 > s.progressTotal - s.progress)));
     if (site) {
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
@@ -962,6 +963,7 @@ Creep.prototype.borderCheck = function () {
                 this.move(_.sample(options));
             }
         }
+        this.memory._shibMove = undefined;
         this.memory.moveBlocked = Game.time;
     }
 };
@@ -1008,31 +1010,32 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
         }
         for (let boostType of bodyPart) {
             if (handledAlready === boostType) continue;
+            let targetParts = this.body.filter((p) => p.type === boostType && !p.boost);
             switch (boostType) {
                 case 'attack':
-                    boostNeeded = this.getActiveBodyparts(ATTACK) * 30;
+                    boostNeeded = targetParts.length * 30;
                     break;
                 case 'ranged_attack':
-                    boostNeeded = this.getActiveBodyparts(RANGED_ATTACK) * 30;
+                    boostNeeded = targetParts.length * 30;
                     break;
                 case 'tough':
-                    boostNeeded = this.getActiveBodyparts(TOUGH) * 30;
+                    boostNeeded = targetParts.length * 30;
                     break;
                 case 'heal':
-                    boostNeeded = this.getActiveBodyparts(HEAL) * 30;
+                    boostNeeded = targetParts.length * 30;
                     break;
                 case 'carry':
-                    boostNeeded = this.getActiveBodyparts(CARRY) * 30;
+                    boostNeeded = targetParts.length * 30;
                     break;
                 case 'move':
-                    boostNeeded = this.getActiveBodyparts(MOVE) * 30;
+                    boostNeeded = targetParts.length * 30;
                     break;
                 case 'work':
                     if (this.memory.role === 'drone') boostType = 'build';
                     else if (this.memory.role === 'upgrader') boostType = 'upgrade';
                     else if (this.memory.role === 'cleaner' || this.memory.role === 'siegeDuo') boostType = 'dismantle';
                     else if (this.memory.role === 'commodityMiner' || this.memory.role === 'mineralHarvester') boostType = 'harvest';
-                    boostNeeded = this.getActiveBodyparts(WORK) * 30;
+                    boostNeeded = targetParts.length * 30;
                     break;
             }
             try {
@@ -1104,7 +1107,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                     this.memory.boosts.requestedBoosts = _.filter(this.memory.boosts.requestedBoosts, (b) => b['boost'] !== lab.memory.neededBoost);
                     lab.memory.amount -= amountNeeded;
                     // Check if other creeps have this lab queued up for this boost
-                    const otherCreeps = this.room.creeps.find(c => c.id !== this.id && c.memory.boosts && c.memory.boosts.boostLab === lab.id && c.memory.boosts.requestedBoosts[lab.memory.neededBoost]);
+                    const otherCreeps = this.room.myCreeps.find(c => c.id !== this.id && c.memory.boosts && c.memory.boosts.boostLab === lab.id && c.memory.boosts.requestedBoosts[lab.memory.neededBoost]);
                     if (!otherCreeps) lab.memory.neededBoost = undefined;
                     this.say(ICONS.greenCheck);
                     return true;

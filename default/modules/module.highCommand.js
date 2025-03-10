@@ -646,6 +646,17 @@ function manualAttacks() {
         }
 
         // Handle bad room avoidance
+        if (operation.includes('remote')) {
+            Memory.avoidRemotes = Memory.avoidRemotes || [];
+            if (!Memory.avoidRemotes.includes(roomName)) {
+                Memory.avoidRemotes.push(roomName);
+                log.e(roomLink(roomName) + ' will not be remote mined.');
+            }
+            removeFlagAndLog('');
+            continue;
+        }
+
+        // Handle bad remote avoidance
         if (operation.includes('avoid')) {
             Memory.avoidRooms = Memory.avoidRooms || [];
             if (!Memory.avoidRooms.includes(roomName)) {

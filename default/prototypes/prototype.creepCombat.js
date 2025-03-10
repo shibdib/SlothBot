@@ -320,7 +320,7 @@ Creep.prototype.fightRanged = function (target) {
             const meleeEnemies = creep.room.hostileCreeps.find((c) => c.hasActiveBodyparts(ATTACK) && c.pos.getRangeTo(creep) <= 4);
             // If you can win, move closer
             if (creep.canIWin(5) && !meleeEnemies) {
-                creep.shibMove(target, {range: 2});
+                creep.shibMove(target, {range: 3});
             } else if (creep.canIWin(5) && meleeEnemies) {
                 creep.shibKite(3)
             } else {

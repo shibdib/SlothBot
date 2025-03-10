@@ -180,7 +180,8 @@ function dropOff(creep) {
         Math.random() < (controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) / CONTAINER_CAPACITY)) {
         memory.storageDestination = controllerContainer.id;
     } else if (creep.haulerDelivery()) {
-    } else creep.idleFor(5);
+    } else if (creep.pos.getRangeTo(colony.controller) <= 5) creep.idleFor(5);
+    else creep.shibMove(colony.controller);
 }
 
 function safemodeGeneration(creep) {

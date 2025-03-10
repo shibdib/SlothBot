@@ -22,6 +22,7 @@ class ModuleBodyGenerator {
         this.room = room;
         this.creepInfo = creepInfo;
         this.energyAmount = room.energyCapacityAvailable;
+        this.spareIncome = this.room.memory.energyInfo.spareIncome || 0;
         this.boostsRequired = false;
     }
 
@@ -34,7 +35,7 @@ class ModuleBodyGenerator {
 
     // Method to check if the body is cached for a specific combination
     getCacheKey() {
-        return `${this.energyAmount}.${this.role}.${JSON.stringify(this.creepInfo)}`;
+        return `${this.energyAmount}.${this.role}.${this.spareIncome}.${JSON.stringify(this.creepInfo)}`;
     }
 
     // Main method to generate the body
@@ -70,19 +71,13 @@ class ModuleBodyGenerator {
 
             case 'roadBuilder':
             case 'drone':
-                if (this.role === 'roadBuilder') energyScaling = true;
-
-                if (this.room.myCreeps.length < 5) {
-                    work = 1;
-                    carry = 1;
-                    break;
-                }
-
                 work = Math.floor((this.energyAmount * 0.25) / BODYPART_COST[WORK]) || 1;
-                work = Math.min(work, 15);
+                if (!this.creepInfo.destination) work = Math.min(work, 15, this.spareIncome * 0.5);
+                else work = Math.min(work, 25);
+                if (work < 1) return undefined;
 
                 carry = Math.floor((this.energyAmount * 0.25) / BODYPART_COST[CARRY]) || 1;
-                carry = Math.min(carry, 10);
+                carry = Math.min(carry, 10, work * 3);
 
                 if (!this.creepInfo.destination && INTEL[this.room.name].roadsBuilt) halfMove = true;
                 break;
@@ -107,6 +102,8 @@ class ModuleBodyGenerator {
 
                     if (INTEL[this.room.name].roadsBuilt) halfMove = true;
                 }
+                work = Math.min(work, this.spareIncome * 0.5);
+                if (work < 1) return undefined;
                 if (this.level === 8) Math.min(work, 15);
                 break;
 
@@ -141,7 +138,7 @@ class ModuleBodyGenerator {
                     work = Math.min(work, (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1);
                 }
                 carry = 1;
-                move = !!this.room.storage ? 0 : 1;
+                move = !!this.room.storage && this.room.myCreeps.length > 3 ? 0 : 1;
                 break;
 
 
@@ -158,32 +155,15 @@ class ModuleBodyGenerator {
                 break;
 
             case 'defender':
-                rangedAttack = 0;
-                attack = 0;
-                // Basic defender logic for lower levels
-                if (this.room.level < 3) {
-                    attack = 1;
-                } else if (this.room.level < BUNKER_LEVEL) {
-                    attack = Math.floor(this.energyAmount / (BODYPART_COST[ATTACK] + BODYPART_COST[MOVE]));
-                    rangedAttack = Math.floor(this.energyAmount / (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE]));
-                    if (Math.random() > 0.5) {
-                        attack = 0;
-                        rangedAttack = Math.min(rangedAttack, 25);
-                    } else {
-                        attack = Math.min(attack, 25);
-                        rangedAttack = 0;
-                    }
+                halfMove = this.room.level >= BUNKER_LEVEL;
+                const moveCost = halfMove ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE];
+                const meleeMan = this.room.myCreeps.filter((c) => c.memory.role === 'defender' && c.hasActiveBodyparts(ATTACK));
+                if (meleeMan.length && meleeMan.length >= this.room.hostileCreeps.length / 4) {
+                    attack = 0;
+                    rangedAttack = Math.min(Math.floor(this.energyAmount / (BODYPART_COST[RANGED_ATTACK] + moveCost)), 25);
                 } else {
-                    halfMove = true;
-                    attack = Math.floor(this.energyAmount / (BODYPART_COST[ATTACK] + (BODYPART_COST[MOVE] * 0.5)));
-                    rangedAttack = Math.floor(this.energyAmount / (BODYPART_COST[RANGED_ATTACK] + (BODYPART_COST[MOVE] * 0.5)));
-                    if (Math.random() > 0.5) {
-                        attack = 0;
-                        rangedAttack = Math.min(rangedAttack, 32);
-                    } else {
-                        attack = Math.min(attack, 32);
-                        rangedAttack = 0;
-                    }
+                    attack = Math.min(Math.floor(this.energyAmount / (BODYPART_COST[ATTACK] + moveCost)), 25);
+                    rangedAttack = 0;
                 }
                 break;
             case 'longbow':
@@ -251,13 +231,13 @@ class ModuleBodyGenerator {
             case 'reserver':
                 // Calculate claim based on energy and the cost of CLAIM and MOVE parts
                 claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
-                claim = Math.min(claim, 20);  // Cap claim to 20 parts
+                claim = Math.min(claim, 5 * (this.room.energyState || 1));
 
                 // If there are roads built in both the current room and the destination room
                 if (INTEL[this.creepInfo.destination] && INTEL[this.creepInfo.destination].roadsBuilt && INTEL[this.room.name].roadsBuilt) {
                     // Reduce the cost of MOVE parts by 50% if roads are built
                     claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
-                    claim = Math.min(claim, 20);  // Cap claim to 20 parts
+                    claim = Math.min(claim, 5 * (this.room.energyState || 1));
                     halfMove = true;  // Indicate that half of the normal move cost is being used
                 }
                 break;
@@ -339,23 +319,15 @@ class ModuleBodyGenerator {
                 heal = 16;
                 break;
 
-            case 'fuelTruck':
-            case 'robber':
             case 'powerHauler':
                 carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
                 carry = Math.min(carry, 25);
                 break;
         }
-
-        // Calculate energy multiplier
-        const multipliers = [0.2, 0.5, 1];
-        let energyMulti = energyScaling && this.room.storage ? multipliers[this.room.energyState] || 1 : 1;
-
         // Utility function to add body parts
         const addBodyParts = (count, part, array) => {
-            let numParts = Math.ceil(count * energyMulti);
-            if (part === MOVE) numParts = count; // Ensure move parts are added correctly
-            if (numParts > 0) array.push(...Array(numParts).fill(part));
+            count = Math.floor(count);
+            if (count > 0) array.push(...Array(count).fill(part));
         };
 
         // Generate body parts

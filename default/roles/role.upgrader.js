@@ -37,14 +37,19 @@ class RoleUpgrader {
     }
 
     stationaryUpgrading() {
-        if (!this.container) return this.creep.recycleCreep();
+        if (!this.container && !this.link) {
+            return this.creep.recycleCreep();
+        }
         this.creep.memory.other.stationary = true;
         this.creep.memory.other.noMove = true;
         // Handle getting in place
-        if (!this.creep.memory.inPosition && this.container) {
-            if (!this.link) {
+        if (!this.creep.memory.inPosition) {
+            if (!this.link && this.container) {
                 if (this.container.pos.checkForCreep() && this.creep.pos.isNearTo(this.container)) this.creep.memory.inPosition = true;
                 else return this.creep.shibMove(this.container, {range: 0});
+            } else if (this.link && !this.container) {
+                if (this.creep.pos.isNearTo(this.link)) this.creep.memory.inPosition = true;
+                else return this.creep.shibMove(this.link, {range: 1})
             } else {
                 if (this.container.pos.checkForCreep() && (this.creep.pos.isNearTo(this.container) || this.creep.pos.isNearTo(this.link))) this.creep.memory.inPosition = true;
                 else if (!this.container.pos.checkForCreep()) return this.creep.shibMove(this.container, {range: 0})
@@ -92,13 +97,15 @@ class RoleUpgrader {
 
     withdraw() {
         // Handle resource withdraw
-        const nearbyUpgrader = this.creep.pos.lookForNearby(LOOK_CREEPS, true, 1).find(c => c && c.memory && c.id !== this.creep.id && c.memory.role === 'upgrader' && c.store[RESOURCE_ENERGY]);
+        const nearbyUpgrader = this.creep.pos.findInRange(this.room.myCreeps, 1, {filter: c => c.id !== this.creep.id && c.memory.role === 'upgrader' && c.store[RESOURCE_ENERGY]})[0];
         if (this.link && this.creep.pos.isNearTo(this.link) && this.link.store[RESOURCE_ENERGY]) {
             this.creep.withdrawResource(this.link);
         } else if (this.container && this.creep.pos.isNearTo(this.container) && this.container.store[RESOURCE_ENERGY]) {
             this.creep.withdrawResource(this.container);
         } else if (nearbyUpgrader && nearbyUpgrader.store[RESOURCE_ENERGY]) {
-            this.creep.withdrawResource(nearbyUpgrader);
+            this.creep.withdrawResource(nearbyUpgrader, RESOURCE_ENERGY, this.creep.getActiveBodyparts(WORK));
+        } else {
+            this.creep.memory.inPosition = undefined;
         }
     }
 }

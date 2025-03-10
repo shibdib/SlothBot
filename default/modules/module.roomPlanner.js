@@ -95,6 +95,10 @@ function buildFromLayout(room, countCheck) {
 
     if (!initialSpawn) {
         filter = bunkerTemplate.filter(s => s.structureType === STRUCTURE_SPAWN);
+    } else if (room.controller.level >= 5 && (room.safemode || (INTEL[room.name].lastMajorAttack + CREEP_LIFE_TIME * 2 > Game.time))) {
+        room.constructionSites.filter(s => ![STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL, STRUCTURE_RAMPART, STRUCTURE_WALL].includes(s.structureType) && !s.progress).forEach(s => s.remove());
+        filter = bunkerTemplate.filter(s => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType));
+        rampartBuilder(room, bunkerTemplate);
     } else if ((TOWER_FIRST && !roomTower && MY_ROOMS.length > 1) || (room.controller.level >= 3 && !roomTower)) {
         filter = bunkerTemplate.filter(s => s.structureType === STRUCTURE_TOWER);
     } else if (!roomSpawn) {
@@ -126,17 +130,14 @@ function shouldSkipStructure(room, structure) {
 }
 
 function auxiliaryBuilding(room) {
-    // Initialize layout from the bunker template
-    let layout = bunkerTemplate;
-
     // Build necessary structures for sources, controller, ramparts, roads, etc.
     if (sourceBuilder(room)) return;
     if (controllerBuilder(room)) return;
-    if (rampartBuilder(room, layout)) return;
+    if (rampartBuilder(room, bunkerTemplate)) return;
 
     // Handle hub and lab constructions
     if (room.storage) {
-        if (buildRoads(room, layout)) return;
+        if (buildRoads(room, bunkerTemplate)) return;
         if (room.level >= 5) {
             if (hubLink(room)) return true;
             if (room.level >= 6) {
@@ -152,8 +153,8 @@ function auxiliaryBuilding(room) {
     performCleanup(room);
 
     // Helper function to build roads and manage their construction
-    function buildRoads(room, layout) {
-        if (room.level >= ROAD_LEVEL && room.constructionSites.filter((s) => s.structureType === STRUCTURE_ROAD).length < 3 && !roadBuilder(room, layout)) {
+    function buildRoads(room, bunkerTemplate) {
+        if (room.level >= ROAD_LEVEL && room.constructionSites.filter((s) => s.structureType === STRUCTURE_ROAD).length < 3 && !roadBuilder(room, bunkerTemplate)) {
             INTEL[room.name].roadsBuilt = true;
             return false;
         } else {
@@ -306,15 +307,33 @@ function controllerBuilder(room) {
                 filter: (s) => s.structureType === STRUCTURE_CONTAINER
             })[0];
             if (!controllerBuild) {
+                // If we have a link, build next to that but in range of the controller
                 let possibles = [];
-                for (let xOff = -2; xOff <= 2; xOff++) {
-                    for (let yOff = -2; yOff <= 2; yOff++) {
-                        if (xOff !== 0 || yOff !== 0) {
-                            let pos = new RoomPosition(room.controller.pos.x + xOff, room.controller.pos.y + yOff, room.name);
-                            if (!pos.checkForImpassible() && !pos.checkIfOutOfBounds() &&
-                                !pos.isNearTo(pos.findClosestByRange(FIND_SOURCES)) &&
-                                !pos.isNearTo(pos.findClosestByRange(FIND_MINERALS))) {
-                                possibles.push({x: pos.x, y: pos.y});
+                if (room.memory.controllerLink) {
+                    let link = Game.getObjectById(room.memory.controllerLink);
+                    if (!link) return room.memory.controllerLink = undefined;
+                    for (let xOff = -1; xOff <= 1; xOff++) {
+                        for (let yOff = -1; yOff <= 1; yOff++) {
+                            if (xOff !== 0 || yOff !== 0) {
+                                let pos = new RoomPosition(link.pos.x + xOff, link.pos.y + yOff, room.name);
+                                if (pos.getRangeTo(room.controller) <= 2 && !pos.checkForImpassible() && !pos.checkIfOutOfBounds() &&
+                                    !pos.isNearTo(pos.findClosestByRange(FIND_SOURCES)) &&
+                                    !pos.isNearTo(pos.findClosestByRange(FIND_MINERALS))) {
+                                    possibles.push({x: pos.x, y: pos.y});
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    for (let xOff = -2; xOff <= 2; xOff++) {
+                        for (let yOff = -2; yOff <= 2; yOff++) {
+                            if (xOff !== 0 || yOff !== 0) {
+                                let pos = new RoomPosition(room.controller.pos.x + xOff, room.controller.pos.y + yOff, room.name);
+                                if (!pos.checkForImpassible() && !pos.checkIfOutOfBounds() &&
+                                    !pos.isNearTo(pos.findClosestByRange(FIND_SOURCES)) &&
+                                    !pos.isNearTo(pos.findClosestByRange(FIND_MINERALS))) {
+                                    possibles.push({x: pos.x, y: pos.y});
+                                }
                             }
                         }
                     }
@@ -438,7 +457,11 @@ function rampartBuilder(room, layout = undefined, count = false) {
                 const pos = new RoomPosition(trap.x, trap.y, room.name);
                 if (pos.checkForImpassible(false, true) || pos.isNearTo(room.controller) ||
                     pos.isNearTo(room.mineral) || pos.isNearTo(pos.findClosestByRange(room.sources))) continue;
-                if (pos.createConstructionSite(STRUCTURE_WALL) === OK) counter++;
+                if ((pos.x + pos.y) % 2 === 0) {
+                    if (pos.createConstructionSite(STRUCTURE_WALL) === OK) counter++;
+                } else {
+                    if (pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
+                }
             }
         }
     }
@@ -466,9 +489,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
             const isOccupied = structures.some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
             const terrain = pos.lookFor(LOOK_TERRAIN)[0];
             if (isOccupied || terrain === 'wall') continue;
-            if ((posX + posY) % 2 === 0) {
-                trapLocations.push({x: posX, y: posY});
-            }
+            trapLocations.push({x: posX, y: posY});
         }
         return quadTraps[room.name] = trapLocations;
     }
@@ -634,7 +655,7 @@ function roadBuilder(room, layout) {
     if (room.level >= BUNKER_LEVEL && buildRoadsForRamparts(room)) return true;
 
     // Handle redundant roads
-    //removeRedundantRoads(room, layout);
+    // removeRedundantRoads(room, layout);
 
     function buildRoadToNeighborExits(spawn, room) {
         let neighboring = Game.map.describeExits(spawn.pos.roomName);
@@ -806,7 +827,7 @@ function roadBuilder(room, layout) {
             if (redundant.length >= 5) return redundant;
             const area = room.lookAtArea(road.pos.y - 1, road.pos.x - 1, road.pos.y + 1, road.pos.x + 1, true);
             const nearbyRoads = area.filter(obj => obj.type === 'structure' && obj.structure.structureType === STRUCTURE_ROAD);
-            if (nearbyRoads.length >= 5) { // 3 neighbors + itself
+            if (nearbyRoads.length >= 4) { // 3 neighbors + itself
                 redundant.push(road);
             }
         }

@@ -33,7 +33,7 @@ RoomPosition.prototype.getClosestSource = function () {
             sources: sources.map(function (s) {
                 const openSpots = s.pos.countOpenTerrainAround();
                 const assigned = creepAssignments[s.id] || 0;
-                return {source: s, active: s.energy > 0, priority: openSpots - assigned};
+                return {source: s, active: s.energyAvailable > 0, priority: openSpots - assigned};
             }),
             tick: Game.time
         };

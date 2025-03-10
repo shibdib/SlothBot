@@ -29,8 +29,8 @@ class RoleLabTech {
         if (this.boostDelivery()) return;
         // Make sure labs have energy
         if (this.labEnergy()) return;
-        // Empty labs with wrong materials
-        if (this.cleanLab()) return;
+        // Empty labs
+        if (this.emptyLab()) return;
         // Empty mineral harvester container
         if (this.mineralHauler()) return;
         // Handle dropped goodies
@@ -49,8 +49,8 @@ class RoleLabTech {
         if (this.terminalControl()) return;
         // Handle storage goods
         if (this.storageControl()) return;
-        // Empty labs
-        if (this.emptyLab()) return;
+        // FUNNEL
+        if (this.funnelEnergy()) return;
         this.creep.idleFor(20);
     }
 
@@ -236,9 +236,16 @@ class RoleLabTech {
     }
 
     boostDelivery() {
-        let lab = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB && s.memory.neededBoost && s.store[s.memory.neededBoost] < s.memory.amount);
+        let lab = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB && s.memory.neededBoost);
         if (lab) {
-            if (this.room.store(lab.memory.neededBoost)) {
+            const requestingCreep = Game.getObjectById(lab.memory.requestor);
+            if (!requestingCreep || requestingCreep.room.name !== this.room.name) {
+                delete lab.memory.paused;
+                delete lab.memory.requestor;
+                delete lab.memory.requested;
+                delete lab.memory.neededBoost;
+                delete lab.memory.amount;
+            } else if (this.room.store(lab.memory.neededBoost)) {
                 if (lab.mineralType && lab.mineralType !== lab.memory.neededBoost) {
                     this.creep.memory.resourceNeeded = lab.mineralType;
                     this.creep.memory.withdrawFrom = lab.id;
@@ -248,6 +255,8 @@ class RoleLabTech {
                     this.creep.memory.deliverTo = lab.id;
                 }
                 return true;
+            } else if (lab.store[lab.memory.neededBoost] >= lab.memory.amount) {
+                return false;
             } else {
                 delete lab.memory;
             }
@@ -264,6 +273,18 @@ class RoleLabTech {
         }
     }
 
+    funnelEnergy() {
+        if (this.room.energyState && this.room.memory.hubLink && this.room.level < 8) {
+            const hubLink = Game.getObjectById(this.room.memory.hubLink);
+            if (hubLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) && (!hubLink.cooldown || hubLink.cooldown <= 10)) {
+                this.creep.memory.resourceNeeded = RESOURCE_ENERGY;
+                this.creep.memory.amountNeeded = hubLink.store.getFreeCapacity(RESOURCE_ENERGY);
+                this.creep.memory.deliverTo = hubLink.id;
+                return true;
+            }
+        }
+    }
+
     droppedResources() {
         // Check if terminal and storage are near capacity
         if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
@@ -272,7 +293,7 @@ class RoleLabTech {
         }
 
         // Find the first resource source: tombstone, ruin, or dropped resource
-        let resource = this.room.find(FIND_TOMBSTONES, {filter: (r) => _.sum(r.store) > 0})[0] ||
+        let resource = this.room.find(FIND_TOMBSTONES, {filter: (r) => _.sum(r.store) > 0 && _.sum(r.store) > r.store[RESOURCE_ENERGY]})[0] ||
             this.room.find(FIND_RUINS, {filter: (r) => _.sum(r.store) > 0})[0] ||
             this.room.find(FIND_DROPPED_RESOURCES)[0];
 
@@ -427,7 +448,7 @@ class RoleLabTech {
 
         if (container) {
             // Assign the first available resource in the container to the creep's memory
-            const resourceType = Object.keys(container.store).find(r => container.store.getUsedCapacity(r) >= container.store.getCapacity() * 0.25 ||
+            const resourceType = Object.keys(container.store).find(r => container.store.getUsedCapacity(r) >= container.store.getCapacity() * 0.5 ||
                 !this.room.mineral.mineralAmount || (r !== RESOURCE_ENERGY && !container.pos.isNearTo(this.room.mineral)));
             if (resourceType) {
                 this.creep.memory.resourceNeeded = resourceType;
@@ -504,32 +525,6 @@ class RoleLabTech {
         return false;
     }
 
-    cleanLab() {
-        // Check if both terminal and storage are near full capacity
-        if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
-            (this.room.storage && (_.sum(this.room.storage.store) >= 0.98 * this.room.storage.store.getCapacity()))) {
-            return false;
-        }
-
-        // Find a lab with a mineral that doesn't match its required or boost type
-        const stockedLab = _.find(this.room.impassibleStructures, (s) =>
-            s.structureType === STRUCTURE_LAB &&
-            s.mineralType &&
-            s.mineralType !== s.memory.itemNeeded &&
-            s.mineralType !== s.memory.neededBoost &&
-            s.mineralType !== s.room.memory.producingBoost
-        );
-
-        if (stockedLab) {
-            // Assign the mineral type and lab ID to the creep's memory
-            this.creep.memory.resourceNeeded = stockedLab.mineralType;
-            this.creep.memory.withdrawFrom = stockedLab.id;
-            return true;
-        }
-
-        return false;
-    }
-
     emptyLab() {
         // Check if both terminal and storage are near full capacity
         if ((this.room.terminal && _.sum(this.room.terminal.store) >= 0.98 * this.room.terminal.store.getCapacity()) &&
@@ -542,7 +537,9 @@ class RoleLabTech {
             s.structureType === STRUCTURE_LAB &&
             s.mineralType &&
             s.mineralType !== s.memory.itemNeeded &&
-            s.mineralType !== s.memory.neededBoost
+            s.mineralType !== s.memory.neededBoost &&
+            (s.mineralType !== s.room.memory.producingBoost ||
+                s.store.getUsedCapacity(s.room.memory.producingBoost) > this.creep.store.getFreeCapacity() * 0.5)
         );
 
         if (stockedLab) {

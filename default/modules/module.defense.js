@@ -3,7 +3,6 @@
  */
 const profiler = require("tools.profiler");
 const towers = require('module.towerController');
-const STRUCTURE_CACHE = {};
 const ROOM_STATE_CACHE = {};
 
 class DefenseManager {
@@ -12,9 +11,6 @@ class DefenseManager {
     }
 
     run() {
-        // Handle tracking structure count
-        this.resetStructureCount();
-
         // Manage towers
         towers.towerControl(this.room);
 
@@ -36,28 +32,6 @@ class DefenseManager {
 
         // Check surrounding rooms for high threat
         this.room.memory.earlyWarning = _.some(Object.values(Game.map.describeExits(this.room.name)), roomName => INTEL[roomName] && INTEL[roomName].threatLevel > 4);
-    }
-
-    resetStructureCount() {
-        const roomName = this.room.name;
-        const currentTick = Game.time;
-
-        // Use cached data if valid, update only if expired or level changed
-        if (!STRUCTURE_CACHE[roomName] || STRUCTURE_CACHE[roomName].tick !== currentTick || STRUCTURE_CACHE[roomName].level !== this.room.level) {
-            const criticalStructures = [];
-            const structures = this.room.structures;
-            for (let s of structures) {
-                if ([STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_TOWER, STRUCTURE_TERMINAL, STRUCTURE_STORAGE, STRUCTURE_RAMPART].includes(s.structureType)) {
-                    criticalStructures.push(s);
-                }
-            }
-            STRUCTURE_CACHE[roomName] = {
-                tick: currentTick,
-                count: criticalStructures.length,
-                level: this.room.level,
-                structures: criticalStructures // Store for reuse
-            };
-        }
     }
 
     rampartManager() {
@@ -154,9 +128,7 @@ class DefenseManager {
             Memory.MAD = _.uniq(nukeTargets);
         }
 
-        const criticalStructures = STRUCTURE_CACHE[roomName].structures.filter(function (s) {
-            return [STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN].includes(s.structureType);
-        });
+        const criticalStructures = this.room.structures.filter(s => [STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN].includes(s.structureType));
 
         for (let nuke of nukes) {
             if (nuke.timeToLand <= 75) {
@@ -214,12 +186,18 @@ class DefenseManager {
         const activeSafemode = _.find(MY_ROOMS, function (r) {
             return Game.rooms[r].controller.safeMode;
         });
+
         if (activeSafemode || !this.room.controller.safeModeAvailable || this.room.controller.safeModeCooldown) return;
 
-        const cachedCount = STRUCTURE_CACHE[this.room.name].count;
-        const currentCriticalCount = STRUCTURE_CACHE[this.room.name].structures.length;
+        const damagedStructures = this.room.structures.filter(s => [STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN, STRUCTURE_EXTENSION].includes(s.structureType) && s.hits < s.hitsMax);
+        const spawn = this.room.structures.find((s) => s.structureType === STRUCTURE_SPAWN);
 
-        if (currentCriticalCount < cachedCount && this.room.memory.dangerousAttack) {
+        if (damagedStructures.length || (this.room.controller.level >= 6 && !spawn)) {
+            this.room.memory.safeModeInfo = {
+                tick: Game.time,
+                attackers: INTEL[this.room.name].hostileOwners,
+                level: INTEL[this.room.name].threatLevel
+            };
             activateSafeMode(this.room);
         }
     }

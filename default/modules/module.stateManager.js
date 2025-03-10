@@ -49,7 +49,6 @@ class StateManager {
             energyIncomeArray.shift();
         }
 
-        room.memory.energyPositive = average(energyIncomeArray) > 0;
         ROOM_ENERGY_INCOME_ARRAY[room.name] = energyIncomeArray;
 
         // Track if the room is filling extensions/spawns fast enough
@@ -57,6 +56,18 @@ class StateManager {
             if (ENERGY_TRACKER[room.name]) ENERGY_TRACKER[room.name]++; else ENERGY_TRACKER[room.name] = 1;
         } else if (ENERGY_TRACKER[room.name] > 0) ENERGY_TRACKER[room.name]--;
         room.memory.needsHaulers = ENERGY_TRACKER[room.name] > 10;
+
+        // Track projected income based off harvester count. 10 for in room and 8 for remote
+        const harvesters = room.myCreeps.filter((c) => c.memory.role === 'stationaryHarvester').concat(_.filter(Game.creeps, ((c) => c.my && c.memory.colony === room.name && c.memory.role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired)));
+        const income = Math.floor(harvesters.reduce((sum, creep) => sum + (creep.getActiveBodyparts(WORK) * 0.8), 0));
+        const energyUsers = room.myCreeps.filter((c) => ['drone', 'upgrader'].includes(c.memory.role));
+        const expense = Math.ceil(energyUsers.reduce((sum, creep) => sum + creep.getActiveBodyparts(WORK), 0));
+        const spareIncome = room.energyState > 1 ? 9999999 : room.energyState < 2 ? (income - expense) * 0.5 : income - expense;
+        room.memory.energyInfo = {income: income, expense: expense, spareIncome: spareIncome};
+        room.memory.energyPositive = (average(energyIncomeArray) > 0 && income > expense) || room.energyState > 1;
+
+        if (!room.memory.combatReady && room.energyState > 1) room.memory.combatReady = true;
+        else if (room.memory.combatReady && !room.energyState) room.memory.combatReady = undefined;
     }
 
     levelingStatTracking(room) {
@@ -90,15 +101,12 @@ class StateManager {
         }
 
         // Set buildersNeeded flag only if one or both structures are missing
-        const buildersNeeded = !(hasSpawn && hasTower);
-        if (room.memory.buildersNeeded !== buildersNeeded) {
-            room.memory.buildersNeeded = buildersNeeded;
-        }
+        room.memory.buildersNeeded = !(hasSpawn && hasTower) || room.level < room.controller.level - 1;
     }
 
     funnelRequest(room) {
         const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
-        if (room.terminal && room.level < 8) {
+        if (room.terminal && room.level < 8 && FUNNEL_REQUESTS) {
             let funnelRequests = requests.funnel ? requests.funnel : [];
             if (funnelRequests) {
                 funnelRequests = funnelRequests.filter((r) => r.roomName !== room.name);

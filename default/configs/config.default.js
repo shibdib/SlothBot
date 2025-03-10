@@ -23,6 +23,7 @@ global.MANUAL_FRIENDS = []; // Manually set players as friends (overrides COMBAT
 global.NO_DIRECT_ATTACKS = []; // Manually set players that will not be directly attacked but are also no friends
 global.RAMPART_ACCESS = false // Allow friends and allies access through ramparts. Having this disabled does save CPU.
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
+global.FUNNEL_REQUESTS = false; // Whether to make energy funneling requests
 
 // Remote Mining
 global.REMOTE_MINING = true; // Whether we remote mine or not

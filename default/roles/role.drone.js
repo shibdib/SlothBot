@@ -113,9 +113,7 @@ class RoleDrone {
             this.creep.say('Energy!', true);
             this.creep.withdrawResource();
         } else if (!spawn || !this.room.storage) {
-            let source;
-            if (!spawn) source = this.creep.pos.getClosestSource();
-            else source = Game.getObjectById(this.creep.room.memory.droneSource) || Game.getObjectById(this.creep.memory.source) || this.creep.pos.getClosestSource();
+            let source = Game.getObjectById(this.creep.memory.source) || this.creep.pos.getClosestSource();
             if (source && (!INTEL[this.room.name].owner || INTEL[this.room.name].owner === MY_USERNAME) && (!INTEL[this.room.name].reservation || INTEL[this.room.name].reservation === MY_USERNAME)) {
                 this.creep.room.memory.droneSource = source.id;
                 this.creep.memory.harvest = true;
@@ -282,13 +280,6 @@ class RoleDrone {
             this.creep.memory.task = "waller";
             if (!this.creep.memory.targetWallHits) {
                 this.creep.memory.targetWallHits = Math.min(target.hits + 10000, RAMPART_HITS_MAX[this.room.controller.level]);
-            }
-
-            // No walling at low room state
-            if (!this.room.energyState && this.creep.memory.targetWallHits > 500000) {
-                this.creep.memory.currentTarget = undefined;
-                this.creep.memory.targetWallHits = undefined;
-                return false;
             }
 
             this.creep.say(ICONS.castle, true);

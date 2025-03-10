@@ -22,7 +22,14 @@ class RoleRoadBuilder {
     housekeeping() {
         this.creep.say('HIGHWAY', true);
         //Invader detection
-        if (this.creep.fleeHome()) return true;
+        if (this.creep.fleeHome()) {
+            this.creep.memory.task = undefined;
+            this.creep.memory.constructionSite = undefined;
+            this.creep.memory.destination = undefined;
+            this.creep.memory.other.source = undefined;
+            this.creep.memory.harvest = undefined;
+            return true;
+        }
         // SK Safety
         if (this.creep.skSafety()) return true;
         // Set destination
@@ -88,6 +95,7 @@ class RoleRoadBuilder {
             }
         } else {
             this.creep.memory.harvest = undefined;
+            this.creep.idleFor(5);
         }
     }
 

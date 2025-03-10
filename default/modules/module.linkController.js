@@ -45,7 +45,7 @@ class LinkControl {
         // Simplified energy transfer logic
         if (upgrader && controllerLink && controllerLink.store[RESOURCE_ENERGY] < LINK_CAPACITY * 0.5) {
             link.transferEnergy(controllerLink);
-        } else if (room.level >= 7) {
+        } else {
             if (hubLink && !hubLink.room.energyState) {
                 link.transferEnergy(hubLink);
             } else if (hubLink && hubLink.store[RESOURCE_ENERGY] < 400) {

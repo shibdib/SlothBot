@@ -116,9 +116,7 @@ function depositEnergy(creep) {
         }
     } else if (container) {
         if (!container.store.getFreeCapacity(RESOURCE_ENERGY)) {
-            if (container.hits < container.hitsMax) creep.repair(container); else {
-                creep.idleFor(5);
-            }
+            if (container.hits < container.hitsMax) creep.repair(container);
         }
     } else {
         creep.memory.containerID = undefined;

@@ -548,7 +548,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         roomIntel.safemode = controller.safeMode ? currentTime + controller.safeMode : undefined;
 
         // Hub check - only if necessary and no hostiles
-        if (!roomIntel.obstacles && roomIntel.sources === 2 && (!INTEL[this.name] || !INTEL[this.name]) && !this.find(FIND_HOSTILE_CREEPS).length) {
+        if (!roomIntel.obstacles && roomIntel.sources === 2 && !this.find(FIND_HOSTILE_CREEPS).length) {
             roomIntel.hubCheck = roomPlanner.hubCheck(this);
         }
 
@@ -623,7 +623,8 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     function calculateDistanceToHub(room, source, targetRoom) {
         if (!Game.rooms[targetRoom] || !Game.rooms[targetRoom].memory) return Infinity;
         const storage = Game.rooms[targetRoom] ? Game.rooms[targetRoom].storage : undefined;
-        const target = storage || new RoomPosition(Game.rooms[targetRoom].memory.bunkerHub.x, Game.rooms[targetRoom].memory.bunkerHub.y, targetRoom);
+        const target = storage ? storage : Game.rooms[targetRoom].memory.bunkerHub ?
+            new RoomPosition(Game.rooms[targetRoom].memory.bunkerHub.x, Game.rooms[targetRoom].memory.bunkerHub.y, targetRoom) : new RoomPosition(25, 25, targetRoom);
         return source.pos.shibMove(target).path.length;
     }
 
@@ -835,6 +836,7 @@ Room.prototype.invaderCheck = function () {
         const boosted = armedInvaders.find((c) => c.owner.username !== 'Invader' && c.body.find((b) => b.type === HEAL && b.boost));
         if (armedInvaders.length > 1 && (armedInvaders[0].owner.username !== 'Invader' || ownerArray.length > 1)) {
             roomData.lastPlayerSighting = Game.time;
+            roomData.lastMajorAttack = Game.time;
             roomData.hostileOwners = ownerArray;
             return boosted ? 5 : 4;
         } else if (armedInvaders[0].owner.username !== 'Invader' && ownerArray.length === 1) {

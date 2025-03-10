@@ -436,7 +436,7 @@ function getMatrix(roomName, creep, options) {
     matrix = getCreepMatrix(roomName, creep, matrix, options);
     matrix = getStationaryCreepsMatrix(roomName, creep, matrix, options);
     if (creep instanceof Creep && armedEnemies.length) {
-        if (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) matrix = getHostileMatrix(roomName, matrix, options);
+        if ((!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.flee) matrix = getHostileMatrix(roomName, matrix, options);
         //matrix = getOutsideHubMatrix(roomName, matrix, options);
     }
     matrix = getSKMatrix(roomName, matrix, options);

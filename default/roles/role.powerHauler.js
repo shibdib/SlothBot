@@ -13,7 +13,9 @@ class RolePowerHauler {
 
     performRoleActions() {
         if (this.housekeeping()) return;
-        if (_.sum(this.creep.store)) {
+        else if (this.creep.memory.misc && this.creep.memory.misc.deliveryRoom) {
+            this.roomDelivery();
+        } else if (_.sum(this.creep.store)) {
             this.deliverResource();
         } else {
             this.pickupResource();
@@ -64,6 +66,37 @@ class RolePowerHauler {
                     case ERR_NOT_IN_RANGE:
                         this.creep.shibMove(deliver);
                         break;
+                }
+            }
+        }
+    }
+
+    roomDelivery() {
+        this.creep.say('Delivery!', true);
+        if (_.sum(this.creep.store)) {
+            const deliveryRoom = Game.rooms[this.creep.memory.misc.deliveryRoom];
+            if (this.room.name !== deliveryRoom.name) {
+                return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.misc.deliveryRoom), {range: 23});
+            } else {
+                let deliver = this.room.terminal || this.room.storage;
+                if (deliver) {
+                    for (let resourceType in this.creep.store) {
+                        switch (this.creep.transfer(deliver, resourceType)) {
+                            case ERR_NOT_IN_RANGE:
+                                this.creep.shibMove(deliver);
+                        }
+                    }
+                } else {
+                    this.creep.shibMove(deliveryRoom.controller, {range: 3});
+                }
+            }
+        } else {
+            if (this.room.name !== this.creep.memory.colony) {
+                return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.colony), {range: 23});
+            } else {
+                if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
+                    this.creep.say('Energy!', true);
+                    this.creep.withdrawResource();
                 }
             }
         }

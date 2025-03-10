@@ -412,12 +412,22 @@ class TerminalControl {
             sendEnergyOrBattery(terminal, poorestRoom);
             return true;
         }
+
+        const needyAlly = findNeedyAllies();
+        if (needyAlly) {
+            sendEnergyOrBattery(terminal, needyAlly);
+            return true;
+        }
         return false;
 
         function findNeedyTerminal() {
             const myRooms = MY_ROOMS.filter((r) => Game.rooms[r].terminal).sort((a, b) => Game.rooms[a].energy - Game.rooms[b].energy)[0];
             if (myRooms) return myRooms;
-            const needyAllies = ALLY_HELP_REQUESTS.filter((r) => r.requests && r.requests.funnel).sort((a, b) => a.requests.funnel.maxAmount - b.requests.funnel.maxAmount)[0];
+        }
+
+        function findNeedyAllies() {
+            const needyAllies = _.filter(ALLY_HELP_REQUESTS, (r) => r.requests && r.requests.funnel).sort((a, b) => a.requests.funnel.maxAmount - b.requests.funnel.maxAmount)[0]
+                || _.find(ALLY_HELP_REQUESTS, (r) => r.requests && r.requests.resource && r.requests.resource.find((re) => re.resourceType === RESOURCE_ENERGY));
             if (needyAllies) return needyAllies.roomName;
         }
 

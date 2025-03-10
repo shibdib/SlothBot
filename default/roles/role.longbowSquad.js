@@ -56,6 +56,7 @@ class RoleLongbowSquad {
             if (creep.memory.operation) this.operationManagement(); else if (creep.memory.destination) this.destinationManagement();
             else creep.handleMilitaryCreep();
         } else {
+            creep.memory.waitingToAssemble = true;
             creep.shibMove(this.findStaging(creep), {range: 0, forceSolo: true})
         }
     }
@@ -78,7 +79,7 @@ class RoleLongbowSquad {
             if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
                 const partnerTarget = Game.getObjectById(leader.memory.target);
                 if (partnerTarget && this.creep.pos.getRangeTo(partnerTarget) <= 3) {
-                    if (this.creep.pos.isNearTo(partnerTarget)) this.creep.rangedMassAttack(); else this.creep.rangedAttack(partnerTarget);
+                    if (this.creep.pos.isNearTo(partnerTarget) && !(partnerTarget instanceof StructureWall)) this.creep.rangedMassAttack(); else this.creep.rangedAttack(partnerTarget);
                 }
             }
         }
@@ -166,6 +167,11 @@ class RoleLongbowSquad {
     }
 
     hasFullSquad(creep) {
+        // Check if the op no longer exists
+        if (creep.memory.destination && creep.memory.operation && !Memory.targetRooms[creep.memory.destination]) {
+            creep.memory.operation = 'harass';
+            creep.memory.misc = {waitFor: 0};
+        }
         if (creep.memory.initialFormUp || !creep.memory.misc || !creep.memory.misc.waitFor) return true;
         // Check if any squadmember needs to renew
         const squad = creep.memory.squadMembers.map(id => Game.getObjectById(id));
