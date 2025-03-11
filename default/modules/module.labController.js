@@ -92,7 +92,7 @@ class LabManager {
     findBoostToProduce(room) {
         const priority = this.tryPriority(room);
         if (priority) return priority;
-        let boostList = [...new Set([...BASE_COMPOUNDS, ...TIER_3_BOOSTS, ...TIER_2_BOOSTS, ...TIER_1_BOOSTS, ...LAB_PRIORITY])];
+        let boostList = [...new Set([...BASE_COMPOUNDS, ...TIER_3_BOOSTS, ...TIER_2_BOOSTS, ...TIER_1_BOOSTS])];
         for (const boost of shuffle(boostList)) {
             let cutOff = this.getProductionCutoff(boost);
             if (room.store(boost) >= cutOff) continue;
@@ -105,7 +105,8 @@ class LabManager {
     }
 
     tryPriority(room) {
-        for (let boost of LAB_PRIORITY) {
+        const priority = !HOSTILES.length ? LAB_PEACE_PRIORITY : LAB_WAR_PRIORITY;
+        for (let boost of priority) {
             let cutOff = this.getProductionCutoff(boost);
             if (getResourceTotal(boost) >= cutOff) continue;
             if (this.checkForInputs(room)) {
@@ -149,7 +150,7 @@ class LabManager {
             return (NUKER_GHODIUM_CAPACITY * 2.5) + (SAFE_MODE_COST * 1.5);
         } else if (goOverCap[this.room.name]) {
             return BOOST_AMOUNT(this.room) * 10;
-        } else if (LAB_PRIORITY.includes(boost)) {
+        } else if (LAB_PEACE_PRIORITY.includes(boost) || LAB_WAR_PRIORITY.includes(boost)) {
             return BOOST_AMOUNT(this.room) * 2;
         }
         return BOOST_AMOUNT(this.room);
