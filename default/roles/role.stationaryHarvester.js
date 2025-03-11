@@ -24,10 +24,10 @@ class RoleStationaryHarvester {
         if (!this.creep.findSource()) {
             let oldestHarvester = _.min(_.filter(this.room.creeps, (c) => c.memory && c.ticksToLive < 500 && c.memory.role === "stationaryHarvester"), "ticksToLive") ||
                 _.find(this.room.creeps, (c) => c.memory && c.memory.role === "stationaryHarvester" && c.memory.other.reboot);
-            if (!oldestHarvester || !oldestHarvester.id) return this.creep.recycleCreep();
+            if (!oldestHarvester || !oldestHarvester.id) return this.creep.suicide();
             else {
                 this.creep.memory.other.source = oldestHarvester.memory.other.source;
-                oldestHarvester.recycleCreep();
+                oldestHarvester.suicide();
             }
         }
     }
