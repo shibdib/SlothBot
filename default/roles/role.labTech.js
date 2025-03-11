@@ -184,7 +184,7 @@ class RoleLabTech {
                 else if (BASE_MINERALS.includes(resourceType) && this.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = this.room.storage;
                 else if (COMPRESSED_COMMODITIES.includes(resourceType) && terminal.store[resourceType] >= 10000) storeTarget = this.room.storage;
                 else if (ALL_COMMODITIES.includes(resourceType)) storeTarget = terminal;
-                else if (LAB_PRIORITY.includes(resourceType) && this.room.storage.store[resourceType] < BOOST_AMOUNT(terminal.room) * 2) storeTarget = this.room.storage;
+                else if ((LAB_WAR_PRIORITY.includes(resourceType) || LAB_PEACE_PRIORITY.includes(resourceType)) && this.room.storage.store[resourceType] < BOOST_AMOUNT(terminal.room) * 2) storeTarget = this.room.storage;
                 else if (ALL_BOOSTS.includes(resourceType) && this.room.storage.store[resourceType] < BOOST_AMOUNT(terminal.room)) storeTarget = this.room.storage;
                 else if (ALL_BOOSTS.includes(resourceType)) storeTarget = terminal;
                 else if (!BASE_MINERALS.includes(resourceType) && !ALL_COMMODITIES.includes(resourceType) && this.room.storage.store[resourceType] < REACTION_AMOUNT) storeTarget = this.room.storage;
@@ -532,14 +532,21 @@ class RoleLabTech {
             return false;
         }
 
-        // Find a lab with a mineral that doesn't match its required or boost type
-        const stockedLab = _.find(this.room.impassibleStructures, (s) =>
+        const stockedLab = this.room.impassibleStructures.find((s) =>
             s.structureType === STRUCTURE_LAB &&
             s.mineralType &&
-            s.mineralType !== s.memory.itemNeeded &&
-            s.mineralType !== s.memory.neededBoost &&
-            (s.mineralType !== s.room.memory.producingBoost ||
-                s.store.getUsedCapacity(s.room.memory.producingBoost) > this.creep.store.getFreeCapacity() * 0.5)
+            (
+                // Case 1: Lab has mineral that doesn't match itemNeeded
+                (s.memory.itemNeeded && s.mineralType !== s.memory.itemNeeded) ||
+                // Case 2: Lab has mineral that doesn't match neededBoost
+                (s.memory.neededBoost && s.mineralType !== s.memory.neededBoost) ||
+                // Case 3: Lab has mineral but no specific needs and mineral doesn't match producing boost
+                (!s.memory.neededBoost && !s.memory.itemNeeded && s.mineralType !== s.room.memory.producingBoost) ||
+                // Case 4: Lab has mineral matching producing boost with sufficient quantity
+                (!s.memory.neededBoost && !s.memory.itemNeeded &&
+                    s.mineralType === s.room.memory.producingBoost &&
+                    s.store[s.mineralType] > this.creep.store.getFreeCapacity() * 0.5)
+            )
         );
 
         if (stockedLab) {
