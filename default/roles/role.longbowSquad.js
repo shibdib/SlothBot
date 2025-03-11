@@ -170,7 +170,7 @@ class RoleLongbowSquad {
 
     hasFullSquad(creep) {
         // Check if the op no longer exists
-        if (creep.memory.destination && creep.memory.operation && !Memory.targetRooms[creep.memory.destination]) {
+        if (creep.memory.destination && !['borderPatrol', 'guard'].includes(creep.memory.operation) && !Memory.targetRooms[creep.memory.destination]) {
             creep.memory.operation = 'harass';
             creep.memory.misc = {waitFor: 0};
         }
