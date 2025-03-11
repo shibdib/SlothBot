@@ -352,7 +352,8 @@ Creep.prototype.locateEnergy = function (room = this.room) {
     } else {
         // Handle remote haulers pre-storage
         if (!room.storage && room.controller && room.controller.owner && !['hauler', 'shuttle', 'remoteHauler', 'upgrader'].includes(this.memory.role)) {
-            potentialEnergy = potentialEnergy.concat(myCreeps.find(c => ['remoteHauler', 'powerHauler'].includes(c.memory.role) && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 10));
+            potentialEnergy = potentialEnergy.concat(myCreeps.filter(c => ['remoteHauler', 'powerHauler'].includes(c.memory.role) && c.store[RESOURCE_ENERGY] && !c.memory.storageDestination && c.pos.getRangeTo(c.room.controller) <= 10));
+            potentialEnergy = potentialEnergy.concat(room.creeps.filter(c => !c.my && FRIENDLIES.includes(c.owner.username) && c.store[RESOURCE_ENERGY]));
         }
 
         if (this.memory.role === 'hauler') {
