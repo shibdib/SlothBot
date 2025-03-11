@@ -162,7 +162,7 @@ Object.defineProperty(Room.prototype, 'energyState', {
             }
             // Handle energy requests
             const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
-            if (this.terminal && energy < target) {
+            if (this.terminal && energy < target && ALLY_HELP_REQUESTS[MY_USERNAME]) {
                 let resourceRequests = requests.resource ? requests.resource : [];
                 if (resourceRequests) {
                     resourceRequests = resourceRequests.filter((r) => (r.resourceType !== RESOURCE_ENERGY && r.roomName === this.name) || r.roomName !== this.name);
@@ -174,7 +174,7 @@ Object.defineProperty(Room.prototype, 'energyState', {
                     });
                     ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;
                 }
-            } else {
+            } else if (ALLY_HELP_REQUESTS[MY_USERNAME]) {
                 const resourceRequests = requests.resource ? requests.resource : [];
                 const request = resourceRequests.find((r) => r.resourceType === RESOURCE_ENERGY && r.roomName === this.name);
                 if (request) {

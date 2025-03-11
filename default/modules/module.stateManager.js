@@ -121,7 +121,7 @@ class StateManager {
             }
         } else {
             let funnelRequests = requests.funnel ? requests.funnel : [];
-            if (funnelRequests) {
+            if (funnelRequests && ALLY_HELP_REQUESTS[MY_USERNAME]) {
                 funnelRequests = funnelRequests.filter((r) => r.roomName !== room.name);
                 ALLY_HELP_REQUESTS[MY_USERNAME].requests.funnel = funnelRequests;
             }

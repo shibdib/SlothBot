@@ -98,7 +98,7 @@ class TerminalControl {
                 // Allied requests
                 const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
                 let resourceRequests = requests.resource ? requests.resource : [];
-                if (resourceRequests) {
+                if (resourceRequests && ALLY_HELP_REQUESTS[MY_USERNAME]) {
                     resourceRequests = resourceRequests.filter((r) => (r.resourceType !== mineral && r.roomName === terminal.room.name) || r.roomName !== terminal.room.name);
                     resourceRequests.push({
                         resourceType: mineral,
@@ -657,7 +657,7 @@ class TerminalControl {
         if (ALL_COMMODITIES.includes(resource) && !COMPRESSED_COMMODITIES.includes(resource) || resource === RESOURCE_OPS || resource === RESOURCE_POWER) {
             return 0;
         }
-        if (LAB_PRIORITY.includes(resource)) return BOOST_AMOUNT(this.room) * 2;
+        if (LAB_PEACE_PRIORITY.includes(resource) || LAB_WAR_PRIORITY.includes(resource)) return BOOST_AMOUNT(this.room) * 2;
         if (ALL_BOOSTS.includes(resource)) return BOOST_AMOUNT(this.room);
         if (resource === RESOURCE_BATTERY) return 1000;
         if (BASE_MINERALS.includes(resource)) return REACTION_AMOUNT;
