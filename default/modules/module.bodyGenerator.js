@@ -30,6 +30,9 @@ class ModuleBodyGenerator {
     setEnergyAmount() {
         if (this.creepInfo && this.creepInfo.other && this.creepInfo.other.reboot || this.room.myCreeps.length <= 2) {
             this.energyAmount = Math.max(this.room.energyAvailable, 300); // Ensure a minimum of 300 energy
+        } else if (!this.creepInfo || !this.creepInfo.military) {
+            const multiplier = this.room.level === 8 ? 1 : this.room.level === 7 ? 0.75 : 0.5;
+            this.energyAmount = this.room.energyCapacityAvailable * multiplier;
         }
     }
 
@@ -229,7 +232,7 @@ class ModuleBodyGenerator {
                 break;
 
             case 'reserver':
-                // Calculate claim based on energy and the cost of CLAIM and MOVE parts
+                // Calculate claim based on energy and the cost of CLAIM and MOVE parts.
                 claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
                 claim = Math.min(claim, 5 * (this.room.energyState || 1));
 

@@ -998,7 +998,7 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
         assignedSource: options.assignedSource,
         destination: options.destination,
         other: options.other,
-        military: options.military,
+        military: COMBAT_ROLES.includes(options.role),
         operation: options.operation,
         misc: options.misc,
         global: global,
