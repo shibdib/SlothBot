@@ -221,10 +221,11 @@ module.exports.essentialCreepQueue = function (room) {
                 if (upgraderAmount > 5) upgraderAmount = 5;
             } else if (room.level < 8) upgraderAmount = 1 + room.energyState;
         }
+        const priority = room.energyState > 1 ? PRIORITIES.upgrader * 0.5 : PRIORITIES.upgrader;
         queueCreepIfNeeded({
             room: room,
             role: 'upgrader',
-            priority: PRIORITIES.upgrader,
+            priority: priority,
             numberNeeded: upgraderAmount,
             misc: {boosts: [WORK]}
         });
@@ -567,7 +568,8 @@ module.exports.remoteCreepQueue = function (room) {
                 && !_.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.other.source === s.source)
                 && (!INTEL[s.room].sk || getCreepCount(undefined, 'SKAttacker', remoteSource.room))), 'score');
             if (remoteSource && remoteSource.room) {
-                queueCreep(room, PRIORITIES.remoteHarvester + getCreepCount(undefined, 'remoteHarvester', undefined, room), {
+                const priority = room.energyState > 1 ? PRIORITIES.remoteHarvester * 2 : PRIORITIES.remoteHarvester;
+                queueCreep(room, priority + getCreepCount(undefined, 'remoteHarvester', undefined, room), {
                     role: 'remoteHarvester',
                     destination: remoteSource.room,
                     other: {source: remoteSource.source}
@@ -585,7 +587,8 @@ module.exports.remoteCreepQueue = function (room) {
             const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
             const harvestAmount = harvester.memory.other.haulingRequired;
             if (harvestAmount && haulingCapacity < harvestAmount) {
-                queueCreep(room, PRIORITIES.remoteHauler + getCreepCount(undefined, 'remoteHauler', undefined, room), {
+                const priority = room.energyState > 1 ? PRIORITIES.remoteHauler * 2 : PRIORITIES.remoteHauler;
+                queueCreep(room, priority + getCreepCount(undefined, 'remoteHauler', undefined, room), {
                     role: 'remoteHauler',
                     destination: room.name,
                     other: {
