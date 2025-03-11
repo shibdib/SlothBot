@@ -24,7 +24,8 @@ class DefenseManager {
         if (Game.time % 100 === 0) this.handleNukeAttack();
 
         // Manage room attacks
-        if (INTEL[this.room.name].threatLevel > 2 || this.room.controller.safeMode) {
+        const armedHostiles = this.room.hostileCreeps.filter((c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK));
+        if (armedHostiles.length || this.room.controller.safeMode) {
             this.alertHostileAttack(this.room);
             this.safeModeManager(this.room);
             INTEL[this.room.name].requestingSupport = true;
@@ -189,10 +190,10 @@ class DefenseManager {
 
         if (activeSafemode || !this.room.controller.safeModeAvailable || this.room.controller.safeModeCooldown) return;
 
-        const damagedStructures = this.room.structures.filter(s => [STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN, STRUCTURE_EXTENSION].includes(s.structureType) && s.hits < s.hitsMax);
+        const damagedStructures = this.room.structures.find(s => [STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN, STRUCTURE_EXTENSION].includes(s.structureType) && s.hits < s.hitsMax);
         const spawn = this.room.structures.find((s) => s.structureType === STRUCTURE_SPAWN);
 
-        if (damagedStructures.length || (this.room.controller.level >= 6 && !spawn)) {
+        if (damagedStructures || (this.room.controller.level >= 6 && !spawn)) {
             this.room.memory.safeModeInfo = {
                 tick: Game.time,
                 attackers: INTEL[this.room.name].hostileOwners,
