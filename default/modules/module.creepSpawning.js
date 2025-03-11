@@ -159,7 +159,7 @@ module.exports.essentialCreepQueue = function (room) {
     // Drone Queueing
     const importantBuilds = _.some(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
     let droneCount = 1;
-    if (room.memory.energyPositive && room.energyState) {
+    if (room.memory.energyPositive) {
         droneCount = importantBuilds ? (10 - room.level) :
             !room.storage ? Math.max(7 - room.level, 1) : room.memory.spawnDefenders ? 3 :
                 room.level >= BUNKER_LEVEL && room.energyState > 1 ? 2 : 1;
@@ -195,17 +195,20 @@ module.exports.essentialCreepQueue = function (room) {
                 rebootCondition: !getCreepCount(room, 'hauler')
             });
         }
-        const shuttleCount = room.level < 7 ? 2 : 0;
+        let shuttleCount = room.level < 7 || !room.storage ? 2 : 0;
+        if (room.droppedEnergy.find((d) => d.amount > 500)) shuttleCount++;
+        if (room.droppedEnergy.find((d) => d.amount > 1000)) shuttleCount++;
         queueCreepIfNeeded({
             room: room,
             role: 'shuttle',
-            priority: PRIORITIES.hauler + getCreepCount(room, 'shuttle'),
-            numberNeeded: shuttleCount
+            priority: PRIORITIES.hauler,
+            numberNeeded: shuttleCount,
+            rebootCondition: room.myCreeps.length < 4
         });
     }
 
     // Upgrader
-    if (!room.memory.spawnDefenders) {
+    if (!room.memory.spawnDefenders && room.level === room.controller.level) {
         let upgraderAmount = 1;
         if (room.memory.energyPositive && room.energyState) {
             if (!room.memory.controllerLink) {
@@ -242,7 +245,7 @@ module.exports.miscCreepQueue = function (room) {
     if (room.memory.dangerousAttack) return;
 
     // Mineral Harvester
-    if (room.level >= 6 && room.memory.extractorContainer && room.mineral.mineralAmount) {
+    if (room.storage && room.level >= 6 && room.memory.extractorContainer && room.mineral.mineralAmount) {
         queueCreepIfNeeded({
             room: room,
             role: 'mineralHarvester',
