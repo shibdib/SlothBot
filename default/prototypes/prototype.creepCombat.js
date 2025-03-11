@@ -868,7 +868,7 @@ function getAssignedRampart(creep, target = undefined) {
         }
     }
     if (!position) {
-        let filter = (r) => r.my && r.structureType === STRUCTURE_RAMPART && r.pos.isInBunker() && !r.pos.checkForObstacleStructure() && !creep.room.myCreeps.some(c => c.memory.assignedRampart === r.id && c.id !== creep.id);
+        let filter = (r) => r.my && r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && !creep.room.myCreeps.some(c => c.memory.assignedRampart === r.id && c.id !== creep.id);
         position = target ? target.pos.findInRange(creep.room.structures, range, {filter})[0] || target.pos.findClosestByPath(creep.room.structures, {filter}) : creep.pos.findClosestByPath(creep.room.structures, {filter});
     }
     return position;
