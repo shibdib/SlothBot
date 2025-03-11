@@ -154,9 +154,11 @@ class Colony {
     handleNoRemote() {
         if (this.room.memory.noRemote <= Game.time) {
             // If we still have energy.. keep it rocking
-            if (this.room.energyState) {
+            if (this.room.energyState > 1) {
+                log.a(`${roomLink(this.room.name)} is remaining No Remote as it has energy.`, 'ROOM MANAGER:');
                 this.room.memory.noRemote = Game.time + (CREEP_LIFE_TIME * 3);
             } else {
+                log.a(`${roomLink(this.room.name)} has re-enabled remote spawning.`, 'ROOM MANAGER:');
                 this.room.memory.noRemote = undefined;
             }
         }
