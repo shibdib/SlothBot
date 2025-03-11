@@ -29,6 +29,8 @@ class RoleLongbowSquad {
     housekeeping() {
         // Group
         this.creep.formSquad();
+        // Handle rampart fighting
+        if (this.creep.fightFromRampart()) return true;
         // Boosting
         if (this.creep.tryToBoost()) return true;
         // Blinky mode
