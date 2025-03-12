@@ -14,11 +14,11 @@ let globals = function () {
         // Harvesters
         stationaryHarvester: 1,
         // Workers
-        upgrader: 4, drone: 3, mineralHarvester: 5,
+        upgrader: 4, drone: 5, mineralHarvester: 6,
         // Haulers
         hauler: 1, miscHauler: 7,
         // Remotes
-        remoteHarvester: 3, remoteHauler: 4, roadBuilder: 7, fuelTruck: 8, reserver: 6,
+        remoteHarvester: 3, remoteHauler: 3, roadBuilder: 7, fuelTruck: 8, reserver: 2,
         // Military
         defender: 2, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9
     };

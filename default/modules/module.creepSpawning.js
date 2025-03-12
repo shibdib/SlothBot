@@ -245,6 +245,9 @@ module.exports.miscCreepQueue = function (room) {
     // If under attack, no spawning misc
     if (room.memory.dangerousAttack) return;
 
+    // Explorers
+    queueCreepIfNeeded({colony: room, role: 'explorer', priority: PRIORITIES.medium, numberNeeded: 8 - MAX_LEVEL})
+
     // Mineral Harvester
     if (room.storage && room.level >= 6 && room.memory.extractorContainer && room.mineral.mineralAmount) {
         queueCreepIfNeeded({
@@ -345,9 +348,6 @@ let blockedRemotes = {};
 module.exports.remoteCreepQueue = function (room) {
     if (remoteTick[room.name] + 10 > Game.time) return;
     room.memory.remoteSources = undefined;
-
-    // Global remote penalty means NO remote activity at all
-    if (Memory.cpuTracking && Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
 
     // If under attack, no spawning remotes
     if (room.memory.dangerousAttack) {
@@ -526,7 +526,7 @@ module.exports.remoteCreepQueue = function (room) {
             queueCreepIfNeeded({
                 room: room,
                 role: 'reserver',
-                priority: PRIORITIES.reserver + getCreepCount(undefined, 'reserver', undefined, undefined, room),
+                priority: PRIORITIES.reserver + getCreepCount(room, 'reserver'),
                 numberNeeded: count,
                 destination: remoteName
             });
@@ -534,13 +534,12 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function handleRoadBuilder(room) {
-        if (getCreepCount(room, 'remoteHarvester') && !getCreepCount(undefined, 'roadBuilder', undefined, room)) {
-            queueCreepIfNeeded({room: room, role: 'roadBuilder', priority: PRIORITIES.roadBuilder, numberNeeded: 1});
+        if (getCreepCount(room, 'remoteHarvester')) {
+            queueCreepIfNeeded({colony: room, role: 'roadBuilder', priority: PRIORITIES.roadBuilder, numberNeeded: 1});
         }
     }
 
     function handleSkCreeps(room, remoteName) {
-        if (Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
         queueCreepIfNeeded({
             room: room,
             role: 'SKAttacker',
@@ -558,7 +557,6 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function handleRemoteHarvesters(room) {
-        if (Memory.cpuTracking.remotePenalty && Memory.cpuTracking.remotePenalty + 10000 > Game.time) return;
         let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
         if (ROOM_REMOTE_TARGETS[room.name] && totalHarvesters < 9 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level]) {
             let remoteSource = ROOM_REMOTE_TARGETS[room.name];
@@ -649,14 +647,6 @@ module.exports.remoteCreepQueue = function (room) {
 };
 
 module.exports.globalCreepQueue = function () {
-    // Explorers
-    queueCreepIfNeeded({
-        role: 'explorer',
-        priority: PRIORITIES.medium + getCreepCount(undefined, 'explorer'),
-        numberNeeded: (9 - MAX_LEVEL),
-        global: true
-    })
-
     const operations = {...Memory.targetRooms, ...Memory.auxiliaryTargets};
 
     // Handle harass targets
@@ -966,7 +956,7 @@ function queueCreepIfNeeded(spawnInfo) {
     const global = (!spawnInfo.room && spawnInfo.destination) || spawnInfo.global;
     if (count < spawnInfo.numberNeeded || (count <= spawnInfo.numberNeeded && creepExpiringSoon(spawnInfo.room, spawnInfo.role, spawnInfo.destination))) {
         spawnInfo.other.reboot = spawnInfo.rebootCondition;
-        return queueCreep(spawnInfo.room, spawnInfo.priority + count, {
+        return queueCreep(spawnInfo.room || spawnInfo.colony, spawnInfo.priority + count, {
             role: spawnInfo.role,
             destination: spawnInfo.destination,
             other: spawnInfo.other,

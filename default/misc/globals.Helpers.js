@@ -341,7 +341,8 @@ let helpers = function () {
 
         // Loop through owned rooms
         const checkRooms = includeAllies ? MY_ROOMS.concat(_.pluck(_.filter(INTEL, (r) => r.owner && FRIENDLIES.includes(r.owner) && r.level >= minLevel), 'name')) : MY_ROOMS;
-        for (let key of MY_ROOMS) {
+        for (let key of checkRooms) {
+            if (!INTEL[key]) Game.rooms[key].cacheRoomIntel();
             if (INTEL[key].level >= minLevel) {
                 let distance = Game.map.getRoomLinearDistance(roomName, key);
                 if (distance < closestDistance) {

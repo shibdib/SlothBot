@@ -33,18 +33,8 @@ module.exports.loop = function () {
                 }
             } else if (currentBucket < BUCKET_MAX * 0.01) {
                 const cooldown = Game.time;
-                let {roomPenalty = 0, remotePenalty = 0, bucketIssueCount = 0} = Memory.cpuTracking || {};
+                let {roomPenalty = 0, bucketIssueCount = 0} = Memory.cpuTracking || {};
                 if (bucketIssueCount === 10) {
-                    const maxLevelRemoteMiner = MY_ROOMS.filter((r) => Game.rooms[r].level === 8 && !Game.rooms[r].memory.noRemote);
-                    if (maxLevelRemoteMiner.length) {
-                        const maxEnergy = _.max(maxLevelRemoteMiner, 'energy');
-                        Game.rooms[maxEnergy].memory.noRemote = Game.time + (CREEP_LIFE_TIME * 3);
-                        log.e(`Disabling remote mining in ${roomLink(maxEnergy)} due to global CPU issues.`, `WORLD MANAGER:`);
-                    } else {
-                        log.e('Bucket Issue Count Exceeded - Disabling Remote Mining');
-                        _.filter(Game.creeps, (c) => c.my && ['remoteHarvester', 'remoteHauler', 'SKAttacker'].includes(c.memory.role)).forEach((c) => c.suicide());
-                        remotePenalty = Game.time;
-                    }
                 } else if (bucketIssueCount >= 50) {
                     log.e('Bucket Issue Count Exceeded - Abandoning Worst Room');
                     //abandonWorstRoom();
@@ -54,8 +44,7 @@ module.exports.loop = function () {
                 Memory.cpuTracking = {
                     cooldown,
                     bucketIssueCount: bucketIssueCount++,
-                    roomPenalty: roomPenalty,
-                    remotePenalty: remotePenalty
+                    roomPenalty: roomPenalty
                 };
                 log.e('CPU Bucket Too Low - Cooldown Initiated');
                 return;

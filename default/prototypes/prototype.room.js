@@ -145,12 +145,11 @@ const ENERGY_STATE_CACHE = {};
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
         if (!this.controller) return 2;
-        if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + 500 < Game.time) return ENERGY_STATE_CACHE[this.name].state;
+        if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + 500 > Game.time) return ENERGY_STATE_CACHE[this.name].state;
         if (!this._energyState) {
             let energy = this.rawEnergy;
-            let target = this.level === 8 ? 250000 : Math.min((constructionCost(this.controller.level + 1) - constructionCost(this.controller.level)) * 1.1, 250000);
-            // Lower target if not near upgrade
-            if (this.level < 8 && this.controller.progress / this.controller.progressTotal < 0.8) target *= 0.25;
+            const upgradeCost = this.level === 8 ? 250000 : Math.min((constructionCost(this.controller.level + 1) - constructionCost(this.controller.level)), 250000)
+            let target = this.level === 8 ? 250000 : Math.max(upgradeCost * (this.controller.progress / this.controller.progressTotal), 25000);
             if (energy > target * 2) {
                 this._energyState = 3;
             } else if (energy > target || (!this.storage && !this.terminal)) {
@@ -440,7 +439,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     };
     roomIntel.lastObservation = currentTime;
 
-    if (!roomIntel.microUpdate || roomIntel.microUpdate + 50 < currentTime) {
+    if (!roomIntel.microUpdate || roomIntel.microUpdate + 150 < currentTime) {
         const structures = this.find(FIND_STRUCTURES);
         const deposits = this.find(FIND_DEPOSITS);
         // Check for invader core
@@ -493,28 +492,29 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
                 roomIntel.towerData = undefined;
             }
         }
+
+        // Get remote source data for the highest level room declaring this a remote
+        if (this.sources.length && roomIntel.remoteRoom && (!ROOM_REMOTE_TARGETS[roomIntel.remoteRoom] || !ROOM_REMOTE_TARGETS[roomIntel.remoteRoom].find(s => s.room === this.name))) {
+            let lowestScore;
+            let lowestRoom = roomIntel.remoteRoom[0];
+            for (const source of this.sources) {
+                for (const room of roomIntel.remoteRoom) {
+                    if (!MY_ROOMS.includes(room)) continue;
+                    let distanceToExit = calculateDistanceToHub(this, source, room);
+                    if (!lowestScore || distanceToExit < lowestScore) {
+                        lowestScore = distanceToExit;
+                        lowestRoom = room;
+                    }
+                }
+                if (lowestScore) updateRemoteSourceData(this, lowestRoom, source, lowestScore);
+            }
+            if (INTEL[roomIntel.remoteRoom]) INTEL[roomIntel.remoteRoom].refreshRemotes = true;
+            roomIntel.activeRemote = Game.time;
+        }
+
         // Update micro update timestamp and cache
         roomIntel.microUpdate = currentTime;
         INTEL[this.name] = roomIntel;
-    }
-
-    // Get remote source data for the highest level room declaring this a remote
-    if (this.sources.length && roomIntel.remoteRoom && (!ROOM_REMOTE_TARGETS[roomIntel.remoteRoom] || !ROOM_REMOTE_TARGETS[roomIntel.remoteRoom].find(s => s.room === this.name))) {
-        let lowestScore;
-        let lowestRoom = roomIntel.remoteRoom[0];
-        for (const source of this.sources) {
-            for (const room of roomIntel.remoteRoom) {
-                if (!MY_ROOMS.includes(room)) continue;
-                let distanceToExit = calculateDistanceToHub(this, source, room);
-                if (!lowestScore || distanceToExit < lowestScore) {
-                    lowestScore = distanceToExit;
-                    lowestRoom = room;
-                }
-            }
-            if (lowestScore) updateRemoteSourceData(this, lowestRoom, source, lowestScore);
-        }
-        if (INTEL[roomIntel.remoteRoom]) INTEL[roomIntel.remoteRoom].refreshRemotes = true;
-        roomIntel.activeRemote = Game.time;
     }
 
     // Early exit if data is still valid

@@ -243,6 +243,8 @@ class ModuleBodyGenerator {
                     claim = Math.min(claim, 5 * (this.room.energyState || 1));
                     halfMove = true;  // Indicate that half of the normal move cost is being used
                 }
+
+                if (claim > CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][this.room.level] * 3) claim = CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][this.room.level] * 3;
                 break;
 
             case 'remoteHarvester':

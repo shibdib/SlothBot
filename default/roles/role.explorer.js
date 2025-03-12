@@ -60,7 +60,7 @@ class RoleExplorer {
     }
 
     travel() {
-        this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 10});
+        this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22});
     }
 
     signRooms() {

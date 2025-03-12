@@ -104,8 +104,6 @@ class RoleUpgrader {
             this.creep.withdrawResource(this.container);
         } else if (nearbyUpgrader && nearbyUpgrader.store[RESOURCE_ENERGY]) {
             this.creep.withdrawResource(nearbyUpgrader, RESOURCE_ENERGY, this.creep.getActiveBodyparts(WORK));
-        } else {
-            this.creep.memory.inPosition = undefined;
         }
     }
 }
