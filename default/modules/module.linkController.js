@@ -9,7 +9,7 @@ class LinkControl {
         let links = room.impassibleStructures.filter(s =>
             s.structureType === STRUCTURE_LINK &&
             !s.cooldown &&
-            s.store[RESOURCE_ENERGY] >= 100
+            s.store[RESOURCE_ENERGY]
         ).sort(() => Math.random() - 0.5); // Shuffle array
 
         if (!links.length) return;
@@ -54,22 +54,7 @@ class LinkControl {
                 link.transferEnergy(controllerLink);
             } else if (hubLink && hubLink.store[RESOURCE_ENERGY] < LINK_CAPACITY) {
                 link.transferEnergy(hubLink);
-            } else {
-                this.transferEnergyBetweenLinks(link, room);
             }
-        }
-    }
-
-    transferEnergyBetweenLinks(link, room) {
-        let lowEnergyLinks = room.impassibleStructures.filter(l =>
-            l.structureType === STRUCTURE_LINK &&
-            l.id !== link.id &&
-            l.store[RESOURCE_ENERGY] < LINK_CAPACITY * 0.5
-        );
-        let targetLink = lowEnergyLinks.find(l => l.store[RESOURCE_ENERGY] < link.store[RESOURCE_ENERGY]);
-
-        if (link.store[RESOURCE_ENERGY] > LINK_CAPACITY * 0.98 && targetLink) {
-            link.transferEnergy(targetLink, link.store[RESOURCE_ENERGY] * 0.5);
         }
     }
 }

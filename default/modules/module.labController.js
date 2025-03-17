@@ -52,6 +52,7 @@ class LabManager {
         let secondaryLabs = room.impassibleStructures.filter(lab =>
             !lab.cooldown && lab.structureType === STRUCTURE_LAB &&
             !this.primaryLabs[room.name].includes(lab.id) &&
+            (!lab.memory.paused || lab.memory.neededBoost === room.memory.producingBoost) &&
             (!lab.memory.neededBoost || lab.memory.neededBoost === room.memory.producingBoost) &&
             (!lab.mineralType || lab.mineralType === room.memory.producingBoost)
         );

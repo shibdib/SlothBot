@@ -35,6 +35,9 @@ class StateManager {
         // Funnel requests
         this.funnelRequest(room);
 
+        // Barrier tracking
+        this.barrierTracking(room);
+
         room.memory.stateInformation = undefined;
     }
 
@@ -62,7 +65,7 @@ class StateManager {
         const income = Math.floor(harvesters.reduce((sum, creep) => sum + (creep.getActiveBodyparts(WORK) * 0.8), 0));
         const energyUsers = room.myCreeps.filter((c) => ['drone', 'upgrader'].includes(c.memory.role));
         const expense = Math.ceil(energyUsers.reduce((sum, creep) => sum + creep.getActiveBodyparts(WORK), 0));
-        const spareIncome = room.energyState > 1 ? 9999999 : room.energyState < 2 ? (income - expense) * 0.5 : income - expense;
+        const spareIncome = room.energyState > 2 ? 9999999 : room.energyState < 2 ? (income - expense) * 0.5 : income - expense;
         room.memory.energyInfo = {income: income, expense: expense, spareIncome: spareIncome};
         room.memory.energyPositive = (average(energyIncomeArray) > 0 && income > expense) || room.energyState > 1;
 
@@ -126,6 +129,15 @@ class StateManager {
                 ALLY_HELP_REQUESTS[MY_USERNAME].requests.funnel = funnelRequests;
             }
         }
+    }
+
+    barrierTracking(room) {
+        const lowestBarrier = _.min(room.structures.filter((s) => [STRUCTURE_WALL, STRUCTURE_RAMPART].includes(s.structureType)), (s) => s.hits);
+        if (!lowestBarrier) return;
+        const hostileMulti = HOSTILES.length ? 1 : 0.5;
+        const targetHits = Math.min((BARRIER_TARGET * (room.level / 8)) * hostileMulti, lowestBarrier.hitsMax);
+        room.memory.barrierHitsTarget = targetHits;
+        room.memory.barrierBuilding = lowestBarrier.hits < targetHits;
     }
 }
 

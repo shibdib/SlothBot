@@ -15,8 +15,7 @@ class RoleRemoteHauler {
 
     performRoleActions() {
         if (this.housekeeping()) return;
-        const storeSum = _.sum(this.store);
-        if (this.creep.isFull || storeSum) {
+        if (_.sum(this.creep.store)) {
             this.deliverResource();
         } else if (this.memory.operation) {
             this.specialDuty();
@@ -28,6 +27,7 @@ class RoleRemoteHauler {
     housekeeping() {
         if (this.creep.skSafety()) return true;
         if (safemodeGeneration(this.creep)) return true;
+        if (!this.memory.exitLinkCheck && _.sum(this.creep.store) && this.room.name === this.memory.colony) this.exitLinkCheck();
         this.creep.say(ICONS.haul2, true);
         return false;
     }
@@ -126,6 +126,13 @@ class RoleRemoteHauler {
         }
         return false;
     }
+
+    exitLinkCheck() {
+        this.memory.exitLinkCheck = true;
+        const link = this.room.structures.find(s => s.structureType === STRUCTURE_LINK && ![s.room.memory.hubLink, s.room.memory.controllerLink].includes(s.id) &&
+            s.pos.getRangeTo(this.creep) <= 9 && (!s.room.storage || s.pos.getRangeTo(this.creep) < s.room.storage.pos.getRangeTo(this.creep)));
+        if (link) this.memory.exitLink = link.id;
+    }
 }
 
 function dropOff(creep) {
@@ -139,6 +146,10 @@ function dropOff(creep) {
             memory.storageDestination = creep.room.storage.id;
         }
         return;
+    }
+
+    if (creep.memory.exitLink) {
+        return memory.storageDestination = creep.memory.exitLink;
     }
 
     const colony = Game.rooms[memory.colony];

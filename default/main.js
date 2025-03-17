@@ -83,7 +83,7 @@ module.exports.loop = function () {
                 const spawn = _.filter(Game.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
                 const creeps = _.filter(Game.creeps, (s) => s.my);
 
-                if (ownedRoom && ((!_.size(spawn) && !_.size(creeps)) || (_.size(spawn) === 1 && !_.size(creeps)))) {
+                if (ownedRoom && ownedRoom.controller.level === 1 && ((!_.size(spawn) && !_.size(creeps)) || (_.size(spawn) === 1 && !_.size(creeps)))) {
                     if (!memWipe) {
                         resetMemory();
                         memWipe = true;

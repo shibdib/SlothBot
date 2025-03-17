@@ -195,7 +195,8 @@ module.exports.essentialCreepQueue = function (room) {
                 rebootCondition: !getCreepCount(room, 'hauler')
             });
         }
-        let shuttleCount = room.level < 7 || !room.storage ? 2 : 0;
+        const noLinkHarvesters = _.filter(room.myCreeps, (c) => c.role === 'stationaryHarvester' && !c.memory.link);
+        let shuttleCount = noLinkHarvesters.length;
         if (room.droppedEnergy.find((d) => d.amount > 500)) shuttleCount++;
         if (room.droppedEnergy.find((d) => d.amount > 1000)) shuttleCount++;
         queueCreepIfNeeded({
@@ -210,7 +211,7 @@ module.exports.essentialCreepQueue = function (room) {
     // Upgrader
     if (!room.memory.spawnDefenders && room.level === room.controller.level) {
         let upgraderAmount = 1;
-        if (room.memory.energyPositive && room.energyState) {
+        if (room.memory.energyPositive && room.energyState && (!room.memory.barrierBuilding || room.energyState > 2)) {
             if (!room.memory.controllerLink) {
                 let container = Game.getObjectById(room.memory.controllerContainer);
                 if (container) {
@@ -347,7 +348,6 @@ let contestedRemotes = {};
 let blockedRemotes = {};
 module.exports.remoteCreepQueue = function (room) {
     if (remoteTick[room.name] + 10 > Game.time) return;
-    room.memory.remoteSources = undefined;
 
     // If under attack, no spawning remotes
     if (room.memory.dangerousAttack) {
@@ -558,7 +558,8 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleRemoteHarvesters(room) {
         let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-        if (ROOM_REMOTE_TARGETS[room.name] && totalHarvesters < 9 / CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level]) {
+        const multiplier = room.memory.remotePenalty ? 0.5 : 1;
+        if (ROOM_REMOTE_TARGETS[room.name] && totalHarvesters < 10 * multiplier) {
             let remoteSource = ROOM_REMOTE_TARGETS[room.name];
             let acceptedScore = !room.energyState ? REMOTE_DISTANCE_MAX * 2 : REMOTE_DISTANCE_MAX;
             acceptedScore = Math.max(acceptedScore, _.min(remoteSource, 'score').score);
@@ -581,7 +582,8 @@ module.exports.remoteCreepQueue = function (room) {
         for (const harvester of roomHarvesters) {
             if (shouldSkipRemote(room, harvester.memory.destination)) continue;
             const assignedHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.role === 'remoteHauler' && c.memory.other && c.memory.other.harvester === harvester.id);
-            if (assignedHaulers.length >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level] + 1) continue;
+            const count = room.memory.remotePenalty ? 1 : 5 - CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level];
+            if (assignedHaulers.length >= count) continue;
             const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
             const harvestAmount = harvester.memory.other.haulingRequired;
             if (harvestAmount && haulingCapacity < harvestAmount) {

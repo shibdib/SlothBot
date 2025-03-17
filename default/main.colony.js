@@ -129,16 +129,21 @@ class Colony {
             if (avgCpu > roomCpuTarget) {
                 let cpuOverCount = this.room.memory.cpuOverage || 0;
                 this.room.memory.cpuOverage = cpuOverCount + 1;
-                if (cpuOverCount >= 25 && Game.cpu.bucket < BUCKET_MAX * 0.25) {
+                if (cpuOverCount >= 75 && Game.cpu.bucket < BUCKET_MAX * 0.25) {
                     this.room.memory.cpuOverage = undefined;
                     this.room.memory.noRemote = Game.time + (CREEP_LIFE_TIME * 3);
                     this.suicideRemoteCreeps();
                     log.e(`${roomLink(this.room.name)} remote spawning has been disabled to conserve CPU.`, 'ROOM MANAGER:');
                     cpuUsageArray = [];
+                } else if (cpuOverCount >= 25 && Game.cpu.bucket < BUCKET_MAX * 0.25) {
+                    this.room.memory.cpuOverage = undefined;
+                    this.room.memory.remotePenalty = Game.time + (CREEP_LIFE_TIME * 2);
+                    log.e(`${roomLink(this.room.name)} remote spawning has been disabled to conserve CPU.`, 'ROOM MANAGER:');
+                    cpuUsageArray = [];
                 }
             } else {
                 if (this.room.memory.cpuOverage) this.room.memory.cpuOverage--;
-                if (this.room.memory.noRemote) this.handleNoRemote();
+                if (this.room.memory.noRemote || this.room.memory.remotePenalty) this.handleNoRemote();
             }
         }
 
@@ -160,6 +165,14 @@ class Colony {
             } else {
                 log.a(`${roomLink(this.room.name)} has re-enabled remote spawning.`, 'ROOM MANAGER:');
                 this.room.memory.noRemote = undefined;
+                this.room.memory.remotePenalty = undefined;
+            }
+        } else if (this.room.memory.remotePenalty <= Game.time) {
+            // If we still have energy.. keep it rocking
+            if (this.room.energyState > 1) {
+                this.room.memory.remotePenalty = Game.time + (CREEP_LIFE_TIME * 2);
+            } else {
+                this.room.memory.remotePenalty = undefined;
             }
         }
     }

@@ -63,7 +63,8 @@ class RoleRemoteHarvester {
                 // Set harvest power if not set
                 if (!this.creep.memory.other.haulingRequired) {
                     const power = this.creep.getActiveBodyparts(WORK) * HARVEST_POWER;
-                    const sourceScore = _.find(ROOM_REMOTE_TARGETS[this.creep.memory.colony], (s) => s.source === this.creep.memory.other.source).score;
+                    const sourceInfo = _.find(ROOM_REMOTE_TARGETS[this.creep.memory.colony], (s) => s.source === this.creep.memory.other.source);
+                    const sourceScore = sourceInfo ? sourceInfo.score : 30;
                     this.creep.memory.other.haulingRequired = power * (sourceScore * 2);
                 }
                 // Handle container or construction site

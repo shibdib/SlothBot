@@ -74,19 +74,22 @@ class ModuleBodyGenerator {
 
             case 'roadBuilder':
             case 'drone':
-                work = Math.floor((this.energyAmount * 0.25) / BODYPART_COST[WORK]) || 1;
+                work = Math.floor((this.energyAmount * 0.12) / BODYPART_COST[WORK]) || 1;
                 if (!this.creepInfo.destination) work = Math.min(work, 15, this.spareIncome * 0.5);
                 else work = Math.min(work, 25);
                 if (work < 1) return undefined;
 
-                carry = Math.floor((this.energyAmount * 0.25) / BODYPART_COST[CARRY]) || 1;
-                carry = Math.min(carry, 10, work * 3);
+                carry = Math.floor((this.energyAmount * 0.38) / BODYPART_COST[CARRY]) || 1;
+                carry = Math.min(carry, work * 3);
 
                 if (!this.creepInfo.destination && INTEL[this.room.name].roadsBuilt) halfMove = true;
                 break;
 
             case 'upgrader':
-                if (this.room.memory.controllerLink) {
+                if (this.room.level < this.room.controller.level || (this.room.memory.barrierBuilding && this.room.energyState < 3)) {
+                    work = 1;
+                    carry = 1;
+                } else if (this.room.memory.controllerLink) {
                     work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
                     if (this.room.level <= 6) work = Math.min(work, 20);
                     else work = Math.min(work, 30);

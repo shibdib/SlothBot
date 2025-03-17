@@ -434,6 +434,10 @@ Creep.prototype.haulerDelivery = function () {
             } else if (result === ERR_NOT_IN_RANGE) {
                 this.shibMove(storageItem);
                 return true;
+            } else if (result === ERR_FULL) {
+                const idleTime = storageItem.cooldown ? storageItem.cooldown + 1 : 5;
+                this.idleFor(idleTime);
+                return true;
             }
         }
     }
@@ -983,13 +987,14 @@ function findRoadNearCreep(creep) {
  */
 Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
     // If they age out or are boosted, don't try again
-    if (this.memory.boostAttempt) {
-        if (!this.memory.boostAttempt && this.memory.boosts) {
+    if (this.memory.boostAttempt || this.ticksToLive < CREEP_LIFE_TIME * 0.6) {
+        if (this.memory.boosts) {
             let lab = Game.getObjectById(this.memory.boosts.boostLab);
             if (lab) lab.memory = undefined;
             this.memory.boosts = undefined;
         }
         this.memory.boostAttempt = true;
+        this.memory.needsRenewal = undefined;
         return false;
     }
     if (!this.memory.boosts) this.memory.boosts = {};
@@ -1060,11 +1065,14 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
         this.memory.boosts.requestedBoosts = available;
     } else if (_.size(this.memory.boosts.requestedBoosts)) {
         // Handle if this creep is in a squad and needs to renew first
-        if (!this.memory.boosts.boostLab && !this.memory.hasBoosted && this.handleRenewing(CREEP_LIFE_TIME * 0.95)) return this.handleRenewing(CREEP_LIFE_TIME * 0.95);
+        if (!this.memory.boosts.boostLab && !this.memory.hasBoosted && this.hasActiveBodyparts(MOVE) && this.handleRenewing(CREEP_LIFE_TIME * 0.95)) return this.handleRenewing(CREEP_LIFE_TIME * 0.95);
         if (this.memory.misc && this.memory.misc.waitFor > 1) {
             let leader = this.memory.leader ? this : Game.getObjectById(this.memory.groupLeader);
             const squadSize = leader ? leader.memory.squadMembers.length + 1 : 1;
-            if (squadSize < this.memory.misc.waitFor) return this.idleFor(5);
+            if (!this.memory.formUpTimer) this.memory.formUpTimer = this.memory.renewalLimit || Game.time + (this.memory.misc.waitFor * 1000);
+            if (squadSize < this.memory.misc.waitFor && this.memory.formUpTimer > Game.time) {
+                return this.idleFor(5);
+            }
         }
         for (let requestedBoost of Object.keys(this.memory.boosts.requestedBoosts)) {
             let amountNeeded = this.memory.boosts.requestedBoosts[requestedBoost]['amount'];
@@ -1138,7 +1146,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                         } else if (!this.pos.isNearTo(lab)) {
                             this.shibMove(lab, {forceSolo: true});
                         }
-                        if (!this.memory.hasBoosted && this.handleRenewing(CREEP_LIFE_TIME * 0.95)) return this.handleRenewing(CREEP_LIFE_TIME * 0.95);
+                        if (!this.memory.hasBoosted && this.hasActiveBodyparts(MOVE) && this.handleRenewing(CREEP_LIFE_TIME * 0.95)) return this.handleRenewing(CREEP_LIFE_TIME * 0.95);
                     }
                 }
             }
@@ -1199,10 +1207,11 @@ Creep.prototype.recycleCreep = function () {
  * @returns {boolean}
  */
 Creep.prototype.handleRenewing = function (targetTicks) {
-    if (this.ticksToLive > targetTicks || this.memory.hasBoosted) {
+    if (this.ticksToLive > targetTicks || this.memory.hasBoosted || this.memory.renewalLimit < Game.time) {
         this.memory.needsRenewal = undefined;
         return false;
     }
+    if (!this.memory.renewalLimit) this.memory.renewalLimit = Game.time + 2000;
     this.memory.needsRenewal = true;
     let spawn = this.room.impassibleStructures.find((s) => s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning);
     if (!spawn) {

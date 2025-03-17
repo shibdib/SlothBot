@@ -255,7 +255,7 @@ class RoleDrone {
             // General maintenance
             if (!target) {
                 target = _.min(barrierStructures.filter(s =>
-                    s.hits < RAMPART_HITS_MAX[this.room.controller.level] * 0.9
+                    s.hits < this.room.memory.barrierHitsTarget
                 ), 'hits');
             }
 

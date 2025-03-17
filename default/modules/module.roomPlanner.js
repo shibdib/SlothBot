@@ -6,13 +6,13 @@
  * Created by rober on 5/16/2017.
  */
 const minCut = require('util.minCut')
-let tickTracker = {};
+const tickTracker = {};
+const linkTracker = {};
 
 module.exports.buildRoom = function () {
     if (!shouldRunAtAll()) return;
 
     let room = getNextRoom();
-
     tickTracker['lastTick'] = Game.time + 15;
     tickTracker['lastRoom'] = room.name;
 
@@ -93,9 +93,9 @@ function buildFromLayout(room, countCheck) {
     const roomSpawn = room.impassibleStructures.find(s => s.structureType === STRUCTURE_SPAWN && s.my);
     let filter = [];
 
-    if (!initialSpawn) {
+    if (room.controller.level === 1 && !initialSpawn) {
         filter = bunkerTemplate.filter(s => s.structureType === STRUCTURE_SPAWN);
-    } else if (room.controller.level >= 5 && (room.safemode || (INTEL[room.name].lastMajorAttack + CREEP_LIFE_TIME * 2 > Game.time))) {
+    } else if (room.controller.level >= 5 && (room.safemode || (INTEL[room.name].lastMajorAttack + (CREEP_LIFE_TIME * 2) > Game.time))) {
         room.constructionSites.filter(s => ![STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL, STRUCTURE_RAMPART, STRUCTURE_WALL].includes(s.structureType) && !s.progress).forEach(s => s.remove());
         filter = bunkerTemplate.filter(s => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType));
         rampartBuilder(room, bunkerTemplate);
@@ -141,6 +141,7 @@ function auxiliaryBuilding(room) {
         if (room.level >= 5) {
             if (hubLink(room)) return true;
             if (room.level >= 6) {
+                if (room.memory.hubLink && room.memory.controllerLink) secondaryLinks(room);
                 mineralBuilder(room);
                 labBuilder(room);
             }
@@ -225,11 +226,112 @@ function hubLink(room) {
     return false;
 }
 
+function secondaryLinks(room) {
+    if (!linkTracker[room.name] || linkTracker[room.name].tick + CREEP_LIFE_TIME * 3 < Game.time) {
+        linkTracker[room.name] = {};
+        linkTracker[room.name].tick = Game.time;
+        // Determine the distance of sources and active remote exits from the hub
+        for (let source of room.sources) {
+            linkTracker[room.name][source.id] = {id: source.id, distance: source.pos.getRangeTo(room.hub) * 0.6};
+            // Check for a link within 2 tiles of the source
+            const sourceLink = source.pos.findInRange(room.impassibleStructures, 2).find((s) => s.structureType === STRUCTURE_LINK);
+            if (sourceLink) linkTracker[room.name][source.id].built = true;
+        }
+        const remoteRooms = _.uniq(_.pluck(_.filter(Game.creeps, (c) => c.my && c.memory.colony === room.name && c.memory.role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired), 'room.name'));
+        for (const remoteRoom of remoteRooms) {
+            const exit = Game.map.findExit(room.name, remoteRoom);
+            const exitTiles = room.find(exit);
+            linkTracker[room.name][remoteRoom] = {
+                room: remoteRoom,
+                distance: room.hub.getRangeTo(room.hub.findClosestByRange(exitTiles))
+            };
+            // Check for a link within 7 tiles of the exit
+            const exitLink = room.hub.findInRange(room.impassibleStructures, 7).find((s) => s.structureType === STRUCTURE_LINK);
+            if (exitLink) linkTracker[room.name][remoteRoom].built = true;
+        }
+    } else {
+        const linkCount = room.structures.filter((s) => s.structureType === STRUCTURE_LINK).length + room.constructionSites.filter((s) => s.structureType === STRUCTURE_LINK).length;
+        if (linkCount >= CONTROLLER_STRUCTURES[STRUCTURE_LINK][room.controller.level]) return false;
+        const sorted = _.sortBy(linkTracker[room.name], (l) => -l.distance);
+        for (const linkOption of sorted) {
+            if (linkOption.built) continue;
+            if (linkOption.room) {
+                return buildRemoteLink(room, linkOption.room)
+            } else if (linkOption.id) {
+                return buildSourceLink(room, linkOption.id);
+            }
+        }
+    }
+
+    function buildRemoteLink(room, remoteRoom) {
+        const exit = Game.map.findExit(room.name, remoteRoom);
+        if (exit) {
+            const exitTiles = room.find(exit);
+            let middle = _.round(exitTiles.length / 2);
+            for (let xOff = -3; xOff <= 3; xOff++) {
+                for (let yOff = -3; yOff <= 3; yOff++) {
+                    if (xOff !== 0 || yOff !== 0) {
+                        let pos = new RoomPosition(exitTiles[middle].x + xOff, exitTiles[middle].y + yOff, room.name);
+                        console.log(pos);
+                        if (!pos.checkIfOutOfBounds() && !pos.checkForBarrierStructure() && pos.createConstructionSite(STRUCTURE_LINK) === OK) {
+                            const roomTracker = _.find(linkTracker[room.name], (l) => l.room === remoteRoom);
+                            roomTracker.built = true;
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function buildSourceLink(room, sourceId) {
+        const source = Game.getObjectById(sourceId);
+        const sourceContainer = Game.getObjectById(source.memory.container);
+        if (sourceContainer && Game.getObjectById(room.memory.controllerLink) && Game.getObjectById(room.memory.hubLink)) {
+            let sourceLink = _.find(sourceContainer.pos.findInRange(room.impassibleStructures, 1), (s) => s.structureType === STRUCTURE_LINK);
+            let sourceBuild = _.find(sourceContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK);
+            // If no link exists and there is space to build, create one
+            if (!sourceLink && !sourceBuild && sourceContainer.pos.countOpenTerrainAround()) {
+                clearOldLink(source);
+                if (createSourceLink(source, sourceContainer)) {
+                    const roomTracker = _.find(linkTracker[room.name], (l) => l.id === source.id);
+                    roomTracker.built = true;
+                    return true;
+                }
+            } else if (sourceLink) {
+                source.memory.link = sourceLink.id;
+            }
+        }
+    }
+
+    function createSourceLink(source, sourceContainer) {
+        let zoneTerrain = source.room.lookForAtArea(LOOK_TERRAIN, sourceContainer.pos.y - 1, sourceContainer.pos.x - 1, sourceContainer.pos.y + 1, sourceContainer.pos.x + 1, true);
+        const controllerContainer = Game.getObjectById(room.memory.controllerContainer);
+        for (let key in zoneTerrain) {
+            let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, source.room.name);
+            if (position.checkForWall() || position.checkForAllStructure() || position.isNearTo(controllerContainer) || position.checkIfOutOfBounds()) continue;
+            if (position.createConstructionSite(STRUCTURE_LINK) === OK) return true;
+            break;
+        }
+    }
+
+    function clearOldLink(source) {
+        if (source.memory.link && Game.getObjectById(source.memory.link)) {
+            const oldLink = Game.getObjectById(source.memory.link);
+            const oldRampart = oldLink.pos.checkForRampart();
+            if (oldRampart) oldRampart.destroy();
+            oldLink.destroy();
+            log.e('Cleared incorrect source link in ' + roomLink(source.room.name), "ROOM PLANNER:");
+        }
+        source.memory.link = undefined;
+    }
+}
+
 function sourceBuilder(room) {
     if (room.controller.level >= 3) {
         for (let source of room.sources) {
             if (buildSourceContainer(source, room)) return true;
-            if (buildSourceLink(source, room)) return true;
+            //if (buildSourceLink(source, room)) return true;
         }
     }
 
@@ -250,46 +352,6 @@ function sourceBuilder(room) {
                 source.memory.distanceToHub = source.pos.findPathTo(room.hub).length;
             }
             source.memory.container = sourceContainer.id;
-        }
-    }
-
-    // Helper function to handle the creation of source links
-    function buildSourceLink(source, room) {
-        const sourceContainer = Game.getObjectById(source.memory.container);
-        if (sourceContainer && Game.getObjectById(room.memory.controllerLink) && Game.getObjectById(room.memory.hubLink)) {
-            let sourceLink = _.find(sourceContainer.pos.findInRange(room.impassibleStructures, 1), (s) => s.structureType === STRUCTURE_LINK);
-            let sourceBuild = _.find(sourceContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK);
-            // If no link exists and there is space to build, create one
-            if (!sourceLink && !sourceBuild && sourceContainer.pos.countOpenTerrainAround()) {
-                clearOldLink(source);
-                if (createSourceLink(source, sourceContainer)) return true;
-            } else if (sourceLink) {
-                source.memory.link = sourceLink.id;
-            }
-        }
-    }
-
-    // Helper function to clear old source links
-    function clearOldLink(source) {
-        if (source.memory.link && Game.getObjectById(source.memory.link)) {
-            const oldLink = Game.getObjectById(source.memory.link);
-            const oldRampart = oldLink.pos.checkForRampart();
-            if (oldRampart) oldRampart.destroy();
-            oldLink.destroy();
-            log.e('Cleared incorrect source link in ' + roomLink(source.room.name), "ROOM PLANNER:");
-        }
-        source.memory.link = undefined;
-    }
-
-    // Helper function to create a new source link
-    function createSourceLink(source, sourceContainer) {
-        let zoneTerrain = source.room.lookForAtArea(LOOK_TERRAIN, sourceContainer.pos.y - 1, sourceContainer.pos.x - 1, sourceContainer.pos.y + 1, sourceContainer.pos.x + 1, true);
-        const controllerContainer = Game.getObjectById(room.memory.controllerContainer);
-        for (let key in zoneTerrain) {
-            let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, source.room.name);
-            if (position.checkForWall() || position.checkForAllStructure() || position.isNearTo(controllerContainer) || position.checkIfOutOfBounds()) continue;
-            if (position.createConstructionSite(STRUCTURE_LINK) === OK) return true;
-            break;
         }
     }
 }
@@ -419,7 +481,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
         if (!ramparts || !ramparts.length) return false;
         let counter = 0;
         const rampartPositions = ramparts.map(p => new RoomPosition(p.x, p.y, room.name));
-        const vulnerableStructures = room.structures.filter((s) => !s.pos.checkForRampart());
+        const vulnerableStructures = room.structures.filter((s) => s.structureType !== STRUCTURE_WALL && !s.pos.checkForRampart());
         for (const structure of vulnerableStructures) {
             if (counter >= 3) return true;
             const rangeFromRampart = structure.pos.getRangeTo(structure.pos.findClosestByRange(rampartPositions));
@@ -649,7 +711,7 @@ function roadBuilder(room, layout) {
     if (room.memory.towerHubs && room.memory.towerHubs.length && buildTowerRoads(room)) return true;
 
     // RCL 6+ lab and mineral roads
-    if (room.level >= 6 && buildMineralAndLabRoads(room)) return true;
+    if (room.level >= 6 && buildMineralLinkAndLabRoads(room)) return true;
 
     // RCL 7+ we build rampart roads
     if (room.level >= BUNKER_LEVEL && buildRoadsForRamparts(room)) return true;
@@ -702,14 +764,14 @@ function roadBuilder(room, layout) {
         return false;
     }
 
-    function buildMineralAndLabRoads(room) {
+    function buildMineralLinkAndLabRoads(room) {
         let container = Game.getObjectById(room.memory.extractorContainer);
         let spawn = _.find(room.impassibleStructures.filter(s => s.structureType === STRUCTURE_SPAWN));
         if (container && spawn && buildRoadFromTo(room, spawn, container)) return true;
-        let labs = room.impassibleStructures.filter(s => s.structureType === STRUCTURE_LAB);
-        if (labs.length) {
+        let labsLinks = room.impassibleStructures.filter(s => s.structureType === STRUCTURE_LAB || s.structureType === STRUCTURE_LINK);
+        if (labsLinks.length) {
             let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-            for (let lab of labs) {
+            for (let lab of labsLinks) {
                 if (buildRoadFromTo(room, lab, hub)) return true;
             }
         }

@@ -29,10 +29,10 @@ class RoleLabTech {
         if (this.boostDelivery()) return;
         // Make sure labs have energy
         if (this.labEnergy()) return;
-        // Empty labs
-        if (this.emptyLab()) return;
         // Empty mineral harvester container
         if (this.mineralHauler()) return;
+        // Empty labs
+        if (this.emptyLab()) return;
         // Handle dropped goodies
         if (this.droppedResources()) return;
         // Empty factories
@@ -448,7 +448,7 @@ class RoleLabTech {
 
         if (container) {
             // Assign the first available resource in the container to the creep's memory
-            const resourceType = Object.keys(container.store).find(r => container.store.getUsedCapacity(r) >= container.store.getCapacity() * 0.5 ||
+            const resourceType = Object.keys(container.store).find(r => container.store.getUsedCapacity(r) >= CONTAINER_CAPACITY * 0.5 ||
                 !this.room.mineral.mineralAmount || (r !== RESOURCE_ENERGY && !container.pos.isNearTo(this.room.mineral)));
             if (resourceType) {
                 this.creep.memory.resourceNeeded = resourceType;
