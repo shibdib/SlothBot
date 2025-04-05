@@ -291,7 +291,7 @@ function secondaryLinks(room) {
                             y = 49;
                         }
                         
-                        let pos = new RoomPosition(exitTiles[middle].x + xOff, exitTiles[middle].y + yOff, room.name);
+                        let pos = new RoomPosition(x, y, room.name);
                         console.log(pos);
                         if (!pos.checkIfOutOfBounds() && !pos.checkForBarrierStructure() && pos.createConstructionSite(STRUCTURE_LINK) === OK) {
                             const roomTracker = _.find(linkTracker[room.name], (l) => l.room === remoteRoom);
