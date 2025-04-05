@@ -275,21 +275,11 @@ function secondaryLinks(room) {
                         let x = exitTiles[middle].x + xOff;
                         let y = exitTiles[middle].y + yOff;
 
-                        if (x < 0) {
-                            x = 0;
-                        }
-
-                        if (y < 0) {
-                            y = 0;
-                        }
-
-                        if (x > 49) {
-                            x = 49;
-                        }
-
-                        if (y > 49) {
-                            y = 49;
-                        }
+                        // Clamp x to the range [0, 49]
+                        x = Math.max(0, Math.min(x, 49));
+                        
+                        // Clamp y to the range [0, 49]
+                        y = Math.max(0, Math.min(y, 49));
                         
                         let pos = new RoomPosition(x, y, room.name);
                         console.log(pos);
