@@ -271,6 +271,26 @@ function secondaryLinks(room) {
             for (let xOff = -3; xOff <= 3; xOff++) {
                 for (let yOff = -3; yOff <= 3; yOff++) {
                     if (xOff !== 0 || yOff !== 0) {
+
+                        let x = exitTiles[middle].x + xOff;
+                        let y = exitTiles[middle].y + yOff;
+
+                        if (x < 0) {
+                            x = 0;
+                        }
+
+                        if (y < 0) {
+                            y = 0;
+                        }
+
+                        if (x > 49) {
+                            x = 49;
+                        }
+
+                        if (y > 49) {
+                            y = 49;
+                        }
+                        
                         let pos = new RoomPosition(exitTiles[middle].x + xOff, exitTiles[middle].y + yOff, room.name);
                         console.log(pos);
                         if (!pos.checkIfOutOfBounds() && !pos.checkForBarrierStructure() && pos.createConstructionSite(STRUCTURE_LINK) === OK) {
