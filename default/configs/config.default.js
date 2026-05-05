@@ -49,6 +49,7 @@ global.CREDIT_BUFFER = 10000; // Stay above this amount
 global.REACTION_AMOUNT = 10000; // Minimum amount we aim for base minerals
 global.TERMINAL_ENERGY_BUFFER = 10000; // Keep this much in terminal (Needed for trade)
 global.SELL_BOOSTS = false; // If we should sell spare boosts or not
+global.SELL_ENERGY = false;
 
 // Room Build
 global.BUNKER_LEVEL = 5; // What level do we start building the bunker

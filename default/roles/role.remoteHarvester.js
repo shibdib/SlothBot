@@ -18,20 +18,23 @@ class RoleRemoteHarvester {
     }
 
     housekeeping() {
-        // SK Safety
-        if (this.creep.skSafety()) {
+        // SK Safety - Throttled
+        if ((this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk)) && this.creep.skSafety()) {
             this.creep.memory.onContainer = undefined;
             return true;
         }
-        // Handle room reservation/ownership
-        if (this.room.controller && (this.room.controller.reservation && this.room.controller.reservation.username !== MY_USERNAME)) {
+
+        // Handle room reservation/ownership - Throttled
+        if (Game.time % 20 === 0 && this.room.controller && (this.room.controller.reservation && this.room.controller.reservation.username !== MY_USERNAME)) {
             this.room.cacheRoomIntel(true);
             return this.creep.recycleCreep();
         }
+
         // Periodically check the container
-        if (this.creep.memory.onContainer && this.container && this.creep.pos.getRangeTo(this.container)) {
+        if (this.creep.memory.onContainer && this.container && !this.creep.pos.isEqualTo(this.container.pos)) {
             this.creep.memory.onContainer = undefined;
         }
+        return false;
     }
 
     harvestSource() {
@@ -43,50 +46,49 @@ class RoleRemoteHarvester {
 
         // Move to or stay on container
         if (this.container && !this.creep.memory.onContainer) {
-            if (this.creep.pos.getRangeTo(this.container)) {
+            if (!this.creep.pos.isEqualTo(this.container.pos)) {
                 return this.creep.shibMove(this.container, {range: 0});
             }
             this.creep.memory.onContainer = true;
-        } else if (!this.container) {
-            harvestDepositContainer(Game.getObjectById(this.creep.memory.other.source), this.creep);
+        } else if (!this.container && Game.time % 10 === 0) {
+            harvestDepositContainer(source, this.creep);
         } else if (!this.creep.memory.onContainer && !this.creep.pos.isNearTo(source)) {
             return this.creep.shibMove(source);
         }
 
         // Harvest logic
-        switch (this.creep.harvest(source)) {
-            case ERR_NOT_IN_RANGE:
-                return this.creep.shibMove(source);
-            case ERR_NOT_ENOUGH_RESOURCES:
-                return this.creep.idleFor(source.ticksToRegeneration + 1);
-            case OK:
-                // Set harvest power if not set
-                if (!this.creep.memory.other.haulingRequired) {
-                    const power = this.creep.getActiveBodyparts(WORK) * HARVEST_POWER;
-                    const sourceInfo = _.find(ROOM_REMOTE_TARGETS[this.creep.memory.colony], (s) => s.source === this.creep.memory.other.source);
-                    const sourceScore = sourceInfo ? sourceInfo.score : 30;
-                    this.creep.memory.other.haulingRequired = power * (sourceScore * 2);
-                }
-                // Handle container or construction site
-                if (this.container) {
-                    this.handleContainer();
-                } else {
-                    this.handleDroppedResources();
-                }
-                break;
+        const result = this.creep.harvest(source);
+        if (result === OK) {
+            // Set harvest power if not set
+            if (!this.creep.memory.other.haulingRequired) {
+                const power = this.creep.getActiveBodyparts(WORK) * HARVEST_POWER;
+                const sourceInfo = _.find(ROOM_REMOTE_TARGETS[this.creep.memory.colony], (s) => s.source === this.creep.memory.other.source);
+                const distance = sourceInfo ? sourceInfo.score : 50;
+                this.creep.memory.other.haulingRequired = power * (distance * 2.1); // Reduced buffer slightly
+            }
+            // Handle container or construction site
+            if (this.container) {
+                this.handleContainer();
+            } else {
+                this.handleDroppedResources();
+            }
+        } else if (result === ERR_NOT_IN_RANGE) {
+            this.creep.shibMove(source);
+        } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
+            this.creep.idleFor(source.ticksToRegeneration + 1);
         }
     }
 
     handleContainer() {
-        // Repair or manage container status
+        // Repair or manage container status - Throttled
         if (this.container.hits) {
-            if (this.creep.store[RESOURCE_ENERGY] && this.container.hits < this.container.hitsMax * 0.5) {
-                return this.creep.repair(this.container);
+            if (Game.time % 20 === 0 && this.creep.store[RESOURCE_ENERGY]) {
+                if (this.container.hits < this.container.hitsMax * 0.5 || (this.container.hits < this.container.hitsMax && this.container.store.getUsedCapacity() >= CONTAINER_CAPACITY * 0.8)) {
+                    return this.creep.repair(this.container);
+                }
             }
-            const containerStore = _.sum(this.container.store);
-            if (containerStore >= CONTAINER_CAPACITY * 0.75 && this.container.hits < this.container.hitsMax) {
-                return this.creep.repair(this.container);
-            } else if (containerStore >= CONTAINER_CAPACITY * 0.8) {
+            const containerStore = this.container.store.getUsedCapacity(RESOURCE_ENERGY);
+            if (containerStore >= CONTAINER_CAPACITY * 0.8) {
                 this.handleHaulerCheck();
             } else if (Game.rooms[this.creep.memory.colony].memory.additionalRemoteHaulingNeeded < Game.time) {
                 Game.rooms[this.creep.memory.colony].memory.additionalRemoteHaulingNeeded = undefined;
@@ -112,12 +114,15 @@ class RoleRemoteHarvester {
     }
 
     handleHaulerCheck() {
-        if (this.creep.memory.other.hauler) {
-            const hauler = _.find(Game.creeps, (c) => c.my && c.memory.other.harvester === this.creep.id);
-            if (!hauler) this.creep.memory.other.hauler = undefined;
+        if (Game.time % 20 !== 0) return;
+        const hauler = Game.getObjectById(this.creep.memory.other.hauler);
+        if (hauler) return;
+        const haulerObj = _.find(this.room.myCreeps, (c) => c.memory.role === 'remoteHauler' && c.memory.other.harvester === this.creep.id);
+        if (haulerObj) {
+            this.creep.memory.other.hauler = haulerObj.id;
+        } else {
+            Game.rooms[this.creep.memory.colony].memory.additionalRemoteHaulingNeeded = Game.time + 500;
         }
-        Game.rooms[this.creep.memory.colony].memory.additionalRemoteHaulingNeeded = Game.time + 500;
-        this.creep.idleFor(20);
     }
 }
 

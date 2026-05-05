@@ -7,6 +7,7 @@
 // 70 routes
 const activeSegments = [0, 1, 2, 3, 4, 23, 69, 70, 77, 98];
 const publicSegments = [77];
+const INTEL_SEGMENTS = [0, 1, 2, 3];
 
 module.exports.init = function () {
     RawMemory.setActiveSegments(activeSegments);
@@ -19,36 +20,52 @@ module.exports.init = function () {
 
 let intelSegmentChecked;
 let intelCheckCounter = 0;
-let segmentNumber = 0;
-try {
-    if (Game.shard.name.match(/\d+/) !== null) segmentNumber = Game.shard.name.match(/\d+/)[0];
-} catch (e) {
-    // For some reason private servers hate this
-}
+
 module.exports.retrieveIntel = function () {
     if (intelSegmentChecked) return true;
+
     // Retrieve intel cache
     if (intelCheckCounter < 5) {
         if (Memory.intelVersion === INTEL_VERSION) {
-            if (RawMemory.segments[segmentNumber]) {
+            let allAccessible = true;
+            for (let id of INTEL_SEGMENTS) {
+                if (RawMemory.segments[id] === undefined) {
+                    allAccessible = false;
+                    break;
+                }
+            }
+
+            if (allAccessible) {
                 intelSegmentChecked = true;
-                global.INTEL = JSON.parse(RawMemory.segments[segmentNumber]) || {};
-                log.e("Intel segment retrieved, restoring old intel.", "INTEL MANAGER: ");
+                global.INTEL = {};
+                for (let id of INTEL_SEGMENTS) {
+                    if (RawMemory.segments[id]) {
+                        try {
+                            Object.assign(global.INTEL, JSON.parse(RawMemory.segments[id]));
+                        } catch (e) {
+                            log.e(`Error parsing intel segment ${id}, skipping.`, "INTEL MANAGER: ");
+                        }
+                    }
+                }
+                log.a("Intel segments retrieved, restoring old intel.", "INTEL MANAGER: ");
             } else {
                 intelCheckCounter++;
                 RawMemory.setActiveSegments(activeSegments);
-                log.d("Intel segment not accessible, enabling the segment for the next tick.", "INTEL MANAGER: ");
+                log.a("Intel segments not accessible, enabling them for the next tick.", "INTEL MANAGER: ");
+                return true; // Don't skip tick, just run without cache for one tick to prevent loop block
             }
         } else {
             intelSegmentChecked = true;
-            log.e("Intel update detected, wiping caches.", "INTEL MANAGER: ");
-            RawMemory.segments[segmentNumber] = '';
+            log.a("Intel update detected, wiping caches.", "INTEL MANAGER: ");
+            for (let id of INTEL_SEGMENTS) {
+                RawMemory.segments[id] = '';
+            }
             Memory.intelVersion = INTEL_VERSION;
         }
     } else {
         intelSegmentChecked = true;
         global.INTEL = {};
-        log.e("Intel segment not accessible, defaulting to global.", "INTEL MANAGER: ");
+        log.a("Intel segments not accessible after 5 attempts, defaulting to empty.", "INTEL MANAGER: ");
     }
     return true;
 }
@@ -57,14 +74,15 @@ let lastIntelStore;
 module.exports.storeIntel = function () {
     // Don't store if we never retrieved
     if (!intelSegmentChecked) {
-        log.d("Intel segment not accessed, not storing.", "INTEL MANAGER: ");
+        log.d("Intel segments not accessed, not storing.", "INTEL MANAGER: ");
         return;
     }
     if (!lastIntelStore || lastIntelStore + 500 < Game.time || INTEL_ROOM_PURGE.length || Memory.forceIntel) {
         Memory.forceIntel = undefined;
         // Check for invalid cache
         if (!_.size(INTEL) || !INTEL[Object.keys(INTEL)[0]].name) {
-            log.e('Invalid intel cache, clearing.', "INTEL MANAGER: ");
+            log.a('Invalid intel cache, clearing.', "INTEL MANAGER: ");
+            lastIntelStore = Game.time;
             return global.INTEL = {};
         }
         // Purge any rooms as required
@@ -72,15 +90,28 @@ module.exports.storeIntel = function () {
             INTEL_ROOM_PURGE.forEach((r) => INTEL[r] = undefined);
             global.INTEL_ROOM_PURGE = [];
         }
-        // Store the data
-        let store = JSON.parse(JSON.stringify(INTEL));
+
+        // Store the data across multiple segments
         try {
-            if (JSON.stringify(store).length >= 75000) {
-                store = cleanStore(store);
+            const segmentsData = {0: {}, 1: {}, 2: {}, 3: {}};
+            let i = 0;
+            for (let roomName in INTEL) {
+                if (!INTEL[roomName]) continue;
+                // Distribute evenly across the 4 segments
+                segmentsData[INTEL_SEGMENTS[i % INTEL_SEGMENTS.length]][roomName] = INTEL[roomName];
+                i++;
             }
-            RawMemory.segments[segmentNumber] = JSON.stringify(store);
+
+            for (let id of INTEL_SEGMENTS) {
+                let stringified = JSON.stringify(segmentsData[id]);
+                if (stringified.length >= 95000) { // Limit bumped to 95k per segment
+                    cleanStore(segmentsData[id]);
+                    stringified = JSON.stringify(segmentsData[id]);
+                }
+                RawMemory.segments[id] = stringified;
+            }
+            
             lastIntelStore = Game.time;
-            global.INTEL = store;
         } catch (e) {
             log.e("Error stringifying intel cache, skipping store.", "INTEL MANAGER: ");
             log.e(e.stack);
@@ -95,37 +126,43 @@ module.exports.retrievePathing = function () {
     // Retrieve pathing and routing cache
     if (pathingCheckCounter < 25) {
         if (Memory.pathingVersion === PATHFINDER_VERSION) {
-            // Paths
-            if (RawMemory.segments[69] !== undefined && _.size(RawMemory.segments[69])) {
-                pathingSegmentChecked = true;
-                CACHE.PATH_CACHE = JSON.parse(RawMemory.segments[69]);
-                log.e("Pathing segment retrieved, restoring old path cache.", "PATHING MANAGER: ");
-            } else if (RawMemory.segments[69] !== undefined && !_.size(RawMemory.segments[69])) {
-                pathingSegmentChecked = true;
-                CACHE.PATH_CACHE = {};
-                log.e("Pathing segment retrieved and is empty, refreshing path cache.", "PATHING MANAGER: ");
-            } else {
+            if (RawMemory.segments[69] === undefined || RawMemory.segments[70] === undefined) {
                 pathingCheckCounter++;
                 RawMemory.setActiveSegments(activeSegments);
-                log.d("Pathing segment not accessible, enabling the segment for the next tick.", "PATHING MANAGER: ");
+                log.a("Pathing/Routing segments not accessible, enabling them for the next tick.", "PATHING MANAGER: ");
+                return true; // Don't skip tick
             }
-            // Routes
-            if (RawMemory.segments[70] !== undefined && _.size(RawMemory.segments[70])) {
-                pathingSegmentChecked = true;
-                CACHE.ROUTE_CACHE = JSON.parse(RawMemory.segments[70]);
-                log.e("Routing segment retrieved, restoring old routing cache.", "PATHING MANAGER: ");
-            } else if (RawMemory.segments[70] !== undefined && !_.size(RawMemory.segments[70])) {
-                pathingSegmentChecked = true;
-                CACHE.ROUTE_CACHE = {};
-                log.e("Routing segment retrieved and is empty, refreshing routing cache.", "PATHING MANAGER: ");
+
+            pathingSegmentChecked = true;
+
+            // Paths
+            if (_.size(RawMemory.segments[69])) {
+                try {
+                    CACHE.PATH_CACHE = JSON.parse(RawMemory.segments[69]);
+                    log.e("Pathing segment retrieved, restoring old path cache.", "PATHING MANAGER: ");
+                } catch (e) {
+                    CACHE.PATH_CACHE = {};
+                }
             } else {
-                pathingCheckCounter++;
-                RawMemory.setActiveSegments(activeSegments);
-                log.d("Routing segment not accessible, enabling the segment for the next tick.", "PATHING MANAGER: ");
+                CACHE.PATH_CACHE = {};
+                log.a("Pathing segment retrieved and is empty, refreshing path cache.", "PATHING MANAGER: ");
+            }
+
+            // Routes
+            if (_.size(RawMemory.segments[70])) {
+                try {
+                    CACHE.ROUTE_CACHE = JSON.parse(RawMemory.segments[70]);
+                    log.a("Routing segment retrieved, restoring old routing cache.", "PATHING MANAGER: ");
+                } catch (e) {
+                    CACHE.ROUTE_CACHE = {};
+                }
+            } else {
+                CACHE.ROUTE_CACHE = {};
+                log.a("Routing segment retrieved and is empty, refreshing routing cache.", "PATHING MANAGER: ");
             }
         } else {
             pathingSegmentChecked = true;
-            log.e("Pathfinder update detected, wiping caches.", "PATHING MANAGER: ");
+            log.a("Pathfinder update detected, wiping caches.", "PATHING MANAGER: ");
             RawMemory.segments[69] = '';
             RawMemory.segments[70] = '';
             Memory.pathingVersion = PATHFINDER_VERSION;
@@ -134,7 +171,7 @@ module.exports.retrievePathing = function () {
         pathingSegmentChecked = true;
         global.CACHE.PATH_CACHE = {};
         global.CACHE.ROUTE_CACHE = {};
-        log.e("Pathing/Routing segment not accessible, resetting.", "PATHING MANAGER: ");
+        log.a("Pathing/Routing segment not accessible, resetting.", "PATHING MANAGER: ");
     }
     return true;
 }
@@ -143,50 +180,52 @@ let lastPathingStore;
 module.exports.storePathing = function () {
     // Don't store if we never retrieved
     if (!pathingSegmentChecked) {
-        log.d("Pathing segment not accessed, not storing.", "PATHING MANAGER: ");
+        log.a("Pathing segment not accessed, not storing.", "PATHING MANAGER: ");
         return;
     }
     if (!lastPathingStore || lastPathingStore + CREEP_LIFE_TIME < Game.time) {
         // Handle paths
-        // Check for invalid cache
         if (!_.size(CACHE.PATH_CACHE)) {
-            return global.CACHE.PATH_CACHE = {};
-        }
-        let store = JSON.parse(JSON.stringify(CACHE.PATH_CACHE));
-        try {
-            if (JSON.stringify(store).length >= 75000) {
-                store = cleanStore(store);
+            global.CACHE.PATH_CACHE = {};
+        } else {
+            try {
+                let stringified = JSON.stringify(CACHE.PATH_CACHE);
+                if (stringified.length >= 75000) {
+                    cleanStore(CACHE.PATH_CACHE);
+                    stringified = JSON.stringify(CACHE.PATH_CACHE);
+                }
+                RawMemory.segments[69] = stringified;
+                lastPathingStore = Game.time;
+            } catch (e) {
+                log.e("Error stringifying pathing cache, skipping store.", "PATHING MANAGER: ");
+                log.e(e.stack);
             }
-            RawMemory.segments[69] = JSON.stringify(store);
-            lastPathingStore = Game.time;
-        } catch (e) {
-            log.e("Error stringifying pathing cache, skipping store.", "PATHING MANAGER: ");
-            log.e(e.stack);
         }
 
         // Handle routes
-        // Check for invalid cache
         if (!_.size(CACHE.ROUTE_CACHE)) {
-            return global.CACHE.ROUTE_CACHE = {};
-        }
-        store = JSON.parse(JSON.stringify(CACHE.ROUTE_CACHE));
-        try {
-            if (JSON.stringify(store).length >= 75000) {
-                store = cleanStore(store);
+            global.CACHE.ROUTE_CACHE = {};
+        } else {
+            try {
+                let stringified = JSON.stringify(CACHE.ROUTE_CACHE);
+                if (stringified.length >= 75000) {
+                    cleanStore(CACHE.ROUTE_CACHE);
+                    stringified = JSON.stringify(CACHE.ROUTE_CACHE);
+                }
+                RawMemory.segments[70] = stringified;
+                lastPathingStore = Game.time;
+            } catch (e) {
+                log.e("Error stringifying routing cache, skipping store.", "PATHING MANAGER: ");
+                log.e(e.stack);
             }
-            RawMemory.segments[70] = JSON.stringify(store);
-            lastPathingStore = Game.time;
-        } catch (e) {
-            log.e("Error stringifying routing cache, skipping store.", "PATHING MANAGER: ");
-            log.e(e.stack);
         }
     }
 }
 
 function logRequests() {
-    if (!LOAN_CHECK) return;
+    if (!global.LOAN_CHECK) return;
     // Store last tick
-    if (RawMemory.foreignSegment && FRIENDLIES.includes(RawMemory.foreignSegment.username) && RawMemory.foreignSegment.id === 77) {
+    if (RawMemory.foreignSegment && RawMemory.foreignSegment && FRIENDLIES.includes(RawMemory.foreignSegment.username) && RawMemory.foreignSegment.id === 77) {
         ALLY_HELP_REQUESTS[RawMemory.foreignSegment.username] = JSON.parse(RawMemory.foreignSegment.data);
     }
     // Lookup and store for review next tick
@@ -214,26 +253,22 @@ function logRequests() {
 }
 
 function cleanStore(store) {
-    let totalSize = 0;
-    let sorted = _.sortBy(Object.values(store), 'cached'); // Use Object.values for less iteration
-    let newStore = {};
-    for (let i = sorted.length - 1; i >= 0; i--) { // Iterate from the end to keep newer data
-        let item = sorted[i];
-        let itemString = JSON.stringify(item);
-        if (totalSize + itemString.length < 75000) {
-            newStore[item.roomName || item.name] = item; // Assuming each item has either roomName or name
-            totalSize += itemString.length;
-        } else {
-            // Optionally, log items that are being dropped
-            log.d(`Dropping item due to size limit: ${item.roomName || item.name}`, "INTEL MANAGER: ");
-            break; // Once we can't add more, stop the loop to save CPU
-        }
+    let keys = Object.keys(store);
+    // Sort keys based on 'cached' or 'tick' property so older items are first.
+    // If neither property is available, we just use random order.
+    keys.sort((a, b) => {
+        const itemA = store[a];
+        const itemB = store[b];
+        const valA = itemA.cached || itemA.tick || 0;
+        const valB = itemB.cached || itemB.tick || 0;
+        return valA - valB;
+    });
+
+    let toRemove = Math.floor(keys.length * 0.25); // Remove oldest 25%
+    for (let i = 0; i < toRemove; i++) {
+        const key = keys[i];
+        log.d(`Dropping item due to size limit: ${key}`, "INTEL MANAGER: ");
+        delete store[key];
     }
-    for (let key in store) {
-        if (!(key in newStore)) {
-            delete store[key];
-        }
-    }
-    Object.assign(store, newStore);
     return store;
 }

@@ -5,56 +5,65 @@ class LinkControl {
     }
 
     run(room) {
-        // Get all available links with conditions inlined
-        let links = room.impassibleStructures.filter(s =>
+        // Skip if no structures to avoid filtering cost
+        if (!room.structures.length) return;
+
+        // Skip tick if no links or no energy in links
+        if (Game.time % 2 !== 0 && !room.memory.linkCooldown) return;
+
+        // Get all links that aren't on cooldown and have energy
+        const links = room.structures.filter(s =>
             s.structureType === STRUCTURE_LINK &&
-            !s.cooldown &&
-            s.store[RESOURCE_ENERGY]
-        ).sort(() => Math.random() - 0.5); // Shuffle array
+            s.store[RESOURCE_ENERGY] > 0
+        );
 
-        if (!links.length) return;
+        if (!links.length) {
+            room.memory.linkCooldown = undefined;
+            return;
+        }
+        room.memory.linkCooldown = true;
 
-        let hubLink = Game.getObjectById(room.memory.hubLink);
-        let controllerLink = Game.getObjectById(room.memory.controllerLink);
+        const hubLink = Game.getObjectById(room.memory.hubLink);
+        const controllerLink = Game.getObjectById(room.memory.controllerLink);
 
-        // Set controller link if not already set
-        if (!controllerLink || !(controllerLink instanceof StructureLink)) this.setControllerLink(room, links, controllerLink);
+        // Validation and lazy setting of controller link
+        if (Game.time % 100 === 0 || !controllerLink) {
+            this.updateSpecialLinks(room, links);
+        }
 
-        // Ensure hub link is valid or delete from memory if not
-        if (!hubLink || !(hubLink instanceof StructureLink)) delete room.memory.hubLink;
+        // Filter for source links (anything that isn't hub or controller link)
+        const sourceLinks = links.filter(l => l.id !== room.memory.hubLink && l.id !== room.memory.controllerLink && !l.cooldown);
+        if (!sourceLinks.length) {
+            // Even if no source links, hub might need to send to controller
+            if (hubLink && !hubLink.cooldown && hubLink.store[RESOURCE_ENERGY] >= 400 && controllerLink && controllerLink.store[RESOURCE_ENERGY] < 400) {
+                hubLink.transferEnergy(controllerLink);
+            }
+            return;
+        }
 
-        // Process links and handle energy transfer
-        links.forEach(link => this.processLink(link, room, hubLink, controllerLink));
-    }
+        for (const link of sourceLinks) {
+            // Prioritize controller if upgrader is present
+            if (controllerLink && controllerLink.store.getFreeCapacity(RESOURCE_ENERGY) >= 400) {
+                if (link.transferEnergy(controllerLink) === OK) continue;
+            }
 
-    setControllerLink(room, links, controllerLink) {
-        controllerLink = links.find(s => s.pos.findInRange(room.structures, 2,
-            {filter: f => f.structureType === STRUCTURE_CONTROLLER}
-        )[0]);
-        if (controllerLink) room.memory.controllerLink = controllerLink.id;
-    }
-
-    processLink(link, room, hubLink, controllerLink) {
-        //if (link.id === room.memory.hubLink && link.room.energyAvailable !== link.room.energyCapacityAvailable) return;
-
-        // Controller link only shares if room is under attack
-        if (link.id === room.memory.controllerLink && !room.memory.dangerousAttack) return;
-
-        const upgrader = room.creeps.find(c => c.memory && c.memory.role === 'upgrader' && c.memory.inPosition);
-
-        // Simplified energy transfer logic
-        if (upgrader && controllerLink && controllerLink.store[RESOURCE_ENERGY] < LINK_CAPACITY * 0.5) {
-            link.transferEnergy(controllerLink);
-        } else {
-            if (hubLink && !hubLink.room.energyState) {
-                link.transferEnergy(hubLink);
-            } else if (hubLink && hubLink.store[RESOURCE_ENERGY] < 400) {
-                link.transferEnergy(hubLink);
-            } else if (controllerLink && controllerLink.store[RESOURCE_ENERGY] < LINK_CAPACITY * 0.7) {
-                link.transferEnergy(controllerLink);
-            } else if (hubLink && hubLink.store[RESOURCE_ENERGY] < LINK_CAPACITY) {
+            // Otherwise send to hub
+            if (hubLink && hubLink.id !== link.id && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
                 link.transferEnergy(hubLink);
             }
+        }
+    }
+
+    updateSpecialLinks(room, links) {
+        // Find controller link
+        if (!room.memory.controllerLink || !Game.getObjectById(room.memory.controllerLink)) {
+            const cLink = room.controller.pos.findInRange(links, 4)[0];
+            if (cLink) room.memory.controllerLink = cLink.id;
+        }
+
+        // Cleanup hub link if it's gone
+        if (room.memory.hubLink && !Game.getObjectById(room.memory.hubLink)) {
+            delete room.memory.hubLink;
         }
     }
 }

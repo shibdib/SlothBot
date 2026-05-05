@@ -38,7 +38,7 @@ class RoleAttacker {
         creep.say('Woof!', true);
         if (creep.canIWin(5) && creep.handleMilitaryCreep()) return;
         if (!creep.memory.leader) {
-            const needsDog = _.find(Game.creeps, (c) => c.my && c.memory.leader && c.memory.squadMembers.length && (!c.memory.dog || !Game.getObjectById(c.memory.dog)));
+            const needsDog = _.find(Game.creeps, (c) => c.my && c.memory.leader && c.memory.squadMembers && c.memory.squadMembers.length && (!c.memory.dog || !Game.getObjectById(c.memory.dog)));
             if (needsDog) {
                 creep.memory.leader = needsDog.id;
                 needsDog.memory.dog = creep.id;

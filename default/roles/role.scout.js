@@ -14,6 +14,7 @@ class RoleScout {
     performRoleActions() {
         this.housekeeping();
         this.scoutRoom();
+        this.creep.moveToHostileConstructionSites();
     }
 
     housekeeping() {

@@ -12,8 +12,8 @@ class RoleShuttle {
     }
 
     performRoleActions() {
-        if (this.housekeeping()) return;
-        if (_.sum(this.creep.store) > this.creep.store.getCapacity() * 0.2) {
+        this.housekeeping();
+        if (this.creep.store[RESOURCE_ENERGY]) {
             this.hauling();
         } else {
             this.pickup();
@@ -22,37 +22,42 @@ class RoleShuttle {
 
     housekeeping() {
         this.creep.say(ICONS.haul, true);
-        this.creep.opportunisticFill();
+        if (Game.time % 5 === 0) this.creep.opportunisticFill();
     }
 
     hauling() {
-        if (_.sum(this.creep.store) > this.creep.store[RESOURCE_ENERGY]) {
-            let storageItem = this.creep.room.storage || _.filter(this.creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store.getFreeCapacity() >= CONTAINER_CAPACITY * 0.5)[0]
+        if (this.creep.room.storage) {
             for (const resourceType in this.creep.store) {
-                if (resourceType === RESOURCE_ENERGY) continue;
-                if (!storageItem) return this.creep.drop(resourceType);
-                switch (this.creep.transfer(storageItem, resourceType)) {
-                    case OK:
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        this.creep.shibMove(storageItem);
-                        break;
+                const result = this.creep.transfer(this.creep.room.storage, resourceType);
+                if (result === OK) {
+                    break;
+                } else if (result === ERR_NOT_IN_RANGE) {
+                    this.creep.shibMove(this.creep.room.storage);
+                    break;
                 }
             }
         } else {
-            if (!this.creep.memory.storageDestination) {
-                let controllerContainer = Game.getObjectById(this.creep.room.memory.controllerContainer);
-                if (this.creep.room.storage && this.creep.room.energyState > 1 && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 100) this.creep.memory.storageDestination = controllerContainer.id;
-                else if (this.creep.room.storage) this.creep.memory.storageDestination = this.creep.room.storage.id; else if (!this.creep.haulerDelivery()) this.creep.idleFor(this.creep.room.level);
-            } else this.creep.haulerDelivery();
+            if (!this.creep.haulerDelivery()) {
+                this.creep.idleFor(this.creep.room.level);
+            }
         }
     }
 
     pickup() {
+        // Prefer assigned source container when available
+        if (!this.creep.memory.energyDestination && this.creep.memory.other.assignedSource) {
+            const source = Game.getObjectById(this.creep.memory.other.assignedSource);
+            if (source && source.memory.container) {
+                const container = Game.getObjectById(source.memory.container);
+                if (container && container.store[RESOURCE_ENERGY] > 0) {
+                    this.creep.memory.energyDestination = source.memory.container;
+                }
+            }
+        }
         if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
-            this.creep.withdrawResource()
+            this.creep.withdrawResource();
         } else {
-            this.creep.idleFor(this.creep.room.level)
+            this.creep.idleFor(this.creep.room.level);
         }
     }
 }

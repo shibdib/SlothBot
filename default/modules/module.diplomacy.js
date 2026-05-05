@@ -7,6 +7,8 @@ let tempHostiles = {};
 module.exports.diplomacyManager = function () {
     if (!Memory._userList || !(Memory._userList instanceof Object)) Memory._userList = {};
     // Manage friendlies
+    if (!global.LOAN_LIST) global.LOAN_LIST = [];
+    if (!global.MANUAL_FRIENDS) global.MANUAL_FRIENDS = [];
     global.FRIENDLIES = _.union(LOAN_LIST, [MY_USERNAME], ['Shibdib'], MANUAL_FRIENDS).filter((u) => !_.find(tempHostiles, (h) => h.user === u && h.tick > Game.time));
     // Manage threats
     threatManager();
@@ -70,7 +72,7 @@ module.exports.trackThreat = function (creep) {
 
         const nearbyHostiles = _.uniq(_.pluck(_.filter(room.creeps,
                     function (c) {
-                        return (((c.hasActiveBodyparts(RANGED_ATTACK) && c.pos.inRangeTo(creep, 3)) || (c.hasActiveBodyparts(ATTACK) && c.pos.isNearTo(creep))) && c.owner.username !== MY_USERNAME);
+                        return (((c.hasActiveBodyparts(RANGED_ATTACK) && c.pos.inRangeTo(creep, 3)) || (c.hasActiveBodyparts(ATTACK) && c.pos.isNearTo(creep))) && c.owner && c.owner.username !== MY_USERNAME);
                     }
         ), "owner.username"));
 

@@ -4,14 +4,20 @@
 
 const profiler = require("tools.profiler");
 
+let _lastRun = 0;
+let _terrainCache = {}; // Terrain is static — cache forever
+
 class ExpansionControl {
     constructor() {
-        this.claimTarget = Memory.claimTarget || FORCE_CLAIM || {};
+        this.claimTarget = Memory.claimTarget || {};
         this.worthyRooms = [];
     }
 
     run() {
         if (!MY_ROOMS[0] || Object.keys(INTEL).length < 15) return;
+        // Expansion decisions change slowly — no need to re-evaluate every tick
+        if (_lastRun + 50 > Game.time) return;
+        _lastRun = Game.time;
 
         this.findClaimTarget();
 
@@ -28,9 +34,8 @@ class ExpansionControl {
         if (this.claimTarget.room) {
             const targetIntel = INTEL[this.claimTarget.room];
             if (!targetIntel || targetIntel.owner || targetIntel.reservation || this.claimTarget.tick + CREEP_LIFE_TIME < Game.time) {
-                if (FORCE_CLAIM && (!INTEL[Memory.forceClaim] || !INTEL[Memory.forceClaim].owner)) {
-                    this.claimTarget.room = FORCE_CLAIM;
-                    this.claimTarget.tick = Game.time;
+                if (FORCE_CLAIM && (!INTEL[FORCE_CLAIM] || !INTEL[FORCE_CLAIM].owner)) {
+                    this.claimTarget = {room: FORCE_CLAIM, tick: Game.time};
                     Memory.claimTarget = this.claimTarget;
                     return;
                 }
@@ -38,14 +43,12 @@ class ExpansionControl {
                 Memory.claimTarget = {};
                 this.claimTarget = {};
             } else {
-                return; // already have a valid target, proceed to claim operation
+                return;
             }
         }
 
-        if (FORCE_CLAIM && (!INTEL[Memory.forceClaim] || !INTEL[Memory.forceClaim].owner)) {
-            this.claimTarget = {};
-            this.claimTarget.room = FORCE_CLAIM;
-            this.claimTarget.tick = Game.time;
+        if (FORCE_CLAIM && (!INTEL[FORCE_CLAIM] || !INTEL[FORCE_CLAIM].owner)) {
+            this.claimTarget = {room: FORCE_CLAIM, tick: Game.time};
             Memory.claimTarget = this.claimTarget;
             return;
         }
@@ -53,15 +56,15 @@ class ExpansionControl {
         this.filterWorthyRooms();
         if (!this.worthyRooms.length) return;
 
-        // Prioritize rooms within the same sector
         const sameSectorRooms = this.worthyRooms.filter(room => myRoomInSectorCheck(room.name));
-        if (sameSectorRooms.length) {
-            this.worthyRooms = sameSectorRooms;
-        }
+        if (sameSectorRooms.length) this.worthyRooms = sameSectorRooms;
 
         this.scoreRooms();
         const max = _.max(this.worthyRooms, 'claimValue');
-        this.claimTarget.room = max ? max.name : undefined;
+        if (max && max.name) {
+            this.claimTarget = {room: max.name, tick: Game.time};
+            Memory.claimTarget = this.claimTarget;
+        }
     }
 
     filterWorthyRooms() {
@@ -81,15 +84,22 @@ class ExpansionControl {
         const neighboring = Object.values(Game.map.describeExits(roomName));
         for (const neighbor of neighboring) {
             const intel = INTEL[neighbor];
-            if (!intel) return false;
-            if (intel.owner) return false;
+            // Only hard-reject if we know the neighbor is owned by someone else.
+            // Missing intel is not a dealbreaker — we may not have scouted every room yet.
+            if (intel && intel.owner && intel.owner !== MY_USERNAME) return false;
         }
         return true;
     }
 
     scoreRooms() {
-        const friendlyRooms = Object.values(INTEL).filter(r => r.level && FRIENDLIES.includes(r.owner));
-        const enemyRooms = Object.values(INTEL).filter(r => r.level && HOSTILES.includes(r.owner));
+        // Single pass to build both lists instead of two separate filter scans
+        const friendlyRooms = [];
+        const enemyRooms = [];
+        for (const intel of Object.values(INTEL)) {
+            if (!intel.level || !intel.owner) continue;
+            if (FRIENDLIES.includes(intel.owner)) friendlyRooms.push(intel);
+            else if (HOSTILES.includes(intel.owner)) enemyRooms.push(intel);
+        }
 
         for (const room of this.worthyRooms) {
             room.claimValue = this.calculateRoomScore(room, friendlyRooms, enemyRooms);
@@ -99,59 +109,69 @@ class ExpansionControl {
     calculateRoomScore(room, friendlyRooms, enemyRooms) {
         let score = 10000;
 
-        // Penalize failed claim attempts
         if (room.failedClaim) {
             if (room.failedClaim >= 5) return undefined;
             score -= room.failedClaim * 1000;
         }
 
-        // Adjust score based on proximity to friendly rooms
+        // Proximity to friendly rooms — use linear distance to skip findRoute when clearly out of range
         for (const fRoom of friendlyRooms) {
+            const linearDist = Game.map.getRoomLinearDistance(room.name, fRoom.name);
+            if (linearDist > 20) continue;
             const distance = Game.map.findRoute(room.name, fRoom.name).length;
-            if (distance <= 2) return undefined; // Too close to allies
+            if (distance <= 2) return undefined;
             score += this.friendlyRoomScoreAdjustment(distance);
             if (AVOID_ALLIED_SECTORS && sameSectorCheck(room.name, fRoom.name)) score -= 500;
         }
 
-        // Adjust score based on proximity to enemy rooms
+        // Proximity to enemy rooms — linear distance is always <= route distance, so use it to skip
         for (const eRoom of enemyRooms) {
-            const distance = Math.min(
-                Game.map.getRoomLinearDistance(room.name, eRoom.name),
-                Game.map.findRoute(room.name, eRoom.name).length
-            );
+            const linearDist = Game.map.getRoomLinearDistance(room.name, eRoom.name);
+            if (linearDist > 6) continue;
+            // Only call findRoute when the enemy is close enough to matter
+            const distance = linearDist <= 3
+                ? Game.map.findRoute(room.name, eRoom.name).length
+                : linearDist;
             if (distance <= 3) score -= 10000 / distance;
             else if (distance < 6) score -= 250;
         }
 
-        // Score based on remote source access
+        // Count accessible remote sources from neighboring rooms
         const neighboring = Object.values(Game.map.describeExits(room.name));
         const sourceCount = neighboring.reduce((sum, r) => {
-            if (!INTEL[r]) return sum + 1;
-            return INTEL[r].user ? sum : sum + (INTEL[r].sources || 0);
+            const intel = INTEL[r];
+            if (!intel) return sum; // No intel — don't fabricate sources
+            if (intel.user) return sum; // Owned room — no remote sources available
+            return sum + (intel.sources || 0);
         }, 0);
 
         if (!sourceCount) return undefined;
         score += sourceCount * 250;
 
-        // Penalize swamp terrain
-        const terrain = Game.map.getRoomTerrain(room.name);
-        for (let y = 0; y < 50; y++) {
-            for (let x = 0; x < 50; x++) {
-                if (terrain.get(x, y) === TERRAIN_MASK_SWAMP) score -= 10;
-            }
-        }
+        score -= this.getSwampPenalty(room.name);
 
-        // Score based on minerals
         if (!MY_MINERALS[room.mineral]) {
             score += this.getMineralBonus(room.mineral);
         } else {
             score *= 0.5;
         }
 
-        // Prioritize rooms in the same sector
         if (myRoomInSectorCheck(room.name)) score += 7000;
 
         return score;
+    }
+
+    getSwampPenalty(roomName) {
+        if (_terrainCache[roomName] !== undefined) return _terrainCache[roomName];
+        const terrain = Game.map.getRoomTerrain(roomName);
+        let penalty = 0;
+        for (let y = 0; y < 50; y++) {
+            for (let x = 0; x < 50; x++) {
+                if (terrain.get(x, y) === TERRAIN_MASK_SWAMP) penalty += 10;
+            }
+        }
+        _terrainCache[roomName] = penalty;
+        return penalty;
     }
 
     friendlyRoomScoreAdjustment(distance) {
@@ -170,7 +190,10 @@ class ExpansionControl {
 
     claimOperation(claimTarget) {
         const roomName = claimTarget.room;
-        const limit = roomStatus(MY_ROOMS[0]) === 'novice' ? 3 : Memory.cpuTracking.roomPenalty && Memory.cpuTracking.roomPenalty + 50000 > Game.time ? Game.gcl.level - 1 : Game.gcl.level;
+        const limit = roomStatus(MY_ROOMS[0]) === 'novice' ? 3
+            : Memory.cpuTracking.roomPenalty && Memory.cpuTracking.roomPenalty + 50000 > Game.time
+                ? Game.gcl.level - 1
+                : Game.gcl.level;
 
         if (limit > MY_ROOMS.length && MAX_LEVEL >= 4 && !Memory.auxiliaryTargets[roomName]) {
             Memory.claimTarget = {};
@@ -187,12 +210,9 @@ class ExpansionControl {
     }
 
     checkForActiveClaims(auxiliaryTargets) {
-        for (let key in auxiliaryTargets) {
-            if (auxiliaryTargets.hasOwnProperty(key)) {
-                if (auxiliaryTargets[key] && (auxiliaryTargets[key].type === 'rebuild' || auxiliaryTargets[key].type === 'claim')) {
-                    return true;
-                }
-            }
+        for (const key in auxiliaryTargets) {
+            const target = auxiliaryTargets[key];
+            if (target && (target.type === 'rebuild' || target.type === 'claim')) return true;
         }
         return false;
     }

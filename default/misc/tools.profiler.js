@@ -112,6 +112,8 @@ function getFilter() {
 const functionBlackList = [
     'getUsed', // Let's avoid wrapping this... may lead to recursion issues and should be inexpensive.
     'constructor', // es6 class constructors need to be called with `new`
+    'toJSON', // native Screeps toJSON methods access internal state that can be undefined; wrapping them causes crashes during JSON.stringify
+    'owner', // native getter that can cause crashes when wrapped and stringified
 ];
 
 const commonProperties = ['length', 'name', 'arguments', 'caller', 'prototype'];

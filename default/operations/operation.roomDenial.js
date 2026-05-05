@@ -19,8 +19,8 @@ Creep.prototype.denyRoom = function () {
         // Track if active defenders spawn or not
         if (!this.memory.activeTracked || this.memory.activeTracked + 100 < Game.time) {
             if (this.memory.activeTracked) {
-                const armedHostiles = this.room.creeps.filter((c) => !c.my && (c.hasActiveBodyparts(ATTACK) || !c.hasActiveBodyparts(RANGED_ATTACK)));
-                if (!armedHostiles.length) INTEL[this.room.name].noActiveDefenders = true;
+                const armedHostiles = this.room.creeps.filter((c) => !c.my && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)));
+                if (armedHostiles.length) INTEL[this.room.name].activeDefenders = true;
             } else {
                 this.memory.activeTracked = Game.time;
             }
@@ -40,7 +40,7 @@ Creep.prototype.denyRoom = function () {
     // Handle staging and moving to destination
     if (!this.memory.misc || !this.memory.misc.stagingRoom) {
         if (!this.memory.misc) this.memory.misc = {};
-        this.memory.misc.stagingRoom = INTEL[this.memory.destination].attackDirection ? Game.map.describeExits(this.memory.destination)[INTEL[this.memory.destination].attackDirection] : this.memory.destination;
+        this.memory.misc.stagingRoom = INTEL[this.memory.destination] && INTEL[this.memory.destination].attackDirection ? Game.map.describeExits(this.memory.destination)[INTEL[this.memory.destination].attackDirection] : this.memory.destination;
     }
     if (this.memory.misc && this.memory.misc.stagingRoom && this.memory.misc.stagingRoom === this.room.name) this.memory.misc.staged = true;
     let destination = this.memory.misc && this.memory.misc.stagingRoom && !this.memory.misc.staged ? this.memory.misc.stagingRoom : this.memory.destination;

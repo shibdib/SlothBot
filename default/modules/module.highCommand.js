@@ -86,13 +86,13 @@ function militaryOperations() {
         }
     }
     // Handle stronghold operations
-    let activeStrongholdAttacks = _.find(Memory.targetRooms, (t) => t && t.type === 'stronghold');
-    if (!activeStrongholdAttacks) {
+    let activeStrongholdAttacks = _.size(_.filter(Memory.targetRooms, (t) => t && t.type === 'stronghold'));
+    if (activeStrongholdAttacks < OPERATION_LIMIT) {
         let stronghold = _.min(_.filter(INTEL, (r) => r && r.sk && !Memory.targetRooms[r.name] &&
             (r.invaderCore && r.invaderCore + CREEP_LIFE_TIME > Game.time) && r.towers && siegeLevel(r.towers) && myRoomInSectorCheck(r.name)
             && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time)), function (t) {
             if (!t.name) return Infinity;
-            return findClosestOwnedRoom(t.name, true);
+            return scoreTarget(t.name, 'stronghold');
         });
         if (stronghold && stronghold.name) setTarget(stronghold.name, 'stronghold', 1);
     }
@@ -111,7 +111,7 @@ function militaryOperations() {
             // If the enemy room only has one exit, we setup a guard op to camp instead
             let target = _.min(_.filter(initialFilter, (r) => r.owner && singleRemote(r.name)), function (t) {
                 if (!t.name) return Infinity;
-                return findClosestOwnedRoom(t.name, true);
+                return scoreTarget(t.name, 'guard');
             });
             if (target && target.name) {
                 setTarget(singleRemote(target.name), 'guard');
@@ -120,7 +120,7 @@ function militaryOperations() {
             // Active remote denial
             target = _.min(_.filter(initialFilter, (r) => r.owner), function (t) {
                 if (!t.name) return Infinity;
-                return findClosestOwnedRoom(t.name, true);
+                return scoreTarget(t.name, 'remoteDenial');
             });
             if (target && target.name) setTarget(target.name, 'remoteDenial');
 
@@ -130,7 +130,7 @@ function militaryOperations() {
             let target = _.min(_.filter(initialFilter, (r) => r.owner && !r.towers
                 && ((r.lastSiege || 0) + (ATTACK_COOLDOWN * 2) < Game.time) && !r.safemode), function (t) {
                 if (!t.name) return Infinity;
-                return findClosestOwnedRoom(t.name, true);
+                return scoreTarget(t.name, 'roomDenial');
             });
             if (target && target.name) setTarget(target.name, 'roomDenial');
 
@@ -138,11 +138,44 @@ function militaryOperations() {
             target = _.min(_.filter(initialFilter, (r) => r.owner && r.towers && siegeLevel(r.towers)
                 && ((r.lastSiege || 0) + (ATTACK_COOLDOWN * 2) < Game.time) && !r.safemode), function (t) {
                 if (!t.name) return Infinity;
-                return findClosestOwnedRoom(t.name, true);
+                return scoreTarget(t.name, 'roomDenial');
             });
             if (target && target.name) setTarget(target.name, 'roomDenial', target.towers <= 2 ? 3 : 4);
         }
     }
+}
+
+function scoreTarget(roomName, type) {
+    const r = INTEL[roomName];
+    if (!r) return Infinity;
+
+    let score = 0;
+    const distance = findClosestOwnedRoom(roomName, true);
+
+    // Distance factor (Closer is better)
+    score += distance * 20;
+
+    // Threat factor (Prioritize threats)
+    if (THREATS.includes(r.owner)) score -= 200;
+
+    // Room level and Tower factor
+    if (type === 'roomDenial') {
+        // For sieges, prefer slightly lower level or fewer towers if multiple options exist
+        score += (r.level || 0) * 10;
+        if (r.towers) score += r.towers * 50;
+    } else {
+        // For standard ops, easier targets are much better
+        score += (r.level || 0) * 30;
+        if (r.towers) score += r.towers * 100;
+    }
+
+    // Sector control factor
+    if (HOLD_SECTOR && myRoomInSectorCheck(roomName)) score -= 150;
+
+    // User strength check (Avoid picking on the super weak unless they are threats)
+    if (!THREATS.includes(r.owner) && r.level < 4) score += 100;
+
+    return score;
 }
 
 function auxiliaryOperations() {
@@ -227,27 +260,31 @@ function manageResponseForces() {
         let potentialTargets = [];
 
         // Support requested
-        let requestingSupport = _.findKey(INTEL, (r) => r && r.requestingSupport);
-        if (requestingSupport) {
-            potentialTargets.push({type: 'ownedRoomAttack', room: requestingSupport, priority: 10});
-        }
+        for (let rName in INTEL) {
+            let r = INTEL[rName];
+            if (r && r.requestingSupport) {
+                let prio = 10;
+                if (r.owner === MY_USERNAME) prio += 5; // Extra priority for our own rooms
+                potentialTargets.push({type: 'ownedRoomAttack', room: rName, priority: prio});
+            }
 
-        // Remote support hostile
-        let remoteSupport = _.findKey(INTEL, (r) => r && r.threatLevel > 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.friendlyPower < r.hostilePower) && findClosestOwnedRoom(r.name, true) <= 1);
-        if (remoteSupport) {
-            potentialTargets.push({type: 'remoteRoomAttack', room: remoteSupport, priority: 9});
-        }
+            // Remote support hostile
+            if (r && r.threatLevel > 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.friendlyPower < r.hostilePower)) {
+                let dist = findClosestOwnedRoom(rName, true);
+                if (dist <= 2) {
+                    potentialTargets.push({type: 'remoteRoomAttack', room: rName, priority: 9 - dist});
+                }
+            }
 
-        // Invader Core
-        let invaderCore = _.findKey(INTEL, (r) => r && r.invaderCore && r.activeRemote + CREEP_LIFE_TIME > Game.time && !r.responseDispatched);
-        if (invaderCore) {
-            potentialTargets.push({type: 'invaderCore', room: invaderCore, priority: 8});
-        }
+            // Invader Core
+            if (r && r.invaderCore && r.activeRemote + CREEP_LIFE_TIME > Game.time && !r.responseDispatched) {
+                potentialTargets.push({type: 'invaderCore', room: rName, priority: 8});
+            }
 
-        // Remote support unarmed
-        let remoteSupportUnarmed = _.findKey(INTEL, (r) => r && r.threatLevel === 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && !r.responseDispatched);
-        if (remoteSupportUnarmed) {
-            potentialTargets.push({type: 'unarmedVisitors', room: remoteSupportUnarmed, priority: 7});
+            // Remote support unarmed
+            if (r && r.threatLevel === 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && !r.responseDispatched) {
+                potentialTargets.push({type: 'unarmedVisitors', room: rName, priority: 7});
+            }
         }
 
         // Add guard duty rooms
@@ -322,10 +359,12 @@ function manageResponseForces() {
                 power: 0,
                 room: patrol.memory.destination
             };
-            incomingPower[patrol.memory.destination].power += abilityPower(patrol.body);
+            const ap = abilityPower(patrol.body);
+            incomingPower[patrol.memory.destination].power += ap.attack + ap.effectiveHeal + (ap.defense / 100);
         }
         for (const key in incomingPower) {
             const i = incomingPower[key];
+            if (!INTEL[i.room]) INTEL[i.room] = {};
             INTEL[i.room].friendlyPower = i.power;
         }
     }
@@ -503,11 +542,16 @@ function manageMilitary() {
             continue;
         }
 
-        if (target.friendlyDead && target.tick + CREEP_LIFE_TIME && target.friendlyDead > (target.enemyDead || 1000)) {
-            log.a('Canceling operation in ' + roomLink(key) + ' due to heavy casualties.', 'HIGH COMMAND: ');
-            delete Memory.targetRooms[key];
-            INTEL[key].lastOperation = Game.time;
-            INTEL[key].lastSiege = Game.time;
+        // Proportional casualty check
+        if (target.friendlyDead && target.tick + CREEP_LIFE_TIME < Game.time) {
+            const casualtyRatio = target.friendlyDead / (target.enemyDead || 100);
+            if (casualtyRatio > 2 && target.friendlyDead > 5000) {
+                log.a('Canceling operation in ' + roomLink(key) + ' due to unsustainable casualty ratio (' + casualtyRatio.toFixed(2) + ').', 'HIGH COMMAND: ');
+                delete Memory.targetRooms[key];
+                INTEL[key].lastOperation = Game.time;
+                INTEL[key].lastSiege = Game.time;
+                continue;
+            }
         }
     }
 }
@@ -646,7 +690,7 @@ function manualAttacks() {
         }
 
         // Handle bad room avoidance
-        if (operation.includes('remote')) {
+        if (operation.includes('noRemote')) {
             Memory.avoidRemotes = Memory.avoidRemotes || [];
             if (!Memory.avoidRemotes.includes(roomName)) {
                 Memory.avoidRemotes.push(roomName);
@@ -768,7 +812,13 @@ function nukeFlag(flag) {
 function autoNuke() {
     if (!Memory.MAD) return false;
     // Check for available nuker launchers
-    let availableLaunchers = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown);
+    let availableLaunchers = [];
+    for (let r of MY_ROOMS) {
+        let room = Game.rooms[r];
+        if (room && room.nuker && !room.nuker.store.getFreeCapacity(RESOURCE_ENERGY) && !room.nuker.store.getFreeCapacity(RESOURCE_GHODIUM) && !room.nuker.cooldown) {
+            availableLaunchers.push(room.nuker);
+        }
+    }
     if (!availableLaunchers.length) return;
 
     // Find the MAD target with a nuke target and no recent nukes

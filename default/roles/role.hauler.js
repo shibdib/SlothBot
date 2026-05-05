@@ -12,7 +12,7 @@ class RoleHauler {
 
     performRoleActions() {
         this.housekeeping()
-        if (_.sum(this.creep.store) > this.creep.store.getCapacity() * 0.2) {
+        if (this.creep.store.getUsedCapacity() > this.creep.store.getCapacity() * 0.2) {
             this.deliverResource();
         } else {
             this.findResource();
@@ -21,11 +21,11 @@ class RoleHauler {
 
     housekeeping() {
         this.creep.say(ICONS.haul, true);
-        this.creep.opportunisticFill();
+        if (Game.time % 2 === 0) this.creep.opportunisticFill();
     }
 
     deliverResource() {
-        if (!this.creep.haulerDelivery() && _.sum(this.creep.store)) return;
+        if (!this.creep.haulerDelivery() && this.creep.store.getUsedCapacity() > 0) return;
     }
 
     findResource() {

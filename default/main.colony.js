@@ -13,9 +13,10 @@ const diplomacy = require('module.diplomacy');
 const profiler = require('tools.profiler');
 
 class Colony {
-    constructor(room) {
+    constructor(room, creeps = []) {
         const worldStart = Game.cpu.getUsed();
         this.room = room;
+        this.creeps = creeps;
 
         // Handle room creeps
         this.creepManager();
@@ -46,7 +47,7 @@ class Colony {
     }
 
     creepManager() {
-        const roomCreeps = shuffle(Object.values(Game.creeps).filter(creep => creep.memory.colony === this.room.name && !creep.memory.military));
+        const roomCreeps = shuffle(this.creeps);
         for (const creep of roomCreeps) {
             try {
                 this.minionController(creep);
@@ -151,8 +152,8 @@ class Colony {
     }
 
     suicideRemoteCreeps() {
-        Object.values(Game.creeps)
-            .filter(creep => creep.my && creep.memory.colony === this.room.name && (creep.memory.role.includes('remote') || creep.memory.role.includes('SK')))
+        this.creeps
+            .filter(creep => creep.my && (creep.memory.role.includes('remote') || creep.memory.role.includes('SK')))
             .forEach(creep => creep.suicide());
     }
 

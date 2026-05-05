@@ -15,7 +15,10 @@ class RoleDrone {
         this.creep.say('🤖', true);
         if (this.houseKeeping()) return;
         if (!this.creep.memory.working) {
-            if (this.creep.isFull) return this.creep.memory.working = true;
+            if (this.creep.isFull) {
+                this.creep.memory.working = true;
+                return this.jobManager();
+            }
             this.energyCollection();
         } else {
             this.jobManager();
@@ -23,69 +26,80 @@ class RoleDrone {
     }
 
     houseKeeping() {
-        // SK Safety
-        if (this.creep.skSafety()) return true;
+        // SK Safety - Throttled
+        if ((this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk)) && this.creep.skSafety()) return true;
         // Boosting
         if (this.creep.tryToBoost()) return true;
+
+        const usedCapacity = this.creep.store.getUsedCapacity();
         // If full clear memory
         if (this.creep.isFull) {
-            this.creep.memory.source = undefined;
-            this.creep.memory.harvest = undefined;
-            this.creep.memory.remoteMining = undefined;
-            this.creep.memory.source = undefined;
-            this.creep.memory.energyDestination = undefined;
+            delete this.creep.memory.energyDestination;
+            delete this.creep.memory.source;
+            delete this.creep.memory.harvest;
+            delete this.creep.memory.remoteMining;
             this.creep.memory.working = true;
-        } else if (!this.creep.store[RESOURCE_ENERGY]) {
-            this.creep.memory.working = undefined;
-            this.creep.memory.currentTarget = undefined;
-            this.creep.memory.task = undefined;
-            this.creep.memory.targetWallHits = undefined;
+        } else if (usedCapacity === 0) {
+            delete this.creep.memory.working;
+            delete this.creep.memory.currentTarget;
+            delete this.creep.memory.task;
+            delete this.creep.memory.targetWallHits;
         }
+
         // If damaged move to safety
-        if (!this.creep.getActiveBodyparts(WORK) || !this.creep.getActiveBodyparts(CARRY)) return this.creep.goToHub();
+        if (this.creep.hits < this.creep.hitsMax && (!this.creep.hasActiveBodyparts(WORK) || !this.creep.hasActiveBodyparts(CARRY))) return this.creep.goToHub();
+        
         // Handle returning to overlord
         if (this.creep.memory.destination && this.room.name !== this.creep.memory.destination && !this.creep.memory.remoteMining && !this.creep.memory.energyDestination) {
-            this.creep.memory.energyDestination = undefined;
             const destination = new RoomPosition(25, 25, this.creep.memory.destination);
             this.creep.shibMove(destination, {range: 20});
             return true;
         }
+
         // Handle case of carry something besides energy
-        if (_.sum(this.creep.store) > this.creep.store[RESOURCE_ENERGY]) {
-            for (let resourceType in this.creep.store) {
-                switch (this.creep.transfer(this.room.storage || this.room.terminal, resourceType)) {
-                    case OK:
-                        return;
-                    case ERR_NOT_IN_RANGE:
-                        this.creep.shibMove(this.room.storage || this.room.terminal);
+        if (usedCapacity > this.creep.store[RESOURCE_ENERGY]) {
+            const dropOff = this.room.storage || this.room.terminal;
+            if (dropOff) {
+                for (let resourceType in this.creep.store) {
+                    if (resourceType === RESOURCE_ENERGY) continue;
+                    const result = this.creep.transfer(dropOff, resourceType);
+                    if (result === OK) return true;
+                    if (result === ERR_NOT_IN_RANGE) {
+                        this.creep.shibMove(dropOff);
                         return true;
+                    }
                 }
             }
         }
+        return false;
     }
 
     jobManager() {
+        const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
         // If under attack, waller else chance to be a waller
-        if ((INTEL[this.room.name].threatLevel || this.creep.memory.currentTarget) && this.walling()) return;
+        if ((threatLevel || this.creep.memory.currentTarget) && this.walling()) return;
+        
         // If already tasked out
         if (this.creep.memory.task) {
             if (this.taskedOut()) return;
         }
-        // If praiser needed praise
+
+        // Task priority
         if (this.upgrading()) return;
-        // If haulers needed haul
         if (this.hauling()) return;
-        // If builder needed build
         if (this.building()) return;
-        // If walls to repair
+        if (this.room.memory.barrierBuilding && this.walling()) return;
         if (this.walling()) return;
-        // If nothing else to do upgrade
+
+        // Maintenance: Strengthen barriers if nothing else to do (prevents idling)
+        if (this.walling(true)) return;
+
+        // Fallback: Upgrade if no upgrader exists
         if (this.room.energyState > 1 && this.upgrading(true)) return;
-        // Otherwise idle
-        else {
-            this.creep.memory.task = undefined;
-            this.creep.idleFor(5);
-        }
+
+        // Final fallback: Idle
+        this.creep.memory.task = undefined;
+        this.creep.idleFor(5);
     }
 
     taskedOut() {
@@ -100,204 +114,174 @@ class RoleDrone {
             case 'waller':
                 return this.walling();
         }
+        return false;
     }
 
     energyCollection() {
-        if (this.creep.isFull) return;
         this.creep.memory.other.stationary = undefined;
         this.creep.memory.working = undefined;
         this.creep.memory.constructionSite = undefined;
         this.creep.memory.task = undefined;
-        let spawn = _.find(this.room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
+
         if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
             this.creep.say('Energy!', true);
-            this.creep.withdrawResource();
-        } else if (!spawn || !this.room.storage) {
+            return this.creep.withdrawResource();
+        }
+
+        // Emergency harvesting if no storage or low on energy
+        const hasStorage = !!this.room.storage;
+        if (!hasStorage || this.room.energyAvailable < 300) {
             let source = Game.getObjectById(this.creep.memory.source) || this.creep.pos.getClosestSource();
-            if (source && (!INTEL[this.room.name].owner || INTEL[this.room.name].owner === MY_USERNAME) && (!INTEL[this.room.name].reservation || INTEL[this.room.name].reservation === MY_USERNAME)) {
-                this.creep.room.memory.droneSource = source.id;
+            if (source && (!INTEL[this.room.name].owner || INTEL[this.room.name].owner === MY_USERNAME)) {
                 this.creep.memory.harvest = true;
                 this.creep.say('Harvest!', true);
                 this.creep.memory.source = source.id;
-                switch (this.creep.harvest(source)) {
-                    case ERR_NOT_IN_RANGE:
-                        this.creep.memory.other.stationary = undefined;
-                        this.creep.shibMove(source);
-                        break;
-                    case ERR_NOT_ENOUGH_RESOURCES:
-                        this.creep.memory.source = undefined;
-                        break;
-                    case OK:
-                        this.creep.memory.other.stationary = true;
-                        break;
+                const result = this.creep.harvest(source);
+                if (result === OK) {
+                    this.creep.memory.other.stationary = true;
+                } else if (result === ERR_NOT_IN_RANGE) {
+                    this.creep.shibMove(source);
+                } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
+                    delete this.creep.memory.source;
                 }
-            } else {
-                if (this.creep.memory.remoteMining || findRemoteSource(this.creep)) {
-                    this.creep.say('Remote!', true);
-                    if (this.creep.memory.remoteMining !== this.room.name) return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.remoteMining), {range: 15}); else this.creep.idleFor(5);
-                } else {
-                    delete this.creep.memory.harvest;
-                    this.creep.idleFor(5);
-                }
+                return true;
             }
-        } else {
-            this.creep.idleFor(5);
         }
+
+        // Remote mining if nothing local
+        if (this.creep.memory.remoteMining || (Game.time % 20 === 0 && findRemoteSource(this.creep))) {
+            this.creep.say('Remote!', true);
+            if (this.creep.memory.remoteMining !== this.room.name) {
+                return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.remoteMining), {range: 15});
+            }
+        }
+
+        this.creep.idleFor(5);
     }
 
     hauling() {
-        if (this.creep.memory.task && this.creep.memory.task !== 'haul') return;
-        if (!this.room.controller || !this.room.controller.owner || this.room.controller.owner.username !== MY_USERNAME) return false;
-        let haulers = _.filter(this.room.myCreeps, (c) => c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler' || c.memory.role === 'shuttle')).length < 1;
-        let needyTower = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * 0.1).length > 0;
-        if (this.creep.memory.task === 'haul' || (this.room.level <= 4 && this.creep.isFull && (haulers || needyTower) && !this.creep.memory.task && (this.room.energyAvailable < this.room.energyCapacityAvailable || needyTower))) {
+        if (this.creep.memory.task && this.creep.memory.task !== 'haul') return false;
+        if (!this.room.controller || !this.room.controller.my) return false;
+
+        const needsHaul = this.room.level <= 4 && (this.room.energyAvailable < this.room.energyCapacityAvailable);
+        const needyTower = this.room.structures.some(s => s.structureType === STRUCTURE_TOWER && s.store.getUsedCapacity(RESOURCE_ENERGY) < TOWER_CAPACITY * 0.2);
+
+        if (this.creep.memory.task === 'haul' || (this.creep.isFull && (needsHaul || needyTower))) {
             this.creep.memory.task = 'haul';
             this.creep.say('Haul!', true);
             if (this.creep.memory.storageDestination || this.creep.haulerDelivery()) {
-                let storageItem = Game.getObjectById(this.creep.memory.storageDestination);
-                if (!storageItem) return delete this.creep.memory.storageDestination;
-                switch (this.creep.transfer(storageItem, RESOURCE_ENERGY)) {
-                    case OK:
-                        delete this.creep.memory.storageDestination;
-                        delete this.creep.memory._shibMove;
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        this.creep.shibMove(storageItem);
-                        break;
-                    case ERR_FULL || ERR_INVALID_TARGET:
-                        delete this.creep.memory.storageDestination;
-                        delete this.creep.memory._shibMove;
-                        if (storageItem.memory) delete storageItem.memory.deliveryIncoming;
-                        break;
+                const storageItem = Game.getObjectById(this.creep.memory.storageDestination);
+                if (!storageItem) {
+                    delete this.creep.memory.storageDestination;
+                    return false;
                 }
-            } else if (this.room.energyAvailable === this.room.energyCapacityAvailable) {
-                this.creep.memory.task = undefined;
+                const result = this.creep.transfer(storageItem, RESOURCE_ENERGY);
+                if (result === OK) {
+                    delete this.creep.memory.storageDestination;
+                    delete this.creep.memory._shibMove;
+                } else if (result === ERR_NOT_IN_RANGE) {
+                    this.creep.shibMove(storageItem);
+                } else {
+                    delete this.creep.memory.storageDestination;
+                }
+                return true;
+            } else {
+                delete this.creep.memory.task;
             }
-            return true;
         }
+        return false;
     }
 
     upgrading(force) {
-        if (this.creep.memory.task && this.creep.memory.task !== 'upgrade') return;
-        if (!force) {
-            let controllerCheck = !this.room.controller || !this.room.controller.owner || this.room.controller.owner.username !== MY_USERNAME
-                || this.room.controller.upgradeBlocked || this.room.controller.level === 8 || !this.room.controller.ticksToDowngrade || this.room.controller.ticksToDowngrade > 3000;
-            if (controllerCheck) {
-                this.creep.memory.task = undefined;
-                return false;
-            }
+        if (this.creep.memory.task && this.creep.memory.task !== 'upgrade') return false;
+
+        // Drones should not upgrade if a specialized upgrader exists
+        if (this.room.myCreeps.some(c => c.memory.role === 'upgrader')) {
+            if (this.creep.memory.task === 'upgrade') delete this.creep.memory.task;
+            return false;
         }
-        if (!this.room.controller || !this.room.controller.owner || this.room.controller.owner.username !== MY_USERNAME) return false;
+
+        if (!force) {
+            const controller = this.room.controller;
+            if (!controller || !controller.my || controller.upgradeBlocked || controller.level === 8) return false;
+
+            // Throttled check for downgrade risk
+            if (!controller.ticksToDowngrade || (controller.ticksToDowngrade > CONTROLLER_DOWNGRADE[controller.level] * 0.9 && !this.creep.memory.task)) return false;
+        }
+
         this.creep.memory.task = 'upgrade';
         this.creep.say('Praise!', true);
-        switch (this.creep.upgradeController(this.room.controller)) {
-            case OK:
-                this.creep.memory.other.stationary = true;
-                delete this.creep.memory._shibMove;
-                break;
-            case ERR_NOT_IN_RANGE:
-                this.creep.shibMove(this.room.controller, {range: 3});
+        const result = this.creep.upgradeController(this.room.controller);
+        if (result === OK) {
+            this.creep.memory.other.stationary = true;
+        } else if (result === ERR_NOT_IN_RANGE) {
+            this.creep.shibMove(this.room.controller, {range: 3});
         }
         return true;
     }
 
     building() {
-        if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return;
-        if ((this.creep.memory.task === 'build' || this.creep.memory.task === 'repair') || (this.creep.memory.constructionSite || this.creep.constructionWork())) {
+        if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return false;
+        if (this.creep.memory.task || this.creep.constructionWork()) {
             if (this.creep.builderFunction()) {
                 this.creep.memory.other.stationary = true;
             }
             return true;
         }
+        return false;
     }
 
-    walling() {
+    walling(maintenance = false) {
         if (!this.creep.memory.currentTarget || !Game.getObjectById(this.creep.memory.currentTarget)) {
-            // Reset target if it's null or doesn't exist
-            this.creep.memory.currentTarget = undefined;
-            this.creep.memory.targetWallHits = undefined;
+            delete this.creep.memory.currentTarget;
+            delete this.creep.memory.targetWallHits;
 
-            let barrierStructures = this.room.find(FIND_STRUCTURES, {
-                filter: s => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) &&
-                    !_.find(this.room.myCreeps, c => c.memory.currentTarget === s.id)
-            });
+            const targetLimit = maintenance ? 300000000 : (this.room.memory.barrierHitsTarget || 100000);
+            const barrierStructures = this.room.structures.filter(s =>
+                (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) &&
+                s.hits < targetLimit
+            );
 
-            if (!barrierStructures.length || !this.room.controller ||
-                (this.room.controller.owner && this.room.controller.owner.username !== MY_USERNAME)) {
-                return false;
-            }
+            if (!barrierStructures.length || !this.room.controller || !this.room.controller.my) return false;
 
             let target;
-
-            // Handle nuke scenarios
-            if (this.room.memory.nuke) {
-                let nukeRamparts = barrierStructures.filter(s =>
-                    s.structureType === STRUCTURE_RAMPART &&
-                    s.pos.findInRange(FIND_NUKES, 5).length > 0
-                );
-                if (nukeRamparts.length) {
-                    target = _.min(nukeRamparts, 'hits');
-                }
-            }
-
-            // Handle immediate threat from hostile creeps
-            if (!target && INTEL[this.room.name].threatLevel) {
-                let hostileTargets = barrierStructures.filter(s =>
-                    s.pos.findInRange(this.room.hostileCreeps.filter(c =>
-                        c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK)
-                    ), 5).length > 0
-                );
-                if (hostileTargets.length) {
-                    target = _.min(hostileTargets, 'hits');
-                }
-            }
-
-            // General maintenance
-            if (!target) {
+            const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
+            if (threatLevel) {
+                target = _.min(barrierStructures, 'hits');
+            } else {
                 target = _.min(barrierStructures.filter(s =>
-                    s.hits < this.room.memory.barrierHitsTarget
+                    !this.room.myCreeps.some(c => c.memory.currentTarget === s.id && c.id !== this.creep.id)
                 ), 'hits');
             }
 
             if (target) {
                 this.creep.memory.currentTarget = target.id;
+                // For maintenance mode, set a significant boost to hits to prevent constant retargeting
+                if (maintenance) this.creep.memory.targetWallHits = target.hits + 50000;
             } else {
-                // If no repair targets, look for construction sites for walls or ramparts
-                let site = this.room.find(FIND_CONSTRUCTION_SITES, {
-                    filter: s => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL
-                })[0];
-                if (site) {
-                    this.creep.memory.constructionSite = site.id;
-                    this.creep.memory.task = "build";
-                    return true;
-                }
-                return false;  // Nothing to do
+                return false;
             }
         }
 
-        let target = Game.getObjectById(this.creep.memory.currentTarget);
+        const target = Game.getObjectById(this.creep.memory.currentTarget);
         if (target) {
             this.creep.memory.task = "waller";
             if (!this.creep.memory.targetWallHits) {
-                this.creep.memory.targetWallHits = Math.min(target.hits + 10000, RAMPART_HITS_MAX[this.room.controller.level]);
+                this.creep.memory.targetWallHits = Math.min(target.hits + 25000, RAMPART_HITS_MAX[this.room.controller.level] || 300000000);
             }
 
             this.creep.say(ICONS.castle, true);
-            target.say(`${target.hits} / ${this.creep.memory.targetWallHits}`);
-
-            switch (this.creep.repair(target)) {
-                case OK:
-                    if (target.hits >= this.creep.memory.targetWallHits) {
-                        this.creep.memory.currentTarget = undefined;
-                        this.creep.memory.targetWallHits = undefined;
-                    }
-                    break;
-                case ERR_NOT_IN_RANGE:
-                    this.creep.shibMove(target, {range: 3});
-                    break;
-                default:
-                    this.creep.memory.currentTarget = undefined;
-                    this.creep.memory.targetWallHits = undefined;
+            const result = this.creep.repair(target);
+            if (result === OK) {
+                if (target.hits >= this.creep.memory.targetWallHits) {
+                    delete this.creep.memory.currentTarget;
+                    delete this.creep.memory.targetWallHits;
+                }
+            } else if (result === ERR_NOT_IN_RANGE) {
+                this.creep.shibMove(target, {range: 3});
+            } else {
+                delete this.creep.memory.currentTarget;
+                delete this.creep.memory.targetWallHits;
             }
             return true;
         }

@@ -21,15 +21,18 @@ Creep.prototype.borderPatrol = function () {
     }
 
     // Determine creep/squad power
-    let combatPower = abilityPower(this.body).attack + abilityPower(this.body).heal;
-    if (this.memory.squadMembers) {
-        for (const member of this.memory.squadMembers) {
-            if (this.room.creeps[member]) {
-                combatPower += abilityPower(this.room.creeps[member].body).attack + abilityPower(this.room.creeps[member].body).heal;
+    const ap = abilityPower(this.body);
+    let combatPower = ap.attack + ap.effectiveHeal + (ap.defense / 100);
+
+    if (this.memory.squadMembers && this.memory.squadMembers.length) {
+        for (let member of this.memory.squadMembers) {
+            const memberCreep = Game.getObjectById(member);
+            if (memberCreep) {
+                const memberAp = abilityPower(memberCreep.body);
+                combatPower += memberAp.attack + memberAp.effectiveHeal + (memberAp.defense / 100);
             }
         }
     }
-
     // Movement
     if (this.memory.destination) {
         // If we can't win, let's move back home
@@ -42,7 +45,7 @@ Creep.prototype.borderPatrol = function () {
         } else {
             if (!this.room.hostileCreeps.length && !this.room.hostileStructures.length) {
                 if (!this.memory.standingGuard) this.memory.standingGuard = Game.time;
-                else if (this.memory.standingGuard + 25 < Game.time) {
+                else if (this.memory.standingGuard + 100 < Game.time) {
                     this.memory.destination = undefined;
                 }
                 this.idleFor(5);
@@ -63,7 +66,6 @@ Creep.prototype.borderPatrol = function () {
         this.memory.destination = this.memory.colony;
         this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
     } else {
-        scanForNearbyThreats(this);
         if (this.ticksToLive <= 500 && HOSTILES.length) this.memory.operation = 'harass';
         else if (!scanForNearbyThreats(this) && this.findDefensivePosition()) this.idleFor(5);
     }

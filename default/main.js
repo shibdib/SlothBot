@@ -50,8 +50,8 @@ module.exports.loop = function () {
                 return;
             } else if (currentBucket === BUCKET_MAX && Memory.cpuTracking.bucketIssueCount > 0) Memory.cpuTracking.bucketIssueCount--;
 
-            // Store Owned Rooms (Update Every 25 Ticks)
-            if (!global.MY_ROOMS || !global.MAX_LEVEL || Game.time % 25 === 0) {
+            // Store Owned Rooms (Update Every 250 Ticks)
+            if (!global.MY_ROOMS || !global.MAX_LEVEL || Game.time % 250 === 0) {
                 const ownedRooms = Object.values(Game.rooms).filter(
                     (r) => r.controller && r.controller.my
                 );
@@ -130,7 +130,13 @@ module.exports.loop = function () {
             }
 
             // World
-            new world();
+            try {
+                new world();
+            } catch (e) {
+                log.e('World Error: ');
+                log.e(`${e} ${e.stack}`);
+                Game.notify(`${e} ${e.stack}`);
+            }
 
             // Save Caches
             try {

@@ -67,119 +67,117 @@ module.exports.status = function () {
     const currentTime = _.round(new Date().getTime() / 1000, 2);
     const timeSinceLastStatus = currentTime - lastStatus;
 
-    // Check if the status cooldown has expired or if we need to refresh the status
     if (timeSinceLastStatus >= STATUS_COOLDOWN) {
         lastStatus = currentTime;
 
         log.a('===========================================================================', ' ');
         log.a('------------------------------- GLOBAL INFO -------------------------------', ' ');
-        log.e(`🏆 GCL: ${Game.gcl.level} | Progress: ${(Game.gcl.progress / Game.gcl.progressTotal * 100).toFixed(2)}%`, ' ');
-        log.e(`💻 CPU Bucket: ${Game.cpu.bucket} | CPU Limit: ${Game.cpu.limit} | Available: ${Game.cpu.tickLimit}`, ' ');
-        log.e(`👾 Total Creeps: ${_.size(Game.creeps)}`, ' ');
+        const gclProgress = ((Game.gcl.progress / Game.gcl.progressTotal) * 100).toFixed(2);
+        log.e(`🏆 GCL: ${Game.gcl.level} <font color="#888888">(${gclProgress}%)</font> | 💻 CPU Bucket: <font color="#00B7EB">${Game.cpu.bucket}</font> | 👾 Creeps: <font color="#4CAF50">${_.size(Game.creeps)}</font>`, ' ');
 
-        log.a('------------------------------- ROOM INFO -------------------------------', ' ');
+        log.a('------------------------------- COLONY INFO -------------------------------', ' ');
+
+        // Table Header
+        let header = "Room".padEnd(14) + "RCL".padEnd(16) + "Energy".padEnd(10) + "Income".padEnd(10) + "CPU".padEnd(8) + "Creeps".padEnd(8) + "Mineral";
+        log.e(header, ' ');
+        log.e("-".repeat(70), ' ');
+
+        // Helper to pad string based on its visible length (ignoring HTML tags)
+        const padVisible = (str, targetLength) => {
+            const visibleLength = str.replace(/<[^>]*>/g, '').length;
+            if (visibleLength < targetLength) {
+                return str + ' '.repeat(targetLength - visibleLength);
+            }
+            return str;
+        };
+
         MY_ROOMS.forEach(roomName => {
             const room = Game.rooms[roomName];
             if (!room || !room.controller) return;
 
-            const roomCreeps = _.filter(Game.creeps, c => c.memory && c.memory.colony === room.name);
-            const avgCpu = ROOM_CPU_ARRAY[room.name] ? (_.round(average(ROOM_CPU_ARRAY[room.name])) || 'No Data') : 'No Data';
-            const lowPowerText = room.memory.noRemote ? ' 🔋[CPU SAVING]' : '';
-            let progress = ((room.controller.progress / room.controller.progressTotal) * 100).toFixed(2) + "%";
-            if (room.controller.level === 8) progress = "Max Level";
-            const energyInfo = `Energy: ${room.energy} | Income: ${room.energyIncome}`;
-            const progressBarLength = 20;
-            const progressRatio = room.controller.progress / room.controller.progressTotal;
-            const filledLength = Math.floor(progressBarLength * progressRatio);
-            const emptyLength = progressBarLength - filledLength;
-            let progressBar = `[${'X'.repeat(filledLength)}${'-'.repeat(emptyLength)}]`;
-            if (room.controller.level === 8) progressBar = "";
-            const resource = room.mineral.mineralType;
-            const resourceActive = !room.mineral.ticksToRegeneration ? '*' : ' ';
+            const roomCreeps = _.filter(Game.creeps, c => c.memory && c.memory.colony === room.name).length;
+            const avgCpu = ROOM_CPU_ARRAY[room.name] ? (_.round(average(ROOM_CPU_ARRAY[room.name]), 1) || '0.0') : '0.0';
+            const lowPowerText = room.memory.noRemote ? '<font color="#FF4500">*</font>' : ' ';
 
-            // Log general info along with the progress bar
-            log.e(`${roomLink(room.name)}${lowPowerText} | ${resource}${resourceActive} | RCL: ${room.controller.level} | CPU Usage: ${avgCpu} | RCL Progress: ${progress} ${progressBar}`, ' ');
-            log.e(`${energyInfo} | Creeps: ${_.size(roomCreeps)}`, ' ');
+            let progress = ((room.controller.progress / room.controller.progressTotal) * 100).toFixed(1) + "%";
+            if (room.controller.level === 8) progress = "MAX";
+
+            const rclStr = `${room.controller.level} <font color="#888888">(${progress})</font>`;
+            const energyAmt = room.energy >= 1000 ? (room.energy / 1000).toFixed(1) + 'k' : room.energy;
+            const energyStr = `<font color="#FFD700">${energyAmt}</font>`;
+
+            const income = room.energyIncome || 0;
+            const incColor = income > 0 ? '#4CAF50' : income < 0 ? '#FF4500' : '#888888';
+            const incStr = `<font color="${incColor}">${income > 0 ? '+' + income : income}</font>`;
+
+            const resource = room.mineral ? room.mineral.mineralType : 'N/A';
+            const resourceActive = (room.mineral && !room.mineral.ticksToRegeneration) ? `<font color="#00B7EB">${resource}</font>` : `<font color="#555555">${resource}</font>`;
+
+            let row = padVisible(`${roomLink(room.name)}${lowPowerText}`, 14);
+            row += padVisible(rclStr, 16);
+            row += padVisible(energyStr, 10);
+            row += padVisible(incStr, 10);
+            row += padVisible(`${avgCpu}`, 8);
+            row += padVisible(`${roomCreeps}`, 8);
+            row += resourceActive;
+
+            log.e(row, ' ');
         });
 
-        // OPERATION INFO
-        displayOperationsInfo();
+        // -------------------------
+        // OPERATIONS INFO
+        // -------------------------
+        const operations = {...Memory.targetRooms, ...Memory.auxiliaryTargets};
+        const activeOps = Object.keys(operations).filter(k => operations[k]);
 
-        // HARASSMENT INFO
-        displayHarassmentInfo();
+        if (activeOps.length > 0) {
+            log.a('----------------------------- ACTIVE OPERATIONS ---------------------------', ' ');
 
-        // DIPLOMATIC INFO
-        displayDiplomaticInfo();
+            let scoutCount = 0;
+            activeOps.forEach(key => {
+                const op = operations[key];
+                if (op.type === 'scout' || op.type === 'attack') {
+                    scoutCount++;
+                    return;
+                }
+
+                const typeColor = op.type.toLowerCase().includes('denial') ? '#FF4500' : '#00B7EB';
+                let opStr = `🔹 <font color="${typeColor}">${_.capitalize(op.type)}</font> | Room: ${roomLink(key)} | Lvl: ${op.level || 0} | Priority: ${op.priority || 0}`;
+                if (op.assignedRoom) opStr += ` | From: ${roomLink(op.assignedRoom)}`;
+
+                if (op.enemyDead || op.friendlyDead) {
+                    opStr += ` | <font color="#FF4500">Hostile KIA: ${(op.trackedEnemy || []).length}/${op.enemyDead}</font> | <font color="#4CAF50">Ally KIA: ${(op.trackedFriendly || []).length}/${op.friendlyDead}</font>`;
+                } else if (op.type === 'pending' && op.dDay) {
+                    opStr += ` | <font color="#FFD700">T-Minus: ${op.dDay - Game.time} ticks</font>`;
+                }
+                log.e(opStr, ' ');
+            });
+
+            if (scoutCount > 0) {
+                log.e(`<font color="#888888">... plus ${scoutCount} active scouting missions.</font>`, ' ');
+            }
+        }
+
+        // -------------------------
+        // DIPLOMACY & HARASSMENT
+        // -------------------------
+        const activeHarassers = _.filter(Game.creeps, c => c.memory && c.memory.operation === 'harass');
+        if (activeHarassers.length > 0 || (ENEMIES && ENEMIES.length > 0)) {
+            log.a('---------------------------- DIPLOMACY & COMBAT ---------------------------', ' ');
+            if (ENEMIES && ENEMIES.length > 0) {
+                log.e(`⚔️ Hostile Empires: <font color="#FF4500">${ENEMIES.join(", ")}</font>`, ' ');
+            }
+            if (activeHarassers.length > 0) {
+                const targetRooms = _.uniq(_.pluck(activeHarassers, 'memory.destination')).join(", ");
+                log.e(`🎯 Harassment: ${activeHarassers.length} units targeting ${targetRooms}`, ' ');
+            }
+        }
+
+        log.a('===========================================================================', ' ');
 
         // Update the last status time
         Memory.lastStatus = undefined;
         getUptime();
-
-        log.a('===========================================================================', ' ');
-    }
-
-    // Helper function to display operation information
-    function displayOperationsInfo() {
-        const operations = {...Memory.targetRooms, ...Memory.auxiliaryTargets};
-
-        if (_.size(operations)) {
-            log.a('------------------------------ OPERATION INFO -----------------------------', ' ');
-
-            Object.entries(operations).forEach(([key, op]) => {
-                if (!op) return;
-
-                const {
-                    level = 0,
-                    type,
-                    priority,
-                    assignedRoom,
-                    dDay,
-                    enemyDead,
-                    friendlyDead,
-                    trackedEnemy = [],
-                    trackedFriendly = []
-                } = op;
-                const roomLinkText = roomLink(key);
-
-                let logText = `${_.capitalize(type)} | Level: ${level} | Priority: ${priority} | Room: ${roomLinkText}`;
-
-                if (assignedRoom) {
-                    logText += ` | Assigned Room: ${roomLink(assignedRoom)}`;
-                }
-
-                if (enemyDead || friendlyDead) {
-                    logText += ` | 💥 Enemy KIA: ${trackedEnemy.length}/${enemyDead} | 🤝 Friendly KIA: ${trackedFriendly.length}/${friendlyDead}`;
-                } else if (type === 'pending') {
-                    logText += ` | ⏳ Countdown: ${dDay - Game.time} ticks`;
-                }
-
-                log.e(logText, ' ');
-            });
-
-            const scouts = _.filter(operations, t => t && (t.type === 'scout' || t.type === 'attack'));
-            if (scouts.length) {
-                log.e(`🔍 Scout Target Count: ${scouts.length}`, ' ');
-            }
-        }
-    }
-
-    // Helper function to display harassment info
-    function displayHarassmentInfo() {
-        const activeHarassers = _.filter(Game.creeps, c => c.memory && c.memory.operation === 'harass');
-        if (activeHarassers.length) {
-            log.a('----------------------------- HARASSMENT INFO ----------------------------', ' ');
-            log.e(`🎯 Harass Targets: ${THREATS.join(", ")}`, ' ');
-            log.e(`⚔️ Active Harassers: ${activeHarassers.length}`, ' ');
-            log.e(`📍 Targets: ${_.pluck(activeHarassers, 'memory.destination').join(", ")}`, ' ');
-        }
-    }
-
-    // Helper function to display diplomatic info
-    function displayDiplomaticInfo() {
-        if (ENEMIES && ENEMIES.length) {
-            log.a('------------------------------ DIPLOMATIC INFO ----------------------------', ' ');
-            log.e(`⚔️ Enemies: ${ENEMIES.join(", ")}`, ' ');
-        }
     }
 };
 

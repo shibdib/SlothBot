@@ -43,7 +43,16 @@ module.exports.role = function (powerCreep) {
     }
     // Handle renewal
     if (powerCreep.ticksToLive <= 1000) {
-        let spawn = _.filter(powerCreep.room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN)[0] || _.filter(powerCreep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_POWER_BANK)[0] || _.filter(Game.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0];
+        let spawn = _.filter(powerCreep.room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN)[0] || _.filter(powerCreep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_POWER_BANK)[0];
+        if (!spawn) {
+            for (let r of MY_ROOMS) {
+                let room = Game.rooms[r];
+                if (room) {
+                    spawn = _.filter(room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN)[0];
+                    if (spawn) break;
+                }
+            }
+        }
         if (spawn) {
             switch (powerCreep.renew(spawn)) {
                 case OK:

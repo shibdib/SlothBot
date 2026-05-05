@@ -62,20 +62,28 @@ class RoleStationaryHarvester {
                 case OK:
                     // Set stationary so we don't get bumped
                     this.creep.memory.other.stationary = true;
-                    // Check if the link is still good
-                    if (!this.creep.memory.other.linkCheck && container && source.memory.link) {
-                        const link = Game.getObjectById(source.memory.link);
-                        if (!link || !link.pos.isNearTo(container) || !link.isActive()) {
-                            if (link) link.destroy();
-                            source.memory.link = undefined;
-                        } else this.creep.memory.link = link.id;
+                    // Check for a link every 50 ticks if we don't have one, or if we haven't checked yet
+                    if (container && (!this.creep.memory.other.linkCheck || (!source.memory.link && Game.time % 50 === 0))) {
+                        let link = Game.getObjectById(source.memory.link);
+                        if (!link) {
+                            link = _.find(container.pos.findInRange(this.room.structures, 1), (s) => s.structureType === STRUCTURE_LINK && s.isActive());
+                            if (link) source.memory.link = link.id;
+                        }
+                        if (link) {
+                            if (!link.pos.isNearTo(container) || !link.isActive()) {
+                                source.memory.link = undefined;
+                                this.creep.memory.link = undefined;
+                            } else {
+                                this.creep.memory.link = link.id;
+                            }
+                        }
                         this.creep.memory.other.linkCheck = true;
                     }
                     // If we have a link and container, empty the container of overflow
-                    if (source.memory.link && container && container.store[RESOURCE_ENERGY]) this.creep.withdraw(container, RESOURCE_ENERGY);
-                    // Every other tick check for deposit ability
-                    if (isEven(Game.time)) {
-                        if ((container && !container.store.getFreeCapacity(RESOURCE_ENERGY)) || this.creep.store[RESOURCE_ENERGY]) depositEnergy(this.creep);
+                    if (source.memory.link && container && container.store[RESOURCE_ENERGY] > 0) this.creep.withdraw(container, RESOURCE_ENERGY);
+                    // Check for deposit ability every tick to ensure zero-waste
+                    if ((container && container.store.getFreeCapacity(RESOURCE_ENERGY) === 0) || this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+                        depositEnergy(this.creep);
                     }
                     break;
             }
@@ -83,7 +91,7 @@ class RoleStationaryHarvester {
             let container = Game.getObjectById(source.memory.container) || _.find(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
             //Make sure you're on the container
             if (container) {
-                if (this.creep.pos.getRangeTo(container)) {
+                if (!this.creep.pos.isEqualTo(container.pos)) {
                     return this.creep.shibMove(container, {range: 0});
                 } else {
                     this.creep.memory.onContainer = true;
@@ -101,26 +109,44 @@ class RoleStationaryHarvester {
 
 // Rotate between link and container if we don't have a hub and controller link
 function depositEnergy(creep) {
-    let source = Game.getObjectById(creep.memory.other.source);
-    let container = Game.getObjectById(source.memory.container);
-    // Fill nearby
+    const source = Game.getObjectById(creep.memory.other.source);
+    const container = Game.getObjectById(source.memory.container);
+
+    // Fill nearby extensions (Critical)
     if (extensionFiller(creep)) return;
-    if (container && container.hits < container.hitsMax * 0.5) return creep.repair(container);
-    if (source.memory.link && (creep.room.memory.hubLink || creep.room.memory.controllerLink)) {
-        let link = Game.getObjectById(source.memory.link);
-        if (link && link.store[RESOURCE_ENERGY] < LINK_CAPACITY) {
+
+    // Prioritize Link
+    const linkId = source.memory.link;
+    if (linkId) {
+        const link = Game.getObjectById(linkId);
+        if (link && link.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+            source.memory.link = link.id;
             creep.transfer(link, RESOURCE_ENERGY);
-            creep.withdraw(container, RESOURCE_ENERGY);
-        } else if (container && !container.store.getFreeCapacity(RESOURCE_ENERGY)) {
-            if (container.hits < container.hitsMax) creep.repair(container); else if (creep.pos.checkForRampart()) creep.repair(creep.pos.checkForRampart());
+            if (container && container.store[RESOURCE_ENERGY] > 0) creep.withdraw(container, RESOURCE_ENERGY);
+            return;
         }
-    } else if (container) {
-        if (!container.store.getFreeCapacity(RESOURCE_ENERGY)) {
-            if (container.hits < container.hitsMax) creep.repair(container);
+    }
+
+    // Fallback to Container
+    if (container && container.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+        creep.transfer(container, RESOURCE_ENERGY);
+        return;
+    }
+
+    // If structures are full, use energy for maintenance (prevent decay/waste)
+    if (creep.store[RESOURCE_ENERGY] > 0) {
+        if (container && container.hits < container.hitsMax) {
+            return creep.repair(container);
         }
-    } else {
-        creep.memory.containerID = undefined;
-        creep.memory.linkID = undefined;
+        const rampart = creep.pos.checkForRampart();
+        if (rampart && rampart.hits < rampart.hitsMax) {
+            return creep.repair(rampart);
+        }
+    }
+
+    if (!container && !linkId) {
+        delete creep.memory.containerID;
+        delete creep.memory.linkID;
     }
 }
 

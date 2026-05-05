@@ -7,7 +7,14 @@
  */
 
 module.exports.powerControl = function () {
-    let powerSpawns = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.store[RESOURCE_POWER] && s.store[RESOURCE_ENERGY] >= 50);
+    let powerSpawns = [];
+    for (let r of MY_ROOMS) {
+        let room = Game.rooms[r];
+        if (room) {
+            let spawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.store[RESOURCE_POWER] && s.store[RESOURCE_ENERGY] >= 50);
+            if (spawn) powerSpawns.push(spawn);
+        }
+    }
     if (powerSpawns.length) {
         for (let powerSpawn of powerSpawns) {
             powerSpawn.processPower();

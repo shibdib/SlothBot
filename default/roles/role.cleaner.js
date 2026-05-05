@@ -76,7 +76,7 @@ function findBestCleaningPath(creep, target) {
     const room = creep.room;
     if (!room) return {path: null, structures: []}; // Room not visible
     const costMatrix = new PathFinder.CostMatrix();
-    room.find(FIND_STRUCTURES).forEach(structure => {
+    room.structures.forEach(structure => {
         if (structure.structureType === STRUCTURE_RAMPART || structure.structureType === STRUCTURE_WALL) {
             if (structure.owner && structure.owner.username === MY_USERNAME) {
                 costMatrix.set(structure.pos.x, structure.pos.y, 1);

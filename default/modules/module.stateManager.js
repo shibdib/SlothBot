@@ -67,10 +67,10 @@ class StateManager {
         const expense = Math.ceil(energyUsers.reduce((sum, creep) => sum + creep.getActiveBodyparts(WORK), 0));
         const spareIncome = room.energyState > 2 ? 9999999 : room.energyState < 2 ? (income - expense) * 0.5 : income - expense;
         room.memory.energyInfo = {income: income, expense: expense, spareIncome: spareIncome};
-        room.memory.energyPositive = (average(energyIncomeArray) > 0 && income > expense) || room.energyState > 1;
+        room.memory.energyPositive = (average(energyIncomeArray) > 0 && income > expense) || room.energyState > 1 || room.level < 4;
 
-        if (!room.memory.combatReady && room.energyState > 1) room.memory.combatReady = true;
-        else if (room.memory.combatReady && !room.energyState) room.memory.combatReady = undefined;
+        if (!room.memory.combatReady && room.energyState >= 1 && room.level >= 6) room.memory.combatReady = true;
+        else if (room.memory.combatReady && !room.energyState && room.level < 6) room.memory.combatReady = undefined;
     }
 
     levelingStatTracking(room) {
@@ -104,7 +104,7 @@ class StateManager {
         }
 
         // Set buildersNeeded flag only if one or both structures are missing
-        room.memory.buildersNeeded = !(hasSpawn && hasTower) || room.level < room.controller.level - 1;
+        room.memory.buildersNeeded = !hasSpawn || room.level < room.controller.level - 1;
     }
 
     funnelRequest(room) {
@@ -135,7 +135,7 @@ class StateManager {
         const lowestBarrier = _.min(room.structures.filter((s) => [STRUCTURE_WALL, STRUCTURE_RAMPART].includes(s.structureType)), (s) => s.hits);
         if (!lowestBarrier) return;
         const hostileMulti = HOSTILES.length ? 1 : 0.5;
-        const targetHits = Math.min((BARRIER_TARGET * (room.level / 8)) * hostileMulti, lowestBarrier.hitsMax);
+        const targetHits = Math.max(Math.min((BARRIER_TARGET * (room.level / 8)) * hostileMulti, lowestBarrier.hitsMax), 25000);
         room.memory.barrierHitsTarget = targetHits;
         room.memory.barrierBuilding = lowestBarrier.hits < targetHits;
     }

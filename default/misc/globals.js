@@ -7,6 +7,7 @@ let activeConfig;
 
 // noinspection JSUnresolvedReference
 let globals = function () {
+
     global.PROFILER_ENABLED = true; // Disable if you don't want to use the profiler. Should save CPU.
 
     // Creep build priorities (Lower is higher priority)
@@ -14,11 +15,11 @@ let globals = function () {
         // Harvesters
         stationaryHarvester: 1,
         // Workers
-        upgrader: 4, drone: 5, mineralHarvester: 6,
+        upgrader: 3, drone: 3, mineralHarvester: 6,
         // Haulers
         hauler: 1, miscHauler: 7,
         // Remotes
-        remoteHarvester: 3, remoteHauler: 2, roadBuilder: 7, fuelTruck: 8, reserver: 3,
+        remoteHarvester: 2, remoteHauler: 3, roadBuilder: 7, fuelTruck: 8, reserver: 4,
         // Military
         defender: 2, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9
     };
@@ -436,15 +437,15 @@ let globals = function () {
     };
 
     // League Of Automated Nations Alliance and NCP processing
-    global.populateLOANlist = function (LOANuser = "PandaMaster", LOANsegment = 99) {
-        const shardNames = ['shard0', 'shard1', 'shard2', 'shard3'];
+    global.populateLOANlist = function (LOANuser = "LeagueOfAutomatedNations", LOANsegment = 99) {
+        const shardNames = ['shard0', 'shard1', 'shard2', 'shard3', 'shardX'];
         if (shardNames.includes(Game.shard.name)) {
             // Handle alliance data first
             if (!global.ALLIANCE_DATA_AGE || global.ALLIANCE_DATA_AGE + 10000 < Game.time) {
                 global.LOAN_LIST = [...MANUAL_FRIENDS];
                 global.LOAN_CHECK = false;
                 // Check if the segment is set
-                if (RawMemory.foreignSegment && RawMemory.foreignSegment.username === LOANuser && RawMemory.foreignSegment.id === 99) {
+                if (RawMemory.foreignSegment && RawMemory.foreignSegment.username && RawMemory.foreignSegment.username === LOANuser && RawMemory.foreignSegment.id === 99) {
                     global.ALLIANCE_DATA_AGE = Game.time;
                     const data = JSON.parse(RawMemory.foreignSegment.data);
                     global.ALLIANCE_DATA = data;
@@ -475,7 +476,7 @@ let globals = function () {
             } else if (!global.NCP_DATA_AGE || global.NCP_DATA_AGE + 20000 < Game.time) {
                 global.LOAN_CHECK = false;
                 // Check if the segment is set
-                if (RawMemory.foreignSegment && RawMemory.foreignSegment.username === LOANuser && RawMemory.foreignSegment.id === 98) {
+                if (RawMemory.foreignSegment && RawMemory.foreignSegment.username && RawMemory.foreignSegment.username === LOANuser && RawMemory.foreignSegment.id === 98) {
                     global.NCP_DATA_AGE = Game.time;
                     global.NCP_DATA = RawMemory.foreignSegment.data;
                     global.LOAN_CHECK = true;
@@ -651,6 +652,29 @@ let globals = function () {
             }
         }
     };
+
+    // Safe toJSON methods for game objects to prevent end-of-tick serialization crashes
+    // when a game object is accidentally saved into Memory.
+    const safeClasses = [
+        'RoomObject', 'Room', 'RoomPosition', 'Creep', 'PowerCreep', 'Structure', 'Spawn', 'OwnedStructure',
+        'StructureContainer', 'StructureController', 'StructureExtension', 'StructureExtractor', 'StructureFactory',
+        'StructureInvaderCore', 'StructureKeeperLair', 'StructureLab', 'StructureLink', 'StructureNuker',
+        'StructureObserver', 'StructurePortal', 'StructurePowerBank', 'StructurePowerSpawn', 'StructureRampart',
+        'StructureRoad', 'StructureSpawn', 'StructureStorage', 'StructureTerminal', 'StructureTower', 'StructureWall',
+        'ConstructionSite', 'Tombstone', 'Ruin', 'Resource', 'Source', 'Mineral', 'Deposit', 'Nuke', 'Flag'
+    ];
+    for (let className of safeClasses) {
+        if (typeof global[className] !== 'undefined' && global[className].prototype) {
+            global[className].prototype.toJSON = function () {
+                return this.id || this.name || "[" + className + "]";
+            };
+        }
+    }
+    if (typeof RoomPosition !== 'undefined' && RoomPosition.prototype) {
+        RoomPosition.prototype.toJSON = function () {
+            return {x: this.x, y: this.y, roomName: this.roomName};
+        };
+    }
 };
 
 module.exports = globals;

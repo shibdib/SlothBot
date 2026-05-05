@@ -9,6 +9,7 @@ module.exports.cleanup = function () {
         cleanStructureMemory();
         cleanStructures();
         cleanPathingCaches();
+        if (Memory.errorLogs && Memory.errorLogs.length > 50) Memory.errorLogs = Memory.errorLogs.slice(-50);
     }
     if (Game.time % EST_TICKS_PER_DAY === 0) {
         // Uncomment to enable: cleanRoomIntel();
@@ -89,15 +90,20 @@ function cleanRoomIntel() {
 function cleanStructureMemory() {
     if (Memory.structureMemory) {
         delete Memory.structureMemory;
-        return;
     }
 
     for (let i = 0; i < MY_ROOMS.length; i++) {
         const room = Game.rooms[MY_ROOMS[i]];
-        if (room && room.memory && room.memory.structureMemory) {
-            for (let structureId in room.memory.structureMemory) {
-                if (!Game.getObjectById(structureId)) {
-                    delete room.memory.structureMemory[structureId];
+        if (room && room.memory) {
+            const memKeys = ['structureMemory', '_structureMemory'];
+            for (let key of memKeys) {
+                if (room.memory[key]) {
+                    for (let structureId in room.memory[key]) {
+                        if (!Game.getObjectById(structureId)) {
+                            delete room.memory[key][structureId];
+                        }
+                    }
+                    if (_.isEmpty(room.memory[key])) delete room.memory[key];
                 }
             }
         }
@@ -105,13 +111,15 @@ function cleanStructureMemory() {
 }
 
 function cleanStructures() {
-    const structures = _.filter(Game.structures, function (s) {
-        return (
-            s.room.controller &&
-            (!s.room.controller.owner || s.room.controller.owner.username !== MY_USERNAME) &&
-            !s.isActive()
-        );
-    });
+    const structures = [];
+    for (let r of MY_ROOMS) {
+        let room = Game.rooms[r];
+        if (room && room.controller && (!room.controller.owner || room.controller.owner.username !== MY_USERNAME)) {
+            for (let s of room.structures) {
+                if (!s.isActive()) structures.push(s);
+            }
+        }
+    }
 
     for (let i = 0; i < structures.length; i++) {
         structures[i].destroy();

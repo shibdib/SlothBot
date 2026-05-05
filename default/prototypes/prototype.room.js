@@ -133,7 +133,7 @@ Object.defineProperty(Room.prototype, 'impassibleStructures', {
     get: function () {
         if (!this._impassibleStructures) {
             this._impassibleStructures = _.filter(this.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) ||
-                (s.structureType === STRUCTURE_RAMPART && !FRIENDLIES.includes(s.owner.username)));
+                (s.structureType === STRUCTURE_RAMPART && (!s.owner || !FRIENDLIES.includes(s.owner.username))));
         }
         return this._impassibleStructures;
     },
@@ -146,40 +146,40 @@ Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
         if (!this.controller) return 2;
         if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + 500 > Game.time) return ENERGY_STATE_CACHE[this.name].state;
-        if (!this._energyState) {
-            let energy = this.rawEnergy;
-            const upgradeCost = this.level === 8 ? 250000 : Math.min((constructionCost(this.controller.level + 1) - constructionCost(this.controller.level)), 250000)
-            let target = this.level === 8 ? 250000 : Math.max(upgradeCost * (this.controller.progress / this.controller.progressTotal), 50000);
-            if (energy > target * 2) {
-                this._energyState = 3;
-            } else if (energy > target || (!this.storage && !this.terminal)) {
-                this._energyState = 2;
-            } else if (energy > target * 0.75) {
-                this._energyState = 1;
-            } else {
-                this._energyState = 0;
+        let energy = this.rawEnergy;
+        const upgradeCost = this.level === 8 ? 250000 : constructionCost(this.controller.level + 1) - constructionCost(this.controller.level);
+        let target = this.level === 8 ? 250000 : upgradeCost * (this.controller.progress / this.controller.progressTotal);
+        // Scale the target based on how close we are to leveling
+        target = Math.max(Math.min(Math.round(target * ((this.controller.progress / this.controller.progressTotal) + 0.1)), STORAGE_CAPACITY * 0.5), this.level * 10000);
+        if (energy > target * 2 || (!this.storage && !this.terminal && this.controller.level < 4)) {
+            this._energyState = 3;
+        } else if (energy >= target) {
+            this._energyState = 2;
+        } else if (energy > target * 0.5) {
+            this._energyState = 1;
+        } else {
+            this._energyState = 0;
+        }
+        // Handle energy requests
+        const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
+        if (this.terminal && energy < target && ALLY_HELP_REQUESTS[MY_USERNAME]) {
+            let resourceRequests = requests.resource ? requests.resource : [];
+            if (resourceRequests) {
+                resourceRequests = resourceRequests.filter((r) => (r.resourceType !== RESOURCE_ENERGY && r.roomName === this.name) || r.roomName !== this.name);
+                resourceRequests.push({
+                    resourceType: RESOURCE_ENERGY,
+                    amount: (target * 1.2) - energy,
+                    priority: 1 - (energy / target),
+                    roomName: this.name
+                });
+                ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;
             }
-            // Handle energy requests
-            const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
-            if (this.terminal && energy < target && ALLY_HELP_REQUESTS[MY_USERNAME]) {
-                let resourceRequests = requests.resource ? requests.resource : [];
-                if (resourceRequests) {
-                    resourceRequests = resourceRequests.filter((r) => (r.resourceType !== RESOURCE_ENERGY && r.roomName === this.name) || r.roomName !== this.name);
-                    resourceRequests.push({
-                        resourceType: RESOURCE_ENERGY,
-                        amount: (target * 1.2) - energy,
-                        priority: 1 - (energy / target),
-                        roomName: this.name
-                    });
-                    ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;
-                }
-            } else if (ALLY_HELP_REQUESTS[MY_USERNAME]) {
-                const resourceRequests = requests.resource ? requests.resource : [];
-                const request = resourceRequests.find((r) => r.resourceType === RESOURCE_ENERGY && r.roomName === this.name);
-                if (request) {
-                    resourceRequests.splice(resourceRequests.indexOf(request), 1);
-                    ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;
-                }
+        } else if (ALLY_HELP_REQUESTS[MY_USERNAME]) {
+            const resourceRequests = requests.resource ? requests.resource : [];
+            const request = resourceRequests.find((r) => r.resourceType === RESOURCE_ENERGY && r.roomName === this.name);
+            if (request) {
+                resourceRequests.splice(resourceRequests.indexOf(request), 1);
+                ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;
             }
         }
         ENERGY_STATE_CACHE[this.name] = {state: this._energyState, tick: Game.time};
@@ -192,7 +192,9 @@ Object.defineProperty(Room.prototype, 'energyState', {
 Object.defineProperty(Room.prototype, 'hostileStructures', {
     get: function () {
         if (!this._hostileStructures) {
-            this._hostileStructures = _.filter(this.structures, (s) => !s.my && s.owner && ![STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_POWER_BANK, STRUCTURE_ROAD].includes(s.structureType) && !_.includes(FRIENDLIES, s.owner.username));
+            this._hostileStructures = _.filter(this.structures, (s) => !s.my && s.owner &&
+                ![STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_POWER_BANK, STRUCTURE_ROAD].includes(s.structureType)
+                && (!s.owner || !FRIENDLIES.includes(s.owner.username)));
         }
         return this._hostileStructures;
     },
@@ -262,8 +264,8 @@ Object.defineProperty(Room.prototype, 'powerCreeps', {
 Object.defineProperty(Room.prototype, 'hostileCreeps', {
     get: function () {
         if (!this._Hostilecreeps) {
-            this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Source Keeper');
-            this._Hostilecreeps.concat(_.filter(this.powerCreeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username)));
+            this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && (!FRIENDLIES.includes(c.owner.username) || HOSTILES.includes(c.owner.username)) && c.owner.username !== 'Source Keeper');
+            this._Hostilecreeps.concat(_.filter(this.powerCreeps, (c) => !c.my && (!FRIENDLIES.includes(c.owner.username) || HOSTILES.includes(c.owner.username))));
         }
         return this._Hostilecreeps;
     },
@@ -419,14 +421,34 @@ Room.prototype.store = function (resource, unused = false) {
 function getRoomResource(room, resource, unused = false) {
     if (!room || !resource) return undefined;
     let count = 0;
-    if (!unused) {
-        _.filter(room.impassibleStructures, (s) => s.store && s.store.getUsedCapacity(resource) && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TOWER &&
-            s.structureType !== STRUCTURE_SPAWN && s.structureType !== STRUCTURE_EXTENSION).forEach((s) => count += s.store.getUsedCapacity(resource));
-    } else {
-        _.filter(room.impassibleStructures, (s) => s.store && s.store.getUsedCapacity(resource) && (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_FACTORY)).forEach((s) => count += s.store.getUsedCapacity(resource));
+
+    // Instead of filtering the massive impassibleStructures array multiple times, we iterate once
+    for (const s of room.impassibleStructures) {
+        if (!s.store) continue;
+        const used = s.store.getUsedCapacity(resource);
+        if (used === 0) continue;
+
+        if (!unused) {
+            if (s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TOWER && s.structureType !== STRUCTURE_SPAWN && s.structureType !== STRUCTURE_EXTENSION) {
+                count += used;
+            }
+        } else {
+            if (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_FACTORY) {
+                count += used;
+            }
+        }
     }
-    if (!unused || resource !== RESOURCE_ENERGY) _.filter(room.myCreeps, (c) => c.store[resource]).forEach((c) => count += c.store[resource]);
-    _.filter(room.droppedResources, (r) => r.resourceType === resource).forEach((r) => count += r.amount);
+
+    if (!unused || resource !== RESOURCE_ENERGY) {
+        for (const c of room.myCreeps) {
+            if (c.store[resource]) count += c.store[resource];
+        }
+    }
+
+    for (const r of room.droppedResources) {
+        if (r.resourceType === resource) count += r.amount;
+    }
+
     return count;
 }
 
@@ -880,7 +902,14 @@ Room.prototype.towerData = function () {
         }
     }
 
-    return {maxDamage: maxDamage, position: dangerousSpot, average: average(damageTracker)};
+    return {maxDamage: maxDamage,
+        position: dangerousSpot ? {
+            x: dangerousSpot.x,
+            y: dangerousSpot.y,
+            roomName: dangerousSpot.roomName
+        } : undefined,
+        average: average(damageTracker)
+    };
 
     function determineDamage(range) {
         if (range <= 5) {

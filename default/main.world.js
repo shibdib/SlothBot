@@ -18,6 +18,21 @@ let tickTracker = {};
 
 class World {
     constructor() {
+        global.world = this;
+        // Group creeps once per tick to save CPU
+        this.militaryCreeps = [];
+        this.colonyCreeps = {};
+        for (const name in Game.creeps) {
+            const creep = Game.creeps[name];
+            if (creep.memory.military || !creep.memory.colony) {
+                this.militaryCreeps.push(creep);
+            } else {
+                const colonyName = creep.memory.colony;
+                if (!this.colonyCreeps[colonyName]) this.colonyCreeps[colonyName] = [];
+                this.colonyCreeps[colonyName].push(creep);
+            }
+        }
+
         // General housekeeping
         this.houseKeeping();
 
@@ -119,9 +134,7 @@ class World {
     }
 
     militaryCreepManager() {
-        const creeps = shuffle(Object.values(Game.creeps).filter((creep) =>
-            (creep.memory.military || !creep.memory.colony)
-        ));
+        const creeps = shuffle(this.militaryCreeps);
 
         for (const creep of creeps) {
             try {
@@ -146,7 +159,7 @@ class World {
                 room.invaderCheck();
                 room.cacheRoomIntel();
                 const roomLimit = (CPU_TASK_LIMITS['roomLimit'] * 0.9) / MY_ROOMS.length;
-                new colony(room, roomLimit);
+                new colony(room, this.colonyCreeps[roomName] || []);
             } catch (e) {
                 log.e(`Colony Module experienced an error in room ${roomLink(roomName)}`);
                 log.e(e.stack);

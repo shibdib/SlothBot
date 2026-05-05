@@ -74,7 +74,8 @@ class Log {
             this.cprint(custom + ' ' + message, this.LOGGING_LEVEL.ERROR, '#e59821');
         } else {
             this.cprint('ERROR: ' + message, this.LOGGING_LEVEL.ERROR, '#e59821');
-            Memory.errorLogs = undefined
+            if (!Memory.errorLogs) Memory.errorLogs = [];
+            Memory.errorLogs.push(message);
         }
     }
 
@@ -99,7 +100,8 @@ class Log {
             if (logLevel === this.LOGGING_LEVEL.DEBUG) {
                 console.debug(message);  // Use console.debug for DEBUG logs
             } else {
-                console.log(message);  // Use console.log for other logs
+                console.logUnsafe(message);  // Use console.log for other logs
+                if (logLevel === this.LOGGING_LEVEL.ERROR) Game.notify(message, 0)
             }
         }
     }

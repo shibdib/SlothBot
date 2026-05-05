@@ -9,7 +9,7 @@ let helpers = function () {
      * @param room
      */
     global.abandonRoom = function (room) {
-        if (!room || !room.controller || room.controller.owner.username !== MY_USERNAME) {
+        if (!room || !room.controller || (room.controller.owner && room.controller.owner.username !== MY_USERNAME)) {
             return log.e(room ? `${room.name} does not appear to be owned by you.` : 'Room does not exist.');
         }
 
@@ -61,23 +61,21 @@ let helpers = function () {
      * @param target
      */
     global.nukes = function (target) {
-        let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown);
-        if (target) nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && !s.store.getFreeCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity(RESOURCE_GHODIUM) && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, target) <= 10);
+        let nukes = [];
+        for (let r of MY_ROOMS) {
+            let room = Game.rooms[r];
+            if (room && room.nuker && !room.nuker.store.getFreeCapacity(RESOURCE_ENERGY) && !room.nuker.store.getFreeCapacity(RESOURCE_GHODIUM) && !room.nuker.cooldown) {
+                if (!target || Game.map.getRoomLinearDistance(r, target) <= 10) {
+                    nukes.push(room.nuker);
+                }
+            }
+        }
         if (!nukes.length && !target) return log.a('No nukes available');
         if (!nukes.length && target) return log.a('No nukes available in range of ' + target);
         for (let key in nukes) {
             if (target) log.a(nukes[key].room.name + ' has a nuclear missile available that is in range of ' + target);
             if (!target) log.a(nukes[key].room.name + ' has a nuclear missile available.')
         }
-    };
-
-    /**
-     * Clear the console
-     */
-    global.clear = function () {
-        console.log(
-            "<script>angular.element(document.getElementsByClassName('fa fa-trash ng-scope')[0].parentNode).scope().Console.clear()</script>"
-        );
     };
 
     /**
@@ -243,7 +241,7 @@ let helpers = function () {
                     - prices.filter(v => v === b).length
                 ).pop();
                 const range = Math.max(...prices) - Math.min(...prices);
-                const lastPrice = prices.length > 0 ? prices[0].toFixed(2) : '0.00';
+                const lastPrice = prices.length > 0 ? prices[prices.length - 1].toFixed(2) : '0.00';
                 const entries = history.length;
 
                 MARKET_HISTORY[resource] = {
@@ -251,10 +249,10 @@ let helpers = function () {
                         avg: mean.toFixed(2),
                         highest: Math.max(...prices).toFixed(2),
                         lowest: Math.min(...prices).toFixed(2),
-                        trend: (prices[0] - prices[prices.length - 1]).toFixed(2),
-                        trend5: (prices.slice(0, 5).reduce((sum, price) => sum + price, 0) / 5).toFixed(2),
-                        trend10: (prices.slice(0, 10).reduce((sum, price) => sum + price, 0) / 10).toFixed(2),
-                        trend20: (prices.slice(0, 20).reduce((sum, price) => sum + price, 0) / 20).toFixed(2),
+                        trend: (prices[prices.length - 1] - prices[0]).toFixed(2),
+                        trend5: (prices.slice(-5).reduce((sum, price) => sum + price, 0) / Math.min(5, prices.length)).toFixed(2),
+                        trend10: (prices.slice(-10).reduce((sum, price) => sum + price, 0) / Math.min(10, prices.length)).toFixed(2),
+                        trend20: (prices.slice(-20).reduce((sum, price) => sum + price, 0) / Math.min(20, prices.length)).toFixed(2),
                         last: lastPrice,
                         totalVolume: totalVolume,
                         median: median.toFixed(2),
@@ -356,6 +354,8 @@ let helpers = function () {
 
         // If no valid room was found, use a fallback
         if (!closest) {
+            // Other shards/no spawn
+            if (!Game.spawns[Object.keys(Game.spawns)[0]]) return range ? 99 : undefined;
              // First spawn's room
             closest = Game.spawns[Object.keys(Game.spawns)[0]].room.name;
             closestDistance = Game.map.getRoomLinearDistance(roomName, closest);
@@ -494,24 +494,36 @@ let helpers = function () {
         let rangedPower = 0;
         let healPower = 0;
         let rangedHealPower = 0;
+        let ehp = 0;
+        let lowestDamageMultiplier = 1;
 
         for (let part of body) {
-            let partType, boost;
+            let partType, boost, hits;
             if (typeof part === 'string') {
                 partType = part;
                 boost = undefined;
+                hits = 100;
             } else {
-                if (!part.hits) continue;
+                if (part.hits <= 0) continue;
                 partType = part.type;
                 boost = part.boost;
+                hits = part.hits;
             }
+
+            // Generic hits calculation (EHP)
+            let currentDmgMult = 1;
+            if (partType === TOUGH && boost && BOOSTS[partType][boost].damage) {
+                currentDmgMult = BOOSTS[partType][boost].damage;
+                if (currentDmgMult < lowestDamageMultiplier) lowestDamageMultiplier = currentDmgMult;
+            }
+            ehp += hits / currentDmgMult;
 
             // Calculate based on part type
             switch (partType) {
                 case ATTACK:
                     meleePower += boost
-                        ? (ATTACK_POWER * 0.5) * BOOSTS[partType][boost].attack
-                        : (ATTACK_POWER * 0.5);
+                        ? ATTACK_POWER * BOOSTS[partType][boost].attack
+                        : ATTACK_POWER;
                     break;
                 case RANGED_ATTACK:
                     rangedPower += boost
@@ -526,22 +538,24 @@ let helpers = function () {
                         ? RANGED_HEAL_POWER * BOOSTS[partType][boost].heal
                         : RANGED_HEAL_POWER;
                     break;
-                case TOUGH:
-                    if (boost) {
-                        healPower += HEAL_POWER * (1 - BOOSTS[partType][boost].damage);
-                    }
-                    break;
                 default:
                     break;
             }
         }
 
+        // Effective healing represents how much raw damage the creep can absorb per tick based on its own heals + damage reduction
+        const effectiveHealingMultiplier = 1 / lowestDamageMultiplier;
+
         return {
-            attack: meleePower + rangedPower,
+            attack: meleePower + rangedPower, // Total true DPS potential
             meleeAttack: meleePower,
             rangedAttack: rangedPower,
-            heal: healPower,
-            rangedHeal: rangedHealPower
+            heal: healPower, // Total true HPS potential
+            rangedHeal: rangedHealPower,
+            // New metrics for enhanced combat logic:
+            effectiveHeal: healPower * effectiveHealingMultiplier,
+            defense: ehp, // Effective Health Pool (EHP)
+            damageMultiplier: lowestDamageMultiplier
         };
     };
 }

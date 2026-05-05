@@ -32,14 +32,17 @@ class RoleRoadBuilder {
         }
         // SK Safety
         if (this.creep.skSafety()) return true;
-        // Set destination
-        if (!this.creep.memory.destination) {
+
+        // Set destination if missing or invalid
+        if (!this.creep.memory.destination || (this.creep.memory.destination === this.creep.room.name && !this.creep.room.constructionSites.length && INTEL[this.creep.room.name] && INTEL[this.creep.room.name].roadsBuilt)) {
+            // Throttled target finding
+            if (Game.time % 10 !== 0 && this.creep.memory.destination) return false;
+
             const remoteHarvesters = _.filter(Game.creeps, (c) => c.my && c.memory.colony === this.creep.memory.colony && c.memory.role === 'remoteHarvester');
             if (_.size(remoteHarvesters)) {
                 this.creep.memory.destination = _.sample(_.pluck(remoteHarvesters, 'memory.destination'));
-                if (this.creep.memory.destination === this.creep.room.name) this.creep.idleFor(15);
             } else {
-                this.creep.fleeHome(true);
+                this.creep.memory.destination = this.creep.memory.colony;
             }
             return true;
         }
@@ -47,20 +50,26 @@ class RoleRoadBuilder {
 
     working() {
         if (!this.creep.store[RESOURCE_ENERGY]) return this.creep.memory.working = undefined;
-        // Handle movement
-        if (!this.creep.memory.constructionSite && this.creep.pos.roomName !== this.creep.memory.destination) return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 23});
-        this.creep.memory.other.source = undefined;
-        this.creep.memory.harvest = undefined;
-        // Handle construction
+
+        // Handle movement to destination room
+        if (this.creep.pos.roomName !== this.creep.memory.destination && !this.creep.memory.constructionSite) {
+            return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 20});
+        }
+
+        // Handle construction/repair
         if (this.creep.memory.constructionSite || this.creep.constructionWork()) {
             this.creep.builderFunction();
-        } else if (this.creep.room.name !== this.creep.memory.colony && !this.remoteRoads(this.creep)) {
-            INTEL[this.creep.room.name].roadsBuilt = true;
-            INTEL[this.creep.room.name].roadCount = this.creep.room.structures.filter((s) => s.structureType === STRUCTURE_ROAD).length;
+        } else if (this.creep.room.name !== this.creep.memory.colony && Game.time % 25 === 0) {
+            // Check for new roads in remote rooms periodically
+            if (!this.remoteRoads(this.creep)) {
+                INTEL[this.creep.room.name].roadsBuilt = true;
+                INTEL[this.creep.room.name].roadCount = this.creep.room.structures.filter((s) => s.structureType === STRUCTURE_ROAD).length;
+                this.creep.memory.destination = undefined;
+            }
+        } else if (this.creep.room.name === this.creep.memory.colony && !this.creep.constructionWork()) {
+            // If nothing to do at home, go find a remote
             this.creep.memory.destination = undefined;
-            if (this.creep.memory.colony === this.creep.room.name) this.creep.idleFor(15);
-        } else {
-            INTEL[this.creep.room.name].roadsBuilt = undefined;
+            this.creep.idleFor(15);
         }
     }
 
@@ -243,7 +252,7 @@ function buildCostMatrix(roomName) {
 
     let room = Game.rooms[roomName];
     if (room) {
-        room.find(FIND_STRUCTURES).forEach(structure => {
+        room.structures.forEach(structure => {
             if (structure.structureType === STRUCTURE_ROAD) {
                 costMatrix.set(structure.pos.x, structure.pos.y, 1);
             } else if (structure.structureType === STRUCTURE_CONTAINER) {

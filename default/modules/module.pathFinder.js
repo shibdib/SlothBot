@@ -336,15 +336,20 @@ function findRoute(origin, destination, options = {}) {
         return cached.failed ? [] : route;
     }
 
-    const roomDistance = Game.map.getRoomLinearDistance(origin, destination);
-    if (roomDistance > 15) return;
+    const [, fx, fy] = origin.match(/^[WE](\d+)[NS](\d+)$/) || [];
+    const [, tx, ty] = destination.match(/^[WE](\d+)[NS](\d+)$/) || [];
+    if (fx && tx) {
+        const roomDistance = Math.max(Math.abs(parseInt(fx, 10) - parseInt(tx, 10)), Math.abs(parseInt(fy, 10) - parseInt(ty, 10)));
+        if (roomDistance > 15) return;
+    }
 
     const route = Game.map.findRoute(origin, destination, {
         routeCallback: (roomName) => {
             if (roomName === origin || roomName === destination) return 1;
             const intel = INTEL[roomName];
-            if (roomStatus(roomName) === 'closed' ||
-                (intel && !intel.isHighway && roomStatus(roomName) !== roomStatus(origin))) return Infinity;
+            const rStatus = roomStatus(roomName);
+            if (rStatus === 'closed' ||
+                (intel && !intel.isHighway && rStatus !== roomStatus(origin))) return Infinity;
             if (Memory.avoidRooms && Memory.avoidRooms.includes(roomName)) return 250;
             if (!intel || intel.cached + 10000 < Game.time) return 50;
             if (intel.user && intel.user === MY_USERNAME) return 1;
@@ -369,29 +374,47 @@ function creepBumping(creep, pathInfo, options) {
     if (!pathInfo || !pathInfo.newPos) return creep.moveRandom();
     let nextPosition = creep.pos.positionAtDirection(parseInt(pathInfo.path[0], 10));
     if (nextPosition) {
-        let bumpCreep = _.find(nextPosition.lookFor(LOOK_CREEPS), (c) => c.my && !c.fatigue && (!c.memory.other || !c.memory.other.stationary));
+        let potentialObstacles = nextPosition.lookFor(LOOK_CREEPS).concat(nextPosition.lookFor(LOOK_POWER_CREEPS));
+        let bumpCreep = _.find(potentialObstacles, (c) =>
+            c.my &&
+            (c.className || !c.fatigue) &&
+            (!c.memory || !c.memory.other || !c.memory.other.stationary) &&
+            (c.className || c.hasActiveBodyparts(MOVE))
+        );
+
         if (bumpCreep) {
+            let myPriority = PRIORITIES[creep.memory.role] || 10;
+            let theirPriority = PRIORITIES[bumpCreep.memory.role] || 10;
+
             if (creep.memory.trailer) {
                 const trailer = Game.getObjectById(creep.memory.trailer);
                 if (trailer && trailer.pos.isNearTo(creep)) {
                     bumpCreep.moveRandom();
                 }
-            } else if (!bumpCreep.hasActiveBodyparts(MOVE)) {
-                creep.pull(bumpCreep);
-                creep.move(creep.pos.getDirectionTo(bumpCreep));
             } else if (!creep.className && !creep.memory.trailer) {
-                bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
-                creep.move(creep.pos.getDirectionTo(bumpCreep));
+                // Determine who yields based on priority (lower number = higher priority)
+                if (myPriority < theirPriority || bumpCreep.store.getUsedCapacity() === 0) {
+                    // We are higher priority or they are empty, force them to yield/swap
+                    bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
+                    creep.move(creep.pos.getDirectionTo(bumpCreep));
+                    if (bumpCreep.memory && bumpCreep.memory._shibMove) {
+                        // Don't wipe their path, just let them recover next tick
+                        bumpCreep.memory._shibMove.pathPosTime = 0;
+                    }
+                } else {
+                    // We are lower priority, we yield
+                    bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
+                    creep.moveRandom();
+                    if (creep.memory && creep.memory._shibMove) {
+                        creep.memory._shibMove.pathPosTime = 0;
+                    }
+                }
             } else {
                 bumpCreep.moveRandom();
                 creep.move(creep.pos.getDirectionTo(bumpCreep));
             }
-            bumpCreep.say(ICONS.traffic, true)
-            if (bumpCreep.memory._shibMove) {
-                bumpCreep.memory._shibMove.path = undefined;
-                bumpCreep.memory._shibMove.pathPosTime = undefined;
-            }
-            bumpCreep.memory.moveBlocked = Game.time;
+            bumpCreep.say(ICONS.traffic, true);
+            if (bumpCreep.memory) bumpCreep.memory.moveBlocked = Game.time;
             return true;
         } else {
             if (Math.random() > 0.75) creep.moveRandom();
@@ -429,79 +452,70 @@ function visualizeCostMatrix(costMatrix, roomName) {
 
 function getMatrix(roomName, creep, options) {
     const room = Game.rooms[roomName];
-    let armedEnemies = [];
-    if (room) armedEnemies = room.hostileCreeps.filter((c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
-    let matrix = getTerrainMatrix(roomName, options);
-    matrix = getStructureMatrix(roomName, creep, matrix, options);
-    matrix = getCreepMatrix(roomName, creep, matrix, options);
-    matrix = getStationaryCreepsMatrix(roomName, creep, matrix, options);
-    if (creep instanceof Creep && armedEnemies.length) {
-        if ((!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.flee) matrix = getHostileMatrix(roomName, matrix, options);
-        //matrix = getOutsideHubMatrix(roomName, matrix, options);
-    }
-    matrix = getSKMatrix(roomName, matrix, options);
-    //if (creep.id === '67c4950f3862fb05f9d87baf') visualizeCostMatrix(matrix, roomName);
-    return matrix;
-}
+    let matrix = getBaseMatrix(roomName, creep, options).clone();
 
-function getCachedMatrix(roomName, type, tickTTL, computeFn) {
-    const key = `${roomName}_${type}`;
-    if (MATRIX_CACHE[key] && Game.time - MATRIX_CACHE[key].tick < tickTTL) {
-        return MATRIX_CACHE[key].matrix.clone(); // Assumes CostMatrix has .clone()
-    }
-    const matrix = computeFn();
-    MATRIX_CACHE[key] = {matrix: matrix, tick: Game.time}; // Explicit property names
-    return matrix;
-}
-
-function getTerrainMatrix(roomName, options) {
-    const type = options.offRoad || options.tunnel ? 3 : options.ignoreRoads ? 2 : options.squad ? 4 : 1;
-    return getCachedMatrix(roomName, `terrain_${type}`, 100000, () => addTerrainToMatrix(roomName, type));
-
-    function addTerrainToMatrix(roomName, type) {
-        let matrix = new PathFinder.CostMatrix();
-        let terrain = Game.map.getRoomTerrain(roomName);
-        let plainCost, swampCost;
-        switch (type) {
-            case 2:
-                plainCost = 1;
-                swampCost = 25;
-                break;
-            case 3:
-                plainCost = 1;
-                swampCost = 1;
-                break;
-            default:
-                plainCost = 4;
-                swampCost = 25;
-        }
-        // Squad matrix has higher costs in tiles neighboring swamps and walls
-        for (let y = 0; y < 50; y++) {
-            for (let x = 0; x < 50; x++) {
-                let tile = terrain.get(x, y);
-                if (tile === TERRAIN_MASK_WALL) {
-                    matrix.set(x, y, 256);
-                } else if (x === 0 || x === 49 || y === 0 || y === 49) {
-                    if (!options.flee) matrix.set(x, y, 10); else matrix.set(x, y, 1);
-                } else if (tile === TERRAIN_MASK_SWAMP) {
-                    matrix.set(x, y, swampCost);
-                } else {
-                    matrix.set(x, y, plainCost);
-                }
+    if (room) {
+        matrix = addCreepsToMatrix(room, matrix, creep, options);
+        let armedEnemies = room.hostileCreeps.filter((c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
+        if (creep instanceof Creep && armedEnemies.length) {
+            if ((!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.flee) {
+                matrix = addHostilesToMatrix(room, matrix);
             }
         }
-        return matrix;
     }
+
+    return matrix;
 }
 
-function getStructureMatrix(roomName, creep, matrix, options) {
+function getBaseMatrix(roomName, creep, options) {
     const type = options.offRoad || options.tunnel ? 3 : options.ignoreRoads ? 2 : options.squad ? 4 : 1;
     const room = Game.rooms[roomName];
-    if (!room) return matrix;
-    return getCachedMatrix(roomName, `struct_${type}`, 50, () => addStructuresToMatrix(room, creep, matrix, type, options));
+    const noWallWrecker = creep instanceof Creep ? ((INTEL[roomName] && FRIENDLIES.includes(INTEL[roomName].owner)) || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK))) : true;
+    const ignoreKeeper = options.ignoreKeeper ? options.ignoreKeeper : false;
+    const key = `${roomName}_base_${type}_${noWallWrecker}_${ignoreKeeper}`;
 
-    function addStructuresToMatrix(room, creep, matrix, type, options) {
-        if (!room) return matrix;
+    if (MATRIX_CACHE[key] && Game.time - MATRIX_CACHE[key].tick < 25) {
+        return MATRIX_CACHE[key].matrix;
+    }
+
+    let matrix = new PathFinder.CostMatrix();
+    let terrain = Game.map.getRoomTerrain(roomName);
+    let plainCost, swampCost;
+
+    // Type 1: Standard creep (Prefers roads)
+    // Type 2: Ignore roads (1:1 move to parts ratio)
+    // Type 3: Off-road/Tunnel (Ignores terrain costs)
+    // Type 4: Squads
+    switch (type) {
+        case 2:
+            plainCost = 1;
+            swampCost = 25;
+            break;
+        case 3:
+            plainCost = 1;
+            swampCost = 1;
+            break;
+        // Standard creeps heavily prefer roads (1 cost). Increase plain/swamp costs to reflect fatigue/bodyweight constraints.
+        default:
+            plainCost = Math.ceil(2 + (creep instanceof Creep ? (creep.store.getCapacity() / 50) * 0.1 : 0));
+            swampCost = plainCost * 5;
+    }
+    for (let y = 0; y < 50; y++) {
+        for (let x = 0; x < 50; x++) {
+            let tile = terrain.get(x, y);
+            if (tile === TERRAIN_MASK_WALL) {
+                matrix.set(x, y, 256);
+            } else if (x === 0 || x === 49 || y === 0 || y === 49) {
+                if (!options.flee) matrix.set(x, y, 10); else matrix.set(x, y, 1);
+            } else if (tile === TERRAIN_MASK_SWAMP) {
+                matrix.set(x, y, swampCost);
+            } else {
+                matrix.set(x, y, plainCost);
+            }
+        }
+    }
+
+    if (room) {
         let roadCost;
         switch (type) {
             case 2:
@@ -511,10 +525,8 @@ function getStructureMatrix(roomName, creep, matrix, options) {
             default:
                 roadCost = 1;
         }
-        let noWallWrecker = (creep instanceof Creep && ((INTEL[room.name] && FRIENDLIES.includes(INTEL[room.name].owner)) || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK))));
         for (let structure of room.structures) {
-            if (room.hostileCreeps.length && structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()
-                && structure.pos.checkForRampart()) {
+            if (room.hostileCreeps.length && structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer() && structure.pos.checkForRampart()) {
                 matrix.set(structure.pos.x, structure.pos.y, roadCost * 0.5);
             } else if (structure instanceof StructureRoad && !structure.pos.checkForObstacleStructure() && !structure.pos.checkForContainer()) {
                 matrix.set(structure.pos.x, structure.pos.y, roadCost);
@@ -544,156 +556,154 @@ function getStructureMatrix(roomName, creep, matrix, options) {
         for (let site of blockingSites) {
             matrix.set(site.pos.x, site.pos.y, 256);
         }
-        //Sources
         for (let source of room.sources) {
             matrix.set(source.pos.x, source.pos.y, 256);
         }
         if (room.mineral) {
             matrix.set(room.mineral.pos.x, room.mineral.pos.y, 256);
         }
-        return matrix;
-    }
-}
-
-function getCreepMatrix(roomName, creep, matrix, options) {
-    const room = Game.rooms[roomName];
-    if (!room || !(creep instanceof Creep) || (!options.ignoreCreeps && (!INTEL[roomName] || !INTEL[roomName].owner))) return matrix;
-    return getCachedMatrix(roomName, 'creeps', 1, () => addCreepsToMatrix(room, matrix, creep, options));
-
-    function addCreepsToMatrix(room, matrix, creep = undefined, options) {
-        if (!room) return matrix;
-        let creeps = room.creeps;
-        if (creep) {
-            creeps = creep.pos.findInRange(FIND_CREEPS, 5);
-            creeps = creeps.concat(creep.pos.findInRange(FIND_POWER_CREEPS, 5));
-        }
-        for (let key in creeps) {
-            matrix.set(creeps[key].pos.x, creeps[key].pos.y, 100);
-            if (options.showMatrix) new RoomVisual(room.name).text('IMP', creeps[key].pos.x, creeps[key].pos.y, {
-                color: 'white',
-                font: 0.4
-            });
-        }
-        return matrix;
-    }
-}
-
-function getStationaryCreepsMatrix(roomName, creep, matrix, options) {
-    const room = Game.rooms[roomName];
-    if (!room) return matrix;
-    return getCachedMatrix(roomName, 'stationary', 5, () => addStationaryCreepsToMatrix(room, matrix, creep, options));
-
-    function addStationaryCreepsToMatrix(room, matrix, creep = undefined, options) {
-        if (!room) return matrix;
-        let creeps = room.myCreeps;
-        for (let creep of creeps) {
-            // Sanity check
-            if (!creep.memory || !creep.memory.other) continue;
-            if (creep.memory.other.stationary || !creep.hasActiveBodyparts(MOVE) || creep.memory.grouped) {
-                matrix.set(creep.pos.x, creep.pos.y, 200);
-                if (options.showMatrix) new RoomVisual(room.name).text('IMP', creep.pos.x, creep.pos.y, {
-                    color: 'white',
-                    font: 0.4
-                });
+        for (let sCreep of room.myCreeps) {
+            if (!sCreep.memory || !sCreep.memory.other) continue;
+            if (sCreep.memory.other.stationary || !sCreep.hasActiveBodyparts(MOVE) || sCreep.memory.grouped) {
+                matrix.set(sCreep.pos.x, sCreep.pos.y, 200);
             }
         }
-        return matrix;
     }
+    matrix = addSksToMatrix(roomName, matrix, options);
+
+    MATRIX_CACHE[key] = {matrix: matrix, tick: Game.time};
+    return matrix;
 }
 
-function getHostileMatrix(roomName, matrix, options) {
-    const room = Game.rooms[roomName];
-    if (!room) return matrix;
-    return getCachedMatrix(roomName, 'hostile', 1, () => addHostilesToMatrix(room, matrix));
-
-    function addHostilesToMatrix(room, matrix) {
-        if (!room || (room.controller && room.controller.owner && room.controller.owner.username === MY_USERNAME && room.controller.safeMode)) {
-            return matrix;
+function addCreepsToMatrix(room, matrix, creep = undefined, options) {
+    if (options.ignoreCreeps) {
+        if (creep && creep instanceof Creep && creep.room.name === room.name) {
+            let creeps = room.creeps.filter(c => creep.pos.getRangeTo(c) <= 5);
+            let powerCreeps = room.powerCreeps.filter(c => creep.pos.getRangeTo(c) <= 5);
+            creeps = creeps.concat(powerCreeps);
+            for (let c of creeps) {
+                matrix.set(c.pos.x, c.pos.y, 100);
+            }
         }
-        const enemyCreeps = room.hostileCreeps.filter(c => !c.className && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)));
-        for (const creep of enemyCreeps) {
-            matrix.set(creep.pos.x, creep.pos.y, 250);
-            const sites = creep.room.lookForAtArea(LOOK_TERRAIN, creep.pos.y - 6, creep.pos.x - 6, creep.pos.y + 6, creep.pos.x + 6, true);
-            for (let site of sites) {
-                let position;
-                try {
-                    position = new RoomPosition(site.x, site.y, room.name);
-                    if (position && !position.checkForWall()) {
-                        const value = 200 / creep.pos.getRangeTo(position);
-                        matrix.set(position.x, position.y, value)
+    } else {
+        let creeps = room.creeps.concat(room.powerCreeps);
+        for (let c of creeps) {
+            matrix.set(c.pos.x, c.pos.y, 100);
+        }
+    }
+    return matrix;
+}
+
+function addHostilesToMatrix(room, matrix) {
+    if (!room || (room.controller && room.controller.owner && room.controller.owner.username === MY_USERNAME && room.controller.safeMode)) {
+        return matrix;
+    }
+    const enemyCreeps = room.hostileCreeps.filter(c => !c.className && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)));
+    if (!enemyCreeps.length) return matrix;
+
+    const terrain = Game.map.getRoomTerrain(room.name);
+
+    for (const creep of enemyCreeps) {
+        matrix.set(creep.pos.x, creep.pos.y, 250);
+        let top = Math.max(0, creep.pos.y - 6);
+        let left = Math.max(0, creep.pos.x - 6);
+        let bottom = Math.min(49, creep.pos.y + 6);
+        let right = Math.min(49, creep.pos.x + 6);
+
+        for (let y = top; y <= bottom; y++) {
+            for (let x = left; x <= right; x++) {
+                if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
+                    // Fast Chebyshev distance calculation
+                    const dx = x > creep.pos.x ? x - creep.pos.x : creep.pos.x - x;
+                    const dy = y > creep.pos.y ? y - creep.pos.y : creep.pos.y - y;
+                    const range = dx > dy ? dx : dy;
+
+                    if (range > 0) {
+                        const value = 200 / range;
+                        // set value directly if it's higher
+                        if (matrix.get(x, y) < value) matrix.set(x, y, value);
                     }
-                } catch (e) {
                 }
             }
         }
-        return matrix;
     }
+    return matrix;
 }
 
 function getOutsideHubMatrix(roomName, matrix, options) {
     const room = Game.rooms[roomName];
-    if (!room) return matrix;
-    return getCachedMatrix(roomName, 'outsideHub', 1500, () => markOutsideHubAsImpassable(room, matrix));
-
-    function markOutsideHubAsImpassable(room, matrix) {
-        if (!room || !MY_ROOMS.includes(room.name)) return matrix;// Mark positions outside the hub as impassable
-        for (let x = 0; x < 50; x++) {
-            for (let y = 0; y < 50; y++) {
-                const pos = new RoomPosition(x, y, room.name);
-                if (!pos.isInBunker()) {
-                    matrix.set(x, y, 250);
-                }
+    if (!room || !MY_ROOMS.includes(room.name)) return matrix;
+    for (let x = 0; x < 50; x++) {
+        for (let y = 0; y < 50; y++) {
+            const pos = new RoomPosition(x, y, room.name);
+            if (!pos.isInBunker()) {
+                matrix.set(x, y, 250);
             }
         }
-        return matrix;
     }
+    return matrix;
 }
 
-function getSKMatrix(roomName, matrix = undefined, options) {
+function addSksToMatrix(roomName, matrix, options) {
     const room = Game.rooms[roomName];
     if (!INTEL[roomName] || !INTEL[roomName].sk || !room) return matrix;
-    return getCachedMatrix(roomName, 'sk', 25, () => addSksToMatrix(room, matrix, options));
+    const activeMining = room.myCreeps.find((c) => c.memory.role === 'SKAttacker' && c.memory.destination === roomName);
+    if (!activeMining) {
+        let sks = room.hostileCreeps.filter((c) => c.owner.username === 'Source Keeper');
+        if (options.ignoreKeeper) sks = sks.filter((c) => c.id !== options.ignoreKeeper);
 
-    function addSksToMatrix(room, matrix, options) {
-        const activeMining = room.find(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'SKAttacker' && c.memory.destination === room.name})[0];
-        if (!activeMining) {
-            let sks = room.find(FIND_CREEPS, {filter: (c) => c.owner.username === 'Source Keeper'});
-            if (options.ignoreKeeper) sks = _.filter(sks, (c) => c.id !== options.ignoreKeeper)
-            if (sks.length) {
-                for (let sk of sks) {
-                    matrix.set(sk.pos.x, sk.pos.y, Infinity);
-                    let sites = sk.room.lookForAtArea(LOOK_TERRAIN, sk.pos.y - 3, sk.pos.x - 3, sk.pos.y + 3, sk.pos.x + 3, true);
-                    for (let site of sites) {
-                        let position;
-                        try {
-                            position = new RoomPosition(site.x, site.y, room.name);
-                            if (position && !position.checkForWall()) {
-                                matrix.set(position.x, position.y, Infinity)
+        const terrain = Game.map.getRoomTerrain(roomName);
+
+        if (sks.length) {
+            for (let sk of sks) {
+                matrix.set(sk.pos.x, sk.pos.y, Infinity);
+                let top = Math.max(0, sk.pos.y - 3);
+                let left = Math.max(0, sk.pos.x - 3);
+                let bottom = Math.min(49, sk.pos.y + 3);
+                let right = Math.min(49, sk.pos.x + 3);
+
+                for (let y = top; y <= bottom; y++) {
+                    for (let x = left; x <= right; x++) {
+                        if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
+                            const range = Math.max(Math.abs(x - sk.pos.x), Math.abs(y - sk.pos.y));
+                            if (range > 0) {
+                                const value = 350 / range;
+                                if (matrix.get(x, y) < value) matrix.set(x, y, value);
                             }
-                        } catch (e) {
                         }
                     }
                 }
-            } else {
-                let lairs = room.find(room.structures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn && s.ticksToSpawn < 25});
-                let avoid = _.union(lairs, room.sources, room.mineral);
-                for (let lair of avoid) {
-                    let sites = lair.room.lookForAtArea(LOOK_TERRAIN, lair.pos.y - 5, lair.pos.x - 5, lair.pos.y + 5, lair.pos.x + 5, true);
-                    for (let site of sites) {
-                        let position;
-                        try {
-                            position = new RoomPosition(site.x, site.y, room.name);
-                            if (position && !position.checkForWall()) {
-                                matrix.set(position.x, position.y, 250)
-                            }
-                        } catch (e) {
+            }
+        } else {
+            let lairs = room.structures.filter((s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn && s.ticksToSpawn < 25);
+            let avoid = _.union(lairs, room.sources, room.mineral ? [room.mineral] : []);
+            for (let lair of avoid) {
+                let top = Math.max(0, lair.pos.y - 5);
+                let left = Math.max(0, lair.pos.x - 5);
+                let bottom = Math.min(49, lair.pos.y + 5);
+                let right = Math.min(49, lair.pos.x + 5);
+
+                for (let y = top; y <= bottom; y++) {
+                    for (let x = left; x <= right; x++) {
+                        if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
+                            if (matrix.get(x, y) < 250) matrix.set(x, y, 250);
                         }
                     }
                 }
             }
         }
-        return matrix;
     }
+    return matrix;
+}
+
+function getCachedMatrix(roomName, type, tickTTL, computeFn) {
+    const key = `${roomName}_${type}`;
+    if (MATRIX_CACHE[key] && Game.time - MATRIX_CACHE[key].tick < tickTTL) {
+        return MATRIX_CACHE[key].matrix.clone();
+    }
+    const matrix = computeFn();
+    MATRIX_CACHE[key] = {matrix: matrix, tick: Game.time};
+    return matrix;
 }
 
 function getSquadMatrix(roomName) {
@@ -934,21 +944,28 @@ function getMoveWeight(creep, options = {}) {
 
 function findMultiHeadingPos(heading, range) {
     let positions = [];
+    let goodPos;
     for (let target of heading) {
         let inRange = target.room.lookForAtArea(LOOK_TERRAIN, target.pos.y - range, target.pos.x - range, target.pos.y + range, target.pos.x + range, true);
         for (let pos of inRange) {
             let position = new RoomPosition(pos.x, pos.y, heading[0].room.name);
             if (position.checkForImpassible()) continue;
+
+            // Check if this exact position is already in our array from a different target
+            for (let i = 0; i < positions.length; i++) {
+                if (positions[i].x === position.x && positions[i].y === position.y && positions[i].t !== target.id) {
+                    goodPos = positions[i];
+                    break;
+                }
+            }
+            if (goodPos) break; // We found an intersection, stop searching
+            
             positions.push({x: position.x, y: position.y, t: target.id});
         }
+        if (goodPos) break;
     }
-    let goodPos;
-    positions.forEach(function (p) {
-        if (_.find(positions, (o) => o.t !== p.t && o.x === p.x && o.y === p.y)) {
-            goodPos = _.find(positions, (o) => o.t !== p.t && o.x === p.x && o.y === p.y);
-        }
-    })
-    if (goodPos) return new RoomPosition(goodPos.x, goodPos.y, heading[0].room.name); else return undefined;
+    if (goodPos) return new RoomPosition(goodPos.x, goodPos.y, heading[0].room.name);
+    return undefined;
 }
 
 function getPosKey(pos) {
@@ -1286,14 +1303,16 @@ Creep.prototype.hide = function () {
 
 // Helper to gather threats in the vicinity
 function gatherThreats(creep, fleeRange) {
-    return creep.room.find(FIND_HOSTILE_CREEPS, {
-        filter: (c) => !_.includes(FRIENDLIES, c.owner.username) &&
-            (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) &&
-            creep.pos.getRangeTo(c) <= fleeRange + 1
-    }).concat(creep.pos.findInRange(FIND_STRUCTURES, fleeRange + 1, {
-        filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR &&
-            s.ticksToSpawn && s.ticksToSpawn <= fleeRange + 2
-    }));
+    let threats = creep.room.hostileCreeps.filter((c) =>
+        (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) &&
+        creep.pos.getRangeTo(c) <= fleeRange + 1
+    );
+    let lairs = creep.room.structures.filter((s) =>
+        s.structureType === STRUCTURE_KEEPER_LAIR &&
+        s.ticksToSpawn && s.ticksToSpawn <= fleeRange + 2 &&
+        creep.pos.getRangeTo(s) <= fleeRange + 1
+    );
+    return threats.concat(lairs);
 }
 
 const formationVectors = [

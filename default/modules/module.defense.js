@@ -27,8 +27,10 @@ class DefenseManager {
         const armedHostiles = this.room.hostileCreeps.filter((c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK));
         if (armedHostiles.length || this.room.controller.safeMode) {
             this.alertHostileAttack(this.room);
-            this.safeModeManager(this.room);
-            INTEL[this.room.name].requestingSupport = true;
+            if (armedHostiles[0] && armedHostiles[0].owner && armedHostiles[0].owner.username !== 'Invader') {
+                this.safeModeManager(this.room);
+                INTEL[this.room.name].requestingSupport = true;
+            }
         }
 
         // Check surrounding rooms for high threat
@@ -51,7 +53,7 @@ class DefenseManager {
                 if (s.structureType === STRUCTURE_RAMPART) ramparts.push(s);
             }
             for (let c of creeps) {
-                if (_.includes(FRIENDLIES, c.owner.username) && !c.my) allies.push(c);
+                if (c.owner && _.includes(FRIENDLIES, c.owner.username) && !c.my) allies.push(c);
             }
 
             ROOM_STATE_CACHE[roomName] = {
@@ -159,6 +161,7 @@ class DefenseManager {
 
             // Filter hostile creeps that are not Invaders
             let playerHostile = _.filter(this.room.hostileCreeps, (c) => (
+                c.owner &&
                 (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK) || c.hasActiveBodyparts(CLAIM)) &&
                 c.owner.username !== 'Invader'
             ));
@@ -235,7 +238,7 @@ function activateSafeMode(room) {
 }
 
 function addThreat(room) {
-    let neutrals = _.uniq(_.pluck(_.filter(room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper'), 'owner.username'));
+    let neutrals = _.uniq(_.pluck(_.filter(room.creeps, (c) => !c.my && c.owner && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper'), 'owner.username'));
     if (neutrals.length) {
         for (let user of neutrals) {
             if (user === MY_USERNAME || _.includes(FRIENDLIES, user)) continue;

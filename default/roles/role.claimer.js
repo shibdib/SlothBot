@@ -14,7 +14,7 @@ class RoleClaimer {
     // Placeholder for role-specific actions
     performRoleActions() {
         if (this.housekeeping()) {
-
+            return true;
         } else if (this.room.name !== this.creep.memory.destination) {
             this.travel();
         } else if (this.creep.memory.operation === 'claimClear') {

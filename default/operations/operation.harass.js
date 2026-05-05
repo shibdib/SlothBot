@@ -13,12 +13,13 @@ Creep.prototype.harass = function () {
 
     if (this.room.name === this.memory.destination || !this.memory.destination) {
         // Handle visited tracking
+        if (!this.memory.other.visited) this.memory.other.visited = [];
         let visited = this.memory.other.visited || [];
 
         // Find the next harass target by considering threat level and user activity
         let target = _.min(
             _.filter(INTEL, (r) => {
-                return (!visited.includes(r.name) && (!r.owner || !r.towers) && THREATS.includes(r.user)
+                return (!visited.includes(r.name) && (!r.owner || !r.towers) && THREATS.includes(r.user) && !NO_DIRECT_ATTACKS.includes(r.user)
                     && (!r.armedHostile || r.armedHostile + CREEP_LIFE_TIME < Game.time) && !r.safemode);
             }),
             (r) => findClosestOwnedRoom(r.name, true)
