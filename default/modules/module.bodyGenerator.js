@@ -107,7 +107,7 @@ class ModuleBodyGenerator {
 
             case 'upgrader':
                 if (this.room.memory.controllerLink || this.room.memory.controllerContainer) {
-                    work = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) / BODYPART_COST[WORK]) || 1;
+                    work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 49);
                     carry = 1;
                     move = 0;
@@ -120,17 +120,13 @@ class ModuleBodyGenerator {
                     if (INTEL[this.room.name].roadsBuilt) halfMove = true;
                 }
                 let multi = 1;
-                if (this.room.level < this.room.controller.level) multi = 0.5;
-                else if (this.room.energyState === 1) multi = 0.5;
-                else if (this.room.energyState === 0) multi = 0.25;
+                if (this.room.level < this.room.controller.level) multi = 0.15;
+                else if (this.room.energyState === 0) multi = 0.1;
 
-                // If energy is positive or we have plenty, don't be so restrictive
-                if (this.room.energyState < 2) {
-                    work = Math.min(work, this.spareIncome * multi);
+                if (work < 1) work = 1;
+                if (this.level === 8) {
+                    work = this.room.energyState > 1 ? Math.min(work, 15) : 1;
                 }
-
-                if (work < 1) return undefined;
-                if (this.level === 8) work = Math.min(work, 15);
                 break;
 
             case 'labTech':

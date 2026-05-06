@@ -200,7 +200,7 @@ module.exports.essentialCreepQueue = function (room) {
         droneCount = importantBuilds ? (10 - room.level) :
             !room.storage ? Math.max(8 - room.level, 1) :
                 room.memory.spawnDefenders ? 3 :
-                    room.constructionSites.length ? 2 : 1;
+                    room.energyState ? 2 : 1;
     }
     queueCreepIfNeeded({
         room: room,
@@ -253,16 +253,14 @@ module.exports.essentialCreepQueue = function (room) {
     if (!room.memory.spawnDefenders && room.level === room.controller.level) {
         let upgraderAmount = 1;
         if (room.memory.energyPositive && room.energyState && (!room.memory.barrierBuilding || room.energyState > 2 || !room.terminal)) {
-            if (!room.memory.controllerLink) {
+            if (!room.storage) {
                 let container = Game.getObjectById(room.memory.controllerContainer);
                 if (container) {
                     upgraderAmount = Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround()) || 1;
+                    if (upgraderAmount > 5) upgraderAmount = 5;
                 } else if (!container) {
                     upgraderAmount = 3;
                 }
-                if (upgraderAmount > 5) upgraderAmount = 5;
-            } else {
-                upgraderAmount = room.level < 8 && room.energyState > 2 ? 2 : 1;
             }
         }
         const priority = room.energyState > 1 && room.storage ? PRIORITIES.upgrader * 0.5 : PRIORITIES.upgrader;

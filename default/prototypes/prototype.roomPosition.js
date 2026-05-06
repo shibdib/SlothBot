@@ -107,7 +107,7 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
  * @param {boolean} ignore - Ignore all obstructions besides walls
  * @returns {number}
  */
-RoomPosition.prototype.countOpenTerrainAround = function (borderBuild, ignore) {
+RoomPosition.prototype.countOpenTerrainAround = function (borderBuild = false, ignore = false) {
     const cacheKey = 'countOpenTerrain_' + this.roomName + '_' + this.x + '_' + this.y + '_' + (borderBuild || false) + '_' + (ignore || false);
     const currentTick = Game.time;
 
