@@ -476,7 +476,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         // Update user and controller information
         roomIntel.user = this.user;
         if (this.controller) {
-            roomIntel.owner = this.controller.owner ? this.controller.owner.username : undefined;
+            const newOwner = this.controller.owner ? this.controller.owner.username : undefined;
+            if (newOwner !== roomIntel.owner) roomIntel.ownerChanged = true; // triggers areExitsReachable re-run
+            roomIntel.owner = newOwner;
             if (roomIntel.owner) {
                 roomIntel.attackDirection = determineBestAttackRoute(this);
             }
@@ -547,8 +549,13 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 
     // Basic room info
     roomIntel.sources = this.sources.length;
-    roomIntel.obstacles = !areExitsReachable(this);
-    roomIntel.swampRoom = swampRoom(this.name);
+    // areExitsReachable is expensive (20-40 PathFinder searches); only run when unknown or ownership changed
+    if (roomIntel.obstacles === undefined || roomIntel.ownerChanged) {
+        roomIntel.obstacles = !areExitsReachable(this);
+        roomIntel.ownerChanged = undefined;
+    }
+    // Terrain never changes — compute once and cache permanently
+    if (roomIntel.swampRoom === undefined) roomIntel.swampRoom = swampRoom(this.name);
 
     // Minerals
     const mineral = this.find(FIND_MINERALS)[0];
@@ -569,8 +576,8 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         roomIntel.reservation = controller.reservation ? controller.reservation.username : undefined;
         roomIntel.safemode = controller.safeMode ? currentTime + controller.safeMode : undefined;
 
-        // Hub check - only if necessary and no hostiles
-        if (!roomIntel.obstacles && roomIntel.sources === 2 && !this.find(FIND_HOSTILE_CREEPS).length) {
+        // Hub check is expensive — only run once per room (result is structural, doesn't change)
+        if (!roomIntel.hubCheck && !roomIntel.obstacles && roomIntel.sources === 2 && !this.find(FIND_HOSTILE_CREEPS).length) {
             roomIntel.hubCheck = roomPlanner.hubCheck(this);
         }
 
@@ -595,11 +602,11 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         }
 
         // Loot check
-        roomIntel.loot = !this.find(FIND_HOSTILE_CREEPS).length && this.find(FIND_STRUCTURES, {
-            filter: s => (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) &&
+        roomIntel.loot = !this.hostileCreeps.length && this.structures.some(
+            s => (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) &&
                 _.sum(s.store) > 0 &&
                 !s.pos.lookFor(LOOK_STRUCTURES).some(structure => structure.structureType === STRUCTURE_RAMPART)
-        }).length > 0;
+        );
     } else {
         // Clear controller-related data if no controller
         delete roomIntel.level;
@@ -613,8 +620,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     }
 
     // Special room type checks
-    const structures = this.find(FIND_STRUCTURES);
-    roomIntel.sk = structures.some(s => s.structureType === STRUCTURE_KEEPER_LAIR);
+    roomIntel.sk = this.structures.some(s => s.structureType === STRUCTURE_KEEPER_LAIR);
     roomIntel.isHighway = roomIntel.sources === 0;
     if (roomIntel.sources !== 0) {
         delete roomIntel.isHighway;
@@ -647,7 +653,10 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         const storage = Game.rooms[targetRoom] ? Game.rooms[targetRoom].storage : undefined;
         const target = storage ? storage : Game.rooms[targetRoom].memory.bunkerHub ?
             new RoomPosition(Game.rooms[targetRoom].memory.bunkerHub.x, Game.rooms[targetRoom].memory.bunkerHub.y, targetRoom) : new RoomPosition(25, 25, targetRoom);
-        return source.pos.shibMove(target).path.length;
+        // Use path cost normalised by plainCost (2) to get plain-tile-equivalent ticks,
+        // so swamp tiles (cost 10 → 5 ticks each) are priced correctly for half-move haulers
+        const pathResult = source.pos.shibMove(target);
+        return Math.ceil(pathResult.cost / 2);
     }
 
     function updateRemoteSourceData(room, roomName, source, distance) {

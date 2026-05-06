@@ -210,10 +210,13 @@ function minionController(minion) {
     }
     // Border
     minion.borderCheck();
-    // Report intel chance
+    // Report intel if outside MY_ROOMS — skip if micro-update is still fresh
     if (!MY_ROOMS.includes(minion.room.name)) {
-        minion.room.invaderCheck();
-        minion.room.cacheRoomIntel(false, minion);
+        const _ri = INTEL[minion.room.name];
+        if (!_ri || _ri.microUpdate + 150 < Game.time || !_ri.cached) {
+            minion.room.invaderCheck();
+            minion.room.cacheRoomIntel(false, minion);
+        }
     }
     // Run role
     if (!minion.memory.role) return minion.suicide();

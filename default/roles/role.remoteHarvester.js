@@ -64,7 +64,11 @@ class RoleRemoteHarvester {
                 const power = this.creep.getActiveBodyparts(WORK) * HARVEST_POWER;
                 const sourceInfo = _.find(ROOM_REMOTE_TARGETS[this.creep.memory.colony], (s) => s.source === this.creep.memory.other.source);
                 const distance = sourceInfo ? sourceInfo.score : 50;
-                this.creep.memory.other.haulingRequired = power * (distance * 2.1); // Reduced buffer slightly
+                // Cap harvest rate to actual source regen so we don't over-size haulers
+                const reserved = INTEL[this.creep.memory.destination] && INTEL[this.creep.memory.destination].reservation === MY_USERNAME;
+                const maxRate = (reserved ? SOURCE_ENERGY_CAPACITY : SOURCE_ENERGY_NEUTRAL_CAPACITY) / ENERGY_REGEN_TIME;
+                const actualRate = Math.min(power, maxRate);
+                this.creep.memory.other.haulingRequired = actualRate * (distance * 2.1);
             }
             // Handle container or construction site
             if (this.container) {

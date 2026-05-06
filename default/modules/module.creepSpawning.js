@@ -603,7 +603,8 @@ module.exports.remoteCreepQueue = function (room) {
         const multiplier = room.memory.remotePenalty ? 0.5 : 1;
         if (ROOM_REMOTE_TARGETS[room.name] && totalHarvesters < 10 * multiplier) {
             let remoteSource = ROOM_REMOTE_TARGETS[room.name];
-            let acceptedScore = !room.energyState ? REMOTE_DISTANCE_MAX * 2 : REMOTE_DISTANCE_MAX;
+            // Contract range when energy is low (distant sources cost more to service)
+            let acceptedScore = !room.energyState ? Math.floor(REMOTE_DISTANCE_MAX * 0.6) : REMOTE_DISTANCE_MAX;
             acceptedScore = Math.max(acceptedScore, _.min(remoteSource, 'score').score);
 
             // Build occupied sources set once instead of scanning all creeps per source
@@ -650,7 +651,7 @@ module.exports.remoteCreepQueue = function (room) {
         for (const harvester of roomHarvesters) {
             if (shouldSkipRemote(room, harvester.memory.destination)) continue;
             const assignedHaulers = haulersByHarvester[harvester.id] || [];
-            const count = room.memory.remotePenalty ? 1 : !room.storage ? 1 : 2;
+            const count = room.memory.remotePenalty ? 1 : !room.storage ? 1 : 3;
             if (assignedHaulers.length >= count) continue;
             const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
             const harvestAmount = harvester.memory.other.haulingRequired;
