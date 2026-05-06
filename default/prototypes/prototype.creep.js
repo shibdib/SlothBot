@@ -1087,8 +1087,8 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                 }
             } catch (e) {
                 this.memory.boostAttempt = true;
-                log.e("Boost failure for " + this.name);
-                log.e("Boost Failed: " + e);
+                log.w("Boost failure for " + this.name);
+                log.w("Boost Failed: " + e);
                 return false;
             }
         }

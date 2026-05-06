@@ -28,7 +28,7 @@ module.exports.loop = function () {
                     delete Memory.cpuTracking.cooldown;
                 } else {
                     const countdown = (cpuTracking.cooldown + 50) - Game.time;
-                    log.e(`On CPU Cooldown for ${countdown} more ticks or until the bucket reaches ${BUCKET_MAX * 0.5}. Current Bucket: ${currentBucket}`);
+                    log.a(`On CPU Cooldown for ${countdown} more ticks or until the bucket reaches ${BUCKET_MAX * 0.5}. Current Bucket: ${currentBucket}`);
                     return;
                 }
             } else if (currentBucket < BUCKET_MAX * 0.01) {
@@ -46,7 +46,7 @@ module.exports.loop = function () {
                     bucketIssueCount: bucketIssueCount++,
                     roomPenalty: roomPenalty
                 };
-                log.e('CPU Bucket Too Low - Cooldown Initiated');
+                log.a('CPU Bucket Too Low - Cooldown Initiated');
                 return;
             } else if (currentBucket === BUCKET_MAX && Memory.cpuTracking.bucketIssueCount > 0) Memory.cpuTracking.bucketIssueCount--;
 
@@ -155,7 +155,7 @@ module.exports.loop = function () {
 };
 
 global.resetMemory = function () {
-    log.e('Memory Wipe Initiated');
+    log.a('Memory Wipe Initiated');
     RawMemory.set('{}');
     Memory.creeps = {};
     Memory.rooms = {};

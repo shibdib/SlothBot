@@ -10,7 +10,7 @@ let helpers = function () {
      */
     global.abandonRoom = function (room) {
         if (!room || !room.controller || (room.controller.owner && room.controller.owner.username !== MY_USERNAME)) {
-            return log.e(room ? `${room.name} does not appear to be owned by you.` : 'Room does not exist.');
+            return log.a(room ? `${room.name} does not appear to be owned by you.` : 'Room does not exist.');
         }
 
         // Suicide all creeps associated with this room
@@ -179,10 +179,10 @@ let helpers = function () {
      * @param roomName
      */
     global.intel = function (roomName) {
-        if (!INTEL[roomName]) return log.e('No intel for ' + roomName);
+        if (!INTEL[roomName]) return log.w('No intel for ' + roomName);
         log.a('--INTEL FOR ' + roomName + '--', ' ');
         for (let key in INTEL[roomName]) {
-            log.e(key + ': ' + INTEL[roomName][key], ' ');
+            log.a(key + ': ' + INTEL[roomName][key], ' ');
         }
     }
 
@@ -220,7 +220,7 @@ let helpers = function () {
                 let row = '';
                 row += key.padEnd(widths[0], ' ');
                 row += String(value).padEnd(widths[1], ' '); // Convert value to string for padding
-                log.e(row, ' ');
+                log.a(row, ' ');
             }
             log.a('', ' ');
         }

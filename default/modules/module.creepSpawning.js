@@ -55,7 +55,7 @@ module.exports.processBuildQueue = function (room) {
 
         if (queuedBuild) {
             if (!determineEnergyOrder(room)) {
-                log.e(`Spawning blocked for ${room.name} because determineEnergyOrder returned false.`);
+                log.d(`Spawning blocked for ${room.name} because determineEnergyOrder returned false.`);
                 return;
             }
 
@@ -109,7 +109,7 @@ module.exports.processBuildQueue = function (room) {
 
             // Fallback if the energyStructures array was flawed and didn't provide enough capacity
             if (spawnResult === ERR_NOT_ENOUGH_ENERGY && energyStructures) {
-                log.e(`Spawning ${role} in ${room.name} failed with structured order. Retrying with default order.`);
+                log.d(`Spawning ${role} in ${room.name} failed with structured order. Retrying with default order.`);
                 energyOrder[availableSpawn.room.name] = undefined;
                 delete spawnOpts.energyStructures;
                 spawnResult = availableSpawn.spawnCreep(body, name, spawnOpts);
@@ -120,11 +120,11 @@ module.exports.processBuildQueue = function (room) {
                 handleSuccessfulSpawn(room, role, queuedBuild, availableSpawn);
                 return;
             } else if (spawnResult === ERR_NOT_ENOUGH_ENERGY) {
-                log.e(`Spawning ${role} in ${room.name} failed with ERR_NOT_ENOUGH_ENERGY despite having enough energy in the room. Resetting energy order.`);
+                log.d(`Spawning ${role} in ${room.name} failed with ERR_NOT_ENOUGH_ENERGY despite having enough energy in the room. Resetting energy order.`);
                 energyOrder[availableSpawn.room.name] = undefined;  // Reset energy order
                 return;
             } else {
-                log.e(`Spawn error in ${availableSpawn.room.name} code ${spawnResult}. Name - ${name}. Body - ${body}`);
+                log.d(`Spawn error in ${availableSpawn.room.name} code ${spawnResult}. Name - ${name}. Body - ${body}`);
                 return;
             }
         } else {
@@ -1276,7 +1276,7 @@ function displayQueue(room, queue) {
             yOffset += 1.1;
         }
     } catch (e) {
-        log.e(`Error in displayQueue: ${e.stack}`);
+        log.d(`Error in displayQueue: ${e.stack}`);
     }
 }
 

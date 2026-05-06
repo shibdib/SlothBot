@@ -66,8 +66,8 @@ class Colony {
             log.e(JSON.stringify(creep.memory));
             //creep.recycleCreep();
         } else if (errorCount[creep.name] === 1) {
-            log.e(`${creep.name} encountered an error in room ${roomLink(creep.room.name)}`);
-            log.e(e.stack);
+            log.a(`${creep.name} encountered an error in room ${roomLink(creep.room.name)}`);
+            log.a(e.stack);
             Game.notify(e.stack);
         }
     }
@@ -134,12 +134,12 @@ class Colony {
                     this.room.memory.cpuOverage = undefined;
                     this.room.memory.noRemote = Game.time + (CREEP_LIFE_TIME * 3);
                     this.suicideRemoteCreeps();
-                    log.e(`${roomLink(this.room.name)} remote spawning has been disabled to conserve CPU.`, 'ROOM MANAGER:');
+                    log.a(`${roomLink(this.room.name)} remote spawning has been disabled to conserve CPU.`, 'ROOM MANAGER:');
                     cpuUsageArray = [];
                 } else if (cpuOverCount >= 25 && Game.cpu.bucket < BUCKET_MAX * 0.25) {
                     this.room.memory.cpuOverage = undefined;
                     this.room.memory.remotePenalty = Game.time + (CREEP_LIFE_TIME * 2);
-                    log.e(`${roomLink(this.room.name)} remote spawning has been disabled to conserve CPU.`, 'ROOM MANAGER:');
+                    log.a(`${roomLink(this.room.name)} remote spawning has been disabled to conserve CPU.`, 'ROOM MANAGER:');
                     cpuUsageArray = [];
                 }
             } else {

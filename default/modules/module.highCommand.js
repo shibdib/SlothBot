@@ -780,7 +780,7 @@ function manualAttacks() {
             Memory.avoidRemotes = Memory.avoidRemotes || [];
             if (!Memory.avoidRemotes.includes(roomName)) {
                 Memory.avoidRemotes.push(roomName);
-                log.e(roomLink(roomName) + ' will not be remote mined.');
+                log.a(roomLink(roomName) + ' will not be remote mined.');
             }
             removeFlagAndLog('');
             continue;
@@ -791,7 +791,7 @@ function manualAttacks() {
             Memory.avoidRooms = Memory.avoidRooms || [];
             if (!Memory.avoidRooms.includes(roomName)) {
                 Memory.avoidRooms.push(roomName);
-                log.e(roomLink(roomName) + ' will be avoided.');
+                log.a(roomLink(roomName) + ' will be avoided.');
             }
             removeFlagAndLog('');
             continue;
@@ -821,18 +821,18 @@ function manualAttacks() {
             if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) {
                 Memory.avoidRooms = _.filter(Memory.avoidRooms, r => r !== roomName);
                 removed = true;
-                log.e(roomLink(roomName) + ' will no longer be avoided.');
+                log.a(roomLink(roomName) + ' will no longer be avoided.');
             } else if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, roomName)) {
                 Memory.avoidRemotes = _.filter(Memory.avoidRemotes, r => r !== roomName);
                 removed = true;
-                log.e(roomLink(roomName) + ' will no longer be avoided.');
+                log.a(roomLink(roomName) + ' will no longer be avoided.');
             } else if (Memory.nonCombatRooms && _.includes(Memory.nonCombatRooms, roomName)) {
                 Memory.nonCombatRooms = _.filter(Memory.nonCombatRooms, r => r !== roomName);
                 removed = true;
-                log.e(roomLink(roomName) + ' removed as a non combat target.');
+                log.a(roomLink(roomName) + ' removed as a non combat target.');
             }
             if (!removed) {
-                log.e(roomLink(roomName) + ' is not on any avoid lists.');
+                log.a(roomLink(roomName) + ' is not on any avoid lists.');
             }
             removeFlagAndLog('');
             continue;
@@ -883,7 +883,7 @@ function nukeFlag(flag) {
 
     // If no nuker is found, log an error and remove the flag
     if (!nuker) {
-        log.e('Nuke request for room ' + roomLink(flag.pos.roomName) + ' denied, no nukers in range.');
+        log.a('Nuke request for room ' + roomLink(flag.pos.roomName) + ' denied, no nukers in range.');
         flag.remove();
         return;
     }
@@ -972,7 +972,7 @@ function checkForNap(user) {
         }
     } catch (e) {
         // In case of any error parsing the alliance data, return false
-        log.e('Error checking for NAP: ' + e.message); // Optional logging for debugging
+        log.a('Error checking for NAP: ' + e.message); // Optional logging for debugging
         return false;
     }
 

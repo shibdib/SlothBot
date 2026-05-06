@@ -43,7 +43,7 @@ module.exports.retrieveIntel = function () {
                         try {
                             Object.assign(global.INTEL, JSON.parse(RawMemory.segments[id]));
                         } catch (e) {
-                            log.e(`Error parsing intel segment ${id}, skipping.`, "INTEL MANAGER: ");
+                            log.d(`Error parsing intel segment ${id}, skipping.`, "INTEL MANAGER: ");
                         }
                     }
                 }
@@ -139,7 +139,7 @@ module.exports.retrievePathing = function () {
             if (_.size(RawMemory.segments[69])) {
                 try {
                     CACHE.PATH_CACHE = JSON.parse(RawMemory.segments[69]);
-                    log.e("Pathing segment retrieved, restoring old path cache.", "PATHING MANAGER: ");
+                    log.d("Pathing segment retrieved, restoring old path cache.", "PATHING MANAGER: ");
                 } catch (e) {
                     CACHE.PATH_CACHE = {};
                 }

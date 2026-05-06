@@ -248,7 +248,7 @@ function addThreat(room) {
                 standing = cache[user]['standing'] - 0.25;
             } else if (!cache[user]) {
                 standing = 0;
-                log.e(roomLink(room.name) + ' has detected a neutral.' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
+                log.w(roomLink(room.name) + ' has detected a neutral.' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
             }
             cache[user] = {
                 standing: standing,

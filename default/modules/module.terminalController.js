@@ -689,7 +689,7 @@ class TerminalControl {
 
             // Check if room still exists
             if (!Game.rooms[order.roomName] && Game.market.cancelOrder(order.id) === OK) {
-                log.e(`Order Cancelled: ${order.id} - Room no longer exists.`, 'MARKET: ');
+                log.a(`Order Cancelled: ${order.id} - Room no longer exists.`, 'MARKET: ');
                 continue;
             }
 
@@ -816,7 +816,7 @@ class TerminalControl {
 
     cancelOrder(order, reason) {
         if (Game.market.cancelOrder(order.id) === OK) {
-            log.e(`Order Cancelled: ${order.id} - ${order.resourceType} - ${reason}`, 'MARKET: ');
+            log.a(`Order Cancelled: ${order.id} - ${order.resourceType} - ${reason}`, 'MARKET: ');
         }
     }
 

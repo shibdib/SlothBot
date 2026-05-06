@@ -307,14 +307,14 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         if (creep.memory.badPathing) creep.memory.badPathing++; else creep.memory.badPathing = 1;
         if (creep.memory.badPathing > 10) {
             if (!roomDistance) {
-                log.e(creep.name + ' is stuck in ' + creep.room.name + ' and is unable to path from ' + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + '. Suiciding for the good of the CPU.');
-                log.e('Ret - ' + JSON.stringify(result));
+                log.d(creep.name + ' is stuck in ' + creep.room.name + ' and is unable to path from ' + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + '. Suiciding for the good of the CPU.');
+                log.d('Ret - ' + JSON.stringify(result));
                 if (allowedRooms) log.d('Path - ' + allowedRooms);
                 if (creep.memory.destination && (Memory.targetRooms[creep.memory.destination] || Memory.auxiliaryTargets[creep.memory.destination])) {
                     delete Memory.targetRooms[creep.memory.destination];
                     delete Memory.auxiliaryTargets[creep.memory.destination];
                     delete INTEL[creep.memory.destination]
-                    log.e('Canceling operation in ' + roomLink(creep.memory.destination) + ' as we cannot find a path.', 'HIGH COMMAND: ');
+                    log.d('Canceling operation in ' + roomLink(creep.memory.destination) + ' as we cannot find a path.', 'HIGH COMMAND: ');
                 }
                 return creep.suicide();
             } else {

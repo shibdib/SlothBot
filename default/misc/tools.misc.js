@@ -73,14 +73,14 @@ module.exports.status = function () {
         log.a('===========================================================================', ' ');
         log.a('------------------------------- GLOBAL INFO -------------------------------', ' ');
         const gclProgress = ((Game.gcl.progress / Game.gcl.progressTotal) * 100).toFixed(2);
-        log.e(`🏆 GCL: ${Game.gcl.level} <font color="#888888">(${gclProgress}%)</font> | 💻 CPU Bucket: <font color="#00B7EB">${Game.cpu.bucket}</font> | 👾 Creeps: <font color="#4CAF50">${_.size(Game.creeps)}</font>`, ' ');
+        log.a(`🏆 GCL: ${Game.gcl.level} <font color="#888888">(${gclProgress}%)</font> | 💻 CPU Bucket: <font color="#00B7EB">${Game.cpu.bucket}</font> | 👾 Creeps: <font color="#4CAF50">${_.size(Game.creeps)}</font>`, ' ');
 
         log.a('------------------------------- COLONY INFO -------------------------------', ' ');
 
         // Table Header
         let header = "Room".padEnd(14) + "RCL".padEnd(16) + "Energy".padEnd(10) + "Income".padEnd(10) + "CPU".padEnd(8) + "Creeps".padEnd(8) + "Mineral";
-        log.e(header, ' ');
-        log.e("-".repeat(70), ' ');
+        log.a(header, ' ');
+        log.a("-".repeat(70), ' ');
 
         // Helper to pad string based on its visible length (ignoring HTML tags)
         const padVisible = (str, targetLength) => {
@@ -121,7 +121,7 @@ module.exports.status = function () {
             row += padVisible(`${roomCreeps}`, 8);
             row += resourceActive;
 
-            log.e(row, ' ');
+            log.a(row, ' ');
         });
 
         // -------------------------
@@ -150,11 +150,11 @@ module.exports.status = function () {
                 } else if (op.type === 'pending' && op.dDay) {
                     opStr += ` | <font color="#FFD700">T-Minus: ${op.dDay - Game.time} ticks</font>`;
                 }
-                log.e(opStr, ' ');
+                log.a(opStr, ' ');
             });
 
             if (scoutCount > 0) {
-                log.e(`<font color="#888888">... plus ${scoutCount} active scouting missions.</font>`, ' ');
+                log.a(`<font color="#888888">... plus ${scoutCount} active scouting missions.</font>`, ' ');
             }
         }
 
@@ -165,11 +165,11 @@ module.exports.status = function () {
         if (activeHarassers.length > 0 || (ENEMIES && ENEMIES.length > 0)) {
             log.a('---------------------------- DIPLOMACY & COMBAT ---------------------------', ' ');
             if (ENEMIES && ENEMIES.length > 0) {
-                log.e(`⚔️ Hostile Empires: <font color="#FF4500">${ENEMIES.join(", ")}</font>`, ' ');
+                log.a(`⚔️ Hostile Empires: <font color="#FF4500">${ENEMIES.join(", ")}</font>`, ' ');
             }
             if (activeHarassers.length > 0) {
                 const targetRooms = _.uniq(_.pluck(activeHarassers, 'memory.destination')).join(", ");
-                log.e(`🎯 Harassment: ${activeHarassers.length} units targeting ${targetRooms}`, ' ');
+                log.a(`🎯 Harassment: ${activeHarassers.length} units targeting ${targetRooms}`, ' ');
             }
         }
 
