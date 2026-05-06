@@ -261,7 +261,7 @@ class HUD {
                     stroke: '#ff0000',
                     strokeWidth: 1
                 });
-                const typeText = target.type ? target.type.toUpperCase() : 'TARGET';
+                const typeText = target && target.type ? target.type.toUpperCase() : 'TARGET';
                 Game.map.visual.text(`🎯 ${typeText}`, new RoomPosition(25, 40, roomName), {
                     color: '#ff4444',
                     fontSize: 6,
