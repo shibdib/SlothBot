@@ -479,7 +479,7 @@ module.exports.remoteCreepQueue = function (room) {
     function handleContestedRoom(room) {
         const intel = INTEL[contestedRemotes[room.name]];
         if (intel.contestingCount > room.level * 2) {
-            log.a(`${roomLink(room.name)} is not longer contesting ${roomLink(contestedRemotes[room.name])} due to casualties.`, "HIGH COMMAND:")
+            log.a(`${roomLink(room.name)} is no longer contesting ${roomLink(contestedRemotes[room.name])} due to casualties.`, "HIGH COMMAND:")
             INTEL[contestedRemotes[room.name]].lastContest = Game.time;
             INTEL[contestedRemotes[room.name]].contestingCount = 0;
             return contestedRemotes[room.name] = undefined;
@@ -604,7 +604,7 @@ module.exports.remoteCreepQueue = function (room) {
         if (ROOM_REMOTE_TARGETS[room.name] && totalHarvesters < 10 * multiplier) {
             let remoteSource = ROOM_REMOTE_TARGETS[room.name];
             // Contract range when energy is low (distant sources cost more to service)
-            let acceptedScore = !room.energyState ? Math.floor(REMOTE_DISTANCE_MAX * 0.6) : REMOTE_DISTANCE_MAX;
+            let acceptedScore = room.level >= 7 ? REMOTE_DISTANCE_MAX * 1.5 : REMOTE_DISTANCE_MAX;
             acceptedScore = Math.max(acceptedScore, _.min(remoteSource, 'score').score);
 
             // Build occupied sources set once instead of scanning all creeps per source
@@ -1185,6 +1185,11 @@ function getQueue(room) {
                     unassignRoom(destination, 'Missing required boosts.');
                     continue;
                 }
+            }
+
+            // Pre RCL7 (2 Spawns) out of room creeps are less important
+            if (room.level < 7) {
+                creepInfo.priority *= 2;
             }
 
             operationQueue[key] = creepInfo;

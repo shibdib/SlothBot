@@ -169,7 +169,12 @@ function dropOff(creep) {
     }
 
     if (creep.memory.exitLink) {
-        return memory.storageDestination = creep.memory.exitLink;
+        const link = Game.getObjectById(creep.memory.exitLink);
+        if (link && link.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+            return memory.storageDestination = creep.memory.exitLink;
+        } else if (!link) {
+            memory.exitLink = undefined;
+        }
     }
 
     const colony = Game.rooms[memory.colony];
@@ -190,7 +195,7 @@ function dropOff(creep) {
     }
 
     // Only search for new target occasionally or if we don't have one
-    if (Game.time % 5 !== 0 && memory.storageDestination) return;
+    if (memory.storageDestination) return;
 
     const controllerContainer = Game.getObjectById(colony.memory.controllerContainer);
 

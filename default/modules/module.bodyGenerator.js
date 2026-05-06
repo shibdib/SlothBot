@@ -97,9 +97,9 @@ class ModuleBodyGenerator {
                     carry = Math.floor((this.energyAmount * 0.2) / BODYPART_COST[CARRY]) || 1;
                     carry = Math.min(carry, 10);
                 } else {
-                    work = Math.floor(this.energyAmount * 0.55 / BODYPART_COST[WORK]) || 1;
+                    work = Math.floor(this.energyAmount * 0.51 / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 20);
-                    carry = Math.floor((this.energyAmount * 0.25) / BODYPART_COST[CARRY]) || 1;
+                    carry = Math.floor((this.energyAmount * 0.23) / BODYPART_COST[CARRY]) || 1;
                     carry = Math.min(carry, 12);
                 }
                 if (work < 1) return undefined;
@@ -322,10 +322,10 @@ class ModuleBodyGenerator {
 
                 // Set move if the assigned harvesters intel checks out
                 if (INTEL[assignedHarvester.room.name].roadsBuilt && INTEL[this.room.name].roadsBuilt) {
-                    carry = Math.floor(((this.energyAmount - workCost) * 0.73) / BODYPART_COST[CARRY]) || 1;
+                    carry = Math.floor((this.energyAmount - workCost - work * BODYPART_COST[MOVE] * 0.5) / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE] * 0.5)) || 1;
                     halfMove = true;
                 } else {
-                    carry = Math.floor(((this.energyAmount - workCost) * 0.49) / BODYPART_COST[CARRY]) || 1;
+                    carry = Math.floor((this.energyAmount - workCost - work * BODYPART_COST[MOVE]) / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
                 }
 
                 // Limit carry to what is actually needed
