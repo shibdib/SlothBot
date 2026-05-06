@@ -57,19 +57,17 @@ class LabManager {
             (!lab.mineralType || lab.mineralType === room.memory.producingBoost)
         );
 
-        for (let target of secondaryLabs) {
-            let result = target.runReaction(this.hub[0], this.hub[1]);
+        for (const target of secondaryLabs) {
+            const result = target.runReaction(this.hub[0], this.hub[1]);
             if (result === OK) {
-                this.shouldStopProduction(room);
                 const coolDown = Game.time + REACTION_TIME[room.memory.producingBoost] - 1;
                 if (!runNext[room.name] || runNext[room.name] > coolDown || runNext[room.name] <= Game.time) {
                     runNext[room.name] = coolDown;
                 }
                 if (!productionTracker[this.room.name]) productionTracker[this.room.name] = Game.time;
-            } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
-                this.shouldStopProduction(room);
             }
         }
+        this.shouldStopProduction(room);
     }
 
     shouldStopProduction(room) {
@@ -107,43 +105,28 @@ class LabManager {
 
     tryPriority(room) {
         const priority = !HOSTILES.length ? LAB_PEACE_PRIORITY : LAB_WAR_PRIORITY;
-        for (let boost of priority) {
-            let cutOff = this.getProductionCutoff(boost);
-            if (getResourceTotal(boost) >= cutOff) continue;
-            if (this.checkForInputs(room)) {
-                return boost;
-            } else {
-                const components = BOOST_COMPONENTS[boost];
-                if (!components || !components.length) continue;
-                for (boost of components) {
-                    let cutOff = this.getProductionCutoff(boost);
-                    if (room.store(boost) >= cutOff) continue;
-                    if (this.checkForInputs(room, boost)) {
-                        return boost;
-                    } else {
-                        const components = BOOST_COMPONENTS[boost];
-                        if (!components || !components.length) continue;
-                        for (boost of components) {
-                            let cutOff = this.getProductionCutoff(boost);
-                            if (room.store(boost) >= cutOff) continue;
-                            if (this.checkForInputs(room, boost)) {
-                                return boost;
-                            } else {
-                                const components = BOOST_COMPONENTS[boost];
-                                if (!components || !components.length) continue;
-                                for (boost of components) {
-                                    let cutOff = this.getProductionCutoff(boost);
-                                    if (room.store(boost) >= cutOff) continue;
-                                    if (this.checkForInputs(room, boost)) {
-                                        return boost;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        for (const boost of priority) {
+            const result = this.findProducible(room, boost, true);
+            if (result) return result;
         }
+        return null;
+    }
+
+    // Recursively find the deepest component we can produce to work toward `boost`.
+    // globalCheck=true uses getResourceTotal (cross-room) for the top-level boost;
+    // component levels use room-local store since they need to be here to react.
+    findProducible(room, boost, globalCheck = false) {
+        const cutoff = this.getProductionCutoff(boost);
+        const current = globalCheck ? getResourceTotal(boost) : room.store(boost);
+        if (current >= cutoff) return null;
+        if (this.checkForInputs(room, boost)) return boost;
+        const components = BOOST_COMPONENTS[boost];
+        if (!components || !components.length) return null;
+        for (const component of components) {
+            const result = this.findProducible(room, component, false);
+            if (result) return result;
+        }
+        return null;
     }
 
     getProductionCutoff(boost) {

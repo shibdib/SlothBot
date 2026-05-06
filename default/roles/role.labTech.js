@@ -66,13 +66,13 @@ class RoleLabTech {
         }
         if (factory && factory.store.getUsedCapacity() > 0) {
             for (const res in factory.store) {
-                if (factory.memory.producing && COMMODITIES[factory.memory.producing].components[res]) continue;
+                if (factory.memory.producing && COMMODITIES[factory.memory.producing] && COMMODITIES[factory.memory.producing].components[res]) continue;
                 if (factory.memory.producing === res && factory.store[res] < 5000) continue;
                 return {withdrawTarget: factory.id, deliveryTarget: (terminal || storage).id, resource: res};
             }
         }
 
-        // -- PRIORITY 2: SUPPLY PRODUCTION (Filling Labs/Factory) --
+        // -- PRIORITY 2: SUPPLY MINERALS (Filling Labs with minerals/boosts only) --
         for (const lab of labs) {
             if (lab.memory.itemNeeded && lab.store.getUsedCapacity(lab.memory.itemNeeded) < 1000) {
                 const res = lab.memory.itemNeeded;
@@ -81,7 +81,7 @@ class RoleLabTech {
                     withdrawTarget: supplier.id,
                     deliveryTarget: lab.id,
                     resource: res,
-                    amount: 1000 - lab.store.getUsedCapacity(res)
+                    amount: lab.store.getCapacity(res) - lab.store.getUsedCapacity(res)
                 };
             }
             if (lab.memory.neededBoost && lab.store.getUsedCapacity(lab.memory.neededBoost) < lab.memory.amount) {
@@ -94,17 +94,22 @@ class RoleLabTech {
                     amount: lab.memory.amount - lab.store.getUsedCapacity(res)
                 };
             }
-            if (lab.store.getFreeCapacity(RESOURCE_ENERGY) > 500 && (storage && storage.store[RESOURCE_ENERGY] > 5000)) {
-                return {withdrawTarget: storage.id, deliveryTarget: lab.id, resource: RESOURCE_ENERGY};
-            }
         }
 
-        // -- PRIORITY 3: LOGISTICS (Power/Nuke/Minerals) --
+        // -- PRIORITY 3: MINERAL CONTAINER CLEANUP --
+        // Minerals in containers block harvesting — clear them before they fill up
+        for (const s of this.room.structures) {
+            if (s.structureType !== STRUCTURE_CONTAINER) continue;
+            const res = Object.keys(s.store).find(r => r !== RESOURCE_ENERGY && s.store[r] > 0);
+            if (res) return {withdrawTarget: s.id, deliveryTarget: (storage || terminal).id, resource: res};
+        }
+
+        // -- PRIORITY 4: LOGISTICS (Power/Nuke) --
         if (powerSpawn && this.room.energyState) {
             if (powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 1000 && storage && storage.store[RESOURCE_ENERGY] > 10000) {
                 return {withdrawTarget: storage.id, deliveryTarget: powerSpawn.id, resource: RESOURCE_ENERGY};
             }
-            if (powerSpawn.store.getFreeCapacity(RESOURCE_POWER) > 50 && (storage && storage.store[RESOURCE_POWER] > 0)) {
+            if (powerSpawn.store.getFreeCapacity(RESOURCE_POWER) > 50 && storage && storage.store[RESOURCE_POWER] > 0) {
                 return {withdrawTarget: storage.id, deliveryTarget: powerSpawn.id, resource: RESOURCE_POWER};
             }
         }
@@ -112,17 +117,20 @@ class RoleLabTech {
             return {withdrawTarget: storage.id, deliveryTarget: nuker.id, resource: RESOURCE_GHODIUM};
         }
 
-        // -- PRIORITY 4: BALANCING STORAGE & TERMINAL --
+        // -- PRIORITY 5: BALANCING STORAGE & TERMINAL --
         const balancingTask = this.findBalancingTask(storage, terminal);
         if (balancingTask) return balancingTask;
 
-        // -- PRIORITY 5: CLEANUP --
-        const container = this.room.structures.find(s => s.structureType === STRUCTURE_CONTAINER && s.store.getUsedCapacity() > s.store[RESOURCE_ENERGY]);
-        if (container) {
-            const res = Object.keys(container.store).find(r => r !== RESOURCE_ENERGY);
-            return {withdrawTarget: container.id, deliveryTarget: (storage || terminal).id, resource: res};
+        // -- PRIORITY 6: LAB ENERGY REFILL --
+        // Labs hold 2000 energy (5 per reaction = 400 reactions of headroom).
+        // Only refill when nearly depleted so energy hauling doesn't crowd out everything else.
+        for (const lab of labs) {
+            if (!lab.memory.itemNeeded && lab.store[RESOURCE_ENERGY] < 400 && storage && storage.store[RESOURCE_ENERGY] > 5000) {
+                return {withdrawTarget: storage.id, deliveryTarget: lab.id, resource: RESOURCE_ENERGY};
+            }
         }
 
+        // -- PRIORITY 7: CLEANUP (dropped resources, tombstones) --
         const drop = this.room.droppedResources.find(r => r.resourceType !== RESOURCE_ENERGY) || this.room.tombstones.find(t => t.store.getUsedCapacity() > 0);
         if (drop) {
             const res = drop.resourceType || Object.keys(drop.store).find(r => drop.store[r] > 0);
@@ -250,11 +258,15 @@ class RoleLabTech {
     }
 
     executeDelivery() {
-        const resource = Object.keys(this.creep.store)[0];
+        const task = this.creep.memory.task;
+        // Prefer delivering what the current task asked for; fall back to whatever we're carrying
+        const resource = (task && this.creep.store[task.resource] > 0)
+            ? task.resource
+            : Object.keys(this.creep.store)[0];
         let deliveryTarget;
 
-        if (this.creep.memory.task) {
-            deliveryTarget = Game.getObjectById(this.creep.memory.task.deliveryTarget);
+        if (task) {
+            deliveryTarget = Game.getObjectById(task.deliveryTarget);
         }
 
         if (!deliveryTarget || (deliveryTarget.store && deliveryTarget.store.getFreeCapacity(resource) <= 0)) {
