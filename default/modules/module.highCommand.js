@@ -66,165 +66,251 @@ function checkCooldown(task, cooldown) {
 }
 
 function militaryOperations() {
-    // Handle manual operations
+    // --- Manual operations ---
     if (MANUAL_OPERATIONS.length) {
         for (const op of MANUAL_OPERATIONS) {
-            if (Memory.targetRooms[op.room]) continue;
-            Memory.targetRooms[op.room] = {
-                tick: Game.time,
-                type: op.type || 'guard',
-                level: op.level || 1,
-                priority: op.priority || PRIORITIES.high,
-                waveLimit: MAX_LEVEL,
-                manual: true
-            };
-        }
-        // Clean old manual operations
-        for (const key in Memory.targetRooms) {
-            if (!Memory.targetRooms[key].manual) continue;
-            if (!MANUAL_OPERATIONS.find((o) => o.room === key)) delete Memory.targetRooms[key];
-        }
-    }
-    // Handle stronghold operations
-    let activeStrongholdAttacks = _.size(_.filter(Memory.targetRooms, (t) => t && t.type === 'stronghold'));
-    if (activeStrongholdAttacks < OPERATION_LIMIT) {
-        let stronghold = _.min(_.filter(INTEL, (r) => r && r.sk && !Memory.targetRooms[r.name] &&
-            (r.invaderCore && r.invaderCore + CREEP_LIFE_TIME > Game.time) && r.towers && siegeLevel(r.towers) && myRoomInSectorCheck(r.name)
-            && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time)), function (t) {
-            if (!t.name) return Infinity;
-            return scoreTarget(t.name, 'stronghold');
-        });
-        if (stronghold && stronghold.name) setTarget(stronghold.name, 'stronghold', 1);
-    }
-
-    if (OFFENSIVE_OPERATIONS) {
-        let initialFilter = _.filter(INTEL, (r) => r.cached + CREEP_LIFE_TIME * 4 > Game.time && !Memory.targetRooms[r.name]
-            && r.owner && userStrength(r.owner) <= MAX_LEVEL && ![...FRIENDLIES, ...NO_DIRECT_ATTACKS].includes(r.owner) &&
-            !Memory.nonCombatRooms.includes(r.name) && !checkForNap(r.owner) &&
-            (ATTACK_LOCALS || THREATS.includes(r.owner) || (HOLD_SECTOR && myRoomInSectorCheck(r.name)) || findClosestOwnedRoom(r.name, true) <= DEFENSIVE_BUBBLE)
-            && ((r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time));
-        const activeNonSiegeOperations = _.size(_.filter(Memory.targetRooms, (o) => o && !['roomDenial', 'stronghold'].includes(o.type) && !o.dDay));
-        const activeSiegeOperations = _.size(_.filter(Memory.targetRooms, (o) => o && (o.type === 'roomDenial' || o.dDay)));
-
-        // Standard operations
-        if (activeNonSiegeOperations < OPERATION_LIMIT) {
-            // If the enemy room only has one exit, we setup a guard op to camp instead
-            let target = _.min(_.filter(initialFilter, (r) => r.owner && singleRemote(r.name)), function (t) {
-                if (!t.name) return Infinity;
-                return scoreTarget(t.name, 'guard');
-            });
-            if (target && target.name) {
-                setTarget(singleRemote(target.name), 'guard');
+            if (!Memory.targetRooms[op.room]) {
+                Memory.targetRooms[op.room] = {
+                    tick: Game.time, type: op.type || 'guard',
+                    level: op.level || 1, priority: op.priority || PRIORITIES.high,
+                    waveLimit: MAX_LEVEL, manual: true
+                };
             }
+        }
+        for (const key in Memory.targetRooms) {
+            if (Memory.targetRooms[key].manual && !MANUAL_OPERATIONS.find(o => o.room === key)) {
+                delete Memory.targetRooms[key];
+            }
+        }
+    }
 
-            // Active remote denial
-            target = _.min(_.filter(initialFilter, (r) => r.owner), function (t) {
-                if (!t.name) return Infinity;
-                return scoreTarget(t.name, 'remoteDenial');
-            });
-            if (target && target.name) setTarget(target.name, 'remoteDenial');
+    // --- Count active operations in a single pass, track which owners we're already hitting ---
+    let activeStrongholds = 0, activeNonSiege = 0, activeSiege = 0;
+    const attackedOwners = new Set();
+    for (const key in Memory.targetRooms) {
+        const op = Memory.targetRooms[key];
+        if (!op) continue;
+        if (op.type === 'stronghold') activeStrongholds++;
+        else if (op.type === 'roomDenial' || op.dDay) activeSiege++;
+        else activeNonSiege++;
+        const intel = INTEL[key];
+        if (intel && intel.owner) attackedOwners.add(intel.owner);
+    }
 
-        } // Room Sieges
-        if (activeSiegeOperations < SIEGE_LIMIT) {
-            // No Towers
-            let target = _.min(_.filter(initialFilter, (r) => r.owner && !r.towers
-                && ((r.lastSiege || 0) + (ATTACK_COOLDOWN * 2) < Game.time) && !r.safemode), function (t) {
-                if (!t.name) return Infinity;
-                return scoreTarget(t.name, 'roomDenial');
-            });
-            if (target && target.name) setTarget(target.name, 'roomDenial');
+    // --- Stronghold operations ---
+    if (activeStrongholds < OPERATION_LIMIT) {
+        let best = null, bestScore = Infinity;
+        for (const r of Object.values(INTEL)) {
+            if (!r || !r.sk || !r.towers || !r.name) continue;
+            if (Memory.targetRooms[r.name]) continue;
+            if (!r.invaderCore || r.invaderCore + CREEP_LIFE_TIME <= Game.time) continue;
+            if (!siegeLevel(r.towers) || !myRoomInSectorCheck(r.name)) continue;
+            if ((r.lastOperation || 0) + ATTACK_COOLDOWN >= Game.time) continue;
+            const score = scoreTarget(r.name, 'stronghold');
+            if (score < bestScore) {
+                bestScore = score;
+                best = r;
+            }
+        }
+        if (best) setTarget(best.name, 'stronghold', 1);
+    }
 
-            // Towers
-            target = _.min(_.filter(initialFilter, (r) => r.owner && r.towers && siegeLevel(r.towers)
-                && ((r.lastSiege || 0) + (ATTACK_COOLDOWN * 2) < Game.time) && !r.safemode), function (t) {
-                if (!t.name) return Infinity;
-                return scoreTarget(t.name, 'roomDenial');
-            });
-            if (target && target.name) setTarget(target.name, 'roomDenial', target.towers <= 2 ? 3 : 4);
+    if (!OFFENSIVE_OPERATIONS) return;
+
+    // --- Build candidate pool (pre-compute exclusion set to avoid array spread per entry) ---
+    const noAttackSet = new Set([...FRIENDLIES, ...NO_DIRECT_ATTACKS]);
+    const candidates = [];
+    for (const r of Object.values(INTEL)) {
+        if (!r || !r.name || !r.owner) continue;
+        if (r.cached + CREEP_LIFE_TIME * 4 <= Game.time) continue;
+        if (Memory.targetRooms[r.name]) continue;
+        if (noAttackSet.has(r.owner) || Memory.nonCombatRooms.includes(r.name)) continue;
+        if (checkForNap(r.owner) || userStrength(r.owner) > MAX_LEVEL) continue;
+        if ((r.lastOperation || 0) + ATTACK_COOLDOWN >= Game.time) continue;
+        if (!ATTACK_LOCALS && !THREATS.includes(r.owner) &&
+            !(HOLD_SECTOR && myRoomInSectorCheck(r.name)) &&
+            findClosestOwnedRoom(r.name, true) > DEFENSIVE_BUBBLE) continue;
+        candidates.push(r);
+    }
+
+    if (!candidates.length) return;
+
+    // --- Standard operations ---
+    if (activeNonSiege < OPERATION_LIMIT) {
+        // Guard: camp rooms with a single available remote exit
+        let bestGuard = null, bestGuardScore = Infinity, bestGuardRemote = null;
+        for (const r of candidates) {
+            const remote = singleRemote(r.name);
+            if (!remote) continue;
+            const score = scoreTarget(r.name, 'guard', attackedOwners);
+            if (score < bestGuardScore) {
+                bestGuardScore = score;
+                bestGuard = r;
+                bestGuardRemote = remote;
+            }
+        }
+        if (bestGuard) {
+            setTarget(bestGuardRemote, 'guard');
+            attackedOwners.add(bestGuard.owner);
+        }
+
+        // Remote denial: prefer a different player than the guard target
+        let bestDenial = null, bestDenialScore = Infinity;
+        for (const r of candidates) {
+            const score = scoreTarget(r.name, 'remoteDenial', attackedOwners);
+            if (score < bestDenialScore) {
+                bestDenialScore = score;
+                bestDenial = r;
+            }
+        }
+        if (bestDenial) setTarget(bestDenial.name, 'remoteDenial');
+    }
+
+    // --- Siege operations ---
+    if (activeSiege < SIEGE_LIMIT) {
+        const siegeCooldown = ATTACK_COOLDOWN * 2;
+        let bestNoTower = null, bestNoTowerScore = Infinity;
+        let bestTower = null, bestTowerScore = Infinity;
+        for (const r of candidates) {
+            if (r.safemode || (r.lastSiege || 0) + siegeCooldown >= Game.time) continue;
+            if (!r.towers) {
+                const score = scoreTarget(r.name, 'roomDenial', attackedOwners);
+                if (score < bestNoTowerScore) {
+                    bestNoTowerScore = score;
+                    bestNoTower = r;
+                }
+            } else if (siegeLevel(r.towers)) {
+                const score = scoreTarget(r.name, 'roomDenial', attackedOwners);
+                if (score < bestTowerScore) {
+                    bestTowerScore = score;
+                    bestTower = r;
+                }
+            }
+        }
+        if (bestNoTower) setTarget(bestNoTower.name, 'roomDenial');
+        if (bestTower && activeSiege + (bestNoTower ? 1 : 0) < SIEGE_LIMIT) {
+            setTarget(bestTower.name, 'roomDenial', bestTower.towers <= 2 ? 3 : 4);
         }
     }
 }
 
-function scoreTarget(roomName, type) {
+function scoreTarget(roomName, type, attackedOwners = null) {
     const r = INTEL[roomName];
     if (!r) return Infinity;
 
     let score = 0;
     const distance = findClosestOwnedRoom(roomName, true);
 
-    // Distance factor (Closer is better)
+    // Distance (closer is better)
     score += distance * 20;
 
-    // Threat factor (Prioritize threats)
+    // Threats get priority
     if (THREATS.includes(r.owner)) score -= 200;
 
-    // Room level and Tower factor
+    // Room difficulty
     if (type === 'roomDenial') {
-        // For sieges, prefer slightly lower level or fewer towers if multiple options exist
         score += (r.level || 0) * 10;
         if (r.towers) score += r.towers * 50;
     } else {
-        // For standard ops, easier targets are much better
         score += (r.level || 0) * 30;
         if (r.towers) score += r.towers * 100;
     }
 
-    // Sector control factor
+    // Sector control bonus
     if (HOLD_SECTOR && myRoomInSectorCheck(roomName)) score -= 150;
 
-    // User strength check (Avoid picking on the super weak unless they are threats)
+    // Avoid picking on the very weak unless they're a threat
     if (!THREATS.includes(r.owner) && r.level < 4) score += 100;
+
+    // Prefer fresh intel — stale scouting is less reliable
+    score += Math.max(0, (Game.time - r.cached) / 100);
+
+    // Soft penalty for piling on a player already under attack — spread pressure if possible
+    if (attackedOwners && attackedOwners.has(r.owner)) score += 300;
 
     return score;
 }
 
 function auxiliaryOperations() {
-    let initialFilter = _.filter(INTEL, (r) => r.name && !Memory.auxiliaryTargets[r.name] && !_.includes(Memory.nonCombatRooms, r.name) && !r.hostile);
+    const cache = Memory.auxiliaryTargets || {};
+
+    // Pre-count active op types in one pass to gate searches before running them
+    let activePowerOps = 0, activeCommodityOps = 0;
+    for (const key in cache) {
+        const op = cache[key];
+        if (!op) continue;
+        if (op.type === 'power') activePowerOps++;
+        if (op.type === 'commodity') activeCommodityOps++;
+    }
+
+    // Build candidate pool once — rooms not yet targeted, not hostile, not excluded
+    const candidates = Object.values(INTEL).filter(r =>
+        r && r.name && !cache[r.name] && !r.hostile && !Memory.nonCombatRooms.includes(r.name)
+    );
 
     if (MAX_LEVEL >= 4) {
-        let tick = Game.time;
-        let cache = Memory.auxiliaryTargets || {};
-
-        // Power Mining (level 8 and power threshold check)
-        if (MAX_LEVEL >= 8 && getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT) {
-            let powerRoom = _.min(_.filter(initialFilter, (r) => r.power && r.power - 1500 >= tick && findClosestOwnedRoom(r.name, true) <= 8), function (t) {
-                return findClosestOwnedRoom(t.name, true);
-            });
-
-            if (powerRoom && powerRoom.name && !_.find(Memory.auxiliaryTargets, (target) => target && target.type === 'power')) {
-                cache[powerRoom.name] = {tick, type: 'power', level: 1, priority: PRIORITIES.medium};
-                log.a(`Mining operation planned for ${roomLink(powerRoom.name)} (Power Bank Location)`, 'HIGH COMMAND: ');
+        // Power Mining — only search if no active power op and we're below threshold
+        if (MAX_LEVEL >= 8 && activePowerOps === 0 && getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT) {
+            let bestPower = null, bestDist = Infinity;
+            for (const r of candidates) {
+                if (!r.power || r.power - 1500 < Game.time) continue;
+                const dist = findClosestOwnedRoom(r.name, true);
+                if (dist <= 8 && dist < bestDist) {
+                    bestDist = dist;
+                    bestPower = r;
+                }
+            }
+            if (bestPower) {
+                cache[bestPower.name] = {tick: Game.time, type: 'power', level: 1, priority: PRIORITIES.medium};
+                log.a(`Mining operation planned for ${roomLink(bestPower.name)} (Power Bank Location)`, 'HIGH COMMAND: ');
             }
         }
 
-        // Commodity Mining
-        const commodityCutoff = Game.market.credits < CREDIT_BUFFER * 2 ? 150 : 40;
-        const commodityRoom = _.find(initialFilter, (r) => r.commodity && r.commodityCooldown < commodityCutoff && getResourceTotal(r.commodity) < DUMP_AMOUNT && findClosestOwnedRoom(r.name, true) <= 8);
-        if (commodityRoom && commodityRoom.name && _.size(_.filter(Memory.auxiliaryTargets, (t) => t && t.type === 'commodity')) < 2) {
-            cache[commodityRoom.name] = {tick, type: 'commodity', level: 1, priority: PRIORITIES.medium};
-            log.a(`Mining operation planned for ${roomLink(commodityRoom.name)} (Commodity Deposit Location)`, 'HIGH COMMAND: ');
+        // Commodity Mining — up to 2 concurrent, pick closest qualifying deposit
+        if (activeCommodityOps < 2) {
+            const commodityCutoff = Game.market.credits < CREDIT_BUFFER * 2 ? 150 : 40;
+            let bestCommodity = null, bestDist = Infinity;
+            for (const r of candidates) {
+                if (!r.commodity || r.commodityCooldown >= commodityCutoff) continue;
+                if (getResourceTotal(r.commodity) >= DUMP_AMOUNT) continue;
+                const dist = findClosestOwnedRoom(r.name, true);
+                if (dist <= 8 && dist < bestDist) {
+                    bestDist = dist;
+                    bestCommodity = r;
+                }
+            }
+            if (bestCommodity) {
+                cache[bestCommodity.name] = {tick: Game.time, type: 'commodity', level: 1, priority: PRIORITIES.medium};
+                log.a(`Mining operation planned for ${roomLink(bestCommodity.name)} (Commodity Deposit Location)`, 'HIGH COMMAND: ');
+            }
         }
 
-        // Mineral Mining (rooms with more than 3 sources and minerals)
-        const mineralRoom = _.find(initialFilter, (r) => !r.sk && r.sources >= 3 && r.mineralAmount && !MY_MINERALS[r.mineral] && myRoomInSectorCheck(r.name));
-        if (mineralRoom && mineralRoom.name) {
-            cache[mineralRoom.name] = {tick, type: 'mineral', level: 1, priority: PRIORITIES.medium};
-            log.a(`Mining operation planned for ${roomLink(mineralRoom.name)} (Mineral Deposit Location)`, 'HIGH COMMAND: ');
+        // Mineral Mining — pick closest qualifying room in our sector
+        let bestMineral = null, bestDist = Infinity;
+        for (const r of candidates) {
+            if (r.sk || r.sources < 3 || !r.mineralAmount || MY_MINERALS[r.mineral]) continue;
+            if (!myRoomInSectorCheck(r.name)) continue;
+            const dist = findClosestOwnedRoom(r.name, true);
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestMineral = r;
+            }
         }
-
-        // Update auxiliary targets with the new planned operations
-        Memory.auxiliaryTargets = cache;
+        if (bestMineral) {
+            cache[bestMineral.name] = {tick: Game.time, type: 'mineral', level: 1, priority: PRIORITIES.medium};
+            log.a(`Mining operation planned for ${roomLink(bestMineral.name)} (Mineral Deposit Location)`, 'HIGH COMMAND: ');
+        }
     }
 
-    // Rebuild allies (if the room needs builders and is not hostile)
-    const needyRoom = _.find(MY_ROOMS, (r) => Game.rooms[r].memory.buildersNeeded && INTEL[r] && !INTEL[r].hostile && !Memory.auxiliaryTargets[r]);
-    if (needyRoom) {
-        const cache = Memory.auxiliaryTargets || {};
-        const tick = Game.time;
-        cache[needyRoom] = {tick, type: 'rebuild', level: 1, priority: PRIORITIES.priority};
-        Memory.auxiliaryTargets = cache;
-        log.a(`Rebuild operation planned for ${roomLink(needyRoom)} (Rebuilding Required)`, 'HIGH COMMAND: ');
+    // Rebuild allies — queue the first room that needs builders and isn't hostile
+    for (const r of MY_ROOMS) {
+        if (!Game.rooms[r].memory.buildersNeeded || !INTEL[r] || INTEL[r].hostile || cache[r]) continue;
+        cache[r] = {tick: Game.time, type: 'rebuild', level: 1, priority: PRIORITIES.priority};
+        log.a(`Rebuild operation planned for ${roomLink(r)} (Rebuilding Required)`, 'HIGH COMMAND: ');
+        break;
     }
+
+    Memory.auxiliaryTargets = cache;
 }
 
 function setTarget(room, operation, level = 1, military = true) {
