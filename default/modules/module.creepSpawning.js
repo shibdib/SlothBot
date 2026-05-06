@@ -1078,161 +1078,126 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
     return true;
 }
 
-function getQueue(room) {
-    let globalQueue = CREEP_QUEUES["global"] || {};
-    let roomQueue = CREEP_QUEUES[room.name] || {};
-
-    // Update global queue
-    let operationQueue = {};
-    if (_.size(globalQueue) && room.memory.combatReady) {
-        operationQueue = _.cloneDeep(globalQueue);
-        for (let key in operationQueue) {
-            if (operationQueue[key].destination) {
-                const destination = operationQueue[key].destination;
-                if (destination === room.name) {
-                    delete operationQueue[key];
-                    continue;
-                }
-                let creepInfo = operationQueue[key];
-                // Handle if this is assigned to a different room
-                let assignedRoom = Memory.targetRooms[destination] && Memory.targetRooms[destination].assignedRoom ? Memory.targetRooms[destination].assignedRoom
-                    : Memory.auxiliaryTargets[destination] && Memory.auxiliaryTargets[destination].assignedRoom ? Memory.auxiliaryTargets[destination].assignedRoom
-                        : undefined;
-                if (assignedRoom && assignedRoom !== room.name) {
-                    delete operationQueue[key];
-                    continue;
-                }
-                // Handle refreshing the assignment every so often
-                const assignedTick = Memory.targetRooms[destination] && Memory.targetRooms[destination].assignedAt ? Memory.targetRooms[destination].assignedAt
-                    : Memory.auxiliaryTargets[destination] && Memory.auxiliaryTargets[destination].assignedAt ? Memory.auxiliaryTargets[destination].assignedAt
-                        : undefined;
-                if (assignedTick && assignedTick + (CREEP_LIFE_TIME * 2) < Game.time && assignedRoom) {
-                    const waitingCreeps = room.myCreeps.find((c) => c.memory.waitingToAssemble && c.memory.destination === destination);
-                    if (!waitingCreeps) {
-                        delete operationQueue[key];
-                        unassignRoom(room, destination, 'Refreshing assignment.');
-                        continue;
-                    }
-                }
-                // Set the level target
-                let levelTarget = MAX_LEVEL;
-                if (Memory.auxiliaryTargets[destination]) levelTarget = MAX_LEVEL - 1;
-                else if (findClosestOwnedRoom(destination, true) <= DEFENSIVE_BUBBLE) levelTarget = MAX_LEVEL - 1;
-                else if (Memory.targetRooms[destination] && Memory.targetRooms[destination].type === 'roomDenial') {
-                    levelTarget = INTEL[destination] && INTEL[destination].towers && INTEL[destination].towers === 1 ? 6 :
-                        levelTarget = INTEL[destination] && INTEL[destination].towers && INTEL[destination].towers === 2 ? 7 :
-                            INTEL[destination] && INTEL[destination].towers && INTEL[destination].towers > 2 ? 8 :
-                                4;
-                }
-                else if (Memory.targetRooms[destination] && INTEL[destination] && INTEL[destination].user) levelTarget = userStrength(INTEL[destination].user) - 1;
-                else if (Memory.targetRooms[destination] && INTEL[destination] && !INTEL[destination].user) levelTarget = 4;
-                // Scouts are level 1
-                if (Memory.targetRooms[destination] && Memory.targetRooms[destination].type === 'scout') levelTarget = 1;
-                // If this is anything more than a duo, needs to be level 7+
-                if (creepInfo.misc && creepInfo.misc.waitFor > 2) {
-                    if (MAX_LEVEL >= 7) levelTarget = 7; else creepInfo.misc.waitFor = 2;
-                }
-                // Check level
-                if (room.level < levelTarget) {
-                    delete operationQueue[key];
-                    continue;
-                }
-                // Generate body
-                const generatedInfo = new generator(room.level, creepInfo.role, room, creepInfo).generateBody();
-                if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) {
-                    delete operationQueue[key];
-                    unassignRoom(room, destination, 'Unable to generate needed body.');
-                    continue;
-                }
-                const body = generatedInfo.body;
-                creepInfo = generatedInfo.info;
-                // Handle room assignments
-                if (operationQueue[key].closestRoom) {
-                    // Sanity check
-                    if (!Memory.targetRooms[destination] && !Memory.auxiliaryTargets[destination]) {
-                        const assigned = Memory.targetRooms[destination] && Memory.targetRooms[destination].assignedRoom ? Memory.targetRooms[destination].assignedRoom :
-                            Memory.auxiliaryTargets[destination] && Memory.auxiliaryTargets[destination].assignedRoom ? Memory.auxiliaryTargets[destination].assignedRoom : undefined;
-                        if (assigned) unassignRoom(assigned, destination, 'The mission no longer exists.')
-                        delete operationQueue[key];
-                        continue;
-                    }
-                    if (!assignedRoom) {
-                        // If we have no intel, don't assign a room
-                        if (!INTEL[destination]) {
-                            delete operationQueue[key];
-                            continue;
-                        }
-                        assignedRoom = getAssignedRoom(destination, levelTarget, creepInfo);
-                        if (assignedRoom) {
-                            const assignment = {assignedRoom: assignedRoom, assignedAt: Game.time};
-                            if (Memory.targetRooms[destination]) Memory.targetRooms[destination] = {...Memory.targetRooms[destination], ...assignment};
-                            else Memory.auxiliaryTargets[destination] = {...Memory.auxiliaryTargets[destination], ...assignment};
-                            log.a(`Assigning the operation in ${roomLink(destination)} to ${roomLink(assignedRoom)}`, 'OPERATIONS:')
-                        }
-                    }
-                    if (assignedRoom !== room.name) {
-                        delete operationQueue[key];
-                        continue;
-                    }
-                    // Needs heal boosts
-                    const healBoostsRequired = Memory.targetRooms[destination] && Memory.targetRooms[destination].boosts && Memory.targetRooms[destination].boosts.includes(HEAL);
-                    if (healBoostsRequired) {
-                        let tier = Memory.targetRooms[destination] && Memory.targetRooms[destination].boostTier ? Memory.targetRooms[destination].boostTier : undefined;
-                        if (!room.boostCheck(body, undefined, tier)) {
-                            delete operationQueue[key];
-                            unassignRoom(room, destination, 'Missing required boosts.');
-                            continue;
-                        }
-                    }
-                }
-                // Adjust priority based on specific conditions
-                creepInfo.body = body;
-                operationQueue[key] = creepInfo;
+function adjustQueuePriority(queue, room) {
+    for (const key in queue) {
+        const creep = queue[key];
+        let body = creep.body;
+        if (!body) {
+            const generatedInfo = new generator(room.level, creep.role, room, creep).generateBody();
+            if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) {
+                delete queue[key];
+                continue;
             }
+            body = generatedInfo.body;
+        }
+        creep.body = body;
+        if (!body.length) continue;
+        if (creep.destination && (Memory.targetRooms[creep.destination] || Memory.auxiliaryTargets[creep.destination])) {
+            if (room.energyState && room.storage) {
+                creep.priority *= 0.5;
+            } else if (creep.military) {
+                creep.priority *= 6;
+            }
+        }
+        creep.priority = Math.max(1, Math.round(creep.priority));
+    }
+    return queue;
+}
+
+function getQueue(room) {
+    const globalQueue = CREEP_QUEUES["global"] || {};
+    const roomQueue = CREEP_QUEUES[room.name] || {};
+    const operationQueue = {};
+
+    if (_.size(globalQueue) && room.memory.combatReady) {
+        for (const key in globalQueue) {
+            const entry = globalQueue[key];
+            const destination = entry.destination;
+
+            if (!destination) {
+                operationQueue[key] = {...entry};
+                continue;
+            }
+            if (destination === room.name) continue;
+
+            const opMemory = Memory.targetRooms[destination] || Memory.auxiliaryTargets[destination];
+            const assignedRoom = opMemory && opMemory.assignedRoom;
+
+            if (assignedRoom && assignedRoom !== room.name) continue;
+
+            const assignedAt = opMemory && opMemory.assignedAt;
+            if (assignedAt && assignedAt + (CREEP_LIFE_TIME * 2) < Game.time && assignedRoom) {
+                if (!room.myCreeps.find(c => c.memory.waitingToAssemble && c.memory.destination === destination)) {
+                    unassignRoom(destination, 'Refreshing assignment.');
+                    continue;
+                }
+            }
+
+            const intel = INTEL[destination];
+            let levelTarget = MAX_LEVEL;
+            if (Memory.auxiliaryTargets[destination]) {
+                levelTarget = MAX_LEVEL - 1;
+            } else if (findClosestOwnedRoom(destination, true) <= DEFENSIVE_BUBBLE) {
+                levelTarget = MAX_LEVEL - 1;
+            } else if (opMemory && opMemory.type === 'roomDenial') {
+                const towers = intel && intel.towers || 0;
+                levelTarget = towers > 2 ? 8 : towers === 2 ? 7 : towers === 1 ? 6 : 4;
+            } else if (opMemory && intel && intel.user) {
+                levelTarget = userStrength(intel.user) - 1;
+            } else if (opMemory && intel && !intel.user) {
+                levelTarget = 4;
+            }
+            if (opMemory && opMemory.type === 'scout') levelTarget = 1;
+
+            let creepInfo = {...entry};
+            if (creepInfo.misc && creepInfo.misc.waitFor > 2) {
+                if (MAX_LEVEL >= 7) levelTarget = 7;
+                else creepInfo.misc = {...creepInfo.misc, waitFor: 2};
+            }
+
+            if (room.level < levelTarget) continue;
+
+            const generatedInfo = new generator(room.level, creepInfo.role, room, creepInfo).generateBody();
+            if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) {
+                unassignRoom(destination, 'Unable to generate needed body.');
+                continue;
+            }
+            creepInfo = generatedInfo.info;
+            creepInfo.body = generatedInfo.body;
+
+            if (entry.closestRoom) {
+                if (!opMemory) continue;
+
+                let resolvedRoom = assignedRoom;
+                if (!resolvedRoom) {
+                    if (!intel) continue;
+                    resolvedRoom = getAssignedRoom(destination, levelTarget, creepInfo);
+                    if (resolvedRoom) {
+                        const patch = {assignedRoom: resolvedRoom, assignedAt: Game.time};
+                        if (Memory.targetRooms[destination]) Object.assign(Memory.targetRooms[destination], patch);
+                        else Object.assign(Memory.auxiliaryTargets[destination], patch);
+                        log.a(`Assigning the operation in ${roomLink(destination)} to ${roomLink(resolvedRoom)}`, 'OPERATIONS:');
+                    }
+                }
+                if (resolvedRoom !== room.name) continue;
+
+                const healBoosts = opMemory.boosts && opMemory.boosts.includes(HEAL);
+                if (healBoosts && !room.boostCheck(creepInfo.body, undefined, opMemory.boostTier)) {
+                    unassignRoom(destination, 'Missing required boosts.');
+                    continue;
+                }
+            }
+
+            operationQueue[key] = creepInfo;
         }
     }
 
-    // Adjust and sort queue
     const sortedQueue = _.sortBy(adjustQueuePriority(Object.assign({}, operationQueue, roomQueue), room), 'priority');
     if (!room._sortedQueue || room._sortedQueue.tick !== Game.time) {
         room._sortedQueue = {queue: sortedQueue, tick: Game.time};
     }
     displayQueue(room, room._sortedQueue.queue);
     return room._sortedQueue.queue;
-
-    function adjustQueuePriority(queue, room) {
-        const spawns = room.structures.filter((s) => s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning);
-        const spawnCount = spawns.length || 1;
-        for (const key in queue) {
-            const creep = queue[key];
-            let body;
-            if (creep.body) {
-                body = creep.body;
-            } else {
-                const generatedInfo = new generator(room.level, creep.role, room, creep).generateBody();
-                if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) {
-                    delete queue[key];
-                    continue;
-                }
-                body = generatedInfo.body;
-            }
-            creep.body = body;
-            if (!body || !body.length) continue;
-            const buildTime = body.length * CREEP_SPAWN_TIME;
-            const sizeFactor = Math.max(1, 50 / buildTime);
-            if (creep.destination && (Memory.targetRooms[creep.destination] || Memory.auxiliaryTargets[creep.destination])) {
-                if (room.energyState && room.storage) {
-                    creep.priority *= 0.5;
-                } else if (creep.military) {
-                    creep.priority *= 6;
-                }
-            }
-            //creep.priority /= (sizeFactor * spawnCount);
-            creep.priority = Math.max(1, Math.round(creep.priority));
-            queue[key] = creep;
-        }
-        return queue;
-    }
 }
 
 function displayQueue(room, queue) {
@@ -1323,50 +1288,49 @@ function getPriority(room) {
 }
 
 function getAssignedRoom(targetRoom, level, creepInfo) {
+    // Pre-compute assignment counts so the inner loop is O(1) instead of O(M) per room
+    const allOps = Memory.targetRooms[targetRoom] ? Memory.targetRooms : Memory.auxiliaryTargets;
+    const assignmentCounts = {};
+    for (const op of Object.values(allOps)) {
+        if (op && op.assignedRoom) assignmentCounts[op.assignedRoom] = (assignmentCounts[op.assignedRoom] || 0) + 1;
+    }
+
     let closest = null;
     let closestDistance = Infinity;
-    for (let key of MY_ROOMS) {
-        // If its the room, continue
+
+    for (const key of MY_ROOMS) {
         if (key === targetRoom) continue;
-        // If not available continue
         const myRoom = Game.rooms[key];
-        if (!myRoom.memory.combatReady || myRoom.controller.level !== myRoom.level || myRoom.downgraded) continue
-        // If above you spawn count continue
-        const currentAssignments = Memory.targetRooms[targetRoom] ? _.filter(Memory.targetRooms, (r) => r && r.assignedRoom === key).length : _.filter(Memory.auxiliaryTargets, (r) => r && r.assignedRoom === key).length;
-        if (currentAssignments >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level] * 1.5) continue;
-        if (myRoom && myRoom.level >= level) {
-            // Check body generation
-            const generatedInfo = new generator(myRoom.level, creepInfo.role, myRoom, creepInfo).generateBody();
-            const body = generatedInfo.body;
-            if (!body || !body.length) continue;
-            // Check distance
-            const distance = Game.map.getRoomLinearDistance(myRoom.name, targetRoom);
-            let maxRange = 22;
-            if (_.includes(body, CLAIM)) maxRange = 12;
-            if (distance > maxRange) continue;
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closest = key;
-                if (distance === 1) break;
-            }
-        }
+        if (!myRoom.memory.combatReady || myRoom.controller.level !== myRoom.level || myRoom.downgraded) continue;
+        if (myRoom.level < level) continue;
+
+        // Distance check before body generation — pure math, cheap early exit
+        const distance = Game.map.getRoomLinearDistance(key, targetRoom);
+        if (distance >= closestDistance || distance > 22) continue;
+
+        if ((assignmentCounts[key] || 0) >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level] * 1.5) continue;
+
+        const generatedInfo = new generator(myRoom.level, creepInfo.role, myRoom, creepInfo).generateBody();
+        if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) continue;
+        const body = generatedInfo.body;
+
+        if (distance > (body.includes(CLAIM) ? 12 : 22)) continue;
+
+        closestDistance = distance;
+        closest = key;
+        if (distance === 1) break;
     }
-    if (closest) {
-        return closest;
-    }
+
+    return closest;
 }
 
-function unassignRoom(assignedRoom, destination, logEntry) {
-    let unassigned = false;
-    if (Memory.targetRooms[destination] && Memory.targetRooms[destination].assignedRoom) {
-        unassigned = true;
-        Memory.targetRooms[destination].assignedRoom = undefined;
-    }
-    if (Memory.auxiliaryTargets[destination] && Memory.auxiliaryTargets[destination].assignedRoom) {
-        unassigned = true;
-        Memory.auxiliaryTargets[destination].assignedRoom = undefined;
-    }
-    if (unassigned) log.a(`Unassigning the operation in ${roomLink(destination)} from ${roomLink(assignedRoom)}. ${logEntry}`, 'OPERATIONS:')
+function unassignRoom(destination, logEntry) {
+    const opMemory = Memory.targetRooms[destination] || Memory.auxiliaryTargets[destination];
+    if (!opMemory || !opMemory.assignedRoom) return;
+    const fromRoom = opMemory.assignedRoom;
+    delete opMemory.assignedRoom;
+    delete opMemory.assignedAt;
+    log.a(`Unassigning the operation in ${roomLink(destination)} from ${roomLink(fromRoom)}. ${logEntry}`, 'OPERATIONS:');
 }
 
 function determineEnergyOrder(room) {
