@@ -701,8 +701,8 @@ Creep.prototype.constructionWork = function () {
         return true;
     }
 
-    // Priority 12: Repair other structures (Including high-health containers and roads)
-    site = _.find(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax * 0.95);
+    // Priority 12: Repair other structures below 50% — avoids absorbing drones on non-urgent repairs
+    site = _.find(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax * 0.50);
     if (site) {
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';

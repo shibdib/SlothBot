@@ -87,8 +87,8 @@ class RoleDrone {
         // Task priority
         if (this.upgrading()) return;
         if (this.hauling()) return;
-        if (this.building()) return;
         if (this.room.memory.barrierBuilding && this.walling()) return;
+        if (this.building()) return;
         if (this.walling()) return;
 
         // Maintenance: Strengthen barriers if nothing else to do (prevents idling)
