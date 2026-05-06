@@ -581,31 +581,43 @@ class TerminalControl {
             let activeBuys = globalOrders.filter(o => o.resourceType === mineral && o.type === ORDER_BUY && !_.includes(MY_ROOMS, o.roomName)).sort((a, b) => b.price - a.price);
             let activeSells = globalOrders.filter(o => o.resourceType === mineral && o.type === ORDER_SELL && !_.includes(MY_ROOMS, o.roomName)).sort((a, b) => a.price - b.price);
 
-            if (activeBuys.length && activeSells.length) {
-                let highestBuy = activeBuys[0];
-                let lowestSell = activeSells[0];
+            if (!activeBuys.length || !activeSells.length) continue;
 
-                if (highestBuy.price > lowestSell.price) {
-                    let buyAmount = Math.min(highestBuy.remainingAmount, lowestSell.remainingAmount, 1000, terminal.store.getFreeCapacity(mineral));
-                    if (buyAmount >= 10) {
-                        let costToBuy = Game.market.calcTransactionCost(buyAmount, terminal.room.name, lowestSell.roomName) * energyPrice;
-                        let costToSell = Game.market.calcTransactionCost(buyAmount, terminal.room.name, highestBuy.roomName) * energyPrice;
-                        let netProfit = (highestBuy.price * buyAmount) - (lowestSell.price * buyAmount) - costToBuy - costToSell;
+            let highestBuy = activeBuys[0];
+            let lowestSell = activeSells[0];
 
-                        if (netProfit > 50 && terminal.store[RESOURCE_ENERGY] > (costToBuy + costToSell) / energyPrice) {
-                            if (terminal.store[mineral] >= buyAmount) {
-                                if (Game.market.deal(highestBuy.id, buyAmount, terminal.room.name) === OK) {
-                                    Game.market.deal(lowestSell.id, buyAmount, terminal.room.name);
-                                    log.w(`ARBITRAGE: Flipped ${buyAmount} ${mineral} in ${terminal.room.name} for profit: ${netProfit.toFixed(2)}`, "Market: ");
-                                    return true;
-                                }
-                            } else if (Game.market.deal(lowestSell.id, buyAmount, terminal.room.name) === OK) {
-                                log.w(`ARBITRAGE: Secured ${buyAmount} ${mineral} for flip in ${terminal.room.name}. Est profit: ${netProfit.toFixed(2)}`, "Market: ");
-                                return true;
-                            }
-                        }
-                    }
+            if (highestBuy.price <= lowestSell.price) continue;
+
+            let spread = highestBuy.price - lowestSell.price;
+            let maxAmount = Math.min(highestBuy.remainingAmount, lowestSell.remainingAmount, 1000, terminal.store.getFreeCapacity(mineral));
+            if (maxAmount < 10) continue;
+
+            const haveMineral = terminal.store[mineral] >= maxAmount;
+            const targetRoom = haveMineral ? highestBuy.roomName : lowestSell.roomName;
+
+            // Scale down amount until we can afford the energy for the immediate transaction
+            let amount = maxAmount;
+            while (amount >= 10) {
+                if (terminal.store[RESOURCE_ENERGY] >= Game.market.calcTransactionCost(amount, terminal.room.name, targetRoom)) break;
+                amount = Math.floor(amount * 0.75);
+            }
+            if (amount < 10) continue;
+
+            // Full round-trip cost for profit check (ensures the spread justifies both legs)
+            let costToBuy = Game.market.calcTransactionCost(amount, terminal.room.name, lowestSell.roomName) * energyPrice;
+            let costToSell = Game.market.calcTransactionCost(amount, terminal.room.name, highestBuy.roomName) * energyPrice;
+            let netProfit = spread * amount - costToBuy - costToSell;
+
+            if (netProfit <= 50) continue;
+
+            if (haveMineral) {
+                if (Game.market.deal(highestBuy.id, amount, terminal.room.name) === OK) {
+                    log.w(`ARBITRAGE: Flipped ${amount} ${mineral} in ${terminal.room.name} for profit: ${netProfit.toFixed(2)}`, "Market: ");
+                    return true;
                 }
+            } else if (Game.market.deal(lowestSell.id, amount, terminal.room.name) === OK) {
+                log.w(`ARBITRAGE: Secured ${amount} ${mineral} for flip in ${terminal.room.name}. Est profit: ${netProfit.toFixed(2)}`, "Market: ");
+                return true;
             }
         }
 
