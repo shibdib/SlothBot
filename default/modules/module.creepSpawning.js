@@ -197,7 +197,7 @@ module.exports.essentialCreepQueue = function (room) {
     const importantBuilds = _.some(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
     let droneCount = 1;
     if (room.memory.energyPositive) {
-        droneCount = importantBuilds ? (10 - room.level) :
+        droneCount = importantBuilds ? Math.min(10 - room.level, room.energyState > 1 ? 4 : 2) :
             !room.storage ? Math.max(8 - room.level, 1) :
                 room.memory.spawnDefenders ? 3 :
                     room.energyState ? 2 : 1;

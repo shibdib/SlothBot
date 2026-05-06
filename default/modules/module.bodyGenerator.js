@@ -109,6 +109,8 @@ class ModuleBodyGenerator {
                 if (this.room.memory.controllerLink || this.room.memory.controllerContainer) {
                     work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 49);
+                    // Cap to spare income so upgraders don't outpace what the room produces
+                    if (this.spareIncome > 0) work = Math.min(work, Math.max(1, Math.floor(this.spareIncome)));
                     carry = 1;
                     move = 0;
                 } else {

@@ -145,7 +145,7 @@ const ENERGY_STATE_CACHE = {};
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
         if (!this.controller) return 2;
-        if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + 500 > Game.time) return ENERGY_STATE_CACHE[this.name].state;
+        if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + 50 > Game.time) return ENERGY_STATE_CACHE[this.name].state;
         let energy = this.rawEnergy;
         const upgradeCost = this.level === 8 ? 250000 : constructionCost(this.controller.level + 1) - constructionCost(this.controller.level);
         let target = this.level === 8 ? 250000 : upgradeCost * (this.controller.progress / this.controller.progressTotal);

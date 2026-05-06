@@ -64,7 +64,12 @@ class StateManager {
         const harvesters = room.myCreeps.filter((c) => c.memory.role === 'stationaryHarvester').concat(_.filter(Game.creeps, ((c) => c.my && c.memory.colony === room.name && c.memory.role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired)));
         const income = Math.floor(harvesters.reduce((sum, creep) => sum + (creep.getActiveBodyparts(WORK) * 0.8), 0));
         const energyUsers = room.myCreeps.filter((c) => ['drone', 'upgrader'].includes(c.memory.role));
-        const expense = Math.ceil(energyUsers.reduce((sum, creep) => sum + creep.getActiveBodyparts(WORK), 0));
+        const workExpense = Math.ceil(energyUsers.reduce((sum, creep) => sum + creep.getActiveBodyparts(WORK), 0));
+        // Amortised spawn cost: total energy capacity of all creeps / average lifespan
+        const spawnExpense = Math.ceil(room.myCreeps.reduce((sum, c) => sum + global.UNIT_COST(c.body), 0) / CREEP_LIFE_TIME);
+        // Tower drain: towers fire every tick, estimate 200 energy/tick per active tower as a conservative overhead
+        const towerExpense = room.impassibleStructures.filter(s => s.structureType === STRUCTURE_TOWER && s.isActive()).length * 2;
+        const expense = workExpense + spawnExpense + towerExpense;
         const spareIncome = room.energyState > 2 ? 9999999 : room.energyState < 2 ? (income - expense) * 0.5 : income - expense;
         room.memory.energyInfo = {income: income, expense: expense, spareIncome: spareIncome};
         room.memory.energyPositive = (average(energyIncomeArray) > 0 && income > expense) || room.energyState > 1 || room.level < 4;
