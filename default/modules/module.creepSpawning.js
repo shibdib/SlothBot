@@ -877,66 +877,45 @@ module.exports.globalCreepQueue = function () {
                 }
                 break;
 
-            case 'roomDenial':
-                // If this room doesn't spawn defenders we use dismantlers otherwise blinky
-                let count = 1;
-                let boost = [RANGED_ATTACK];
-                if (INTEL[key] && INTEL[key].towers) {
-                    count = INTEL[key].towers * 2;
-                    boost.push(HEAL);
-                } else {
-                    boost = boost.filter((b) => b !== HEAL);
-                }
-                Memory.targetRooms[key].boosts = boost;
-                if (INTEL[key] && !INTEL[key].activeDefenders) {
-                    if (INTEL[key].towers) {
+            case 'roomDenial': {
+                const rdIntel = INTEL[key];
+                const rdTowers = rdIntel && rdIntel.towers || 0;
+                Memory.targetRooms[key].boosts = rdTowers ? [RANGED_ATTACK, HEAL] : [RANGED_ATTACK];
+                if (rdTowers) {
+                    const p75Damage = rdIntel.towerData ? rdIntel.towerData.average : rdTowers * 300;
+                    // 960 = max a single T3-boosted creep can heal (20 HEAL × 48 HP/tick).
+                    // At RCL7+ the body is large enough to be self-sufficient; use a solo longbow.
+                    // Below RCL7 or above the solo cap, fall back to squads.
+                    if (MAX_LEVEL >= 7 && p75Damage <= 960) {
                         queueCreepIfNeeded({
-                            role: 'siegeDuo',
+                            role: 'longbow',
                             priority: priority,
-                            numberNeeded: count,
+                            numberNeeded: 1,
                             destination: key,
                             closestRoom: true,
                             operation: 'roomDenial'
                         });
                     } else {
-                        queueCreepIfNeeded({
-                            role: 'longbow',
-                            priority: priority,
-                            numberNeeded: opLevel,
-                            destination: key,
-                            closestRoom: true,
-                            operation: 'roomDenial'
-                        });
-                        queueCreepIfNeeded({
-                            role: 'cleaner',
-                            priority: priority,
-                            numberNeeded: opLevel,
-                            destination: key,
-                            closestRoom: true,
-                            operation: 'roomDenial'
-                        });
-                    }
-                } else {
-                    if (INTEL[key] && INTEL[key].towers) {
+                        const waitFor = p75Damage > 960 ? 4 : 2;
                         queueCreepIfNeeded({
                             role: 'longbowSquad',
                             priority: priority,
-                            numberNeeded: count,
+                            numberNeeded: waitFor,
                             destination: key,
-                            misc: {waitFor: Math.min(count, 4)},
-                            closestRoom: true,
-                            operation: 'roomDenial'
-                        });
-                    } else {
-                        queueCreepIfNeeded({
-                            role: 'longbow',
-                            priority: priority,
-                            numberNeeded: opLevel,
-                            destination: key,
+                            misc: {waitFor: waitFor},
                             closestRoom: true,
                             operation: 'roomDenial'
                         });
                     }
+                } else {
+                    queueCreepIfNeeded({
+                        role: 'longbow',
+                        priority: priority,
+                        numberNeeded: 1,
+                        destination: key,
+                        closestRoom: true,
+                        operation: 'roomDenial'
+                    });
                 }
                 if (operation.claimAttacker) {
                     queueCreepIfNeeded({
@@ -959,6 +938,7 @@ module.exports.globalCreepQueue = function () {
                     });
                 }
                 break;
+            }
 
             case 'claimClear':
                 queueCreepIfNeeded({
@@ -1136,22 +1116,26 @@ function getQueue(room) {
             let levelTarget = MAX_LEVEL;
             if (Memory.auxiliaryTargets[destination]) {
                 levelTarget = MAX_LEVEL - 1;
-            } else if (findClosestOwnedRoom(destination, true) <= DEFENSIVE_BUBBLE) {
-                levelTarget = MAX_LEVEL - 1;
+            } else if (opMemory && opMemory.type === 'scout') {
+                levelTarget = 1;
             } else if (opMemory && opMemory.type === 'roomDenial') {
                 const towers = intel && intel.towers || 0;
-                levelTarget = towers > 2 ? 8 : towers === 2 ? 7 : towers === 1 ? 6 : 4;
+                levelTarget = towers >= 3 ? 8 : towers >= 1 ? 6 : 4;
+            } else if (findClosestOwnedRoom(destination, true) <= DEFENSIVE_BUBBLE) {
+                levelTarget = MAX_LEVEL - 1;
             } else if (opMemory && intel && intel.user) {
                 levelTarget = userStrength(intel.user) - 1;
             } else if (opMemory && intel && !intel.user) {
                 levelTarget = 4;
             }
-            if (opMemory && opMemory.type === 'scout') levelTarget = 1;
 
             let creepInfo = {...entry};
             if (creepInfo.misc && creepInfo.misc.waitFor > 2) {
                 if (MAX_LEVEL >= 7) levelTarget = 7;
-                else creepInfo.misc = {...creepInfo.misc, waitFor: 2};
+                else {
+                    creepInfo.misc = {...creepInfo.misc, waitFor: 2};
+                    levelTarget = 6;
+                }
             }
 
             if (room.level < levelTarget) continue;
@@ -1165,6 +1149,7 @@ function getQueue(room) {
             creepInfo.body = generatedInfo.body;
 
             if (entry.closestRoom) {
+
                 if (!opMemory) continue;
 
                 let resolvedRoom = assignedRoom;

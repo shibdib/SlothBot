@@ -2,7 +2,7 @@ const highCommand = require('module.highCommand');
 
 Creep.prototype.denyRoom = function () {
     // Make sure to display status to inform the user what's happening
-    const sentence = ['Coming', 'For', 'That', 'Booty', this.memory.destination];
+    const sentence = ['Coming', 'For', 'That', 'Booty'];
     this.say(sentence[Game.time % sentence.length], true);
 
     if (this.room.name === this.memory.destination) {

@@ -512,7 +512,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             if (towers.length) {
                 purgeBadRoute(this.name);
                 roomIntel.towers = towers.length;
-                roomIntel.towerData = this.towerData();
+                roomIntel.towerData = this.towerData(towers);
             } else {
                 roomIntel.towers = undefined;
                 roomIntel.towerData = undefined;
@@ -599,7 +599,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         if (towers.length) {
             purgeBadRoute(this.name);
             roomIntel.towers = towers.length;
-            roomIntel.towerData = this.towerData();
+            roomIntel.towerData = this.towerData(towers);
             roomIntel.nukeTarget = this.terminal ? this.terminal.pos.toString() : this.storage ? this.storage.pos.toString() : undefined;
         }
 
@@ -890,46 +890,42 @@ Room.prototype.invaderCheck = function () {
     return roomData.threatLevel > 0;
 };
 
-Room.prototype.towerData = function () {
-    const towers = this.structures.filter((s) => s.structureType === STRUCTURE_TOWER)
-    if (!towers.length) return {damage: 0};
-    let terrain = Game.map.getRoomTerrain(this.name);
+Room.prototype.towerData = function (towers) {
+    if (!towers || !towers.length) return {maxDamage: 0, position: undefined, average: 0};
+    const terrain = Game.map.getRoomTerrain(this.name);
     let maxDamage = 0;
     let dangerousSpot;
     const damageTracker = [];
     for (let y = 0; y < 50; y++) {
         for (let x = 0; x < 50; x++) {
-            let tile = terrain.get(x, y);
-            const pos = new RoomPosition(x, y, this.name);
-            if (tile !== TERRAIN_MASK_WALL) {
+            if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
+                const pos = new RoomPosition(x, y, this.name);
                 let damage = 0;
                 towers.forEach(t => damage += determineDamage(pos.getRangeTo(t)));
                 damageTracker.push(damage);
                 if (damage > maxDamage) {
-                    maxDamage = damage
+                    maxDamage = damage;
                     dangerousSpot = pos;
                 }
             }
         }
     }
 
-    return {maxDamage: maxDamage,
+    const sorted = damageTracker.slice().sort((a, b) => a - b);
+    const p75 = sorted[Math.floor(sorted.length * 0.75)];
+
+    return {
+        maxDamage,
         position: dangerousSpot ? {
             x: dangerousSpot.x,
             y: dangerousSpot.y,
             roomName: dangerousSpot.roomName
         } : undefined,
-        average: average(damageTracker)
+        average: p75
     };
 
     function determineDamage(range) {
-        if (range <= 5) {
-            return 600;
-        } else if (range < 20) {
-            return 600 - 450 * (range - 5) / 15;
-        } else {
-            return 150;
-        }
+        return TOWER_POWER_FROM_RANGE(range, TOWER_POWER_ATTACK);
     }
 }
 
@@ -943,25 +939,13 @@ Room.prototype.boostCheck = function (body = undefined, parts = undefined, tier 
 
 
     function checkBoostType(room, part, tier = undefined) {
-        let present = false;
-        if (body && body.length && !tier) {
-            for (let boost of BOOST_USE[part]) {
-                if (room.store(boost) < (30 * body.filter((p) => p === part).length)) {
-                    continue;
-                }
-                present = true;
+        const needed = 30 * (body && body.length ? body.filter((p) => p === part).length : partCount);
+        if (body && body.length && tier === undefined) {
+            for (const boost of BOOST_USE[part]) {
+                if (room.store(boost) >= needed) return true;
             }
-        } else if (body && body.length && tier) {
-            const requestedBoost = BOOST_USE[part][tier];
-            if (room.store(requestedBoost) >= (30 * body.filter((p) => p === part).length)) {
-                present = true;
-            }
-        } else {
-            const requestedBoost = BOOST_USE[part][tier];
-            if (room.store(requestedBoost) >= (30 * partCount)) {
-                present = true;
-            }
+            return false;
         }
-        return present;
+        return room.store(BOOST_USE[part][tier]) >= needed;
     }
 }

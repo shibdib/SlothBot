@@ -1086,14 +1086,9 @@ function saveOperation(operationRoom, operation) {
 
 // Check if we have high enough level for the number of towers
 function siegeLevel(towerCount) {
-    if (towerCount === 1 && MAX_LEVEL >= 6) {
-        return true;
-    } else if (towerCount > 3) {
-        return false;
-    } else if (towerCount > 1 && MAX_LEVEL >= 7) {
-        return true;
-    }
-    return false;
+    if (towerCount > 3) return false;
+    if (towerCount >= 3) return MAX_LEVEL >= 7;
+    return MAX_LEVEL >= 6;
 }
 
 

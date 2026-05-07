@@ -216,9 +216,9 @@ class ModuleBodyGenerator {
                     rangedAttack = 1;
                     break;
                 } else if (this.creepInfo && Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
-                    let multi = 0.51;
-                    if (this.creepInfo.misc && this.creepInfo.misc.waitFor === 4) multi = 0.25;
-                    heal = this.checkForNeededHeal(this.room, multi);
+                    const defaultWaitFor = this.role === 'longbow' ? 1 : 2;
+                    const waitFor = this.creepInfo.misc && this.creepInfo.misc.waitFor || defaultWaitFor;
+                    heal = this.checkForNeededHeal(this.room, 1 / waitFor);
                     if (!heal) break;
                 } else {
                     heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
@@ -439,26 +439,22 @@ class ModuleBodyGenerator {
         const damageToTank = Math.round(INTEL[this.creepInfo.destination].towerData.average);
         const neededHeals = determineNeededHeals(damageToTank);
         let neededBoost = {};
+        let optimalHeal = 0;
         for (const heal in neededHeals) {
-            if (neededHeals[heal].amount * multiplier > 20) continue;
-            if (this.room.store(neededHeals[heal].boost) > 30 * neededHeals[heal].amount) {
+            const scaled = Math.ceil(neededHeals[heal].amount * multiplier);
+            if (scaled > 20) continue;
+            if (this.room.store(neededHeals[heal].boost) >= 30 * scaled) {
                 neededBoost.boostPart = HEAL;
                 neededBoost.boost = neededHeals[heal].boost;
                 neededBoost.boostTier = neededHeals[heal].tier;
                 neededBoost.amount = neededHeals[heal].amount;
+                optimalHeal = scaled;
                 break;
             }
         }
-        // No boosts found, break
         if (!neededBoost.amount) return false;
-        // Get optimal heal with some buffer
-        const optimalHeal = Math.ceil(neededBoost.amount * multiplier);
         // If we can't support the size, break
         const maxHeals = Math.floor(this.energyAmount / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
-        if (maxHeals < optimalHeal) return false;
-        Memory.targetRooms[this.creepInfo.destination].boostTier = neededBoost.boostTier;
-        this.creepInfo.neededBoosts = neededBoost;
-        return optimalHeal;
         if (maxHeals < optimalHeal) return false;
         Memory.targetRooms[this.creepInfo.destination].boostTier = neededBoost.boostTier;
         this.creepInfo.neededBoosts = neededBoost;
