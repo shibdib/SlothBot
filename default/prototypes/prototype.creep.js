@@ -9,14 +9,12 @@ Object.defineProperty(Creep.prototype, "idle", {
         if (this.memory.idle === undefined) return 0;
         if (this.memory.idle <= Game.time || (this.ticksToLive >= 1485 || this.hasActiveBodyparts(CLAIM))
             || this.room.hostileCreeps.length || (INTEL[this.room.name] && INTEL[this.room.name].threatLevel)) {
-            delete this.idle;
             delete this.memory.idle;
             delete this.memory.idleSet;
             return 0;
         }
         // Handle flee if hostile is gone
         if (this.memory.runCooldown && this.memory.ranFrom && INTEL[this.memory.ranFrom] && !INTEL[this.memory.ranFrom].numberOfHostiles) {
-            delete this.idle;
             delete this.memory.idle;
             delete this.memory.ranFrom;
             delete this.memory.runCooldown;
@@ -83,7 +81,8 @@ Creep.prototype.idleFor = function (ticks = 0) {
     if (ticks > 0) {
         this.idle = Game.time + ticks;
     } else {
-        delete this.idle;
+        delete this.memory.idle;
+        delete this.memory.idleSet;
     }
     return true;
 };

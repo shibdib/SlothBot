@@ -681,7 +681,7 @@ Creep.prototype.formSquad = function () {
     // Find partners
     if (!this.memory.grouped && !this.spawning) {
         findGroup(this);
-    } else if (!this.memory.leader) {
+    } else if (this.memory.grouped && !this.memory.leader) {
         const leader = Game.getObjectById(this.memory.groupLeader);
         if (!leader) {
             this.memory.grouped = undefined;
