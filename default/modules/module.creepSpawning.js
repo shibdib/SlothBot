@@ -886,7 +886,7 @@ module.exports.globalCreepQueue = function () {
                     const p75Damage = rdIntel.towerData ? rdIntel.towerData.average : rdTowers * 300;
                     // Solo viable at RCL7+ when damage is within T3 single-creep cap,
                     // no active defenders detected, and no prior failed waves.
-                    const useSolo = MAX_LEVEL >= 7 && p75Damage <= 960 && !rdIntel.activeDefenders && rdWaves < 2;
+                    const useSolo = MAX_LEVEL >= 7 && rdTowers <= 1 && p75Damage <= 960 && !rdIntel.activeDefenders && rdWaves < 2;
                     if (useSolo) {
                         queueCreepIfNeeded({
                             role: 'longbow',
@@ -1123,7 +1123,7 @@ function getQueue(room) {
                 levelTarget = 1;
             } else if (opMemory && opMemory.type === 'roomDenial') {
                 const towers = intel && intel.towers || 0;
-                levelTarget = towers >= 3 ? 8 : towers >= 1 ? 6 : 4;
+                levelTarget = towers >= 3 ? 8 : towers === 2 ? 7 : towers === 1 ? 6 : 4;
             } else if (findClosestOwnedRoom(destination, true) <= DEFENSIVE_BUBBLE) {
                 levelTarget = MAX_LEVEL - 1;
             } else if (opMemory && intel && intel.user) {

@@ -436,7 +436,7 @@ class ModuleBodyGenerator {
 
     checkForNeededHeal(room, multiplier = 0.51) {
         if (!INTEL[this.creepInfo.destination] || !INTEL[this.creepInfo.destination].towerData) return false;
-        const damageToTank = Math.round(INTEL[this.creepInfo.destination].towerData.average);
+        const damageToTank = Math.round(INTEL[this.creepInfo.destination].towerData.maxDamage);
         const neededHeals = determineNeededHeals(damageToTank);
         let neededBoost = {};
         let optimalHeal = 0;

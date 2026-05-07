@@ -155,8 +155,12 @@ function militaryOperations() {
         }
 
         // Remote denial: prefer a different player than the guard target
+        // Only target rooms that have at least one unowned/accessible neighbor to deny
         let bestDenial = null, bestDenialScore = Infinity;
         for (const r of candidates) {
+            const neighbors = Object.values(Game.map.describeExits(r.name));
+            const hasRemote = neighbors.some((n) => !INTEL[n] || !INTEL[n].owner || INTEL[n].owner === r.owner);
+            if (!hasRemote) continue;
             const score = scoreTarget(r.name, 'remoteDenial', attackedOwners);
             if (score < bestDenialScore) {
                 bestDenialScore = score;
@@ -210,7 +214,7 @@ function scoreTarget(roomName, type, attackedOwners = null) {
     // Room difficulty
     if (type === 'roomDenial') {
         score += (r.level || 0) * 10;
-        if (r.towers) score += r.towers * 50;
+        if (r.towers) score += r.towers * 100;
     } else {
         score += (r.level || 0) * 30;
         if (r.towers) score += r.towers * 100;
@@ -1020,8 +1024,8 @@ module.exports.operationSustainability = function (room, operationRoom = room.na
     let isAtRisk = false; // Flag to track if the operation is at risk
 
     // Process tombstones
-    friendlyDead = processTombstones(room.tombstones, FRIENDLIES, friendlyDead, trackedFriendly, 5);
-    enemyDead = processTombstones(room.tombstones, null, enemyDead, trackedEnemy, 10);
+    friendlyDead = processTombstones(room.tombstones, FRIENDLIES, friendlyDead, trackedFriendly);
+    enemyDead = processTombstones(room.tombstones, null, enemyDead, trackedEnemy);
 
     // Update the operation object with new statistics
     operation.friendlyDead = friendlyDead;
@@ -1057,11 +1061,10 @@ function markAsPending(operationRoom, room) {
 
     log.a(`${room.name} is now marked as a Remote Denial due to safemode.`, 'OPERATION PLANNER: ');
     Memory.targetRooms = cache;
-    Memory.auxiliaryTargets = cache;
 }
 
 // Process friendly or enemy tombstones, return updated dead count
-function processTombstones(tombstones, friendlyList, deadCount, trackedList, minTTL = 5) {
+function processTombstones(tombstones, friendlyList, deadCount, trackedList) {
     let relevantTombstones = _.filter(tombstones, (s) => (friendlyList ? _.includes(friendlyList, s.creep.owner.username) : !_.includes(FRIENDLIES, s.creep.owner.username)));
     for (let tombstone of relevantTombstones) {
         if (_.includes(trackedList, tombstone.id)) continue;
@@ -1077,17 +1080,14 @@ function saveOperation(operationRoom, operation) {
         Memory.targetRooms[operationRoom] = operation;
     } else if (Memory.auxiliaryTargets[operationRoom]) {
         Memory.auxiliaryTargets[operationRoom] = operation;
-    } else if (Memory.targetRooms[operationRoom]) {
-        Memory.targetRooms[operationRoom] = operation;
-    } else if (Memory.auxiliaryTargets[operationRoom]) {
-        Memory.auxiliaryTargets[operationRoom] = operation;
     }
 }
 
 // Check if we have high enough level for the number of towers
 function siegeLevel(towerCount) {
     if (towerCount > 3) return false;
-    if (towerCount >= 3) return MAX_LEVEL >= 7;
+    if (towerCount >= 3) return MAX_LEVEL >= 8;
+    if (towerCount >= 2) return MAX_LEVEL >= 7;
     return MAX_LEVEL >= 6;
 }
 
