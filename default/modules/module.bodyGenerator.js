@@ -102,6 +102,16 @@ class ModuleBodyGenerator {
                     carry = Math.floor((this.energyAmount * 0.23) / BODYPART_COST[CARRY]) || 1;
                     carry = Math.min(carry, 12);
                 }
+                if (!this.room.energyState) {
+                    work = 1;
+                    carry = Math.floor((this.energyAmount * 0.1) / BODYPART_COST[CARRY]) || 1;
+                    carry = Math.max(carry, 3);
+                } else if (this.room.energyState === 1) {
+                    work = Math.min(work, Math.max(1, Math.floor(this.spareIncome)));
+                } else if (this.room.energyState === 2) {
+                    work = Math.min(work, Math.max(3, Math.floor(this.spareIncome * 1.5)));
+                }
+                // state 3+: full capacity body — aggressively build with the surplus
                 if (work < 1) return undefined;
                 break;
 
@@ -109,22 +119,27 @@ class ModuleBodyGenerator {
                 if (this.room.memory.controllerLink || this.room.memory.controllerContainer) {
                     work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 49);
-                    // Cap to spare income so upgraders don't outpace what the room produces
-                    if (this.spareIncome > 0) work = Math.min(work, Math.max(1, Math.floor(this.spareIncome)));
+                    if (!this.room.energyState) {
+                        work = 1;
+                    } else if (this.room.energyState === 1) {
+                        work = Math.min(work, Math.max(1, Math.floor(this.spareIncome)));
+                    } else if (this.room.energyState === 2) {
+                        work = Math.min(work, Math.max(3, Math.floor(this.spareIncome * 1.5)));
+                    }
+                    // state 3+: full capacity body — drain surplus into controller
                     carry = 1;
                     move = 0;
                 } else {
-                    work = Math.floor(this.energyAmount * 0.4 / BODYPART_COST[WORK]) || 1;
-                    work = Math.min(work, 15);
+                    if (!this.room.energyState) {
+                        work = 1;
+                    } else {
+                        work = Math.floor(this.energyAmount * 0.4 / BODYPART_COST[WORK]) || 1;
+                        work = Math.min(work, 15);
+                    }
                     carry = Math.floor(this.energyAmount * 0.1 / BODYPART_COST[CARRY]) || 1;
                     carry = Math.min(carry, 10);
-
                     if (INTEL[this.room.name].roadsBuilt) halfMove = true;
                 }
-                let multi = 1;
-                if (this.room.level < this.room.controller.level) multi = 0.15;
-                else if (this.room.energyState === 0) multi = 0.1;
-
                 if (work < 1) work = 1;
                 if (this.level === 8) {
                     work = this.room.energyState > 1 ? Math.min(work, 15) : 1;
