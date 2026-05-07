@@ -88,6 +88,10 @@ class RoleTestSquad {
 
     getInPosition(creep, leader) {
         if (!leader || !leader.pos || !creep || !creep.pos) return false;
+        if (leader.room.name !== creep.room.name) {
+            const pos = new RoomPosition(25, 25, leader.room.name);
+            return creep.shibMove(pos, {range: 22, forceSolo: true});
+        }
         const squadOrientation = leader.memory.squadOrientation || 0;
         const squadPositions = squadOrientation === 0
             ? [{dx: 0, dy: 1}, {dx: 1, dy: 0}, {dx: 1, dy: 1}]
@@ -115,7 +119,7 @@ class RoleTestSquad {
             : null;
         const target = closest || leaderPos;
         return target && !creepPos.isEqualTo(target)
-            ? creep.moveTo(target, {range: closest ? 0 : 1}) === OK
+            ? creep.shibMove(target, {range: closest ? 0 : 1, forceSolo: true}) === OK
             : false;
     }
 
@@ -163,7 +167,7 @@ class RoleTestSquad {
         if (creep.memory.initialFormUp || !creep.memory.misc || !creep.memory.misc.waitFor) return true;
         // Check if any squadmember needs to renew
         const squad = creep.memory.squadMembers.map(id => Game.getObjectById(id));
-        if (squad.some(c => c && !c.memory.hasBoosted && c.handleRenewing(CREEP_LIFE_TIME * 0.8))) return _.min(squad, c => c.ticksToLive).handleRenewing(CREEP_LIFE_TIME * 0.8);
+        if (squad.some(c => c && !c.memory.hasBoosted && !c.memory.boostAttempt && c.handleRenewing(CREEP_LIFE_TIME * 0.8))) return _.min(squad, c => c.ticksToLive).handleRenewing(CREEP_LIFE_TIME * 0.8);
         if (squad.some(c => !c.memory.boostAttempt)) return false;
         return creep.memory.misc.waitFor <= creep.memory.squadMembers.length + 1;
     }

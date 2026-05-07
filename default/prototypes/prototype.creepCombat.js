@@ -244,6 +244,8 @@ Creep.prototype.attackHostile = function (hostile) {
                 }
                 return true;
             }
+            // Not in a kiting situation — reset counter so future engagements start fresh
+            this.memory.kiteCount = 0;
             this.shibMove(moveTarget, {ignoreCreeps: false, range: 1});
             return true;
         }
@@ -325,20 +327,22 @@ Creep.prototype.fightRanged = function (target) {
 
     let range = this.pos.getRangeTo(target);
 
-    // 1. Prioritize Rampart Cover
-    let rampartCover = this.pos.findClosestByPath(FIND_MY_STRUCTURES, {
-        filter: (r) => r.structureType === STRUCTURE_RAMPART &&
-            !r.pos.checkForObstacleStructure() &&
-            r.pos.getRangeTo(target) <= 3 &&
-            (!r.pos.checkForCreep() || r.pos.isEqualTo(this.pos))
-    });
+    // 1. Prioritize Rampart Cover (own rooms only)
+    if (MY_ROOMS.includes(this.room.name)) {
+        let rampartCover = this.pos.findClosestByPath(FIND_MY_STRUCTURES, {
+            filter: (r) => r.structureType === STRUCTURE_RAMPART &&
+                !r.pos.checkForObstacleStructure() &&
+                r.pos.getRangeTo(target) <= 3 &&
+                (!r.pos.checkForCreep() || r.pos.isEqualTo(this.pos))
+        });
 
-    if (rampartCover) {
-        if (!this.pos.isEqualTo(rampartCover)) {
-            this.shibMove(rampartCover, {range: 0});
+        if (rampartCover) {
+            if (!this.pos.isEqualTo(rampartCover)) {
+                this.shibMove(rampartCover, {range: 0});
+            }
+            this.rangedAttack(target);
+            return true;
         }
-        this.rangedAttack(target);
-        return true;
     }
 
     // 2. Tower avoidance in enemy rooms: flee max-damage range (≤5)
@@ -365,11 +369,10 @@ Creep.prototype.fightRanged = function (target) {
 
     // 3. Open field kiting
     if (range <= 3) {
-        if (target instanceof Creep && target.hasActiveBodyparts(ATTACK) && range < 3) {
-            this.shibKite(4);
-        } else {
-            // Stay at range 3 if possible
-            if (range < 3) this.shibKite(3);
+        if (range < 3) {
+            // Use a wider flee range when damaged — ranged fire or a stray melee hit
+            const kiteRange = target instanceof Creep && target.hasActiveBodyparts(ATTACK) ? 4 : (this.hits < this.hitsMax ? 4 : 3);
+            this.shibKite(kiteRange);
         }
         this.rangedAttack(target);
     } else {
@@ -706,7 +709,7 @@ Creep.prototype.formSquad = function () {
             creep.memory.role = 'longbowSquad';
             creep.memory.groupLeader = currentGroups.id;
             currentGroups.memory.grouped = true;
-            currentGroups.memory.oldRole = currentGroups.memory.role;
+            if (!currentGroups.memory.oldRole) currentGroups.memory.oldRole = currentGroups.memory.role;
             currentGroups.memory.squadMembers.push(creep.id);
         } else {
             creep.memory.leader = true;

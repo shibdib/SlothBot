@@ -819,6 +819,15 @@ function serializePath(startPos, path, color = _.sample(["orange", "blue", "gree
             new RoomVisual(position.roomName)
                 .line(position, startPos, {color: color, lineStyle: "dashed"});
             serializedPath += startPos.getDirectionTo(position);
+        } else {
+            // Cross-room step: getDirectionTo doesn't work across rooms, so derive
+            // the exit direction from which edge the current position sits on.
+            let exitDir;
+            if (startPos.x === 49) exitDir = RIGHT;
+            else if (startPos.x === 0) exitDir = LEFT;
+            else if (startPos.y === 0) exitDir = TOP;
+            else if (startPos.y === 49) exitDir = BOTTOM;
+            if (exitDir !== undefined) serializedPath += exitDir;
         }
         startPos = position;
     }
@@ -1145,13 +1154,14 @@ Creep.prototype.shibSquadKite = function (fleeRange = FLEE_RANGE, options = {}) 
 
     // Use pathfinder to flee from threats
     let fleeGoals = threats.map(a => ({pos: a.pos, range: fleeRange + 2}));
-    let allowedRooms = [this.pos.roomName].concat(Object.values(Game.map.describeExits(this.pos.roomName)));
+    const currentRoom = this.pos.roomName;
+    let allowedRooms = [currentRoom].concat(Object.values(Game.map.describeExits(currentRoom)));
     let result = PathFinder.search(this.pos, fleeGoals, {
         flee: true,
         maxRooms: allowedRooms.length * 1.5,
         roomCallback: function (roomName) {
             if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
-            if (INTEL[roomName] && INTEL[roomName].owner && !FRIENDLIES.includes(INTEL[roomName].owner)) return false;
+            if (roomName !== currentRoom && INTEL[roomName] && INTEL[roomName].owner && !FRIENDLIES.includes(INTEL[roomName].owner)) return false;
             return getSquadMatrix(roomName);
         }
     });
@@ -1225,7 +1235,7 @@ function squadMove(creep, path) {
  * @param {Creep|Structure} [target] - The primary target to flee from, if specific
  * @returns {boolean} - Returns true if kiting was performed, false otherwise
  */
-Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined) {
+Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE) {
     // Handle squad kiting
     if (this.memory.squadMembers) return this.shibSquadKite(fleeRange);
 
@@ -1238,21 +1248,25 @@ Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE, target = undefined)
     let threats = gatherThreats(this, fleeRange);
     if (!threats.length) return false;
 
-    this.memory.kiteRoom = this.memory.room;
-
     // Prepare pathfinding options
     let options = getMoveWeight(this);
     options.flee = true;
 
     // Use pathfinder to flee from threats
-    let fleeGoals = threats.map(a => ({pos: a.pos, range: fleeRange + 2}));
-    let allowedRooms = [this.pos.roomName].concat(Object.values(Game.map.describeExits(this.pos.roomName)));
+    // Pure melee threats need a wider buffer since they must be adjacent to attack
+    const currentRoom = this.pos.roomName;
+    let fleeGoals = threats.map(a => {
+        const pureMelee = a instanceof Creep && a.hasActiveBodyparts(ATTACK) && !a.hasActiveBodyparts(RANGED_ATTACK);
+        return {pos: a.pos, range: pureMelee ? fleeRange + 3 : fleeRange + 2};
+    });
+    let allowedRooms = [currentRoom].concat(Object.values(Game.map.describeExits(currentRoom)));
     let result = PathFinder.search(this.pos, fleeGoals, {
         flee: true,
         maxRooms: allowedRooms.length + 1,
         roomCallback: function (roomName) {
             if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
-            if (INTEL[roomName] && INTEL[roomName].owner && !FRIENDLIES.includes(INTEL[roomName].owner)) return false;
+            // Block fleeing INTO adjacent enemy rooms, but allow kiting within the current room
+            if (roomName !== currentRoom && INTEL[roomName] && INTEL[roomName].owner && !FRIENDLIES.includes(INTEL[roomName].owner)) return false;
             return getMatrix(roomName, this, options);
         }
     });
@@ -1298,19 +1312,64 @@ Creep.prototype.hide = function () {
         return true;
     }
 
-    return false;
+    // PathFinder found no flee path — usually cornered by walls or structures.
+    // Fall back to greedy escape: pick the adjacent tile that maximises threat
+    // distance and open space so the creep can work its way out of the corner.
+    return greedyKiteEscape(this, threats);
 };
+
+// Greedy fallback when PathFinder.flee finds no path (cornered against walls/structures).
+// Scores all 8 adjacent tiles by (min threat distance × 10 + openness) and moves to the best.
+// The openness term (walkable terrain neighbour count, 0–8) steers the creep away from
+// narrow passages so it doesn't immediately get re-cornered.
+function greedyKiteEscape(creep, threats) {
+    const terrain = Game.map.getRoomTerrain(creep.room.name);
+    const directions = [
+        [TOP, 0, -1], [TOP_RIGHT, 1, -1], [RIGHT, 1, 0], [BOTTOM_RIGHT, 1, 1],
+        [BOTTOM, 0, 1], [BOTTOM_LEFT, -1, 1], [LEFT, -1, 0], [TOP_LEFT, -1, -1]
+    ];
+    let bestScore = -Infinity;
+    let bestDir;
+    for (const [dir, dx, dy] of directions) {
+        const nx = creep.pos.x + dx;
+        const ny = creep.pos.y + dy;
+        if (nx < 1 || nx > 48 || ny < 1 || ny > 48) continue;
+        if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
+        const pos = new RoomPosition(nx, ny, creep.room.name);
+        if (pos.checkForObstacleStructure()) continue;
+        const minThreatDist = Math.min(...threats.map(t => pos.getRangeTo(t)));
+        let openness = 0;
+        for (let ddx = -1; ddx <= 1; ddx++) {
+            for (let ddy = -1; ddy <= 1; ddy++) {
+                if (ddx === 0 && ddy === 0) continue;
+                const px = nx + ddx, py = ny + ddy;
+                if (px >= 0 && px <= 49 && py >= 0 && py <= 49 &&
+                    terrain.get(px, py) !== TERRAIN_MASK_WALL) openness++;
+            }
+        }
+        const score = minThreatDist * 10 + openness;
+        if (score > bestScore) {
+            bestScore = score;
+            bestDir = dir;
+        }
+    }
+    if (bestDir !== undefined) {
+        creep.move(bestDir);
+        return true;
+    }
+    return false;
+}
 
 // Helper to gather threats in the vicinity
 function gatherThreats(creep, fleeRange) {
     let threats = creep.room.hostileCreeps.filter((c) =>
         (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) &&
-        creep.pos.getRangeTo(c) <= fleeRange + 1
+        creep.pos.getRangeTo(c) <= fleeRange + 2
     );
     let lairs = creep.room.structures.filter((s) =>
         s.structureType === STRUCTURE_KEEPER_LAIR &&
         s.ticksToSpawn && s.ticksToSpawn <= fleeRange + 2 &&
-        creep.pos.getRangeTo(s) <= fleeRange + 1
+        creep.pos.getRangeTo(s) <= fleeRange + 2
     );
     return threats.concat(lairs);
 }
