@@ -11,7 +11,7 @@ Creep.prototype.denyRoom = function () {
             if (Memory.targetRooms[this.room.name] && (!Memory.targetRooms[this.room.name].lastWave || Memory.targetRooms[this.room.name].lastWave + 20 < Game.time)) {
                 this.memory.waveTracked = true;
                 Memory.targetRooms[this.room.name].lastWave = Game.time;
-                Memory.targetRooms[this.room.name].waves = Memory.targetRooms[this.room.name].waves ? Memory.targetRooms[this.room.name].waves++ : 1;
+                Memory.targetRooms[this.room.name].waves = (Memory.targetRooms[this.room.name].waves || 0) + 1;
             } else {
                 this.memory.waveTracked = true;
             }
@@ -20,7 +20,7 @@ Creep.prototype.denyRoom = function () {
         if (!this.memory.activeTracked || this.memory.activeTracked + 100 < Game.time) {
             if (this.memory.activeTracked) {
                 const armedHostiles = this.room.creeps.filter((c) => !c.my && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)));
-                if (armedHostiles.length) INTEL[this.room.name].activeDefenders = true;
+                INTEL[this.room.name].activeDefenders = armedHostiles.length > 0;
             } else {
                 this.memory.activeTracked = Game.time;
             }

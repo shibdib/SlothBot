@@ -880,13 +880,14 @@ module.exports.globalCreepQueue = function () {
             case 'roomDenial': {
                 const rdIntel = INTEL[key];
                 const rdTowers = rdIntel && rdIntel.towers || 0;
-                Memory.targetRooms[key].boosts = rdTowers ? [RANGED_ATTACK, HEAL] : [RANGED_ATTACK];
+                const rdWaves = operation.waves || 0;
                 if (rdTowers) {
+                    Memory.targetRooms[key].boosts = [HEAL];
                     const p75Damage = rdIntel.towerData ? rdIntel.towerData.average : rdTowers * 300;
-                    // 960 = max a single T3-boosted creep can heal (20 HEAL × 48 HP/tick).
-                    // At RCL7+ the body is large enough to be self-sufficient; use a solo longbow.
-                    // Below RCL7 or above the solo cap, fall back to squads.
-                    if (MAX_LEVEL >= 7 && p75Damage <= 960) {
+                    // Solo viable at RCL7+ when damage is within T3 single-creep cap,
+                    // no active defenders detected, and no prior failed waves.
+                    const useSolo = MAX_LEVEL >= 7 && p75Damage <= 960 && !rdIntel.activeDefenders && rdWaves < 2;
+                    if (useSolo) {
                         queueCreepIfNeeded({
                             role: 'longbow',
                             priority: priority,
@@ -896,7 +897,8 @@ module.exports.globalCreepQueue = function () {
                             operation: 'roomDenial'
                         });
                     } else {
-                        const waitFor = p75Damage > 960 ? 4 : 2;
+                        // Escalate to 2 squads if prior waves failed or damage exceeds 1-squad cap.
+                        const waitFor = (rdWaves >= 2 || p75Damage > 960) ? 4 : 2;
                         queueCreepIfNeeded({
                             role: 'longbowSquad',
                             priority: priority,
@@ -908,6 +910,7 @@ module.exports.globalCreepQueue = function () {
                         });
                     }
                 } else {
+                    Memory.targetRooms[key].boosts = undefined;
                     queueCreepIfNeeded({
                         role: 'longbow',
                         priority: priority,

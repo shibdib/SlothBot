@@ -321,7 +321,7 @@ function setTarget(room, operation, level = 1, military = true) {
         type: operation,
         level: level,
         priority: getPriority(room),
-        waveLimit: MAX_LEVEL
+        waveLimit: 4
     };
     if (military) Memory.targetRooms = cache; else Memory.auxiliaryTargets = cache;
     if (operation !== 'roomDenial') INTEL[room].lastOperation = Game.time; else INTEL[room].lastSiege = Game.time;

@@ -601,6 +601,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             roomIntel.towers = towers.length;
             roomIntel.towerData = this.towerData(towers);
             roomIntel.nukeTarget = this.terminal ? this.terminal.pos.toString() : this.storage ? this.storage.pos.toString() : undefined;
+        } else {
+            roomIntel.towers = undefined;
+            roomIntel.towerData = undefined;
         }
 
         // Loot check
