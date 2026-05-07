@@ -155,7 +155,7 @@ class ModuleBodyGenerator {
 
             case 'hauler':
                 carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + (INTEL[this.room.name].roadsBuilt ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE]))) || 1;
-                carry = Math.min(carry, this.room.level * 4); // Scale with room level
+                carry = Math.min(carry, this.room.level >= 6 ? this.room.level * 2 : this.room.level * 4); // Scale with room level, halved at RCL6+ for dual hauler coverage
 
                 if (INTEL[this.room.name].roadsBuilt) halfMove = true;
                 break;
@@ -166,7 +166,7 @@ class ModuleBodyGenerator {
                 const distToHub = this.creepInfo && this.creepInfo.other && this.creepInfo.other.distanceToHub;
                 if (distToHub) {
                     // Size to match source throughput: 10e/tick × round-trip ticks / 50e per CARRY
-                    carry = Math.max(4, Math.ceil(10 * 2 * distToHub / BODYPART_COST[CARRY]));
+                    carry = Math.max(4, Math.ceil(10 * 2 * (distToHub + 1) / BODYPART_COST[CARRY]));
                     // Cap to what the room can actually afford
                     carry = Math.min(carry, Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + moveCostPerCarry)));
                 } else {
@@ -179,11 +179,7 @@ class ModuleBodyGenerator {
 
             case 'stationaryHarvester':
                 if (this.room.level >= 2) {
-                    const allSourcesContained = this.room.sources.every(s =>
-                        s.pos.findInRange(this.room.structures, 1).some(st => st.structureType === STRUCTURE_CONTAINER)
-                    );
-                    carry = allSourcesContained ? 0 : 1;
-                    work = Math.floor((this.energyAmount - carry * BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
+                    work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
                     // Handle power creep stuff
                     let powerCreep = _.find(Game.powerCreeps, c => c.my && c.memory.destinationRoom === this.room.name && c.powers[PWR_REGEN_SOURCE]);
                     if (powerCreep) {
@@ -194,8 +190,8 @@ class ModuleBodyGenerator {
                     move = 0;
                 } else {
                     work = 1;
-                    carry = 1;
                 }
+                carry = 1;
                 break;
 
 

@@ -233,7 +233,7 @@ module.exports.essentialCreepQueue = function (room) {
     // Haulers
     if (harvesterCount) {
         if (room.storage) {
-            let haulerAmount = 1;
+            let haulerAmount = room.level >= 6 ? 2 : 1;
             queueCreepIfNeeded({
                 room: room,
                 role: 'hauler',
@@ -1019,7 +1019,7 @@ function queueCreepIfNeeded(spawnInfo) {
     if (spawnInfo.other.target) spawnInfo.destination = spawnInfo.other.target;
     const count = getCreepCount(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, spawnInfo.assignment);
     const global = (!spawnInfo.room && spawnInfo.destination) || spawnInfo.global;
-    if (count < spawnInfo.numberNeeded || (count <= spawnInfo.numberNeeded && creepExpiringSoon(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.assignment))) {
+    if (count < spawnInfo.numberNeeded || (count <= spawnInfo.numberNeeded && creepExpiringSoon(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, spawnInfo.assignment))) {
         spawnInfo.other.reboot = spawnInfo.rebootCondition;
         return queueCreep(spawnInfo.room || spawnInfo.colony, spawnInfo.priority + count, {
             role: spawnInfo.role,
@@ -1441,8 +1441,8 @@ function getCreepCount(room = undefined, role, destination = undefined, operatio
     return data ? data.count : 0;
 }
 
-function creepExpiringSoon(room = undefined, role, destination = undefined, assignment = undefined) {
-    const data = getCreepCacheData(room, role, destination, undefined, undefined, assignment);
+function creepExpiringSoon(room = undefined, role, destination = undefined, operation = undefined, colony = undefined, assignment = undefined) {
+    const data = getCreepCacheData(room, role, destination, operation, colony, assignment);
     if (!data || data.count <= 0 || data.minTTL === Infinity) return false;
 
     let distance = 0;

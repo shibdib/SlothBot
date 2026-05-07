@@ -496,7 +496,20 @@ Creep.prototype.haulerDelivery = function () {
     // 2. Spawns and Extensions
     targets = this.room.structures.filter(s => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
     if (targets.length) {
-        this.memory.storageDestination = this.pos.findClosestByRange(targets).id;
+        const roomHaulers = this.room.myCreeps.filter(c => c.memory.role === 'hauler' && !c.spawning).sort((a, b) => a.name.localeCompare(b.name));
+        if (roomHaulers.length >= 2) {
+            const groupIndex = roomHaulers.findIndex(c => c.name === this.name);
+            const hub = this.room.hub;
+            if (groupIndex >= 0 && hub) {
+                const extensions = targets.filter(s => s.structureType === STRUCTURE_EXTENSION)
+                    .sort((a, b) => Math.atan2(a.pos.y - hub.y, a.pos.x - hub.x) - Math.atan2(b.pos.y - hub.y, b.pos.x - hub.x));
+                const mid = Math.ceil(extensions.length / 2);
+                const myExtensions = new Set(extensions.slice(groupIndex === 0 ? 0 : mid, groupIndex === 0 ? mid : extensions.length).map(e => e.id));
+                const grouped = targets.filter(s => s.structureType === STRUCTURE_SPAWN || myExtensions.has(s.id));
+                if (grouped.length) targets = grouped;
+            }
+        }
+        this.memory.storageDestination = _.max(targets, s => this.pos.getRangeTo(s)).id;
         return true;
     }
 
@@ -549,6 +562,13 @@ Creep.prototype.haulerDelivery = function () {
     let target = this.pos.findClosestByRange(targets);
     if (target) {
         this.memory.storageDestination = target.id;
+        return true;
+    }
+
+    // Final fallback - avoid getting stuck with energy when hub link is full
+    const fallback = this.room.storage || this.room.terminal;
+    if (fallback && fallback.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+        this.memory.storageDestination = fallback.id;
         return true;
     }
 
@@ -1074,7 +1094,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                     break;
             }
             try {
-                for (let boost of BOOST_USE[boostType].reverse()) {
+                for (let boost of BOOST_USE[boostType].slice().reverse()) {
                     if (boostNeeded && this.room.store(boost) >= boostNeeded) {
                         available[boost] = {
                             'boost': boost,
@@ -1117,7 +1137,8 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                 return true;
             }
             // Find a lab to boost the creep if none exist, idle.
-            if (!this.memory.boosts.boostLab || !Game.getObjectById(this.memory.boosts.boostLab).memory.neededBoost) {
+            const existingLab = Game.getObjectById(this.memory.boosts.boostLab);
+            if (!this.memory.boosts.boostLab || !existingLab || !existingLab.memory.neededBoost) {
                 let lab = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB && s.isActive() && s.store[RESOURCE_ENERGY] > 0 &&
                     (s.mineralType === boostNeeded || !s.memory.itemNeeded) && (!s.memory.neededBoost || s.memory.neededBoost === boostNeeded));
                 if (lab) {
@@ -1131,9 +1152,10 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                     if (Game.getObjectById(this.memory.boosts.boostLab)) {
                         Game.getObjectById(this.memory.boosts.boostLab).memory = undefined;
                     }
-                    if (!this.ticksToLive < CREEP_LIFE_TIME * 0.5) {
+                    if (this.ticksToLive < CREEP_LIFE_TIME * 0.5) {
                         this.memory.boosts = undefined;
-                        return this.memory.boostAttempt = true;
+                        this.memory.boostAttempt = true;
+                        return false;
                     } else return true;
                 }
             }
@@ -1142,7 +1164,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                 // Verify the body parts are boosted
                 const targetParts = this.body.find((p) => p.type === boostType && !p.boost);
                 if (!targetParts && this.memory.hasBoosted && this.memory.hasBoosted.includes(lab.memory.neededBoost)) {
-                    this.memory.boosts.requestedBoosts = _.filter(this.memory.boosts.requestedBoosts, (b) => b['boost'] !== lab.memory.neededBoost);
+                    delete this.memory.boosts.requestedBoosts[lab.memory.neededBoost];
                     lab.memory.amount -= amountNeeded;
                     // Check if other creeps have this lab queued up for this boost
                     const otherCreeps = this.room.myCreeps.find(c => c.id !== this.id && c.memory.boosts && c.memory.boosts.boostLab === lab.id && c.memory.boosts.requestedBoosts[lab.memory.neededBoost]);
@@ -1185,7 +1207,10 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
             Game.getObjectById(this.memory.boosts.boostLab).memory = undefined;
         }
         this.memory.boosts = undefined;
-        if (!this.memory.neededBoosts || this.memory.hasBoosted) return this.memory.boostAttempt = true; else return true;
+        if (!this.memory.neededBoosts || this.memory.hasBoosted) {
+            this.memory.boostAttempt = true;
+            return false;
+        } else return true;
     }
     return true;
 };

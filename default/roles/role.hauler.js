@@ -21,7 +21,7 @@ class RoleHauler {
 
     housekeeping() {
         this.creep.say(ICONS.haul, true);
-        if (Game.time % 2 === 0) this.creep.opportunisticFill();
+        this.creep.opportunisticFill();
     }
 
     deliverResource() {
