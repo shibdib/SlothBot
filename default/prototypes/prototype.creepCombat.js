@@ -121,9 +121,9 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
 
     // Handle attacking rooms with targets behind ramparts
     const target = hostileStructures.find((s) => s.structureType === STRUCTURE_SPAWN) || hostileStructures.find((s) => s.structureType === STRUCTURE_TOWER) || this.room.controller;
-    if (target && !FRIENDLIES.includes(INTEL[this.room.name].user) && findBestCleaningPath(this, target).length) {
-        const destroyThese = findBestCleaningPath(this, target)[0];
-        if (destroyThese) return updateTargetAndReturn(this, destroyThese);
+    if (target && !FRIENDLIES.includes(INTEL[this.room.name].user)) {
+        const cleaningPath = findBestCleaningPath(this, target);
+        if (cleaningPath.length) return updateTargetAndReturn(this, cleaningPath[0]);
     }
 
     let enemy = findClosest(hostileCreeps, (c) =>
@@ -232,7 +232,7 @@ Creep.prototype.attackHostile = function (hostile) {
         if (range > 1) {
             if (hostile instanceof Creep && range >= lastRange &&
                 hostile.hasActiveBodyparts(RANGED_ATTACK) && this.hits < this.hitsMax * 0.8) {
-                this.memory.kiteCount = this.memory.kiteCount || 1;
+                this.memory.kiteCount = (this.memory.kiteCount || 0) + 1;
 
                 if (this.memory.kiteCount > 5 || this.hits < this.hitsMax * 0.5) {
                     // Flee only if not inside a rampart
@@ -341,7 +341,29 @@ Creep.prototype.fightRanged = function (target) {
         return true;
     }
 
-    // 2. Open field kiting
+    // 2. Tower avoidance in enemy rooms: flee max-damage range (≤5)
+    if (!MY_ROOMS.includes(this.room.name)) {
+        const dangerTower = this.room.impassibleStructures.find(s =>
+            s.structureType === STRUCTURE_TOWER &&
+            s.owner && !FRIENDLIES.includes(s.owner.username) &&
+            s.isActive() &&
+            s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST &&
+            this.pos.getRangeTo(s) <= 5
+        );
+        if (dangerTower) {
+            if (range <= 3) this.rangedAttack(target);
+            else this.attackInRange();
+            const fleeResult = PathFinder.search(
+                this.pos,
+                [{pos: dangerTower.pos, range: 8}],
+                {flee: true, maxRooms: 1, maxOps: 500}
+            );
+            if (fleeResult.path.length) this.move(this.pos.getDirectionTo(fleeResult.path[0]));
+            return true;
+        }
+    }
+
+    // 3. Open field kiting
     if (range <= 3) {
         if (target instanceof Creep && target.hasActiveBodyparts(ATTACK) && range < 3) {
             this.shibKite(4);
@@ -436,8 +458,9 @@ Creep.prototype.scorchedEarth = function () {
             }
 
             // If not in range, move towards the hostile structure
-            if (!actionTaken && hostile && !this.pos.isNearTo(hostile)) {
-                this.shibMove(hostile, {tunnel: true});
+            if (!actionTaken && hostile) {
+                const moveRange = !this.hasActiveBodyparts(ATTACK) && !this.hasActiveBodyparts(WORK) ? 3 : 1;
+                this.shibMove(hostile, {tunnel: true, range: moveRange});
             }
         }
 
@@ -521,6 +544,7 @@ Creep.prototype.fleeHome = function (force = false) {
     if (!this.memory.ranFrom) this.memory.ranFrom = this.room.name;
     let cooldown = this.memory.runCooldown;
     let closest = this.memory.fleeDestination || findClosestOwnedRoom(this.room.name, false, 3, true);
+    if (!closest) return false;
     this.memory.fleeDestination = closest;
     if (this.room.name !== closest) {
         this.memory.runCooldown = Game.time + 50;
@@ -602,7 +626,7 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
 
         friendlyPower += creep.room.find(FIND_MY_STRUCTURES, {
             filter: {structureType: STRUCTURE_TOWER}
-        }).reduce((sum, t) => t.pos.getRangeTo(creep) <= range && t.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST ? sum + TOWER_POWER_ATTACK : sum, 0);
+        }).reduce((sum, t) => t.pos.getRangeTo(creep) <= range && t.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST ? sum + determineTowerDamage(t.pos.getRangeTo(creep)) : sum, 0);
 
         return friendlyPower;
     }
@@ -613,7 +637,7 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
         const noHostileRanged = !creep.room.hostileCreeps.some(c => c.hasActiveBodyparts(RANGED_ATTACK));
 
         // Check for retreat if health is critically low
-        if (creep.hits / creep.hitsMax < 0.6) return false; // 4. Intelligent retreat based on health percentage
+        if (creep.hits / creep.hitsMax < 0.6 && !creep.pos.checkForRampart()) return false;
 
         return (hasRanged && noHostileRanged) ||
             (onRampart && friendlyPower >= hostilePower * 0.75) ||
@@ -662,15 +686,17 @@ Creep.prototype.formSquad = function () {
         if (!leader) {
             this.memory.grouped = undefined;
             this.memory.leader = undefined;
+            this.memory.groupLeader = undefined;
             this.memory.squadMembers = undefined;
-            this.memory.oldRole = this.memory.role;
             this.memory.role = this.memory.oldRole;
+            this.memory.oldRole = undefined;
         }
     }
 
     function findGroup(creep) {
-        let currentGroups = creep.room.myCreeps.filter((c) => c.id !== creep.id && c.memory.role.includes(creep.memory.role) && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3);
-        if (creep.memory.operation === 'borderPatrol') currentGroups = _.filter(Game.creeps, (c) => c.my && c.id !== creep.id && (c.memory.role.includes(creep.memory.role) || creep.memory.role.includes(c.memory.role)) && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < 3)
+        const maxMembers = (creep.memory.misc && creep.memory.misc.waitFor || 4) - 1;
+        let currentGroups = creep.room.myCreeps.filter((c) => c.id !== creep.id && c.memory.role.includes(creep.memory.role) && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < maxMembers);
+        if (creep.memory.operation === 'borderPatrol') currentGroups = _.filter(Game.creeps, (c) => c.my && c.id !== creep.id && (c.memory.role.includes(creep.memory.role) || creep.memory.role.includes(c.memory.role)) && c.memory.destination === creep.memory.destination && c.memory.operation === creep.memory.operation && c.memory.leader && c.memory.squadMembers.length < maxMembers)
         if (currentGroups.length) {
             currentGroups = _.max(currentGroups, c => c.memory.squadMembers.length);
             creep.memory.grouped = true;
