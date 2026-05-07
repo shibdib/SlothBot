@@ -163,10 +163,9 @@ class RoleDrone {
         if (this.creep.memory.task && this.creep.memory.task !== 'haul') return false;
         if (!this.room.controller || !this.room.controller.my) return false;
 
-        const needsHaul = this.room.level <= 4 && (this.room.energyAvailable < this.room.energyCapacityAvailable);
-        const needyTower = this.room.structures.some(s => s.structureType === STRUCTURE_TOWER && s.store.getUsedCapacity(RESOURCE_ENERGY) < TOWER_CAPACITY * 0.2);
+        const needsHaul = !this.room.myCreeps.some(c => c.memory.role === 'shuttle' || c.memory.role === 'hauler');
 
-        if (this.creep.memory.task === 'haul' || (this.creep.isFull && (needsHaul || needyTower))) {
+        if (this.creep.memory.task === 'haul' || (this.creep.isFull && needsHaul)) {
             this.creep.memory.task = 'haul';
             this.creep.say('Haul!', true);
             if (this.creep.memory.storageDestination || this.creep.haulerDelivery()) {
