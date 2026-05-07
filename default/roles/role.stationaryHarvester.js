@@ -55,9 +55,7 @@ class RoleStationaryHarvester {
                     this.creep.memory.onContainer = undefined;
                     break;
                 case ERR_NOT_ENOUGH_RESOURCES:
-                    if (container && this.creep.store[RESOURCE_ENERGY]) {
-                        this.creep.repair(container);
-                    } else this.creep.idleFor(source.ticksToRegeneration + 1);
+                    this.creep.idleFor(source.ticksToRegeneration + 1);
                     break;
                 case OK:
                     // Set stationary so we don't get bumped

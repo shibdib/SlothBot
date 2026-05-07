@@ -178,16 +178,24 @@ class ModuleBodyGenerator {
             }
 
             case 'stationaryHarvester':
-                work = Math.floor((this.energyAmount - (BODYPART_COST[MOVE] + BODYPART_COST[CARRY])) / BODYPART_COST[WORK]) || 1;
-                // Handle power creep stuff
-                let powerCreep = _.find(Game.powerCreeps, c => c.my && c.memory.destinationRoom === this.room.name && c.powers[PWR_REGEN_SOURCE]);
-                if (powerCreep) {
-                    work = (SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME);
+                if (this.room.level >= 2) {
+                    const allSourcesContained = this.room.sources.every(s =>
+                        s.pos.findInRange(this.room.structures, 1).some(st => st.structureType === STRUCTURE_CONTAINER)
+                    );
+                    carry = allSourcesContained ? 0 : 1;
+                    work = Math.floor((this.energyAmount - carry * BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
+                    // Handle power creep stuff
+                    let powerCreep = _.find(Game.powerCreeps, c => c.my && c.memory.destinationRoom === this.room.name && c.powers[PWR_REGEN_SOURCE]);
+                    if (powerCreep) {
+                        work = Math.floor((SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME));
+                    } else {
+                        work = Math.ceil(Math.min(work, (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME))));
+                    }
+                    move = 0;
                 } else {
-                    work = Math.min(work, (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1);
+                    work = 1;
+                    carry = 1;
                 }
-                carry = 1;
-                if (this.room.level > 2) move = 0;
                 break;
 
 
