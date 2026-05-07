@@ -85,17 +85,17 @@ class RoleDrone {
         }
 
         // Task priority
-        if (this.upgrading()) return;
         if (this.hauling()) return;
         if (this.room.memory.barrierBuilding && this.walling()) return;
         if (this.building()) return;
         if (this.walling()) return;
+        if (this.upgrading()) return;
 
         // Maintenance: Strengthen barriers if nothing else to do (prevents idling)
         if (this.walling(true)) return;
 
         // Fallback: Upgrade if no upgrader exists
-        if (this.room.energyState > 1 && this.upgrading(true)) return;
+        if (this.room.level < 4 && this.upgrading(true)) return;
 
         // Final fallback: Idle
         this.creep.memory.task = undefined;
@@ -195,7 +195,7 @@ class RoleDrone {
         if (this.creep.memory.task && this.creep.memory.task !== 'upgrade') return false;
 
         // Drones should not upgrade if a specialized upgrader exists
-        if (this.room.myCreeps.some(c => c.memory.role === 'upgrader')) {
+        if (this.room.myCreeps.some(c => c.memory.role === 'upgrader') && !force) {
             if (this.creep.memory.task === 'upgrade') delete this.creep.memory.task;
             return false;
         }
