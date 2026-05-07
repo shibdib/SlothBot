@@ -25,6 +25,15 @@ module.exports.processBuildQueue = function (room) {
     if (buildTick[room.name] + 5 > currentTick) return;
     buildTick[room.name] = currentTick;
 
+    // If the room has energy but nothing has spawned in 500 ticks, the queue is stuck —
+    // clear it so fresh entries are generated next cycle.
+    const lastSpawn = lastBuilt[room.name];
+    if (lastSpawn && lastSpawn + 500 < currentTick && room.energyAvailable >= 300) {
+        CREEP_QUEUES[room.name] = {};
+        lastBuilt[room.name] = currentTick;
+        return;
+    }
+
     // Get available spawns
     const totalSpawns = room.impassibleStructures.filter((s) => s.my && s.structureType === STRUCTURE_SPAWN);
     // If we have creeps needing renewal and more than 1 spawn, reserve one for them
@@ -1063,15 +1072,15 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
 function adjustQueuePriority(queue, room) {
     for (const key in queue) {
         const creep = queue[key];
-        let body = creep.body;
-        if (!body) {
-            const generatedInfo = new generator(room.level, creep.role, room, creep).generateBody();
-            if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) {
-                delete queue[key];
-                continue;
-            }
-            body = generatedInfo.body;
+        // Clear any previously cached body so setEnergyAmount() re-evaluates current conditions
+        // (energy capacity can change between ticks if extensions are built/destroyed)
+        creep.body = undefined;
+        const generatedInfo = new generator(room.level, creep.role, room, creep).generateBody();
+        if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) {
+            delete queue[key];
+            continue;
         }
+        const body = generatedInfo.body;
         creep.body = body;
         if (!body.length) continue;
         if (creep.destination && (Memory.targetRooms[creep.destination] || Memory.auxiliaryTargets[creep.destination])) {
