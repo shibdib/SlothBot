@@ -34,16 +34,14 @@ module.exports.loop = function () {
             } else if (currentBucket < BUCKET_MAX * 0.01) {
                 const cooldown = Game.time;
                 let {roomPenalty = 0, bucketIssueCount = 0} = Memory.cpuTracking || {};
-                if (bucketIssueCount === 10) {
-                } else if (bucketIssueCount >= 50) {
-                    log.e('Bucket Issue Count Exceeded - Abandoning Worst Room');
-                    //abandonWorstRoom();
+                if (bucketIssueCount >= 50) {
+                    log.e('Bucket Issue Count Exceeded');
                     roomPenalty = Game.time;
                     bucketIssueCount = 0;
                 }
                 Memory.cpuTracking = {
                     cooldown,
-                    bucketIssueCount: bucketIssueCount++,
+                    bucketIssueCount: bucketIssueCount + 1,
                     roomPenalty: roomPenalty
                 };
                 log.a('CPU Bucket Too Low - Cooldown Initiated');
@@ -99,10 +97,11 @@ module.exports.loop = function () {
 
             // Pixel Farming
             if (PIXEL_FARM && ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
-                return require('module.pixelFarm').farm(Game.rooms[Object.keys(Game.rooms)[0]]);
+                const pixelRoom = Game.rooms[MY_ROOMS[0]];
+                return require('module.pixelFarm').farm(pixelRoom);
             }
 
-            // Pixel Generation (Every 1500 Ticks)
+            // Pixel Generation (Every 100 Ticks)
             if (
                 GENERATE_PIXELS &&
                 (!Memory.lastPixel || Memory.lastPixel + 100 < Game.time) &&
@@ -166,7 +165,7 @@ global.resetMemory = function () {
 global.lastMemoryTick = undefined;
 
 function tryInitSameMemory() {
-    if (lastMemoryTick && global.LastMemory && Game.time == (lastMemoryTick + 1)) {
+    if (lastMemoryTick && global.LastMemory && Game.time === (lastMemoryTick + 1)) {
         delete global.Memory
         global.Memory = global.LastMemory
         RawMemory._parsed = global.LastMemory
@@ -177,10 +176,3 @@ function tryInitSameMemory() {
     lastMemoryTick = Game.time
 }
 
-function abandonWorstRoom() {
-    let worstRoom = _.min(MY_ROOMS, room => Game.rooms[room].controller.level);
-    if (worstRoom) {
-        log.a(`Abandoning ${worstRoom}`);
-        //abandonRoom(Game.rooms[worstRoom]);
-    }
-}

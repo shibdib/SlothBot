@@ -12,6 +12,8 @@ const spawning = require('module.creepSpawning');
 const diplomacy = require('module.diplomacy');
 const profiler = require('tools.profiler');
 
+let errorCount = {};
+
 class Colony {
     constructor(room, creeps = []) {
         const worldStart = Game.cpu.getUsed();
@@ -64,7 +66,7 @@ class Colony {
             log.e(`${creep.name} encountered repeated errors and has been terminated.`);
             log.e(e.stack);
             log.e(JSON.stringify(creep.memory));
-            //creep.recycleCreep();
+            creep.suicide();
         } else if (errorCount[creep.name] === 1) {
             log.a(`${creep.name} encountered an error in room ${roomLink(creep.room.name)}`);
             log.a(e.stack);
@@ -153,23 +155,21 @@ class Colony {
 
     suicideRemoteCreeps() {
         this.creeps
-            .filter(creep => creep.my && (creep.memory.role.includes('remote') || creep.memory.role.includes('SK')))
+            .filter(creep => creep.memory.role.includes('remote') || creep.memory.role.includes('SK'))
             .forEach(creep => creep.suicide());
     }
 
     handleNoRemote() {
-        if (this.room.memory.noRemote <= Game.time) {
-            // If we still have energy.. keep it rocking
+        if (this.room.memory.noRemote && this.room.memory.noRemote <= Game.time) {
             if (this.room.energyState > 1) {
                 log.a(`${roomLink(this.room.name)} is remaining No Remote as it has energy.`, 'ROOM MANAGER:');
                 this.room.memory.noRemote = Game.time + (CREEP_LIFE_TIME * 3);
             } else {
                 log.a(`${roomLink(this.room.name)} has re-enabled remote spawning.`, 'ROOM MANAGER:');
                 this.room.memory.noRemote = undefined;
-                this.room.memory.remotePenalty = undefined;
             }
-        } else if (this.room.memory.remotePenalty <= Game.time) {
-            // If we still have energy.. keep it rocking
+        }
+        if (this.room.memory.remotePenalty && this.room.memory.remotePenalty <= Game.time) {
             if (this.room.energyState > 1) {
                 this.room.memory.remotePenalty = Game.time + (CREEP_LIFE_TIME * 2);
             } else {
@@ -235,5 +235,3 @@ class Colony {
 
 profiler.registerClass(Colony, 'Colony');
 module.exports = Colony;
-
-let errorCount = {};

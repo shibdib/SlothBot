@@ -13,8 +13,8 @@ const HudControl = require('module.hud');
 const StateManager = require('module.stateManager');
 const profiler = require('tools.profiler');
 const planner = require('module.roomPlanner');
-let buildingNotifications;
 let tickTracker = {};
+let errorCount = {};
 
 class World {
     constructor() {
@@ -79,13 +79,12 @@ class World {
 
         // Silence Alerts (Every 2500 Ticks)
         if (Game.time % 2500 === 0) {
-            buildingNotifications = true;
             const structures = Object.values(Game.structures);
             structures.forEach((building) => building.notifyWhenAttacked(false));
         }
 
         // Track mined minerals
-        if (!_.size(MY_MINERALS) || MY_MINERALS.roomCount !== MY_ROOMS.length || Math.random() > 0.95) {
+        if (MY_MINERALS.roomCount !== MY_ROOMS.length || Game.time % 20 === 0) {
             MY_ROOMS.forEach(function (r) {
                 if (Game.rooms[r].level >= 6) {
                     const mineral = Game.rooms[r].mineral;
@@ -158,7 +157,6 @@ class World {
             try {
                 room.invaderCheck();
                 room.cacheRoomIntel();
-                const roomLimit = (CPU_TASK_LIMITS['roomLimit'] * 0.9) / MY_ROOMS.length;
                 new colony(room, this.colonyCreeps[roomName] || []);
             } catch (e) {
                 log.e(`Colony Module experienced an error in room ${roomLink(roomName)}`);
@@ -182,15 +180,13 @@ class World {
         if (errorCount[creep.name] >= 50) {
             log.e(`${creep.name} encountered repeated errors and has been terminated.`);
             log.e(error.stack);
-            //creep.suicide();
+            creep.suicide();
         }
     }
 }
 
 profiler.registerClass(World, 'World');
 module.exports = World;
-
-let errorCount = {};
 
 function minionController(minion) {
     // Disable notifications
