@@ -151,6 +151,8 @@ Object.defineProperty(Room.prototype, 'energyState', {
         let target = this.level === 8 ? 250000 : upgradeCost * (this.controller.progress / this.controller.progressTotal);
         // Scale the target based on how close we are to leveling
         target = Math.max(Math.min(Math.round(target * ((this.controller.progress / this.controller.progressTotal) + 0.1)), STORAGE_CAPACITY * 0.5), this.level * 10000);
+        // Target is doubled if we have hostiles
+        if (HOSTILES.length > 0) target *= 2;
         if (energy > target * 2 || (!this.storage && !this.terminal && this.controller.level < 4)) {
             this._energyState = 3;
         } else if (energy >= target) {
