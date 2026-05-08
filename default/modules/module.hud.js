@@ -275,6 +275,7 @@ class HUD {
         if (Memory.auxiliaryTargets) {
             for (const roomName in Memory.auxiliaryTargets) {
                 const target = Memory.auxiliaryTargets[roomName];
+                if (!target) continue;
                 const typeText = target.type ? target.type.toUpperCase() : 'AUX';
                 Game.map.visual.text(`🔍 ${typeText}`, new RoomPosition(25, 45, roomName), {
                     color: '#ffff00',

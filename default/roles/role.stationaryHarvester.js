@@ -133,7 +133,10 @@ function depositEnergy(creep) {
 
     // If structures are full, use energy for maintenance (prevent decay/waste)
     if (creep.store[RESOURCE_ENERGY] > 0) {
-        if (container && container.hits < container.hitsMax) {
+        if (!container) {
+            const containerSite = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
+            return creep.build(containerSite);
+        } else if (container && container.hits < container.hitsMax) {
             return creep.repair(container);
         }
         const rampart = creep.pos.checkForRampart();

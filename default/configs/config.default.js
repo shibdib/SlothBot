@@ -27,7 +27,7 @@ global.FUNNEL_REQUESTS = false; // Whether to make energy funneling requests
 
 // Remote Mining
 global.REMOTE_MINING = true; // Whether we remote mine or not
-global.REMOTE_DISTANCE_MAX = 75; // Max distance score per source
+global.REMOTE_DISTANCE_MAX = 125; // Max distance score per source
 global.SK_MINING = true; // Do we SK mine
 global.SK_MINING_LEVEL = 7; // What level do we do this (won't work before 7 atm)
 

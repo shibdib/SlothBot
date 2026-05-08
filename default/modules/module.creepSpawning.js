@@ -239,7 +239,7 @@ module.exports.essentialCreepQueue = function (room) {
                 role: 'hauler',
                 priority: PRIORITIES.hauler,
                 numberNeeded: haulerAmount,
-                rebootCondition: !getCreepCount(room, 'hauler')
+                rebootCondition: !getCreepCount(room, 'hauler') || !room.energyState,
             });
         }
         if (room.level < 7) {
@@ -250,7 +250,7 @@ module.exports.essentialCreepQueue = function (room) {
                     role: 'shuttle',
                     priority: PRIORITIES.hauler,
                     numberNeeded: 1,
-                    rebootCondition: room.myCreeps.length < 4 || !getCreepCount(room, 'shuttle'),
+                    rebootCondition: room.myCreeps.length < 4 || !getCreepCount(room, 'shuttle') || !room.energyState,
                     other: {distanceToHub: source.memory.distanceToHub || 25},
                     assignment: source.id
                 });
@@ -586,7 +586,12 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleRoadBuilder(room) {
         if (getCreepCount(room, 'remoteHarvester')) {
-            queueCreepIfNeeded({colony: room, role: 'roadBuilder', priority: PRIORITIES.roadBuilder, numberNeeded: 1});
+            queueCreepIfNeeded({
+                colony: room,
+                role: 'roadBuilder',
+                priority: PRIORITIES.roadBuilder + (getCreepCount(room, 'roadBuilder') * 1.5),
+                numberNeeded: getCreepCount(room, 'remoteHarvester') * 0.2
+            });
         }
     }
 
