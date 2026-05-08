@@ -76,7 +76,7 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
     // Handle tow being set
     if (creep.memory.towDestination && creep.memory.towCreep) {
         let towCreep = Game.getObjectById(creep.memory.towCreep);
-        if (!towCreep) {
+        if (!towCreep || towCreep.pos.roomName !== creep.pos.roomName) {
             creep.memory.towCreep = undefined;
         } else return;
     }
