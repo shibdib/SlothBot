@@ -159,7 +159,7 @@ function handleHostileCreeps(room, towers) {
         for (let tower of readyTowers) {
             tower.attack(bestTarget);
         }
-    } else if (room.energyState) {
+    } else {
         combatRepair(room, readyTowers);
     }
 }

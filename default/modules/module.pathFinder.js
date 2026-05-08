@@ -1292,10 +1292,8 @@ Creep.prototype.hide = function () {
     let options = getMoveWeight(this);
 
     // Use pathfinder to flee from threats
-    let fleeGoals = this.room.creeps.filter((c) => c.id !== this.id).concat(this.room.structures.concat(this.room.constructionSites)).map(a => ({
-        pos: a.pos,
-        range: 5
-    }));
+    const threats = this.room.creeps.filter((c) => c.id !== this.id).concat(this.room.structures).concat(this.room.constructionSites);
+    let fleeGoals = threats.map(a => ({pos: a.pos, range: 5}));
     let result = PathFinder.search(this.pos, fleeGoals, {
         flee: true,
         maxRooms: 1,

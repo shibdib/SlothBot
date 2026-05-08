@@ -50,7 +50,6 @@ class ObserverControl {
     }
 
     findStrategicTarget(roomName, currentTime) {
-        return;
         return Object.keys(Memory.targetRooms).find(room =>
             Memory.targetRooms[room] && (Memory.targetRooms[room].type === 'scout' ||
                 (!INTEL[room].lastObservation || INTEL[room].lastObservation + 50 < currentTime)) &&

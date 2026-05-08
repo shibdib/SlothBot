@@ -996,7 +996,8 @@ Creep.prototype.borderCheck = function () {
             if (nextPos && !nextPos.checkForImpassible()) {
                 pathInfo.newPos = nextPos;
                 if (this.move(nextDirection) === OK) {
-                    pathInfo.path = pathInfo.path.slice(1);
+                    // Don't slice here — executePath slices lazily when it confirms
+                    // the creep has arrived at newPos, avoiding a double-consume
                     pathInfo.pathPosTime = 0;
                     pathInfo.lastMoveTick = Game.time;
                     this.memory._shibMove = pathInfo;

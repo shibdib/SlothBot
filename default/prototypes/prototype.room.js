@@ -218,10 +218,10 @@ Object.defineProperty(Room.prototype, 'droppedResources', {
 Object.defineProperty(Room.prototype, 'droppedEnergy', {
     get: function () {
         if (!this._droppedEnergy) {
-            if (!this._droppedEnergy) {
-                this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY});
-            } else {
+            if (this.hostileCreeps.length) {
                 this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
+            } else {
+                this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY});
             }
         }
         return this._droppedEnergy;
@@ -267,7 +267,7 @@ Object.defineProperty(Room.prototype, 'hostileCreeps', {
     get: function () {
         if (!this._Hostilecreeps) {
             this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && (!FRIENDLIES.includes(c.owner.username) || HOSTILES.includes(c.owner.username)) && c.owner.username !== 'Source Keeper');
-            this._Hostilecreeps.concat(_.filter(this.powerCreeps, (c) => !c.my && (!FRIENDLIES.includes(c.owner.username) || HOSTILES.includes(c.owner.username))));
+            this._Hostilecreeps = this._Hostilecreeps.concat(_.filter(this.powerCreeps, (c) => !c.my && (!FRIENDLIES.includes(c.owner.username) || HOSTILES.includes(c.owner.username))));
         }
         return this._Hostilecreeps;
     },
@@ -311,10 +311,10 @@ Object.defineProperty(Room.prototype, 'constructionSites', {
 Object.defineProperty(Room.prototype, 'tombstones', {
     get: function () {
         if (!this._tombstones) {
-            if (!this._tombstones) {
-                this._tombstones = this.find(FIND_TOMBSTONES);
-            } else {
+            if (this.hostileCreeps.length) {
                 this._tombstones = this.find(FIND_TOMBSTONES, {filter: (r) => r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
+            } else {
+                this._tombstones = this.find(FIND_TOMBSTONES);
             }
         }
         return this._tombstones;

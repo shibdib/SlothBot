@@ -75,7 +75,7 @@ class StateManager {
         room.memory.energyPositive = (average(energyIncomeArray) > 0 && income > expense) || room.energyState > 1 || room.level < 4;
 
         if (!room.memory.combatReady && room.energyState >= 1 && room.level >= 6) room.memory.combatReady = true;
-        else if (room.memory.combatReady && !room.energyState && room.level < 6) room.memory.combatReady = undefined;
+        else if (room.memory.combatReady && !room.energyState) room.memory.combatReady = undefined;
     }
 
     levelingStatTracking(room) {
@@ -108,8 +108,7 @@ class StateManager {
             }
         }
 
-        // Set buildersNeeded flag only if one or both structures are missing
-        room.memory.buildersNeeded = !hasSpawn || room.level < room.controller.level - 1;
+        room.memory.buildersNeeded = !hasSpawn || !hasTower || room.level < room.controller.level - 1;
     }
 
     funnelRequest(room) {

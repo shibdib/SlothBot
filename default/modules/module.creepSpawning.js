@@ -267,8 +267,8 @@ module.exports.essentialCreepQueue = function (room) {
                 if (container) {
                     upgraderAmount = Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround()) || 1;
                     if (upgraderAmount > 5) upgraderAmount = 5;
-                } else if (!container) {
-                    upgraderAmount = 3;
+                } else {
+                    upgraderAmount = 1;
                 }
             }
         }
@@ -616,12 +616,21 @@ module.exports.remoteCreepQueue = function (room) {
             let acceptedScore = room.level >= 7 ? REMOTE_DISTANCE_MAX * 1.5 : REMOTE_DISTANCE_MAX;
             acceptedScore = Math.max(acceptedScore, _.min(remoteSource, 'score').score);
 
-            // Build occupied sources set once instead of scanning all creeps per source
             const occupiedSources = new Set();
-            for (const name in Game.creeps) {
-                const c = Game.creeps[name];
-                if (c.my && c.memory.role === 'remoteHarvester' && c.memory.other && c.memory.other.source) {
-                    occupiedSources.add(c.memory.other.source);
+            if (global.world && global.world.colonyCreeps) {
+                for (const colony in global.world.colonyCreeps) {
+                    for (const c of global.world.colonyCreeps[colony]) {
+                        if (c.memory.role === 'remoteHarvester' && c.memory.other && c.memory.other.source) {
+                            occupiedSources.add(c.memory.other.source);
+                        }
+                    }
+                }
+            } else {
+                for (const name in Game.creeps) {
+                    const c = Game.creeps[name];
+                    if (c.my && c.memory.role === 'remoteHarvester' && c.memory.other && c.memory.other.source) {
+                        occupiedSources.add(c.memory.other.source);
+                    }
                 }
             }
 
