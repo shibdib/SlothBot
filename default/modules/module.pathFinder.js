@@ -183,24 +183,35 @@ function executePath(creep, pathInfo, options, origin, heading) {
         return false;
     }
 
-    if (pathInfo.newPos && pathInfo.newPos.x === creep.pos.x && pathInfo.newPos.y === creep.pos.y &&
-        pathInfo.newPos.roomName === creep.pos.roomName) {
-        pathInfo.path = pathInfo.path.slice(1);
+    const posKey = creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName;
+
+    if (pathInfo.pathPos) {
+        if (pathInfo.pathPos !== posKey) {
+            // Creep moved since last tick — consume the step that brought us here.
+            // posKey includes roomName so this naturally handles room transitions.
+            pathInfo.path = [0, 49].includes(creep.pos.x) || [0, 49].includes(creep.pos.y) ? pathInfo.path.slice(2) : pathInfo.path.slice(1);
+            if (!pathInfo.path.length) {
+                if (!options.flee && creep.pos.getRangeTo(heading) <= options.range) {
+                    creep.memory._shibMove = undefined;
+                    creep.memory.towDestination = undefined;
+                }
+                return false;
+            }
+            pathInfo.pathPosTime = 0;
+        } else {
+            pathInfo.pathPosTime = (pathInfo.pathPosTime || 0) + 1;
+        }
     }
+    pathInfo.pathPos = posKey;
 
     const nextDirection = parseInt(pathInfo.path[0], 10);
     if (!nextDirection) return false;
 
+    // Refresh newPos as a live RoomPosition before handleBarrier — memory deserializes
+    // it as a plain object between ticks, stripping the prototype methods.
     pathInfo.newPos = origin.positionAtDirection(nextDirection);
-    const posKey = creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName;
 
-    if (pathInfo.pathPos === posKey) {
-        if (handleBarrier(creep, pathInfo, options)) return true;
-        pathInfo.pathPosTime = (pathInfo.pathPosTime || 0) + 1;
-    } else {
-        pathInfo.pathPos = posKey;
-        pathInfo.pathPosTime = 0;
-    }
+    if (pathInfo.pathPosTime && handleBarrier(creep, pathInfo, options)) return true;
 
     const moveResult = creep.move(nextDirection);
     if (moveResult === OK || moveResult === ERR_TIRED) {
@@ -244,6 +255,8 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         pathInfo.path = cached;
         pathInfo.usingCached = true;
         pathInfo.newPos = creep.pos.positionAtDirection(parseInt(pathInfo.path[0], 10));
+        pathInfo.pathPos = undefined;
+        pathInfo.pathPosTime = 0;
         creep.memory._shibMove = pathInfo;
         return executePath(creep, pathInfo, options, origin, heading);
     }
@@ -286,6 +299,8 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         pathInfo.pathKey = pathKey;
         pathInfo.pathAge = 0;
         pathInfo.newPos = creep.pos.positionAtDirection(direction);
+        pathInfo.pathPos = undefined;
+        pathInfo.pathPosTime = 0;
         creep.memory._shibMove = pathInfo;
         if (options.ignoreCreeps) cachePath(creep, origin, target, pathInfo);
         if (options.getPath) return creep.memory.getPath = pathInfo.path;

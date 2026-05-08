@@ -984,58 +984,45 @@ function moveToTowDestination(creep, trailer, towDestination) {
  */
 Creep.prototype.borderCheck = function () {
     const {x, y} = this.pos;
-    if (x === 0 || y === 0 || x === 49 || y === 49) {
-        this.attackInRange();
-        this.healInRange(true);
-        if (this.memory.borderCountDown) this.memory.borderCountDown++; else this.memory.borderCountDown = 1;
-        // Continue following path if not stuck too long
-        if (this.memory.borderCountDown < 5 && this.memory._shibMove && this.memory._shibMove.path) {
-            const pathInfo = this.memory._shibMove;
-            const nextDirection = parseInt(pathInfo.path[0], 10);
-            const nextPos = this.pos.positionAtDirection(nextDirection);
-            if (nextPos && !nextPos.checkForImpassible()) {
-                pathInfo.newPos = nextPos;
-                if (this.move(nextDirection) === OK) {
-                    // Don't slice here — executePath slices lazily when it confirms
-                    // the creep has arrived at newPos, avoiding a double-consume
-                    pathInfo.pathPosTime = 0;
-                    pathInfo.lastMoveTick = Game.time;
-                    this.memory._shibMove = pathInfo;
-                    return true;
-                }
-            } else {
-                this.memory._shibMove = undefined;
-            }
-        }
-        // Escape corners
-        if (x === 0 && y === 0) {
-            this.move(BOTTOM_RIGHT);
-        } else if (x === 0 && y === 49) {
-            this.move(TOP_RIGHT);
-        } else if (x === 49 && y === 0) {
-            this.move(BOTTOM_LEFT);
-        } else if (x === 49 && y === 49) {
-            this.move(TOP_LEFT);
-        } else {
-            // Try to move to a road, otherwise pick a random inward direction
-            const road = findRoadNearCreep(this);
-            if (road) {
-                this.move(this.pos.getDirectionTo(road));
-            } else {
-                let options;
-                if (x === 49) options = [LEFT, TOP_LEFT, BOTTOM_LEFT];
-                else if (x === 0) options = [RIGHT, TOP_RIGHT, BOTTOM_RIGHT];
-                else if (y === 0) options = [BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT];
-                else options = [TOP, TOP_LEFT, TOP_RIGHT];
-                this.move(_.sample(options));
-            }
-        }
-        this.memory._shibMove = undefined;
-        this.memory.moveBlocked = Game.time;
-        return true;
+    if (x !== 0 && y !== 0 && x !== 49 && y !== 49) {
+        this.memory.borderCountDown = undefined;
+        return false;
     }
-    this.memory.borderCountDown = undefined;
-    return false;
+
+    this.attackInRange();
+    this.healInRange(true);
+    if (this.memory.borderCountDown) this.memory.borderCountDown++; else this.memory.borderCountDown = 1;
+
+    // If following a path and not stuck, return false so the role's shibMove call runs executePath normally.
+    // executePath now handles the room-crossing step (eager consume when newPos is OOB).
+    if (this.memory.borderCountDown < 5 && this.memory._shibMove) return false;
+
+    // No path or stuck on the border — clear path and escape
+    this.memory._shibMove = undefined;
+    this.memory.moveBlocked = Game.time;
+
+    if (x === 0 && y === 0) {
+        this.move(BOTTOM_RIGHT);
+    } else if (x === 0 && y === 49) {
+        this.move(TOP_RIGHT);
+    } else if (x === 49 && y === 0) {
+        this.move(BOTTOM_LEFT);
+    } else if (x === 49 && y === 49) {
+        this.move(TOP_LEFT);
+    } else {
+        const road = findRoadNearCreep(this);
+        if (road) {
+            this.move(this.pos.getDirectionTo(road));
+        } else {
+            let options;
+            if (x === 49) options = [LEFT, TOP_LEFT, BOTTOM_LEFT];
+            else if (x === 0) options = [RIGHT, TOP_RIGHT, BOTTOM_RIGHT];
+            else if (y === 0) options = [BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT];
+            else options = [TOP, TOP_LEFT, TOP_RIGHT];
+            this.move(_.sample(options));
+        }
+    }
+    return true;
 };
 
 // Helper function to find a road near the creep

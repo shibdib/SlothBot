@@ -269,7 +269,7 @@ RoomPosition.prototype.positionAtDirection = function (direction) {
     let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
     let x = this.x + offsetX[direction];
     let y = this.y + offsetY[direction];
-    if (x > 49 || x < 0 || y > 49 || y < 0 || !x || !y) {
+    if (isNaN(x) || isNaN(y) || x > 49 || x < 0 || y > 49 || y < 0) {
         return undefined;
     }
     return new RoomPosition(x, y, this.roomName);

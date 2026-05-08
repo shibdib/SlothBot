@@ -199,7 +199,7 @@ class Colony {
         }
 
         // Border
-        minion.borderCheck();
+        if (minion.borderCheck()) return;
 
         // Report intel if outside MY_ROOMS — skip if micro-update is still fresh
         if (!MY_ROOMS.includes(minion.room.name)) {
