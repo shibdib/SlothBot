@@ -800,9 +800,9 @@ function roadBuilder(room, layout) {
                 if (tile === TERRAIN_MASK_WALL) {
                     costMatrix.set(x, y, Infinity);
                 } else if (tile === TERRAIN_MASK_SWAMP) {
-                    costMatrix.set(x, y, 45);
+                    costMatrix.set(x, y, 60);
                 } else {
-                    costMatrix.set(x, y, 10);
+                    costMatrix.set(x, y, 20);
                 }
             }
         }
@@ -812,7 +812,7 @@ function roadBuilder(room, layout) {
                 if (structure.structureType === STRUCTURE_ROAD) {
                     costMatrix.set(structure.pos.x, structure.pos.y, 1);
                 } else if (structure.structureType === STRUCTURE_CONTAINER) {
-                    costMatrix.set(structure.pos.x, structure.pos.y, 15);
+                    costMatrix.set(structure.pos.x, structure.pos.y, 100);
                 } else if (_.includes(OBSTACLE_OBJECT_TYPES, structure.structureType)) {
                     costMatrix.set(structure.pos.x, structure.pos.y, Infinity);
                 }
