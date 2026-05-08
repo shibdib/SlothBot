@@ -1228,7 +1228,7 @@ Creep.prototype.recycleCreep = function () {
     this.memory.recycling = true;
     let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
     if (!spawn) {
-        if (this.room.name !== this.memory.colony) {
+        if (this.memory.colony && this.room.name !== this.memory.colony) {
             this.shibMove(new RoomPosition(25, 25, this.memory.colony), {range: 22})
             return true;
         } else {
