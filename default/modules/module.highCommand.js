@@ -7,6 +7,7 @@ let SIEGE_LIMIT;
 const lastRun = {};
 const tasks = ['housekeeping', 'flags', 'military', 'auxiliary', 'response', 'nukes']
 module.exports.highCommand = function () {
+    if (typeof MAX_LEVEL === 'undefined') return;
     OPERATION_LIMIT = Math.ceil(MY_ROOMS.filter((r) => Game.rooms[r].level >= 5 && Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].energyState).length * 0.5) || 1;
     SIEGE_LIMIT = Math.ceil(MY_ROOMS.filter((r) => Game.rooms[r].level >= 7 && Game.rooms[r].energyState).length * 0.5);
     // Handle tasks
