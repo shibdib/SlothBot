@@ -35,9 +35,6 @@ class StateManager {
         // Funnel requests
         this.funnelRequest(room);
 
-        // Barrier tracking
-        this.barrierTracking(room);
-
         room.memory.stateInformation = undefined;
     }
 
@@ -133,15 +130,6 @@ class StateManager {
                 ALLY_HELP_REQUESTS[MY_USERNAME].requests.funnel = funnelRequests;
             }
         }
-    }
-
-    barrierTracking(room) {
-        const lowestBarrier = _.min(room.structures.filter((s) => [STRUCTURE_WALL, STRUCTURE_RAMPART].includes(s.structureType)), (s) => s.hits);
-        if (!lowestBarrier) return;
-        const hostileMulti = HOSTILES.length ? 1 : 0.5;
-        const targetHits = Math.max(Math.min((BARRIER_TARGET * (room.level / 8)) * hostileMulti, lowestBarrier.hitsMax), 25000);
-        room.memory.barrierHitsTarget = targetHits;
-        room.memory.barrierBuilding = lowestBarrier.hits < targetHits;
     }
 }
 

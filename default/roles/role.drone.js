@@ -86,7 +86,6 @@ class RoleDrone {
 
         // Task priority
         if (this.hauling()) return;
-        if (this.room.memory.barrierBuilding && this.walling()) return;
         if (this.building()) return;
         if (this.walling()) return;
         if (this.upgrading()) return;
