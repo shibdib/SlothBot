@@ -457,6 +457,7 @@ let globals = function () {
                             break;
                         }
                     }
+                    console.log(`Loaded LOAN data from ${LOANuser}.`);
                 } else {
                     // Handle not being able to find the data
                     if (!global.LOAN_ATTEMPT) global.LOAN_ATTEMPT = 1; else global.LOAN_ATTEMPT++;
