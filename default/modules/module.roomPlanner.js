@@ -209,8 +209,6 @@ function linkBuilder(room) {
     const currentLinks = room.structures.filter(s => s.structureType === STRUCTURE_LINK).length +
         room.constructionSites.filter(s => s.structureType === STRUCTURE_LINK).length;
 
-    if (currentLinks >= linkLimit) return false;
-
     // 1. Controller Link (RCL 5+)
     if (!room.memory.controllerLink || !Game.getObjectById(room.memory.controllerLink)) {
         const controllerContainer = Game.getObjectById(room.memory.controllerContainer);
@@ -235,7 +233,7 @@ function linkBuilder(room) {
 
     // 2. Farthest Source Link (RCL 5+)
     const sortedSources = _.sortBy(room.sources, s => -s.pos.getRangeTo(room.hub));
-    if (sortedSources.length > 0) {
+    if (currentLinks < linkLimit && sortedSources.length > 0) {
         if (buildSourceLink(room, sortedSources[0])) return true;
     }
 
@@ -254,33 +252,31 @@ function linkBuilder(room) {
         }
     }
 
-    if (room.level < 7) return false;
-
     // 4. Next Source Link (RCL 7+)
-    if (sortedSources.length > 1) {
+    if (currentLinks < linkLimit && sortedSources.length > 1) {
         if (buildSourceLink(room, sortedSources[1])) return true;
     }
 
-    if (room.level < 8) return false;
-
     // 5. Remote Links (RCL 8)
-    const remoteRooms = _.uniq(_.pluck(_.filter(Game.creeps, (c) => c.my && c.memory.colony === room.name && c.memory.role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired), 'room.name'));
-    for (const remoteRoom of remoteRooms) {
-        const exit = Game.map.findExit(room.name, remoteRoom);
-        if (exit === ERR_NO_PATH || exit === ERR_INVALID_ARGS) continue;
-        const exitTiles = room.find(exit);
-        if (!exitTiles.length) continue;
-        const middle = _.round(exitTiles.length / 2);
-        const startPos = exitTiles[middle];
-        if (!startPos) continue;
+    if (currentLinks < linkLimit) {
+        const remoteRooms = _.uniq(_.pluck(_.filter(Game.creeps, (c) => c.my && c.memory.colony === room.name && c.memory.role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired), 'room.name'));
+        for (const remoteRoom of remoteRooms) {
+            const exit = Game.map.findExit(room.name, remoteRoom);
+            if (exit === ERR_NO_PATH || exit === ERR_INVALID_ARGS) continue;
+            const exitTiles = room.find(exit);
+            if (!exitTiles.length) continue;
+            const middle = _.round(exitTiles.length / 2);
+            const startPos = exitTiles[middle];
+            if (!startPos) continue;
 
-        for (let xOff = -3; xOff <= 3; xOff++) {
-            for (let yOff = -3; yOff <= 3; yOff++) {
-                if (xOff === 0 && yOff === 0) continue;
-                let pos = new RoomPosition(startPos.x + xOff, startPos.y + yOff, room.name);
-                if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) continue;
-                if (pos.checkForAllStructure() || pos.checkForImpassible()) continue;
-                if (pos.createConstructionSite(STRUCTURE_LINK) === OK) return true;
+            for (let xOff = -3; xOff <= 3; xOff++) {
+                for (let yOff = -3; yOff <= 3; yOff++) {
+                    if (xOff === 0 && yOff === 0) continue;
+                    let pos = new RoomPosition(startPos.x + xOff, startPos.y + yOff, room.name);
+                    if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) continue;
+                    if (pos.checkForAllStructure() || pos.checkForImpassible()) continue;
+                    if (pos.createConstructionSite(STRUCTURE_LINK) === OK) return true;
+                }
             }
         }
     }
