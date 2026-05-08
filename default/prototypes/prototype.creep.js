@@ -494,20 +494,41 @@ Creep.prototype.haulerDelivery = function () {
     }
 
     // 2. Spawns and Extensions
-    targets = this.room.structures.filter(s => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
+    const allSpawnExtensions = this.room.structures.filter(s => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
+    targets = allSpawnExtensions.filter(s => s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
     if (targets.length) {
-        const roomHaulers = this.room.myCreeps.filter(c => c.memory.role === 'hauler' && !c.spawning).sort((a, b) => a.name.localeCompare(b.name));
+        const roomHaulers = this.room.myCreeps.filter(c => c.memory.role === 'hauler' && !c.spawning);
         if (roomHaulers.length >= 2) {
-            const groupIndex = roomHaulers.findIndex(c => c.name === this.name);
-            const hub = this.room.hub;
-            if (groupIndex >= 0 && hub) {
-                const extensions = targets.filter(s => s.structureType === STRUCTURE_EXTENSION)
-                    .sort((a, b) => Math.atan2(a.pos.y - hub.y, a.pos.x - hub.x) - Math.atan2(b.pos.y - hub.y, b.pos.x - hub.x));
-                const mid = Math.ceil(extensions.length / 2);
-                const myExtensions = new Set(extensions.slice(groupIndex === 0 ? 0 : mid, groupIndex === 0 ? mid : extensions.length).map(e => e.id));
-                const grouped = targets.filter(s => s.structureType === STRUCTURE_SPAWN || myExtensions.has(s.id));
+            // Assign a stable group (0 or 1) to this hauler's memory once
+            if (this.memory.haulerGroup === undefined) {
+                const otherGroups = new Set(roomHaulers.filter(c => c.name !== this.name && c.memory.haulerGroup !== undefined).map(c => c.memory.haulerGroup));
+                if (otherGroups.size === 0) {
+                    // Both haulers spawned simultaneously - use name sort as tiebreaker
+                    const sorted = [...roomHaulers].sort((a, b) => a.name.localeCompare(b.name));
+                    this.memory.haulerGroup = sorted.findIndex(c => c.name === this.name) === 0 ? 0 : 1;
+                } else {
+                    this.memory.haulerGroup = otherGroups.has(0) ? 1 : 0;
+                }
+            }
+            // Cache extension groups in room memory, invalidate when room levels up
+            if (!this.room.memory.extensionGroups || this.room.memory.extensionGroupLevel !== this.room.level) {
+                const hub = this.room.hub;
+                if (hub) {
+                    const allExt = allSpawnExtensions.filter(s => s.structureType === STRUCTURE_EXTENSION);
+                    this.room.memory.extensionGroups = [
+                        allExt.filter(e => e.pos.x < hub.x).map(e => e.id),
+                        allExt.filter(e => e.pos.x >= hub.x).map(e => e.id)
+                    ];
+                    this.room.memory.extensionGroupLevel = this.room.level;
+                }
+            }
+            if (this.room.memory.extensionGroups && this.memory.haulerGroup !== undefined) {
+                const myExtensionIds = new Set(this.room.memory.extensionGroups[this.memory.haulerGroup]);
+                const grouped = targets.filter(s => s.structureType === STRUCTURE_SPAWN || myExtensionIds.has(s.id));
                 if (grouped.length) targets = grouped;
             }
+        } else {
+            delete this.memory.haulerGroup;
         }
         this.memory.storageDestination = _.max(targets, s => this.pos.getRangeTo(s)).id;
         return true;
@@ -963,15 +984,14 @@ function moveToTowDestination(creep, trailer, towDestination) {
  */
 Creep.prototype.borderCheck = function () {
     const {x, y} = this.pos;
-    // If the creep is at the border (x = 0, y = 0, x = 49, or y = 49)
     if (x === 0 || y === 0 || x === 49 || y === 49) {
-        // Still do combat
         this.attackInRange();
         this.healInRange(true);
-        // Continue following path if available
-        if (this.memory._shibMove && this.memory._shibMove.path) {
+        if (this.memory.borderCountDown) this.memory.borderCountDown++; else this.memory.borderCountDown = 1;
+        // Continue following path if not stuck too long
+        if (this.memory.borderCountDown < 5 && this.memory._shibMove && this.memory._shibMove.path) {
             const pathInfo = this.memory._shibMove;
-            const nextDirection = pathInfo.path[0];
+            const nextDirection = parseInt(pathInfo.path[0], 10);
             const nextPos = this.pos.positionAtDirection(nextDirection);
             if (nextPos && !nextPos.checkForImpassible()) {
                 pathInfo.newPos = nextPos;
@@ -986,7 +1006,7 @@ Creep.prototype.borderCheck = function () {
                 this.memory._shibMove = undefined;
             }
         }
-        // Handle corners directly
+        // Escape corners
         if (x === 0 && y === 0) {
             this.move(BOTTOM_RIGHT);
         } else if (x === 0 && y === 49) {
@@ -996,30 +1016,25 @@ Creep.prototype.borderCheck = function () {
         } else if (x === 49 && y === 49) {
             this.move(TOP_LEFT);
         } else {
-            // Try to move to a road if available
+            // Try to move to a road, otherwise pick a random inward direction
             const road = findRoadNearCreep(this);
             if (road) {
                 this.move(this.pos.getDirectionTo(road));
             } else {
-                // Movement options based on border position
-                let options = [];
-
-                if (x === 49) {
-                    options = [LEFT, TOP_LEFT, BOTTOM_LEFT];
-                } else if (x === 0) {
-                    options = [RIGHT, TOP_RIGHT, BOTTOM_RIGHT];
-                } else if (y === 0) {
-                    options = [BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT];
-                } else if (y === 49) {
-                    options = [TOP, TOP_LEFT, TOP_RIGHT];
-                }
-                // Use random movement from the options
+                let options;
+                if (x === 49) options = [LEFT, TOP_LEFT, BOTTOM_LEFT];
+                else if (x === 0) options = [RIGHT, TOP_RIGHT, BOTTOM_RIGHT];
+                else if (y === 0) options = [BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT];
+                else options = [TOP, TOP_LEFT, TOP_RIGHT];
                 this.move(_.sample(options));
             }
         }
         this.memory._shibMove = undefined;
         this.memory.moveBlocked = Game.time;
+        return true;
     }
+    this.memory.borderCountDown = undefined;
+    return false;
 };
 
 // Helper function to find a road near the creep
