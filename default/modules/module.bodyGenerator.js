@@ -39,7 +39,7 @@ class ModuleBodyGenerator {
         this.room = room;
         this.creepInfo = creepInfo;
         this.energyAmount = room.energyCapacityAvailable;
-        this.spareIncome = this.room.memory.energyInfo.spareIncome || 0;
+        this.spareIncome = (this.room.memory.energyInfo && this.room.memory.energyInfo.spareIncome) || 0;
         this.boostsRequired = false;
     }
 
