@@ -15,13 +15,13 @@ let globals = function () {
         // Harvesters
         stationaryHarvester: 1,
         // Workers
-        upgrader: 5, drone: 5, mineralHarvester: 6,
+        upgrader: 6, drone: 6, mineralHarvester: 7,
         // Haulers — slightly behind harvesters since they're gated by harvester presence
         hauler: 2, miscHauler: 7,
         // Remotes — harvesters before haulers (a hauler without a harvester does nothing)
-        remoteHarvester: 3, remoteHauler: 4, roadBuilder: 7, fuelTruck: 8, reserver: 6,
+        remoteHarvester: 4, remoteHauler: 5, roadBuilder: 7, fuelTruck: 8, reserver: 6,
         // Military
-        defender: 2, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9
+        defender: 3, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9
     };
 
     //

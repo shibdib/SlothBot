@@ -3,6 +3,7 @@
  */
 
 let roomRepairTower = {};
+const attackLogCooldown = {}; // Prevents per-tick log spam for attack events
 
 module.exports.towerControl = function (room) {
     // Reset memory flags
@@ -79,7 +80,10 @@ function handleHostileCreeps(room, towers) {
 
     // If no towers and no safe mode, trigger defender spawning
     if (!readyTowers.length && !room.controller.safeMode) {
-        if (!room.memory.dangerousAttack) log.a(`${roomLink(room.name)} towers out of energy during attack — spawning defenders.`, 'TOWER:');
+        if (!attackLogCooldown[room.name + '_e'] || attackLogCooldown[room.name + '_e'] + 200 < Game.time) {
+            log.a(`${roomLink(room.name)} towers out of energy during attack — spawning defenders.`, 'TOWER:');
+            attackLogCooldown[room.name + '_e'] = Game.time;
+        }
         room.memory.dangerousAttack = true;
         room.memory.spawnDefenders = true;
         return;
@@ -109,7 +113,6 @@ function handleHostileCreeps(room, towers) {
     let shouldSpawnDefenders = false;
 
     for (let hostile of room.hostileCreeps) {
-        if (hostile.pos.checkIfOutOfBounds()) continue;
 
         let hostilePower = getPower(hostile);
         let healPower = hostilePower.heal || 0;
@@ -164,7 +167,10 @@ function handleHostileCreeps(room, towers) {
     const bestTarget = healerTarget || attackerTarget;
 
     if (shouldSpawnDefenders) {
-        if (!room.memory.dangerousAttack) log.a(`${roomLink(room.name)} under dangerous attack — spawning defenders.`, 'TOWER:');
+        if (!attackLogCooldown[room.name + '_d'] || attackLogCooldown[room.name + '_d'] + 200 < Game.time) {
+            log.a(`${roomLink(room.name)} under dangerous attack — spawning defenders.`, 'TOWER:');
+            attackLogCooldown[room.name + '_d'] = Game.time;
+        }
         room.memory.dangerousAttack = true;
         room.memory.spawnDefenders = true;
         room.memory.defenseCooldown = Game.time + CREEP_LIFE_TIME;

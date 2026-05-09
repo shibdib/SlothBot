@@ -482,18 +482,7 @@ Creep.prototype.haulerDelivery = function () {
     // Prioritize structures by urgency:
     let targets = [];
 
-    // 1. Towers (Emergency)
-    if (this.room.controller && this.room.controller.level >= 3) {
-        let threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
-        let energyThreshold = threatLevel ? TOWER_CAPACITY : TOWER_CAPACITY * 0.5;
-        targets = this.room.structures.filter(s => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < energyThreshold);
-        if (targets.length) {
-            this.memory.storageDestination = this.pos.findClosestByRange(targets).id;
-            return true;
-        }
-    }
-
-    // 2. Spawns and Extensions
+    // 1. Spawns and Extensions — always first so defenders can spawn during attacks
     const allSpawnExtensions = this.room.structures.filter(s => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
     targets = allSpawnExtensions.filter(s => s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
     if (targets.length) {
@@ -534,9 +523,11 @@ Creep.prototype.haulerDelivery = function () {
         return true;
     }
 
-    // 3. Towers (General Refill)
+    // 2. Towers — after spawns/extensions so defenders can always spawn
     if (this.room.controller && this.room.controller.level >= 3) {
-        targets = this.room.structures.filter(s => s.structureType === STRUCTURE_TOWER && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
+        const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
+        const energyThreshold = threatLevel ? TOWER_CAPACITY : TOWER_CAPACITY * 0.5;
+        targets = this.room.structures.filter(s => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < energyThreshold);
         if (targets.length) {
             this.memory.storageDestination = this.pos.findClosestByRange(targets).id;
             return true;

@@ -255,6 +255,16 @@ module.exports.essentialCreepQueue = function (room) {
                     assignment: source.id
                 });
             }
+            // During attacks at RCL5+, spawn a dedicated tower-filling shuttle
+            if (room.memory.dangerousAttack && room.level >= 5) {
+                queueCreepIfNeeded({
+                    room: room,
+                    role: 'shuttle',
+                    priority: PRIORITIES.hauler - 1,
+                    numberNeeded: getCreepCount(room, 'shuttle') + 1,
+                    other: {distanceToHub: 5}
+                });
+            }
         }
     }
 

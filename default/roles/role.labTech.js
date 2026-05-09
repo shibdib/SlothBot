@@ -50,6 +50,22 @@ class RoleLabTech {
         const nuker = this.room.structures.find(s => s.structureType === STRUCTURE_NUKER);
         const storeTarget = (storage && storage.store.getFreeCapacity() > 0) ? storage : terminal;
 
+        // -- PRIORITY 0: COMBAT - Fill towers during attacks before anything else --
+        if (this.room.memory.dangerousAttack) {
+            const supplier = storage || terminal;
+            if (supplier && supplier.store[RESOURCE_ENERGY] > 0) {
+                const lowTower = this.room.structures.find(s =>
+                    s.structureType === STRUCTURE_TOWER && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
+                );
+                if (lowTower) return {
+                    withdrawTarget: supplier.id,
+                    deliveryTarget: lowTower.id,
+                    resource: RESOURCE_ENERGY,
+                    amount: lowTower.store.getFreeCapacity(RESOURCE_ENERGY)
+                };
+            }
+        }
+
         // -- PRIORITY 1: PRODUCTION CLOGS (Emptying Labs/Factory) --
         for (const lab of labs) {
             if (lab.mineralType) {

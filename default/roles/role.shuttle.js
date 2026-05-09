@@ -26,6 +26,20 @@ class RoleShuttle {
     }
 
     hauling() {
+        // During attacks, fill towers before depositing — towers need energy to defend
+        if (this.room.memory.dangerousAttack && this.creep.store[RESOURCE_ENERGY] > 0) {
+            const lowTower = this.room.structures.find(s =>
+                s.structureType === STRUCTURE_TOWER && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
+            );
+            if (lowTower) {
+                const result = this.creep.transfer(lowTower, RESOURCE_ENERGY);
+                if (result === OK || result === ERR_NOT_IN_RANGE) {
+                    if (result === ERR_NOT_IN_RANGE) this.creep.shibMove(lowTower);
+                    return;
+                }
+            }
+        }
+
         if (this.creep.room.storage) {
             for (const resourceType in this.creep.store) {
                 const result = this.creep.transfer(this.creep.room.storage, resourceType);
@@ -44,6 +58,13 @@ class RoleShuttle {
     }
 
     pickup() {
+        // During attacks pull from storage for the fastest refill of towers
+        if (this.room.memory.dangerousAttack && this.room.storage && this.room.storage.store[RESOURCE_ENERGY] > 0) {
+            const result = this.creep.withdraw(this.room.storage, RESOURCE_ENERGY);
+            if (result === ERR_NOT_IN_RANGE) this.creep.shibMove(this.room.storage);
+            return;
+        }
+
         // Prefer assigned source container when available
         if (!this.creep.memory.energyDestination && this.creep.memory.other.assignedSource) {
             const source = Game.getObjectById(this.creep.memory.other.assignedSource);
