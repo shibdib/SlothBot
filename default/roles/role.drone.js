@@ -130,18 +130,39 @@ class RoleDrone {
         // Emergency harvesting if no storage or low on energy
         const hasStorage = !!this.room.storage;
         if (!hasStorage || this.room.energyAvailable < 300) {
-            let source = Game.getObjectById(this.creep.memory.source) || this.creep.pos.getClosestSource();
+            let source = Game.getObjectById(this.creep.memory.source);
+            const sources = this.room.sources;
+
+            // Re-evaluate source if: none assigned, current is empty while another has energy,
+            // or current is overcrowded while a less-crowded alternative exists, or periodic recheck
+            const needsReeval = !source
+                || (source.energy === 0 && sources.some(s => s.energy > 0))
+                || Game.time % 25 === 0;
+
+            if (needsReeval) {
+                source = selectBestDroneSource(this.creep, sources);
+                this.creep.memory.source = source ? source.id : undefined;
+            }
+
             if (source && (!INTEL[this.room.name].owner || INTEL[this.room.name].owner === MY_USERNAME)) {
                 this.creep.memory.harvest = true;
                 this.creep.say('Harvest!', true);
-                this.creep.memory.source = source.id;
                 const result = this.creep.harvest(source);
                 if (result === OK) {
                     this.creep.memory.other.stationary = true;
                 } else if (result === ERR_NOT_IN_RANGE) {
                     this.creep.shibMove(source);
                 } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
-                    delete this.creep.memory.source;
+                    if (sources.every(s => s.energy === 0)) {
+                        // All sources empty — wait near the one regenerating soonest
+                        const soonest = _.min(sources, s => s.ticksToRegeneration);
+                        this.creep.memory.source = soonest.id;
+                        this.creep.memory.other.stationary = this.creep.pos.isNearTo(soonest);
+                        if (!this.creep.memory.other.stationary) this.creep.shibMove(soonest);
+                    } else {
+                        // This source is empty but another has energy — switch
+                        delete this.creep.memory.source;
+                    }
                 }
                 return true;
             }
@@ -291,6 +312,25 @@ class RoleDrone {
 
 profiler.registerClass(RoleDrone, 'Drone');
 module.exports = RoleDrone;
+
+// Scores each source and picks the best for a drone to harvest from.
+// Prefers sources with energy, avoids overcrowded spots, weights by distance.
+function selectBestDroneSource(creep, sources) {
+    if (!sources.length) return null;
+    let best = null, bestScore = -Infinity;
+    for (const source of sources) {
+        const empty = source.energy === 0;
+        const adjacentDrones = source.pos.findInRange(FIND_MY_CREEPS, 1).filter(c => c.id !== creep.id).length;
+        const distance = creep.pos.getRangeTo(source);
+        // Heavy penalty for empty sources; moderate penalty per adjacent drone; mild penalty for distance
+        const score = (empty ? -1000 : 0) - (adjacentDrones * 60) - (distance * 4);
+        if (score > bestScore) {
+            bestScore = score;
+            best = source;
+        }
+    }
+    return best;
+}
 
 function findRemoteSource(creep) {
     let adjacent = _.filter(Game.map.describeExits(creep.pos.roomName), (r) => INTEL[r] &&
