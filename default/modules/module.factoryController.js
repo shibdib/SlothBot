@@ -26,11 +26,10 @@ class FactoryControl {
         }
 
         const energyStored = room.store(RESOURCE_ENERGY, true);
-        const factoryLevel = factory.level || (factory.effects && factory.effects.length ? 1 : 0);
+        const factoryLevel = factory.level || 0;
 
         // Stop current production if conditions are met
-        if (factory.memory.producing && this.shouldStopProduction(room, factory, energyStored)) {
-            log.a('No longer producing ' + factory.memory.producing + ' in ' + roomLink(room.name), 'FACTORY CONTROL:');
+        if (factory.memory.producing && this.shouldStopProduction(room, factory)) {
             delete factory.memory.producing;
         }
 
@@ -45,68 +44,107 @@ class FactoryControl {
             if (result === OK) {
                 cooldownTracker[room.name] = COMMODITIES[factory.memory.producing].cooldown + 1;
             } else {
-                cooldownTracker[room.name] = COMMODITIES[factory.memory.producing].cooldown * 0.5;
+                // Unexpected failure — clear target and re-evaluate next cycle
+                log.a(`${roomLink(room.name)} factory produce() failed for ${factory.memory.producing} (${result}), re-evaluating.`, 'FACTORY CONTROL:');
+                delete factory.memory.producing;
+                cooldownTracker[room.name] = 10;
             }
         } else if (factory.memory.producing) {
-            log.a('Clearing invalid production target ' + factory.memory.producing + ' in ' + roomLink(room.name), 'FACTORY CONTROL:');
+            log.a(`${roomLink(room.name)} clearing invalid production target ${factory.memory.producing}.`, 'FACTORY CONTROL:');
             delete factory.memory.producing;
         }
     }
 
-    setProduction(factory, resource, logMessage) {
+    setProduction(factory, resource, reason) {
         factory.memory.producing = resource;
-        log.a(logMessage + ' in ' + roomLink(factory.room.name), 'FACTORY CONTROL:');
+        const commodity = COMMODITIES[resource];
+        const inputs = commodity ? Object.keys(commodity.components).map(c => `${commodity.components[c]}×${c}`).join(', ') : '';
+        log.a(`${roomLink(factory.room.name)} producing ${resource}${inputs ? ` (${inputs})` : ''} — ${reason}`, 'FACTORY CONTROL:');
     }
 
-    shouldStopProduction(room, factory, energyStored) {
+    shouldStopProduction(room, factory) {
         const producing = factory.memory.producing;
         const commodity = COMMODITIES[producing];
         const batteryStored = room.store(RESOURCE_BATTERY);
+        const batteryCost = commodity && commodity.components[RESOURCE_BATTERY] ? commodity.components[RESOURCE_BATTERY] : 0;
 
-        if (producing === RESOURCE_BATTERY && room.energyState < 2) return true;
-        else if (producing === RESOURCE_ENERGY) {
-            return (room.energyState > 1 || batteryStored < 50);
-        } else if (producing !== RESOURCE_ENERGY && producing !== RESOURCE_BATTERY && !COMPRESSED_COMMODITIES.includes(producing)) {
-            let productionThreshold = BASE_MINERALS.includes(producing) ? REACTION_AMOUNT : DUMP_AMOUNT * 0.9;
-            if (room.store(producing) >= productionThreshold) return true;
-        } else if (COMPRESSED_COMMODITIES.includes(producing) &&
-            Object.keys(commodity.components).some(resource =>
-                resource !== RESOURCE_ENERGY && room.store(resource) < REACTION_AMOUNT * 0.5
-            )) return true;
-        else if (commodity.components[RESOURCE_ENERGY] && !room.energyState) return true;
-
+        if (producing === RESOURCE_BATTERY && room.energyState < 2) {
+            log.a(`${roomLink(room.name)} stopping battery production — low energy.`, 'FACTORY CONTROL:');
+            return true;
+        }
+        if (producing === RESOURCE_ENERGY) {
+            if (room.energyState > 1) {
+                log.a(`${roomLink(room.name)} stopping battery→energy — energy restored.`, 'FACTORY CONTROL:');
+                return true;
+            }
+            if (batteryStored < batteryCost) {
+                log.a(`${roomLink(room.name)} stopping battery→energy — batteries exhausted.`, 'FACTORY CONTROL:');
+                return true;
+            }
+            return false;
+        }
+        if (!COMPRESSED_COMMODITIES.includes(producing)) {
+            const threshold = BASE_MINERALS.includes(producing) ? REACTION_AMOUNT : DUMP_AMOUNT * 0.9;
+            if (room.store(producing) >= threshold) {
+                log.a(`${roomLink(room.name)} stopping ${producing} — cap reached.`, 'FACTORY CONTROL:');
+                return true;
+            }
+            return false;
+        }
+        // Compressed commodity: stop if any non-energy input is running low
+        if (Object.keys(commodity.components).some(r => r !== RESOURCE_ENERGY && room.store(r) < REACTION_AMOUNT * 0.5)) {
+            log.a(`${roomLink(room.name)} stopping ${producing} — input running low.`, 'FACTORY CONTROL:');
+            return true;
+        }
+        if (commodity.components[RESOURCE_ENERGY] && !room.energyState) {
+            log.a(`${roomLink(room.name)} stopping ${producing} — no energy.`, 'FACTORY CONTROL:');
+            return true;
+        }
         return false;
     }
 
     decideProduction(room, factory, energyStored, factoryLevel) {
         const batteryStored = room.store(RESOURCE_BATTERY);
+        const batteryCost = COMMODITIES[RESOURCE_ENERGY].components[RESOURCE_BATTERY] || 50;
 
-        // Priority: Convert batteries to energy if energy is low but batteries are available
-        if (!room.energyState && batteryStored >= 50) {
-            this.setProduction(factory, RESOURCE_ENERGY, 'Converting Battery to Energy');
+        // Convert batteries to energy if energy is low and batteries are available
+        if (!room.energyState && batteryStored >= batteryCost) {
+            this.setProduction(factory, RESOURCE_ENERGY, 'low energy');
             return;
         }
 
-        // Produce Battery if there's excess energy and we're low on room
-        if (room.energyState > 1 && !this.checkStorageSpace(room)) {
-            this.setProduction(factory, RESOURCE_BATTERY, 'Producing Battery');
+        // Make batteries if energy surplus and storage is filling up
+        if (room.energyState > 1 && !this.hasStorageSpace(room)) {
+            this.setProduction(factory, RESOURCE_BATTERY, 'storage full');
             return;
         }
 
-        // Try to make stuff
-        const resources = shuffle([...BASE_MINERALS, ...MANUFACTURED_COMMODITIES]);
-        for (let resource of resources) {
-            if (this.isValidProductionTarget(resource, room, factoryLevel) && ![RESOURCE_BATTERY, RESOURCE_ENERGY].includes(resource)) {
-                this.setProduction(factory, resource, 'Producing ' + resource);
+        // Space guard — don't manufacture if output has nowhere to go
+        const totalFree = (room.storage ? room.storage.store.getFreeCapacity() : 0) +
+            (room.terminal ? room.terminal.store.getFreeCapacity() : 0);
+        if (totalFree < 50000) return;
+
+        // Sort by deficit so the most urgently needed resource is always chosen first.
+        // This is deterministic and stable — the same resource wins every re-decision
+        // until its cap is reached, preventing oscillation between commodities.
+        const deficitSort = (a, b) => {
+            const threshA = BASE_MINERALS.includes(a) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
+            const threshB = BASE_MINERALS.includes(b) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
+            return (threshB - room.store(b)) - (threshA - room.store(a));
+        };
+
+        // Try manufactured commodities — highest deficit first
+        for (const resource of [...BASE_MINERALS, ...MANUFACTURED_COMMODITIES].sort(deficitSort)) {
+            if (this.isValidProductionTarget(resource, room, factoryLevel)) {
+                this.setProduction(factory, resource, 'surplus inputs');
                 return;
             }
         }
 
-        // Compress stuff
-        let compressedResources = shuffle([COMPRESSED_COMMODITIES]);
-        for (let resource of compressedResources) {
-            if (this.isValidProductionTarget(resource, room, factoryLevel) && ![RESOURCE_BATTERY, RESOURCE_ENERGY].includes(resource)) {
-                this.setProduction(factory, resource, 'Producing ' + resource);
+        // Try compression — highest deficit first
+        for (const resource of [...COMPRESSED_COMMODITIES].filter(r => r !== RESOURCE_BATTERY).sort(deficitSort)) {
+            if (this.isValidProductionTarget(resource, room, factoryLevel)) {
+                this.setProduction(factory, resource, 'compressing');
                 return;
             }
         }
@@ -114,30 +152,21 @@ class FactoryControl {
 
     isValidProductionTarget(resource, room, factoryLevel) {
         const commodity = COMMODITIES[resource];
-        if (!commodity) return false; // Commodity doesn't exist
-        if (commodity.level && commodity.level !== factoryLevel) return false; // Factory level mismatch
-
-        // Always true for energy and battery as its production is handled separately
+        if (!commodity) return false;
+        if (commodity.level && commodity.level !== factoryLevel) return false;
         if ([RESOURCE_ENERGY, RESOURCE_BATTERY].includes(resource)) return true;
 
-        // Check if we should produce based on current storage levels
-        let productionThreshold = BASE_MINERALS.includes(resource) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
+        const threshold = BASE_MINERALS.includes(resource) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
+        if (room.store(resource) >= threshold) return false;
 
-        if (room.store(resource) >= productionThreshold) return false; // Already have enough
-
-        // Ensure all components are available in sufficient quantity
         return Object.keys(commodity.components).every(component => {
-            let requiredAmount = commodity.components[component];
-            // Special handling for energy component if producing energy from batteries
-            if (resource === RESOURCE_ENERGY && component === RESOURCE_BATTERY) {
-                requiredAmount = 50; // Assuming 50 batteries are needed to produce energy
-            }
-            return room.store(component) >= requiredAmount &&
+            const required = commodity.components[component];
+            return room.store(component) >= required &&
                 (!COMPRESSED_COMMODITIES.includes(resource) || room.store(component) >= REACTION_AMOUNT * 1.1);
         });
     }
 
-    checkStorageSpace(room) {
+    hasStorageSpace(room) {
         return !(room.storage && room.storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1);
     }
 }
