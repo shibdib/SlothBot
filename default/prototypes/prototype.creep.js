@@ -824,7 +824,7 @@ Creep.prototype.builderFunction = function () {
         // to warrant multiple trips, give them our energy so they build continuously
         // while we refill — more effective than both building at half-efficiency.
         const remaining = construction.progressTotal - construction.progress;
-        if (remaining > this.store[RESOURCE_ENERGY] && this.pos.getRangeTo(construction) <= 3) {
+        if (remaining > this.store[RESOURCE_ENERGY] && this.pos.getRangeTo(construction) <= 4) {
             const activeBuilder = this.pos.findInRange(FIND_MY_CREEPS, 1).find(c =>
                 c.id !== this.id &&
                 c.memory.constructionSite === construction.id &&
