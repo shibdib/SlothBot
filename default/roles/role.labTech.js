@@ -48,6 +48,7 @@ class RoleLabTech {
         const terminal = this.room.terminal;
         const powerSpawn = this.room.structures.find(s => s.structureType === STRUCTURE_POWER_SPAWN);
         const nuker = this.room.structures.find(s => s.structureType === STRUCTURE_NUKER);
+        const storeTarget = (storage && storage.store.getFreeCapacity() > 0) ? storage : terminal;
 
         // -- PRIORITY 1: PRODUCTION CLOGS (Emptying Labs/Factory) --
         for (const lab of labs) {
@@ -58,7 +59,7 @@ class RoleLabTech {
                     (!lab.memory.itemNeeded && !lab.memory.neededBoost && (lab.mineralType !== this.room.memory.producingBoost || lab.store[lab.mineralType] > 500))) {
                     return {
                         withdrawTarget: lab.id,
-                        deliveryTarget: (storage || terminal).id,
+                        deliveryTarget: storeTarget.id,
                         resource: lab.mineralType
                     };
                 }
@@ -97,11 +98,11 @@ class RoleLabTech {
         }
 
         // -- PRIORITY 3: MINERAL CONTAINER CLEANUP --
-        // Minerals in containers block harvesting — clear them before they fill up
+        // Only clean up when the container is half-full — avoids constant tiny trips that starve balancing
         for (const s of this.room.structures) {
             if (s.structureType !== STRUCTURE_CONTAINER) continue;
-            const res = Object.keys(s.store).find(r => r !== RESOURCE_ENERGY && s.store[r] > 0);
-            if (res) return {withdrawTarget: s.id, deliveryTarget: (storage || terminal).id, resource: res};
+            const res = Object.keys(s.store).find(r => r !== RESOURCE_ENERGY && s.store[r] >= CONTAINER_CAPACITY * 0.5);
+            if (res) return {withdrawTarget: s.id, deliveryTarget: storeTarget.id, resource: res};
         }
 
         // -- PRIORITY 4: LOGISTICS (Power/Nuke) --
@@ -134,7 +135,7 @@ class RoleLabTech {
         const drop = this.room.droppedResources.find(r => r.resourceType !== RESOURCE_ENERGY) || this.room.tombstones.find(t => t.store.getUsedCapacity() > 0);
         if (drop) {
             const res = drop.resourceType || Object.keys(drop.store).find(r => drop.store[r] > 0);
-            return {withdrawTarget: drop.id, deliveryTarget: (storage || terminal).id, resource: res};
+            return {withdrawTarget: drop.id, deliveryTarget: storeTarget.id, resource: res};
         }
 
         return null;
@@ -143,9 +144,13 @@ class RoleLabTech {
     findBalancingTask(storage, terminal) {
         if (!storage || !terminal) return null;
 
-        // -- STORAGE -> TERMINAL --
-        if (terminal.store.getFreeCapacity() > 5000) {
-            // Energy
+        const terminalFree = terminal.store.getFreeCapacity();
+        const storageFree = storage.store.getFreeCapacity();
+        const myOrders = Game.market.orders;
+
+        // -- STORAGE -> TERMINAL (terminal is primary holder of distributable resources) --
+        if (terminalFree > 5000) {
+            // Ensure energy buffer for sending
             if (terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER && storage.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER * 2) {
                 return {
                     withdrawTarget: storage.id,
@@ -155,76 +160,35 @@ class RoleLabTech {
                 };
             }
 
-            // Sell Orders
-            const myOrders = Game.market.orders;
+            // Sell orders: ensure terminal has what's needed
             for (const id in myOrders) {
                 const order = myOrders[id];
-                if (order.roomName === this.room.name && order.type === ORDER_SELL) {
-                    const res = order.resourceType;
-                    const amountNeeded = Math.min(order.remainingAmount, 10000) - terminal.store[res];
-                    if (amountNeeded > 500 && storage.store[res] > 0) {
-                        return {
-                            withdrawTarget: storage.id,
-                            deliveryTarget: terminal.id,
-                            resource: res,
-                            amount: Math.min(amountNeeded, storage.store[res])
-                        };
-                    }
-                }
-            }
-
-            // Minerals for sharing (support other rooms)
-            for (const res of BASE_MINERALS) {
-                if (terminal.store[res] < 2000 && storage.store[res] > 5000) {
+                if (order.roomName !== this.room.name || order.type !== ORDER_SELL) continue;
+                const res = order.resourceType;
+                const amountNeeded = Math.min(order.remainingAmount, 10000) - (terminal.store[res] || 0);
+                if (amountNeeded > 500 && storage.store[res] > 0) {
                     return {
                         withdrawTarget: storage.id,
                         deliveryTarget: terminal.id,
                         resource: res,
-                        amount: 2000 - terminal.store[res]
+                        amount: Math.min(amountNeeded, storage.store[res], terminalFree)
                     };
                 }
             }
-        }
 
-        // -- TERMINAL -> STORAGE --
-        if (storage.store.getFreeCapacity() > 10000) {
-            // Excess Energy
-            if (terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER * 2) {
-                return {
-                    withdrawTarget: terminal.id,
-                    deliveryTarget: storage.id,
-                    resource: RESOURCE_ENERGY,
-                    amount: terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER
-                };
-            }
-
-            // Excess Minerals & Boosts
-            for (const res of Object.keys(terminal.store)) {
+            // Fill terminal from storage — terminal holds distributable resources first
+            // base minerals target 2000 for inter-room distribution; everything else 1000
+            for (const res of Object.keys(storage.store)) {
                 if (res === RESOURCE_ENERGY) continue;
-
-                // If it's a boost and not for sale, move it to storage
-                if (ALL_BOOSTS.includes(res)) {
-                    const isForSale = _.some(Game.market.orders, o => o.roomName === this.room.name && o.type === ORDER_SELL && o.resourceType === res);
-                    if (!isForSale && terminal.store[res] > 1000) {
-                        return {withdrawTarget: terminal.id, deliveryTarget: storage.id, resource: res};
-                    }
-                    continue;
-                }
-
-                // If it's a base mineral and we have way too much in terminal
-                if (BASE_MINERALS.includes(res) && terminal.store[res] > REACTION_AMOUNT * 1.5) {
+                const terminalHas = terminal.store[res] || 0;
+                const target = BASE_MINERALS.includes(res) ? 2000 : 1000;
+                if (terminalHas < target && storage.store[res] > 0) {
                     return {
-                        withdrawTarget: terminal.id,
-                        deliveryTarget: storage.id,
+                        withdrawTarget: storage.id,
+                        deliveryTarget: terminal.id,
                         resource: res,
-                        amount: terminal.store[res] - REACTION_AMOUNT
+                        amount: Math.min(target - terminalHas, storage.store[res], terminalFree)
                     };
-                }
-
-                // Commodities/Other
-                if (!BASE_MINERALS.includes(res) && terminal.store[res] > 5000) {
-                    const isForSale = _.some(Game.market.orders, o => o.roomName === this.room.name && o.type === ORDER_SELL && o.resourceType === res);
-                    if (!isForSale) return {withdrawTarget: terminal.id, deliveryTarget: storage.id, resource: res};
                 }
             }
         }
@@ -270,7 +234,7 @@ class RoleLabTech {
         }
 
         if (!deliveryTarget || (deliveryTarget.store && deliveryTarget.store.getFreeCapacity(resource) <= 0)) {
-            deliveryTarget = this.room.storage || this.room.terminal;
+            deliveryTarget = [this.room.storage, this.room.terminal].find(s => s && s.store.getFreeCapacity() > 0) || this.room.storage || this.room.terminal;
         }
 
         if (!deliveryTarget) {
