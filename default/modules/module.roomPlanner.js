@@ -1532,13 +1532,9 @@ function placeExtensionsDynamically(room) {
     const needed = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.controller.level];
     const existing = room.structures.filter(s => s.structureType === STRUCTURE_EXTENSION).length +
         room.constructionSites.filter(s => s.structureType === STRUCTURE_EXTENSION).length;
-    console.log(room.name)
     if (existing >= needed) return false;
-    console.log(room.name, 1)
     for (const {x, y} of positions) {
         const result = new RoomPosition(x, y, room.name).createConstructionSite(STRUCTURE_EXTENSION);
-
-        console.log(room.name, result)
         if (result === OK) return true;
         if (result === ERR_FULL) return false;
         if (result === ERR_RCL_NOT_ENOUGH) return false;
