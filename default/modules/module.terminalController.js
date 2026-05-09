@@ -87,7 +87,6 @@ class TerminalControl {
             if (Math.abs(currentPrice - newPrice) > 0.001 && cost <= availableCash) {
                 if (Game.market.changeOrderPrice(order.id, newPrice) === OK) {
                     priceUpdateTracker[order.id].lastChange = Game.time;
-                    log.a(`${order.type === ORDER_SELL ? 'Sell' : 'Buy'} order price updated ${order.id} new/old ${newPrice.toFixed(3)}/${currentPrice.toFixed(3)} Resource - ${order.resourceType}`, "Market: ");
                 }
             }
         }
@@ -389,7 +388,6 @@ class TerminalControl {
                 if (Game.market.deal(buyer.id, sellAmount, terminal.pos.roomName) === OK) {
                     log.w(`${terminal.pos.roomName} Sell Off Completed - ${sellAmount} ${resourceType} for ${buyer.price * sellAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
                     Memory._banker.spendingAccount += (buyer.price * sellAmount) * 0.75;
-                    log.w(`New spending account amount - ${Memory._banker.spendingAccount}`, "Market: ");
                     return true;
                 }
             }
@@ -527,7 +525,6 @@ class TerminalControl {
             if (Game.rooms[destinationRoom] && Game.rooms[destinationRoom].factory && terminal.store[RESOURCE_BATTERY]) {
                 const amount = Math.min(terminal.store[RESOURCE_BATTERY], 500);
                 if (amount >= 50 && terminal.send(RESOURCE_BATTERY, amount, destinationRoom) === OK) {
-                    log.a(`Sent ${amount} ${RESOURCE_BATTERY} To ${roomLink(destinationRoom)} From ${roomLink(terminal.room.name)}`, "Market: ");
                     usedTerminals[terminal.room.name] = {tick: Game.time};
                     usedTerminals[destinationRoom] = {tick: Game.time + 500};
                     return true;
@@ -547,7 +544,6 @@ class TerminalControl {
             if (transactionCost > requestedAmount * 0.5) return false;
 
             if (terminal.send(RESOURCE_ENERGY, requestedAmount, destinationRoom) === OK) {
-                log.a(`Sent ${requestedAmount} ${RESOURCE_ENERGY} To ${roomLink(destinationRoom)} From ${roomLink(terminal.room.name)}`, "Market: ");
                 usedTerminals[terminal.room.name] = {tick: Game.time};
                 usedTerminals[destinationRoom] = {tick: Game.time + 500};
                 return true;
@@ -792,7 +788,6 @@ class TerminalControl {
                                 if (Game.market.extendOrder(order.id, availableAmount) === OK) {
                                     Memory._banker.spendingAccount -= cost;
                                     log.w(`Extended sell order ${order.id} by ${availableAmount} ${order.resourceType} in ${roomLink(order.roomName)}`, "Market: ");
-                                    log.w(`Remaining spending account amount - ${Memory._banker.spendingAccount}`, "Market: ");
                                 }
                             }
                         }
