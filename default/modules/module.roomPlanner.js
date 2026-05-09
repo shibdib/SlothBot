@@ -40,7 +40,7 @@ module.exports.buildRoom = function () {
     // If no lab hub is set, find and assign one
     if (!room.memory.labHub) findLabHub(room);
 
-    if (!room.memory.towerHubs && BETA_TOWERS) findTowerHub(room);
+    if (!room.memory.towerHubs) findTowerHub(room);
 
     // Update tick tracker
     tickTracker[room.name] = lastRun;
@@ -85,6 +85,8 @@ function buildMissingStructures(room, level) {
     );
     if (countCheck && countCheck.length) buildFromLayout(room, countCheck);
     if (room.memory.dynamicLayout) placeExtensionsDynamically(room);
+    // Towers are not in the template — always check independently so established rooms build them too
+    buildTowersFromHubs(room);
 }
 
 function buildAuxiliaryStructures(room) {
@@ -107,18 +109,7 @@ function buildFromLayout(room, countCheck) {
         filter = tmpl.filter(s => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType));
         rampartBuilder(room, tmpl);
     } else if ((TOWER_FIRST && !roomTower && MY_ROOMS.length > 1) || (room.controller.level >= 3 && !roomTower)) {
-        if (room.memory.dynamicLayout) {
-            // Place towers at the standard offsets wherever they fit
-            for (const {x, y} of dynamicTowerOffsets) {
-                const pos = new RoomPosition(hub.x + x, hub.y + y, room.name);
-                if (!pos.checkForImpassible() && !pos.checkForAllStructure() && !pos.checkForConstructionSites()) {
-                    pos.createConstructionSite(STRUCTURE_TOWER);
-                    break;
-                }
-            }
-            return;
-        }
-        filter = bunkerTemplate.filter(s => s.structureType === STRUCTURE_TOWER);
+        if (buildTowersFromHubs(room)) return;
     } else if (!roomSpawn) {
         const spawnPos = tmpl.filter(s => s.structureType === STRUCTURE_SPAWN)[0].pos[0];
         const pos = new RoomPosition(hub.x + spawnPos.x, hub.y + spawnPos.y, room.name);
@@ -440,8 +431,8 @@ function rampartBuilder(room, layout = undefined, count = false) {
         return true;
     }
 
-    // Handle quad traps
-    if (room.level >= SPECIAL_RAMPARTS && buildQuadTraps(room)) {
+    // Handle quad traps — RCL8 only, walls capped at 20k
+    if (room.level >= 8 && buildQuadTraps(room)) {
         return true;
     }
 
@@ -487,50 +478,60 @@ function rampartBuilder(room, layout = undefined, count = false) {
     }
 
     function buildQuadTraps(room) {
-        if (!quadTraps[room.name]) {
-            return setQuadTraps(room);
-        } else {
-            let counter = 0;
-            for (const trap of quadTraps[room.name]) {
-                if (counter >= 3) return true;
-                const pos = new RoomPosition(trap.x, trap.y, room.name);
-                if (pos.checkForImpassible(false, true) || pos.isNearTo(room.controller) ||
-                    pos.isNearTo(room.mineral) || pos.isNearTo(pos.findClosestByRange(room.sources))) continue;
-                if ((pos.x + pos.y) % 2 === 0) {
-                    if (pos.createConstructionSite(STRUCTURE_WALL) === OK) counter++;
-                } else {
-                    if (pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
+        if (!quadTraps[room.name]) setQuadTraps(room);
+        if (!quadTraps[room.name] || !quadTraps[room.name].length) return false;
+
+        const QUAD_WALL_CAP = 20000;
+        let counter = 0;
+        const newWallPositions = room.memory.quadTrapWalls ? new Set(room.memory.quadTrapWalls.map(p => `${p.x},${p.y}`)) : new Set();
+
+        for (const trap of quadTraps[room.name]) {
+            if (counter >= 3) return true;
+            const pos = new RoomPosition(trap.x, trap.y, room.name);
+            if (pos.isNearTo(room.controller) || pos.isNearTo(room.mineral) ||
+                room.sources.some(s => pos.isNearTo(s))) continue;
+
+            const isWallTile = (pos.x + pos.y) % 2 === 0;
+            if (isWallTile) {
+                // Skip if wall already exists at or above the cap
+                const existing = pos.lookFor(LOOK_STRUCTURES).find(s => s.structureType === STRUCTURE_WALL);
+                if (existing && existing.hits >= QUAD_WALL_CAP) continue;
+                if (existing || pos.checkForConstructionSites()) continue;
+                if (pos.createConstructionSite(STRUCTURE_WALL) === OK) {
+                    counter++;
+                    if (!newWallPositions.has(`${pos.x},${pos.y}`)) {
+                        newWallPositions.add(`${pos.x},${pos.y}`);
+                        if (!room.memory.quadTrapWalls) room.memory.quadTrapWalls = [];
+                        room.memory.quadTrapWalls.push({x: pos.x, y: pos.y});
+                    }
                 }
+            } else {
+                if (pos.checkForRampart() || pos.checkForConstructionSites()) continue;
+                if (pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
             }
         }
+        return counter > 0;
     }
 
     function setQuadTraps(room) {
         const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
-        if (!ramparts || !ramparts.length) return false;
-        const rampartPositions = ramparts.map(p => new RoomPosition(p.x, p.y, room.name));
-        const hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-        const trapLocations = quadTraps[room.name] || [];
-        for (const position of rampartPositions) {
-            let dx = 0;
-            let dy = 0;
-            if (position.x === hub.x - 1) dx = 0;
-            else if (position.x < hub.x) dx = -1;
-            else if (position.x >= hub.x) dx = 1;
-            if (position.y === hub.y - 1) dy = 0;
-            else if (position.y < hub.y) dy = -1;
-            else if (position.y >= hub.y) dy = 1;
-            const posX = position.x + dx;
-            const posY = position.y + dy;
-            if (posX < 0 || posX > 49 || posY < 0 || posY > 49) continue;
-            const pos = new RoomPosition(posX, posY, room.name);
-            const structures = pos.lookFor(LOOK_STRUCTURES);
-            const isOccupied = structures.some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
-            const terrain = pos.lookFor(LOOK_TERRAIN)[0];
-            if (isOccupied || terrain === 'wall') continue;
-            trapLocations.push({x: posX, y: posY});
+        if (!ramparts || !ramparts.length) return;
+        const hub = room.hub;
+        const terrain = Game.map.getRoomTerrain(room.name);
+        const trapLocations = [];
+
+        for (const {x, y} of ramparts) {
+            // Push one tile outward from the hub (away from centre)
+            const dx = x === hub.x ? 0 : (x < hub.x ? -1 : 1);
+            const dy = y === hub.y ? 0 : (y < hub.y ? -1 : 1);
+            const nx = x + dx, ny = y + dy;
+            if (nx < 1 || nx > 48 || ny < 1 || ny > 48) continue;
+            if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
+            const pos = new RoomPosition(nx, ny, room.name);
+            if (pos.lookFor(LOOK_STRUCTURES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType))) continue;
+            trapLocations.push({x: nx, y: ny});
         }
-        return quadTraps[room.name] = trapLocations;
+        quadTraps[room.name] = trapLocations;
     }
 
     function initializeRampartSpots(room, layout, count) {
@@ -567,6 +568,12 @@ function rampartBuilder(room, layout = undefined, count = false) {
         if (room.memory.labHub) {
             const labHub = room.memory.labHub;
             rectArray.push({x1: labHub.x - 3, y1: labHub.y - 3, x2: labHub.x + 3, y2: labHub.y + 3});
+        }
+        // Tower hubs — must be inside the rampart perimeter so towers can be resupplied during combat
+        if (room.memory.towerHubs) {
+            for (const {x, y} of room.memory.towerHubs) {
+                rectArray.push({x1: x - 1, y1: y - 1, x2: x + 1, y2: y + 1});
+            }
         }
         // Set bounds
         for (let key in rectArray) {
@@ -1164,52 +1171,93 @@ function findLabHub(room) {
     }
 }
 
+// Places towers from the stored hub list up to the RCL-gated maximum.
+// Called each build tick; only creates one site at a time.
+function buildTowersFromHubs(room) {
+    const hubs = room.memory.towerHubs;
+    if (!hubs || !hubs.length) return false;
+    const allowed = CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.level];
+    const current = room.structures.filter(s => s.structureType === STRUCTURE_TOWER).length +
+        room.constructionSites.filter(s => s.structureType === STRUCTURE_TOWER).length;
+    if (current >= allowed) return false;
+    for (const {x, y} of hubs.slice(0, allowed)) {
+        const pos = new RoomPosition(x, y, room.name);
+        if (!pos.checkForAllStructure() && !pos.checkForConstructionSites()) {
+            pos.createConstructionSite(STRUCTURE_TOWER);
+            return true;
+        }
+    }
+    return false;
+}
+
+// Scores every non-wall tile by total tower damage coverage across all exit threat points,
+// selects up to 6 well-spread positions for maximum defensibility.
+// Uses terrain.get() and inline Chebyshev math to avoid per-tile API calls.
 function findTowerHub(room) {
-    room.memory.towerHubs = [];
-    const towers = room.structures.filter((s) => s.structureType === STRUCTURE_TOWER);
-    towers.forEach((t) => t.destroy())
-    const towerSites = room.constructionSites.filter((s) => s.structureType === STRUCTURE_TOWER);
-    towerSites.forEach((t) => t.remove())
-    // Get and store all the exit tiles
-    const exitTiles = [];
+    // Clear existing towers so we reposition from scratch
+    room.structures.filter(s => s.structureType === STRUCTURE_TOWER).forEach(t => t.destroy());
+    room.constructionSites.filter(s => s.structureType === STRUCTURE_TOWER).forEach(t => t.remove());
+
+    const hubX = room.memory.bunkerHub.x, hubY = room.memory.bunkerHub.y;
     const neighboring = Game.map.describeExits(room.name);
-    let directionToExit = {'1': FIND_EXIT_TOP, '3': FIND_EXIT_RIGHT, '5': FIND_EXIT_BOTTOM, '7': FIND_EXIT_LEFT};
-    for (let direction in directionToExit) {
-        if (neighboring[direction]) {
-            let exits = room.find(directionToExit[direction]);
-            let middle = Math.floor(exits.length / 2);
-            exitTiles.push(exits[middle])
+    const dirToFind = {'1': FIND_EXIT_TOP, '3': FIND_EXIT_RIGHT, '5': FIND_EXIT_BOTTOM, '7': FIND_EXIT_LEFT};
+
+    // Sample three points per exit edge for multi-angle coverage scoring
+    const threatPoints = [], allExitTiles = [];
+    for (const dir in dirToFind) {
+        if (!neighboring[dir]) continue;
+        const exits = room.find(dirToFind[dir]);
+        if (!exits.length) continue;
+        allExitTiles.push(...exits);
+        threatPoints.push(
+            exits[Math.floor(exits.length * 0.25)],
+            exits[Math.floor(exits.length * 0.5)],
+            exits[Math.floor(exits.length * 0.75)]
+        );
+    }
+
+    if (!threatPoints.length) {
+        room.memory.towerHubs = [];
+        return;
+    }
+
+    // Pre-compute obstacle data for fast per-tile checks (no API calls in the inner loop)
+    const terrain = Game.map.getRoomTerrain(room.name);
+    const srcPos = room.sources.map(s => s.pos);
+    const ctrlPos = room.controller.pos;
+    const minPos = room.mineral ? room.mineral.pos : null;
+    const cheby = (ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+
+    const candidates = [];
+    for (let x = 4; x <= 45; x++) {
+        for (let y = 4; y <= 45; y++) {
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+            const hubDist = cheby(x, y, hubX, hubY);
+            if (hubDist < 6 || hubDist > 23) continue;                     // not inside core, not too far out
+            if (srcPos.some(p => cheby(x, y, p.x, p.y) < 3)) continue;    // away from sources
+            if (cheby(x, y, ctrlPos.x, ctrlPos.y) < 3) continue;           // away from controller
+            if (minPos && cheby(x, y, minPos.x, minPos.y) < 3) continue;   // away from mineral
+            const minEdge = allExitTiles.reduce((m, e) => Math.min(m, cheby(x, y, e.x, e.y)), Infinity);
+            if (minEdge < 5) continue;                                      // not exposed at edge
+
+            // Total damage across all threat entry points — rewards positions that cover every exit
+            const score = threatPoints.reduce((sum, tp) => sum + determineTowerDamage(cheby(x, y, tp.x, tp.y)), 0);
+            candidates.push({x, y, score});
         }
     }
-    // Find the spot that deal the most damage with space around it
-    const hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-    const labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
-    let topDamage = {};
-    let topPos = {};
-    for (const exit of exitTiles) {
-        topDamage[exit.x + '.' + exit.y] = 0;
-        topPos[exit.x + '.' + exit.y] = undefined;
-        let damage = 0;
-        const exitPos = new RoomPosition(exit.x, exit.y, room.name);
-        for (let x = 0; x < 50; x++) {
-            for (let y = 0; y < 50; y++) {
-                // Set and check
-                const pos = new RoomPosition(x, y, room.name);
-                if (pos.checkForWall() || pos.getRangeTo(pos.findClosestByRange(FIND_SOURCES)) < 4 || pos.getRangeTo(room.mineral) < 4
-                    || pos.getRangeTo(room.controller) < 4 || pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) < 7 || pos.countOpenTerrainAround() < (8 / exitTiles.length)) continue;
-                damage = determineTowerDamage(exitPos.getRangeTo(pos));
-                if (damage > topDamage[exit.x + '.' + exit.y]) {
-                    topDamage[exit.x + '.' + exit.y] = damage;
-                    topPos[exit.x + '.' + exit.y] = pos;
-                }
-            }
-        }
-        if (topPos[exit.x + '.' + exit.y].getRangeTo(hub) < 9 || topPos[exit.x + '.' + exit.y].getRangeTo(labHub) < 6) {
-            return room.memory.towerHubs = [];
-        } else {
-            room.memory.towerHubs.push({x: topPos[exit.x + '.' + exit.y].x, y: topPos[exit.x + '.' + exit.y].y});
-        }
+
+    // Sort best coverage first, then greedily select up to 6 with minimum 4-tile separation
+    candidates.sort((a, b) => b.score - a.score);
+    const selected = [];
+    for (const c of candidates) {
+        if (selected.length >= 6) break;
+        if (selected.every(s => cheby(c.x, c.y, s.x, s.y) >= 4)) selected.push({x: c.x, y: c.y});
     }
+
+    room.memory.towerHubs = selected;
+    // Force rampart recomputation — perimeter must now wrap the new tower positions
+    ROOM_RAMPART_SPOTS[room.name] = undefined;
+    log.a(`${room.name}: ${selected.length} tower hubs placed`);
 }
 
 // Helper function to check if the position is valid for a rampart
@@ -1268,13 +1316,9 @@ function findBestContainerPos(source) {
 }
 
 function determineTowerDamage(range) {
-    if (range <= 5) {
-        return 600;
-    } else if (range < 20) {
-        return 600 - 450 * (range - 5) / 15;
-    } else {
-        return 150;
-    }
+    if (range <= TOWER_OPTIMAL_RANGE) return TOWER_POWER_ATTACK;
+    if (range < TOWER_FALLOFF_RANGE) return TOWER_POWER_ATTACK - TOWER_FALLOFF * (range - TOWER_OPTIMAL_RANGE) / (TOWER_FALLOFF_RANGE - TOWER_OPTIMAL_RANGE);
+    return TOWER_POWER_ATTACK - TOWER_FALLOFF;
 }
 
 let protectedStructureTypes = [
@@ -1319,12 +1363,6 @@ let bunkerTemplate = [
     {
         "structureType": STRUCTURE_NUKER,
         "pos": [{"x": 1, "y": 1}]
-    },
-    {
-        "structureType": STRUCTURE_TOWER,
-        "pos": [{"x": 0, "y": 5}, {"x": 0, "y": -5},
-            {"x": 5, "y": 3}, {"x": -5, "y": 3},
-            {"x": 5, "y": -3}, {"x": -5, "y": -3}]
     },
     {
         "structureType": STRUCTURE_EXTENSION,
@@ -1389,19 +1427,15 @@ let labTemplate = [{"x": 0, "y": 0}, {"x": 0, "y": 1}, {"x": 1, "y": 0}, {"x": -
 }, {"x": 1, "y": 1}, {"x": 0, "y": 2}, {"x": -1, "y": 1}, {"x": -1, "y": 2}];
 
 // Compact core used when the full bunker template cannot fit.
-// No extensions or towers — those are placed dynamically.
+// Only the structures needed from RCL1 onward — extensions, towers, and late-game
+// structures (factory, nuker, power spawn) are placed dynamically or wherever they fit.
 const coreTemplate = [
     {structureType: STRUCTURE_SPAWN, pos: [{x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: -1}]},
     {structureType: STRUCTURE_OBSERVER, pos: [{x: 0, y: 0}]},
     {structureType: STRUCTURE_TERMINAL, pos: [{x: -1, y: 0}]},
     {structureType: STRUCTURE_STORAGE, pos: [{x: 1, y: 0}]},
-    {structureType: STRUCTURE_POWER_SPAWN, pos: [{x: -1, y: 1}]},
-    {structureType: STRUCTURE_NUKER, pos: [{x: 1, y: 1}]},
-    {structureType: STRUCTURE_FACTORY, pos: [{x: 0, y: 2}]},
 ];
 
-// Tower offsets to try when placing towers in dynamic layout mode (same as full template)
-const dynamicTowerOffsets = [{x: 0, y: -5}, {x: 0, y: 5}, {x: 5, y: -3}, {x: -5, y: -3}, {x: 5, y: 3}, {x: -5, y: 3}];
 
 function isCoreHubTileValid(pos, room) {
     if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) return false;
