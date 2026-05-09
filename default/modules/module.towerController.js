@@ -26,12 +26,16 @@ module.exports.towerControl = function (room) {
 // Helper function to get the best repair tower
 function getRepairTower(room, towers) {
     let cachedTower = Game.getObjectById(roomRepairTower[room.name]);
-    if (cachedTower && cachedTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.25) {
+    if (cachedTower && towers.some(t => t.id === cachedTower.id) && cachedTower.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.25) {
         return cachedTower;
     }
 
-    let bestTower = _.max(_.filter(towers, s => s.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.5), 'store.energy');
+    // Clear stale cache entry if tower is gone
+    if (!cachedTower) roomRepairTower[room.name] = undefined;
+
+    let bestTower = _.max(_.filter(towers, s => s.store[RESOURCE_ENERGY] > TOWER_CAPACITY * 0.5), t => t.store[RESOURCE_ENERGY]);
     if (bestTower && bestTower.id) {
+        roomRepairTower[room.name] = bestTower.id;
         return bestTower;
     }
     return null;
@@ -59,13 +63,14 @@ function findWoundedCreep(room) {
 }
 
 // Find structures that are degrading and need repair
+// multi was always 2 here (repair only runs when energyState > 0), so thresholds are inlined
 function findDegradingStructure(room) {
-    const multi = room.energyState ? 2 : 1;
-    return _.find(room.structures, s =>
-        (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * (0.25 * multi)) ||
-        (s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * (0.2 * multi)) ||
-        ((s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 10000)
-    );
+    for (const s of room.structures) {
+        if (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5) return s;
+        if (s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.4) return s;
+        if ((s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 10000) return s;
+    }
+    return null;
 }
 
 // Handle hostile creeps in the room
@@ -74,6 +79,7 @@ function handleHostileCreeps(room, towers) {
 
     // If no towers and no safe mode, trigger defender spawning
     if (!readyTowers.length && !room.controller.safeMode) {
+        if (!room.memory.dangerousAttack) log.a(`${roomLink(room.name)} towers out of energy during attack — spawning defenders.`, 'TOWER:');
         room.memory.dangerousAttack = true;
         room.memory.spawnDefenders = true;
         return;
@@ -94,12 +100,15 @@ function handleHostileCreeps(room, towers) {
         return powerCache.get(creep.id);
     }
 
-    let bestTarget = null;
-    let lowestTicksToKill = Infinity;
+    // Two-phase target selection: healers first, then fastest-to-kill attacker.
+    // Killing healers first reduces the effective HP of all remaining hostiles.
+    let healerTarget = null;
+    let fastestHealerKill = Infinity;
+    let attackerTarget = null;
+    let fastestAttackerKill = Infinity;
     let shouldSpawnDefenders = false;
 
-    for (let i = 0; i < room.hostileCreeps.length; i++) {
-        let hostile = room.hostileCreeps[i];
+    for (let hostile of room.hostileCreeps) {
         if (hostile.pos.checkIfOutOfBounds()) continue;
 
         let hostilePower = getPower(hostile);
@@ -120,7 +129,7 @@ function handleHostileCreeps(room, towers) {
 
         let attackPower = 0;
         for (let t of readyTowers) {
-            attackPower += determineDamage(hostile.pos.getRangeTo(t));
+            attackPower += determineDamage(hostile.pos.getRangeTo(t), t);
         }
         for (let c of friendlyMelee) {
             if (c.pos.isNearTo(hostile)) attackPower += getPower(c).meleeAttack;
@@ -139,16 +148,23 @@ function handleHostileCreeps(room, towers) {
         }
 
         if (attackPower > effectiveHeal) {
-            let netDamage = attackPower - effectiveHeal;
-            let ticksToKill = hostile.hits / netDamage;
-            if (ticksToKill < lowestTicksToKill) {
-                lowestTicksToKill = ticksToKill;
-                bestTarget = hostile;
+            const ticksToKill = hostile.hits / (attackPower - effectiveHeal);
+            const isHealer = hostileHealers.some(h => h.id === hostile.id);
+            if (isHealer && ticksToKill < fastestHealerKill) {
+                fastestHealerKill = ticksToKill;
+                healerTarget = hostile;
+            } else if (!isHealer && ticksToKill < fastestAttackerKill) {
+                fastestAttackerKill = ticksToKill;
+                attackerTarget = hostile;
             }
         }
     }
 
+    // Prefer killing healers — once healing support is gone, remaining creeps fold quickly
+    const bestTarget = healerTarget || attackerTarget;
+
     if (shouldSpawnDefenders) {
+        if (!room.memory.dangerousAttack) log.a(`${roomLink(room.name)} under dangerous attack — spawning defenders.`, 'TOWER:');
         room.memory.dangerousAttack = true;
         room.memory.spawnDefenders = true;
         room.memory.defenseCooldown = Game.time + CREEP_LIFE_TIME;
@@ -179,19 +195,18 @@ function combatRepair(room, towers) {
     let targetRampart = null;
     let minHits = Infinity;
 
-    for (let s of room.structures) {
-        if (s.structureType === STRUCTURE_RAMPART && s.hits < 1000000) {
-            let nearEnemy = false;
-            for (let e of enemies) {
-                if (s.pos.getRangeTo(e) <= 8) {
-                    nearEnemy = true;
-                    break;
-                }
+    for (const s of room.structures) {
+        if (s.structureType !== STRUCTURE_RAMPART || s.hits >= 1000000) continue;
+        let nearEnemy = false;
+        for (const e of enemies) {
+            if (s.pos.getRangeTo(e) <= 8) {
+                nearEnemy = true;
+                break;
             }
-            if (nearEnemy && s.hits < minHits) {
-                minHits = s.hits;
-                targetRampart = s;
-            }
+        }
+        if (nearEnemy && s.hits < minHits) {
+            minHits = s.hits;
+            targetRampart = s;
         }
     }
 
@@ -200,13 +215,20 @@ function combatRepair(room, towers) {
     }
 }
 
-// Computes damage of a tower based on range
-function determineDamage(range) {
-    if (range <= 5) {
-        return 600;
-    } else if (range < 20) {
-        return 600 - 450 * (range - 5) / 15;
+// Computes damage of a tower based on range, accounting for PWR_OPERATE_TOWER boosts
+function determineDamage(range, tower) {
+    let base;
+    if (range <= TOWER_OPTIMAL_RANGE) {
+        base = TOWER_POWER_ATTACK;
+    } else if (range < TOWER_FALLOFF_RANGE) {
+        base = TOWER_POWER_ATTACK - TOWER_FALLOFF * (range - TOWER_OPTIMAL_RANGE) / (TOWER_FALLOFF_RANGE - TOWER_OPTIMAL_RANGE);
     } else {
-        return 150;
+        base = TOWER_POWER_ATTACK - TOWER_FALLOFF;
     }
+    // Apply PWR_OPERATE_TOWER boost if a power creep has activated it on this tower
+    if (tower && tower.effects) {
+        const effect = tower.effects.find(e => e.effect === PWR_OPERATE_TOWER);
+        if (effect) base *= POWER_INFO[PWR_OPERATE_TOWER].effect[effect.level - 1];
+    }
+    return Math.floor(base);
 }
