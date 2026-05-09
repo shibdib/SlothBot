@@ -438,29 +438,33 @@ class TerminalControl {
     }
 
     balanceResources(terminal) {
-        // Sort by most to least
+        // Sort by most to least so we send surplus first
         let sortedKeys = Object.keys(terminal.store).sort((a, b) => terminal.store[b] - terminal.store[a]);
         for (let resource of sortedKeys) {
             if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
             let keepAmount = this.determineKeepAmount(resource);
             if (terminal.room.store(resource) < keepAmount) continue;
-            let available = Math.max(terminal.store[resource], 0);
-            if (terminal.room.store(resource) - available < keepAmount) available = keepAmount - (terminal.room.store(resource) - available);
 
+            // How much can we send while keeping at least keepAmount total in this room
+            let available = Math.max(0, terminal.room.store(resource) - keepAmount);
+            available = Math.min(available, terminal.store[resource]); // can't send more than what's in terminal
             if (available < 100) continue;
 
-            const needyTerminal = _.find(Game.structures, r =>
-                r.room.name !== terminal.room.name &&
-                r.structureType === STRUCTURE_TERMINAL &&
-                (!usedTerminals[r.room.name] || usedTerminals[r.room.name].tick + 10 < Game.time) &&
-                r.store.getFreeCapacity() &&
-                r.room.store(resource) < this.determineKeepAmount(resource) &&
-                Game.market.calcTransactionCost(available, terminal.room.name, r.room.name) < terminal.room.energy * 0.01
-            );
+            // Search own rooms first (faster and preferred over allies)
+            const needyTerminal = MY_ROOMS
+                .filter(r => r !== terminal.room.name && Game.rooms[r] && Game.rooms[r].terminal)
+                .map(r => Game.rooms[r].terminal)
+                .find(t =>
+                    (!usedTerminals[t.room.name] || usedTerminals[t.room.name].tick + 10 < Game.time) &&
+                    t.store.getFreeCapacity() > available &&
+                    t.room.store(resource) < this.determineKeepAmount(resource) &&
+                    Game.market.calcTransactionCost(available, terminal.room.name, t.room.name) < available * 0.25
+                );
 
             let targetRoom;
-            if (needyTerminal) targetRoom = needyTerminal.room.name;
-            else {
+            if (needyTerminal) {
+                targetRoom = needyTerminal.room.name;
+            } else {
                 for (const key in ALLY_HELP_REQUESTS) {
                     if (key === MY_USERNAME) continue;
                     const ally = ALLY_HELP_REQUESTS[key];
@@ -489,24 +493,24 @@ class TerminalControl {
     }
 
     balanceEnergy(terminal) {
-        if (terminal.room.memory.dangerousAttack || !terminal.room.energyState) return;
+        if (terminal.room.memory.dangerousAttack || terminal.room.energyState < 2) return false;
 
         const poorestRoom = findNeedyTerminal();
-        if (poorestRoom && poorestRoom !== terminal.room.name && Game.rooms[poorestRoom].energy < terminal.room.energy) {
-            sendEnergyOrBattery(terminal, poorestRoom);
-            return true;
+        if (poorestRoom) {
+            return sendEnergyOrBattery(terminal, poorestRoom);
         }
 
         const needyAlly = findNeedyAllies();
         if (needyAlly) {
-            sendEnergyOrBattery(terminal, needyAlly);
-            return true;
+            return sendEnergyOrBattery(terminal, needyAlly);
         }
         return false;
 
         function findNeedyTerminal() {
-            const myRooms = MY_ROOMS.filter((r) => Game.rooms[r].terminal).sort((a, b) => Game.rooms[a].energy - Game.rooms[b].energy)[0];
-            if (myRooms) return myRooms;
+            // Only consider rooms that genuinely need energy (below state 2) and are meaningfully poorer
+            return MY_ROOMS
+                .filter(r => r !== terminal.room.name && Game.rooms[r] && Game.rooms[r].terminal && Game.rooms[r].energyState < 2)
+                .sort((a, b) => Game.rooms[a].energy - Game.rooms[b].energy)[0];
         }
 
         function findNeedyAllies() {
@@ -516,33 +520,34 @@ class TerminalControl {
         }
 
         function sendEnergyOrBattery(terminal, destinationRoom) {
-            let resource = RESOURCE_ENERGY;
-            let minimum = 5000;
-            let availableAmount = terminal.store[resource] - TERMINAL_ENERGY_BUFFER;
-            let requestedAmount = Game.rooms[destinationRoom].energy - terminal.room.energy;
-            // If factory exists, prefer sending batteries
-            if (Game.rooms[destinationRoom].factory && terminal.store[RESOURCE_BATTERY]) {
-                resource = RESOURCE_BATTERY;
-                availableAmount = terminal.store[RESOURCE_BATTERY];
-                requestedAmount = 500;
-                minimum = 50;
+            // Prefer batteries if destination has a factory
+            if (Game.rooms[destinationRoom] && Game.rooms[destinationRoom].factory && terminal.store[RESOURCE_BATTERY]) {
+                const amount = Math.min(terminal.store[RESOURCE_BATTERY], 500);
+                if (amount >= 50 && terminal.send(RESOURCE_BATTERY, amount, destinationRoom) === OK) {
+                    log.a(`Sent ${amount} ${RESOURCE_BATTERY} To ${roomLink(destinationRoom)} From ${roomLink(terminal.room.name)}`, "Market: ");
+                    usedTerminals[terminal.room.name] = {tick: Game.time};
+                    usedTerminals[destinationRoom] = {tick: Game.time + 500};
+                    return true;
+                }
             }
-            if (requestedAmount > availableAmount) requestedAmount = availableAmount;
 
-            // Prevent massively wasteful long-distance energy balancing
-            let transactionCost = Game.market.calcTransactionCost(requestedAmount, terminal.room.name, destinationRoom);
-            // Cap the cost at 50% of the amount being sent (meaning we lose 33% of the total energy to the ether)
+            const surplus = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
+            if (surplus <= 0) return false;
+
+            // Send half the energy gap to equalize, capped at our surplus
+            const energyGap = terminal.room.energy - (Game.rooms[destinationRoom] ? Game.rooms[destinationRoom].energy : 0);
+            const requestedAmount = Math.min(surplus, Math.max(0, Math.floor(energyGap / 2)));
+
+            if (requestedAmount < 5000) return false;
+
+            const transactionCost = Game.market.calcTransactionCost(requestedAmount, terminal.room.name, destinationRoom);
             if (transactionCost > requestedAmount * 0.5) return false;
 
-            if (requestedAmount > minimum) {
-                // Send the resource
-                switch (terminal.send(resource, requestedAmount, destinationRoom)) {
-                    case OK:
-                        log.a(`Sent ${requestedAmount} ${resource} To ${roomLink(destinationRoom)} From ${roomLink(terminal.room.name)}`, "Market: ");
-                        usedTerminals[terminal.room.name] = {tick: Game.time};
-                        usedTerminals[destinationRoom] = {tick: Game.time + 500};
-                        return true;
-                }
+            if (terminal.send(RESOURCE_ENERGY, requestedAmount, destinationRoom) === OK) {
+                log.a(`Sent ${requestedAmount} ${RESOURCE_ENERGY} To ${roomLink(destinationRoom)} From ${roomLink(terminal.room.name)}`, "Market: ");
+                usedTerminals[terminal.room.name] = {tick: Game.time};
+                usedTerminals[destinationRoom] = {tick: Game.time + 500};
+                return true;
             }
             return false;
         }
