@@ -368,9 +368,9 @@ class ModuleBodyGenerator {
                 break;
 
             case 'SKAttacker':
-                attack = 18;
-                rangedAttack = 2;
-                heal = 5;
+                attack = 19;
+                heal = 13;
+                tough = 1;
                 break;
 
             case 'powerAttacker':
