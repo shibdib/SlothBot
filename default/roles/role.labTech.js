@@ -101,7 +101,7 @@ class RoleLabTech {
         // Only clean up when the container is half-full — avoids constant tiny trips that starve balancing
         for (const s of this.room.structures) {
             if (s.structureType !== STRUCTURE_CONTAINER) continue;
-            const res = Object.keys(s.store).find(r => r !== RESOURCE_ENERGY && s.store[r] >= CONTAINER_CAPACITY * 0.5);
+            const res = Object.keys(s.store).find(r => r !== RESOURCE_ENERGY && (s.store[r] >= CONTAINER_CAPACITY * 0.5 || !this.room.mineral.mineralAmount));
             if (res) return {withdrawTarget: s.id, deliveryTarget: storeTarget.id, resource: res};
         }
 
