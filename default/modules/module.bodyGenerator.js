@@ -123,8 +123,6 @@ class ModuleBodyGenerator {
                         work = 1;
                     } else if (this.room.energyState === 1) {
                         work = Math.min(work, Math.max(1, Math.floor(this.spareIncome)));
-                    } else if (this.room.energyState === 2) {
-                        work = Math.min(work, Math.max(3, Math.floor(this.spareIncome * 1.5)));
                     }
                     // state 3+: full capacity body — drain surplus into controller
                     carry = 1;

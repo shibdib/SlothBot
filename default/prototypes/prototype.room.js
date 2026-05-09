@@ -148,12 +148,9 @@ Object.defineProperty(Room.prototype, 'energyState', {
         if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + 50 > Game.time) return ENERGY_STATE_CACHE[this.name].state;
         let energy = this.rawEnergy;
         const upgradeCost = this.level === 8 ? 250000 : constructionCost(this.controller.level + 1) - constructionCost(this.controller.level);
-        let target = this.level === 8 ? 250000 : upgradeCost * (this.controller.progress / this.controller.progressTotal);
-        // Scale the target based on how close we are to leveling
-        target = Math.max(Math.min(Math.round(target * ((this.controller.progress / this.controller.progressTotal) + 0.1)), STORAGE_CAPACITY * 0.5), this.level * 10000, STORAGE_CAPACITY * 0.7);
-        // Target is doubled if we have hostiles
-        if (HOSTILES.length > 0) target *= 2;
-        if (energy > target * 2 || (!this.storage && !this.terminal && this.controller.level < 4)) {
+        const progressFraction = this.controller.progress / this.controller.progressTotal;
+        let target = this.level === 8 ? 250000 : Math.max(this.level * 10000, Math.min(Math.round(upgradeCost * progressFraction), STORAGE_CAPACITY * 0.5));
+        if (energy > target * 1.5 || (!this.storage && !this.terminal && this.controller.level < 4)) {
             this._energyState = 3;
         } else if (energy >= target) {
             this._energyState = 2;

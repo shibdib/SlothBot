@@ -64,10 +64,10 @@ class StateManager {
         const workExpense = Math.ceil(energyUsers.reduce((sum, creep) => sum + creep.getActiveBodyparts(WORK), 0));
         // Amortised spawn cost: total energy capacity of all creeps / average lifespan
         const spawnExpense = Math.ceil(room.myCreeps.reduce((sum, c) => sum + global.UNIT_COST(c.body), 0) / CREEP_LIFE_TIME);
-        // Tower drain: towers fire every tick, estimate 200 energy/tick per active tower as a conservative overhead
-        const towerExpense = room.impassibleStructures.filter(s => s.structureType === STRUCTURE_TOWER && s.isActive()).length * 2;
+        // Tower drain: only counts when towers are actually firing (hostiles present)
+        const towerExpense = HOSTILES.length > 0 ? room.impassibleStructures.filter(s => s.structureType === STRUCTURE_TOWER && s.isActive()).length * 2 : 0;
         const expense = workExpense + spawnExpense + towerExpense;
-        const spareIncome = room.energyState > 2 ? 9999999 : room.energyState < 2 ? (income - expense) * 0.5 : income - expense;
+        const spareIncome = room.energyState > 2 ? 9999999 : income - expense;
         room.memory.energyInfo = {income: income, expense: expense, spareIncome: spareIncome};
         room.memory.energyPositive = (average(energyIncomeArray) > 0 && income > expense) || room.energyState > 1 || room.level < 4;
 

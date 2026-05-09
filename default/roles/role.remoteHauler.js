@@ -210,18 +210,18 @@ function dropOff(creep) {
     } else if (!colony.terminal && !colony.memory.hubLink && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 0 &&
         Math.random() > controllerContainer.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY) {
         memory.storageDestination = controllerContainer.id;
+    } else if (colony.energyState > 1 && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) &&
+        Math.random() + 0.1 > controllerContainer.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY) {
+        memory.storageDestination = controllerContainer.id;
     } else if (colony.energyState && colony.nuker &&
         colony.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
         memory.storageDestination = colony.nuker.id;
     } else if (colony.storage && !colony.energyState &&
         colony.storage.store.getFreeCapacity(RESOURCE_ENERGY) > storeSum) {
         memory.storageDestination = colony.storage.id;
-    } else if (colony.terminal && colony.terminal.store.getFreeCapacity(RESOURCE_ENERGY) > storeSum &&
-        colony.terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER) {
+    } else if (colony.terminal && colony.terminal.store.getFreeCapacity(RESOURCE_ENERGY) > TERMINAL_CAPACITY * 0.1 &&
+        colony.terminal.store.getFreeCapacity(RESOURCE_ENERGY) > storeSum) {
         memory.storageDestination = colony.terminal.id;
-    } else if (colony.energyState > 1 && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 0 &&
-        Math.random() + 0.1 > controllerContainer.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY) {
-        memory.storageDestination = controllerContainer.id;
     } else if (colony.storage && colony.storage.store.getFreeCapacity(RESOURCE_ENERGY) > storeSum) {
         memory.storageDestination = colony.storage.id;
     } else if (colony.level === colony.controller.level && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 0 &&
