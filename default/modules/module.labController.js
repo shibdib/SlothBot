@@ -17,43 +17,47 @@ class LabManager {
     run(room) {
         const labs = room.structures.filter(s => s.structureType === STRUCTURE_LAB);
         if (!labs.length) return;
+
+        // Periodic lab memory cleanup
+        if (!lastClean[room.name] || lastClean[room.name] + 100 < Game.time) {
+            this.cleanLabs(labs);
+            lastClean[room.name] = Game.time;
+        }
+
         if (!runNext[room.name] || runNext[room.name] < Game.time) {
-            this.manageBoostProduction(room);
-            this.manageActiveLabs(room);
+            this.manageBoostProduction(room, labs);
+            this.manageActiveLabs(room, labs);
             if (!runNext[room.name] || runNext[room.name] < Game.time) runNext[room.name] = Game.time + 15;
         }
     }
 
-    manageBoostProduction(room) {
+    manageBoostProduction(room, labs) {
         if (room.memory.producingBoost) return;
-        let hub = this.getLabHub(room);
-        if (!hub) return;
-        let secondaryLabs = room.impassibleStructures.filter(lab =>
-            lab.structureType === STRUCTURE_LAB && !this.primaryLabs[room.name].includes(lab.id)
-        );
-        if (secondaryLabs.length < 1 || hub.length < 2) return;
-        let boost = this.findBoostToProduce(room, secondaryLabs);
+        if (!this.hub || this.hub.length < 2) return;
+        const secondaryLabs = labs.filter(lab => !this.primaryLabs[room.name].includes(lab.id));
+        if (!secondaryLabs.length) return;
+        const boost = this.findBoostToProduce(room);
         if (!boost) return;
 
-        this.setupProduction(hub, boost, room);
+        this.setupProduction(this.hub, boost, room);
     }
 
-    manageActiveLabs(room) {
+    manageActiveLabs(room, labs) {
         if (!room.memory.producingBoost || !this.hub) return;
 
-        // Sanity check for broken hub
+        // Sanity check — if hub labs lost their memory, abort cleanly
         for (const lab of this.hub) {
-            if (!lab.memory.itemNeeded) return this.stopProduction(room);
+            if (!lab.memory || !lab.memory.itemNeeded) {
+                this.stopProduction(room, 'Hub lab memory lost.');
+                return;
+            }
         }
 
-        // Visual feedback on what's being produced
-        this.hub[0].say(room.memory.producingBoost);
-
-        let secondaryLabs = room.impassibleStructures.filter(lab =>
-            !lab.cooldown && lab.structureType === STRUCTURE_LAB &&
+        const secondaryLabs = labs.filter(lab =>
+            !lab.cooldown &&
             !this.primaryLabs[room.name].includes(lab.id) &&
-            (!lab.memory.paused || lab.memory.neededBoost === room.memory.producingBoost) &&
-            (!lab.memory.neededBoost || lab.memory.neededBoost === room.memory.producingBoost) &&
+            (!lab.memory || !lab.memory.paused || lab.memory.neededBoost === room.memory.producingBoost) &&
+            (!lab.memory || !lab.memory.neededBoost || lab.memory.neededBoost === room.memory.producingBoost) &&
             (!lab.mineralType || lab.mineralType === room.memory.producingBoost)
         );
 
@@ -74,18 +78,22 @@ class LabManager {
         if (room.store(room.memory.producingBoost) > this.getProductionCutoff(room.memory.producingBoost)) {
             this.stopProduction(room, 'Boost cap reached.');
         } else if (productionTracker[this.room.name] && productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time) {
-            this.stopProduction(room, 'Production time exceeded.');
-        } else if (this.hub.some(lab => room.store(lab.memory.itemNeeded) < 50)) {
-            this.stopProduction(room, 'Not enough resources.');
+            this.stopProduction(room, 'Production stalled — time limit reached.');
+        } else if (this.hub.some(lab => !lab.memory || room.store(lab.memory.itemNeeded) < 50)) {
+            this.stopProduction(room, 'Input exhausted.');
         }
     }
 
     stopProduction(room, message) {
-        if (productionTracker[this.room.name]) log.a(`${roomLink(room.name)} is halting production of ${room.memory.producingBoost}. ${message || ''}`);
+        const boost = room.memory.producingBoost;
+        log.a(`${roomLink(room.name)} halting ${boost || 'production'}. ${message || ''}`);
         room.memory.producingBoost = undefined;
         this.primaryLabs[room.name] = undefined;
         goOverCap[this.room.name] = undefined;
-        this.hub.forEach(lab => lab.memory = undefined);
+        productionTracker[this.room.name] = undefined;
+        if (this.hub) this.hub.forEach(lab => {
+            lab.memory = undefined;
+        });
     }
 
     findBoostToProduce(room) {
@@ -147,20 +155,18 @@ class LabManager {
     }
 
     setupProduction(hub, boost, room) {
+        const components = BOOST_COMPONENTS[boost];
         hub.forEach((lab, i) => {
-            lab.memory = {
-                itemNeeded: BOOST_COMPONENTS[boost][i],
-                room: room.name
-            };
+            lab.memory = {itemNeeded: components[i], room: room.name};
         });
         room.memory.producingBoost = boost;
         productionTracker[this.room.name] = Game.time;
-        log.a(roomLink(room.name) + ' queued ' + boost + ' for creation.');
+        log.a(`${roomLink(room.name)} starting production of ${boost} (inputs: ${components.join(', ')})`);
     }
 
     cleanLabs(labs) {
         labs.forEach(lab => {
-            if (lab.memory.neededBoost) {
+            if (lab.memory && lab.memory.neededBoost) {
                 if (!lab.memory.requested || lab.memory.requested + 150 < Game.time || !Game.getObjectById(lab.memory.requestor)) {
                     lab.memory = undefined;
                 }
