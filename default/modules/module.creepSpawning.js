@@ -826,7 +826,7 @@ module.exports.globalCreepQueue = function () {
                     }
                     queueCreepIfNeeded({
                         role: 'drone',
-                        priority: rebuildPriority,
+                        priority: rebuildPriority + getCreepCount(undefined, 'drone', key),
                         numberNeeded: 6,
                         destination: key,
                         misc: {boosts: [WORK]}
