@@ -791,7 +791,13 @@ module.exports.globalCreepQueue = function () {
                 break;
 
             case 'claim':
-                queueCreepIfNeeded({role: 'claimer', priority: priority, numberNeeded: 1, destination: key});
+                queueCreepIfNeeded({
+                    role: 'claimer',
+                    priority: priority,
+                    numberNeeded: 1,
+                    destination: key,
+                    closestRoom: true
+                });
                 break;
 
             case 'rebuild':
