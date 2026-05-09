@@ -235,10 +235,12 @@ class RoleDrone {
             delete this.creep.memory.targetWallHits;
 
             const targetLimit = maintenance ? 300000000 : (this.room.memory.barrierHitsTarget || 100000);
-            const barrierStructures = this.room.structures.filter(s =>
-                (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) &&
-                s.hits < targetLimit
-            );
+            const quadTrapWalls = new Set((this.room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
+            const barrierStructures = this.room.structures.filter(s => {
+                if (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL) return false;
+                const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : targetLimit;
+                return s.hits < cap;
+            });
 
             if (!barrierStructures.length || !this.room.controller || !this.room.controller.my) return false;
 
