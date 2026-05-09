@@ -959,127 +959,80 @@ function findHub(room, hubCheck = undefined) {
         return true;
     }
 
-    // Destroy all non-ally structures
-    if (room.structures.length) {
-        _.forEach(room.structures, (s) => {
-            if (!s.owner || s.owner.username !== MY_USERNAME) {
-                s.destroy();
-            }
+    // hubCheck is a read-only probe for expansion scoring — never modify the room
+    if (!hubCheck) {
+        // Destroy non-owned structures so the room is clear for the new layout
+        room.structures.forEach(s => {
+            if (!s.owner || s.owner.username !== MY_USERNAME) s.destroy();
         });
-    }
 
-    let spawns = _.filter(room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.name !== 'auto');
-    let foundOldHub = false;
-    // Try to find the old spot
-    if (room.terminal) {
-        room.memory.bunkerHub = {x: room.terminal.pos.x + 1, y: room.terminal.pos.y};
-        foundOldHub = true;
-    } else if (room.storage) {
-        room.memory.bunkerHub = {x: room.storage.pos.x - 1, y: room.storage.pos.y};
-        foundOldHub = true;
-    } else if (spawns.length) {
-        room.memory.bunkerHub = {x: spawns[0].pos.x + 1, y: spawns[0].pos.y + 1};
-        foundOldHub = true;
-    }
-    if (foundOldHub) {
-        log.a('Bunker Hub search complete for ' + room.name + '...');
-        log.a('Using existing spawn as hub.');
-        return true;
-    }
-
-    // Initialize stored data for positions if not set
-    if (!storedPos[room.name]) storedPos[room.name] = {x: 9, y: 10};
-    if (!storedPossibles[room.name]) storedPossibles[room.name] = {};
-
-    let x = storedPos[room.name].x;
-    let y = storedPos[room.name].y;
-    let complete = false;
-    let possiblePos = storedPossibles[room.name];
-    let posCount = 0;
-
-    // Loop to search for a suitable hub position
-    primary:
-        for (let i = 1; i < 1000; i++) {
-            x++;
-            if (x > 40 && y >= 40) {
-                complete = true;
-                break;
-            } else if (x > 40) {
-                x = 10;
-                y++;
-            }
-
-            storedPos[room.name] = {x, y};
-            let pos = new RoomPosition(x, y, room.name);
-
-            if (pos.checkForImpassible()) continue;
-
-            // Validate the position against all possible bunker layout positions
-            if (!isValidHubPosition(pos, room)) continue primary;
-
-            if (hubCheck) return true;  // Early exit for specific checks
-
-            possiblePos[posCount++] = {x: pos.x, y: pos.y};
-            storedPossibles[room.name] = possiblePos;
-        }
-
-    if (complete) {
-        if (_.size(possiblePos)) {
-            log.a('Bunker Hub search complete for ' + room.name + '...');
-            log.a('Final possible count: ' + _.size(possiblePos));
-            // Score by proximity to sources and controller; prefer room center over random
-            let choice = _.min(possiblePos, p => {
-                const pos = new RoomPosition(p.x, p.y, room.name);
-                const sourceDist = pos.getRangeTo(pos.findClosestByRange(FIND_SOURCES)) * 2;
-                const controllerDist = pos.getRangeTo(room.controller) * 1.5;
-                const edgeBonus = Math.min(p.x, 49 - p.x, p.y, 49 - p.y) * 0.3;
-                return sourceDist + controllerDist - edgeBonus;
-            });
-            room.memory.bunkerHub = {x: choice.x, y: choice.y};
-            log.a(`Hub at (${choice.x}, ${choice.y}) in ${room.name}`);
-            storedPos[room.name] = undefined;
-            storedPossibles[room.name] = undefined;
+        // Recover hub from already-placed key structures (respects dynamic layout too)
+        const spawn = room.impassibleStructures.find(s => s.my && s.structureType === STRUCTURE_SPAWN && s.name !== 'auto');
+        if (room.terminal) {
+            room.memory.bunkerHub = {x: room.terminal.pos.x + 1, y: room.terminal.pos.y};
+            log.a(`${room.name} hub recovered from terminal.`);
             return true;
-        } else {
-            handleNoValidPosition(room, hubCheck);
+        } else if (room.storage) {
+            room.memory.bunkerHub = {x: room.storage.pos.x - 1, y: room.storage.pos.y};
+            log.a(`${room.name} hub recovered from storage.`);
+            return true;
+        } else if (spawn) {
+            room.memory.bunkerHub = {x: spawn.pos.x + 1, y: spawn.pos.y + 1};
+            log.a(`${room.name} hub recovered from spawn.`);
+            return true;
         }
-    } else {
-        if (hubCheck) return false;
-        log.a('Bunker Hub search incomplete for ' + room.name + ', continuing next tick.');
-        log.a('Current position: ' + storedPos[room.name].x + ',' + storedPos[room.name].y);
-        log.a('Current possible count: ' + _.size(possiblePos));
     }
 
-    return false;
+    // Pre-cache source positions to avoid per-tile API calls inside the validation loop
+    const sources = room.find(FIND_SOURCES);
 
-    function isValidHubPosition(pos, room) {
-        for (let type of bunkerTemplate) {
-            for (let s of type.pos) {
-                let structurePos = new RoomPosition(pos.x + s.x, pos.y + s.y, room.name);
-                if (isOutOfBounds(structurePos) || !isPositionValidForHub(structurePos, room)) {
-                    return false;
-                }
+    const possiblePos = [];
+
+    primary:
+        for (let y = 10; y <= 40; y++) {
+            for (let x = 10; x <= 40; x++) {
+                const pos = new RoomPosition(x, y, room.name);
+            if (pos.checkForImpassible()) continue;
+                if (!isValidHubPosition(pos, room, sources)) continue primary;
+                if (hubCheck) return true;
+                possiblePos.push({x, y});
+            }
+        }
+
+    if (possiblePos.length) {
+        log.a(`${room.name} hub search complete — ${possiblePos.length} candidates`);
+        const choice = _.min(possiblePos, p => {
+            const pos = new RoomPosition(p.x, p.y, room.name);
+            const sourceDist = pos.getRangeTo(_.min(sources, s => pos.getRangeTo(s))) * 2;
+            const controllerDist = pos.getRangeTo(room.controller) * 1.5;
+            const edgeBonus = Math.min(p.x, 49 - p.x, p.y, 49 - p.y) * 0.3;
+            return sourceDist + controllerDist - edgeBonus;
+        });
+        room.memory.bunkerHub = {x: choice.x, y: choice.y};
+        log.a(`Hub at (${choice.x}, ${choice.y}) in ${room.name}`);
+        return true;
+    } else {
+        return handleNoValidPosition(room, hubCheck);
+    }
+
+    function isValidHubPosition(pos, room, sources) {
+        for (const type of bunkerTemplate) {
+            for (const s of type.pos) {
+                const sp = new RoomPosition(pos.x + s.x, pos.y + s.y, room.name);
+                if (sp.x < 1 || sp.x > 48 || sp.y < 1 || sp.y > 48) return false;
+                if (sp.checkForImpassible()) return false;
+                if (sp.isNearTo(room.controller)) return false;
+                if (sources.some(src => sp.isNearTo(src))) return false;
             }
         }
         return true;
-    }
-
-    function isOutOfBounds(pos) {
-        return pos.x > 49 || pos.x < 1 || pos.y > 49 || pos.y < 1;
-    }
-
-    function isPositionValidForHub(pos, room) {
-        let closestSource = pos.findClosestByRange(FIND_SOURCES);
-        return !(pos.checkIfOutOfBounds() || pos.isNearTo(room.controller) || pos.isNearTo(closestSource) || pos.checkForImpassible());
     }
 
     function handleNoValidPosition(room, hubCheck) {
-        if (hubCheck) return undefined;
-        storedPos[room.name] = undefined;
-        storedPossibles[room.name] = undefined;
-        // Try compact core + dynamic extensions before abandoning
+        if (hubCheck) return false;
         if (findCoreHub(room)) return true;
-        return log.a(room.name + ' has been abandoned due to being unable to find a suitable layout.');
+        log.a(room.name + ' has been abandoned due to being unable to find a suitable layout.');
+        return false;
     }
 }
 
@@ -1504,7 +1457,7 @@ function generateExtensionPositions(room) {
     const positions = [], visited = new Set([`${hub.x},${hub.y}`]);
     const queue = [{x: hub.x, y: hub.y}];
     const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
-    while (queue.length && positions.length < 80) {
+    while (queue.length && positions.length < 100) {
         const {x, y} = queue.shift();
         for (const [dx, dy] of dirs) {
             const nx = x + dx, ny = y + dy, key = `${nx},${ny}`;
@@ -1512,6 +1465,9 @@ function generateExtensionPositions(room) {
             visited.add(key);
             queue.push({x: nx, y: ny});
             if (excluded.has(key)) continue;
+            // Checkerboard: only use even-parity tiles so every extension is surrounded by
+            // non-extension tiles on all 4 cardinal directions — guarantees no pathing blockage
+            if ((nx + ny) % 2 !== 0) continue;
             const pos = new RoomPosition(nx, ny, room.name);
             if (pos.checkForWall() || pos.checkForImpassible()) continue;
             if (pos.isNearTo(room.controller)) continue;
