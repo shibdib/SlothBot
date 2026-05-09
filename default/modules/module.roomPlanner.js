@@ -76,11 +76,15 @@ function getStructureCounts(room) {
 
 function buildMissingStructures(room, level) {
     const existingCounts = getStructureCounts(room);
-    const countCheck = bunkerTemplate.filter(s =>
-        ![STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD].includes(s.structureType) &&
+    const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
+    const skipTypes = [STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD];
+    if (room.memory.dynamicLayout) skipTypes.push(STRUCTURE_EXTENSION); // extensions placed separately
+    const countCheck = tmpl.filter(s =>
+        !skipTypes.includes(s.structureType) &&
         CONTROLLER_STRUCTURES[s.structureType][level] > (existingCounts[s.structureType] || 0)
     );
     if (countCheck && countCheck.length) buildFromLayout(room, countCheck);
+    if (room.memory.dynamicLayout) placeExtensionsDynamically(room);
 }
 
 function buildAuxiliaryStructures(room) {
@@ -95,16 +99,28 @@ function buildFromLayout(room, countCheck) {
     const roomSpawn = room.impassibleStructures.find(s => s.structureType === STRUCTURE_SPAWN && s.my);
     let filter = [];
 
+    const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
     if (room.controller.level === 1 && !initialSpawn) {
-        filter = bunkerTemplate.filter(s => s.structureType === STRUCTURE_SPAWN);
+        filter = tmpl.filter(s => s.structureType === STRUCTURE_SPAWN);
     } else if (room.controller.level >= 5 && (room.safemode || (INTEL[room.name].lastMajorAttack + (CREEP_LIFE_TIME * 2) > Game.time))) {
         room.constructionSites.filter(s => ![STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL, STRUCTURE_RAMPART, STRUCTURE_WALL].includes(s.structureType) && !s.progress).forEach(s => s.remove());
-        filter = bunkerTemplate.filter(s => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType));
-        rampartBuilder(room, bunkerTemplate);
+        filter = tmpl.filter(s => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType));
+        rampartBuilder(room, tmpl);
     } else if ((TOWER_FIRST && !roomTower && MY_ROOMS.length > 1) || (room.controller.level >= 3 && !roomTower)) {
+        if (room.memory.dynamicLayout) {
+            // Place towers at the standard offsets wherever they fit
+            for (const {x, y} of dynamicTowerOffsets) {
+                const pos = new RoomPosition(hub.x + x, hub.y + y, room.name);
+                if (!pos.checkForImpassible() && !pos.checkForAllStructure() && !pos.checkForConstructionSites()) {
+                    pos.createConstructionSite(STRUCTURE_TOWER);
+                    break;
+                }
+            }
+            return;
+        }
         filter = bunkerTemplate.filter(s => s.structureType === STRUCTURE_TOWER);
     } else if (!roomSpawn) {
-        const spawnPos = bunkerTemplate.filter(s => s.structureType === STRUCTURE_SPAWN)[0].pos[0];
+        const spawnPos = tmpl.filter(s => s.structureType === STRUCTURE_SPAWN)[0].pos[0];
         const pos = new RoomPosition(hub.x + spawnPos.x, hub.y + spawnPos.y, room.name);
         if (!pos.checkForRampart()) pos.createConstructionSite(STRUCTURE_RAMPART); else if (pos.checkForRampart().hits >= 10000) pos.createConstructionSite(STRUCTURE_SPAWN);
         return;
@@ -139,11 +155,12 @@ function auxiliaryBuilding(room) {
     // Build necessary structures for sources, controller, ramparts, roads, etc.
     if (sourceBuilder(room)) return;
     if (controllerBuilder(room)) return;
-    if (rampartBuilder(room, bunkerTemplate)) return;
+    const layoutForAux = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
+    if (rampartBuilder(room, layoutForAux)) return;
 
     // Handle hub and lab constructions
     if (room.storage) {
-        if (buildRoads(room, bunkerTemplate)) return;
+        if (buildRoads(room, room.memory.dynamicLayout ? null : bunkerTemplate)) return;
         if (linkBuilder(room)) return true;
         if (room.level >= 6) {
             mineralBuilder(room);
@@ -1002,8 +1019,16 @@ function findHub(room, hubCheck = undefined) {
         if (_.size(possiblePos)) {
             log.a('Bunker Hub search complete for ' + room.name + '...');
             log.a('Final possible count: ' + _.size(possiblePos));
-            let choice = _.sample(possiblePos);
+            // Score by proximity to sources and controller; prefer room center over random
+            let choice = _.min(possiblePos, p => {
+                const pos = new RoomPosition(p.x, p.y, room.name);
+                const sourceDist = pos.getRangeTo(pos.findClosestByRange(FIND_SOURCES)) * 2;
+                const controllerDist = pos.getRangeTo(room.controller) * 1.5;
+                const edgeBonus = Math.min(p.x, 49 - p.x, p.y, 49 - p.y) * 0.3;
+                return sourceDist + controllerDist - edgeBonus;
+            });
             room.memory.bunkerHub = {x: choice.x, y: choice.y};
+            log.a(`Hub at (${choice.x}, ${choice.y}) in ${room.name}`);
             storedPos[room.name] = undefined;
             storedPossibles[room.name] = undefined;
             return true;
@@ -1042,9 +1067,10 @@ function findHub(room, hubCheck = undefined) {
 
     function handleNoValidPosition(room, hubCheck) {
         if (hubCheck) return undefined;
-        //abandonRoom(room);
         storedPos[room.name] = undefined;
         storedPossibles[room.name] = undefined;
+        // Try compact core + dynamic extensions before abandoning
+        if (findCoreHub(room)) return true;
         return log.a(room.name + ' has been abandoned due to being unable to find a suitable layout.');
     }
 }
@@ -1361,3 +1387,106 @@ let labTemplate = [{"x": 0, "y": 0}, {"x": 0, "y": 1}, {"x": 1, "y": 0}, {"x": -
     "x": 1,
     "y": -1
 }, {"x": 1, "y": 1}, {"x": 0, "y": 2}, {"x": -1, "y": 1}, {"x": -1, "y": 2}];
+
+// Compact core used when the full bunker template cannot fit.
+// No extensions or towers — those are placed dynamically.
+const coreTemplate = [
+    {structureType: STRUCTURE_SPAWN, pos: [{x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: -1}]},
+    {structureType: STRUCTURE_OBSERVER, pos: [{x: 0, y: 0}]},
+    {structureType: STRUCTURE_TERMINAL, pos: [{x: -1, y: 0}]},
+    {structureType: STRUCTURE_STORAGE, pos: [{x: 1, y: 0}]},
+    {structureType: STRUCTURE_POWER_SPAWN, pos: [{x: -1, y: 1}]},
+    {structureType: STRUCTURE_NUKER, pos: [{x: 1, y: 1}]},
+    {structureType: STRUCTURE_FACTORY, pos: [{x: 0, y: 2}]},
+];
+
+// Tower offsets to try when placing towers in dynamic layout mode (same as full template)
+const dynamicTowerOffsets = [{x: 0, y: -5}, {x: 0, y: 5}, {x: 5, y: -3}, {x: -5, y: -3}, {x: 5, y: 3}, {x: -5, y: 3}];
+
+function isCoreHubTileValid(pos, room) {
+    if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) return false;
+    const src = pos.findClosestByRange(FIND_SOURCES);
+    return !pos.checkForImpassible() && !pos.isNearTo(room.controller) && !(src && pos.isNearTo(src));
+}
+
+// Scans every position in the room for a valid core hub, scores by source/controller proximity
+function findCoreHub(room) {
+    let bestPos = null, bestScore = Infinity;
+    for (let x = 3; x <= 46; x++) {
+        for (let y = 3; y <= 46; y++) {
+            const hub = new RoomPosition(x, y, room.name);
+            if (hub.checkForImpassible()) continue;
+            let valid = true;
+            outer: for (const entry of coreTemplate) {
+                for (const {x: dx, y: dy} of entry.pos) {
+                    if (!isCoreHubTileValid(new RoomPosition(x + dx, y + dy, room.name), room)) {
+                        valid = false;
+                        break outer;
+                    }
+                }
+            }
+            if (!valid) continue;
+            const src = hub.findClosestByRange(FIND_SOURCES);
+            const sourceDist = src ? hub.getRangeTo(src) * 2 : 0;
+            const controllerDist = hub.getRangeTo(room.controller) * 1.5;
+            const edgeBonus = Math.min(x, 49 - x, y, 49 - y) * 0.3;
+            const score = sourceDist + controllerDist - edgeBonus;
+            if (score < bestScore) {
+                bestScore = score;
+                bestPos = {x, y};
+            }
+        }
+    }
+    if (!bestPos) return false;
+    room.memory.bunkerHub = bestPos;
+    room.memory.dynamicLayout = true;
+    log.a(`${room.name} cannot fit full bunker — using dynamic layout at (${bestPos.x}, ${bestPos.y})`);
+    return true;
+}
+
+// BFS outward from hub, stores up to 80 walkable non-special positions for extension placement.
+// Stored once in room.memory.dynamicExtensions and reused on subsequent ticks.
+function generateExtensionPositions(room) {
+    const hub = room.hub;
+    const excluded = new Set([`${hub.x},${hub.y}`]);
+    for (const entry of coreTemplate) {
+        for (const {x, y} of entry.pos) excluded.add(`${hub.x + x},${hub.y + y}`);
+    }
+    const positions = [], visited = new Set([`${hub.x},${hub.y}`]);
+    const queue = [{x: hub.x, y: hub.y}];
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+    while (queue.length && positions.length < 80) {
+        const {x, y} = queue.shift();
+        for (const [dx, dy] of dirs) {
+            const nx = x + dx, ny = y + dy, key = `${nx},${ny}`;
+            if (visited.has(key) || nx < 2 || nx > 47 || ny < 2 || ny > 47) continue;
+            visited.add(key);
+            queue.push({x: nx, y: ny});
+            if (excluded.has(key)) continue;
+            const pos = new RoomPosition(nx, ny, room.name);
+            if (pos.checkForWall() || pos.checkForImpassible()) continue;
+            if (pos.isNearTo(room.controller)) continue;
+            const src = pos.findClosestByRange(FIND_SOURCES);
+            if (src && pos.isNearTo(src)) continue;
+            positions.push({x: nx, y: ny});
+        }
+    }
+    room.memory.dynamicExtensions = positions;
+    log.a(`${room.name} generated ${positions.length} dynamic extension positions`);
+}
+
+function placeExtensionsDynamically(room) {
+    if (!room.memory.dynamicExtensions) generateExtensionPositions(room);
+    const needed = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.level];
+    const existing = room.structures.filter(s => s.structureType === STRUCTURE_EXTENSION).length +
+        room.constructionSites.filter(s => s.structureType === STRUCTURE_EXTENSION).length;
+    if (existing >= needed) return false;
+    for (const {x, y} of room.memory.dynamicExtensions) {
+        const pos = new RoomPosition(x, y, room.name);
+        if (!pos.checkForAllStructure() && !pos.checkForConstructionSites()) {
+            pos.createConstructionSite(STRUCTURE_EXTENSION);
+            return true;
+        }
+    }
+    return false;
+}
