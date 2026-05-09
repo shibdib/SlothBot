@@ -819,6 +819,26 @@ Creep.prototype.builderFunction = function () {
     } else { // Building task
         this.say('Build!', true);
         construction.say(construction.progress + '/' + construction.progressTotal);
+
+        // Handoff: if another drone is already at this site and the job is large enough
+        // to warrant multiple trips, give them our energy so they build continuously
+        // while we refill — more effective than both building at half-efficiency.
+        const remaining = construction.progressTotal - construction.progress;
+        if (remaining > this.store[RESOURCE_ENERGY] && this.pos.getRangeTo(construction) <= 3) {
+            const activeBuilder = this.pos.findInRange(FIND_MY_CREEPS, 1).find(c =>
+                c.id !== this.id &&
+                c.memory.constructionSite === construction.id &&
+                c.store.getFreeCapacity(RESOURCE_ENERGY) > 0
+            );
+            if (activeBuilder) {
+                this.transfer(activeBuilder, RESOURCE_ENERGY);
+                this.memory.constructionSite = undefined;
+                this.memory.task = undefined;
+                this.memory.working = undefined;
+                return false;
+            }
+        }
+
         switch (this.build(construction)) {
             case OK:
                 if (this.pos.isNearTo(this.pos.findClosestByRange(FIND_SOURCES))) this.moveRandom();

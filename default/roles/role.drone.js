@@ -134,10 +134,11 @@ class RoleDrone {
             const sources = this.room.sources;
 
             // Re-evaluate source if: none assigned, current is empty while another has energy,
-            // or current is overcrowded while a less-crowded alternative exists, or periodic recheck
+            // or periodic recheck while still traveling (don't interrupt active harvesting)
+            const activelyHarvesting = source && source.energy > 0 && this.creep.pos.isNearTo(source);
             const needsReeval = !source
                 || (source.energy === 0 && sources.some(s => s.energy > 0))
-                || Game.time % 25 === 0;
+                || (!activelyHarvesting && Game.time % 25 === 0);
 
             if (needsReeval) {
                 source = selectBestDroneSource(this.creep, sources);
