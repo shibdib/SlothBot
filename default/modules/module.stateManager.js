@@ -90,8 +90,7 @@ class StateManager {
         const hasSpawn = room.impassibleStructures.some(s => s.structureType === STRUCTURE_SPAWN);
         const missingStorage = room.level >= 4 && !room.storage;
         const missingTerminal = room.level >= 6 && !room.terminal;
-        const levelBehind = room.level < room.controller.level - 1;
-        room.memory.buildersNeeded = !hasSpawn || missingStorage || missingTerminal || levelBehind || room.downgraded;
+        room.memory.buildersNeeded = !hasSpawn || missingStorage || missingTerminal || room.downgraded;
     }
 
     funnelRequest(room) {
