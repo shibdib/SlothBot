@@ -707,6 +707,11 @@ function manageAuxiliary() {
                     delete Memory.auxiliaryTargets[key];
                     continue;
                 }
+                if (Game.rooms[key] && !Game.rooms[key].memory.buildersNeeded) {
+                    log.a('Canceling rebuild operation in ' + roomLink(key) + ' — room is rebuilt.', 'HIGH COMMAND: ');
+                    delete Memory.auxiliaryTargets[key];
+                    continue;
+                }
                 break;
 
             case 'commodity':

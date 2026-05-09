@@ -87,25 +87,11 @@ class StateManager {
     }
 
     requestBuilders(room) {
-        const impassibleStructures = room.impassibleStructures || [];
-        let hasSpawn = false;
-        let hasTower = false;
-
-        // Iterate once over the impassible structures and check for spawns and towers
-        for (let structure of impassibleStructures) {
-            if (structure.structureType === STRUCTURE_SPAWN) {
-                hasSpawn = true;
-            } else if (structure.structureType === STRUCTURE_TOWER) {
-                hasTower = true;
-            }
-
-            // Early exit if both spawns and towers are found
-            if (hasSpawn && hasTower) {
-                break;
-            }
-        }
-
-        room.memory.buildersNeeded = !hasSpawn || !hasTower || room.level < room.controller.level - 1;
+        const hasSpawn = room.impassibleStructures.some(s => s.structureType === STRUCTURE_SPAWN);
+        const missingStorage = room.level >= 4 && !room.storage;
+        const missingTerminal = room.level >= 6 && !room.terminal;
+        const levelBehind = room.level < room.controller.level - 1;
+        room.memory.buildersNeeded = !hasSpawn || missingStorage || missingTerminal || levelBehind || room.downgraded;
     }
 
     funnelRequest(room) {
