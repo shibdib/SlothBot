@@ -122,6 +122,9 @@ class TerminalControl {
             let stored = terminal.room.store(mineral) + (terminal.room.store(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
             let buyAmount = Math.min(target - stored, REACTION_AMOUNT);
 
+            // Don't buy from the market if other rooms have enough to route here
+            if (stored < target && getResourceTotal(mineral) >= target) continue;
+
             if (stored < target && buyAmount > 0) {
                 let price;
 
