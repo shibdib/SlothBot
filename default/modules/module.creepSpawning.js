@@ -802,9 +802,21 @@ module.exports.globalCreepQueue = function () {
 
             case 'rebuild':
                 if (!INTEL[key] || !INTEL[key].lastPlayerSighting || INTEL[key].lastPlayerSighting + 750 < Game.time || INTEL[key].safemode) {
+                    const rebuildRoom = Game.rooms[key];
+                    let rebuildPriority = 2; // Default: moderately urgent
+                    if (rebuildRoom) {
+                        const hasSpawn = rebuildRoom.impassibleStructures.some(s => s.structureType === STRUCTURE_SPAWN);
+                        if (!hasSpawn) {
+                            rebuildPriority = 1; // Critical — no spawn, room cannot function
+                        } else if (rebuildRoom.storage && rebuildRoom.terminal) {
+                            rebuildPriority = PRIORITIES.drone; // Mostly functional, low urgency
+                        } else {
+                            rebuildPriority = 3; // Has spawn but missing economy structures
+                        }
+                    }
                     queueCreepIfNeeded({
                         role: 'drone',
-                        priority: 1,
+                        priority: rebuildPriority,
                         numberNeeded: 6,
                         destination: key,
                         misc: {boosts: [WORK]}
