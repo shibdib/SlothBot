@@ -8,6 +8,7 @@
 const minCut = require('util.minCut')
 const tickTracker = {};
 const linkTracker = {};
+const extensionPositionCache = {}; // module-level — never hits Memory serialization
 
 module.exports.buildRoom = function () {
     if (!shouldRunAtAll()) return;
@@ -1176,7 +1177,7 @@ function findLabHub(room) {
 function buildTowersFromHubs(room) {
     const hubs = room.memory.towerHubs;
     if (!hubs || !hubs.length) return false;
-    const allowed = CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.level];
+    const allowed = CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level];
     const current = room.structures.filter(s => s.structureType === STRUCTURE_TOWER).length +
         room.constructionSites.filter(s => s.structureType === STRUCTURE_TOWER).length;
     if (current >= allowed) return false;
@@ -1478,8 +1479,22 @@ function findCoreHub(room) {
     return true;
 }
 
-// BFS outward from hub, stores up to 80 walkable non-special positions for extension placement.
-// Stored once in room.memory.dynamicExtensions and reused on subsequent ticks.
+// Returns the cached extension position list, loading from Memory or generating if needed.
+// Positions stored in Memory as packed integers (x + y*50) — 3× smaller than {x,y} objects.
+// Module cache avoids per-tick Memory deserialization.
+function getExtensionPositions(room) {
+    if (extensionPositionCache[room.name]) return extensionPositionCache[room.name];
+    // Warm the module cache from Memory after a global reset
+    if (room.memory.dynamicExtensionsPacked) {
+        extensionPositionCache[room.name] = room.memory.dynamicExtensionsPacked.map(n => ({
+            x: n % 50,
+            y: Math.floor(n / 50)
+        }));
+        return extensionPositionCache[room.name];
+    }
+    return generateExtensionPositions(room);
+}
+
 function generateExtensionPositions(room) {
     const hub = room.hub;
     const excluded = new Set([`${hub.x},${hub.y}`]);
@@ -1505,22 +1520,28 @@ function generateExtensionPositions(room) {
             positions.push({x: nx, y: ny});
         }
     }
-    room.memory.dynamicExtensions = positions;
+    extensionPositionCache[room.name] = positions;
+    room.memory.dynamicExtensionsPacked = positions.map(p => p.x + p.y * 50);
+    if (room.memory.dynamicExtensions) room.memory.dynamicExtensions = undefined; // clean up old format
     log.a(`${room.name} generated ${positions.length} dynamic extension positions`);
+    return positions;
 }
 
 function placeExtensionsDynamically(room) {
-    if (!room.memory.dynamicExtensions) generateExtensionPositions(room);
-    const needed = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.level];
+    const positions = getExtensionPositions(room);
+    const needed = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.controller.level];
     const existing = room.structures.filter(s => s.structureType === STRUCTURE_EXTENSION).length +
         room.constructionSites.filter(s => s.structureType === STRUCTURE_EXTENSION).length;
+    console.log(room.name)
     if (existing >= needed) return false;
-    for (const {x, y} of room.memory.dynamicExtensions) {
-        const pos = new RoomPosition(x, y, room.name);
-        if (!pos.checkForAllStructure() && !pos.checkForConstructionSites()) {
-            pos.createConstructionSite(STRUCTURE_EXTENSION);
-            return true;
-        }
+    console.log(room.name, 1)
+    for (const {x, y} of positions) {
+        const result = new RoomPosition(x, y, room.name).createConstructionSite(STRUCTURE_EXTENSION);
+
+        console.log(room.name, result)
+        if (result === OK) return true;
+        if (result === ERR_FULL) return false;
+        if (result === ERR_RCL_NOT_ENOUGH) return false;
     }
     return false;
 }
