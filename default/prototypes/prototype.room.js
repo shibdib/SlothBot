@@ -150,7 +150,7 @@ Object.defineProperty(Room.prototype, 'energyState', {
         const upgradeCost = this.level === 8 ? 250000 : constructionCost(this.controller.level + 1) - constructionCost(this.controller.level);
         const progressFraction = this.controller.progress / this.controller.progressTotal;
         let target = this.level === 8 ? 250000 : Math.max(this.level * 10000, Math.min(Math.round(upgradeCost * progressFraction), STORAGE_CAPACITY * 0.5));
-        if (energy > target * 1.5 || (!this.storage && !this.terminal && this.controller.level < 4)) {
+        if (energy > target * 1.5 || (!this.storage && !this.terminal && this.level < 4)) {
             this._energyState = 3;
         } else if (energy >= target) {
             this._energyState = 2;
@@ -523,6 +523,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         if (this.sources.length && roomIntel.remoteRoom && (!ROOM_REMOTE_TARGETS[roomIntel.remoteRoom] || !ROOM_REMOTE_TARGETS[roomIntel.remoteRoom].find(s => s.room === this.name))) {
             let lowestScore;
             let lowestRoom = roomIntel.remoteRoom[0];
+            if (!roomIntel.remoteSourceData) roomIntel.remoteSourceData = [];
             for (const source of this.sources) {
                 for (const room of roomIntel.remoteRoom) {
                     if (!MY_ROOMS.includes(room)) continue;
@@ -532,7 +533,16 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
                         lowestRoom = room;
                     }
                 }
-                if (lowestScore) updateRemoteSourceData(this, lowestRoom, source, lowestScore);
+                if (lowestScore) {
+                    updateRemoteSourceData(this, lowestRoom, source, lowestScore);
+                    // Persist source data in INTEL so ROOM_REMOTE_TARGETS can be reconstructed
+                    // after a global reset without needing a room visit.
+                    const existing = roomIntel.remoteSourceData.find(s => s.source === source.id);
+                    if (existing) {
+                        existing.colony = lowestRoom;
+                        existing.score = lowestScore;
+                    } else roomIntel.remoteSourceData.push({colony: lowestRoom, source: source.id, score: lowestScore});
+                }
             }
             if (INTEL[roomIntel.remoteRoom]) INTEL[roomIntel.remoteRoom].refreshRemotes = true;
             roomIntel.activeRemote = Game.time;
