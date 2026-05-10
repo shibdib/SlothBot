@@ -30,8 +30,8 @@ class RoleCommodityMiner {
         // Boosting
         if (this.creep.tryToBoost()) return true;
 
-        // If unsafe return home
-        if (this.creep.skSafety()) return true;
+        // SK Safety - Throttled
+        if ((this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk)) && this.creep.skSafety()) return true;
 
         // Set dropoff
         this.creep.memory.closestRoom = this.creep.memory.closestRoom || findClosestOwnedRoom(this.room.name, false, 4) || this.creep.memory.colony;

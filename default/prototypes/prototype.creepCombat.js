@@ -546,7 +546,7 @@ Creep.prototype.fleeHome = function (force = false) {
     if (!force && !this.memory.runCooldown && (this.hits === this.hitsMax || (!INTEL[this.room.name].lastCombat || INTEL[this.room.name].lastCombat + 10 < Game.time))) return false;
     if (!this.memory.ranFrom) this.memory.ranFrom = this.room.name;
     let cooldown = this.memory.runCooldown;
-    let closest = this.memory.fleeDestination || findClosestOwnedRoom(this.room.name, false, 3, true);
+    let closest = this.memory.fleeDestination || findClosestOwnedRoom(this.room.name, false, 3, false);
     if (!closest) return false;
     this.memory.fleeDestination = closest;
     if (this.room.name !== closest) {

@@ -152,7 +152,7 @@ Creep.prototype.skSafety = function () {
     }
     // Check if creep is damaged or if there are armed enemies nearby
     const armedEnemies = this.room.hostileCreeps.find(c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
-    if (this.hits < this.hitsMax || (armedEnemies && this.pos.getRangeTo(this.pos.findClosestByRange(armedEnemies)) <= 7)) {
+    if (this.hits < this.hitsMax * 0.5 && armedEnemies && this.pos.getRangeTo(this.pos.findClosestByRange(armedEnemies)) <= 4) {
         this.fleeHome(true);
         return true;
     }
