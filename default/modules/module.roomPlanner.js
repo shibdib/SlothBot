@@ -750,7 +750,7 @@ function roadBuilder(room, layout) {
     if (room.level >= BUNKER_LEVEL && buildRoadsForRamparts(room)) return true;
 
     // Handle redundant roads
-    // removeRedundantRoads(room, layout);
+    removeRedundantRoads(room, layout);
 
     function buildRoadToNeighborExits(spawn, room) {
         let neighboring = Game.map.describeExits(spawn.pos.roomName);
@@ -909,33 +909,35 @@ function roadBuilder(room, layout) {
         }
     }
 
-    function findRedundantRoads(room, layout) {
-        const roads = room.structures.filter(s => s.structureType === STRUCTURE_ROAD);
-        let roadStructures = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD);
-        let allPositions = [].concat(...roadStructures.map(s => s.pos));
-        const protectedPositions = allPositions.map(structure =>
-            new RoomPosition(room.hub.x + structure.x, room.hub.y + structure.y, room.name)
-        );
-        const redundant = [];
-        for (const road of roads) {
-            if (protectedPositions.some(pos => pos.isEqualTo(road.pos))) continue;
-            if (road.pos.checkForRampart()) continue;
-            if (redundant.length >= 5) return redundant;
-            const area = room.lookAtArea(road.pos.y - 1, road.pos.x - 1, road.pos.y + 1, road.pos.x + 1, true);
-            const nearbyRoads = area.filter(obj => obj.type === 'structure' && obj.structure.structureType === STRUCTURE_ROAD);
-            if (nearbyRoads.length >= 4) { // 3 neighbors + itself
-                redundant.push(road);
+    function removeRedundantRoads(room, layout) {
+        const needed = new Set();
+
+        // Layout roads
+        const roadStructures = _.filter(layout, s => s.structureType === STRUCTURE_ROAD);
+        for (const s of [].concat(...roadStructures.map(r => r.pos))) {
+            needed.add(`${room.hub.x + s.x}x${room.hub.y + s.y}`);
+        }
+
+        // All positions from cached paths (sources, controller, exits, towers, labs, ramparts)
+        const cache = ROAD_CACHE[room.name];
+        if (cache) {
+            for (const key in cache) {
+                for (const point of JSON.parse(cache[key].path)) {
+                    needed.add(`${point.x}x${point.y}`);
+                }
             }
         }
-        return redundant;
-    }
 
-    function removeRedundantRoads(room) {
-        const targets = findRedundantRoads(room);
-        if (targets.length) ROAD_CACHE[room.name] = undefined;
-        for (const road of targets) {
-            road.destroy();
+        const roads = room.structures.filter(s => s.structureType === STRUCTURE_ROAD);
+        let removed = false;
+        for (const road of roads) {
+            if (road.pos.checkForRampart()) continue;
+            if (!needed.has(`${road.pos.x}x${road.pos.y}`)) {
+                road.destroy();
+                removed = true;
+            }
         }
+        if (removed) ROAD_CACHE[room.name] = undefined;
     }
 }
 

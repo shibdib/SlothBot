@@ -151,15 +151,17 @@ class ModuleBodyGenerator {
                 if (INTEL[this.room.name].roadsBuilt) halfMove = true;
                 break;
 
-            case 'hauler':
-                carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + (INTEL[this.room.name].roadsBuilt ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE]))) || 1;
+            case 'hauler': {
+                const roadsBuilt = INTEL[this.room.name].roadsBuilt && !this.room.memory.dynamicLayout;
+                carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + (roadsBuilt ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE]))) || 1;
                 carry = Math.min(carry, this.room.level >= 6 ? this.room.level * 2 : this.room.level * 4); // Scale with room level, halved at RCL6+ for dual hauler coverage
 
-                if (INTEL[this.room.name].roadsBuilt) halfMove = true;
+                if (roadsBuilt) halfMove = true;
                 break;
+            }
 
             case 'shuttle': {
-                const roadsBuilt = INTEL[this.room.name].roadsBuilt;
+                const roadsBuilt = INTEL[this.room.name].roadsBuilt && !this.room.memory.dynamicLayout;
                 const moveCostPerCarry = roadsBuilt ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE];
                 const distToHub = this.creepInfo && this.creepInfo.other && this.creepInfo.other.distanceToHub;
                 if (distToHub) {
