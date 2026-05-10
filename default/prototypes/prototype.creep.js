@@ -3,6 +3,14 @@
  */
 'use strict';
 
+// Exit tiles are static (room topology never changes) — cache them permanently per room
+const exitTileCache = {};
+
+function getRoomExits(room) {
+    if (!exitTileCache[room.name]) exitTileCache[room.name] = room.find(FIND_EXIT);
+    return exitTileCache[room.name];
+}
+
 Object.defineProperty(Creep.prototype, "idle", {
     configurable: true,
     get: function () {
@@ -24,7 +32,7 @@ Object.defineProperty(Creep.prototype, "idle", {
             const militaryCreep = this.hasActiveBodyparts(ATTACK) || this.hasActiveBodyparts(RANGED_ATTACK);
             if ((militaryCreep && this.pos.checkForRampart()) || !this.hasActiveBodyparts(MOVE)) {
                 this.memory.idleSet = true;
-            } else if (this.pos.getRangeTo(this.pos.findClosestByRange(this.room.find(FIND_EXIT))) < 8) {
+            } else if (this.pos.getRangeTo(this.pos.findClosestByRange(getRoomExits(this.room))) < 8) {
                 const middleOfRoom = new RoomPosition(25, 25, this.room.name);
                 this.shibMove(middleOfRoom, {range: 10});
                 return true;

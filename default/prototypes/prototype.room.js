@@ -215,10 +215,12 @@ Object.defineProperty(Room.prototype, 'droppedResources', {
 Object.defineProperty(Room.prototype, 'droppedEnergy', {
     get: function () {
         if (!this._droppedEnergy) {
-            if (this.hostileCreeps.length) {
-                this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
+            const hostiles = this.hostileCreeps;
+            if (hostiles.length) {
+                // every() short-circuits on first hostile in range — avoids findClosestByRange O(n) per resource
+                this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: r => r.resourceType === RESOURCE_ENERGY && hostiles.every(h => r.pos.getRangeTo(h) > 3)});
             } else {
-                this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY});
+                this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: r => r.resourceType === RESOURCE_ENERGY});
             }
         }
         return this._droppedEnergy;
@@ -308,8 +310,9 @@ Object.defineProperty(Room.prototype, 'constructionSites', {
 Object.defineProperty(Room.prototype, 'tombstones', {
     get: function () {
         if (!this._tombstones) {
-            if (this.hostileCreeps.length) {
-                this._tombstones = this.find(FIND_TOMBSTONES, {filter: (r) => r.pos.getRangeTo(r.pos.findClosestByRange(this.hostileCreeps)) > 3});
+            const hostiles = this.hostileCreeps;
+            if (hostiles.length) {
+                this._tombstones = this.find(FIND_TOMBSTONES, {filter: r => hostiles.every(h => r.pos.getRangeTo(h) > 3)});
             } else {
                 this._tombstones = this.find(FIND_TOMBSTONES);
             }

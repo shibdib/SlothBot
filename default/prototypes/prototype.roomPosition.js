@@ -427,7 +427,7 @@ RoomPosition.prototype.checkForMineral = function () {
  * @returns {*}
  */
 RoomPosition.prototype.checkForRoad = function () {
-    return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_ROAD)[0];
+    return _.find(this.lookFor(LOOK_STRUCTURES), s => s.structureType === STRUCTURE_ROAD);
 };
 
 /**
@@ -435,7 +435,7 @@ RoomPosition.prototype.checkForRoad = function () {
  * @returns {*}
  */
 RoomPosition.prototype.checkForContainer = function () {
-    return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
+    return _.find(this.lookFor(LOOK_STRUCTURES), s => s.structureType === STRUCTURE_CONTAINER);
 };
 
 /**
