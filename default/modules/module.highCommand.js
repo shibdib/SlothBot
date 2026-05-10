@@ -138,16 +138,33 @@ function militaryOperations() {
 
     // --- Standard operations ---
     if (activeNonSiege < OPERATION_LIMIT) {
+        // Pre-compute exits once per candidate — both guard and remote denial need neighbor data,
+        // so hoist the describeExits call out of two separate loops into one pass.
+        const candidateExits = new Map();
+        for (const r of candidates) {
+            const neighbors = Object.values(Game.map.describeExits(r.name));
+            // Guard filter uses .user (includes reservations) — intentionally stricter than .owner
+            const guardRemotes = neighbors.filter(n => !INTEL[n] || !INTEL[n].user || INTEL[n].user === r.owner);
+            const denialHasRemote = neighbors.some(n => !INTEL[n] || !INTEL[n].owner || INTEL[n].owner === r.owner);
+            candidateExits.set(r.name, {
+                singleRemote: guardRemotes.length === 1 ? guardRemotes[0] : null,
+                hasRemote: denialHasRemote
+            });
+        }
+
         // Guard: camp rooms with a single available remote exit
         let bestGuard = null, bestGuardScore = Infinity, bestGuardRemote = null;
         for (const r of candidates) {
-            const remote = singleRemote(r.name);
-            if (!remote) continue;
-            const score = scoreTarget(r.name, 'guard', attackedOwners);
+            const exits = candidateExits.get(r.name);
+            if (!exits.singleRemote) continue;
+            let score = scoreTarget(r.name, 'guard', attackedOwners);
+            // Prefer blocking remotes with multiple sources — more economic damage per op
+            const remoteIntel = INTEL[exits.singleRemote];
+            if (remoteIntel && remoteIntel.sources > 1) score -= 50;
             if (score < bestGuardScore) {
                 bestGuardScore = score;
                 bestGuard = r;
-                bestGuardRemote = remote;
+                bestGuardRemote = exits.singleRemote;
             }
         }
         if (bestGuard) {
@@ -156,12 +173,9 @@ function militaryOperations() {
         }
 
         // Remote denial: prefer a different player than the guard target
-        // Only target rooms that have at least one unowned/accessible neighbor to deny
         let bestDenial = null, bestDenialScore = Infinity;
         for (const r of candidates) {
-            const neighbors = Object.values(Game.map.describeExits(r.name));
-            const hasRemote = neighbors.some((n) => !INTEL[n] || !INTEL[n].owner || INTEL[n].owner === r.owner);
-            if (!hasRemote) continue;
+            if (!candidateExits.get(r.name).hasRemote) continue;
             const score = scoreTarget(r.name, 'remoteDenial', attackedOwners);
             if (score < bestDenialScore) {
                 bestDenialScore = score;
@@ -178,14 +192,16 @@ function militaryOperations() {
         let bestTower = null, bestTowerScore = Infinity;
         for (const r of candidates) {
             if (r.safemode || (r.lastSiege || 0) + siegeCooldown >= Game.time) continue;
+            // Skip the spread-pressure penalty for siege — escalating against a player we're
+            // already harassing is more efficient than opening a fresh front against a new target.
+            let score = scoreTarget(r.name, 'roomDenial', null);
+            if (attackedOwners.has(r.owner)) score -= 100; // escalation bonus
             if (!r.towers) {
-                const score = scoreTarget(r.name, 'roomDenial', attackedOwners);
                 if (score < bestNoTowerScore) {
                     bestNoTowerScore = score;
                     bestNoTower = r;
                 }
             } else if (siegeLevel(r.towers)) {
-                const score = scoreTarget(r.name, 'roomDenial', attackedOwners);
                 if (score < bestTowerScore) {
                     bestTowerScore = score;
                     bestTower = r;
@@ -256,12 +272,17 @@ function auxiliaryOperations() {
     if (MAX_LEVEL >= 4) {
         // Power Mining — only search if no active power op and we're below threshold
         if (MAX_LEVEL >= 8 && activePowerOps === 0 && getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT) {
-            let bestPower = null, bestDist = Infinity;
+            let bestPower = null, bestScore = Infinity;
             for (const r of candidates) {
-                if (!r.power || r.power - 1500 < Game.time) continue;
+                if (!r.power || r.power - CREEP_LIFE_TIME < Game.time) continue;
                 const dist = findClosestOwnedRoom(r.name, true);
-                if (dist <= 8 && dist < bestDist) {
-                    bestDist = dist;
+                if (dist > 8) continue;
+                // Score = distance (closer better) minus time-remaining bonus (more time = better).
+                // Prevents picking a dying bank over a fresher one at the same distance.
+                const timeRemaining = r.power - Game.time;
+                const score = dist * 100 - Math.min(timeRemaining / 100, 50);
+                if (score < bestScore) {
+                    bestScore = score;
                     bestPower = r;
                 }
             }
@@ -293,10 +314,12 @@ function auxiliaryOperations() {
         // Mineral Mining — pick closest qualifying room in our sector
         let bestMineral = null, bestDist = Infinity;
         for (const r of candidates) {
-            if (r.sk || r.sources < 3 || !r.mineralAmount || MY_MINERALS[r.mineral]) continue;
+            // r.sources < 3 was removed: all non-SK rooms have ≤ 2 sources, so combined with
+            // the r.sk guard it made this loop never select anything.
+            if (r.sk || r.sources < 3 || (r.user && !FRIENDLIES.includes(r.user)) || !r.mineralAmount || MY_MINERALS[r.mineral]) continue;
             if (!myRoomInSectorCheck(r.name)) continue;
             const dist = findClosestOwnedRoom(r.name, true);
-            if (dist < bestDist) {
+            if (dist <= 5 && dist < bestDist) {
                 bestDist = dist;
                 bestMineral = r;
             }
@@ -326,9 +349,12 @@ function setTarget(room, operation, level = 1, military = true) {
         type: operation,
         level: level,
         priority: getPriority(room),
-        waveLimit: 4
+        // Sieges need more waves to break fortified rooms; harassment ops can cancel sooner
+        waveLimit: operation === 'roomDenial' ? 8 : 4
     };
     if (military) Memory.targetRooms = cache; else Memory.auxiliaryTargets = cache;
+    // Guard remotes may have no intel (unscanned neighbors are valid targets) — guard the access
+    if (!INTEL[room]) INTEL[room] = {name: room};
     if (operation !== 'roomDenial') INTEL[room].lastOperation = Game.time; else INTEL[room].lastSiege = Game.time;
     return log.a(`${operation} operation planned for ${roomLink(room)} owned by ${INTEL[room].owner || 'N/A'} (Nearest Friendly Room - ${findClosestOwnedRoom(room, true)} rooms away)`, 'HIGH COMMAND: ');
 }
@@ -694,6 +720,16 @@ function manageAuxiliary() {
                     delete Memory.auxiliaryTargets[key];
                     continue;
                 }
+                if (INTEL[key].user && !FRIENDLIES.includes(INTEL[key].user)) {
+                    log.a('Canceling mineral mining operation in ' + roomLink(key) + ' as the room is occupied.', 'HIGH COMMAND: ');
+                    delete Memory.auxiliaryTargets[key];
+                    continue;
+                }
+                if (INTEL[key].sources && INTEL[key].sources < 3) {
+                    log.a('Canceling mineral mining operation in ' + roomLink(key) + ' incorrect room.', 'HIGH COMMAND: ');
+                    delete Memory.auxiliaryTargets[key];
+                    continue;
+                }
                 break;
 
             case 'rebuild':
@@ -998,13 +1034,6 @@ function getPriority(room) {
     else return PRIORITIES.secondary;
 }
 
-function singleRemote(roomName) {
-    const neighbors = Object.values(Game.map.describeExits(roomName));
-    const remotes = _.filter(neighbors, (n) => !INTEL[n] || !INTEL[n].user || INTEL[n].user === INTEL[roomName].owner);
-    if (remotes.length === 1) {
-        return remotes[0];
-    }
-}
 
 module.exports.operationSustainability = function (room, operationRoom = room.name) {
     // Retrieve the operation object from memory
