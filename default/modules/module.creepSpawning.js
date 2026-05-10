@@ -271,10 +271,10 @@ module.exports.essentialCreepQueue = function (room) {
     // Upgrader
     if (!room.memory.spawnDefenders && room.level === room.controller.level) {
         let upgraderAmount = 1;
-        if (room.memory.energyPositive && room.energyState && (room.energyState >= 2 || !room.terminal) && room.level <= 6) {
+        if (room.controller.level < 8 && room.memory.energyPositive && room.energyState && (room.energyState >= 2 || !room.terminal)) {
             let container = Game.getObjectById(room.memory.controllerContainer);
             if (container) {
-                upgraderAmount = Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround()) || 1;
+                upgraderAmount = room.level >= 6 ? 2 : Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround()) || 1;
             } else {
                 upgraderAmount = 1;
             }
@@ -584,7 +584,7 @@ module.exports.remoteCreepQueue = function (room) {
             queueCreepIfNeeded({
                 room: room,
                 role: 'reserver',
-                priority: PRIORITIES.reserver + getCreepCount(room, 'reserver'),
+                priority: PRIORITIES.reserver + getCreepCount(undefined, 'reserver', remoteName),
                 numberNeeded: count,
                 destination: remoteName
             });
@@ -597,7 +597,7 @@ module.exports.remoteCreepQueue = function (room) {
                 colony: room,
                 role: 'roadBuilder',
                 priority: PRIORITIES.roadBuilder + (getCreepCount(room, 'roadBuilder') * 1.5),
-                numberNeeded: getCreepCount(room, 'remoteHarvester') * 0.2
+                numberNeeded: getCreepCount(room, 'remoteHarvester') * 0.5
             });
         }
     }
@@ -654,7 +654,7 @@ module.exports.remoteCreepQueue = function (room) {
 
             if (remoteSource && remoteSource.room) {
                 const priority = room.energyState > 1 && room.storage ? PRIORITIES.remoteHarvester * 2 : PRIORITIES.remoteHarvester;
-                queueCreep(room, priority + getCreepCount(undefined, 'remoteHauler', undefined, room), {
+                queueCreep(room, priority, {
                     role: 'remoteHarvester',
                     destination: remoteSource.room,
                     other: {source: remoteSource.source}
@@ -681,13 +681,13 @@ module.exports.remoteCreepQueue = function (room) {
         for (const harvester of roomHarvesters) {
             if (shouldSkipRemote(room, harvester.memory.destination)) continue;
             const assignedHaulers = haulersByHarvester[harvester.id] || [];
-            const count = room.memory.remotePenalty ? 1 : !room.storage ? 1 : 3;
+            const count = room.memory.remotePenalty ? 1 : !room.storage ? 2 : 3;
             if (assignedHaulers.length >= count) continue;
             const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
             const harvestAmount = harvester.memory.other.haulingRequired;
             if (harvestAmount && haulingCapacity < harvestAmount) {
                 const priority = room.energyState > 1 && room.storage ? PRIORITIES.remoteHauler * 2 : PRIORITIES.remoteHauler;
-                queueCreep(room, priority + getCreepCount(undefined, 'remoteHauler', undefined, room), {
+                queueCreep(room, priority + getCreepCount(undefined, 'remoteHauler', harvester.room.name), {
                     role: 'remoteHauler',
                     destination: room.name,
                     other: {

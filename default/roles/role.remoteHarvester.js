@@ -68,7 +68,11 @@ class RoleRemoteHarvester {
                 const reserved = INTEL[this.creep.memory.destination] && INTEL[this.creep.memory.destination].reservation === MY_USERNAME;
                 const maxRate = (reserved ? SOURCE_ENERGY_CAPACITY : SOURCE_ENERGY_NEUTRAL_CAPACITY) / ENERGY_REGEN_TIME;
                 const actualRate = Math.min(power, maxRate);
-                this.creep.memory.other.haulingRequired = actualRate * (distance * 2.1);
+                // score = pathCost/2 using plainCost=2. On roads (cost=1), score=0.5/tile but travel=1 tick/tile,
+                // so score underestimates road travel by 2x. Use 4.2x for road paths, 2.2x for plain paths.
+                const roadsBuilt = INTEL[this.creep.memory.destination] && INTEL[this.creep.memory.destination].roadsBuilt
+                    && INTEL[this.creep.memory.colony] && INTEL[this.creep.memory.colony].roadsBuilt;
+                this.creep.memory.other.haulingRequired = actualRate * distance * (roadsBuilt ? 4.2 : 2.2);
             }
             // Handle container or construction site
             if (this.container) {
