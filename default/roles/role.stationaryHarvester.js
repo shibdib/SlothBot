@@ -22,13 +22,13 @@ class RoleStationaryHarvester {
 
     findSource() {
         if (!this.creep.findSource()) {
-            let oldestHarvester = _.min(_.filter(this.room.creeps, (c) => c.memory && c.ticksToLive < 500 && c.memory.role === "stationaryHarvester"), "ticksToLive") ||
-                _.find(this.room.creeps, (c) => c.memory && c.memory.role === "stationaryHarvester" && c.memory.other.reboot);
+            // Use myCreeps — room.creeps includes hostiles
+            const harvesters = this.room.myCreeps.filter(c => c.memory.role === 'stationaryHarvester' && c.id !== this.creep.id);
+            const oldestHarvester = _.min(harvesters.filter(c => c.ticksToLive < 500), 'ticksToLive')
+                || harvesters.find(c => c.memory.other.reboot);
             if (!oldestHarvester || !oldestHarvester.id) return this.creep.suicide();
-            else {
-                this.creep.memory.other.source = oldestHarvester.memory.other.source;
-                oldestHarvester.suicide();
-            }
+            this.creep.memory.other.source = oldestHarvester.memory.other.source;
+            oldestHarvester.suicide();
         }
     }
 
@@ -36,17 +36,16 @@ class RoleStationaryHarvester {
         let source = Game.getObjectById(this.creep.memory.other.source);
         // If in place harvest
         if (this.creep.memory.onContainer) {
+            // Resolve container once per tick — passed to depositEnergy to avoid repeated getObjectById
             let container = Game.getObjectById(source.memory.container);
-            // Build container
+            // Build container if missing
             if (!container && this.creep.store[RESOURCE_ENERGY]) {
                 source.memory.container = undefined;
-                let dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
-                let site = this.creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
-                if (site && dropped && dropped.amount >= 250) {
-                    if (site) {
-                        this.creep.build(site);
-                        this.creep.pickup(dropped);
-                    }
+                const site = this.creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
+                if (site) {
+                    this.creep.build(site);
+                    const dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
+                    if (dropped) this.creep.pickup(dropped);
                     return;
                 }
             }
@@ -77,11 +76,11 @@ class RoleStationaryHarvester {
                         }
                         this.creep.memory.other.linkCheck = true;
                     }
-                    // If we have a link and container, empty the container of overflow
+                    // If we have a link and container, withdraw overflow from container this tick
                     if (source.memory.link && container && container.store[RESOURCE_ENERGY] > 0) this.creep.withdraw(container, RESOURCE_ENERGY);
-                    // Check for deposit ability every tick to ensure zero-waste
+                    // Deposit energy this tick if container is full or we're carrying surplus
                     if ((container && container.store.getFreeCapacity(RESOURCE_ENERGY) === 0) || this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
-                        depositEnergy(this.creep);
+                        depositEnergy(this.creep, source, container);
                     }
                     break;
             }
@@ -105,10 +104,10 @@ class RoleStationaryHarvester {
     }
 }
 
-// Rotate between link and container if we don't have a hub and controller link
-function depositEnergy(creep) {
-    const source = Game.getObjectById(creep.memory.other.source);
-    const container = Game.getObjectById(source.memory.container);
+// Deposit harvested energy into link → container → repair in priority order
+function depositEnergy(creep, source, container) {
+    if (!source) source = Game.getObjectById(creep.memory.other.source);
+    if (!container) container = Game.getObjectById(source.memory.container);
 
     // Fill nearby extensions (Critical)
     if (extensionFiller(creep)) return;
@@ -154,25 +153,26 @@ function depositEnergy(creep) {
 function extensionFiller(creep) {
     if (!ROOM_HARVESTER_EXTENSIONS[creep.room.name] || !creep.memory.extensionsFound) {
         creep.memory.extensionsFound = true;
-        let container = Game.getObjectById(creep.memory.containerID) || creep;
-        let extension = container.pos.findInRange(_.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION), 1);
-        let sourceExtensions = ROOM_HARVESTER_EXTENSIONS[creep.room.name] || [];
-        ROOM_HARVESTER_EXTENSIONS[creep.room.name] = _.union(sourceExtensions, _.pluck(extension, 'id'));
-        // Rampart check if near border or outside
+        const container = Game.getObjectById(creep.memory.containerID) || creep;
+        const nearby = creep.room.impassibleStructures.filter(s => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
+        const extension = container.pos.findInRange(nearby, 1);
+        ROOM_HARVESTER_EXTENSIONS[creep.room.name] = _.union(ROOM_HARVESTER_EXTENSIONS[creep.room.name] || [], _.pluck(extension, 'id'));
+        // Place ramparts on exposed extensions if the bunker wall is nearby
         if (extension.length && creep.room.level >= 3) {
-            let nearbyBunkerWall = _.find(container.pos.lookForNearby(LOOK_STRUCTURES, true, 3), (s) => (s.structure.structureType === STRUCTURE_RAMPART && !s.structure.pos.checkForObstacleStructure()) || s.structure.structureType === STRUCTURE_WALL);
+            const nearbyBunkerWall = _.find(container.pos.lookForNearby(LOOK_STRUCTURES, true, 3), s =>
+                (s.structure.structureType === STRUCTURE_RAMPART && !s.structure.pos.checkForObstacleStructure()) || s.structure.structureType === STRUCTURE_WALL);
             if (nearbyBunkerWall) {
                 if (!container.pos.checkForRampart()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
-                for (let e of extension) {
-                    if (!e.pos.checkForRampart()) {
-                        e.pos.createConstructionSite(STRUCTURE_RAMPART);
-                    }
+                for (const e of extension) {
+                    if (!e.pos.checkForRampart()) e.pos.createConstructionSite(STRUCTURE_RAMPART);
                 }
             }
         }
-    } else {
-        if (creep.opportunisticFill()) return true;
+        return false;
     }
+    // Only opportunisticFill if there are actually extensions in range
+    if (ROOM_HARVESTER_EXTENSIONS[creep.room.name].length && creep.opportunisticFill()) return true;
+    return false;
 }
 
 profiler.registerClass(RoleStationaryHarvester, 'StationaryHarvester');

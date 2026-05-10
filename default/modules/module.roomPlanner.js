@@ -154,6 +154,7 @@ function auxiliaryBuilding(room) {
     if (room.storage) {
         if (buildRoads(room, room.memory.dynamicLayout ? null : bunkerTemplate)) return;
         if (linkBuilder(room)) return true;
+        if (buildSourceExtensions(room)) return;
         if (room.level >= 6) {
             mineralBuilder(room);
             labBuilder(room);
@@ -210,6 +211,47 @@ function auxiliaryBuilding(room) {
         }
         return false;
     }
+}
+
+// Places extensions adjacent to source containers for the harvester to fill directly,
+// reducing hauler load. Only runs after the source link is confirmed built so we
+// never accidentally occupy the link's future slot.
+function buildSourceExtensions(room) {
+    if (room.level < 5) return false;
+    const hub = room.hub;
+
+    for (const source of room.sources) {
+        const container = Game.getObjectById(source.memory.container);
+        if (!container) continue;
+
+        // Must have a confirmed link before placing — link builder picks its own tile first
+        const link = source.memory.link ? Game.getObjectById(source.memory.link) : null;
+        if (!link) {
+            // Skip if link is mid-build (don't block the in-progress site)
+            const linkSite = container.pos.findInRange(FIND_CONSTRUCTION_SITES, 1)
+                .find(s => s.structureType === STRUCTURE_LINK);
+            if (linkSite) continue;
+            // No link and no site — link hasn't been built for this source yet, skip
+            continue;
+        }
+
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                if (!dx && !dy) continue;
+                const x = container.pos.x + dx, y = container.pos.y + dy;
+                if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+                const pos = new RoomPosition(x, y, room.name);
+                if (pos.checkForWall()) continue;
+                if (pos.isEqualTo(source.pos)) continue;         // source tile
+                if (pos.isEqualTo(link.pos)) continue;           // link tile
+                if (hub && pos.getRangeTo(hub) <= 5) continue;   // hub cluster handles its own
+                if (!pos.checkForAllStructure() && !pos.checkForConstructionSites()) {
+                    if (pos.createConstructionSite(STRUCTURE_EXTENSION) === OK) return true;
+                }
+            }
+        }
+    }
+    return false;
 }
 
 function linkBuilder(room) {
