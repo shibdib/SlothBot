@@ -409,10 +409,13 @@ Creep.prototype.locateEnergy = function (room = this.room) {
 
     // Storage and Terminal (not for shuttles)
     if (this.memory.role !== 'shuttle') {
+        const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
         if (room.storage && room.storage.store[RESOURCE_ENERGY] > (room.terminal ? room.terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER : 0)) {
             potentialEnergy.push(room.storage);
         } else if (room.terminal && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
             potentialEnergy.push(room.terminal);
+        } else if (protoStorage && protoStorage.store[RESOURCE_ENERGY] > 0) {
+            potentialEnergy.push(protoStorage);
         }
     }
 

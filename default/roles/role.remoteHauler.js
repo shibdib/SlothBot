@@ -180,6 +180,9 @@ function dropOff(creep) {
     const colony = Game.rooms[memory.colony];
     if (!colony) return;
 
+    // Check for protoStorage
+    if (colony.memory.protoStorage) colony.protoStorage = Game.getObjectById(colony.memory.protoStorage);
+
     if (storeSum > creep.store[RESOURCE_ENERGY]) {
         if (colony.terminal) memory.storageDestination = colony.terminal.id;
         else if (colony.storage) memory.storageDestination = colony.storage.id;
@@ -227,6 +230,8 @@ function dropOff(creep) {
     } else if (colony.level === colony.controller.level && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 0 &&
         Math.random() < (controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) / CONTAINER_CAPACITY)) {
         memory.storageDestination = controllerContainer.id;
+    } else if (colony.protoStorage && colony.protoStorage.store.getFreeCapacity(RESOURCE_ENERGY) > storeSum) {
+        memory.storageDestination = colony.protoStorage.id;
     } else if (creep.haulerDelivery()) {
     } else if (creep.pos.getRangeTo(colony.controller) <= 5) creep.idleFor(5);
     else creep.shibMove(colony.controller);

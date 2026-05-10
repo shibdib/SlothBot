@@ -40,13 +40,15 @@ class RoleShuttle {
             }
         }
 
-        if (this.creep.room.storage) {
+        const protoStorage = this.creep.room.memory.protoStorage ? Game.getObjectById(this.creep.room.memory.protoStorage) : undefined;
+        if (this.creep.room.storage || protoStorage) {
+            const storeTarget = this.creep.room.storage || protoStorage;
             for (const resourceType in this.creep.store) {
-                const result = this.creep.transfer(this.creep.room.storage, resourceType);
+                const result = this.creep.transfer(storeTarget, resourceType);
                 if (result === OK) {
                     break;
                 } else if (result === ERR_NOT_IN_RANGE) {
-                    this.creep.shibMove(this.creep.room.storage);
+                    this.creep.shibMove(storeTarget);
                     break;
                 }
             }

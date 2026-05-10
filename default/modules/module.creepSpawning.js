@@ -230,7 +230,8 @@ module.exports.essentialCreepQueue = function (room) {
 
     // Haulers
     if (harvesterCount) {
-        if (room.storage) {
+        const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
+        if (room.storage || protoStorage) {
             let haulerAmount = room.level >= 6 ? 2 : 1;
             queueCreepIfNeeded({
                 room: room,

@@ -130,6 +130,22 @@ function buildFromLayout(room, countCheck) {
                 }
             }
         }
+
+        // Handle proto storage pre rcl4
+        if (!room.storage && !room.memory.protoStorage && room.controller.level < 4 && room.controller.level > 1) {
+            const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
+            const storagePos = tmpl.filter(s => s.structureType === STRUCTURE_STORAGE)[0].pos[0];
+            const pos = new RoomPosition(hub.x + storagePos.x, hub.y + storagePos.y, room.name);
+            if (!pos.checkForConstructionSites() && !pos.checkForAllStructure()) {
+                pos.createConstructionSite(STRUCTURE_CONTAINER);
+            } else if (pos.checkForAllStructure() && pos.checkForAllStructure().structureType === STRUCTURE_CONTAINER) {
+                room.memory.protoStorage = pos.checkForAllStructure().id;
+            }
+        } else if (room.memory.protoStorage && room.controller.level >= 4) {
+            const protoStorage = Game.getObjectById(room.memory.protoStorage);
+            protoStorage.destroy();
+            room.memory.protoStorage = undefined;
+        }
     }
 }
 
