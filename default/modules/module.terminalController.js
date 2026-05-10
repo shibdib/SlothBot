@@ -711,7 +711,7 @@ class TerminalControl {
 
             // Cancel inactive orders
             if (!order.active) {
-                this.cancelOrder(order, 'Order no longer active');
+                //this.cancelOrder(order, 'Order no longer active');
                 continue;
             }
 
@@ -752,18 +752,23 @@ class TerminalControl {
                         this.cancelOrder(order, 'Energy surplus detected');
                         continue;
                     }
-                }
-                if (order.type === ORDER_SELL && Game.rooms[order.roomName] && Game.rooms[order.roomName].level < 8) {
-                    this.cancelOrder(order, 'Pre-RCL8 rooms do not sell energy');
-                    continue;
-                }
-                if (order.type === ORDER_SELL && _.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 2)) {
-                    this.cancelOrder(order, 'Energy shortage detected');
-                    continue;
-                }
-                if (order.type === ORDER_SELL && !SELL_ENERGY) {
-                    this.cancelOrder(order, 'We do not sell energy');
-                    continue;
+                } else if (order.type === ORDER_SELL) {
+                    if (Game.rooms[order.roomName] && Game.rooms[order.roomName].level < 8) {
+                        this.cancelOrder(order, 'Pre-RCL8 rooms do not sell energy');
+                        continue;
+                    }
+                    if (_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 2)) {
+                        this.cancelOrder(order, 'Energy shortage detected');
+                        continue;
+                    }
+                    if (!SELL_ENERGY) {
+                        this.cancelOrder(order, 'We do not sell energy');
+                        continue;
+                    }
+                    if (Game.rooms[order.roomName].energyState < 2) {
+                        this.cancelOrder(order, 'Energy shortage in room');
+                        continue;
+                    }
                 }
             }
 
@@ -776,12 +781,6 @@ class TerminalControl {
             // Shard-specific cancellation
             if (['swc', 'botarena'].includes(Game.shard.name) && order.type === ORDER_SELL) {
                 this.cancelOrder(order, 'No selling in SWC or BA');
-                continue;
-            }
-
-            // Cancel energy sell orders if energy shortage
-            if (order.type === ORDER_SELL && order.resourceType === RESOURCE_ENERGY && Game.rooms[order.roomName].energyState < 2) {
-                this.cancelOrder(order, 'Energy shortage in room');
                 continue;
             }
 
