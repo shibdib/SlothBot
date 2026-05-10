@@ -215,12 +215,10 @@ Creep.prototype.opportunisticRepair = function () {
 Creep.prototype.opportunisticFill = function () {
     if (!this.store[RESOURCE_ENERGY] || !this.room.level) return false;
 
-    // Look for structures in a 3x3 area around the creep
-    let nearbyStructures, nearbyCreeps, nearbyItems;
+    // Single lookAtArea scan for all types instead of two separate lookForAtArea calls
+    let nearbyItems;
     try {
-        nearbyStructures = this.room.lookForAtArea(LOOK_STRUCTURES, this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1, true);
-        nearbyCreeps = this.room.lookForAtArea(LOOK_CREEPS, this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1, true);
-        nearbyItems = nearbyStructures.concat(nearbyCreeps);
+        nearbyItems = this.room.lookAtArea(this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1, true);
     } catch (e) {
         return false;
     }
@@ -479,11 +477,25 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
 
-    // Prioritize structures by urgency:
+    // Prioritize structures by urgency — single pass to categorize everything
     let targets = [];
+    const allSpawnExtensions = [], allTowers = [], allLabs = [];
+    for (const s of this.room.structures) {
+        switch (s.structureType) {
+            case STRUCTURE_SPAWN:
+            case STRUCTURE_EXTENSION:
+                allSpawnExtensions.push(s);
+                break;
+            case STRUCTURE_TOWER:
+                allTowers.push(s);
+                break;
+            case STRUCTURE_LAB:
+                allLabs.push(s);
+                break;
+        }
+    }
 
     // 1. Spawns and Extensions — always first so defenders can spawn during attacks
-    const allSpawnExtensions = this.room.structures.filter(s => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
     targets = allSpawnExtensions.filter(s => s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
     if (targets.length) {
         const roomHaulers = this.room.myCreeps.filter(c => c.memory.role === 'hauler' && !c.spawning);
@@ -527,7 +539,7 @@ Creep.prototype.haulerDelivery = function () {
     if (this.room.controller && this.room.controller.level >= 3) {
         const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
         const energyThreshold = threatLevel ? TOWER_CAPACITY : TOWER_CAPACITY * 0.5;
-        targets = this.room.structures.filter(s => s.structureType === STRUCTURE_TOWER && s.store[RESOURCE_ENERGY] < energyThreshold);
+        targets = allTowers.filter(s => s.store[RESOURCE_ENERGY] < energyThreshold);
         if (targets.length) {
             this.memory.storageDestination = this.pos.findClosestByRange(targets).id;
             return true;
@@ -541,7 +553,7 @@ Creep.prototype.haulerDelivery = function () {
     }
 
     // 5. Labs
-    const labs = this.room.structures.filter(s => s.structureType === STRUCTURE_LAB && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
+    const labs = allLabs.filter(s => s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
     targets = targets.concat(labs);
 
     // 6. Controller Container

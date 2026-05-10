@@ -57,8 +57,9 @@ class StateManager {
         } else if (ENERGY_TRACKER[room.name] > 0) ENERGY_TRACKER[room.name]--;
         room.memory.needsHaulers = ENERGY_TRACKER[room.name] > 10;
 
-        // Track projected income based off harvester count. 10 for in room and 8 for remote
-        const harvesters = room.myCreeps.filter((c) => c.memory.role === 'stationaryHarvester').concat(_.filter(Game.creeps, ((c) => c.my && c.memory.colony === room.name && c.memory.role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired)));
+        // Track projected income — use colonyCreeps cache to avoid scanning all Game.creeps
+        const colonyCreeps = (global.world && global.world.colonyCreeps && global.world.colonyCreeps[room.name]) || room.myCreeps;
+        const harvesters = colonyCreeps.filter(c => c.memory.role === 'stationaryHarvester' || (c.memory.role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired));
         const income = Math.floor(harvesters.reduce((sum, creep) => sum + (creep.getActiveBodyparts(WORK) * 0.8), 0));
         const energyUsers = room.myCreeps.filter((c) => ['drone', 'upgrader'].includes(c.memory.role));
         const workExpense = Math.ceil(energyUsers.reduce((sum, creep) => sum + creep.getActiveBodyparts(WORK), 0));

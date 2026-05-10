@@ -271,15 +271,12 @@ module.exports.essentialCreepQueue = function (room) {
     // Upgrader
     if (!room.memory.spawnDefenders && room.level === room.controller.level) {
         let upgraderAmount = 1;
-        if (room.memory.energyPositive && room.energyState && (room.energyState > 2 || !room.terminal)) {
-            if (!room.storage) {
-                let container = Game.getObjectById(room.memory.controllerContainer);
-                if (container) {
-                    upgraderAmount = Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround()) || 1;
-                    if (upgraderAmount > 5) upgraderAmount = 5;
-                } else {
-                    upgraderAmount = 1;
-                }
+        if (room.memory.energyPositive && room.energyState && (room.energyState >= 2 || !room.terminal) && room.level <= 6) {
+            let container = Game.getObjectById(room.memory.controllerContainer);
+            if (container) {
+                upgraderAmount = Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround()) || 1;
+            } else {
+                upgraderAmount = 1;
             }
         }
         const priority = room.energyState > 1 && room.storage ? PRIORITIES.upgrader * 0.5 : PRIORITIES.upgrader;
@@ -389,7 +386,7 @@ module.exports.miscCreepQueue = function (room) {
     }
 
     // Guard Dogs
-    if (room.energyState) {
+    if (room.energyState && 1 > 2) {
         const needsDog = _.find(room.myCreeps, (c) => c.memory.leader && c.memory.squadMembers && c.memory.squadMembers.length && (!c.memory.dog || !Game.getObjectById(c.memory.dog)));
         if (needsDog) {
             queueCreepIfNeeded({
