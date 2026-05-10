@@ -618,6 +618,12 @@ function rampartBuilder(room, layout = undefined, count = false) {
                 rectArray.push({x1: x - 1, y1: y - 1, x2: x + 1, y2: y + 1});
             }
         }
+        // Dynamic Extensions
+        if (extensionPositionCache[room.name]) {
+            for (const {x, y} of extensionPositionCache[room.name]) {
+                rectArray.push({x1: x - 1, y1: y - 1, x2: x + 1, y2: y + 1});
+            }
+        }
         // Set bounds
         for (let key in rectArray) {
             let rect = rectArray[key];
