@@ -835,28 +835,34 @@ function roadBuilder(room, layout) {
         let target, begin;
         if (start instanceof RoomPosition) begin = start; else begin = start.pos;
         if (end instanceof RoomPosition) target = end; else target = end.pos;
-        let path = getRoad(room, begin, target);
-        if (!path) {
-            path = PathFinder.search(begin, {pos: target, range: 1}, {
-                heuristicWeight: 0.8,
-                roomCallback: function (roomName) {
-                    return buildCostMatrix(roomName);
-                }
-            }).path;
-            if (path.length) {
-                cacheRoad(room, begin, target, path);
-                for (let point of path) {
-                    let pos = new RoomPosition(point.x, point.y, room.name);
-                    if (buildRoad(pos)) return true;
-                }
-            } else {
-                return false;
-            }
+
+        const key = getPathKey(begin, target);
+        const roomCache = ROAD_CACHE[room.name];
+        const cached = roomCache && roomCache[key];
+
+        if (cached && cached.complete) return false;
+
+        let points;
+        if (cached) {
+            points = JSON.parse(cached.path);
         } else {
-            for (let point of JSON.parse(path)) {
-                let pos = new RoomPosition(point.x, point.y, room.name);
-                if (buildRoad(pos)) return true;
-            }
+            const result = PathFinder.search(begin, {pos: target, range: 1}, {
+                heuristicWeight: 0.8,
+                roomCallback: roomName => buildCostMatrix(roomName)
+            });
+            if (!result.path.length) return false;
+            cacheRoad(room, begin, target, result.path);
+            points = result.path;
+        }
+
+        for (const point of points) {
+            const pos = new RoomPosition(point.x, point.y, room.name);
+            if (buildRoad(pos)) return true;
+        }
+
+        // Every tile already has a road — skip future iterations for this path
+        if (ROAD_CACHE[room.name] && ROAD_CACHE[room.name][key]) {
+            ROAD_CACHE[room.name][key].complete = true;
         }
     }
 
@@ -884,6 +890,11 @@ function roadBuilder(room, layout) {
                     costMatrix.set(structure.pos.x, structure.pos.y, 100);
                 } else if (_.includes(OBSTACLE_OBJECT_TYPES, structure.structureType)) {
                     costMatrix.set(structure.pos.x, structure.pos.y, Infinity);
+                }
+            });
+            room.constructionSites.forEach(site => {
+                if (site.structureType === STRUCTURE_ROAD) {
+                    costMatrix.set(site.pos.x, site.pos.y, 1);
                 }
             });
         }
