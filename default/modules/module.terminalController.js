@@ -30,7 +30,7 @@ class TerminalControl {
             this.updateSpendingMoney();
             this.pricingUpdate(globalOrders, myOrders);
             this.orderCleanup(myOrders);
-            if (['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) && SELL_PIXELS) this.sellPixels();
+            if (['shard0', 'shard1', 'shard2', 'shard3', 'shardX'].includes(Game.shard.name) && SELL_PIXELS) this.sellPixels();
             lastRun['updates'] = Game.time;
         }
 
@@ -128,7 +128,7 @@ class TerminalControl {
                 let price;
 
                 // On demand buy a small amount on mmo shards or buy a larger amount on private servers
-                if (!isLabNeed && (['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) || MY_MINERALS[mineral])) target = target * 0.5;
+                if (!isLabNeed && (['shard0', 'shard1', 'shard2', 'shard3', 'shardX'].includes(Game.shard.name) || MY_MINERALS[mineral])) target = target * 0.5;
 
                 if (stored < target) {
                     // Allied requests...
@@ -185,15 +185,15 @@ class TerminalControl {
             }
         }
 
-        // Handle energy buying
-        if (Game.market.credits > BUY_ENERGY_CREDIT_BUFFER) {
-            let price;
-            // Buy energy
-            if (BUY_ENERGY && !_.find(MY_ROOMS, (r) => Game.rooms[r].terminal && Game.rooms[r].energyState > 1)) {
-                if (!_.find(myOrders, (o) => o.resourceType === RESOURCE_ENERGY && o.roomName === terminal.room.name)) {
-                    price = this.calculatePrice(ORDER_BUY, RESOURCE_ENERGY);
-                    if (createBuyOrder(RESOURCE_ENERGY, price, 10000)) return true;
-                }
+        // Handle energy buying — buy whenever this room needs energy and market price is acceptable
+        if (BUY_ENERGY && Game.market.credits > BUY_ENERGY_CREDIT_BUFFER && terminal.room.energyState < 2) {
+            if (!_.find(myOrders, (o) => o.resourceType === RESOURCE_ENERGY && o.roomName === terminal.room.name)) {
+                const avgPrice = latestMarketHistory(RESOURCE_ENERGY).avg || 1;
+                // Cap at 110% of avg so we only fill at reasonable prices
+                const price = Math.min(this.calculatePrice(ORDER_BUY, RESOURCE_ENERGY), avgPrice * 1.1);
+                // Larger order when critically empty, smaller when just below surplus threshold
+                const buyAmount = !terminal.room.energyState ? 25000 : 15000;
+                if (createBuyOrder(RESOURCE_ENERGY, price, buyAmount)) return true;
             }
         }
 
@@ -238,7 +238,7 @@ class TerminalControl {
             if (activeBuyOrder) {
                 // Scale markup based on time elapsed since the order was created
                 const timeElapsed = Game.time - activeBuyOrder.created;
-                const cooldown = ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name) ? 10000 : 10;
+                const cooldown = ['shard0', 'shard1', 'shard2', 'shard3', 'shardX'].includes(Game.shard.name) ? 10000 : 10;
                 markup = Math.min(1.0 + (timeElapsed / cooldown), 2.0);  // Maximum markup of 200% after cooldown
             }
             return markup;
@@ -249,9 +249,9 @@ class TerminalControl {
         if (Game.market.credits <= 0) return false; // Exit if no credits available
 
         for (let resource of Object.keys(terminal.store)) {
-            // Sell energy and battery only if we have a surplus
+            // Sell energy and battery only if we have a surplus and are RCL8 (pre-RCL8 rooms never sell energy)
             if ((resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) &&
-                (!SELL_ENERGY || terminal.room.energyState < 2 || !_.find(MY_ROOMS, r => Game.rooms[r].terminal && !Game.rooms[r].energyState))) continue;
+                (!SELL_ENERGY || terminal.room.level < 8 || terminal.room.energyState < 2 || !_.find(MY_ROOMS, r => Game.rooms[r].terminal && !Game.rooms[r].energyState))) continue;
 
             // If already selling continue
             if (hasExistingSellOrder(myOrders, terminal, resource)) continue;
@@ -353,7 +353,7 @@ class TerminalControl {
 
         for (let resourceType of sortedKeys) {
             if ((resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) &&
-                (!SELL_ENERGY || terminal.room.energyState < 2 || !_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 2))) continue;
+                (!SELL_ENERGY || terminal.room.level < 8 || terminal.room.energyState < 2 || !_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 2))) continue;
 
             // No selling base minerals if any room is short or if we don't have a large surplus
             if (BASE_MINERALS.includes(resourceType)) {
@@ -745,8 +745,16 @@ class TerminalControl {
 
             // Cancel energy orders if surplus detected
             if (order.resourceType === RESOURCE_ENERGY) {
-                if (order.type === ORDER_BUY && _.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState > 1)) {
-                    this.cancelOrder(order, 'Energy surplus detected');
+                if (order.type === ORDER_BUY) {
+                    const orderRoom = Game.rooms[order.roomName];
+                    // Cancel only if the room placing the order itself no longer needs energy
+                    if (!orderRoom || orderRoom.energyState >= 2) {
+                        this.cancelOrder(order, 'Energy surplus detected');
+                        continue;
+                    }
+                }
+                if (order.type === ORDER_SELL && Game.rooms[order.roomName] && Game.rooms[order.roomName].level < 8) {
+                    this.cancelOrder(order, 'Pre-RCL8 rooms do not sell energy');
                     continue;
                 }
                 if (order.type === ORDER_SELL && _.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 2)) {
@@ -768,6 +776,18 @@ class TerminalControl {
             // Shard-specific cancellation
             if (['swc', 'botarena'].includes(Game.shard.name) && order.type === ORDER_SELL) {
                 this.cancelOrder(order, 'No selling in SWC or BA');
+                continue;
+            }
+
+            // Cancel energy sell orders if energy shortage
+            if (order.type === ORDER_SELL && order.resourceType === RESOURCE_ENERGY && Game.rooms[order.roomName].energyState < 2) {
+                this.cancelOrder(order, 'Energy shortage in room');
+                continue;
+            }
+
+            // Cancel if not enough resources for non-energy/battery orders
+            if (order.type === ORDER_SELL && !order.amount) {
+                this.cancelOrder(order, 'Not enough resources in terminal');
                 continue;
             }
 
@@ -813,18 +833,6 @@ class TerminalControl {
                         }
                     }
                 }
-            }
-
-            // Cancel if not enough resources for non-energy/battery orders
-            if (order.resourceType !== RESOURCE_ENERGY && order.resourceType !== RESOURCE_BATTERY && !order.amount) {
-                this.cancelOrder(order, 'Not enough resources in terminal');
-                continue;
-            }
-
-            // Cancel energy sell orders if energy shortage
-            if (order.resourceType === RESOURCE_ENERGY && Game.rooms[order.roomName].energyState < 2) {
-                this.cancelOrder(order, 'Energy shortage in room');
-                continue;
             }
         }
     }

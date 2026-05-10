@@ -96,7 +96,7 @@ module.exports.loop = function () {
             }
 
             // Pixel Farming
-            if (PIXEL_FARM && ['shard0', 'shard1', 'shard2', 'shard3'].includes(Game.shard.name)) {
+            if (PIXEL_FARM && ['shard0', 'shard1', 'shard2', 'shard3', 'shardX'].includes(Game.shard.name)) {
                 const pixelRoom = Game.rooms[MY_ROOMS[0]];
                 return require('module.pixelFarm').farm(pixelRoom);
             }
