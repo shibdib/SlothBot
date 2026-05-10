@@ -190,12 +190,19 @@ module.exports.storePathing = function () {
         } else {
             try {
                 let stringified = JSON.stringify(CACHE.PATH_CACHE);
-                if (stringified.length >= 75000) {
+                let safetyGuard = 0;
+                while (stringified.length >= 95000 && _.size(CACHE.PATH_CACHE) && safetyGuard++ < 10) {
                     cleanStore(CACHE.PATH_CACHE);
                     stringified = JSON.stringify(CACHE.PATH_CACHE);
                 }
-                RawMemory.segments[69] = stringified;
-                lastPathingStore = Game.time;
+                if (stringified.length < 100000) {
+                    RawMemory.segments[69] = stringified;
+                    lastPathingStore = Game.time;
+                } else {
+                    log.e("Path cache still over 100KB after cleanup, clearing.", "PATHING MANAGER: ");
+                    global.CACHE.PATH_CACHE = {};
+                    RawMemory.segments[69] = '';
+                }
             } catch (e) {
                 log.e("Error stringifying pathing cache, skipping store.", "PATHING MANAGER: ");
                 log.e(e.stack);
@@ -208,12 +215,19 @@ module.exports.storePathing = function () {
         } else {
             try {
                 let stringified = JSON.stringify(CACHE.ROUTE_CACHE);
-                if (stringified.length >= 75000) {
+                let safetyGuard = 0;
+                while (stringified.length >= 95000 && _.size(CACHE.ROUTE_CACHE) && safetyGuard++ < 10) {
                     cleanStore(CACHE.ROUTE_CACHE);
                     stringified = JSON.stringify(CACHE.ROUTE_CACHE);
                 }
-                RawMemory.segments[70] = stringified;
-                lastPathingStore = Game.time;
+                if (stringified.length < 100000) {
+                    RawMemory.segments[70] = stringified;
+                    lastPathingStore = Game.time;
+                } else {
+                    log.e("Route cache still over 100KB after cleanup, clearing.", "PATHING MANAGER: ");
+                    global.CACHE.ROUTE_CACHE = {};
+                    RawMemory.segments[70] = '';
+                }
             } catch (e) {
                 log.e("Error stringifying routing cache, skipping store.", "PATHING MANAGER: ");
                 log.e(e.stack);
