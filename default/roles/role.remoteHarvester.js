@@ -24,10 +24,18 @@ class RoleRemoteHarvester {
             return true;
         }
 
-        // Handle room reservation/ownership - Throttled
-        if (Game.time % 20 === 0 && this.room.controller && (this.room.controller.reservation && this.room.controller.reservation.username !== MY_USERNAME)) {
-            this.room.cacheRoomIntel(true);
-            return this.creep.recycleCreep();
+        // Throttled viability check - recycle if the remote is no longer assigned to this colony
+        if (Game.time % 20 === 0 && this.creep.memory.destination && INTEL[this.creep.memory.destination]) {
+            const intel = INTEL[this.creep.memory.destination];
+            const colony = Game.rooms[this.creep.memory.colony];
+            const hostile = intel.level || (intel.reservation && intel.reservation !== MY_USERNAME && intel.reservation !== 'Invader');
+            const blocked = intel.threatLevel > 1 || intel.roomHeat > 250 || intel.obstacles;
+            const dropped = Memory.avoidRemotes && Memory.avoidRemotes.includes(this.creep.memory.destination);
+            const skUnsafe = intel.sk && (!SK_MINING || !colony || colony.level < SK_MINING_LEVEL);
+            if (hostile || blocked || dropped || skUnsafe || !intel.sources) {
+                if (hostile) this.room.cacheRoomIntel(true);
+                return this.creep.recycleCreep();
+            }
         }
 
         // Periodically check the container

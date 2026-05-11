@@ -27,6 +27,14 @@ class RoleRemoteHauler {
     housekeeping() {
         if ((this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk)) && this.creep.skSafety()) return true;
         if (Game.time % 50 === 0 && safemodeGeneration(this.creep)) return true;
+        // Recycle if the destination remote is no longer viable
+        if (Game.time % 30 === 0 && this.memory.destination && this.memory.destination !== this.memory.colony && INTEL[this.memory.destination]) {
+            const intel = INTEL[this.memory.destination];
+            const hostile = intel.level || (intel.reservation && intel.reservation !== MY_USERNAME && intel.reservation !== 'Invader');
+            const blocked = intel.threatLevel > 1 || intel.roomHeat > 250 || intel.obstacles;
+            const dropped = Memory.avoidRemotes && Memory.avoidRemotes.includes(this.memory.destination);
+            if (hostile || blocked || dropped || !intel.sources) return this.creep.recycleCreep();
+        }
         if (!this.memory.exitLinkCheck && this.store.getUsedCapacity() > 0 && this.room.name === this.memory.colony) this.exitLinkCheck();
         this.creep.say(ICONS.haul2, true);
         return false;
