@@ -549,7 +549,8 @@ Creep.prototype.haulerDelivery = function () {
     // 2. Towers — after spawns/extensions so defenders can always spawn
     if (this.room.controller && this.room.controller.level >= 3) {
         const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
-        targets = allTowers.filter(s => s.store[RESOURCE_ENERGY] < TOWER_CAPACITY);
+        const targetAmount = threatLevel ? 1 : 0.75
+        targets = allTowers.filter(s => s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * targetAmount);
         if (targets.length) {
             this.memory.storageDestination = this.pos.findClosestByRange(targets).id;
             return true;
