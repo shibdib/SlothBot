@@ -68,6 +68,9 @@ class TerminalControl {
         for (let key in myOrders) {
             let order = myOrders[key];
 
+            // Energy and base mineral buy orders are repriced by placeBuyOrders with tiered logic — skip here
+            if (order.type === ORDER_BUY && (order.resourceType === RESOURCE_ENERGY || BASE_MINERALS.includes(order.resourceType))) continue;
+
             // Initialize the tracker for this order if it doesn't exist
             if (!priceUpdateTracker[order.id]) {
                 priceUpdateTracker[order.id] = {lastChange: 0};
@@ -147,12 +150,31 @@ class TerminalControl {
 
                     if (Game.market.credits < CREDIT_BUFFER * 0.6 && !isLabNeed) continue;
 
-                    // Buy orders
-                    const activeBuyOrder = _.find(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY)
-                    if (!activeBuyOrder && !MY_MINERALS[mineral]) {
-                        price = this.calculatePrice(ORDER_BUY, mineral);
-                        buyAmount = Math.min(buyAmount, REACTION_AMOUNT);
-                        if (createBuyOrder(mineral, price, buyAmount)) break;
+                    // Buy orders — tiered price by urgency, repriced if stock level changes
+                    const activeBuyOrder = _.find(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY);
+                    if (!MY_MINERALS[mineral]) {
+                        const histAvg = parseFloat(latestMarketHistory(mineral).avg) || 1;
+                        const mineralBuyOrders = globalOrders.filter(o => o.resourceType === mineral && o.type === ORDER_BUY && o.remainingAmount >= 50 && !MY_ROOMS.includes(o.roomName));
+                        const sortedMineralPrices = mineralBuyOrders.map(o => o.price).sort((a, b) => a - b);
+                        const p90mineral = sortedMineralPrices.length ? sortedMineralPrices[Math.floor(sortedMineralPrices.length * 0.9)] : null;
+                        const avgPrice = p90mineral ? Math.min(histAvg, p90mineral) : histAvg;
+                        const stockRatio = stored / target;
+                        const baseMult = (isLabNeed && stored < 500) ? 0.95
+                            : stockRatio < 0.25 ? 0.88
+                                : stockRatio < 0.5 ? 0.82
+                                    : 0.75;
+                        const escalationTicks = (isLabNeed && stored < 500) ? 5000
+                            : stockRatio < 0.25 ? 20000
+                                : 50000;
+                        const mineralOrderAge = activeBuyOrder ? Game.time - activeBuyOrder.created : 0;
+                        const ageMult = Math.min(1.0, baseMult + (mineralOrderAge / escalationTicks) * (1.0 - baseMult));
+                        const targetPrice = avgPrice * ageMult;
+                        if (!activeBuyOrder) {
+                            buyAmount = Math.min(buyAmount, REACTION_AMOUNT);
+                            if (createBuyOrder(mineral, targetPrice, buyAmount)) break;
+                        } else if (Math.abs(activeBuyOrder.price - targetPrice) > 0.02 * avgPrice) {
+                            Game.market.changeOrderPrice(activeBuyOrder.id, targetPrice);
+                        }
                     }
 
                     // Be more willing to pay a higher markup if we are desperately low or labs are stalled
@@ -225,15 +247,26 @@ class TerminalControl {
             if (createBuyOrder(t1boost, price, buyAmount)) return true;
         }
 
-        // Handle energy buying — buy whenever this room needs energy and market price is acceptable
-        if (BUY_ENERGY && Game.market.credits > BUY_ENERGY_CREDIT_BUFFER && terminal.room.energyState < 2) {
-            if (!_.find(myOrders, (o) => o.resourceType === RESOURCE_ENERGY && o.roomName === terminal.room.name)) {
-                const avgPrice = latestMarketHistory(RESOURCE_ENERGY).avg || 1;
-                // Cap at 110% of avg so we only fill at reasonable prices
-                const price = Math.min(this.calculatePrice(ORDER_BUY, RESOURCE_ENERGY), avgPrice * 1.1);
-                // Larger order when critically empty, smaller when just below surplus threshold
-                const buyAmount = !terminal.room.energyState ? 25000 : 15000;
-                if (createBuyOrder(RESOURCE_ENERGY, price, buyAmount)) return true;
+        // Energy buying — tiered by urgency, repriced if state changes
+        if (BUY_ENERGY && terminal.room.energyState < 2 && Game.market.credits > BUY_ENERGY_CREDIT_BUFFER) {
+            const histAvg = parseFloat(latestMarketHistory(RESOURCE_ENERGY).avg) || 1;
+            const currentEnergyBuyOrders = globalOrders.filter(o => o.resourceType === RESOURCE_ENERGY && o.type === ORDER_BUY && o.remainingAmount >= 500 && !MY_ROOMS.includes(o.roomName));
+            // Use 90th-percentile buy price to anchor — single outlier orders can't skew the reference
+            const sortedBuyPrices = currentEnergyBuyOrders.map(o => o.price).sort((a, b) => a - b);
+            const p90 = sortedBuyPrices.length ? sortedBuyPrices[Math.floor(sortedBuyPrices.length * 0.9)] : null;
+            const refPrice = p90 ? Math.min(histAvg, p90) : histAvg;
+            const isCritical = !terminal.room.energyState && Game.market.credits > BUY_ENERGY_CREDIT_BUFFER * 2;
+            const existingOrder = _.find(myOrders, o => o.resourceType === RESOURCE_ENERGY && o.roomName === terminal.room.name);
+            // Escalate price over time if unfilled: start conservative, climb to full market price
+            const orderAge = existingOrder ? Game.time - existingOrder.created : 0;
+            const baseMult = isCritical ? 0.95 : 0.75;
+            const escalationTicks = isCritical ? 5000 : 50000;
+            const ageMult = Math.min(1.0, baseMult + (orderAge / escalationTicks) * (1.0 - baseMult));
+            const targetPrice = refPrice * ageMult;
+            if (!existingOrder) {
+                if (createBuyOrder(RESOURCE_ENERGY, targetPrice, isCritical ? 10000 : 5000)) return true;
+            } else if (Math.abs(existingOrder.price - targetPrice) > 0.02 * refPrice) {
+                Game.market.changeOrderPrice(existingOrder.id, targetPrice);
             }
         }
 
