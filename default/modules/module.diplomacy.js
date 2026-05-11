@@ -16,6 +16,8 @@ module.exports.diplomacyManager = function () {
 };
 
 function threatManager() {
+    global.ENEMIES = [];
+    global.THREATS = [];
     // Process user standings
     for (const name in Memory._userList) {
         // Sanity checks
@@ -59,7 +61,7 @@ module.exports.trackThreat = function (creep) {
     }
 
     // Process damage detection
-    if (hits < memory._lastHits || hitsMax) {
+    if (hits < memory._lastHits) {
         if (!INTEL[room.name]) return room.cacheRoomIntel();
 
         INTEL[room.name].lastCombat = Game.time;
