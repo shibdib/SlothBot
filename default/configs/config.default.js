@@ -52,8 +52,6 @@ global.SELL_BOOSTS = false; // If we should sell spare boosts or not
 global.SELL_ENERGY = false;
 
 // Room Build
-global.BUNKER_LEVEL = 5; // What level do we start building the bunker
-global.BARRIER_TARGET = 7500000; // Hit target for ramparts/walls at rcl8
 global.SPECIAL_RAMPARTS = 7; // What level do we build ramparts on important structures/controller/sources/on-ramps
 global.PROTECT_STRUCTURES = true; // Rampart significant structures (tied to the above)
 global.PROTECT_CONTROLLER = true; // Build ramparts around the controller

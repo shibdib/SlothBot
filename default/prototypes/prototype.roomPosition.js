@@ -184,7 +184,7 @@ RoomPosition.prototype.getAdjacentPositionAtRange = function (target, range = 3)
 const BUNKER_CACHE = {};
 RoomPosition.prototype.isInBunker = function () {
     const room = Game.rooms[this.roomName];
-    if (!room || !room.memory.bunkerHub || room.level < BUNKER_LEVEL) return false;
+    if (!room || !room.memory.bunkerHub || room.level < 5) return false;
 
     const hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
     const roomName = this.roomName;

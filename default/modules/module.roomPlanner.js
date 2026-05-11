@@ -481,12 +481,12 @@ function rampartBuilder(room, layout = undefined, count = false) {
     }
 
     // Bunker
-    if (room.level >= BUNKER_LEVEL && room.energyState && handleBunkerRamparts(room, layout, count)) {
+    if (room.level >= 5 && room.energyState && handleBunkerRamparts(room, layout, count)) {
         return true;
     }
 
     // Handle protective ramparts
-    if (room.level >= 5 && buildProtectiveRamparts(room)) {
+    if (room.level >= 6 && buildProtectiveRamparts(room)) {
         return true;
     }
 
@@ -765,7 +765,7 @@ function roadBuilder(room, layout) {
     if (room.level >= 6 && buildMineralLinkAndLabRoads(room)) return true;
 
     // RCL 7+ we build rampart roads
-    if (room.level >= BUNKER_LEVEL && buildRoadsForRamparts(room)) return true;
+    if (room.level >= 7 && buildRoadsForRamparts(room)) return true;
 
     // Handle redundant roads
     removeRedundantRoads(room, layout);
