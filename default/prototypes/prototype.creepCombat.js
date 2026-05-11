@@ -841,8 +841,24 @@ function getAssignedRampart(creep, target = undefined) {
         }
     }
     if (!position) {
-        let filter = (r) => r.my && r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && !creep.room.myCreeps.some(c => c.memory.assignedRampart === r.id && c.id !== creep.id);
-        position = target ? target.pos.findInRange(creep.room.structures, range, {filter})[0] || target.pos.findClosestByPath(creep.room.structures, {filter}) : creep.pos.findClosestByPath(creep.room.structures, {filter});
+        const filter = (r) => r.my && r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && !creep.room.myCreeps.some(c => c.memory.assignedRampart === r.id && c.id !== creep.id);
+        if (target) {
+            position = target.pos.findInRange(creep.room.structures, range, {filter})[0] ||
+                target.pos.findClosestByPath(creep.room.structures, {filter});
+        } else {
+            // When idle, prefer the rampart closest to the nearest armed hostile rather than
+            // closest to the creep — this intercepts threats from the right direction.
+            const hostiles = creep.room.hostileCreeps.filter(h =>
+                h.hasActiveBodyparts(ATTACK) || h.hasActiveBodyparts(RANGED_ATTACK) || h.hasActiveBodyparts(WORK)
+            );
+            if (hostiles.length) {
+                const available = creep.room.structures.filter(filter);
+                position = _.min(available, r =>
+                    _.min(hostiles.map(h => Math.abs(h.pos.x - r.pos.x) + Math.abs(h.pos.y - r.pos.y)))
+                );
+            }
+            if (!position) position = creep.pos.findClosestByPath(creep.room.structures, {filter});
+        }
     }
     return position;
 }
