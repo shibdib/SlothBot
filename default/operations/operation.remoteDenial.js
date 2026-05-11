@@ -21,10 +21,23 @@ Creep.prototype.remoteDenial = function () {
         }
     }
 
+    // If the target room no longer is hostile or exists cancel the operations
+    if (INTEL[this.memory.other.target]) {
+        if (!INTEL[this.memory.other.target].owner || FRIENDLIES.includes(INTEL[this.memory.other.target].owner)) {
+            this.memory.operation = 'borderPatrol';
+            this.memory.destination = undefined;
+            this.memory.other.target = undefined;
+            this.memory.other.visited = undefined;
+            Memory.targetRooms[this.memory.other.target] = undefined;
+            log.a('Operation cancelled due to target room no longer being hostile or no longer existing', 'REMOTE-DENIAL: ');
+            return this.fleeHome();
+        }
+    }
+
     // If already in the target room
     if (this.room.name === this.memory.destination || !this.memory.destination) {
         highCommand.generateThreat(this);
-        if (this.memory.other) highCommand.operationSustainability(this.room, this.memory.other.target);
+        highCommand.operationSustainability(this.room, this.memory.other.target);
 
         if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(50)) {
             if (Memory.targetRooms[this.memory.other.target]) {

@@ -1130,7 +1130,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                     break;
             }
             try {
-                for (let boost of BOOST_USE[boostType].slice().reverse()) {
+                for (let boost of BOOST_USE[boostType].slice()) {
                     if (boostNeeded && this.room.store(boost) >= boostNeeded) {
                         available[boost] = {
                             'boost': boost,

@@ -35,6 +35,8 @@ Creep.prototype.denyRoom = function () {
 
         // Combat handling
         if (this.handleMilitaryCreep()) return;
+
+        this.idleFor(this.pos.getRangeTo(this.pos.findClosestByPath(FIND_EXIT)) * 0.5);
     }
 
     // Handle staging and moving to destination

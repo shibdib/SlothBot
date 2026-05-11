@@ -808,7 +808,11 @@ Room.prototype.invaderCheck = function () {
     // No hostile creeps detected
     if (!hostileCreeps.length) {
         roomData.lastInvaderSighting = undefined;
-        if (!roomData.roomHeat && !roomData.threatLevel) return false;
+        if (!roomData.roomHeat && !roomData.threatLevel) {
+            roomData.tickDetected = undefined;
+            INTEL[this.name] = roomData;
+            return false;
+        }
 
         // Cap room heat at 1000
         roomData.roomHeat = Math.min(roomData.roomHeat, 1000);
@@ -832,6 +836,7 @@ Room.prototype.invaderCheck = function () {
                 hostileOwners: undefined
             });
         }
+        INTEL[this.name] = roomData;
         return false;
     }
 

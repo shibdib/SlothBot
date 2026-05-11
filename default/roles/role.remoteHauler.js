@@ -213,7 +213,7 @@ function dropOff(creep) {
     } else if (!colony.terminal && !colony.memory.hubLink && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 0 &&
         Math.random() > controllerContainer.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY) {
         memory.storageDestination = controllerContainer.id;
-    } else if (colony.energyState > 1 && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) &&
+    } else if (colony.energyState && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) &&
         Math.random() + 0.1 > controllerContainer.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY) {
         memory.storageDestination = controllerContainer.id;
     } else if (colony.energyState && colony.nuker &&

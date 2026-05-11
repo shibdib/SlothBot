@@ -48,9 +48,6 @@ class RoleExplorer {
 
             let adjacent = _.filter(rooms, r => {
                 if (roomStatus(r.name) === 'closed') return false;
-                // Skip rooms we know are hostile or enemy-owned
-                const intel = INTEL[r.name];
-                if (intel && (intel.hostile || (intel.owner && !FRIENDLIES.includes(intel.owner)))) return false;
                 return pathableExit(this.creep, this.room.find(r.direction)[Math.floor(this.room.find(r.direction).length / 2)]);
             });
 
@@ -61,7 +58,7 @@ class RoleExplorer {
 
             // Priority: no intel > stale intel (oldest first) > random
             let target = _.find(adjacent, r => !INTEL[r.name])
-                || _.min(adjacent.filter(r => INTEL[r.name]), r => INTEL[r.name].lastSeen || 0)
+                || _.sample(adjacent.filter(r => r !== this.creep.memory.lastRoom))
                 || _.sample(adjacent);
 
             if (target && target.name) this.creep.memory.destination = target.name; else this.creep.idleFor(6);

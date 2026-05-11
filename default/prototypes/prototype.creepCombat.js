@@ -34,17 +34,16 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
     } else {
         this.memory.target = undefined;
         this.memory.targetPos = undefined;
-        return false;
     }
 
     // Handle enemy on rampart
-    if (hostile.pos.checkForRampart()) {
+    if (hostile && hostile.pos.checkForRampart()) {
         hostile = hostile.pos.checkForRampart();
         this.memory.target = hostile.id;
     }
 
     // Combat strategy
-    if (combatAction(this, hostile, rampart)) {
+    if (hostile && combatAction(this, hostile, rampart)) {
         return true;
     }
 
@@ -399,7 +398,7 @@ Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, o
 
     // Try to get the last stomped site from memory or find the closest construction site
     let constructionSite = Game.getObjectById(this.memory.stompSite) || this.pos.findClosestByRange(this.room.constructionSites, {
-        filter: (s) => (!onlyInBuild || s.progress) && !s.my && !s.pos.checkForObstacleStructure() && !s.pos.checkForCreep()
+        filter: (s) => (!onlyInBuild || s.progress) && !s.my && !s.pos.checkForCreep()
     });
 
     // If a construction site is found, attempt to move to it

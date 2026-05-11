@@ -72,8 +72,8 @@ class StateManager {
         room.memory.energyInfo = {income: income, expense: expense, spareIncome: spareIncome};
         room.memory.energyPositive = (average(energyIncomeArray) > 0 && income > expense) || room.energyState > 1 || room.level < 4;
 
-        if (!room.memory.combatReady && room.energyState >= 1 && room.level >= 6) room.memory.combatReady = true;
-        else if (room.memory.combatReady && !room.energyState) room.memory.combatReady = undefined;
+        if (!room.memory.combatReady && room.energyState > 1 && room.level >= 6) room.memory.combatReady = true;
+        else if (room.memory.combatReady) room.memory.combatReady = undefined;
     }
 
     levelingStatTracking(room) {

@@ -185,6 +185,46 @@ class TerminalControl {
             }
         }
 
+        // Buy T1 boosts directly when cheaper on the market than reacting from raw components
+        for (const t1boost of TIER_1_BOOSTS) {
+            if (!labNeeds.includes(t1boost)) continue;
+            const components = BOOST_COMPONENTS[t1boost];
+            // Only handle simple T1s whose both components are base minerals (skips GH/GO which need synthesised G)
+            if (!components || !components.every(c => BASE_MINERALS.includes(c))) continue;
+
+            const stored = terminal.room.store(t1boost);
+            if (stored >= REACTION_AMOUNT) continue;
+            if (_.some(myOrders, o => o.roomName === terminal.room.name && o.resourceType === t1boost && o.type === ORDER_BUY)) continue;
+
+            const t1Avg = latestMarketHistory(t1boost).avg;
+            const rawCost = components.reduce((sum, c) => sum + (latestMarketHistory(c).avg || 0), 0);
+            if (!t1Avg || !rawCost || t1Avg >= rawCost) continue;
+
+            const buyAmount = Math.min(REACTION_AMOUNT - stored, REACTION_AMOUNT);
+
+            // Immediately deal on the cheapest sell order priced below raw component cost
+            const cheapSell = _.min(
+                globalOrders.filter(o => o.resourceType === t1boost && o.type === ORDER_SELL &&
+                    !_.includes(MY_ROOMS, o.roomName) && o.price < rawCost),
+                'price'
+            );
+            if (cheapSell && cheapSell.id) {
+                let amount = Math.min(buyAmount, cheapSell.amount);
+                if (cheapSell.price * amount > Memory._banker.spendingAccount) amount = Math.floor(Memory._banker.spendingAccount / cheapSell.price);
+                if (amount >= 100) {
+                    if (Game.market.deal(cheapSell.id, amount, terminal.room.name) === OK) {
+                        log.w(`Bought ${amount} ${t1boost} at ${cheapSell.price}/u (raw cost: ${rawCost.toFixed(3)}/u) in ${roomLink(terminal.room.name)}`, "Market: ");
+                        Memory._banker.spendingAccount -= cheapSell.price * amount;
+                        return true;
+                    }
+                }
+            }
+
+            // No immediate deal — place a standing buy order capped at just below raw component cost
+            const price = Math.min(this.calculatePrice(ORDER_BUY, t1boost), rawCost * 0.98);
+            if (createBuyOrder(t1boost, price, buyAmount)) return true;
+        }
+
         // Handle energy buying — buy whenever this room needs energy and market price is acceptable
         if (BUY_ENERGY && Game.market.credits > BUY_ENERGY_CREDIT_BUFFER && terminal.room.energyState < 2) {
             if (!_.find(myOrders, (o) => o.resourceType === RESOURCE_ENERGY && o.roomName === terminal.room.name)) {
@@ -711,7 +751,7 @@ class TerminalControl {
 
             // Cancel inactive orders
             if (!order.active) {
-                //this.cancelOrder(order, 'Order no longer active');
+                this.cancelOrder(order, 'Order no longer active');
                 continue;
             }
 

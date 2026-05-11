@@ -246,10 +246,31 @@ class RoleDrone {
         if (this.creep.memory.task || this.creep.constructionWork()) {
             if (this.creep.builderFunction()) {
                 this.creep.memory.other.stationary = true;
+                this.stepOffRoad();
             }
             return true;
         }
         return false;
+    }
+
+    stepOffRoad() {
+        if (!this.creep.pos.checkForRoad()) return;
+        const construction = Game.getObjectById(this.creep.memory.constructionSite) || Game.getObjectById(this.creep.memory.currentTarget);
+        if (!construction) return;
+        const pos = this.creep.pos;
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                if (dx === 0 && dy === 0) continue;
+                const nx = pos.x + dx;
+                const ny = pos.y + dy;
+                if (nx < 1 || nx > 48 || ny < 1 || ny > 48) continue;
+                const adj = new RoomPosition(nx, ny, pos.roomName);
+                if (adj.getRangeTo(construction) > 3) continue;
+                if (adj.checkForImpassible(true) || adj.checkForRoad() || adj.checkForCreep()) continue;
+                this.creep.move(this.creep.pos.getDirectionTo(adj));
+                return;
+            }
+        }
     }
 
     walling(maintenance = false) {
@@ -300,6 +321,7 @@ class RoleDrone {
                     delete this.creep.memory.currentTarget;
                     delete this.creep.memory.targetWallHits;
                 }
+                this.stepOffRoad();
             } else if (result === ERR_NOT_IN_RANGE) {
                 this.creep.shibMove(target, {range: 3});
             } else {

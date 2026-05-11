@@ -303,7 +303,7 @@ module.exports.miscCreepQueue = function (room) {
     if (room.memory.dangerousAttack) return;
 
     // Explorers
-    queueCreepIfNeeded({colony: room, role: 'explorer', priority: PRIORITIES.high, numberNeeded: 8 - MAX_LEVEL})
+    if (MAX_LEVEL < 8) queueCreepIfNeeded({colony: room, role: 'explorer', priority: PRIORITIES.high, numberNeeded: 1})
 
     // Mineral Harvester
     if (room.storage && room.level >= 6 && room.memory.extractorContainer && room.mineral.mineralAmount) {
@@ -596,7 +596,7 @@ module.exports.remoteCreepQueue = function (room) {
                 colony: room,
                 role: 'roadBuilder',
                 priority: PRIORITIES.roadBuilder + (getCreepCount(room, 'roadBuilder') * 1.5),
-                numberNeeded: getCreepCount(room, 'remoteHarvester') * 0.5
+                numberNeeded: getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room) * 0.5
             });
         }
     }

@@ -25,17 +25,6 @@ class RoleUpgrader {
     housekeeping() {
         // Boosting
         if (this.creep.tryToBoost()) return true;
-        // If the room is energy-negative and we're not the only upgrader, recycle to stop the drain
-        if (!this.room.energyState) {
-            const upgraders = this.room.myCreeps.filter(c => c.memory.role === 'upgrader');
-            if (upgraders.length > 1) {
-                const oldest = _.min(upgraders, 'ticksToLive');
-                if (oldest.id === this.creep.id) {
-                    this.creep.recycleCreep();
-                    return true;
-                }
-            }
-        }
         return false;
     }
 

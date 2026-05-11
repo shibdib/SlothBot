@@ -111,21 +111,24 @@ class RoleRoadBuilder {
     remoteRoads(creep) {
         if (creep.room.constructionSites.length >= 2 || INTEL[creep.room.name].owner) return false;
 
+        // Verify this room is actually assigned to this colony
+        const isColonyRemote = (ROOM_REMOTE_TARGETS[creep.memory.colony] || []).some(s => s.room === creep.room.name);
+        if (!isColonyRemote && creep.room.name !== creep.memory.colony) return false;
+
         // If the intel cache says roads are built compare the road count
         if (INTEL[creep.room.name].roadsBuilt && Math.random() > 0.75) {
             if (INTEL[creep.room.name].roadCount <= creep.room.structures.filter((s) => s.structureType === STRUCTURE_ROAD).length) return true;
         }
 
-        // Containers
+        // Roads from sources/containers to home exit
         let goHome = Game.map.findExit(creep.room.name, creep.memory.colony);
         let homeExit = creep.room.find(goHome);
         let homeMiddle = _.round(homeExit.length / 2);
         let containers = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
-        let destination = Game.rooms[creep.memory.colony].storage;
-        if (!destination) destination = new RoomPosition(Game.rooms[creep.memory.colony].memory.bunkerHub.x, Game.rooms[creep.memory.colony].memory.bunkerHub.y, creep.memory.colony);
-        for (let container of containers) {
+        const roadOrigins = containers.length ? containers : creep.room.sources;
+        for (let origin of roadOrigins) {
             if (_.size(Game.constructionSites) >= 70) return false;
-            if (this.buildRoadFromTo(creep.room, container, homeExit[homeMiddle])) return true;
+            if (this.buildRoadFromTo(creep.room, origin, homeExit[homeMiddle])) return true;
         }
 
         // SK Room
@@ -142,20 +145,18 @@ class RoleRoadBuilder {
         // Controller
         if (creep.room.controller && this.buildRoadFromTo(creep.room, creep.room.controller, homeExit[homeMiddle])) return true;
 
-        // Active neighbors
+        // Roads to neighboring remotes assigned to this colony
+        const colonyRemoteRooms = new Set((ROOM_REMOTE_TARGETS[creep.memory.colony] || []).map(s => s.room));
         const neighboringRooms = Object.values(Game.map.describeExits(creep.room.name));
         for (const neighbor of neighboringRooms) {
-            if (!Game.rooms[neighbor]) continue;
-            const neighborRoom = Game.rooms[neighbor];
-            const neighborHarvester = neighborRoom.myCreeps.find((c) => c.memory.role === 'remoteHarvester');
-            if (neighborHarvester) {
-                let exit = Game.map.findExit(creep.room.name, neighbor);
-                let exitTiles = creep.room.find(exit);
-                let exitMiddle = _.round(exitTiles.length / 2);
-                if (_.size(Game.constructionSites) >= 70) return false;
-                const start = creep.room.controller || creep.room.sources[0];
-                if (this.buildRoadFromTo(creep.room, start, exitTiles[exitMiddle])) return true;
-            }
+            if (!colonyRemoteRooms.has(neighbor)) continue;
+            let exit = Game.map.findExit(creep.room.name, neighbor);
+            let exitTiles = creep.room.find(exit);
+            if (!exitTiles.length) continue;
+            let exitMiddle = _.round(exitTiles.length / 2);
+            if (_.size(Game.constructionSites) >= 70) return false;
+            const start = roadOrigins[0] || creep.room.sources[0];
+            if (this.buildRoadFromTo(creep.room, start, exitTiles[exitMiddle])) return true;
         }
     }
 

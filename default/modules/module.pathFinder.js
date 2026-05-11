@@ -369,7 +369,7 @@ function findRoute(origin, destination, options = {}) {
             if (!intel || intel.cached + 10000 < Game.time) return 50;
             if (intel.user && intel.user === MY_USERNAME) return 1;
             if (intel.user && FRIENDLIES.includes(intel.user) && !NO_RAMPART_CODE.includes(intel.user)) return 5;
-            if (intel.user && !FRIENDLIES.includes(intel.user)) return intel.towers ? Infinity : 25;
+            if (intel.user && !FRIENDLIES.includes(intel.user)) return intel.towers ? Infinity : 150;
             if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) return 50;
             if (intel.obstacles) return 200;
             if (intel.sk && intel.towers) return 250;

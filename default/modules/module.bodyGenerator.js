@@ -108,10 +108,11 @@ class ModuleBodyGenerator {
                     carry = Math.max(carry, 3);
                 } else if (this.room.energyState === 1) {
                     work = Math.min(work, Math.max(1, Math.floor(this.spareIncome)));
+                    carry = Math.floor((this.energyAmount * 0.2) / BODYPART_COST[CARRY]) || 1;
+                    carry = Math.max(carry, 6);
                 } else if (this.room.energyState === 2) {
                     work = Math.min(work, Math.max(3, Math.floor(this.spareIncome * 1.5)));
                 }
-                // state 3+: full capacity body — aggressively build with the surplus
                 if (work < 1) return undefined;
                 break;
 
@@ -120,11 +121,10 @@ class ModuleBodyGenerator {
                     work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 49);
                     if (!this.room.energyState) {
-                        work = 1;
+                        work *= 0.25;
                     } else if (this.room.energyState === 1) {
-                        work = Math.min(work, Math.max(1, Math.floor(this.spareIncome)));
+                        work *= 0.5;
                     }
-                    // state 3+: full capacity body — drain surplus into controller
                     carry = 1;
                     move = 0;
                 } else {
