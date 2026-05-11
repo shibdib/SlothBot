@@ -90,11 +90,11 @@ class ModuleBodyGenerator {
 
             case 'roadBuilder':
             case 'drone':
-                if (!this.creepInfo.destination && INTEL[this.room.name].roadsBuilt) halfMove = true;
+                if (!this.creepInfo.destination && this.role !== 'roadBuilder' && INTEL[this.room.name].roadsBuilt) halfMove = true;
                 if (!halfMove) {
-                    work = Math.floor(this.energyAmount * 0.4 / BODYPART_COST[WORK]) || 1;
+                    work = Math.floor(this.energyAmount * 0.35 / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 15);
-                    carry = Math.floor((this.energyAmount * 0.2) / BODYPART_COST[CARRY]) || 1;
+                    carry = Math.floor((this.energyAmount * 0.15) / BODYPART_COST[CARRY]) || 1;
                     carry = Math.min(carry, 10);
                 } else {
                     work = Math.floor(this.energyAmount * 0.51 / BODYPART_COST[WORK]) || 1;
@@ -103,15 +103,8 @@ class ModuleBodyGenerator {
                     carry = Math.min(carry, 12);
                 }
                 if (!this.room.energyState) {
-                    work = 1;
-                    carry = Math.floor((this.energyAmount * 0.1) / BODYPART_COST[CARRY]) || 1;
-                    carry = Math.max(carry, 3);
-                } else if (this.room.energyState === 1) {
-                    work = Math.min(work, Math.max(1, Math.floor(this.spareIncome)));
-                    carry = Math.floor((this.energyAmount * 0.2) / BODYPART_COST[CARRY]) || 1;
-                    carry = Math.max(carry, 6);
-                } else if (this.room.energyState === 2) {
-                    work = Math.min(work, Math.max(3, Math.floor(this.spareIncome * 1.5)));
+                    work *= 0.2;
+                    carry *= 0.2;
                 }
                 if (work < 1) return undefined;
                 break;
@@ -337,14 +330,14 @@ class ModuleBodyGenerator {
                 const desiredCarry = Math.ceil(harvestRate / CARRY_CAPACITY) || 1;
 
                 // Work parts after level 3
-                work = this.room.level >= 4 ? 1 : 0;
+                work = this.room.level >= 7 ? 1 : 0;
 
                 // Set move if the assigned harvesters intel checks out
                 if (INTEL[assignedHarvester.room.name].roadsBuilt && INTEL[this.room.name].roadsBuilt) {
-                    carry = Math.floor((this.energyAmount - workCost - work * BODYPART_COST[MOVE] * 0.5) / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE] * 0.5)) || 1;
+                    carry = Math.floor((this.energyAmount - (work * BODYPART_COST[WORK])) / (BODYPART_COST[CARRY] + (BODYPART_COST[MOVE] * 0.5))) || 1;
                     halfMove = true;
                 } else {
-                    carry = Math.floor((this.energyAmount - workCost - work * BODYPART_COST[MOVE]) / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
+                    carry = Math.floor((this.energyAmount - (work * BODYPART_COST[WORK])) / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
                 }
 
                 // Limit carry to what is actually needed

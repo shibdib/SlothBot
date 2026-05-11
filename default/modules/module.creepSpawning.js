@@ -591,12 +591,13 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function handleRoadBuilder(room) {
-        if (getCreepCount(room, 'remoteHarvester')) {
+        const uniqueRemoteRooms = [...new Set((ROOM_REMOTE_TARGETS[room.name] || []).map(s => s.room))];
+        if (getCreepCount(room, 'remoteHarvester') && uniqueRemoteRooms.length) {
             queueCreepIfNeeded({
                 colony: room,
                 role: 'roadBuilder',
-                priority: PRIORITIES.roadBuilder + (getCreepCount(room, 'roadBuilder') * 1.5),
-                numberNeeded: getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room) * 0.5
+                priority: PRIORITIES.roadBuilder,
+                numberNeeded: uniqueRemoteRooms.length * 0.5
             });
         }
     }
@@ -680,7 +681,7 @@ module.exports.remoteCreepQueue = function (room) {
         for (const harvester of roomHarvesters) {
             if (shouldSkipRemote(room, harvester.memory.destination)) continue;
             const assignedHaulers = haulersByHarvester[harvester.id] || [];
-            const count = room.memory.remotePenalty ? 1 : !room.storage ? 2 : 3;
+            const count = room.memory.remotePenalty ? 2 : !room.storage ? 3 : 4;
             if (assignedHaulers.length >= count) continue;
             const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
             const harvestAmount = harvester.memory.other.haulingRequired;
@@ -708,14 +709,14 @@ module.exports.remoteCreepQueue = function (room) {
         const surroundingRooms = getSurroundingRooms(room.name);
         let remoteTargets = surroundingRooms.filter(function (r) {
             return r.name !== room.name && roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].owner && !INTEL[r].obstacles &&
-                (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || INTEL[r].reservation === 'Invader') && Game.map.findRoute(room.name, r).length <= 2;
+                (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || INTEL[r].reservation === 'Invader') && Game.map.findRoute(room.name, r).length <= 4;
         });
         for (const rooms of surroundingRooms) {
             if (roomStatus(rooms) === roomStatus(room.name)) {
                 const surroundingRoomsTwo = getSurroundingRooms(rooms);
                 const remoteRooms = surroundingRoomsTwo.filter(function (r) {
                     return r.name !== room.name && roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].owner && !INTEL[r].obstacles &&
-                        (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || INTEL[r].reservation === 'Invader') && Game.map.findRoute(room.name, r).length <= 2;
+                        (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || INTEL[r].reservation === 'Invader') && Game.map.findRoute(room.name, r).length <= 4;
                 });
                 remoteTargets = remoteTargets.concat(remoteRooms);
             }

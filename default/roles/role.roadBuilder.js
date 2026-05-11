@@ -11,72 +11,32 @@ class RoleRoadBuilder {
     }
 
     performRoleActions() {
-        if (this.housekeeping()) return;
-        if (!this.creep.memory.working) {
-            this.notWorking();
-        } else {
-            this.working();
-        }
-    }
-
-    housekeeping() {
-        this.creep.say('HIGHWAY', true);
-        //Invader detection
         if (this.creep.fleeHome()) {
             this.creep.memory.task = undefined;
             this.creep.memory.constructionSite = undefined;
             this.creep.memory.destination = undefined;
             this.creep.memory.other.source = undefined;
             this.creep.memory.harvest = undefined;
-            return true;
+            return;
         }
-        // SK Safety
-        if (this.creep.skSafety()) return true;
+        if (this.creep.skSafety()) return;
+        this.creep.say('HIGHWAY', true);
 
-        // Set destination if missing or invalid
-        if (!this.creep.memory.destination || (this.creep.memory.destination === this.creep.room.name && !this.creep.room.constructionSites.length && INTEL[this.creep.room.name] && INTEL[this.creep.room.name].roadsBuilt)) {
-            // Throttled target finding
-            if (Game.time % 10 !== 0 && this.creep.memory.destination) return false;
-
-            const remoteHarvesters = _.filter(Game.creeps, (c) => c.my && c.memory.colony === this.creep.memory.colony && c.memory.role === 'remoteHarvester');
-            if (_.size(remoteHarvesters)) {
-                this.creep.memory.destination = _.sample(_.pluck(remoteHarvesters, 'memory.destination'));
-            } else {
-                this.creep.memory.destination = this.creep.memory.colony;
-            }
-            return true;
+        if (!this.creep.memory.working) {
+            this.getEnergy();
+        } else {
+            this.doWork();
         }
     }
 
-    working() {
-        if (!this.creep.store[RESOURCE_ENERGY]) return this.creep.memory.working = undefined;
-
-        // Handle movement to destination room
-        if (this.creep.pos.roomName !== this.creep.memory.destination && !this.creep.memory.constructionSite) {
-            return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 20});
+    getEnergy() {
+        if (this.creep.isFull) {
+            this.creep.memory.working = true;
+            return;
         }
-
-        // Handle construction/repair
-        if (this.creep.memory.constructionSite || this.creep.constructionWork()) {
-            this.creep.builderFunction();
-        } else if (this.creep.room.name !== this.creep.memory.colony && Game.time % 25 === 0) {
-            // Check for new roads in remote rooms periodically
-            if (!this.remoteRoads(this.creep)) {
-                INTEL[this.creep.room.name].roadsBuilt = true;
-                INTEL[this.creep.room.name].roadCount = this.creep.room.structures.filter((s) => s.structureType === STRUCTURE_ROAD).length;
-                this.creep.memory.destination = undefined;
-            }
-        } else if (this.creep.room.name === this.creep.memory.colony && !this.creep.constructionWork()) {
-            // If nothing to do at home, go find a remote
-            this.creep.memory.destination = undefined;
-            this.creep.idleFor(15);
-        }
-    }
-
-    notWorking() {
-        if (this.creep.isFull) return this.creep.memory.working = true;
         this.creep.memory.constructionSite = undefined;
         this.creep.memory.task = undefined;
+
         if (!this.creep.memory.harvest && (this.creep.memory.energyDestination || this.creep.locateEnergy())) {
             this.creep.say('Energy!', true);
             this.creep.withdrawResource();
@@ -108,114 +68,152 @@ class RoleRoadBuilder {
         }
     }
 
-    remoteRoads(creep) {
-        if (creep.room.constructionSites.length >= 2 || INTEL[creep.room.name].owner) return false;
-
-        // Verify this room is actually assigned to this colony
-        const isColonyRemote = (ROOM_REMOTE_TARGETS[creep.memory.colony] || []).some(s => s.room === creep.room.name);
-        if (!isColonyRemote && creep.room.name !== creep.memory.colony) return false;
-
-        // If the intel cache says roads are built compare the road count
-        if (INTEL[creep.room.name].roadsBuilt && Math.random() > 0.75) {
-            if (INTEL[creep.room.name].roadCount <= creep.room.structures.filter((s) => s.structureType === STRUCTURE_ROAD).length) return true;
+    doWork() {
+        if (!this.creep.store[RESOURCE_ENERGY]) {
+            this.creep.memory.working = undefined;
+            return;
         }
 
-        // Roads from sources/containers to home exit
-        let goHome = Game.map.findExit(creep.room.name, creep.memory.colony);
-        let homeExit = creep.room.find(goHome);
-        let homeMiddle = _.round(homeExit.length / 2);
-        let containers = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
-        const roadOrigins = containers.length ? containers : creep.room.sources;
-        for (let origin of roadOrigins) {
-            if (_.size(Game.constructionSites) >= 70) return false;
-            if (this.buildRoadFromTo(creep.room, origin, homeExit[homeMiddle])) return true;
+        this.ensureDestination();
+        if (!this.creep.memory.destination) return;
+
+        // Move to destination room before doing anything else
+        if (this.creep.pos.roomName !== this.creep.memory.destination) {
+            this.creep.memory.constructionSite = undefined;
+            this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 20});
+            return;
         }
 
-        // SK Room
-        if (INTEL[creep.room.name].sk) {
-            let mineral = creep.room.find(FIND_MINERALS)[0];
-            if (mineral && this.buildRoadFromTo(creep.room, mineral, homeExit[homeMiddle])) return true;
-            let skLairs = _.filter(creep.room.impassibleStructures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR);
-            for (let lair of skLairs) {
-                if (_.size(Game.constructionSites) >= 70) return;
-                if (this.buildRoadFromTo(creep.room, lair, homeExit[homeMiddle])) return true;
-            }
+        // Build any existing construction sites
+        if (this.creep.memory.constructionSite || this.creep.constructionWork()) {
+            this.creep.builderFunction();
+            return;
         }
 
-        // Controller
-        if (creep.room.controller && this.buildRoadFromTo(creep.room, creep.room.controller, homeExit[homeMiddle])) return true;
+        // Nothing to build at home colony
+        if (this.creep.room.name === this.creep.memory.colony) {
+            this.creep.memory.destination = undefined;
+            this.creep.idleFor(15);
+            return;
+        }
 
-        // Roads to neighboring remotes assigned to this colony
-        const colonyRemoteRooms = new Set((ROOM_REMOTE_TARGETS[creep.memory.colony] || []).map(s => s.room));
-        const neighboringRooms = Object.values(Game.map.describeExits(creep.room.name));
-        for (const neighbor of neighboringRooms) {
-            if (!colonyRemoteRooms.has(neighbor)) continue;
-            let exit = Game.map.findExit(creep.room.name, neighbor);
-            let exitTiles = creep.room.find(exit);
-            if (!exitTiles.length) continue;
-            let exitMiddle = _.round(exitTiles.length / 2);
-            if (_.size(Game.constructionSites) >= 70) return false;
-            const start = roadOrigins[0] || creep.room.sources[0];
-            if (this.buildRoadFromTo(creep.room, start, exitTiles[exitMiddle])) return true;
+        // Attempt to place road construction sites
+        if (!this.placeRoads()) {
+            INTEL[this.creep.room.name].roadsBuilt = true;
+            INTEL[this.creep.room.name].roadCount = this.creep.room.structures.filter(s => s.structureType === STRUCTURE_ROAD).length;
+            this.creep.memory.destination = undefined;
         }
     }
 
-    buildRoadFromTo(room, start, end) {
-        if (!room || !start || !end) return false;
-        let begin = start instanceof RoomPosition ? start : start.pos;
-        let target = end instanceof RoomPosition ? end : end.pos;
-        let path = this.getRoad(room, begin, target);
-        if (!path) {
-            path = PathFinder.search(begin, {pos: target, range: 1}, {
-                heuristicWeight: 0.8,
-                roomCallback: function (roomName) {
-                    return buildCostMatrix(roomName);
-                }
-            }).path;
+    ensureDestination() {
+        if (this.creep.memory.destination) return;
+        const harvesters = _.filter(Game.creeps, c => c.my && c.memory.colony === this.creep.memory.colony && c.memory.role === 'remoteHarvester');
+        if (!harvesters.length) {
+            this.creep.memory.destination = this.creep.memory.colony;
+            return;
+        }
+        const destinations = _.uniq(_.pluck(harvesters, 'memory.destination'));
+        const unfinished = destinations.find(d => INTEL[d] && !INTEL[d].roadsBuilt);
+        this.creep.memory.destination = unfinished || _.sample(destinations);
+    }
 
-            if (path.length) {
-                this.cacheRoad(room, begin, target, path);
-            } else {
-                return false;
-            }
-        } else {
-            path = JSON.parse(path); // If path is cached, it will be a string
+    placeRoads() {
+        const room = this.creep.room;
+        const intel = INTEL[room.name];
+
+        if (intel.owner) return false;
+        if (room.constructionSites.length >= 2) return true;
+        if (_.size(Game.constructionSites) >= 70) return true;
+
+        const isAssigned = (ROOM_REMOTE_TARGETS[this.creep.memory.colony] || []).some(s => s.room === room.name);
+        if (!isAssigned) return false;
+
+        // If roads were marked built, verify road count hasn't dropped
+        if (intel.roadsBuilt && Math.random() > 0.75) {
+            const currentRoads = room.structures.filter(s => s.structureType === STRUCTURE_ROAD).length;
+            if (intel.roadCount <= currentRoads) return true;
         }
 
-        for (let point of path) {
-            let pos = new RoomPosition(point.x, point.y, room.name);
-            if (this.buildRoad(pos, room)) return true;
+        const goHome = Game.map.findExit(room.name, this.creep.memory.colony);
+        const homeExits = room.find(goHome);
+        if (!homeExits.length) return false;
+        const homeTarget = homeExits[Math.round(homeExits.length / 2)];
+
+        const containers = room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER);
+        const origins = containers.length ? containers : room.sources;
+
+        // Source/container → home exit
+        for (const origin of origins) {
+            if (_.size(Game.constructionSites) >= 70) return true;
+            if (this.buildRoadFromTo(room, origin, homeTarget)) return true;
+        }
+
+        // SK room: mineral and keeper lairs → home exit
+        if (intel.sk) {
+            const mineral = room.find(FIND_MINERALS)[0];
+            if (mineral && this.buildRoadFromTo(room, mineral, homeTarget)) return true;
+            for (const lair of room.impassibleStructures.filter(s => s.structureType === STRUCTURE_KEEPER_LAIR)) {
+                if (_.size(Game.constructionSites) >= 70) return true;
+                if (this.buildRoadFromTo(room, lair, homeTarget)) return true;
+            }
+        }
+
+        // Controller → home exit
+        if (room.controller && this.buildRoadFromTo(room, room.controller, homeTarget)) return true;
+
+        // Neighboring colony remotes: road to their shared exit
+        const colonyRemotes = new Set((ROOM_REMOTE_TARGETS[this.creep.memory.colony] || []).map(s => s.room));
+        for (const neighbor of Object.values(Game.map.describeExits(room.name))) {
+            if (!colonyRemotes.has(neighbor)) continue;
+            const exitDir = Game.map.findExit(room.name, neighbor);
+            const exitTiles = room.find(exitDir);
+            if (!exitTiles.length) continue;
+            if (_.size(Game.constructionSites) >= 70) return true;
+            const start = origins[0] || room.sources[0];
+            if (this.buildRoadFromTo(room, start, exitTiles[Math.round(exitTiles.length / 2)])) return true;
         }
 
         return false;
     }
 
-    buildRoad(position, room) {
-        if (position.checkForImpassible(true) || position.checkForRoad() || position.checkForConstructionSites() || _.size(room.constructionSites) >= 5) {
-            return false;
-        } else if (position.createConstructionSite(STRUCTURE_ROAD) === OK) {
-            return true;
+    buildRoadFromTo(room, start, end) {
+        if (!room || !start || !end) return false;
+        const begin = start instanceof RoomPosition ? start : start.pos;
+        const target = end instanceof RoomPosition ? end : end.pos;
+        let path = this.getRoad(room, begin, target);
+        if (!path) {
+            const result = PathFinder.search(begin, {pos: target, range: 1}, {
+                heuristicWeight: 0.8,
+                roomCallback: buildCostMatrix
+            });
+            if (result.incomplete || !result.path.length) return false;
+            path = result.path;
+            this.cacheRoad(room, begin, target, path);
+        } else {
+            path = JSON.parse(path);
         }
+        for (const point of path) {
+            const pos = new RoomPosition(point.x, point.y, point.roomName || room.name);
+            if (this.buildRoad(pos, room)) return true;
+        }
+        return false;
+    }
+
+    buildRoad(position, room) {
+        if (position.checkForImpassible(true) || position.checkForRoad() || position.checkForConstructionSites() || room.constructionSites.length >= 5) {
+            return false;
+        }
+        return position.createConstructionSite(STRUCTURE_ROAD) === OK;
     }
 
     cacheRoad(room, from, to, path) {
-        let key = getPathKey(from, to);
-        let cache = ROAD_CACHE[room.name] || {};
-        let tick = Game.time;
-        cache[key] = {
-            path: JSON.stringify(path),
-            tick: tick
-        };
+        const cache = ROAD_CACHE[room.name] || {};
+        cache[getPathKey(from, to)] = {path: JSON.stringify(path), tick: Game.time};
         ROAD_CACHE[room.name] = cache;
     }
 
     getRoad(room, from, to) {
-        let cache = ROAD_CACHE[room.name] || undefined;
-        if (!cache) return;
-        let cachedPath = cache[getPathKey(from, to)];
-        if (cachedPath) {
-            return cachedPath.path;
-        }
+        return ((ROAD_CACHE[room.name] || {})[getPathKey(from, to)] || {}).path;
     }
 }
 
@@ -230,17 +228,17 @@ function getPosKey(pos) {
     return pos.x + 'x' + pos.y;
 }
 
-
 let roomMatrix = {};
+const COST_MATRIX_TTL = 200;
 
 function buildCostMatrix(roomName) {
-    if (roomMatrix[roomName]) return roomMatrix[roomName];
-    let costMatrix = new PathFinder.CostMatrix();
-    let terrain = Game.map.getRoomTerrain(roomName);
+    if (roomMatrix[roomName] && Game.time - roomMatrix[roomName].tick < COST_MATRIX_TTL) return roomMatrix[roomName].matrix;
+    const costMatrix = new PathFinder.CostMatrix();
+    const terrain = Game.map.getRoomTerrain(roomName);
 
     for (let y = 0; y < 50; y++) {
         for (let x = 0; x < 50; x++) {
-            let tile = terrain.get(x, y);
+            const tile = terrain.get(x, y);
             if (tile === TERRAIN_MASK_WALL) {
                 costMatrix.set(x, y, 225);
             } else if (tile === TERRAIN_MASK_SWAMP) {
@@ -251,9 +249,9 @@ function buildCostMatrix(roomName) {
         }
     }
 
-    let room = Game.rooms[roomName];
+    const room = Game.rooms[roomName];
     if (room) {
-        room.structures.forEach(structure => {
+        for (const structure of room.structures) {
             if (structure.structureType === STRUCTURE_ROAD) {
                 costMatrix.set(structure.pos.x, structure.pos.y, 1);
             } else if (structure.structureType === STRUCTURE_CONTAINER) {
@@ -261,9 +259,9 @@ function buildCostMatrix(roomName) {
             } else if (_.includes(OBSTACLE_OBJECT_TYPES, structure.structureType)) {
                 costMatrix.set(structure.pos.x, structure.pos.y, Infinity);
             }
-        });
+        }
     }
 
-    roomMatrix[roomName] = costMatrix;
-    return roomMatrix[roomName];
+    roomMatrix[roomName] = {matrix: costMatrix, tick: Game.time};
+    return costMatrix;
 }
