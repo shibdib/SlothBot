@@ -81,15 +81,6 @@ class RoleRemoteHauler {
                 c => c.memory.role === 'remoteHarvester' &&
                     c.memory.other.source === this.memory.other.source
             );
-            // If not in room, do global search (expensive)
-            if (!harvester) {
-                harvester = _.find(Game.creeps,
-                    c => c.my &&
-                        c.memory.role === 'remoteHarvester' &&
-                        c.memory.other.source === this.memory.other.source
-                );
-            }
-
             if (harvester) {
                 if (harvester.memory.containerID) this.memory.containerID = harvester.memory.containerID;
                 this.memory.other.harvester = harvester.id;
@@ -99,12 +90,11 @@ class RoleRemoteHauler {
                 if (this.memory.other.harvestSearch > 15) return this.creep.recycleCreep();
             }
         } else if (harvester) {
-            if (Game.time % 3 === 0 && this.randomLoot()) return true;
             this.memory.other.source = harvester.memory.other.source;
             if (harvester.memory.energyId) {
                 this.memory.energyDestination = harvester.memory.energyId;
                 return true;
-            }
+            } else if (Game.time % 3 === 0 && this.randomLoot()) return true;
             const source = Game.getObjectById(this.memory.other.source);
             if (source && this.creep.shibMove(source, {range: 3})) return true;
         }
