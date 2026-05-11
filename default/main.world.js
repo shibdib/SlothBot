@@ -10,6 +10,7 @@ const spawning = require('module.creepSpawning');
 const ExpansionControl = require('module.expansion');
 const diplomacy = require('module.diplomacy');
 const HudControl = require('module.hud');
+const DefenseVisualizer = require('module.defenseVisualizer');
 const StateManager = require('module.stateManager');
 const profiler = require('tools.profiler');
 const planner = require('module.roomPlanner');
@@ -102,6 +103,7 @@ class World {
 
     hudManager() {
         new HudControl().run();
+        new DefenseVisualizer().run();
     }
 
     stateManager() {
