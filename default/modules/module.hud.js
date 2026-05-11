@@ -4,6 +4,9 @@
 
 const profiler = require("tools.profiler");
 
+let creepTrailCache = [];
+let harvesterCountCache = {};
+
 class HUD {
     constructor() {
         if (Memory.HUD) this.hudData = Memory.HUD;
@@ -166,123 +169,316 @@ class HUD {
     }
 
     renderMapHUD() {
-        // Only draw if we have map visual API available
         if (!Game.map || !Game.map.visual) return;
 
-        // Overlay for Owned Rooms
         const myRooms = this.getOwnedRooms();
+
+        // Colony → remote connections drawn first (behind room fills)
+        this.renderRemoteLinks(myRooms);
+
+        // Owned room overlays
         for (const roomName of myRooms) {
             const room = Game.rooms[roomName];
             if (!room) continue;
 
-            // Highlight owned rooms with a distinct blue outline and slight fill
             Game.map.visual.rect(new RoomPosition(0, 0, roomName), 50, 50, {
-                fill: '#00B7EB',
-                opacity: 0.15,
-                stroke: '#00B7EB',
-                strokeWidth: 2
+                fill: '#00B7EB', opacity: 0.12,
+                stroke: '#00B7EB', strokeWidth: 2
             });
 
-            // RCL Text
-            Game.map.visual.text(`RCL ${room.controller.level}`, new RoomPosition(25, 10, roomName), {
-                color: '#ffffff',
-                fontSize: 8,
-                align: 'center',
-                fontFamily: 'Tahoma'
+            // RCL progress bar
+            if (room.controller.progressTotal) {
+                const pct = room.controller.progress / room.controller.progressTotal;
+                Game.map.visual.rect(new RoomPosition(1, 41, roomName), 48, 4, {fill: '#111', opacity: 0.7});
+                Game.map.visual.rect(new RoomPosition(1, 41, roomName), 48 * pct, 4, {fill: '#9B59B6', opacity: 0.9});
+            }
+
+            // Energy bar
+            const energy = (room.storage ? room.storage.store[RESOURCE_ENERGY] : 0) +
+                (room.terminal ? room.terminal.store[RESOURCE_ENERGY] : 0);
+            if (room.storage || room.terminal) {
+                const pct = Math.min(1, energy / 500000);
+                Game.map.visual.rect(new RoomPosition(1, 45, roomName), 48, 4, {fill: '#111', opacity: 0.7});
+                Game.map.visual.rect(new RoomPosition(1, 45, roomName), 48 * pct, 4, {fill: '#FFD700', opacity: 0.9});
+            }
+
+            Game.map.visual.text('RCL ' + room.controller.level, new RoomPosition(25, 22, roomName), {
+                color: '#ffffff', fontSize: 8, align: 'center', fontFamily: 'Tahoma'
             });
 
-            // Safe Mode Icon
             if (room.controller.safeMode) {
-                Game.map.visual.text('🛡️', new RoomPosition(40, 40, roomName), {
-                    fontSize: 10,
-                    align: 'center'
-                });
+                Game.map.visual.text('🛡️', new RoomPosition(40, 10, roomName), {fontSize: 10, align: 'center'});
             }
         }
 
-        // Overlay Intel Information
+        // Intel overlays
         if (global.INTEL) {
+            const threatColors = ['', '#ffcc00', '#ff9900', '#ff5500', '#ff2200', '#ff0044'];
+            const enemies = global.ENEMIES || [];
+            const friendlies = global.FRIENDLIES || [];
+
+            // Build set of our reserved remotes once to avoid repeated O(n) scans
+            const ourRemotes = new Set();
+            if (global.ROOM_REMOTE_TARGETS) {
+                for (const targets of Object.values(ROOM_REMOTE_TARGETS)) {
+                    for (const t of targets) ourRemotes.add(t.room);
+                }
+            }
+
             for (const roomName in global.INTEL) {
                 const intel = global.INTEL[roomName];
-                if (!intel) continue;
+                if (!intel || myRooms.includes(roomName)) continue;
 
-                // Hostile Threat Level
-                if (intel.threatLevel > 0 && !myRooms.includes(roomName)) {
-                    Game.map.visual.circle(new RoomPosition(25, 25, roomName), {
-                        radius: 15,
-                        fill: '#ff0000',
-                        opacity: 0.2
+                // Owned player rooms
+                if (intel.owner && intel.level) {
+                    const color = enemies.includes(intel.owner) ? '#ff3333' :
+                        friendlies.includes(intel.owner) ? '#33ff88' : '#e0ce5c';
+                    Game.map.visual.rect(new RoomPosition(0, 0, roomName), 50, 50, {
+                        fill: color, opacity: 0.1, stroke: color, strokeWidth: 1
                     });
-                    Game.map.visual.text(`⚔️ ${intel.threatLevel}`, new RoomPosition(25, 28, roomName), {
-                        color: '#ffaaaa',
-                        fontSize: 10,
-                        align: 'center'
+                    Game.map.visual.text(intel.owner, new RoomPosition(25, 22, roomName), {
+                        color: color, fontSize: 5, align: 'center', fontFamily: 'Tahoma'
+                    });
+                    Game.map.visual.text('RCL ' + intel.level, new RoomPosition(25, 30, roomName), {
+                        color: color, fontSize: 5, align: 'center', fontFamily: 'Tahoma'
                     });
                 }
 
-                // Invader Core / Stronghold
-                if (intel.invaderCore) {
-                    Game.map.visual.circle(new RoomPosition(25, 25, roomName), {
-                        radius: 12,
-                        fill: '#800080',
-                        opacity: 0.3
+                // Our own reservations
+                if (intel.reservation && !intel.owner && ourRemotes.has(roomName)) {
+                    Game.map.visual.rect(new RoomPosition(0, 0, roomName), 50, 50, {
+                        fill: '#00B7EB', opacity: 0.07, stroke: '#00B7EB', strokeWidth: 1, lineStyle: 'dashed'
                     });
-                    Game.map.visual.text('👾', new RoomPosition(25, 20, roomName), {
-                        fontSize: 10,
-                        align: 'center'
+                    Game.map.visual.text('RSV', new RoomPosition(25, 25, roomName), {
+                        color: '#00B7EB', fontSize: 5, align: 'center', fontFamily: 'Tahoma'
                     });
                 }
 
-                // Power Bank
+                // Other players' reservations
+                if (intel.reservation && !intel.owner && !ourRemotes.has(roomName)) {
+                    const color = enemies.includes(intel.reservation) ? '#ff6666' :
+                        friendlies.includes(intel.reservation) ? '#66ffaa' : '#e1d889';
+                    Game.map.visual.rect(new RoomPosition(0, 0, roomName), 50, 50, {
+                        fill: color, opacity: 0.07, stroke: color, strokeWidth: 1, lineStyle: 'dashed'
+                    });
+                    Game.map.visual.text(intel.reservation, new RoomPosition(25, 22, roomName), {
+                        color: color, fontSize: 5, align: 'center', fontFamily: 'Tahoma'
+                    });
+                    Game.map.visual.text('RSV', new RoomPosition(25, 30, roomName), {
+                        color: color, fontSize: 4, align: 'center', fontFamily: 'Tahoma'
+                    });
+                }
+
+                // Invader core with no active threat — quiet structural indicator
+                if (intel.invaderCore && !intel.threatLevel) {
+                    Game.map.visual.circle(new RoomPosition(25, 25, roomName), {
+                        radius: 9, fill: '#800080', opacity: 0.22, stroke: '#aa44cc', strokeWidth: 0.7
+                    });
+                    Game.map.visual.text('CORE', new RoomPosition(25, 27, roomName), {
+                        color: '#cc88ff', fontSize: 5, align: 'center', fontFamily: 'Tahoma'
+                    });
+                }
+
+                // Threat level (merges invader core context when both are present)
+                if (intel.threatLevel > 0) {
+                    const isStronghold = !!intel.invaderCore;
+                    const baseColor = threatColors[intel.threatLevel] || '#ff0044';
+                    const color = isStronghold ? '#cc44ff' : baseColor;
+                    const isPlayer = intel.threatLevel >= 3;
+                    const isActive = intel.armedHostile && Game.time - intel.armedHostile < 200;
+
+                    // Outer glow
+                    Game.map.visual.circle(new RoomPosition(25, 25, roomName), {
+                        radius: 19 + intel.threatLevel,
+                        fill: color, opacity: 0.05, strokeWidth: 0
+                    });
+
+                    // Inner core with border — brighter when actively hostile
+                    Game.map.visual.circle(new RoomPosition(25, 25, roomName), {
+                        radius: 12 + intel.threatLevel,
+                        fill: color,
+                        opacity: isActive ? 0.2 + intel.threatLevel * 0.04 : 0.10 + intel.threatLevel * 0.03,
+                        stroke: color,
+                        strokeWidth: isActive ? 1.5 : 0.7
+                    });
+
+                    // Extra inner ring for major threats
+                    if (intel.threatLevel >= 4) {
+                        Game.map.visual.circle(new RoomPosition(25, 25, roomName), {
+                            radius: 6, fill: color, opacity: 0.22, strokeWidth: 0
+                        });
+                    }
+
+                    // Label: stronghold overrides the default invader label
+                    const threatLabels = ['', 'UNARMED', 'INVADER', 'PLAYER', 'MULTI', 'BOOSTED'];
+                    const label = isStronghold && intel.threatLevel <= 2
+                        ? 'STRONGHOLD'
+                        : (threatLabels[intel.threatLevel] || 'THREAT');
+                    Game.map.visual.text(label, new RoomPosition(25, 19, roomName), {
+                        color: color, fontSize: 5, align: 'center', fontFamily: 'Tahoma'
+                    });
+
+                    // Player name(s) — most valuable info for player-level threats
+                    if (isPlayer && intel.hostileOwners && intel.hostileOwners.length) {
+                        const display = intel.hostileOwners.length > 1
+                            ? intel.hostileOwners[0] + ' +' + (intel.hostileOwners.length - 1)
+                            : intel.hostileOwners[0];
+                        Game.map.visual.text(display, new RoomPosition(25, 26, roomName), {
+                            color: '#ffffff', fontSize: 5, align: 'center', fontFamily: 'Tahoma'
+                        });
+                    }
+
+                    // Active status indicator
+                    if (isActive) {
+                        Game.map.visual.text('ACTIVE', new RoomPosition(25, 33, roomName), {
+                            color: '#ffffff', fontSize: 4, align: 'center', fontFamily: 'Tahoma'
+                        });
+                    }
+
+                    // Room heat bar across top of tile
+                    if (intel.roomHeat) {
+                        const heatPct = Math.min(1, intel.roomHeat / 1000);
+                        Game.map.visual.rect(new RoomPosition(1, 1, roomName), 48, 2, {fill: '#111', opacity: 0.5});
+                        Game.map.visual.rect(new RoomPosition(1, 1, roomName), 48 * heatPct, 2, {
+                            fill: color,
+                            opacity: 0.8
+                        });
+                    }
+                }
+
                 if (intel.power) {
-                    Game.map.visual.text('⚡', new RoomPosition(10, 10, roomName), {
-                        fontSize: 8,
-                        align: 'center'
+                    Game.map.visual.text('⚡', new RoomPosition(10, 10, roomName), {fontSize: 8, align: 'center'});
+                }
+                if (intel.commodity) {
+                    Game.map.visual.text('💎', new RoomPosition(40, 10, roomName), {fontSize: 8, align: 'center'});
+                }
+
+                // Mineral type label (top-left)
+                if (intel.mineral) {
+                    Game.map.visual.text(intel.mineral, new RoomPosition(8, 8, roomName), {
+                        color: '#aaffaa', fontSize: 5, align: 'center', fontFamily: 'Tahoma'
                     });
                 }
 
-                // Commodity Deposit
-                if (intel.commodity) {
-                    Game.map.visual.text('💎', new RoomPosition(40, 10, roomName), {
-                        fontSize: 8,
-                        align: 'center'
+                // Portal marker (bottom-center)
+                if (intel.portal) {
+                    Game.map.visual.circle(new RoomPosition(25, 40, roomName), {
+                        radius: 3, fill: '#00ffff', opacity: 0.7, stroke: '#00ffff', strokeWidth: 0.5
                     });
+                    Game.map.visual.text('P', new RoomPosition(25, 42, roomName), {
+                        color: '#00ffff', fontSize: 4, align: 'center', fontFamily: 'Tahoma'
+                    });
+                }
+
+                // Loot available (bottom-left dot)
+                if (intel.loot) {
+                    Game.map.visual.circle(new RoomPosition(8, 40, roomName), {
+                        radius: 2.5, fill: '#FFD700', opacity: 0.8, strokeWidth: 0
+                    });
+                }
+
+                // Staleness dimming — applied last so it sits on top of all other overlays
+                const age = intel.lastObservation ? Game.time - intel.lastObservation : 99999;
+                if (age > 3000) {
+                    const dimOpacity = Math.min(0.55, (age - 3000) / 25000 * 0.55);
+                    Game.map.visual.rect(new RoomPosition(0, 0, roomName), 50, 50, {
+                        fill: '#000000', opacity: dimOpacity, stroke: ''
+                    });
+                    if (age > 12000) {
+                        Game.map.visual.text('?', new RoomPosition(44, 12, roomName), {
+                            color: '#666666', fontSize: 7, align: 'center', fontFamily: 'Tahoma'
+                        });
+                    }
                 }
             }
         }
 
-        // Target Rooms (Military/Operations)
+        // Creep destination trails (throttled rebuild)
+        this.renderCreepTrails();
+
+        // Target rooms
         if (Memory.targetRooms) {
             for (const roomName in Memory.targetRooms) {
                 const target = Memory.targetRooms[roomName];
                 Game.map.visual.rect(new RoomPosition(0, 0, roomName), 50, 50, {
-                    fill: '#ff0000',
-                    opacity: 0.1,
-                    stroke: '#ff0000',
-                    strokeWidth: 1
+                    fill: '#ff0000', opacity: 0.1, stroke: '#ff0000', strokeWidth: 1
                 });
-                const typeText = target && target.type ? target.type.toUpperCase() : 'TARGET';
-                Game.map.visual.text(`🎯 ${typeText}`, new RoomPosition(25, 40, roomName), {
-                    color: '#ff4444',
-                    fontSize: 6,
-                    align: 'center',
-                    fontFamily: 'Tahoma'
-                });
+                Game.map.visual.text('🎯 ' + (target && target.type ? target.type.toUpperCase() : 'TARGET'),
+                    new RoomPosition(25, 40, roomName), {
+                        color: '#ff4444', fontSize: 6, align: 'center', fontFamily: 'Tahoma'
+                    });
             }
         }
 
-        // Auxiliary Targets
+        // Auxiliary targets
         if (Memory.auxiliaryTargets) {
             for (const roomName in Memory.auxiliaryTargets) {
                 const target = Memory.auxiliaryTargets[roomName];
                 if (!target) continue;
-                const typeText = target.type ? target.type.toUpperCase() : 'AUX';
-                Game.map.visual.text(`🔍 ${typeText}`, new RoomPosition(25, 45, roomName), {
-                    color: '#ffff00',
-                    fontSize: 6,
-                    align: 'center',
-                    fontFamily: 'Tahoma'
+                Game.map.visual.text('🔍 ' + (target.type ? target.type.toUpperCase() : 'AUX'),
+                    new RoomPosition(25, 45, roomName), {
+                        color: '#ffff00', fontSize: 6, align: 'center', fontFamily: 'Tahoma'
+                    });
+            }
+        }
+    }
+
+    renderRemoteLinks(myRooms) {
+        if (!global.ROOM_REMOTE_TARGETS) return;
+        for (const colonyName of myRooms) {
+            const targets = ROOM_REMOTE_TARGETS[colonyName];
+            if (!targets) continue;
+            for (const target of targets) {
+                const intel = (global.INTEL && global.INTEL[target.room]) || {};
+                const isActive = intel.activeRemote && Game.time - intel.activeRemote < 500;
+                const isSK = !!intel.sk;
+                const color = isSK ? '#ff9900' : isActive ? '#00ff88' : '#336633';
+                const opacity = isActive ? 0.3 : 0.18;
+                const lineStyle = isActive ? 'solid' : 'dashed';
+
+                Game.map.visual.line(
+                    new RoomPosition(25, 25, colonyName),
+                    new RoomPosition(25, 25, target.room),
+                    {color: color, opacity: opacity, lineStyle: lineStyle, width: 0.7}
+                );
+
+                // Active harvest dot + harvester count on the remote
+                if (isActive) {
+                    Game.map.visual.circle(new RoomPosition(25, 25, target.room), {
+                        radius: 2, fill: color, opacity: 0.35, strokeWidth: 0
+                    });
+                }
+            }
+        }
+    }
+
+    renderCreepTrails() {
+        // Rebuild cache every 5 ticks to spread CPU cost
+        if (Game.time % 5 === 0) {
+            creepTrailCache = [];
+            harvesterCountCache = {};
+            for (const name in Game.creeps) {
+                const creep = Game.creeps[name];
+                if (!creep.my || !creep.memory.destination || !creep.memory.operation) continue;
+                creepTrailCache.push({
+                    x: creep.pos.x, y: creep.pos.y,
+                    room: creep.pos.roomName,
+                    dest: creep.memory.destination
                 });
+                harvesterCountCache[creep.memory.destination] = (harvesterCountCache[creep.memory.destination] || 0) + 1;
+            }
+        }
+
+        for (const t of creepTrailCache) {
+            Game.map.visual.circle(new RoomPosition(t.x, t.y, t.room), {
+                radius: 1.1, fill: '#ffff44', opacity: 0.8, strokeWidth: 0
+            });
+            if (t.room !== t.dest) {
+                Game.map.visual.line(
+                    new RoomPosition(t.x, t.y, t.room),
+                    new RoomPosition(25, 25, t.dest),
+                    {color: '#ffff44', opacity: 0.25, width: 0.25}
+                );
             }
         }
     }
