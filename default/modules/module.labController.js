@@ -75,7 +75,7 @@ class LabManager {
     }
 
     shouldStopProduction(room) {
-        if (room.store(room.memory.producingBoost) > this.getProductionCutoff(room.memory.producingBoost)) {
+        if (room.store(room.memory.producingBoost) > this.getProductionCutoff()) {
             this.stopProduction(room, 'Boost cap reached.');
         } else if (productionTracker[this.room.name] && productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time) {
             this.stopProduction(room, 'Production stalled — time limit reached.');
@@ -101,7 +101,7 @@ class LabManager {
         if (priority) return priority;
         let boostList = [...new Set([...BASE_COMPOUNDS, ...TIER_3_BOOSTS, ...TIER_2_BOOSTS, ...TIER_1_BOOSTS])];
         for (const boost of shuffle(boostList)) {
-            let cutOff = this.getProductionCutoff(boost);
+            let cutOff = this.getProductionCutoff();
             if (room.store(boost) >= cutOff) continue;
             if (this.checkForInputs(room, boost)) {
                 return boost;
@@ -124,7 +124,7 @@ class LabManager {
     // globalCheck=true uses getResourceTotal (cross-room) for the top-level boost;
     // component levels use room-local store since they need to be here to react.
     findProducible(room, boost, globalCheck = false) {
-        const cutoff = this.getProductionCutoff(boost);
+        const cutoff = this.getProductionCutoff();
         const current = globalCheck ? getResourceTotal(boost) : room.store(boost);
         if (current >= cutoff) return null;
         if (this.checkForInputs(room, boost)) return boost;
@@ -137,15 +137,10 @@ class LabManager {
         return null;
     }
 
-    getProductionCutoff(boost) {
-        if (boost === RESOURCE_GHODIUM) {
-            return (NUKER_GHODIUM_CAPACITY * 2.5) + (SAFE_MODE_COST * 1.5);
-        } else if (goOverCap[this.room.name]) {
-            return BOOST_AMOUNT(this.room) * 10;
-        } else if (LAB_PEACE_PRIORITY.includes(boost) || LAB_WAR_PRIORITY.includes(boost)) {
+    getProductionCutoff() {
+        if (goOverCap[this.room.name]) {
             return BOOST_AMOUNT(this.room) * 2;
-        }
-        return BOOST_AMOUNT(this.room);
+        } else return BOOST_AMOUNT(this.room);
     }
 
     checkForInputs(room, boost) {

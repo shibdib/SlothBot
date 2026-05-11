@@ -92,9 +92,10 @@ let globals = function () {
 
     // Config
     global.BOOST_AMOUNT = function (room) {
-        return 5000 * CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.level];
+        return 2500 * room.level;
     };
-    global.DUMP_AMOUNT = 40000; // Fills buys (or if overflowing it will offload to other terminals)
+    global.DUMP_AMOUNT = 50000; // Fills buys (or if overflowing it will offload to other terminals)
+    global.REACTION_AMOUNT = 10000; // Minimum amount we aim for base minerals
 
     // Versioning for cache purposes
     global.PATHFINDER_VERSION = 1;

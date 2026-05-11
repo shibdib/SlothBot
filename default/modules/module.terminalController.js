@@ -843,6 +843,7 @@ class TerminalControl {
                         continue;
                     }
                 }
+                continue;
             }
 
             // Cancel fulfilled orders
@@ -987,13 +988,11 @@ class TerminalControl {
         if (ALL_COMMODITIES.includes(resource) && !COMPRESSED_COMMODITIES.includes(resource) || resource === RESOURCE_OPS || resource === RESOURCE_POWER) {
             return 0;
         }
-        if (LAB_PEACE_PRIORITY.includes(resource) || LAB_WAR_PRIORITY.includes(resource)) return BOOST_AMOUNT(this.room) * 2;
         if (ALL_BOOSTS.includes(resource)) return BOOST_AMOUNT(this.room);
         if (resource === RESOURCE_BATTERY) return 1000;
         if (BASE_MINERALS.includes(resource)) return REACTION_AMOUNT;
         if (COMPRESSED_COMMODITIES.includes(resource)) return 1000;
-        if (resource === RESOURCE_GHODIUM) return SAFE_MODE_COST + NUKER_GHODIUM_CAPACITY;
-        if (this.room.nukes.length) return 0;
+        if (resource === RESOURCE_GHODIUM) return BOOST_AMOUNT(this.room);
         return REACTION_AMOUNT; // Default reaction amount
     }
 }
