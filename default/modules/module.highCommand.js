@@ -292,8 +292,8 @@ function auxiliaryOperations() {
             }
         }
 
-        // Commodity Mining — up to 2 concurrent, pick closest qualifying deposit
-        if (activeCommodityOps < 2) {
+        // Commodity Mining — up to 3 concurrent, pick closest qualifying deposit
+        if (activeCommodityOps < 3) {
             const commodityCutoff = Game.market.credits < CREDIT_BUFFER * 2 ? 150 : 40;
             let bestCommodity = null, bestDist = Infinity;
             for (const r of candidates) {
