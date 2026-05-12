@@ -245,7 +245,7 @@ class RoleDrone {
         if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return false;
         if (this.creep.memory.task || this.creep.constructionWork()) {
             if (this.creep.builderFunction()) {
-                this.creep.memory.other.stationary = true;
+                // builderFunction already manages stationary correctly — don't override it
                 this.stepOffRoad();
             }
             return true;
@@ -321,7 +321,6 @@ class RoleDrone {
                     delete this.creep.memory.currentTarget;
                     delete this.creep.memory.targetWallHits;
                 }
-                this.stepOffRoad();
             } else if (result === ERR_NOT_IN_RANGE) {
                 this.creep.shibMove(target, {range: 3});
             } else {
