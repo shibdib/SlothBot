@@ -103,43 +103,47 @@ class ModuleBodyGenerator {
                     carry = Math.min(carry, 12);
                 }
                 if (!this.room.energyState) {
-                    work *= 0.2;
+                    work *= 0.15;
+                    carry *= 0.2;
+                } else if (this.room.energyState === 1) {
+                    work *= 0.3;
                     carry *= 0.2;
                 }
                 if (work < 1) return undefined;
                 break;
 
             case 'upgrader':
+                if (this.level === 8) {
+                    work = this.room.energyState > 1 ? 15 : 1;
+                    carry = 1;
+                    move = 0;
+                    break;
+                }
                 if (this.room.memory.controllerLink || this.room.memory.controllerContainer) {
                     work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 49);
-                    if (!this.room.energyState) {
-                        work *= 0.25;
-                    } else if (this.room.energyState === 1) {
-                        work *= 0.5;
-                    }
                     carry = 1;
                     move = 0;
                 } else {
-                    if (!this.room.energyState) {
-                        work = 1;
-                    } else {
-                        work = Math.floor(this.energyAmount * 0.4 / BODYPART_COST[WORK]) || 1;
-                        work = Math.min(work, 15);
-                    }
+                    work = Math.floor(this.energyAmount * 0.4 / BODYPART_COST[WORK]) || 1;
+                    work = Math.min(work, 15);
                     carry = Math.floor(this.energyAmount * 0.1 / BODYPART_COST[CARRY]) || 1;
                     carry = Math.min(carry, 10);
                     if (INTEL[this.room.name].roadsBuilt) halfMove = true;
                 }
                 if (work < 1) work = 1;
-                if (this.level === 8) {
-                    work = this.room.energyState > 1 ? Math.min(work, 15) : 1;
+                if (!this.room.energyState) {
+                    work *= 0.15;
+                    carry *= 0.2;
+                } else if (this.room.energyState === 1) {
+                    work *= 0.3;
+                    carry *= 0.2;
                 }
                 break;
 
             case 'labTech':
                 carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
-                carry = Math.min(carry, 12);
+                carry = Math.min(carry, 10);
 
                 if (INTEL[this.room.name].roadsBuilt) halfMove = true;
                 break;
@@ -191,6 +195,11 @@ class ModuleBodyGenerator {
             case 'mineralHarvester':
                 work = Math.floor(this.energyAmount / BODYPART_COST[WORK]) || 1;
                 work = Math.min(work, 50);  // Max work to 50
+                if (!this.room.energyState) {
+                    work *= 0.15;
+                } else if (this.room.energyState === 1) {
+                    work *= 0.3;
+                }
                 move = 0;
                 break;
 

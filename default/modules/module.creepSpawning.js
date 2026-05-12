@@ -96,6 +96,7 @@ module.exports.processBuildQueue = function (room) {
             const moveParts = _.filter(body, (b) => b === MOVE).length;
             const attackParts = _.filter(body, (b) => b === ATTACK).length;
             const healParts = _.filter(body, (b) => b === HEAL).length;
+            const claimParts = _.filter(body, (b) => b === CLAIM).length;
 
             const spawnOpts = {
                 memory: {
@@ -108,7 +109,7 @@ module.exports.processBuildQueue = function (room) {
                     operation,
                     misc,
                     neededBoosts,
-                    canTow: moveParts >= 2 && !attackParts && !healParts,
+                    canTow: moveParts >= 2 && !attackParts && !healParts && !claimParts,
                     assignment
                 }
             };
@@ -204,11 +205,10 @@ module.exports.essentialCreepQueue = function (room) {
 
     // Drone Queueing
     const importantBuilds = _.some(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    let droneCount = 1;
-    droneCount = importantBuilds && room.energyState > 1 ? 10 - room.level :
+    let droneCount = importantBuilds && room.energyState > 1 ? 10 - room.level :
         !room.storage ? Math.max(8 - room.level, 1) :
             room.memory.spawnDefenders ? 3 :
-                room.energyState ? 2 : 1;
+                room.energyState > 1 ? 2 : 1;
     queueCreepIfNeeded({
         room: room,
         role: 'drone',
@@ -270,7 +270,7 @@ module.exports.essentialCreepQueue = function (room) {
     // Upgrader
     if (!room.memory.spawnDefenders && room.level === room.controller.level) {
         let upgraderAmount = 1;
-        if (room.controller.level < 8 && room.memory.energyPositive && room.energyState && (room.energyState >= 2 || !room.terminal)) {
+        if (room.controller.level < 8 && room.memory.energyPositive && (room.energyState >= 2 || !room.terminal)) {
             let container = Game.getObjectById(room.memory.controllerContainer);
             if (container) {
                 upgraderAmount = room.level >= 6 ? 2 : Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround()) || 1;
