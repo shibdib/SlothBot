@@ -266,7 +266,7 @@ class RoleDrone {
                 if (nx < 1 || nx > 48 || ny < 1 || ny > 48) continue;
                 const adj = new RoomPosition(nx, ny, pos.roomName);
                 if (adj.getRangeTo(construction) > 3) continue;
-                if (adj.checkForImpassible(true) || adj.checkForRoad() || adj.checkForCreep()) continue;
+                if (adj.checkForImpassible() || adj.checkForRoad() || adj.checkForCreep()) continue;
                 this.creep.move(this.creep.pos.getDirectionTo(adj));
                 return;
             }
