@@ -182,41 +182,63 @@ RoomPosition.prototype.getAdjacentPositionAtRange = function (target, range = 3)
  * @returns {boolean}
  */
 const BUNKER_CACHE = {};
+
+function buildInsideSet(room, spots, spotsStr) {
+    const terrain = new Room.Terrain(room.name);
+
+    // Combined barrier: rampart perimeter tiles + natural terrain walls
+    const walls = new Set();
+    for (const p of spots) walls.add(p.x * 50 + p.y);
+    for (let x = 0; x < 50; x++) {
+        for (let y = 0; y < 50; y++) {
+            if (terrain.get(x, y) & TERRAIN_MASK_WALL) walls.add(x * 50 + y);
+        }
+    }
+
+    const {x: hx, y: hy} = room.memory.bunkerHub;
+    const hubKey = hx * 50 + hy;
+
+    // 8-directional DFS flood fill from hub — same connectivity as PathFinder
+    const inside = new Set([hubKey]);
+    const stack = [hubKey];
+
+    while (stack.length) {
+        const key = stack.pop();
+        const x = Math.floor(key / 50);
+        const y = key % 50;
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                if (dx === 0 && dy === 0) continue;
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
+                const nk = nx * 50 + ny;
+                if (inside.has(nk) || walls.has(nk)) continue;
+                inside.add(nk);
+                stack.push(nk);
+            }
+        }
+    }
+
+    return {spotsStr, inside};
+}
+
 RoomPosition.prototype.isInBunker = function () {
     const room = Game.rooms[this.roomName];
     if (!room || !room.memory.bunkerHub || room.level < 5) return false;
 
-    const hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
     const roomName = this.roomName;
+    const spotsStr = ROOM_RAMPART_SPOTS[roomName] || '[]';
+    const cached = BUNKER_CACHE[roomName];
 
-    if (!BUNKER_CACHE[roomName] || BUNKER_CACHE[roomName].tick !== Game.time) {
-        const spots = JSON.parse(ROOM_RAMPART_SPOTS[roomName] || '[]');
-        BUNKER_CACHE[roomName] = {
-            spots: spots.map(function (p) {
-                return new RoomPosition(p.x, p.y, roomName);
-            }),
-            minX: _.min(spots, 'x').x,
-            maxX: _.max(spots, 'x').x,
-            minY: _.min(spots, 'y').y,
-            maxY: _.max(spots, 'y').y,
-            tick: Game.time
-        };
+    if (!cached || cached.spotsStr !== spotsStr) {
+        const spots = JSON.parse(spotsStr);
+        BUNKER_CACHE[roomName] = spots.length
+            ? buildInsideSet(room, spots, spotsStr)
+            : {spotsStr, inside: new Set()};
     }
 
-    const cache = BUNKER_CACHE[roomName];
-    if (!cache.spots.length) return false;
-
-    if (this.x < cache.minX || this.x > cache.maxX || this.y < cache.minY || this.y > cache.maxY) return false;
-
-    const costMatrix = new PathFinder.CostMatrix();
-    for (let spot of cache.spots) costMatrix.set(spot.x, spot.y, Infinity);
-    const path = PathFinder.search(hub, {pos: this, range: 0}, {
-        roomCallback: function (name) {
-            return name === roomName ? costMatrix : false;
-        },
-        maxOps: 1000 // Limit ops
-    });
-    return !path.incomplete;
+    return BUNKER_CACHE[roomName].inside.has(this.x * 50 + this.y);
 };
 
 /**

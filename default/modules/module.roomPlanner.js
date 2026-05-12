@@ -508,22 +508,34 @@ function rampartBuilder(room, layout = undefined, count = false) {
         if (!ramparts || !ramparts.length) return false;
         let counter = 0;
         const rampartPositions = ramparts.map(p => new RoomPosition(p.x, p.y, room.name));
-        const vulnerableStructures = room.structures.filter((s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && !s.pos.checkForRampart());
+        const vulnerableStructures = room.structures.filter((s) =>
+            s.structureType !== STRUCTURE_ROAD &&
+            s.structureType !== STRUCTURE_WALL &&
+            !s.pos.checkForRampart() &&
+            !s.pos.checkForConstructionSites());
         for (const structure of vulnerableStructures) {
             if (counter >= 3) return true;
             const rangeFromRampart = structure.pos.getRangeTo(structure.pos.findClosestByRange(rampartPositions));
-            if ((rangeFromRampart <= 3 && structure.pos.isInBunker()) || !structure.pos.isInBunker()) {
+            const inBunker = structure.pos.isInBunker();
+            if ((rangeFromRampart <= 3 && inBunker) || !inBunker) {
                 if (structure.pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
             }
         }
         if (room.level >= SPECIAL_RAMPARTS) {
             if (PROTECT_SOURCES) {
                 for (let source of room.sources) {
-                    buildRampartAround(source.pos);
+                    if (counter >= 3) return true;
+                    if (buildRampartAround(source.pos)) counter++;
                 }
             }
-            if (PROTECT_MINERAL) buildRampartAround(room.mineral.pos);
-            if (PROTECT_CONTROLLER) buildRampartAround(room.controller.pos);
+            if (PROTECT_MINERAL) {
+                if (counter >= 3) return true;
+                if (buildRampartAround(room.mineral.pos)) counter++;
+            }
+            if (PROTECT_CONTROLLER) {
+                if (counter >= 3) return true;
+                if (buildRampartAround(room.controller.pos)) counter++;
+            }
             // Handle ramparts on protected structures
             if (PROTECT_STRUCTURES && room.level >= 8) {
                 for (let structure of room.structures) {
@@ -536,6 +548,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
                 }
             }
         }
+        return false;
     }
 
     function buildQuadTraps(room) {
