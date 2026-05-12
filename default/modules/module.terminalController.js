@@ -259,8 +259,8 @@ class TerminalControl {
             const existingOrder = _.find(myOrders, o => o.resourceType === RESOURCE_ENERGY && o.roomName === terminal.room.name);
             // Escalate price over time if unfilled: start conservative, climb to full market price
             const orderAge = existingOrder ? Game.time - existingOrder.created : 0;
-            const baseMult = isCritical ? 0.95 : 0.75;
-            const escalationTicks = isCritical ? 5000 : 50000;
+            const baseMult = isCritical ? 1 : 0.75;
+            const escalationTicks = isCritical ? 25000 : 50000;
             const ageMult = Math.min(1.0, baseMult + (orderAge / escalationTicks) * (1.0 - baseMult));
             const targetPrice = refPrice * ageMult;
             if (!existingOrder) {
@@ -567,7 +567,7 @@ class TerminalControl {
     }
 
     balanceEnergy(terminal) {
-        if (terminal.room.memory.dangerousAttack || terminal.room.energyState < 2) return false;
+        if (terminal.room.memory.dangerousAttack || terminal.room.energyState < 1) return false;
 
         const poorestRoom = findNeedyTerminal();
         if (poorestRoom) {
@@ -583,7 +583,7 @@ class TerminalControl {
         function findNeedyTerminal() {
             // Only consider rooms that genuinely need energy (below state 2) and are meaningfully poorer
             return MY_ROOMS
-                .filter(r => r !== terminal.room.name && Game.rooms[r] && Game.rooms[r].terminal && Game.rooms[r].energyState < 2)
+                .filter(r => r !== terminal.room.name && Game.rooms[r] && Game.rooms[r].terminal && Game.rooms[r].energyState < 1)
                 .sort((a, b) => Game.rooms[a].energy - Game.rooms[b].energy)[0];
         }
 
