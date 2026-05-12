@@ -737,7 +737,7 @@ Creep.prototype.constructionWork = function () {
     }
 
     // Priority 10: Build any other structures if the room has energy
-    site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && (!s.room.storage || s.room.energyState || (s.room.energy * 0.9 > s.progressTotal - s.progress)));
+    site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && (!s.room.storage || s.room.energyState));
     if (site) {
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
