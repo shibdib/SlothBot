@@ -270,7 +270,7 @@ module.exports.essentialCreepQueue = function (room) {
     // Upgrader
     if (!room.memory.spawnDefenders && room.level === room.controller.level) {
         let upgraderAmount = 1;
-        if (room.controller.level < 8 && room.memory.energyPositive && (room.energyState >= 2 || !room.terminal)) {
+        if (room.controller.level < 6) {
             let container = Game.getObjectById(room.memory.controllerContainer);
             if (container) {
                 upgraderAmount = room.level >= 6 ? 2 : Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround()) || 1;

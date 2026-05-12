@@ -120,8 +120,35 @@ class ModuleBodyGenerator {
                     break;
                 }
                 if (this.room.memory.controllerLink || this.room.memory.controllerContainer) {
-                    work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
-                    work = Math.min(work, 49);
+                    if (this.room.memory.controllerLink && this.level >= 5 && this.level <= 7) {
+                        const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
+                        // Source links supply the controller; hub link is a relay, not counted
+                        const sourceLinks = controllerLink ? this.room.structures
+                                .filter(s => s.structureType === STRUCTURE_LINK &&
+                                    s.id !== this.room.memory.controllerLink &&
+                                    s.id !== this.room.memory.hubLink)
+                                .sort((a, b) => a.pos.getRangeTo(controllerLink) - b.pos.getRangeTo(controllerLink))
+                            : [];
+                        // RCL 5/6: size for 1 input link; RCL 7: size for 2 input links
+                        const inputLinks = sourceLinks.slice(0, this.level >= 7 ? 2 : 1);
+                        if (inputLinks.length > 0) {
+                            // Throughput per link = LINK_CAPACITY / distance (link cooldown = distance ticks)
+                            const throughput = inputLinks.reduce((sum, l) =>
+                                sum + Math.floor(LINK_CAPACITY / Math.max(1, l.pos.getRangeTo(controllerLink))), 0);
+                            work = throughput - 2;
+                            if (!this.room.energyState) {
+                                work *= 0.5;
+                            } else if (this.room.energyState === 1) {
+                                work *= 0.8;
+                            }
+                        } else {
+                            // Source links not yet built — fall back to energy cap
+                            work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
+                        }
+                    } else {
+                        work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
+                    }
+                    work = Math.max(Math.min(work, 49), 1);
                     carry = 1;
                     move = 0;
                 } else {
@@ -130,13 +157,13 @@ class ModuleBodyGenerator {
                     carry = Math.floor(this.energyAmount * 0.1 / BODYPART_COST[CARRY]) || 1;
                     carry = Math.min(carry, 10);
                     if (INTEL[this.room.name].roadsBuilt) halfMove = true;
-                }
-                if (!this.room.energyState) {
-                    work *= 0.15;
-                    carry *= 0.2;
-                } else if (this.room.energyState === 1) {
-                    work *= 0.3;
-                    carry *= 0.2;
+                    if (!this.room.energyState) {
+                        work *= 0.15;
+                        carry *= 0.2;
+                    } else if (this.room.energyState === 1) {
+                        work *= 0.3;
+                        carry *= 0.2;
+                    }
                 }
                 if (work < 1) work = 1;
                 if (carry < 1) carry = 1;
