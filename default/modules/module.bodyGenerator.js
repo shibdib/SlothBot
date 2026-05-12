@@ -131,7 +131,6 @@ class ModuleBodyGenerator {
                     carry = Math.min(carry, 10);
                     if (INTEL[this.room.name].roadsBuilt) halfMove = true;
                 }
-                if (work < 1) work = 1;
                 if (!this.room.energyState) {
                     work *= 0.15;
                     carry *= 0.2;
@@ -139,6 +138,8 @@ class ModuleBodyGenerator {
                     work *= 0.3;
                     carry *= 0.2;
                 }
+                if (work < 1) work = 1;
+                if (carry < 1) carry = 1;
                 break;
 
             case 'labTech':
