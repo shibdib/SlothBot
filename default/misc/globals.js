@@ -588,25 +588,20 @@ let globals = function () {
     global.log = new Log();
 
     global.floodFill = function (roomName) {
-
         const room = Game.rooms[roomName];
-
-        const walls = room.find(FIND_STRUCTURES, {
-            filter: structure => [STRUCTURE_WALL, STRUCTURE_RAMPART].includes(structure.structureType)
-        });
+        if (!room) return console.log(`floodFill: no visibility in ${roomName}`);
 
         const terrain = new Room.Terrain(roomName);
-
         const startTime = Game.cpu.getUsed();
-
         const matrix = new PathFinder.CostMatrix();
 
-        walls.forEach(wall => {
-            matrix.set(wall.pos.x, wall.pos.y, 255);
-        });
+        room.find(FIND_STRUCTURES, {
+            filter: s => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART
+        }).forEach(s => matrix.set(s.pos.x, s.pos.y, 255));
 
+        // Seed all four edges (i = 0..49 covers every tile including corners)
         const queue = [];
-        for (let i = 0; i < 49; i++) {
+        for (let i = 0; i <= 49; i++) {
             if (terrain.get(i, 0) !== TERRAIN_MASK_WALL) {
                 matrix.set(i, 0, 1);
                 queue.push([i, 0]);
@@ -625,21 +620,18 @@ let globals = function () {
             }
         }
 
-        while (queue.length > 0) {
-            const length = queue.length;
-            for (let i = 0; i < length; i++) {
-                const [x, y] = queue[i];
-
-                for (let dx = x - 1; dx <= x + 1; dx++) {
-                    for (let dy = y - 1; dy <= y + 1; dy++) {
-                        if (dx > 0 && dx < 49 && dy > 0 && dy < 49 && matrix.get(dx, dy) === 0 && (terrain.get(dx, dy) & TERRAIN_MASK_WALL) === 0) {
-                            matrix.set(dx, dy, 1);
-                            queue.push([dx, dy]);
-                        }
+        // O(n) BFS with a head pointer — avoids O(n²) splice-per-level
+        let head = 0;
+        while (head < queue.length) {
+            const [x, y] = queue[head++];
+            for (let dx = x - 1; dx <= x + 1; dx++) {
+                for (let dy = y - 1; dy <= y + 1; dy++) {
+                    if (dx > 0 && dx < 49 && dy > 0 && dy < 49 && matrix.get(dx, dy) === 0 && (terrain.get(dx, dy) & TERRAIN_MASK_WALL) === 0) {
+                        matrix.set(dx, dy, 1);
+                        queue.push([dx, dy]);
                     }
                 }
             }
-            queue.splice(0, length);
         }
 
         console.log('cpu used:', Game.cpu.getUsed() - startTime);
@@ -648,7 +640,6 @@ let globals = function () {
         for (let x = 1; x < 49; x++) {
             for (let y = 1; y < 49; y++) {
                 if (matrix.get(x, y) === 1) {
-                    visual.circle();
                     visual.circle(x, y, {radius: 0.2, fill: 'white', opacity: 0.6});
                 }
             }
