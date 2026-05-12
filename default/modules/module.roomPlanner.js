@@ -504,7 +504,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
     }
 
     function buildProtectiveRamparts(room) {
-        const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
+        const ramparts = ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name] ? JSON.parse(ROOM_RAMPART_SPOTS[room.name]) : undefined;
         if (!ramparts || !ramparts.length) return false;
         let counter = 0;
         const rampartPositions = ramparts.map(p => new RoomPosition(p.x, p.y, room.name));
@@ -512,7 +512,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
         for (const structure of vulnerableStructures) {
             if (counter >= 3) return true;
             const rangeFromRampart = structure.pos.getRangeTo(structure.pos.findClosestByRange(rampartPositions));
-            if (rangeFromRampart <= 2 && structure.pos.isInBunker()) {
+            if ((rangeFromRampart <= 3 && structure.pos.isInBunker()) || !structure.pos.isInBunker()) {
                 if (structure.pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
             }
         }
