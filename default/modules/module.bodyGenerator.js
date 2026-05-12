@@ -122,7 +122,6 @@ class ModuleBodyGenerator {
                 if (this.room.memory.controllerLink || this.room.memory.controllerContainer) {
                     if (this.room.memory.controllerLink && this.level >= 5 && this.level <= 7) {
                         const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
-                        // Source links supply the controller; hub link is a relay, not counted
                         const sourceLinks = controllerLink ? this.room.structures
                                 .filter(s => s.structureType === STRUCTURE_LINK &&
                                     s.id !== this.room.memory.controllerLink &&
@@ -130,16 +129,12 @@ class ModuleBodyGenerator {
                                 .sort((a, b) => a.pos.getRangeTo(controllerLink) - b.pos.getRangeTo(controllerLink))
                             : [];
                         if (sourceLinks.length > 0) {
-                            // Actual throughput is bounded by source regeneration, not link capacity.
-                            // Each source provides SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME = 10e/tick;
-                            // links lose LINK_LOSS_RATIO (3%) in transfer. +1 as buffer so upgrader
-                            // never sits idle waiting for the last trickle of energy.
                             const sourceRate = SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME; // 10/tick
                             work = Math.floor(sourceRate * sourceLinks.length * (1 - LINK_LOSS_RATIO)) + 1;
                             if (!this.room.energyState) {
-                                work *= 0.5;
+                                work *= 0.25;
                             } else if (this.room.energyState === 1) {
-                                work *= 0.8;
+                                work *= 0.75;
                             }
                         } else {
                             // Source links not yet built — fall back to energy cap
