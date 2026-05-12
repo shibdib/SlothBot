@@ -278,22 +278,19 @@ function linkBuilder(room) {
 
     // 1. Controller Link (RCL 5+)
     if (!room.memory.controllerLink || !Game.getObjectById(room.memory.controllerLink)) {
-        const controllerContainer = Game.getObjectById(room.memory.controllerContainer);
-        if (controllerContainer) {
-            const existingLink = _.find(room.controller.pos.findInRange(room.structures, 3), s => s.structureType === STRUCTURE_LINK);
-            if (existingLink) {
-                room.memory.controllerLink = existingLink.id;
-            } else {
-                room.memory.controllerLink = undefined;
-                const site = _.find(controllerContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), s => s.structureType === STRUCTURE_LINK);
-                if (site) return true;
-                const zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1,
-                    controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
-                for (let key in zoneTerrain) {
-                    let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
-                    if (position.checkForAllStructure() || position.checkForImpassible() || position.isNearTo(room.controller)) continue;
-                    if (position.createConstructionSite(STRUCTURE_LINK) === OK) return true;
-                }
+        const existingLink = _.find(room.controller.pos.findInRange(room.structures, 3), s => s.structureType === STRUCTURE_LINK);
+        if (existingLink) {
+            room.memory.controllerLink = existingLink.id;
+        } else {
+            room.memory.controllerLink = undefined;
+            const site = _.find(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 2), s => s.structureType === STRUCTURE_LINK);
+            if (site) return true;
+            const zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 2, room.controller.pos.x - 2,
+                room.controller.pos.y + 2, room.controller.pos.x + 2, true);
+            for (let key in zoneTerrain) {
+                let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
+                if (position.checkForAllStructure() || position.checkForImpassible() || position.isNearTo(room.controller)) continue;
+                if (position.createConstructionSite(STRUCTURE_LINK) === OK) return true;
             }
         }
     }
@@ -404,7 +401,8 @@ function sourceBuilder(room) {
 
 function controllerBuilder(room) {
     let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
-    if (!controllerContainer && room.level >= 2) {
+    let controllerLink = Game.getObjectById(room.memory.controllerLink);
+    if (!controllerContainer && room.level >= 2 && !controllerLink) {
         controllerContainer = room.controller.pos.findInRange(room.structures, 3, {
             filter: (s) => s.structureType === STRUCTURE_CONTAINER &&
                 !s.pos.isNearTo(s.pos.findClosestByRange(FIND_SOURCES)) &&
@@ -453,6 +451,12 @@ function controllerBuilder(room) {
             }
         } else {
             room.memory.controllerContainer = controllerContainer.id;
+        }
+    } else if (controllerContainer && controllerLink) {
+        // If the controller container is empty destroy it
+        if (controllerContainer.store.getUsedCapacity() === 0) {
+            controllerContainer.destroy();
+            room.memory.controllerContainer = undefined;
         }
     }
 
@@ -1044,8 +1048,6 @@ function mineralBuilder(room) {
     }
 }
 
-let storedPos = {};
-let storedPossibles = {};
 function findHub(room, hubCheck = undefined) {
     if (room.controller.owner && room.controller.owner.username === MY_USERNAME && room.memory.bunkerHub && room.memory.bunkerHub.x && room.memory.bunkerHub.y) {
         return true;

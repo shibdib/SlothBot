@@ -431,7 +431,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         const structures = room.structures;
         for (let i = 0; i < structures.length; i++) {
             const s = structures[i];
-            if (s.structureType === STRUCTURE_CONTAINER && s.id !== room.memory.controllerContainer && s.store[RESOURCE_ENERGY] > 0) {
+            if (s.structureType === STRUCTURE_CONTAINER && (s.id !== room.memory.controllerContainer || room.memory.controllerLink) && s.store[RESOURCE_ENERGY] > 0) {
                 if (!myCreepsFilter(s.id) || s.store[RESOURCE_ENERGY] > (myCreepsFilter(s.id) + 1) * (freeCapacity * 0.5)) {
                     potentialEnergy.push(s);
                 }

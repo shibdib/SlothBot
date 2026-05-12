@@ -129,13 +129,13 @@ class ModuleBodyGenerator {
                                     s.id !== this.room.memory.hubLink)
                                 .sort((a, b) => a.pos.getRangeTo(controllerLink) - b.pos.getRangeTo(controllerLink))
                             : [];
-                        // RCL 5/6: size for 1 input link; RCL 7: size for 2 input links
-                        const inputLinks = sourceLinks.slice(0, this.level >= 7 ? 2 : 1);
-                        if (inputLinks.length > 0) {
-                            // Throughput per link = LINK_CAPACITY / distance (link cooldown = distance ticks)
-                            const throughput = inputLinks.reduce((sum, l) =>
-                                sum + Math.floor(LINK_CAPACITY / Math.max(1, l.pos.getRangeTo(controllerLink))), 0);
-                            work = throughput - 2;
+                        if (sourceLinks.length > 0) {
+                            // Actual throughput is bounded by source regeneration, not link capacity.
+                            // Each source provides SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME = 10e/tick;
+                            // links lose LINK_LOSS_RATIO (3%) in transfer. +1 as buffer so upgrader
+                            // never sits idle waiting for the last trickle of energy.
+                            const sourceRate = SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME; // 10/tick
+                            work = Math.floor(sourceRate * sourceLinks.length * (1 - LINK_LOSS_RATIO)) + 1;
                             if (!this.room.energyState) {
                                 work *= 0.5;
                             } else if (this.room.energyState === 1) {
@@ -157,13 +157,6 @@ class ModuleBodyGenerator {
                     carry = Math.floor(this.energyAmount * 0.1 / BODYPART_COST[CARRY]) || 1;
                     carry = Math.min(carry, 10);
                     if (INTEL[this.room.name].roadsBuilt) halfMove = true;
-                    if (!this.room.energyState) {
-                        work *= 0.15;
-                        carry *= 0.2;
-                    } else if (this.room.energyState === 1) {
-                        work *= 0.3;
-                        carry *= 0.2;
-                    }
                 }
                 if (work < 1) work = 1;
                 if (carry < 1) carry = 1;
