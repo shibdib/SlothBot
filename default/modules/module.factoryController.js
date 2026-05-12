@@ -19,6 +19,26 @@ class FactoryControl {
 
         if (currentTime % 1000 === 0) this._pruneTrackers();
 
+        // Render production label every tick so it stays visible during cooldown
+        if (factory.memory.producing) {
+            const commodity = COMMODITIES[factory.memory.producing];
+            const inputsReady = commodity && Object.keys(commodity.components).every(c => (factory.store[c] || 0) >= commodity.components[c]);
+            let status, color;
+            if (factory.cooldown) {
+                status = `⚙ ${factory.memory.producing} (${factory.cooldown})`;
+                color = '#00ff00'; // green — actively in production cooldown
+            } else if (inputsReady) {
+                status = `⚙ ${factory.memory.producing}`;
+                color = '#ffff00'; // yellow — inputs loaded, ready to produce
+            } else {
+                status = `⏳ ${factory.memory.producing}`;
+                color = '#ff8800'; // orange — waiting for inputs to be loaded
+            }
+            room.visual.text(status, factory.pos.x, factory.pos.y - 0.6, {
+                color, font: 'bold 0.5 Arial', align: 'center', opacity: 0.85
+            });
+        }
+
         const lastRun = tickTracker[room.name] || 0;
         const coolDown = cooldownTracker[room.name] || 10;
 
@@ -44,11 +64,16 @@ class FactoryControl {
 
         // Attempt production only if we have a valid target
         if (factory.memory.producing && this.isValidProductionTarget(factory.memory.producing, room, factoryLevel)) {
+            const commodity = COMMODITIES[factory.memory.producing];
+            // Confirm inputs are actually loaded into the factory store before calling produce
+            if (!Object.keys(commodity.components).every(c => factory.store[c] >= commodity.components[c])) {
+                cooldownTracker[room.name] = 3;
+                return;
+            }
             const result = factory.produce(factory.memory.producing);
             if (result === OK) {
-                cooldownTracker[room.name] = COMMODITIES[factory.memory.producing].cooldown + 1;
+                cooldownTracker[room.name] = commodity.cooldown + 1;
             } else {
-                // Unexpected failure — clear target and re-evaluate next cycle
                 log.w(`${roomLink(room.name)} factory produce() failed for ${factory.memory.producing} (${result}), re-evaluating.`, 'FACTORY CONTROL:');
                 delete factory.memory.producing;
                 cooldownTracker[room.name] = 10;

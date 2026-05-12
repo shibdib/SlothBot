@@ -89,7 +89,26 @@ class RoleLabTech {
             }
         }
 
-        // -- PRIORITY 2: SUPPLY MINERALS (Filling Labs with minerals/boosts only) --
+        // -- PRIORITY 2: SUPPLY FACTORY (load production inputs) --
+        if (factory && factory.memory.producing) {
+            const commodity = COMMODITIES[factory.memory.producing];
+            if (commodity) {
+                for (const [component, required] of Object.entries(commodity.components)) {
+                    const inFactory = factory.store[component] || 0;
+                    const target = required * 10; // keep ~10 runs worth in the factory
+                    if (inFactory >= target) continue;
+                    const supplier = [storage, terminal].find(s => s && s.store[component] > 0);
+                    if (supplier) return {
+                        withdrawTarget: supplier.id,
+                        deliveryTarget: factory.id,
+                        resource: component,
+                        amount: Math.min(target - inFactory, factory.store.getFreeCapacity())
+                    };
+                }
+            }
+        }
+
+        // -- PRIORITY 3: SUPPLY MINERALS (Filling Labs with minerals/boosts only) --
         for (const lab of labs) {
             if (lab.memory.itemNeeded && lab.store.getUsedCapacity(lab.memory.itemNeeded) < 1000) {
                 const res = lab.memory.itemNeeded;
