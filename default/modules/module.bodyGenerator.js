@@ -132,7 +132,7 @@ class ModuleBodyGenerator {
                             const sourceRate = SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME; // 10/tick
                             work = Math.floor(sourceRate * sourceLinks.length * (1 - LINK_LOSS_RATIO)) + 1;
                             if (!this.room.energyState) {
-                                work *= 0.25;
+                                work *= 0.15;
                             } else if (this.room.energyState === 1) {
                                 work *= 0.75;
                             }
@@ -357,8 +357,13 @@ class ModuleBodyGenerator {
                 // Work parts after level 3
                 work = this.room.level >= 7 ? 1 : 0;
 
-                // Set move if the assigned harvesters intel checks out
-                if (INTEL[assignedHarvester.room.name].roadsBuilt && INTEL[this.room.name].roadsBuilt) {
+                // Half-move only if every room on the route (including intermediate rooms) has roads.
+                // Checking just home+destination misses rooms in between that the hauler must cross.
+                const route = Game.map.findRoute(this.room.name, assignedHarvester.room.name);
+                const fullRouteHasRoads = Array.isArray(route) &&
+                    INTEL[this.room.name].roadsBuilt &&
+                    route.every(step => INTEL[step.room] && INTEL[step.room].roadsBuilt);
+                if (fullRouteHasRoads) {
                     carry = Math.floor((this.energyAmount - (work * BODYPART_COST[WORK])) / (BODYPART_COST[CARRY] + (BODYPART_COST[MOVE] * 0.5))) || 1;
                     halfMove = true;
                 } else {
@@ -368,11 +373,13 @@ class ModuleBodyGenerator {
                 // Limit carry to what is actually needed
                 carry = Math.min(carry, desiredCarry);
 
-                // Adjust carry parts to account for halmove setting
+                // Pre-RCL7 rooms have 1 spawn — cap hauler size so it doesn't block the queue.
+                // Smaller haulers spawn faster and multiple will be queued to cover the deficit.
+                const maxCarry = this.room.level < 7 ? this.room.level * 2 : 33;
                 if (halfMove) {
-                    if (carry + work > 33) carry = 33 - work;
-                } else if (carry + work > 25) {
-                    carry = 25 - work;
+                    if (carry + work > maxCarry) carry = maxCarry - work;
+                } else if (carry + work > Math.min(maxCarry, 25)) {
+                    carry = Math.min(maxCarry, 25) - work;
                 }
 
                 break;

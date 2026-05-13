@@ -580,10 +580,12 @@ module.exports.remoteCreepQueue = function (room) {
     function handleReservation(room, remoteName) {
         if (room.level >= 4 && getCreepCount(undefined, 'remoteHarvester', remoteName) && (!INTEL[remoteName].reservationExpires || (INTEL[remoteName].reservationExpires - CREEP_LIFE_TIME) < Game.time) && !INTEL[remoteName].sk) {
             const count = !room.energyState || room.level >= 7 ? 1 : INTEL[remoteName].reserverCap && INTEL[remoteName].reserverCap < 3 ? INTEL[remoteName].reserverCap : INTEL[remoteName].reserverCap && INTEL[remoteName].reserverCap > 3 ? 3 : 1
+            // Pre-RCL7 rooms have 1 spawn — reservers are convenience, not essential; yield to local creeps
+            const reserverPriority = room.level < 7 ? PRIORITIES.reserver + 3 : PRIORITIES.reserver;
             queueCreepIfNeeded({
                 room: room,
                 role: 'reserver',
-                priority: PRIORITIES.reserver + getCreepCount(undefined, 'reserver', remoteName),
+                priority: reserverPriority + getCreepCount(undefined, 'reserver', remoteName),
                 numberNeeded: count,
                 destination: remoteName
             });
@@ -653,7 +655,8 @@ module.exports.remoteCreepQueue = function (room) {
             }), 'score');
 
             if (remoteSource && remoteSource.room) {
-                const priority = room.energyState > 1 && room.storage ? PRIORITIES.remoteHarvester * 2 : PRIORITIES.remoteHarvester;
+                // Pre-RCL7 rooms have 1 spawn — always deprioritize remotes so local creeps aren't squeezed out
+                const priority = (room.energyState > 1 && room.storage) || room.level < 7 ? PRIORITIES.remoteHarvester * 2 : PRIORITIES.remoteHarvester;
                 queueCreep(room, priority, {
                     role: 'remoteHarvester',
                     destination: remoteSource.room,
@@ -686,7 +689,8 @@ module.exports.remoteCreepQueue = function (room) {
             const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
             const harvestAmount = harvester.memory.other.haulingRequired;
             if (harvestAmount && haulingCapacity < harvestAmount) {
-                const priority = room.energyState > 1 && room.storage ? PRIORITIES.remoteHauler * 2 : PRIORITIES.remoteHauler;
+                // Pre-RCL7 rooms have 1 spawn — always deprioritize remotes so local creeps aren't squeezed out
+                const priority = (room.energyState > 1 && room.storage) || room.level < 7 ? PRIORITIES.remoteHauler * 2 : PRIORITIES.remoteHauler;
                 queueCreep(room, priority + getCreepCount(undefined, 'remoteHauler', harvester.room.name), {
                     role: 'remoteHauler',
                     destination: room.name,

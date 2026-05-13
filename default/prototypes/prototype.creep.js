@@ -439,6 +439,12 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         }
     }
 
+    // All links if room is energyState 0
+    if (room.energyState === 0) {
+        const links = room.structures.filter(s => s.structureType === STRUCTURE_LINK && s.store[RESOURCE_ENERGY] > 0);
+        potentialEnergy = potentialEnergy.concat(links);
+    }
+
     // Final selection
     if (potentialEnergy.length) {
         const closest = this.pos.findClosestByRange(potentialEnergy);
