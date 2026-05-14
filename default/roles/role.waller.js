@@ -214,7 +214,6 @@ class RoleWaller {
 
             this.creep.say(ICONS.castle, true);
             const result = this.creep.repair(target);
-            this.creep.say(result)
             if (result === OK) {
                 if (target.hits >= this.creep.memory.targetWallHits) {
                     delete this.creep.memory.currentTarget;
