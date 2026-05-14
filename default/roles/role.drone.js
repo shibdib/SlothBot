@@ -77,23 +77,24 @@ class RoleDrone {
 
     jobManager() {
         const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
-        // If under attack, waller else chance to be a waller
+
+        // 1. Maintain Sticky Task
+        if (this.creep.memory.task && this.taskedOut()) return;
+
+        // 2. Urgent Defense (Under attack or targeting low wall)
         if ((threatLevel || this.creep.memory.currentTarget) && this.walling()) return;
-        
-        // If already tasked out
-        if (this.creep.memory.task) {
-            if (this.taskedOut()) return;
-        }
 
-        // Task priority
+        // 3. Emergency Hauling (If no haulers exist)
         if (this.hauling()) return;
-        if (this.building()) return;
-        if (this.upgrading()) return;
 
-        // Fallback: Upgrade if no upgrader exists
+        // 4. Primary: Building
+        if (this.building()) return;
+
+        // 5. Fallback: Upgrading (If no upgraders or low level)
+        if (this.upgrading()) return;
         if (this.room.level < 4 && this.upgrading(true)) return;
 
-        // Final fallback: Idle
+        // Final fallback: Idle (No maintenance walling for drones)
         this.creep.memory.task = undefined;
         this.creep.idleFor(5);
     }
@@ -166,11 +167,13 @@ class RoleDrone {
             }
         }
 
-        // Remote mining if nothing local
-        if (this.creep.memory.remoteMining || (Game.time % 20 === 0 && findRemoteSource(this.creep))) {
-            this.creep.say('Remote!', true);
-            if (this.creep.memory.remoteMining !== this.room.name) {
-                return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.remoteMining), {range: 15});
+        // Remote mining ONLY if the room literally has 0 sources (e.g. corridors)
+        if (this.room.sources.length === 0) {
+            if (this.creep.memory.remoteMining || (Game.time % 20 === 0 && findRemoteSource(this.creep))) {
+                this.creep.say('Remote!', true);
+                if (this.creep.memory.remoteMining !== this.room.name) {
+                    return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.remoteMining), {range: 15});
+                }
             }
         }
 
@@ -241,7 +244,6 @@ class RoleDrone {
         if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return false;
         if (this.creep.memory.task || this.creep.constructionWork()) {
             if (this.creep.builderFunction()) {
-                // builderFunction already manages stationary correctly — don't override it
                 this.stepOffRoad();
             }
             return true;
@@ -269,15 +271,27 @@ class RoleDrone {
         }
     }
 
-    walling(maintenance = false) {
+    walling() {
         if (!this.creep.memory.currentTarget || !Game.getObjectById(this.creep.memory.currentTarget)) {
+            // Check for ramparts that need to be built (priority over repairs)
+            if (this.room.constructionSites.length) {
+                const rampartSite = _.find(this.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
+                if (rampartSite && rampartSite.id) {
+                    this.creep.memory.task = 'build';
+                    this.creep.memory.constructionSite = rampartSite.id;
+                    return this.building();
+                }
+            }
+
             delete this.creep.memory.currentTarget;
             delete this.creep.memory.targetWallHits;
 
-            const targetLimit = maintenance ? 300000000 : (this.room.memory.barrierHitsTarget || 100000);
+            let targetLimit = 100000;
+            if (this.room.controller.level >= 8) targetLimit = 3000000;
+            else if (this.room.controller.level >= 6) targetLimit = 1000000;
+
             const quadTrapWalls = new Set((this.room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
-            const barrierStructures = this.room.structures.filter(s => {
-                if (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL) return false;
+            const barrierStructures = this.room.barriers.filter(s => {
                 const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : targetLimit;
                 return s.hits < cap;
             });
@@ -289,43 +303,56 @@ class RoleDrone {
             if (threatLevel) {
                 target = _.min(barrierStructures, 'hits');
             } else {
-                target = _.min(barrierStructures.filter(s =>
+                // To avoid multiple creeps on the same wall unless necessary
+                const available = barrierStructures.filter(s =>
                     !this.room.myCreeps.some(c => c.memory.currentTarget === s.id && c.id !== this.creep.id)
-                ), 'hits');
+                );
+
+                if (available.length) {
+                    // Pick the closest of the lowest health ones
+                    const minHits = _.min(available, 'hits').hits;
+                    const candidates = available.filter(s => s.hits <= minHits + 25000);
+                    target = this.creep.pos.findClosestByRange(candidates);
+                } else {
+                    target = _.min(barrierStructures, 'hits');
+                }
             }
 
             if (target) {
                 this.creep.memory.currentTarget = target.id;
-                // For maintenance mode, set a significant boost to hits to prevent constant retargeting
-                if (maintenance) this.creep.memory.targetWallHits = target.hits + 50000;
+                this.creep.memory.task = "waller";
             } else {
                 return false;
             }
         }
 
         const target = Game.getObjectById(this.creep.memory.currentTarget);
-        if (target) {
-            this.creep.memory.task = "waller";
-            if (!this.creep.memory.targetWallHits) {
-                this.creep.memory.targetWallHits = Math.min(target.hits + 25000, RAMPART_HITS_MAX[this.room.controller.level] || 300000000);
-            }
+        if (!target) {
+            delete this.creep.memory.currentTarget;
+            delete this.creep.memory.targetWallHits;
+            return false;
+        }
 
-            this.creep.say(ICONS.castle, true);
-            const result = this.creep.repair(target);
-            if (result === OK) {
-                if (target.hits >= this.creep.memory.targetWallHits) {
-                    delete this.creep.memory.currentTarget;
-                    delete this.creep.memory.targetWallHits;
-                }
-            } else if (result === ERR_NOT_IN_RANGE) {
-                this.creep.shibMove(target, {range: 3});
-            } else {
+        this.creep.memory.task = "waller";
+        if (!this.creep.memory.targetWallHits) {
+            this.creep.memory.targetWallHits = Math.min(target.hits + 50000, RAMPART_HITS_MAX[this.room.controller.level] || 300000000);
+        }
+
+        this.creep.say(ICONS.castle, true);
+        const result = this.creep.repair(target);
+        if (result === OK) {
+            this.stepOffRoad();
+            if (target.hits >= this.creep.memory.targetWallHits) {
                 delete this.creep.memory.currentTarget;
                 delete this.creep.memory.targetWallHits;
             }
-            return true;
+        } else if (result === ERR_NOT_IN_RANGE) {
+            this.creep.shibMove(target, {range: 3});
+        } else {
+            delete this.creep.memory.currentTarget;
+            delete this.creep.memory.targetWallHits;
         }
-        return false;
+        return true;
     }
 }
 

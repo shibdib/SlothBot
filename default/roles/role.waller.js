@@ -55,12 +55,11 @@ class RoleWaller {
 
     jobManager() {
         // If already tasked out
-        if (this.creep.memory.task) {
-            if (this.taskedOut()) return;
-        }
+        if (this.creep.memory.task && this.taskedOut()) return;
 
         // Task priority
         if (this.walling()) return;
+        if (this.building()) return;
         if (this.hauling()) return;
 
         // Maintenance: Strengthen barriers if nothing else to do (prevents idling)
@@ -134,7 +133,6 @@ class RoleWaller {
         if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return false;
         if (this.creep.memory.task || this.creep.constructionWork()) {
             if (this.creep.builderFunction()) {
-                // builderFunction already manages stationary correctly — don't override it
                 this.stepOffRoad();
             }
             return true;
@@ -164,23 +162,27 @@ class RoleWaller {
 
     walling(maintenance = false) {
         if (!this.creep.memory.currentTarget || !Game.getObjectById(this.creep.memory.currentTarget)) {
-
-            // Check for ramparts that need to be built
-            if (this.room.constructionSites.length) {
+            // Check for ramparts that need to be built (priority over repairs)
+            if (!maintenance && this.room.constructionSites.length) {
                 const rampartSite = _.find(this.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
                 if (rampartSite && rampartSite.id) {
                     this.creep.memory.task = 'build';
-                    return this.creep.memory.constructionSite = rampartSite.id;
+                    this.creep.memory.constructionSite = rampartSite.id;
+                    return this.building();
                 }
             }
 
             delete this.creep.memory.currentTarget;
             delete this.creep.memory.targetWallHits;
 
-            const targetLimit = maintenance ? 300000000 : 100000;
+            let targetLimit = 100000;
+            if (this.room.controller.level >= 8) targetLimit = 3000000;
+            else if (this.room.controller.level >= 6) targetLimit = 1000000;
+
+            if (maintenance) targetLimit = 300000000;
+
             const quadTrapWalls = new Set((this.room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
-            const barrierStructures = this.room.structures.filter(s => {
-                if (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL) return false;
+            const barrierStructures = this.room.barriers.filter(s => {
                 const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : targetLimit;
                 return s.hits < cap;
             });
@@ -192,43 +194,60 @@ class RoleWaller {
             if (threatLevel) {
                 target = _.min(barrierStructures, 'hits');
             } else {
-                target = _.min(barrierStructures.filter(s =>
+                // To avoid multiple wallers on the same wall unless necessary
+                const available = barrierStructures.filter(s =>
                     !this.room.myCreeps.some(c => c.memory.currentTarget === s.id && c.id !== this.creep.id)
-                ), 'hits');
+                );
+
+                if (available.length) {
+                    // Pick the closest of the lowest health ones to reduce travel jitter
+                    const minHits = _.min(available, 'hits').hits;
+                    const jitterThreshold = maintenance ? 100000 : 25000;
+                    const candidates = available.filter(s => s.hits <= minHits + jitterThreshold);
+                    target = this.creep.pos.findClosestByRange(candidates);
+                } else {
+                    // Fallback to absolute lowest if all are targeted
+                    target = _.min(barrierStructures, 'hits');
+                }
             }
 
             if (target) {
                 this.creep.memory.currentTarget = target.id;
                 this.creep.memory.task = "waller";
-                // For maintenance mode, set a significant boost to hits to prevent constant retargeting
-                if (maintenance) this.creep.memory.targetWallHits = target.hits + 50000;
+                // Increase the hit buffer for maintenance to reduce retargeting frequency
+                if (maintenance) this.creep.memory.targetWallHits = target.hits + 100000;
             } else {
                 return false;
             }
-        } else {
-            const target = Game.getObjectById(this.creep.memory.currentTarget);
-            this.creep.memory.task = "waller";
-            if (!this.creep.memory.targetWallHits) {
-                this.creep.memory.targetWallHits = Math.min(target.hits + 25000, RAMPART_HITS_MAX[this.room.controller.level] || 300000000);
-            }
+        }
 
-            this.creep.say(ICONS.castle, true);
-            const result = this.creep.repair(target);
-            if (result === OK) {
-                if (target.hits >= this.creep.memory.targetWallHits) {
-                    delete this.creep.memory.currentTarget;
-                    delete this.creep.memory.targetWallHits;
-                }
-            } else if (result === ERR_NOT_IN_RANGE) {
-                this.creep.shibMove(target, {range: 3});
-            } else {
+        const target = Game.getObjectById(this.creep.memory.currentTarget);
+        if (!target) {
+            delete this.creep.memory.currentTarget;
+            delete this.creep.memory.targetWallHits;
+            return false;
+        }
+
+        this.creep.memory.task = "waller";
+        if (!this.creep.memory.targetWallHits) {
+            this.creep.memory.targetWallHits = Math.min(target.hits + 50000, RAMPART_HITS_MAX[this.room.controller.level] || 300000000);
+        }
+
+        this.creep.say(ICONS.castle, true);
+        const result = this.creep.repair(target);
+        if (result === OK) {
+            this.stepOffRoad();
+            if (target.hits >= this.creep.memory.targetWallHits) {
                 delete this.creep.memory.currentTarget;
                 delete this.creep.memory.targetWallHits;
             }
-            return true;
+        } else if (result === ERR_NOT_IN_RANGE) {
+            this.creep.shibMove(target, {range: 3});
+        } else {
+            delete this.creep.memory.currentTarget;
+            delete this.creep.memory.targetWallHits;
         }
-
-        return false;
+        return true;
     }
 }
 

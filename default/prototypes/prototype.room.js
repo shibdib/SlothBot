@@ -118,6 +118,17 @@ Object.defineProperty(Room.prototype, 'structures', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'barriers', {
+    get: function () {
+        if (!this._barriers) {
+            this._barriers = this.structures.filter(s => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
+        }
+        return this._barriers;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'downgraded', {
     get: function () {
         if (!this._downgraded) {
