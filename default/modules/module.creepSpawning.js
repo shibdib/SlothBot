@@ -206,9 +206,7 @@ module.exports.essentialCreepQueue = function (room) {
     // Drone Queueing
     const importantBuilds = _.some(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
     let droneCount = importantBuilds && room.energyState > 1 ? 10 - room.level :
-        !room.storage ? Math.max(8 - room.level, 1) :
-            room.memory.spawnDefenders ? 3 :
-                room.energyState > 1 ? 2 : 1;
+        !room.storage ? Math.max(8 - room.level, 1) : 1;
     queueCreepIfNeeded({
         room: room,
         role: 'drone',
@@ -217,6 +215,18 @@ module.exports.essentialCreepQueue = function (room) {
         rebootCondition: room.friendlyCreeps.length < 5,
         misc: {boosts: [WORK]}
     });
+
+    // Waller queue
+    if (room.level >= BUNKER_LEVEL) {
+        const wallerCount = room.energyState >= 2 ? 2 : 1;
+        queueCreepIfNeeded({
+            room: room,
+            role: 'waller',
+            priority: PRIORITIES.drone + 1,
+            numberNeeded: wallerCount,
+            misc: {boosts: [WORK]}
+        });
+    }
 
     // Harvesters
     let harvesterCount = getCreepCount(room, 'stationaryHarvester');
@@ -233,10 +243,11 @@ module.exports.essentialCreepQueue = function (room) {
         const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
         if (room.storage || protoStorage) {
             let haulerAmount = room.level >= 6 ? 2 : 1;
+            const priority = !getCreepCount(room, 'hauler') ? 1 : PRIORITIES.hauler;
             queueCreepIfNeeded({
                 room: room,
                 role: 'hauler',
-                priority: PRIORITIES.hauler,
+                priority: priority,
                 numberNeeded: haulerAmount,
                 rebootCondition: !getCreepCount(room, 'hauler') || !room.energyState,
             });
@@ -628,6 +639,7 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteSource = ROOM_REMOTE_TARGETS[room.name];
             // Contract range when energy is low (distant sources cost more to service)
             let acceptedScore = room.level >= 7 ? REMOTE_DISTANCE_MAX * 1.5 : REMOTE_DISTANCE_MAX;
+            // Always accept at least the closest available source
             acceptedScore = Math.max(acceptedScore, _.min(remoteSource, 'score').score);
 
             const occupiedSources = new Set();
@@ -660,7 +672,7 @@ module.exports.remoteCreepQueue = function (room) {
                 queueCreep(room, priority, {
                     role: 'remoteHarvester',
                     destination: remoteSource.room,
-                    other: {source: remoteSource.source}
+                    other: {source: remoteSource.source, score: remoteSource.score}
                 });
             }
         }
@@ -684,7 +696,10 @@ module.exports.remoteCreepQueue = function (room) {
         for (const harvester of roomHarvesters) {
             if (shouldSkipRemote(room, harvester.memory.destination)) continue;
             const assignedHaulers = haulersByHarvester[harvester.id] || [];
-            const count = room.memory.remotePenalty ? 2 : !room.storage ? 3 : 4;
+            const score = harvester.memory.other.score || 50;
+            const baseCount = room.memory.remotePenalty ? 2 : !room.storage ? 3 : 4;
+            const distanceBonus = Math.max(0, Math.floor((score - 50) / 25));
+            const count = Math.min(baseCount + distanceBonus, 8);
             if (assignedHaulers.length >= count) continue;
             const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
             const harvestAmount = harvester.memory.other.haulingRequired;

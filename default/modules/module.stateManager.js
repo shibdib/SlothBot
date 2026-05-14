@@ -59,17 +59,38 @@ class StateManager {
 
         // Track projected income — use colonyCreeps cache to avoid scanning all Game.creeps
         const colonyCreeps = (global.world && global.world.colonyCreeps && global.world.colonyCreeps[room.name]) || room.myCreeps;
-        const harvesters = colonyCreeps.filter(c => c.memory.role === 'stationaryHarvester' || (c.memory.role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired));
-        const income = Math.floor(harvesters.reduce((sum, creep) => sum + (creep.getActiveBodyparts(WORK) * 0.8), 0));
-        const energyUsers = room.myCreeps.filter((c) => ['drone', 'upgrader'].includes(c.memory.role));
-        const workExpense = Math.ceil(energyUsers.reduce((sum, creep) => sum + creep.getActiveBodyparts(WORK), 0));
+
+        // Split harvesters by type for detailed diagnostics
+        const statHarvesters = colonyCreeps.filter(c => c.memory.role === 'stationaryHarvester');
+        const remoteHarvesters = colonyCreeps.filter(c => c.memory.role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired);
+        const statIncome = Math.floor(statHarvesters.reduce((sum, c) => sum + (c.getActiveBodyparts(WORK) * 0.8), 0));
+        const remoteIncome = Math.floor(remoteHarvesters.reduce((sum, c) => sum + (c.getActiveBodyparts(WORK) * 0.8), 0));
+        const income = statIncome + remoteIncome;
+
+        // Split expenses by category for diagnostics
+        const upgraders = room.myCreeps.filter(c => c.memory.role === 'upgrader');
+        const drones = room.myCreeps.filter(c => c.memory.role === 'drone' || c.memory.role === 'waller');
+        const upgradeExpense = Math.ceil(upgraders.reduce((sum, c) => sum + c.getActiveBodyparts(WORK), 0));
+        const droneExpense = Math.ceil(drones.reduce((sum, c) => sum + c.getActiveBodyparts(WORK), 0));
         // Amortised spawn cost: total energy capacity of all creeps / average lifespan
         const spawnExpense = Math.ceil(room.myCreeps.reduce((sum, c) => sum + global.UNIT_COST(c.body), 0) / CREEP_LIFE_TIME);
         // Tower drain: only counts when towers are actually firing (hostiles present)
         const towerExpense = HOSTILES.length > 0 ? room.impassibleStructures.filter(s => s.structureType === STRUCTURE_TOWER && s.isActive()).length * 2 : 0;
-        const expense = workExpense + spawnExpense + towerExpense;
+        const expense = upgradeExpense + droneExpense + spawnExpense + towerExpense;
         const spareIncome = room.energyState > 2 ? 9999999 : income - expense;
-        room.memory.energyInfo = {income: income, expense: expense, spareIncome: spareIncome};
+        room.memory.energyInfo = {income, expense, spareIncome};
+        room.memory.energyDiag = {
+            statHarv: statHarvesters.length,
+            statIncome,
+            remoteHarv: remoteHarvesters.length,
+            remoteIncome,
+            upgraderCnt: upgraders.length,
+            upgradeExpense,
+            droneCnt: drones.length,
+            droneExpense,
+            spawnExpense,
+            towerExpense
+        };
         room.memory.energyPositive = (average(energyIncomeArray) > 0 && income > expense) || room.energyState > 1 || room.level < 4;
 
         if (!room.memory.combatReady && room.energyState > 1 && room.level >= 6) room.memory.combatReady = true;

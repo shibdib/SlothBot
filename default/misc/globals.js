@@ -92,7 +92,7 @@ let globals = function () {
 
     // Config
     global.BOOST_AMOUNT = function (room) {
-        return 2500 * room.level;
+        return room.level === 6 ? 1500 : room.level === 7 ? 5000 : 15000;
     };
     global.DUMP_AMOUNT = 50000; // Fills buys (or if overflowing it will offload to other terminals)
     global.REACTION_AMOUNT = 10000; // Minimum amount we aim for base minerals

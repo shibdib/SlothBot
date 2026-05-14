@@ -90,6 +90,7 @@ class ModuleBodyGenerator {
 
             case 'roadBuilder':
             case 'drone':
+            case 'waller':
                 if (!this.creepInfo.destination && this.role !== 'roadBuilder' && INTEL[this.room.name].roadsBuilt) halfMove = true;
                 if (!halfMove) {
                     work = Math.floor(this.energyAmount * 0.35 / BODYPART_COST[WORK]) || 1;
@@ -134,7 +135,7 @@ class ModuleBodyGenerator {
                             if (!this.room.energyState) {
                                 work *= 0.15;
                             } else if (this.room.energyState === 1) {
-                                work *= 0.75;
+                                work *= 0.5;
                             }
                         } else {
                             // Source links not yet built — fall back to energy cap

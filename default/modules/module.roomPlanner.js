@@ -485,13 +485,9 @@ function rampartBuilder(room, layout = undefined, count = false) {
     }
 
     // Bunker
-    if (room.level >= 5 && room.energyState && handleBunkerRamparts(room, layout, count)) {
-        return true;
-    }
-
-    // Handle protective ramparts
-    if (room.level >= 6 && buildProtectiveRamparts(room)) {
-        return true;
+    if (room.level >= BUNKER_LEVEL && room.energyState) {
+        if (handleBunkerRamparts(room, layout, count)) return true;
+        if (buildProtectiveRamparts(room)) return true;
     }
 
     // Handle quad traps — RCL8 only, walls capped at 20k
