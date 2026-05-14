@@ -72,6 +72,7 @@ class HUD {
         let rows = 1; // GCL
         if (room.level < 8) rows++; // RCL
         rows++; // Energy/Status
+        rows += 3; // Energy audit
 
         // Draw semi-transparent background for readability
         room.visual.rect(x - 0.25, y - 0.5, width + 0.5, (rows * 1.1) + 0.2, {
@@ -92,6 +93,67 @@ class HUD {
         }
 
         this.renderStatusRow(room, x, y, width);
+        y += 1.1;
+
+        this.renderEnergyAudit(room, x, y, width);
+    }
+
+    renderEnergyAudit(room, x, y, width) {
+        const diag = room.memory.energyDiag;
+        const info = room.memory.energyInfo;
+        if (!diag || !info) return;
+
+        const divider = x + 2.8;
+
+        // Divider line above audit section
+        room.visual.line(x - 0.1, y - 0.5, x + width + 0.1, y - 0.5, {color: '#333333', opacity: 0.8, width: 0.04});
+
+        // Row 1: Income
+        room.visual.text('IN', x + 0.2, y + 0.15, {color: '#4fc3f7', align: 'left', font: 'bold 0.42 Tahoma'});
+        room.visual.text(`+${info.income}/t`, divider, y + 0.15, {
+            color: '#4fc3f7',
+            align: 'right',
+            font: 'bold 0.42 Tahoma'
+        });
+        room.visual.text(`stat:${diag.statHarv}(${diag.statIncome})  rem:${diag.remoteHarv}(${diag.remoteIncome})`, x + width - 0.2, y + 0.15, {
+            color: '#7a9ab0',
+            align: 'right',
+            font: '0.38 Tahoma'
+        });
+        y += 1.1;
+
+        // Row 2: Expense
+        room.visual.text('OUT', x + 0.2, y + 0.15, {color: '#ef9a9a', align: 'left', font: 'bold 0.42 Tahoma'});
+        room.visual.text(`-${info.expense}/t`, divider, y + 0.15, {
+            color: '#ef9a9a',
+            align: 'right',
+            font: 'bold 0.42 Tahoma'
+        });
+        room.visual.text(`upg:${diag.upgradeExpense}  drn:${diag.droneExpense}  spn:${diag.spawnExpense}  twr:${diag.towerExpense}`, x + width - 0.2, y + 0.15, {
+            color: '#8a7070',
+            align: 'right',
+            font: '0.38 Tahoma'
+        });
+        y += 1.1;
+
+        // Row 3: Net measured + energy state
+        const measured = room.energyIncome;
+        const netSign = measured >= 0 ? '+' : '';
+        const netColor = measured >= 0 ? '#a5d6a7' : '#ef5350';
+        const stateLabels = ['CRIT', 'LOW', 'OK', 'SURPLUS'];
+        const stateColors = ['#ef5350', '#FFB347', '#66BB6A', '#4fc3f7'];
+        const state = room.energyState;
+        room.visual.text('NET', x + 0.2, y + 0.15, {color: netColor, align: 'left', font: 'bold 0.42 Tahoma'});
+        room.visual.text(`${netSign}${measured}/t`, divider, y + 0.15, {
+            color: netColor,
+            align: 'right',
+            font: 'bold 0.42 Tahoma'
+        });
+        room.visual.text(`[${state}] ${stateLabels[state]}`, x + width - 0.2, y + 0.15, {
+            color: stateColors[state],
+            align: 'right',
+            font: 'bold 0.42 Tahoma'
+        });
     }
 
     getGCLInfo() {

@@ -330,7 +330,7 @@ class TerminalControl {
             if (hasExistingSellOrder(myOrders, terminal, resource)) continue;
 
             // No selling boosts if set
-            if (!SELL_BOOSTS && ALL_BOOSTS.includes(resource)) continue;
+            if ((!SELL_BOOSTS || terminal.room.level < 8) && ALL_BOOSTS.includes(resource)) continue;
 
             // Don't sell base minerals if any room is short
             if (BASE_MINERALS.includes(resource) && MY_ROOMS.some(r => Game.rooms[r].terminal && Game.rooms[r].store(resource) < REACTION_AMOUNT)) continue;
@@ -567,56 +567,72 @@ class TerminalControl {
     }
 
     balanceEnergy(terminal) {
-        if (terminal.room.memory.dangerousAttack || terminal.room.energyState < 1) return false;
+        if (terminal.room.memory.dangerousAttack || terminal.room.energyState < 2) return false;
+        if (usedTerminals[terminal.room.name] && usedTerminals[terminal.room.name].tick > Game.time) return false;
 
-        const poorestRoom = findNeedyTerminal();
-        if (poorestRoom) {
-            return sendEnergyOrBattery(terminal, poorestRoom);
-        }
+        const surplus = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
+        if (surplus < 5000) return false;
 
-        const needyAlly = findNeedyAllies();
-        if (needyAlly) {
-            return sendEnergyOrBattery(terminal, needyAlly);
-        }
+        const target = findBestOwnedTarget();
+        if (target) return sendEnergyOrBattery(terminal, target.room, target.amount);
+
+        const needyAlly = findNeedyAlly();
+        if (needyAlly) return sendEnergyOrBattery(terminal, needyAlly, undefined);
         return false;
 
-        function findNeedyTerminal() {
-            // Only consider rooms that genuinely need energy (below state 2) and are meaningfully poorer
-            return MY_ROOMS
-                .filter(r => r !== terminal.room.name && Game.rooms[r] && Game.rooms[r].terminal && Game.rooms[r].energyState < 1)
-                .sort((a, b) => Game.rooms[a].energy - Game.rooms[b].energy)[0];
+        function findBestOwnedTarget() {
+            // Only help rooms in genuine crisis (state 0) — state 1 rooms should stockpile on their own.
+            // Among crisis rooms, prefer the one where we get the most energy delivered per unit of
+            // transaction cost (i.e. nearby critical rooms win over distant ones).
+            const candidates = MY_ROOMS
+                .filter(r => {
+                    if (r === terminal.room.name) return false;
+                    const room = Game.rooms[r];
+                    if (!room || !room.terminal) return false;
+                    if (usedTerminals[r] && usedTerminals[r].tick > Game.time) return false;
+                    return room.energyState < 1;
+                })
+                .map(r => {
+                    const room = Game.rooms[r];
+                    const energyGap = terminal.room.energy - room.energy;
+                    const amount = Math.min(surplus, Math.max(0, Math.floor(energyGap / 2)));
+                    if (amount < 5000) return null;
+                    const txCost = Game.market.calcTransactionCost(amount, terminal.room.name, r);
+                    // Reject sends where fees eat more than 25% of the delivered amount
+                    if (txCost > amount * 0.25) return null;
+                    // Score: energy delivered per unit of transaction cost (prefer cheap, effective sends)
+                    const score = (amount - txCost) / (1 + txCost);
+                    return {room: r, amount, score};
+                })
+                .filter(Boolean)
+                .sort((a, b) => b.score - a.score);
+
+            return candidates[0] || null;
         }
 
-        function findNeedyAllies() {
-            const needyAllies = _.filter(ALLY_HELP_REQUESTS, (r) => r && r.requests && r.requests.funnel).sort((a, b) => a.requests.funnel.maxAmount - b.requests.funnel.maxAmount)[0]
+        function findNeedyAlly() {
+            const needyAllies = _.filter(ALLY_HELP_REQUESTS, (r) => r && r.requests && r.requests.funnel)
+                    .sort((a, b) => a.requests.funnel.maxAmount - b.requests.funnel.maxAmount)[0]
                 || _.find(ALLY_HELP_REQUESTS, (r) => r.requests && r.requests.resource && r.requests.resource.find((re) => re.resourceType === RESOURCE_ENERGY));
             if (needyAllies) return needyAllies.roomName;
         }
 
-        function sendEnergyOrBattery(terminal, destinationRoom) {
-            // Prefer batteries if destination has a factory
+        function sendEnergyOrBattery(terminal, destinationRoom, amount) {
+            // Prefer batteries if destination has a factory — same energy value, lower transaction fee
             if (Game.rooms[destinationRoom] && Game.rooms[destinationRoom].factory && terminal.store[RESOURCE_BATTERY]) {
-                const amount = Math.min(terminal.store[RESOURCE_BATTERY], 500);
-                if (amount >= 50 && terminal.send(RESOURCE_BATTERY, amount, destinationRoom) === OK) {
+                const bAmount = Math.min(terminal.store[RESOURCE_BATTERY], 500);
+                if (bAmount >= 50 && terminal.send(RESOURCE_BATTERY, bAmount, destinationRoom) === OK) {
                     usedTerminals[terminal.room.name] = {tick: Game.time};
                     usedTerminals[destinationRoom] = {tick: Game.time + 500};
                     return true;
                 }
             }
 
-            const surplus = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
-            if (surplus <= 0) return false;
+            const sendAmount = amount || Math.min(surplus, 10000);
+            if (sendAmount < 5000) return false;
 
-            // Send half the energy gap to equalize, capped at our surplus
-            const energyGap = terminal.room.energy - (Game.rooms[destinationRoom] ? Game.rooms[destinationRoom].energy : 0);
-            const requestedAmount = Math.min(surplus, Math.max(0, Math.floor(energyGap / 2)));
-
-            if (requestedAmount < 5000) return false;
-
-            const transactionCost = Game.market.calcTransactionCost(requestedAmount, terminal.room.name, destinationRoom);
-            if (transactionCost > requestedAmount * 0.5) return false;
-
-            if (terminal.send(RESOURCE_ENERGY, requestedAmount, destinationRoom) === OK) {
+            if (terminal.send(RESOURCE_ENERGY, sendAmount, destinationRoom) === OK) {
+                log.i(`Balancing ${sendAmount} energy to ${roomLink(destinationRoom)} from ${roomLink(terminal.room.name)}`, 'Market: ');
                 usedTerminals[terminal.room.name] = {tick: Game.time};
                 usedTerminals[destinationRoom] = {tick: Game.time + 500};
                 return true;
@@ -789,8 +805,8 @@ class TerminalControl {
             }
 
             // Check if boosts and we shouldn't be selling them
-            if (order.type === ORDER_SELL && !SELL_BOOSTS && ALL_BOOSTS.includes(order.resourceType)) {
-                this.cancelOrder(order, 'Boost sales are disabled for this shard');
+            if (order.type === ORDER_SELL && ALL_BOOSTS.includes(order.resourceType) && (!SELL_BOOSTS || Game.rooms[order.roomName].controller.level < 8)) {
+                this.cancelOrder(order, 'Boost sales are disabled');
                 continue;
             }
 

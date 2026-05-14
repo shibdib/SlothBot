@@ -565,7 +565,7 @@ Creep.prototype.haulerDelivery = function () {
 
     // 4. Hub Link
     const hubLink = Game.getObjectById(this.room.memory.hubLink);
-    if (this.room.level < 8 && hubLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && this.room.energyState > 0) {
+    if (this.room.level < 8 && hubLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && this.room.energyState > 1) {
         targets.push(hubLink);
     }
 
@@ -1129,7 +1129,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
                     boostNeeded = targetParts.length * 30;
                     break;
                 case 'work':
-                    if (this.memory.role === 'drone') boostType = 'build';
+                    if (this.memory.role === 'drone' || this.memory.role === 'waller') boostType = 'build';
                     else if (this.memory.role === 'upgrader') boostType = 'upgrade';
                     else if (this.memory.role === 'cleaner' || this.memory.role === 'siegeDuo') boostType = 'dismantle';
                     else if (this.memory.role === 'commodityMiner' || this.memory.role === 'mineralHarvester') boostType = 'harvest';
