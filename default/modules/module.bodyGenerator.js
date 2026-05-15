@@ -126,7 +126,7 @@ class ModuleBodyGenerator {
                         const sourceLinks = controllerLink ? this.room.structures
                                 .filter(s => s.structureType === STRUCTURE_LINK &&
                                     s.id !== this.room.memory.controllerLink &&
-                                    s.id !== this.room.memory.hubLink)
+                                    (this.room.energyState >= 2 || s.id !== this.room.memory.hubLink))
                                 .sort((a, b) => a.pos.getRangeTo(controllerLink) - b.pos.getRangeTo(controllerLink))
                             : [];
                         if (sourceLinks.length > 0) {

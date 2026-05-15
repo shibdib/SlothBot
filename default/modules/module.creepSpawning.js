@@ -205,7 +205,8 @@ module.exports.essentialCreepQueue = function (room) {
 
     // Drone Queueing
     const importantBuilds = _.some(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    let droneCount = importantBuilds && room.energyState > 1 ? 10 - room.level :
+    let droneCount = importantBuilds && room.energyState > 1 ? 11 - room.level :
+        room.constructionSites.length && room.energyState ? 2 :
         !room.storage ? Math.max(8 - room.level, 1) : 1;
     queueCreepIfNeeded({
         room: room,

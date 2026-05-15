@@ -34,8 +34,7 @@ class LinkControl {
         // Filter for source links (anything that isn't hub or controller link)
         const sourceLinks = links.filter(l => l.id !== room.memory.hubLink && l.id !== room.memory.controllerLink && !l.cooldown);
         if (!sourceLinks.length) {
-            // Even if no source links, hub might need to send to controller
-            if (hubLink && !hubLink.cooldown && hubLink.store[RESOURCE_ENERGY] >= 400 && controllerLink && controllerLink.store[RESOURCE_ENERGY] < 400) {
+            if (hubLink && room.energyState >= 2 && !hubLink.cooldown && hubLink.store[RESOURCE_ENERGY] >= 400 && controllerLink && controllerLink.store[RESOURCE_ENERGY] < 400) {
                 hubLink.transferEnergy(controllerLink);
             }
             return;
