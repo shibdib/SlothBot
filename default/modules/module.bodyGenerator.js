@@ -348,12 +348,12 @@ class ModuleBodyGenerator {
             case 'remoteHauler':
                 const assignedHarvester = Game.getObjectById(this.creepInfo.other.harvester);
                 if (!assignedHarvester) return false;
-                const otherAssignedHaulers = getHaulersByHarvester()[this.creepInfo.other.harvester] || [];
+                const otherAssignedHaulers = this.room.level < 7 ? getHaulersByHarvester()[this.creepInfo.other.harvester] || [] : [];
                 const currentHaulingCapacity = _.sum(otherAssignedHaulers, c => c.getActiveBodyparts(CARRY) * 50);
                 const harvestRate = this.creepInfo.other.harvestAmount - currentHaulingCapacity;
                 const desiredCarry = Math.ceil(harvestRate / CARRY_CAPACITY) || 1;
 
-                // Work parts after level 3
+                // Work parts after level 7
                 work = this.room.level >= 7 ? 1 : 0;
 
                 // Half-move only if every room on the route (including intermediate rooms) has roads.
