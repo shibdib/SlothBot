@@ -696,7 +696,7 @@ module.exports.remoteCreepQueue = function (room) {
         for (const harvester of roomHarvesters) {
             if (shouldSkipRemote(room, harvester.memory.destination)) continue;
             const assignedHaulers = haulersByHarvester[harvester.id] || [];
-            const count = room.memory.remotePenalty ? 1 : room.level < 7 ? 3 : 1;
+            const count = room.memory.remotePenalty ? 1 : room.level < 7 ? 2 : 1;
             if (assignedHaulers.length >= count) continue;
             const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
             const harvestAmount = harvester.memory.other.haulingRequired * 2;
