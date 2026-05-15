@@ -346,8 +346,6 @@ class ModuleBodyGenerator {
                 break;
 
             case 'remoteHauler':
-                const workCost = this.room.level < 4 ? 0 : BODYPART_COST[WORK];
-
                 const assignedHarvester = Game.getObjectById(this.creepInfo.other.harvester);
                 if (!assignedHarvester) return false;
                 const otherAssignedHaulers = getHaulersByHarvester()[this.creepInfo.other.harvester] || [];

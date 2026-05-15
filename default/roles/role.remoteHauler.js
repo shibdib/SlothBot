@@ -55,7 +55,8 @@ class RoleRemoteHauler {
             }
         }
 
-        this.memory.energyDestination = undefined;
+        if (!Game.getObjectById(this.memory.energyDestination)) this.memory.energyDestination = undefined;
+
         if (Game.time % 2 === 0) {
             this.creep.opportunisticRepair();
             this.creep.opportunisticFill();

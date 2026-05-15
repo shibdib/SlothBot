@@ -417,14 +417,14 @@ let blockedRemotes = {};
 module.exports.remoteCreepQueue = function (room) {
     if (remoteTick[room.name] + 10 > Game.time) return;
 
+    remoteTick[room.name] = Game.time;
+    room.memory.borderPatrol = undefined;
+
     // If under attack, no spawning remotes
     if (room.memory.dangerousAttack || INTEL[room.name].threatLevel > 2) {
         remoteRoomTargets[room.name] = undefined;
         return;
     }
-
-    remoteTick[room.name] = Game.time;
-    room.memory.borderPatrol = undefined;
 
     // Refresh remote room data
     if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + CREEP_LIFE_TIME > Game.time || INTEL[room.name].refreshRemotes) {
@@ -696,15 +696,11 @@ module.exports.remoteCreepQueue = function (room) {
         for (const harvester of roomHarvesters) {
             if (shouldSkipRemote(room, harvester.memory.destination)) continue;
             const assignedHaulers = haulersByHarvester[harvester.id] || [];
-            const score = harvester.memory.other.score || 50;
-            const baseCount = room.memory.remotePenalty ? 2 : !room.storage ? 3 : 4;
-            const distanceBonus = Math.max(0, Math.floor((score - 50) / 25));
-            const count = Math.min(baseCount + distanceBonus, 8);
+            const count = room.memory.remotePenalty ? 1 : room.level < 7 ? 3 : 1;
             if (assignedHaulers.length >= count) continue;
             const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
-            const harvestAmount = harvester.memory.other.haulingRequired;
+            const harvestAmount = harvester.memory.other.haulingRequired * 2;
             if (harvestAmount && haulingCapacity < harvestAmount) {
-                // Pre-RCL7 rooms have 1 spawn — always deprioritize remotes so local creeps aren't squeezed out
                 const priority = (room.energyState > 1 && room.storage) || room.level < 7 ? PRIORITIES.remoteHauler * 2 : PRIORITIES.remoteHauler;
                 queueCreep(room, priority + getCreepCount(undefined, 'remoteHauler', harvester.room.name), {
                     role: 'remoteHauler',
@@ -728,25 +724,23 @@ module.exports.remoteCreepQueue = function (room) {
         const surroundingRooms = getSurroundingRooms(room.name);
         let remoteTargets = surroundingRooms.filter(function (r) {
             return r.name !== room.name && roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].owner && !INTEL[r].obstacles &&
-                (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || INTEL[r].reservation === 'Invader') && Game.map.findRoute(room.name, r).length <= 4;
+                (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || INTEL[r].reservation === 'Invader') && Game.map.findRoute(room.name, r).length <= 2;
         });
         for (const rooms of surroundingRooms) {
             if (roomStatus(rooms) === roomStatus(room.name)) {
                 const surroundingRoomsTwo = getSurroundingRooms(rooms);
                 const remoteRooms = surroundingRoomsTwo.filter(function (r) {
                     return r.name !== room.name && roomStatus(r) === roomStatus(room.name) && INTEL[r] && INTEL[r].sources && !INTEL[r].owner && !INTEL[r].obstacles &&
-                        (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || INTEL[r].reservation === 'Invader') && Game.map.findRoute(room.name, r).length <= 4;
+                        (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || INTEL[r].reservation === 'Invader') && Game.map.findRoute(room.name, r).length <= 2;
                 });
                 remoteTargets = remoteTargets.concat(remoteRooms);
             }
         }
         remoteRoomTargets[room.name] = _.uniq(remoteTargets);
 
-        // Ensure every targeted remote has source data in ROOM_REMOTE_TARGETS.
-        // Priority: (1) reconstruct from INTEL.remoteSourceData (persisted in segments, survives restarts)
-        //           (2) force cacheRoomIntel if the room is visible right now
-        //           (3) dispatch an explorer — without a room visit the data can never be computed
+        // Declare array if needed
         if (!ROOM_REMOTE_TARGETS[room.name]) ROOM_REMOTE_TARGETS[room.name] = [];
+
         const registeredRooms = new Set(ROOM_REMOTE_TARGETS[room.name].map(s => s.room));
         for (const r of remoteRoomTargets[room.name]) {
             const rName = r.name || r;
@@ -763,43 +757,21 @@ module.exports.remoteCreepQueue = function (room) {
                 if (ROOM_REMOTE_TARGETS[room.name].some(s => s.room === rName)) continue;
             }
 
-            // Tier 2: room is visible this tick — force cacheRoomIntel to compute and store the data now
+            // Tier 2: room is visible this tick
             if (Game.rooms[rName]) {
-                Game.rooms[rName].cacheRoomIntel(true);
+                Game.rooms[rName].cacheRoomIntel();
                 continue;
             }
 
             // Tier 3: not visible and no cached data — dispatch an explorer unless a harvester is en route
             const harvesterEnRoute = _.find(Game.creeps, c => c.my && c.memory.role === 'remoteHarvester' && c.memory.destination === rName);
-            if (!harvesterEnRoute) queueCreepIfNeeded({
+            if (!harvesterEnRoute && getCreepCount(undefined, 'explorer', undefined, undefined, room) < 2) queueCreepIfNeeded({
                 room: room,
                 role: 'explorer',
                 priority: PRIORITIES.secondary,
                 numberNeeded: 1,
                 destination: rName
             });
-        }
-
-        // Scout nearby rooms that have sources but are currently excluded by conditions that
-        // can expire on their own: third-party reservation, abandoned ownership, cleared obstacles,
-        // or decayed threat. Without a scout visit these rooms stay excluded indefinitely even
-        // after the issue resolves, because nothing puts them back on the candidate list.
-        const scoutStaleness = CREEP_LIFE_TIME * 3;
-        for (const r of surroundingRooms) {
-            if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, r)) continue;
-            const intel = INTEL[r];
-            if (!intel || !intel.sources) continue;
-            if (remoteRoomTargets[room.name] && remoteRoomTargets[room.name].includes(r)) continue;
-            const couldHaveCleared = intel.reservation || intel.obstacles || intel.owner || intel.roomHeat > 100;
-            if (couldHaveCleared && intel.cached + scoutStaleness < Game.time) {
-                queueCreepIfNeeded({
-                    room: room,
-                    role: 'explorer',
-                    priority: PRIORITIES.secondary,
-                    numberNeeded: 1,
-                    destination: r
-                });
-            }
         }
 
         // Handle finding contested remotes
