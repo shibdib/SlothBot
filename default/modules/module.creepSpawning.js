@@ -470,7 +470,7 @@ module.exports.remoteCreepQueue = function (room) {
             if (!INTEL[remoteName].sk) handleReservation(room, remoteName);
             if (INTEL[remoteName].invaderCore) handleInvaderCore(room, remoteName);
             handleRoadBuilder(room);
-            if (SK_MINING && INTEL[remoteName].sk && room.level >= SK_MINING_LEVEL) {
+            if (SK_MINING && INTEL[remoteName].sk && !INTEL[remoteName].towers && room.level >= SK_MINING_LEVEL) {
                 activeSkMining[room.name] = Game.time;
                 handleSkCreeps(room, remoteName);
             }

@@ -79,7 +79,7 @@ class ModuleBodyGenerator {
         }
 
         let bodyArray = [];
-        let work, claim, carry, move, tough, attack, rangedAttack, heal, energyScaling, halfMove;
+        let work, claim, carry, move, tough, attack, rangedAttack, heal, halfMove;
 
         // Generate body parts based on role
         switch (this.role) {
@@ -385,7 +385,6 @@ class ModuleBodyGenerator {
 
             case 'SKMineral':
             case 'commodityMiner':
-                energyScaling = true;
                 work = Math.floor((this.energyAmount * 0.35) / BODYPART_COST[WORK]) || 1;
                 work = Math.min(work, 15);
 
@@ -394,9 +393,9 @@ class ModuleBodyGenerator {
                 break;
 
             case 'SKAttacker':
-                attack = 19;
-                heal = 13;
-                tough = 1;
+                attack = 18;
+                rangedAttack = 2;
+                heal = 5;
                 break;
 
             case 'powerAttacker':
