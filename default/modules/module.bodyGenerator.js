@@ -91,7 +91,7 @@ class ModuleBodyGenerator {
             case 'roadBuilder':
             case 'drone':
             case 'waller':
-                if (!this.creepInfo.destination && this.role !== 'roadBuilder' && INTEL[this.room.name].roadsBuilt) halfMove = true;
+                if (!this.creepInfo.destination && !['roadBuilder', 'waller'].includes(this.role) && INTEL[this.room.name].roadsBuilt) halfMove = true;
                 if (!halfMove) {
                     work = Math.floor(this.energyAmount * 0.35 / BODYPART_COST[WORK]) || 1;
                     work = Math.min(work, 15);
