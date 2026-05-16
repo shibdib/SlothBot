@@ -309,22 +309,23 @@ class ModuleBodyGenerator {
                 claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
                 claim = Math.min(claim, 5 * (this.room.energyState || 1));
 
-                // If there are roads built in both the current room and the destination room
-                if (INTEL[this.creepInfo.destination] && INTEL[this.creepInfo.destination].roadsBuilt && INTEL[this.room.name].roadsBuilt) {
-                    // Reduce the cost of MOVE parts by 50% if roads are built
+                // Half-move only if every room on the route has roads — intermediate rooms count too.
+            {
+                const route = Game.map.findRoute(this.room.name, this.creepInfo.destination);
+                const fullRouteHasRoads = Array.isArray(route) &&
+                    INTEL[this.room.name] && INTEL[this.room.name].roadsBuilt &&
+                    route.every(step => INTEL[step.room] && INTEL[step.room].roadsBuilt);
+                if (fullRouteHasRoads) {
                     claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
                     claim = Math.min(claim, 5 * (this.room.energyState || 1));
-                    halfMove = true;  // Indicate that half of the normal move cost is being used
+                    halfMove = true;
+                }
                 }
 
                 if (claim > CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][this.room.level] * 3) claim = CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][this.room.level] * 3;
                 break;
 
             case 'remoteHarvester':
-                // Base work calculation
-                const workRatio = INTEL[this.creepInfo.destination] && INTEL[this.creepInfo.destination].roadsBuilt ? 0.8 : 0.6;
-                work = Math.floor((this.energyAmount * workRatio) / BODYPART_COST[WORK]) || 1;
-
                 // Set source energy capacity for a reserved room, double it at level 7 for CPU
                 const SOURCE_CAPACITY = this.room.controller.level >= 7 ? SOURCE_ENERGY_CAPACITY : SOURCE_ENERGY_CAPACITY;
                 if (INTEL[this.creepInfo.destination] && INTEL[this.creepInfo.destination].sk) {
@@ -336,8 +337,14 @@ class ModuleBodyGenerator {
                 }
                 carry = 1;
 
-                // Check for roads and halfMove setting
-                if (INTEL[this.creepInfo.destination].roadsBuilt) halfMove = true;
+                // Half-move only if every room on the route has roads — intermediate rooms count too.
+            {
+                const route = Game.map.findRoute(this.room.name, this.creepInfo.destination);
+                const fullRouteHasRoads = Array.isArray(route) &&
+                    INTEL[this.room.name] && INTEL[this.room.name].roadsBuilt &&
+                    route.every(step => INTEL[step.room] && INTEL[step.room].roadsBuilt);
+                if (fullRouteHasRoads) halfMove = true;
+            }
                 break;
 
             case 'remoteHauler':

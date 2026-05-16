@@ -64,29 +64,35 @@ class RoleRemoteHarvester {
             return this.creep.shibMove(source);
         }
 
+        // Handle container or construction site
+        if (this.container && this.handleContainer()) {
+            return;
+        } else {
+            this.handleDroppedResources();
+        }
+
         // Harvest logic
         const result = this.creep.harvest(source);
         if (result === OK) {
             // Set harvest power if not set
             if (!this.creep.memory.other.haulingRequired) {
-                const power = this.creep.getActiveBodyparts(WORK) * HARVEST_POWER;
                 const sourceInfo = _.find(ROOM_REMOTE_TARGETS[this.creep.memory.colony], (s) => s.source === this.creep.memory.other.source);
-                const distance = sourceInfo ? sourceInfo.score : 50;
-                // Cap harvest rate to actual source regen so we don't over-size haulers
-                const reserved = INTEL[this.creep.memory.destination] && INTEL[this.creep.memory.destination].reservation === MY_USERNAME;
-                const maxRate = (reserved ? SOURCE_ENERGY_CAPACITY : SOURCE_ENERGY_NEUTRAL_CAPACITY) / ENERGY_REGEN_TIME;
-                const actualRate = Math.min(power, maxRate);
-                // score = pathCost/2 using plainCost=2. On roads (cost=1), score=0.5/tile but travel=1 tick/tile,
-                // so score underestimates road travel by 2x. Use 4.2x for road paths, 2.2x for plain paths.
-                const roadsBuilt = INTEL[this.creep.memory.destination] && INTEL[this.creep.memory.destination].roadsBuilt
-                    && INTEL[this.creep.memory.colony] && INTEL[this.creep.memory.colony].roadsBuilt;
-                this.creep.memory.other.haulingRequired = actualRate * distance * (roadsBuilt ? 4.2 : 2.2);
-            }
-            // Handle container or construction site
-            if (this.container) {
-                this.handleContainer();
-            } else {
-                this.handleDroppedResources();
+                // Defer until source is registered — guessing distance can spawn a wildly oversized hauler fleet
+                if (sourceInfo) {
+                    const power = this.creep.getActiveBodyparts(WORK) * HARVEST_POWER;
+                    // Cap harvest rate to actual source regen so we don't over-size haulers
+                    const reserved = INTEL[this.creep.memory.destination] && INTEL[this.creep.memory.destination].reservation === MY_USERNAME;
+                    const maxRate = (reserved ? SOURCE_ENERGY_CAPACITY : SOURCE_ENERGY_NEUTRAL_CAPACITY) / ENERGY_REGEN_TIME;
+                    const actualRate = Math.min(power, maxRate);
+                    // score = pathCost/2 using plainCost=2. On roads (cost=1), score=0.5/tile but travel=1 tick/tile,
+                    // so score underestimates road travel by 2x. Use 4.2x for road paths, 2.2x for plain paths.
+                    // Match bodyGenerator's halfMove decision: every room on the route must have roads.
+                    const route = Game.map.findRoute(this.creep.memory.colony, this.creep.memory.destination);
+                    const roadsBuilt = Array.isArray(route)
+                        && INTEL[this.creep.memory.colony] && INTEL[this.creep.memory.colony].roadsBuilt
+                        && route.every(step => INTEL[step.room] && INTEL[step.room].roadsBuilt);
+                    this.creep.memory.other.haulingRequired = actualRate * sourceInfo.score * (roadsBuilt ? 4.2 : 2.2);
+                }
             }
         } else if (result === ERR_NOT_IN_RANGE) {
             this.creep.shibMove(source);
@@ -96,25 +102,20 @@ class RoleRemoteHarvester {
     }
 
     handleContainer() {
-        // Repair or manage container status - Throttled
+        // Repair or manage container
         if (this.container.hits) {
-            if (Game.time % 20 === 0 && this.creep.store[RESOURCE_ENERGY]) {
-                if (this.container.hits < this.container.hitsMax * 0.5 || (this.container.hits < this.container.hitsMax && this.container.store.getUsedCapacity() >= CONTAINER_CAPACITY * 0.8)) {
+            const containerStore = this.container.store.getUsedCapacity();
+            if (this.creep.store[RESOURCE_ENERGY]) {
+                if (this.container.hits < this.container.hitsMax * 0.5 || (this.container.hits < this.container.hitsMax && containerStore >= CONTAINER_CAPACITY * 0.95)) {
                     return this.creep.repair(this.container);
                 }
-            }
-            const containerStore = this.container.store.getUsedCapacity(RESOURCE_ENERGY);
-            if (containerStore >= CONTAINER_CAPACITY * 0.8) {
-                this.handleHaulerCheck();
-            } else if (Game.rooms[this.creep.memory.colony].memory.additionalRemoteHaulingNeeded < Game.time) {
-                Game.rooms[this.creep.memory.colony].memory.additionalRemoteHaulingNeeded = undefined;
             }
             this.creep.memory.energyAmount = containerStore;
             this.creep.memory.energyId = this.container.id;
         } else if (this.container.progressTotal) { // If it's a construction site
             const dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
             if (dropped && dropped.amount > 500 && !this.creep.store.getFreeCapacity()) {
-                this.creep.build(this.container);
+                return this.creep.build(this.container);
             }
             this.creep.memory.energyAmount = dropped ? dropped.amount : 0;
             this.creep.memory.energyId = dropped ? dropped.id : undefined;
@@ -126,18 +127,6 @@ class RoleRemoteHarvester {
         if (dropped) {
             this.creep.memory.energyAmount = dropped.amount;
             this.creep.memory.energyId = dropped.id;
-        }
-    }
-
-    handleHaulerCheck() {
-        if (Game.time % 20 !== 0) return;
-        const hauler = Game.getObjectById(this.creep.memory.other.hauler);
-        if (hauler) return;
-        const haulerObj = _.find(this.room.myCreeps, (c) => c.memory.role === 'remoteHauler' && c.memory.other.harvester === this.creep.id);
-        if (haulerObj) {
-            this.creep.memory.other.hauler = haulerObj.id;
-        } else {
-            Game.rooms[this.creep.memory.colony].memory.additionalRemoteHaulingNeeded = Game.time + 500;
         }
     }
 }
