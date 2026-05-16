@@ -87,6 +87,13 @@ class RoleLabTech {
             }
         }
 
+        // -- PRIORITY 7: CLEANUP (dropped resources, tombstones) --
+        const drop = this.room.droppedResources.find(r => r.resourceType !== RESOURCE_ENERGY) || this.room.tombstones.find(t => t.store.getUsedCapacity() > 0);
+        if (drop) {
+            const res = drop.resourceType || Object.keys(drop.store).find(r => drop.store[r] > 0);
+            return {withdrawTarget: drop.id, deliveryTarget: storeTarget.id, resource: res};
+        }
+
         // -- PRIORITY 2: SUPPLY FACTORY (load production inputs) --
         if (factory && factory.memory.producing) {
             const commodity = COMMODITIES[factory.memory.producing];
@@ -118,8 +125,10 @@ class RoleLabTech {
                 amount: boostNeededLab.memory.amount - boostNeededLab.store.getUsedCapacity(boostNeeded)
             };
         }
-        const resourceNeededLab = labs.find(s => s.memory.itemNeeded && s.store.getFreeCapacity(s.memory.itemNeeded) > 0 && s.store.getUsedCapacity(s.memory.itemNeeded) < 1000);
-        if (resourceNeededLab) {
+        // Find the lab with the lowest store of itemNeeded
+        const resourceNeededLabs = labs.filter(s => s.memory.itemNeeded && s.store.getUsedCapacity(s.memory.itemNeeded) < 1000 && s.room.store(s.memory.itemNeeded, true));
+        const resourceNeededLab = _.min(resourceNeededLabs, s => s.store.getUsedCapacity(s.memory.itemNeeded))
+        if (resourceNeededLab && resourceNeededLab.id) {
             const resourceNeeded = resourceNeededLab.memory.itemNeeded;
             const supplier = [storage, terminal, labs, this.room.containers].find(s => s && s.store && s.store.getUsedCapacity(resourceNeeded) > 0 && s.id !== resourceNeededLab.id);
             if (supplier) return {
@@ -161,13 +170,6 @@ class RoleLabTech {
             if (!lab.memory.itemNeeded && lab.store[RESOURCE_ENERGY] < 400 && storage && storage.store[RESOURCE_ENERGY] > 5000) {
                 return {withdrawTarget: storage.id, deliveryTarget: lab.id, resource: RESOURCE_ENERGY};
             }
-        }
-
-        // -- PRIORITY 7: CLEANUP (dropped resources, tombstones) --
-        const drop = this.room.droppedResources.find(r => r.resourceType !== RESOURCE_ENERGY) || this.room.tombstones.find(t => t.store.getUsedCapacity() > 0);
-        if (drop) {
-            const res = drop.resourceType || Object.keys(drop.store).find(r => drop.store[r] > 0);
-            return {withdrawTarget: drop.id, deliveryTarget: storeTarget.id, resource: res};
         }
 
         return null;

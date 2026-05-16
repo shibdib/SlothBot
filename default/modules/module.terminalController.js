@@ -9,6 +9,7 @@ const profiler = require("tools.profiler");
 const priceUpdateTracker = {};
 const usedTerminals = {};
 const lastRun = {};
+const needsCommodities = {};
 
 class TerminalControl {
     constructor(room) {
@@ -117,9 +118,8 @@ class TerminalControl {
         for (let mineral of shuffle(_.union(BASE_MINERALS, labNeeds))) {
             if (mineral === RESOURCE_ENERGY || mineral === RESOURCE_BATTERY) continue;
 
-            let target = REACTION_AMOUNT * 0.9;
+            let target = REACTION_AMOUNT;
             const isLabNeed = labNeeds.includes(mineral);
-            if (isLabNeed) target = REACTION_AMOUNT; // Be more aggressive if labs need it
 
             let stored = terminal.room.store(mineral) + (terminal.room.store(Object.keys(COMMODITIES).find(key => COMMODITIES[key].components[mineral])) * 5) || 0;
             let buyAmount = Math.min(target - stored, REACTION_AMOUNT);
@@ -286,6 +286,21 @@ class TerminalControl {
                         if (createBuyOrder(mineral, price, buyAmount)) break;
                     }
                 }
+            }
+        }
+
+        // Handle buy orders for raw commodities if room is producing the T0 for it
+        if (this.room.memory.commodityProduction) {
+            const commodity = COMMODITIES[this.room.memory.commodityProduction];
+            for (const component of Object.keys(commodity.components)) {
+                if (!BASE_COMMODITIES.includes(component)) continue;
+                const activeBuyOrder = _.some(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === component && o.type === ORDER_BUY)
+                if (activeBuyOrder) continue;
+                const stored = getResourceTotal(component) || 0;
+                const buyAmount = REACTION_AMOUNT - stored;
+                const price = this.calculatePrice(ORDER_BUY, component);
+                needsCommodities[this.room.name] = component;
+                if (createBuyOrder(component, price, buyAmount)) break;
             }
         }
 
@@ -1006,6 +1021,7 @@ class TerminalControl {
         }
         if (ALL_BOOSTS.includes(resource)) return BOOST_AMOUNT(this.room, resource);
         if (resource === RESOURCE_BATTERY) return 1000;
+        if (this.room.commodityProduction && this.room.mineral.mineralType === resource) return REACTION_AMOUNT * 2;
         if (BASE_MINERALS.includes(resource)) return REACTION_AMOUNT;
         if (COMPRESSED_COMMODITIES.includes(resource)) return 1000;
         if (resource === RESOURCE_GHODIUM) return BOOST_AMOUNT(this.room, resource);

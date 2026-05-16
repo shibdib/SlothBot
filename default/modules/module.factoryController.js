@@ -82,6 +82,11 @@ class FactoryControl {
             log.i(`${roomLink(room.name)} clearing invalid production target ${factory.memory.producing}.`, 'FACTORY CONTROL:');
             delete factory.memory.producing;
         }
+
+        // Handle targeted commodity production
+        if (!factory.memory.producing) {
+            this.commodityProduction(room, factory, factoryLevel);
+        }
     }
 
     _pruneTrackers() {
@@ -176,19 +181,55 @@ class FactoryControl {
             return (threshB - room.store(b)) - (threshA - room.store(a));
         };
 
+        // Try compression — highest deficit first
+        for (const resource of [...COMPRESSED_COMMODITIES].filter(r => r !== RESOURCE_BATTERY).sort(deficitSort)) {
+            if (this.isValidProductionTarget(resource, room, factoryLevel)) {
+                this.setProduction(factory, resource, 'compressing');
+                return;
+            }
+        }
+
         // Try manufactured commodities — highest deficit first
-        for (const resource of [...BASE_MINERALS, ...MANUFACTURED_COMMODITIES].sort(deficitSort)) {
+        for (const resource of [...BASE_MINERALS].sort(deficitSort)) {
             if (this.isValidProductionTarget(resource, room, factoryLevel)) {
                 this.setProduction(factory, resource, 'surplus inputs');
                 return;
             }
         }
 
-        // Try compression — highest deficit first
-        for (const resource of [...COMPRESSED_COMMODITIES].filter(r => r !== RESOURCE_BATTERY).sort(deficitSort)) {
-            if (this.isValidProductionTarget(resource, room, factoryLevel)) {
-                this.setProduction(factory, resource, 'compressing');
-                return;
+        // Try assigned commodity
+        if (room.energyState && room.memory.commodityProduction) {
+            if (this.isValidProductionTarget(room.memory.commodityProduction, room, factoryLevel)) {
+                this.setProduction(factory, room.memory.commodityProduction, 'assigned commodity');
+            } else {
+                // Try to produce the components of the commodity
+                const commodity = COMMODITIES[room.memory.commodityProduction];
+                for (const component of Object.keys(commodity.components)) {
+                    if (this.isValidProductionTarget(component, room, factoryLevel)) {
+                        this.setProduction(factory, room.memory.commodityProduction, `assigned commodity component ${component}`);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    commodityProduction(room, factory, factoryLevel) {
+        // Check if this room produces the resource required for tier 0
+        const roomResource = room.mineral.mineralType;
+        if (!room.memory.commodityProduction) {
+            for (const commodity in COMMODITY_RESOURCE_TYPES) {
+                // Check if any other room is assigned this commodity
+                const alreadyProducing = MY_ROOMS.find(function (otherRoom) {
+                    otherRoom = Game.rooms[otherRoom];
+                    return otherRoom.memory.commodityProduction === commodity;
+                });
+                if (alreadyProducing) continue;
+                if (COMMODITY_RESOURCE_TYPES[commodity] === roomResource) {
+                    room.memory.commodityProduction = commodity;
+                    log.a(`${roomLink(room.name)} is producing ${commodity} for tier 0.`, 'FACTORY CONTROL:');
+                    return;
+                }
             }
         }
     }
@@ -208,7 +249,7 @@ class FactoryControl {
             return room.energyState >= 2 && room.store(RESOURCE_ENERGY, true) >= needed;
         }
 
-        const threshold = BASE_MINERALS.includes(resource) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
+        const threshold = room.mineral.mineralType === resource ? 99999999999999 : BASE_MINERALS.includes(resource) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
         if (room.store(resource) >= threshold) return false;
 
         // Skip energy-consuming commodities when energy is critically low
@@ -216,8 +257,9 @@ class FactoryControl {
 
         return Object.keys(commodity.components).every(component => {
             const required = commodity.components[component];
+            const requiredAmount = room.mineral.mineralType === resource ? required * 2 : REACTION_AMOUNT * 1.1;
             return room.store(component) >= required &&
-                (!COMPRESSED_COMMODITIES.includes(resource) || room.store(component) >= REACTION_AMOUNT * 1.1);
+                (!COMPRESSED_COMMODITIES.includes(resource) || room.store(component) >= requiredAmount);
         });
     }
 

@@ -96,7 +96,7 @@ let globals = function () {
         if (!boost) return base;
         // T3 is the end-goal stockpile (largest target). T1/T2 are intermediate —
         // we want plenty for conversion and direct-use boosting, but at half the volume.
-        if (TIER_3_BOOSTS.includes(boost)) return base;
+        if (TIER_3_BOOSTS.includes(boost) || BASE_COMPOUNDS.includes(boost)) return base;
         if (TIER_2_BOOSTS.includes(boost)) return Math.floor(base * 0.5);
         if (TIER_1_BOOSTS.includes(boost)) return Math.floor(base * 0.5);
         return base;
@@ -143,6 +143,14 @@ let globals = function () {
     global.HIGHER_COMMODITIES = [RESOURCE_COMPOSITE, RESOURCE_CRYSTAL, RESOURCE_LIQUID];
     global.MANUFACTURED_COMMODITIES = _.union(BASE_COMMODITIES, HIGHER_COMMODITIES, REGIONAL_0_COMMODITIES, REGIONAL_1_COMMODITIES, REGIONAL_2_COMMODITIES, REGIONAL_3_COMMODITIES, REGIONAL_4_COMMODITIES, REGIONAL_5_COMMODITIES);
     global.ALL_COMMODITIES = _.union(BASE_COMMODITIES, HIGHER_COMMODITIES, REGIONAL_0_COMMODITIES, REGIONAL_1_COMMODITIES, REGIONAL_2_COMMODITIES, REGIONAL_3_COMMODITIES, REGIONAL_4_COMMODITIES, REGIONAL_5_COMMODITIES, COMPRESSED_COMMODITIES);
+
+    // Commodity resource types
+    global.COMMODITY_RESOURCE_TYPES = {
+        [RESOURCE_WIRE]: RESOURCE_UTRIUM,
+        [RESOURCE_CELL]: RESOURCE_LEMERGIUM,
+        [RESOURCE_ALLOY]: RESOURCE_ZYNTHIUM,
+        [RESOURCE_CONDENSATE]: RESOURCE_KEANIUM
+    }
 
     //Cache stuff
     global.CACHE = {};
