@@ -114,14 +114,9 @@ class ModuleBodyGenerator {
                 break;
 
             case 'upgrader':
-                if (this.level === 8) {
-                    work = this.room.energyState > 1 ? 15 : 1;
-                    carry = 1;
-                    move = 0;
-                    break;
-                }
                 if (this.room.memory.controllerLink || this.room.memory.controllerContainer) {
-                    if (this.room.memory.controllerLink && this.level >= 5 && this.level <= 7) {
+                    carry = this.room.memory.controllerLink ? 3 : 1;
+                    if (this.room.memory.controllerLink && this.level >= 5) {
                         const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
                         const sourceLinks = controllerLink ? this.room.links
                                 .filter(s => s.id !== this.room.memory.controllerLink &&
@@ -138,13 +133,14 @@ class ModuleBodyGenerator {
                             }
                         } else {
                             // Source links not yet built — fall back to energy cap
-                            work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
+                            work = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] * carry)) / BODYPART_COST[WORK]) || 1;
                         }
+                        // Cap at 15 at rcl8
+                        if (this.room.level === 8) Math.min(work, 15);
                     } else {
-                        work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
+                        work = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] * carry)) / BODYPART_COST[WORK]) || 1;
                     }
                     work = Math.max(Math.min(work, 49), 1);
-                    carry = 1;
                     move = 0;
                 } else {
                     work = Math.floor(this.energyAmount * 0.4 / BODYPART_COST[WORK]) || 1;
