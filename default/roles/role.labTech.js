@@ -107,35 +107,34 @@ class RoleLabTech {
         }
 
         // -- PRIORITY 3: SUPPLY MINERALS (Filling Labs with minerals/boosts only) --
-        for (const lab of labs) {
-            if (lab.memory.itemNeeded && lab.store.getUsedCapacity(lab.memory.itemNeeded) < 1000) {
-                const res = lab.memory.itemNeeded;
-                const supplier = [storage, terminal].find(s => s && s.store[res] > 0);
-                if (supplier) return {
-                    withdrawTarget: supplier.id,
-                    deliveryTarget: lab.id,
-                    resource: res,
-                    amount: lab.store.getCapacity(res) - lab.store.getUsedCapacity(res)
-                };
-            }
-            if (lab.memory.neededBoost && lab.store.getUsedCapacity(lab.memory.neededBoost) < lab.memory.amount) {
-                const res = lab.memory.neededBoost;
-                const supplier = [storage, terminal].find(s => s && s.store[res] > 0);
-                if (supplier) return {
-                    withdrawTarget: supplier.id,
-                    deliveryTarget: lab.id,
-                    resource: res,
-                    amount: lab.memory.amount - lab.store.getUsedCapacity(res)
-                };
-            }
+        const boostNeededLab = labs.find(s => s.memory.neededBoost && s.store.getFreeCapacity(s.memory.neededBoost) > 0 && s.store[s.memory.neededBoost] < s.memory.amount);
+        if (boostNeededLab) {
+            const boostNeeded = boostNeededLab.memory.neededBoost;
+            const supplier = [storage, terminal, labs, this.room.containers].find(s => s && s.store && s.store.getUsedCapacity(boostNeeded) > 0 && s.id !== boostNeededLab.id);
+            if (supplier) return {
+                withdrawTarget: supplier.id,
+                deliveryTarget: boostNeededLab.id,
+                resource: boostNeeded,
+                amount: boostNeededLab.memory.amount - boostNeededLab.store.getUsedCapacity(boostNeeded)
+            };
+        }
+        const resourceNeededLab = labs.find(s => s.memory.itemNeeded && s.store.getFreeCapacity(s.memory.itemNeeded) > 0 && s.store.getUsedCapacity(s.memory.itemNeeded) < 1000);
+        if (resourceNeededLab) {
+            const resourceNeeded = resourceNeededLab.memory.itemNeeded;
+            const supplier = [storage, terminal, labs, this.room.containers].find(s => s && s.store && s.store.getUsedCapacity(resourceNeeded) > 0 && s.id !== resourceNeededLab.id);
+            if (supplier) return {
+                withdrawTarget: supplier.id,
+                deliveryTarget: resourceNeededLab.id,
+                resource: resourceNeeded,
+                amount: resourceNeededLab.store.getCapacity(resourceNeeded) - resourceNeededLab.store.getUsedCapacity(resourceNeeded)
+            };
         }
 
         // -- PRIORITY 3: MINERAL CONTAINER CLEANUP --
-        // Only clean up when the container is half-full — avoids constant tiny trips that starve balancing
-        for (const s of this.room.structures) {
-            if (s.structureType !== STRUCTURE_CONTAINER) continue;
-            const res = Object.keys(s.store).find(r => r !== RESOURCE_ENERGY && (s.store[r] >= CONTAINER_CAPACITY * 0.5 || !this.room.mineral.mineralAmount));
-            if (res) return {withdrawTarget: s.id, deliveryTarget: storeTarget.id, resource: res};
+        const resourceContainer = this.room.containers.find(s => s.store.getUsedCapacity() > s.store.getUsedCapacity(RESOURCE_ENERGY));
+        if (resourceContainer) {
+            const res = Object.keys(resourceContainer.store).find(r => r !== RESOURCE_ENERGY && resourceContainer.store[r] > 0);
+            if (res) return {withdrawTarget: resourceContainer.id, deliveryTarget: storeTarget.id, resource: res};
         }
 
         // -- PRIORITY 4: LOGISTICS (Power/Nuke) --
@@ -267,7 +266,7 @@ class RoleLabTech {
         }
 
         if (!deliveryTarget || (deliveryTarget.store && deliveryTarget.store.getFreeCapacity(resource) <= 0)) {
-            deliveryTarget = [this.room.storage, this.room.terminal].find(s => s && s.store.getFreeCapacity() > 0) || this.room.storage || this.room.terminal;
+            deliveryTarget = this.room.labs.find(s => s.memory.neededBoost === resource && s.store.getUsedCapacity(resource) < s.memory.amount) || [this.room.storage, this.room.terminal].find(s => s && s.store.getFreeCapacity() > 0) || this.room.storage || this.room.terminal;
         }
 
         if (!deliveryTarget) {

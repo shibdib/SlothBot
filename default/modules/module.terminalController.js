@@ -280,8 +280,8 @@ class TerminalControl {
                     const activeBuyOrder = _.some(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY)
                     if (activeBuyOrder) continue;
                     let stored = getResourceTotal(mineral) || 0;
-                    if (stored < BOOST_AMOUNT(terminal.room) * MY_ROOMS.length) {
-                        let buyAmount = BOOST_AMOUNT(terminal.room) - stored;
+                    if (stored < BOOST_AMOUNT(terminal.room, mineral) * MY_ROOMS.length) {
+                        let buyAmount = BOOST_AMOUNT(terminal.room, mineral) - stored;
                         price = this.calculatePrice(ORDER_BUY, mineral);
                         if (createBuyOrder(mineral, price, buyAmount)) break;
                     }
@@ -1004,11 +1004,11 @@ class TerminalControl {
         if (ALL_COMMODITIES.includes(resource) && !COMPRESSED_COMMODITIES.includes(resource) || resource === RESOURCE_OPS || resource === RESOURCE_POWER) {
             return 0;
         }
-        if (ALL_BOOSTS.includes(resource)) return BOOST_AMOUNT(this.room);
+        if (ALL_BOOSTS.includes(resource)) return BOOST_AMOUNT(this.room, resource);
         if (resource === RESOURCE_BATTERY) return 1000;
         if (BASE_MINERALS.includes(resource)) return REACTION_AMOUNT;
         if (COMPRESSED_COMMODITIES.includes(resource)) return 1000;
-        if (resource === RESOURCE_GHODIUM) return BOOST_AMOUNT(this.room);
+        if (resource === RESOURCE_GHODIUM) return BOOST_AMOUNT(this.room, resource);
         return REACTION_AMOUNT; // Default reaction amount
     }
 }

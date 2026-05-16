@@ -75,7 +75,7 @@ class LabManager {
     }
 
     shouldStopProduction(room) {
-        if (room.store(room.memory.producingBoost) > this.getProductionCutoff()) {
+        if (room.store(room.memory.producingBoost) > this.getProductionCutoff(room.memory.producingBoost)) {
             this.stopProduction(room, 'Boost cap reached.');
         } else if (productionTracker[this.room.name] && productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time) {
             this.stopProduction(room, 'Production stalled — time limit reached.');
@@ -101,7 +101,7 @@ class LabManager {
         if (priority) return priority;
         let boostList = [...new Set([...BASE_COMPOUNDS, ...TIER_3_BOOSTS, ...TIER_2_BOOSTS, ...TIER_1_BOOSTS])];
         for (const boost of shuffle(boostList)) {
-            let cutOff = this.getProductionCutoff();
+            let cutOff = this.getProductionCutoff(boost);
             if (room.store(boost) >= cutOff) continue;
             if (this.checkForInputs(room, boost)) {
                 return boost;
@@ -121,26 +121,32 @@ class LabManager {
     }
 
     // Recursively find the deepest component we can produce to work toward `boost`.
+    // Recurses BEFORE checking inputs: only commit the labs to producing this boost
+    // once each component is at its tier-aware cutoff. Prevents the labs from
+    // pivoting to a higher tier the instant inputs are minimally available, which
+    // leaves T1/T2 stocks chronically thin.
+    //
     // globalCheck=true uses getResourceTotal (cross-room) for the top-level boost;
     // component levels use room-local store since they need to be here to react.
     findProducible(room, boost, globalCheck = false) {
-        const cutoff = this.getProductionCutoff();
+        const cutoff = this.getProductionCutoff(boost);
         const current = globalCheck ? getResourceTotal(boost) : room.store(boost);
         if (current >= cutoff) return null;
-        if (this.checkForInputs(room, boost)) return boost;
+
         const components = BOOST_COMPONENTS[boost];
-        if (!components || !components.length) return null;
-        for (const component of components) {
-            const result = this.findProducible(room, component, false);
-            if (result) return result;
+        if (components && components.length) {
+            for (const component of components) {
+                const result = this.findProducible(room, component, false);
+                if (result) return result;
+            }
         }
+        if (this.checkForInputs(room, boost)) return boost;
         return null;
     }
 
-    getProductionCutoff() {
-        if (goOverCap[this.room.name]) {
-            return BOOST_AMOUNT(this.room) * 2;
-        } else return BOOST_AMOUNT(this.room);
+    getProductionCutoff(boost) {
+        const base = BOOST_AMOUNT(this.room, boost);
+        return goOverCap[this.room.name] ? base * 2 : base;
     }
 
     checkForInputs(room, boost) {
