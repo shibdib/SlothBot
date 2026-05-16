@@ -1014,7 +1014,8 @@ multipleList.forEach(function (type) {
                 this._checkRoomCache();
                 if (roomStructures[this.name][type]) {
                     this['_' + type + 's_ts'] = Game.time;
-                    return this['_' + type + 's'] = roomStructures[this.name][type].map(Game.getObjectById);
+                    // Filter nulls: cached IDs can resolve to null when a structure decays/dies mid-cache-window.
+                    return this['_' + type + 's'] = roomStructures[this.name][type].map(Game.getObjectById).filter(Boolean);
                 } else {
                     this['_' + type + 's_ts'] = Game.time;
                     return this['_' + type + 's'] = [];
