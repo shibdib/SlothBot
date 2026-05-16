@@ -2,6 +2,18 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
+// Per-tick cached combat score: attack DPS + effective heal + EHP weight.
+// Matches the formula used by operation.borderPatrol so dispatch and room-power views agree.
+Object.defineProperty(Creep.prototype, 'combatPower', {
+    get: function () {
+        if (this._combatPower_ts === Game.time) return this._combatPower;
+        const ap = abilityPower(this.body);
+        this._combatPower_ts = Game.time;
+        return this._combatPower = ap.attack + ap.effectiveHeal + (ap.defense / 100);
+    },
+    configurable: true,
+});
+
 /**
  * Handle military creep
  * @param barrier

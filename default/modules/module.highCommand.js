@@ -359,12 +359,16 @@ function setTarget(room, operation, level = 1, military = true) {
     return log.a(`${operation} operation planned for ${roomLink(room)} owned by ${INTEL[room].owner || 'N/A'} (Nearest Friendly Room - ${findClosestOwnedRoom(room, true)} rooms away)`, 'HIGH COMMAND: ');
 }
 
+// Beyond this range, a responder spends more life traveling than fighting — don't dispatch.
+const MAX_RESPONSE_DISTANCE = 5;
+// Conservative travel-ticks-per-room estimate for the TTL feasibility check.
+const TRAVEL_TICKS_PER_ROOM = 50;
+
 function manageResponseForces() {
     let idleResponders = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && (!c.memory.partner || c.memory.leader));
     if (!idleResponders.length) return;
 
     let activeResponders = _.filter(Game.creeps, (c) => c.memory && !c.memory.awaitingOrders);
-    let friendlyResponsePower = 0;
 
     // Get the highest-priority target based on the current situation
     let target = getPriorityTarget();
@@ -414,51 +418,74 @@ function manageResponseForces() {
         return _.max(potentialTargets, 'priority');
     }
 
-    // Assign responder to the best target based on priority and distance
+    // Assign responder to the best target based on priority and distance.
+    // Returns true if at least one responder was dispatched.
     function assignRespondersToTarget(targetRoom, logMessage, requiredPower) {
-        let responsePower = friendlyResponsePower;
+        let responsePower = 0;
         for (let creep of _.filter(activeResponders, (c) => c.memory.destination === targetRoom)) responsePower += creep.combatPower;
 
-        for (let creep of _.sortBy(idleResponders, (c) => Game.map.getRoomLinearDistance(c.pos.roomName, targetRoom) < 4)) {
-            if (responsePower >= requiredPower) break; // Stop assigning if we've achieved the required power
+        // Build candidate list: only responders within range that can survive the trip.
+        const candidates = [];
+        for (const creep of idleResponders) {
+            const distance = Game.map.getRoomLinearDistance(creep.pos.roomName, targetRoom);
+            if (distance > MAX_RESPONSE_DISTANCE) continue;
+            const ttl = creep.ticksToLive === undefined ? CREEP_LIFE_TIME : creep.ticksToLive;
+            if (ttl < distance * TRAVEL_TICKS_PER_ROOM + 50) continue;
+            candidates.push({creep, distance});
+        }
+
+        candidates.sort((a, b) => a.distance - b.distance);
+
+        let assignedCount = 0;
+        for (const {creep} of candidates) {
+            // Stop once we have enough power, but always send at least one for soft targets (requiredPower=0).
+            if (assignedCount > 0 && responsePower >= requiredPower) break;
 
             responsePower += creep.combatPower;
             creep.memory.destination = targetRoom;
             creep.memory.awaitingOrders = undefined;
             creep.memory._shibMove = undefined;
             creep.memory.idle = undefined;
+            assignedCount++;
             if (creep.room.name !== targetRoom) {
                 log.a(`${creep.name} ${logMessage} ${roomLink(targetRoom)} from ${roomLink(creep.room.name)}`);
             }
         }
+        return assignedCount > 0;
     }
 
     if (target) {
-        // Assign responders based on target type
+        // Only mark a room as dispatched when at least one responder actually got assigned —
+        // otherwise we'd flag the room "handled" and skip it next tick despite having sent nobody.
         switch (target.type) {
             case 'ownedRoomAttack':
-                INTEL[target.room].responseDispatched = Game.time;
-                assignRespondersToTarget(target.room, 'reassigned to assist in the defense of', INTEL[target.room].hostilePower);
+                if (assignRespondersToTarget(target.room, 'reassigned to assist in the defense of', INTEL[target.room].hostilePower)) {
+                    INTEL[target.room].responseDispatched = Game.time;
+                }
                 break;
 
             case 'remoteRoomAttack':
-                INTEL[target.room].responseDispatched = Game.time;
-                assignRespondersToTarget(target.room, 'reassigned to re-secure', INTEL[target.room].hostilePower);
+                if (assignRespondersToTarget(target.room, 'reassigned to re-secure', INTEL[target.room].hostilePower)) {
+                    INTEL[target.room].responseDispatched = Game.time;
+                }
                 break;
 
             case 'invaderCore':
-                INTEL[target.room].responseDispatched = Game.time;
-                assignRespondersToTarget(target.room, 'reassigned to deal with invader core in', 50); // Assuming invader core requires minimal power
+                if (assignRespondersToTarget(target.room, 'reassigned to deal with invader core in', 50)) {
+                    INTEL[target.room].responseDispatched = Game.time;
+                }
                 break;
 
             case 'responseTarget':
-                INTEL[target.room].responseDispatched = Game.time;
-                assignRespondersToTarget(target.room, 'responding to', INTEL[target.room].hostilePower);
+                if (assignRespondersToTarget(target.room, 'responding to', INTEL[target.room].hostilePower)) {
+                    INTEL[target.room].responseDispatched = Game.time;
+                }
                 break;
 
             case 'unarmedVisitors':
-                INTEL[target.room].responseDispatched = Game.time;
-                assignRespondersToTarget(target.room, 'investigating for possible trespassers at', 0);
+                if (assignRespondersToTarget(target.room, 'investigating for possible trespassers at', 0)) {
+                    INTEL[target.room].responseDispatched = Game.time;
+                }
                 break;
 
             case 'guard':
