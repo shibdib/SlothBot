@@ -25,7 +25,7 @@ class RoleRemoteHarvester {
         }
 
         // Throttled viability check - recycle if the remote is no longer assigned to this colony
-        if (Game.time % 20 === 0 && this.creep.memory.destination && INTEL[this.creep.memory.destination]) {
+        if (Game.time % 50 === 0 && this.creep.memory.destination && INTEL[this.creep.memory.destination]) {
             const intel = INTEL[this.creep.memory.destination];
             const colony = Game.rooms[this.creep.memory.colony];
             const hostile = intel.level || (intel.reservation && intel.reservation !== MY_USERNAME && intel.reservation !== 'Invader');
