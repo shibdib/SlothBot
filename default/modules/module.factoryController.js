@@ -137,6 +137,10 @@ class FactoryControl {
                 log.i(`${roomLink(room.name)} stopping ${producing} — cap reached.`, 'FACTORY CONTROL:');
                 return true;
             }
+            if (Object.keys(commodity.components).some(r => r !== RESOURCE_ENERGY && room.store(r) < REACTION_AMOUNT * 0.1)) {
+                log.i(`${roomLink(room.name)} stopping ${producing} — input running low.`, 'FACTORY CONTROL:');
+                return true;
+            }
             return false;
         }
         // Compressed commodity: stop if any non-energy input is running low
@@ -205,6 +209,7 @@ class FactoryControl {
                 // Try to produce the components of the commodity
                 const commodity = COMMODITIES[room.memory.commodityProduction];
                 for (const component of Object.keys(commodity.components)) {
+                    if (BASE_COMMODITIES.includes(component)) room.memory.neededCommodity = component;
                     if (this.isValidProductionTarget(component, room, factoryLevel)) {
                         this.setProduction(factory, room.memory.commodityProduction, `assigned commodity component ${component}`);
                         return;
@@ -249,7 +254,7 @@ class FactoryControl {
             return room.energyState >= 2 && room.store(RESOURCE_ENERGY, true) >= needed;
         }
 
-        const threshold = room.mineral.mineralType === resource ? 99999999999999 : BASE_MINERALS.includes(resource) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
+        const threshold = BASE_MINERALS.includes(resource) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
         if (room.store(resource) >= threshold) return false;
 
         // Skip energy-consuming commodities when energy is critically low
@@ -257,7 +262,7 @@ class FactoryControl {
 
         return Object.keys(commodity.components).every(component => {
             const required = commodity.components[component];
-            const requiredAmount = room.mineral.mineralType === resource ? required * 2 : REACTION_AMOUNT * 1.1;
+            const requiredAmount = REACTION_AMOUNT * 1.1;
             return room.store(component) >= required &&
                 (!COMPRESSED_COMMODITIES.includes(resource) || room.store(component) >= requiredAmount);
         });

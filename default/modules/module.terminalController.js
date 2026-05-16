@@ -290,6 +290,7 @@ class TerminalControl {
         }
 
         // Handle buy orders for raw commodities if room is producing the T0 for it
+        /**
         if (this.room.memory.commodityProduction) {
             const commodity = COMMODITIES[this.room.memory.commodityProduction];
             for (const component of Object.keys(commodity.components)) {
@@ -302,7 +303,7 @@ class TerminalControl {
                 needsCommodities[this.room.name] = component;
                 if (createBuyOrder(component, price, buyAmount)) break;
             }
-        }
+        }**/
 
         // Helper function to place buy order
         function createBuyOrder(resourceType, price, buyAmount) {
@@ -340,6 +341,10 @@ class TerminalControl {
             // Sell energy and battery only if we have a surplus and are RCL8 (pre-RCL8 rooms never sell energy)
             if ((resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) &&
                 (!SELL_ENERGY || terminal.room.level < 8 || terminal.room.energyState < 2 || !_.find(MY_ROOMS, r => Game.rooms[r].terminal && !Game.rooms[r].energyState))) continue;
+
+            // If any room has resource as a needed commodity do not sell it
+            const neededCommodity = MY_ROOMS.some(name => Game.rooms[name].memory.neededCommodity === resource);
+            if (neededCommodity) continue;
 
             // If already selling continue
             if (hasExistingSellOrder(myOrders, terminal, resource)) continue;
@@ -397,133 +402,98 @@ class TerminalControl {
     quickSell(terminal, globalOrders) {
         const storageSpace = terminal.room.storage ? terminal.room.storage.store.getFreeCapacity() : 0;
         const spareSpace = terminal.store.getFreeCapacity() + storageSpace;
-        // Dynamically adjust credit buffer based on current market condition
-        let dynamicBuffer = Math.max(CREDIT_BUFFER, Game.market.credits * 0.20);
+        const dynamicBuffer = Math.max(CREDIT_BUFFER, Game.market.credits * 0.20);
         const spendingAccount = Memory._banker.spendingAccount || 0;
         if (spareSpace > STORAGE_CAPACITY * 0.2 && spendingAccount > dynamicBuffer) return false;
 
-        // Sort resources and filter based on relevance
-        let sortedKeys = Object.keys(terminal.store).sort((a, b) => terminal.store[a] - terminal.store[b]);
+        const sortedKeys = Object.keys(terminal.store).sort((a, b) => terminal.store[a] - terminal.store[b]);
 
-        let findBestBuyer = (globalOrders, resourceType, sellAmount) => {
-            // Use a more advanced matching system with multiple offer matching and transaction cost optimization
-            let orders = globalOrders.filter(order =>
-                order.resourceType === resourceType && order.type === ORDER_BUY &&
-                order.roomName !== terminal.pos.roomName &&
-                calculateTransactionCost(sellAmount, order.roomName) < terminal.store[RESOURCE_ENERGY] &&
-                (!INTEL[order.roomName] || !HOSTILES.includes(INTEL[order.roomName].user))
+        const transferFactor = roomName => 1 - Math.exp(-Game.map.getRoomLinearDistance(terminal.room.name, roomName) / 30);
+        const transactionCost = (amount, roomName) => Math.ceil(amount * transferFactor(roomName));
+        const maxAffordable = (energy, roomName) => Math.floor(energy / transferFactor(roomName));
+        const isHostile = roomName => INTEL[roomName] && HOSTILES.includes(INTEL[roomName].user);
+
+        const findBestBuyer = (resourceType, sellAmount) => {
+            const orders = globalOrders.filter(o =>
+                o.resourceType === resourceType && o.type === ORDER_BUY &&
+                o.roomName !== terminal.pos.roomName &&
+                transactionCost(sellAmount, o.roomName) < terminal.store[RESOURCE_ENERGY] &&
+                !isHostile(o.roomName)
             );
             if (orders.length === 0) return null;
 
-            let energyPrice = this.getEnergyValue(globalOrders);
+            const energyPrice = this.getEnergyValue(globalOrders);
+            const netProfit = o => {
+                const amount = Math.min(sellAmount, o.remainingAmount);
+                return amount * o.price - transactionCost(amount, o.roomName) * energyPrice;
+            };
+            const best = _.max(orders, netProfit);
+            return netProfit(best) > 0 ? best : null;
+        };
 
-            // Select the best buyer dynamically considering distance, price, and availability (Maximize Net Profit)
-            let sortedOrders = orders.sort((a, b) => {
-                let amountA = Math.min(sellAmount, a.remainingAmount);
-                let costA = calculateTransactionCost(amountA, a.roomName);
-                let netProfitA = (amountA * a.price) - (costA * energyPrice);
+        const handleSale = (buyer, sellAmount, resourceType) => {
+            sellAmount = Math.min(sellAmount, buyer.remainingAmount);
+            if (transactionCost(sellAmount, buyer.roomName) > terminal.store[RESOURCE_ENERGY]) {
+                sellAmount = maxAffordable(terminal.store[RESOURCE_ENERGY], buyer.roomName);
+            }
+            if (sellAmount * buyer.price < 5) return false;
+            if (Game.market.deal(buyer.id, sellAmount, terminal.pos.roomName) !== OK) return false;
+            log.w(`${terminal.pos.roomName} Sell Off Completed - ${sellAmount} ${resourceType} for ${buyer.price * sellAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
+            Memory._banker.spendingAccount += (buyer.price * sellAmount) * 0.75;
+            return true;
+        };
 
-                let amountB = Math.min(sellAmount, b.remainingAmount);
-                let costB = calculateTransactionCost(amountB, b.roomName);
-                let netProfitB = (amountB * b.price) - (costB * energyPrice);
+        const handleOffload = (sellAmount, resourceType) => {
+            // Fire sale: sell to highest bidder, ignoring price floors
+            const fireSaleBuyers = globalOrders.filter(o =>
+                o.resourceType === resourceType && o.type === ORDER_BUY &&
+                !_.includes(MY_ROOMS, o.roomName) && !isHostile(o.roomName)
+            );
+            if (fireSaleBuyers.length > 0) {
+                const buyer = _.max(fireSaleBuyers, 'price');
+                const amount = Math.min(sellAmount, buyer.remainingAmount);
+                if (transactionCost(amount, buyer.roomName) < terminal.store[RESOURCE_ENERGY]
+                    && Game.market.deal(buyer.id, amount, terminal.pos.roomName) === OK) {
+                    log.w(`FIRE SALE: Dumped ${amount} ${resourceType} to ${roomLink(buyer.roomName)} for ${buyer.price * amount} credits to clear space.`, "Market: ");
+                    return true;
+                }
+            }
 
-                return netProfitB - netProfitA;  // Prefer higher net profit
-            });
+            // Dump to a friendly ally
+            const friendlyRooms = _.filter(INTEL, r => r.user && FRIENDLIES.includes(r.user) && r.level >= 6);
+            if (friendlyRooms.length === 0) return false;
+            const friend = _.sample(friendlyRooms).name;
+            if (transactionCost(sellAmount, friend) > terminal.store[RESOURCE_ENERGY]) {
+                sellAmount = maxAffordable(terminal.store[RESOURCE_ENERGY], friend);
+            }
+            if (sellAmount <= 1000) return false;
+            if (terminal.send(resourceType, sellAmount, friend) !== OK) return false;
+            log.w(`Dumped ${sellAmount} ${resourceType} to Ally ${roomLink(friend)} to clear space.`, "Market: ");
+            return true;
+        };
 
-            // Only return if the sale is actually profitable
-            let bestOrder = sortedOrders[0];
-            let bestAmount = Math.min(sellAmount, bestOrder.remainingAmount);
-            let bestCost = calculateTransactionCost(bestAmount, bestOrder.roomName);
-            let netProfit = (bestAmount * bestOrder.price) - (bestCost * energyPrice);
-
-            return netProfit > 0 ? bestOrder : null;
-        }
-
-        for (let resourceType of sortedKeys) {
+        for (const resourceType of sortedKeys) {
             if ((resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) &&
                 (!SELL_ENERGY || terminal.room.level < 8 || terminal.room.energyState < 2 || !_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 2))) continue;
 
-            // No selling base minerals if any room is short or if we don't have a large surplus
+            // Don't sell base minerals if any room is short, or unless we have a large surplus
             if (BASE_MINERALS.includes(resourceType)) {
                 if (MY_ROOMS.some(r => Game.rooms[r].terminal && Game.rooms[r].store(resourceType) < REACTION_AMOUNT)) continue;
                 if (terminal.store[resourceType] < this.determineKeepAmount(resourceType) * 1.5) continue;
             }
 
-            let keepAmount = this.determineKeepAmount(resourceType);
-            let sellAmount = Math.max(terminal.store[resourceType] - keepAmount, 0);
+            const keepAmount = this.determineKeepAmount(resourceType);
+            const sellAmount = Math.max(terminal.store[resourceType] - keepAmount, 0);
             if (sellAmount <= 0) continue;
 
-            let buyer = findBestBuyer(globalOrders, resourceType, sellAmount);
+            const buyer = findBestBuyer(resourceType, sellAmount);
             if (buyer) {
                 if (handleSale(buyer, sellAmount, resourceType)) return true;
-            } else if (terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.1) {
-                // Offload excess resources dynamically
-                if (sellAmount >= keepAmount * 2) {
-                    let offloadResult = handleOffload(sellAmount, resourceType);
-                    if (offloadResult) return true;
-                }
+            } else if (terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.1 && sellAmount >= keepAmount * 2) {
+                if (handleOffload(sellAmount, resourceType)) return true;
             }
         }
         return false;
-
-        function handleSale(buyer, sellAmount, resourceType) {
-            if (buyer.remainingAmount < sellAmount) sellAmount = buyer.remainingAmount;
-            let transactionCost = calculateTransactionCost(sellAmount, buyer.roomName);
-            if (transactionCost > terminal.store[RESOURCE_ENERGY]) {
-                sellAmount = _.floor(terminal.store[RESOURCE_ENERGY] / (1 - Math.exp(-Game.map.getRoomLinearDistance(terminal.room.name, buyer.roomName) / 30)));
-            }
-            if (sellAmount * buyer.price >= 5) {
-                if (Game.market.deal(buyer.id, sellAmount, terminal.pos.roomName) === OK) {
-                    log.w(`${terminal.pos.roomName} Sell Off Completed - ${sellAmount} ${resourceType} for ${buyer.price * sellAmount} credits in ${roomLink(terminal.room.name)}`, "Market: ");
-                    Memory._banker.spendingAccount += (buyer.price * sellAmount) * 0.75;
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function handleOffload(sellAmount, resourceType) {
-            // First, try a fire sale (sell to any highest bidder, regardless of our standard price floors)
-            let fireSaleBuyers = globalOrders.filter(order =>
-                order.resourceType === resourceType && order.type === ORDER_BUY &&
-                !_.includes(MY_ROOMS, order.roomName) &&
-                (!INTEL[order.roomName] || !HOSTILES.includes(INTEL[order.roomName].user))
-            ).sort((a, b) => b.price - a.price);
-
-            if (fireSaleBuyers.length > 0) {
-                let buyer = fireSaleBuyers[0];
-                let amount = Math.min(sellAmount, buyer.remainingAmount);
-                let transactionCost = calculateTransactionCost(amount, buyer.roomName);
-                if (transactionCost < terminal.store[RESOURCE_ENERGY]) {
-                    if (Game.market.deal(buyer.id, amount, terminal.pos.roomName) === OK) {
-                        log.w(`FIRE SALE: Dumped ${amount} ${resourceType} to ${roomLink(buyer.roomName)} for ${buyer.price * amount} credits to clear space.`, "Market: ");
-                        return true;
-                    }
-                }
-            }
-
-            // If no buyers, try to dump to a friend or ally
-            let friendlyRooms = _.filter(INTEL, (r) => r.user && FRIENDLIES.includes(r.user) && r.level >= 6);
-            if (friendlyRooms.length > 0) {
-                let randomFriend = _.sample(friendlyRooms).name;
-                let transactionCost = calculateTransactionCost(sellAmount, randomFriend);
-                if (transactionCost > terminal.store[RESOURCE_ENERGY]) {
-                    sellAmount = _.floor(terminal.store[RESOURCE_ENERGY] / (1 - Math.exp(-Game.map.getRoomLinearDistance(terminal.room.name, randomFriend) / 30)));
-                }
-                if (sellAmount > 1000) {
-                    if (terminal.send(resourceType, sellAmount, randomFriend) === OK) {
-                        log.w(`Dumped ${sellAmount} ${resourceType} to Ally ${roomLink(randomFriend)} to clear space.`, "Market: ");
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        function calculateTransactionCost(amount, roomName1) {
-            let distance = Game.map.getRoomLinearDistance(roomName1, terminal.room.name);
-            return Math.ceil(amount * (1 - Math.exp(-distance / 30)));
-        }
     }
 
     balanceResources(terminal) {
