@@ -123,9 +123,8 @@ class ModuleBodyGenerator {
                 if (this.room.memory.controllerLink || this.room.memory.controllerContainer) {
                     if (this.room.memory.controllerLink && this.level >= 5 && this.level <= 7) {
                         const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
-                        const sourceLinks = controllerLink ? this.room.structures
-                                .filter(s => s.structureType === STRUCTURE_LINK &&
-                                    s.id !== this.room.memory.controllerLink &&
+                        const sourceLinks = controllerLink ? this.room.links
+                                .filter(s => s.id !== this.room.memory.controllerLink &&
                                     (this.room.energyState >= 2 || s.id !== this.room.memory.hubLink))
                                 .sort((a, b) => a.pos.getRangeTo(controllerLink) - b.pos.getRangeTo(controllerLink))
                             : [];

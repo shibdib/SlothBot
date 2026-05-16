@@ -10,9 +10,9 @@ Creep.prototype.strongholdAttack = function () {
     if (this.room.name !== this.memory.destination) {
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
     } else {
-        const tower = this.room.structures.find((s) => s.structureType === STRUCTURE_TOWER);
+        const tower = this.room.towers[0];
         if (!tower) {
-            const container = this.room.structures.find((s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.store[RESOURCE_ENERGY]);
+            const container = this.room.containers.find((s) => _.sum(s.store) > s.store[RESOURCE_ENERGY]);
             if (container) {
                 if (container.pos.checkForRampart()) this.memory.target = container.pos.checkForRampart().id;
                 else {

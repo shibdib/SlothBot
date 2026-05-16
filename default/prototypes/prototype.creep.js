@@ -156,7 +156,7 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
 Creep.prototype.skSafety = function () {
     if (this.room.controller) {
         if (this.room.controller.safeMode) return false;
-        if (this.room.controller.owner && FRIENDLIES.includes(this.room.controller.owner.username) && this.room.structures.find(s => s.structureType === STRUCTURE_TOWER)) return false;
+        if (this.room.controller.owner && FRIENDLIES.includes(this.room.controller.owner.username) && this.room.towers[0]) return false;
     }
     // Check if creep is damaged or if there are armed enemies nearby
     const armedEnemies = this.room.hostileCreeps.find(c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
@@ -193,7 +193,7 @@ Creep.prototype.skSafety = function () {
     }
 
     // Handle invader cores
-    if (this.room.impassibleStructures.some(s => s.structureType === STRUCTURE_INVADER_CORE)) {
+    if (this.room.invaderCore) {
         return this.suicide() === OK;
     }
 
@@ -441,7 +441,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
 
     // All links if room is energyState 0
     if (room.energyState === 0) {
-        const links = room.structures.filter(s => s.structureType === STRUCTURE_LINK && s.store[RESOURCE_ENERGY] > 0);
+        const links = room.links.filter(s => s.store[RESOURCE_ENERGY] > 0);
         potentialEnergy = potentialEnergy.concat(links);
     }
 
@@ -582,9 +582,11 @@ Creep.prototype.haulerDelivery = function () {
     }
 
     // 7. Nuker
-    const nuker = this.room.impassibleStructures.find((s) => s.structureType === STRUCTURE_NUKER && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
-    if (nuker && this.room.energyState > 1) {
-        targets.push(nuker);
+    if (this.room.nuker) {
+        const nuker = this.room.nuker.find((s) => s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
+        if (nuker && this.room.energyState > 1) {
+            targets.push(nuker);
+        }
     }
 
     // 8. Terminal
@@ -665,7 +667,7 @@ Creep.prototype.constructionWork = function () {
     }
 
     // Special case to prioritize walls in a safemode
-    const spawn = this.room.structures.find((s) => s.structureType === STRUCTURE_SPAWN);
+    const spawn = this.room.spawns[0];
     if (spawn && this.room.controller && (this.room.controller.safeMode || (this.room.controller.owner && this.room.controller.owner.username !== MY_USERNAME))) {
         site = _.filter(mySites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
         if (site.length) {
@@ -1067,7 +1069,7 @@ Creep.prototype.borderCheck = function () {
 
 // Helper function to find a road near the creep
 function findRoadNearCreep(creep) {
-    return _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.pos.isNearTo(creep) && !s.pos.checkForImpassible());
+    return _.find(creep.room.roads, (s) => s.pos.isNearTo(creep) && !s.pos.checkForImpassible());
 }
 
 
@@ -1182,7 +1184,7 @@ Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
             // Find a lab to boost the creep if none exist, idle.
             const existingLab = Game.getObjectById(this.memory.boosts.boostLab);
             if (!this.memory.boosts.boostLab || !existingLab || !existingLab.memory.neededBoost) {
-                let lab = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB && s.isActive() && s.store[RESOURCE_ENERGY] > 0 &&
+                let lab = _.find(this.room.labs, (s) => s.isActive() && s.store[RESOURCE_ENERGY] > 0 &&
                     (s.mineralType === boostNeeded || !s.memory.itemNeeded) && (!s.memory.neededBoost || s.memory.neededBoost === boostNeeded));
                 if (lab) {
                     lab.memory.paused = true;
@@ -1310,7 +1312,7 @@ Creep.prototype.handleRenewing = function (targetTicks) {
     }
     if (!this.memory.renewalLimit) this.memory.renewalLimit = Game.time + 2000;
     this.memory.needsRenewal = true;
-    let spawn = this.room.impassibleStructures.find((s) => s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning);
+    let spawn = this.room.spawns.find((s) => !s.spawning);
     if (!spawn) {
         if (this.room.name !== this.memory.colony) {
             this.shibMove(new RoomPosition(25, 25, this.memory.colony), {range: 22})

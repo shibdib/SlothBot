@@ -12,10 +12,7 @@ class LinkControl {
         if (Game.time % 2 !== 0 && !room.memory.linkCooldown) return;
 
         // Get all links that aren't on cooldown and have energy
-        const links = room.structures.filter(s =>
-            s.structureType === STRUCTURE_LINK &&
-            s.store[RESOURCE_ENERGY] > 0
-        );
+        const links = room.links.filter(s => s.store[RESOURCE_ENERGY] > 0);
 
         if (!links.length) {
             room.memory.linkCooldown = undefined;

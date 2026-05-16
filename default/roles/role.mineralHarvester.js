@@ -31,7 +31,7 @@ class RoleMineralHarvester {
     }
 
     setExtractor() {
-        let extractor = this.room.structures.filter((s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
+        let extractor = this.room.extractor;
         if (extractor) {
             this.creep.memory.extractor = extractor.id;
         } else {

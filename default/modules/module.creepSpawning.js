@@ -35,7 +35,7 @@ module.exports.processBuildQueue = function (room) {
     }
 
     // Get available spawns
-    const totalSpawns = room.impassibleStructures.filter((s) => s.my && s.structureType === STRUCTURE_SPAWN);
+    const totalSpawns = room.spawns;
     // If we have creeps needing renewal and more than 1 spawn, reserve one for them
     const renewalCreep = room.myCreeps.find((c) => c.memory.needsRenewal);
     let availableSpawns = totalSpawns.filter((s) => s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning);
@@ -864,7 +864,7 @@ module.exports.globalCreepQueue = function () {
                     const rebuildRoom = Game.rooms[key];
                     let rebuildPriority = 2; // Default: moderately urgent
                     if (rebuildRoom) {
-                        const hasSpawn = rebuildRoom.impassibleStructures.some(s => s.structureType === STRUCTURE_SPAWN);
+                        const hasSpawn = rebuildRoom.spawns.length > 0;
                         if (!hasSpawn) {
                             rebuildPriority = 1; // Critical — no spawn, room cannot function
                         } else if (rebuildRoom.storage && rebuildRoom.terminal) {
@@ -1294,9 +1294,7 @@ function getQueue(room) {
 
 function displayQueue(room, queue) {
     try {
-        const activeSpawns = _.filter(room.impassibleStructures, function (s) {
-            return s.my && s.structureType === STRUCTURE_SPAWN && s.spawning;
-        });
+        const activeSpawns = room.spawns.filter((s) => s.spawning);
         if (!_.size(queue) && !activeSpawns.length) return;
 
         let yOffset = 1;
@@ -1434,7 +1432,7 @@ function determineEnergyOrder(room) {
     }
     if (!energyOrder[room.name] || orderStored[room.name] + 750 < Game.time) {
         let harvester = _.filter(room.myCreeps, (c) => c.memory.role === 'stationaryHarvester' && c.memory.onContainer);
-        let energyStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
+        let energyStructures = room.spawns.concat(room.extensions);
         let rangeArray = [];
         let usedIdArray = [];
         for (let x = 0; x < energyStructures.length; x++) {

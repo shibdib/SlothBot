@@ -59,8 +59,8 @@ class RoleSKAttacker {
             }
         } else {
             this.creep.healInRange();
-            let lair = Game.getObjectById(this.creep.memory.lair) || _.min(_.filter(this.room.structures, (s) =>
-                s.structureType === STRUCTURE_KEEPER_LAIR && s.room.name === this.creep.memory.destination), 'ticksToSpawn');
+            let lair = Game.getObjectById(this.creep.memory.lair) || _.min(_.filter(this.room.keeperLairs, (s) =>
+                s.room.name === this.creep.memory.destination), 'ticksToSpawn');
             this.creep.memory.keeper = undefined;
             this.creep.memory.lair = lair.id;
             if (this.creep.hits < this.creep.hitsMax * 0.8 && this.creep.pos.getRangeTo(lair) < 12) return;

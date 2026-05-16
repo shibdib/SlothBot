@@ -11,7 +11,7 @@ module.exports.towerControl = function (room) {
     room.memory.dangerousAttack = undefined;
     room.memory.spawnDefenders = undefined;
 
-    let towers = _.filter(room.impassibleStructures, s => s.structureType === STRUCTURE_TOWER && s.isActive());
+    let towers = _.filter(room.towers, s => s.isActive());
     if (!towers.length) return;
 
     if (room.hostileCreeps.length) {

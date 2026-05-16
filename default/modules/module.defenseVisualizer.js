@@ -78,8 +78,8 @@ class RoomDefenseViz {
     }
 
     render() {
-        const ramparts = this.room.structures.filter(
-            s => s.structureType === STRUCTURE_RAMPART && !s.pos.checkForObstacleStructure()
+        const ramparts = this.room.ramparts.filter(
+            s => !s.pos.checkForObstacleStructure()
         );
         const realHostiles = this.room.hostileCreeps;
         const simFlags = Object.values(Game.flags).filter(
@@ -202,7 +202,7 @@ class RoomDefenseViz {
     }
 
     applySimCombat(sim, assignments) {
-        const towers = this.room.structures.filter(s => s.structureType === STRUCTURE_TOWER);
+        const towers = this.room.towers;
 
         for (const a of sim.attackers) {
             if (a.dead) continue;

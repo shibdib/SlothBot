@@ -42,21 +42,19 @@ class RoleLabTech {
 
     // Task prioritizer - Returns {withdrawTarget, deliveryTarget, resource, amount}
     findTask() {
-        const labs = this.room.structures.filter(s => s.structureType === STRUCTURE_LAB);
+        const labs = this.room.labs;
         const factory = this.room.factory;
         const storage = this.room.storage;
         const terminal = this.room.terminal;
-        const powerSpawn = this.room.structures.find(s => s.structureType === STRUCTURE_POWER_SPAWN);
-        const nuker = this.room.structures.find(s => s.structureType === STRUCTURE_NUKER);
+        const powerSpawn = this.room.powerSpawn;
+        const nuker = this.room.nuker;
         const storeTarget = (storage && storage.store.getFreeCapacity() > 0) ? storage : terminal;
 
         // -- PRIORITY 0: COMBAT - Fill towers during attacks before anything else --
         if (this.room.memory.dangerousAttack) {
             const supplier = storage || terminal;
             if (supplier && supplier.store[RESOURCE_ENERGY] > 0) {
-                const lowTower = this.room.structures.find(s =>
-                    s.structureType === STRUCTURE_TOWER && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
-                );
+                const lowTower = this.room.towers.find(s => s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
                 if (lowTower) return {
                     withdrawTarget: supplier.id,
                     deliveryTarget: lowTower.id,

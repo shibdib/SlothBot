@@ -131,7 +131,7 @@ PowerCreep.prototype.borderCheck = function () {
         }
         // Handle border movement
         let options;
-        let road = _.find(this.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.pos.isNearTo(this));
+        let road = _.find(this.room.roads, (s) => s.pos.isNearTo(this));
         if (road) {
             this.move(this.pos.getDirectionTo(road));
         } else if (x === 49) {

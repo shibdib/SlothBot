@@ -28,9 +28,7 @@ class RoleShuttle {
     hauling() {
         // During attacks, fill towers before depositing — towers need energy to defend
         if (this.room.memory.dangerousAttack && this.creep.store[RESOURCE_ENERGY] > 0) {
-            const lowTower = this.room.structures.find(s =>
-                s.structureType === STRUCTURE_TOWER && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
-            );
+            const lowTower = this.room.towers.find(s => s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
             if (lowTower) {
                 const result = this.creep.transfer(lowTower, RESOURCE_ENERGY);
                 if (result === OK || result === ERR_NOT_IN_RANGE) {

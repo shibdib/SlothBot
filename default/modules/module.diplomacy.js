@@ -54,7 +54,7 @@ module.exports.trackThreat = function (creep) {
     if (!INTEL[creep.room.name]) return creep.room.cacheRoomIntel();
 
     // Handle updating rooms with towers
-    const tower = creep.room.structures.find((s) => !s.my && s.structureType === STRUCTURE_TOWER);
+    const tower = creep.room.towers[0];
     if (tower && !INTEL[creep.room.name].towers) {
         creep.room.cacheRoomIntel(true);
         purgeBadRoute(creep.room.name);

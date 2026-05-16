@@ -111,7 +111,7 @@ class TerminalControl {
 
     placeBuyOrders(terminal, globalOrders, myOrders) {
         // Iterate over minerals and handle orders
-        const labs = terminal.room.structures.filter(s => s.structureType === STRUCTURE_LAB);
+        const labs = terminal.room.labs;
         const labNeeds = _.compact(labs.map(l => l.memory.itemNeeded));
 
         for (let mineral of shuffle(_.union(BASE_MINERALS, labNeeds))) {

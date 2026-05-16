@@ -63,7 +63,7 @@ class RoleStationaryHarvester {
                     if (container && (!this.creep.memory.other.linkCheck || (!source.memory.link && Game.time % 50 === 0))) {
                         let link = Game.getObjectById(source.memory.link);
                         if (!link) {
-                            link = _.find(container.pos.findInRange(this.room.structures, 1), (s) => s.structureType === STRUCTURE_LINK && s.isActive());
+                            link = _.find(container.pos.findInRange(this.room.links, 1), (s) => s.isActive());
                             if (link) source.memory.link = link.id;
                         }
                         if (link) {

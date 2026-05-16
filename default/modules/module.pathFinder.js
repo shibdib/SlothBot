@@ -157,7 +157,7 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
             heading = new RoomPosition(25, 25, options.portal);
             options.range = 23;
         } else {
-            heading = _.find(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL);
+            heading = creep.room.portals[0];
             options.range = 0;
         }
     }
@@ -690,7 +690,7 @@ function addSksToMatrix(roomName, matrix, options) {
                 }
             }
         } else {
-            let lairs = room.structures.filter((s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn && s.ticksToSpawn < 25);
+            let lairs = room.keeperLairs.filter((s) => s.ticksToSpawn && s.ticksToSpawn < 25);
             let avoid = _.union(lairs, room.sources, room.mineral ? [room.mineral] : []);
             for (let lair of avoid) {
                 let top = Math.max(0, lair.pos.y - 5);

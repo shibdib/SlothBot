@@ -15,7 +15,7 @@ class LabManager {
     }
 
     run(room) {
-        const labs = room.structures.filter(s => s.structureType === STRUCTURE_LAB);
+        const labs = room.labs;
         if (!labs.length) return;
 
         // Periodic lab memory cleanup
@@ -174,7 +174,7 @@ class LabManager {
             if (!room.memory.labHub) return;
             let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
             // Clear a bad hub if we have labs but not at the hub
-            const labs = room.impassibleStructures.filter((s) => s.my && s.structureType === STRUCTURE_LAB);
+            const labs = room.labs;
             const hubLabs = labs.filter(lab =>
                 lab.structureType === STRUCTURE_LAB &&
                 ((lab.pos.x === labHub.x && lab.pos.y === labHub.y) ||

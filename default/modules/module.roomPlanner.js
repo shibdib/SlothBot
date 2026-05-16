@@ -91,15 +91,15 @@ function buildMissingStructures(room, level) {
 }
 
 function buildAuxiliaryStructures(room) {
-    let builtSpawn = room.impassibleStructures.find((s) => s.structureType === STRUCTURE_SPAWN);
+    let builtSpawn = room.spawns[0];
     if (builtSpawn) auxiliaryBuilding(room);
 }
 
 function buildFromLayout(room, countCheck) {
     const hub = room.hub;
     const initialSpawn = _.find(Game.structures, s => s.structureType === STRUCTURE_SPAWN && s.my);
-    const roomTower = room.impassibleStructures.find(s => s.structureType === STRUCTURE_TOWER && s.my);
-    const roomSpawn = room.impassibleStructures.find(s => s.structureType === STRUCTURE_SPAWN && s.my);
+    const roomTower = room.towers[0];
+    const roomSpawn = room.spawns[0];
     let filter = [];
 
     const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
@@ -273,12 +273,12 @@ function buildSourceExtensions(room) {
 function linkBuilder(room) {
     if (room.level < 5) return false;
     const linkLimit = CONTROLLER_STRUCTURES[STRUCTURE_LINK][room.level];
-    const currentLinks = room.structures.filter(s => s.structureType === STRUCTURE_LINK).length +
+    const currentLinks = room.links.length +
         room.constructionSites.filter(s => s.structureType === STRUCTURE_LINK).length;
 
     // 1. Controller Link (RCL 5+)
     if (!room.memory.controllerLink || !Game.getObjectById(room.memory.controllerLink)) {
-        const existingLink = _.find(room.controller.pos.findInRange(room.structures, 3), s => s.structureType === STRUCTURE_LINK);
+        const existingLink = room.controller.pos.findInRange(room.links, 3)[0];
         if (existingLink) {
             room.memory.controllerLink = existingLink.id;
         } else {
@@ -351,7 +351,7 @@ function linkBuilder(room) {
         const sourceContainer = Game.getObjectById(source.memory.container);
         if (!sourceContainer) return false;
 
-        const existingLink = _.find(sourceContainer.pos.findInRange(room.structures, 1), s => s.structureType === STRUCTURE_LINK);
+        const existingLink = sourceContainer.pos.findInRange(room.links, 1)[0];
         if (existingLink) {
             source.memory.link = existingLink.id;
             return false;
@@ -380,7 +380,7 @@ function sourceBuilder(room) {
 
     // Helper function to handle the creation of source containers
     function buildSourceContainer(source, room) {
-        let sourceContainer = Game.getObjectById(source.memory.containerID) || _.find(source.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
+        let sourceContainer = Game.getObjectById(source.memory.containerID) || source.pos.findInRange(room.containers, 1)[0];
         if (!sourceContainer) {
             source.memory.container = undefined;
             let sourceBuild = _.find(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
@@ -403,9 +403,8 @@ function controllerBuilder(room) {
     let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
     let controllerLink = Game.getObjectById(room.memory.controllerLink);
     if (!controllerContainer && room.level >= 2 && !controllerLink) {
-        controllerContainer = room.controller.pos.findInRange(room.structures, 3, {
-            filter: (s) => s.structureType === STRUCTURE_CONTAINER &&
-                !s.pos.isNearTo(s.pos.findClosestByRange(FIND_SOURCES)) &&
+        controllerContainer = room.controller.pos.findInRange(room.containers, 3, {
+            filter: (s) => !s.pos.isNearTo(s.pos.findClosestByRange(FIND_SOURCES)) &&
                 !s.pos.isNearTo(s.pos.findClosestByRange(FIND_MINERALS))
         })[0];
         if (!controllerContainer) {
@@ -690,7 +689,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
 
     function addExistingRampartsToSpots(room, spots) {
         // Only add existing ramparts or walls once
-        let existingRamparts = _.filter(room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
+        let existingRamparts = room.ramparts.concat(room.constructedWalls);
         existingRamparts.forEach((b) => spots.push({x: b.pos.x, y: b.pos.y}));
     }
 
@@ -748,7 +747,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
 }
 
 function roadBuilder(room, layout) {
-    let spawn = _.find(room.impassibleStructures, (s) => s.structureType === STRUCTURE_SPAWN);
+    let spawn = room.spawns[0];
     if (!spawn) return false;
 
     // Source roads
@@ -820,8 +819,8 @@ function roadBuilder(room, layout) {
     }
 
     function buildTowerRoads(room) {
-        const towers = room.structures.filter((s) => s.structureType === STRUCTURE_TOWER);
-        const spawn = _.find(room.impassibleStructures.filter(s => s.structureType === STRUCTURE_SPAWN));
+        const towers = room.towers;
+        const spawn = room.spawns[0];
         for (const tower of towers) {
             if (buildRoadFromTo(room, spawn, tower)) return true;
         }
@@ -830,9 +829,9 @@ function roadBuilder(room, layout) {
 
     function buildMineralLinkAndLabRoads(room) {
         let container = Game.getObjectById(room.memory.extractorContainer);
-        let spawn = _.find(room.impassibleStructures.filter(s => s.structureType === STRUCTURE_SPAWN));
+        let spawn = room.spawns[0];
         if (container && spawn && buildRoadFromTo(room, spawn, container)) return true;
-        let labsLinks = room.impassibleStructures.filter(s => s.structureType === STRUCTURE_LAB || s.structureType === STRUCTURE_LINK);
+        let labsLinks = room.labs.concat(room.links);
         if (labsLinks.length) {
             let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
             for (let lab of labsLinks) {
@@ -847,7 +846,7 @@ function roadBuilder(room, layout) {
         const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
         if (!ramparts || !ramparts.length) return false;
         const rampartPositions = ramparts.map(p => new RoomPosition(p.x, p.y, room.name));
-        const spawn = _.find(room.impassibleStructures.filter(s => s.structureType === STRUCTURE_SPAWN));
+        const spawn = room.spawns[0];
         let buildCounter = 0;
         for (let pos of rampartPositions) {
             if (buildCounter >= 5) return true;
@@ -970,7 +969,7 @@ function roadBuilder(room, layout) {
             }
         }
 
-        const roads = room.structures.filter(s => s.structureType === STRUCTURE_ROAD);
+        const roads = room.roads;
         let removed = false;
         for (const road of roads) {
             if (road.pos.checkForRampart()) continue;
@@ -985,7 +984,7 @@ function roadBuilder(room, layout) {
 
 function labBuilder(room) {
     // Check the current number of built labs
-    let builtLabs = _.filter(room.impassibleStructures, (s) => s.structureType === STRUCTURE_LAB).length;
+    let builtLabs = room.labs.length;
 
     // Check if there's already a construction site for labs
     let labInBuild = _.find(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB);
@@ -1008,10 +1007,10 @@ function labBuilder(room) {
 }
 
 function mineralBuilder(room) {
-    let extractor = _.find(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR);
+    let extractor = room.extractor;
 
     if (extractor) {
-        let extractorContainer = _.find(extractor.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
+        let extractorContainer = extractor.pos.findInRange(room.containers, 1);
         if (!extractorContainer) {
             room.memory.extractorContainer = undefined;
             if (!_.find(extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)) {
@@ -1057,7 +1056,7 @@ function findHub(room, hubCheck = undefined) {
         });
 
         // Recover hub from already-placed key structures (respects dynamic layout too)
-        const spawn = room.impassibleStructures.find(s => s.my && s.structureType === STRUCTURE_SPAWN && s.name !== 'auto');
+        const spawn = room.spawns.find(s => s.name !== 'auto');
         if (room.terminal) {
             room.memory.bunkerHub = {x: room.terminal.pos.x + 1, y: room.terminal.pos.y};
             log.a(`${room.name} hub recovered from terminal.`);
@@ -1139,7 +1138,7 @@ function findLabHub(room) {
     if (room.memory.labHub && room.memory.labHub.x && room.memory.labHub.y) return;
 
     // Try to find the old spot
-    const labs = _.filter(room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_LAB);
+    const labs = room.labs;
     if (labs.length) {
         room.memory.labHub = {x: labs[0].pos.x, y: labs[0].pos.y};
         return true;
@@ -1221,7 +1220,7 @@ function buildTowersFromHubs(room) {
     const hubs = room.memory.towerHubs;
     if (!hubs || !hubs.length) return false;
     const allowed = CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level];
-    const current = room.structures.filter(s => s.structureType === STRUCTURE_TOWER).length +
+    const current = room.towers.length +
         room.constructionSites.filter(s => s.structureType === STRUCTURE_TOWER).length;
     if (current >= allowed) return false;
     for (const {x, y} of hubs.slice(0, allowed)) {
@@ -1239,7 +1238,7 @@ function buildTowersFromHubs(room) {
 // Uses terrain.get() and inline Chebyshev math to avoid per-tile API calls.
 function findTowerHub(room) {
     // Clear existing towers so we reposition from scratch
-    room.structures.filter(s => s.structureType === STRUCTURE_TOWER).forEach(t => t.destroy());
+    room.towers.forEach(t => t.destroy());
     room.constructionSites.filter(s => s.structureType === STRUCTURE_TOWER).forEach(t => t.remove());
 
     const hubX = room.memory.bunkerHub.x, hubY = room.memory.bunkerHub.y;
@@ -1576,7 +1575,7 @@ function generateExtensionPositions(room) {
 function placeExtensionsDynamically(room) {
     const positions = getExtensionPositions(room);
     const needed = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.controller.level];
-    const existing = room.structures.filter(s => s.structureType === STRUCTURE_EXTENSION).length +
+    const existing = room.extensions.length +
         room.constructionSites.filter(s => s.structureType === STRUCTURE_EXTENSION).length;
     if (existing >= needed) return false;
     for (const {x, y} of positions) {

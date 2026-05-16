@@ -95,7 +95,7 @@ function handleRoomDenialOperation(room) {
         return;
     }
 
-    const towers = room.structures.find((s) => s.structureType === STRUCTURE_TOWER);
+    const towers = room.towers[0];
     Memory.targetRooms[room.name].camping = !!towers;
 
     updateRoomLevel(room);
@@ -104,7 +104,7 @@ function handleRoomDenialOperation(room) {
 
 function handleScoutOperation(room) {
     room.cacheRoomIntel(true)
-    const towers = room.structures.filter((s) => s.structureType === STRUCTURE_TOWER);
+    const towers = room.towers;
     const owner = INTEL[room.name].owner;
     const isHostile = owner && !FRIENDLIES.includes(owner);
 

@@ -41,7 +41,7 @@ class RoleClaimer {
         if (this.creep.room.controller.owner) {
             this.cleanRoom(this.room);
             return this.creep.recycleCreep();
-        } else if (!this.creep.pos.findClosestByPath(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTROLLER))) {
+        } else if (!this.creep.pos.findClosestByPath(this.room.controller)) {
             INTEL[this.room.name].obstacles = true;
             Memory.auxiliaryTargets[this.room.name] = undefined;
             return this.creep.recycleCreep();

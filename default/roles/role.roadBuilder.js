@@ -100,7 +100,7 @@ class RoleRoadBuilder {
         // Attempt to place road construction sites
         if (!this.placeRoads()) {
             INTEL[this.creep.room.name].roadsBuilt = true;
-            INTEL[this.creep.room.name].roadCount = this.creep.room.structures.filter(s => s.structureType === STRUCTURE_ROAD).length;
+            INTEL[this.creep.room.name].roadCount = this.creep.room.roads.length;
             this.creep.memory.destination = undefined;
         }
     }
@@ -130,7 +130,7 @@ class RoleRoadBuilder {
 
         // If roads were marked built, verify road count hasn't dropped
         if (intel.roadsBuilt && Math.random() > 0.75) {
-            const currentRoads = room.structures.filter(s => s.structureType === STRUCTURE_ROAD).length;
+            const currentRoads = room.roads.length;
             if (intel.roadCount <= currentRoads) return true;
         }
 
@@ -139,7 +139,7 @@ class RoleRoadBuilder {
         if (!homeExits.length) return false;
         const homeTarget = homeExits[Math.round(homeExits.length / 2)];
 
-        const containers = room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER);
+        const containers = room.containers;
         const origins = containers.length ? containers : room.sources;
 
         // Source/container → home exit

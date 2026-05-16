@@ -75,7 +75,7 @@ class StateManager {
         // Amortised spawn cost: total energy capacity of all creeps / average lifespan
         const spawnExpense = Math.ceil(room.myCreeps.reduce((sum, c) => sum + global.UNIT_COST(c.body), 0) / CREEP_LIFE_TIME);
         // Tower drain: only counts when towers are actually firing (hostiles present)
-        const towerExpense = HOSTILES.length > 0 ? room.impassibleStructures.filter(s => s.structureType === STRUCTURE_TOWER && s.isActive()).length * 2 : 0;
+        const towerExpense = HOSTILES.length > 0 ? room.towers.filter(s => s.structureType === STRUCTURE_TOWER && s.isActive()).length * 2 : 0;
         const expense = upgradeExpense + droneExpense + spawnExpense + towerExpense;
         const spareIncome = room.energyState > 2 ? 9999999 : income - expense;
         room.memory.energyInfo = {income, expense, spareIncome};
@@ -109,7 +109,7 @@ class StateManager {
     }
 
     requestBuilders(room) {
-        const hasSpawn = room.impassibleStructures.some(s => s.structureType === STRUCTURE_SPAWN);
+        const hasSpawn = room.spawns[0];
         const missingStorage = room.level >= 4 && !room.storage;
         const missingTerminal = room.level >= 6 && !room.terminal;
         room.memory.buildersNeeded = !hasSpawn || missingStorage || missingTerminal || room.downgraded;

@@ -134,7 +134,7 @@ class RoleRemoteHauler {
             return true;
         }
 
-        const containers = this.room.structures.filter(s => s.structureType === STRUCTURE_CONTAINER);
+        const containers = this.room.containers;
         const container = containers.find(
             s => s.store.getUsedCapacity() > s.store[RESOURCE_ENERGY]
         );
@@ -147,7 +147,7 @@ class RoleRemoteHauler {
 
     exitLinkCheck() {
         this.memory.exitLinkCheck = true;
-        const link = this.room.structures.find(s => s.structureType === STRUCTURE_LINK && ![s.room.memory.hubLink, s.room.memory.controllerLink].includes(s.id) &&
+        const link = this.room.links.find(s => ![s.room.memory.hubLink, s.room.memory.controllerLink].includes(s.id) &&
             s.pos.getRangeTo(this.creep) <= 9 && (!s.room.storage || s.pos.getRangeTo(this.creep) < s.room.storage.pos.getRangeTo(this.creep)));
         if (link) this.memory.exitLink = link.id;
     }
@@ -202,10 +202,7 @@ function dropOff(creep) {
     const controllerContainer = Game.getObjectById(colony.memory.controllerContainer);
 
     // Efficiently find towers needing energy
-    const lowTower = colony.structures.find(
-        s => s.structureType === STRUCTURE_TOWER &&
-            s.store.getFreeCapacity(RESOURCE_ENERGY) > TOWER_CAPACITY * 0.4
-    );
+    const lowTower = colony.towers.find(s => s.store.getFreeCapacity(RESOURCE_ENERGY) > TOWER_CAPACITY * 0.4);
 
     if (lowTower) {
         memory.storageDestination = lowTower.id;

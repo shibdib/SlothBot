@@ -9,7 +9,7 @@ class ObserverControl {
     }
 
     run(room) {
-        const observer = room.impassibleStructures.find(s => s.structureType === STRUCTURE_OBSERVER);
+        const observer = room.observer;
         if (!observer) return;
 
         const roomName = room.name;

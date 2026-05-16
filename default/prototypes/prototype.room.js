@@ -121,7 +121,7 @@ Object.defineProperty(Room.prototype, 'structures', {
 Object.defineProperty(Room.prototype, 'barriers', {
     get: function () {
         if (!this._barriers) {
-            this._barriers = this.structures.filter(s => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
+            this._barriers = this.ramparts.concat(this.constructedWalls);
         }
         return this._barriers;
     },
@@ -360,17 +360,6 @@ Object.defineProperty(Room.prototype, 'level', {
     configurable: true
 });
 
-Object.defineProperty(Room.prototype, 'nuker', {
-    get: function () {
-        if (!this._nuker) {
-            this._nuker = _.find(this.impassibleStructures, (s) => s.structureType === STRUCTURE_NUKER && s.isActive());
-        }
-        return this._nuker;
-    },
-    enumerable: false,
-    configurable: true
-});
-
 Object.defineProperty(Room.prototype, 'energy', {
     get: function () {
         if (!this._energy) {
@@ -401,17 +390,6 @@ Object.defineProperty(Room.prototype, 'energyIncome', {
             this._energyIncome = 0;
         }
         return this._energyIncome;
-    },
-    enumerable: false,
-    configurable: true
-});
-
-Object.defineProperty(Room.prototype, 'factory', {
-    get: function () {
-        if (!this._factory) {
-            this._factory = _.filter(this.structures, (s) => s.structureType === STRUCTURE_FACTORY && s.isActive())[0];
-        }
-        return this._factory;
     },
     enumerable: false,
     configurable: true
@@ -614,8 +592,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         }
 
         // Tower and terminal checks
-        const towers = this.structures.filter((s) => s.structureType === STRUCTURE_TOWER &&
-            s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST &&
+        const towers = this.towers.filter((s) => s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST &&
             s.isActive())
         if (towers.length) {
             purgeBadRoute(this.name);
@@ -646,7 +623,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     }
 
     // Special room type checks
-    roomIntel.sk = this.structures.some(s => s.structureType === STRUCTURE_KEEPER_LAIR);
+    roomIntel.sk = this.keeperLairs.length > 0;
     roomIntel.isHighway = roomIntel.sources === 0;
     if (roomIntel.sources !== 0) {
         delete roomIntel.isHighway;
@@ -743,7 +720,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     }
 
     function determineBestAttackRoute(room) {
-        const barriers = room.structures.filter(s => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
+        const barriers = room.ramparts.concat(room.constructedWalls);
         if (!barriers.length) return undefined;
         const roomExits = Object.values(Game.map.describeExits(room.name));
         const viableExits = roomExits.filter(exit => !INTEL[exit] || !INTEL[exit].owner || INTEL[exit].owner === MY_USERNAME);
@@ -978,3 +955,98 @@ Room.prototype.boostCheck = function (body = undefined, parts = undefined, tier 
         return room.store(BOOST_USE[part][tier]) >= needed;
     }
 }
+
+/* Posted March 10th, 2018 by @semperrabbit*/
+/**
+ Module: prototype.Room.structures v1.8
+ Author: SemperRabbit
+ Date:   20180309-13,20180411,20200524
+ Usage:  require('prototype.Room.structures');
+
+ This module will provide structure caching and extends the Room
+ class' prototype to provide `room.controller`-like properties
+ for all structure types. It will cache the object IDs of a
+ room.find() grouped by type as IDs in global. Once the property
+ is requested, it will chech the cache (and refresh if required),
+ then return the appropriate objects by maping the cache's IDs
+ into game objects for that tick.
+ */
+
+let roomStructures = {};
+let roomStructuresExpiration = {};
+
+const CACHE_TIMEOUT = 50;
+const CACHE_OFFSET = 4;
+
+const multipleList = [
+    STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_ROAD, STRUCTURE_WALL,
+    STRUCTURE_RAMPART, STRUCTURE_KEEPER_LAIR, STRUCTURE_PORTAL, STRUCTURE_LINK,
+    STRUCTURE_TOWER, STRUCTURE_LAB, STRUCTURE_CONTAINER, STRUCTURE_POWER_BANK,
+];
+
+const singleList = [
+    STRUCTURE_OBSERVER, STRUCTURE_POWER_SPAWN, STRUCTURE_EXTRACTOR, STRUCTURE_NUKER, STRUCTURE_INVADER_CORE,
+    STRUCTURE_FACTORY,		//STRUCTURE_TERMINAL,   STRUCTURE_CONTROLLER,   STRUCTURE_STORAGE,
+];
+
+function getCacheExpiration() {
+    return CACHE_TIMEOUT + Math.round((Math.random() * CACHE_OFFSET * 2) - CACHE_OFFSET);
+}
+
+Room.prototype._checkRoomCache = function _checkRoomCache() {
+    // if cache is expired or doesn't exist
+    if (!roomStructuresExpiration[this.name] || !roomStructures[this.name] || roomStructuresExpiration[this.name] < Game.time) {
+        roomStructuresExpiration[this.name] = Game.time + getCacheExpiration();
+        roomStructures[this.name] = _.groupBy(this.find(FIND_STRUCTURES), s => s.structureType);
+        let i;
+        for (i in roomStructures[this.name]) {
+            roomStructures[this.name][i] = _.map(roomStructures[this.name][i], s => s.id);
+        }
+    }
+}
+
+multipleList.forEach(function (type) {
+    Object.defineProperty(Room.prototype, type + 's', {
+        get: function () {
+            if (this['_' + type + 's'] && this['_' + type + 's_ts'] === Game.time) {
+                return this['_' + type + 's'];
+            } else {
+                this._checkRoomCache();
+                if (roomStructures[this.name][type]) {
+                    this['_' + type + 's_ts'] = Game.time;
+                    return this['_' + type + 's'] = roomStructures[this.name][type].map(Game.getObjectById);
+                } else {
+                    this['_' + type + 's_ts'] = Game.time;
+                    return this['_' + type + 's'] = [];
+                }
+            }
+        },
+        set: function () {
+        },
+        enumerable: false,
+        configurable: true,
+    });
+});
+
+singleList.forEach(function (type) {
+    Object.defineProperty(Room.prototype, type, {
+        get: function () {
+            if (this['_' + type] && this['_' + type + '_ts'] === Game.time) {
+                return this['_' + type];
+            } else {
+                this._checkRoomCache();
+                if (roomStructures[this.name][type]) {
+                    this['_' + type + '_ts'] = Game.time;
+                    return this['_' + type] = Game.getObjectById(roomStructures[this.name][type][0]);
+                } else {
+                    this['_' + type + '_ts'] = Game.time;
+                    return this['_' + type] = undefined;
+                }
+            }
+        },
+        set: function () {
+        },
+        enumerable: false,
+        configurable: true,
+    });
+});

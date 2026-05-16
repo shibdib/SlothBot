@@ -143,7 +143,7 @@ class RoleRemoteHarvester {
 }
 
 function harvestDepositContainer(source, creep) {
-    let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(source) === 1});
+    let container = source.pos.findClosestByRange(creep.room.containers, {filter: (s) => s.pos.getRangeTo(source) === 1});
     if (container) {
         creep.memory.containerID = container.id;
         return container.id;

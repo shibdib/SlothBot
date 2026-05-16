@@ -89,7 +89,7 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
         (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange) && !s.pos.checkForRampart()
     );
 
-    const barriersPresent = _.some(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART)
+    const barriersPresent = (this.room.ramparts.length > 0 || this.room.constructedWalls.length > 0)
         && (!this.room.controller || !this.room.controller.owner || !FRIENDLIES.includes(this.room.controller.owner.username));
 
     // Handle a blocking creep for squads
@@ -198,9 +198,8 @@ Creep.prototype.attackHostile = function (hostile) {
     let moveTarget = hostile;
 
     // Check for a nearby rampart to use as cover
-    let rampartCover = this.pos.findClosestByPath(this.room.structures, {
-        filter: (r) => r.structureType === STRUCTURE_RAMPART &&
-            r.my &&
+    let rampartCover = this.pos.findClosestByPath(this.room.ramparts, {
+        filter: (r) => r.my &&
             !r.pos.checkForObstacleStructure() &&
             !r.pos.checkForConstructionSites() &&
             (!r.pos.checkForCreep() || r.pos.isEqualTo(this.pos)) &&
@@ -540,7 +539,7 @@ Creep.prototype.healInRange = function (blinky = undefined) {
  * @returns {*|boolean}
  */
 Creep.prototype.fleeHome = function (force = false) {
-    if (this.room.controller && this.room.controller.owner && FRIENDLIES.includes(this.room.controller.owner.username) && this.room.structures.find(s => s.structureType === STRUCTURE_TOWER)) return false;
+    if (this.room.controller && this.room.controller.owner && FRIENDLIES.includes(this.room.controller.owner.username) && this.room.towers[0]) return false;
     if (this.hits < this.hitsMax) force = true;
     if (!force && !this.memory.runCooldown && (this.hits === this.hitsMax || (!INTEL[this.room.name].lastCombat || INTEL[this.room.name].lastCombat + 10 < Game.time))) return false;
     if (!this.memory.ranFrom) this.memory.ranFrom = this.room.name;

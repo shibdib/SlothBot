@@ -194,7 +194,7 @@ class DefenseManager {
         if (activeSafemode || !this.room.controller.safeModeAvailable || this.room.controller.safeModeCooldown) return;
 
         const damagedStructures = this.room.structures.find(s => [STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN, STRUCTURE_EXTENSION].includes(s.structureType) && s.hits < s.hitsMax);
-        const spawn = this.room.structures.find((s) => s.structureType === STRUCTURE_SPAWN);
+        const spawn = this.room.spawns[0];
 
         if (damagedStructures || (this.room.controller.level >= 6 && !spawn)) {
             this.room.memory.safeModeInfo = {

@@ -25,7 +25,7 @@ class RoleExplorer {
     findDestination() {
         // Portal logic
         const portal = Game.getObjectById(this.creep.memory.portal) ||
-            this.creep.pos.findClosestByRange(_.filter(this.creep.room.structures, s => s.structureType === STRUCTURE_PORTAL && !s.destination.shard));
+            this.creep.pos.findClosestByRange(_.filter(this.creep.room.portals, s => !s.destination.shard));
         if (!this.creep.memory.usedPortal && portal && (this.creep.memory.other.portalJump || Math.random() > 0.01)) {
             if (!this.creep.memory.other.portalJump) {
                 const roomName = portal.destination.shard ? portal.destination.room : portal.destination.roomName;
