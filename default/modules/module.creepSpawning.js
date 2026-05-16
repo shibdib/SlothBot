@@ -670,10 +670,14 @@ module.exports.remoteCreepQueue = function (room) {
             if (remoteSource && remoteSource.room) {
                 // Pre-RCL7 rooms have 1 spawn — always deprioritize remotes so local creeps aren't squeezed out
                 const priority = (room.energyState > 1 && room.storage) || room.level < 7 ? PRIORITIES.remoteHarvester * 2 : PRIORITIES.remoteHarvester;
-                queueCreep(room, priority, {
+                queueCreepIfNeeded({
+                    room: room,
                     role: 'remoteHarvester',
+                    priority: priority,
+                    numberNeeded: 1,
                     destination: remoteSource.room,
-                    other: {source: remoteSource.source, score: remoteSource.score}
+                    assignment: remoteSource.source,
+                    other: {source: remoteSource.source, score: remoteSource.score},
                 });
             }
         }
