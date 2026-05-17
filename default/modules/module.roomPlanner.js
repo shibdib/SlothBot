@@ -1236,6 +1236,24 @@ function buildTowersFromHubs(room) {
 // Scores every non-wall tile by total tower damage coverage across all exit threat points,
 // selects up to 6 well-spread positions for maximum defensibility.
 // Uses terrain.get() and inline Chebyshev math to avoid per-tile API calls.
+// Returns an array of FIND_EXIT_* constants for sides whose neighbour is a dead-end
+// (no onward exits) and not enemy-owned, so attackers can't approach from there.
+function getUndefendedExits(roomName) {
+    const neighbouring = Game.map.describeExits(roomName);
+    const dirToFind = {'1': FIND_EXIT_TOP, '3': FIND_EXIT_RIGHT, '5': FIND_EXIT_BOTTOM, '7': FIND_EXIT_LEFT};
+    const undefended = [];
+    for (const dir in dirToFind) {
+        const neighbour = neighbouring[dir];
+        if (!neighbour) continue;
+        const intel = INTEL[neighbour];
+        if (intel && intel.owner && !FRIENDLIES.includes(intel.owner)) continue;
+        if (Object.keys(Game.map.describeExits(neighbour) || {}).length <= 1) {
+            undefended.push(dirToFind[dir]);
+        }
+    }
+    return undefended;
+}
+
 function findTowerHub(room) {
     // Clear existing towers so we reposition from scratch
     room.towers.forEach(t => t.destroy());
@@ -1244,11 +1262,13 @@ function findTowerHub(room) {
     const hubX = room.memory.bunkerHub.x, hubY = room.memory.bunkerHub.y;
     const neighboring = Game.map.describeExits(room.name);
     const dirToFind = {'1': FIND_EXIT_TOP, '3': FIND_EXIT_RIGHT, '5': FIND_EXIT_BOTTOM, '7': FIND_EXIT_LEFT};
+    const undefendedExits = getUndefendedExits(room.name);
 
     // Sample three points per exit edge for multi-angle coverage scoring
     const threatPoints = [], allExitTiles = [];
     for (const dir in dirToFind) {
         if (!neighboring[dir]) continue;
+        if (undefendedExits.includes(dirToFind[dir])) continue;
         const exits = room.find(dirToFind[dir]);
         if (!exits.length) continue;
         allExitTiles.push(...exits);
