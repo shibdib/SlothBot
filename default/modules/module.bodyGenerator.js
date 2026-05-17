@@ -116,6 +116,8 @@ class ModuleBodyGenerator {
             case 'upgrader':
                 if (this.room.memory.controllerLink || this.room.memory.controllerContainer) {
                     carry = this.room.memory.controllerLink ? 4 : 1;
+                    work = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] * carry)) / BODYPART_COST[WORK]) || 1;
+                    const maxWork = work;
                     if (this.room.memory.controllerLink && this.level >= 5) {
                         const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
                         const sourceLinks = controllerLink ? this.room.links
@@ -130,13 +132,14 @@ class ModuleBodyGenerator {
                                 work *= 0.15;
                             } else if (this.room.energyState === 1) {
                                 work *= 0.5;
+                            } else if (this.room.energyState === 2) {
+                                work *= 1.2;
+                            } else if (this.room.energyState === 3) {
+                                work *= 1.5;
                             }
-                        } else {
-                            // Source links not yet built — fall back to energy cap
-                            work = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] * carry)) / BODYPART_COST[WORK]) || 1;
                         }
                         // Cap at 15 at rcl8
-                        if (this.room.level === 8) Math.min(work, 15);
+                        work = this.room.level === 8 ? Math.min(work, 15) : Math.min(maxWork, work);
                     } else {
                         work = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] * carry)) / BODYPART_COST[WORK]) || 1;
                     }
