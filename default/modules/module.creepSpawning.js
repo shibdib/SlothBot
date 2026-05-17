@@ -844,7 +844,7 @@ module.exports.globalCreepQueue = function () {
         }
 
         if (!INTEL[key] || !opLevel || INTEL[key].cached + (CREEP_LIFE_TIME * 5) < Game.time) {
-            queueCreepIfNeeded({role: 'scout', priority: 1, numberNeeded: 1, destination: key});
+            queueCreepIfNeeded({role: 'scout', priority: 1, numberNeeded: 1, destination: key, closestRoom: true});
             continue;
         }
 
