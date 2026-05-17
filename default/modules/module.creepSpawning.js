@@ -1225,6 +1225,8 @@ function getQueue(room) {
                 levelTarget = MAX_LEVEL - 1;
             } else if (opMemory && opMemory.type === 'scout') {
                 levelTarget = 1;
+            } else if (opMemory && opMemory.type === 'claim') {
+                levelTarget = 5;
             } else if (opMemory && opMemory.type === 'roomDenial') {
                 const towers = intel && intel.towers || 0;
                 levelTarget = towers >= 3 ? 8 : towers === 2 ? 7 : towers === 1 ? 6 : 4;

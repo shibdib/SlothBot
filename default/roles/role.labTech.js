@@ -117,7 +117,9 @@ class RoleLabTech {
         const boostNeededLab = labs.find(s => s.memory.neededBoost && s.store.getFreeCapacity(s.memory.neededBoost) > 0 && s.store[s.memory.neededBoost] < s.memory.amount);
         if (boostNeededLab) {
             const boostNeeded = boostNeededLab.memory.neededBoost;
-            const supplier = [storage, terminal, labs, this.room.containers].find(s => s && s.store && s.store.getUsedCapacity(boostNeeded) > 0 && s.id !== boostNeededLab.id);
+            // Skip labs that are themselves collecting this boost — otherwise we'd churn between them.
+            const labSources = labs.filter(s => s.id !== boostNeededLab.id && s.memory.neededBoost !== boostNeeded && s.memory.itemNeeded !== boostNeeded);
+            const supplier = [storage, terminal, ...labSources, ...this.room.containers].find(s => s && s.store && s.store.getUsedCapacity(boostNeeded) > 0);
             if (supplier) return {
                 withdrawTarget: supplier.id,
                 deliveryTarget: boostNeededLab.id,
@@ -130,7 +132,8 @@ class RoleLabTech {
         const resourceNeededLab = _.min(resourceNeededLabs, s => s.store.getUsedCapacity(s.memory.itemNeeded))
         if (resourceNeededLab && resourceNeededLab.id) {
             const resourceNeeded = resourceNeededLab.memory.itemNeeded;
-            const supplier = [storage, terminal, labs, this.room.containers].find(s => s && s.store && s.store.getUsedCapacity(resourceNeeded) > 0 && s.id !== resourceNeededLab.id);
+            const labSources = labs.filter(s => s.id !== resourceNeededLab.id && s.memory.neededBoost !== resourceNeeded && s.memory.itemNeeded !== resourceNeeded);
+            const supplier = [storage, terminal, ...labSources, ...this.room.containers].find(s => s && s.store && s.store.getUsedCapacity(resourceNeeded) > 0);
             if (supplier) return {
                 withdrawTarget: supplier.id,
                 deliveryTarget: resourceNeededLab.id,

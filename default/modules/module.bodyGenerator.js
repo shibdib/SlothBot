@@ -115,7 +115,7 @@ class ModuleBodyGenerator {
 
             case 'upgrader':
                 if (this.room.memory.controllerLink || this.room.memory.controllerContainer) {
-                    carry = this.room.memory.controllerLink ? 3 : 1;
+                    carry = this.room.memory.controllerLink ? 4 : 1;
                     if (this.room.memory.controllerLink && this.level >= 5) {
                         const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
                         const sourceLinks = controllerLink ? this.room.links
