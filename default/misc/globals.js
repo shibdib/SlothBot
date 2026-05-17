@@ -92,7 +92,7 @@ let globals = function () {
 
     // Config
     global.BOOST_AMOUNT = function (room, boost) {
-        const base = room.level === 6 ? 1500 : room.level === 7 ? 5000 : 15000;
+        const base = room.level === 6 ? 5000 : room.level === 7 ? 25000 : 50000;
         if (!boost) return base;
         // T3 is the end-goal stockpile (largest target). T1/T2 are intermediate —
         // we want plenty for conversion and direct-use boosting, but at half the volume.

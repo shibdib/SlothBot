@@ -113,7 +113,29 @@ class LabManager {
 
     tryPriority(room) {
         const priority = !HOSTILES.length ? LAB_PEACE_PRIORITY : LAB_WAR_PRIORITY;
+        // Expand the T3 priority list into [...T1 prereqs, ...T2 prereqs, ...T3s].
+        // Why: T1/T2 reactions are much faster than T3, so stockpiling lower tiers across
+        // the whole priority list first means we always have *something* usable to boost
+        // with, instead of grinding on slow T3 reactions for the first priority entry.
+        const t1 = [], t2 = [], t3 = [];
         for (const boost of priority) {
+            if (!t3.includes(boost)) t3.push(boost);
+            const t2Comp = BOOST_COMPONENTS[boost] && BOOST_COMPONENTS[boost][0];
+            if (!t2Comp) continue;
+            if (!t2.includes(t2Comp)) t2.push(t2Comp);
+            const t1Comp = BOOST_COMPONENTS[t2Comp] && BOOST_COMPONENTS[t2Comp][0];
+            if (t1Comp && !t1.includes(t1Comp)) t1.push(t1Comp);
+        }
+        // Precursors checked room-local (they must be in this room to react); T3s checked empire-wide.
+        for (const boost of t1) {
+            const result = this.findProducible(room, boost, false);
+            if (result) return result;
+        }
+        for (const boost of t2) {
+            const result = this.findProducible(room, boost, false);
+            if (result) return result;
+        }
+        for (const boost of t3) {
             const result = this.findProducible(room, boost, true);
             if (result) return result;
         }
