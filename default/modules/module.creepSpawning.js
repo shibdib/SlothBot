@@ -1381,25 +1381,41 @@ function getPriority(room) {
     if (range <= 3) return PRIORITIES.priority; else if (range <= 5) return PRIORITIES.urgent; else if (range <= 7) return PRIORITIES.high; else if (range <= 10) return PRIORITIES.medium; else return PRIORITIES.secondary;
 }
 
+let assignmentCountsCache = {tick: 0, targetRooms: null, auxiliaryTargets: null};
 function getAssignedRoom(targetRoom, level, creepInfo) {
-    // Pre-compute assignment counts so the inner loop is O(1) instead of O(M) per room
-    const allOps = Memory.targetRooms[targetRoom] ? Memory.targetRooms : Memory.auxiliaryTargets;
-    const assignmentCounts = {};
-    for (const op of Object.values(allOps)) {
-        if (op && op.assignedRoom) assignmentCounts[op.assignedRoom] = (assignmentCounts[op.assignedRoom] || 0) + 1;
+    const category = Memory.targetRooms[targetRoom] ? 'targetRooms' : 'auxiliaryTargets';
+    if (assignmentCountsCache.tick !== Game.time) {
+        assignmentCountsCache = {tick: Game.time, targetRooms: null, auxiliaryTargets: null};
     }
+    let assignmentCounts = assignmentCountsCache[category];
+    if (!assignmentCounts) {
+        assignmentCounts = {};
+        for (const op of Object.values(Memory[category])) {
+            if (op && op.assignedRoom) assignmentCounts[op.assignedRoom] = (assignmentCounts[op.assignedRoom] || 0) + 1;
+        }
+        assignmentCountsCache[category] = assignmentCounts;
+    }
+
+    // Pre-sort by linear distance so the distance >= closestDistance early-continue
+    // skips farther rooms without calling shibRoute on them.
+    const candidates = MY_ROOMS
+        .filter((key) => key !== targetRoom)
+        .map((key) => ({key, linear: Game.map.getRoomLinearDistance(targetRoom, key)}))
+        .sort((a, b) => a.linear - b.linear);
 
     let closest = null;
     let closestDistance = Infinity;
 
-    for (const key of MY_ROOMS) {
-        if (key === targetRoom) continue;
+    for (const {key, linear} of candidates) {
+        if (linear >= closestDistance) break;
         const myRoom = Game.rooms[key];
+        if (!myRoom) continue;
         if (!myRoom.memory.combatReady || myRoom.controller.level !== myRoom.level || myRoom.downgraded) continue;
         if (myRoom.level < level) continue;
 
-        // Distance check before body generation — pure math, cheap early exit
-        const distance = Game.map.getRoomLinearDistance(key, targetRoom);
+        // Per-candidate route distance to the target room
+        const route = myRoom.shibRoute(targetRoom);
+        const distance = Array.isArray(route) && route.length ? route.length : Infinity;
         if (distance >= closestDistance || distance > 22) continue;
 
         if ((assignmentCounts[key] || 0) >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level] * 1.5) continue;

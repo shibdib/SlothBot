@@ -302,72 +302,70 @@ let helpers = function () {
 
     let closestCache = {};
     /**
-     * Find the closest owned room to a given room
-     * @param roomName
-     * @param range
-     * @param minLevel
-     * @param availableForCombat
-     * @returns {number|*|number|string}
+     * Find the closest owned (or optionally allied) room to a given room by route distance.
+     * @param {string} roomName - target room
+     * @param {boolean} [range=false] - if true return route distance, else return room name
+     * @param {number} [minLevel=1] - minimum controller level required
+     * @param {boolean} [includeAllies=false] - also consider FRIENDLIES with level >= minLevel
+     * @returns {string|number|undefined}
      */
-    global.findClosestOwnedRoom = function (roomName, range = false, minLevel = 1, includeAllies = undefined) {
+    global.findClosestOwnedRoom = function (roomName, range = false, minLevel = 1, includeAllies = false) {
+        const cacheKey = `${roomName}_${minLevel}_${includeAllies}`;
+
         // Direct check if the current room is owned and meets level criteria
         if (MY_ROOMS.includes(roomName)) {
             const room = Game.rooms[roomName];
             if (room && room.controller && room.controller.level >= minLevel) {
-                if (!closestCache[roomName]) {
-                    closestCache[roomName] = {
-                        closest: roomName,
-                        distance: 0,
-                        lastUpdated: Game.time
-                    };
-                } else {
-                    closestCache[roomName].lastUpdated = Game.time;
-                }
+                closestCache[cacheKey] = {closest: roomName, distance: 0, lastUpdated: Game.time};
                 return range ? 0 : roomName;
             }
         }
 
         // Cache check
-        const cacheKey = `${roomName}_${minLevel}_${includeAllies}`;
         const cached = closestCache[cacheKey];
         if (cached && Game.time - cached.lastUpdated < CREEP_LIFE_TIME * 3) {
             return range ? cached.distance : cached.closest;
         }
 
+        // Build candidates, pre-sort by linear distance so we can break once
+        // linear exceeds the best route length found (route length >= linear distance).
+        const baseNames = includeAllies
+            ? MY_ROOMS.concat(_.pluck(_.filter(INTEL, (r) => r && r.owner && FRIENDLIES.includes(r.owner) && r.level >= minLevel), 'name'))
+            : MY_ROOMS;
+        const candidates = baseNames
+            .map((name) => ({name, linear: Game.map.getRoomLinearDistance(roomName, name)}))
+            .sort((a, b) => a.linear - b.linear);
+
         let closest = null;
         let closestDistance = Infinity;
-
-        // Loop through owned rooms
-        const checkRooms = includeAllies ? MY_ROOMS.concat(_.pluck(_.filter(INTEL, (r) => r && r.owner && FRIENDLIES.includes(r.owner) && r.level >= minLevel), 'name')) : MY_ROOMS;
-        for (let key of checkRooms) {
-            if (!INTEL[key]) Game.rooms[key].cacheRoomIntel();
-            if (INTEL[key].level >= minLevel) {
-                let distance = Game.map.getRoomLinearDistance(roomName, key);
-                if (distance < closestDistance) {
-                    closestDistance = distance;
-                    closest = key;
-                    // Exit if we find the closest possible (direct neighbor)
-                    if (distance === 1) break;
-                }
+        for (const {name, linear} of candidates) {
+            if (linear >= closestDistance) break;
+            const room = Game.rooms[name];
+            if (!room) continue;
+            if (!INTEL[name]) room.cacheRoomIntel();
+            if (!INTEL[name] || INTEL[name].level < minLevel) continue;
+            const route = room.shibRoute(roomName);
+            const distance = Array.isArray(route) && route.length ? route.length : Infinity;
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closest = name;
+                if (distance === 1) break;
             }
         }
 
-        // If no valid room was found, use a fallback
+        // Fallback: first spawn's room, only if it satisfies minLevel
         if (!closest) {
-            // Other shards/no spawn
-            if (!Game.spawns[Object.keys(Game.spawns)[0]]) return range ? 99 : undefined;
-             // First spawn's room
-            closest = Game.spawns[Object.keys(Game.spawns)[0]].room.name;
-            closestDistance = Game.map.getRoomLinearDistance(roomName, closest);
+            const firstSpawn = Game.spawns[Object.keys(Game.spawns)[0]];
+            if (firstSpawn && firstSpawn.room.controller && firstSpawn.room.controller.level >= minLevel) {
+                closest = firstSpawn.room.name;
+                const fallbackRoute = firstSpawn.room.shibRoute(roomName);
+                closestDistance = Array.isArray(fallbackRoute) && fallbackRoute.length ? fallbackRoute.length : Infinity;
+            } else {
+                return range ? Infinity : undefined;
+            }
         }
 
-        // Update cache
-        closestCache[cacheKey] = {
-            closest: closest,
-            distance: closestDistance,
-            lastUpdated: Game.time
-        };
-
+        closestCache[cacheKey] = {closest: closest, distance: closestDistance, lastUpdated: Game.time};
         return range ? closestDistance : closest;
     };
 
