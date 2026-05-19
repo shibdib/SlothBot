@@ -192,7 +192,7 @@ module.exports = World;
 
 function minionController(minion) {
     // Disable notifications
-    if (!minion.memory.notifyDisabled) {
+    if (minion.ticksToLive < 1499 && !minion.memory.notifyDisabled) {
         minion.notifyWhenAttacked(false);
         minion.memory.notifyDisabled = true;
     }

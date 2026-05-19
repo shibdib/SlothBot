@@ -180,7 +180,7 @@ class Colony {
 
     minionController(minion) {
         // Disable notifications if not already disabled
-        if (!minion.memory.notifyDisabled) {
+        if (minion.ticksToLive < 1499 && !minion.memory.notifyDisabled) {
             minion.notifyWhenAttacked(false);
             minion.memory.notifyDisabled = true;
         }

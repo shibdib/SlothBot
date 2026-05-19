@@ -199,7 +199,7 @@ module.exports.storePathing = function () {
                     RawMemory.segments[69] = stringified;
                     lastPathingStore = Game.time;
                 } else {
-                    log.e("Path cache still over 100KB after cleanup, clearing.", "PATHING MANAGER: ");
+                    log.d("Path cache still over 100KB after cleanup, clearing.", "PATHING MANAGER: ");
                     global.CACHE.PATH_CACHE = {};
                     RawMemory.segments[69] = '';
                 }
