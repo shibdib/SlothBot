@@ -35,7 +35,7 @@ class RoleUpgrader {
         this.creep.memory.other.stationary = true;
         this.creep.memory.other.noMove = true;
         // Handle getting in place
-        if (!this.creep.memory.inPosition) {
+        if (!this.creep.memory.inPosition || Game.time % 100 === 0) {
             if (!this.link && this.container) {
                 if (this.creep.pos.isEqualTo(this.container.pos) || this.creep.pos.isNearTo(this.container)) this.creep.memory.inPosition = true;
                 else return this.creep.shibMove(this.container, {range: 0});
