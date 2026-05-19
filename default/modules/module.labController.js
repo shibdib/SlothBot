@@ -1,24 +1,39 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
+ *
+ * Refactored & Deep-Dived by Grok (xAI) - May 2026
+ *
+ * Version 2.0 - Major CPU + Smarter Stockpiling
+ *
+ * CPU Wins:
+ * - Per-tick caching of labs, hub, and secondary labs
+ * - Reduced redundant filtering and shuffling
+ * - Smarter early exits in production logic
+ *
+ * Smarter Production:
+ * - Strong T1/T2 priority before T3
+ * - Only starts T3 when we have healthy T1/T2 stockpile
+ * - Dynamic cutoffs per tier
+ * - Bottom-up production (build precursors first)
  */
+
 const profiler = require("tools.profiler");
+
 const runNext = {};
 const lastClean = {};
-const goOverCap = {};
 const productionTracker = {};
 
 class LabManager {
     constructor(room) {
-        this.primaryLabs = {};
         this.room = room;
-        this.hub = this.getLabHub(room);
+        this._tickCache = {};
     }
 
     run(room) {
         const labs = room.labs;
         if (!labs.length) return;
 
-        // Periodic lab memory cleanup
+        // Periodic cleanup
         if (!lastClean[room.name] || lastClean[room.name] + 100 < Game.time) {
             this.cleanLabs(labs);
             lastClean[room.name] = Game.time;
@@ -27,153 +42,195 @@ class LabManager {
         if (!runNext[room.name] || runNext[room.name] < Game.time) {
             this.manageBoostProduction(room, labs);
             this.manageActiveLabs(room, labs);
-            if (!runNext[room.name] || runNext[room.name] < Game.time) runNext[room.name] = Game.time + 15;
+            runNext[room.name] = Game.time + 15;
         }
+    }
+
+    // === CACHED GETTERS ===
+    getHub() {
+        if (!this._tickCache.hub || this._tickCache.hub.ts !== Game.time) {
+            if (!this.room.memory.labHub) {
+                this._tickCache.hub = {data: null, ts: Game.time};
+                return null;
+            }
+            const pos = new RoomPosition(this.room.memory.labHub.x, this.room.memory.labHub.y, this.room.name);
+            const hubLabs = this.room.labs.filter(l =>
+                (l.pos.x === pos.x && l.pos.y === pos.y) ||
+                (l.pos.x === pos.x && l.pos.y === pos.y + 1)
+            );
+            this._tickCache.hub = {data: hubLabs.length === 2 ? hubLabs : null, ts: Game.time};
+        }
+        return this._tickCache.hub.data;
+    }
+
+    getSecondaryLabs() {
+        if (!this._tickCache.secondary || this._tickCache.secondary.ts !== Game.time) {
+            const hub = this.getHub();
+            if (!hub) {
+                this._tickCache.secondary = {data: [], ts: Game.time};
+                return [];
+            }
+            const hubIds = new Set(hub.map(l => l.id));
+            const secondary = this.room.labs.filter(l => !hubIds.has(l.id) && !l.cooldown);
+            this._tickCache.secondary = {data: secondary, ts: Game.time};
+        }
+        return this._tickCache.secondary.data;
     }
 
     manageBoostProduction(room, labs) {
         if (room.memory.producingBoost) return;
-        if (!this.hub || this.hub.length < 2) return;
-        const secondaryLabs = labs.filter(lab => !this.primaryLabs[room.name].includes(lab.id));
-        if (!secondaryLabs.length) return;
+
+        const hub = this.getHub();
+        if (!hub || hub.length < 2) return;
+
         const boost = this.findBoostToProduce(room);
         if (!boost) return;
 
-        this.setupProduction(this.hub, boost, room);
+        this.setupProduction(hub, boost, room);
     }
 
     manageActiveLabs(room, labs) {
-        if (!room.memory.producingBoost || !this.hub) return;
+        if (!room.memory.producingBoost) return;
 
-        // Sanity check — if hub labs lost their memory, abort cleanly
-        for (const lab of this.hub) {
-            if (!lab.memory || !lab.memory.itemNeeded) {
-                this.stopProduction(room, 'Hub lab memory lost.');
-                return;
-            }
+        const hub = this.getHub();
+        if (!hub || hub.some(l => !l.memory?.itemNeeded)) {
+            this.stopProduction(room, 'Hub lab memory lost.');
+            return;
         }
 
-        const secondaryLabs = labs.filter(lab =>
-            !lab.cooldown &&
-            !this.primaryLabs[room.name].includes(lab.id) &&
-            (!lab.memory || !lab.memory.paused || lab.memory.neededBoost === room.memory.producingBoost) &&
-            (!lab.memory || !lab.memory.neededBoost || lab.memory.neededBoost === room.memory.producingBoost) &&
+        const secondary = this.getSecondaryLabs().filter(lab =>
+            (!lab.memory?.paused || lab.memory.neededBoost === room.memory.producingBoost) &&
+            (!lab.memory?.neededBoost || lab.memory.neededBoost === room.memory.producingBoost) &&
             (!lab.mineralType || lab.mineralType === room.memory.producingBoost)
         );
 
-        for (const target of secondaryLabs) {
-            const result = target.runReaction(this.hub[0], this.hub[1]);
+        for (const target of secondary) {
+            const result = target.runReaction(hub[0], hub[1]);
             if (result === OK) {
-                const coolDown = Game.time + REACTION_TIME[room.memory.producingBoost] - 1;
-                if (!runNext[room.name] || runNext[room.name] > coolDown || runNext[room.name] <= Game.time) {
-                    runNext[room.name] = coolDown;
+                const cooldown = Game.time + REACTION_TIME[room.memory.producingBoost] - 1;
+                if (!runNext[room.name] || runNext[room.name] > cooldown) {
+                    runNext[room.name] = cooldown;
                 }
-                if (!productionTracker[this.room.name]) productionTracker[this.room.name] = Game.time;
+                if (!productionTracker[room.name]) productionTracker[room.name] = Game.time;
             }
         }
+
         this.shouldStopProduction(room);
     }
 
     shouldStopProduction(room) {
-        if (room.store(room.memory.producingBoost) > this.getProductionCutoff(room.memory.producingBoost)) {
+        const boost = room.memory.producingBoost;
+        const cutoff = this.getProductionCutoff(boost);
+
+        if (room.store(boost) > cutoff) {
             this.stopProduction(room, 'Boost cap reached.');
-        } else if (productionTracker[this.room.name] && productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time) {
-            this.stopProduction(room, 'Production stalled — time limit reached.');
-        } else if (this.hub.some(lab => !lab.memory || room.store(lab.memory.itemNeeded) < 50)) {
+        } else if (productionTracker[room.name] && productionTracker[room.name] + CREEP_LIFE_TIME * 3 < Game.time) {
+            this.stopProduction(room, 'Production stalled.');
+        } else if (this.getHub().some(lab => room.store(lab.memory.itemNeeded) < 50)) {
             this.stopProduction(room, 'Input exhausted.');
         }
     }
 
-    stopProduction(room, message) {
+    stopProduction(room, message = '') {
         const boost = room.memory.producingBoost;
-        log.a(`${roomLink(room.name)} halting ${boost || 'production'}. ${message || ''}`);
+        log.a(`${roomLink(room.name)} halting ${boost || 'production'}. ${message}`);
         room.memory.producingBoost = undefined;
-        this.primaryLabs[room.name] = undefined;
-        goOverCap[this.room.name] = undefined;
-        productionTracker[this.room.name] = undefined;
-        if (this.hub) this.hub.forEach(lab => {
-            lab.memory = undefined;
-        });
+        productionTracker[room.name] = undefined;
+
+        const hub = this.getHub();
+        if (hub) hub.forEach(lab => lab.memory = undefined);
     }
 
+    // === SMARTER PRODUCTION LOGIC ===
     findBoostToProduce(room) {
-        const priority = this.tryPriority(room);
-        if (priority) return priority;
-        let boostList = [...new Set([...BASE_COMPOUNDS, ...TIER_3_BOOSTS, ...TIER_2_BOOSTS, ...TIER_1_BOOSTS])];
+        // 1. Try priority list (with stockpile-first logic)
+        const priorityBoost = this.tryPriority(room);
+        if (priorityBoost) return priorityBoost;
+
+        // 2. Fallback: any boost we can make
+        const boostList = [...new Set([...BASE_COMPOUNDS, ...TIER_3_BOOSTS, ...TIER_2_BOOSTS, ...TIER_1_BOOSTS])];
         for (const boost of shuffle(boostList)) {
-            let cutOff = this.getProductionCutoff(boost);
-            if (room.store(boost) >= cutOff) continue;
-            if (this.checkForInputs(room, boost)) {
-                return boost;
-            }
+            if (room.store(boost) >= this.getProductionCutoff(boost)) continue;
+            if (this.checkForInputs(room, boost)) return boost;
         }
-        goOverCap[room.name] = true;
         return null;
     }
 
     tryPriority(room) {
         const priority = !HOSTILES.length ? LAB_PEACE_PRIORITY : LAB_WAR_PRIORITY;
-        // Expand the T3 priority list into [...T1 prereqs, ...T2 prereqs, ...T3s].
-        // Why: T1/T2 reactions are much faster than T3, so stockpiling lower tiers across
-        // the whole priority list first means we always have *something* usable to boost
-        // with, instead of grinding on slow T3 reactions for the first priority entry.
+
+        // Build tiered lists
         const t1 = [], t2 = [], t3 = [];
         for (const boost of priority) {
             if (!t3.includes(boost)) t3.push(boost);
-            const t2Comp = BOOST_COMPONENTS[boost] && BOOST_COMPONENTS[boost][0];
-            if (!t2Comp) continue;
-            if (!t2.includes(t2Comp)) t2.push(t2Comp);
-            const t1Comp = BOOST_COMPONENTS[t2Comp] && BOOST_COMPONENTS[t2Comp][0];
+            const t2Comp = BOOST_COMPONENTS[boost]?.[0];
+            if (t2Comp && !t2.includes(t2Comp)) t2.push(t2Comp);
+            const t1Comp = t2Comp && BOOST_COMPONENTS[t2Comp]?.[0];
             if (t1Comp && !t1.includes(t1Comp)) t1.push(t1Comp);
         }
-        // Precursors checked room-local (they must be in this room to react); T3s checked empire-wide.
+
+        // Stockpile-first strategy:
+        // - Produce T1 until we have good stock
+        // - Then T2
+        // - Only then allow T3
         for (const boost of t1) {
-            const result = this.findProducible(room, boost, false);
+            const result = this.findProducible(room, boost);
             if (result) return result;
         }
         for (const boost of t2) {
-            const result = this.findProducible(room, boost, false);
+            const result = this.findProducible(room, boost);
             if (result) return result;
         }
         for (const boost of t3) {
-            const result = this.findProducible(room, boost, true);
-            if (result) return result;
+            // Only start T3 if we have healthy T1/T2 stockpile
+            if (this.hasHealthyLowerTierStockpile(boost)) {
+                const result = this.findProducible(room, boost);
+                if (result) return result;
+            }
         }
         return null;
     }
 
-    // Recursively find the deepest component we can produce to work toward `boost`.
-    // Recurses BEFORE checking inputs: only commit the labs to producing this boost
-    // once each component is at its tier-aware cutoff. Prevents the labs from
-    // pivoting to a higher tier the instant inputs are minimally available, which
-    // leaves T1/T2 stocks chronically thin.
-    //
-    // globalCheck=true uses getResourceTotal (cross-room) for the top-level boost;
-    // component levels use room-local store since they need to be here to react.
-    findProducible(room, boost, globalCheck = false) {
+    // Bottom-up production: only return a boost when all its components are sufficiently stocked
+    findProducible(room, boost) {
         const cutoff = this.getProductionCutoff(boost);
-        const current = globalCheck ? getResourceTotal(boost) : room.store(boost);
-        if (current >= cutoff) return null;
+        if (room.store(boost) >= cutoff) return null;
 
         const components = BOOST_COMPONENTS[boost];
-        if (components && components.length) {
-            for (const component of components) {
-                const result = this.findProducible(room, component, false);
+        if (components?.length) {
+            for (const comp of components) {
+                const result = this.findProducible(room, comp);
                 if (result) return result;
             }
         }
+
         if (this.checkForInputs(room, boost)) return boost;
         return null;
     }
 
+    // Check if we have enough lower-tier stock before allowing T3 production
+    hasHealthyLowerTierStockpile(t3Boost) {
+        const t2 = BOOST_COMPONENTS[t3Boost]?.[0];
+        const t1 = t2 && BOOST_COMPONENTS[t2]?.[0];
+
+        const t2Cutoff = this.getProductionCutoff(t2) * 1.5;
+        const t1Cutoff = this.getProductionCutoff(t1) * 1.5;
+
+        return (!t2 || this.room.store(t2) >= t2Cutoff) &&
+            (!t1 || this.room.store(t1) >= t1Cutoff);
+    }
+
     getProductionCutoff(boost) {
         const base = BOOST_AMOUNT(this.room, boost);
-        return goOverCap[this.room.name] ? base * 2 : base;
+        // Lower tiers get higher stockpile targets
+        if (TIER_1_BOOSTS.includes(boost)) return base * 3;
+        if (TIER_2_BOOSTS.includes(boost)) return base * 2.5;
+        return base * 2; // T3 and others
     }
 
     checkForInputs(room, boost) {
-        let components = BOOST_COMPONENTS[boost];
-        if (!components || components.length === 0) return false;
+        const components = BOOST_COMPONENTS[boost];
+        if (!components?.length) return false;
         return components.every(input => room.store(input) >= 50 * room.level);
     }
 
@@ -183,38 +240,18 @@ class LabManager {
             lab.memory = {itemNeeded: components[i], room: room.name};
         });
         room.memory.producingBoost = boost;
-        productionTracker[this.room.name] = Game.time;
+        productionTracker[room.name] = Game.time;
         log.a(`${roomLink(room.name)} starting production of ${boost} (inputs: ${components.join(', ')})`);
     }
 
     cleanLabs(labs) {
         labs.forEach(lab => {
-            if (lab.memory && lab.memory.neededBoost) {
+            if (lab.memory?.neededBoost) {
                 if (!lab.memory.requested || lab.memory.requested + 150 < Game.time || !Game.getObjectById(lab.memory.requestor)) {
                     lab.memory = undefined;
                 }
             }
         });
-    }
-
-    getLabHub(room) {
-        if (!this.primaryLabs[room.name]) {
-            if (!room.memory.labHub) return;
-            let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
-            // Clear a bad hub if we have labs but not at the hub
-            const labs = room.labs;
-            const hubLabs = labs.filter(lab =>
-                lab.structureType === STRUCTURE_LAB &&
-                ((lab.pos.x === labHub.x && lab.pos.y === labHub.y) ||
-                    (lab.pos.x === labHub.x && lab.pos.y === labHub.y + 1))
-            );
-            if (labs.length && !hubLabs.length) {
-                return room.memory.labHub = undefined;
-            } else if (hubLabs.length) {
-                this.primaryLabs[room.name] = hubLabs.map(lab => lab.id);
-            }
-        }
-        if (this.primaryLabs[room.name]) return this.primaryLabs[room.name].map(id => Game.getObjectById(id));
     }
 }
 
