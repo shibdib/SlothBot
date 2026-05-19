@@ -12,7 +12,7 @@ class DefenseManager {
 
     run() {
         // Manage towers
-        towers.towerControl(this.room);
+        towers.towerController(this.room);
 
         // Invader check
         this.room.invaderCheck();
