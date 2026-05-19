@@ -184,6 +184,7 @@ class RoleRoadBuilder {
         if (!path) {
             const result = PathFinder.search(begin, {pos: target, range: 1}, {
                 heuristicWeight: 0.8,
+                maxRooms: 1,
                 roomCallback: buildCostMatrix
             });
             if (result.incomplete || !result.path.length) return false;
@@ -193,7 +194,9 @@ class RoleRoadBuilder {
             path = JSON.parse(path);
         }
         for (const point of path) {
-            const pos = new RoomPosition(point.x, point.y, point.roomName || room.name);
+            const roomName = point.roomName || room.name;
+            if (roomName !== room.name) continue;
+            const pos = new RoomPosition(point.x, point.y, roomName);
             if (this.buildRoad(pos, room)) return true;
         }
         return false;
