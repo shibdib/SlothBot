@@ -35,7 +35,6 @@ global.SK_MINING_LEVEL = 7; // What level do we do this (won't work before 7 atm
 global.OFFENSIVE_OPERATIONS = false; // Offensive Combat, disabling this will disable all offensive operations
 global.HARASSMENT_OPERATIONS = false; // Proactive harassers that will target people on the threat list
 global.HOLD_SECTOR = true; // Attack rooms in sectors you have rooms
-global.ATTACK_LOCALS = false; // Attacks targets within range indiscriminately. Bot will still attack aggressors.
 global.NEW_SPAWN_DENIAL = false; // Crush new spawns immediately
 global.NCP_HOSTILE = false; // Always attack users of open source bots
 global.ATTACK_COOLDOWN = 3000; //Time between attacks on a room

@@ -114,7 +114,6 @@ function findBestTarget(tower, hostiles, friendlies, towerPower) {
         if (hostile.hits <= 0) continue;
 
         const range = tower.pos.getRangeTo(hostile);
-        if (range > TOWER_RANGE) continue;
 
         // Base damage with falloff + tower power
         const baseDamage = TOWER_POWER_FROM_RANGE(range, TOWER_POWER_ATTACK) * towerPower;

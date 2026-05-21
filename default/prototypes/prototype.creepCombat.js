@@ -397,7 +397,7 @@ Creep.prototype.healInRange = function (blinky = false) {
     if (!this.hasActiveBodyparts(HEAL)) return false;
 
     // Use cached hostiles if available, else filter
-    const injured = (this._hostileCreeps ? this.room.creeps : this.room.creeps.filter(c =>
+    const injured = (this.room.creeps.filter(c =>
         c.owner && (FRIENDLIES.includes(c.owner.username) || c.my) && c.hits < c.hitsMax && this.pos.getRangeTo(c) <= 3
     )).filter(c => c.hits < c.hitsMax && this.pos.getRangeTo(c) <= 3);
 

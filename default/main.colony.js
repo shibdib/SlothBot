@@ -3,7 +3,7 @@
  */
 
 const ObserverControl = require('module.observerController');
-const LabControl = require('module.labController');
+const LabManager = require('module.labController');
 const FactoryControl = require('module.factoryController');
 const DefenseControl = require('module.defense');
 const LinkControl = require('module.linkController');
@@ -79,7 +79,7 @@ class Colony {
     }
 
     labController() {
-        new LabControl(this.room).run(this.room);
+        new LabManager(this.room).run(this.room);
     }
 
     terminalController() {

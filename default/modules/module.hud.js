@@ -351,9 +351,6 @@ class HUD {
             Game.map.visual.import(Memory._mapVisuals);
         }
 
-        // === DYNAMIC LAYER (throttled every 3 ticks) ===
-        if (currentTime % 3 !== 0) return;
-
         // Update active intel list every 10 ticks
         if (currentTime - activeIntelCache.tick > 10 || !activeIntelCache.rooms.length) {
             activeIntelCache.rooms = [];
@@ -469,6 +466,7 @@ class HUD {
         // Military Operations
         if (Memory.targetRooms) {
             for (const roomName in Memory.targetRooms) {
+                if (!roomName) continue;
                 const target = Memory.targetRooms[roomName];
                 Game.map.visual.line(new RoomPosition(15, 25, roomName), new RoomPosition(35, 25, roomName), {
                     color: '#ff2222', width: 1.8, opacity: 0.85
@@ -506,7 +504,6 @@ class HUD {
                     });
             }
         }
-        Memory._mapVisuals = Game.map.visual.export();
     }
 
     renderRemoteLinks(myRooms) {

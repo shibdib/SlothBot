@@ -59,7 +59,7 @@ function threatManager() {
         if (currentRating < -250 || (COMBAT_SERVER && !FRIENDLIES.includes(name)) || offenses >= 3) {
             ENEMIES.push(name);
         }
-        if (currentRating < -5 && !FRIENDLIES.includes(name)) {
+        if (currentRating < -5) {
             THREATS.push(name);
         }
 
@@ -91,7 +91,7 @@ function scoreUserFromIntel(username, currentTime) {
         if (intel.armedHostile && intel.armedHostile + 300 > currentTime && distance < 4) score -= 120;
         if (intel.threatLevel && intel.threatLevel >= 3 && distance < 5) score -= 60;
         if ((intel.power && intel.power > currentTime) || intel.commodity) score -= 40;
-        if (distance <= 2 && (intel.towers || intel.sk)) score -= 100;
+        if (distance <= 2 && (intel.towers || intel.sk) && !FRIENDLIES.includes(username)) score -= 100;
     }
     return score;
 }
@@ -100,7 +100,7 @@ function buildWarTargets(currentTime) {
     const targets = [];
 
     for (const name in Memory._userList) {
-        if (!name || name === MY_USERNAME || name === 'undefined' || name.length < 2) continue;
+        if (!name || name === MY_USERNAME || name === 'undefined' || name.length < 2 || FRIENDLIES.includes(name)) continue;
 
         const user = Memory._userList[name];
         if (!ENEMIES.includes(name) && !THREATS.includes(name)) continue;

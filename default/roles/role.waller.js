@@ -158,7 +158,7 @@ class RoleWaller {
             if (this.room.controller.level >= 8) targetLimit = 3000000;
             else if (this.room.controller.level >= 6) targetLimit = 1000000;
 
-            if (maintenance) targetLimit = 300000000;
+            if (maintenance && this.room.level === 8) targetLimit = RAMPART_HITS_MAX[this.room.level];
 
             const quadTrapWalls = new Set((this.room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
             const barrierStructures = this.room.barriers.filter(s => {

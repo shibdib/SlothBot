@@ -35,7 +35,7 @@ const tasks = ['housekeeping', 'flags', 'military', 'auxiliary', 'response', 'nu
 module.exports.highCommand = function () {
     if (typeof MAX_LEVEL === 'undefined') return;
 
-    OPERATION_LIMIT = Math.ceil(MY_ROOMS.filter(r => Game.rooms[r].level >= 5 && Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].energyState).length * 0.5) || 1;
+    OPERATION_LIMIT = Math.ceil(MY_ROOMS.filter(r => Game.rooms[r].level >= 5 && Game.rooms[r].level >= MAX_LEVEL && Game.rooms[r].memory.combatReady).length * 0.25) || 1;
     SIEGE_LIMIT = Math.ceil(MY_ROOMS.filter(r => Game.rooms[r].level >= 7 && Game.rooms[r].energyState).length * 0.5);
 
     for (const task of tasks) {
@@ -160,14 +160,13 @@ function militaryOperations() {
     if (!OFFENSIVE_OPERATIONS) return;
 
     // Candidate pool
-    const noAttackSet = new Set([...FRIENDLIES, ...NO_DIRECT_ATTACKS]);
+    const noAttack = [...FRIENDLIES, MY_USERNAME];
     const candidates = Object.values(INTEL).filter(r =>
-        r?.name && !Memory.targetRooms[r.name] && r.owner &&
-        !noAttackSet.has(r.owner) && !Memory.nonCombatRooms.includes(r.name) &&
-        !checkForNap(r.owner) && userStrength(r.owner) <= MAX_LEVEL &&
+        r?.name && !Memory.targetRooms[r.name] && r.owner && !r.sk &&
+        !noAttack.includes(r.owner) && !Memory.nonCombatRooms.includes(r.name) &&
+        !checkForNap(r.owner) && userStrength(r.owner) <= MAX_LEVEL + 1 &&
         (r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time &&
-        (ATTACK_LOCALS || THREATS.includes(r.owner) || (HOLD_SECTOR && myRoomInSectorCheck(r.name)) ||
-            findClosestOwnedRoom(r.name, true) <= DEFENSIVE_BUBBLE)
+        (_.pluck(WAR_TARGETS, 'user').includes(r.owner) || (HOLD_SECTOR && myRoomInSectorCheck(r.name)))
     );
 
     if (!candidates.length) return;
@@ -230,6 +229,12 @@ function militaryOperations() {
         for (const r of candidates) {
             if (r.safemode || (r.lastSiege || 0) + siegeCooldown >= Game.time) continue;
 
+            // No direct attacks check
+            if (NO_DIRECT_ATTACKS.includes(r.owner)) continue;
+
+            // We don't siege people stronger than us
+            if (userStrength(r.owner) > MAX_LEVEL) continue;
+
             let score = scoreTarget(r.name, 'roomDenial', null);
             if (attackedOwners.has(r.owner)) score -= 100; // escalation bonus
 
@@ -272,6 +277,12 @@ function scoreTarget(roomName, type, attackedOwners = null) {
     if (HOLD_SECTOR && myRoomInSectorCheck(roomName)) score -= 150;
     if (!THREATS.includes(r.owner) && (r.level || 0) < 4) score += 100;
     score += Math.max(0, (Game.time - (r.cached || 0)) / 100);
+
+    // Score based on WAR_TARGET priority
+    if (WAR_TARGETS.length) {
+        const topPriority = _.max(WAR_TARGETS, 'priority').user;
+        if (topPriority && r.user === topPriority) score -= 500;
+    }
 
     if (attackedOwners && attackedOwners.has(r.owner)) score += 250;
 
@@ -365,9 +376,23 @@ function auxiliaryOperations() {
     Memory.auxiliaryTargets = cache;
 }
 
-// ============================================================
-// RESPONSE FORCES
-// ============================================================
+function setTarget(room, operation, level = 1, military = true) {
+    let cache = Memory.targetRooms || {};
+    if (!military) cache = Memory.auxiliaryTargets || {};
+    cache[room] = {
+        tick: Game.time,
+        type: operation,
+        level: level,
+        priority: getPriority(room),
+        // Sieges need more waves to break fortified rooms; harassment ops can cancel sooner
+        waveLimit: operation === 'roomDenial' ? 8 : 4
+    };
+    if (military) Memory.targetRooms = cache; else Memory.auxiliaryTargets = cache;
+    // Guard remotes may have no intel (unscanned neighbors are valid targets) — guard the access
+    if (!INTEL[room]) INTEL[room] = {name: room};
+    if (operation !== 'roomDenial') INTEL[room].lastOperation = Game.time; else INTEL[room].lastSiege = Game.time;
+    return log.a(`${operation} operation planned for ${roomLink(room)} owned by ${INTEL[room].owner || 'N/A'} (Nearest Friendly Room - ${findClosestOwnedRoom(room, true)} rooms away)`, 'HIGH COMMAND: ');
+}
 
 const MAX_RESPONSE_DISTANCE = 5;
 const TRAVEL_TICKS_PER_ROOM = 50;
@@ -606,16 +631,8 @@ function manageMilitary() {
             }
         }
 
-        if (!target.manual && INTEL[key] && userStrength(INTEL[key].user) > MAX_LEVEL) {
+        if (!target.manual && INTEL[key] && userStrength(INTEL[key].user) > MAX_LEVEL + 1) {
             log.a(`Canceling operation in ${roomLink(key)} — ${INTEL[key].user} too strong.`, 'HIGH COMMAND: ');
-            delete Memory.targetRooms[key];
-            INTEL[key].lastOperation = Game.time;
-            INTEL[key].lastSiege = Game.time;
-            continue;
-        }
-
-        if (!target.manual && target.userList && target.userList.some(u => userStrength(u) > MAX_LEVEL)) {
-            log.a(`Canceling operation in ${roomLink(key)} — high-level user detected.`, 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             INTEL[key].lastOperation = Game.time;
             INTEL[key].lastSiege = Game.time;

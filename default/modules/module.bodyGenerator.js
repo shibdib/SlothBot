@@ -131,11 +131,11 @@ class ModuleBodyGenerator {
                             if (!this.room.energyState) {
                                 work *= 0.15;
                             } else if (this.room.energyState === 1) {
-                                work *= 0.5;
+                                work *= 0.4;
                             } else if (this.room.energyState === 2) {
-                                work *= 1.2;
+                                work *= 0.9;
                             } else if (this.room.energyState === 3) {
-                                work *= 1.5;
+                                work *= 1.2;
                             }
                         }
                         // Cap at 15 at rcl8

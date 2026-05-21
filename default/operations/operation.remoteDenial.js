@@ -50,7 +50,9 @@ Creep.prototype.remoteDenial = function () {
         } else {
             const remotes = Object.values(Game.map.describeExits(this.memory.other.target)).filter((n) =>
                 (!INTEL[n] || !INTEL[n].user || INTEL[n].user === INTEL[this.memory.other.target].owner) && Object.values(Game.map.describeExits(n)).length > 1);
+            console.log(JSON.stringify(remotes))
             this.memory.destination = _.sample(remotes);
+            console.log(this.memory.destination);
             this.say('RETASKED', true);
         }
     } else {

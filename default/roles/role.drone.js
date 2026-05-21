@@ -94,6 +94,9 @@ class RoleDrone {
         if (this.upgrading()) return;
         if (this.room.level < 4 && this.upgrading(true)) return;
 
+        // 6. Energy rich walling
+        if (this.room.energyState >= 2 && this.walling()) return;
+
         // Final fallback: Idle (No maintenance walling for drones)
         this.creep.memory.task = undefined;
         this.creep.idleFor(5);

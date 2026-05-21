@@ -186,7 +186,7 @@ module.exports.essentialCreepQueue = function (room) {
     essentialTick[room.name] = Game.time;
 
     // Defenders
-    if (room.memory.spawnDefenders || room.memory.defenseCooldown > Game.time || room.memory.earlyWarning) {
+    if (room.memory.defenseCooldown > Game.time || room.memory.earlyWarning) {
         let targetAmount = room.hostileCreeps.length ? room.hostileCreeps.length : 2;
         if (targetAmount > 6) targetAmount = 6;
         queueCreepIfNeeded({
@@ -209,7 +209,7 @@ module.exports.essentialCreepQueue = function (room) {
 
     // Waller
     if (room.level >= BUNKER_LEVEL) {
-        const wallerCount = room.energyState >= 2 ? 2 : 1;
+        const wallerCount = room.energyState >= 2 && room.level >= 8 ? 2 : 1;
         queueCreepIfNeeded({
             room, role: 'waller', priority: PRIORITIES.drone + 1,
             numberNeeded: wallerCount, misc: {boosts: [WORK]}
@@ -257,13 +257,11 @@ module.exports.essentialCreepQueue = function (room) {
     }
 
     // Upgrader
-    if (!room.memory.spawnDefenders && room.level === room.controller.level) {
+    if (room.level === room.controller.level) {
         let upgraderAmount = 1;
         if (room.controller.level < 5) {
             let container = Game.getObjectById(room.memory.controllerContainer);
-            if (container) {
-                upgraderAmount = room.level >= 6 ? 2 : Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround()) || 1;
-            }
+            if (container) upgraderAmount = Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround()) || 1;
         }
         const priority = room.energyState > 1 && room.storage ? PRIORITIES.upgrader * 0.5 : PRIORITIES.upgrader;
         queueCreepIfNeeded({
@@ -639,16 +637,12 @@ function handleRemoteHaulers(room) {
 function processRemoteSpecificTasks(room, remoteName) {
     if (shouldSkipRemote(room, remoteName)) return;
     trackRemoteRoom(remoteName, room);
-
-    let highestLevel = checkHighestLevel(room, remoteName);
-    if (highestLevel) {
-        if (!INTEL[remoteName].sk) handleReservation(room, remoteName);
-        if (INTEL[remoteName].invaderCore) handleInvaderCore(room, remoteName);
-        handleRoadBuilder(room);
-        if (SK_MINING && INTEL[remoteName].sk && !INTEL[remoteName].towers && room.level >= SK_MINING_LEVEL) {
-            activeSkMining[room.name] = Game.time;
-            handleSkCreeps(room, remoteName);
-        }
+    if (!INTEL[remoteName].sk) handleReservation(room, remoteName);
+    if (INTEL[remoteName].invaderCore) handleInvaderCore(room, remoteName);
+    handleRoadBuilder(room);
+    if (SK_MINING && INTEL[remoteName].sk && !INTEL[remoteName].towers && room.level >= SK_MINING_LEVEL) {
+        activeSkMining[room.name] = Game.time;
+        handleSkCreeps(room, remoteName);
     }
 }
 
@@ -657,12 +651,6 @@ function trackRemoteRoom(remoteName, room) {
         if (!INTEL[remoteName].remoteRoom) INTEL[remoteName].remoteRoom = [];
         INTEL[remoteName].remoteRoom.push(room.name);
     }
-}
-
-function checkHighestLevel(room, remoteName) {
-    return INTEL[remoteName].remoteRoom.every(function (r) {
-        return r === room.name || (Game.rooms[r] && Game.rooms[r].level <= room.level);
-    });
 }
 
 function shouldSkipRemote(room, remoteName) {
@@ -692,6 +680,7 @@ function handleInvaderCore(room, remoteName) {
 module.exports.globalCreepQueue = function () {
     const operations = {...Memory.targetRooms, ...Memory.auxiliaryTargets};
 
+    /**
     if (HARASSMENT_OPERATIONS && THREATS && THREATS.length && _.filter(INTEL, i => THREATS.includes(i.user)).length) {
         const amount = _.filter(MY_ROOMS, r => Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].energyState).length * 0.25 || 1;
         queueCreepIfNeeded({
@@ -699,7 +688,7 @@ module.exports.globalCreepQueue = function () {
             numberNeeded: Math.min(amount, _.filter(INTEL, i => THREATS.includes(i.user)).length),
             operation: 'harass'
         });
-    }
+    }**/
 
     if (_.isEmpty(operations)) return;
 
@@ -719,7 +708,7 @@ module.exports.globalCreepQueue = function () {
             queueCreepIfNeeded({role: 'drone', priority: PRIORITIES.drone + 1, numberNeeded: 6, destination: key});
         }
 
-        if (!INTEL[key] || !opLevel || INTEL[key].cached + (CREEP_LIFE_TIME * 5) < Game.time) {
+        if (!INTEL[key] || !opLevel) {
             queueCreepIfNeeded({role: 'scout', priority: 1, numberNeeded: 1, destination: key, closestRoom: true});
             continue;
         }
@@ -998,16 +987,18 @@ function getQueue(room) {
                 operationQueue[key] = {...entry};
                 continue;
             }
+
             if (destination === room.name) continue;
 
             const opMemory = Memory.targetRooms[destination] || Memory.auxiliaryTargets[destination];
             if (!opMemory) continue;
 
             const assignedRoom = opMemory.assignedRoom;
+
             if (assignedRoom && assignedRoom !== room.name) continue;
 
             const assignedAt = opMemory.assignedAt;
-            if (assignedAt && assignedAt + (CREEP_LIFE_TIME * 2) < Game.time && assignedRoom) {
+            if ((assignedAt && assignedAt + (CREEP_LIFE_TIME * 2) < Game.time && assignedRoom) || !room.memory.combatReady) {
                 if (!room.myCreeps.find(c => c.memory.waitingToAssemble && c.memory.destination === destination)) {
                     unassignRoom(destination, 'Refreshing assignment.');
                     continue;
@@ -1022,8 +1013,7 @@ function getQueue(room) {
             else if (opMemory && opMemory.type === 'roomDenial') {
                 const towers = intel && intel.towers || 0;
                 levelTarget = towers >= 3 ? 8 : towers === 2 ? 7 : towers === 1 ? 6 : 4;
-            } else if (findClosestOwnedRoom(destination, true) <= DEFENSIVE_BUBBLE) levelTarget = MAX_LEVEL - 1;
-            else if (opMemory && intel && intel.user) levelTarget = userStrength(intel.user) - 1;
+            } else if (opMemory && intel && intel.user) levelTarget = userStrength(intel.user) - 1;
             else if (opMemory && intel && !intel.user) levelTarget = 4;
 
             let creepInfo = {...entry};
@@ -1068,8 +1058,6 @@ function getQueue(room) {
                 }
             }
 
-            if (room.level < 7) creepInfo.priority *= 2;
-
             operationQueue[key] = creepInfo;
         }
     }
@@ -1082,8 +1070,78 @@ function getQueue(room) {
 }
 
 function displayQueue(room, queue) {
-    if (!room._debugQueue) return;
-    // Visual queue display (kept for compatibility)
+    const activeSpawns = room.spawns.filter((s) => s.spawning);
+    if (!_.size(queue) && !activeSpawns.length) return;
+
+    let yOffset = 1;
+    const x = 35;
+    const width = 14;
+    const limit = Math.min(5, queue.length);
+    let rows = 1 + limit + activeSpawns.length; // Header + Queue + Spawning
+
+    // Draw semi-transparent background box
+    room.visual.rect(x - 0.25, yOffset - 0.75, width + 0.5, (rows * 1.1) + 0.2, {
+        fill: '#111111',
+        opacity: 0.75,
+        stroke: '#333333',
+        strokeWidth: 0.05
+    });
+
+    // Header
+    room.visual.text('🛠️ Build Queue', x + 0.2, yOffset, {
+        color: '#ffffff',
+        align: 'left',
+        font: 'bold 0.6 Tahoma'
+    });
+    yOffset += 1.2;
+
+    // Active Spawns (Progress Bars)
+    for (let spawn of activeSpawns) {
+        const spawningName = spawn.spawning.name || "";
+        const roleName = _.capitalize(spawningName.split("_")[0]);
+        const progress = ((spawn.spawning.needTime - spawn.spawning.remainingTime) / spawn.spawning.needTime) * 100;
+
+        // Background track
+        room.visual.rect(x, yOffset - 0.4, width, 0.8, {fill: '#222222', opacity: 0.8});
+        // Progress fill
+        const fillWidth = Math.max(0, Math.min(width, width * (progress / 100)));
+        if (fillWidth > 0) {
+            room.visual.rect(x, yOffset - 0.4, fillWidth, 0.8, {fill: '#4CAF50', opacity: 0.6}); // Greenish for active building
+        }
+
+        room.visual.text(`Spawning: ${roleName}`, x + 0.2, yOffset + 0.15, {
+            color: '#ffffff',
+            align: 'left',
+            font: 'bold 0.45 Tahoma'
+        });
+        room.visual.text(`${spawn.spawning.remainingTime}t`, x + width - 0.2, yOffset + 0.15, {
+            color: '#dddddd',
+            align: 'right',
+            font: '0.45 Tahoma'
+        });
+        yOffset += 1.1;
+    }
+    // Queued Items
+    for (let i = 0; i < limit; i++) {
+        let item = queue[i];
+        let cost = global.UNIT_COST(item.body);
+        if (!cost) continue;
+
+        const show = item.operation || item.role;
+        const color = room.energyAvailable >= cost ? '#00B7EB' : '#FF4500'; // Blue if we have energy, Red/Orange if waiting
+
+        room.visual.text(`${i + 1}. ${_.capitalize(show)}`, x + 0.2, yOffset, {
+            color: color,
+            align: 'left',
+            font: '0.5 Tahoma'
+        });
+        room.visual.text(`${cost}⚡ P:${item.priority}`, x + width - 0.2, yOffset, {
+            color: '#dddddd',
+            align: 'right',
+            font: '0.5 Tahoma'
+        });
+        yOffset += 1.1;
+    }
 }
 
 function getAssignedRoom(targetRoom, level, creepInfo) {

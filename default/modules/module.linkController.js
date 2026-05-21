@@ -39,7 +39,7 @@ class LinkControl {
 
         for (const link of sourceLinks) {
             // Prioritize controller if upgrader is present
-            if (controllerLink && controllerLink.store.getFreeCapacity(RESOURCE_ENERGY) >= 400) {
+            if (controllerLink && controllerLink.store.getFreeCapacity(RESOURCE_ENERGY) >= 400 && room.energyState >= 2) {
                 if (link.transferEnergy(controllerLink) === OK) continue;
             }
 

@@ -734,43 +734,44 @@ Creep.prototype.towTruck = function () {
     if (!this.memory.trailer) return false;
     const trailer = Game.getObjectById(this.memory.trailer);
     if (!trailer) {
-        this.memory.towStart = undefined;
-        return this.memory.trailer = undefined;
+        endTow(this, null);
+        return false;
     }
     if (trailer.pos.roomName !== this.pos.roomName) {
         this.say('Lost Trailer!', true);
-        this.memory.towStart = undefined;
-        resetTowingState(trailer);
-        return this.memory.trailer = undefined;
+        releaseTruckRef(this);
+        return false;
     }
     if (_.sum(this.store)) return false;
     if (!this.memory.towStart) this.memory.towStart = Game.time;
     if (this.fatigue) return true;
     if (!trailer.memory.towDestination) {
-        this.memory.trailer = undefined;
+        endTow(this, trailer);
         return false;
     }
-    let towDestination = getTowDestination(trailer);
+    const towDestination = getTowDestination(trailer);
     if (!towDestination) {
-        this.memory.towStart = undefined;
-        resetTowingState(trailer);
-        return this.memory.trailer = undefined;
+        endTow(this, trailer);
+        return false;
     }
     this.say('Towing!', true);
-    if (towDestination && trailer.memory.towOptions && trailer.memory.towOptions.range === 0 && this.pos.isNearTo(towDestination) && towDestination.checkForCreep() && towDestination.checkForCreep().id !== this.id) {
-        trailer.memory.towOptions.range = 1;
+    if (trailer.memory.towOptions && trailer.memory.towOptions.range === 0 && this.pos.isNearTo(towDestination)) {
+        const occupant = towDestination.checkForCreep();
+        if (occupant && occupant.id !== this.id) {
+            trailer.memory.towOptions.range = 1;
+        }
     }
-    if (shouldTimeout(this.memory.towStart, trailer, towDestination)) {
-        resetTowingState(trailer);
-        this.memory.towStart = undefined;
-        this.memory.trailer = undefined;
+    if (shouldEndTow(this.memory.towStart, trailer, towDestination)) {
+        endTow(this, trailer);
         return false;
     }
-    if (this.pull(trailer) === ERR_NOT_IN_RANGE) {
+    const pullResult = this.pull(trailer);
+    if (pullResult === ERR_NOT_IN_RANGE) {
         adjustMovement(this, trailer);
         this.shibMove(trailer, {range: 1});
         return true;
-    } else {
+    }
+    if (pullResult === OK) {
         trailer.move(this);
         moveToTowDestination(this, trailer, towDestination);
     }
@@ -778,16 +779,31 @@ Creep.prototype.towTruck = function () {
 };
 
 function getTowDestination(trailer) {
-    if (trailer.memory.towDestination && trailer.memory.towDestination.x) {
-        return new RoomPosition(trailer.memory.towDestination.x, trailer.memory.towDestination.y, trailer.memory.towDestination.roomName);
-    } else if (Game.getObjectById(trailer.memory.towDestination)) {
-        return Game.getObjectById(trailer.memory.towDestination).pos;
+    const td = trailer.memory.towDestination;
+    if (!td) return null;
+    if (typeof td === 'object') {
+        return new RoomPosition(td.x, td.y, td.roomName);
     }
-    return null;
+    const obj = Game.getObjectById(td);
+    return obj ? obj.pos : null;
 }
 
-function shouldTimeout(towStart, trailer, towDestination) {
-    return towStart + 125 < Game.time || !towDestination || !trailer.memory.towOptions || trailer.memory.towOptions.range >= trailer.pos.getRangeTo(towDestination);
+function shouldEndTow(towStart, trailer, towDestination) {
+    return towStart + 125 < Game.time
+        || !towDestination
+        || !trailer.memory.towOptions
+        || trailer.memory.towOptions.range >= trailer.pos.getRangeTo(towDestination);
+}
+
+function endTow(truck, trailer) {
+    releaseTruckRef(truck);
+    if (trailer) resetTowingState(trailer);
+}
+
+function releaseTruckRef(truck) {
+    truck.memory.towStart = undefined;
+    truck.memory.lastRangeToTrailer = undefined;
+    truck.memory.trailer = undefined;
 }
 
 function resetTowingState(trailer) {
@@ -799,18 +815,20 @@ function resetTowingState(trailer) {
 }
 
 function adjustMovement(creep, trailer) {
-    if (creep.memory.lastRangeToTrailer && creep.memory.lastRangeToTrailer < 5 && creep.memory.lastRangeToTrailer < trailer.pos.getRangeTo(creep)) {
+    const range = trailer.pos.getRangeTo(creep);
+    if (creep.memory.lastRangeToTrailer
+        && creep.memory.lastRangeToTrailer < 5
+        && creep.memory.lastRangeToTrailer < range) {
         creep.memory._shibMove = undefined;
     }
-    creep.memory.lastRangeToTrailer = trailer.pos.getRangeTo(creep);
+    creep.memory.lastRangeToTrailer = range;
 }
 
 function moveToTowDestination(creep, trailer, towDestination) {
-    if (!towDestination || creep.pos.getRangeTo(towDestination) === trailer.memory.towOptions.range) {
+    if (creep.pos.getRangeTo(towDestination) === trailer.memory.towOptions.range) {
         creep.move(creep.pos.getDirectionTo(trailer));
     } else {
         trailer.memory._shibMove = undefined;
-        if (!trailer.pos.isNearTo(creep)) creep.memory._shibMove = undefined;
         creep.shibMove(towDestination, trailer.memory.towOptions);
     }
 }
