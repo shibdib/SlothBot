@@ -1226,9 +1226,11 @@ function displayQueue(room, queue) {
 
 const CLAIM_ROLES = new Set(['claimer', 'claimAttacker', 'reserver']);
 
+const assignmentCooldown = {};
 function getAssignedRoom(targetRoom, level, creepInfo) {
-    // Count assignments across both categories — a colony saturated with targetRooms ops
-    // is just as full when an auxiliaryTargets op asks for a slot.
+    // Check if this room is on cooldown
+    if (assignmentCooldown[targetRoom] && assignmentCooldown[targetRoom] > Game.time) return null;
+
     let assignmentCounts = {};
     for (const op of Object.values(Memory.targetRooms)) {
         if (op && op.assignedRoom) assignmentCounts[op.assignedRoom] = (assignmentCounts[op.assignedRoom] || 0) + 1;
@@ -1269,6 +1271,7 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
         if (distance === 1) break;
     }
 
+    assignmentCooldown[targetRoom] = Game.time + 50;
     return closest;
 }
 
