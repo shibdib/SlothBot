@@ -162,7 +162,11 @@ class RoleExplorer {
             if (!intel || intel.owner || roomStatus(roomName) === 'closed') continue;
 
             // Skip recently visited
-            if (intel.lastObservation && intel.lastObservation + 500 > currentTime) continue;
+            if (intel.lastObservation && intel.lastObservation + CREEP_LIFE_TIME > currentTime) continue;
+
+            // Skip rooms already assigned to other creeps
+            const alreadyAssigned = _.find(Game.creeps, c => c.memory.destination === roomName);
+            if (alreadyAssigned) continue;
 
             let score = Game.map.getRoomLinearDistance(this.room.name, roomName) * 10;
 
