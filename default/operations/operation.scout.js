@@ -89,7 +89,7 @@ function updateHostileUsers(room) {
 }
 
 function handleRoomDenialOperation(room) {
-    if (!room.controller || !room.controller.owner) {
+    if (!room.controller || !room.controller.owner || FRIENDLIES.includes(room.controller.owner.username)) {
         log.a(`Canceling room denial operation in ${roomLink(room.name)} as it is no longer owned.`, 'HIGH COMMAND: ');
         delete Memory.targetRooms[room.name];
         return;
