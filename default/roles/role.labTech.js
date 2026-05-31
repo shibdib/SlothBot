@@ -96,34 +96,6 @@ class RoleLabTech {
             }
         }
 
-        // -- PRIORITY 7: CLEANUP (dropped resources, tombstones) --
-        if (storeTarget) {
-            const drop = this.room.droppedResources.find(r => r.resourceType !== RESOURCE_ENERGY) || this.room.tombstones.find(t => t.store.getUsedCapacity() > 0);
-            if (drop) {
-                const res = drop.resourceType || Object.keys(drop.store).find(r => drop.store[r] > 0);
-                return {withdrawTarget: drop.id, deliveryTarget: storeTarget.id, resource: res};
-            }
-        }
-
-        // -- PRIORITY 2: SUPPLY FACTORY (load production inputs) --
-        if (factory && factory.memory.producing) {
-            const commodity = COMMODITIES[factory.memory.producing];
-            if (commodity) {
-                for (const [component, required] of Object.entries(commodity.components)) {
-                    const inFactory = factory.store[component] || 0;
-                    const target = required * 10; // keep ~10 runs worth in the factory
-                    if (inFactory >= target) continue;
-                    const supplier = [storage, terminal].find(s => s && s.store[component] > 0);
-                    if (supplier) return {
-                        withdrawTarget: supplier.id,
-                        deliveryTarget: factory.id,
-                        resource: component,
-                        amount: Math.min(target - inFactory, factory.store.getFreeCapacity())
-                    };
-                }
-            }
-        }
-
         // -- PRIORITY 3: SUPPLY MINERALS (Filling Labs with minerals/boosts only) --
         const boostNeededLab = labs.find(s => s.memory.neededBoost && s.store.getFreeCapacity(s.memory.neededBoost) > 0 && s.store[s.memory.neededBoost] < s.memory.amount);
         if (boostNeededLab) {
@@ -151,6 +123,34 @@ class RoleLabTech {
                 resource: resourceNeeded,
                 amount: resourceNeededLab.store.getCapacity(resourceNeeded) - resourceNeededLab.store.getUsedCapacity(resourceNeeded)
             };
+        }
+
+        // -- PRIORITY 7: CLEANUP (dropped resources, tombstones) --
+        if (storeTarget) {
+            const drop = this.room.droppedResources.find(r => r.resourceType !== RESOURCE_ENERGY) || this.room.tombstones.find(t => t.store.getUsedCapacity() > 0);
+            if (drop) {
+                const res = drop.resourceType || Object.keys(drop.store).find(r => drop.store[r] > 0);
+                return {withdrawTarget: drop.id, deliveryTarget: storeTarget.id, resource: res};
+            }
+        }
+
+        // -- PRIORITY 2: SUPPLY FACTORY (load production inputs) --
+        if (factory && factory.memory.producing) {
+            const commodity = COMMODITIES[factory.memory.producing];
+            if (commodity) {
+                for (const [component, required] of Object.entries(commodity.components)) {
+                    const inFactory = factory.store[component] || 0;
+                    const target = required * 10; // keep ~10 runs worth in the factory
+                    if (inFactory >= target) continue;
+                    const supplier = [storage, terminal].find(s => s && s.store[component] > 0);
+                    if (supplier) return {
+                        withdrawTarget: supplier.id,
+                        deliveryTarget: factory.id,
+                        resource: component,
+                        amount: Math.min(target - inFactory, factory.store.getFreeCapacity())
+                    };
+                }
+            }
         }
 
         // -- PRIORITY 3: MINERAL CONTAINER CLEANUP --
