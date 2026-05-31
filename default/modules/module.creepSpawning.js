@@ -757,7 +757,7 @@ module.exports.globalCreepQueue = function () {
         }
 
         const opLevel = Memory.targetRooms[key] ? operation.level : operation.level || 1;
-        let priority = operation.priority || (INTEL[key] ? getPriority(key) : PRIORITIES.medium);
+        let priority = INTEL[key] ? getPriority(key) : PRIORITIES.secondary;
         operation.priority = priority;
 
         if (operation.builders) {
@@ -1460,11 +1460,13 @@ function adjustQueuePriority(queue, room) {
 
 function getPriority(room) {
     const range = findClosestOwnedRoom(room, true);
-    if (range <= 3) return PRIORITIES.priority;
-    else if (range <= 5) return PRIORITIES.urgent;
-    else if (range <= 7) return PRIORITIES.high;
-    else if (range <= 10) return PRIORITIES.medium;
-    else return PRIORITIES.secondary;
+    const typeMulti = Memory.targetRooms[room] ? 1 : 2;
+    const energyMulti = room.energyState < 2 ? 1.5 : 1;
+    if (range <= 3) return (PRIORITIES.priority * typeMulti) * energyMulti;
+    else if (range <= 5) return (PRIORITIES.urgent * typeMulti) * energyMulti;
+    else if (range <= 7) return (PRIORITIES.high * typeMulti) * energyMulti;
+    else if (range <= 10) return (PRIORITIES.medium * typeMulti) * energyMulti;
+    else return (PRIORITIES.secondary * typeMulti) * energyMulti;
 }
 
 module.exports.operationSustainability = function (room, operationRoom = room.name) {
