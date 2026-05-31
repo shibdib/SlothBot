@@ -292,12 +292,148 @@ let helpers = function () {
     }
 
     /**
-     * Get the strength of a user
+     * Get the composite strength of a user, scored on the same 0..8+ scale as controller
+     * level so existing callers (highCommand, creepSpawning) keep working.
+     *
+     * Per-room score blends: controller level, active towers, storage/terminal energy tier,
+     * rampart median HP tier, and a staleness factor (rooms not re-observed recently count
+     * for less). Aggregated across rooms with diminishing returns so a sprawl bot doesn't
+     * read as 5x a single-hub bot of comparable RCL.
+     *
+     * Result is cached on Memory._userList[user].strength with TTL.
      * @param user
      * @returns {number}
      */
+    const STRENGTH_TTL = 50;
+    const STRENGTH_WEIGHTS = {
+        rclScale: 8,                    // base score is controller.level / rclScale
+        towerWeight: 0.04,              // per active tower
+        towerCap: 6,                    // cap at 6 towers (RCL8 max)
+        storageScale: 1000000,          // 1M energy = full storage (RCL8 max ~1M)
+        storageWeight: 0.10,
+        terminalScale: 300000,          // 300k energy ~ full terminal
+        terminalWeight: 0.05,
+        rampartScale: 100000000,        // 100M HP saturates rampart contribution
+        rampartWeight: 0.10,
+        safemodeBonus: 0.05,            // safemode = held actively
+        downgradeThreshold: 0.3,        // ticksToDowngrade < threshold × max → penalty
+        downgradePenalty: 0.7,
+        staleHalveTicks: 20000,         // no observation in this long → halve score
+        staleQuarterTicks: 10000,       // ...or in this long → 0.75× score
+        diminishingFactor: 0.4,         // satellite rooms contribute / (1 + i × this)
+        levelScale: 8                   // map composite total back to level-equivalent
+    };
+    const strengthCache = {};   // module-local cache for users not in _userList
     global.userStrength = function (user) {
-        return _.max(_.filter(INTEL, (r) => r && r.owner === user), 'level').level || 0;
+        if (!user || user === 'Invader' || user === 'Source Keeper') return 0;
+
+        const tracked = Memory._userList && Memory._userList[user];
+        const cacheEntry = tracked || strengthCache[user];
+        if (cacheEntry && cacheEntry._strengthTick + STRENGTH_TTL > Game.time && cacheEntry.strength != null) {
+            return cacheEntry.strength;
+        }
+
+        const currentTime = Game.time;
+        const rooms = [];
+        for (const name in INTEL) {
+            const r = INTEL[name];
+            if (r && r.owner === user) rooms.push(r);
+        }
+
+        if (!rooms.length) {
+            // No persistence for strangers with no rooms — just memo in-process.
+            if (tracked) {
+                tracked.strength = 0;
+                tracked._strengthTick = currentTime;
+            } else {
+                strengthCache[user] = {strength: 0, _strengthTick: currentTime};
+            }
+            return 0;
+        }
+
+        const W = STRENGTH_WEIGHTS;
+        const perRoomScores = rooms.map(r => scoreRoomForStrength(r, currentTime, W));
+
+        // Aggregate with diminishing returns: best room counts fully, subsequent rooms
+        // contribute at decreasing weight. Caps growth so 30 satellites don't dominate RCL.
+        perRoomScores.sort((a, b) => b - a);
+        let total = 0;
+        for (let i = 0; i < perRoomScores.length; i++) {
+            total += perRoomScores[i] / (1 + i * W.diminishingFactor);
+        }
+
+        // Map back to the level-equivalent scale callers expect (0..~10).
+        const strength = Math.round(total * W.levelScale * 10) / 10;
+
+        if (tracked) {
+            tracked.strength = strength;
+            tracked._strengthTick = currentTime;
+        } else {
+            strengthCache[user] = {strength, _strengthTick: currentTime};
+        }
+        return strength;
+    }
+
+    function scoreRoomForStrength(r, currentTime, W) {
+        const level = r.level || 0;
+        let s = level / W.rclScale;
+        s += Math.min((r.towers || 0), W.towerCap) * W.towerWeight;
+        if (r.storageEnergy) s += Math.min(r.storageEnergy / W.storageScale, 1) * W.storageWeight;
+        if (r.terminalEnergy) s += Math.min(r.terminalEnergy / W.terminalScale, 1) * W.terminalWeight;
+        if (r.rampartMedHP) s += Math.min(r.rampartMedHP / W.rampartScale, 1) * W.rampartWeight;
+        if (r.safemode && r.safemode > currentTime) s += W.safemodeBonus;
+
+        // Staleness — intel not refreshed recently fades.
+        const lastSeen = r.lastOwnedAt || r.cached || 0;
+        const age = currentTime - lastSeen;
+        if (age > W.staleHalveTicks) s *= 0.5;
+        else if (age > W.staleQuarterTicks) s *= 0.75;
+
+        // Downgrading controller — if they're letting it slip, weight down.
+        if (r.ticksToDowngrade && CONTROLLER_DOWNGRADE[level]
+            && r.ticksToDowngrade < CONTROLLER_DOWNGRADE[level] * W.downgradeThreshold) {
+            s *= W.downgradePenalty;
+        }
+
+        return s;
+    }
+
+    /**
+     * Console helper — print the per-room composition behind a user's strength score.
+     * Usage: strengthBreakdown('PlayerName')
+     */
+    global.strengthBreakdown = function (user) {
+        if (!user) {
+            console.log('usage: strengthBreakdown(username)');
+            return;
+        }
+        const currentTime = Game.time;
+        const W = STRENGTH_WEIGHTS;
+        const rooms = [];
+        for (const name in INTEL) {
+            const r = INTEL[name];
+            if (r && r.owner === user) rooms.push(r);
+        }
+        if (!rooms.length) {
+            console.log(`No rooms in INTEL owned by ${user}. (strength = 0)`);
+            return;
+        }
+
+        const scored = rooms.map(r => ({room: r, score: scoreRoomForStrength(r, currentTime, W)}));
+        scored.sort((a, b) => b.score - a.score);
+
+        console.log(`\nStrength breakdown for ${user}:`);
+        console.log(`  ${'room'.padEnd(10)} ${'rcl'.padStart(4)} ${'tow'.padStart(4)} ${'storeE'.padStart(8)} ${'rampMed'.padStart(10)} ${'age'.padStart(7)} ${'score'.padStart(7)}`);
+        let total = 0;
+        for (let i = 0; i < scored.length; i++) {
+            const {room: r, score} = scored[i];
+            const contribution = score / (1 + i * W.diminishingFactor);
+            total += contribution;
+            const age = currentTime - (r.lastOwnedAt || r.cached || 0);
+            console.log(`  ${r.name.padEnd(10)} ${String(r.level || 0).padStart(4)} ${String(r.towers || 0).padStart(4)} ${String(r.storageEnergy || 0).padStart(8)} ${String(r.rampartMedHP || 0).padStart(10)} ${String(age).padStart(7)} ${score.toFixed(3).padStart(7)} -> contributes ${contribution.toFixed(3)}`);
+        }
+        const finalStrength = Math.round(total * W.levelScale * 10) / 10;
+        console.log(`  Total composite: ${total.toFixed(3)}  →  strength = ${finalStrength}\n`);
     }
 
     let closestCache = {};

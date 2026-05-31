@@ -40,8 +40,11 @@ class RoleUpgrader {
                 if (this.creep.pos.isEqualTo(this.container.pos) || this.creep.pos.isNearTo(this.container)) this.creep.memory.inPosition = true;
                 else return this.creep.shibMove(this.container, {range: 0});
             } else if (this.link && !this.container) {
-                if (this.creep.pos.isNearTo(this.link)) this.creep.memory.inPosition = true;
-                else return this.creep.shibMove(this.link, {range: 1})
+                const targetPos = this.findLinkUpgradePosition();
+                if (targetPos && this.creep.pos.isEqualTo(targetPos)) this.creep.memory.inPosition = true;
+                else if (targetPos) return this.creep.shibMove(targetPos, {range: 0});
+                else if (this.creep.pos.isNearTo(this.link) && this.creep.pos.getRangeTo(this.room.controller) <= 3) this.creep.memory.inPosition = true;
+                else return this.creep.shibMove(this.link, {range: 1});
             } else {
                 if (this.creep.pos.isEqualTo(this.container.pos) || this.creep.pos.isNearTo(this.link)) this.creep.memory.inPosition = true;
                 else if (!this.container.pos.checkForCreep()) return this.creep.shibMove(this.container, {range: 0})
@@ -80,6 +83,41 @@ class RoleUpgrader {
             this.creep.memory.other.stationary = undefined;
             this.creep.idleFor(15);
         }
+    }
+
+    findLinkUpgradePosition() {
+        const cached = this.creep.memory.linkUpgradePos;
+        if (cached) {
+            const pos = new RoomPosition(cached.x, cached.y, cached.roomName);
+            if (pos.isNearTo(this.link) && pos.getRangeTo(this.room.controller) <= 3) return pos;
+            this.creep.memory.linkUpgradePos = undefined;
+        }
+        const taken = {};
+        for (const c of this.room.myCreeps) {
+            if (c.id !== this.creep.id && c.memory.role === 'upgrader' && c.memory.linkUpgradePos) {
+                const p = c.memory.linkUpgradePos;
+                taken[`${p.x}_${p.y}`] = true;
+            }
+        }
+        let fallback;
+        for (let xOff = -1; xOff <= 1; xOff++) {
+            for (let yOff = -1; yOff <= 1; yOff++) {
+                if (xOff === 0 && yOff === 0) continue;
+                const x = this.link.pos.x + xOff;
+                const y = this.link.pos.y + yOff;
+                if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+                const pos = new RoomPosition(x, y, this.link.pos.roomName);
+                if (pos.checkForWall() || pos.checkForObstacleStructure()) continue;
+                if (pos.getRangeTo(this.room.controller) > 3) continue;
+                if (taken[`${x}_${y}`]) {
+                    if (!fallback) fallback = pos;
+                    continue;
+                }
+                this.creep.memory.linkUpgradePos = {x: pos.x, y: pos.y, roomName: pos.roomName};
+                return pos;
+            }
+        }
+        return fallback;
     }
 
     withdraw() {

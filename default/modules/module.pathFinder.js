@@ -33,6 +33,7 @@ const ROOM_BASE_MATRIX_CACHE = {};   // ← NEW: per-tick base matrix reuse
 
 function clearTrailerTowState(creep) {
     creep.memory.towDestination = undefined;
+    creep.memory.towDestinationPos = undefined;
     creep.memory.towCreep = undefined;
     creep.memory.towOptions = undefined;
 }
@@ -145,10 +146,19 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         creep.memory.willNeedTow = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 >
             _.filter(creep.body, (p) => p.type === MOVE).length;
     }
-    if (!creep.className && creep.memory.willNeedTow && (creep.pos.getRangeTo(heading) > 3 || !creep.hasActiveBodyparts(MOVE))) {
+    // Heavy creeps re-request tow when more than 1 tile from heading. Was previously > 3,
+    // which left dropped trailers slow-walking the last few tiles (and looking "stuck"
+    // when terrain or blockers made self-move impractical). At distance ≤ 1 self-move is
+    // either unnecessary (already in range) or trivially short, so no cost to lowering.
+    if (!creep.className && creep.memory.willNeedTow && (creep.pos.getRangeTo(heading) > 1 || !creep.hasActiveBodyparts(MOVE))) {
         if (!creep.memory.towDestination) {
             creep.memory.towDestination = heading.id || heading;
             creep.memory.towOptions = options;
+            // Snapshot the destination's position so a mid-tow rebuild (container destroyed
+            // and re-placed under a new id) doesn't strand the trailer — see getTowDestination.
+            if (heading.pos) {
+                creep.memory.towDestinationPos = {x: heading.pos.x, y: heading.pos.y, roomName: heading.pos.roomName};
+            }
         } else if (heading.id && creep.hasActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {
             clearTrailerTowState(creep);
         } else if (creep.pos.isNearTo(heading) && ((heading instanceof RoomPosition && heading.checkForCreep()) ||
@@ -348,7 +358,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     // Pathfinding failed
     if (!creep.memory.repathAttempt || creep.memory.repathAttempt + 10 < Game.time) {
         creep.memory.repathAttempt = Game.time;
-        options.range = (options.range || 1) + 1;
+        options.range = (options.range ?? 1) + 1;
         return shibPath(creep, heading, pathInfo, origin, target, options);
     }
 
@@ -412,7 +422,9 @@ function findRoute(origin, destination, options = {}) {
             if (intel.user && !FRIENDLIES.includes(intel.user)) return intel.towers ? Infinity : 150;
             if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) return 50;
             if (intel.obstacles) return 200;
-            if (intel.sk && intel.towers) return 250;
+            // SK rooms: tower-defended OR no cached danger points (we've never scouted the
+            // lair/source positions, so the in-room matrix can't carve a safe path).
+            if (intel.sk && (intel.towers || !intel.skDangerPoints)) return 250;
             if (intel.threatLevel) return 60 * intel.threatLevel;
             if (intel.swampRoom) return 15;
             return intel.isHighway ? 3 : 7;
@@ -425,16 +437,28 @@ function findRoute(origin, destination, options = {}) {
 }
 
 function creepBumping(creep, pathInfo, options) {
-    if (!pathInfo?.newPos) return creep.moveRandom();
+    // Grouped creeps are positioned by their leader's squadMove. A random or
+    // priority-swap bump here would yank them out of the 2×2 mid-move and the
+    // squad would visibly unform until reform kicks in. Defer: let squadMove
+    // re-queue a coordinated move next tick instead of randomising now.
+    const isGrouped = !!creep.memory?.grouped;
+
+    if (!pathInfo?.newPos) {
+        if (isGrouped) return false;
+        return creep.moveRandom();
+    }
 
     const nextPosition = creep.pos.positionAtDirection(parseInt(pathInfo.path[0], 10));
     if (!nextPosition) return false;
 
     const potentialObstacles = nextPosition.lookFor(LOOK_CREEPS).concat(nextPosition.lookFor(LOOK_POWER_CREEPS));
+    // Excluding grouped creeps from the bump pool too — pushing a squad-mate
+    // off their slot to make room for an outsider breaks formation just as badly.
     const bumpCreep = _.find(potentialObstacles, c =>
         c.my &&
         (c.className || !c.fatigue) &&
         (!c.memory?.other?.stationary) &&
+        !c.memory?.grouped &&
         (c.className || c.hasActiveBodyparts(MOVE))
     );
 
@@ -452,7 +476,7 @@ function creepBumping(creep, pathInfo, options) {
                 if (bumpCreep.memory?._shibMove) bumpCreep.memory._shibMove.pathPosTime = 0;
             } else {
                 bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
-                creep.moveRandom();
+                if (!isGrouped) creep.moveRandom();
                 if (creep.memory?._shibMove) creep.memory._shibMove.pathPosTime = 0;
             }
         } else {
@@ -465,10 +489,13 @@ function creepBumping(creep, pathInfo, options) {
         return true;
     }
 
-    if (Math.random() > 0.75) creep.moveRandom();
+    if (!isGrouped && Math.random() > 0.75) creep.moveRandom();
     creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
 
-    delete creep.memory._shibMove;
+    // Don't wipe the squad-mate's path cache — squadMove relies on it for
+    // continuity across ticks. Only clear for solo creeps where the bump
+    // already disrupted their plan.
+    if (!isGrouped) delete creep.memory._shibMove;
     return false;
 }
 
@@ -677,16 +704,26 @@ function addHostilesToMatrix(room, matrix) {
 }
 
 function addSksToMatrix(roomName, matrix, options) {
+    const intel = INTEL[roomName];
+    if (!intel?.sk) return matrix;
+
     const room = Game.rooms[roomName];
-    if (!INTEL[roomName]?.sk || !room) return matrix;
 
-    const activeMining = room.myCreeps.find(c => c.memory.role === 'SKAttacker' && c.memory.destination === roomName);
-    if (activeMining) return matrix;
-
-    let sks = room.hostileCreeps.filter(c => c.owner.username === 'Source Keeper');
-    if (options.ignoreKeeper) sks = sks.filter(c => c.id !== options.ignoreKeeper);
+    // If our SKAttacker is on-site, it'll mop up keepers and the rest of the room is safe.
+    if (room) {
+        const activeMining = room.myCreeps.find(c => c.memory.role === 'SKAttacker' && c.memory.destination === roomName);
+        if (activeMining) return matrix;
+    }
 
     const terrain = Game.map.getRoomTerrain(roomName);
+
+    // Live SK creep positions take priority when we have vision — they're the actual
+    // current threat and may have wandered off their lair/source.
+    let sks = [];
+    if (room) {
+        sks = room.hostileCreeps.filter(c => c.owner.username === 'Source Keeper');
+        if (options.ignoreKeeper) sks = sks.filter(c => c.id !== options.ignoreKeeper);
+    }
 
     if (sks.length) {
         for (const sk of sks) {
@@ -707,19 +744,31 @@ function addSksToMatrix(roomName, matrix, options) {
                 }
             }
         }
-    } else {
+        return matrix;
+    }
+
+    // No live keepers visible (or no vision at all) — fall back to the static danger
+    // anchors. With vision: imminent-respawn lairs + sources + mineral. Without vision:
+    // cached anchor positions from INTEL.skDangerPoints.
+    let dangerPoints;
+    if (room) {
         const lairs = room.keeperLairs.filter(s => s.ticksToSpawn && s.ticksToSpawn < 25);
-        const avoid = _.union(lairs, room.sources, room.mineral ? [room.mineral] : []);
-        for (const obj of avoid) {
-            const top = Math.max(0, obj.pos.y - 5);
-            const left = Math.max(0, obj.pos.x - 5);
-            const bottom = Math.min(49, obj.pos.y + 5);
-            const right = Math.min(49, obj.pos.x + 5);
-            for (let y = top; y <= bottom; y++) {
-                for (let x = left; x <= right; x++) {
-                    if (terrain.get(x, y) !== TERRAIN_MASK_WALL && matrix.get(x, y) < 250) {
-                        matrix.set(x, y, 250);
-                    }
+        dangerPoints = _.union(lairs, room.sources, room.mineral ? [room.mineral] : [])
+            .map(o => ({x: o.pos.x, y: o.pos.y}));
+    } else {
+        dangerPoints = intel.skDangerPoints;
+    }
+    if (!dangerPoints || !dangerPoints.length) return matrix;
+
+    for (const pt of dangerPoints) {
+        const top = Math.max(0, pt.y - 5);
+        const left = Math.max(0, pt.x - 5);
+        const bottom = Math.min(49, pt.y + 5);
+        const right = Math.min(49, pt.x + 5);
+        for (let y = top; y <= bottom; y++) {
+            for (let x = left; x <= right; x++) {
+                if (terrain.get(x, y) !== TERRAIN_MASK_WALL && matrix.get(x, y) < 250) {
+                    matrix.set(x, y, 250);
                 }
             }
         }
@@ -729,11 +778,13 @@ function addSksToMatrix(roomName, matrix, options) {
 
 // ... (the rest of the file remains completely unchanged - squad logic, kiting, prototypes, etc.)
 
-function getSquadMatrix(roomName, orientation = 0) {
+function getSquadMatrix(roomName, orientation = 0, squadSize = 4) {
     const room = Game.rooms[roomName];
     const structuresHash = room ? hashStructures(room.impassibleStructures || []) : 'static';
-    const cacheType = `squad_${orientation}_${structuresHash}`;
-    return getCachedMatrix(roomName, cacheType, 200, () => buildSquadMatrix(roomName, orientation));
+    // Duos (size ≤ 2) get a slimmer footprint than quads — see buildSquadMatrix.
+    const footprint = squadSize >= 3 ? `q${orientation}` : 'd';
+    const cacheType = `squad_${footprint}_${structuresHash}`;
+    return getCachedMatrix(roomName, cacheType, 200, () => buildSquadMatrix(roomName, orientation, squadSize));
 }
 
 function getCachedMatrix(roomName, type, tickTTL, computeFn) {
@@ -746,11 +797,15 @@ function getCachedMatrix(roomName, type, tickTTL, computeFn) {
     return matrix;
 }
 
-function buildSquadMatrix(roomName, orientation) {
-    const PLAIN = 1, SWAMP = 25, EDGE = 10, HOSTILE = 20, SOFT = 200, INFLATE = 250, IMPASSIBLE = 256;
+function buildSquadMatrix(roomName, orientation, squadSize = 4) {
+    const PLAIN = 1, SWAMP = 35, EDGE = 10, HOSTILE = 20, SOFT = 200, INFLATE = 250, IMPASSIBLE = 256;
     const matrix = new PathFinder.CostMatrix();
     const terrain = Game.map.getRoomTerrain(roomName);
-    const vectors = getFormationVectors(orientation);
+    // Quads need the full 2×2 formation footprint inflated around obstacles. Duos
+    // only need leader clearance — the follower trails via solo movement and can
+    // single-file through 1-tile corridors (e.g. border row sandwiched between
+    // a wall and the exit).
+    const vectors = squadSize >= 3 ? getFormationVectors(orientation) : [{x: 0, y: 0}];
 
     const raise = (x, y, cost) => {
         if (x < 0 || x > 49 || y < 0 || y > 49) return;
@@ -784,6 +839,9 @@ function buildSquadMatrix(roomName, orientation) {
             } else if (structure instanceof StructureRampart && FRIENDLIES.includes(structure.owner.username)) {
                 raise(structure.pos.x, structure.pos.y, SOFT);
                 inflate(structure.pos.x, structure.pos.y, INFLATE);
+            } else if (structure instanceof StructurePortal) {
+                matrix.set(structure.pos.x, structure.pos.y, IMPASSIBLE);
+                inflate(structure.pos.x, structure.pos.y, INFLATE);
             }
         }
         for (const c of room.creeps) {
@@ -813,17 +871,20 @@ function buildSquadMatrix(roomName, orientation) {
 }
 
 function serializePath(startPos, path) {
+
     let serialized = '';
-    const colors = ["orange", "blue", "green", "red", "yellow", "black", "gray", "purple"];
-    const hash = (startPos.x * 50 + startPos.y) % colors.length;
-    const color = colors[hash];
 
     for (const position of path) {
         if (position.roomName === startPos.roomName) {
-            new RoomVisual(position.roomName).line(position, startPos, {
-                color: color,
-                lineStyle: 'dashed'
-            });
+            if (PATHING_DEBUG) {
+                const colors = ["orange", "blue", "green", "red", "yellow", "black", "gray", "purple"];
+                const hash = (startPos.x * 50 + startPos.y) % colors.length;
+                const color = colors[hash];
+                new RoomVisual(position.roomName).line(position, startPos, {
+                    color: color,
+                    lineStyle: 'dashed'
+                });
+            }
             serialized += startPos.getDirectionTo(position);
         } else {
             let exitDir;
@@ -1032,9 +1093,10 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
 
     const cache = this.memory._shibSquadMove;
     const orientation = this.memory.squadOrientation || 0;
+    const squadSize = (this.memory.squadMembers || []).length + 1;
     const targetKey = getPosKey(target);
 
-    if (cache.path?.length && cache.orientation === orientation && cache.endpoint) {
+    if (cache.path?.length && cache.orientation === orientation && cache.squadSize === squadSize && cache.endpoint) {
         if (cache.target === targetKey || endpointInRange(cache.endpoint, target, options.range)) {
             return squadMove(this, cache.path);
         }
@@ -1047,7 +1109,7 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
     const result = PathFinder.search(origin, {pos: target, range: options.range}, {
         maxOps: DEFAULT_MAXOPS * allowedRooms.length,
         maxRooms: allowedRooms.length * 1.5,
-        roomCallback: roomName => allowedRooms.includes(roomName) ? getSquadMatrix(roomName, orientation) : false,
+        roomCallback: roomName => allowedRooms.includes(roomName) ? getSquadMatrix(roomName, orientation, squadSize) : false,
     });
 
     if (!result.path.length) {
@@ -1058,6 +1120,7 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
 
     cache.target = targetKey;
     cache.orientation = orientation;
+    cache.squadSize = squadSize;
     cache.endpoint = getPosKey(result.path[result.path.length - 1]);
     cache.path = serializePath(origin, result.path);
     return squadMove(this, cache.path);
@@ -1074,6 +1137,7 @@ Creep.prototype.shibSquadKite = function (fleeRange = FLEE_RANGE, options = {}) 
     const fleeGoals = threats.map(t => ({pos: t.pos, range: fleeRange + 2}));
     const currentRoom = this.pos.roomName;
     const orientation = this.memory.squadOrientation || 0;
+    const squadSize = (this.memory.squadMembers || []).length + 1;
     const allowedRooms = [currentRoom].concat(Object.values(Game.map.describeExits(currentRoom)));
 
     const result = PathFinder.search(this.pos, fleeGoals, {
@@ -1082,7 +1146,7 @@ Creep.prototype.shibSquadKite = function (fleeRange = FLEE_RANGE, options = {}) 
         roomCallback: roomName => {
             if (!allowedRooms.includes(roomName)) return false;
             if (roomName !== currentRoom && INTEL[roomName]?.owner && !FRIENDLIES.includes(INTEL[roomName].owner)) return false;
-            return getSquadMatrix(roomName, orientation);
+            return getSquadMatrix(roomName, orientation, squadSize);
         },
     });
 
@@ -1124,10 +1188,11 @@ function squadMove(creep, path) {
     }
 
     const orientation = creep.memory.squadOrientation || 0;
+    const squadSize = members.length + 1;
     const newLeaderPos = creep.pos.positionAtDirection(move);
 
     if (newLeaderPos) {
-        if (newLeaderPos.checkForImpassible(false, true) || !isFootprintWalkable(newLeaderPos, orientation)) {
+        if (newLeaderPos.checkForImpassible(false, true) || !isFootprintWalkable(newLeaderPos, orientation, squadSize)) {
             creep.memory._shibSquadMove = undefined;
             return false;
         }
@@ -1169,8 +1234,8 @@ function isOccupiedByEnemy(leader, pos) {
     return occupant && !occupant.my;
 }
 
-function isFootprintWalkable(leaderPos, orientation) {
-    const vectors = getFormationVectors(orientation);
+function isFootprintWalkable(leaderPos, orientation, squadSize = 4) {
+    const vectors = squadSize >= 3 ? getFormationVectors(orientation) : [{x: 0, y: 0}];
     const terrain = Game.map.getRoomTerrain(leaderPos.roomName);
     for (const v of vectors) {
         const mx = leaderPos.x - v.x;
@@ -1300,9 +1365,22 @@ function gatherThreats(creep, fleeRange) {
     return threats.concat(lairs);
 }
 
+// Single source of truth for squad formation geometry. orientation 0 = leader at
+// the NW corner of a 2×2 with the other 3 cells extending SE; orientation 1 =
+// leader at SE with footprint NW. Consumers (role.longbowSquad et al.) import
+// QUAD_FOLLOWER_OFFSETS from this module's exports so the convention can only
+// change in one place.
+const QUAD_FOLLOWER_OFFSETS = {
+    0: [{dx: 0, dy: 1}, {dx: 1, dy: 0}, {dx: 1, dy: 1}],
+    1: [{dx: 0, dy: -1}, {dx: -1, dy: 0}, {dx: -1, dy: -1}]
+};
+
+// Internal form used by buildSquadMatrix / isFootprintWalkable. Derived by
+// negating follower offsets (the matrix encodes "obstacle → blocked-leader"
+// vectors) and prepending the leader's own cell.
 const formationVectorsByOrientation = {
-    0: [{x: 0, y: 0}, {x: 0, y: -1}, {x: -1, y: 0}, {x: -1, y: -1}],
-    1: [{x: 0, y: 0}, {x: 0, y: 1}, {x: 1, y: 0}, {x: 1, y: 1}]
+    0: [{x: 0, y: 0}, ...QUAD_FOLLOWER_OFFSETS[0].map(v => ({x: -v.dx, y: -v.dy}))],
+    1: [{x: 0, y: 0}, ...QUAD_FOLLOWER_OFFSETS[1].map(v => ({x: -v.dx, y: -v.dy}))]
 };
 
 function getFormationVectors(orientation) {
@@ -1322,3 +1400,14 @@ function getOutsideHubMatrix(roomName, matrix, options) {
     }
     return matrix;
 }
+
+// Public exports for consumers that need to stay in sync with this module's
+// formation geometry or reuse its cached squad matrix. require.js continues to
+// load this file for the prototype side-effects; modules that need the constants
+// or helpers below can `require('module.pathFinder')` and pull them off the
+// returned object.
+module.exports = {
+    QUAD_FOLLOWER_OFFSETS,
+    getSquadMatrix,
+    getFormationVectors
+};

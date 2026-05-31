@@ -3,6 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
+const energyTracker = require("module.energyTracker");
 const LAST_UPDATE = {};
 const ENERGY_TRACKER = {};
 
@@ -39,61 +40,70 @@ class StateManager {
     }
 
     energyTracking(room) {
-        // Energy tracking
-        const lastEnergy = room.memory.lastEnergyAmount || 0;
-        room.memory.lastEnergyAmount = room.energy;
-        const energyIncomeArray = ROOM_ENERGY_INCOME_ARRAY[room.name] || [];
-        energyIncomeArray.push(room.energy - lastEnergy);
-
-        if (energyIncomeArray.length > 50) {
-            energyIncomeArray.shift();
-        }
-
-        ROOM_ENERGY_INCOME_ARRAY[room.name] = energyIncomeArray;
-
-        // Track if the room is filling extensions/spawns fast enough
+        // Spawn-fill latency tracker (used to request more haulers).
         if (room.energyCapacityAvailable > room.energyAvailable) {
             if (ENERGY_TRACKER[room.name]) ENERGY_TRACKER[room.name]++; else ENERGY_TRACKER[room.name] = 1;
         } else if (ENERGY_TRACKER[room.name] > 0) ENERGY_TRACKER[room.name]--;
         room.memory.needsHaulers = ENERGY_TRACKER[room.name] > 10;
 
-        // Track projected income — use colonyCreeps cache to avoid scanning all Game.creeps
-        const colonyCreeps = (global.world && global.world.colonyCreeps && global.world.colonyCreeps[room.name]) || room.myCreeps;
+        // Authoritative income/expense from the event-log accumulator — covers the home
+        // room plus visible remotes.
+        const snap = energyTracker.colonySnapshot(room.name);
+        const roomSnap = energyTracker.snapshot(room.name);
+        const income = Math.round(snap.income);
+        const expense = Math.round(snap.expense);
+        const spareIncome = income - expense;
+        const trend = energyTracker.colonyTrend(room.name);
 
-        // Split harvesters by type for detailed diagnostics
-        const statHarvesters = colonyCreeps.filter(c => c.memory.role === 'stationaryHarvester');
-        const remoteHarvesters = colonyCreeps.filter(c => c.memory.role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired);
-        const statIncome = Math.floor(statHarvesters.reduce((sum, c) => sum + (c.getActiveBodyparts(WORK) * 0.8), 0));
-        const remoteIncome = Math.floor(remoteHarvesters.reduce((sum, c) => sum + (c.getActiveBodyparts(WORK) * 0.8), 0));
-        const income = statIncome + remoteIncome;
+        // Single pass over myCreeps — gathers everything energyDiag needs.
+        let upgraderCnt = 0, droneCnt = 0;
+        let upgradeWork = 0, droneWork = 0;
+        let totalBodyCost = 0;
+        const statHarvesters = [];
+        const remoteHarvesters = [];
+        for (let i = 0; i < room.myCreeps.length; i++) {
+            const c = room.myCreeps[i];
+            const role = c.memory.role;
+            totalBodyCost += global.UNIT_COST(c.body);
+            if (role === 'upgrader') {
+                upgraderCnt++;
+                upgradeWork += c.getActiveBodyparts(WORK);
+            } else if (role === 'drone' || role === 'waller') {
+                droneCnt++;
+                droneWork += c.getActiveBodyparts(WORK);
+            } else if (role === 'stationaryHarvester') {
+                statHarvesters.push(c);
+            } else if (role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired) {
+                remoteHarvesters.push(c);
+            }
+        }
+        const upgradeExpense = Math.ceil(upgradeWork);
+        const droneExpense = Math.ceil(droneWork);
+        const spawnExpense = Math.ceil(totalBodyCost / CREEP_LIFE_TIME);
 
-        // Split expenses by category for diagnostics
-        const upgraders = room.myCreeps.filter(c => c.memory.role === 'upgrader');
-        const drones = room.myCreeps.filter(c => c.memory.role === 'drone' || c.memory.role === 'waller');
-        const upgradeExpense = Math.ceil(upgraders.reduce((sum, c) => sum + c.getActiveBodyparts(WORK), 0));
-        const droneExpense = Math.ceil(drones.reduce((sum, c) => sum + c.getActiveBodyparts(WORK), 0));
-        // Amortised spawn cost: total energy capacity of all creeps / average lifespan
-        const spawnExpense = Math.ceil(room.myCreeps.reduce((sum, c) => sum + global.UNIT_COST(c.body), 0) / CREEP_LIFE_TIME);
-        // Tower drain: only counts when towers are actually firing (hostiles present)
-        const towerExpense = HOSTILES.length > 0 ? room.towers.filter(s => s.structureType === STRUCTURE_TOWER && s.isActive()).length * 2 : 0;
-        const expense = upgradeExpense + droneExpense + spawnExpense + towerExpense;
-        const spareIncome = room.energyState > 2 ? 9999999 : income - expense;
-        room.memory.energyInfo = {income, expense, spareIncome};
+        // Upgrader duty cycle = avg actual upgrade energy / avg theoretical WORK, both over
+        // the same 50-tick window so a recent body resize doesn't skew the ratio. < 1 means
+        // the body was bigger than what the controller link could feed (or the upgrader was
+        // idle for other reasons). Anti-waste scaling in bodyGenerator uses this.
+        const upgraderDuty = roomSnap.upgradeWork > 0
+            ? Math.min(1.0, roomSnap.upgrade / roomSnap.upgradeWork)
+            : 1.0;
+
+        room.memory.energyInfo = {income, expense, spareIncome, trend, upgraderDuty};
+
         room.memory.energyDiag = {
             statHarv: statHarvesters.length,
-            statIncome,
             remoteHarv: remoteHarvesters.length,
-            remoteIncome,
-            upgraderCnt: upgraders.length,
+            upgraderCnt,
             upgradeExpense,
-            droneCnt: drones.length,
+            droneCnt,
             droneExpense,
             spawnExpense,
-            towerExpense
+            samples: snap.samples || 0,
         };
-        room.memory.energyPositive = (average(energyIncomeArray) > 0 && income > expense) || room.energyState > 1 || room.level < 4;
 
-        if (!room.memory.combatReady && room.energyState > 1 && room.level >= 6) room.memory.combatReady = true;
+        const combatReadyEnergyState = room.level >= 7 ? 1 : 2;
+        if (!room.memory.combatReady && room.energyState >= combatReadyEnergyState && room.level >= 4) room.memory.combatReady = true;
         else if (room.memory.combatReady) room.memory.combatReady = undefined;
     }
 

@@ -39,7 +39,14 @@ class ModuleBodyGenerator {
         this.room = room;
         this.creepInfo = creepInfo;
         this.energyAmount = room.energyCapacityAvailable;
-        this.spareIncome = (this.room.memory.energyInfo && this.room.memory.energyInfo.spareIncome) || 0;
+        const ei = this.room.memory.energyInfo;
+        this.spareIncome = (ei && ei.spareIncome) || 0;
+        // Per-tick slope of colony spareIncome. Negative means we're trending toward
+        // net-negative — bodies pre-emptively shrink instead of reacting after the fact.
+        this.trend = (ei && ei.trend) || 0;
+        // Upgrader-only: actual upgrade-energy / theoretical WORK output, [0..1].
+        // < 1 means body is oversized for the link feed; anti-waste shrink in the upgrader case.
+        this.upgraderDuty = (ei && typeof ei.upgraderDuty === 'number') ? ei.upgraderDuty : 1.0;
         this.boostsRequired = false;
     }
 
@@ -54,7 +61,10 @@ class ModuleBodyGenerator {
 
     // Method to check if the body is cached for a specific combination
     getCacheKey() {
-        return `${this.energyAmount}.${this.role}.${this.spareIncome}.${JSON.stringify(this.creepInfo)}`;
+        // Round trend/duty so small jitter doesn't invalidate the cache every tick.
+        const trendBucket = Math.round(this.trend);
+        const dutyBucket = Math.round(this.upgraderDuty * 10);
+        return `${this.energyAmount}.${this.role}.${this.spareIncome}.${trendBucket}.${dutyBucket}.${JSON.stringify(this.creepInfo)}`;
     }
 
     // Main method to generate the body
@@ -85,80 +95,105 @@ class ModuleBodyGenerator {
         switch (this.role) {
             case 'explorer':
             case 'scout':
+            case 'test':
                 move = 1;
                 break;
 
             case 'roadBuilder':
             case 'drone':
-            case 'waller':
-                if (!this.creepInfo.destination && !['roadBuilder', 'waller'].includes(this.role) && INTEL[this.room.name].roadsBuilt) halfMove = true;
-                if (!halfMove) {
-                    work = Math.floor(this.energyAmount * 0.35 / BODYPART_COST[WORK]) || 1;
-                    work = Math.min(work, 15);
-                    carry = Math.floor((this.energyAmount * 0.15) / BODYPART_COST[CARRY]) || 1;
-                    carry = Math.min(carry, 10);
+            case 'waller': {
+                halfMove = !this.creepInfo.destination
+                    && !['roadBuilder', 'waller'].includes(this.role)
+                    && INTEL[this.room.name].roadsBuilt;
+
+                if (halfMove) {
+                    work = Math.min(Math.floor(this.energyAmount * 0.51 / BODYPART_COST[WORK]) || 1, 20);
+                    carry = Math.min(Math.floor(this.energyAmount * 0.23 / BODYPART_COST[CARRY]) || 1, 12);
                 } else {
-                    work = Math.floor(this.energyAmount * 0.51 / BODYPART_COST[WORK]) || 1;
-                    work = Math.min(work, 20);
-                    carry = Math.floor((this.energyAmount * 0.23) / BODYPART_COST[CARRY]) || 1;
-                    carry = Math.min(carry, 12);
+                    work = Math.min(Math.floor(this.energyAmount * 0.35 / BODYPART_COST[WORK]) || 1, 15);
+                    carry = Math.min(Math.floor(this.energyAmount * 0.15 / BODYPART_COST[CARRY]) || 1, 10);
                 }
                 if (!this.room.energyState) {
                     work *= 0.15;
                     carry *= 0.2;
-                } else if (this.room.energyState === 1) {
-                    work *= 0.3;
-                    carry *= 0.2;
+                } else if (this.room.energyState < 3) {
+                    if (this.role === 'roadBuilder') {
+                        work *= 0.4;
+                        carry *= 0.3;
+                    } else {
+                        const totalIncome = (this.room.memory.energyInfo && this.room.memory.energyInfo.income) || 0;
+                        const projected = this.spareIncome + this.trend * 50;
+                        const effective = Math.min(this.spareIncome, projected);
+                        const scale = totalIncome > 0
+                            ? Math.max(0.3, Math.min(1.0, effective / totalIncome))
+                            : 0.3;
+                        work *= scale;
+                        carry *= scale;
+                    }
                 }
-                if (work < 1) return undefined;
-                break;
 
-            case 'upgrader':
-                if (this.room.memory.controllerLink || this.room.memory.controllerContainer) {
-                    carry = this.room.memory.controllerLink ? 4 : 1;
-                    work = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] * carry)) / BODYPART_COST[WORK]) || 1;
-                    const maxWork = work;
-                    if (this.room.memory.controllerLink && this.level >= 5) {
+                if (work < 1) work = 1;
+                if (carry < 1) carry = 1;
+                break;
+            }
+
+            case 'upgrader': {
+                const hasLink = !!this.room.memory.controllerLink;
+                const hasContainer = !!this.room.memory.controllerContainer;
+
+                if (hasLink || hasContainer) {
+                    // Stationary — sits on a container or beside the controller link, no moves.
+                    carry = hasLink ? 4 : 1;
+                    const affordableWork = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] * carry)) / BODYPART_COST[WORK]) || 1;
+                    work = affordableWork;
+
+                    if (hasLink && this.level >= 5) {
                         const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
                         const sourceLinks = controllerLink ? this.room.links
                                 .filter(s => s.id !== this.room.memory.controllerLink &&
                                     (this.room.energyState >= 2 || s.id !== this.room.memory.hubLink))
                                 .sort((a, b) => a.pos.getRangeTo(controllerLink) - b.pos.getRangeTo(controllerLink))
                             : [];
+
                         if (sourceLinks.length > 0) {
-                            const sourceRate = SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME; // 10/tick
+                            const sourceRate = SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME; // 10/tick per source
                             work = Math.floor(sourceRate * sourceLinks.length * (1 - LINK_LOSS_RATIO)) + 1;
-                            if (!this.room.energyState) {
-                                work *= 0.15;
-                            } else if (this.room.energyState === 1) {
-                                work *= 0.4;
-                            } else if (this.room.energyState === 2) {
-                                work *= 0.9;
-                            } else if (this.room.energyState === 3) {
-                                work *= 1.2;
-                            }
                         }
-                        // Cap at 15 at rcl8
-                        work = this.room.level === 8 ? Math.min(work, 15) : Math.min(maxWork, work);
-                    } else {
-                        work = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] * carry)) / BODYPART_COST[WORK]) || 1;
+                        if (!this.room.energyState) {
+                            work *= 0.15;
+                        } else if (this.room.energyState < 3) {
+                            const totalIncome = (this.room.memory.energyInfo && this.room.memory.energyInfo.income) || 0;
+                            const projected = this.spareIncome + this.trend * 50;
+                            const effective = Math.min(this.spareIncome, projected);
+                            const scale = totalIncome > 0
+                                ? Math.max(0.75, Math.min(1.0, effective / totalIncome))
+                                : 0.5;
+                            work *= scale;
+                        }
+                        if (this.room.energyState < 3 && this.upgraderDuty < 0.7) {
+                            const dutyScale = Math.max(0.5, this.upgraderDuty + 0.15);
+                            work *= dutyScale;
+                        }
+                        work = this.room.level === 8 ? Math.min(work, 15) : Math.min(affordableWork, work);
                     }
+
                     work = Math.max(Math.min(work, 49), 1);
                     move = 0;
                 } else {
-                    work = Math.floor(this.energyAmount * 0.4 / BODYPART_COST[WORK]) || 1;
-                    work = Math.min(work, 15);
-                    carry = Math.floor(this.energyAmount * 0.1 / BODYPART_COST[CARRY]) || 1;
-                    carry = Math.min(carry, 10);
+                    // Mobile upgrader — no infrastructure yet, walks to and from the controller.
+                    work = Math.min(Math.floor(this.energyAmount * 0.4 / BODYPART_COST[WORK]) || 1, 15);
+                    carry = Math.min(Math.floor(this.energyAmount * 0.1 / BODYPART_COST[CARRY]) || 1, 10);
                     if (INTEL[this.room.name].roadsBuilt) halfMove = true;
                 }
+
                 if (work < 1) work = 1;
                 if (carry < 1) carry = 1;
                 break;
+            }
 
             case 'labTech':
                 carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
-                carry = Math.min(carry, 10);
+                carry = Math.min(carry, 20);
 
                 if (INTEL[this.room.name].roadsBuilt) halfMove = true;
                 break;
@@ -192,12 +227,13 @@ class ModuleBodyGenerator {
             case 'stationaryHarvester':
                 if (this.room.level >= 2) {
                     work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
+                    const additionalWork = this.room.controller.level >= 7 ? 9 : 0;
                     // Handle power creep stuff
                     let powerCreep = _.find(Game.powerCreeps, c => c.my && c.memory.destinationRoom === this.room.name && c.powers[PWR_REGEN_SOURCE]);
                     if (powerCreep) {
-                        work = Math.floor((SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME));
+                        work = Math.floor((SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME)) + additionalWork;
                     } else {
-                        work = Math.ceil(Math.min(work, (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME))));
+                        work = Math.ceil(Math.min(work, (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)))) + additionalWork;
                     }
                     move = 0;
                 } else {
@@ -254,15 +290,23 @@ class ModuleBodyGenerator {
                 } else if (this.creepInfo && Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
                     const defaultWaitFor = this.role === 'longbow' ? 1 : 2;
                     const waitFor = this.creepInfo.misc && this.creepInfo.misc.waitFor || defaultWaitFor;
-                    heal = this.checkForNeededHeal(this.room, 1 / waitFor);
+                    heal = this.checkForNeededHeal(1 / waitFor);
                     if (!heal) break;
+                    // Optional TOUGH buffer for siege ops — covers the gap between
+                    // p85 heal sizing and the higher-damage tiles the creep will
+                    // cross on approach. Only allocated when the op explicitly
+                    // requests TOUGH in misc.boosts AND a tough boost is in stock.
+                    if (this.creepInfo.misc && this.creepInfo.misc.boosts && this.creepInfo.misc.boosts.includes(TOUGH)) {
+                        tough = this.checkForNeededTough(waitFor);
+                    }
                 } else {
                     heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
                     heal = Math.min(heal, 6);
                 }
-                const remainingEnergy = this.energyAmount - ((heal * BODYPART_COST[HEAL]) + heal * BODYPART_COST[MOVE]);
+                const toughEnergy = (tough || 0) * (BODYPART_COST[TOUGH] + BODYPART_COST[MOVE]);
+                const remainingEnergy = this.energyAmount - ((heal * BODYPART_COST[HEAL]) + heal * BODYPART_COST[MOVE]) - toughEnergy;
                 rangedAttack = Math.floor(remainingEnergy / (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE])) || 1;
-                rangedAttack = Math.min(rangedAttack, 25 - heal);
+                rangedAttack = Math.min(rangedAttack, 25 - heal - (tough || 0));
 
                 // Handle scaling down military creeps based on power
                 if (this.creepInfo && this.creepInfo.other && this.creepInfo.other.power) {
@@ -280,7 +324,7 @@ class ModuleBodyGenerator {
                 const healerDuo = _.find(this.room.myCreeps, (c) => c.memory.role === 'siegeDuo' && c.hasActiveBodyparts(HEAL) && !c.memory.partner);
                 if (!healerDuo) {
                     if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
-                        heal = this.checkForNeededHeal(this.room, 1);
+                        heal = this.checkForNeededHeal(1);
                         if (!heal) break;
                     } else {
                         heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
@@ -310,7 +354,7 @@ class ModuleBodyGenerator {
             case 'reserver':
                 // Calculate claim based on energy and the cost of CLAIM and MOVE parts.
                 claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
-                claim = Math.min(claim, 5 * (this.room.energyState || 1));
+                claim = Math.min(claim, 2 * (this.room.energyState || 1));
 
                 // Half-move only if every room on the route has roads — intermediate rooms count too.
             {
@@ -331,12 +375,13 @@ class ModuleBodyGenerator {
             case 'remoteHarvester':
                 // Set source energy capacity for a reserved room, double it at level 7 for CPU
                 const SOURCE_CAPACITY = this.room.controller.level >= 7 ? SOURCE_ENERGY_CAPACITY : SOURCE_ENERGY_CAPACITY;
+                const additionalWork = this.room.controller.level >= 7 ? 9 : 1;
                 if (INTEL[this.creepInfo.destination] && INTEL[this.creepInfo.destination].sk) {
-                    work = Math.ceil(SOURCE_ENERGY_KEEPER_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
+                    work = Math.ceil(SOURCE_ENERGY_KEEPER_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + additionalWork;
                 } else if (INTEL[this.creepInfo.destination] && INTEL[this.creepInfo.destination].reservation === MY_USERNAME) {
-                    work = Math.ceil(SOURCE_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
+                    work = Math.ceil(SOURCE_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + additionalWork;
                 } else {
-                    work = Math.ceil(SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + 1;
+                    work = Math.ceil(SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + additionalWork;
                 }
                 carry = 1;
 
@@ -481,31 +526,80 @@ class ModuleBodyGenerator {
         return body.reduce((cost, part) => cost + BODYPART_COST[part], 0);
     }
 
-    checkForNeededHeal(room, multiplier = 0.51) {
-        if (!INTEL[this.creepInfo.destination] || !INTEL[this.creepInfo.destination].towerData) return false;
-        const damageToTank = Math.round(INTEL[this.creepInfo.destination].towerData.maxDamage);
-        const neededHeals = determineNeededHeals(damageToTank);
-        let neededBoost = {};
-        let optimalHeal = 0;
-        for (const heal in neededHeals) {
-            const scaled = Math.ceil(neededHeals[heal].amount * multiplier);
-            if (scaled > 20) continue;
-            if (this.room.store(neededHeals[heal].boost) >= 30 * scaled) {
-                neededBoost.boostPart = HEAL;
-                neededBoost.boost = neededHeals[heal].boost;
-                neededBoost.boostTier = neededHeals[heal].tier;
-                neededBoost.amount = neededHeals[heal].amount;
-                optimalHeal = scaled;
-                break;
-            }
+    checkForNeededHeal(multiplier = 1) {
+        const destination = this.creepInfo.destination;
+        const towerData = INTEL[destination] && INTEL[destination].towerData;
+        const targetMemory = Memory.targetRooms[destination];
+        if (!towerData || !towerData.average) {
+            if (targetMemory) targetMemory.boostTier = undefined;
+            return false;
         }
-        if (!neededBoost.amount) return false;
-        // If we can't support the size, break
-        const maxHeals = Math.floor(this.energyAmount / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
-        if (maxHeals < optimalHeal) return false;
-        Memory.targetRooms[this.creepInfo.destination].boostTier = neededBoost.boostTier;
-        this.creepInfo.neededBoosts = neededBoost;
-        return optimalHeal;
+
+        const damageToTank = Math.round(towerData.average);
+        const tiers = determineNeededHeals(damageToTank);
+        const squadSize = Math.max(1, Math.round(1 / multiplier));
+        const MAX_HEAL_PARTS = 20;
+        const MIN_RANGED_PARTS = 5;
+        const reservedEnergy = MIN_RANGED_PARTS * (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE]);
+        const energyPerHealPair = BODYPART_COST[HEAL] + BODYPART_COST[MOVE];
+
+        // Prefer the lowest tier boost that still tanks the damage and leaves
+        // energy for at least MIN_RANGED_PARTS ranged_attack parts. tiers is
+        // ordered strongest -> weakest, so iterate in reverse.
+        const tierKeys = Object.keys(tiers);
+        let chosen;
+        let chosenHeals = 0;
+        for (const key of tierKeys) {
+            const tier = tiers[key];
+            const perCreepHeals = Math.ceil(tier.amount * multiplier);
+            if (perCreepHeals > MAX_HEAL_PARTS) continue;
+            if (perCreepHeals * energyPerHealPair + reservedEnergy > this.energyAmount) continue;
+            if (this.room.store(tier.boost) < 30 * perCreepHeals * squadSize) continue;
+            chosen = tier;
+            chosenHeals = perCreepHeals;
+            break;
+        }
+
+        if (!chosen) {
+            if (targetMemory) targetMemory.boostTier = undefined;
+            return false;
+        }
+
+        targetMemory.boostTier = chosen.tier;
+        this.creepInfo.neededBoosts = {
+            boostPart: HEAL,
+            boost: chosen.boost,
+            boostTier: chosen.tier,
+            amount: chosenHeals
+        };
+        return chosenHeals;
+    }
+
+    // Sizes a TOUGH buffer for siege creeps. Returns part count to add to the
+    // body, scaled by tower damage; 0 when damage is low enough that heal-only
+    // is more efficient, or when no tough boost is available in storage. The
+    // boost itself is picked at runtime by tryToBoost (via misc.boosts) — we
+    // only verify here that *some* tier is in stock so we don't allocate parts
+    // that'll go unboosted and just bloat the body.
+    checkForNeededTough(squadSize = 1) {
+        const destination = this.creepInfo.destination;
+        const towerData = INTEL[destination] && INTEL[destination].towerData;
+        if (!towerData || !towerData.average) return 0;
+        // Below this threshold heal alone tanks efficiently; tough body slots
+        // are better spent on ranged_attack.
+        if (towerData.average < 300) return 0;
+
+        // Buffer scales modestly with damage. Capped so tough never crowds out
+        // ranged_attack — 8 tough + ~13 heal still leaves room for ~25 ranged
+        // in a 50-part body with boosted MOVE.
+        const partCount = towerData.average >= 1000 ? 8 : (towerData.average >= 600 ? 6 : 4);
+
+        // Require at least one tier of TOUGH boost in stock for the whole squad.
+        // tryToBoost will pick whichever tier is available at apply-time.
+        for (const boost of BOOST_USE[TOUGH]) {
+            if (this.room.store(boost) >= 30 * partCount * squadSize) return partCount;
+        }
+        return 0;
     }
 }
 

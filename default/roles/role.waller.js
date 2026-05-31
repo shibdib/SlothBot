@@ -63,7 +63,7 @@ class RoleWaller {
         if (this.hauling()) return;
 
         // Maintenance: Strengthen barriers if nothing else to do (prevents idling)
-        if (this.walling(true)) return;
+        if (this.room.energyState >= 3 && this.walling(true)) return;
 
         // Final fallback: Idle
         this.creep.memory.task = undefined;
@@ -155,8 +155,8 @@ class RoleWaller {
             delete this.creep.memory.targetWallHits;
 
             let targetLimit = 100000;
-            if (this.room.controller.level >= 8) targetLimit = 3000000;
-            else if (this.room.controller.level >= 6) targetLimit = 1000000;
+            if (this.room.controller.level >= 8) targetLimit = 10000000;
+            else if (this.room.controller.level >= 6) targetLimit = 5000000;
 
             if (maintenance && this.room.level === 8) targetLimit = RAMPART_HITS_MAX[this.room.level];
 

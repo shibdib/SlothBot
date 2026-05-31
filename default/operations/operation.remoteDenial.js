@@ -22,40 +22,44 @@ Creep.prototype.remoteDenial = function () {
     }
 
     // If the target room no longer is hostile or exists cancel the operations
-    if (INTEL[this.memory.other.target]) {
-        if (!INTEL[this.memory.other.target].owner || FRIENDLIES.includes(INTEL[this.memory.other.target].owner)) {
+    if (INTEL[this.memory.destination]) {
+        if (!INTEL[this.memory.destination].owner || FRIENDLIES.includes(INTEL[this.memory.destination].owner)) {
             this.memory.operation = 'borderPatrol';
             this.memory.destination = undefined;
+            this.memory.targetRoom = undefined;
             this.memory.other.target = undefined;
             this.memory.other.visited = undefined;
-            Memory.targetRooms[this.memory.other.target] = undefined;
+            Memory.targetRooms[this.memory.destination] = undefined;
             log.a('Operation cancelled due to target room no longer being hostile or no longer existing', 'REMOTE-DENIAL: ');
             return this.fleeHome();
         }
     }
 
     // If already in the target room
-    if (this.room.name === this.memory.destination || !this.memory.destination) {
+    if (this.room.name === this.memory.targetRoom || !this.memory.targetRoom) {
         highCommand.generateThreat(this);
-        highCommand.operationSustainability(this.room, this.memory.other.target);
+        highCommand.operationSustainability(this.room, this.memory.destination);
 
         if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(50)) {
-            if (Memory.targetRooms[this.memory.other.target]) {
+            if (Memory.targetRooms[this.memory.destination]) {
                 if (this.room.hostileCreeps.length) {
-                    Memory.targetRooms[this.memory.other.target].level = 2;
+                    Memory.targetRooms[this.memory.destination].level = 2;
                 } else {
-                    Memory.targetRooms[this.memory.other.target].level = 1;
+                    Memory.targetRooms[this.memory.destination].level = 1;
                 }
             }
         } else {
-            const remotes = Object.values(Game.map.describeExits(this.memory.other.target)).filter((n) =>
-                (!INTEL[n] || !INTEL[n].user || INTEL[n].user === INTEL[this.memory.other.target].owner) && Object.values(Game.map.describeExits(n)).length > 1);
-            console.log(JSON.stringify(remotes))
-            this.memory.destination = _.sample(remotes);
-            console.log(this.memory.destination);
+            const destinationOwner = INTEL[this.memory.destination] && INTEL[this.memory.destination].owner;
+            const remotes = Object.values(Game.map.describeExits(this.memory.destination) || {}).filter((n) =>
+                (!INTEL[n] || !INTEL[n].user || INTEL[n].user === destinationOwner) && Object.values(Game.map.describeExits(n) || {}).length > 1);
+            this.memory.targetRoom = _.sample(remotes);
             this.say('RETASKED', true);
         }
     } else {
-        return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 22});
+        if (this.memory.targetRoom === this.memory.destination) {
+            this.say('RETASKED', true);
+            return this.memory.targetRoom = undefined;
+        }
+        return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
     }
 };

@@ -27,6 +27,9 @@ class ExpansionControl {
             }
         } else {
             log.a(`No claim targets found out of ${this.worthyRooms.length} possible rooms.`, 'EXPANSION CONTROL:');
+            for (const room of this.worthyRooms) {
+                log.a(`  ${roomLink(room.name)} rejected: ${room.rejectReason || 'unknown'}`, 'EXPANSION CONTROL:');
+            }
         }
     }
 
@@ -108,9 +111,13 @@ class ExpansionControl {
 
     calculateRoomScore(room, friendlyRooms, enemyRooms) {
         let score = 10000;
+        room.rejectReason = undefined;
 
         if (room.failedClaim) {
-            if (room.failedClaim >= 5) return undefined;
+            if (room.failedClaim >= 5) {
+                room.rejectReason = `failedClaim=${room.failedClaim} (>=5)`;
+                return undefined;
+            }
             score -= room.failedClaim * 1000;
         }
 
@@ -119,7 +126,10 @@ class ExpansionControl {
             const linearDist = Game.map.getRoomLinearDistance(room.name, fRoom.name);
             if (linearDist > 20) continue;
             const distance = Game.map.findRoute(room.name, fRoom.name).length;
-            if (distance <= 2) return undefined;
+            if (distance <= 2) {
+                room.rejectReason = `friendly ${fRoom.name} too close (route dist ${distance})`;
+                return undefined;
+            }
             score += this.friendlyRoomScoreAdjustment(distance);
             if (AVOID_ALLIED_SECTORS && sameSectorCheck(room.name, fRoom.name)) score -= 500;
         }
@@ -138,14 +148,21 @@ class ExpansionControl {
 
         // Count accessible remote sources from neighboring rooms
         const neighboring = Object.values(Game.map.describeExits(room.name));
+        let unscoutedNeighbors = 0;
         const sourceCount = neighboring.reduce((sum, r) => {
             const intel = INTEL[r];
-            if (!intel) return sum; // No intel — don't fabricate sources
+            if (!intel) {
+                unscoutedNeighbors++;
+                return sum;
+            } // No intel — don't fabricate sources
             if (intel.user) return sum; // Owned room — no remote sources available
             return sum + (intel.sources || 0);
         }, 0);
 
-        if (!sourceCount) return undefined;
+        if (!sourceCount) {
+            room.rejectReason = `no remote sources (neighbors=${neighboring.length}, unscouted=${unscoutedNeighbors})`;
+            return undefined;
+        }
         score += sourceCount * 250;
 
         score -= this.getSwampPenalty(room.name);

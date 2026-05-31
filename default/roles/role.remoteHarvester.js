@@ -93,10 +93,14 @@ class RoleRemoteHarvester {
                         && route.every(step => INTEL[step.room] && INTEL[step.room].roadsBuilt);
                     this.creep.memory.other.haulingRequired = actualRate * sourceInfo.score * (roadsBuilt ? 4.2 : 2.2);
                 }
+            } else if (this.container && this.container.store && !this.container.store.getFreeCapacity(RESOURCE_ENERGY)) {
+                this.creep.repair(this.container);
+                this.creep.idleFor(10);
             }
         } else if (result === ERR_NOT_IN_RANGE) {
             this.creep.shibMove(source);
         } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
+            if (this.container && this.container.store) this.creep.repair(this.container);
             this.creep.idleFor(source.ticksToRegeneration + 1);
         }
     }

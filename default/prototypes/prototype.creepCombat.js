@@ -20,6 +20,21 @@
  * Fully compatible with optimized pathfinder + longbowSquad.
  */
 
+// Structure types worth breaking a rampart to reach. A rampart sitting over one
+// of these inherits the underlying structure's priority; anything else under a
+// rampart (roads, containers, nothing at all) leaves it as a bare wall — which
+// goes to the last-resort fallback so we don't chip walls while real targets exist.
+const IMPORTANT_UNDER_RAMPART = new Set([
+    STRUCTURE_TOWER,
+    STRUCTURE_SPAWN,
+    STRUCTURE_STORAGE,
+    STRUCTURE_TERMINAL,
+    STRUCTURE_LAB,
+    STRUCTURE_NUKER,
+    STRUCTURE_POWER_SPAWN,
+    STRUCTURE_FACTORY
+]);
+
 Object.defineProperty(Creep.prototype, 'combatPower', {
     get: function () {
         if (this._combatPower_ts === Game.time) return this._combatPower;
@@ -35,7 +50,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
 
     if (this.hasActiveBodyparts(HEAL)) this.healInRange();
 
-    if (!canEngageCombat(this)) return this.fleeHome(true);
+    if (!canEngageCombat(this) && this.memory.role !== 'test') return this.fleeHome(true);
 
     let hostile = this.findClosestEnemy(barrier, ignoreBorder, guardLocation, guardRange);
 
@@ -70,24 +85,43 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
 };
 
 Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorder = false, guardLocation = undefined, guardRange = 50, includeRampart = false) {
+    // If creep role is 'test' treat flag named 'd' as a target
+    if (this.memory.role === 'test') {
+        const flag = Game.flags.d;
+        if (flag) return flag;
+    }
+
     if (!structuresOnly && this.hasActiveBodyparts(WORK)) structuresOnly = true;
 
+    const isArmed = c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || (MY_ROOMS.includes(this.room.name) && c.hasActiveBodyparts(WORK));
+    const inRange = c => !guardLocation || c.pos.getRangeTo(guardLocation) < guardRange;
+    const onBorder = pos => pos.x <= 0 || pos.x >= 49 || pos.y <= 0 || pos.y >= 49;
+
     // === TICK CACHE for hostiles (big CPU win) ===
+    // Split hostile creeps by rampart cover at cache time so we only pay
+    // checkForRampart once per hostile per tick. The two lists feed the
+    // priority chain below — direct hostiles first, then structures, then
+    // the ramparts protecting any hostiles we couldn't otherwise reach.
     if (!this._hostileCache_ts || this._hostileCache_ts !== Game.time) {
-        this._hostileCreeps = this.room.hostileCreeps.filter(c =>
-            (!guardLocation || c.pos.getRangeTo(guardLocation) < guardRange) && !c.pos.checkForRampart()
-        );
+        this._directHostileCreeps = [];
+        this._rampartedHostileCreeps = [];
+        for (const c of this.room.hostileCreeps) {
+            if (!inRange(c)) continue;
+            if (c.pos.checkForRampart()) this._rampartedHostileCreeps.push(c);
+            else this._directHostileCreeps.push(c);
+        }
         this._hostileStructures = this.room.impassibleStructures.filter(s =>
             s.owner && !FRIENDLIES.includes(s.owner.username) &&
-            (!guardLocation || s.pos.getRangeTo(guardLocation) < guardRange) &&
+            inRange(s) &&
             ![STRUCTURE_KEEPER_LAIR, STRUCTURE_CONTROLLER, STRUCTURE_POWER_BANK].includes(s.structureType) &&
             (this.hasActiveBodyparts(ATTACK) || s.structureType !== STRUCTURE_INVADER_CORE)
         );
         this._hostileCache_ts = Game.time;
     }
 
-    const hostileCreeps = this._hostileCreeps;
+    const hostileCreeps = this._directHostileCreeps;
     const hostileStructures = this._hostileStructures;
+    const rampartedHostiles = this._rampartedHostileCreeps;
 
     if (this.memory.blockingCreep) {
         const blocker = Game.getObjectById(this.memory.blockingCreep);
@@ -96,15 +130,12 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
 
     if (this.memory.target) {
         const oldTarget = Game.getObjectById(this.memory.target);
-        const armedHostile = hostileCreeps.find(c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || (MY_ROOMS.includes(this.room.name) && c.hasActiveBodyparts(WORK)));
+        const armedHostile = hostileCreeps.find(isArmed);
         if (oldTarget instanceof Structure && !armedHostile) return oldTarget;
         this.memory.target = undefined;
     }
 
-    if (!hostileCreeps.length && !hostileStructures.length) return undefined;
-
-    const isArmed = c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || (MY_ROOMS.includes(this.room.name) && c.hasActiveBodyparts(WORK));
-    const inRange = c => !guardLocation || c.pos.getRangeTo(guardLocation) < guardRange;
+    if (!hostileCreeps.length && !hostileStructures.length && !rampartedHostiles.length) return undefined;
 
     // === SCORING SYSTEM (makes combat much deadlier) ===
     const scoreTarget = (target) => {
@@ -131,7 +162,9 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
             // Structures
             if (target.structureType === STRUCTURE_TOWER) score += 900;
             else if (target.structureType === STRUCTURE_SPAWN) score += 850;
-            else score += 400;
+            else if (target.structureType === STRUCTURE_RAMPART) score += 50; // bare wall — proxy-scored elsewhere when it covers something
+            else if (IMPORTANT_UNDER_RAMPART.has(target.structureType)) score += 500; // storage / terminal / lab / nuker / etc.
+            else score += 200; // extensions, links, other minor structures
         }
 
         // Distance penalty (closer = better)
@@ -139,40 +172,108 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
         return score;
     };
 
-    // Find best target using scoring
+    // Score a rampart as if it were the (important) structure it covers. We pay
+    // the lookFor once per rampart per call and the rampart-vs-structure tie is
+    // resolved by handleMilitaryCreep's swap — either way, damage lands on the
+    // rampart first, which is what has to die before we touch the structure.
+    const scoreRampartProxy = (rampart) => {
+        const beneath = rampart.pos.lookFor(LOOK_STRUCTURES)
+            .find(o => o.id !== rampart.id && IMPORTANT_UNDER_RAMPART.has(o.structureType));
+        if (!beneath) return null; // bare rampart — handled in priority 5
+        // Score the rampart at the underlying structure's value, but keep the
+        // rampart as the actual target so callers without a swap step (e.g. ops
+        // that don't go through handleMilitaryCreep) still attack the right tile.
+        let score = scoreTarget(beneath);
+        // scoreTarget added the underlying structure's score AND its range
+        // penalty — but the range is measured to the rampart's position (same
+        // tile), so this is already what we want.
+        return score;
+    };
+
     let bestTarget = null;
     let bestScore = -Infinity;
 
-    for (const c of hostileCreeps) {
-        if (!isArmed(c) || (ignoreBorder && (c.pos.x <= 0 || c.pos.x >= 49 || c.pos.y <= 0 || c.pos.y >= 49))) continue;
-        const s = scoreTarget(c);
-        if (s > bestScore) {
-            bestScore = s;
-            bestTarget = c;
+    // Priority 1: armed, directly-reachable hostile creeps. Skipped entirely for
+    // WORK / structuresOnly callers — they shouldn't be scoring creep targets at
+    // all, because a high creep score could otherwise dominate the structure pass.
+    if (!structuresOnly) {
+        for (const c of hostileCreeps) {
+            if (!isArmed(c) || (ignoreBorder && onBorder(c.pos))) continue;
+            const s = scoreTarget(c);
+            if (s > bestScore) {
+                bestScore = s;
+                bestTarget = c;
+            }
         }
+        if (bestTarget) return updateTarget(this, bestTarget);
     }
 
-    if (bestTarget && !structuresOnly) return updateTarget(this, bestTarget);
-
-    // Structures (towers first, then spawns, then others)
+    // Priority 2: hostile structures. Ramparts get proxy-scored by what's
+    // underneath; bare ramparts get deferred to priority 5 so we don't waste
+    // attacks chipping walls when there's something real to kill.
+    const bareRampartTargets = [];
     for (const s of hostileStructures) {
         if (!s.isActive()) continue;
+        if (s.structureType === STRUCTURE_RAMPART) {
+            const proxy = scoreRampartProxy(s);
+            if (proxy === null) {
+                bareRampartTargets.push(s);
+                continue;
+            }
+            if (proxy > bestScore) {
+                bestScore = proxy;
+                bestTarget = s;
+            }
+        } else {
+            const sc = scoreTarget(s);
+            if (sc > bestScore) {
+                bestScore = sc;
+                bestTarget = s;
+            }
+        }
+    }
+    if (bestTarget) return updateTarget(this, bestTarget);
+
+    // Priority 3: ramparts protecting hostile creeps we can't reach directly.
+    // Armed occupants get a +500 bonus so we chip through to threats rather than
+    // ignore them. Dedup in case two hostiles ever share a tile.
+    const visitedRamparts = new Set();
+    for (const c of rampartedHostiles) {
+        if (ignoreBorder && onBorder(c.pos)) continue;
+        const rampart = c.pos.checkForRampart();
+        if (!rampart || visitedRamparts.has(rampart.id)) continue;
+        visitedRamparts.add(rampart.id);
+        let sc = scoreTarget(rampart);
+        if (isArmed(c)) sc += 500;
+        if (sc > bestScore) {
+            bestScore = sc;
+            bestTarget = rampart;
+        }
+    }
+    if (bestTarget) return updateTarget(this, bestTarget);
+
+    // Priority 4: unarmed direct hostiles (skipped in structuresOnly mode for the
+    // same reason priority 1 is — workers shouldn't path off to chase haulers).
+    if (!structuresOnly) {
+        for (const c of hostileCreeps) {
+            if (isArmed(c)) continue;
+            const s = scoreTarget(c);
+            if (s > bestScore) {
+                bestScore = s;
+                bestTarget = c;
+            }
+        }
+        if (bestTarget) return updateTarget(this, bestTarget);
+    }
+
+    // Priority 5: bare ramparts. Walls with nothing on the other side — only
+    // attack when literally everything else is dead. Lets us tunnel through a
+    // dormant base, but never sidetracks active combat.
+    for (const s of bareRampartTargets) {
         const sc = scoreTarget(s);
         if (sc > bestScore) {
             bestScore = sc;
             bestTarget = s;
-        }
-    }
-
-    if (bestTarget) return updateTarget(this, bestTarget);
-
-    // Fallback: unarmed creeps
-    for (const c of hostileCreeps) {
-        if (isArmed(c)) continue;
-        const s = scoreTarget(c);
-        if (s > bestScore) {
-            bestScore = s;
-            bestTarget = c;
         }
     }
 
@@ -258,10 +359,9 @@ Creep.prototype.fightFromRampart = function (hostile = undefined) {
     let position = this.pos.findClosestByPath(ramparts);
 
     if (!position) {
-        position = this.pos.findClosestByPath(FIND_MY_STRUCTURES, {
+        position = target.pos.findClosestByPath(FIND_MY_STRUCTURES, {
             filter: r => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() &&
-                (!r.pos.checkForCreep() || r.pos.isEqualTo(this.pos)) &&
-                r.pos.getRangeTo(target) < this.pos.getRangeTo(target) + 1
+                (!r.pos.checkForCreep() || r.pos.isEqualTo(this.pos))
         });
     }
 
@@ -309,18 +409,21 @@ Creep.prototype.fightRanged = function (target) {
         }
     }
 
-    if (range <= 3) {
+    const kiteTarget = target instanceof Creep && target.hasActiveBodyparts(ATTACK);
+    const targetRange = kiteTarget ? 3 : 1;
+
+    if (range <= targetRange) {
         const nearby = this.pos.findInRange(this.room.hostileCreeps, 2);
         if (nearby.length >= 2) {
             this.rangedMassAttack();
         } else {
-            if (range < 3 && (this.hits < this.hitsMax * 0.8 || nearby.length > 1)) {
+            if (range < targetRange && (this.hits < this.hitsMax * 0.8 || nearby.length > 1)) {
                 this.shibKite(4);
             }
             this.rangedAttack(target);
         }
     } else {
-        this.shibMove(target, {range: 3});
+        this.shibMove(target, {range: targetRange});
         this.attackInRange();
     }
     return true;
@@ -332,6 +435,8 @@ Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, o
     let site = Game.getObjectById(this.memory.stompSite) ||
         this.pos.findClosestByRange(this.room.constructionSites, {
             filter: s => (!onlyInBuild || s.progress) && !s.my && !s.pos.checkForCreep()
+        }) || this.pos.findClosestByRange(this.room.constructionSites, {
+            filter: s => !s.my && !s.pos.checkForCreep()
         });
 
     if (site) {
@@ -538,39 +643,104 @@ Creep.prototype.formSquad = function () {
     }
 
     function findGroup(creep) {
+        if (creep.memory.squadCooldown && Game.time < creep.memory.squadCooldown) return;
+
+        const operation = creep.memory.operation;
+        const destination = creep.memory.destination;
+
+        // Without a coordinating signal (shared op + dest) there's nothing to
+        // anchor a group on. Idle and retry later.
+        if (!operation && !destination) {
+            creep.memory.squadCooldown = Game.time + 50;
+            return;
+        }
+
+        const myRole = creep.memory.role || '';
         const maxMembers = (creep.memory.misc?.waitFor || 4) - 1;
-        let groups = creep.room.myCreeps.filter(c =>
+
+        // Bidirectional role match — a fresh 'longbow' needs to find an existing
+        // 'longbowSquad' leader, AND a freshly-promoted 'longbowSquad' leader
+        // needs to find new 'longbow's spawning later. Old code only matched one
+        // direction, so once a leader was promoted, follower spawns rolled in by
+        // luck of string-prefix order rather than design.
+        const rolesCompatible = c => {
+            const r = c.memory.role || '';
+            return !!r && !!myRole && (r === myRole || r.includes(myRole) || myRole.includes(r));
+        };
+
+        // Candidate: same op + dest, role-compatible, and either an existing
+        // leader with open slots OR a fully ungrouped peer we can promote.
+        // Followers are deliberately excluded — the old code's `!c.memory.leader`
+        // also matched followers, then crashed on `leader.memory.squadMembers.push`
+        // because followers don't have a squadMembers list.
+        const candidate = c =>
             c.id !== creep.id &&
-            c.memory.role.includes(creep.memory.role) &&
-            c.memory.destination === creep.memory.destination &&
-            c.memory.operation === creep.memory.operation &&
-            c.memory.leader && c.memory.squadMembers.length < maxMembers
-        );
-        if (creep.memory.operation === 'borderPatrol') {
-            groups = _.filter(Game.creeps, c =>
-                c.my && c.id !== creep.id &&
-                (c.memory.role.includes(creep.memory.role) || creep.memory.role.includes(c.memory.role)) &&
-                c.memory.destination === creep.memory.destination &&
-                c.memory.operation === creep.memory.operation &&
-                c.memory.leader && c.memory.squadMembers.length < maxMembers
+            !c.spawning &&
+            c.memory.destination === destination &&
+            c.memory.operation === operation &&
+            rolesCompatible(c) &&
+            ((c.memory.leader && (c.memory.squadMembers || []).length < maxMembers)
+                || !c.memory.grouped);
+
+        // Same-room is the common case and cheap. Expand to nearby rooms when
+        // nothing matches locally — handles dispersed ops (borderPatrol, harass)
+        // and two solos converging on a destination from different sides.
+        let candidates = creep.room.myCreeps.filter(candidate);
+        if (!candidates.length) {
+            candidates = _.filter(Game.creeps, c =>
+                c.my && c.room.name !== creep.room.name &&
+                Game.map.getRoomLinearDistance(creep.room.name, c.room.name) <= 2 &&
+                candidate(c)
             );
         }
-        if (groups.length) {
-            const leader = _.max(groups, c => c.memory.squadMembers.length);
-            creep.memory.grouped = true;
-            creep.memory.leader = undefined;
-            creep.memory.squadMembers = undefined;
-            creep.memory.oldRole = creep.memory.role;
-            creep.memory.role = 'longbowSquad';
-            creep.memory.groupLeader = leader.id;
-            leader.memory.grouped = true;
-            if (!leader.memory.oldRole) leader.memory.oldRole = leader.memory.role;
-            leader.memory.squadMembers.push(creep.id);
+
+        if (!candidates.length) {
+            creep.memory.squadCooldown = Game.time + 50;
+            return;
+        }
+
+        // Prefer slotting into an existing partial squad over forming a new pair
+        // — fills the squad faster than two new pairs forming in parallel near a
+        // third partial leader. Among existing leaders, pick the most-filled one.
+        const existingLeaders = candidates.filter(c => c.memory.leader);
+        let leader;
+        if (existingLeaders.length) {
+            leader = _.max(existingLeaders, c => (c.memory.squadMembers || []).length);
         } else {
-            creep.memory.leader = true;
-            creep.memory.oldRole = creep.memory.role;
-            creep.memory.role = 'longbowSquad';
-            creep.memory.squadMembers = [];
+            // No existing leader nearby — promote the closest ungrouped peer.
+            // Same-room peers always beat cross-room ones via the 50 sentinel.
+            leader = _.min(candidates, c =>
+                c.room.name === creep.room.name ? creep.pos.getRangeTo(c) : 50);
+        }
+
+        if (!leader || !leader.id) {
+            creep.memory.squadCooldown = Game.time + 50;
+            return;
+        }
+
+        // Initialise leader memory if we just promoted them. Idempotent for
+        // creeps that were already leading a partial squad.
+        if (!leader.memory.leader) {
+            if (!leader.memory.oldRole) leader.memory.oldRole = leader.memory.role;
+            leader.memory.role = 'longbowSquad';
+            leader.memory.leader = true;
+            leader.memory.grouped = true;
+            leader.memory.squadMembers = leader.memory.squadMembers || [];
+        }
+
+        // Join as follower. The oldRole guard preserves the original role across
+        // re-pairings (creep was 'longbow' → became 'longbowSquad' → leader died,
+        // got restored to 'longbow' in handleFollower → now pairing again — we
+        // don't want to lose the original by writing oldRole='longbowSquad').
+        if (!creep.memory.oldRole) creep.memory.oldRole = creep.memory.role;
+        creep.memory.role = 'longbowSquad';
+        creep.memory.grouped = true;
+        creep.memory.leader = undefined;
+        creep.memory.squadMembers = undefined;
+        creep.memory.groupLeader = leader.id;
+
+        if (!leader.memory.squadMembers.includes(creep.id)) {
+            leader.memory.squadMembers.push(creep.id);
         }
     }
 };

@@ -12,6 +12,7 @@ const diplomacy = require('module.diplomacy');
 const HudControl = require('module.hud');
 const DefenseVisualizer = require('module.defenseVisualizer');
 const StateManager = require('module.stateManager');
+const energyTracker = require('module.energyTracker');
 const profiler = require('tools.profiler');
 const planner = require('module.roomPlanner');
 let tickTracker = {};
@@ -39,6 +40,10 @@ class World {
 
         // Manage segments
         this.segmentManager();
+
+        // Accumulate per-tick energy events (owned rooms + visible remotes).
+        // Must run before stateManager, which snapshots the rolling averages.
+        energyTracker.runAll();
 
         // Manage room states
         this.stateManager();

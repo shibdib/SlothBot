@@ -37,7 +37,7 @@ class RoleLabTech {
         }
 
         // 5. If truly idle
-        this.creep.idleFor(10);
+        this.creep.idleFor(5);
     }
 
     // Task prioritizer - Returns {withdrawTarget, deliveryTarget, resource, amount}
@@ -48,13 +48,20 @@ class RoleLabTech {
         const terminal = this.room.terminal;
         const powerSpawn = this.room.powerSpawn;
         const nuker = this.room.nuker;
-        const storeTarget = (storage && storage.store.getFreeCapacity() > 0) ? storage : terminal;
+        // Prefer whichever of storage/terminal has free space; nullable when both
+        // are full or missing. Every branch below that uses storeTarget.id must
+        // guard for null — letting it through crashes the role mid-tick.
+        let storeTarget = null;
+        if (storage && storage.store.getFreeCapacity() > 0) storeTarget = storage;
+        else if (terminal && terminal.store.getFreeCapacity() > 0) storeTarget = terminal;
 
         // -- PRIORITY 0: COMBAT - Fill towers during attacks before anything else --
         if (this.room.memory.dangerousAttack) {
             const supplier = storage || terminal;
             if (supplier && supplier.store[RESOURCE_ENERGY] > 0) {
-                const lowTower = this.room.towers.find(s => s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
+                // Threshold of 500 (half a tower's worth of shots) avoids trivial
+                // top-ups burning a whole haul on the last few units of energy.
+                const lowTower = this.room.towers.find(s => s.store.getFreeCapacity(RESOURCE_ENERGY) >= 500);
                 if (lowTower) return {
                     withdrawTarget: supplier.id,
                     deliveryTarget: lowTower.id,
@@ -65,17 +72,19 @@ class RoleLabTech {
         }
 
         // -- PRIORITY 1: PRODUCTION CLOGS (Emptying Labs/Factory) --
-        for (const lab of labs) {
-            if (lab.mineralType) {
-                // If it has something it shouldn't
-                if ((lab.memory.itemNeeded && lab.mineralType !== lab.memory.itemNeeded) ||
-                    (lab.memory.neededBoost && lab.mineralType !== lab.memory.neededBoost) ||
-                    (!lab.memory.itemNeeded && !lab.memory.neededBoost && (lab.mineralType !== this.room.memory.producingBoost || lab.store[lab.mineralType] > 500))) {
-                    return {
-                        withdrawTarget: lab.id,
-                        deliveryTarget: storeTarget.id,
-                        resource: lab.mineralType
-                    };
+        if (storeTarget) {
+            for (const lab of labs) {
+                if (lab.mineralType) {
+                    // If it has something it shouldn't
+                    if ((lab.memory.itemNeeded && lab.mineralType !== lab.memory.itemNeeded) ||
+                        (lab.memory.neededBoost && lab.mineralType !== lab.memory.neededBoost) ||
+                        (!lab.memory.itemNeeded && !lab.memory.neededBoost && (lab.mineralType !== this.room.memory.producingBoost || lab.store[lab.mineralType] > 500))) {
+                        return {
+                            withdrawTarget: lab.id,
+                            deliveryTarget: storeTarget.id,
+                            resource: lab.mineralType
+                        };
+                    }
                 }
             }
         }
@@ -88,10 +97,12 @@ class RoleLabTech {
         }
 
         // -- PRIORITY 7: CLEANUP (dropped resources, tombstones) --
-        const drop = this.room.droppedResources.find(r => r.resourceType !== RESOURCE_ENERGY) || this.room.tombstones.find(t => t.store.getUsedCapacity() > 0);
-        if (drop) {
-            const res = drop.resourceType || Object.keys(drop.store).find(r => drop.store[r] > 0);
-            return {withdrawTarget: drop.id, deliveryTarget: storeTarget.id, resource: res};
+        if (storeTarget) {
+            const drop = this.room.droppedResources.find(r => r.resourceType !== RESOURCE_ENERGY) || this.room.tombstones.find(t => t.store.getUsedCapacity() > 0);
+            if (drop) {
+                const res = drop.resourceType || Object.keys(drop.store).find(r => drop.store[r] > 0);
+                return {withdrawTarget: drop.id, deliveryTarget: storeTarget.id, resource: res};
+            }
         }
 
         // -- PRIORITY 2: SUPPLY FACTORY (load production inputs) --
@@ -143,10 +154,12 @@ class RoleLabTech {
         }
 
         // -- PRIORITY 3: MINERAL CONTAINER CLEANUP --
-        const resourceContainer = this.room.containers.find(s => s.store.getUsedCapacity() > s.store.getUsedCapacity(RESOURCE_ENERGY));
-        if (resourceContainer) {
-            const res = Object.keys(resourceContainer.store).find(r => r !== RESOURCE_ENERGY && resourceContainer.store[r] > 0);
-            if (res) return {withdrawTarget: resourceContainer.id, deliveryTarget: storeTarget.id, resource: res};
+        if (storeTarget) {
+            const resourceContainer = this.room.containers.find(s => s.store.getUsedCapacity() > s.store.getUsedCapacity(RESOURCE_ENERGY));
+            if (resourceContainer) {
+                const res = Object.keys(resourceContainer.store).find(r => r !== RESOURCE_ENERGY && resourceContainer.store[r] > 0);
+                if (res) return {withdrawTarget: resourceContainer.id, deliveryTarget: storeTarget.id, resource: res};
+            }
         }
 
         // -- PRIORITY 4: LOGISTICS (Power/Nuke) --
@@ -246,7 +259,11 @@ class RoleLabTech {
         this.creep.say(task.resource.slice(0, 3));
 
         if (this.creep.pos.isNearTo(withdrawTarget)) {
-            const amount = Math.min(task.amount || 999, this.creep.store.getFreeCapacity(), withdrawTarget.store ? withdrawTarget.store[task.resource] : 999);
+            // Infinity (not 999) so a large-capacity labtech in a high-RCL room
+            // can fill to its actual freeCapacity. Math.min picks the smallest of
+            // the three operands, so the hard cap comes from creep capacity or
+            // available source supply rather than a hardcoded number.
+            const amount = Math.min(task.amount || Infinity, this.creep.store.getFreeCapacity(), withdrawTarget.store ? withdrawTarget.store[task.resource] : Infinity);
             const result = withdrawTarget instanceof Resource ? this.creep.pickup(withdrawTarget) : this.creep.withdraw(withdrawTarget, task.resource, amount);
             if (result === OK) {
                 // Same-tick move towards delivery if possible

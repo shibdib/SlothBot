@@ -206,10 +206,10 @@ function dropOff(creep) {
 
     if (lowTower) {
         memory.storageDestination = lowTower.id;
-    } else if (!colony.terminal && !colony.memory.controllerLink && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 0 &&
+    } else if (!colony.terminal && colony.level < 8 && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 0 &&
         Math.random() > controllerContainer.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY) {
         memory.storageDestination = controllerContainer.id;
-    } else if (colony.energyState && !colony.memory.controllerLink && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) &&
+    } else if (colony.energyState && colony.level < 8 && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) &&
         Math.random() + 0.1 > controllerContainer.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY) {
         memory.storageDestination = controllerContainer.id;
     } else if (colony.energyState && colony.nuker &&

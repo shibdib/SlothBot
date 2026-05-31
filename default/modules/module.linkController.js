@@ -5,59 +5,91 @@ class LinkControl {
     }
 
     run(room) {
-        // Skip if no structures to avoid filtering cost
         if (!room.structures.length) return;
-
-        // Skip tick if no links or no energy in links
         if (Game.time % 2 !== 0 && !room.memory.linkCooldown) return;
 
-        // Get all links that aren't on cooldown and have energy
-        const links = room.links.filter(s => s.store[RESOURCE_ENERGY] > 0);
+        const allLinks = room.links;
+        if (!allLinks.length) {
+            room.memory.linkCooldown = undefined;
+            return;
+        }
 
-        if (!links.length) {
+        const hubLink = Game.getObjectById(room.memory.hubLink);
+        const controllerLink = Game.getObjectById(room.memory.controllerLink);
+
+        if (Game.time % 100 === 0 || !controllerLink) {
+            this.updateSpecialLinks(room, allLinks);
+        }
+
+        // Wake-up gate: keep running next tick if any link still has energy to move.
+        if (!allLinks.some(l => l.store[RESOURCE_ENERGY] > 0)) {
             room.memory.linkCooldown = undefined;
             return;
         }
         room.memory.linkCooldown = true;
 
-        const hubLink = Game.getObjectById(room.memory.hubLink);
-        const controllerLink = Game.getObjectById(room.memory.controllerLink);
+        // Source links = anything that isn't hub/controller, holding energy, off cooldown.
+        const sourceLinks = allLinks.filter(l =>
+            l.id !== room.memory.hubLink &&
+            l.id !== room.memory.controllerLink &&
+            !l.cooldown &&
+            l.store[RESOURCE_ENERGY] > 0
+        );
 
-        // Validation and lazy setting of controller link
-        if (Game.time % 100 === 0 || !controllerLink) {
-            this.updateSpecialLinks(room, links);
-        }
-
-        // Filter for source links (anything that isn't hub or controller link)
-        const sourceLinks = links.filter(l => l.id !== room.memory.hubLink && l.id !== room.memory.controllerLink && !l.cooldown);
-        if (!sourceLinks.length) {
-            if (hubLink && room.energyState >= 2 && !hubLink.cooldown && hubLink.store[RESOURCE_ENERGY] >= 400 && controllerLink && controllerLink.store[RESOURCE_ENERGY] < 400) {
-                hubLink.transferEnergy(controllerLink);
-            }
-            return;
-        }
-
+        // Route the first source link that can move this tick.
         for (const link of sourceLinks) {
-            // Prioritize controller if upgrader is present
-            if (controllerLink && controllerLink.store.getFreeCapacity(RESOURCE_ENERGY) >= 400 && room.energyState >= 2) {
-                if (link.transferEnergy(controllerLink) === OK) continue;
-            }
+            const target = this.pickSourceDestination(link, controllerLink, hubLink, room);
+            if (target && link.transferEnergy(target) === OK) break;
+        }
 
-            // Otherwise send to hub
-            if (hubLink && hubLink.id !== link.id && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-                link.transferEnergy(hubLink);
-            }
+        // Hub → controller emergency feed.
+        // Pre-RCL8 we *always* protect upgrader throughput — getting to RCL8 is the priority,
+        // and an idle upgrader stalls room progression for thousands of ticks.
+        // At RCL8 we only do this once storage has hit target; otherwise we'd be unwinding the
+        // stockpile we're trying to build.
+        if (controllerLink && hubLink && !hubLink.cooldown &&
+            controllerLink.store.getUsedCapacity(RESOURCE_ENERGY) < 200 &&
+            hubLink.store.getUsedCapacity(RESOURCE_ENERGY) >= 400 &&
+            (room.level < 8 || room.energyState >= 2)) {
+            hubLink.transferEnergy(controllerLink);
         }
     }
 
+    pickSourceDestination(link, controllerLink, hubLink, room) {
+        const carrying = link.store.getUsedCapacity(RESOURCE_ENERGY);
+        const cFree = controllerLink ? controllerLink.store.getFreeCapacity(RESOURCE_ENERGY) : 0;
+        const hFree = hubLink ? hubLink.store.getFreeCapacity(RESOURCE_ENERGY) : 0;
+        const canSendToController = controllerLink && cFree >= carrying;
+        const canSendToHub = hubLink && hubLink.id !== link.id && hFree >= carrying;
+
+        // Pre-RCL8: controller wins. Stockpile is secondary — upgrading is what unlocks RCL8.
+        // Spill to hub only when the controller can't accept the full payload.
+        if (room.level < 8) {
+            if (canSendToController) return controllerLink;
+            return canSendToHub ? hubLink : null;
+        }
+
+        // RCL8 + storage below target: stockpile is the priority. Controller is fed via the
+        // emergency hub→controller path only once we re-cross target.
+        if (room.energyState < 2) {
+            if (canSendToHub) return hubLink;
+            return canSendToController ? controllerLink : null;
+        }
+
+        // RCL8 + at/above target: drain the stockpile via upgrades; spill to hub when controller
+        // can't take it (e.g., upgrader hasn't kept up).
+        if (canSendToController) return controllerLink;
+        return canSendToHub ? hubLink : null;
+    }
+
     updateSpecialLinks(room, links) {
-        // Find controller link
+        // Find controller link.
         if (!room.memory.controllerLink || !Game.getObjectById(room.memory.controllerLink)) {
             const cLink = room.controller.pos.findInRange(links, 4)[0];
             if (cLink) room.memory.controllerLink = cLink.id;
         }
 
-        // Cleanup hub link if it's gone
+        // Cleanup hub link if it's gone.
         if (room.memory.hubLink && !Game.getObjectById(room.memory.hubLink)) {
             delete room.memory.hubLink;
         }

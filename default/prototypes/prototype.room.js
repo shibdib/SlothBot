@@ -149,7 +149,7 @@ const ENERGY_STATE_CACHE = {};
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
         if (!this.controller) return 2;
-        if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + 50 > Game.time) return ENERGY_STATE_CACHE[this.name].state;
+        if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + CREEP_LIFE_TIME > Game.time) return ENERGY_STATE_CACHE[this.name].state;
 
         let energy = this.rawEnergy;
         const upgradeCost = this.level === 8 ? 250000 : constructionCost(this.controller.level + 1) - constructionCost(this.controller.level);
@@ -350,9 +350,13 @@ Object.defineProperty(Room.prototype, 'rawEnergy', {
 
 Object.defineProperty(Room.prototype, 'energyIncome', {
     get: function () {
-        if (!this._energyIncome && ROOM_ENERGY_INCOME_ARRAY[this.name]) {
-            this._energyIncome = _.round(average(ROOM_ENERGY_INCOME_ARRAY[this.name]), 0);
-        } else if (!ROOM_ENERGY_INCOME_ARRAY[this.name]) this._energyIncome = 0;
+        // Per-tick net energy flow for the whole colony (home + remotes), sourced from the
+        // event-log tracker. Replaces the old 10-tick storage-delta sampling which was both
+        // off-by-10x and a duplicate signal.
+        if (this._energyIncome === undefined) {
+            const tracker = require('module.energyTracker');
+            this._energyIncome = _.round(tracker.colonySnapshot(this.name).spareIncome, 0);
+        }
         return this._energyIncome;
     },
     enumerable: false,
@@ -394,6 +398,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     const currentTime = Game.time;
     const roomIntel = INTEL[this.name] || {name: this.name, shardName: Game.shard.name};
     roomIntel.lastObservation = currentTime;
+    roomIntel.safemode = this.controller && this.controller.safeMode ? currentTime + this.controller.safeMode : undefined;
 
     // === LIGHT UPDATE (every ~150 ticks) ===
     if (!roomIntel.microUpdate || roomIntel.microUpdate + 150 < currentTime) {
@@ -417,6 +422,24 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             roomIntel.owner = newOwner;
             if (roomIntel.owner) roomIntel.attackDirection = determineBestAttackRoute(this);
             roomIntel.reservation = this.controller.reservation?.username;
+
+            // Fast-changing strength signals — refreshed every light update (~150 ticks) so
+            // MY_STRENGTH and enemy strength scores stay current as storage/terminal levels move.
+            if (roomIntel.owner) {
+                roomIntel.lastOwnedAt = currentTime;
+                roomIntel.storageEnergy = this.storage?.store[RESOURCE_ENERGY] || undefined;
+                roomIntel.terminalEnergy = this.terminal?.store[RESOURCE_ENERGY] || undefined;
+                roomIntel.ticksToDowngrade = this.controller.ticksToDowngrade;
+                roomIntel.controllerProgress = this.controller.progressTotal
+                    ? Math.round((this.controller.progress / this.controller.progressTotal) * 100) / 100
+                    : undefined;
+            } else {
+                delete roomIntel.lastOwnedAt;
+                delete roomIntel.storageEnergy;
+                delete roomIntel.terminalEnergy;
+                delete roomIntel.ticksToDowngrade;
+                delete roomIntel.controllerProgress;
+            }
         }
 
         // Highway intel
@@ -483,8 +506,12 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         INTEL[this.name] = roomIntel;
     }
 
-    // === HEAVY UPDATE (every ~750 ticks or forced) ===
-    if (!force && INTEL[this.name] && INTEL[this.name].cached + (CREEP_LIFE_TIME * 5) > currentTime) return;
+    // === HEAVY UPDATE (forced, or by cadence) ===
+    // My rooms refresh on CREEP_LIFE_TIME so rampart/spawn data stays fresh for MY_STRENGTH
+    // and siege-defense decisions. Other players' rooms stay on the 5x cadence — they're
+    // observed opportunistically and the heavy work (areExitsReachable) is expensive.
+    const heavyTTL = this.controller?.my ? CREEP_LIFE_TIME : CREEP_LIFE_TIME * 5;
+    if (!force && INTEL[this.name] && INTEL[this.name].cached + heavyTTL > currentTime) return;
 
     roomIntel.cached = currentTime;
     roomIntel.sources = this.sources.length;
@@ -547,6 +574,27 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             _.sum(s.store) > 0 &&
             !s.pos.lookFor(LOOK_STRUCTURES).some(str => str.structureType === STRUCTURE_RAMPART)
         );
+
+        // Heavier strength signals — counts and rampart sort. Light-update path handles
+        // the fast-changing storage/terminal/controller fields.
+        if (roomIntel.owner) {
+            roomIntel.spawns = this.spawns.length || undefined;
+            roomIntel.extensions = this.extensions.length || undefined;
+
+            const rampartHits = this.ramparts.map(r => r.hits).sort((a, b) => a - b);
+            if (rampartHits.length) {
+                roomIntel.rampartMedHP = rampartHits[Math.floor(rampartHits.length / 2)];
+                roomIntel.rampartMaxHP = rampartHits[rampartHits.length - 1];
+            } else {
+                roomIntel.rampartMedHP = undefined;
+                roomIntel.rampartMaxHP = undefined;
+            }
+        } else {
+            delete roomIntel.spawns;
+            delete roomIntel.extensions;
+            delete roomIntel.rampartMedHP;
+            delete roomIntel.rampartMaxHP;
+        }
     } else {
         delete roomIntel.level;
         delete roomIntel.attackDirection;
@@ -556,11 +604,33 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         delete roomIntel.hubCheck;
         delete roomIntel.nukeTarget;
         delete roomIntel.loot;
+        delete roomIntel.lastOwnedAt;
+        delete roomIntel.spawns;
+        delete roomIntel.extensions;
+        delete roomIntel.storageEnergy;
+        delete roomIntel.terminalEnergy;
+        delete roomIntel.ticksToDowngrade;
+        delete roomIntel.controllerProgress;
+        delete roomIntel.rampartMedHP;
+        delete roomIntel.rampartMaxHP;
     }
 
     // Room type flags
     roomIntel.sk = this.keeperLairs.length > 0;
     roomIntel.isHighway = roomIntel.sources === 0;
+
+    // Cache danger-zone anchors so no-vision pathing through this room can still avoid
+    // the kill zones. Lairs are where SKs spawn; sources and the mineral are where they
+    // camp. All three positions are static for the lifetime of the room.
+    if (roomIntel.sk) {
+        const points = [];
+        for (const lair of this.keeperLairs) points.push({x: lair.pos.x, y: lair.pos.y});
+        for (const src of this.sources) points.push({x: src.pos.x, y: src.pos.y});
+        if (this.mineral) points.push({x: this.mineral.pos.x, y: this.mineral.pos.y});
+        roomIntel.skDangerPoints = points;
+    } else {
+        delete roomIntel.skDangerPoints;
+    }
 
     INTEL[this.name] = roomIntel;
 };
@@ -777,7 +847,7 @@ Room.prototype.towerData = function (towers) {
     }
 
     const sorted = damageTracker.slice().sort((a, b) => a - b);
-    const p75 = sorted[Math.floor(sorted.length * 0.75)];
+    const p85 = sorted[Math.floor(sorted.length * 0.85)];
 
     return {
         maxDamage,
@@ -786,7 +856,7 @@ Room.prototype.towerData = function (towers) {
             y: dangerousSpot.y,
             roomName: dangerousSpot.roomName
         } : undefined,
-        average: p75
+        average: p85
     };
 
     function determineDamage(range) {

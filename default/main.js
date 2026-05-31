@@ -60,7 +60,7 @@ module.exports.loop = function () {
 
                     // Clean INTEL Cache
                     Object.keys(INTEL).forEach((key) => {
-                        if (INTEL[key].owner === MY_USERNAME && !global.MY_ROOMS.includes(key)) {
+                        if (INTEL[key] && INTEL[key].owner === MY_USERNAME && !global.MY_ROOMS.includes(key)) {
                             purgeIntel(key);
                         }
                     });

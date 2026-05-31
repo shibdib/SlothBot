@@ -31,10 +31,17 @@ Creep.prototype.denyRoom = function () {
         }
 
         // Update sustainability of operation in this room
-        highCommand.operationSustainability(this.room);
+        if (highCommand.operationSustainability(this.room)) {
+            return this.memory.operation = 'borderPatrol';
+        }
 
         // Combat handling
         if (this.handleMilitaryCreep()) return;
+
+        // Move towards the controller
+        if (this.pos.getRangeTo(this.room.controller) > 5) {
+            return this.shibMove(this.room.controller, {range: 4});
+        }
 
         this.idleFor(this.pos.getRangeTo(this.pos.findClosestByPath(FIND_EXIT)) * 0.5);
     }

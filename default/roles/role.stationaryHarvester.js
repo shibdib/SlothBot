@@ -49,12 +49,22 @@ class RoleStationaryHarvester {
                     return;
                 }
             }
+            // If we have a link and container, withdraw overflow from container this tick
+            if (this.creep.store.getFreeCapacity() && source.memory.link && container && container.store[RESOURCE_ENERGY] > 0) {
+                return this.creep.withdraw(container, RESOURCE_ENERGY);
+            }
+            // Deposit energy this tick if container is full or we're carrying surplus
+            if (this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+                depositEnergy(this.creep, source, container);
+            }
             switch (this.creep.harvest(source)) {
                 case ERR_NOT_IN_RANGE:
+                    if (container) this.creep.shibMove(container, {range: 0});
                     this.creep.memory.onContainer = undefined;
                     break;
                 case ERR_NOT_ENOUGH_RESOURCES:
-                    this.creep.idleFor(source.ticksToRegeneration + 1);
+                    if (container) this.creep.repair(container);
+                    if (container && !container.store[RESOURCE_ENERGY]) this.creep.idleFor(source.ticksToRegeneration + 1);
                     break;
                 case OK:
                     // Set stationary so we don't get bumped
@@ -75,12 +85,6 @@ class RoleStationaryHarvester {
                             }
                         }
                         this.creep.memory.other.linkCheck = true;
-                    }
-                    // If we have a link and container, withdraw overflow from container this tick
-                    if (source.memory.link && container && container.store[RESOURCE_ENERGY] > 0) this.creep.withdraw(container, RESOURCE_ENERGY);
-                    // Deposit energy this tick if container is full or we're carrying surplus
-                    if ((container && container.store.getFreeCapacity(RESOURCE_ENERGY) === 0) || this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
-                        depositEnergy(this.creep, source, container);
                     }
                     break;
             }
@@ -157,17 +161,6 @@ function extensionFiller(creep) {
         const nearby = creep.room.impassibleStructures.filter(s => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
         const extension = container.pos.findInRange(nearby, 1);
         ROOM_HARVESTER_EXTENSIONS[creep.room.name] = _.union(ROOM_HARVESTER_EXTENSIONS[creep.room.name] || [], _.pluck(extension, 'id'));
-        // Place ramparts on exposed extensions if the bunker wall is nearby
-        if (extension.length && creep.room.level >= 3) {
-            const nearbyBunkerWall = _.find(container.pos.lookForNearby(LOOK_STRUCTURES, true, 3), s =>
-                (s.structure.structureType === STRUCTURE_RAMPART && !s.structure.pos.checkForObstacleStructure()) || s.structure.structureType === STRUCTURE_WALL);
-            if (nearbyBunkerWall) {
-                if (!container.pos.checkForRampart()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
-                for (const e of extension) {
-                    if (!e.pos.checkForRampart()) e.pos.createConstructionSite(STRUCTURE_RAMPART);
-                }
-            }
-        }
         return false;
     }
     // Only opportunisticFill if there are actually extensions in range

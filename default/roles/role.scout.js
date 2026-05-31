@@ -12,7 +12,7 @@ class RoleScout {
     }
 
     performRoleActions() {
-        if (this.creep.memory.destination && this.creep.memory.destination === this.creep.room.name) this.creep.cacheRoomIntel(true);
+        if (this.creep.memory.destination && this.creep.memory.destination === this.creep.room.name) this.room.cacheRoomIntel(true);
         this.housekeeping();
         this.scoutRoom();
         this.creep.moveToHostileConstructionSites();

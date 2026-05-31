@@ -154,9 +154,9 @@ Creep.prototype.skSafety = function () {
 
     if (this.room.controller || (INTEL[this.room.name] && !INTEL[this.room.name].sk)) return false;
 
-    const range = 3;
+    const range = 7;
     const sk = this.room.creeps.find(c => c.owner && c.owner.username === 'Source Keeper' && c.pos.inRangeTo(this, range));
-    const lair = this.room.structures.find(s => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn && s.ticksToSpawn <= 3 && s.pos.inRangeTo(this, range));
+    const lair = this.room.structures.find(s => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn && s.ticksToSpawn <= 5 && s.pos.inRangeTo(this, range));
 
     if (sk || lair) {
         this.shibKite(range + 2, sk || lair);
@@ -310,7 +310,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         if (hubLink && hubLink.store[RESOURCE_ENERGY] > 0) {
             const upgrader = room.myCreeps.find(c => c.memory.role === 'upgrader' && c.memory.other && c.memory.other.stationary);
             const controllerLink = Game.getObjectById(room.memory.controllerLink);
-            if (!room.storage || room.level === 8 || !upgrader || !controllerLink || controllerLink.store[RESOURCE_ENERGY] > LINK_CAPACITY * 0.5) {
+            if (!room.storage || room.energyState <= 2 || !upgrader || !controllerLink || controllerLink.store[RESOURCE_ENERGY] > LINK_CAPACITY * 0.5) {
                 this.memory.energyDestination = hubLink.id;
                 return true;
             }
@@ -341,7 +341,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
     if (['shuttle', 'remoteHauler', 'drone'].includes(this.memory.role) || !room.storage || room.myCreeps.length < 4) {
         for (let i = 0; i < room.structures.length; i++) {
             const s = room.structures[i];
-            if (s.structureType === STRUCTURE_CONTAINER && (s.id !== room.memory.controllerContainer || room.memory.controllerLink) && s.store[RESOURCE_ENERGY] > 0) {
+            if (s.structureType === STRUCTURE_CONTAINER && (s.id !== room.memory.controllerContainer || room.level === 8) && s.store[RESOURCE_ENERGY] > 0) {
                 if (!myCreepsFilter(s.id) || s.store[RESOURCE_ENERGY] > (myCreepsFilter(s.id) + 1) * (freeCapacity * 0.5)) {
                     potentialEnergy.push(s);
                 }
@@ -743,7 +743,11 @@ Creep.prototype.towTruck = function () {
         return false;
     }
     if (_.sum(this.store)) return false;
-    if (!this.memory.towStart) this.memory.towStart = Game.time;
+    if (!this.memory.towStart) {
+        this.memory.towStart = Game.time;
+        this.memory.lastTowProgress = Game.time;
+        this.memory.lastTowDist = undefined;
+    }
     if (this.fatigue) return true;
     if (!trailer.memory.towDestination) {
         endTow(this, trailer);
@@ -754,6 +758,14 @@ Creep.prototype.towTruck = function () {
         endTow(this, trailer);
         return false;
     }
+    // Track progress toward destination — the tow only times out when it genuinely stalls,
+    // not because total elapsed exceeded a fixed budget. Long-distance tows that keep making
+    // ground (slow truck fatigue, congested paths) can now complete.
+    const currentDist = trailer.pos.getRangeTo(towDestination);
+    if (this.memory.lastTowDist === undefined || currentDist < this.memory.lastTowDist) {
+        this.memory.lastTowDist = currentDist;
+        this.memory.lastTowProgress = Game.time;
+    }
     this.say('Towing!', true);
     if (trailer.memory.towOptions && trailer.memory.towOptions.range === 0 && this.pos.isNearTo(towDestination)) {
         const occupant = towDestination.checkForCreep();
@@ -761,7 +773,7 @@ Creep.prototype.towTruck = function () {
             trailer.memory.towOptions.range = 1;
         }
     }
-    if (shouldEndTow(this.memory.towStart, trailer, towDestination)) {
+    if (shouldEndTow(this, trailer, towDestination)) {
         endTow(this, trailer);
         return false;
     }
@@ -785,11 +797,23 @@ function getTowDestination(trailer) {
         return new RoomPosition(td.x, td.y, td.roomName);
     }
     const obj = Game.getObjectById(td);
-    return obj ? obj.pos : null;
+    if (obj) return obj.pos;
+    // Object lookup failed (e.g., container destroyed and rebuilt under a new id mid-tow).
+    // Fall back to the position we snapshotted when the tow started — containers, controllers,
+    // and spawns don't move, so the saved tile is still the right place to go.
+    const pos = trailer.memory.towDestinationPos;
+    if (pos) return new RoomPosition(pos.x, pos.y, pos.roomName);
+    return null;
 }
 
-function shouldEndTow(towStart, trailer, towDestination) {
-    return towStart + 125 < Game.time
+// Stall-based timeout: end the tow only when distance to destination hasn't dropped in
+// STALL_LIMIT ticks. Replaces the previous fixed 125-tick total-elapsed timeout, which
+// stranded heavy creeps mid-route on long or congested tows.
+const STALL_LIMIT = 30;
+
+function shouldEndTow(truck, trailer, towDestination) {
+    const lastProgress = truck.memory.lastTowProgress || truck.memory.towStart || Game.time;
+    return lastProgress + STALL_LIMIT < Game.time
         || !towDestination
         || !trailer.memory.towOptions
         || trailer.memory.towOptions.range >= trailer.pos.getRangeTo(towDestination);
@@ -803,6 +827,8 @@ function endTow(truck, trailer) {
 function releaseTruckRef(truck) {
     truck.memory.towStart = undefined;
     truck.memory.lastRangeToTrailer = undefined;
+    truck.memory.lastTowDist = undefined;
+    truck.memory.lastTowProgress = undefined;
     truck.memory.trailer = undefined;
 }
 
@@ -810,6 +836,7 @@ function resetTowingState(trailer) {
     trailer.memory._shibMove = undefined;
     trailer.memory.towCreep = undefined;
     trailer.memory.towDestination = undefined;
+    trailer.memory.towDestinationPos = undefined;
     trailer.memory.towToObject = undefined;
     trailer.memory.towOptions = undefined;
 }
@@ -829,7 +856,7 @@ function moveToTowDestination(creep, trailer, towDestination) {
         creep.move(creep.pos.getDirectionTo(trailer));
     } else {
         trailer.memory._shibMove = undefined;
-        creep.shibMove(towDestination, trailer.memory.towOptions);
+        creep.shibMove(towDestination, {...trailer.memory.towOptions});
     }
 }
 
@@ -870,154 +897,239 @@ function findRoadNearCreep(creep) {
     return _.find(creep.room.roads, (s) => s.pos.isNearTo(creep) && !s.pos.checkForImpassible());
 }
 
-Creep.prototype.tryToBoost = function (bodyPart = [], tier = undefined) {
-    if (this.memory.boostAttempt || this.ticksToLive < CREEP_LIFE_TIME * 0.6) {
+// Releases just the boost-related fields on a lab's memory. Replaces the older
+// `lab.memory = undefined` cleanups that also wiped itemNeeded / producing state
+// and tore down the production hub (see labController.manageActiveLabs sanity check).
+// Keeping `paused` here is critical — without clearing it the lab is permanently
+// excluded from secondary-reaction selection in labController.
+function clearLabBoost(lab) {
+    if (!lab || !lab.memory) return;
+    lab.memory.neededBoost = undefined;
+    lab.memory.amount = undefined;
+    lab.memory.requestor = undefined;
+    lab.memory.requested = undefined;
+    lab.memory.paused = undefined;
+    lab.memory.preReservedFor = undefined;
+}
+
+const BOOST_AMOUNT_PER_PART = LAB_BOOST_MINERAL;
+const BOOST_TTL_FLOOR = CREEP_LIFE_TIME * 0.6;
+const BOOST_RENEW_INITIAL = CREEP_LIFE_TIME * 0.85;
+const BOOST_RENEW_WAITING = CREEP_LIFE_TIME * 0.95;
+const BOOST_LAB_WAIT_TICKS = 5;
+const BOOST_SQUAD_WAIT_TICKS = 5;
+
+const WORK_BOOST_BY_ROLE = {
+    drone: 'build',
+    waller: 'build',
+    upgrader: 'upgrade',
+    cleaner: 'dismantle',
+    siegeDuo: 'dismantle',
+    commodityMiner: 'harvest',
+    mineralHarvester: 'harvest'
+};
+
+function resolveBoostType(role, bodyPart) {
+    if (bodyPart === WORK) return WORK_BOOST_BY_ROLE[role] || null;
+    return bodyPart;
+}
+
+function findAvailableBoostTier(room, boostType, amountNeeded) {
+    const tiers = BOOST_USE[boostType];
+    if (!tiers) return null;
+    for (const resource of tiers) {
+        if (room.store(resource) >= amountNeeded) return resource;
+    }
+    return null;
+}
+
+function buildBoostPlan(creep, requestedBodyParts) {
+    const plan = {};
+    let preReservedPart;
+
+    if (creep.memory.neededBoosts && creep.memory.neededBoosts.boost) {
+        const {boost, boostPart} = creep.memory.neededBoosts;
+        const amount = creep.getActiveBodyparts(boostPart) * BOOST_AMOUNT_PER_PART;
+        if (amount && creep.room.store(boost) >= amount) {
+            plan[boost] = {boost, amount, type: boostPart};
+            preReservedPart = boostPart;
+        }
+    }
+
+    const bodyParts = (creep.memory.misc && creep.memory.misc.boosts)
+        ? _.union(requestedBodyParts, creep.memory.misc.boosts)
+        : requestedBodyParts;
+
+    for (const bodyPart of bodyParts) {
+        if (bodyPart === preReservedPart) continue;
+        const unboosted = creep.body.filter(p => p.type === bodyPart && !p.boost);
+        if (!unboosted.length) continue;
+
+        const boostType = resolveBoostType(creep.memory.role, bodyPart);
+        if (!boostType) continue;
+
+        const amount = unboosted.length * BOOST_AMOUNT_PER_PART;
+        const resource = findAvailableBoostTier(creep.room, boostType, amount);
+        if (resource) plan[resource] = {boost: resource, amount, type: boostType};
+    }
+    return plan;
+}
+
+function waitingForSquad(creep) {
+    const misc = creep.memory.misc;
+    if (!misc || misc.waitFor <= 1) return false;
+    const leader = creep.memory.leader ? creep : Game.getObjectById(creep.memory.groupLeader);
+    const squadSize = leader ? leader.memory.squadMembers.length + 1 : 1;
+    if (!creep.memory.formUpTimer) {
+        creep.memory.formUpTimer = creep.memory.renewalLimit || (Game.time + misc.waitFor * 1000);
+    }
+    return squadSize < misc.waitFor && creep.memory.formUpTimer > Game.time;
+}
+
+// Excludes labs with itemNeeded — those belong to production reactions.
+// Co-opting them would fight labController / labTech.
+function claimBoostLab(creep, boostNeeded, amountNeeded) {
+    const lab = _.find(creep.room.labs, s =>
+        s.isActive() && s.store[RESOURCE_ENERGY] > 0 && !s.memory.itemNeeded &&
+        (!s.memory.neededBoost || s.memory.neededBoost === boostNeeded));
+    if (!lab) return null;
+
+    if (lab.memory.preReservedFor === creep.name) {
+        // Pre-spawn reservation by creepSpawning.preReserveBoostLab already
+        // accounted for our amount — just claim.
+        lab.memory.preReservedFor = undefined;
+        lab.memory.requestor = creep.id;
+    } else {
+        lab.memory.paused = true;
+        lab.memory.neededBoost = boostNeeded;
+        lab.memory.amount = (lab.memory.amount || 0) + amountNeeded;
+        lab.memory.requestor = creep.id;
+        lab.memory.requested = Game.time;
+    }
+    return lab;
+}
+
+function releaseBoostLab(creep, lab, amountNeeded) {
+    const boostNeeded = lab.memory.neededBoost;
+    lab.memory.amount = Math.max(0, (lab.memory.amount || 0) - amountNeeded);
+    const stillWanted = boostNeeded && creep.room.myCreeps.some(c =>
+        c.id !== creep.id && c.memory.boosts &&
+        c.memory.boosts.boostLab === lab.id &&
+        c.memory.boosts.requestedBoosts &&
+        c.memory.boosts.requestedBoosts[boostNeeded]);
+    if (!stillWanted) {
+        lab.memory.neededBoost = undefined;
+        lab.memory.paused = undefined;
+    }
+}
+
+function applyBoost(creep, entryKey) {
+    const {boost: boostNeeded, amount: amountNeeded, type: boostType} =
+        creep.memory.boosts.requestedBoosts[entryKey];
+
+    if (creep.room.store(boostNeeded) < amountNeeded) {
+        const orphan = Game.getObjectById(creep.memory.boosts.boostLab);
+        if (orphan && orphan.memory.requestor === creep.id) clearLabBoost(orphan);
+        creep.memory.boosts.boostLab = undefined;
+        delete creep.memory.boosts.requestedBoosts[entryKey];
+        return true;
+    }
+
+    let lab = Game.getObjectById(creep.memory.boosts.boostLab);
+    if (!lab || lab.memory.neededBoost !== boostNeeded) {
+        lab = claimBoostLab(creep, boostNeeded, amountNeeded);
+        if (!lab) {
+            creep.memory.boosts.boostLab = undefined;
+            return true;
+        }
+        creep.memory.boosts.boostLab = lab.id;
+    }
+
+    const unboostedPart = creep.body.find(p => p.type === boostType && !p.boost);
+    const alreadyBoosted = creep.memory.hasBoosted && creep.memory.hasBoosted.includes(boostNeeded);
+    // Attribution: only mark this lab done if it's the one that actually boosted us.
+    // Otherwise a creep with the same body part boosted by another lab would
+    // decrement this lab's reservation and starve still-waiting creeps.
+    const boostedFromHere = creep.memory.boostedFromLab && creep.memory.boostedFromLab[lab.id] === boostNeeded;
+
+    if (!unboostedPart && alreadyBoosted && boostedFromHere) {
+        releaseBoostLab(creep, lab, amountNeeded);
+        delete creep.memory.boosts.requestedBoosts[entryKey];
+        creep.memory.boosts.boostLab = undefined;
+        creep.say(ICONS.greenCheck);
+        return true;
+    }
+
+    lab.say(boostNeeded);
+    const labReady = lab.mineralType === boostNeeded &&
+        lab.store[RESOURCE_ENERGY] &&
+        lab.mineralAmount >= lab.memory.amount;
+
+    if (!labReady) {
+        if (!creep.memory.hasBoosted && creep.hasActiveBodyparts(MOVE) &&
+            creep.handleRenewing(BOOST_RENEW_WAITING)) return true;
+        return creep.idleFor(BOOST_LAB_WAIT_TICKS);
+    }
+
+    switch (lab.boostCreep(creep)) {
+        case OK:
+            (creep.memory.hasBoosted = creep.memory.hasBoosted || []).push(boostNeeded);
+            (creep.memory.boostedFromLab = creep.memory.boostedFromLab || {})[lab.id] = boostNeeded;
+            creep.say(ICONS.testFinished);
+            return true;
+        case ERR_NOT_IN_RANGE:
+        case ERR_NOT_ENOUGH_RESOURCES:
+            creep.say(ICONS.boost);
+            creep.shibMove(lab, {forceSolo: true});
+            return true;
+        default:
+            creep.say('Error');
+            return true;
+    }
+}
+
+Creep.prototype.tryToBoost = function (bodyPart = []) {
+    if (this.memory.boostAttempt) return false;
+
+    if (this.ticksToLive < BOOST_TTL_FLOOR) {
         if (this.memory.boosts) {
-            let lab = Game.getObjectById(this.memory.boosts.boostLab);
-            if (lab) lab.memory = undefined;
+            clearLabBoost(Game.getObjectById(this.memory.boosts.boostLab));
             this.memory.boosts = undefined;
         }
         this.memory.boostAttempt = true;
         this.memory.needsRenewal = undefined;
         return false;
     }
-    if (!this.memory.boosts) this.memory.boosts = {};
-    if (!this.memory.boosts.requestedBoosts) {
-        let available = {};
-        let boostNeeded, handledAlready;
-        if (this.memory.neededBoosts) {
-            if (this.room.store(this.memory.neededBoosts.boost) >= this.getActiveBodyparts(this.memory.neededBoosts.boostPart) * 30) {
-                available[this.memory.neededBoosts.boost] = {
-                    'boost': this.memory.neededBoosts.boost,
-                    'amount': this.getActiveBodyparts(this.memory.neededBoosts.boostPart) * 30
-                };
-                handledAlready = this.memory.neededBoosts.boostPart;
-            }
-        }
-        if (this.memory.misc && this.memory.misc.boosts) bodyPart = _.union(bodyPart, this.memory.misc.boosts);
-        for (let boostType of bodyPart) {
-            if (handledAlready === boostType) continue;
-            let targetParts = this.body.filter((p) => p.type === boostType && !p.boost);
-            switch (boostType) {
-                case 'attack':
-                case 'ranged_attack':
-                case 'tough':
-                case 'heal':
-                case 'carry':
-                case 'move':
-                    boostNeeded = targetParts.length * 30;
-                    break;
-                case 'work':
-                    if (this.memory.role === 'drone' || this.memory.role === 'waller') boostType = 'build';
-                    else if (this.memory.role === 'upgrader') boostType = 'upgrade';
-                    else if (this.memory.role === 'cleaner' || this.memory.role === 'siegeDuo') boostType = 'dismantle';
-                    else if (this.memory.role === 'commodityMiner' || this.memory.role === 'mineralHarvester') boostType = 'harvest';
-                    boostNeeded = targetParts.length * 30;
-                    break;
-            }
-            try {
-                for (let boost of BOOST_USE[boostType].slice()) {
-                    if (boostNeeded && this.room.store(boost) >= boostNeeded) {
-                        available[boost] = {'boost': boost, 'amount': boostNeeded, 'type': boostType};
-                        break;
-                    }
-                }
-            } catch (e) {
-                this.memory.boostAttempt = true;
-                log.w("Boost failure for " + this.name);
-                return false;
-            }
-        }
-        this.memory.boosts.requestedBoosts = available;
-    } else if (_.size(this.memory.boosts.requestedBoosts)) {
-        if (!this.memory.boosts.boostLab && !this.memory.hasBoosted && this.hasActiveBodyparts(MOVE) && this.handleRenewing(CREEP_LIFE_TIME * 0.95)) return this.handleRenewing(CREEP_LIFE_TIME * 0.95);
-        if (this.memory.misc && this.memory.misc.waitFor > 1) {
-            let leader = this.memory.leader ? this : Game.getObjectById(this.memory.groupLeader);
-            const squadSize = leader ? leader.memory.squadMembers.length + 1 : 1;
-            if (!this.memory.formUpTimer) this.memory.formUpTimer = this.memory.renewalLimit || Game.time + (this.memory.misc.waitFor * 1000);
-            if (squadSize < this.memory.misc.waitFor && this.memory.formUpTimer > Game.time) return this.idleFor(5);
-        }
-        for (let requestedBoost of Object.keys(this.memory.boosts.requestedBoosts)) {
-            let amountNeeded = this.memory.boosts.requestedBoosts[requestedBoost]['amount'];
-            let boostNeeded = this.memory.boosts.requestedBoosts[requestedBoost]['boost'];
-            let boostType = this.memory.boosts.requestedBoosts[requestedBoost]['type'];
-            if (!amountNeeded) return false;
-            if (this.room.store(boostNeeded) < amountNeeded) {
-                let lab = Game.getObjectById(this.memory.boosts.boostLab);
-                if (lab) lab.memory = undefined;
+
+    if (!this.memory.boosts || !this.memory.boosts.requestedBoosts) {
+        const plan = buildBoostPlan(this, bodyPart);
+        if (!_.size(plan)) {
+            // Pre-reserved boost still being filled by labtech — retry next tick.
+            if (this.memory.neededBoosts && !this.memory.hasBoosted) {
                 this.memory.boosts = undefined;
                 return true;
             }
-            const existingLab = Game.getObjectById(this.memory.boosts.boostLab);
-            if (!this.memory.boosts.boostLab || !existingLab || !existingLab.memory.neededBoost) {
-                let lab = _.find(this.room.labs, (s) => s.isActive() && s.store[RESOURCE_ENERGY] > 0 &&
-                    (s.mineralType === boostNeeded || !s.memory.itemNeeded) && (!s.memory.neededBoost || s.memory.neededBoost === boostNeeded));
-                if (lab) {
-                    lab.memory.paused = true;
-                    this.memory.boosts.boostLab = lab.id;
-                    lab.memory.neededBoost = boostNeeded;
-                    if (!lab.memory.amount) lab.memory.amount = amountNeeded; else lab.memory.amount += amountNeeded;
-                    lab.memory.requestor = this.id;
-                    lab.memory.requested = Game.time;
-                } else {
-                    if (Game.getObjectById(this.memory.boosts.boostLab)) Game.getObjectById(this.memory.boosts.boostLab).memory = undefined;
-                    if (this.ticksToLive < CREEP_LIFE_TIME * 0.5) {
-                        this.memory.boosts = undefined;
-                        this.memory.boostAttempt = true;
-                        return false;
-                    } else return true;
-                }
-            }
-            let lab = Game.getObjectById(this.memory.boosts.boostLab);
-            if (lab) {
-                const targetParts = this.body.find((p) => p.type === boostType && !p.boost);
-                if (!targetParts && this.memory.hasBoosted && this.memory.hasBoosted.includes(lab.memory.neededBoost)) {
-                    delete this.memory.boosts.requestedBoosts[lab.memory.neededBoost];
-                    lab.memory.amount -= amountNeeded;
-                    const otherCreeps = this.room.myCreeps.find(c => c.id !== this.id && c.memory.boosts && c.memory.boosts.boostLab === lab.id && c.memory.boosts.requestedBoosts[lab.memory.neededBoost]);
-                    if (!otherCreeps) lab.memory.neededBoost = undefined;
-                    this.say(ICONS.greenCheck);
-                    return true;
-                } else {
-                    lab.say(lab.memory.neededBoost);
-                    if (lab.mineralType === lab.memory.neededBoost && lab.store[RESOURCE_ENERGY] && lab.mineralAmount >= lab.memory.amount) {
-                        switch (lab.boostCreep(this)) {
-                            case OK:
-                                if (!this.memory.hasBoosted) this.memory.hasBoosted = [lab.memory.neededBoost]; else this.memory.hasBoosted.push(lab.memory.neededBoost);
-                                this.say(ICONS.testFinished);
-                                return true;
-                            case ERR_NOT_ENOUGH_RESOURCES:
-                            case ERR_NOT_IN_RANGE:
-                                this.say(ICONS.boost);
-                                this.shibMove(lab, {forceSolo: true});
-                                return true;
-                            default:
-                                this.say('Error');
-                                return true;
-                        }
-                    } else {
-                        if (this.room.store(boostNeeded) < lab.memory.amount) {
-                            let lab = Game.getObjectById(this.memory.boosts.boostLab);
-                            if (lab) lab.memory = undefined;
-                            this.memory.boosts = undefined;
-                            return true;
-                        } else if (!this.pos.isNearTo(lab)) {
-                            this.shibMove(lab, {forceSolo: true});
-                        }
-                        if (!this.memory.hasBoosted && this.hasActiveBodyparts(MOVE) && this.handleRenewing(CREEP_LIFE_TIME * 0.95)) return this.handleRenewing(CREEP_LIFE_TIME * 0.95);
-                    }
-                }
-            }
-        }
-    } else {
-        if (Game.getObjectById(this.memory.boosts.boostLab)) Game.getObjectById(this.memory.boosts.boostLab).memory = undefined;
-        this.memory.boosts = undefined;
-        if (!this.memory.neededBoosts || this.memory.hasBoosted) {
+            this.memory.boosts = undefined;
             this.memory.boostAttempt = true;
             return false;
-        } else return true;
+        }
+        this.memory.boosts = {requestedBoosts: plan};
+        return true;
     }
-    return true;
+
+    if (!_.size(this.memory.boosts.requestedBoosts)) {
+        clearLabBoost(Game.getObjectById(this.memory.boosts.boostLab));
+        this.memory.boosts = undefined;
+        this.memory.boostAttempt = true;
+        return false;
+    }
+
+    if (waitingForSquad(this)) return this.idleFor(BOOST_SQUAD_WAIT_TICKS);
+
+    if (!this.memory.hasBoosted && this.hasActiveBodyparts(MOVE) &&
+        this.handleRenewing(BOOST_RENEW_INITIAL)) return true;
+
+    return applyBoost(this, Object.keys(this.memory.boosts.requestedBoosts)[0]);
 };
 
 Creep.prototype.recycleCreep = function () {

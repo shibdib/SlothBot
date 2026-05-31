@@ -464,10 +464,11 @@ class HUD {
         this.renderCreepTrails();
 
         // Military Operations
+        const validRoomName = /^[WE]\d+[NS]\d+$/;
         if (Memory.targetRooms) {
             for (const roomName in Memory.targetRooms) {
-                if (!roomName) continue;
                 const target = Memory.targetRooms[roomName];
+                if (!target || !validRoomName.test(roomName)) continue;
                 Game.map.visual.line(new RoomPosition(15, 25, roomName), new RoomPosition(35, 25, roomName), {
                     color: '#ff2222', width: 1.8, opacity: 0.85
                 });
@@ -477,7 +478,7 @@ class HUD {
                 Game.map.visual.circle(new RoomPosition(25, 25, roomName), {
                     radius: 11, stroke: '#ff2222', strokeWidth: 1.8, fill: 'transparent', opacity: 0.75
                 });
-                Game.map.visual.text('🎯 ' + (target && target.type ? target.type.toUpperCase() : 'OP'),
+                Game.map.visual.text('🎯 ' + (target.type ? target.type.toUpperCase() : 'OP'),
                     new RoomPosition(25, 39, roomName), {
                         color: '#ffcccc', fontSize: 5.2, align: 'center', fontFamily: 'Tahoma',
                         backgroundColor: '#440000', backgroundPadding: 0.4
@@ -488,7 +489,7 @@ class HUD {
         if (Memory.auxiliaryTargets) {
             for (const roomName in Memory.auxiliaryTargets) {
                 const target = Memory.auxiliaryTargets[roomName];
-                if (!target) continue;
+                if (!target || !validRoomName.test(roomName)) continue;
                 Game.map.visual.circle(new RoomPosition(25, 25, roomName), {
                     radius: 13,
                     stroke: '#ffff00',
@@ -538,27 +539,69 @@ class HUD {
         if (Game.time % 5 === 0) {
             creepTrailCache = [];
             harvesterCountCache = {};
+
+            // Build dest -> [routes] index from the global route cache. shibPath's
+            // cached-path branch never sets _shibMove.route, so for most moving
+            // creeps that's our only source of the routed room list.
+            const routesByDest = {};
+            if (global.CACHE && CACHE.ROUTE_CACHE) {
+                for (const key in CACHE.ROUTE_CACHE) {
+                    const entry = CACHE.ROUTE_CACHE[key];
+                    if (!entry || entry.failed || !entry.route || entry.route.length < 2) continue;
+                    const dest = entry.route[entry.route.length - 1];
+                    (routesByDest[dest] = routesByDest[dest] || []).push(entry.route);
+                }
+            }
+
             for (const name in Game.creeps) {
                 const creep = Game.creeps[name];
                 if (!creep.my || !creep.memory.destination || !creep.memory.operation) continue;
+
+                const dest = creep.memory.destination;
+                const room = creep.pos.roomName;
+                let route;
+
+                const shibMove = creep.memory._shibMove;
+                if (shibMove && Array.isArray(shibMove.route) && shibMove.route.includes(room) &&
+                    shibMove.route[shibMove.route.length - 1] === dest) {
+                    route = shibMove.route;
+                } else if (routesByDest[dest]) {
+                    route = routesByDest[dest].find(r => r.includes(room)) || routesByDest[dest][0];
+                }
+
                 creepTrailCache.push({
                     x: creep.pos.x, y: creep.pos.y,
-                    room: creep.pos.roomName,
-                    dest: creep.memory.destination
+                    room: room,
+                    dest: dest,
+                    route: route
                 });
-                harvesterCountCache[creep.memory.destination] = (harvesterCountCache[creep.memory.destination] || 0) + 1;
+                harvesterCountCache[dest] = (harvesterCountCache[dest] || 0) + 1;
             }
         }
 
+        const lineStyle = {color: '#ffff44', opacity: 0.28, width: 0.3};
         for (const t of creepTrailCache) {
             Game.map.visual.circle(new RoomPosition(t.x, t.y, t.room), {
                 radius: 0.95, fill: '#ffff44', opacity: 0.75
             });
-            if (t.room !== t.dest) {
+            if (t.room === t.dest) continue;
+
+            // Snake the trail through the routed rooms via their centers.
+            // Falls back to a straight line if no route is cached or the creep
+            // has wandered off-route.
+            const startIdx = t.route ? t.route.indexOf(t.room) : -1;
+            if (startIdx >= 0 && startIdx < t.route.length - 1) {
+                let prev = new RoomPosition(t.x, t.y, t.room);
+                for (let i = startIdx + 1; i < t.route.length; i++) {
+                    const next = new RoomPosition(25, 25, t.route[i]);
+                    Game.map.visual.line(prev, next, lineStyle);
+                    prev = next;
+                }
+            } else {
                 Game.map.visual.line(
                     new RoomPosition(t.x, t.y, t.room),
                     new RoomPosition(25, 25, t.dest),
-                    {color: '#ffff44', opacity: 0.22, width: 0.2}
+                    lineStyle
                 );
             }
         }

@@ -121,6 +121,7 @@ function buildFromLayout(room, countCheck) {
     }
 
     if (filter.length) {
+        if (buildSourceExtensions(room)) return;
         for (const structure of filter) {
             if (shouldSkipStructure(room, structure)) continue;
             for (const buildPos of structure.pos) {
@@ -170,7 +171,6 @@ function auxiliaryBuilding(room) {
     if (room.storage) {
         if (buildRoads(room, room.memory.dynamicLayout ? null : bunkerTemplate)) return;
         if (linkBuilder(room)) return true;
-        if (buildSourceExtensions(room)) return;
         if (room.level >= 6) {
             mineralBuilder(room);
             labBuilder(room);
@@ -233,7 +233,6 @@ function auxiliaryBuilding(room) {
 // reducing hauler load. Only runs after the source link is confirmed built so we
 // never accidentally occupy the link's future slot.
 function buildSourceExtensions(room) {
-    if (room.level < 5) return false;
     const hub = room.hub;
 
     for (const source of room.sources) {
@@ -251,6 +250,8 @@ function buildSourceExtensions(room) {
             continue;
         }
 
+        // Collect open neighbors of the container (potential extension sites + access tiles)
+        const candidates = [];
         for (let dx = -1; dx <= 1; dx++) {
             for (let dy = -1; dy <= 1; dy++) {
                 if (!dx && !dy) continue;
@@ -260,11 +261,21 @@ function buildSourceExtensions(room) {
                 if (pos.checkForWall()) continue;
                 if (pos.isEqualTo(source.pos)) continue;         // source tile
                 if (pos.isEqualTo(link.pos)) continue;           // link tile
-                if (hub && pos.getRangeTo(hub) <= 5) continue;   // hub cluster handles its own
-                if (!pos.checkForAllStructure() && !pos.checkForConstructionSites()) {
-                    if (pos.createConstructionSite(STRUCTURE_EXTENSION) === OK) return true;
-                }
+                if (pos.checkForAllStructure() || pos.checkForConstructionSites()) continue;
+                candidates.push(pos);
             }
+        }
+
+        // Reserve one open neighbor pathable to the hub so haulers can still reach the container
+        let reserved = null;
+        if (hub && candidates.length > 0) {
+            reserved = _.min(candidates, p => p.getRangeTo(hub));
+        }
+
+        for (const pos of candidates) {
+            if (reserved && pos.isEqualTo(reserved)) continue;
+            if (hub && pos.getRangeTo(hub) <= 5) continue;   // hub cluster handles its own
+            if (pos.createConstructionSite(STRUCTURE_EXTENSION) === OK) return true;
         }
     }
     return false;
@@ -402,7 +413,7 @@ function sourceBuilder(room) {
 function controllerBuilder(room) {
     let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
     let controllerLink = Game.getObjectById(room.memory.controllerLink);
-    if (!controllerContainer && room.level >= 2 && !controllerLink) {
+    if (!controllerContainer && room.level >= 2 && room.level < 8) {
         controllerContainer = room.controller.pos.findInRange(room.containers, 3, {
             filter: (s) => !s.pos.isNearTo(s.pos.findClosestByRange(FIND_SOURCES)) &&
                 !s.pos.isNearTo(s.pos.findClosestByRange(FIND_MINERALS))
@@ -451,7 +462,7 @@ function controllerBuilder(room) {
         } else {
             room.memory.controllerContainer = controllerContainer.id;
         }
-    } else if (controllerContainer && controllerLink) {
+    } else if (controllerContainer && controllerLink && room.level === 8) {
         // If the controller container is empty destroy it
         if (controllerContainer.store.getUsedCapacity() === 0) {
             controllerContainer.destroy();
@@ -523,15 +534,16 @@ function rampartBuilder(room, layout = undefined, count = false) {
         if (room.level >= SPECIAL_RAMPARTS) {
             if (PROTECT_SOURCES) {
                 for (let source of room.sources) {
+                    if (source.pos.isInBunker()) continue;
                     if (counter >= 3) return true;
                     if (buildRampartAround(source.pos)) counter++;
                 }
             }
-            if (PROTECT_MINERAL) {
+            if (PROTECT_MINERAL && !room.mineral.pos.isInBunker()) {
                 if (counter >= 3) return true;
                 if (buildRampartAround(room.mineral.pos)) counter++;
             }
-            if (PROTECT_CONTROLLER) {
+            if (PROTECT_CONTROLLER && !room.controller.pos.isInBunker()) {
                 if (counter >= 3) return true;
                 if (buildRampartAround(room.controller.pos)) counter++;
             }
@@ -780,7 +792,7 @@ function roadBuilder(room, layout) {
     if (room.level >= 7 && buildRoadsForRamparts(room)) return true;
 
     // Handle redundant roads
-    removeRedundantRoads(room, layout);
+    //removeRedundantRoads(room, layout);
 
     function buildRoadToNeighborExits(spawn, room) {
         let neighboring = Game.map.describeExits(spawn.pos.roomName);

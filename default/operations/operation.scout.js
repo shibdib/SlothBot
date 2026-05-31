@@ -106,7 +106,7 @@ function handleScoutOperation(room) {
     room.cacheRoomIntel(true)
     const towers = room.towers;
     const owner = INTEL[room.name].owner;
-    const isHostile = owner && !FRIENDLIES.includes(owner);
+    const isHostile = owner && _.pluck(WAR_TARGETS, 'user').includes(owner);
 
     if (INTEL[room.name].sk && towers.length) {
         Memory.targetRooms[room.name].type = 'stronghold';

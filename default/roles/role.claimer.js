@@ -41,10 +41,6 @@ class RoleClaimer {
         if (this.creep.room.controller.owner) {
             this.cleanRoom(this.room);
             return this.creep.recycleCreep();
-        } else if (!this.creep.pos.findClosestByPath(this.room.controller)) {
-            INTEL[this.room.name].obstacles = true;
-            Memory.auxiliaryTargets[this.room.name] = undefined;
-            return this.creep.recycleCreep();
         } else if (!this.creep.memory.signed) {
             switch (this.creep.signController(this.room.controller, _.sample(OWNED_ROOM_SIGNS))) {
                 case ERR_NOT_IN_RANGE:

@@ -125,7 +125,7 @@ class TerminalControl {
             let buyAmount = Math.min(target - stored, REACTION_AMOUNT);
 
             // Don't buy from the market if other rooms have enough to route here
-            if (stored < target && getResourceTotal(mineral) >= target) continue;
+            if (stored < target && getResourceTotal(mineral) * (MY_ROOMS.length * 2) >= target) continue;
 
             if (stored < target && buyAmount > 0) {
                 let price;
@@ -690,11 +690,11 @@ class TerminalControl {
 
             if (haveMineral) {
                 if (Game.market.deal(highestBuy.id, amount, terminal.room.name) === OK) {
-                    log.w(`ARBITRAGE: Flipped ${amount} ${mineral} in ${terminal.room.name} for profit: ${netProfit.toFixed(2)}`, "Market: ");
+                    //log.w(`ARBITRAGE: Flipped ${amount} ${mineral} in ${terminal.room.name} for profit: ${netProfit.toFixed(2)}`, "Market: ");
                     return true;
                 }
             } else if (Game.market.deal(lowestSell.id, amount, terminal.room.name) === OK) {
-                log.w(`ARBITRAGE: Secured ${amount} ${mineral} for flip in ${terminal.room.name}. Est profit: ${netProfit.toFixed(2)}`, "Market: ");
+                //log.w(`ARBITRAGE: Secured ${amount} ${mineral} for flip in ${terminal.room.name}. Est profit: ${netProfit.toFixed(2)}`, "Market: ");
                 return true;
             }
         }
