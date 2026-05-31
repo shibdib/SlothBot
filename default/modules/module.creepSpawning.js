@@ -848,10 +848,6 @@ module.exports.globalCreepQueue = function () {
                 const rdTowers = rdIntel && rdIntel.towers || 0;
                 const rdWaves = operation.waves || 0;
                 if (rdTowers) {
-                    // TOUGH is paired with HEAL so the bodyGenerator can buffer
-                    // peak tower damage. p85 sizes HEAL for sustained tanking,
-                    // but the creep crosses higher-damage tiles on approach —
-                    // the tough buffer covers that gap without bloating heal.
                     Memory.targetRooms[key].boosts = [TOUGH, HEAL];
                     const p85Damage = rdIntel.towerData ? rdIntel.towerData.average : rdTowers * 300;
                     const useSolo = MAX_LEVEL >= 7 && p85Damage <= 960 && !rdIntel.activeDefenders && rdWaves < 2;
@@ -866,13 +862,26 @@ module.exports.globalCreepQueue = function () {
                             misc: {boosts: [TOUGH, RANGED_ATTACK, HEAL]}
                         });
                     } else {
-                        const waitFor = (rdWaves >= 2 || p85Damage > 960) ? 4 : 2;
-                        queueCreepIfNeeded({
-                            role: 'longbowSquad', priority, numberNeeded: waitFor, destination: key,
-                            misc: {waitFor: waitFor, boosts: [TOUGH, RANGED_ATTACK, HEAL]},
-                            closestRoom: true,
-                            operation: 'roomDenial'
-                        });
+                        // If a room has activeDefenders spawn a longbowSquad otherwise a siege pair
+                        if (rdIntel.activeDefenders) {
+                            const waitFor = (rdWaves >= 2 || p85Damage > 960) ? 4 : 2;
+                            queueCreepIfNeeded({
+                                role: 'longbowSquad', priority, numberNeeded: waitFor, destination: key,
+                                misc: {waitFor: waitFor, boosts: [TOUGH, RANGED_ATTACK, HEAL]},
+                                closestRoom: true,
+                                operation: 'roomDenial'
+                            });
+                        } else {
+                            queueCreepIfNeeded({
+                                role: 'siegeDuo',
+                                priority,
+                                numberNeeded: opLevel * 2,
+                                destination: key,
+                                misc: {boosts: [TOUGH, HEAL, ATTACK]},
+                                closestRoom: true,
+                                operation: 'roomDenial'
+                            });
+                        }
                     }
                 } else {
                     Memory.targetRooms[key].boosts = undefined;
@@ -1250,6 +1259,10 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
         if (distance >= closestDistance || distance > maxDistance) continue;
 
         if ((assignmentCounts[key] || 0) >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level]) continue;
+
+        // Verify we can make the body
+        const generatedInfo = new generator(myRoom.level, creepInfo.role, myRoom, creepInfo).generateBody();
+        if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) continue;
 
         closestDistance = distance;
         closest = key;
