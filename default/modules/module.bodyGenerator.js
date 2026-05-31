@@ -8,6 +8,7 @@ const profiler = require("tools.profiler");
 let bodyCache = {};
 let _haulerCacheTick = -1;
 let _haulersByHarvester = {};
+const toughMulti = {"GO": 0.75, "GHO2": 0.55, "XGHO2": 0.35}
 
 function getHaulersByHarvester() {
     if (_haulerCacheTick === Game.time) return _haulersByHarvester;
@@ -47,7 +48,6 @@ class ModuleBodyGenerator {
         // Upgrader-only: actual upgrade-energy / theoretical WORK output, [0..1].
         // < 1 means body is oversized for the link feed; anti-waste shrink in the upgrader case.
         this.upgraderDuty = (ei && typeof ei.upgraderDuty === 'number') ? ei.upgraderDuty : 1.0;
-        this.boostsRequired = false;
     }
 
     // Method to ensure the energy amount is correct based on conditions
@@ -89,7 +89,7 @@ class ModuleBodyGenerator {
         }
 
         let bodyArray = [];
-        let work, claim, carry, move, tough, attack, rangedAttack, heal, halfMove;
+        let work, claim, carry, move, tough, attack, rangedAttack, heal, halfMove, toughData;
 
         // Generate body parts based on role
         switch (this.role) {
@@ -290,15 +290,13 @@ class ModuleBodyGenerator {
                 } else if (this.creepInfo && Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
                     const defaultWaitFor = this.role === 'longbow' ? 1 : 2;
                     const waitFor = this.creepInfo.misc && this.creepInfo.misc.waitFor || defaultWaitFor;
-                    heal = this.checkForNeededHeal(1 / waitFor);
-                    if (!heal) break;
-                    // Optional TOUGH buffer for siege ops — covers the gap between
-                    // p85 heal sizing and the higher-damage tiles the creep will
-                    // cross on approach. Only allocated when the op explicitly
-                    // requests TOUGH in misc.boosts AND a tough boost is in stock.
                     if (this.creepInfo.misc && this.creepInfo.misc.boosts && this.creepInfo.misc.boosts.includes(TOUGH)) {
                         tough = this.checkForNeededTough(waitFor);
+                        tough = toughData.count;
                     }
+                    const toughModifier = toughData && toughData.boost ? toughMulti[toughData.boost] : 1;
+                    heal = this.checkForNeededHeal(waitFor, toughModifier, true);
+                    if (!heal) return false;
                 } else {
                     heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
                     heal = Math.min(heal, 6);
@@ -324,15 +322,26 @@ class ModuleBodyGenerator {
                 const healerDuo = _.find(this.room.myCreeps, (c) => c.memory.role === 'siegeDuo' && c.hasActiveBodyparts(HEAL) && !c.memory.partner);
                 if (!healerDuo) {
                     if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
-                        heal = this.checkForNeededHeal(1);
-                        if (!heal) break;
+                        if (this.creepInfo.misc && this.creepInfo.misc.boosts && this.creepInfo.misc.boosts.includes(TOUGH)) {
+                            toughData = this.checkForNeededTough(2);
+                            tough = toughData.count;
+                        }
+                        const toughModifier = toughData && toughData.boost ? toughMulti[toughData.boost] : 1;
+                        heal = Math.ceil(this.checkForNeededHeal(1, toughModifier));
+                        if (this.room.name === 'E43S22') console.log(`SiegeDuo ${this.creepInfo.name} checking for heal, got ${heal} with modifier ${toughModifier} and tough ${tough}`);
+                        if (!heal) return false;
                     } else {
                         heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
                         heal = Math.min(heal, 6);
                     }
                 } else {
-                    work = Math.floor(this.energyAmount / (BODYPART_COST[WORK] + BODYPART_COST[MOVE])) || 1;
-                    work = Math.min(work, 25);  // Max work to 25
+                    if (this.creepInfo.misc && this.creepInfo.misc.boosts && this.creepInfo.misc.boosts.includes(TOUGH)) {
+                        toughData = this.checkForNeededTough(2);
+                        tough = toughData.count;
+                    }
+                    attack = Math.floor(this.energyAmount / (BODYPART_COST[ATTACK] + BODYPART_COST[MOVE])) || 1;
+                    attack = Math.min(attack, 25);
+                    attack -= tough || 0;
                 }
                 break;
 
@@ -526,7 +535,7 @@ class ModuleBodyGenerator {
         return body.reduce((cost, part) => cost + BODYPART_COST[part], 0);
     }
 
-    checkForNeededHeal(multiplier = 1) {
+    checkForNeededHeal(multiplier = 1, toughModifier = 1, rangedParts = false) {
         const destination = this.creepInfo.destination;
         const towerData = INTEL[destination] && INTEL[destination].towerData;
         const targetMemory = Memory.targetRooms[destination];
@@ -538,20 +547,17 @@ class ModuleBodyGenerator {
         const damageToTank = Math.round(towerData.average);
         const tiers = determineNeededHeals(damageToTank);
         const squadSize = Math.max(1, Math.round(1 / multiplier));
-        const MAX_HEAL_PARTS = 20;
-        const MIN_RANGED_PARTS = 5;
+        const MAX_HEAL_PARTS = rangedParts ? 20 : 25;
+        const MIN_RANGED_PARTS = rangedParts ? 5 : 0;
         const reservedEnergy = MIN_RANGED_PARTS * (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE]);
         const energyPerHealPair = BODYPART_COST[HEAL] + BODYPART_COST[MOVE];
 
-        // Prefer the lowest tier boost that still tanks the damage and leaves
-        // energy for at least MIN_RANGED_PARTS ranged_attack parts. tiers is
-        // ordered strongest -> weakest, so iterate in reverse.
         const tierKeys = Object.keys(tiers);
         let chosen;
         let chosenHeals = 0;
         for (const key of tierKeys) {
             const tier = tiers[key];
-            const perCreepHeals = Math.ceil(tier.amount * multiplier);
+            const perCreepHeals = Math.ceil(Math.ceil(tier.amount * multiplier) * toughModifier);
             if (perCreepHeals > MAX_HEAL_PARTS) continue;
             if (perCreepHeals * energyPerHealPair + reservedEnergy > this.energyAmount) continue;
             if (this.room.store(tier.boost) < 30 * perCreepHeals * squadSize) continue;
@@ -584,10 +590,10 @@ class ModuleBodyGenerator {
     checkForNeededTough(squadSize = 1) {
         const destination = this.creepInfo.destination;
         const towerData = INTEL[destination] && INTEL[destination].towerData;
-        if (!towerData || !towerData.average) return 0;
+        if (!towerData || !towerData.average) return {boost: undefined, count: 0};
         // Below this threshold heal alone tanks efficiently; tough body slots
         // are better spent on ranged_attack.
-        if (towerData.average < 300) return 0;
+        if (towerData.average < 300) return {boost: undefined, count: 0};
 
         // Buffer scales modestly with damage. Capped so tough never crowds out
         // ranged_attack — 8 tough + ~13 heal still leaves room for ~25 ranged
@@ -597,7 +603,9 @@ class ModuleBodyGenerator {
         // Require at least one tier of TOUGH boost in stock for the whole squad.
         // tryToBoost will pick whichever tier is available at apply-time.
         for (const boost of BOOST_USE[TOUGH]) {
-            if (this.room.store(boost) >= 30 * partCount * squadSize) return partCount;
+            if (this.room.store(boost) >= 30 * partCount * squadSize) {
+                return {boost: boost, count: partCount};
+            }
         }
         return 0;
     }
