@@ -689,7 +689,7 @@ Creep.prototype.formSquad = function () {
         if (!candidates.length) {
             candidates = _.filter(Game.creeps, c =>
                 c.my && c.room.name !== creep.room.name &&
-                Game.map.getRoomLinearDistance(creep.room.name, c.room.name) <= 2 &&
+                Game.map.getRoomLinearDistance(creep.room.name, c.room.name) <= 1 &&
                 candidate(c)
             );
         }
