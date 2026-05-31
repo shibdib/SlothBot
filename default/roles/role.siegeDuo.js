@@ -39,7 +39,7 @@ class RoleSiegeDuo {
             this.creep.memory.leader = undefined;
             this.creep.memory.partner = undefined;
         }
-        if (!this.creep.memory.partner && this.creep.hasActiveBodyparts(WORK)) {
+        if (!this.creep.memory.partner && this.creep.hasActiveBodyparts(ATTACK)) {
             const availablePartner = _.find(Game.creeps, (c) => c.id !== this.creep.id && c.my && !c.spawning
                 && c.memory.role === this.creep.memory.role && c.hasActiveBodyparts(HEAL) && !c.memory.partner
                 && c.memory.destination === this.creep.memory.destination);
