@@ -259,7 +259,7 @@ function militaryOperations() {
             }
         }
 
-        if (bestNoTower) setTarget(bestNoTower.name, 'roomDenial');
+        if (bestNoTower) setTarget(bestNoTower.name, 'guard');
         if (bestTower && activeSiege + (bestNoTower ? 1 : 0) < SIEGE_LIMIT) {
             setTarget(bestTower.name, 'roomDenial', bestTower.towers <= 2 ? 3 : 4);
         }
