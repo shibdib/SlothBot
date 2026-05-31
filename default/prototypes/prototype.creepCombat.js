@@ -122,6 +122,7 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
     const hostileCreeps = this._directHostileCreeps;
     const hostileStructures = this._hostileStructures;
     const rampartedHostiles = this._rampartedHostileCreeps;
+    const armedHostile = hostileCreeps.find(isArmed);
 
     if (this.memory.blockingCreep) {
         const blocker = Game.getObjectById(this.memory.blockingCreep);
@@ -130,7 +131,6 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
 
     if (this.memory.target) {
         const oldTarget = Game.getObjectById(this.memory.target);
-        const armedHostile = hostileCreeps.find(isArmed);
         if (oldTarget instanceof Structure && !armedHostile) return oldTarget;
         this.memory.target = undefined;
     }
