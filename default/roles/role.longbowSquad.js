@@ -138,7 +138,7 @@ class RoleLongbowSquad {
 
         if (this.squadRenewal(creep)) return true;
 
-        const needsFormation = !!(this.room.hostileCreeps.length || this.room.hostileStructures.length || this.nearDestination(creep));
+        const needsFormation = !!(this.room.hostileCreeps.find((c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) || this.room.hostileStructures.length || this.nearDestination(creep));
 
         if (needsFormation) {
             const isReady = this.hasFullSquad(creep) && this.isFormationPacked(squad.concat(creep), creep);
@@ -159,7 +159,7 @@ class RoleLongbowSquad {
             // Safe transit
             creep.memory.waitingToAssemble = false;
             if (creep.memory.operation) this.operationManagement();
-            else if (creep.memory.destination) {
+            if (creep.memory.destination) {
                 const transitTarget = (creep.memory.misc?.stagingRoom && !creep.memory.misc.staged)
                     ? creep.memory.misc.stagingRoom
                     : creep.memory.destination;
@@ -252,7 +252,8 @@ class RoleLongbowSquad {
     // handles trailing independently.
     leaderTransit(target, options = {}) {
         const squadSize = (this.creep.memory.squadMembers || []).length + 1;
-        if (squadSize <= 2) {
+        const roomThreat = !!(this.room.hostileCreeps.length || this.room.hostileStructures.length || this.nearDestination(this.creep));
+        if (squadSize <= 2 || !roomThreat) {
             return this.creep.shibMove(target, Object.assign({forceSolo: true}, options));
         }
         return this.creep.shibSquadMovement(target, options);
