@@ -25,10 +25,8 @@ Creep.prototype.denyRoom = function () {
                 this.memory.activeTracked = Game.time;
             }
         }
-        // Call operation manager periodically (every 5 ticks)
-        if (Game.time % 5 === 0) {
-            this.operationManager();
-        }
+
+        this.operationManager();
 
         // Update sustainability of operation in this room
         if (highCommand.operationSustainability(this.room)) {
