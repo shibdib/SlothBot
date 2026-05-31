@@ -416,9 +416,9 @@ function findRoute(origin, destination, options = {}) {
             const rStatus = roomStatus(roomName);
             if (rStatus === 'closed' || (intel && !intel.isHighway && rStatus !== roomStatus(origin))) return Infinity;
             if (Memory.avoidRooms?.includes(roomName)) return 250;
-            if (!intel || intel.cached + 10000 < Game.time) return 50;
+            if (!intel || intel.cached + 10000 < Game.time) return 100;
             if (intel.user && intel.user === MY_USERNAME) return 1;
-            if (intel.user && FRIENDLIES.includes(intel.user) && !NO_RAMPART_CODE.includes(intel.user)) return 5;
+            if (intel.user && FRIENDLIES.includes(intel.user)) return !NO_RAMPART_CODE.includes(intel.user) ? 25 : 1;
             if (intel.user && !FRIENDLIES.includes(intel.user)) return intel.towers ? Infinity : 150;
             if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) return 50;
             if (intel.obstacles) return 200;
@@ -427,7 +427,7 @@ function findRoute(origin, destination, options = {}) {
             if (intel.sk && (intel.towers || !intel.skDangerPoints)) return 250;
             if (intel.threatLevel) return 60 * intel.threatLevel;
             if (intel.swampRoom) return 15;
-            return intel.isHighway ? 3 : 7;
+            return intel.isHighway ? 3 : 10;
         }
     });
 
