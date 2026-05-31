@@ -17,7 +17,7 @@ Creep.prototype.denyRoom = function () {
             }
         }
         // Track if active defenders spawn or not
-        if (!this.memory.activeTracked || this.memory.activeTracked + 100 < Game.time) {
+        if (!this.memory.activeTracked || this.memory.activeTracked + 50 < Game.time) {
             if (this.memory.activeTracked) {
                 const armedHostiles = this.room.creeps.filter((c) => !c.my && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)));
                 INTEL[this.room.name].activeDefenders = armedHostiles.length > 0;
@@ -49,6 +49,8 @@ Creep.prototype.denyRoom = function () {
     // Handle staging and moving to destination
     if (!this.memory.misc || !this.memory.misc.stagingRoom) {
         if (!this.memory.misc) this.memory.misc = {};
+        // Stage at nearest ally or highway
+
         this.memory.misc.stagingRoom = INTEL[this.memory.destination] && INTEL[this.memory.destination].attackDirection ? Game.map.describeExits(this.memory.destination)[INTEL[this.memory.destination].attackDirection] : this.memory.destination;
     }
     if (this.memory.misc && this.memory.misc.stagingRoom && this.memory.misc.stagingRoom === this.room.name) this.memory.misc.staged = true;
