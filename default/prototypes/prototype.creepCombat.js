@@ -131,7 +131,7 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
 
     if (this.memory.target) {
         const oldTarget = Game.getObjectById(this.memory.target);
-        if (oldTarget instanceof Structure && !armedHostile) return oldTarget;
+        if (oldTarget instanceof Structure && !armedHostile && Math.random() > 0.75) return oldTarget;
         this.memory.target = undefined;
     }
 
@@ -144,14 +144,14 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
 
         if (target instanceof Creep) {
             const ap = abilityPower(target.body);
-            // Healers = highest priority
+            // Healers
             if (ap.effectiveHeal > 0) score += 1000;
             // Ranged attackers next
             if (target.hasActiveBodyparts(RANGED_ATTACK)) score += 800;
             // Melee
             if (target.hasActiveBodyparts(ATTACK)) score += 600;
-            // Work creeps in owned rooms
-            if (MY_ROOMS.includes(this.room.name) && target.hasActiveBodyparts(WORK)) score += 500;
+            // Work creeps
+            if (target.hasActiveBodyparts(WORK)) score += 200;
 
             // Focus fire bonus: prefer targets already being attacked by allies
             const alliesAttacking = this.room.myCreeps.filter(c =>
@@ -198,14 +198,13 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
     // all, because a high creep score could otherwise dominate the structure pass.
     if (!structuresOnly) {
         for (const c of hostileCreeps) {
-            if (!isArmed(c) || (ignoreBorder && onBorder(c.pos))) continue;
+            if ((ignoreBorder && onBorder(c.pos))) continue;
             const s = scoreTarget(c);
             if (s > bestScore) {
                 bestScore = s;
                 bestTarget = c;
             }
         }
-        if (bestTarget) return updateTarget(this, bestTarget);
     }
 
     // Priority 2: hostile structures. Ramparts get proxy-scored by what's
@@ -232,7 +231,6 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
             }
         }
     }
-    if (bestTarget) return updateTarget(this, bestTarget);
 
     // Priority 3: ramparts protecting hostile creeps we can't reach directly.
     // Armed occupants get a +500 bonus so we chip through to threats rather than
@@ -249,21 +247,6 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
             bestScore = sc;
             bestTarget = rampart;
         }
-    }
-    if (bestTarget) return updateTarget(this, bestTarget);
-
-    // Priority 4: unarmed direct hostiles (skipped in structuresOnly mode for the
-    // same reason priority 1 is — workers shouldn't path off to chase haulers).
-    if (!structuresOnly) {
-        for (const c of hostileCreeps) {
-            if (isArmed(c)) continue;
-            const s = scoreTarget(c);
-            if (s > bestScore) {
-                bestScore = s;
-                bestTarget = c;
-            }
-        }
-        if (bestTarget) return updateTarget(this, bestTarget);
     }
 
     // Priority 5: bare ramparts. Walls with nothing on the other side — only
