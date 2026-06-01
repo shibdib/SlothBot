@@ -936,10 +936,9 @@ module.exports.globalCreepQueue = function () {
                         operation: 'guard'
                     });
                 } else if (opLevel > 1) {
-                    const quadOrDuo = opLevel === 2 ? 2 : 4;
                     queueCreepIfNeeded({
-                        role: 'longbowSquad', priority, numberNeeded: quadOrDuo, destination: key,
-                        misc: {waitFor: quadOrDuo, boosts: [RANGED_ATTACK, HEAL]}, closestRoom: true, operation: 'guard'
+                        role: 'longbowSquad', priority, numberNeeded: 2, destination: key,
+                        misc: {waitFor: 2, boosts: [RANGED_ATTACK, HEAL]}, closestRoom: true, operation: 'guard'
                     });
                 }
                 break;
