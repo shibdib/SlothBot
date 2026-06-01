@@ -347,8 +347,8 @@ function linkBuilder(room) {
             for (let xOff = -3; xOff <= 3; xOff++) {
                 for (let yOff = -3; yOff <= 3; yOff++) {
                     if (xOff === 0 && yOff === 0) continue;
+                    if (startPos.x + xOff < 1 || startPos.x + xOff > 48 || startPos.y + yOff < 1 || startPos.y + yOff > 48) continue;
                     let pos = new RoomPosition(startPos.x + xOff, startPos.y + yOff, room.name);
-                    if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) continue;
                     if (pos.checkForAllStructure() || pos.checkForImpassible()) continue;
                     if (pos.createConstructionSite(STRUCTURE_LINK) === OK) return true;
                 }
