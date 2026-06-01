@@ -318,9 +318,39 @@ class ModuleBodyGenerator {
                 }
                 break;
 
-            case 'siegeDuo':
-                const healerDuo = _.find(this.room.myCreeps, (c) => c.memory.role === 'siegeDuo' && c.body.some((part) => part.type === HEAL) && !c.memory.partner);
-                if (!healerDuo) {
+            case 'siegeDuo': {
+                // Balance the queue by counting unpaired creeps on BOTH sides
+                // for this destination, then spawn whichever role is short.
+                // A "find unpaired healer → spawn attacker" approach races
+                // against the stale-partner clear window: role.siegeDuo
+                // housekeeping clears dead-partner refs, but it runs in
+                // militaryCreepManager (after colonyManager's spawn pass), so
+                // consecutive bodyGenerator calls would otherwise see the
+                // same orphaned creep and double-spawn its counterpart.
+                // Counting both sides keeps in-flight creeps accounted for
+                // regardless of stale refs.
+                const dest = this.creepInfo.destination;
+                let unpairedHealers = 0;
+                let unpairedAttackers = 0;
+                for (const name in Game.creeps) {
+                    const c = Game.creeps[name];
+                    if (!c.my || c.memory.role !== 'siegeDuo' || c.memory.destination !== dest) continue;
+                    if (c.memory.partner && Game.getObjectById(c.memory.partner)) continue;
+                    if (c.hasActiveBodyparts(ATTACK)) unpairedAttackers++;
+                    else if (c.hasActiveBodyparts(HEAL)) unpairedHealers++;
+                }
+
+                if (unpairedHealers > unpairedAttackers) {
+                    // Healer surplus — spawn the attacker that will pair with one.
+                    if (this.creepInfo.misc && this.creepInfo.misc.boosts && this.creepInfo.misc.boosts.includes(TOUGH)) {
+                        toughData = this.checkForNeededTough(2);
+                        tough = toughData.count;
+                    }
+                    attack = Math.floor(this.energyAmount / (BODYPART_COST[ATTACK] + BODYPART_COST[MOVE])) || 1;
+                    attack = Math.min(attack, 25);
+                    attack -= tough || 0;
+                } else {
+                    // No surplus healer (or attacker surplus) — spawn a healer.
                     if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
                         if (this.creepInfo.misc && this.creepInfo.misc.boosts && this.creepInfo.misc.boosts.includes(TOUGH)) {
                             toughData = this.checkForNeededTough(2);
@@ -334,16 +364,9 @@ class ModuleBodyGenerator {
                         heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
                         heal = Math.min(heal, 6);
                     }
-                } else {
-                    if (this.creepInfo.misc && this.creepInfo.misc.boosts && this.creepInfo.misc.boosts.includes(TOUGH)) {
-                        toughData = this.checkForNeededTough(2);
-                        tough = toughData.count;
-                    }
-                    attack = Math.floor(this.energyAmount / (BODYPART_COST[ATTACK] + BODYPART_COST[MOVE])) || 1;
-                    attack = Math.min(attack, 25);
-                    attack -= tough || 0;
                 }
                 break;
+            }
 
             case 'cleaner':
                 work = Math.floor(this.energyAmount / (BODYPART_COST[WORK] + BODYPART_COST[MOVE])) || 1;

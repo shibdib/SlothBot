@@ -129,7 +129,9 @@ module.exports.processBuildQueue = function (room) {
                 // Pre-reserve the boost lab while the creep is still spawning so the
                 // labtech can start filling immediately. By the time the creep is
                 // alive (3 ticks × body length) the lab is likely already topped up.
-                if (neededBoosts) preReserveBoostLab(availableSpawn.room, name, neededBoosts, body);
+                if (neededBoosts || (misc && misc.boosts)) {
+                    preReserveBoostLab(availableSpawn.room, name, neededBoosts, body, role, misc);
+                }
                 handleSuccessfulSpawn(room, role, queuedBuild, availableSpawn);
                 return;
             } else if (spawnResult === ERR_NOT_ENOUGH_ENERGY) {
@@ -180,31 +182,82 @@ module.exports.processBuildQueue = function (room) {
         }
     }
 
-    // Pre-claim a boost lab while the creep is still spawning. labTech polls
-    // lab.memory.neededBoost / amount without caring about a requestor id, so
-    // setting these now lets the fill cycle (storage → walk → deposit) run
-    // during the spawn duration instead of after. The preReservedFor flag tells
-    // tryToBoost the lab is already accounted for, so the post-spawn claim
-    // skips the amount-increment that would otherwise double-count.
-    function preReserveBoostLab(room, creepName, neededBoosts, body) {
-        if (!neededBoosts || !neededBoosts.boost || !neededBoosts.boostPart) return;
-        const partCount = body.filter(p => p === neededBoosts.boostPart).length;
-        if (!partCount) return;
-        const labAmount = partCount * 30;
-        const boostNeeded = neededBoosts.boost;
+    // Pre-claim boost labs while the creep is still spawning. labTech polls
+    // lab.memory.neededBoost / amount without caring about a specific requestor,
+    // so setting these now lets the fill cycle (storage → walk → deposit) run
+    // during the spawn duration instead of after. preReservedFor is a list of
+    // creep names so multiple creeps can pre-reserve the same lab — each entry
+    // tells the post-spawn claim "your amount is already in lab.memory.amount,
+    // don't double-count."
+    //
+    // We walk both neededBoosts (the size-driven primary boost, e.g. HEAL tier
+    // for medics) and misc.boosts (additional body parts like ATTACK/TOUGH for
+    // combat squads). Each gets its own lab, so a creep with 3 boost types
+    // emerges from spawn with 3 labs filling in parallel instead of one.
+    function preReserveBoostLab(room, creepName, neededBoosts, body, role, misc) {
+        const reservations = [];
+        const reservedParts = new Set();
 
-        const lab = _.find(room.labs, s =>
-            s.isActive() && s.store[RESOURCE_ENERGY] > 0 &&
-            !s.memory.itemNeeded &&
-            (!s.memory.neededBoost || s.memory.neededBoost === boostNeeded)
-        );
-        if (!lab) return;
+        if (neededBoosts && neededBoosts.boost && neededBoosts.boostPart) {
+            const partCount = body.filter(p => p === neededBoosts.boostPart).length;
+            if (partCount) {
+                reservations.push({boost: neededBoosts.boost, amount: partCount * LAB_BOOST_MINERAL});
+                reservedParts.add(neededBoosts.boostPart);
+            }
+        }
 
-        lab.memory.paused = true;
-        lab.memory.neededBoost = boostNeeded;
-        if (!lab.memory.amount) lab.memory.amount = labAmount; else lab.memory.amount += labAmount;
-        lab.memory.preReservedFor = creepName;
-        lab.memory.requested = Game.time;
+        if (misc && misc.boosts) {
+            // Track our pending reservations per-tier so we don't pick the same
+            // resource for two body parts if the room only has enough for one.
+            const pendingByResource = {};
+            for (const r of reservations) pendingByResource[r.boost] = (pendingByResource[r.boost] || 0) + r.amount;
+
+            for (const bodyPart of misc.boosts) {
+                if (reservedParts.has(bodyPart)) continue;
+                const partCount = body.filter(p => p === bodyPart).length;
+                if (!partCount) continue;
+                const boostType = resolveBoostType(role, bodyPart);
+                if (!boostType) continue;
+                const tiers = BOOST_USE[boostType];
+                if (!tiers) continue;
+                const amount = partCount * LAB_BOOST_MINERAL;
+                let chosen = null;
+                for (const tier of tiers) {
+                    if (room.store(tier) >= amount + (pendingByResource[tier] || 0)) {
+                        chosen = tier;
+                        break;
+                    }
+                }
+                if (chosen) {
+                    reservations.push({boost: chosen, amount});
+                    reservedParts.add(bodyPart);
+                    pendingByResource[chosen] = (pendingByResource[chosen] || 0) + amount;
+                }
+            }
+        }
+
+        if (!reservations.length) return;
+
+        // Don't put two of our reservations on the same lab — distinct boosts
+        // need distinct labs. Other creeps' labs with matching boost may still
+        // be co-occupied (claimBoostLab pools amount there).
+        const usedLabs = new Set();
+        for (const reservation of reservations) {
+            const lab = _.find(room.labs, s =>
+                !usedLabs.has(s.id) &&
+                s.isActive() && s.store[RESOURCE_ENERGY] > 0 &&
+                !s.memory.itemNeeded &&
+                (!s.memory.neededBoost || s.memory.neededBoost === reservation.boost)
+            );
+            if (!lab) continue;
+            usedLabs.add(lab.id);
+
+            lab.memory.paused = true;
+            lab.memory.neededBoost = reservation.boost;
+            lab.memory.amount = (lab.memory.amount || 0) + reservation.amount;
+            (lab.memory.preReservedFor = lab.memory.preReservedFor || []).push(creepName);
+            lab.memory.requested = Game.time;
+        }
     }
 };
 
@@ -242,7 +295,7 @@ module.exports.essentialCreepQueue = function (room) {
     const energyInfo = room.memory.energyInfo;
     const trendOk = !energyInfo || (energyInfo.trend || 0) >= -3;
     const importantBuilds = _.some(room.constructionSites, s => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    let droneCount = importantBuilds && room.energyState > 1 && trendOk ? 11 - room.level :
+    let droneCount = importantBuilds && trendOk ? 11 - room.level :
         room.constructionSites.length && room.energyState > 2 ? 2 :
             !room.storage ? Math.max(8 - room.level, 1) : 1;
 
@@ -875,7 +928,7 @@ module.exports.globalCreepQueue = function () {
                             queueCreepIfNeeded({
                                 role: 'siegeDuo',
                                 priority,
-                                numberNeeded: opLevel * 2,
+                                numberNeeded: 2,
                                 destination: key,
                                 misc: {boosts: [TOUGH, HEAL, ATTACK]},
                                 closestRoom: true,
