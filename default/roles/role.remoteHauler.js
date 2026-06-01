@@ -75,11 +75,25 @@ class RoleRemoteHauler {
             return this.creep.withdrawResource();
         }
 
+        // Make sure container is set
         let harvester = Game.getObjectById(this.memory.other.harvester);
+        if (harvester) {
+            if (harvester.memory.containerID) this.memory.containerID = harvester.memory.containerID;
+            this.memory.other.harvester = harvester.id;
+        }
+
+        // If we have an assigned container stick to that
+        const container = Game.getObjectById(this.memory.containerID);
+        if (container) {
+            this.memory.energyDestination = container.id;
+            if (container.store[RESOURCE_ENERGY]) return this.creep.withdrawResource();
+            else return this.creep.shibMove(container, {range: 3})
+        }
+
         if (!harvester) {
             // Try finding harvester in current room first (efficient)
-            harvester = _.find(this.room.myCreeps,
-                c => c.memory.role === 'remoteHarvester' &&
+            harvester = _.find(Game.creeps,
+                c => c.my && c.memory.role === 'remoteHarvester' &&
                     c.memory.other.source === this.memory.other.source
             );
             if (harvester) {
@@ -87,23 +101,11 @@ class RoleRemoteHauler {
                 this.memory.other.harvester = harvester.id;
             } else {
                 this.memory.other.harvester = undefined;
-                if (!this.memory.other.harvestSearch) this.memory.other.harvestSearch = 1; else this.memory.other.harvestSearch++;
-                if (this.memory.other.harvestSearch > 15) return this.creep.recycleCreep();
+                const assignedSource = Game.getObjectById(this.memory.other.source);
+                if (assignedSource && this.creep.pos.getRangeTo(assignedSource) > 5) {
+                    this.memory.other.harvestSearch = 1;
+                }
             }
-        } else if (harvester) {
-            this.memory.other.source = harvester.memory.other.source;
-            if (harvester.memory.energyId) {
-                this.memory.energyDestination = harvester.memory.energyId;
-                return true;
-            } else if (Game.time % 3 === 0 && this.randomLoot()) return true;
-            const source = Game.getObjectById(this.memory.other.source);
-            if (source && this.creep.shibMove(source, {range: 3})) return true;
-        }
-
-        const container = Game.getObjectById(this.memory.containerID);
-        if (container && container.store[RESOURCE_ENERGY] > 0) {
-            this.memory.energyDestination = container.id;
-            return true;
         }
 
         this.creep.idleFor(5);

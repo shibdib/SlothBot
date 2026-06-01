@@ -8,6 +8,7 @@ class RoleRemoteHarvester {
     constructor(creep) {
         this.creep = creep;
         this.room = creep.room;
+        this.source = Game.getObjectById(this.creep.memory.other.source);
         this.container = Game.getObjectById(this.creep.memory.containerID) || Game.getObjectById(this.creep.memory.containerSite);
         this.performRoleActions();
     }
@@ -46,8 +47,7 @@ class RoleRemoteHarvester {
     }
 
     harvestSource() {
-        const source = Game.getObjectById(this.creep.memory.other.source);
-        if (!source) {
+        if (!this.source) {
             // Move to a general area if source not found
             return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 15});
         }
@@ -59,9 +59,9 @@ class RoleRemoteHarvester {
             }
             this.creep.memory.onContainer = true;
         } else if (!this.container && Game.time % 10 === 0) {
-            harvestDepositContainer(source, this.creep);
-        } else if (!this.creep.memory.onContainer && !this.creep.pos.isNearTo(source)) {
-            return this.creep.shibMove(source);
+            harvestDepositContainer(this.source, this.creep);
+        } else if (!this.creep.memory.onContainer && !this.creep.pos.isNearTo(this.source)) {
+            return this.creep.shibMove(this.source);
         }
 
         // Handle container or construction site
@@ -72,7 +72,7 @@ class RoleRemoteHarvester {
         }
 
         // Harvest logic
-        const result = this.creep.harvest(source);
+        const result = this.creep.harvest(this.source);
         if (result === OK) {
             // Set harvest power if not set
             if (!this.creep.memory.other.haulingRequired) {
@@ -98,10 +98,10 @@ class RoleRemoteHarvester {
                 this.creep.idleFor(10);
             }
         } else if (result === ERR_NOT_IN_RANGE) {
-            this.creep.shibMove(source);
+            this.creep.shibMove(this.source);
         } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
             if (this.container && this.container.store) this.creep.repair(this.container);
-            this.creep.idleFor(source.ticksToRegeneration + 1);
+            this.creep.idleFor(this.source.ticksToRegeneration + 1);
         }
     }
 
