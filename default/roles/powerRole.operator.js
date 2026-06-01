@@ -147,36 +147,43 @@ function upgradePowers(powerCreep) {
     let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8);
     let lowestOperator = _.min(Game.powerCreeps, 'level')
     if (sparePowerLevels === 0 || powerCreep.level === 25 || lowestOperator.id !== powerCreep.id || (_.size(Game.powerCreeps) < myRooms.length && powerCreep.level >= 11)) return;
-    // Ops
+    // Ops — fuel for every other power, always first.
     if (!powerCreep.powers[PWR_GENERATE_OPS] || (powerCreep.level >= 2 && powerCreep.powers[PWR_GENERATE_OPS].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_GENERATE_OPS].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_GENERATE_OPS].level < 4) || (powerCreep.level >= 22 && powerCreep.powers[PWR_GENERATE_OPS].level < 5)) {
         return upgradeSwitch(powerCreep, PWR_GENERATE_OPS)
     }
-    // Source
-    else if (powerCreep.level >= 10 && (!powerCreep.powers[PWR_REGEN_SOURCE] || powerCreep.powers[PWR_REGEN_SOURCE].level < 3 || (powerCreep.level >= 14 && powerCreep.powers[PWR_REGEN_SOURCE].level < 4) || (powerCreep.level >= 22 && powerCreep.powers[PWR_REGEN_SOURCE].level < 5))) {
-        return upgradeSwitch(powerCreep, PWR_REGEN_SOURCE)
-    }
-    // Factory
-    else if (!powerCreep.powers[PWR_OPERATE_FACTORY]) {
-        return upgradeSwitch(powerCreep, PWR_OPERATE_FACTORY)
-    }
-    // Tower
-    else if (!powerCreep.powers[PWR_OPERATE_TOWER] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_TOWER].level < 2)) {
-        return upgradeSwitch(powerCreep, PWR_OPERATE_TOWER)
-    }
-    // Mineral
-    else if (powerCreep.level >= 10 && (!powerCreep.powers[PWR_REGEN_MINERAL] || powerCreep.powers[PWR_REGEN_MINERAL].level < 3)) {
-        return upgradeSwitch(powerCreep, PWR_REGEN_MINERAL)
-    }
-    // Extensions
+        // Extensions — strongest room-economy power, usable from creep level 0.
+        // Lets us spawn big bodies under energy pressure and feeds the squad
+    // pipeline, so it sits ahead of source regen which is locked at lv 10.
     else if (!powerCreep.powers[PWR_OPERATE_EXTENSION] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 4)) {
         return upgradeSwitch(powerCreep, PWR_OPERATE_EXTENSION)
     }
-    // Lab
+    // Source — major economy boost (+ energy/tick), gated to creep level 10.
+    else if (powerCreep.level >= 10 && (!powerCreep.powers[PWR_REGEN_SOURCE] || powerCreep.powers[PWR_REGEN_SOURCE].level < 3 || (powerCreep.level >= 14 && powerCreep.powers[PWR_REGEN_SOURCE].level < 4) || (powerCreep.level >= 22 && powerCreep.powers[PWR_REGEN_SOURCE].level < 5))) {
+        return upgradeSwitch(powerCreep, PWR_REGEN_SOURCE)
+    }
+        // Tower — level 1 only. These creeps are support-focused, so we enable
+    // tower boost for emergencies but don't burn upgrade points doubling it.
+    else if (!powerCreep.powers[PWR_OPERATE_TOWER]) {
+        return upgradeSwitch(powerCreep, PWR_OPERATE_TOWER)
+    }
+    // Mineral — extra throughput, gated to creep level 10.
+    else if (powerCreep.level >= 10 && (!powerCreep.powers[PWR_REGEN_MINERAL] || powerCreep.powers[PWR_REGEN_MINERAL].level < 3)) {
+        return upgradeSwitch(powerCreep, PWR_REGEN_MINERAL)
+    }
+    // Lab — speeds reactions, supports the boost production pipeline.
     else if (!powerCreep.powers[PWR_OPERATE_LAB] || (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_LAB].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_LAB].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_OPERATE_LAB].level < 4) || (powerCreep.level >= 22 && powerCreep.powers[PWR_OPERATE_LAB].level < 5)) {
         return upgradeSwitch(powerCreep, PWR_OPERATE_LAB)
     }
-    // Factory
-    else if (!powerCreep.powers[PWR_OPERATE_FACTORY] || (powerCreep.powers[PWR_OPERATE_FACTORY] && powerCreep.powers[PWR_OPERATE_FACTORY].level === 1 && _.filter(Game.powerCreeps, (c) => c.my && c.id !== powerCreep.id && c.powers[PWR_OPERATE_FACTORY] && c.powers[PWR_OPERATE_FACTORY].level === 1)[0] && !_.filter(Game.powerCreeps, (c) => c.my && c.id !== powerCreep.id && c.powers[PWR_OPERATE_FACTORY] && c.powers[PWR_OPERATE_FACTORY].level === 2)[0])) {
+        // Factory — level 1 floor. Demoted from #3 because +50% commodity speed
+    // matters less than spawn / source / lab support for room operations.
+    else if (!powerCreep.powers[PWR_OPERATE_FACTORY]) {
+        return upgradeSwitch(powerCreep, PWR_OPERATE_FACTORY)
+    }
+        // Factory level 2 — only when another operator already has level 1 and
+        // nobody has level 2 yet. Splits the team across factory tiers so we can
+        // cover multiple commodity levels (each operator's boost locks the
+    // factory's effective level while active).
+    else if (powerCreep.powers[PWR_OPERATE_FACTORY] && powerCreep.powers[PWR_OPERATE_FACTORY].level === 1 && _.filter(Game.powerCreeps, (c) => c.my && c.id !== powerCreep.id && c.powers[PWR_OPERATE_FACTORY] && c.powers[PWR_OPERATE_FACTORY].level === 1)[0] && !_.filter(Game.powerCreeps, (c) => c.my && c.id !== powerCreep.id && c.powers[PWR_OPERATE_FACTORY] && c.powers[PWR_OPERATE_FACTORY].level === 2)[0]) {
         return upgradeSwitch(powerCreep, PWR_OPERATE_FACTORY)
     }
 }
