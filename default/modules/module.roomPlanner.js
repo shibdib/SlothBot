@@ -599,6 +599,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
     }
 
     function setQuadTraps(room) {
+        if (!ROOM_RAMPART_SPOTS[room.name]) return false;
         const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
         if (!ramparts || !ramparts.length) return;
         const hub = room.hub;
