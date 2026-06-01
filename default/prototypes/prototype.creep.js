@@ -661,7 +661,6 @@ Creep.prototype.builderFunction = function () {
         switch (this.repair(construction)) {
             case OK:
                 if (this.pos.isNearTo(this.pos.findClosestByRange(FIND_SOURCES))) this.moveRandom();
-                this.memory.other.stationary = true;
                 return true;
             case ERR_NOT_IN_RANGE:
                 this.memory.other.stationary = undefined;
@@ -700,7 +699,6 @@ Creep.prototype.builderFunction = function () {
         switch (this.build(construction)) {
             case OK:
                 if (this.pos.isNearTo(this.pos.findClosestByRange(FIND_SOURCES))) this.moveRandom();
-                this.memory.other.stationary = true;
                 return true;
             case ERR_NOT_IN_RANGE:
                 this.memory.other.stationary = undefined;
@@ -965,7 +963,7 @@ function waitingForSquad(creep) {
     const misc = creep.memory.misc;
     if (!misc || misc.waitFor <= 1) return false;
     const leader = creep.memory.leader ? creep : Game.getObjectById(creep.memory.groupLeader);
-    const squadSize = leader ? leader.memory.squadMembers.length + 1 : 1;
+    const squadSize = leader && leader.memory.squadMembers ? leader.memory.squadMembers.length + 1 : 1;
     if (!creep.memory.formUpTimer) {
         creep.memory.formUpTimer = creep.memory.renewalLimit || (Game.time + misc.waitFor * 1000);
     }
