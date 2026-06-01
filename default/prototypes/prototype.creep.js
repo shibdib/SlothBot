@@ -597,7 +597,7 @@ Creep.prototype.constructionWork = function () {
         return true;
     }
 
-    site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && (!s.room.storage || s.room.energyState));
+    site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
     if (site) {
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
