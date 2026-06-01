@@ -92,7 +92,7 @@ class RoleDrone {
 
         // 5. Fallback: Upgrading (If no upgraders or low level)
         if (this.upgrading()) return;
-        if (this.room.level < 4 && this.upgrading(true)) return;
+        if ((this.room.level < 4 || this.creep.memory.destination) && this.upgrading(true)) return;
 
         // 6. Energy rich walling
         if (this.room.energyState >= 2 && this.walling()) return;
