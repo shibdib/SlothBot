@@ -25,7 +25,7 @@ module.exports.powerControl = function () {
         let sparePowerLevels = Game.gpl.level - (_.size(Game.powerCreeps) + _.sum(Game.powerCreeps, 'level'));
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 7);
         let lowestOperator = _.min(Game.powerCreeps, 'level');
-        if (sparePowerLevels > 1 && _.size(Game.powerCreeps) < myRooms.length && (!lowestOperator.id || lowestOperator.level >= 11)) {
+        if (sparePowerLevels > 5 && _.size(Game.powerCreeps) < myRooms.length && (!lowestOperator.id || lowestOperator.level >= 14)) {
             let name = 'operator_' + _.random(1, 999);
             log.a('Created an operator named ' + name);
             PowerCreep.create(name, POWER_CLASS.OPERATOR);
