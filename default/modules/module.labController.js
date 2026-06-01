@@ -189,10 +189,17 @@ class LabManager {
 
     cleanLabs(labs) {
         labs.forEach(lab => {
-            if (lab.memory && lab.memory.neededBoost) {
-                if (!lab.memory.requested || lab.memory.requested + 150 < Game.time || !Game.getObjectById(lab.memory.requestor)) {
-                    lab.memory = undefined;
-                }
+            if (!lab.memory || !lab.memory.neededBoost) return;
+            // Wipe boost config when no live requestor remains AND the
+            // reservation has aged out. claimBoostLab refreshes `requested` on
+            // every claim so legitimate multi-creep use keeps the clock fresh;
+            // pre-reservation alone isn't enough to keep a lab alive — if the
+            // creep never reaches the claim, the lab times out the same way it
+            // would under the old singular-requestor model.
+            const hasLiveRequestor = lab.memory.requestors && lab.memory.requestors.some(id => Game.getObjectById(id));
+            if (hasLiveRequestor) return;
+            if (!lab.memory.requested || lab.memory.requested + 150 < Game.time) {
+                lab.memory = undefined;
             }
         });
     }
