@@ -334,16 +334,19 @@ function linkBuilder(room) {
 
     // 5. Remote Links (RCL 8)
     if (currentLinks < linkLimit) {
-        const remoteRooms = _.uniq(_.pluck(_.filter(Game.creeps, (c) => c.my && c.memory.colony === room.name && c.memory.role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired), 'room.name'));
-        for (const remoteRoom of remoteRooms) {
-            const exit = Game.map.findExit(room.name, remoteRoom);
-            if (exit === ERR_NO_PATH || exit === ERR_INVALID_ARGS) continue;
+        const neighboring = Object.values(Game.map.describeExits(room.name));
+        for (const neighbor of neighboring) {
+            const remoteHarvester = Game.rooms[neighbor].myCreeps.find(c => c.memory.role === 'remoteHarvester');
+            if (!remoteHarvester) continue;
+            const exit = Game.map.findExit(room.name, neighbor);
             const exitTiles = room.find(exit);
             if (!exitTiles.length) continue;
             const middle = _.round(exitTiles.length / 2);
             const startPos = exitTiles[middle];
-            if (!startPos) continue;
-
+            const existingLink = startPos.findClosestByRange(room.structures, {filter: (s => s.structureType === STRUCTURE_LINK)});
+            if (existingLink && existingLink.pos.getRangeTo(startPos) <= 4) continue;
+            const inBuildLink = startPos.findClosestByRange(room.constructionSites, {filter: (s => s.structureType === STRUCTURE_LINK)});
+            if (inBuildLink && inBuildLink.pos.getRangeTo(startPos) <= 4) continue;
             for (let xOff = -3; xOff <= 3; xOff++) {
                 for (let yOff = -3; yOff <= 3; yOff++) {
                     if (xOff === 0 && yOff === 0) continue;
