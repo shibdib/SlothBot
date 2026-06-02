@@ -76,7 +76,7 @@ module.exports.role = function (powerCreep) {
         let targetTower = _.find(powerCreep.room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_TOWER && (!s.effects || !s.effects.length));
         let targetFactory = _.find(powerCreep.room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_FACTORY && (!s.effects || !s.effects.length));
         let targetSource = _.find(powerCreep.room.sources, (s) => !s.effects || !s.effects.length || s.effects.ticksRemaining < 25);
-        let targetLab = _.find(powerCreep.room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_LAB && s.memory.creating && !s.memory.itemNeeded && (!s.effects || !s.effects.length));
+        let targetLab = _.find(powerCreep.room.impassibleStructures, (s) => s.my && s.structureType === STRUCTURE_LAB && !s.memory.itemNeeded && (!s.effects || !s.effects.length));
         // Enable power
         if (!powerCreep.room.controller.isPowerEnabled) {
             switch (powerCreep.enableRoom(powerCreep.room.controller)) {
