@@ -165,19 +165,20 @@ function auxiliaryBuilding(room) {
     if (sourceBuilder(room)) return;
     if (controllerBuilder(room)) return;
     const layoutForAux = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
-    if (rampartBuilder(room, layoutForAux)) return;
 
     // Handle hub and lab constructions
     if (room.storage) {
-        if (buildRoads(room, room.memory.dynamicLayout ? null : bunkerTemplate)) return;
-        if (linkBuilder(room)) return true;
         if (room.level >= 6) {
             mineralBuilder(room);
             labBuilder(room);
         }
-    } else {
-        INTEL[room.name].roadsBuilt = undefined;
+        if (buildRoads(room, room.memory.dynamicLayout ? null : bunkerTemplate)) return; else {
+            INTEL[room.name].roadsBuilt = undefined;
+        }
+        if (linkBuilder(room)) return true;
     }
+
+    if (rampartBuilder(room, layoutForAux)) return;
 
     // Perform cleanup tasks
     performCleanup(room);
@@ -1027,7 +1028,7 @@ function mineralBuilder(room) {
 
     if (extractor) {
         let extractorContainer = extractor.pos.findInRange(room.containers, 1);
-        if (!extractorContainer) {
+        if (!extractorContainer || !extractorContainer.id) {
             room.memory.extractorContainer = undefined;
             if (!_.find(extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)) {
                 createExtractorContainerSite(extractor, room);
