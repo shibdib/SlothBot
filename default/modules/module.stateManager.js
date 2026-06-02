@@ -102,9 +102,8 @@ class StateManager {
             samples: snap.samples || 0,
         };
 
-        const combatReadyEnergyState = room.level >= 7 ? 1 : 2;
-        if (!room.memory.combatReady && room.energyState >= combatReadyEnergyState && room.level >= 4) room.memory.combatReady = true;
-        else if (room.memory.combatReady) room.memory.combatReady = undefined;
+        if (!room.memory.combatReady && room.energyState >= 2 && room.level >= 4) room.memory.combatReady = true;
+        else if (room.memory.combatReady && !room.energyState) room.memory.combatReady = undefined;
     }
 
     levelingStatTracking(room) {
