@@ -27,7 +27,7 @@ class LabManager {
         if (!runNext[room.name] || runNext[room.name] < Game.time) {
             this.manageBoostProduction(room, labs);
             this.manageActiveLabs(room, labs);
-            if (!runNext[room.name] || runNext[room.name] < Game.time) runNext[room.name] = Game.time + 15;
+            if (!runNext[room.name] || runNext[room.name] <= Game.time) runNext[room.name] = Game.time + 15;
         }
     }
 
@@ -64,10 +64,7 @@ class LabManager {
         for (const target of secondaryLabs) {
             const result = target.runReaction(this.hub[0], this.hub[1]);
             if (result === OK) {
-                const coolDown = Game.time + REACTION_TIME[room.memory.producingBoost] - 1;
-                if (!runNext[room.name] || runNext[room.name] > coolDown || runNext[room.name] <= Game.time) {
-                    runNext[room.name] = coolDown;
-                }
+                runNext[room.name] = Game.time + REACTION_TIME[room.memory.producingBoost] + 1;
                 if (!productionTracker[this.room.name]) productionTracker[this.room.name] = Game.time;
             }
         }
