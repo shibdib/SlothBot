@@ -21,8 +21,10 @@ class RoleReserver {
             this.getToController();
         } else if (!this.room.controller.reservation || this.room.controller.reservation.username === MY_USERNAME) {
             this.reserveController();
-        } else if (this.room.controller.reservation) {
+        } else if (this.room.controller.reservation && !FRIENDLIES.includes(this.room.controller.reservation.username)) {
             this.attackController();
+        } else {
+            this.creep.recycleCreep();
         }
     }
 
