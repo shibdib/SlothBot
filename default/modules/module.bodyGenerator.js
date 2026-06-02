@@ -7,22 +7,22 @@ const profiler = require("tools.profiler");
 
 let bodyCache = {};
 let _haulerCacheTick = -1;
-let _haulersByHarvester = {};
+let _haulersBySource = {};
 const toughMulti = {"GO": 0.75, "GHO2": 0.55, "XGHO2": 0.35}
 
-function getHaulersByHarvester() {
-    if (_haulerCacheTick === Game.time) return _haulersByHarvester;
+function getHaulersBySource() {
+    if (_haulerCacheTick === Game.time) return _haulersBySource;
     _haulerCacheTick = Game.time;
-    _haulersByHarvester = {};
+    _haulersBySource = {};
     for (const name in Game.creeps) {
         const c = Game.creeps[name];
-        if (c.my && c.memory.role === 'remoteHauler' && c.memory.other && c.memory.other.harvester) {
-            const hid = c.memory.other.harvester;
-            if (!_haulersByHarvester[hid]) _haulersByHarvester[hid] = [];
-            _haulersByHarvester[hid].push(c);
+        if (c.my && c.memory.role === 'remoteHauler' && c.memory.other && c.memory.other.source) {
+            const sid = c.memory.other.source;
+            if (!_haulersBySource[sid]) _haulersBySource[sid] = [];
+            _haulersBySource[sid].push(c);
         }
     }
-    return _haulersByHarvester;
+    return _haulersBySource;
 }
 
 /**
@@ -425,9 +425,9 @@ class ModuleBodyGenerator {
                 break;
 
             case 'remoteHauler':
-                const assignedHarvester = Game.getObjectById(this.creepInfo.other.harvester);
-                if (!assignedHarvester) return false;
-                const otherAssignedHaulers = this.room.level < 7 ? getHaulersByHarvester()[this.creepInfo.other.harvester] || [] : [];
+                const remoteRoomName = this.creepInfo.other.remoteRoom;
+                if (!remoteRoomName) return false;
+                const otherAssignedHaulers = this.room.level < 7 ? getHaulersBySource()[this.creepInfo.other.source] || [] : [];
                 const currentHaulingCapacity = _.sum(otherAssignedHaulers, c => c.getActiveBodyparts(CARRY) * 50);
                 const harvestRate = this.creepInfo.other.harvestAmount - currentHaulingCapacity;
                 const desiredCarry = Math.ceil(harvestRate / CARRY_CAPACITY) || 1;
@@ -437,7 +437,7 @@ class ModuleBodyGenerator {
 
                 // Half-move only if every room on the route (including intermediate rooms) has roads.
                 // Checking just home+destination misses rooms in between that the hauler must cross.
-                const route = Game.map.findRoute(this.room.name, assignedHarvester.room.name);
+                const route = Game.map.findRoute(this.room.name, remoteRoomName);
                 const fullRouteHasRoads = Array.isArray(route) &&
                     INTEL[this.room.name].roadsBuilt &&
                     route.every(step => INTEL[step.room] && INTEL[step.room].roadsBuilt);
