@@ -1040,6 +1040,11 @@ Creep.prototype.shibMove = function (destination, options = {}) {
     if (!options.forceSolo && (options.squad || this.memory.grouped)) return this.shibSquadMovement(destination, options);
     this.memory._shibSquadMove = undefined;
     if (this.memory.grouped) options.squad = true;
+    // If the destination is in the same room as the old destination but the old path takes it out of that room it'll refresh, avoid that and use the old destination
+    if (this.memory._shibMove && this.memory._shibMove.target &&
+        this.memory._shibMove.target.roomName === destination.roomName && this.memory._shibMove.target.x) {
+        destination = new RoomPosition(this.memory._shibMove.target.x, this.memory._shibMove.target.y, this.memory._shibMove.target.roomName);
+    }
     return shibMove(this, destination, options);
 };
 
