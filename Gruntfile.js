@@ -11,6 +11,7 @@ module.exports = function (grunt) {
     const email = grunt.option('email');
     const pass = grunt.option('pass');
     const token = grunt.option('token');
+    const season = grunt.option('season');
     const port = Number(grunt.option('port')) || 21025;
 
     grunt.loadNpmTasks('grunt-screeps');
@@ -20,9 +21,11 @@ module.exports = function (grunt) {
     clearDirectory('./upload/');
     moveFilesFlat('./default/', './upload/');
 
-    const screepsOptions = token
-        ? {email, token, branch: 'default'}
-        : {
+    const screepsOptions = season
+        ? {email, token, branch: 'default', server: 'season'} :
+        token
+            ? {email, token, branch: 'default'} :
+            {
             email,
             password: pass,
             branch: 'default',
