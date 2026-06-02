@@ -1027,14 +1027,17 @@ function mineralBuilder(room) {
     let extractor = room.extractor;
 
     if (extractor) {
-        let extractorContainer = extractor.pos.findInRange(room.containers, 1);
-        if (!extractorContainer || !extractorContainer.id) {
-            room.memory.extractorContainer = undefined;
-            if (!_.find(extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)) {
-                createExtractorContainerSite(extractor, room);
+        let extractorContainer = Game.getObjectById(room.memory.extractorContainer);
+        if (!extractorContainer) {
+            extractorContainer = extractor.pos.findInRange(FIND_STRUCTURES, 1).find(s => s.structureType === STRUCTURE_CONTAINER);
+            if (!extractorContainer) {
+                room.memory.extractorContainer = undefined;
+                if (!extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).find((s) => s.structureType === STRUCTURE_CONTAINER)) {
+                    createExtractorContainerSite(extractor, room);
+                }
+            } else {
+                room.memory.extractorContainer = extractorContainer.id;
             }
-        } else {
-            room.memory.extractorContainer = extractorContainer.id;
         }
     } else {
         handleMineralExtractorCreation(room);
