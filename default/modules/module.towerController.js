@@ -7,7 +7,6 @@
 const towerCache = {};
 const drainState = {};
 
-const STORAGE_TOWER_FLOOR = 30000;
 const DRAIN_BLACKLIST_TICKS = 50;
 const DRAIN_NO_PROGRESS_SHOTS = 4;
 const COMBAT_BARRIER_RANGE = 8;
@@ -69,7 +68,7 @@ module.exports.towerController = function (room) {
     if (!cache.hasHostiles && !cache.criticalStructures.length && !cache.injuredFriendlies.length) return;
 
     const storageEnergy = room.storage ? room.storage.store[RESOURCE_ENERGY] : Infinity;
-    const repairAllowed = storageEnergy >= STORAGE_TOWER_FLOOR;
+    const repairAllowed = room.energyState > 0;
 
     if (!drainState[cacheKey]) drainState[cacheKey] = {};
     const roomDrain = drainState[cacheKey];
@@ -124,7 +123,7 @@ module.exports.towerController = function (room) {
 
 function findBestTarget(room, towers, hostiles, roomDrain) {
     const currentTime = Game.time;
-    const storageLow = room.storage && room.storage.store[RESOURCE_ENERGY] < STORAGE_TOWER_FLOOR;
+    const storageLow = !room.energyState;
 
     let bestTarget = null;
     let bestScore = -Infinity;
