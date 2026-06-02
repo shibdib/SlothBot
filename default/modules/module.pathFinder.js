@@ -969,7 +969,10 @@ const getPathKey = (from, to, weight) => `${from.x},${from.y},${from.roomName}_$
 const hashStructures = structs => structs.map(s => `${s.x},${s.y},${s.structureType}`).join('|');
 
 function getMoveWeight(creep, options = {}) {
-    if (creep.className) return options;
+    if (creep.className) {
+        options.offRoad = true;
+        return options;
+    }
 
     const move = creep.getActiveBodyparts(MOVE);
     let weight = creep.body.filter(p => p.type !== MOVE && p.type !== CARRY).length;
