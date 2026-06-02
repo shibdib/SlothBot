@@ -114,7 +114,10 @@ class ModuleBodyGenerator {
                     carry = Math.min(Math.floor(this.energyAmount * 0.15 / BODYPART_COST[CARRY]) || 1, 10);
                 }
                 if (this.room.energyState < 3) {
-                    if (this.role === 'roadBuilder') {
+                    if (!this.room.energyState) {
+                        work *= 0.15;
+                        carry *= 0.05;
+                    } else if (this.role === 'roadBuilder') {
                         work *= 0.4;
                         carry *= 0.3;
                     } else {
