@@ -295,7 +295,7 @@ module.exports.essentialCreepQueue = function (room) {
     const energyInfo = room.memory.energyInfo;
     const trendOk = !energyInfo || (energyInfo.trend || 0) >= -3;
     const importantBuilds = _.some(room.constructionSites, s => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    let droneCount = importantBuilds && trendOk ? 11 - room.level :
+    let droneCount = importantBuilds && trendOk && room.energyState ? 11 - room.level :
         room.constructionSites.length && room.energyState > 2 ? 2 :
             !room.storage ? Math.max(8 - room.level, 1) : 1;
 
@@ -705,21 +705,22 @@ module.exports.remoteCreepQueue = function (room) {
 
     function handleRemoteHaulers(room) {
         const roomHarvesters = [];
-        const haulersByHarvester = {};
+        const haulersBySource = {};
         for (const name in Game.creeps) {
             const c = Game.creeps[name];
             if (!c.my) continue;
             if (c.memory.role === 'remoteHarvester' && c.memory.colony === room.name && c.memory.other && c.memory.other.haulingRequired) {
                 roomHarvesters.push(c);
-            } else if (c.memory.role === 'remoteHauler' && c.memory.other && c.memory.other.harvester) {
-                const hid = c.memory.other.harvester;
-                if (!haulersByHarvester[hid]) haulersByHarvester[hid] = [];
-                haulersByHarvester[hid].push(c);
+            } else if (c.memory.role === 'remoteHauler' && c.memory.colony === room.name && c.memory.other && c.memory.other.source) {
+                const sid = c.memory.other.source;
+                if (!haulersBySource[sid]) haulersBySource[sid] = [];
+                haulersBySource[sid].push(c);
             }
         }
         for (const harvester of roomHarvesters) {
             if (shouldSkipRemote(room, harvester.memory.destination)) continue;
-            const assignedHaulers = haulersByHarvester[harvester.id] || [];
+            const sourceId = harvester.memory.other.source;
+            const assignedHaulers = haulersBySource[sourceId] || [];
             const count = room.memory.remotePenalty ? 1 : INTEL[harvester.memory.destination] && INTEL[harvester.memory.destination].sk ? 4 : 3;
             if (assignedHaulers.length >= count) continue;
             const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
@@ -733,9 +734,9 @@ module.exports.remoteCreepQueue = function (room) {
                     role: 'remoteHauler',
                     destination: room.name,
                     other: {
-                        harvester: harvester.id,
-                        harvestAmount: harvestAmount,
-                        source: harvester.memory.other.source
+                        source: sourceId,
+                        remoteRoom: harvester.memory.destination,
+                        harvestAmount: harvestAmount
                     }
                 });
             }
@@ -1173,21 +1174,33 @@ function computeOpLevelTarget(target, opMemory, intel) {
 
 function resolveAssignment(room, target, opMemory, levelTarget, entry, intel) {
     const now = Game.time;
-    const stale = opMemory.assignedAt && opMemory.assignedAt + (CREEP_LIFE_TIME * 2) < now;
+    if (opMemory.assignedRoom) {
+        // Add a check for energy starved rooms needing to be re-assigned
+        if (!Game.rooms[opMemory.assignedRoom].memory.combatReady) {
+            if (!opMemory.assignmentEnergyCounter) opMemory.assignmentEnergyCounter = 0;
+            if (opMemory.assignmentEnergyCounter > 100) {
+                unassignRoom(target, 'Room is not combat ready.');
+            }
+            opMemory.assignmentEnergyCounter++;
+            return opMemory.assignedRoom;
+        } else if (opMemory.assignedRoom) {
+            opMemory.assignmentEnergyCounter = 0;
+        }
 
-    if (opMemory.assignedRoom && !stale) return opMemory.assignedRoom;
+        const stale = opMemory.assignedAt && opMemory.assignedAt + (CREEP_LIFE_TIME * 2) < now;
 
-    if (opMemory.assignedRoom && stale) {
-        // Hold off on refresh if the assigned colony has a creep mid-assembly for this
-        // op — refreshing would orphan it. Check the actual assigned room, not the
-        // caller (a different colony walking the queue shouldn't gate on its own creeps).
-        const assignedRoom = Game.rooms[opMemory.assignedRoom];
-        const inflight = assignedRoom && assignedRoom.myCreeps.some(c =>
-            c.memory.waitingToAssemble &&
-            (c.memory.destination === target ||
-                (c.memory.other && c.memory.other.assignment === target)));
-        if (inflight) return opMemory.assignedRoom;
-        unassignRoom(target, 'Refreshing assignment.');
+        if (!stale) return opMemory.assignedRoom;
+
+        if (stale) {
+            // Hold off on refresh if the assigned colony has a creep mid-assembly
+            const assignedRoom = Game.rooms[opMemory.assignedRoom];
+            const inflight = assignedRoom && assignedRoom.myCreeps.some(c =>
+                c.memory.waitingToAssemble &&
+                (c.memory.destination === target ||
+                    (c.memory.other && c.memory.other.assignment === target)));
+            if (inflight) return opMemory.assignedRoom;
+            unassignRoom(target, 'Refreshing assignment.');
+        }
     }
 
     if (!intel) return null;
@@ -1305,7 +1318,7 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
         if (linear >= closestDistance) break;
         const myRoom = Game.rooms[key];
         if (!myRoom) continue;
-        if (myRoom.controller.level !== myRoom.level || myRoom.downgraded) continue;
+        if (myRoom.controller.level !== myRoom.level || myRoom.downgraded || !myRoom.memory.combatReady) continue;
         if (myRoom.level < level) continue;
 
         const route = myRoom.shibRoute(targetRoom);

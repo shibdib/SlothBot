@@ -75,11 +75,18 @@ class RoleRemoteHauler {
             return this.creep.withdrawResource();
         }
 
-        // Make sure container is set
+        // Resolve harvester from the cached id; if dead, fall back to a source-keyed lookup.
+        // The source assignment is the source of truth — harvester ids are transient.
         let harvester = Game.getObjectById(this.memory.other.harvester);
-        if (harvester) {
-            if (harvester.memory.containerID) this.memory.containerID = harvester.memory.containerID;
-            this.memory.other.harvester = harvester.id;
+        if (!harvester) {
+            harvester = _.find(Game.creeps,
+                c => c.my && c.memory.role === 'remoteHarvester' &&
+                    c.memory.other.source === this.memory.other.source
+            );
+            this.memory.other.harvester = harvester ? harvester.id : undefined;
+        }
+        if (harvester && harvester.memory.containerID) {
+            this.memory.containerID = harvester.memory.containerID;
         }
 
         // If we have an assigned container stick to that
@@ -91,20 +98,9 @@ class RoleRemoteHauler {
         }
 
         if (!harvester) {
-            // Try finding harvester in current room first (efficient)
-            harvester = _.find(Game.creeps,
-                c => c.my && c.memory.role === 'remoteHarvester' &&
-                    c.memory.other.source === this.memory.other.source
-            );
-            if (harvester) {
-                if (harvester.memory.containerID) this.memory.containerID = harvester.memory.containerID;
-                this.memory.other.harvester = harvester.id;
-            } else {
-                this.memory.other.harvester = undefined;
-                const assignedSource = Game.getObjectById(this.memory.other.source);
-                if (assignedSource && this.creep.pos.getRangeTo(assignedSource) > 5) {
-                    this.memory.other.harvestSearch = 1;
-                }
+            const assignedSource = Game.getObjectById(this.memory.other.source);
+            if (assignedSource && this.creep.pos.getRangeTo(assignedSource) > 5) {
+                this.memory.other.harvestSearch = 1;
             }
         }
 
