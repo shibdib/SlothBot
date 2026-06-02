@@ -469,9 +469,8 @@ Creep.prototype.haulerDelivery = function () {
         if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 200) targets.push(controllerContainer);
     }
 
-    if (this.room.nuker) {
-        const nuker = this.room.nuker.find(s => s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
-        if (nuker && this.room.energyState > 1) targets.push(nuker);
+    if (this.room.nuker && this.room.energyState > 1 && this.room.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
+        targets.push(this.room.nuker);
     }
 
     if (this.room.terminal && this.room.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < TERMINAL_ENERGY_BUFFER) targets.push(this.room.terminal);
