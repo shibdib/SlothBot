@@ -88,6 +88,15 @@ class RoleLabTech {
             }
         }
 
+        // -- PRIORITY 1: MINERAL CONTAINER OVERFULL --
+        if (storeTarget) {
+            const resourceContainer = this.room.containers.find(s => s.store.getUsedCapacity() > s.store.getUsedCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity());
+            if (resourceContainer) {
+                const res = Object.keys(resourceContainer.store).find(r => r !== RESOURCE_ENERGY && resourceContainer.store[r] > 0);
+                if (res) return {withdrawTarget: resourceContainer.id, deliveryTarget: storeTarget.id, resource: res};
+            }
+        }
+
         // -- PRIORITY 1: PRODUCTION CLOGS (Emptying Labs/Factory) --
         // `amount` is included so batchTasks can size the rest of an empty
         // batch against remaining carry. Runtime executePickup re-clamps to
