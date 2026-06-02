@@ -102,8 +102,13 @@ class StateManager {
             samples: snap.samples || 0,
         };
 
+        // Combat Readiness
         if (!room.memory.combatReady && room.energyState >= 2 && room.level >= 4) room.memory.combatReady = true;
         else if (room.memory.combatReady && !room.energyState) room.memory.combatReady = undefined;
+
+        // Auxiliary Readiness
+        if (!room.memory.auxilaryReady && room.energyState >= 1 && room.level >= 4) room.memory.auxilaryReady = true;
+        else if (room.memory.auxilaryReady && !room.energyState) room.memory.auxilaryReady = undefined;
     }
 
     levelingStatTracking(room) {

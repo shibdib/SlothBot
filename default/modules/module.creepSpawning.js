@@ -1176,15 +1176,20 @@ function resolveAssignment(room, target, opMemory, levelTarget, entry, intel) {
     const now = Game.time;
     if (opMemory.assignedRoom) {
         // Add a check for energy starved rooms needing to be re-assigned
-        if (!Game.rooms[opMemory.assignedRoom].memory.combatReady) {
+        if (Memory.targetRooms[target] && !Game.rooms[opMemory.assignedRoom].memory.combatReady) {
             if (!opMemory.assignmentEnergyCounter) opMemory.assignmentEnergyCounter = 0;
             if (opMemory.assignmentEnergyCounter > 100) {
                 unassignRoom(target, 'Room is not combat ready.');
             }
             opMemory.assignmentEnergyCounter++;
             return opMemory.assignedRoom;
-        } else if (opMemory.assignedRoom) {
-            opMemory.assignmentEnergyCounter = 0;
+        } else if (Memory.auxiliaryTargets[target] && !Game.rooms[opMemory.assignedRoom].memory.auxilaryReady) {
+            if (!opMemory.assignmentEnergyCounter) opMemory.assignmentEnergyCounter = 0;
+            if (opMemory.assignmentEnergyCounter > 100) {
+                unassignRoom(target, 'Room is not auxiliary ready.');
+            }
+            opMemory.assignmentEnergyCounter++;
+            return opMemory.assignedRoom;
         }
 
         const stale = opMemory.assignedAt && opMemory.assignedAt + (CREEP_LIFE_TIME * 2) < now;
@@ -1320,6 +1325,10 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
         if (!myRoom) continue;
         if (myRoom.controller.level !== myRoom.level || myRoom.downgraded || !myRoom.memory.combatReady) continue;
         if (myRoom.level < level) continue;
+
+        // Check for readiness
+        if (Memory.targetRooms[key] && !myRoom.memory.combatReady) continue;
+        if (Memory.auxiliaryTargets[key] && !myRoom.memory.auxilaryReady) continue;
 
         const route = myRoom.shibRoute(targetRoom);
         const distance = Array.isArray(route) && route.length ? route.length : Infinity;
