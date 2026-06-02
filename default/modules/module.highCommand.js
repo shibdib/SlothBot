@@ -265,7 +265,7 @@ function militaryOperations() {
         }
     } else if (!SIEGE_LIMIT && lastNoSiegeWarning + 5000 < Game.time) {
         lastNoSiegeWarning = Game.time;
-        log.a('No L7+ combat-ready rooms — siege operations disabled.', 'HIGH COMMAND: ');
+        log.a('No combat-ready rooms — siege operations disabled.', 'HIGH COMMAND: ');
     }
 }
 
@@ -572,6 +572,8 @@ function manageMilitary() {
         else if (!['stronghold', 'nukes'].includes(op.type)) activeNonSiege++;
     }
 
+    const operationLimit = OPERATION_LIMIT + 1;
+
     for (const key in Memory.targetRooms) {
         const target = Memory.targetRooms[key];
         if (!target || target.manual) continue;
@@ -607,7 +609,7 @@ function manageMilitary() {
             case 'harass':
             case 'remoteDenial':
                 if (target.dDay) staleMulti = SAFE_MODE_DURATION;
-                if (activeNonSiege > OPERATION_LIMIT) {
+                if (activeNonSiege > operationLimit) {
                     log.a(`Canceling ${type} in ${roomLink(key)} — too many operations.`, 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     activeNonSiege--;
@@ -625,7 +627,7 @@ function manageMilitary() {
 
             case 'guard':
                 staleMulti *= (target.level + 1);
-                if (activeNonSiege > OPERATION_LIMIT) {
+                if (activeNonSiege > operationLimit) {
                     log.a(`Canceling guard in ${roomLink(key)} — too many operations.`, 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     activeNonSiege--;
