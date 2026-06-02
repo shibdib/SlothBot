@@ -100,57 +100,30 @@ PowerCreep.prototype.moveRandom = function () {
  * @returns {*|boolean}
  */
 PowerCreep.prototype.borderCheck = function () {
-    let x = this.pos.x;
-    let y = this.pos.y;
-    if (x === 0 || y === 0 || x === 49 || y === 49) {
-        // Handle stuck creeps
-        if (this.memory.borderCountDown) this.memory.borderCountDown++; else this.memory.borderCountDown = 1;
-        // Handle path following
-        if (this.memory.borderCountDown < 5 && this.memory._shibMove && this.memory._shibMove.path && this.memory._shibMove.path.length) {
-            let pathInfo = this.memory._shibMove;
-            let origin = normalizePos(this);
-            pathInfo.path = pathInfo.path.slice(1);
-            let nextDirection = parseInt(pathInfo.path[0], 10);
-            pathInfo.newPos = origin.positionAtDirection(nextDirection);
-            switch (this.move(nextDirection)) {
-                case OK:
-                    pathInfo.pathPosTime = 0;
-                    pathInfo.lastMoveTick = Game.time;
-                    this.memory._shibMove = pathInfo;
-                    return false;
-            }
-            // Handle corners
-        } else if (x === 0 && y === 0) {
-            this.move(BOTTOM_RIGHT);
-        } else if (x === 0 && y === 49) {
-            this.move(TOP_RIGHT);
-        } else if (x === 49 && y === 0) {
-            this.move(BOTTOM_LEFT);
-        } else if (x === 49 && y === 49) {
-            this.move(TOP_LEFT);
-        }
-        // Handle border movement
-        let options;
-        let road = _.find(this.room.roads, (s) => s.pos.isNearTo(this));
-        if (road) {
-            this.move(this.pos.getDirectionTo(road));
-        } else if (x === 49) {
-            options = [LEFT, TOP_LEFT, BOTTOM_LEFT];
-            this.move(_.sample(options));
-        } else if (x === 0) {
-            options = [RIGHT, TOP_RIGHT, BOTTOM_RIGHT];
-            this.move(_.sample(options));
-        } else if (y === 0) {
-            options = [BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT];
-            this.move(_.sample(options));
-        } else if (y === 49) {
-            options = [TOP, TOP_LEFT, TOP_RIGHT];
-            this.move(_.sample(options));
-        }
-        return true;
+    const {x, y} = this.pos;
+    if (x !== 0 && y !== 0 && x !== 49 && y !== 49) {
+        this.memory.borderCountDown = undefined;
+        return false;
     }
-    this.memory.borderCountDown = undefined;
-    return false;
+    if (this.memory.borderCountDown) this.memory.borderCountDown++; else this.memory.borderCountDown = 1;
+    if (this.memory.borderCountDown < 5 && this.memory._shibMove) return false;
+
+    this.memory._shibMove = undefined;
+    this.memory.moveBlocked = Game.time;
+
+    if (x === 0 && y === 0) this.move(BOTTOM_RIGHT);
+    else if (x === 0 && y === 49) this.move(TOP_RIGHT);
+    else if (x === 49 && y === 0) this.move(BOTTOM_LEFT);
+    else if (x === 49 && y === 49) this.move(TOP_LEFT);
+    else {
+        let options;
+        if (x === 49) options = [LEFT, TOP_LEFT, BOTTOM_LEFT];
+        else if (x === 0) options = [RIGHT, TOP_RIGHT, BOTTOM_RIGHT];
+        else if (y === 0) options = [BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT];
+        else options = [TOP, TOP_LEFT, TOP_RIGHT];
+        this.move(_.sample(options));
+    }
+    return true;
 };
 
 /**
