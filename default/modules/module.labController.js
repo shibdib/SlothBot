@@ -6,6 +6,7 @@ const runNext = {};
 const lastClean = {};
 const goOverCap = {};
 const productionTracker = {};
+let overCap = false;
 
 class LabManager {
     constructor(room) {
@@ -86,7 +87,6 @@ class LabManager {
         log.a(`${roomLink(room.name)} halting ${boost || 'production'}. ${message || ''}`);
         room.memory.producingBoost = undefined;
         this.primaryLabs[room.name] = undefined;
-        goOverCap[this.room.name] = undefined;
         productionTracker[this.room.name] = undefined;
         if (this.hub) this.hub.forEach(lab => {
             lab.memory = undefined;
@@ -101,10 +101,11 @@ class LabManager {
             let cutOff = this.getProductionCutoff(boost);
             if (room.store(boost) >= cutOff) continue;
             if (this.checkForInputs(room, boost)) {
+                if (goOverCap[room.name]) goOverCap[room.name]--;
                 return boost;
             }
         }
-        goOverCap[room.name] = true;
+        if (!goOverCap[room.name]) goOverCap[room.name] = 2; else goOverCap[room.name]++;
         return null;
     }
 
@@ -165,7 +166,7 @@ class LabManager {
 
     getProductionCutoff(boost) {
         const base = BOOST_AMOUNT(this.room, boost);
-        return goOverCap[this.room.name] ? base * 2 : base;
+        return goOverCap[this.room.name] ? base * goOverCap[this.room.name] : base;
     }
 
     checkForInputs(room, boost) {
