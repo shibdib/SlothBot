@@ -45,6 +45,11 @@ class World {
         // Must run before stateManager, which snapshots the rolling averages.
         energyTracker.runAll();
 
+        // Handle seasonal score assignment
+        if (Game.time % 25 === 0 && Game.shard.name === 'shardSeason') {
+            seasonalScoreFinder();
+        }
+
         // Manage room states
         this.stateManager();
 
@@ -201,6 +206,15 @@ function minionController(minion) {
         minion.notifyWhenAttacked(false);
         minion.memory.notifyDisabled = true;
     }
+    // Seasonal handling
+    if (Game.shard.name === 'shardSeason' && minion.memory.scoreTarget) {
+        const score = Game.getObjectById(minion.memory.scoreTarget);
+        if (score) {
+            return minion.shibMove(score, {range: 0});
+        } else {
+            minion.memory.scoreTarget = undefined;
+        }
+    }
     // Handle idle
     if (minion.idle) {
         return;
@@ -238,4 +252,21 @@ function minionController(minion) {
     }
 
     new Role(minion);
+}
+
+function seasonalScoreFinder() {
+    _.filter(Game.rooms).forEach(room => {
+        const score = room.find(FIND_SCORES);
+        if (score.length > 0) {
+            for (const s of score) {
+                const assignedCreep = room.myCreeps.find(c => c.memory.scoreTarget === s.id);
+                if (!assignedCreep) {
+                    const scorer = s.pos.findClosestByRange(room.myCreeps, {filter: (c) => !c.memory.scoreTarget && !c.memory.willNeedTow});
+                    if (scorer) {
+                        scorer.memory.scoreTarget = s.id;
+                    }
+                }
+            }
+        }
+    })
 }

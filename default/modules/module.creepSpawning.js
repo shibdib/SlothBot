@@ -376,9 +376,13 @@ module.exports.miscCreepQueue = function (room) {
 
     if (room.memory.dangerousAttack) return;
 
-    if (MAX_LEVEL < 8) {
-        queueCreepIfNeeded({colony: room, role: 'explorer', priority: PRIORITIES.high, numberNeeded: 1});
-    }
+    const explorerNeededCount = Game.shard.name === 'shardSeason' ? 10 : 10 - room.level;
+    queueCreepIfNeeded({
+        colony: room,
+        role: 'explorer',
+        priority: PRIORITIES.medium + getCreepCount(room, 'explorer'),
+        numberNeeded: explorerNeededCount
+    });
 
     if (room.storage && room.level >= 6 && room.memory.extractorContainer && room.mineral.mineralAmount) {
         queueCreepIfNeeded({
