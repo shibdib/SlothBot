@@ -559,7 +559,7 @@ Creep.prototype.constructionWork = function () {
         }
     }
 
-    const buildableStructures = [STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_LINK, STRUCTURE_TERMINAL, STRUCTURE_STORAGE];
+    const buildableStructures = [STRUCTURE_SPAWN, STRUCTURE_EXTENSION];
     for (let structureType of buildableStructures) {
         site = _.find(mySites, (s) => s.structureType === structureType);
         if (site) {
@@ -588,38 +588,32 @@ Creep.prototype.constructionWork = function () {
         return true;
     }
 
-    site = _.find(mySites, (s) => s.structureType === STRUCTURE_CONTAINER);
-    if (site) {
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'build';
-        this.memory.sitePos = JSON.stringify(site.pos);
-        return true;
-    }
+    if (this.room.energyState) {
+        site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD);
+        if (site) {
+            this.memory.constructionSite = site.id;
+            this.memory.task = 'build';
+            this.memory.sitePos = JSON.stringify(site.pos);
+            return true;
+        }
 
-    site = _.filter(mySites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
-    if (site.length) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'build';
-        this.memory.sitePos = JSON.stringify(site.pos);
-        return true;
-    }
+        site = _.filter(mySites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
+        if (site.length) {
+            site = this.pos.findClosestByRange(site);
+            this.memory.constructionSite = site.id;
+            this.memory.task = 'build';
+            this.memory.sitePos = JSON.stringify(site.pos);
+            return true;
+        }
 
-    site = _.find(mySites, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    if (site) {
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'build';
-        this.memory.sitePos = JSON.stringify(site.pos);
-        return true;
-    }
-
-    site = _.find(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax * 0.50);
-    if (site) {
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        this.memory.targetHits = site.hitsMax;
-        this.memory.sitePos = JSON.stringify(site.pos);
-        return true;
+        site = _.find(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax * 0.50);
+        if (site) {
+            this.memory.constructionSite = site.id;
+            this.memory.task = 'repair';
+            this.memory.targetHits = site.hitsMax;
+            this.memory.sitePos = JSON.stringify(site.pos);
+            return true;
+        }
     }
 
     this.memory.constructionSite = undefined;
