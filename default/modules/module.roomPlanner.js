@@ -295,10 +295,12 @@ function linkBuilder(room) {
             room.memory.controllerLink = existingLink.id;
         } else {
             room.memory.controllerLink = undefined;
-            const site = _.find(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 2), s => s.structureType === STRUCTURE_LINK);
+            const base = room.level === 8 ? room.controller : room.memory.controllerContainer ? Game.getObjectById(room.memory.controllerContainer) : room.controller
+            const range = base.id === room.controller.id ? 2 : 1;
+            const site = _.find(base.pos.findInRange(FIND_CONSTRUCTION_SITES, range), s => s.structureType === STRUCTURE_LINK);
             if (site) return true;
-            const zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 2, room.controller.pos.x - 2,
-                room.controller.pos.y + 2, room.controller.pos.x + 2, true);
+            const zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, base.pos.y - range, base.pos.x - range,
+                base.pos.y + range, base.pos.x + range, true);
             for (let key in zoneTerrain) {
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
                 if (position.checkForAllStructure() || position.checkForImpassible() || position.isNearTo(room.controller)) continue;
