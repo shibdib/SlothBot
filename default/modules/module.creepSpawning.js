@@ -351,7 +351,7 @@ module.exports.essentialCreepQueue = function (room) {
     if (room.level === room.controller.level) {
         let upgraderAmount = 1;
         let container = Game.getObjectById(room.memory.controllerContainer);
-        if (container) upgraderAmount = Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround()) || 1;
+        if (container && room.energyState) upgraderAmount = Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround()) || 1;
         if (room.level >= 7) upgraderAmount = 1;
         // Only fast-track the upgrader (the biggest consumer) when both stock and flow agree.
         const priority = room.energyState > 1 && room.storage && trendOk ? PRIORITIES.upgrader * 0.5 : PRIORITIES.upgrader;
