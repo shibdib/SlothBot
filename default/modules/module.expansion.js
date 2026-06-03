@@ -72,6 +72,7 @@ class ExpansionControl {
 
     filterWorthyRooms() {
         this.worthyRooms = Object.values(INTEL).filter(room =>
+            room &&
             room.hubCheck &&
             !room.owner &&
             room.cached + 10000 > Game.time &&
