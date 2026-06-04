@@ -308,12 +308,11 @@ module.exports.essentialCreepQueue = function (room) {
     const earlyRush = !room.storage && room.level < 5;
 
     let droneCount;
+    let dronePriority = PRIORITIES.drone;
     if (earlyRush) {
-        // Bootstrap with 1 drone when no harvester is alive yet (it doubles as a miner
-        // until the stationary harvester catches up). Once a harvester exists, size to
-        // construction need — extensions/container/tower don't need a 7-drone team.
         if (!harvesterCount) droneCount = 1;
         else droneCount = importantBuilds ? Math.max(1, room.level) : 1;
+        dronePriority = 1;
     } else if (importantBuilds && trendOk && room.energyState) {
         droneCount = 11 - room.level;
     } else if (room.constructionSites.length && room.energyState > 2) {
@@ -325,7 +324,7 @@ module.exports.essentialCreepQueue = function (room) {
     }
 
     queueCreepIfNeeded({
-        room, role: 'drone', priority: PRIORITIES.drone,
+        room, role: 'drone', priority: dronePriority,
         numberNeeded: droneCount, rebootCondition: room.friendlyCreeps.length < 5
     });
 
