@@ -1587,6 +1587,7 @@ function generateExtensionPositions(room) {
     for (const entry of coreTemplate) {
         for (const {x, y} of entry.pos) excluded.add(`${hub.x + x},${hub.y + y}`);
     }
+    const terrain = Game.map.getRoomTerrain(room.name);
     const positions = [], visited = new Set([`${hub.x},${hub.y}`]);
     const queue = [{x: hub.x, y: hub.y}];
     const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
@@ -1596,13 +1597,16 @@ function generateExtensionPositions(room) {
             const nx = x + dx, ny = y + dy, key = `${nx},${ny}`;
             if (visited.has(key) || nx < 2 || nx > 47 || ny < 2 || ny > 47) continue;
             visited.add(key);
+            // Don't propagate BFS through terrain walls — otherwise expansion tunnels
+            // through walls and places extensions on tiles that are far from the hub by path
+            if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
             queue.push({x: nx, y: ny});
             if (excluded.has(key)) continue;
             // Checkerboard: only use even-parity tiles so every extension is surrounded by
             // non-extension tiles on all 4 cardinal directions — guarantees no pathing blockage
             if ((nx + ny) % 2 !== 0) continue;
             const pos = new RoomPosition(nx, ny, room.name);
-            if (pos.checkForWall() || pos.checkForImpassible()) continue;
+            if (pos.checkForImpassible()) continue;
             if (pos.isNearTo(room.controller)) continue;
             const src = pos.findClosestByRange(FIND_SOURCES);
             if (src && pos.isNearTo(src)) continue;
