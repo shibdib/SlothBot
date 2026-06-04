@@ -295,9 +295,34 @@ module.exports.essentialCreepQueue = function (room) {
     const energyInfo = room.memory.energyInfo;
     const trendOk = !energyInfo || (energyInfo.trend || 0) >= -3;
     const importantBuilds = _.some(room.constructionSites, s => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    let droneCount = importantBuilds && trendOk && room.energyState ? 11 - room.level :
-        room.constructionSites.length && room.energyState > 2 ? 2 :
-            !room.storage ? Math.max(8 - room.level, 1) : 1;
+
+    // Pre-fetch harvester count so the rush-phase logic can gate on it. The cache makes
+    // repeat calls effectively free, so promoting it up doesn't cost anything.
+    const harvesterCount = getCreepCount(room, 'stationaryHarvester');
+
+    // Pre-storage ramp. The default drone count (5–10 bodies pre-storage) was crowding the
+    // queue against the single upgrader, so the controller crawled while a fleet of
+    // builders idled. During the rush we shrink drones to actual build need and let the
+    // upgrader run two-wide, which is what gets us to the next RCL fastest. The level cap
+    // keeps a freak no-storage RCL8 (storage destroyed) from re-entering rush mode.
+    const earlyRush = !room.storage && room.level < 5;
+
+    let droneCount;
+    if (earlyRush) {
+        // Bootstrap with 1 drone when no harvester is alive yet (it doubles as a miner
+        // until the stationary harvester catches up). Once a harvester exists, size to
+        // construction need — extensions/container/tower don't need a 7-drone team.
+        if (!harvesterCount) droneCount = 1;
+        else droneCount = importantBuilds ? Math.max(1, room.level) : 1;
+    } else if (importantBuilds && trendOk && room.energyState) {
+        droneCount = 11 - room.level;
+    } else if (room.constructionSites.length && room.energyState > 2) {
+        droneCount = 2;
+    } else if (!room.storage) {
+        droneCount = Math.max(8 - room.level, 1);
+    } else {
+        droneCount = 1;
+    }
 
     queueCreepIfNeeded({
         room, role: 'drone', priority: PRIORITIES.drone,
@@ -314,7 +339,6 @@ module.exports.essentialCreepQueue = function (room) {
     }
 
     // Harvesters
-    let harvesterCount = getCreepCount(room, 'stationaryHarvester');
     queueCreepIfNeeded({
         room, role: 'stationaryHarvester', priority: PRIORITIES.stationaryHarvester,
         numberNeeded: room.sources.length, rebootCondition: !harvesterCount
@@ -324,7 +348,7 @@ module.exports.essentialCreepQueue = function (room) {
     if (harvesterCount) {
         const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
         if (room.storage || protoStorage) {
-            let haulerAmount = room.level >= 6 ? 2 : 1;
+            let haulerAmount = room.level >= 4 ? 2 : 1;
             const priority = !getCreepCount(room, 'hauler') ? 1 : PRIORITIES.hauler;
             queueCreepIfNeeded({
                 room, role: 'hauler', priority,
@@ -347,19 +371,49 @@ module.exports.essentialCreepQueue = function (room) {
         }
     }
 
-    // Upgrader
-    if (room.level === room.controller.level) {
-        let upgraderAmount = 1;
-        let container = Game.getObjectById(room.memory.controllerContainer);
-        if (container && room.energyState) upgraderAmount = Math.min(Math.floor(container.store.getUsedCapacity(RESOURCE_ENERGY) / 650), container.pos.countOpenTerrainAround()) || 1;
-        if (room.level >= 7) upgraderAmount = 1;
-        // Only fast-track the upgrader (the biggest consumer) when both stock and flow agree.
-        const priority = room.energyState > 1 && room.storage && trendOk ? PRIORITIES.upgrader * 0.5 : PRIORITIES.upgrader;
-        queueCreepIfNeeded({
-            room, role: 'upgrader', priority,
-            numberNeeded: upgraderAmount, misc: {boosts: [WORK]}
-        });
+    // Upgrader.
+    // No level-vs-controller gate: a freshly-leveled room sits with room.level lagging
+    // controller.level until enough new extensions push capacity past the next tier. That
+    // window (often 500–1000 ticks per RCL) is exactly when we want the upgrader running,
+    // so gating on it stalled the controller for thousands of ticks across RCL3→8.
+    let upgraderAmount = 1;
+    let container = Game.getObjectById(room.memory.controllerContainer);
+
+    // Sustained-income sizing instead of instantaneous container snapshot. The old formula
+    // (container.store / 650) flapped 1↔3 as the upgrader drained and the hauler refilled,
+    // re-queuing spawns each cycle. income comes from the colony energy tracker and is
+    // smoothed over a 50-tick window.
+    if (container && room.energyState && room.controller.level < 8) {
+        const income = (room.memory.energyInfo && room.memory.energyInfo.income) || 0;
+        upgraderAmount = Math.max(1, Math.min(
+            Math.floor(income / 12),
+            container.pos.countOpenTerrainAround()
+        ));
     }
+
+    // RCL7+ cap. Stockpile is still the priority post-RCL7, but a second upgrader lets us
+    // burn storage faster when state is healthy. Hard cap at 2 — three+ work parts beyond
+    // link feed would idle.
+    if (room.level >= 7) upgraderAmount = Math.min(upgraderAmount, 2);
+
+    // Pre-storage rush: two upgraders once we have an income. The old single-upgrader
+    // default left the controller as the timeline bottleneck — energy was sitting in
+    // extensions instead of being burned into RCL progress.
+    if (earlyRush && harvesterCount && room.energyState >= 2) {
+        upgraderAmount = Math.max(upgraderAmount, 2);
+    }
+
+    // Fast-track when stockpiled. earlyRush rooms hit energyState=3 trivially via the
+    // no-storage clause in room.energyState, so we key the rush bonus on harvester
+    // presence rather than the storage check used at higher RCL.
+    const fastTrack = (room.energyState > 1 && room.storage && trendOk) ||
+        (earlyRush && harvesterCount && room.energyState >= 2);
+    const priority = fastTrack ? PRIORITIES.upgrader * 0.5 : PRIORITIES.upgrader;
+    queueCreepIfNeeded({
+        room, role: 'upgrader', priority,
+        numberNeeded: upgraderAmount, misc: {boosts: [WORK]},
+        rebootCondition: !getCreepCount(room, 'upgrader') || !room.energyState
+    });
 };
 
 // ============================================================
@@ -376,7 +430,7 @@ module.exports.miscCreepQueue = function (room) {
 
     if (room.memory.dangerousAttack) return;
 
-    const explorerNeededCount = Game.shard.name === 'shardSeason' ? 10 : 10 - room.level;
+    const explorerNeededCount = Game.shard.name === 'shardSeason' ? 20 : 10 - room.level;
     queueCreepIfNeeded({
         colony: room,
         role: 'explorer',
