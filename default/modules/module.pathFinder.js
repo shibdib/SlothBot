@@ -647,8 +647,8 @@ function getMatrix(roomName, creep, options) {
     if (room) {
         matrix = addCreepsToMatrix(room, matrix, creep, options);
 
-        const armedEnemies = room.hostileCreeps.filter(c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
-        if (creep instanceof Creep && armedEnemies.length) {
+        const armedEnemies = room.hostileCreeps.length && room.hostileCreeps.filter(c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
+        if (creep instanceof Creep && armedEnemies) {
             if ((!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.flee) {
                 matrix = addHostilesToMatrix(room, matrix);
             }
