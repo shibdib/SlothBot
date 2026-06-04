@@ -14,8 +14,11 @@ let globals = function () {
     global.PRIORITIES = {
         // Harvesters
         stationaryHarvester: 1,
-        // Workers
-        upgrader: 6, drone: 6, mineralHarvester: 7,
+        // Workers — upgrader sits a step ahead of drone so it wins ties at equal count.
+        // Drone/upgrader were both 6, with drone queued first in essentialCreepQueue. Stable
+        // sort meant drone always took the first slot after leveling, leaving the controller
+        // idle while extensions filled.
+        upgrader: 5, drone: 6, mineralHarvester: 7,
         // Haulers — slightly behind harvesters since they're gated by harvester presence
         hauler: 2, miscHauler: 7,
         // Remotes — harvesters before haulers (a hauler without a harvester does nothing)
