@@ -145,9 +145,9 @@ class RoleRemoteHauler {
 
     exitLinkCheck() {
         this.memory.exitLinkCheck = true;
-        const link = this.room.links.find(s => ![s.room.memory.hubLink, s.room.memory.controllerLink].includes(s.id) &&
+        const link = this.room.links.filter(s => ![s.room.memory.hubLink, s.room.memory.controllerLink].includes(s.id) &&
             s.pos.getRangeTo(this.creep) <= 9 && (!s.room.storage || s.pos.getRangeTo(this.creep) < s.room.storage.pos.getRangeTo(this.creep)));
-        if (link) this.memory.exitLink = link.id;
+        if (link.length) this.memory.exitLink = this.creep.pos.findClosestByPath(link).id;
     }
 }
 
