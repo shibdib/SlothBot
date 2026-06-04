@@ -533,7 +533,7 @@ function getBaseMatrix(roomName, creep, options) {
             roadCost = 1;
     }
 
-    const structuresHash = room ? hashStructures(room.impassibleStructures || []) : 'no-room';
+    const structuresHash = room ? hashStructures(room.impassibleStructures.concat(room.constructionSites.filter((s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType))) || []) : 'no-room';
     const baseKey = `${roomName}_base_${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${structuresHash}`;
 
     // Per-tick reuse (biggest CPU win)
