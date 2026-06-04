@@ -611,11 +611,14 @@ Creep.prototype.constructionWork = function () {
     if (room.energyState) {
         const nonBarrierNonRoadSites = [];
         const barrierSites = [];
+        const roadSites = [];
         for (const t in sitesByType) {
             if (t === STRUCTURE_WALL || t === STRUCTURE_RAMPART) barrierSites.push(...sitesByType[t]);
             else if (t !== STRUCTURE_ROAD) nonBarrierNonRoadSites.push(...sitesByType[t]);
+            else if (t === STRUCTURE_ROAD) roadSites.push(...sitesByType[t]);
         }
         if (nonBarrierNonRoadSites.length) return pickBuild(this.pos.findClosestByRange(nonBarrierNonRoadSites));
+        if (roadSites.length) return pickBuild(this.pos.findClosestByRange(roadSites));
         if (barrierSites.length) return pickBuild(this.pos.findClosestByRange(barrierSites));
 
         const anyDamagedNonBarrier = damagedContainers[0] || damagedRoads[0] || damagedOther[0];
