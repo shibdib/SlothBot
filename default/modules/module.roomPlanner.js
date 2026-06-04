@@ -1157,85 +1157,110 @@ module.exports.findHub = function (room) {
     return findHub(room)
 };
 
-let storedLabPos, storedLabPossibles;
 function findLabHub(room) {
     if (room.memory.labHub && room.memory.labHub.x && room.memory.labHub.y) return;
 
-    // Try to find the old spot
+    // Recover from existing labs after a memory wipe
     const labs = room.labs;
     if (labs.length) {
         room.memory.labHub = {x: labs[0].pos.x, y: labs[0].pos.y};
         return true;
     }
 
-    let pos;
-    if (!storedLabPossibles) storedLabPossibles = {};
-    if (!storedLabPossibles[room.name]) storedLabPossibles[room.name] = {};
-    let posCount = 0;
-    if (!storedLabPos) storedLabPos = {};
-    if (!storedLabPos[room.name]) storedLabPos[room.name] = {};
-    let possiblePos = storedLabPossibles[room.name] || {};
-    // Start search at 10,10 and work our way out
-    let x = storedLabPos[room.name].x || 9;
-    let y = storedLabPos[room.name].y || 10;
-    let complete;
-    let roomHub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-    // Loop runs until all possible positions have been checked
-    primary:
-        for (let i = 1; i < 500;) {
-            // Mechanic to cycle through all possible positions
-            x++;
-            if (x > 40 && y >= 40) {
-                complete = true;
-                break;
-            } else if (x > 40) {
-                x = 10;
-                y++;
-            }
-            storedLabPos[room.name].x = x;
-            storedLabPos[room.name].y = y;
-            pos = new RoomPosition(x, y, room.name);
-            if (pos.checkForImpassible()) continue;
-            // Cycle through buildings to make sure the hub fits
-            for (let pos of labTemplate) {
-                let structure = {};
-                structure.x = x + pos.x;
-                structure.y = y + pos.y;
-                if (structure.x > 49 || structure.x < 1 || structure.y > 49 || structure.y < 1) continue primary;
-                let structurePos = new RoomPosition(structure.x, structure.y, room.name);
-                if (structurePos.checkIfOutOfBounds() || structurePos.checkForImpassible() || structurePos.getRangeTo(roomHub) <= 6
-                    || structurePos.isNearTo(room.controller) || structurePos.isNearTo(structurePos.findClosestByRange(FIND_SOURCES)) || structurePos.countOpenTerrainAround() < 7) {
-                    continue primary;
-                }
-            }
-            possiblePos[posCount++] = {
-                x: pos.x,
-                y: pos.y,
-            };
-            storedLabPossibles[room.name] = possiblePos;
-            i++;
+    const bunkerHub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+    const terrain = Game.map.getRoomTerrain(room.name);
+    const sources = room.sources;
+    const controller = room.controller;
+
+    // Mark every tile occupied by the bunker (or core, in dynamic layout) so labs don't overlap
+    const bunkerTmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
+    const bunkerOccupied = new Set();
+    for (const entry of bunkerTmpl) {
+        for (const {x: dx, y: dy} of entry.pos) {
+            bunkerOccupied.add((bunkerHub.x + dx) + ',' + (bunkerHub.y + dy));
         }
-    if (complete && _.size(storedLabPossibles[room.name])) {
-        log.a('Lab Hub search complete for ' + room.name + '...');
-        log.a('Final possible count: ' + _.size(storedLabPossibles[room.name]));
-        let choice = _.min(storedLabPossibles[room.name], function (p) {
-            return new RoomPosition(p.x, p.y, room.name).getRangeTo(new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name));
-        });
-        room.memory.labHub = {};
-        room.memory.labHub.x = choice.x;
-        room.memory.labHub.y = choice.y;
-        storedLabPos[room.name] = undefined;
-        storedLabPossibles[room.name] = undefined;
-        return true;
-    } else if (!complete) {
-        log.a('Lab Hub search incomplete for ' + room.name + ', continuing next tick.');
-        log.a('Current position: ' + storedLabPos[room.name].x + ',' + storedLabPos[room.name].y);
-        log.a('Current possible count: ' + _.size(storedLabPossibles[room.name]));
-    } else if (complete && !_.size(storedLabPossibles[room.name])) {
-        storedLabPos[room.name] = undefined;
-        storedLabPossibles[room.name] = undefined;
-        return log.a('Cannot find a lab hub in ' + room.name + '.');
     }
+
+    // Lab template bounding box and a perimeter set (tiles adjacent to ≥1 lab, not in template)
+    let minDx = 0, maxDx = 0, minDy = 0, maxDy = 0;
+    const tplSet = new Set();
+    for (const {x: dx, y: dy} of labTemplate) {
+        tplSet.add(dx + ',' + dy);
+        if (dx < minDx) minDx = dx;
+        if (dx > maxDx) maxDx = dx;
+        if (dy < minDy) minDy = dy;
+        if (dy > maxDy) maxDy = dy;
+    }
+    // Per-lab perimeter map — each lab must have ≥1 walkable perimeter neighbor so creeps can boost
+    const labPerimeter = labTemplate.map(({x: dx, y: dy}) => {
+        const out = [];
+        for (let ox = -1; ox <= 1; ox++) for (let oy = -1; oy <= 1; oy++) {
+            if (!ox && !oy) continue;
+            const px = dx + ox, py = dy + oy;
+            if (!tplSet.has(px + ',' + py)) out.push({x: px, y: py});
+        }
+        return out;
+    });
+
+    const candidates = [];
+    const xMin = Math.max(2, 1 - minDx), xMax = Math.min(47, 48 - maxDx);
+    const yMin = Math.max(2, 1 - minDy), yMax = Math.min(47, 48 - maxDy);
+
+    outer:
+        for (let cx = xMin; cx <= xMax; cx++) {
+            for (let cy = yMin; cy <= yMax; cy++) {
+                // Validate every template tile
+                for (let i = 0; i < labTemplate.length; i++) {
+                    const {x: dx, y: dy} = labTemplate[i];
+                    const tx = cx + dx, ty = cy + dy;
+                    if (terrain.get(tx, ty) === TERRAIN_MASK_WALL) continue outer;
+                    if (bunkerOccupied.has(tx + ',' + ty)) continue outer;
+                    if (Math.abs(tx - controller.pos.x) <= 1 && Math.abs(ty - controller.pos.y) <= 1) continue outer;
+                    for (const s of sources) {
+                        if (Math.abs(tx - s.pos.x) <= 1 && Math.abs(ty - s.pos.y) <= 1) continue outer;
+                    }
+                    if (new RoomPosition(tx, ty, room.name).checkForImpassible()) continue outer;
+                    // Each lab needs at least one walkable perimeter tile for creep access
+                    let accessible = false;
+                    for (const {x: px, y: py} of labPerimeter[i]) {
+                        const ax = cx + px, ay = cy + py;
+                        if (ax < 1 || ax > 48 || ay < 1 || ay > 48) continue;
+                        if (terrain.get(ax, ay) === TERRAIN_MASK_WALL) continue;
+                        accessible = true;
+                        break;
+                    }
+                    if (!accessible) continue outer;
+            }
+                const dxHub = Math.abs(cx - bunkerHub.x), dyHub = Math.abs(cy - bunkerHub.y);
+                candidates.push({x: cx, y: cy, score: Math.max(dxHub, dyHub)});
+            }
+        }
+
+    if (!candidates.length) {
+        log.a('Cannot find a lab hub in ' + room.name + '.');
+        return false;
+    }
+
+    // Sort by Chebyshev to bunker hub, then path-verify the top few to reject "other side of wall" picks
+    candidates.sort((a, b) => a.score - b.score);
+    let chosen = null;
+    const probe = Math.min(candidates.length, 8);
+    for (let i = 0; i < probe; i++) {
+        const c = candidates[i];
+        const result = PathFinder.search(bunkerHub,
+            {pos: new RoomPosition(c.x, c.y, room.name), range: 1},
+            {maxRooms: 1, maxOps: 2000});
+        if (result.incomplete) continue;
+        if (result.path.length <= c.score * 2 + 4) {
+            chosen = c;
+            break;
+        }
+    }
+    if (!chosen) chosen = candidates[0]; // fallback — better than no labs
+
+    room.memory.labHub = {x: chosen.x, y: chosen.y};
+    log.a(`Lab hub placed at (${chosen.x},${chosen.y}) for ${room.name}, range ${chosen.score} from bunker hub`);
+    return true;
 }
 
 // Places towers from the stored hub list up to the RCL-gated maximum.
