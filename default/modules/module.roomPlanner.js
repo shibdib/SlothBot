@@ -596,9 +596,6 @@ function rampartBuilder(room, layout = undefined, count = false) {
                         room.memory.quadTrapWalls.push({x: pos.x, y: pos.y});
                     }
                 }
-            } else {
-                if (pos.checkForRampart() || pos.checkForConstructionSites()) continue;
-                if (pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
             }
         }
         return counter > 0;
@@ -698,7 +695,12 @@ function rampartBuilder(room, layout = undefined, count = false) {
         for (let pos of buildPositions) {
             if (cycles + inBuild >= 5) return true;
             if (shouldBuildRampartAtPosition(pos, room)) {
-                if (pos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
+                const isWallTile = (pos.x + pos.y) % 2 === 0;
+                if (isWallTile) {
+                    if (pos.createConstructionSite(STRUCTURE_WALL) === OK) {
+                        cycles++;
+                    }
+                } else if (pos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
                     cycles++;
                 }
             }
@@ -799,7 +801,7 @@ function roadBuilder(room, layout) {
     if (room.level >= 7 && buildRoadsForRamparts(room)) return true;
 
     // Handle redundant roads
-    //removeRedundantRoads(room, layout);
+    removeRedundantRoads(room, layout);
 
     function buildRoadToNeighborExits(spawn, room) {
         let neighboring = Game.map.describeExits(spawn.pos.roomName);
