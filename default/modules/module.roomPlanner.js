@@ -339,7 +339,7 @@ function linkBuilder(room) {
     if (currentLinks < linkLimit) {
         const neighboring = Object.values(Game.map.describeExits(room.name));
         for (const neighbor of neighboring) {
-            const remoteHarvester = Game.rooms[neighbor].myCreeps.find(c => c.memory.role === 'remoteHarvester');
+            const remoteHarvester = Game.rooms[neighbor] && Game.rooms[neighbor].myCreeps.find(c => c.memory.role === 'remoteHarvester');
             if (!remoteHarvester) continue;
             const exit = Game.map.findExit(room.name, neighbor);
             const exitTiles = room.find(exit);
