@@ -81,7 +81,7 @@ class RoleUpgrader {
             this.creep.withdrawResource(this.container);
         } else {
             this.creep.memory.other.stationary = undefined;
-            this.creep.idleFor(15);
+            this.creep.idleFor(5);
         }
     }
 
