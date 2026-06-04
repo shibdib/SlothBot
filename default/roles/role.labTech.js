@@ -88,6 +88,10 @@ class RoleLabTech {
             }
         }
 
+        // -- PRIORITY 1: URGENT BALANCING STORAGE & TERMINAL --
+        let balancingTask = this.findBalancingTask(storage, terminal, 1000);
+        if (balancingTask) return balancingTask;
+
         // -- PRIORITY 1: MINERAL CONTAINER OVERFULL --
         if (storeTarget) {
             const resourceContainer = this.room.containers.find(s => s.store.getUsedCapacity() > s.store.getUsedCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity());
@@ -207,7 +211,7 @@ class RoleLabTech {
         }
 
         // -- PRIORITY 5: BALANCING STORAGE & TERMINAL --
-        const balancingTask = this.findBalancingTask(storage, terminal);
+        balancingTask = this.findBalancingTask(storage, terminal);
         if (balancingTask) return balancingTask;
 
         // -- PRIORITY 6: LAB ENERGY REFILL --
@@ -222,11 +226,12 @@ class RoleLabTech {
         return null;
     }
 
-    findBalancingTask(storage, terminal) {
+    findBalancingTask(storage, terminal, trigger = Infinity) {
         if (!storage || !terminal) return null;
 
         const terminalFree = terminal.store.getFreeCapacity();
         const storageFree = storage.store.getFreeCapacity();
+        if (terminalFree > trigger || storageFree > trigger) return null;
         const myOrders = Game.market.orders;
 
         // -- STORAGE -> TERMINAL (terminal is primary holder of distributable resources) --
