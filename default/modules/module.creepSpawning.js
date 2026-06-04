@@ -371,40 +371,21 @@ module.exports.essentialCreepQueue = function (room) {
     }
 
     // Upgrader.
-    // No level-vs-controller gate: a freshly-leveled room sits with room.level lagging
-    // controller.level until enough new extensions push capacity past the next tier. That
-    // window (often 500–1000 ticks per RCL) is exactly when we want the upgrader running,
-    // so gating on it stalled the controller for thousands of ticks across RCL3→8.
     let upgraderAmount = 1;
-    let container = Game.getObjectById(room.memory.controllerContainer);
-
-    // Sustained-income sizing instead of instantaneous container snapshot. The old formula
-    // (container.store / 650) flapped 1↔3 as the upgrader drained and the hauler refilled,
-    // re-queuing spawns each cycle. income comes from the colony energy tracker and is
-    // smoothed over a 50-tick window.
-    if (container && room.energyState && room.controller.level < 8) {
-        const income = (room.memory.energyInfo && room.memory.energyInfo.income) || 0;
-        upgraderAmount = Math.max(1, Math.min(
-            Math.floor(income / 12),
-            container.pos.countOpenTerrainAround()
-        ));
+    if (room.controller.level < 8 && room.energyState) {
+        let container = Game.getObjectById(room.memory.controllerContainer);
+        if (container && room.energyState && room.controller.level < 8) {
+            const income = (room.memory.energyInfo && room.memory.energyInfo.income) || 0;
+            upgraderAmount = Math.max(1, Math.min(
+                Math.floor(income / 12),
+                container.pos.countOpenTerrainAround()
+            ));
+        }
+        if (room.level >= 7) upgraderAmount = Math.min(upgraderAmount, 2);
+        if (earlyRush && harvesterCount && room.energyState >= 2) {
+            upgraderAmount = Math.max(upgraderAmount, 2);
+        }
     }
-
-    // RCL7+ cap. Stockpile is still the priority post-RCL7, but a second upgrader lets us
-    // burn storage faster when state is healthy. Hard cap at 2 — three+ work parts beyond
-    // link feed would idle.
-    if (room.level >= 7) upgraderAmount = Math.min(upgraderAmount, 2);
-
-    // Pre-storage rush: two upgraders once we have an income. The old single-upgrader
-    // default left the controller as the timeline bottleneck — energy was sitting in
-    // extensions instead of being burned into RCL progress.
-    if (earlyRush && harvesterCount && room.energyState >= 2) {
-        upgraderAmount = Math.max(upgraderAmount, 2);
-    }
-
-    // Fast-track when stockpiled. earlyRush rooms hit energyState=3 trivially via the
-    // no-storage clause in room.energyState, so we key the rush bonus on harvester
-    // presence rather than the storage check used at higher RCL.
     const fastTrack = (room.energyState > 1 && room.storage && trendOk) ||
         (earlyRush && harvesterCount && room.energyState >= 2);
     const priority = fastTrack ? PRIORITIES.upgrader * 0.5 : PRIORITIES.upgrader;
