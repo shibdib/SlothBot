@@ -92,11 +92,7 @@ Object.defineProperty(Room.prototype, 'mineral', {
         if (!this._mineral) {
             if (!mineralCache[this.name]) {
                 const minerals = this.find(FIND_MINERALS);
-                if (Game.shard.name === 'shardSeason' && RESOURCE_THORIUM) {
-                    mineralCache[this.name] = _.find(minerals, m => m.resourceType !== RESOURCE_THORIUM)?.id;
-                } else {
-                    mineralCache[this.name] = minerals[0]?.id;
-                }
+                mineralCache[this.name] = minerals[0]?.id;
             }
             this._mineral = Game.getObjectById(mineralCache[this.name]);
         }
