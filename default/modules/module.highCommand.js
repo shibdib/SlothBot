@@ -1110,11 +1110,7 @@ module.exports.operationSustainability = function (room, operationRoom = room.na
 
     if (isAtRisk && Memory.targetRooms[operationRoom]) {
         const ratio = friendlyDead / (enemyDead || 100);
-        log.a(Canceling
-        operation in  — unsustainable
-        casualties()., 'HIGH COMMAND: '
-    )
-        ;
+        log.a(`Canceling operation in ${roomLink(operationRoom)} — unsustainable casualties (${ratio.toFixed(2)}).`, 'HIGH COMMAND: ');
         delete Memory.targetRooms[operationRoom];
         if (INTEL[operationRoom]) {
             INTEL[operationRoom].lastOperation = Game.time;
