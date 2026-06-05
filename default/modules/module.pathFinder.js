@@ -285,7 +285,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
 
     // Cached path?
     let cached;
-    if (options.useCache && !INTEL[creep.room.name].threatLevel && !options.tunnel) {
+    if (options.useCache && (!INTEL[creep.room.name] || !INTEL[creep.room.name].threatLevel) && !options.tunnel) {
         cached = getPath(creep, origin, target, pathInfo);
     }
     if (cached && options.ignoreCreeps) {
