@@ -60,6 +60,14 @@ Object.defineProperty(PowerCreep.prototype, 'isFull', {
  * @param destination
  * @returns {*|boolean|boolean|void|string}
  */
+PowerCreep.prototype.hasActiveBodyparts = function () {
+    return false;
+};
+
+PowerCreep.prototype.getActiveBodyparts = function () {
+    return 0;
+};
+
 PowerCreep.prototype.goToHub = function (destination) {
     let hub = new RoomPosition(25, 25, destination);
     if (this.pos.getRangeTo(hub) <= 15) return this.idleFor(10);
