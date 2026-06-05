@@ -464,6 +464,30 @@ module.exports.miscCreepQueue = function (room) {
         queueCreepIfNeeded({room, role: 'labTech', priority: PRIORITIES.hauler + 1, numberNeeded: 1});
     }
 
+    if (room.level >= MAX_LEVEL - 1 && room.level >= 4) {
+        const needsDefense = _.find(MY_ROOMS, r => {
+            const other = Game.rooms[r];
+            const intel = INTEL[r];
+            return r !== room.name && other &&
+                (other.memory.dangerousAttack || intel?.requestingSupport ||
+                    (other.memory.defenseCooldown || 0) > Game.time) &&
+                room.routeSafe(r, 3, 999, 15);
+        });
+        if (needsDefense) {
+            const sqEnergyInfo = room.memory.energyInfo;
+            const sqTrendOk = !sqEnergyInfo || (sqEnergyInfo.trend || 0) >= -3;
+            queueCreepIfNeeded({
+                room,
+                role: 'longbowSquad',
+                priority: room.energyState > 1 && room.storage && sqTrendOk ? PRIORITIES.priority : PRIORITIES.secondary,
+                numberNeeded: 2,
+                destination: needsDefense,
+                misc: {waitFor: 2, boosts: [RANGED_ATTACK, HEAL]},
+                operation: 'guard'
+            });
+        }
+    }
+
     if (room.memory.dangerousAttack) return;
 
     const explorerNeededCount = Game.shard.name === 'shardSeason' ? 20 : 10 - room.level;
@@ -480,29 +504,6 @@ module.exports.miscCreepQueue = function (room) {
             numberNeeded: 1, misc: {boosts: [WORK]},
             other: {assignedMineral: room.mineral.id}
         });
-    }
-
-    if (room.level >= MAX_LEVEL - 1 && room.level >= 4) {
-        let needsDefense = _.find(MY_ROOMS, r => {
-            const other = Game.rooms[r];
-            return r !== room.name && other &&
-                (other.memory.dangerousAttack || (other.memory.defenseCooldown || 0) > Game.time) &&
-                room.routeSafe(r, 3, 999, 15);
-        });
-        if (needsDefense) {
-            // Trend-aware priority: only fast-track the squad when we're stockpiled AND not draining.
-            const sqEnergyInfo = room.memory.energyInfo;
-            const sqTrendOk = !sqEnergyInfo || (sqEnergyInfo.trend || 0) >= -3;
-            queueCreepIfNeeded({
-                room,
-                role: 'longbowSquad',
-                priority: room.energyState > 1 && room.storage && sqTrendOk ? PRIORITIES.priority : PRIORITIES.secondary,
-                numberNeeded: 2,
-                destination: needsDefense,
-                misc: {waitFor: 2, boosts: [RANGED_ATTACK, HEAL]},
-                operation: 'guard'
-            });
-        }
     }
 
     // Border Patrol

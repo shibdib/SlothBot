@@ -438,6 +438,13 @@ function setTarget(room, operation, level = 1, military = true) {
 
 const MAX_RESPONSE_DISTANCE = 5;
 const TRAVEL_TICKS_PER_ROOM = 50;
+const RESPONSE_DISPATCH_TTL = 200;
+
+function responseRouteDistance(from, to) {
+    if (from === to) return 0;
+    const route = Game.map.findRoute(from, to);
+    return typeof route === 'number' ? Infinity : route.length;
+}
 
 function manageResponseForces() {
     const idleResponders = _.filter(Game.creeps, c => c.memory?.awaitingOrders && (!c.memory.partner || c.memory.leader));
@@ -461,17 +468,19 @@ function manageResponseForces() {
                 potential.push({type: 'ownedRoomAttack', room: rName, priority: prio});
             }
 
+            const responseStale = !r.responseDispatched || r.responseDispatched + RESPONSE_DISPATCH_TTL < Game.time;
+
             if (r.threatLevel > 1 && (r.activeRemote || 0) + CREEP_LIFE_TIME > Game.time &&
-                (!r.responseDispatched || r.friendlyPower < r.hostilePower)) {
+                (responseStale || r.friendlyPower < r.hostilePower)) {
                 const dist = findClosestOwnedRoom(rName, true);
                 if (dist <= 2) potential.push({type: 'remoteRoomAttack', room: rName, priority: 9 - dist});
             }
 
-            if (r.invaderCore && (r.activeRemote || 0) + CREEP_LIFE_TIME > Game.time && !r.responseDispatched) {
+            if (r.invaderCore && (r.activeRemote || 0) + CREEP_LIFE_TIME > Game.time && responseStale) {
                 potential.push({type: 'invaderCore', room: rName, priority: 8});
             }
 
-            if (r.threatLevel === 1 && (r.activeRemote || 0) + CREEP_LIFE_TIME > Game.time && !r.responseDispatched) {
+            if (r.threatLevel === 1 && (r.activeRemote || 0) + CREEP_LIFE_TIME > Game.time && responseStale) {
                 potential.push({type: 'unarmedVisitors', room: rName, priority: 7});
             }
         }
@@ -487,7 +496,7 @@ function manageResponseForces() {
 
         const candidates = [];
         for (const creep of idleResponders) {
-            const distance = Game.map.getRoomLinearDistance(creep.pos.roomName, targetRoom);
+            const distance = responseRouteDistance(creep.pos.roomName, targetRoom);
             if (distance > MAX_RESPONSE_DISTANCE) continue;
 
             const ttl = creep.ticksToLive === undefined ? CREEP_LIFE_TIME : creep.ticksToLive;
@@ -556,7 +565,8 @@ function manageResponseForces() {
 
         for (const key in incoming) {
             if (!INTEL[key]) INTEL[key] = {};
-            INTEL[key].friendlyPower = incoming[key].power;
+            const existing = INTEL[key].friendlyPower || 0;
+            INTEL[key].friendlyPower = Math.max(existing, incoming[key].power);
         }
     }
 }
@@ -1085,11 +1095,32 @@ module.exports.operationSustainability = function (room, operationRoom = room.na
     operation.enemyDead = enemyDead;
     operation.trackedEnemy = trackedEnemy;
     operation.sustainabilityCheck = Game.time;
+
+    if (operation.tick + CREEP_LIFE_TIME < Game.time && friendlyDead > 5000) {
+        const ratio = friendlyDead / (enemyDead || 100);
+        if (ratio > 2) isAtRisk = true;
+    }
+
     operation.isAtRisk = isAtRisk;
 
     if (room.tombstones.length) {
         const deadEnemy = _.filter(room.tombstones, t => !FRIENDLIES.includes(t.creep.owner.username));
         operation.lastEnemyKilled = _.max(deadEnemy, 'deathTime');
+    }
+
+    if (isAtRisk && Memory.targetRooms[operationRoom]) {
+        const ratio = friendlyDead / (enemyDead || 100);
+        log.a(Canceling
+        operation in  — unsustainable
+        casualties()., 'HIGH COMMAND: '
+    )
+        ;
+        delete Memory.targetRooms[operationRoom];
+        if (INTEL[operationRoom]) {
+            INTEL[operationRoom].lastOperation = Game.time;
+            INTEL[operationRoom].lastSiege = Game.time;
+        }
+        return true;
     }
 
     saveOperation(operationRoom, operation);

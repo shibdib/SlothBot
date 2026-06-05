@@ -178,18 +178,43 @@ class ObserverControl {
             return strategicCache.targets;
         }
 
-        const rooms = new Set([
+        const priorityByRoom = {};
+        const add = (room, priority) => {
+            if (!room || roomStatus(room) === 'closed') return;
+            if (!priorityByRoom[room] || priorityByRoom[room] < priority) priorityByRoom[room] = priority;
+        };
+
+        const claim = Memory.claimTarget?.room;
+        if (claim) {
+            add(claim, 100);
+            for (const neighbor of Object.values(Game.map.describeExits(claim) || {})) add(neighbor, 90);
+        }
+        for (const roomName of Memory.expansionScoutRooms || []) add(roomName, 88);
+
+        for (const rName in INTEL) {
+            const r = INTEL[rName];
+            if (!r) continue;
+            if (r.requestingSupport) add(rName, 95);
+            if (r.threatLevel > 3) add(rName, 82);
+            if (r.invaderCore && r.invaderCore > Game.time) add(rName, 78);
+        }
+
+        for (const home of global.MY_ROOMS || []) {
+            const hr = Game.rooms[home];
+            if (hr?.memory?.borderPatrol) add(hr.memory.borderPatrol, 72);
+        }
+
+        for (const room of [
             ...Object.keys(Memory.targetRooms || {}),
             ...Object.keys(Memory.auxiliaryTargets || {}),
-        ]);
-
-        const targets = [...rooms].filter(room => {
+        ]) {
             const op = Memory.targetRooms[room] || Memory.auxiliaryTargets[room];
-            if (!op) return false;
-            if (op.type === 'scout') return true;
-            return isIntelStale(INTEL[room], currentTime);
-        });
+            if (!op) continue;
+            if (op.type === 'scout') add(room, 65);
+            else if (isIntelStale(INTEL[room], currentTime)) add(room, 60);
+        }
 
+        const targets = Object.keys(priorityByRoom).sort((a, b) => priorityByRoom[b] - priorityByRoom[a]);
         strategicCache = {tick: currentTime, targets};
         return targets;
     }

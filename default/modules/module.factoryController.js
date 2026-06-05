@@ -40,6 +40,12 @@ class FactoryControl {
             });
         }
 
+        // Under attack: stop consuming inputs; do not start new production
+        if (room.memory.dangerousAttack) {
+            if (factory.memory.producing) this.clearProduction(factory);
+            return;
+        }
+
         // Re-evaluate stop/invalid targets every tick so labTech and terminal logic stay aligned
         if (factory.memory.producing) {
             if (this.shouldStopProduction(room, factory)) {
@@ -115,6 +121,8 @@ class FactoryControl {
     }
 
     shouldStopProduction(room, factory) {
+        if (room.memory.dangerousAttack) return true;
+
         const producing = factory.memory.producing;
         const commodity = COMMODITIES[producing];
         if (!commodity) {

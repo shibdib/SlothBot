@@ -27,6 +27,7 @@ class ExpansionControl {
 
         this.claimTarget = Memory.claimTarget || {};
         this.findClaimTarget();
+        this.queueExpansionScouts();
 
         const auxiliaryTargets = Memory.auxiliaryTargets || {};
         if (this.claimTarget.room) {
@@ -250,6 +251,38 @@ class ExpansionControl {
             if (target && (target.type === 'rebuild' || target.type === 'claim')) return true;
         }
         return false;
+    }
+
+    queueExpansionScouts() {
+        const candidates = [];
+        const stale = (name) => {
+            const intel = INTEL[name];
+            return !intel || !intel.hubCheck || intel.cached + 10000 <= Game.time;
+        };
+
+        if (this.claimTarget.room) {
+            candidates.push(this.claimTarget.room);
+            for (const n of Object.values(Game.map.describeExits(this.claimTarget.room) || {})) candidates.push(n);
+        }
+        for (const room of this.worthyRooms.slice(0, 8)) {
+            if (stale(room.name)) candidates.push(room.name);
+        }
+
+        const unique = [...new Set(candidates)].filter(stale).slice(0, 5);
+        Memory.expansionScoutRooms = unique;
+        if (!unique.length) return;
+        if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
+        for (const roomName of unique) {
+            const existing = Memory.auxiliaryTargets[roomName];
+            if (existing && (existing.type === 'claim' || existing.type === 'rebuild')) continue;
+            if (!existing || existing.type !== 'scout') {
+                Memory.auxiliaryTargets[roomName] = {
+                    tick: Game.time,
+                    type: 'scout',
+                    priority: PRIORITIES.priority,
+                };
+            }
+        }
     }
 }
 
