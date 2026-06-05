@@ -5,29 +5,38 @@
 const profiler = require("tools.profiler");
 
 let _lastRun = 0;
+let _lastRejectLog = 0;
 let _terrainCache = {}; // Terrain is static — cache forever
+
+function routeDistance(from, to) {
+    const route = Game.map.findRoute(from, to);
+    return typeof route === 'number' ? Infinity : route.length;
+}
 
 class ExpansionControl {
     constructor() {
-        this.claimTarget = Memory.claimTarget || {};
+        this.claimTarget = {};
         this.worthyRooms = [];
     }
 
     run() {
-        if (!MY_ROOMS[0] || Object.keys(INTEL).length < 15) return;
+        if (!MY_ROOMS.length || Object.keys(INTEL).length < 15) return;
         // Expansion decisions change slowly — no need to re-evaluate every tick
         if (_lastRun + 50 > Game.time) return;
         _lastRun = Game.time;
 
+        this.claimTarget = Memory.claimTarget || {};
         this.findClaimTarget();
 
+        const auxiliaryTargets = Memory.auxiliaryTargets || {};
         if (this.claimTarget.room) {
-            if (!this.checkForActiveClaims(Memory.auxiliaryTargets)) {
+            if (!this.checkForActiveClaims(auxiliaryTargets)) {
                 this.claimOperation(this.claimTarget);
             }
-        } else {
-            log.a(`No claim targets found out of ${this.worthyRooms.length} possible rooms.`, 'EXPANSION CONTROL:');
-            for (const room of this.worthyRooms) {
+        } else if (_lastRejectLog + 500 < Game.time && this.worthyRooms.length) {
+            _lastRejectLog = Game.time;
+            log.a(`No claim targets found out of ${this.worthyRooms.length} scored rooms.`, 'EXPANSION CONTROL:');
+            for (const room of this.worthyRooms.slice(0, 5)) {
                 log.a(`  ${roomLink(room.name)} rejected: ${room.rejectReason || 'unknown'}`, 'EXPANSION CONTROL:');
             }
         }
@@ -36,7 +45,9 @@ class ExpansionControl {
     findClaimTarget() {
         if (this.claimTarget.room) {
             const targetIntel = INTEL[this.claimTarget.room];
-            if (!targetIntel || targetIntel.owner || targetIntel.reservation || this.claimTarget.tick + CREEP_LIFE_TIME < Game.time) {
+            const hostileReservation = targetIntel && targetIntel.reservation &&
+                targetIntel.reservation !== MY_USERNAME && targetIntel.reservation !== 'Invader';
+            if (!targetIntel || targetIntel.owner || hostileReservation || this.claimTarget.tick + CREEP_LIFE_TIME < Game.time) {
                 if (FORCE_CLAIM && (!INTEL[FORCE_CLAIM] || !INTEL[FORCE_CLAIM].owner)) {
                     this.claimTarget = {room: FORCE_CLAIM, tick: Game.time};
                     Memory.claimTarget = this.claimTarget;
@@ -63,7 +74,8 @@ class ExpansionControl {
         if (sameSectorRooms.length) this.worthyRooms = sameSectorRooms;
 
         this.scoreRooms();
-        const max = _.max(this.worthyRooms, 'claimValue');
+        const candidates = this.worthyRooms.filter(r => r.claimValue != null && r.claimValue > -Infinity);
+        const max = _.max(candidates, 'claimValue');
         if (max && max.name) {
             this.claimTarget = {room: max.name, tick: Game.time};
             Memory.claimTarget = this.claimTarget;
@@ -126,7 +138,7 @@ class ExpansionControl {
         for (const fRoom of friendlyRooms) {
             const linearDist = Game.map.getRoomLinearDistance(room.name, fRoom.name);
             if (linearDist > 20) continue;
-            const distance = Game.map.findRoute(room.name, fRoom.name).length;
+            const distance = routeDistance(room.name, fRoom.name);
             if (distance <= 2) {
                 room.rejectReason = `friendly ${fRoom.name} too close (route dist ${distance})`;
                 return undefined;
@@ -141,7 +153,7 @@ class ExpansionControl {
             if (linearDist > 6) continue;
             // Only call findRoute when the enemy is close enough to matter
             const distance = linearDist <= 3
-                ? Game.map.findRoute(room.name, eRoom.name).length
+                ? routeDistance(room.name, eRoom.name)
                 : linearDist;
             if (distance <= 3) score -= 10000 / distance;
             else if (distance < 6) score -= 250;
@@ -156,7 +168,7 @@ class ExpansionControl {
                 unscoutedNeighbors++;
                 return sum;
             } // No intel — don't fabricate sources
-            if (intel.user) return sum; // Owned room — no remote sources available
+            if (intel.owner) return sum; // Owned room — no remote sources available
             return sum + (intel.sources || 0);
         }, 0);
 
@@ -208,26 +220,31 @@ class ExpansionControl {
 
     claimOperation(claimTarget) {
         const roomName = claimTarget.room;
-        const limit = roomStatus(MY_ROOMS[0]) === 'novice' ? 3
-            : Memory.cpuTracking.roomPenalty && Memory.cpuTracking.roomPenalty + 50000 > Game.time
+        const noviceRoom = MY_ROOMS.find(r => Game.rooms[r] && roomStatus(r) === 'novice');
+        const limit = noviceRoom
+            ? 3
+            : Memory.cpuTracking && Memory.cpuTracking.roomPenalty && Memory.cpuTracking.roomPenalty + 50000 > Game.time
                 ? Game.gcl.level - 1
                 : Game.gcl.level;
+
+        if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
 
         if (limit > MY_ROOMS.length && MAX_LEVEL >= 4 && !Memory.auxiliaryTargets[roomName]) {
             Memory.claimTarget = {};
             Memory.auxiliaryTargets[roomName] = {
                 tick: Game.time,
                 type: 'claim',
-                priority: 1
+                priority: PRIORITIES.priority
             };
             log.a(`Claim Mission for ${roomLink(roomName)} initiated.`, 'EXPANSION CONTROL:');
         } else if (!Memory.claimTarget || Memory.claimTarget.room !== roomName) {
-            log.a(`Next claim target set to ${roomLink(roomName)} once available.`, 'EXPANSION CONTROL:');
+            log.a(`Next claim target set to ${roomLink(roomName)} once GCL allows (${MY_ROOMS.length}/${limit}).`, 'EXPANSION CONTROL:');
             Memory.claimTarget = {room: roomName, tick: Game.time};
         }
     }
 
     checkForActiveClaims(auxiliaryTargets) {
+        if (!auxiliaryTargets) return false;
         for (const key in auxiliaryTargets) {
             const target = auxiliaryTargets[key];
             if (target && (target.type === 'rebuild' || target.type === 'claim')) return true;

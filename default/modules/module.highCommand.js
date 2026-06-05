@@ -33,6 +33,11 @@ let lastNoSiegeWarning = 0;
 const lastRun = {};
 const tasks = ['housekeeping', 'flags', 'military', 'auxiliary', 'response', 'nukes'];
 
+function intelOwner(intel) {
+    if (!intel) return undefined;
+    return intel.owner || intel.user;
+}
+
 module.exports.highCommand = function () {
     if (typeof MAX_LEVEL === 'undefined') return;
 
@@ -456,16 +461,17 @@ function manageResponseForces() {
                 potential.push({type: 'ownedRoomAttack', room: rName, priority: prio});
             }
 
-            if (r.threatLevel > 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && (!r.responseDispatched || r.friendlyPower < r.hostilePower)) {
+            if (r.threatLevel > 1 && (r.activeRemote || 0) + CREEP_LIFE_TIME > Game.time &&
+                (!r.responseDispatched || r.friendlyPower < r.hostilePower)) {
                 const dist = findClosestOwnedRoom(rName, true);
                 if (dist <= 2) potential.push({type: 'remoteRoomAttack', room: rName, priority: 9 - dist});
             }
 
-            if (r.invaderCore && r.activeRemote + CREEP_LIFE_TIME > Game.time && !r.responseDispatched) {
+            if (r.invaderCore && (r.activeRemote || 0) + CREEP_LIFE_TIME > Game.time && !r.responseDispatched) {
                 potential.push({type: 'invaderCore', room: rName, priority: 8});
             }
 
-            if (r.threatLevel === 1 && r.activeRemote + CREEP_LIFE_TIME > Game.time && !r.responseDispatched) {
+            if (r.threatLevel === 1 && (r.activeRemote || 0) + CREEP_LIFE_TIME > Game.time && !r.responseDispatched) {
                 potential.push({type: 'unarmedVisitors', room: rName, priority: 7});
             }
         }
@@ -658,8 +664,6 @@ function manageMilitary() {
                 continue;
         }
 
-        if (target.manual) staleMulti *= 2;
-
         if (_.includes(Memory.nonCombatRooms, key)) {
             delete Memory.targetRooms[key];
             log.a(`Canceling operation in ${roomLink(key)} — manual non-combat room.`, 'HIGH COMMAND: ');
@@ -675,8 +679,9 @@ function manageMilitary() {
             }
         }
 
-        if (!target.manual && INTEL[key] && userStrength(INTEL[key].user) > (global.MY_STRENGTH || MAX_LEVEL) + 2) {
-            log.a(`Canceling operation in ${roomLink(key)} — ${INTEL[key].user} too strong.`, 'HIGH COMMAND: ');
+        const owner = intelOwner(INTEL[key]);
+        if (!target.manual && owner && userStrength(owner) > (global.MY_STRENGTH || MAX_LEVEL) + 2) {
+            log.a(`Canceling operation in ${roomLink(key)} — ${owner} too strong.`, 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             INTEL[key].lastOperation = Game.time;
             INTEL[key].lastSiege = Game.time;
@@ -692,21 +697,22 @@ function manageMilitary() {
             continue;
         }
 
-        if (INTEL[key] && INTEL[key].user === MY_USERNAME && type !== 'guard') {
+        if (owner === MY_USERNAME && type !== 'guard') {
             log.a(`Canceling operation in ${roomLink(key)} — targeting our own room.`, 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             continue;
         }
 
-        if (INTEL[key] && (FRIENDLIES.includes(INTEL[key].user) || checkForNap(INTEL[key].user)) && type !== 'guard') {
+        if (owner && (FRIENDLIES.includes(owner) || checkForNap(owner)) && type !== 'guard') {
             log.a(`Canceling operation in ${roomLink(key)} — allied/NAP room.`, 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             continue;
         }
 
-        if (type !== 'scout' && type !== 'guard' && type !== 'roomDenial' && INTEL[key]?.user &&
-            !THREATS.includes(INTEL[key].user) && findClosestOwnedRoom(key, true) > DEFENSIVE_BUBBLE && !_.pluck(WAR_TARGETS, 'user').includes(INTEL[key].user)) {
-            log.a(`Canceling operation in ${roomLink(key)} — ${INTEL[key].user} no longer a threat.`, 'HIGH COMMAND: ');
+        if (type !== 'scout' && type !== 'guard' && type !== 'roomDenial' && owner &&
+            !THREATS.includes(owner) && findClosestOwnedRoom(key, true) > DEFENSIVE_BUBBLE &&
+            !_.pluck(WAR_TARGETS, 'user').includes(owner)) {
+            log.a(`Canceling operation in ${roomLink(key)} — ${owner} no longer a threat.`, 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             INTEL[key].lastOperation = Game.time;
             INTEL[key].lastSiege = Game.time;
@@ -856,8 +862,13 @@ function manualAttacks() {
         if (operation.toLowerCase() === 'd') continue;
 
         if (operation.toLowerCase() === 'test') {
-            if (!Game.rooms[roomName].memory.testDefense) Game.rooms[roomName].memory.testDefense = true;
-            else Game.rooms[roomName].memory.testDefense = undefined;
+            const testRoom = Game.rooms[roomName];
+            if (!testRoom) {
+                removeFlagAndLog('Test flag removed — room ' + roomLink(roomName) + ' not visible.');
+                continue;
+            }
+            if (!testRoom.memory.testDefense) testRoom.memory.testDefense = true;
+            else testRoom.memory.testDefense = undefined;
             removeFlagAndLog('Test operation initiated in ' + roomLink(roomName));
             continue;
         }

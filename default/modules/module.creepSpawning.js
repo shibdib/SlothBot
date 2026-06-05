@@ -7,6 +7,7 @@
  */
 
 const generator = require('module.bodyGenerator');
+const highCommand = require('module.highCommand');
 
 let energyOrder = {};
 let orderStored = {};
@@ -408,7 +409,7 @@ module.exports.miscCreepQueue = function (room) {
     if (miscTick[room.name] + 12 > Game.time) return;
     miscTick[room.name] = Game.time;
 
-    if (room.terminal && room.storage) {
+    if (room.storage && (room.terminal || room.factory)) {
         queueCreepIfNeeded({room, role: 'labTech', priority: PRIORITIES.hauler + 1, numberNeeded: 1});
     }
 
@@ -465,21 +466,25 @@ module.exports.miscCreepQueue = function (room) {
             numberNeeded: needyBorderPatrol.memory.squadMembers.length + 1,
             destination: needyBorderPatrol.memory.destination, operation: 'borderPatrol'
         });
-    } else if (room.memory.borderPatrol && INTEL[room.memory.borderPatrol].hostilePower < (longbowPower * (room.energyState + 1))) {
-        const power = INTEL[room.memory.borderPatrol] ? (INTEL[room.memory.borderPatrol].hostilePower * 1.5) - (INTEL[room.memory.borderPatrol].friendlyPower || 0) : 50;
+    } else if (room.memory.borderPatrol && INTEL[room.memory.borderPatrol] &&
+        INTEL[room.memory.borderPatrol].hostilePower < (longbowPower * (room.energyState + 1))) {
+        const borderIntel = INTEL[room.memory.borderPatrol];
+        const power = borderIntel ? (borderIntel.hostilePower * 1.5) - (borderIntel.friendlyPower || 0) : 50;
         if (power > 0) {
             queueCreepIfNeeded({
                 room, role: 'longbow', priority: PRIORITIES.medium,
-                numberNeeded: INTEL[room.memory.borderPatrol].hostilePower / longbowPower,
+                numberNeeded: borderIntel.hostilePower / longbowPower,
                 destination: room.memory.borderPatrol, operation: 'borderPatrol', other: {power}
             });
         }
-    } else if (room.energyState && needsBorderResponse && INTEL[needsBorderResponse].hostilePower < longbowPower) {
-        const power = INTEL[needsBorderResponse] ? (INTEL[needsBorderResponse].hostilePower * 1.5) - (INTEL[needsBorderResponse].friendlyPower || 0) : 50;
+    } else if (room.energyState && needsBorderResponse && INTEL[needsBorderResponse] &&
+        INTEL[needsBorderResponse].hostilePower < longbowPower) {
+        const responseIntel = INTEL[needsBorderResponse];
+        const power = responseIntel ? (responseIntel.hostilePower * 1.5) - (responseIntel.friendlyPower || 0) : 50;
         if (power > 0) {
             queueCreepIfNeeded({
                 room, role: 'longbow', priority: PRIORITIES.secondary,
-                numberNeeded: INTEL[needsBorderResponse].hostilePower / longbowPower,
+                numberNeeded: responseIntel.hostilePower / longbowPower,
                 destination: needsBorderResponse, operation: 'borderPatrol', other: {power}
             });
         }
@@ -499,15 +504,17 @@ module.exports.remoteCreepQueue = function (room) {
     remoteTick[room.name] = Game.time;
     room.memory.borderPatrol = undefined;
 
-    if (room.memory.dangerousAttack || INTEL[room.name].threatLevel > 2) {
+    const homeIntel = INTEL[room.name];
+    if (room.memory.dangerousAttack || (homeIntel && homeIntel.threatLevel > 2)) {
         remoteRoomTargets[room.name] = undefined;
         lastRemoteRefresh[room.name] = 0;
         return;
     }
 
-    if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + CREEP_LIFE_TIME < Game.time || INTEL[room.name].refreshRemotes) {
+    if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + CREEP_LIFE_TIME < Game.time ||
+        (homeIntel && homeIntel.refreshRemotes)) {
         refreshRemoteRoomTargets(room);
-        INTEL[room.name].refreshRemotes = undefined;
+        if (homeIntel) homeIntel.refreshRemotes = undefined;
     }
 
     const threat = remoteRoomTargets[room.name]?.find(r => INTEL[r] && INTEL[r].threatLevel > 1);
@@ -854,6 +861,9 @@ module.exports.globalCreepQueue = function () {
 
         const opLevel = Memory.targetRooms[key] ? operation.level : operation.level || 1;
         let priority = INTEL[key] ? getPriority(key) : PRIORITIES.secondary;
+        if (Memory.auxiliaryTargets[key] && operation.priority != null) {
+            priority = Math.min(priority, operation.priority);
+        }
         operation.priority = priority;
 
         if (operation.builders) {
@@ -870,7 +880,20 @@ module.exports.globalCreepQueue = function () {
                 queueCreepIfNeeded({role: 'scout', priority: 1, numberNeeded: 1, destination: key, closestRoom: true});
                 break;
             case 'claim':
-                queueCreepIfNeeded({role: 'claimer', priority, numberNeeded: 1, destination: key, closestRoom: true});
+                if (!INTEL[key].owner && INTEL[key].hubCheck && !INTEL[key].obstacles) {
+                    queueCreepIfNeeded({
+                        role: 'claimer', priority, numberNeeded: 1, destination: key,
+                        closestRoom: true, operation: 'claim'
+                    });
+                } else {
+                    queueCreepIfNeeded({
+                        role: 'scout',
+                        priority: 1,
+                        numberNeeded: 1,
+                        destination: key,
+                        closestRoom: true
+                    });
+                }
                 break;
             case 'rebuild':
                 if (!INTEL[key] || !INTEL[key].lastPlayerSighting || INTEL[key].lastPlayerSighting + 750 < Game.time || INTEL[key].safemode) {
@@ -1217,15 +1240,18 @@ function computeOpLevelTarget(target, opMemory, intel) {
 function resolveAssignment(room, target, opMemory, levelTarget, entry, intel) {
     const now = Game.time;
     if (opMemory.assignedRoom) {
+        const assigned = Game.rooms[opMemory.assignedRoom];
+        if (!assigned) return opMemory.assignedRoom;
+
         // Add a check for energy starved rooms needing to be re-assigned
-        if (Memory.targetRooms[target] && !Game.rooms[opMemory.assignedRoom].memory.combatReady) {
+        if (Memory.targetRooms[target] && !assigned.memory.combatReady) {
             if (!opMemory.assignmentEnergyCounter) opMemory.assignmentEnergyCounter = 0;
             if (opMemory.assignmentEnergyCounter > 100) {
                 unassignRoom(target, 'Room is not combat ready.');
             }
             opMemory.assignmentEnergyCounter++;
             return opMemory.assignedRoom;
-        } else if (Memory.auxiliaryTargets[target] && !Game.rooms[opMemory.assignedRoom].memory.auxilaryReady) {
+        } else if (Memory.auxiliaryTargets[target] && !assigned.memory.auxilaryReady) {
             if (!opMemory.assignmentEnergyCounter) opMemory.assignmentEnergyCounter = 0;
             if (opMemory.assignmentEnergyCounter > 100) {
                 unassignRoom(target, 'Room is not auxiliary ready.');
@@ -1590,10 +1616,13 @@ function adjustQueuePriority(queue, room) {
     return queue;
 }
 
-function getPriority(room) {
-    const range = findClosestOwnedRoom(room, true);
-    const typeMulti = Memory.targetRooms[room] ? 1 : 2;
-    const energyMulti = room.energyState < 2 ? 1.5 : 1;
+function getPriority(operationRoom) {
+    const range = findClosestOwnedRoom(operationRoom, true);
+    const typeMulti = Memory.targetRooms[operationRoom] ? 1 : 2;
+    const op = Memory.targetRooms[operationRoom] || Memory.auxiliaryTargets[operationRoom];
+    const colonyName = (op && op.assignedRoom) || findClosestOwnedRoom(operationRoom, false, 1);
+    const colony = colonyName && Game.rooms[colonyName];
+    const energyMulti = colony && colony.energyState < 2 ? 1.5 : 1;
     if (range <= 3) return (PRIORITIES.priority * typeMulti) * energyMulti;
     else if (range <= 5) return (PRIORITIES.urgent * typeMulti) * energyMulti;
     else if (range <= 7) return (PRIORITIES.high * typeMulti) * energyMulti;
@@ -1601,95 +1630,5 @@ function getPriority(room) {
     else return (PRIORITIES.secondary * typeMulti) * energyMulti;
 }
 
-module.exports.operationSustainability = function (room, operationRoom = room.name) {
-    let operation = Memory.targetRooms[operationRoom] || Memory.auxiliaryTargets[operationRoom]
-        || Memory.targetRooms[room.name] || Memory.auxiliaryTargets[room.name];
-
-    if (!operation) return;
-
-    if (room.controller && room.controller.safeMode) {
-        markAsPending(operationRoom, room);
-        return;
-    }
-
-    if (operation && operation.sustainabilityCheck === Game.time) return;
-
-    let friendlyDead = operation.friendlyDead || 0;
-    let trackedFriendly = operation.trackedFriendly || [];
-    let enemyDead = operation.enemyDead || 0;
-    let trackedEnemy = operation.trackedEnemy || [];
-    let isAtRisk = false;
-
-    friendlyDead = processTombstones(room.tombstones, FRIENDLIES, friendlyDead, trackedFriendly);
-    enemyDead = processTombstones(room.tombstones, null, enemyDead, trackedEnemy);
-
-    operation.friendlyDead = friendlyDead;
-    operation.trackedFriendly = trackedFriendly;
-    operation.enemyDead = enemyDead;
-    operation.trackedEnemy = trackedEnemy;
-    operation.sustainabilityCheck = Game.time;
-    operation.isAtRisk = isAtRisk;
-
-    if (room.tombstones.length) {
-        const deadEnemy = _.filter(room.tombstones, (t) => !FRIENDLIES.includes(t.creep.owner.username));
-        operation.lastEnemyKilled = _.max(deadEnemy, 'deathTime');
-    }
-
-    saveOperation(operationRoom, operation);
-
-    if (isAtRisk) {
-        log.w(`Operation in ${room.name} is at risk due to enemy reinforcements or resource depletion. Consider adjusting strategy.`, 'OPERATION PLANNER: ');
-    }
-};
-
-function markAsPending(operationRoom, room) {
-    let cache = Memory.targetRooms || {};
-    let tick = Game.time;
-    cache[operationRoom] = {
-        tick: tick,
-        type: 'remoteDenial',
-        level: 1,
-        dDay: tick + room.controller.safeMode,
-    };
-
-    log.a(`${room.name} is now marked as a Remote Denial due to safemode.`, 'OPERATION PLANNER: ');
-    Memory.targetRooms = cache;
-}
-
-function processTombstones(tombstones, friendlyList, deadCount, trackedList) {
-    let relevantTombstones = _.filter(tombstones, (s) => (friendlyList ? _.includes(friendlyList, s.creep.owner.username) : !_.includes(FRIENDLIES, s.creep.owner.username)));
-    for (let tombstone of relevantTombstones) {
-        if (_.includes(trackedList, tombstone.id)) continue;
-        deadCount += UNIT_COST(tombstone.creep.body);
-        trackedList.push(tombstone.id);
-    }
-    return deadCount;
-}
-
-function saveOperation(operationRoom, operation) {
-    if (Memory.targetRooms[operationRoom]) {
-        Memory.targetRooms[operationRoom] = operation;
-    } else if (Memory.auxiliaryTargets[operationRoom]) {
-        Memory.auxiliaryTargets[operationRoom] = operation;
-    }
-}
-
-function siegeLevel(towerCount) {
-    if (towerCount > 3) return false;
-    if (towerCount >= 3) return MAX_LEVEL >= 8;
-    if (towerCount >= 2) return MAX_LEVEL >= 7;
-    return MAX_LEVEL >= 6;
-}
-
-module.exports.generateThreat = function (creep) {
-    let user = INTEL[creep.room.name].user;
-    if (_.includes(FRIENDLIES, user)) return;
-    let cache = Memory._userList || {};
-    let standing = 50;
-    if (cache[user] && (cache[user]['standing'] > 50 || _.includes(FRIENDLIES, user))) standing = cache[user]['standing'];
-    cache[user] = {
-        standing: standing,
-        lastAction: Game.time,
-    };
-    Memory._userList = cache;
-};
+module.exports.operationSustainability = highCommand.operationSustainability;
+module.exports.generateThreat = highCommand.generateThreat;

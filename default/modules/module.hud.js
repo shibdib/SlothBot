@@ -1,53 +1,34 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  *
- * Refactored & Deep-Dived by Grok (xAI) - May 2026
- *
- * Version 2.0 - Major CPU + Visual + Data Improvements
- *
- * CPU Wins:
- * - Dynamic map layer now throttled to every 3 ticks (was every tick)
- * - Pre-computed "activeIntelRooms" list updated every 10 ticks (biggest win — avoids scanning 1000+ INTEL entries every tick)
- * - Creep trail cache rebuild every 5 ticks (unchanged but now cleaner)
- * - Early exits and reduced visual calls in renderMapHUD
- *
- * Visual Improvements:
- * - Cleaner, more compact in-room dashboard with better icons and spacing
- * - Added "Defense" status row (towers + safe mode + hostiles)
- * - Better threat visualization (pulsing active threats, stronghold color)
- * - More consistent emoji icons and color scheme
- * - Slightly larger, more readable fonts on map
- *
- * New Data Added:
- * - Current bucket level + avg CPU in dashboard
- * - Active military operations count (targetRooms + auxiliaryTargets)
- * - Room defense summary (active towers, hostiles present)
- * - Better energy state indicator with color
+ * Version 2.1 - CPU + visual fixes (May 2026)
  */
 
 const profiler = require("tools.profiler");
 
+const VALID_ROOM_NAME = /^[WE]\d+[NS]\d+$/;
+
 let creepTrailCache = [];
-let harvesterCountCache = {};
 let activeIntelCache = {tick: 0, rooms: []};
+let staticIntelCache = {tick: 0, rooms: []};
 
 class HUD {
     constructor() {
-        if (Memory.HUD) this.hudData = Memory.HUD;
-        else this.hudData = Memory.HUD = {
-            ...(Memory.HUD || {}),
-            GCL: {last: Game.gcl.progress, progress: []},
-            RCL: {}
-        };
+        if (!Memory.HUD) Memory.HUD = {};
+        this.hudData = Memory.HUD;
+        if (!this.hudData.GCL) this.hudData.GCL = {last: Game.gcl.progress, progress: []};
+        if (!this.hudData.RCL) this.hudData.RCL = {};
     }
 
     run() {
         if (!Memory.tickInfo) return;
 
+        this.updateGCLData();
+
         for (const roomName of this.getOwnedRooms()) {
             const room = Game.rooms[roomName];
             if (!room) continue;
-            this.updateData(room);
+            this.updateRCLData(room);
             this.renderDashboard(room);
         }
 
@@ -56,11 +37,6 @@ class HUD {
 
     getOwnedRooms() {
         return global.MY_ROOMS || [];
-    }
-
-    updateData(room) {
-        this.updateGCLData();
-        this.updateRCLData(room);
     }
 
     updateGCLData() {
@@ -83,6 +59,21 @@ class HUD {
         this.hudData.RCL[room.name].last = currentProgress;
     }
 
+    countMilitaryOps() {
+        let count = 0;
+        if (Memory.targetRooms) {
+            for (const roomName in Memory.targetRooms) {
+                if (Memory.targetRooms[roomName] && VALID_ROOM_NAME.test(roomName)) count++;
+            }
+        }
+        if (Memory.auxiliaryTargets) {
+            for (const roomName in Memory.auxiliaryTargets) {
+                if (Memory.auxiliaryTargets[roomName] && VALID_ROOM_NAME.test(roomName)) count++;
+            }
+        }
+        return count;
+    }
+
     average(arr) {
         if (!arr || !arr.length) return 0;
         return arr.reduce((a, b) => a + b, 0) / arr.length;
@@ -92,14 +83,10 @@ class HUD {
         let y = 0.75;
         const x = 0.5;
         const width = 9.0;
+        const hasAudit = room.memory.energyDiag && room.memory.energyInfo;
 
-        // Calculate rows needed
-        let rows = 1; // GCL
-        if (room.level < 8) rows++; // RCL
-        rows += 2; // Status + Defense
-        rows += 3; // Energy audit
+        let rows = 1 + (room.level < 8 ? 1 : 0) + 1 + (hasAudit ? 3 : 1);
 
-        // Background
         room.visual.rect(x - 0.25, y - 0.5, width + 0.5, (rows * 1.05) + 0.15, {
             fill: '#0a0a0a',
             opacity: 0.82,
@@ -107,30 +94,26 @@ class HUD {
             strokeWidth: 0.04
         });
 
-        // GCL
         const gclInfo = this.getGCLInfo();
         this.drawBar(room, x, y, width, gclInfo.progress, '#00B7EB', `GCL ${gclInfo.level}`, gclInfo.time);
         y += 1.05;
 
-        // RCL
         if (room.level < 8) {
             const rclInfo = this.getRCLInfo(room);
             this.drawBar(room, x, y, width, rclInfo.progress, '#9B59B6', `RCL ${rclInfo.level}`, rclInfo.time);
             y += 1.05;
         }
 
-        // Status + Defense row
         this.renderStatusAndDefense(room, x, y, width);
         y += 1.05;
 
-        // Energy Audit
-        this.renderEnergyAudit(room, x, y, width);
+        this.renderEnergyAudit(room, x, y, width, hasAudit);
     }
 
     renderStatusAndDefense(room, x, y, width) {
         const divider = x + 3.2;
+        const opCount = this.countMilitaryOps();
 
-        // Left: Energy + Bucket/CPU
         const storage = room.storage ? room.storage.store[RESOURCE_ENERGY] : 0;
         const terminal = room.terminal ? room.terminal.store[RESOURCE_ENERGY] : 0;
         const totalEnergy = storage + terminal;
@@ -139,15 +122,15 @@ class HUD {
 
         const bucket = Game.cpu.bucket;
         const cpuColor = bucket < 2000 ? '#ff5555' : bucket < 5000 ? '#ffaa00' : '#4fc3f7';
+        const opsText = opCount > 0 ? ` | OPS ${opCount}` : '';
 
         room.visual.text(`⚡${displayEnergy}`, x + 0.15, y + 0.12, {
             color: '#FFD700', align: 'left', font: 'bold 0.48 Tahoma'
         });
-        room.visual.text(`CPU ${Game.cpu.getUsed().toFixed(1)} | B ${bucket}`, divider, y + 0.12, {
+        room.visual.text(`CPU ${Game.cpu.getUsed().toFixed(1)} | B ${bucket}${opsText}`, divider, y + 0.12, {
             color: cpuColor, align: 'left', font: '0.38 Tahoma'
         });
 
-        // Right: Defense / Threat
         let statusText = '✓ Secure';
         let statusColor = '#66BB6A';
 
@@ -163,7 +146,7 @@ class HUD {
             statusColor = '#ffaa00';
         }
 
-        const towers = room.towers.filter(t => t.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST).length;
+        const towers = room.towers.filter(t => t.isActive() && t.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST).length;
         const towerText = towers > 0 ? ` ${towers}T` : '';
 
         room.visual.text(`${statusText}${towerText}`, x + width - 0.15, y + 0.12, {
@@ -171,16 +154,20 @@ class HUD {
         });
     }
 
-    renderEnergyAudit(room, x, y, width) {
+    renderEnergyAudit(room, x, y, width, hasAudit) {
+        if (!hasAudit) {
+            room.visual.text('Energy audit pending…', x + 0.15, y + 0.12, {
+                color: '#888888', align: 'left', font: '0.36 Tahoma'
+            });
+            return;
+        }
+
         const diag = room.memory.energyDiag;
         const info = room.memory.energyInfo;
-        if (!diag || !info) return;
-
         const divider = x + 2.6;
 
         room.visual.line(x - 0.1, y - 0.45, x + width + 0.1, y - 0.45, {color: '#333333', opacity: 0.7, width: 0.03});
 
-        // Income
         room.visual.text('IN', x + 0.15, y + 0.12, {color: '#4fc3f7', align: 'left', font: 'bold 0.38 Tahoma'});
         room.visual.text(`+${info.income}/t`, divider, y + 0.12, {
             color: '#4fc3f7',
@@ -192,7 +179,6 @@ class HUD {
         });
         y += 0.95;
 
-        // Expense
         room.visual.text('OUT', x + 0.15, y + 0.12, {color: '#ef9a9a', align: 'left', font: 'bold 0.38 Tahoma'});
         room.visual.text(`-${info.expense}/t`, divider, y + 0.12, {
             color: '#ef9a9a',
@@ -204,13 +190,12 @@ class HUD {
         });
         y += 0.95;
 
-        // Net
         const measured = room.energyIncome || 0;
         const netSign = measured >= 0 ? '+' : '';
         const netColor = measured >= 0 ? '#a5d6a7' : '#ef5350';
         const stateLabels = ['CRIT', 'LOW', 'OK', 'SURPLUS'];
         const stateColors = ['#ef5350', '#FFB347', '#66BB6A', '#4fc3f7'];
-        const state = room.energyState || 1;
+        const state = Math.min(3, Math.max(0, room.energyState || 0));
 
         room.visual.text('NET', x + 0.15, y + 0.12, {color: netColor, align: 'left', font: 'bold 0.38 Tahoma'});
         room.visual.text(`${netSign}${measured}/t`, divider, y + 0.12, {
@@ -218,17 +203,20 @@ class HUD {
             align: 'right',
             font: 'bold 0.38 Tahoma'
         });
-        room.visual.text(`[${state}] ${stateLabels[state]}`, x + width - 0.15, y + 0.12, {
-            color: stateColors[state], align: 'right', font: 'bold 0.36 Tahoma'
+        const trend = info.trend != null ? ` tr:${info.trend}` : '';
+        room.visual.text(`[${state}] ${stateLabels[state] || 'OK'}${trend}`, x + width - 0.15, y + 0.12, {
+            color: stateColors[state] || '#66BB6A', align: 'right', font: 'bold 0.36 Tahoma'
         });
     }
 
     getGCLInfo() {
         const avg = this.average(this.hudData.GCL.progress);
-        const remaining = (Game.gcl.progressTotal - Game.gcl.progress) / avg * Memory.tickInfo.tickLength;
+        const remaining = avg > 0
+            ? (Game.gcl.progressTotal - Game.gcl.progress) / avg * Memory.tickInfo.tickLength
+            : Infinity;
         return {
             level: Game.gcl.level,
-            progress: (Game.gcl.progress / Game.gcl.progressTotal) * 100,
+            progress: Game.gcl.progressTotal > 0 ? (Game.gcl.progress / Game.gcl.progressTotal) * 100 : 0,
             time: this.timeFormat(remaining)
         };
     }
@@ -236,24 +224,99 @@ class HUD {
     getRCLInfo(room) {
         const rclData = this.hudData.RCL[room.name] || {progress: []};
         const avg = this.average(rclData.progress);
-        const remaining = (room.controller.progressTotal - room.controller.progress) / avg * Memory.tickInfo.tickLength;
+        const remaining = avg > 0
+            ? (room.controller.progressTotal - room.controller.progress) / avg * Memory.tickInfo.tickLength
+            : Infinity;
         return {
             level: room.controller.level,
-            progress: (room.controller.progress / room.controller.progressTotal) * 100,
+            progress: room.controller.progressTotal > 0
+                ? (room.controller.progress / room.controller.progressTotal) * 100
+                : 0,
             time: this.timeFormat(remaining)
         };
     }
 
     drawBar(room, x, y, width, progress, color, textLeft, textRight) {
+        const pct = Number.isFinite(progress) ? progress : 0;
         room.visual.rect(x, y - 0.38, width, 0.76, {fill: '#1a1a1a', opacity: 0.85});
-        const fillWidth = Math.max(0, Math.min(width, width * (progress / 100)));
+        const fillWidth = Math.max(0, Math.min(width, width * (pct / 100)));
         if (fillWidth > 0) {
             room.visual.rect(x, y - 0.38, fillWidth, 0.76, {fill: color, opacity: 0.65});
         }
         room.visual.text(textLeft, x + 0.15, y + 0.12, {color: '#ffffff', align: 'left', font: 'bold 0.42 Tahoma'});
-        room.visual.text(`${progress.toFixed(1)}% | ${textRight}`, x + width - 0.15, y + 0.12, {
+        room.visual.text(`${pct.toFixed(1)}% | ${textRight}`, x + width - 0.15, y + 0.12, {
             color: '#cccccc', align: 'right', font: '0.38 Tahoma'
         });
+    }
+
+    buildStaticIntelRoomList(myRooms) {
+        const list = [];
+        if (!global.INTEL) return list;
+        const owned = new Set(myRooms);
+        for (const roomName in global.INTEL) {
+            if (!VALID_ROOM_NAME.test(roomName)) continue;
+            const intel = global.INTEL[roomName];
+            if (!intel || owned.has(roomName)) continue;
+            if ((intel.owner && intel.level) ||
+                (intel.reservation && !intel.owner) ||
+                intel.invaderCore ||
+                intel.power ||
+                intel.commodity ||
+                intel.portal) {
+                list.push(roomName);
+            }
+        }
+        return list;
+    }
+
+    renderStaticIntelRoom(roomName, enemies, friendlies, ourRemotes) {
+        const intel = global.INTEL[roomName];
+        if (!intel) return;
+
+        if (intel.owner && intel.level) {
+            const color = enemies.includes(intel.owner) ? '#ff3333' :
+                friendlies.includes(intel.owner) ? '#33ff88' : '#e0ce5c';
+            Game.map.visual.rect(new RoomPosition(0, 0, roomName), 50, 50, {
+                fill: color, opacity: 0.08, stroke: color, strokeWidth: 0.8
+            });
+            Game.map.visual.text(intel.owner, new RoomPosition(25, 21, roomName), {
+                color: color, fontSize: 4.5, align: 'center', fontFamily: 'Tahoma'
+            });
+            Game.map.visual.text('RCL ' + intel.level, new RoomPosition(25, 29, roomName), {
+                color: color, fontSize: 4.5, align: 'center', fontFamily: 'Tahoma'
+            });
+        }
+
+        if (intel.reservation && !intel.owner) {
+            const isOurs = ourRemotes.has(roomName);
+            const color = isOurs ? '#00B7EB' : (enemies.includes(intel.reservation) ? '#ff6666' : '#66ffaa');
+            Game.map.visual.rect(new RoomPosition(0, 0, roomName), 50, 50, {
+                fill: color, opacity: 0.06, stroke: color, strokeWidth: 0.6, lineStyle: 'dashed'
+            });
+            Game.map.visual.text(isOurs ? 'RSV' : intel.reservation, new RoomPosition(25, 21, roomName), {
+                color: color, fontSize: 4.5, align: 'center', fontFamily: 'Tahoma'
+            });
+        }
+
+        if (intel.invaderCore) {
+            Game.map.visual.circle(new RoomPosition(25, 25, roomName), {
+                radius: 8, fill: '#800080', opacity: 0.18, stroke: '#aa44cc', strokeWidth: 0.6
+            });
+            Game.map.visual.text('CORE', new RoomPosition(25, 26, roomName), {
+                color: '#cc88ff', fontSize: 4.5, align: 'center', fontFamily: 'Tahoma'
+            });
+        }
+
+        if (intel.power) Game.map.visual.text('⚡', new RoomPosition(10, 9, roomName), {fontSize: 7, align: 'center'});
+        if (intel.commodity) Game.map.visual.text('💎', new RoomPosition(40, 9, roomName), {
+            fontSize: 7,
+            align: 'center'
+        });
+        if (intel.portal) {
+            Game.map.visual.circle(new RoomPosition(25, 40, roomName), {
+                radius: 2.5, fill: '#00ffff', opacity: 0.65
+            });
+        }
     }
 
     renderMapHUD() {
@@ -262,10 +325,8 @@ class HUD {
         const currentTime = Game.time;
         const myRooms = this.getOwnedRooms();
 
-        // === STATIC LAYER (every 50 ticks) ===
         const refreshStatic = !Memory._mapVisuals || currentTime % 50 === 0;
         if (refreshStatic) {
-            // Colony overlays
             for (const roomName of myRooms) {
                 const room = Game.rooms[roomName];
                 if (!room) continue;
@@ -278,10 +339,8 @@ class HUD {
                 });
             }
 
-            // Remote connections
             this.renderRemoteLinks(myRooms);
 
-            // Intel static layer
             if (global.INTEL) {
                 const enemies = global.ENEMIES || [];
                 const friendlies = global.FRIENDLIES || [];
@@ -292,57 +351,10 @@ class HUD {
                     }
                 }
 
-                for (const roomName in global.INTEL) {
-                    const intel = global.INTEL[roomName];
-                    if (!intel || myRooms.includes(roomName)) continue;
-
-                    if (intel.owner && intel.level) {
-                        const color = enemies.includes(intel.owner) ? '#ff3333' :
-                            friendlies.includes(intel.owner) ? '#33ff88' : '#e0ce5c';
-                        Game.map.visual.rect(new RoomPosition(0, 0, roomName), 50, 50, {
-                            fill: color, opacity: 0.08, stroke: color, strokeWidth: 0.8
-                        });
-                        Game.map.visual.text(intel.owner, new RoomPosition(25, 21, roomName), {
-                            color: color, fontSize: 4.5, align: 'center', fontFamily: 'Tahoma'
-                        });
-                        Game.map.visual.text('RCL ' + intel.level, new RoomPosition(25, 29, roomName), {
-                            color: color, fontSize: 4.5, align: 'center', fontFamily: 'Tahoma'
-                        });
-                    }
-
-                    if (intel.reservation && !intel.owner) {
-                        const isOurs = ourRemotes.has(roomName);
-                        const color = isOurs ? '#00B7EB' : (enemies.includes(intel.reservation) ? '#ff6666' : '#66ffaa');
-                        Game.map.visual.rect(new RoomPosition(0, 0, roomName), 50, 50, {
-                            fill: color, opacity: 0.06, stroke: color, strokeWidth: 0.6, lineStyle: 'dashed'
-                        });
-                        Game.map.visual.text(isOurs ? 'RSV' : intel.reservation, new RoomPosition(25, 21, roomName), {
-                            color: color, fontSize: 4.5, align: 'center', fontFamily: 'Tahoma'
-                        });
-                    }
-
-                    if (intel.invaderCore) {
-                        Game.map.visual.circle(new RoomPosition(25, 25, roomName), {
-                            radius: 8, fill: '#800080', opacity: 0.18, stroke: '#aa44cc', strokeWidth: 0.6
-                        });
-                        Game.map.visual.text('CORE', new RoomPosition(25, 26, roomName), {
-                            color: '#cc88ff', fontSize: 4.5, align: 'center', fontFamily: 'Tahoma'
-                        });
-                    }
-
-                    if (intel.power) Game.map.visual.text('⚡', new RoomPosition(10, 9, roomName), {
-                        fontSize: 7,
-                        align: 'center'
-                    });
-                    if (intel.commodity) Game.map.visual.text('💎', new RoomPosition(40, 9, roomName), {
-                        fontSize: 7,
-                        align: 'center'
-                    });
-                    if (intel.portal) {
-                        Game.map.visual.circle(new RoomPosition(25, 40, roomName), {
-                            radius: 2.5, fill: '#00ffff', opacity: 0.65
-                        });
-                    }
+                staticIntelCache.rooms = this.buildStaticIntelRoomList(myRooms);
+                staticIntelCache.tick = currentTime;
+                for (const roomName of staticIntelCache.rooms) {
+                    this.renderStaticIntelRoom(roomName, enemies, friendlies, ourRemotes);
                 }
             }
 
@@ -351,11 +363,11 @@ class HUD {
             Game.map.visual.import(Memory._mapVisuals);
         }
 
-        // Update active intel list every 10 ticks
-        if (currentTime - activeIntelCache.tick > 10 || !activeIntelCache.rooms.length) {
+        if (currentTime - activeIntelCache.tick >= 10) {
             activeIntelCache.rooms = [];
             if (global.INTEL) {
                 for (const roomName in global.INTEL) {
+                    if (!VALID_ROOM_NAME.test(roomName)) continue;
                     const intel = global.INTEL[roomName];
                     if (intel && !myRooms.includes(roomName) &&
                         (intel.threatLevel > 0 || intel.loot || intel.invaderCore || intel.armedHostile)) {
@@ -366,7 +378,6 @@ class HUD {
             activeIntelCache.tick = currentTime;
         }
 
-        // Owned room dynamic elements
         for (const roomName of myRooms) {
             const room = Game.rooms[roomName];
             if (!room) continue;
@@ -396,7 +407,6 @@ class HUD {
             }
         }
 
-        // Active Intel (only the pre-computed list)
         const threatColors = ['', '#ffcc00', '#ff9900', '#ff5500', '#ff2200', '#ff0044'];
         for (const roomName of activeIntelCache.rooms) {
             const intel = global.INTEL[roomName];
@@ -422,7 +432,9 @@ class HUD {
                 });
 
                 if (intel.threatLevel >= 3 && intel.hostileOwners && intel.hostileOwners.length) {
-                    const display = intel.hostileOwners.length > 1 ? intel.hostileOwners[0] + ' +' + (intel.hostileOwners.length - 1) : intel.hostileOwners[0];
+                    const display = intel.hostileOwners.length > 1
+                        ? intel.hostileOwners[0] + ' +' + (intel.hostileOwners.length - 1)
+                        : intel.hostileOwners[0];
                     Game.map.visual.text(display, new RoomPosition(25, 25, roomName), {
                         color: '#ffffff', fontSize: 4.5, align: 'center', fontFamily: 'Tahoma'
                     });
@@ -448,7 +460,6 @@ class HUD {
             }
         }
 
-        // Expansion target
         if (Memory.claimTarget && Memory.claimTarget.room) {
             const roomName = Memory.claimTarget.room;
             Game.map.visual.circle(new RoomPosition(25, 25, roomName), {
@@ -460,15 +471,12 @@ class HUD {
             });
         }
 
-        // Creep trails
         this.renderCreepTrails();
 
-        // Military Operations
-        const validRoomName = /^[WE]\d+[NS]\d+$/;
         if (Memory.targetRooms) {
             for (const roomName in Memory.targetRooms) {
                 const target = Memory.targetRooms[roomName];
-                if (!target || !validRoomName.test(roomName)) continue;
+                if (!target || !VALID_ROOM_NAME.test(roomName)) continue;
                 Game.map.visual.line(new RoomPosition(15, 25, roomName), new RoomPosition(35, 25, roomName), {
                     color: '#ff2222', width: 1.8, opacity: 0.85
                 });
@@ -489,7 +497,7 @@ class HUD {
         if (Memory.auxiliaryTargets) {
             for (const roomName in Memory.auxiliaryTargets) {
                 const target = Memory.auxiliaryTargets[roomName];
-                if (!target || !validRoomName.test(roomName)) continue;
+                if (!target || !VALID_ROOM_NAME.test(roomName)) continue;
                 Game.map.visual.circle(new RoomPosition(25, 25, roomName), {
                     radius: 13,
                     stroke: '#ffff00',
@@ -538,11 +546,7 @@ class HUD {
     renderCreepTrails() {
         if (Game.time % 5 === 0) {
             creepTrailCache = [];
-            harvesterCountCache = {};
 
-            // Build dest -> [routes] index from the global route cache. shibPath's
-            // cached-path branch never sets _shibMove.route, so for most moving
-            // creeps that's our only source of the routed room list.
             const routesByDest = {};
             if (global.CACHE && CACHE.ROUTE_CACHE) {
                 for (const key in CACHE.ROUTE_CACHE) {
@@ -566,7 +570,10 @@ class HUD {
                     shibMove.route[shibMove.route.length - 1] === dest) {
                     route = shibMove.route;
                 } else if (routesByDest[dest]) {
-                    route = routesByDest[dest].find(r => r.includes(room)) || routesByDest[dest][0];
+                    const candidates = routesByDest[dest].filter(r => r.includes(room));
+                    route = candidates.length
+                        ? candidates.reduce((a, b) => a.length <= b.length ? a : b)
+                        : routesByDest[dest][0];
                 }
 
                 creepTrailCache.push({
@@ -575,7 +582,6 @@ class HUD {
                     dest: dest,
                     route: route
                 });
-                harvesterCountCache[dest] = (harvesterCountCache[dest] || 0) + 1;
             }
         }
 
@@ -586,9 +592,6 @@ class HUD {
             });
             if (t.room === t.dest) continue;
 
-            // Snake the trail through the routed rooms via their centers.
-            // Falls back to a straight line if no route is cached or the creep
-            // has wandered off-route.
             const startIdx = t.route ? t.route.indexOf(t.room) : -1;
             if (startIdx >= 0 && startIdx < t.route.length - 1) {
                 let prev = new RoomPosition(t.x, t.y, t.room);

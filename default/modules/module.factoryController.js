@@ -13,9 +13,10 @@ class FactoryControl {
 
     run(room) {
         const factory = room.factory;
-        if (!factory || room.nukes.length) return;
+        if (!factory || !factory.isActive() || room.nukes.length) return;
 
         const currentTime = Game.time;
+        const factoryLevel = factory.level || 0;
 
         if (currentTime % 1000 === 0) this._pruneTrackers();
 
@@ -39,6 +40,16 @@ class FactoryControl {
             });
         }
 
+        // Re-evaluate stop/invalid targets every tick so labTech and terminal logic stay aligned
+        if (factory.memory.producing) {
+            if (this.shouldStopProduction(room, factory)) {
+                this.clearProduction(factory);
+            } else if (!this.isValidProductionTarget(factory.memory.producing, room, factoryLevel)) {
+                log.i(`${roomLink(room.name)} clearing invalid production target ${factory.memory.producing}.`, 'FACTORY CONTROL:');
+                this.clearProduction(factory);
+            }
+        }
+
         const lastRun = tickTracker[room.name] || 0;
         const coolDown = cooldownTracker[room.name] || 10;
 
@@ -50,13 +61,6 @@ class FactoryControl {
             return;
         }
 
-        const factoryLevel = factory.level || 0;
-
-        // Stop current production if conditions are met
-        if (factory.memory.producing && this.shouldStopProduction(room, factory)) {
-            delete factory.memory.producing;
-        }
-
         // Decide on new production if not currently producing
         if (!factory.memory.producing) {
             this.decideProduction(room, factory, factoryLevel);
@@ -66,7 +70,7 @@ class FactoryControl {
         if (factory.memory.producing && this.isValidProductionTarget(factory.memory.producing, room, factoryLevel)) {
             const commodity = COMMODITIES[factory.memory.producing];
             // Confirm inputs are actually loaded into the factory store before calling produce
-            if (!Object.keys(commodity.components).every(c => factory.store[c] >= commodity.components[c])) {
+            if (!Object.keys(commodity.components).every(c => (factory.store[c] || 0) >= commodity.components[c])) {
                 cooldownTracker[room.name] = 3;
                 return;
             }
@@ -75,18 +79,23 @@ class FactoryControl {
                 cooldownTracker[room.name] = commodity.cooldown + 1;
             } else {
                 log.w(`${roomLink(room.name)} factory produce() failed for ${factory.memory.producing} (${result}), re-evaluating.`, 'FACTORY CONTROL:');
-                delete factory.memory.producing;
+                this.clearProduction(factory);
                 cooldownTracker[room.name] = 10;
             }
-        } else if (factory.memory.producing) {
-            log.i(`${roomLink(room.name)} clearing invalid production target ${factory.memory.producing}.`, 'FACTORY CONTROL:');
-            delete factory.memory.producing;
         }
 
         // Handle targeted commodity production
         if (!factory.memory.producing) {
             this.commodityProduction(room, factory, factoryLevel);
         }
+    }
+
+    clearProduction(factory) {
+        const room = factory.room;
+        if (room.memory.neededCommodity && factory.memory.producing === room.memory.neededCommodity) {
+            delete room.memory.neededCommodity;
+        }
+        delete factory.memory.producing;
     }
 
     _pruneTrackers() {
@@ -203,31 +212,32 @@ class FactoryControl {
 
         // Try assigned commodity
         if (room.energyState && room.memory.commodityProduction) {
-            if (this.isValidProductionTarget(room.memory.commodityProduction, room, factoryLevel)) {
-                this.setProduction(factory, room.memory.commodityProduction, 'assigned commodity');
-            } else {
-                // Try to produce the components of the commodity
-                const commodity = COMMODITIES[room.memory.commodityProduction];
-                for (const component of Object.keys(commodity.components)) {
-                    if (BASE_COMMODITIES.includes(component)) room.memory.neededCommodity = component;
-                    if (this.isValidProductionTarget(component, room, factoryLevel)) {
-                        this.setProduction(factory, room.memory.commodityProduction, `assigned commodity component ${component}`);
-                        return;
-                    }
+            const assigned = room.memory.commodityProduction;
+            if (this.isValidProductionTarget(assigned, room, factoryLevel)) {
+                this.setProduction(factory, assigned, 'assigned commodity');
+                return;
+            }
+            const commodity = COMMODITIES[assigned];
+            if (!commodity) return;
+            // Build intermediate components (factory.produce must target the component resource)
+            for (const component of Object.keys(commodity.components)) {
+                if (BASE_COMMODITIES.includes(component)) room.memory.neededCommodity = component;
+                if (this.isValidProductionTarget(component, room, factoryLevel)) {
+                    this.setProduction(factory, component, `component for ${assigned}`);
+                    return;
                 }
             }
         }
     }
 
     commodityProduction(room, factory, factoryLevel) {
-        // Check if this room produces the resource required for tier 0
+        if (!room.mineral || !room.mineral.mineralType) return;
         const roomResource = room.mineral.mineralType;
         if (!room.memory.commodityProduction) {
             for (const commodity in COMMODITY_RESOURCE_TYPES) {
-                // Check if any other room is assigned this commodity
-                const alreadyProducing = MY_ROOMS.find(function (otherRoom) {
-                    otherRoom = Game.rooms[otherRoom];
-                    return otherRoom.memory.commodityProduction === commodity;
+                const alreadyProducing = MY_ROOMS.some(name => {
+                    const otherRoom = Game.rooms[name];
+                    return otherRoom && otherRoom.memory.commodityProduction === commodity;
                 });
                 if (alreadyProducing) continue;
                 if (COMMODITY_RESOURCE_TYPES[commodity] === roomResource) {
@@ -269,7 +279,11 @@ class FactoryControl {
     }
 
     hasStorageSpace(room) {
-        return !(room.storage && room.storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1);
+        const storageFull = room.storage && room.storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1;
+        const terminalFull = room.terminal && room.terminal.store.getFreeCapacity() < 10000;
+        if (!room.storage) return !terminalFull;
+        if (!room.terminal) return !storageFull;
+        return !(storageFull && terminalFull);
     }
 }
 

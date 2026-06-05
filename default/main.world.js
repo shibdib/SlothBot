@@ -78,7 +78,7 @@ class World {
         this.highCommand();
 
         // Expansion Manager
-        if ((tickTracker['expansionManager'] || 0) + 1000 < Game.time) {
+        if ((tickTracker['expansionManager'] || 0) + 100 < Game.time) {
             this.expansionManager();
             tickTracker['expansionManager'] = Game.time;
         }

@@ -6,37 +6,55 @@ const runNext = {};
 const lastClean = {};
 const goOverCap = {};
 const productionTracker = {};
-let overCap = false;
 
 class LabManager {
     constructor(room) {
         this.primaryLabs = {};
         this.room = room;
-        this.hub = this.getLabHub(room);
+        this.hub = null;
     }
 
     run(room) {
-        const labs = room.labs;
+        const labs = room.labs.filter(l => l.isActive());
         if (!labs.length) return;
 
-        // Periodic lab memory cleanup
         if (!lastClean[room.name] || lastClean[room.name] + 100 < Game.time) {
             this.cleanLabs(labs);
             lastClean[room.name] = Game.time;
         }
 
+        this.hub = this.getLabHub(room);
+
+        if (room.memory.producingBoost) {
+            this.shouldStopProduction(room);
+        }
+
+        if (!room.memory.producingBoost) {
+            if (!runNext[room.name] || runNext[room.name] < Game.time) {
+                this.manageBoostProduction(room, labs);
+                if (!runNext[room.name] || runNext[room.name] <= Game.time) {
+                    runNext[room.name] = Game.time + 15;
+                }
+            }
+            return;
+        }
+
         if (!runNext[room.name] || runNext[room.name] < Game.time) {
-            this.manageBoostProduction(room, labs);
             this.manageActiveLabs(room, labs);
-            if (!runNext[room.name] || runNext[room.name] <= Game.time) runNext[room.name] = Game.time + 15;
+            if (!runNext[room.name] || runNext[room.name] <= Game.time) {
+                runNext[room.name] = Game.time + 15;
+            }
         }
     }
 
     manageBoostProduction(room, labs) {
-        if (room.memory.producingBoost) return;
         if (!this.hub || this.hub.length < 2) return;
-        const secondaryLabs = labs.filter(lab => !this.primaryLabs[room.name].includes(lab.id));
+        const hubIds = this.primaryLabs[room.name];
+        if (!hubIds) return;
+
+        const secondaryLabs = labs.filter(lab => !hubIds.includes(lab.id));
         if (!secondaryLabs.length) return;
+
         const boost = this.findBoostToProduce(room);
         if (!boost) return;
 
@@ -44,11 +62,15 @@ class LabManager {
     }
 
     manageActiveLabs(room, labs) {
-        if (!room.memory.producingBoost || !this.hub) return;
+        this.hub = this.getLabHub(room);
+        if (!this.hub || this.hub.length < 2) {
+            this.stopProduction(room, 'Hub labs missing.');
+            return;
+        }
 
-        // Sanity check — if hub labs lost their memory, abort cleanly
+        const hubIds = this.primaryLabs[room.name];
         for (const lab of this.hub) {
-            if (!lab.memory || !lab.memory.itemNeeded) {
+            if (!lab || !lab.memory || !lab.memory.itemNeeded) {
                 this.stopProduction(room, 'Hub lab memory lost.');
                 return;
             }
@@ -56,7 +78,7 @@ class LabManager {
 
         const secondaryLabs = labs.filter(lab =>
             !lab.cooldown &&
-            !this.primaryLabs[room.name].includes(lab.id) &&
+            !hubIds.includes(lab.id) &&
             (!lab.memory || !lab.memory.paused || lab.memory.neededBoost === room.memory.producingBoost) &&
             (!lab.memory || !lab.memory.neededBoost || lab.memory.neededBoost === room.memory.producingBoost) &&
             (!lab.mineralType || lab.mineralType === room.memory.producingBoost)
@@ -66,18 +88,21 @@ class LabManager {
             const result = target.runReaction(this.hub[0], this.hub[1]);
             if (result === OK) {
                 runNext[room.name] = Game.time + REACTION_TIME[room.memory.producingBoost] + 1;
-                if (!productionTracker[this.room.name]) productionTracker[this.room.name] = Game.time;
+                productionTracker[this.room.name] = Game.time;
             }
         }
-        this.shouldStopProduction(room);
     }
 
     shouldStopProduction(room) {
-        if (room.store(room.memory.producingBoost) > this.getProductionCutoff(room.memory.producingBoost)) {
+        const boost = room.memory.producingBoost;
+        if (!boost) return;
+
+        if (room.store(boost) >= this.getProductionCutoff(boost)) {
             this.stopProduction(room, 'Boost cap reached.');
         } else if (productionTracker[this.room.name] && productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time) {
             this.stopProduction(room, 'Production stalled — time limit reached.');
-        } else if (this.hub.some(lab => !lab.memory || room.store(lab.memory.itemNeeded) < 50)) {
+        } else if (!this.hub || this.hub.length < 2 ||
+            this.hub.some(lab => !lab || !lab.memory || room.store(lab.memory.itemNeeded) < 50)) {
             this.stopProduction(room, 'Input exhausted.');
         }
     }
@@ -88,9 +113,11 @@ class LabManager {
         room.memory.producingBoost = undefined;
         this.primaryLabs[room.name] = undefined;
         productionTracker[this.room.name] = undefined;
-        if (this.hub) this.hub.forEach(lab => {
-            lab.memory = undefined;
-        });
+        if (this.hub) {
+            for (const lab of this.hub) {
+                if (lab) lab.memory = undefined;
+            }
+        }
     }
 
     findBoostToProduce(room) {
@@ -111,10 +138,6 @@ class LabManager {
 
     tryPriority(room) {
         const priority = !HOSTILES.length ? LAB_PEACE_PRIORITY : LAB_WAR_PRIORITY;
-        // Expand the T3 priority list into [...T1 prereqs, ...T2 prereqs, ...T3s].
-        // Why: T1/T2 reactions are much faster than T3, so stockpiling lower tiers across
-        // the whole priority list first means we always have *something* usable to boost
-        // with, instead of grinding on slow T3 reactions for the first priority entry.
         const t1 = [], t2 = [], t3 = [];
         for (const boost of priority) {
             if (!t3.includes(boost)) t3.push(boost);
@@ -124,7 +147,6 @@ class LabManager {
             const t1Comp = BOOST_COMPONENTS[t2Comp] && BOOST_COMPONENTS[t2Comp][0];
             if (t1Comp && !t1.includes(t1Comp)) t1.push(t1Comp);
         }
-        // Precursors checked room-local (they must be in this room to react); T3s checked empire-wide.
         for (const boost of t1) {
             const result = this.findProducible(room, boost, false);
             if (result) return result;
@@ -140,14 +162,6 @@ class LabManager {
         return null;
     }
 
-    // Recursively find the deepest component we can produce to work toward `boost`.
-    // Recurses BEFORE checking inputs: only commit the labs to producing this boost
-    // once each component is at its tier-aware cutoff. Prevents the labs from
-    // pivoting to a higher tier the instant inputs are minimally available, which
-    // leaves T1/T2 stocks chronically thin.
-    //
-    // globalCheck=true uses getResourceTotal (cross-room) for the top-level boost;
-    // component levels use room-local store since they need to be here to react.
     findProducible(room, boost, globalCheck = false) {
         const cutoff = this.getProductionCutoff(boost);
         const current = globalCheck ? getResourceTotal(boost) : room.store(boost);
@@ -176,6 +190,7 @@ class LabManager {
     }
 
     setupProduction(hub, boost, room) {
+        if (!hub || hub.length < 2) return;
         const components = BOOST_COMPONENTS[boost];
         hub.forEach((lab, i) => {
             lab.memory = {itemNeeded: components[i], room: room.name};
@@ -188,12 +203,6 @@ class LabManager {
     cleanLabs(labs) {
         labs.forEach(lab => {
             if (!lab.memory || !lab.memory.neededBoost) return;
-            // Wipe boost config when no live requestor remains AND the
-            // reservation has aged out. claimBoostLab refreshes `requested` on
-            // every claim so legitimate multi-creep use keeps the clock fresh;
-            // pre-reservation alone isn't enough to keep a lab alive — if the
-            // creep never reaches the claim, the lab times out the same way it
-            // would under the old singular-requestor model.
             const hasLiveRequestor = lab.memory.requestors && lab.memory.requestors.some(id => Game.getObjectById(id));
             if (hasLiveRequestor) return;
             if (!lab.memory.requested || lab.memory.requested + 150 < Game.time) {
@@ -203,23 +212,32 @@ class LabManager {
     }
 
     getLabHub(room) {
-        if (!this.primaryLabs[room.name]) {
-            if (!room.memory.labHub) return;
-            let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
-            // Clear a bad hub if we have labs but not at the hub
-            const labs = room.labs;
-            const hubLabs = labs.filter(lab =>
-                lab.structureType === STRUCTURE_LAB &&
-                ((lab.pos.x === labHub.x && lab.pos.y === labHub.y) ||
-                    (lab.pos.x === labHub.x && lab.pos.y === labHub.y + 1))
-            );
-            if (labs.length && !hubLabs.length) {
-                return room.memory.labHub = undefined;
-            } else if (hubLabs.length) {
-                this.primaryLabs[room.name] = hubLabs.map(lab => lab.id);
-            }
+        if (!room.memory.labHub) {
+            this.primaryLabs[room.name] = undefined;
+            return null;
         }
-        if (this.primaryLabs[room.name]) return this.primaryLabs[room.name].map(id => Game.getObjectById(id));
+
+        const hubPos = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
+        const hubLabs = room.labs.filter(lab =>
+            lab.isActive() &&
+            lab.pos.x === hubPos.x &&
+            (lab.pos.y === hubPos.y || lab.pos.y === hubPos.y + 1)
+        );
+
+        if (room.labs.length && hubLabs.length < 2) {
+            delete room.memory.labHub;
+            this.primaryLabs[room.name] = undefined;
+            return null;
+        }
+
+        if (hubLabs.length < 2) {
+            this.primaryLabs[room.name] = undefined;
+            return null;
+        }
+
+        const pair = hubLabs.slice(0, 2);
+        this.primaryLabs[room.name] = pair.map(l => l.id);
+        return pair;
     }
 }
 
