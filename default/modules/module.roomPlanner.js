@@ -38,10 +38,10 @@ module.exports.buildRoom = function () {
         findHub(room);
     }
 
-    // If no lab hub is set, find and assign one
-    if (!room.memory.labHub) findLabHub(room);
-
-    if (!room.memory.towerHubs) findTowerHub(room);
+    if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
+        if (!room.memory.labHub) findLabHub(room);
+        if (!room.memory.towerHubs) findTowerHub(room);
+    }
 
     // Update tick tracker
     tickTracker[room.name] = lastRun;
@@ -105,7 +105,7 @@ function buildFromLayout(room, countCheck) {
     const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
     if (room.controller.level === 1 && !initialSpawn) {
         filter = tmpl.filter(s => s.structureType === STRUCTURE_SPAWN);
-    } else if (room.controller.level >= 5 && (room.safemode || (INTEL[room.name].lastMajorAttack + (CREEP_LIFE_TIME * 2) > Game.time))) {
+    } else if (room.controller.level >= 5 && isAttackRecoveryMode(room)) {
         room.constructionSites.filter(s => ![STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL, STRUCTURE_RAMPART, STRUCTURE_WALL].includes(s.structureType) && !s.progress).forEach(s => s.remove());
         filter = tmpl.filter(s => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType));
         rampartBuilder(room, tmpl);
@@ -132,22 +132,26 @@ function buildFromLayout(room, countCheck) {
             }
         }
 
-        // Handle proto storage pre rcl4
-        if (1 > 2 && !room.storage && !room.memory.protoStorage && room.controller.level < 4 && room.controller.level > 1) {
-            const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
-            const storagePos = tmpl.filter(s => s.structureType === STRUCTURE_STORAGE)[0].pos[0];
-            const pos = new RoomPosition(hub.x + storagePos.x, hub.y + storagePos.y, room.name);
-            if (!pos.checkForConstructionSites() && !pos.checkForAllStructure()) {
-                pos.createConstructionSite(STRUCTURE_CONTAINER);
-            } else if (pos.checkForAllStructure() && pos.checkForAllStructure().structureType === STRUCTURE_CONTAINER) {
-                room.memory.protoStorage = pos.checkForAllStructure().id;
-            }
-        } else if (room.memory.protoStorage && room.controller.level >= 4) {
+        if (room.memory.protoStorage && room.controller.level >= 4) {
             const protoStorage = Game.getObjectById(room.memory.protoStorage);
-            protoStorage.destroy();
+            if (protoStorage) protoStorage.destroy();
             room.memory.protoStorage = undefined;
         }
     }
+}
+
+function isAttackRecoveryMode(room) {
+    const intel = INTEL[room.name];
+    const inSafeMode = (room.controller.safeMode > 0) || !!(intel && intel.safemode);
+    const recentAttack = intel && intel.lastMajorAttack && intel.lastMajorAttack + (CREEP_LIFE_TIME * 2) > Game.time;
+    return inSafeMode || recentAttack;
+}
+
+function setRoadsBuiltFlag(room, value) {
+    const intel = INTEL[room.name];
+    if (!intel) return;
+    if (value === undefined) delete intel.roadsBuilt;
+    else intel.roadsBuilt = value;
 }
 
 // Helper function to determine if a structure should be skipped
@@ -173,7 +177,7 @@ function auxiliaryBuilding(room) {
             labBuilder(room);
         }
         if (buildRoads(room, room.memory.dynamicLayout ? null : bunkerTemplate)) return; else {
-            INTEL[room.name].roadsBuilt = undefined;
+            setRoadsBuiltFlag(room, undefined);
         }
         if (linkBuilder(room)) return true;
     }
@@ -186,10 +190,10 @@ function auxiliaryBuilding(room) {
     // Helper function to build roads and manage their construction
     function buildRoads(room, bunkerTemplate) {
         if (room.level >= ROAD_LEVEL && room.constructionSites.filter((s) => s.structureType === STRUCTURE_ROAD).length < 3 && !roadBuilder(room, bunkerTemplate)) {
-            INTEL[room.name].roadsBuilt = true;
+            setRoadsBuiltFlag(room, true);
             return false;
         } else {
-            INTEL[room.name].roadsBuilt = undefined;
+            setRoadsBuiltFlag(room, undefined);
         }
     }
 
@@ -397,9 +401,11 @@ function sourceBuilder(room) {
 
     // Helper function to handle the creation of source containers
     function buildSourceContainer(source, room) {
-        let sourceContainer = Game.getObjectById(source.memory.containerID) || source.pos.findInRange(room.containers, 1)[0];
+        const containerId = source.memory.container || source.memory.containerID;
+        let sourceContainer = Game.getObjectById(containerId) || source.pos.findInRange(room.containers, 1)[0];
         if (!sourceContainer) {
             source.memory.container = undefined;
+            delete source.memory.containerID;
             let sourceBuild = _.find(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
             if (!sourceBuild) {
                 let containerSite = findBestContainerPos(source);
@@ -412,6 +418,7 @@ function sourceBuilder(room) {
                 source.memory.distanceToHub = source.pos.findPathTo(room.hub).length;
             }
             source.memory.container = sourceContainer.id;
+            delete source.memory.containerID;
         }
     }
 }
@@ -496,8 +503,17 @@ function rampartBuilder(room, layout = undefined, count = false) {
     // Clean old ramparts
     if (Memory.rampartVersion !== RAMPART_VERSION) {
         Memory.rampartVersion = RAMPART_VERSION;
-        MY_ROOMS.forEach((r) => Game.rooms[r].structures.filter((s) => s.structureType === STRUCTURE_RAMPART || (s.structureType === STRUCTURE_ROAD && s.pos.checkForRampart())).forEach((q) => q.destroy()));
-        for (const i in Game.constructionSites) Game.constructionSites[i].remove();
+        for (const r of MY_ROOMS) {
+            const owned = Game.rooms[r];
+            if (!owned) continue;
+            owned.structures.filter((s) =>
+                s.structureType === STRUCTURE_RAMPART || (s.structureType === STRUCTURE_ROAD && s.pos.checkForRampart())
+            ).forEach((q) => q.destroy());
+            owned.constructionSites.filter((s) =>
+                [STRUCTURE_RAMPART, STRUCTURE_WALL].includes(s.structureType)
+            ).forEach((s) => s.remove());
+            if (ROOM_RAMPART_SPOTS) ROOM_RAMPART_SPOTS[r] = undefined;
+        }
     }
 
     // Bunker
@@ -1195,7 +1211,8 @@ function findHub(room, hubCheck = undefined) {
     }
 
     function isValidHubPosition(pos, room, sources) {
-        for (const type of bunkerTemplate) {
+        const layoutTemplate = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
+        for (const type of layoutTemplate) {
             for (const s of type.pos) {
                 const sp = new RoomPosition(pos.x + s.x, pos.y + s.y, room.name);
                 if (sp.x < 1 || sp.x > 48 || sp.y < 1 || sp.y > 48) return false;
@@ -1225,6 +1242,7 @@ module.exports.findHub = function (room) {
 
 function findLabHub(room) {
     if (room.memory.labHub && room.memory.labHub.x && room.memory.labHub.y) return;
+    if (!room.memory.bunkerHub || !room.memory.bunkerHub.x) return false;
 
     // Recover from existing labs after a memory wipe
     const labs = room.labs;
@@ -1370,6 +1388,7 @@ function getUndefendedExits(roomName) {
 }
 
 function findTowerHub(room) {
+    if (!room.memory.bunkerHub || !room.memory.bunkerHub.x) return;
     // Clear existing towers so we reposition from scratch
     room.towers.forEach(t => t.destroy());
     room.constructionSites.filter(s => s.structureType === STRUCTURE_TOWER).forEach(t => t.remove());
