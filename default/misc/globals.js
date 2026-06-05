@@ -119,7 +119,7 @@ let globals = function () {
     global.ROLE_CACHE = {};
 
     // Combat roles
-    global.COMBAT_ROLES = ['attacker', 'claimAttacker', 'defender', 'longbow']
+    global.COMBAT_ROLES = ['attacker', 'claimAttacker', 'defender', 'longbow', 'longbowSquad', 'siegeDuo', 'SKAttacker', 'powerAttacker', 'powerHealer', 'cleaner']
 
     // Reaction
     // Prio - RA, Heals, Repairs, praising, tough

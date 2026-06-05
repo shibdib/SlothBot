@@ -1003,7 +1003,7 @@ function getMoveWeight(creep, options = {}) {
     }
 
     if (move >= weight * 5) options.offRoad = true;
-    else if (move >= weight || (move === weight && COMBAT_ROLES?.contains?.(creep.memory.role))) options.ignoreRoads = true;
+    else if (move >= weight || (move === weight && COMBAT_ROLES.includes(creep.memory.role))) options.ignoreRoads = true;
     else {
         options.offRoad = undefined;
         options.ignoreRoads = undefined;

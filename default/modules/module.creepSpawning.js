@@ -7,7 +7,6 @@
  */
 
 const generator = require('module.bodyGenerator');
-const highCommand = require('module.highCommand');
 
 let energyOrder = {};
 let orderStored = {};
@@ -26,6 +25,61 @@ let lastRemoteRefresh = {};
 let contestedRemotes = {};
 let blockedRemotes = {};
 
+function routeLength(from, to) {
+    const route = Game.map.findRoute(from, to);
+    return typeof route === 'number' ? Infinity : route.length;
+}
+
+function throttleReady(tickMap, roomName, interval) {
+    const last = tickMap[roomName];
+    if (last !== undefined && last + interval > Game.time) return false;
+    tickMap[roomName] = Game.time;
+    return true;
+}
+
+let lastGlobalOpSignature = '';
+const GLOBAL_QUEUE_FULL_SCAN_INTERVAL = 50;
+const MILITARY_SUSTAIN_OPS = new Set(['roomDenial', 'remoteDenial', 'guard', 'rebuild', 'stronghold', 'borderPatrol', 'harass']);
+
+function miscCacheSegment(misc) {
+    if (!misc || !Object.keys(misc).length) return '';
+    const parts = [];
+    if (misc.boosts && misc.boosts.length) parts.push('b:' + misc.boosts.slice().sort().join(''));
+    if (misc.waitFor) parts.push('w:' + misc.waitFor);
+    return parts.length ? parts.join('|') : '';
+}
+
+function queueCacheKey(role, destination, other, misc, operation) {
+    const reboot = other && other.reboot ? 'reboot' : '';
+    return `c_${role}_${destination || ''}_${reboot}_${miscCacheSegment(misc)}_${operation || ''}`;
+}
+
+function buildOperationsSignature() {
+    let sig = '';
+    const tr = Memory.targetRooms || {};
+    const aux = Memory.auxiliaryTargets || {};
+    for (const k of Object.keys(tr).sort()) {
+        const o = tr[k];
+        if (!o) continue;
+        sig += `t:${k}:${o.type || ''}:${o.tick || 0}:${o.level || 0}:${o.complete ? 1 : 0}:${o.builders ? 1 : 0};`;
+    }
+    for (const k of Object.keys(aux).sort()) {
+        const o = aux[k];
+        if (!o) continue;
+        sig += `a:${k}:${o.type || ''}:${o.tick || 0}:${o.level || 0}:${o.priority || 0};`;
+    }
+    return sig;
+}
+
+function pruneEmptyOperations() {
+    for (const key in Memory.targetRooms || {}) {
+        if (!Memory.targetRooms[key]) delete Memory.targetRooms[key];
+    }
+    for (const key in Memory.auxiliaryTargets || {}) {
+        if (!Memory.auxiliaryTargets[key]) delete Memory.auxiliaryTargets[key];
+    }
+}
+
 // ============================================================
 // BUILD QUEUE PROCESSING
 // ============================================================
@@ -35,8 +89,7 @@ module.exports.processBuildQueue = function (room) {
     if (!room.level || !_.size(queue)) return;
 
     const currentTick = Game.time;
-    if (buildTick[room.name] + 5 > currentTick) return;
-    buildTick[room.name] = currentTick;
+    if (!throttleReady(buildTick, room.name, 5)) return;
 
     // Clear stuck queue
     const lastSpawn = lastBuilt[room.name];
@@ -160,7 +213,7 @@ module.exports.processBuildQueue = function (room) {
         if (!CREEP_QUEUES[room.name]) CREEP_QUEUES[room.name] = {};
         if (!CREEP_QUEUES["global"]) CREEP_QUEUES["global"] = {};
 
-        const cacheKey = `c_${building.role}_${building.destination}_${building.other.reboot ? 'reboot' : ''}_${building.misc ? 'misc' : ''}_${building.operation || ''}`;
+        const cacheKey = queueCacheKey(building.role, building.destination, building.other, building.misc, building.operation);
 
         if (CREEP_QUEUES["global"][cacheKey] && building.global) {
             delete CREEP_QUEUES["global"][cacheKey];
@@ -267,11 +320,10 @@ module.exports.processBuildQueue = function (room) {
 // ============================================================
 
 module.exports.essentialCreepQueue = function (room) {
-    if (essentialTick[room.name] + 10 > Game.time) return;
-    essentialTick[room.name] = Game.time;
+    if (!throttleReady(essentialTick, room.name, 10)) return;
 
     // Defenders
-    if (room.memory.defenseCooldown > Game.time || room.memory.earlyWarning) {
+    if ((room.memory.defenseCooldown || 0) > Game.time || room.memory.earlyWarning) {
         let targetAmount = room.hostileCreeps.length ? room.hostileCreeps.length : 2;
         if (targetAmount > 6) targetAmount = 6;
         queueCreepIfNeeded({
@@ -406,8 +458,7 @@ module.exports.essentialCreepQueue = function (room) {
 // ============================================================
 
 module.exports.miscCreepQueue = function (room) {
-    if (miscTick[room.name] + 12 > Game.time) return;
-    miscTick[room.name] = Game.time;
+    if (!throttleReady(miscTick, room.name, 12)) return;
 
     if (room.storage && (room.terminal || room.factory)) {
         queueCreepIfNeeded({room, role: 'labTech', priority: PRIORITIES.hauler + 1, numberNeeded: 1});
@@ -432,11 +483,12 @@ module.exports.miscCreepQueue = function (room) {
     }
 
     if (room.level >= MAX_LEVEL - 1 && room.level >= 4) {
-        let needsDefense = _.find(MY_ROOMS, r =>
-            r !== room.name &&
-            (Game.rooms[r].memory.dangerousAttack || Game.rooms[r].memory.defenseCooldown > Game.time) &&
-            room.routeSafe(r, 3, 999, 15)
-        );
+        let needsDefense = _.find(MY_ROOMS, r => {
+            const other = Game.rooms[r];
+            return r !== room.name && other &&
+                (other.memory.dangerousAttack || (other.memory.defenseCooldown || 0) > Game.time) &&
+                room.routeSafe(r, 3, 999, 15);
+        });
         if (needsDefense) {
             // Trend-aware priority: only fast-track the squad when we're stockpiled AND not draining.
             const sqEnergyInfo = room.memory.energyInfo;
@@ -457,8 +509,14 @@ module.exports.miscCreepQueue = function (room) {
     const ap = getBodyAbilityPower(room, 'longbow');
     const longbowPower = ap.attack + ap.effectiveHeal + (ap.defense / 100);
     const needyBorderPatrol = room.myCreeps.find(c => c.memory.operation === 'borderPatrol' && c.memory.needsMoreSquadMembers && c.memory.destination && c.memory.squadMembers);
-    let needsBorderResponse = MY_ROOMS.find(r => Game.rooms[r].memory.requestingBorderResponse && Game.map.getRoomLinearDistance(room.name, r) <= 4);
-    if (needsBorderResponse) needsBorderResponse = Game.rooms[needsBorderResponse].memory.requestingBorderResponse;
+    let needsBorderResponse = MY_ROOMS.find(r => {
+        const other = Game.rooms[r];
+        return other && other.memory.requestingBorderResponse && Game.map.getRoomLinearDistance(room.name, r) <= 4;
+    });
+    if (needsBorderResponse) {
+        const responseRoom = Game.rooms[needsBorderResponse];
+        needsBorderResponse = responseRoom && responseRoom.memory.requestingBorderResponse;
+    }
 
     if (needyBorderPatrol) {
         queueCreepIfNeeded({
@@ -500,8 +558,7 @@ module.exports.miscCreepQueue = function (room) {
 // ============================================================
 
 module.exports.remoteCreepQueue = function (room) {
-    if (remoteTick[room.name] + 10 > Game.time) return;
-    remoteTick[room.name] = Game.time;
+    if (!throttleReady(remoteTick, room.name, 10)) return;
     room.memory.borderPatrol = undefined;
 
     const homeIntel = INTEL[room.name];
@@ -549,7 +606,7 @@ module.exports.remoteCreepQueue = function (room) {
             roomStatus(r) === roomStatus(room.name) &&
             INTEL[r] && INTEL[r].sources && !INTEL[r].owner && !INTEL[r].obstacles &&
             (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || INTEL[r].reservation === 'Invader') &&
-            Game.map.findRoute(room.name, r).length <= 2
+            routeLength(room.name, r) <= 2
         );
 
         for (const rooms of surroundingRooms) {
@@ -560,7 +617,7 @@ module.exports.remoteCreepQueue = function (room) {
                     roomStatus(r) === roomStatus(room.name) &&
                     INTEL[r] && INTEL[r].sources && !INTEL[r].owner && !INTEL[r].obstacles &&
                     (!INTEL[r].reservation || INTEL[r].reservation === MY_USERNAME || INTEL[r].reservation === 'Invader') &&
-                    Game.map.findRoute(room.name, r).length <= 2
+                    routeLength(room.name, r) <= 2
                 );
                 remoteTargets = remoteTargets.concat(remoteRooms);
             }
@@ -624,8 +681,10 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     function handleContestedRoom(room) {
-        const intel = INTEL[contestedRemotes[room.name]];
-        if (intel.contestingCount > room.level * 2) {
+        const remoteName = contestedRemotes[room.name];
+        const intel = INTEL[remoteName];
+        if (!intel) return;
+        if ((intel.contestingCount || 0) > room.level * 2) {
             log.a(`${roomLink(room.name)} is no longer contesting ${roomLink(contestedRemotes[room.name])} due to casualties.`, "LOCAL COMMAND:");
             INTEL[contestedRemotes[room.name]].lastContest = Game.time;
             INTEL[contestedRemotes[room.name]].contestingCount = 0;
@@ -837,6 +896,19 @@ module.exports.remoteCreepQueue = function (room) {
 // ============================================================
 
 module.exports.globalCreepQueue = function () {
+    if (Game.time % 1000 === 0) {
+        for (const name of Object.keys(queueCache)) {
+            if (!Game.rooms[name]) delete queueCache[name];
+        }
+    }
+
+    pruneEmptyOperations();
+
+    const signature = buildOperationsSignature();
+    const fullScan = signature !== lastGlobalOpSignature || Game.time % GLOBAL_QUEUE_FULL_SCAN_INTERVAL === 0;
+    lastGlobalOpSignature = signature;
+    if (!fullScan) return;
+
     const operations = {...Memory.targetRooms, ...Memory.auxiliaryTargets};
 
     /**
@@ -851,12 +923,15 @@ module.exports.globalCreepQueue = function () {
 
     if (_.isEmpty(operations)) return;
 
+    const checkSustainability = module.exports.operationSustainability;
+
     for (let key in operations) {
         const operation = operations[key];
-        if (!operation) {
-            delete Memory.targetRooms[key];
-            delete Memory.auxiliaryTargets[key];
-            continue;
+        if (!operation) continue;
+
+        const opRoom = Game.rooms[key];
+        if (opRoom && MILITARY_SUSTAIN_OPS.has(operation.type)) {
+            checkSustainability(opRoom, key);
         }
 
         const opLevel = Memory.targetRooms[key] ? operation.level : operation.level || 1;
@@ -912,7 +987,9 @@ module.exports.globalCreepQueue = function () {
                 }
                 if (INTEL[key].threatLevel) {
                     if (INTEL[key].threatLevel > 1) {
-                        const maxLevelOfAttacker = userStrength(_.max(INTEL[key].hostileOwners, (o) => userStrength(o)));
+                        const owners = INTEL[key].hostileOwners;
+                        if (!owners || !owners.length) break;
+                        const maxLevelOfAttacker = userStrength(_.max(owners, (o) => userStrength(o)));
                         if ((maxLevelOfAttacker >= 7 && MAX_LEVEL < 7) || (maxLevelOfAttacker > MAX_LEVEL + 1)) continue;
                     }
                     const count = INTEL[key].threatLevel ? 4 : 2;
@@ -1123,7 +1200,7 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
     let cache = global ? CREEP_QUEUES['global'] : CREEP_QUEUES[room.name];
     if (typeof cache !== 'object') cache = {};
 
-    const cacheKey = `c_${options.role}_${options.destination}_${options.other.reboot ? 'reboot' : ''}_${options.misc ? 'misc' : ''}_${options.operation || ''}`;
+    const cacheKey = queueCacheKey(options.role, options.destination, options.other, options.misc, options.operation);
 
     if (cache[cacheKey] && cache[cacheKey].priority <= priority) return;
     if (cache[cacheKey]) delete cache[cacheKey];
@@ -1138,7 +1215,7 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
         assignedSource: options.assignedSource,
         destination: options.destination,
         other: options.other,
-        military: COMBAT_ROLES.includes(options.role),
+        military: COMBAT_ROLES.includes(options.role) || !!options.operation,
         operation: options.operation,
         misc: options.misc,
         global,
@@ -1630,5 +1707,9 @@ function getPriority(operationRoom) {
     else return (PRIORITIES.secondary * typeMulti) * energyMulti;
 }
 
-module.exports.operationSustainability = highCommand.operationSustainability;
-module.exports.generateThreat = highCommand.generateThreat;
+module.exports.operationSustainability = function (room, operationRoom) {
+    return require('module.highCommand').operationSustainability(room, operationRoom);
+};
+module.exports.generateThreat = function (creep) {
+    return require('module.highCommand').generateThreat(creep);
+};
