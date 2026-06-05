@@ -509,6 +509,18 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     const heavyTTL = this.controller?.my ? CREEP_LIFE_TIME : CREEP_LIFE_TIME * 5;
     if (!force && INTEL[this.name] && INTEL[this.name].cached + heavyTTL > currentTime) return;
 
+    // On global reset the .cached values are old, so *every* owned room would do heavy work
+    // (including expensive towerData 50x50 grids per tower + rampart sorts + hubChecks) on tick 1.
+    // Spread the heavy updates for owned rooms over the first few ticks post-reset.
+    if (!force) {
+        const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+        if (since < 6 && this.controller && this.controller.my) {
+            // Deterministic per-room stagger so different rooms heavy-update on different early ticks
+            const hash = (this.name.charCodeAt(1) || 0) + (this.name.charCodeAt(3) || 0);
+            if (since !== (hash % 5)) return;
+        }
+    }
+
     roomIntel.cached = currentTime;
     roomIntel.sources = this.sources.length;
 

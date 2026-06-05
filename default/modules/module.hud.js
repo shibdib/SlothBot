@@ -1,16 +1,18 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  *
- * Version 2.1 - CPU + visual fixes (May 2026)
+ * Version 2.3 - Map HUD: intel age badges (non-disruptive corner dots + age text for notable + recent scouted rooms) (2026)
  */
 
 const profiler = require("tools.profiler");
 
 const VALID_ROOM_NAME = /^[WE]\d+[NS]\d+$/;
+let _MapVisuals;
 
 let creepTrailCache = [];
 let activeIntelCache = {tick: 0, rooms: []};
 let staticIntelCache = {tick: 0, rooms: []};
+let subtleIntelCache = {tick: 0, rooms: []};
 
 class HUD {
     constructor() {
@@ -22,6 +24,8 @@ class HUD {
 
     run() {
         if (!Memory.tickInfo) return;
+
+        Memory._mapVisuals = undefined;
 
         this.updateGCLData();
 
@@ -269,6 +273,27 @@ class HUD {
         return list;
     }
 
+    buildSubtleIntelRoomList(myRooms, staticSet) {
+        const list = [];
+        if (!global.INTEL) return list;
+        const owned = new Set(myRooms);
+        const statSet = staticSet || new Set();
+        const now = Game.time;
+        const maxAgeTicks = 18000; // only show reasonably recent scouted rooms (non-disruptive)
+        for (const roomName in global.INTEL) {
+            if (!VALID_ROOM_NAME.test(roomName)) continue;
+            if (owned.has(roomName) || statSet.has(roomName)) continue;
+            const intel = global.INTEL[roomName];
+            if (!intel || !intel.lastObservation) continue;
+            if (now - intel.lastObservation > maxAgeTicks) continue;
+            // Only rooms with scouting / remote value
+            if ((intel.sources || 0) > 0 || intel.sk || intel.mineral || intel.activeRemote || intel.loot) {
+                list.push(roomName);
+            }
+        }
+        return list;
+    }
+
     renderStaticIntelRoom(roomName, enemies, friendlies, ourRemotes) {
         const intel = global.INTEL[roomName];
         if (!intel) return;
@@ -279,12 +304,19 @@ class HUD {
             Game.map.visual.rect(new RoomPosition(0, 0, roomName), 50, 50, {
                 fill: color, opacity: 0.08, stroke: color, strokeWidth: 0.8
             });
-            Game.map.visual.text(intel.owner, new RoomPosition(25, 21, roomName), {
-                color: color, fontSize: 4.5, align: 'center', fontFamily: 'Tahoma'
+            Game.map.visual.text(intel.owner, new RoomPosition(25, 19, roomName), {
+                color: color, fontSize: 4.5, align: 'center', fontFamily: 'Tahoma',
+                backgroundColor: '#111111', backgroundPadding: 0.3
             });
-            Game.map.visual.text('RCL ' + intel.level, new RoomPosition(25, 29, roomName), {
-                color: color, fontSize: 4.5, align: 'center', fontFamily: 'Tahoma'
+            Game.map.visual.text('RCL ' + intel.level, new RoomPosition(25, 26, roomName), {
+                color: color, fontSize: 4.5, align: 'center', fontFamily: 'Tahoma',
+                backgroundColor: '#111111', backgroundPadding: 0.25
             });
+            if (intel.towers) {
+                Game.map.visual.text('T' + intel.towers, new RoomPosition(42, 26, roomName), {
+                    color: '#ffaa66', fontSize: 3.8, align: 'center', fontFamily: 'Tahoma'
+                });
+            }
         }
 
         if (intel.reservation && !intel.owner) {
@@ -293,8 +325,9 @@ class HUD {
             Game.map.visual.rect(new RoomPosition(0, 0, roomName), 50, 50, {
                 fill: color, opacity: 0.06, stroke: color, strokeWidth: 0.6, lineStyle: 'dashed'
             });
-            Game.map.visual.text(isOurs ? 'RSV' : intel.reservation, new RoomPosition(25, 21, roomName), {
-                color: color, fontSize: 4.5, align: 'center', fontFamily: 'Tahoma'
+            Game.map.visual.text(isOurs ? 'RSV' : intel.reservation, new RoomPosition(25, 19, roomName), {
+                color: color, fontSize: 4.5, align: 'center', fontFamily: 'Tahoma',
+                backgroundColor: '#111111', backgroundPadding: 0.3
             });
         }
 
@@ -307,25 +340,57 @@ class HUD {
             });
         }
 
-        if (intel.power) Game.map.visual.text('⚡', new RoomPosition(10, 9, roomName), {fontSize: 7, align: 'center'});
-        if (intel.commodity) Game.map.visual.text('💎', new RoomPosition(40, 9, roomName), {
-            fontSize: 7,
-            align: 'center'
-        });
+        // Resource icons (power shows approx remaining for UX)
+        if (intel.power) {
+            let pText = '⚡';
+            const remaining = intel.power - Game.time;
+            if (remaining > 0) {
+                pText += remaining > 2000 ? Math.ceil(remaining / 1000) + 'k' : Math.ceil(remaining / 100);
+            }
+            Game.map.visual.text(pText, new RoomPosition(10, 9, roomName), {
+                fontSize: 6.5, align: 'center', color: '#ffdd66'
+            });
+        }
+        if (intel.commodity) {
+            Game.map.visual.text('💎', new RoomPosition(40, 9, roomName), {
+                fontSize: 7, align: 'center'
+            });
+        }
         if (intel.portal) {
             Game.map.visual.circle(new RoomPosition(25, 40, roomName), {
                 radius: 2.5, fill: '#00ffff', opacity: 0.65
             });
         }
+
+        // Sources + mineral at bottom sides (useful scouting / remote intel)
+        if (Number.isFinite(intel.sources) && intel.sources > 0) {
+            Game.map.visual.text(intel.sources + 'S', new RoomPosition(8, 37, roomName), {
+                color: '#88aaff', fontSize: 3.8, align: 'center', fontFamily: 'Tahoma'
+            });
+        }
+        if (intel.mineral) {
+            Game.map.visual.text(intel.mineral, new RoomPosition(42, 37, roomName), {
+                color: '#88ffaa', fontSize: 3.8, align: 'center', fontFamily: 'Tahoma'
+            });
+        }
+
+        // Non-disruptive intel age in bottom-right corner (baked into static visual)
+        this.renderIntelAgeBadge(roomName, intel, Game.time, false);
     }
 
     renderMapHUD() {
         if (!Game.map || !Game.map.visual) return;
 
+        // On global reset, many visual caches are empty and other systems (highCommand, spawning,
+        // pathing rebuilds, etc.) are already using lots of CPU. Skip the map HUD (which does
+        // full static rebuild + lots of Game.map.visual calls + export) for the first tick or two.
+        const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+        if (since === 0) return;
+
         const currentTime = Game.time;
         const myRooms = this.getOwnedRooms();
 
-        const refreshStatic = !Memory._mapVisuals || currentTime % 50 === 0;
+        const refreshStatic = !_MapVisuals || currentTime % 50 === 0;
         if (refreshStatic) {
             for (const roomName of myRooms) {
                 const room = Game.rooms[roomName];
@@ -335,8 +400,14 @@ class HUD {
                     stroke: '#00B7EB', strokeWidth: 1.8
                 });
                 Game.map.visual.text('RCL ' + room.controller.level, new RoomPosition(25, 22, roomName), {
-                    color: '#ffffff', fontSize: 7.5, align: 'center', fontFamily: 'Tahoma'
+                    color: '#ffffff', fontSize: 7.5, align: 'center', fontFamily: 'Tahoma',
+                    backgroundColor: '#003344', backgroundPadding: 0.4
                 });
+                if (room.mineral && room.mineral.mineralType) {
+                    Game.map.visual.text(room.mineral.mineralType, new RoomPosition(5, 8, roomName), {
+                        color: '#aaffff', fontSize: 5.5, align: 'center', fontFamily: 'Tahoma'
+                    });
+                }
             }
 
             this.renderRemoteLinks(myRooms);
@@ -353,14 +424,43 @@ class HUD {
 
                 staticIntelCache.rooms = this.buildStaticIntelRoomList(myRooms);
                 staticIntelCache.tick = currentTime;
+                const staticSet = new Set(staticIntelCache.rooms);
+                subtleIntelCache.rooms = this.buildSubtleIntelRoomList(myRooms, staticSet);
+                subtleIntelCache.tick = currentTime;
                 for (const roomName of staticIntelCache.rooms) {
                     this.renderStaticIntelRoom(roomName, enemies, friendlies, ourRemotes);
                 }
+
+                // Subtle badges for recently scouted rooms (baked into the static export; age updates every 50t)
+                for (const roomName of subtleIntelCache.rooms) {
+                    const intel = global.INTEL[roomName];
+                    if (intel) this.renderIntelAgeBadge(roomName, intel, currentTime, true);
+                }
             }
 
-            Memory._mapVisuals = Game.map.visual.export();
+            _MapVisuals = Game.map.visual.export();
         } else {
-            Game.map.visual.import(Memory._mapVisuals);
+            Game.map.visual.import(_MapVisuals);
+        }
+
+        // Fresh time-sensitive overlays for cached static intel (power ETA always current, cheap text redraw)
+        if (global.INTEL && staticIntelCache.rooms && staticIntelCache.rooms.length) {
+            for (const roomName of staticIntelCache.rooms) {
+                const intel = global.INTEL[roomName];
+                if (!intel) continue;
+                if (intel.power) {
+                    let pText = '⚡';
+                    const remaining = intel.power - currentTime;
+                    if (remaining > 0) {
+                        pText += remaining > 2000 ? Math.ceil(remaining / 1000) + 'k' : Math.ceil(remaining / 100);
+                    }
+                    Game.map.visual.text(pText, new RoomPosition(10, 9, roomName), {
+                        fontSize: 6.5, align: 'center', color: '#ffdd66'
+                    });
+                }
+                // Fresh accurate age for notable intel rooms
+                this.renderIntelAgeBadge(roomName, intel, currentTime, false);
+            }
         }
 
         if (currentTime - activeIntelCache.tick >= 10) {
@@ -405,6 +505,13 @@ class HUD {
             if (room.controller.safeMode) {
                 Game.map.visual.text('🛡️', new RoomPosition(40, 9, roomName), {fontSize: 9, align: 'center'});
             }
+
+            // Nuke inbound indicator (very useful situational awareness on map)
+            if (room.nukes && room.nukes.length > 0) {
+                Game.map.visual.text('☢' + (room.nukes.length > 1 ? room.nukes.length : ''), new RoomPosition(44, 4, roomName), {
+                    color: '#ff4444', fontSize: 7.5, align: 'center', fontFamily: 'Tahoma'
+                });
+            }
         }
 
         const threatColors = ['', '#ffcc00', '#ff9900', '#ff5500', '#ff2200', '#ff0044'];
@@ -428,7 +535,8 @@ class HUD {
                 const threatLabels = ['', 'UNARMED', 'INVADER', 'PLAYER', 'MULTI', 'BOOSTED'];
                 const label = isStronghold && intel.threatLevel <= 2 ? 'STRONGHOLD' : (threatLabels[intel.threatLevel] || 'THREAT');
                 Game.map.visual.text(label, new RoomPosition(25, 18, roomName), {
-                    color: color, fontSize: 4.8, align: 'center', fontFamily: 'Tahoma'
+                    color: color, fontSize: 4.8, align: 'center', fontFamily: 'Tahoma',
+                    backgroundColor: '#000000', backgroundPadding: 0.35
                 });
 
                 if (intel.threatLevel >= 3 && intel.hostileOwners && intel.hostileOwners.length) {
@@ -436,11 +544,13 @@ class HUD {
                         ? intel.hostileOwners[0] + ' +' + (intel.hostileOwners.length - 1)
                         : intel.hostileOwners[0];
                     Game.map.visual.text(display, new RoomPosition(25, 25, roomName), {
-                        color: '#ffffff', fontSize: 4.5, align: 'center', fontFamily: 'Tahoma'
+                        color: '#ffffff', fontSize: 4.5, align: 'center', fontFamily: 'Tahoma',
+                        backgroundColor: '#220000', backgroundPadding: 0.3
                     });
                 }
                 if (isActive) Game.map.visual.text('ACTIVE', new RoomPosition(25, 32, roomName), {
-                    color: '#ffffff', fontSize: 3.8, align: 'center', fontFamily: 'Tahoma'
+                    color: '#ffffff', fontSize: 3.8, align: 'center', fontFamily: 'Tahoma',
+                    backgroundColor: '#330000', backgroundPadding: 0.25
                 });
 
                 if (intel.roomHeat) {
@@ -486,10 +596,19 @@ class HUD {
                 Game.map.visual.circle(new RoomPosition(25, 25, roomName), {
                     radius: 11, stroke: '#ff2222', strokeWidth: 1.8, fill: 'transparent', opacity: 0.75
                 });
-                Game.map.visual.text('🎯 ' + (target.type ? target.type.toUpperCase() : 'OP'),
+                let tgtLabel = target.type ? target.type.toUpperCase() : 'OP';
+                let tgtColor = '#ffcccc';
+                let tgtBg = '#440000';
+                if (target.dDay) {
+                    const eta = target.dDay - currentTime;
+                    tgtLabel = '☢' + (eta > 0 ? Math.ceil(eta / 1000) + 'k' : 'NUKE');
+                    tgtColor = '#ffaaaa';
+                    tgtBg = '#660000';
+                }
+                Game.map.visual.text('🎯 ' + tgtLabel,
                     new RoomPosition(25, 39, roomName), {
-                        color: '#ffcccc', fontSize: 5.2, align: 'center', fontFamily: 'Tahoma',
-                        backgroundColor: '#440000', backgroundPadding: 0.4
+                        color: tgtColor, fontSize: 5.2, align: 'center', fontFamily: 'Tahoma',
+                        backgroundColor: tgtBg, backgroundPadding: 0.4
                     });
             }
         }
@@ -608,6 +727,44 @@ class HUD {
                 );
             }
         }
+    }
+
+    getIntelAge(intel, now) {
+        if (!intel || !intel.lastObservation) return {text: '??', color: '#666666'};
+        const ageTicks = now - intel.lastObservation;
+        if (ageTicks <= 40) return {text: 'now', color: '#66BB6A'};
+        const tickLen = (Memory.tickInfo && Memory.tickInfo.tickLength) || 3.5;
+        const secs = ageTicks * tickLen;
+        if (secs < 180) {
+            return {text: '1m', color: '#a5d6a7'};
+        } else if (secs < 600) {
+            return {text: Math.floor(secs / 60) + 'm', color: '#a5d6a7'};
+        } else if (secs < 3600) {
+            return {text: Math.floor(secs / 60) + 'm', color: '#FFB347'};
+        } else if (secs < 86400) {
+            return {text: Math.floor(secs / 3600) + 'h', color: '#ff9966'};
+        } else {
+            return {text: Math.floor(secs / 86400) + 'd', color: '#888888'};
+        }
+    }
+
+    renderIntelAgeBadge(roomName, intel, now, subtle = false) {
+        if (!intel) return;
+        const age = this.getIntelAge(intel, now);
+        if (subtle) {
+            Game.map.visual.circle(new RoomPosition(44.5, 44.5, roomName), {
+                radius: 0.85, fill: age.color, opacity: 0.22
+            });
+        }
+        Game.map.visual.text(age.text, new RoomPosition(43, 43, roomName), {
+            color: age.color,
+            fontSize: subtle ? 2.8 : 3.3,
+            align: 'center',
+            fontFamily: 'Tahoma',
+            backgroundColor: subtle ? '#0a0a0a' : '#000000',
+            backgroundPadding: subtle ? 0.12 : 0.2,
+            opacity: subtle ? 0.65 : 0.9
+        });
     }
 
     timeFormat(seconds) {

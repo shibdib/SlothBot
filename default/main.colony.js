@@ -39,10 +39,20 @@ class Colony {
         this.terminalController();
 
         // Observer controller for room level >= 8
-        if (this.room.level >= 8) this.observerController();
+        if (this.room.level >= 8) {
+            const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+            if (since > 4 || ((this.room.name.charCodeAt(1) || 0) % 3 === since % 3)) {
+                this.observerController();
+            }
+        }
 
         // Factory controller
-        if (this.room.factory) this.factoryController();
+        if (this.room.factory) {
+            const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+            if (since > 2 || ((this.room.name.charCodeAt(3) || 0) % 2 === since % 2)) {
+                this.factoryController(); // defer a couple ticks on reset
+            }
+        }
 
         // Store tick tracker and cpu usage data
         this.storeCpuData(Game.cpu.getUsed() - worldStart);

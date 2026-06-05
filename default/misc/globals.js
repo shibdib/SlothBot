@@ -52,6 +52,12 @@ let globals = function () {
     console.log(`Global Reset - Last reset occurred ${Game.time - (Memory.lastGlobalReset || Game.time)} ticks ago.`);
     Memory.lastGlobalReset = Game.time;
 
+    // Helper for spreading expensive work over the first few ticks after a global reset
+    // (many module-level caches, lastRun trackers, and ring buffers are empty, causing CPU spikes)
+    global.ticksSinceLastGlobalReset = function () {
+        return Game.time - (Memory.lastGlobalReset || Game.time);
+    };
+
     try {
         const configFile = activeConfig || `config.${Game.shard.name}`;
         require(configFile);

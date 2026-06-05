@@ -1,13 +1,15 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  *
- * Version 2.4
+ * Version 2.5
  *
  * - Strategic picks use global priority then Chebyshev distance (not distance-only)
  * - Cross-observer dedup: skip rooms already in-flight on any observer
  * - Heavy intel refresh for claim corridor / expansion scouts (hubCheck + cached)
  * - Highway, active remotes, early-warning exits, and auxiliary scout ops in target pool
- * - Random sweep prefers oldest stale intel with per-tick rotation
+ * - Background/exploratory sweep now reliably refreshes very old intel (BACKGROUND_STALE_TICKS window)
+ * - Throttled low-prio strategic work opportunistically yields to oldest-intel maintenance
+ * - Border-fill low-prio now only for truly background-stale neighbors (prevents starving distant old intel)
  * - High-priority reachable work bypasses throttle
  * - Skip rooms with live creep vision (owned rooms + any room with my creeps)
  */
@@ -16,11 +18,13 @@ const profiler = require("tools.profiler");
 
 const TUNING = {
     THROTTLE_TICKS: 5,
-    STALE_INTEL_TICKS: 50,
+    STALE_INTEL_TICKS: 50,            // short window for *reactive* / hot intel (power, threats, active remotes)
+    BACKGROUND_STALE_TICKS: 5000,     // rooms with intel older than this (~hours) are eligible for background/exploratory refresh
     EMPTY_SWEEP_BACKOFF_TICKS: 25,
     PRUNE_INTERVAL_TICKS: 1500,
     MAX_OBSERVE_RETRIES: 3,
     HIGH_PRIORITY: 85,
+    HIGH_STRATEGIC_FOR_RANDOM: 50,    // below this, prefer background oldest-intel maintenance over low-prio strategic
     HEAVY_INTEL_TICKS: CREEP_LIFE_TIME * 5,
     ACTIVE_REMOTE_WINDOW: 500,
 };
@@ -55,14 +59,43 @@ class ObserverControl {
         }
 
         const reachable = this.getReachableStrategic(roomName, currentTime, state);
-        const topPriority = reachable.length ? (this.getStrategicPriorities(currentTime)[reachable[0]] || 0) : 0;
+        const priorities = this.getStrategicPriorities(currentTime);
+        const topPriority = reachable.length ? (priorities[reachable[0]] || 0) : 0;
         const throttled = (state.lastRun[roomName] | 0) + TUNING.THROTTLE_TICKS > currentTime;
-        if (throttled && topPriority < TUNING.HIGH_PRIORITY) return;
+
+        // High priority strategic work bypasses throttle (as before).
+        if (throttled && topPriority >= TUNING.HIGH_PRIORITY) {
+            // fall through to pick it
+        } else if (throttled && topPriority > 0 && topPriority < TUNING.HIGH_STRATEGIC_FOR_RANDOM) {
+            // Throttled + only low/medium strategic work available.
+            // Prefer background oldest-intel maintenance (exploratory refresh of ancient rooms)
+            // over burning the observe on yet another low-prio border/op target.
+            // This is the main fix for "36d old room in range but never observed".
+            const maint = this.findOldestIntelTarget(roomName, currentTime, state);
+            if (maint) {
+                state.lastRun[roomName] = currentTime;
+                if (!hasCreepVision(maint, currentTime)) {
+                    this.issueObservation(observer, roomName, maint, state);
+                }
+                return;
+            }
+            // no good maintenance target right now — fall through and do the low strategic
+        } else if (throttled) {
+            // throttled and nothing strategic at all this tick — still allow occasional maintenance
+            const maint = this.findOldestIntelTarget(roomName, currentTime, state);
+            if (maint) {
+                state.lastRun[roomName] = currentTime;
+                if (!hasCreepVision(maint, currentTime)) {
+                    this.issueObservation(observer, roomName, maint, state);
+                }
+                return;
+            }
+            return; // nothing to do
+        }
+
         state.lastRun[roomName] = currentTime;
 
-        const targetRoom = reachable.length
-            ? reachable[0]
-            : this.findRandomTarget(roomName, currentTime, state);
+        let targetRoom = reachable.length ? reachable[0] : this.findOldestIntelTarget(roomName, currentTime, state);
 
         if (targetRoom && !hasCreepVision(targetRoom, currentTime)) {
             this.issueObservation(observer, roomName, targetRoom, state);
@@ -251,10 +284,15 @@ class ObserverControl {
             else if (needsHeavyIntel(INTEL[room], currentTime)) add(room, 62);
         }
 
-        // Fill map toward owned rooms: stale neighbors at low priority
+        // Fill map toward owned rooms: only *background* stale neighbors get low priority.
+        // Using the short isIntelStale here would constantly feed low-prio work and starve
+        // exploratory refresh of truly ancient intel deeper in observer range.
         for (const home of global.MY_ROOMS || []) {
             for (const neighbor of Object.values(Game.map.describeExits(home) || {})) {
-                if (isIntelStale(INTEL[neighbor], currentTime)) add(neighbor, 35);
+                const ni = INTEL[neighbor];
+                if (ni && ni.lastObservation && (currentTime - ni.lastObservation > TUNING.BACKGROUND_STALE_TICKS)) {
+                    add(neighbor, 35);
+                }
             }
         }
 
@@ -262,7 +300,11 @@ class ObserverControl {
         strategicCache = {tick: currentTime, targets, priorityByRoom};
     }
 
-    findRandomTarget(roomName, currentTime, state) {
+    findOldestIntelTarget(roomName, currentTime, state) {
+        // Background / exploratory: pick the oldest intel (by lastObservation) within observer range
+        // that hasn't been seen recently enough for map maintenance purposes.
+        // This is the path that should eventually catch 36-day-old rooms when no high-priority
+        // strategic work is available for this observer.
         const lastEmpty = state.lastEmptySweep[roomName] | 0;
         if (lastEmpty && currentTime - lastEmpty < TUNING.EMPTY_SWEEP_BACKOFF_TICKS) {
             return null;
@@ -273,31 +315,34 @@ class ObserverControl {
 
         const inFlight = getInFlightTargets(state);
         const directions = this.getDirections();
-        const start = directions.length ? currentTime % directions.length : 0;
-        const staleCandidates = [];
+        const candidates = [];
 
-        for (let i = 0; i < directions.length; i++) {
-            const [dx, dy] = directions[(start + i) % directions.length];
+        // We walk the full set of rooms in range. Rotation is no longer needed because we
+        // collect *all* qualifying rooms then pick the globally oldest by lastObservation.
+        for (const [dx, dy] of directions) {
             const target = formatRoomName(base.x + dx, base.y + dy);
 
             if (roomStatus(target) === 'closed') continue;
             if (hasCreepVision(target, currentTime)) continue;
             if (inFlight.has(target)) continue;
-            if (!isIntelStale(INTEL[target], currentTime)) continue;
 
             const intel = INTEL[target];
+            // Background maintenance: only rooms whose intel is older than the background window
+            // (or never observed) are candidates. We want the *oldest* one in the whole range.
             const age = intel?.lastObservation || 0;
-            staleCandidates.push({target, age});
+            if (age && (currentTime - age < TUNING.BACKGROUND_STALE_TICKS)) continue;
+
+            candidates.push({target, age});
         }
 
-        if (!staleCandidates.length) {
+        if (!candidates.length) {
             state.lastEmptySweep[roomName] = currentTime;
             return null;
         }
 
         delete state.lastEmptySweep[roomName];
-        staleCandidates.sort((a, b) => a.age - b.age);
-        return staleCandidates[0].target;
+        candidates.sort((a, b) => a.age - b.age); // oldest (smallest timestamp or 0=never) first
+        return candidates[0].target;
     }
 
     getDirections() {
@@ -390,6 +435,8 @@ function getInFlightTargets(state) {
 }
 
 function isIntelStale(intel, currentTime) {
+    // Short-horizon "reactive" staleness for urgent things (power banks, active threats, etc.).
+    // Background/exploratory maintenance of ancient intel uses BACKGROUND_STALE_TICKS instead.
     return !intel ||
         !intel.lastObservation ||
         intel.lastObservation + TUNING.STALE_INTEL_TICKS <= currentTime;

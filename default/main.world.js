@@ -78,7 +78,8 @@ class World {
         this.highCommand();
 
         // Expansion Manager
-        if ((tickTracker['expansionManager'] || 0) + 100 < Game.time) {
+        const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+        if (sinceReset > 3 && (tickTracker['expansionManager'] || 0) + 100 < Game.time) {
             this.expansionManager();
             tickTracker['expansionManager'] = Game.time;
         }
@@ -108,7 +109,10 @@ class World {
         }
 
         // Diplomacy Manager
-        diplomacy.diplomacyManager();
+        // Defer on the immediate reset tick (INTEL walk + strength calcs are expensive when caches cold)
+        if (!global.ticksSinceLastGlobalReset || global.ticksSinceLastGlobalReset() > 0) {
+            diplomacy.diplomacyManager();
+        }
     }
 
     hudManager() {
@@ -125,6 +129,11 @@ class World {
     }
 
     constructionController() {
+        // Room planner (pathing, mincut, structure placement, road building etc.) is one of the
+        // biggest CPU consumers. On global reset many caches are cold and other systems are
+        // already spiking, so defer it for the first couple ticks.
+        const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+        if (since < 2) return;
         planner.buildRoom();
     }
 

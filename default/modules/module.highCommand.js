@@ -44,7 +44,17 @@ module.exports.highCommand = function () {
     OPERATION_LIMIT = Math.ceil(MY_ROOMS.filter(r => Game.rooms[r].memory.combatReady).length * 0.7) || 1;
     SIEGE_LIMIT = Math.ceil(MY_ROOMS.filter(r => Game.rooms[r].level >= 7 && Game.rooms[r].memory.combatReady).length * 0.25);
 
+    const sinceReset = (global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99);
+
     for (const task of tasks) {
+        if (sinceReset < 6) {
+            // Spread high-CPU tasks (military/aux/response planning, flag processing, etc.)
+            // over the first ~5 ticks after reset. On reset all lastRun are cleared and
+            // many other systems are also cold, causing bucket/CPU limit hits.
+            const stagger = (task.charCodeAt(0) || 0) % 5;
+            if (sinceReset !== stagger) continue;
+        }
+
         if (!checkCooldown(task, getCooldown(task))) continue;
 
         switch (task) {
