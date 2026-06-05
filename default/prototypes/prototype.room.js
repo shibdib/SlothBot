@@ -453,7 +453,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         }
 
         // Armed hostiles
-        roomIntel.armedHostile = this.hostileCreeps.length && this.hostileCreeps.some(c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) ? Game.time : undefined;
+        roomIntel.armedHostile = this.hostileCreeps.length && this.hostileCreeps.some(c => c && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK))) ? Game.time : undefined;
 
         // SK towers
         if (roomIntel.sk) {
