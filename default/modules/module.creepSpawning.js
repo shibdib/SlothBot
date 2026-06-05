@@ -345,18 +345,15 @@ module.exports.essentialCreepQueue = function (room) {
 
     // Haulers
     if (harvesterCount) {
-        const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
-        if (room.storage || protoStorage) {
-            let haulerAmount = room.level >= 4 ? 2 : 1;
-            if (room.memory.needsHaulers) haulerAmount = Math.max(haulerAmount, 3);
-            const haulerUrgent = room.memory.needsHaulers;
-            const priority = !getCreepCount(room, 'hauler') || haulerUrgent ? 1 : PRIORITIES.hauler;
-            queueCreepIfNeeded({
-                room, role: 'hauler', priority,
-                numberNeeded: haulerAmount,
-                rebootCondition: !getCreepCount(room, 'hauler') || !room.energyState || haulerUrgent
-            });
-        }
+        let haulerAmount = room.level >= 4 ? 2 : 1;
+        if (room.memory.needsHaulers) haulerAmount = Math.max(haulerAmount, 3);
+        const haulerUrgent = room.memory.needsHaulers;
+        const priority = !getCreepCount(room, 'hauler') || haulerUrgent ? 1 : PRIORITIES.hauler;
+        queueCreepIfNeeded({
+            room, role: 'hauler', priority,
+            numberNeeded: haulerAmount,
+            rebootCondition: !getCreepCount(room, 'hauler') || !room.energyState || haulerUrgent
+        });
 
         if (room.level < 7) {
             for (const source of room.sources) {
@@ -364,7 +361,7 @@ module.exports.essentialCreepQueue = function (room) {
                 const priority = !getCreepCount(room, 'shuttle') ? 1 : PRIORITIES.hauler;
                 queueCreepIfNeeded({
                     room, role: 'shuttle', priority: priority,
-                    numberNeeded: 1,
+                    numberNeeded: 2,
                     rebootCondition: room.myCreeps.length < 4 || !getCreepCount(room, 'shuttle') || !room.energyState,
                     other: {distanceToHub: source.memory.distanceToHub || 25},
                     assignment: source.id
