@@ -21,13 +21,14 @@ StructureObserver.prototype.operationPlanner = function (room) {
     if (!room) return;
     room.invaderCheck();
     room.cacheRoomIntel();
-    if (Memory.targetRooms[room.name]) return operationPlanner(room);
+    if (Memory.targetRooms[room.name] || (Memory.auxiliaryTargets && Memory.auxiliaryTargets[room.name])) return operationPlanner(room);
 };
 
 function operationPlanner(room, creep = undefined) {
-    // Handle forward observer
     if (Memory.targetRooms[room.name]) {
         forwardObserver(room);
+    } else if (Memory.auxiliaryTargets && Memory.auxiliaryTargets[room.name]) {
+        room.cacheRoomIntel(true);
     } else {
         room.cacheRoomIntel();
     }

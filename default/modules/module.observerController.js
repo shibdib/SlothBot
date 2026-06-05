@@ -1,31 +1,33 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  *
- * Version 2.3
+ * Version 2.4
  *
- * - Per-room state persisted in Memory.observerState (survives global resets)
- * - Strategic targets sorted by Chebyshev distance per-observer
- * - Chebyshev arithmetic replaces Game.map.getRoomLinearDistance for hot paths
- * - Random fallback skipped briefly after a clean sweep finds nothing stale
- * - Tunables collected in TUNING block
- * - Direction list cached at module scope (includes r=1 corners)
- * - Previous-tick observation always handed to operationPlanner
- * - lastObservation only updated when vision lands (cacheRoomIntel)
- * - Manual observe assigned to nearest in-range observer
+ * - Strategic picks use global priority then Chebyshev distance (not distance-only)
+ * - Cross-observer dedup: skip rooms already in-flight on any observer
+ * - Heavy intel refresh for claim corridor / expansion scouts (hubCheck + cached)
+ * - Highway, active remotes, early-warning exits, and auxiliary scout ops in target pool
+ * - Random sweep prefers oldest stale intel with per-tick rotation
+ * - High-priority reachable work bypasses throttle
+ * - Skip rooms with live creep vision (owned rooms + any room with my creeps)
  */
 
 const profiler = require("tools.profiler");
 
 const TUNING = {
-    THROTTLE_TICKS: 5,                    // Min ticks between observation attempts per room
-    STALE_INTEL_TICKS: 50,                // Re-observe rooms whose intel is older than this
-    EMPTY_SWEEP_BACKOFF_TICKS: 25,        // Skip random fallback for this long after an empty sweep
-    PRUNE_INTERVAL_TICKS: 1500,           // Prune lost-room state this often
-    MAX_OBSERVE_RETRIES: 3,               // Re-issue observeRoom if vision is still missing
+    THROTTLE_TICKS: 5,
+    STALE_INTEL_TICKS: 50,
+    EMPTY_SWEEP_BACKOFF_TICKS: 25,
+    PRUNE_INTERVAL_TICKS: 1500,
+    MAX_OBSERVE_RETRIES: 3,
+    HIGH_PRIORITY: 85,
+    HEAVY_INTEL_TICKS: CREEP_LIFE_TIME * 5,
+    ACTIVE_REMOTE_WINDOW: 500,
 };
 
 let cachedDirections = null;
-let strategicCache = {tick: 0, targets: []};
+let strategicCache = {tick: 0, targets: [], priorityByRoom: {}};
+let creepVisionCache = {tick: 0, rooms: null};
 
 class ObserverControl {
     constructor() {
@@ -44,8 +46,7 @@ class ObserverControl {
             state.lastPrune = currentTime;
         }
 
-        // Always process the prior tick's observation result first.
-        if (!this.processPreviousObservation(roomName, observer, state)) return;
+        if (!this.processPreviousObservation(roomName, observer, state, currentTime)) return;
 
         const manualTarget = this.getManualTarget(state);
         if (manualTarget && this.resolveManualHandler(state, currentTime) === roomName) {
@@ -53,27 +54,31 @@ class ObserverControl {
             return;
         }
 
-        // Throttle per room, but bypass when this observer has reachable strategic work
-        const reachable = this.getReachableStrategic(roomName, currentTime);
+        const reachable = this.getReachableStrategic(roomName, currentTime, state);
+        const topPriority = reachable.length ? (this.getStrategicPriorities(currentTime)[reachable[0]] || 0) : 0;
         const throttled = (state.lastRun[roomName] | 0) + TUNING.THROTTLE_TICKS > currentTime;
-        if (throttled && reachable.length === 0) return;
+        if (throttled && topPriority < TUNING.HIGH_PRIORITY) return;
         state.lastRun[roomName] = currentTime;
 
         const targetRoom = reachable.length
             ? reachable[0]
             : this.findRandomTarget(roomName, currentTime, state);
 
-        if (targetRoom) {
+        if (targetRoom && !hasCreepVision(targetRoom, currentTime)) {
             this.issueObservation(observer, roomName, targetRoom, state);
         }
     }
 
-    processPreviousObservation(roomName, observer, state) {
+    processPreviousObservation(roomName, observer, state, currentTime) {
         const previous = state.observedRooms[roomName];
         if (!previous) return true;
 
         const observed = Game.rooms[previous];
         if (observed) {
+            const priorities = this.getStrategicPriorities(currentTime);
+            const priority = priorities[previous] || 0;
+            const forceHeavy = priority >= 88 || needsHeavyIntel(INTEL[previous], currentTime);
+            observed.cacheRoomIntel(forceHeavy);
             observer.operationPlanner(observed);
             delete state.observedRooms[roomName];
             delete state.observeAttempts[roomName];
@@ -144,7 +149,6 @@ class ObserverControl {
     }
 
     handleManualObservation(roomName, observer, state, target) {
-        // Prior-result handler processed the manual target; resume auto mode.
         if (state.manualIssued[roomName] === target) {
             log.a(`${roomName} finished observing ${target} — resuming random mode.`);
             this.clearManualRequest(state, roomName);
@@ -155,41 +159,61 @@ class ObserverControl {
         state.manualIssued[roomName] = target;
     }
 
-    getReachableStrategic(roomName, currentTime) {
+    getReachableStrategic(roomName, currentTime, state) {
         const base = parseRoomName(roomName);
         if (!base) return [];
 
-        const all = this.getStrategicTargets(currentTime);
+        const priorities = this.getStrategicPriorities(currentTime);
+        const inFlight = getInFlightTargets(state);
         const reachable = [];
-        for (const target of all) {
+
+        for (const target of strategicCache.targets) {
             const pos = parseRoomName(target);
             if (!pos) continue;
+            if (hasCreepVision(target, currentTime)) continue;
+            if (inFlight.has(target)) continue;
             const dist = chebyshev(base, pos);
             if (dist > OBSERVER_RANGE) continue;
             if (roomStatus(target) === 'closed') continue;
-            reachable.push({target, dist});
+            reachable.push({target, dist, priority: priorities[target] || 0});
         }
-        reachable.sort((a, b) => a.dist - b.dist);
+
+        reachable.sort((a, b) => b.priority - a.priority || a.dist - b.dist);
         return reachable.map(r => r.target);
     }
 
-    getStrategicTargets(currentTime) {
-        if (strategicCache.tick === currentTime) {
-            return strategicCache.targets;
+    getStrategicPriorities(currentTime) {
+        if (strategicCache.tick === currentTime && strategicCache.priorityByRoom) {
+            return strategicCache.priorityByRoom;
         }
+        this.buildStrategicCache(currentTime);
+        return strategicCache.priorityByRoom;
+    }
 
+    buildStrategicCache(currentTime) {
+        const creepVision = getRoomsWithMyCreeps(currentTime);
+        const owned = global.MY_ROOMS || [];
         const priorityByRoom = {};
         const add = (room, priority) => {
             if (!room || roomStatus(room) === 'closed') return;
+            if (owned.includes(room) || creepVision.has(room)) return;
             if (!priorityByRoom[room] || priorityByRoom[room] < priority) priorityByRoom[room] = priority;
         };
 
         const claim = Memory.claimTarget?.room;
         if (claim) {
             add(claim, 100);
-            for (const neighbor of Object.values(Game.map.describeExits(claim) || {})) add(neighbor, 90);
+            for (const neighbor of Object.values(Game.map.describeExits(claim) || {})) {
+                add(neighbor, 90);
+                if (needsHeavyIntel(INTEL[neighbor], currentTime)) add(neighbor, 92);
+            }
+            if (needsHeavyIntel(INTEL[claim], currentTime)) add(claim, 102);
         }
-        for (const roomName of Memory.expansionScoutRooms || []) add(roomName, 88);
+
+        for (const roomName of Memory.expansionScoutRooms || []) {
+            add(roomName, 88);
+            if (needsHeavyIntel(INTEL[roomName], currentTime)) add(roomName, 91);
+        }
 
         for (const rName in INTEL) {
             const r = INTEL[rName];
@@ -197,11 +221,23 @@ class ObserverControl {
             if (r.requestingSupport) add(rName, 95);
             if (r.threatLevel > 3) add(rName, 82);
             if (r.invaderCore && r.invaderCore > Game.time) add(rName, 78);
+            if (r.power && r.power > currentTime) add(rName, 70);
+            if (r.commodity) add(rName, 68);
+            if (r.activeRemote && r.activeRemote + TUNING.ACTIVE_REMOTE_WINDOW > currentTime &&
+                (r.threatLevel > 0 || r.armedHostile) && isIntelStale(r, currentTime)) {
+                add(rName, 76);
+            }
         }
 
         for (const home of global.MY_ROOMS || []) {
             const hr = Game.rooms[home];
-            if (hr?.memory?.borderPatrol) add(hr.memory.borderPatrol, 72);
+            if (!hr) continue;
+            if (hr.memory?.borderPatrol) add(hr.memory.borderPatrol, 72);
+            if (hr.memory?.earlyWarning) {
+                for (const neighbor of Object.values(Game.map.describeExits(home) || {})) {
+                    if (isIntelStale(INTEL[neighbor], currentTime)) add(neighbor, 74);
+                }
+            }
         }
 
         for (const room of [
@@ -210,13 +246,20 @@ class ObserverControl {
         ]) {
             const op = Memory.targetRooms[room] || Memory.auxiliaryTargets[room];
             if (!op) continue;
-            if (op.type === 'scout') add(room, 65);
+            if (op.type === 'scout' || op.type === 'claim') add(room, 66);
             else if (isIntelStale(INTEL[room], currentTime)) add(room, 60);
+            else if (needsHeavyIntel(INTEL[room], currentTime)) add(room, 62);
+        }
+
+        // Fill map toward owned rooms: stale neighbors at low priority
+        for (const home of global.MY_ROOMS || []) {
+            for (const neighbor of Object.values(Game.map.describeExits(home) || {})) {
+                if (isIntelStale(INTEL[neighbor], currentTime)) add(neighbor, 35);
+            }
         }
 
         const targets = Object.keys(priorityByRoom).sort((a, b) => priorityByRoom[b] - priorityByRoom[a]);
-        strategicCache = {tick: currentTime, targets};
-        return targets;
+        strategicCache = {tick: currentTime, targets, priorityByRoom};
     }
 
     findRandomTarget(roomName, currentTime, state) {
@@ -228,20 +271,33 @@ class ObserverControl {
         const base = parseRoomName(roomName);
         if (!base) return null;
 
-        for (const [dx, dy] of this.getDirections()) {
-            const newX = base.x + dx;
-            const newY = base.y + dy;
-            const target = formatRoomName(newX, newY);
+        const inFlight = getInFlightTargets(state);
+        const directions = this.getDirections();
+        const start = directions.length ? currentTime % directions.length : 0;
+        const staleCandidates = [];
+
+        for (let i = 0; i < directions.length; i++) {
+            const [dx, dy] = directions[(start + i) % directions.length];
+            const target = formatRoomName(base.x + dx, base.y + dy);
 
             if (roomStatus(target) === 'closed') continue;
-            if (isIntelStale(INTEL[target], currentTime)) {
-                delete state.lastEmptySweep[roomName];
-                return target;
-            }
+            if (hasCreepVision(target, currentTime)) continue;
+            if (inFlight.has(target)) continue;
+            if (!isIntelStale(INTEL[target], currentTime)) continue;
+
+            const intel = INTEL[target];
+            const age = intel?.lastObservation || 0;
+            staleCandidates.push({target, age});
         }
 
-        state.lastEmptySweep[roomName] = currentTime;
-        return null;
+        if (!staleCandidates.length) {
+            state.lastEmptySweep[roomName] = currentTime;
+            return null;
+        }
+
+        delete state.lastEmptySweep[roomName];
+        staleCandidates.sort((a, b) => a.age - b.age);
+        return staleCandidates[0].target;
     }
 
     getDirections() {
@@ -305,14 +361,47 @@ class ObserverControl {
     }
 }
 
+function getRoomsWithMyCreeps(currentTime) {
+    if (creepVisionCache.tick === currentTime && creepVisionCache.rooms) {
+        return creepVisionCache.rooms;
+    }
+    const rooms = new Set(global.MY_ROOMS || []);
+    for (const name in Game.creeps) {
+        const creep = Game.creeps[name];
+        if (creep.my) rooms.add(creep.pos.roomName);
+    }
+    creepVisionCache = {tick: currentTime, rooms};
+    return rooms;
+}
+
+function hasCreepVision(roomName, currentTime) {
+    return getRoomsWithMyCreeps(currentTime).has(roomName);
+}
+
+function getInFlightTargets(state) {
+    const inFlight = new Set();
+    const bucket = state.observedRooms;
+    if (!bucket) return inFlight;
+    for (const observerRoom in bucket) {
+        const target = bucket[observerRoom];
+        if (target) inFlight.add(target);
+    }
+    return inFlight;
+}
+
 function isIntelStale(intel, currentTime) {
     return !intel ||
         !intel.lastObservation ||
         intel.lastObservation + TUNING.STALE_INTEL_TICKS <= currentTime;
 }
 
-// Parse "E5N3" → {x: 5, y: -3}. E/S positive, W/N negative. Chebyshev distance
-// then matches Game.map.getRoomLinearDistance on standard (non-wrapping) worlds.
+function needsHeavyIntel(intel, currentTime) {
+    if (!intel) return true;
+    if (!intel.cached || intel.cached + TUNING.HEAVY_INTEL_TICKS <= currentTime) return true;
+    if (!intel.owner && !intel.hubCheck && (intel.sources === 2 || intel.sources === undefined)) return true;
+    return false;
+}
+
 function parseRoomName(name) {
     const m = name.match(/^([EW])(\d+)([NS])(\d+)$/);
     if (!m) return null;
