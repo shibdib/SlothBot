@@ -87,7 +87,7 @@ module.exports.role = function (powerCreep) {
             }
         }
         // Boost tower when under attack
-        else if (targetTower && INTEL[powerCreep.room.name].responseNeeded && powerCreep.powers[PWR_OPERATE_TOWER] && !powerCreep.powers[PWR_OPERATE_TOWER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_TOWER].ops) {
+        else if (targetTower && INTEL[powerCreep.room.name] && INTEL[powerCreep.room.name].responseNeeded && powerCreep.powers[PWR_OPERATE_TOWER] && !powerCreep.powers[PWR_OPERATE_TOWER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_TOWER].ops) {
             powerCreep.say('TOWER', true);
             return abilitySwitch(powerCreep, PWR_OPERATE_TOWER, targetTower);
         }
@@ -143,10 +143,12 @@ module.exports.role = function (powerCreep) {
 };
 
 function upgradePowers(powerCreep) {
-    let sparePowerLevels = Game.gpl.level - (_.size(Game.powerCreeps) + _.sum(Game.powerCreeps, 'level'));
-    let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8);
-    let lowestOperator = _.min(Game.powerCreeps, 'level')
-    if (sparePowerLevels === 0 || powerCreep.level === 25 || lowestOperator.id !== powerCreep.id || (_.size(Game.powerCreeps) < myRooms.length && powerCreep.level >= 11)) return;
+    const powerManager = require('module.powerManager');
+    const sparePowerLevels = powerManager.getSparePowerLevels();
+    const myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8);
+    const lowestOperator = powerManager.getLowestMyOperator();
+    const blockedByLowerOp = lowestOperator.id && lowestOperator.id !== powerCreep.id;
+    if (sparePowerLevels === 0 || powerCreep.level === 25 || blockedByLowerOp || (_.size(Game.powerCreeps) < myRooms.length && powerCreep.level >= 11)) return;
     // Ops — fuel for every other power, always first.
     if (!powerCreep.powers[PWR_GENERATE_OPS] || (powerCreep.level >= 2 && powerCreep.powers[PWR_GENERATE_OPS].level < 2) || (powerCreep.level >= 7 && powerCreep.powers[PWR_GENERATE_OPS].level < 3) || (powerCreep.level >= 14 && powerCreep.powers[PWR_GENERATE_OPS].level < 4) || (powerCreep.level >= 22 && powerCreep.powers[PWR_GENERATE_OPS].level < 5)) {
         return upgradeSwitch(powerCreep, PWR_GENERATE_OPS)
