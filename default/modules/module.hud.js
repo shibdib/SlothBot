@@ -199,7 +199,7 @@ class HUD {
             align: 'right',
             font: 'bold 0.38 Tahoma'
         });
-        room.visual.text(`upg:${diag.upgradeExpense} drn:${diag.droneExpense} spn:${diag.spawnExpense}`, x + width - 0.15, y + 0.12, {
+        room.visual.text(`upg:${diag.upgradeExpense} drn:${diag.maintenanceExpense || diag.droneExpense || 0} spn:${diag.spawnExpense}`, x + width - 0.15, y + 0.12, {
             color: '#8a7070', align: 'right', font: '0.32 Tahoma'
         });
         y += 0.95;

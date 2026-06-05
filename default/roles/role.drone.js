@@ -118,6 +118,7 @@ class RoleDrone {
     }
 
     energyCollection() {
+        if (!this.creep.memory.other) this.creep.memory.other = {};
         this.creep.memory.other.stationary = undefined;
         this.creep.memory.working = undefined;
         this.creep.memory.constructionSite = undefined;
@@ -235,6 +236,7 @@ class RoleDrone {
 
         this.creep.memory.task = 'upgrade';
         this.creep.say('Praise!', true);
+        if (!this.creep.memory.other) this.creep.memory.other = {};
         const result = this.creep.upgradeController(this.room.controller);
         if (result === OK) {
             this.creep.memory.other.stationary = true;

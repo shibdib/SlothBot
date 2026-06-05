@@ -7,6 +7,12 @@ const energyTracker = require("module.energyTracker");
 const LAST_UPDATE = {};
 const ENERGY_TRACKER = {};
 
+function ensureAllyRequests() {
+    if (!ALLY_HELP_REQUESTS[MY_USERNAME]) ALLY_HELP_REQUESTS[MY_USERNAME] = {requests: {}};
+    if (!ALLY_HELP_REQUESTS[MY_USERNAME].requests) ALLY_HELP_REQUESTS[MY_USERNAME].requests = {};
+    return ALLY_HELP_REQUESTS[MY_USERNAME].requests;
+}
+
 class StateManager {
     constructor() {
         this.myRooms = MY_ROOMS;
@@ -18,25 +24,25 @@ class StateManager {
         if (lastRun + 10 > Game.time) return;
         LAST_UPDATE.tick = Game.time;
 
-        this.myRooms.forEach(room => this.roomTracking(room));
+        this.pruneEnergyTracker();
+        this.myRooms.forEach(roomName => this.roomTracking(roomName));
     }
 
-    roomTracking(room) {
-        room = Game.rooms[room];
+    pruneEnergyTracker() {
+        const alive = new Set(this.myRooms);
+        for (const name in ENERGY_TRACKER) {
+            if (!alive.has(name) || !Game.rooms[name]) delete ENERGY_TRACKER[name];
+        }
+    }
 
-        // Track energy
+    roomTracking(roomName) {
+        const room = Game.rooms[roomName];
+        if (!room || !room.controller || !room.controller.my) return;
+
         this.energyTracking(room);
-
-        // Track leveling stats
         this.levelingStatTracking(room);
-
-        // Request builders only if certain conditions are met
         this.requestBuilders(room);
-
-        // Funnel requests
         this.funnelRequest(room);
-
-        room.memory.stateInformation = undefined;
     }
 
     energyTracking(room) {
@@ -56,8 +62,8 @@ class StateManager {
         const trend = energyTracker.colonyTrend(room.name);
 
         // Single pass over myCreeps — gathers everything energyDiag needs.
-        let upgraderCnt = 0, droneCnt = 0;
-        let upgradeWork = 0, droneWork = 0;
+        let upgraderCnt = 0, droneCnt = 0, wallerCnt = 0;
+        let upgradeWork = 0, maintenanceWork = 0;
         let totalBodyCost = 0;
         const statHarvesters = [];
         const remoteHarvesters = [];
@@ -68,9 +74,12 @@ class StateManager {
             if (role === 'upgrader') {
                 upgraderCnt++;
                 upgradeWork += c.getActiveBodyparts(WORK);
-            } else if (role === 'drone' || role === 'waller') {
+            } else if (role === 'drone') {
                 droneCnt++;
-                droneWork += c.getActiveBodyparts(WORK);
+                maintenanceWork += c.getActiveBodyparts(WORK);
+            } else if (role === 'waller') {
+                wallerCnt++;
+                maintenanceWork += c.getActiveBodyparts(WORK);
             } else if (role === 'stationaryHarvester') {
                 statHarvesters.push(c);
             } else if (role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired) {
@@ -78,7 +87,7 @@ class StateManager {
             }
         }
         const upgradeExpense = Math.ceil(upgradeWork);
-        const droneExpense = Math.ceil(droneWork);
+        const maintenanceExpense = Math.ceil(maintenanceWork);
         const spawnExpense = Math.ceil(totalBodyCost / CREEP_LIFE_TIME);
 
         // Upgrader duty cycle = avg actual upgrade energy / avg theoretical WORK, both over
@@ -97,22 +106,23 @@ class StateManager {
             upgraderCnt,
             upgradeExpense,
             droneCnt,
-            droneExpense,
+            wallerCnt,
+            maintenanceExpense,
             spawnExpense,
             samples: snap.samples || 0,
         };
 
-        // Combat Readiness
-        if (!room.memory.combatReady && room.energyState >= 2 && room.level >= 4) room.memory.combatReady = true;
-        else if (room.memory.combatReady && !room.energyState) room.memory.combatReady = undefined;
+        // Read energyState once — getter may enqueue ally energy requests.
+        const energyState = room.energyState;
 
-        // Auxiliary Readiness
-        if (!room.memory.auxilaryReady && room.energyState >= 1 && room.level >= 4) room.memory.auxilaryReady = true;
-        else if (room.memory.auxilaryReady && !room.energyState) room.memory.auxilaryReady = undefined;
+        if (!room.memory.combatReady && energyState >= 2 && room.level >= 4) room.memory.combatReady = true;
+        else if (room.memory.combatReady && !energyState) room.memory.combatReady = undefined;
+
+        if (!room.memory.auxilaryReady && energyState >= 1 && room.level >= 4) room.memory.auxilaryReady = true;
+        else if (room.memory.auxilaryReady && !energyState) room.memory.auxilaryReady = undefined;
     }
 
     levelingStatTracking(room) {
-        // Stats tracking
         let stats = room.memory.stats || {};
         stats.levelInfo = stats.levelInfo || {};
         stats.levelInfo[room.controller.level] = stats.levelInfo[room.controller.level] || Game.time;
@@ -130,25 +140,22 @@ class StateManager {
     }
 
     funnelRequest(room) {
-        const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
+        const requests = ensureAllyRequests();
         if (room.terminal && room.level < 8 && FUNNEL_REQUESTS) {
             let funnelRequests = requests.funnel ? requests.funnel : [];
-            if (funnelRequests) {
-                funnelRequests = funnelRequests.filter((r) => r.roomName !== room.name);
-                const goalType = room.level === 6 ? 1 : room.level === 7 ? 2 : 0;
-                funnelRequests.push({
-                    goalType: goalType,
-                    maxAmount: Math.min((room.controller.progressTotal - room.controller.progress) - room.energy, 200000),
-                    timeout: Game.time + CREEP_LIFE_TIME,
-                    roomName: room.name
-                });
-                ALLY_HELP_REQUESTS[MY_USERNAME].requests.funnel = funnelRequests;
-            }
+            funnelRequests = funnelRequests.filter((r) => r.roomName !== room.name);
+            const goalType = room.level === 6 ? 1 : room.level === 7 ? 2 : 0;
+            funnelRequests.push({
+                goalType: goalType,
+                maxAmount: Math.min((room.controller.progressTotal - room.controller.progress) - room.energy, 200000),
+                timeout: Game.time + CREEP_LIFE_TIME,
+                roomName: room.name
+            });
+            requests.funnel = funnelRequests;
         } else {
             let funnelRequests = requests.funnel ? requests.funnel : [];
-            if (funnelRequests && ALLY_HELP_REQUESTS[MY_USERNAME]) {
-                funnelRequests = funnelRequests.filter((r) => r.roomName !== room.name);
-                ALLY_HELP_REQUESTS[MY_USERNAME].requests.funnel = funnelRequests;
+            if (funnelRequests.length) {
+                requests.funnel = funnelRequests.filter((r) => r.roomName !== room.name);
             }
         }
     }

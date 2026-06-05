@@ -348,10 +348,13 @@ module.exports.essentialCreepQueue = function (room) {
         const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
         if (room.storage || protoStorage) {
             let haulerAmount = room.level >= 4 ? 2 : 1;
-            const priority = !getCreepCount(room, 'hauler') ? 1 : PRIORITIES.hauler;
+            if (room.memory.needsHaulers) haulerAmount = Math.max(haulerAmount, 3);
+            const haulerUrgent = room.memory.needsHaulers;
+            const priority = !getCreepCount(room, 'hauler') || haulerUrgent ? 1 : PRIORITIES.hauler;
             queueCreepIfNeeded({
                 room, role: 'hauler', priority,
-                numberNeeded: haulerAmount, rebootCondition: !getCreepCount(room, 'hauler') || !room.energyState
+                numberNeeded: haulerAmount,
+                rebootCondition: !getCreepCount(room, 'hauler') || !room.energyState || haulerUrgent
             });
         }
 
