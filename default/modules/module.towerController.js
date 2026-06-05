@@ -148,7 +148,7 @@ function findBestTarget(room, towers, hostiles, roomDrain) {
         if (storageLow && effectiveDamage - totalHeal < rawDamage * 0.25) continue;
 
         let score = effectiveDamage - totalHeal;
-        if (hostile.hasActiveBodyparts(HEAL) || hostile.hasActiveBodyparts(RANGED_HEAL)) score += 5000;
+        if (hostile.hasActiveBodyparts(HEAL)) score += 5000;
         else if (hostile.hasActiveBodyparts(ATTACK) || hostile.hasActiveBodyparts(RANGED_ATTACK)) score += 3000;
         else if (hostile.hasActiveBodyparts(WORK)) score += 1500;
         score += (1 - hostile.hits / hostile.hitsMax) * 500;
@@ -205,7 +205,6 @@ function computeHealCapacity(creep) {
         if (part.hits === 0) continue;
         const mult = healPartMultiplier(part.type, part.boost);
         if (part.type === HEAL) melee += HEAL_POWER * mult;
-        else if (part.type === RANGED_HEAL) ranged += RANGED_HEAL_POWER * mult;
     }
     // One heal action per tick — use the stronger of melee heal vs rangedHeal on self.
     return Math.max(melee, ranged);
@@ -224,10 +223,8 @@ function computeNearbyAllyHeal(target, hostiles) {
             if (part.hits === 0) continue;
             const mult = healPartMultiplier(part.type, part.boost);
             if (part.type === HEAL) melee += HEAL_POWER * mult;
-            else if (part.type === RANGED_HEAL) ranged += RANGED_HEAL_POWER * mult;
         }
 
-        // HEAL parts only reach range 1; RANGED_HEAL reaches up to 3.
         if (range <= 1) total += Math.max(melee, ranged);
         else total += ranged;
     }
