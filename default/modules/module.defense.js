@@ -4,6 +4,7 @@
 const profiler = require("tools.profiler");
 const towers = require('module.towerController');
 const ROOM_STATE_CACHE = {};
+const PLAYER_HOSTILE_PARTS = [ATTACK, RANGED_ATTACK, WORK, CLAIM];
 
 // Re-send an "ongoing attack" reminder at most this often (~3 hours real time)
 const ALERT_REMINDER_TICKS = 5000;
@@ -16,32 +17,46 @@ class DefenseManager {
     }
 
     run() {
-        // Manage towers
-        towers.towerController(this.room);
+        if (Game.time % 1000 === 0) this._pruneRoomStateCache();
 
-        // Invader check
+        towers.towerController(this.room);
         this.room.invaderCheck();
 
-        // Manage ramparts
-        if (!Memory._rampartsSet || RAMPART_ACCESS) this.rampartManager();
+        const intel = INTEL[this.room.name];
+        const armedHostiles = this.room.hostileCreeps.filter(c =>
+            PLAYER_HOSTILE_PARTS.some(p => c.hasActiveBodyparts(p))
+        );
+        const playerArmed = armedHostiles.filter(c => c.owner && c.owner.username !== 'Invader');
+        const underAttack = armedHostiles.length > 0 || !!this.room.controller.safeMode;
 
-        // Periodic Nuke Defense Check
-        if (Game.time % 100 === 0) this.handleNukeAttack();
-
-        // Manage room attacks
-        const armedHostiles = this.room.hostileCreeps.filter((c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK));
-        if (armedHostiles.length || this.room.controller.safeMode) {
+        // towerController used to set this — labTech, shuttle, terminal, and spawn still read it
+        if (underAttack) {
+            this.room.memory.dangerousAttack = true;
             this.alertHostileAttack();
-            if (armedHostiles[0] && armedHostiles[0].owner && armedHostiles[0].owner.username !== 'Invader') {
-                this.safeModeManager(this.room);
-                INTEL[this.room.name].requestingSupport = true;
+            if (playerArmed.length) {
+                this.safeModeManager();
+                if (intel) intel.requestingSupport = true;
             }
         } else {
+            this.room.memory.dangerousAttack = undefined;
             clearHostileAlert(this.room);
+            if (intel) intel.requestingSupport = undefined;
         }
 
-        // Check surrounding rooms for high threat
-        this.room.memory.earlyWarning = _.some(Object.values(Game.map.describeExits(this.room.name)), roomName => INTEL[roomName] && INTEL[roomName].threatLevel > 4);
+        if (!Memory._rampartsSet || RAMPART_ACCESS) this.rampartManager();
+
+        if (Game.time % 100 === 0) this.handleNukeAttack();
+
+        this.room.memory.earlyWarning = _.some(
+            Object.values(Game.map.describeExits(this.room.name)),
+            roomName => INTEL[roomName] && INTEL[roomName].threatLevel > 4
+        );
+    }
+
+    _pruneRoomStateCache() {
+        for (const name of Object.keys(ROOM_STATE_CACHE)) {
+            if (!Game.rooms[name]) delete ROOM_STATE_CACHE[name];
+        }
     }
 
     rampartManager() {
@@ -50,23 +65,13 @@ class DefenseManager {
 
         // Cache room state once per tick
         if (!ROOM_STATE_CACHE[roomName] || ROOM_STATE_CACHE[roomName].tick !== currentTick) {
-            const ramparts = [];
-            const allies = [];
-            const hostileCreeps = this.room.hostileCreeps;
-            const structures = this.room.structures;
-            const creeps = this.room.creeps;
-
-            for (let s of structures) {
-                if (s.structureType === STRUCTURE_RAMPART) ramparts.push(s);
-            }
-            for (let c of creeps) {
-                if (c.owner && _.includes(FRIENDLIES, c.owner.username) && !c.my) allies.push(c);
-            }
-
+            const allies = this.room.creeps.filter(c =>
+                c.owner && _.includes(FRIENDLIES, c.owner.username) && !c.my
+            );
             ROOM_STATE_CACHE[roomName] = {
-                ramparts: ramparts,
-                allies: allies,
-                hostileCreeps: hostileCreeps,
+                ramparts: this.room.ramparts,
+                allies,
+                hostileCreeps: this.room.hostileCreeps,
                 tick: currentTick
             };
         }
@@ -120,9 +125,6 @@ class DefenseManager {
     handleNukeAttack() {
         const currentTick = Game.time;
         const roomName = this.room.name;
-
-        if (currentTick % 100 !== 0) return;
-
         const nukes = this.room.find(FIND_NUKES);
         if (!nukes.length) {
             this.room.memory.nuke = undefined;
@@ -132,10 +134,9 @@ class DefenseManager {
         this.room.memory.nuke = _.min(nukes, 'timeToLand').timeToLand;
 
         const launchRoom = nukes[0].launchRoomName;
-        if (INTEL[launchRoom] && INTEL[launchRoom].owner) {
-            let nukeTargets = Memory.MAD || [];
-            nukeTargets.push(INTEL[launchRoom].owner);
-            Memory.MAD = _.uniq(nukeTargets);
+        const launchIntel = INTEL[launchRoom];
+        if (launchIntel && launchIntel.owner) {
+            Memory.MAD = _.uniq((Memory.MAD || []).concat(launchIntel.owner));
         }
 
         const criticalStructures = this.room.structures.filter(s => [STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN].includes(s.structureType));
@@ -163,12 +164,11 @@ class DefenseManager {
     }
 
     alertHostileAttack() {
-        // Filter hostile creeps that are armed players (not Invaders)
-        const playerHostile = _.filter(this.room.hostileCreeps, (c) => (
+        const playerHostile = this.room.hostileCreeps.filter(c =>
             c.owner &&
             c.owner.username !== 'Invader' &&
-            (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK) || c.hasActiveBodyparts(CLAIM))
-        ));
+            PLAYER_HOSTILE_PARTS.some(p => c.hasActiveBodyparts(p))
+        );
         if (!playerHostile.length) return;
 
         const hostileOwners = _.uniq(playerHostile.map(c => c.owner.username)).sort();
@@ -176,33 +176,36 @@ class DefenseManager {
     }
 
     safeModeManager() {
-        addThreat(this.room);
+        const room = this.room;
+        const intel = INTEL[room.name];
+        addThreat(room);
 
-        if (this.room.controller.safeMode) {
-            this.room.memory.defenseCooldown = undefined;
-            if (this.room.controller.safeMode < 750 && this.room.level >= 5) {
-                let endingTick = Game.time + this.room.controller.safeMode;
-                this.room.memory.defenseCooldown = endingTick + CREEP_LIFE_TIME * 0.5;
+        if (room.controller.safeMode) {
+            room.memory.defenseCooldown = undefined;
+            if (room.controller.safeMode < 750 && room.level >= 5) {
+                room.memory.defenseCooldown = Game.time + room.controller.safeMode + CREEP_LIFE_TIME * 0.5;
             }
             return;
         }
 
-        const activeSafemode = _.find(MY_ROOMS, function (r) {
-            return Game.rooms[r].controller.safeMode;
+        const activeSafemode = MY_ROOMS.find(r => {
+            const other = Game.rooms[r];
+            return other && other.controller && other.controller.safeMode;
         });
 
-        if (activeSafemode || !this.room.controller.safeModeAvailable || this.room.controller.safeModeCooldown) return;
+        if (activeSafemode || !room.controller.safeModeAvailable || room.controller.safeModeCooldown) return;
 
-        const damagedStructures = this.room.structures.find(s => [STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN, STRUCTURE_EXTENSION].includes(s.structureType) && s.hits < s.hitsMax);
-        const spawn = this.room.spawns[0];
+        const criticalTypes = [STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN, STRUCTURE_EXTENSION];
+        const damagedStructures = room.structures.find(s => criticalTypes.includes(s.structureType) && s.hits < s.hitsMax);
+        const spawn = room.spawns[0];
 
-        if (damagedStructures || (this.room.controller.level >= 6 && !spawn)) {
-            this.room.memory.safeModeInfo = {
+        if (damagedStructures || (room.controller.level >= 6 && !spawn)) {
+            room.memory.safeModeInfo = {
                 tick: Game.time,
-                attackers: INTEL[this.room.name].hostileOwners,
-                level: INTEL[this.room.name].threatLevel
+                attackers: intel && intel.hostileOwners,
+                level: intel && intel.threatLevel
             };
-            activateSafeMode(this.room);
+            activateSafeMode(room);
         }
     }
 }
@@ -277,7 +280,10 @@ function activateSafeMode(room) {
 }
 
 function addThreat(room) {
-    let neutrals = _.uniq(_.pluck(_.filter(room.creeps, (c) => !c.my && c.owner && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper'), 'owner.username'));
+    const neutrals = _.uniq(room.hostileCreeps
+        .filter(c => c.owner && !_.includes(FRIENDLIES, c.owner.username) &&
+            c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper')
+        .map(c => c.owner.username));
     if (neutrals.length) {
         for (let user of neutrals) {
             if (user === MY_USERNAME || _.includes(FRIENDLIES, user)) continue;
