@@ -146,7 +146,8 @@ class RoleDrone {
                 this.creep.memory.source = source ? source.id : undefined;
             }
 
-            if (source && (!INTEL[this.room.name].owner || INTEL[this.room.name].owner === MY_USERNAME)) {
+            const intel = INTEL[this.room.name];
+            if (source && (!intel?.owner || intel.owner === MY_USERNAME)) {
                 this.creep.memory.harvest = true;
                 this.creep.say('Harvest!', true);
                 const result = this.creep.harvest(source);
@@ -254,6 +255,8 @@ class RoleDrone {
     }
 
     walling() {
+        if (!this.room.controller || !this.room.controller.my) return false;
+
         if (!this.creep.memory.currentTarget || !Game.getObjectById(this.creep.memory.currentTarget)) {
             // Check for ramparts that need to be built (priority over repairs)
             if (this.room.constructionSites.length) {
@@ -278,7 +281,7 @@ class RoleDrone {
                 return s.hits < cap;
             });
 
-            if (!barrierStructures.length || !this.room.controller || !this.room.controller.my) return false;
+            if (!barrierStructures.length) return false;
 
             let target;
             const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
