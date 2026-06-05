@@ -106,17 +106,19 @@ function handleRoomDenialOperation(room) {
 function handleScoutOperation(room) {
     room.cacheRoomIntel(true)
     const towers = room.towers;
-    const owner = INTEL[room.name].owner;
+    const intel = INTEL[room.name];
+    if (!intel) return;
+    const owner = intel.owner;
     const isHostile = owner && _.pluck(WAR_TARGETS, 'user').includes(owner);
 
-    if (INTEL[room.name].sk && towers.length) {
+    if (intel.sk && towers.length) {
         Memory.targetRooms[room.name].type = 'stronghold';
         Memory.targetRooms[room.name].boosts = [HEAL];
-    } else if (isHostile && (!INTEL[room.name].towers || towers.length <= 3)) {
+    } else if (isHostile && (!intel.towers || towers.length <= 3)) {
         Memory.targetRooms[room.name].type = 'roomDenial';
         if (towers.length) Memory.targetRooms[room.name].boosts = [HEAL];
         log.a(`Room ${roomLink(room.name)} converted to room denial operation.`, 'HIGH COMMAND: ');
-    } else if (isHostile && INTEL[room.name].towers > 3) {
+    } else if (isHostile && intel.towers > 3) {
         Memory.targetRooms[room.name].type = 'remoteDenial';
         log.a(`Room ${roomLink(room.name)} converted to remote denial operation.`, 'HIGH COMMAND: ');
     } else {

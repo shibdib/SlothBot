@@ -907,7 +907,11 @@ function manualAttacks() {
         }
 
         if (operation.includes('observe')) {
-            Memory.observeRoom = roomName;
+            if (!Memory.observerState) Memory.observerState = {};
+            Memory.observerState.manualTarget = roomName;
+            delete Memory.observerState.manualHandler;
+            delete Memory.observerState.manualHandlerTick;
+            Memory.observeRoom = undefined;
             removeFlagAndLog('Observing ' + roomLink(roomName) + ' at your request.');
             continue;
         }

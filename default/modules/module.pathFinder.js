@@ -128,10 +128,18 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
     }
 
     // Stuck detection
-    if (creep.memory._shibMove.pathPosTime && creep.memory._shibMove.pathPosTime >= STATE_STUCK) {
+    if (creep.memory._shibMove?.pathPosTime >= STATE_STUCK) {
         if (creepBumping(creep, creep.memory._shibMove, options)) {
-            creep.memory._shibMove.pathPosTime--;
+            if (creep.memory._shibMove) creep.memory._shibMove.pathPosTime--;
             return;
+        }
+        if (!creep.memory._shibStuckRepath || creep.memory._shibStuckRepath + 10 < Game.time) {
+            creep.memory._shibStuckRepath = Game.time;
+            if (!creep.memory._shibMove) creep.memory._shibMove = {};
+            creep.memory._shibMove.pathPosTime = 0;
+            delete creep.memory._shibMove.path;
+            delete creep.memory._shibMove.pathPos;
+            return shibPath(creep, heading, creep.memory._shibMove, origin, target, options);
         }
         return false;
     }
@@ -406,7 +414,7 @@ function findRoute(origin, destination, options = {}) {
     const [, tx, ty] = destination.match(/^[WE](\d+)[NS](\d+)$/) || [];
     if (fx && tx) {
         const roomDistance = Math.max(Math.abs(parseInt(fx, 10) - parseInt(tx, 10)), Math.abs(parseInt(fy, 10) - parseInt(ty, 10)));
-        if (roomDistance > 15) return;
+        if (roomDistance > 15) return [];
     }
 
     const route = Game.map.findRoute(origin, destination, {
@@ -647,8 +655,8 @@ function getMatrix(roomName, creep, options) {
     if (room) {
         matrix = addCreepsToMatrix(room, matrix, creep, options);
 
-        const armedEnemies = room.hostileCreeps.length && room.hostileCreeps.filter(c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
-        if (creep instanceof Creep && armedEnemies) {
+        const armedEnemies = room.hostileCreeps.filter(c => !c.className && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)));
+        if (creep instanceof Creep && armedEnemies.length) {
             if ((!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.flee) {
                 matrix = addHostilesToMatrix(room, matrix);
             }
@@ -935,16 +943,18 @@ function cachePath(creep, from, to, pathInfo) {
     entry.path = pathInfo.path;
     entry.key = key;
     entry.tick = tick;
-    entry.structuresHash = hashStructures(creep.room.impassibleStructures);
+    entry.structuresHash = hashRoomStructures(creep.room);
     entry.uses = (entry.uses || 0) + 1;
 
-    const reverseKey = getPathKey(to, from, weight);
-    if (!CACHE.PATH_CACHE[reverseKey]) {
-        CACHE.PATH_CACHE[reverseKey] = {
-            ...entry,
-            path: pathInfo.path.split('').reverse().map(reverseDirection).join(''),
-            key: reverseKey
-        };
+    if (from.roomName === to.roomName) {
+        const reverseKey = getPathKey(to, from, weight);
+        if (!CACHE.PATH_CACHE[reverseKey]) {
+            CACHE.PATH_CACHE[reverseKey] = {
+                ...entry,
+                path: pathInfo.path.split('').reverse().map(reverseDirection).join(''),
+                key: reverseKey
+            };
+        }
     }
     CACHE.PATH_CACHE[key] = entry;
 }
@@ -956,7 +966,7 @@ function getPath(creep, from, to, pathInfo) {
     let cached = CACHE.PATH_CACHE[key] || CACHE.PATH_CACHE[getPathKey(to, from, weight)];
 
     if (creep.room && cached && Game.time < cached.tick + 200 &&
-        cached.structuresHash === hashStructures(creep.room.impassibleStructures) &&
+        cached.structuresHash === hashRoomStructures(creep.room) &&
         (creep.memory._shibMove?.pathPosTime || 0) < STATE_STUCK) {
         cached.uses++;
         return cached.path;
@@ -966,7 +976,12 @@ function getPath(creep, from, to, pathInfo) {
 
 const reverseDirection = dir => (9 - parseInt(dir, 10)) % 8 + 1;
 const getPathKey = (from, to, weight) => `${from.x},${from.y},${from.roomName}_${to.x},${to.y},${to.roomName}_${weight}`;
-const hashStructures = structs => structs.map(s => `${s.x},${s.y},${s.structureType}`).join('|');
+const hashStructures = structs => (structs && structs.length ? structs.map(s => `${s.x},${s.y},${s.structureType}`).join('|') : '');
+
+function hashRoomStructures(room) {
+    if (!room || !room.structures) return '';
+    return hashStructures(room.structures);
+}
 
 function getMoveWeight(creep, options = {}) {
     if (creep.className) {
@@ -1043,9 +1058,11 @@ Creep.prototype.shibMove = function (destination, options = {}) {
     if (!options.forceSolo && (options.squad || this.memory.grouped)) return this.shibSquadMovement(destination, options);
     this.memory._shibSquadMove = undefined;
     if (this.memory.grouped) options.squad = true;
+    destination = normalizePos(destination);
+    if (!destination) return false;
     // If the destination is in the same room as the old destination but the old path takes it out of that room it'll refresh, avoid that and use the old destination
     if (this.memory._shibMove && this.memory._shibMove.target &&
-        this.memory._shibMove.target.roomName === destination.roomName && this.memory._shibMove.target.x) {
+        this.memory._shibMove.target.roomName === destination.roomName && this.memory._shibMove.target.x != null) {
         destination = new RoomPosition(this.memory._shibMove.target.x, this.memory._shibMove.target.y, this.memory._shibMove.target.roomName);
     }
     return shibMove(this, destination, options);
@@ -1417,5 +1434,8 @@ function getOutsideHubMatrix(roomName, matrix, options) {
 module.exports = {
     QUAD_FOLLOWER_OFFSETS,
     getSquadMatrix,
-    getFormationVectors
+    getFormationVectors,
+    findRoute,
+    deleteRoute,
+    getRoute
 };
