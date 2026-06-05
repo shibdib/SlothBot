@@ -311,20 +311,20 @@ module.exports.essentialCreepQueue = function (room) {
     let dronePriority = PRIORITIES.drone;
     if (earlyRush) {
         if (!harvesterCount) droneCount = 1;
-        else droneCount = importantBuilds ? Math.max(1, room.level) : 1;
+        else droneCount = 9 - room.level;
         dronePriority = 1;
     } else if (importantBuilds && trendOk && room.energyState) {
-        droneCount = 11 - room.level;
+        droneCount = 9 - room.level;
     } else if (room.constructionSites.length && room.energyState > 2) {
         droneCount = 2;
     } else if (!room.storage) {
-        droneCount = Math.max(8 - room.level, 1);
+        droneCount = Math.max(9 - room.level, 1);
     } else {
         droneCount = 1;
     }
 
     queueCreepIfNeeded({
-        room, role: 'drone', priority: dronePriority,
+        room, role: 'drone', priority: dronePriority + getCreepCount(room, 'drone'),
         numberNeeded: droneCount, rebootCondition: room.friendlyCreeps.length < 5
     });
 
