@@ -94,8 +94,9 @@ module.exports.diplomacyManager = function () {
         const ownerToRooms = {};
         for (const roomName in INTEL) {
             const intel = INTEL[roomName];
-            if (!intel || !intel.owner) continue;
-            (ownerToRooms[intel.owner] = ownerToRooms[intel.owner] || []).push(intel);
+            const account = intel && (intel.owner || intel.reservation);
+            if (!account) continue;
+            (ownerToRooms[account] = ownerToRooms[account] || []).push(intel);
         }
 
         // Composite strength of our own empire — comparison baseline for highCommand
@@ -397,7 +398,8 @@ module.exports.trackThreat = function (creep) {
 
     if (!INTEL[room.name]) return room.cacheRoomIntel();
 
-    if (room.towers[0] && !INTEL[room.name].towers) {
+    const hostileTower = room.towers.find(t => !t.my);
+    if (hostileTower && !INTEL[room.name].towers) {
         room.cacheRoomIntel(true);
         purgeBadRoute(room.name);
     }
