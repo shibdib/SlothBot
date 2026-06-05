@@ -345,23 +345,27 @@ module.exports.essentialCreepQueue = function (room) {
 
     // Haulers
     if (harvesterCount) {
-        let haulerAmount = room.level >= 4 ? 2 : 1;
-        if (room.memory.needsHaulers) haulerAmount = Math.max(haulerAmount, 3);
-        const haulerUrgent = room.memory.needsHaulers;
-        const priority = !getCreepCount(room, 'hauler') || haulerUrgent ? 1 : PRIORITIES.hauler;
-        queueCreepIfNeeded({
-            room, role: 'hauler', priority,
-            numberNeeded: haulerAmount,
-            rebootCondition: !getCreepCount(room, 'hauler') || !room.energyState || haulerUrgent
-        });
+        const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
+        if (room.storage || protoStorage) {
+            let haulerAmount = room.level >= 4 ? 2 : 1;
+            if (room.memory.needsHaulers) haulerAmount = Math.max(haulerAmount, 3);
+            const haulerUrgent = room.memory.needsHaulers;
+            const priority = !getCreepCount(room, 'hauler') || haulerUrgent ? 1 : PRIORITIES.hauler;
+            queueCreepIfNeeded({
+                room, role: 'hauler', priority,
+                numberNeeded: haulerAmount,
+                rebootCondition: !getCreepCount(room, 'hauler') || !room.energyState || haulerUrgent
+            });
+        }
 
         if (room.level < 7) {
             for (const source of room.sources) {
                 if (source.memory.link && room.memory.hubLink) continue;
                 const priority = !getCreepCount(room, 'shuttle') ? 1 : PRIORITIES.hauler;
+                const number = room.level >= 5 ? 1 : 2; // 2 at RCL3, 1 at RCL4, 0 at RCL5+
                 queueCreepIfNeeded({
                     room, role: 'shuttle', priority: priority,
-                    numberNeeded: 2,
+                    numberNeeded: number,
                     rebootCondition: room.myCreeps.length < 4 || !getCreepCount(room, 'shuttle') || !room.energyState,
                     other: {distanceToHub: source.memory.distanceToHub || 25},
                     assignment: source.id
