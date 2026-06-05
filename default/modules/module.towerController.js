@@ -33,14 +33,14 @@ module.exports.towerController = function (room) {
 
     const currentTime = Game.time;
     const cacheKey = room.name;
+    const hostiles = room.hostileCreeps;
+    const hasHostiles = hostiles.length > 0;
+
+    const ratioThreshold = hasHostiles
+        ? CRITICAL_STRUCTURE_RATIO_COMBAT
+        : CRITICAL_STRUCTURE_RATIO_PEACE;
 
     if (!towerCache[cacheKey] || towerCache[cacheKey].tick !== currentTime) {
-        const hostiles = room.hostileCreeps;
-        const hasHostiles = hostiles.length > 0;
-
-        const ratioThreshold = hasHostiles
-            ? CRITICAL_STRUCTURE_RATIO_COMBAT
-            : CRITICAL_STRUCTURE_RATIO_PEACE;
         const criticalStructures = room.structures.filter(s =>
             CRITICAL_STRUCTURE_TYPES.has(s.structureType) &&
             s.hits < s.hitsMax * ratioThreshold
@@ -65,45 +65,43 @@ module.exports.towerController = function (room) {
     }
 
     const cache = towerCache[cacheKey];
-    if (!cache.hasHostiles && !cache.criticalStructures.length && !cache.injuredFriendlies.length) return;
-
     const repairAllowed = room.energyState > 0;
+    if (cache.hasHostiles || cache.injuredFriendlies.length) {
+        if (!drainState[cacheKey]) drainState[cacheKey] = {};
+        const roomDrain = drainState[cacheKey];
 
-    if (!drainState[cacheKey]) drainState[cacheKey] = {};
-    const roomDrain = drainState[cacheKey];
-
-    let attacked = false;
-    if (cache.hasHostiles) {
-        const target = findBestTarget(room, towers, cache.hostiles, roomDrain);
-        if (target) {
-            updateDrainTracking(roomDrain, target, currentTime);
-            for (const tower of towers) {
-                if (tower.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST) tower.attack(target);
+        let attacked = false;
+        if (cache.hasHostiles) {
+            const target = findBestTarget(room, towers, cache.hostiles, roomDrain);
+            if (target) {
+                updateDrainTracking(roomDrain, target, currentTime);
+                for (const tower of towers) {
+                    if (tower.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST) tower.attack(target);
+                }
+                attacked = true;
             }
-            attacked = true;
         }
-    }
 
-    // Heal beats repair: a dead defender costs more than a damaged barrier, and the heal
-    // path has no storage floor — we top creeps up to full whenever we aren't attacking.
-    let healed = false;
-    if (!attacked && cache.injuredFriendlies.length) {
-        const healCandidates = cache.injuredFriendlies
-            .slice()
-            .sort((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax));
-        let i = 0;
-        for (const tower of towers) {
-            if (tower.store[RESOURCE_ENERGY] < TOWER_ENERGY_COST) continue;
-            tower.heal(healCandidates[i % healCandidates.length]);
-            i++;
+        // Heal beats repair: a dead defender costs more than a damaged barrier, and the heal
+        // path has no storage floor — we top creeps up to full whenever we aren't attacking.
+        if (!attacked && cache.injuredFriendlies.length) {
+            const healCandidates = cache.injuredFriendlies
+                .slice()
+                .sort((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax));
+            let i = 0;
+            for (const tower of towers) {
+                if (tower.store[RESOURCE_ENERGY] < TOWER_ENERGY_COST) continue;
+                tower.heal(healCandidates[i % healCandidates.length]);
+                i++;
+            }
         }
-        healed = i > 0;
-    }
-
-    if (!attacked && !healed && repairAllowed) {
+        if (currentTime % 200 === 0) cleanupDrainState(roomDrain, currentTime);
+    } else if (repairAllowed) {
         const repairCandidates = cache.combatBarriers.length
             ? cache.combatBarriers.slice().sort((a, b) => a.hits - b.hits)
-            : cache.criticalStructures.slice().sort((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax));
+            : cache.criticalStructures.length ? cache.criticalStructures.slice().sort((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax))
+                : room.structures.filter((s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.hits < s.hitsMax * ratioThreshold).sort
+                ((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax));
 
         if (repairCandidates.length) {
             // Round-robin to spread repairs — focus-firing 6 towers on one rampart wastes
@@ -116,8 +114,6 @@ module.exports.towerController = function (room) {
             }
         }
     }
-
-    if (currentTime % 200 === 0) cleanupDrainState(roomDrain, currentTime);
 };
 
 function findBestTarget(room, towers, hostiles, roomDrain) {
