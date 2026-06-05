@@ -311,14 +311,14 @@ module.exports.essentialCreepQueue = function (room) {
     let dronePriority = PRIORITIES.drone;
     if (earlyRush) {
         if (!harvesterCount) droneCount = 1;
-        else droneCount = 9 - room.level;
+        else droneCount = importantBuilds ? 9 - room.level : 1;
         dronePriority = 1;
     } else if (importantBuilds && trendOk && room.energyState) {
         droneCount = 9 - room.level;
     } else if (room.constructionSites.length && room.energyState > 2) {
         droneCount = 2;
     } else if (!room.storage) {
-        droneCount = Math.max(9 - room.level, 1);
+        droneCount = importantBuilds ? 9 - room.level : 1;
     } else {
         droneCount = 1;
     }
