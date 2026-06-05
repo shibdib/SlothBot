@@ -3,30 +3,29 @@
  *
  * Refactored & Deep-Dived by Grok (xAI) - May 2026
  *
- * Version 2.0 - Major CPU + Exploration Intelligence Improvements
+ * Version 2.1 - Improved exploration target selection & spreading
  *
- * CPU Wins:
- * - Cached BFS + room scoring per tick (biggest win)
- * - Reduced PathFinder calls in pathableExit
- * - Early exits and throttling on destination selection
- * - Smarter portal checks with INTEL pre-filtering
+ * Key improvements to target selection (main user complaint area):
+ * - findHighValueTarget: precomputed assignments (was O(creeps * intel) inside loop), dist cap + weighted,
+ *   reduced far-unvisited pull (local wavefront better for systematic map filling), assignment penalties.
+ * - findBestLocalTarget (replaces naive first-unvisited BFS): full local search to maxHops with scoring for
+ *   unknowns + old intel + local valuables + "borders unknown" frontier bonus + assignment penalty.
+ *   Picks the *best* not the first-encountered (order independent, more purposeful).
+ * - Fallback adjacent also considers assignment counts.
+ * - On arrival (exploreRoom): explicitly force cacheRoomIntel(true) so visits actually populate good INTEL.
+ * - Separate caches (portalDestCache vs exitCache) to prevent key collisions.
+ * - Overall: better local frontier pushing + high-value without herding or abandoning local exploration.
  *
- * Smarter Exploration:
- * - Prioritizes high-value rooms first (power banks, deposits, threats, old intel, highways)
- * - Strategic BFS scoring instead of pure nearest
- * - Avoids backtracking, closed rooms, and recently visited
- * - Biased toward expansion and intel gaps
- *
- * Portal Handling:
- * - Only takes portals to useful destinations (checked via INTEL)
- * - Caches portal destinations across ticks
- * - Smarter shard/room selection (prefers high-value targets)
+ * Other:
+ * - CPU friendly precomputes for assignments.
+ * - Explorers now more reliably fill intel gaps and refresh old areas locally while still chasing worthwhile distant power/commodity.
  */
 
 const profiler = require("tools.profiler");
 
 let destinationCache = {};
-let portalCache = {};
+let portalDestCache = {};
+let exitCache = {};  // separate from portal dests (was polluting the same object before)
 
 class RoleExplorer {
     constructor(creep) {
@@ -57,9 +56,9 @@ class RoleExplorer {
 
             if (portal) {
                 // Cache portal destination
-                if (!portalCache[portal.id]) {
+                if (!portalDestCache[portal.id]) {
                     const destRoom = portal.destination.shard ? portal.destination.room : portal.destination.roomName;
-                    portalCache[portal.id] = destRoom;
+                    portalDestCache[portal.id] = destRoom;
 
                     // Only take if destination is valuable or unknown
                     const intel = INTEL[destRoom];
@@ -78,7 +77,7 @@ class RoleExplorer {
                         this.creep.shibMove(portal, {range: 0});
                         return;
                     }
-                } else if (portalCache[portal.id] === this.creep.room.name) {
+                } else if (portalDestCache[portal.id] === this.creep.room.name) {
                     this.creep.memory.usedPortal = true;
                 }
             }
@@ -87,11 +86,24 @@ class RoleExplorer {
         // === SMART DESTINATION SELECTION ===
         const cacheKey = this.room.name;
         if (destinationCache[cacheKey] && destinationCache[cacheKey].tick + 10 > currentTime) {
-            this.creep.memory.destination = destinationCache[cacheKey].target;
-            return;
+            const cachedTarget = destinationCache[cacheKey].target;
+            // If the cached target is now heavily assigned by other explorers (race or multiple from same origin),
+            // ignore cache and re-evaluate for better spreading.
+            let assignedToCached = 0;
+            for (const cName in Game.creeps) {
+                if (Game.creeps[cName].my && Game.creeps[cName].memory.destination === cachedTarget && Game.creeps[cName].memory.role === 'explorer') {
+                    assignedToCached++;
+                }
+            }
+            if (assignedToCached < 2) {
+                this.creep.memory.destination = cachedTarget;
+                return;
+            }
+            // else fall through to fresh selection
         }
 
-        // 1. Try high-value unvisited rooms first (power, deposits, threats)
+        // 1. Try high-value targets worth traveling for (power, commodity, etc.)
+        // Now smarter (see findHighValueTarget) and won't dominate local exploration.
         const highValue = this.findHighValueTarget();
         if (highValue) {
             this.creep.memory.destination = highValue;
@@ -99,11 +111,11 @@ class RoleExplorer {
             return;
         }
 
-        // 2. BFS for nearest unvisited (with strategic scoring)
-        const unvisited = this.findNearestUnvisited(5);
-        if (unvisited) {
-            this.creep.memory.destination = unvisited;
-            destinationCache[cacheKey] = {target: unvisited, tick: currentTime};
+        // 2. Local wavefront / best local target (improved BFS that scores unknowns + stale + local value + frontier bonus)
+        const localTarget = this.findBestLocalTarget(6);
+        if (localTarget) {
+            this.creep.memory.destination = localTarget;
+            destinationCache[cacheKey] = {target: localTarget, tick: currentTime};
             return;
         }
 
@@ -133,14 +145,24 @@ class RoleExplorer {
             return;
         }
 
-        // Prefer rooms without vision, then oldest intel
+        // Prefer rooms without vision, then oldest intel. Also avoid over-assigned.
         const noVision = candidates.filter(n => !Game.rooms[n]);
         const pool = noVision.length ? noVision : candidates;
 
+        // Quick assigned count for these few candidates
+        const assignedHere = {};
+        for (const name in Game.creeps) {
+            const c = Game.creeps[name];
+            if (c.my && c.memory.role === 'explorer' && c.memory.destination && candidates.includes(c.memory.destination)) {
+                assignedHere[c.memory.destination] = (assignedHere[c.memory.destination] || 0) + 1;
+            }
+        }
+
         const target = _.min(pool, n => {
             const intel = INTEL[n];
-            if (!intel) return 0; // unvisited = highest priority
-            return intel.lastObservation || 0;
+            let s = intel ? (intel.lastObservation || 0) : 0;
+            s += (assignedHere[n] || 0) * 1000; // strongly deprioritize if others already heading there
+            return s;
         });
 
         if (target) {
@@ -151,9 +173,23 @@ class RoleExplorer {
         }
     }
 
-    // Find high-value rooms (power banks, deposits, threats, highways)
+    // Find high-value rooms (power banks, deposits, threats, highways) worth traveling for.
+    // Improved: precompute assigned to avoid O(N) finds, penalize over-assignment,
+    // limit crazy far pulls for pure unvisited (local discovery via BFS/fallback is better for map filling),
+    // stronger dist weighting.
     findHighValueTarget() {
         const currentTime = Game.time;
+
+        // Precompute assignments once (explorers only) - fixes previous quadratic cost inside loop
+        const assignedCounts = {};
+        for (const name in Game.creeps) {
+            const c = Game.creeps[name];
+            if (c.my && c.memory.role === 'explorer' && c.memory.destination) {
+                const d = c.memory.destination;
+                assignedCounts[d] = (assignedCounts[d] || 0) + 1;
+            }
+        }
+
         let best = null;
         let bestScore = Infinity;
 
@@ -161,32 +197,40 @@ class RoleExplorer {
             const intel = INTEL[roomName];
             if (!intel || intel.owner || roomStatus(roomName) === 'closed') continue;
 
-            // Skip recently visited
+            // Skip recently visited (by anyone)
             if (intel.lastObservation && intel.lastObservation + CREEP_LIFE_TIME > currentTime) continue;
 
-            // Skip rooms already assigned to other creeps
-            const alreadyAssigned = _.find(Game.creeps, c => c.memory.destination === roomName);
-            if (alreadyAssigned) continue;
+            const assigned = assignedCounts[roomName] || 0;
+            if (assigned >= 2) continue; // don't herd too many to same high value
 
-            let score = Game.map.getRoomLinearDistance(this.room.name, roomName) * 10;
+            const dist = Game.map.getRoomLinearDistance(this.room.name, roomName);
+            if (dist > 40) continue; // don't chase across the whole map for marginal value
+
+            let score = dist * 12;  // stronger distance cost than before
 
             // Power banks (high priority)
-            if (intel.power && intel.power > currentTime) score -= 500;
+            if (intel.power && intel.power > currentTime) score -= 550;
 
             // Commodity deposits
-            if (intel.commodity) score -= 400;
+            if (intel.commodity) score -= 450;
 
             // Threats (scout for danger)
-            if (intel.threatLevel && intel.threatLevel > 1) score -= 300;
+            if (intel.threatLevel && intel.threatLevel > 1) score -= 320;
 
-            // Highways (good for expansion)
-            if (intel.isHighway) score -= 200;
+            // Highways (good for expansion / remote potential)
+            if (intel.isHighway) score -= 180;
 
-            // Old intel (need refresh)
-            if (intel.cached && intel.cached + 2000 < currentTime) score -= 150;
+            // Old heavy intel (need refresh for good data)
+            if (intel.cached && intel.cached + 2500 < currentTime) score -= 120;
 
-            // Unvisited = very high priority
-            if (!intel.cached) score -= 1000;
+            // Unvisited / no heavy: only big bonus if relatively local (far unvisited should be discovered by wavefront from other explorers)
+            if (!intel.cached) {
+                if (dist < 15) score -= 850;
+                else score -= 150; // small pull for distant unknowns
+            }
+
+            // Penalize multiple targeting same high-value room
+            score += assigned * 250;
 
             if (score < bestScore) {
                 bestScore = score;
@@ -197,30 +241,99 @@ class RoleExplorer {
         return best;
     }
 
-    // BFS with early exit on first unvisited
-    findNearestUnvisited(maxHops = 5) {
+    // Improved local target selection via BFS (wavefront expansion).
+    // Instead of "first unknown encountered" (order-dependent on describeExits),
+    // we explore up to maxHops, score all interesting rooms (unknown or old intel or high value),
+    // and pick the best one. This leads to more purposeful exploration:
+    // - pushes the frontier into unknown areas
+    // - refreshes chains of stale intel locally
+    // - prefers high local value (power/commodity/highway near us)
+    // - avoids recently visited and over-assigned
+    findBestLocalTarget(maxHops = 6) {
+        const currentTime = Game.time;
         const seen = new Set([this.room.name]);
         let frontier = [this.room.name];
+
+        // Precompute explorer assignments for penalty (cheap)
+        const assignedCounts = {};
+        for (const name in Game.creeps) {
+            const c = Game.creeps[name];
+            if (c.my && c.memory.role === 'explorer' && c.memory.destination) {
+                assignedCounts[c.memory.destination] = (assignedCounts[c.memory.destination] || 0) + 1;
+            }
+        }
+
+        let best = null;
+        let bestScore = Infinity;
 
         for (let hop = 0; hop < maxHops; hop++) {
             const next = [];
             for (const roomName of frontier) {
-                for (const neighbor of Object.values(Game.map.describeExits(roomName))) {
+                const exits = Game.map.describeExits(roomName);
+                if (!exits) continue;
+                for (const neighbor of Object.values(exits)) {
                     if (seen.has(neighbor) || roomStatus(neighbor) === 'closed') continue;
                     seen.add(neighbor);
+                    next.push(neighbor); // always continue wavefront for good coverage, even if this room is popular
 
-                    if (!INTEL[neighbor]) return neighbor; // First unvisited = winner
+                    const intel = INTEL[neighbor];
+                    let score = hop * 80;  // base cost for distance in hops (good approx)
 
-                    next.push(neighbor);
+                    const assigned = assignedCounts[neighbor] || 0;
+                    if (assigned >= 3) {
+                        // still traversed, but won't be chosen as destination
+                    } else if (!intel) {
+                        score -= 600; // strong unknown bonus
+                    } else {
+                        // Refresh value
+                        const age = intel.lastObservation ? currentTime - intel.lastObservation : 99999;
+                        if (age > 8000) score -= 280;
+                        else if (age > 3000) score -= 120;
+
+                        // Local high value
+                        if (intel.power && intel.power > currentTime) score -= 420;
+                        if (intel.commodity) score -= 350;
+                        if (intel.isHighway) score -= 160;
+                        if (intel.threatLevel && intel.threatLevel > 0) score -= 80; // worth scouting
+
+                        // Avoid recently visited
+                        if (age < 800) score += 400;
+
+                        // Bonus if this room borders further unknowns (good frontier pusher)
+                        const exits2 = Game.map.describeExits(neighbor);
+                        if (exits2) {
+                            let unknownNeighbors = 0;
+                            for (const n2 of Object.values(exits2)) {
+                                if (!INTEL[n2] && roomStatus(n2) !== 'closed') unknownNeighbors++;
+                            }
+                            if (unknownNeighbors >= 2) score -= 150;
+                        }
+                    }
+
+                    score += assigned * 180;
+
+                    if (assigned < 3 && score < bestScore) {
+                        bestScore = score;
+                        best = neighbor;
+                    }
+
+                    // (push already done earlier for wavefront continuation)
                 }
             }
             frontier = next;
             if (!frontier.length) break;
         }
-        return null;
+        return best;
     }
 
     exploreRoom() {
+        // As the explorer visiting, force a full intel update so the room (and its structures, sources, etc.)
+        // get properly recorded in INTEL (heavy data like towerData, ramparts, hubCheck etc.).
+        // This helps future targeting, highCommand, remotes, etc.
+        if (this.room) {
+            this.room.cacheRoomIntel(true);
+        }
+
         if (SIGN_ROOMS && this.creep.memory.lastRoom !== this.room.name) {
             return this.signRooms();
         }
@@ -251,8 +364,8 @@ class RoleExplorer {
 function pathableExit(creep, exitPosition) {
     // Cache expensive PathFinder results for 20 ticks
     const cacheKey = `${creep.pos.roomName}-${exitPosition.x}-${exitPosition.y}`;
-    if (portalCache[cacheKey] && portalCache[cacheKey].tick + 20 > Game.time) {
-        return portalCache[cacheKey].result;
+    if (exitCache[cacheKey] && exitCache[cacheKey].tick + 20 > Game.time) {
+        return exitCache[cacheKey].result;
     }
 
     const search = PathFinder.search(creep.pos, exitPosition, {
@@ -268,7 +381,7 @@ function pathableExit(creep, exitPosition) {
     });
 
     const result = search.incomplete !== true && search.path.length > 3;
-    portalCache[cacheKey] = {result, tick: Game.time};
+    exitCache[cacheKey] = {result, tick: Game.time};
     return result;
 }
 
