@@ -141,6 +141,7 @@ module.exports.loop = function () {
             try {
                 segments.storeIntel();
                 segments.storePathing();
+                segments.storeAllyRequests();
             } catch (e) {
                 log.e('Error saving caches');
                 log.e(`${e} ${e.stack}`);
