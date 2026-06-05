@@ -5,6 +5,11 @@ const profiler = require("tools.profiler");
 const towers = require('module.towerController');
 const ROOM_STATE_CACHE = {};
 
+// Re-send an "ongoing attack" reminder at most this often (~3 hours real time)
+const ALERT_REMINDER_TICKS = 5000;
+// Email grouping window passed to Game.notify (minutes)
+const ALERT_GROUP_MINUTES = 30;
+
 class DefenseManager {
     constructor(room) {
         this.room = room;
@@ -26,11 +31,13 @@ class DefenseManager {
         // Manage room attacks
         const armedHostiles = this.room.hostileCreeps.filter((c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK));
         if (armedHostiles.length || this.room.controller.safeMode) {
-            this.alertHostileAttack(this.room);
+            this.alertHostileAttack();
             if (armedHostiles[0] && armedHostiles[0].owner && armedHostiles[0].owner.username !== 'Invader') {
                 this.safeModeManager(this.room);
                 INTEL[this.room.name].requestingSupport = true;
             }
+        } else {
+            clearHostileAlert(this.room);
         }
 
         // Check surrounding rooms for high threat
@@ -156,23 +163,16 @@ class DefenseManager {
     }
 
     alertHostileAttack() {
-        if (!INTEL[this.room.name].alertEmail) {
-            INTEL[this.room.name].alertEmail = true;
+        // Filter hostile creeps that are armed players (not Invaders)
+        const playerHostile = _.filter(this.room.hostileCreeps, (c) => (
+            c.owner &&
+            c.owner.username !== 'Invader' &&
+            (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK) || c.hasActiveBodyparts(CLAIM))
+        ));
+        if (!playerHostile.length) return;
 
-            // Filter hostile creeps that are not Invaders
-            let playerHostile = _.filter(this.room.hostileCreeps, (c) => (
-                c.owner &&
-                (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK) || c.hasActiveBodyparts(CLAIM)) &&
-                c.owner.username !== 'Invader'
-            ));
-
-            if (!playerHostile || !playerHostile.length) return;
-
-            let hostileOwners = _.uniq(playerHostile.map(hostile => hostile.owner.username));
-
-            // Send notification and log the alert
-            sendHostileNotification(this.room, hostileOwners);
-        }
+        const hostileOwners = _.uniq(playerHostile.map(c => c.owner.username)).sort();
+        sendHostileNotification(this.room, hostileOwners);
     }
 
     safeModeManager() {
@@ -211,22 +211,61 @@ profiler.registerClass(DefenseManager, 'DefenseManager');
 module.exports = DefenseManager;
 
 function sendHostileNotification(room, hostileOwners) {
-    const historyLink = roomHistoryLink(room.name);
-    Game.notify('----------------------');
-    Game.notify(`${historyLink} - Enemy detected, room is now in FPCON DELTA.`);
-    Game.notify('----------------------');
-    Game.notify(`${INTEL[room.name].numberOfHostiles} - Foreign Hostiles Reported`);
-    Game.notify('----------------------');
-    Game.notify(`Hostile Owners - ${JSON.stringify(hostileOwners)}`);
-    Game.notify('----------------------');
+    Memory._defenseAlerts = Memory._defenseAlerts || {};
+    const intel = INTEL[room.name] || {};
+    const state = Memory._defenseAlerts[room.name];
+    const ownersKey = hostileOwners.join(',');
+    const threatLevel = intel.threatLevel || 0;
+    const hostileCount = intel.numberOfHostiles || 0;
+    const hostilePower = intel.hostilePower || 0;
+    const friendlyPower = intel.friendlyPower || 0;
 
-    log.a('----------------------');
-    log.a(`${roomLink(room.name)} - Enemy detected, room is now in FPCON DELTA.`);
-    log.a('----------------------');
-    log.a(`${INTEL[room.name].numberOfHostiles} - Foreign Hostiles Reported`);
-    log.a('----------------------');
-    log.a(`Hostile Owners - ${JSON.stringify(hostileOwners)}`);
-    log.a('----------------------');
+    // Decide whether this tick warrants an alert
+    let reason;
+    if (!state) {
+        reason = 'INITIAL';
+    } else if (state.ownersKey !== ownersKey) {
+        reason = 'NEW ATTACKER';
+    } else if (threatLevel > (state.peakThreat || 0)) {
+        reason = 'ESCALATION';
+    } else if (Game.time - state.lastAlert >= ALERT_REMINDER_TICKS) {
+        reason = 'ONGOING';
+    }
+
+    // Persist running state regardless of whether we notify (keeps peaks current
+    // so the eventual all-clear summary is accurate)
+    Memory._defenseAlerts[room.name] = {
+        firstAlert: state ? state.firstAlert : Game.time,
+        lastAlert: state && !reason ? state.lastAlert : Game.time,
+        ownersKey: ownersKey,
+        peakThreat: Math.max(threatLevel, (state && state.peakThreat) || 0),
+        peakHostiles: Math.max(hostileCount, (state && state.peakHostiles) || 0),
+    };
+
+    if (INTEL[room.name]) INTEL[room.name].alertEmail = true;
+    if (!reason) return;
+
+    const historyLink = roomHistoryLink(room.name);
+    const summary = `${room.name} [${reason}] hostiles=${hostileCount} threat=${threatLevel} power H/F=${hostilePower}/${friendlyPower} owners=${ownersKey}`;
+
+    // Single email with grouping so repeat sends within the window collapse server-side
+    Game.notify(summary, ALERT_GROUP_MINUTES);
+
+    log.a(`${historyLink} [${reason}] hostiles=${hostileCount} threat=${threatLevel} power H/F=${hostilePower}/${friendlyPower}`, 'DEFENSE');
+    log.a(`owners: ${ownersKey}`, 'DEFENSE');
+}
+
+function clearHostileAlert(room) {
+    if (!Memory._defenseAlerts || !Memory._defenseAlerts[room.name]) return;
+    const state = Memory._defenseAlerts[room.name];
+    delete Memory._defenseAlerts[room.name];
+
+    // Only bother announcing all-clear for attacks that were actually meaningful
+    if ((state.peakThreat || 0) < 3) return;
+    const duration = Game.time - (state.firstAlert || Game.time);
+    const summary = `${room.name} [ALL CLEAR] attack ended after ${duration} ticks. peak hostiles=${state.peakHostiles} peak threat=${state.peakThreat} owners=${state.ownersKey}`;
+    Game.notify(summary, ALERT_GROUP_MINUTES);
+    log.a(`${roomLink(room.name)} all clear after ${duration} ticks. Peak: ${state.peakHostiles} hostiles, threat ${state.peakThreat}, owners ${state.ownersKey}`, 'DEFENSE');
 }
 
 function activateSafeMode(room) {
