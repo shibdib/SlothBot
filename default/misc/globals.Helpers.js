@@ -194,6 +194,7 @@ let helpers = function () {
         if (!roomName) {
             log.a('--INTEL CACHE PURGED--', ' ');
             global.INTEL = {};
+            if (global.rebuildIntelIndexes) global.rebuildIntelIndexes();
         } else {
             log.a(`--INTEL PURGED FOR ${roomLink(roomName)}--`, ' ');
             INTEL_ROOM_PURGE.push(roomName)
@@ -691,6 +692,117 @@ let helpers = function () {
             defense: ehp, // Effective Health Pool (EHP)
             damageMultiplier: lowestDamageMultiplier
         };
+    };
+
+    // === INTEL INDEXES: one full scan per tick to feed fast queries everywhere ===
+    // Replaces multiple O(|INTEL|) loops in diplomacy, highCommand, explorer, observer, HUD etc.
+    // Updated incrementally on intel changes for mid-tick accuracy.
+    global.INTEL_INDEX = {
+        tick: 0,
+        byOwner: {},
+        power: new Set(),
+        commodity: new Set(),
+        highways: new Set(),
+        threats: new Set(),
+        requestingSupport: new Set(),
+        unownedSources: new Set(),
+        invaderCores: new Set(),
+        activeRemotes: new Set()
+    };
+
+    global.rebuildIntelIndexes = function (currentTime = Game.time) {
+        if (global.INTEL_INDEX && global.INTEL_INDEX.tick === currentTime) return global.INTEL_INDEX;
+        const byOwner = {};
+        const power = new Set();
+        const commodity = new Set();
+        const highways = new Set();
+        const threats = new Set();
+        const requestingSupport = new Set();
+        const unownedSources = new Set();
+        const invaderCores = new Set();
+        const activeRemotes = new Set();
+        const ct = currentTime;
+        const intel = global.INTEL || {};
+        for (const roomName in intel) {
+            const r = intel[roomName];
+            if (!r) continue;
+            const account = r.owner || r.user || r.reservation;
+            if (account) {
+                (byOwner[account] = byOwner[account] || []).push(r);  // store intel objs for compatibility
+            }
+            if (r.power && r.power > ct) power.add(roomName);
+            if (r.commodity) commodity.add(roomName);
+            if (r.isHighway) highways.add(roomName);
+            if (r.threatLevel && r.threatLevel > 0) threats.add(roomName);
+            if (r.requestingSupport) requestingSupport.add(roomName);
+            if (r.sources && !r.owner) unownedSources.add(roomName);
+            if (r.invaderCore && r.invaderCore > ct) invaderCores.add(roomName);
+            if (r.activeRemote && r.activeRemote + 500 > ct) activeRemotes.add(roomName);
+        }
+        global.INTEL_INDEX = {
+            tick: currentTime,
+            byOwner,
+            power,
+            commodity,
+            highways,
+            threats,
+            requestingSupport,
+            unownedSources,
+            invaderCores,
+            activeRemotes
+        };
+        return global.INTEL_INDEX;
+    };
+
+    global.updateIntelIndex = function (roomName, oldIntel, newIntel, currentTime = Game.time) {
+        if (!global.INTEL_INDEX || global.INTEL_INDEX.tick !== currentTime) {
+            global.rebuildIntelIndexes(currentTime);
+            return;
+        }
+        const idx = global.INTEL_INDEX;
+        const ct = currentTime;
+        const intel = global.INTEL || {};
+
+        // byOwner update (remove from old, add to new if changed)
+        const oldAccount = oldIntel && (oldIntel.owner || oldIntel.user || oldIntel.reservation);
+        const newAccount = newIntel && (newIntel.owner || newIntel.user || newIntel.reservation);
+        if (oldAccount && oldAccount !== newAccount && idx.byOwner[oldAccount]) {
+            idx.byOwner[oldAccount] = idx.byOwner[oldAccount].filter(item => item && item.name !== roomName);
+            if (idx.byOwner[oldAccount].length === 0) delete idx.byOwner[oldAccount];
+        }
+        if (newAccount) {
+            const list = (idx.byOwner[newAccount] = idx.byOwner[newAccount] || []);
+            if (!list.some(item => item && item.name === roomName)) list.push(newIntel);
+        }
+
+        // category sets: remove then conditionally add
+        idx.power.delete(roomName);
+        idx.commodity.delete(roomName);
+        idx.highways.delete(roomName);
+        idx.threats.delete(roomName);
+        idx.requestingSupport.delete(roomName);
+        idx.unownedSources.delete(roomName);
+        idx.invaderCores.delete(roomName);
+        idx.activeRemotes.delete(roomName);
+
+        if (newIntel) {
+            if (newIntel.power && newIntel.power > ct) idx.power.add(roomName);
+            if (newIntel.commodity) idx.commodity.add(roomName);
+            if (newIntel.isHighway) idx.highways.add(roomName);
+            if (newIntel.threatLevel && newIntel.threatLevel > 0) idx.threats.add(roomName);
+            if (newIntel.requestingSupport) idx.requestingSupport.add(roomName);
+            if (newIntel.sources && !newIntel.owner) idx.unownedSources.add(roomName);
+            if (newIntel.invaderCore && newIntel.invaderCore > ct) idx.invaderCores.add(roomName);
+            if (newIntel.activeRemote && newIntel.activeRemote + 500 > ct) idx.activeRemotes.add(roomName);
+        }
+    };
+
+    // Helper to get (and ensure built) indexes for this tick
+    global.getIntelIndexes = function (currentTime = Game.time) {
+        if (!global.INTEL_INDEX || global.INTEL_INDEX.tick !== currentTime) {
+            global.rebuildIntelIndexes(currentTime);
+        }
+        return global.INTEL_INDEX;
     };
 }
 

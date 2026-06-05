@@ -171,6 +171,7 @@ let globals = function () {
     global.ROOM_HARVESTER_EXTENSIONS = CACHE.ROOM_HARVESTER_EXTENSIONS = {};
     global.ALLY_HELP_REQUESTS = CACHE.ALLY_HELP_REQUESTS = {};
     global.INTEL = CACHE.INTEL = {};
+    if (global.rebuildIntelIndexes) global.rebuildIntelIndexes();
     global.MY_MINERALS = CACHE.MY_MINERALS = {};
     global.CREEP_QUEUES = CACHE.CREEP_QUEUES = {};
     global.MARKET_HISTORY = CACHE.MARKET_HISTORY = {};

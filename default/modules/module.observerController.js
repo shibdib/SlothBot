@@ -248,16 +248,40 @@ class ObserverControl {
             if (needsHeavyIntel(INTEL[roomName], currentTime)) add(roomName, 91);
         }
 
-        for (const rName in INTEL) {
+        // Use pre-built indexes (one INTEL walk per tick, shared) instead of full scan every rebuild
+        const idx = global.getIntelIndexes ? global.getIntelIndexes(currentTime) : {
+            requestingSupport: [],
+            threats: [],
+            invaderCores: [],
+            power: [],
+            commodity: [],
+            activeRemotes: []
+        };
+        const ct = currentTime;
+        for (const rName of (idx.requestingSupport || [])) {
             const r = INTEL[rName];
-            if (!r) continue;
-            if (r.requestingSupport) add(rName, 95);
-            if (r.threatLevel > 3) add(rName, 82);
-            if (r.invaderCore && r.invaderCore > Game.time) add(rName, 78);
-            if (r.power && r.power > currentTime) add(rName, 70);
-            if (r.commodity) add(rName, 68);
-            if (r.activeRemote && r.activeRemote + TUNING.ACTIVE_REMOTE_WINDOW > currentTime &&
-                (r.threatLevel > 0 || r.armedHostile) && isIntelStale(r, currentTime)) {
+            if (r) add(rName, 95);
+        }
+        for (const rName of (idx.threats || [])) {
+            const r = INTEL[rName];
+            if (r && r.threatLevel > 3) add(rName, 82);
+        }
+        for (const rName of (idx.invaderCores || [])) {
+            const r = INTEL[rName];
+            if (r && r.invaderCore && r.invaderCore > ct) add(rName, 78);
+        }
+        for (const rName of (idx.power || [])) {
+            const r = INTEL[rName];
+            if (r && r.power && r.power > ct) add(rName, 70);
+        }
+        for (const rName of (idx.commodity || [])) {
+            const r = INTEL[rName];
+            if (r) add(rName, 68);
+        }
+        for (const rName of (idx.activeRemotes || [])) {
+            const r = INTEL[rName];
+            if (r && r.activeRemote && r.activeRemote + TUNING.ACTIVE_REMOTE_WINDOW > ct &&
+                (r.threatLevel > 0 || r.armedHostile) && isIntelStale(r, ct)) {
                 add(rName, 76);
             }
         }

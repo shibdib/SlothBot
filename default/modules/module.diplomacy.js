@@ -89,15 +89,9 @@ module.exports.diplomacyManager = function () {
         global.FRIENDLIES = _.union(LOAN_LIST, [MY_USERNAME], ['Shibdib'], MANUAL_FRIENDS)
             .filter(u => !Memory.tempHostiles[u]);
 
-        // Precompute owner→rooms once per tick — scoreUserFromIntel and buildWarTargets both
-        // need this, and walking the full INTEL per-user was O(users × rooms) per tick.
-        const ownerToRooms = {};
-        for (const roomName in INTEL) {
-            const intel = INTEL[roomName];
-            const account = intel && (intel.owner || intel.reservation);
-            if (!account) continue;
-            (ownerToRooms[account] = ownerToRooms[account] || []).push(intel);
-        }
+        // Use centrally maintained index (one full INTEL walk per tick max, shared across modules)
+        const indexes = global.getIntelIndexes ? global.getIntelIndexes(currentTime) : {byOwner: {}};
+        const ownerToRooms = indexes.byOwner || {};
 
         // Composite strength of our own empire — comparison baseline for highCommand
         // (siege feasibility, candidate filter, scoreTarget gap penalty).

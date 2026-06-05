@@ -81,7 +81,9 @@ class RoleClaimer {
                     break;
                 case OK:
                     this.creep.signController(this.creep.room.controller, 'Cleaning provided by SlothBot');
+                    const oldClaim = INTEL[this.creep.room.name];
                     INTEL[this.creep.room.name] = undefined;
+                    if (global.updateIntelIndex) global.updateIntelIndex(this.creep.room.name, oldClaim, null);
             }
         } else {
             abandonRoom(this.room);

@@ -193,7 +193,18 @@ class RoleExplorer {
         let best = null;
         let bestScore = Infinity;
 
-        for (const roomName in INTEL) {
+        // Use index to loop far fewer rooms (power/commo/highway/threat/unowned source rooms) instead of full INTEL
+        const idx = global.getIntelIndexes ? global.getIntelIndexes(currentTime) : {};
+        const candidates = new Set([
+            ...(idx.power || []),
+            ...(idx.commodity || []),
+            ...(idx.highways || []),
+            ...(idx.threats || []),
+            ...(idx.unownedSources || []),
+            ...(idx.invaderCores || []),
+            ...(idx.activeRemotes || [])
+        ]);
+        for (const roomName of candidates) {
             const intel = INTEL[roomName];
             if (!intel || intel.owner || roomStatus(roomName) === 'closed') continue;
 

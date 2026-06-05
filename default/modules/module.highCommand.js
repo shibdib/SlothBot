@@ -439,7 +439,10 @@ function setTarget(room, operation, level = 1, military = true) {
     };
     if (military) Memory.targetRooms = cache; else Memory.auxiliaryTargets = cache;
     // Guard remotes may have no intel (unscanned neighbors are valid targets) — guard the access
-    if (!INTEL[room]) INTEL[room] = {name: room};
+    if (!INTEL[room]) {
+        INTEL[room] = {name: room};
+        if (global.updateIntelIndex) global.updateIntelIndex(room, null, INTEL[room]);
+    }
     // Always stamp lastOperation so the candidate-pool cooldown applies; sieges also get lastSiege for the per-siege cooldown.
     INTEL[room].lastOperation = Game.time;
     if (operation === 'roomDenial') INTEL[room].lastSiege = Game.time;
@@ -468,29 +471,34 @@ function manageResponseForces() {
     function getPriorityTarget() {
         const potential = [];
 
-        for (const rName in INTEL) {
+        // Use indexes to avoid full INTEL scan for response priorities
+        const idx = global.getIntelIndexes ? global.getIntelIndexes(Game.time) : {};
+        const ct = Game.time;
+        const responseStaleCheck = (r) => !r.responseDispatched || r.responseDispatched + RESPONSE_DISPATCH_TTL < ct;
+        for (const rName of (idx.requestingSupport || [])) {
             const r = INTEL[rName];
             if (!r) continue;
-
-            if (r.requestingSupport) {
-                let prio = 10;
-                if (r.owner === MY_USERNAME) prio += 5;
-                potential.push({type: 'ownedRoomAttack', room: rName, priority: prio});
-            }
-
-            const responseStale = !r.responseDispatched || r.responseDispatched + RESPONSE_DISPATCH_TTL < Game.time;
-
-            if (r.threatLevel > 1 && (r.activeRemote || 0) + CREEP_LIFE_TIME > Game.time &&
+            let prio = 10;
+            if (r.owner === MY_USERNAME) prio += 5;
+            potential.push({type: 'ownedRoomAttack', room: rName, priority: prio});
+        }
+        for (const rName of (idx.threats || [])) {
+            const r = INTEL[rName];
+            if (!r) continue;
+            const responseStale = responseStaleCheck(r);
+            if (r.threatLevel > 1 && (r.activeRemote || 0) + CREEP_LIFE_TIME > ct &&
                 (responseStale || r.friendlyPower < r.hostilePower)) {
                 const dist = findClosestOwnedRoom(rName, true);
                 if (dist <= 2) potential.push({type: 'remoteRoomAttack', room: rName, priority: 9 - dist});
             }
-
-            if (r.invaderCore && (r.activeRemote || 0) + CREEP_LIFE_TIME > Game.time && responseStale) {
+        }
+        for (const rName of (idx.invaderCores || [])) {
+            const r = INTEL[rName];
+            if (!r) continue;
+            if (r.invaderCore && (r.activeRemote || 0) + CREEP_LIFE_TIME > ct && responseStaleCheck(r)) {
                 potential.push({type: 'invaderCore', room: rName, priority: 8});
             }
-
-            if (r.threatLevel === 1 && (r.activeRemote || 0) + CREEP_LIFE_TIME > Game.time && responseStale) {
+            if (r.threatLevel === 1 && (r.activeRemote || 0) + CREEP_LIFE_TIME > ct && responseStaleCheck(r)) {
                 potential.push({type: 'unarmedVisitors', room: rName, priority: 7});
             }
         }
@@ -574,7 +582,10 @@ function manageResponseForces() {
         }
 
         for (const key in incoming) {
-            if (!INTEL[key]) INTEL[key] = {};
+            if (!INTEL[key]) {
+                INTEL[key] = {};
+                if (global.updateIntelIndex) global.updateIntelIndex(key, null, INTEL[key]);
+            }
             const existing = INTEL[key].friendlyPower || 0;
             INTEL[key].friendlyPower = Math.max(existing, incoming[key].power);
         }
@@ -1038,6 +1049,7 @@ function autoNuke() {
 
     MADTarget.lastNuke = Game.time;
     INTEL[MADTarget.name] = MADTarget;
+    if (global.updateIntelIndex) global.updateIntelIndex(MADTarget.name, null, MADTarget);
     Memory.MAD = _.filter(Memory.MAD, u => u !== MADTarget.owner);
 
     Memory.targetRooms[MADTarget.name] = {

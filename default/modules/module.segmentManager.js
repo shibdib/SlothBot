@@ -118,6 +118,7 @@ module.exports.retrieveIntel = function () {
                     }
                 }
                 if (!isValidIntel()) global.INTEL = {};
+                global.rebuildIntelIndexes();
                 log.a('Intel segments retrieved, restoring old intel.', 'INTEL MANAGER: ');
             } else {
                 intelCheckCounter++;
@@ -131,12 +132,14 @@ module.exports.retrieveIntel = function () {
             global.INTEL = {};
             clearIntelSegments();
             Memory.intelVersion = INTEL_VERSION;
+            global.rebuildIntelIndexes();
             log.a('Intel update detected, wiping caches.', 'INTEL MANAGER: ');
         }
     } else {
         intelSegmentChecked = true;
         intelCheckCounter = 0;
         global.INTEL = {};
+        global.rebuildIntelIndexes();
         log.a('Intel segments not accessible after 5 attempts, defaulting to empty.', 'INTEL MANAGER: ');
     }
     return true;
@@ -160,7 +163,11 @@ module.exports.storeIntel = function () {
         }
 
         if (INTEL_ROOM_PURGE.length) {
-            INTEL_ROOM_PURGE.forEach((r) => INTEL[r] = undefined);
+            INTEL_ROOM_PURGE.forEach((r) => {
+                const old = INTEL[r];
+                INTEL[r] = undefined;
+                if (global.updateIntelIndex) global.updateIntelIndex(r, old, null);
+            });
             global.INTEL_ROOM_PURGE = [];
         }
 

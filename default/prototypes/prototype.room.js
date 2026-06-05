@@ -499,7 +499,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         }
 
         roomIntel.microUpdate = currentTime;
+        const oldLight = INTEL[this.name];
         INTEL[this.name] = roomIntel;
+        if (global.updateIntelIndex) global.updateIntelIndex(this.name, oldLight, roomIntel);
     }
 
     // === HEAVY UPDATE (forced, or by cadence) ===
@@ -640,7 +642,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         delete roomIntel.skDangerPoints;
     }
 
+    const oldHeavy = INTEL[this.name];
     INTEL[this.name] = roomIntel;
+    if (global.updateIntelIndex) global.updateIntelIndex(this.name, oldHeavy, roomIntel);
 };
 
 function swampRoom(roomName) {
@@ -766,7 +770,9 @@ Room.prototype.invaderCheck = function () {
         roomData.lastInvaderSighting = undefined;
         if (!roomData.roomHeat && !roomData.threatLevel) {
             roomData.tickDetected = undefined;
+            const old1 = INTEL[this.name];
             INTEL[this.name] = roomData;
+            if (global.updateIntelIndex) global.updateIntelIndex(this.name, old1, roomData);
             return false;
         }
         roomData.roomHeat = Math.min(roomData.roomHeat || 0, 1000);
@@ -782,7 +788,9 @@ Room.prototype.invaderCheck = function () {
                 hostilePower: undefined, requestingSupport: undefined, invaderTTL: undefined, hostileOwners: undefined
             });
         }
+        const old2 = INTEL[this.name];
         INTEL[this.name] = roomData;
+        if (global.updateIntelIndex) global.updateIntelIndex(this.name, old2, roomData);
         return false;
     }
 
