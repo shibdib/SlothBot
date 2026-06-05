@@ -207,7 +207,7 @@ class HUD {
             align: 'right',
             font: 'bold 0.38 Tahoma'
         });
-        const trend = info.trend != null ? ` tr:${info.trend}` : '';
+        const trend = info.trend != null ? ` tr:${Math.floor(info.trend)}` : '';
         room.visual.text(`[${state}] ${stateLabels[state] || 'OK'}${trend}`, x + width - 0.15, y + 0.12, {
             color: stateColors[state] || '#66BB6A', align: 'right', font: 'bold 0.36 Tahoma'
         });
