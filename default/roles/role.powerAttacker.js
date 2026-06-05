@@ -21,7 +21,10 @@ class RolePowerAttacker {
     }
 
     housekeeping() {
-        if (!Memory.auxiliaryTargets[this.creep.memory.destination]) return this.creep.recycleCreep();
+        if (!Memory.auxiliaryTargets[this.creep.memory.destination]) {
+            this.creep.recycleCreep();
+            return true;
+        }
     }
 
     travel() {
