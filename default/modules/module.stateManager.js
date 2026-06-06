@@ -136,7 +136,7 @@ class StateManager {
         const hasSpawn = room.spawns[0];
         const missingStorage = room.level >= 4 && !room.storage;
         const missingTerminal = room.level >= 6 && !room.terminal;
-        room.memory.buildersNeeded = !hasSpawn || missingStorage || missingTerminal || room.downgraded || MAX_LEVEL > room.level + 1;
+        room.memory.buildersNeeded = !hasSpawn || missingStorage || missingTerminal || room.downgraded;
     }
 
     funnelRequest(room) {
