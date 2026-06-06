@@ -105,6 +105,7 @@ let globals = function () {
         if (!boost) return base;
         // T3 is the end-goal stockpile (largest target). T1/T2 are intermediate —
         // we want plenty for conversion and direct-use boosting, but at half the volume.
+        if (LAB_WAR_PRIORITY.includes(boost) || LAB_PEACE_PRIORITY.includes(boost) || BUY_THESE_BOOSTS.includes(boost)) return base * 2;
         if (TIER_3_BOOSTS.includes(boost) || BASE_COMPOUNDS.includes(boost)) return base;
         if (TIER_2_BOOSTS.includes(boost)) return Math.floor(base * 0.5);
         if (TIER_1_BOOSTS.includes(boost)) return Math.floor(base * 0.5);

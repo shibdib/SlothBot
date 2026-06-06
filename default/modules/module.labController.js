@@ -98,6 +98,7 @@ class LabManager {
         if (!boost) return;
 
         if (room.store(boost) >= this.getProductionCutoff(boost)) {
+            if (goOverCap[room.name]) goOverCap[room.name]--;
             this.stopProduction(room, 'Boost cap reached.');
         } else if (productionTracker[this.room.name] && productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time) {
             this.stopProduction(room, 'Production stalled — time limit reached.');
@@ -128,7 +129,6 @@ class LabManager {
             let cutOff = this.getProductionCutoff(boost);
             if (room.store(boost) >= cutOff) continue;
             if (this.checkForInputs(room, boost)) {
-                if (goOverCap[room.name]) goOverCap[room.name]--;
                 return boost;
             }
         }

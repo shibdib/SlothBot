@@ -512,10 +512,13 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     if (!force && INTEL[this.name] && INTEL[this.name].cached + heavyTTL > currentTime) return;
 
     // On global reset the .cached values are old, so *every* owned room would do heavy work
-    // (including expensive towerData 50x50 grids per tower + rampart sorts + hubChecks) on tick 1.
-    // Spread the heavy updates for owned rooms over the first few ticks post-reset.
+    // (including expensive towerData 50x50 grids per tower + rampart sorts + hubChecks) on early ticks.
+    // For first 2 ticks after reset do ONLY light updates (no heavy). Then spread remaining heavy over next ticks.
     if (!force) {
         const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+        if (since < 3 && this.controller && this.controller.my) {
+            return;  // absolutely no heavy intel (towerData 50x50 grids, areExitsReachable PathFinders, rampart sorts, hubChecks) on first 2 ticks after reset -- light only is enough
+        }
         if (since < 6 && this.controller && this.controller.my) {
             // Deterministic per-room stagger so different rooms heavy-update on different early ticks
             const hash = (this.name.charCodeAt(1) || 0) + (this.name.charCodeAt(3) || 0);

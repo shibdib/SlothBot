@@ -3,7 +3,9 @@
  */
 
 module.exports.cleanup = function () {
-    if (Game.time % 100 === 0) {
+    let since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+    if (Game.time % 100 === 0 && since > 50) {
+        // Defer heavy cleans (JSON parse of distance cache, loop large constructionSites, structureMemory, pathCaches after segment parse) on first 2 ticks after reset
         cleanDistanceCacheByUsage();
         cleanConstructionSites();
         cleanStructureMemory();
@@ -14,8 +16,10 @@ module.exports.cleanup = function () {
     if (Game.time % EST_TICKS_PER_DAY === 0) {
         // Uncomment to enable: cleanRoomIntel();
     }
-    if (Game.time % 5 === 0) {
+    since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+    if (Game.time % 5 === 0 && since > 25) {
         // Cleanup old creep memory
+        // Defer on first 2 ticks after reset (looping potentially large stale Memory.creeps/flags can cost CPU)
         for (let name in Memory.creeps) {
             if (!Game.creeps[name]) {
                 delete Memory.creeps[name];

@@ -438,15 +438,17 @@ let helpers = function () {
     }
 
     let closestCache = {};
+    let closestLinearCache = {};
     /**
      * Find the closest owned (or optionally allied) room to a given room by route distance.
      * @param {string} roomName - target room
      * @param {boolean} [range=false] - if true return route distance, else return room name
      * @param {number} [minLevel=1] - minimum controller level required
      * @param {boolean} [includeAllies=false] - also consider FRIENDLIES with level >= minLevel
+     * @param {boolean} [linear=false] - if true return linear distance, else return route distance
      * @returns {string|number|undefined}
      */
-    global.findClosestOwnedRoom = function (roomName, range = false, minLevel = 1, includeAllies = false) {
+    global.findClosestOwnedRoom = function (roomName, range = false, minLevel = 1, includeAllies = false, linear = false) {
         const cacheKey = `${roomName}_${minLevel}_${includeAllies}`;
 
         // Direct check if the current room is owned and meets level criteria
@@ -472,6 +474,15 @@ let helpers = function () {
         const candidates = baseNames
             .map((name) => ({name, linear: Game.map.getRoomLinearDistance(roomName, name)}))
             .sort((a, b) => a.linear - b.linear);
+
+        if (linear) {
+            closestLinearCache[cacheKey] = {
+                closest: candidates[0]?.name,
+                distance: candidates[0]?.linear,
+                lastUpdated: Game.time
+            };
+            return range ? closestLinearCache[cacheKey].distance : closestLinearCache[cacheKey].closest;
+        }
 
         let closest = null;
         let closestDistance = Infinity;

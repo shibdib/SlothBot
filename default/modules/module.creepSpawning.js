@@ -22,6 +22,7 @@ let essentialTick = {};
 let miscTick = {};
 let remoteTick = {};
 let lastRemoteRefresh = {};
+let lastGlobalRemoteRefresh = 0;
 let contestedRemotes = {};
 let blockedRemotes = {};
 
@@ -569,8 +570,9 @@ module.exports.remoteCreepQueue = function (room) {
         return;
     }
 
-    if (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + CREEP_LIFE_TIME < Game.time ||
-        (homeIntel && homeIntel.refreshRemotes)) {
+    const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+    if (since > 1 && (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + CREEP_LIFE_TIME < Game.time ||
+        (homeIntel && homeIntel.refreshRemotes)) && lastGlobalRemoteRefresh !== Game.time) {
         refreshRemoteRoomTargets(room);
         if (homeIntel) homeIntel.refreshRemotes = undefined;
     }
@@ -598,6 +600,7 @@ module.exports.remoteCreepQueue = function (room) {
     if (blockedRemotes[room.name] && room.energyState) handleBlockedRoom(room);
 
     function refreshRemoteRoomTargets(room) {
+        lastGlobalRemoteRefresh = Game.time;
         lastRemoteRefresh[room.name] = Game.time;
         remoteRoomTargets[room.name] = undefined;
 
@@ -791,7 +794,7 @@ module.exports.remoteCreepQueue = function (room) {
             }
 
             remoteSource = _.min(_.filter(remoteSource, (s) => {
-                if (!remoteRoomTargets[room.name].includes(s.room) || shouldSkipRemote(room, s.room) || s.score > acceptedScore) return false;
+                if (!remoteRoomTargets[room.name] || !remoteRoomTargets[room.name].includes(s.room) || shouldSkipRemote(room, s.room) || s.score > acceptedScore) return false;
                 if (INTEL[s.room].sk && !getCreepCount(undefined, 'SKAttacker', s.room)) return false;
                 return !occupiedSources.has(s.source);
             }), 'score');

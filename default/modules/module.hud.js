@@ -385,7 +385,7 @@ class HUD {
         // pathing rebuilds, etc.) are already using lots of CPU. Skip the map HUD (which does
         // full static rebuild + lots of Game.map.visual calls + export) for the first tick or two.
         const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
-        if (since === 0) return;
+        if (since < 2) return;
 
         const currentTime = Game.time;
         const myRooms = this.getOwnedRooms();

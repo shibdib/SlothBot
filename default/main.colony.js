@@ -9,7 +9,7 @@ const DefenseControl = require('module.defense');
 const LinkControl = require('module.linkController');
 const TerminalControl = require('module.terminalController');
 const spawning = require('module.creepSpawning');
-const diplomacy = require('module.diplomacy');
+const DiplomacyControl = require('module.diplomacy');
 const profiler = require('tools.profiler');
 
 let errorCount = {};
@@ -41,7 +41,7 @@ class Colony {
         // Observer controller for room level >= 8
         if (this.room.level >= 8) {
             const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
-            if (since > 4 || ((this.room.name.charCodeAt(1) || 0) % 3 === since % 3)) {
+            if (since > 10 || ((this.room.name.charCodeAt(1) || 0) % 3 === since % 3)) {
                 this.observerController();
             }
         }
@@ -49,7 +49,7 @@ class Colony {
         // Factory controller
         if (this.room.factory) {
             const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
-            if (since > 2 || ((this.room.name.charCodeAt(3) || 0) % 2 === since % 2)) {
+            if (since > 15 || ((this.room.name.charCodeAt(3) || 0) % 2 === since % 2)) {
                 this.factoryController(); // defer a couple ticks on reset
             }
         }
@@ -211,7 +211,7 @@ class Colony {
         if (minion.idle) return;
 
         // Track Threat
-        diplomacy.trackThreat(minion);
+        DiplomacyControl.trackThreat(minion);
 
         // Handle edge cases (border or nuke flee)
         if (minion.memory.fleeNukeTime && minion.fleeNukeRoom()) {

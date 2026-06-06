@@ -8,7 +8,7 @@ const segments = require('module.segmentManager');
 const power = require('module.powerManager');
 const spawning = require('module.creepSpawning');
 const ExpansionControl = require('module.expansion');
-const diplomacy = require('module.diplomacy');
+const DiplomacyControl = require('module.diplomacy');
 const HudControl = require('module.hud');
 const DefenseVisualizer = require('module.defenseVisualizer');
 const StateManager = require('module.stateManager');
@@ -63,25 +63,36 @@ class World {
         this.powerCreepManager();
 
         // Update HUD
-        this.hudManager();
+        // Defer entirely (dashboards + map + defense viz) for first 2 ticks after reset -- room visuals + map visuals add up
+        {
+            const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+            if (sinceReset > 5) {
+                this.hudManager();
+            }
+        }
 
         // Handle room building
         this.constructionController();
 
         // Global Queue (Every 10 Ticks)
-        if ((tickTracker['globalQueue'] || 0) + 10 < Game.time) {
-            this.globalQueue();
-            tickTracker['globalQueue'] = Game.time;
+        {
+            const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+            if (sinceReset > 5 && (tickTracker['globalQueue'] || 0) + 10 < Game.time) {
+                this.globalQueue();
+                tickTracker['globalQueue'] = Game.time;
+            }
         }
 
         // High Command
         this.highCommand();
 
         // Expansion Manager
-        const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
-        if (sinceReset > 3 && (tickTracker['expansionManager'] || 0) + 100 < Game.time) {
-            this.expansionManager();
-            tickTracker['expansionManager'] = Game.time;
+        {
+            const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+            if (sinceReset > 100 && (tickTracker['expansionManager'] || 0) + 100 < Game.time) {
+                this.expansionManager();
+                tickTracker['expansionManager'] = Game.time;
+            }
         }
     }
 
@@ -109,9 +120,11 @@ class World {
         }
 
         // Diplomacy Manager
-        // Defer on the immediate reset tick (INTEL walk + strength calcs are expensive when caches cold)
-        if (!global.ticksSinceLastGlobalReset || global.ticksSinceLastGlobalReset() > 0) {
-            diplomacy.diplomacyManager();
+        // Defer the first several ticks after reset. diplomacyManager does full _userList passes + findClosest + userStrength scans;
+        // internal staggering handles the userlist, but we still avoid entering on the absolute coldest ticks (segment loads etc.).
+        const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+        if (sinceReset > 3) {
+            new DiplomacyControl().run();
         }
     }
 
@@ -133,7 +146,7 @@ class World {
         // biggest CPU consumers. On global reset many caches are cold and other systems are
         // already spiking, so defer it for the first couple ticks.
         const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
-        if (since < 2) return;
+        if (since < 10) return;
         planner.buildRoom();
     }
 
@@ -229,7 +242,7 @@ function minionController(minion) {
         return;
     }
     // Track Threat
-    diplomacy.trackThreat(minion);
+    DiplomacyControl.trackThreat(minion);
     // Handle edge cases
     if (minion.memory.fleeNukeTime && minion.fleeNukeRoom()) {
         return;
