@@ -22,7 +22,7 @@ let essentialTick = {};
 let miscTick = {};
 let remoteTick = {};
 let lastRemoteRefresh = {};
-let lastGlobalRemoteRefresh = 0;
+
 let contestedRemotes = {};
 let blockedRemotes = {};
 
@@ -412,19 +412,17 @@ module.exports.essentialCreepQueue = function (room) {
             });
         }
 
-        if (room.level < 7) {
-            for (const source of room.sources) {
-                if (source.memory.link && room.memory.hubLink) continue;
-                const priority = !getCreepCount(room, 'shuttle') ? 1 : PRIORITIES.hauler;
-                const number = room.level >= 5 ? 1 : 2; // 2 at RCL3, 1 at RCL4, 0 at RCL5+
-                queueCreepIfNeeded({
-                    room, role: 'shuttle', priority: priority,
-                    numberNeeded: number,
-                    rebootCondition: room.myCreeps.length < 4 || !getCreepCount(room, 'shuttle') || !room.energyState,
-                    other: {distanceToHub: source.memory.distanceToHub || 25},
-                    assignment: source.id
-                });
-            }
+        for (const source of room.sources) {
+            if (source.memory.link && room.memory.hubLink) continue;
+            const priority = !getCreepCount(room, 'shuttle') ? 1 : PRIORITIES.hauler;
+            const number = room.level >= 5 ? 1 : 2; // 2 at RCL3, 1 at RCL4, 0 at RCL5+
+            queueCreepIfNeeded({
+                room, role: 'shuttle', priority: priority,
+                numberNeeded: number,
+                rebootCondition: room.myCreeps.length < 4 || !getCreepCount(room, 'shuttle') || !room.energyState,
+                other: {distanceToHub: source.memory.distanceToHub || 25},
+                assignment: source.id
+            });
         }
     }
 
@@ -462,7 +460,7 @@ module.exports.miscCreepQueue = function (room) {
     if (!throttleReady(miscTick, room.name, 12)) return;
 
     if (room.storage && (room.terminal || room.factory)) {
-        queueCreepIfNeeded({room, role: 'labTech', priority: PRIORITIES.hauler + 1, numberNeeded: 1});
+        queueCreepIfNeeded({room, role: 'labTech', priority: PRIORITIES.miscHauler, numberNeeded: 1});
     }
 
     if (room.level >= MAX_LEVEL - 1 && room.level >= 4) {
@@ -560,7 +558,7 @@ module.exports.miscCreepQueue = function (room) {
 // ============================================================
 
 module.exports.remoteCreepQueue = function (room) {
-    if (!throttleReady(remoteTick, room.name, 10)) return;
+    if (!throttleReady(remoteTick, room.name, 5)) return;
     room.memory.borderPatrol = undefined;
 
     const homeIntel = INTEL[room.name];
@@ -572,7 +570,7 @@ module.exports.remoteCreepQueue = function (room) {
 
     const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
     if (since > 1 && (!remoteRoomTargets[room.name] || lastRemoteRefresh[room.name] + CREEP_LIFE_TIME < Game.time ||
-        (homeIntel && homeIntel.refreshRemotes)) && lastGlobalRemoteRefresh !== Game.time) {
+        (homeIntel && homeIntel.refreshRemotes))) {
         refreshRemoteRoomTargets(room);
         if (homeIntel) homeIntel.refreshRemotes = undefined;
     }
@@ -599,8 +597,20 @@ module.exports.remoteCreepQueue = function (room) {
     if (contestedRemotes[room.name] && room.energyState) handleContestedRoom(room);
     if (blockedRemotes[room.name] && room.energyState) handleBlockedRoom(room);
 
+    function ingestColonyRemoteSources(colonyRoom, rName) {
+        const remoteIntel = INTEL[rName];
+        if (!remoteIntel || !remoteIntel.remoteSourceData) return false;
+        let added = false;
+        for (const sd of remoteIntel.remoteSourceData) {
+            if (sd.colony === colonyRoom.name && !ROOM_REMOTE_TARGETS[colonyRoom.name].find(s => s.source === sd.source)) {
+                ROOM_REMOTE_TARGETS[colonyRoom.name].push({room: rName, source: sd.source, score: sd.score});
+                added = true;
+            }
+        }
+        return added;
+    }
+
     function refreshRemoteRoomTargets(room) {
-        lastGlobalRemoteRefresh = Game.time;
         lastRemoteRefresh[room.name] = Game.time;
         remoteRoomTargets[room.name] = undefined;
 
@@ -638,21 +648,20 @@ module.exports.remoteCreepQueue = function (room) {
         const registeredRooms = new Set(ROOM_REMOTE_TARGETS[room.name].map(s => s.room));
         for (const r of remoteRoomTargets[room.name]) {
             const rName = r.name || r;
-            if (registeredRooms.has(rName)) continue;
+            if (!INTEL[rName]) continue;
 
-            const remoteIntel = INTEL[rName];
-            if (remoteIntel && remoteIntel.remoteSourceData) {
-                for (const sd of remoteIntel.remoteSourceData) {
-                    if (sd.colony === room.name && !ROOM_REMOTE_TARGETS[room.name].find(s => s.source === sd.source)) {
-                        ROOM_REMOTE_TARGETS[room.name].push({room: rName, source: sd.source, score: sd.score});
-                    }
-                }
-                if (ROOM_REMOTE_TARGETS[room.name].some(s => s.room === rName)) continue;
+            trackRemoteRoom(rName, room);
+
+            if (registeredRooms.has(rName)) {
+                if (Game.rooms[rName]) Game.rooms[rName].cacheRoomIntel();
+                continue;
             }
+
+            if (ingestColonyRemoteSources(room, rName)) continue;
 
             if (Game.rooms[rName]) {
                 Game.rooms[rName].cacheRoomIntel();
-                continue;
+                if (ingestColonyRemoteSources(room, rName)) continue;
             }
 
             const harvesterEnRoute = _.find(Game.creeps, c => c.my && c.memory.role === 'remoteHarvester' && c.memory.destination === rName);
@@ -793,8 +802,10 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
 
+            const validRemoteRooms = remoteRoomTargets[room.name] ? new Set(remoteRoomTargets[room.name]) : null;
             remoteSource = _.min(_.filter(remoteSource, (s) => {
-                if (!remoteRoomTargets[room.name] || !remoteRoomTargets[room.name].includes(s.room) || shouldSkipRemote(room, s.room) || s.score > acceptedScore) return false;
+                if (validRemoteRooms && !validRemoteRooms.has(s.room)) return false;
+                if (shouldSkipRemote(room, s.room) || s.score > acceptedScore) return false;
                 if (INTEL[s.room].sk && !getCreepCount(undefined, 'SKAttacker', s.room)) return false;
                 return !occupiedSources.has(s.source);
             }), 'score');
@@ -1180,10 +1191,11 @@ function queueCreepIfNeeded(spawnInfo) {
 
     if (spawnInfo.other.target) spawnInfo.destination = spawnInfo.other.target;
 
-    const count = getCreepCount(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, spawnInfo.other.assignment);
+    const assignment = spawnInfo.assignment || spawnInfo.other.assignment;
+    const count = getCreepCount(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, assignment);
     const global = (!spawnInfo.room && spawnInfo.destination) || spawnInfo.global;
 
-    if (count < spawnInfo.numberNeeded || (count <= spawnInfo.numberNeeded && creepExpiringSoon(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, spawnInfo.other.assignment))) {
+    if (count < spawnInfo.numberNeeded || (count <= spawnInfo.numberNeeded && creepExpiringSoon(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, assignment))) {
         spawnInfo.other.reboot = spawnInfo.rebootCondition;
         return queueCreep(spawnInfo.room || spawnInfo.colony, spawnInfo.priority + count, {
             role: spawnInfo.role,
@@ -1550,11 +1562,6 @@ function updateCreepCountCache() {
     const currentTick = Game.time;
     if (CREEP_COUNT_CACHE.tick === currentTick) return;
 
-    if (currentTick - CREEP_COUNT_CACHE.lastUpdate < 5 && lastGlobalSpawn + 10 < currentTick) {
-        CREEP_COUNT_CACHE.tick = currentTick;
-        return;
-    }
-
     const counts = {};
     const allCreeps = Object.values(Game.creeps);
 
@@ -1599,6 +1606,7 @@ function incrementCreepCount(counts, key, creep) {
 function getCreepCount(room = undefined, role, destination = undefined, operation = undefined, colony = undefined, assignment = undefined) {
     updateCreepCountCache();
     const counts = CREEP_COUNT_CACHE.counts;
+    const colonyKey = colony && (typeof colony === 'string' ? colony : colony.name);
 
     let key;
     if (assignment) key = `${role}_${assignment}`;
@@ -1607,7 +1615,7 @@ function getCreepCount(room = undefined, role, destination = undefined, operatio
     else if (destination && !operation) key = `${role}_${destination}_noOp`;
     else if (!destination && operation) key = `${role}_noDest_${operation}`;
     else if (destination && operation) key = `${role}_${destination}_${operation}`;
-    else if (!destination && !operation && !room && colony) key = `${role}_noDest_noOp_${colony.name}`;
+    else if (!destination && !operation && !room && colonyKey) key = `${role}_noDest_noOp_${colonyKey}`;
     else if (!destination && !operation && !room) key = `${role}_noDest_noOp_noColony`;
     else return 0;
 
@@ -1617,6 +1625,7 @@ function getCreepCount(room = undefined, role, destination = undefined, operatio
 function creepExpiringSoon(room = undefined, role, destination = undefined, operation = undefined, colony = undefined, assignment = undefined) {
     updateCreepCountCache();
     const counts = CREEP_COUNT_CACHE.counts;
+    const colonyKey = colony && (typeof colony === 'string' ? colony : colony.name);
 
     let key;
     if (assignment) key = `${role}_${assignment}`;
@@ -1625,7 +1634,7 @@ function creepExpiringSoon(room = undefined, role, destination = undefined, oper
     else if (destination && !operation) key = `${role}_${destination}_noOp`;
     else if (!destination && operation) key = `${role}_noDest_${operation}`;
     else if (destination && operation) key = `${role}_${destination}_${operation}`;
-    else if (!destination && !operation && !room && colony) key = `${role}_noDest_noOp_${colony.name}`;
+    else if (!destination && !operation && !room && colonyKey) key = `${role}_noDest_noOp_${colonyKey}`;
     else if (!destination && !operation && !room) key = `${role}_noDest_noOp_noColony`;
     else return false;
 
