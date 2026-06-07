@@ -603,8 +603,11 @@ Creep.prototype.constructionWork = function () {
     site = damagedContainers.find(s => s.hits < s.hitsMax * 0.5);
     if (site) return pickRepair(site, site.hitsMax * 0.65);
 
-    site = damagedRoads.find(s => s.hits < s.hitsMax * 0.25);
-    if (site) return pickRepair(site, site.hitsMax * 0.5);
+    const criticalRoads = damagedRoads.filter(s => s.hits < s.hitsMax * 0.25);
+    if (criticalRoads.length) {
+        const road = _.min(criticalRoads, s => s.hits / s.hitsMax);
+        return pickRepair(road, road.hitsMax * 0.5);
+    }
 
     // 7. Energy-permitting fallback: any non-barrier non-road site, then barriers,
     // then any non-barrier damaged structure.
@@ -619,6 +622,14 @@ Creep.prototype.constructionWork = function () {
         }
         if (nonBarrierNonRoadSites.length) return pickBuild(this.pos.findClosestByRange(nonBarrierNonRoadSites));
         if (roadSites.length) return pickBuild(this.pos.findClosestByRange(roadSites));
+        if (damagedContainers.length) {
+            const container = _.min(damagedContainers, s => s.hits / s.hitsMax);
+            return pickRepair(container, container.hitsMax * 0.75);
+        }
+        if (damagedRoads.length) {
+            const road = _.min(damagedRoads, s => s.hits / s.hitsMax);
+            return pickRepair(road, road.hitsMax * 0.75);
+        }
         if (barrierSites.length) return pickBuild(this.pos.findClosestByRange(barrierSites));
 
         const anyDamagedNonBarrier = damagedContainers[0] || damagedRoads[0] || damagedOther[0];

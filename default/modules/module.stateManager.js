@@ -57,8 +57,6 @@ class StateManager {
         const snap = energyTracker.colonySnapshot(room.name);
         const roomSnap = energyTracker.snapshot(room.name);
         const income = Math.round(snap.income);
-        const expense = Math.round(snap.expense);
-        const spareIncome = income - expense;
         const trend = energyTracker.colonyTrend(room.name);
 
         // Single pass over myCreeps — gathers everything energyDiag needs.
@@ -89,6 +87,8 @@ class StateManager {
         const upgradeExpense = Math.ceil(upgradeWork);
         const maintenanceExpense = Math.ceil(maintenanceWork);
         const spawnExpense = Math.ceil(totalBodyCost / CREEP_LIFE_TIME);
+        const expense = Math.round(snap.expense) + spawnExpense;
+        const spareIncome = income - expense;
 
         // Upgrader duty cycle = avg actual upgrade energy / avg theoretical WORK, both over
         // the same 50-tick window so a recent body resize doesn't skew the ratio. < 1 means

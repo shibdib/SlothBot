@@ -50,6 +50,12 @@ class ModuleBodyGenerator {
         this.upgraderDuty = (ei && typeof ei.upgraderDuty === 'number') ? ei.upgraderDuty : 1.0;
     }
 
+    flowScale(minScale = 0.3, budget = 15) {
+        const projected = this.spareIncome + this.trend * 50;
+        const effective = Math.min(this.spareIncome, projected);
+        return Math.max(minScale, Math.min(1.0, effective / budget));
+    }
+
     // Method to ensure the energy amount is correct based on conditions
     setEnergyAmount() {
         if (this.creepInfo && this.creepInfo.other && this.creepInfo.other.reboot || this.room.myCreeps.length <= 2) {
@@ -113,25 +119,18 @@ class ModuleBodyGenerator {
                     work = Math.min(Math.floor(this.energyAmount * 0.35 / BODYPART_COST[WORK]) || 1, 15);
                     carry = Math.min(Math.floor(this.energyAmount * 0.15 / BODYPART_COST[CARRY]) || 1, 10);
                 }
-                if (this.room.energyState < 3) {
-                    if (!this.room.energyState) {
-                        work *= 0.15;
-                        carry *= 0.05;
-                    } else if (this.role === 'roadBuilder') {
-                        work *= 0.4;
-                        carry *= 0.3;
-                    } else {
-                        const totalIncome = (this.room.memory.energyInfo && this.room.memory.energyInfo.income) || 0;
-                        const projected = this.spareIncome + this.trend * 50;
-                        const effective = Math.min(this.spareIncome, projected);
-                        const scale = totalIncome > 0
-                            ? Math.max(0.3, Math.min(1.0, effective / totalIncome))
-                            : 0.3;
-                        work *= scale;
-                        carry *= scale;
-                    }
+                if (!this.room.energyState) {
+                    work *= 0.15;
+                    carry *= 0.05;
+                } else if (this.role === 'roadBuilder' && this.room.energyState < 3) {
+                    work *= 0.4;
+                    carry *= 0.3;
+                } else if (this.room.energyState < 3 ||
+                    (this.room.energyState === 3 && ['drone', 'waller'].includes(this.role))) {
+                    const scale = this.flowScale(0.3, 15);
+                    work *= scale;
+                    carry *= scale;
                 }
-
                 if (work < 1) work = 1;
                 if (carry < 1) carry = 1;
                 break;
@@ -162,13 +161,7 @@ class ModuleBodyGenerator {
                         if (!this.room.energyState) {
                             work *= 0.15;
                         } else if (this.room.energyState < 3) {
-                            const totalIncome = (this.room.memory.energyInfo && this.room.memory.energyInfo.income) || 0;
-                            const projected = this.spareIncome + this.trend * 50;
-                            const effective = Math.min(this.spareIncome, projected);
-                            const scale = totalIncome > 0
-                                ? Math.max(0.75, Math.min(1.0, effective / totalIncome))
-                                : 0.5;
-                            work *= scale;
+                            work *= this.flowScale(0.75, 12);
                         }
                         if (this.room.energyState < 3 && this.upgraderDuty < 0.7) {
                             const dutyScale = Math.max(0.5, this.upgraderDuty + 0.15);

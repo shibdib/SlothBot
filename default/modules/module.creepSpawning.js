@@ -50,9 +50,10 @@ function miscCacheSegment(misc) {
     return parts.length ? parts.join('|') : '';
 }
 
-function queueCacheKey(role, destination, other, misc, operation) {
+function queueCacheKey(role, destination, other, misc, operation, assignment) {
     const reboot = other && other.reboot ? 'reboot' : '';
-    return `c_${role}_${destination || ''}_${reboot}_${miscCacheSegment(misc)}_${operation || ''}`;
+    const source = (other && other.source) || assignment || '';
+    return `c_${role}_${destination || ''}_${source}_${reboot}_${miscCacheSegment(misc)}_${operation || ''}`;
 }
 
 function buildOperationsSignature() {
@@ -214,7 +215,7 @@ module.exports.processBuildQueue = function (room) {
         if (!CREEP_QUEUES[room.name]) CREEP_QUEUES[room.name] = {};
         if (!CREEP_QUEUES["global"]) CREEP_QUEUES["global"] = {};
 
-        const cacheKey = queueCacheKey(building.role, building.destination, building.other, building.misc, building.operation);
+        const cacheKey = queueCacheKey(building.role, building.destination, building.other, building.misc, building.operation, building.assignment);
 
         if (CREEP_QUEUES["global"][cacheKey] && building.global) {
             delete CREEP_QUEUES["global"][cacheKey];
@@ -348,6 +349,8 @@ module.exports.essentialCreepQueue = function (room) {
     // -3/tick tolerance leaves room for minor wobble without flicker.
     const energyInfo = room.memory.energyInfo;
     const trendOk = !energyInfo || (energyInfo.trend || 0) >= -3;
+    const flowHealthy = !energyInfo || (energyInfo.trend || 0) >= 0;
+    const spareIncome = (energyInfo && energyInfo.spareIncome) || 0;
     const importantBuilds = _.some(room.constructionSites, s => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
 
     // Pre-fetch harvester count so the rush-phase logic can gate on it. The cache makes
@@ -375,6 +378,12 @@ module.exports.essentialCreepQueue = function (room) {
         droneCount = importantBuilds ? 9 - room.level : 1;
     } else {
         droneCount = 1;
+    }
+
+    // Cap drone fleet to what spare flow can sustain. Full build counts need trend >= 0.
+    if (!earlyRush && droneCount > 1) {
+        if (!flowHealthy || spareIncome < 8) droneCount = 1;
+        else droneCount = Math.max(1, Math.min(droneCount, Math.floor(spareIncome / 8)));
     }
 
     queueCreepIfNeeded({
@@ -431,9 +440,9 @@ module.exports.essentialCreepQueue = function (room) {
     if (room.controller.level < 8 && room.energyState) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         if (container && room.energyState && room.controller.level < 8) {
-            const income = (room.memory.energyInfo && room.memory.energyInfo.income) || 0;
+            const spareIncome = (room.memory.energyInfo && room.memory.energyInfo.spareIncome) || 0;
             upgraderAmount = Math.max(1, Math.min(
-                Math.floor(income / 12),
+                Math.floor(spareIncome / 12),
                 container.pos.countOpenTerrainAround()
             ));
         }
@@ -1216,7 +1225,7 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
     let cache = global ? CREEP_QUEUES['global'] : CREEP_QUEUES[room.name];
     if (typeof cache !== 'object') cache = {};
 
-    const cacheKey = queueCacheKey(options.role, options.destination, options.other, options.misc, options.operation);
+    const cacheKey = queueCacheKey(options.role, options.destination, options.other, options.misc, options.operation, options.assignment);
 
     if (cache[cacheKey] && cache[cacheKey].priority <= priority) return;
     if (cache[cacheKey]) delete cache[cacheKey];

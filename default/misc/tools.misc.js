@@ -164,7 +164,9 @@ module.exports.status = function () {
         const activeHarassers = _.filter(Game.creeps, c => c.memory && c.memory.operation === 'harass');
         if (activeHarassers.length > 0 || (ENEMIES && ENEMIES.length > 0)) {
             log.a('---------------------------- DIPLOMACY & COMBAT ---------------------------', ' ');
-            if (ENEMIES && ENEMIES.length > 0) {
+            if (WAR_TARGETS && WAR_TARGETS.length > 0) {
+                log.a(`⚔️ War Targets: <font color="#FF4500">${WAR_TARGETS.map(t => t.user).join(", ")}</font>`, ' ');
+            } else if (ENEMIES && ENEMIES.length > 0) {
                 log.a(`⚔️ Hostile Empires: <font color="#FF4500">${ENEMIES.join(", ")}</font>`, ' ');
             }
             if (activeHarassers.length > 0) {

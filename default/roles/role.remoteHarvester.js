@@ -39,6 +39,11 @@ class RoleRemoteHarvester {
             }
         }
 
+        if (Game.time % 50 === 0) {
+            const sourceInfo = _.find(ROOM_REMOTE_TARGETS[this.creep.memory.colony], (s) => s.source === this.creep.memory.other.source);
+            if (sourceInfo) updateHaulingRequired(this.creep, sourceInfo, true);
+        }
+
         // Periodically check the container
         if (this.creep.memory.onContainer && this.container && !this.creep.pos.isEqualTo(this.container.pos)) {
             this.creep.memory.onContainer = undefined;
@@ -74,25 +79,9 @@ class RoleRemoteHarvester {
         // Harvest logic
         const result = this.creep.harvest(this.source);
         if (result === OK) {
-            // Set harvest power if not set
             if (!this.creep.memory.other.haulingRequired) {
                 const sourceInfo = _.find(ROOM_REMOTE_TARGETS[this.creep.memory.colony], (s) => s.source === this.creep.memory.other.source);
-                // Defer until source is registered — guessing distance can spawn a wildly oversized hauler fleet
-                if (sourceInfo) {
-                    const power = this.creep.getActiveBodyparts(WORK) * HARVEST_POWER;
-                    // Cap harvest rate to actual source regen so we don't over-size haulers
-                    const reserved = INTEL[this.creep.memory.destination] && INTEL[this.creep.memory.destination].reservation === MY_USERNAME;
-                    const maxRate = (reserved ? SOURCE_ENERGY_CAPACITY : SOURCE_ENERGY_NEUTRAL_CAPACITY) / ENERGY_REGEN_TIME;
-                    const actualRate = Math.min(power, maxRate);
-                    // score = pathCost/2 using plainCost=2. On roads (cost=1), score=0.5/tile but travel=1 tick/tile,
-                    // so score underestimates road travel by 2x. Use 4.2x for road paths, 2.2x for plain paths.
-                    // Match bodyGenerator's halfMove decision: every room on the route must have roads.
-                    const route = Game.map.findRoute(this.creep.memory.colony, this.creep.memory.destination);
-                    const roadsBuilt = Array.isArray(route)
-                        && INTEL[this.creep.memory.colony] && INTEL[this.creep.memory.colony].roadsBuilt
-                        && route.every(step => INTEL[step.room] && INTEL[step.room].roadsBuilt);
-                    this.creep.memory.other.haulingRequired = actualRate * sourceInfo.score * (roadsBuilt ? 4.2 : 2.2);
-                }
+                if (sourceInfo) updateHaulingRequired(this.creep, sourceInfo);
             } else if (this.container && this.container.store && !this.container.store.getFreeCapacity(RESOURCE_ENERGY)) {
                 this.creep.repair(this.container);
                 this.creep.idleFor(10);
@@ -133,6 +122,29 @@ class RoleRemoteHarvester {
             this.creep.memory.energyId = dropped.id;
         }
     }
+}
+
+function routeHasRoads(colony, destination) {
+    const route = Game.map.findRoute(colony, destination);
+    return Array.isArray(route)
+        && INTEL[colony] && INTEL[colony].roadsBuilt
+        && route.every(step => INTEL[step.room] && INTEL[step.room].roadsBuilt);
+}
+
+function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
+    const roadsBuilt = routeHasRoads(creep.memory.colony, creep.memory.destination);
+    if (onlyIfChanged && creep.memory.other.haulingRequired
+        && creep.memory.other.haulingScore === sourceInfo.score
+        && creep.memory.other.haulingRoads === roadsBuilt) {
+        return;
+    }
+    const power = creep.getActiveBodyparts(WORK) * HARVEST_POWER;
+    const reserved = INTEL[creep.memory.destination] && INTEL[creep.memory.destination].reservation === MY_USERNAME;
+    const maxRate = (reserved ? SOURCE_ENERGY_CAPACITY : SOURCE_ENERGY_NEUTRAL_CAPACITY) / ENERGY_REGEN_TIME;
+    const actualRate = Math.min(power, maxRate);
+    creep.memory.other.haulingScore = sourceInfo.score;
+    creep.memory.other.haulingRoads = roadsBuilt;
+    creep.memory.other.haulingRequired = actualRate * sourceInfo.score * (roadsBuilt ? 4.2 : 2.2);
 }
 
 function harvestDepositContainer(source, creep) {

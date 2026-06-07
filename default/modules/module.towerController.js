@@ -65,7 +65,9 @@ module.exports.towerController = function (room) {
     }
 
     const cache = towerCache[cacheKey];
-    const repairAllowed = room.energyState > 0;
+    const energyInfo = room.memory.energyInfo;
+    const trend = (energyInfo && energyInfo.trend) || 0;
+    const repairAllowed = room.energyState >= 2 || (room.energyState === 1 && trend >= 0);
     if (cache.hasHostiles || cache.injuredFriendlies.length) {
         if (!drainState[cacheKey]) drainState[cacheKey] = {};
         const roomDrain = drainState[cacheKey];

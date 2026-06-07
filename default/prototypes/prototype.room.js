@@ -142,10 +142,11 @@ Object.defineProperty(Room.prototype, 'impassibleStructures', {
 });
 
 const ENERGY_STATE_CACHE = {};
+const ENERGY_STATE_CACHE_TTL = 25;
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
         if (!this.controller) return 2;
-        if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + CREEP_LIFE_TIME > Game.time) return ENERGY_STATE_CACHE[this.name].state;
+        if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + ENERGY_STATE_CACHE_TTL > Game.time) return ENERGY_STATE_CACHE[this.name].state;
 
         let energy = this.rawEnergy;
         const upgradeCost = this.level === 8 ? 250000 : constructionCost(this.controller.level + 1) - constructionCost(this.controller.level);
@@ -346,12 +347,16 @@ Object.defineProperty(Room.prototype, 'rawEnergy', {
 
 Object.defineProperty(Room.prototype, 'energyIncome', {
     get: function () {
-        // Per-tick net energy flow for the whole colony (home + remotes), sourced from the
-        // event-log tracker. Replaces the old 10-tick storage-delta sampling which was both
-        // off-by-10x and a duplicate signal.
+        // Authoritative net flow from stateManager (event log + spawn amortization). Falls
+        // back to the raw tracker only until energyInfo has been populated.
         if (this._energyIncome === undefined) {
-            const tracker = require('module.energyTracker');
-            this._energyIncome = _.round(tracker.colonySnapshot(this.name).spareIncome, 0);
+            const ei = this.memory.energyInfo;
+            if (ei && typeof ei.spareIncome === 'number') {
+                this._energyIncome = _.round(ei.spareIncome, 0);
+            } else {
+                const tracker = require('module.energyTracker');
+                this._energyIncome = _.round(tracker.colonySnapshot(this.name).spareIncome, 0);
+            }
         }
         return this._energyIncome;
     },
@@ -468,9 +473,10 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             }
         }
 
-        // Remote source data (only if needed)
+        // Remote source data — register new sources or refresh stale distance scores.
         if (this.sources.length && roomIntel.remoteRoom) {
-            const needsUpdate = roomIntel.remoteRoom.some(colony => {
+            const staleScores = Game.time - (roomIntel.activeRemote || 0) > 500;
+            const needsUpdate = staleScores || roomIntel.remoteRoom.some(colony => {
                 const targets = ROOM_REMOTE_TARGETS[colony];
                 return !targets || !targets.some(s => s.room === this.name);
             });
@@ -688,7 +694,11 @@ function calculateDistanceToHub(room, source, targetRoom) {
 
 function updateRemoteSourceData(room, roomName, source, distance) {
     const remoteTargets = ROOM_REMOTE_TARGETS[roomName] || [];
-    if (!remoteTargets.find(s => s.source === source.id)) {
+    const existing = remoteTargets.find(s => s.source === source.id);
+    if (existing) {
+        existing.room = room.name;
+        existing.score = distance;
+    } else {
         remoteTargets.push({room: room.name, source: source.id, score: distance});
     }
     ROOM_REMOTE_TARGETS[roomName] = remoteTargets;

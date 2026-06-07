@@ -27,12 +27,13 @@ class RoleRemoteHauler {
     housekeeping() {
         if ((this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk)) && this.creep.skSafety()) return true;
         if (Game.time % 50 === 0 && safemodeGeneration(this.creep)) return true;
-        // Recycle if the destination remote is no longer viable
-        if (Game.time % 30 === 0 && this.memory.destination && this.memory.destination !== this.memory.colony && INTEL[this.memory.destination]) {
-            const intel = INTEL[this.memory.destination];
+        // Recycle if the assigned remote is no longer viable (destination is the colony, not the remote).
+        const remoteRoom = this.memory.other && this.memory.other.remoteRoom;
+        if (Game.time % 30 === 0 && remoteRoom && INTEL[remoteRoom]) {
+            const intel = INTEL[remoteRoom];
             const hostile = intel.level || (intel.reservation && intel.reservation !== MY_USERNAME && intel.reservation !== 'Invader');
             const blocked = intel.threatLevel > 1 || intel.roomHeat > 250 || intel.obstacles;
-            const dropped = Memory.avoidRemotes && Memory.avoidRemotes.includes(this.memory.destination);
+            const dropped = Memory.avoidRemotes && Memory.avoidRemotes.includes(remoteRoom);
             if (hostile || blocked || dropped || !intel.sources) return this.creep.recycleCreep();
         }
         if (!this.memory.exitLinkCheck && this.store.getUsedCapacity() > 0 && this.room.name === this.memory.colony) this.exitLinkCheck();
@@ -85,29 +86,44 @@ class RoleRemoteHauler {
             );
             this.memory.other.harvester = harvester ? harvester.id : undefined;
         }
-        if (harvester && harvester.memory.containerID) {
-            this.memory.containerID = harvester.memory.containerID;
+        if (harvester) {
+            if (harvester.memory.containerID) this.memory.containerID = harvester.memory.containerID;
+            else if (harvester.memory.containerSite) this.memory.containerID = harvester.memory.containerSite;
         }
 
-        // If we have an assigned container stick to that
         const container = Game.getObjectById(this.memory.containerID);
-        if (container) {
+        if (container && container.store) {
             this.memory.energyDestination = container.id;
             if (container.store[RESOURCE_ENERGY]) return this.creep.withdrawResource();
-            else return this.creep.shibMove(container, {range: 3})
+            return this.creep.shibMove(container, {range: 3});
         }
 
-        if (!harvester) {
-            const assignedSource = Game.getObjectById(this.memory.other.source);
-            if (assignedSource && this.creep.pos.getRangeTo(assignedSource) > 5) {
-                this.memory.other.harvestSearch = 1;
+        const remoteRoom = this.memory.other.remoteRoom;
+        if (remoteRoom && this.room.name !== remoteRoom) {
+            return this.creep.shibMove(new RoomPosition(25, 25, remoteRoom), {range: 20});
+        }
+
+        if (harvester) {
+            if (harvester.memory.energyId) {
+                const resource = Game.getObjectById(harvester.memory.energyId);
+                if (resource) {
+                    this.memory.energyDestination = resource.id;
+                    return this.creep.withdrawResource();
+                }
             }
+            if (harvester.store[RESOURCE_ENERGY] > 0) {
+                this.memory.energyDestination = harvester.id;
+                return this.creep.withdrawResource();
+            }
+        }
+
+        if (this.randomLoot()) {
+            return this.creep.withdrawResource();
         }
 
         this.creep.idleFor(5);
         return false;
     }
-
     specialDuty() {
         if (this.memory.destination !== this.room.name) {
             return this.creep.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});

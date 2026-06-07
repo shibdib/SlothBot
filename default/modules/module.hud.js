@@ -194,7 +194,7 @@ class HUD {
         });
         y += 0.95;
 
-        const measured = room.energyIncome || 0;
+        const measured = info.spareIncome != null ? Math.round(info.spareIncome) : (room.energyIncome || 0);
         const netSign = measured >= 0 ? '+' : '';
         const netColor = measured >= 0 ? '#a5d6a7' : '#ef5350';
         const stateLabels = ['CRIT', 'LOW', 'OK', 'SURPLUS'];

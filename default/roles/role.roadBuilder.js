@@ -101,6 +101,12 @@ class RoleRoadBuilder {
         if (!this.placeRoads()) {
             INTEL[this.creep.room.name].roadsBuilt = true;
             INTEL[this.creep.room.name].roadCount = this.creep.room.roads.length;
+            const claimants = INTEL[this.creep.room.name].remoteRoom;
+            if (claimants) {
+                for (let i = 0; i < claimants.length; i++) {
+                    if (INTEL[claimants[i]]) INTEL[claimants[i]].refreshRemotes = true;
+                }
+            }
             this.creep.memory.destination = undefined;
         }
     }
