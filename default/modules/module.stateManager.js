@@ -116,6 +116,7 @@ class StateManager {
         const energyState = room.energyState;
 
         if (!room.memory.combatReady && energyState >= 2 && room.level >= 4) room.memory.combatReady = true;
+        else if (!room.memory.combatReady && energyState >= 1 && room.level === 8) room.memory.combatReady = true;
         else if (room.memory.combatReady && !energyState) room.memory.combatReady = undefined;
 
         if (!room.memory.auxilaryReady && energyState >= 1 && room.level >= 4) room.memory.auxilaryReady = true;
