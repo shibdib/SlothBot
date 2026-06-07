@@ -176,9 +176,7 @@ function auxiliaryBuilding(room) {
             mineralBuilder(room);
             labBuilder(room);
         }
-        if (buildRoads(room, room.memory.dynamicLayout ? null : bunkerTemplate)) return; else {
-            setRoadsBuiltFlag(room, undefined);
-        }
+        if (buildRoads(room, room.memory.dynamicLayout ? null : bunkerTemplate)) return;
         if (linkBuilder(room)) return true;
     }
 
@@ -187,14 +185,23 @@ function auxiliaryBuilding(room) {
     // Perform cleanup tasks
     performCleanup(room);
 
-    // Helper function to build roads and manage their construction
+    // Helper function to build roads and manage their construction.
+    // Returns true while road sites are still being placed (pause other aux work).
     function buildRoads(room, bunkerTemplate) {
-        if (room.level >= ROAD_LEVEL && room.constructionSites.filter((s) => s.structureType === STRUCTURE_ROAD).length < 3 && !roadBuilder(room, bunkerTemplate)) {
-            setRoadsBuiltFlag(room, true);
-            return false;
-        } else {
+        if (room.level < ROAD_LEVEL) {
             setRoadsBuiltFlag(room, undefined);
+            return false;
         }
+        if (room.constructionSites.filter(s => s.structureType === STRUCTURE_ROAD).length >= 3) {
+            setRoadsBuiltFlag(room, undefined);
+            return true;
+        }
+        if (roadBuilder(room, bunkerTemplate)) {
+            setRoadsBuiltFlag(room, undefined);
+            return true;
+        }
+        setRoadsBuiltFlag(room, true);
+        return false;
     }
 
     // Helper function for cleaning up unwanted structures and roads
@@ -299,7 +306,10 @@ function linkBuilder(room) {
             room.memory.controllerLink = existingLink.id;
         } else {
             room.memory.controllerLink = undefined;
-            const base = room.level === 8 ? room.controller : room.memory.controllerContainer ? Game.getObjectById(room.memory.controllerContainer) : room.controller
+            const base = room.level === 8 ? room.controller : room.memory.controllerContainer && Game.getObjectById(room.memory.controllerContainer) ? Game.getObjectById(room.memory.controllerContainer) : room.controller
+            if (!base) return false;
+            // If too close to the hub don't build one
+            if (base.pos.getRangeTo(room.hub) <= 5) return false;
             const range = base.id === room.controller.id ? 2 : 1;
             const site = _.find(base.pos.findInRange(FIND_CONSTRUCTION_SITES, range), s => s.structureType === STRUCTURE_LINK);
             if (site) return true;
@@ -330,6 +340,8 @@ function linkBuilder(room) {
         } else {
             const site = hubLinkPos.lookFor(LOOK_CONSTRUCTION_SITES).find(s => s.structureType === STRUCTURE_LINK);
             if (site) return true;
+            const extension = hubLinkPos.lookFor(LOOK_STRUCTURES).find(s => s.structureType === STRUCTURE_EXTENSION);
+            if (extension) extension.destroy();
             if (hubLinkPos.createConstructionSite(STRUCTURE_LINK) === OK) return true;
         }
     }
@@ -380,6 +392,10 @@ function linkBuilder(room) {
 
         const site = _.find(sourceContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), s => s.structureType === STRUCTURE_LINK);
         if (site) return true;
+
+        // If we're right near the hub don't build
+        if (room.name === 'E42S26') console.log('hub', room.name, source.pos.getRangeTo(room.hub));
+        if (sourceContainer.pos.getRangeTo(room.hub) <= 8) return false;
 
         const zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, sourceContainer.pos.y - 1, sourceContainer.pos.x - 1,
             sourceContainer.pos.y + 1, sourceContainer.pos.x + 1, true);
@@ -1659,7 +1675,9 @@ function findCoreHub(room) {
             if (!valid) continue;
             const src = hub.findClosestByRange(FIND_SOURCES);
             const sourceDist = src ? hub.getRangeTo(src) * 2 : 0;
+            if (sourceDist < 6) continue;
             const controllerDist = hub.getRangeTo(room.controller) * 1.5;
+            if (controllerDist < 4) continue;
             const edgeBonus = Math.min(x, 49 - x, y, 49 - y) * 0.3;
             const score = sourceDist + controllerDist - edgeBonus;
             if (score < bestScore) {
