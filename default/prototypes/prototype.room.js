@@ -469,33 +469,46 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         }
 
         // Remote source data (only if needed)
-        if (this.sources.length && roomIntel.remoteRoom && (!ROOM_REMOTE_TARGETS[roomIntel.remoteRoom] || !ROOM_REMOTE_TARGETS[roomIntel.remoteRoom].some(s => s.room === this.name))) {
-            let lowestScore = Infinity;
-            let lowestRoom = roomIntel.remoteRoom[0];
-            if (!roomIntel.remoteSourceData) roomIntel.remoteSourceData = [];
+        if (this.sources.length && roomIntel.remoteRoom) {
+            const needsUpdate = roomIntel.remoteRoom.some(colony => {
+                const targets = ROOM_REMOTE_TARGETS[colony];
+                return !targets || !targets.some(s => s.room === this.name);
+            });
+            if (needsUpdate) {
+                let lowestScore = Infinity;
+                let lowestRoom = roomIntel.remoteRoom[0];
+                if (!roomIntel.remoteSourceData) roomIntel.remoteSourceData = [];
 
-            for (const source of this.sources) {
-                for (const room of roomIntel.remoteRoom) {
-                    if (!MY_ROOMS.includes(room)) continue;
-                    const distance = calculateDistanceToHub(this, source, room);
-                    if (distance < lowestScore) {
-                        lowestScore = distance;
-                        lowestRoom = room;
+                for (const source of this.sources) {
+                    lowestScore = Infinity;
+                    for (const colony of roomIntel.remoteRoom) {
+                        if (!MY_ROOMS.includes(colony)) continue;
+                        const distance = calculateDistanceToHub(this, source, colony);
+                        if (distance < lowestScore) {
+                            lowestScore = distance;
+                            lowestRoom = colony;
+                        }
+                    }
+                    if (lowestScore < Infinity) {
+                        updateRemoteSourceData(this, lowestRoom, source, lowestScore);
+                        const existing = roomIntel.remoteSourceData.find(s => s.source === source.id);
+                        if (existing) {
+                            existing.colony = lowestRoom;
+                            existing.score = lowestScore;
+                        } else {
+                            roomIntel.remoteSourceData.push({
+                                colony: lowestRoom,
+                                source: source.id,
+                                score: lowestScore
+                            });
+                        }
                     }
                 }
-                if (lowestScore < Infinity) {
-                    updateRemoteSourceData(this, lowestRoom, source, lowestScore);
-                    const existing = roomIntel.remoteSourceData.find(s => s.source === source.id);
-                    if (existing) {
-                        existing.colony = lowestRoom;
-                        existing.score = lowestScore;
-                    } else {
-                        roomIntel.remoteSourceData.push({colony: lowestRoom, source: source.id, score: lowestScore});
-                    }
+                for (const colony of roomIntel.remoteRoom) {
+                    if (INTEL[colony]) INTEL[colony].refreshRemotes = true;
                 }
+                roomIntel.activeRemote = Game.time;
             }
-            if (INTEL[roomIntel.remoteRoom]) INTEL[roomIntel.remoteRoom].refreshRemotes = true;
-            roomIntel.activeRemote = Game.time;
         }
 
         roomIntel.microUpdate = currentTime;
