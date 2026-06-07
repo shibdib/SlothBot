@@ -1163,7 +1163,7 @@ function markAsPending(operationRoom, room) {
 }
 
 function processTombstones(tombstones, friendlyList, deadCount, trackedList) {
-    const relevant = _.filter(tombstones, s => friendlyList
+    const relevant = _.filter(tombstones, s => s.creep.ticksToLive > 5 && friendlyList
         ? _.includes(friendlyList, s.creep.owner.username)
         : !_.includes(FRIENDLIES, s.creep.owner.username));
 
