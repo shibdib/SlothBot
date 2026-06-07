@@ -50,7 +50,7 @@ class StateManager {
         if (room.energyCapacityAvailable > room.energyAvailable) {
             if (ENERGY_TRACKER[room.name]) ENERGY_TRACKER[room.name]++; else ENERGY_TRACKER[room.name] = 1;
         } else if (ENERGY_TRACKER[room.name] > 0) ENERGY_TRACKER[room.name]--;
-        room.memory.needsHaulers = ENERGY_TRACKER[room.name] > 10;
+        room.memory.needsHaulers = undefined;
 
         // Authoritative income/expense from the event-log accumulator — covers the home
         // room plus visible remotes.

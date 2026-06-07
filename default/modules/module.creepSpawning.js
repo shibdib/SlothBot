@@ -38,6 +38,14 @@ function throttleReady(tickMap, roomName, interval) {
     return true;
 }
 
+function roomHasOperateExtensionOperator(roomName) {
+    return _.some(Game.powerCreeps, c =>
+        c.my &&
+        c.memory.destinationRoom === roomName &&
+        c.powers[PWR_OPERATE_EXTENSION]
+    );
+}
+
 let lastGlobalOpSignature = '';
 const GLOBAL_QUEUE_FULL_SCAN_INTERVAL = 50;
 const MILITARY_SUSTAIN_OPS = new Set(['roomDenial', 'remoteDenial', 'guard', 'rebuild', 'stronghold', 'borderPatrol', 'harass']);
@@ -424,7 +432,7 @@ module.exports.essentialCreepQueue = function (room) {
         const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
         if (room.storage || protoStorage) {
             let haulerAmount = room.level >= 4 ? 2 : 1;
-            if (room.memory.needsHaulers) haulerAmount = Math.max(haulerAmount, 3);
+            if (roomHasOperateExtensionOperator(room.name)) haulerAmount = 1;
             const haulerUrgent = room.memory.needsHaulers;
             const priority = !getCreepCount(room, 'hauler') || haulerUrgent ? 1 : PRIORITIES.hauler;
             queueCreepIfNeeded({
