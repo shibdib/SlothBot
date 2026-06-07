@@ -38,6 +38,54 @@ function clearTrailerTowState(creep) {
     creep.memory.towOptions = undefined;
 }
 
+
+function getCreepMoveWeight(creep) {
+    return creep.body.filter(p => p.type !== MOVE && p.type !== CARRY).length + (_.ceil(_.sum(creep.store) / 50) || 0);
+}
+
+// Pick a tow truck that can pull the trailer on roads (move >= combined weight),
+// preferring spare capacity over raw proximity. Falls back to best spare-MOVE truck,
+// then closest, only when no fully-capable tower is available.
+function pickTowTruck(trailer, candidates) {
+    if (!candidates.length) return null;
+
+    const trailerWeight = getCreepMoveWeight(trailer);
+    let best = null;
+    let bestScore = -Infinity;
+
+    for (const truck of candidates) {
+        const move = truck.getActiveBodyparts(MOVE);
+        const weight = getCreepMoveWeight(truck);
+        if (move < weight) continue;
+
+        const dist = trailer.pos.getRangeTo(truck);
+        if (move >= weight + trailerWeight) {
+            const score = (move - weight - trailerWeight) * 100 - dist;
+            if (score > bestScore) {
+                bestScore = score;
+                best = truck;
+            }
+        }
+    }
+
+    if (best) return best;
+
+    let fallback = null;
+    let fallbackScore = -Infinity;
+    for (const truck of candidates) {
+        const move = truck.getActiveBodyparts(MOVE);
+        const weight = getCreepMoveWeight(truck);
+        if (move < weight) continue;
+        const score = (move - weight) * 10 - trailer.pos.getRangeTo(truck);
+        if (score > fallbackScore) {
+            fallbackScore = score;
+            fallback = truck;
+        }
+    }
+
+    return fallback || trailer.pos.findClosestByRange(candidates);
+}
+
 function shibMove(creep, heading, options = {}, pathOnly = false) {
     // Handle move blocked by another creep this tick
     if (heading instanceof Creep && creep.memory.moveBlocked === Game.time) {
@@ -182,11 +230,11 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
                     tick: Game.time
                 };
             }
-            const closest = creep.pos.findClosestByRange(TOW_TRUCK_CACHE[roomName].candidates);
-            if (closest) {
-                creep.memory.towCreep = closest.id;
-                closest.memory.trailer = creep.id;
-                _.pull(TOW_TRUCK_CACHE[roomName].candidates, closest);
+            const towTruck = pickTowTruck(creep, TOW_TRUCK_CACHE[roomName].candidates);
+            if (towTruck) {
+                creep.memory.towCreep = towTruck.id;
+                towTruck.memory.trailer = creep.id;
+                _.pull(TOW_TRUCK_CACHE[roomName].candidates, towTruck);
             }
         }
         return true;
