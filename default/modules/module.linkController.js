@@ -45,6 +45,10 @@ class LinkControl {
             (room.level < 8 || room.energyState >= 2)) {
             hubLink.transferEnergy(controllerLink);
         }
+
+        if (controllerLink && !controllerLink.cooldown && hubLink && !room.energyState && controllerLink.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+            controllerLink.transferEnergy(hubLink);
+        }
     }
 
     pickSourceDestination(link, controllerLink, hubLink, room) {
@@ -53,6 +57,11 @@ class LinkControl {
         const hFree = hubLink ? hubLink.store.getFreeCapacity(RESOURCE_ENERGY) : 0;
         const canSendToController = controllerLink && cFree >= carrying;
         const canSendToHub = hubLink && hubLink.id !== link.id && hFree >= carrying;
+
+        if (!room.energyState) {
+            if (canSendToHub) return hubLink;
+            return canSendToController ? controllerLink : null;
+        }
 
         if (room.level < 8) {
             if (canSendToController) return controllerLink;
