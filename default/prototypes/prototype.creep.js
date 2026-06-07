@@ -462,14 +462,22 @@ Creep.prototype.haulerDelivery = function () {
         targets.push(hubLink);
     }
 
-    targets = targets.concat(allLabs.filter(s => s.store.getFreeCapacity(RESOURCE_ENERGY) > 0));
+    const haulerEnergyInfo = this.room.memory.energyInfo;
+    const haulerTrend = (haulerEnergyInfo && haulerEnergyInfo.trend) || 0;
+    const haulerFlowOk = this.room.energyState >= 2 && haulerTrend >= 0;
+    if (haulerFlowOk) {
+        targets = targets.concat(allLabs.filter(s =>
+            s.store.getFreeCapacity(RESOURCE_ENERGY) > 0 &&
+            (this.room.memory.producingBoost || (s.memory && (s.memory.itemNeeded || s.memory.neededBoost)))
+        ));
+    }
 
     if (!this.room.memory.controllerLink && this.room.energyState > 0) {
         let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
         if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 200) targets.push(controllerContainer);
     }
 
-    if (this.room.nuker && this.room.energyState > 1 && this.room.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
+    if (this.room.nuker && this.room.energyState >= 3 && this.room.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
         targets.push(this.room.nuker);
     }
 
@@ -611,7 +619,10 @@ Creep.prototype.constructionWork = function () {
 
     // 7. Energy-permitting fallback: any non-barrier non-road site, then barriers,
     // then any non-barrier damaged structure.
-    if (room.energyState) {
+    const buildEnergyInfo = room.memory.energyInfo;
+    const buildTrend = (buildEnergyInfo && buildEnergyInfo.trend) || 0;
+    const buildFallback = room.energyState >= 2 || (room.energyState === 1 && buildTrend >= 0);
+    if (buildFallback) {
         const nonBarrierNonRoadSites = [];
         const barrierSites = [];
         const roadSites = [];

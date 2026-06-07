@@ -59,14 +59,15 @@ class StateManager {
         const income = Math.round(snap.income);
         const trend = energyTracker.colonyTrend(room.name);
 
-        // Single pass over myCreeps — gathers everything energyDiag needs.
+        // Colony-wide creep scan — spawnExpense must include remotes assigned to this room.
         let upgraderCnt = 0, droneCnt = 0, wallerCnt = 0;
         let upgradeWork = 0, maintenanceWork = 0;
         let totalBodyCost = 0;
         const statHarvesters = [];
         const remoteHarvesters = [];
-        for (let i = 0; i < room.myCreeps.length; i++) {
-            const c = room.myCreeps[i];
+        for (const creepName in Game.creeps) {
+            const c = Game.creeps[creepName];
+            if (!c.my || c.memory.colony !== room.name) continue;
             const role = c.memory.role;
             totalBodyCost += global.UNIT_COST(c.body);
             if (role === 'upgrader') {

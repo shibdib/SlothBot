@@ -225,8 +225,15 @@ module.exports.processBuildQueue = function (room) {
         }
     }
 
+    const RENEW_ROLES = new Set(['hauler', 'shuttle', 'stationaryHarvester', 'upgrader']);
+
     function renewNearbyCreepIfNeeded(room, availableSpawn) {
+        const renewInfo = room.memory.energyInfo;
+        const renewTrend = (renewInfo && renewInfo.trend) || 0;
+        if (!room.energyState || room.energyState < 2 || renewTrend < -3) return;
+
         const nearbyCreeps = _.filter(room.myCreeps, c =>
+            RENEW_ROLES.has(c.memory.role) &&
             !_.find(c.body, b => b.boost) &&
             c.pos.isNearTo(availableSpawn) &&
             c.ticksToLive < CREEP_LIFE_TIME
@@ -391,13 +398,19 @@ module.exports.essentialCreepQueue = function (room) {
         numberNeeded: droneCount, rebootCondition: room.friendlyCreeps.length < 5
     });
 
-    // Waller
+    // Waller — flow-gated like drones.
     if (room.level >= BUNKER_LEVEL) {
-        const wallerCount = room.energyState >= 3 && room.level >= 8 ? 2 : 1;
-        queueCreepIfNeeded({
-            room, role: 'waller', priority: PRIORITIES.drone + 1,
-            numberNeeded: wallerCount, misc: {boosts: [WORK]}
-        });
+        let wallerCount = 0;
+        if (room.energyState >= 2 && flowHealthy && spareIncome >= 8) {
+            wallerCount = room.energyState >= 3 && room.level >= 8 ? 2 : 1;
+            wallerCount = Math.max(1, Math.min(wallerCount, Math.floor(spareIncome / 10)));
+        }
+        if (wallerCount) {
+            queueCreepIfNeeded({
+                room, role: 'waller', priority: PRIORITIES.drone + 1,
+                numberNeeded: wallerCount, misc: {boosts: [WORK]}
+            });
+        }
     }
 
     // Harvesters
@@ -440,14 +453,15 @@ module.exports.essentialCreepQueue = function (room) {
     if (room.controller.level < 8 && room.energyState) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         if (container && room.energyState && room.controller.level < 8) {
-            const spareIncome = (room.memory.energyInfo && room.memory.energyInfo.spareIncome) || 0;
+            const trend = (energyInfo && energyInfo.trend) || 0;
+            const effectiveIncome = Math.min(spareIncome, spareIncome + trend * 50);
             upgraderAmount = Math.max(1, Math.min(
-                Math.floor(spareIncome / 12),
+                Math.floor(effectiveIncome / 12),
                 container.pos.countOpenTerrainAround()
             ));
         }
         if (room.level >= 7) upgraderAmount = Math.min(upgraderAmount, 2);
-        if (earlyRush && harvesterCount && room.energyState >= 2) {
+        if (earlyRush && harvesterCount && room.energyState >= 2 && (energyInfo && (energyInfo.trend || 0) >= 0)) {
             upgraderAmount = Math.max(upgraderAmount, 2);
         }
     }

@@ -395,6 +395,10 @@ class ModuleBodyGenerator {
                 }
 
                 if (claim > CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][this.room.level] * 3) claim = CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][this.room.level] * 3;
+                if (this.room.memory.remotePenalty) claim = Math.min(claim, 1);
+                if (this.room.energyState < 3 || this.trend < 0) {
+                    claim = Math.max(1, Math.floor(claim * this.flowScale(0.5, 10)));
+                }
                 break;
 
             case 'remoteHarvester':
@@ -409,6 +413,9 @@ class ModuleBodyGenerator {
                     work = Math.ceil(SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + additionalWork;
                 }
                 carry = 1;
+                if (this.room.energyState < 3 || this.trend < 0) {
+                    work = Math.max(1, Math.floor(work * this.flowScale(0.5, 10)));
+                }
 
                 // Half-move only if every room on the route has roads — intermediate rooms count too.
             {

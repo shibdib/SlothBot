@@ -72,6 +72,13 @@ function tickRoom(room) {
         const linkIds = new Set();
         const links = room.links;
         if (links) for (const l of links) linkIds.add(l.id);
+        const powerSpawnIds = new Set();
+        const structures = room.structures;
+        if (structures) {
+            for (let s = 0; s < structures.length; s++) {
+                if (structures[s].structureType === STRUCTURE_POWER_SPAWN) powerSpawnIds.add(structures[s].id);
+            }
+        }
 
         for (let i = 0; i < events.length; i++) {
             const e = events[i];
@@ -97,6 +104,12 @@ function tickRoom(room) {
                     break;
                 case EVENT_ATTACK:
                     if (towerIds.has(e.objectId)) exp += TOWER_ENERGY_COST;
+                    break;
+                case EVENT_HEAL:
+                    if (towerIds.has(e.objectId)) exp += TOWER_ENERGY_COST;
+                    break;
+                case EVENT_POWER:
+                    if (powerSpawnIds.has(e.objectId)) exp += (d.power || 0) * POWER_SPAWN_ENERGY_RATIO;
                     break;
                 case EVENT_TRANSFER:
                     // Link → link transfers lose LINK_LOSS_RATIO of the amount. Only count when

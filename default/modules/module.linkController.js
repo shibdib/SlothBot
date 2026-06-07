@@ -38,11 +38,15 @@ class LinkControl {
             if (target) link.transferEnergy(target);
         }
 
+        const energyInfo = room.memory.energyInfo;
+        const upgraderStarved = energyInfo && typeof energyInfo.upgraderDuty === 'number' && energyInfo.upgraderDuty < 0.5;
+        const allowControllerFeed = room.level < 8 || room.energyState < 2 || upgraderStarved;
+
         if (controllerLink && hubLink && !hubLink.cooldown &&
             controllerLink.store.getUsedCapacity(RESOURCE_ENERGY) < HUB_EMERGENCY_CONTROLLER_MAX &&
             hubLink.store.getUsedCapacity(RESOURCE_ENERGY) >= HUB_EMERGENCY_HUB_MIN &&
             controllerLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0 &&
-            (room.level < 8 || room.energyState >= 2)) {
+            allowControllerFeed) {
             hubLink.transferEnergy(controllerLink);
         }
 
@@ -68,9 +72,17 @@ class LinkControl {
             return canSendToHub ? hubLink : null;
         }
 
+        // RCL8: stockpile in hub/storage unless upgraders are actually starved.
         if (room.energyState < 2) {
             if (canSendToHub) return hubLink;
             return canSendToController ? controllerLink : null;
+        }
+
+        const energyInfo = room.memory.energyInfo;
+        const upgraderStarved = energyInfo && typeof energyInfo.upgraderDuty === 'number' && energyInfo.upgraderDuty < 0.5;
+        if (room.energyState >= 3 || !upgraderStarved) {
+            if (canSendToHub) return hubLink;
+            return upgraderStarved && canSendToController ? controllerLink : null;
         }
 
         if (canSendToController) return controllerLink;

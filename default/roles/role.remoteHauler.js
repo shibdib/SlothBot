@@ -226,8 +226,8 @@ function dropOff(creep) {
     } else if (colony.energyState && colony.level < 8 && controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) &&
         Math.random() + 0.1 > controllerContainer.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY) {
         memory.storageDestination = controllerContainer.id;
-    } else if (colony.energyState && colony.nuker &&
-        colony.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
+    } else if (colony.nuker && colony.nuker.store.getFreeCapacity(RESOURCE_ENERGY) &&
+        (colony.energyState >= 3 || colony.nuker.store[RESOURCE_GHODIUM] > 0)) {
         memory.storageDestination = colony.nuker.id;
     } else if (colony.storage && !colony.energyState &&
         colony.storage.store.getFreeCapacity(RESOURCE_ENERGY) > storeSum) {
