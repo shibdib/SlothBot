@@ -1,0 +1,1 @@
+/* * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023. * * Terminal controller class shell. */class TerminalControl {    constructor(room) {        this.room = room;    }}module.exports = TerminalControl;
