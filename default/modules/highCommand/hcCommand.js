@@ -23,7 +23,7 @@ const {manageAuxiliary} = require('hcManageAuxiliary');
 
 const {manualAttacks} = require('hcFlags');
 
-const {autoNuke} = require('hcNukes');
+const {autoNuke, offensiveNuke} = require('hcNukes');
 
 const {applyOperationLimits} = require('hcReadiness');
 
@@ -112,7 +112,7 @@ function highCommand() {
                 break;
 
             case 'nukes':
-                autoNuke();
+                if (!autoNuke()) offensiveNuke();
                 break;
         }
     }

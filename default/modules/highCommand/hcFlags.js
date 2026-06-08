@@ -9,7 +9,7 @@
  */
 
 
-const {getLoadedNukers, pickLauncher} = require('hcNukes');
+const {getLoadedNukers, pickLauncher, executeNukeLaunch} = require('hcNukes');
 
 
 function manualAttacks() {
@@ -130,20 +130,21 @@ function manualAttacks() {
 }
 
 function nukeFlag(flag) {
-    const nuker = pickLauncher(getLoadedNukers(), flag.pos.roomName);
+    const roomName = flag.pos.roomName;
+    const nuker = pickLauncher(getLoadedNukers(), roomName);
 
     if (!nuker) {
-        log.a('Nuke request for ' + roomLink(flag.pos.roomName) + ' denied — no nukers in range.');
+        log.a('Nuke request for ' + roomLink(roomName) + ' denied — no nukers in range.');
         return false;
     }
 
-    const result = nuker.launchNuke(flag.pos);
-    if (result !== OK) {
-        log.w('Nuke launch failed for ' + roomLink(flag.pos.roomName) + ' from ' + roomLink(nuker.room.name) + ': ' + result, 'HIGH COMMAND: ');
-        return false;
-    }
+    const intel = INTEL[roomName] || {name: roomName};
+    if (!executeNukeLaunch(nuker, intel, {
+        targetPos: flag.pos,
+        logLabel: 'Manual nuke',
+    })) return false;
 
-    log.a('NUCLEAR LAUNCH DETECTED — ' + roomLink(flag.pos.roomName) + ' has a nuke inbound from ' + roomLink(nuker.room.name) + ' (impact in 50,000 ticks).', 'HIGH COMMAND: ');
+    log.a('NUCLEAR LAUNCH DETECTED — ' + roomLink(roomName) + ' has a nuke inbound from ' + roomLink(nuker.room.name) + ' (impact in 50,000 ticks).', 'HIGH COMMAND: ');
     return true;
 }
 
