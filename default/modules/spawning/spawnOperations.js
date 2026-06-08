@@ -166,7 +166,7 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
         if (linear >= closestDistance) break;
         const myRoom = Game.rooms[key];
         if (!myRoom) continue;
-        if (myRoom.controller.level !== myRoom.level || myRoom.downgraded || !myRoom.memory.combatReady) continue;
+        if (myRoom.controller.level !== myRoom.level || myRoom.downgraded) continue;
         if (myRoom.level < level) continue;
 
         if (Memory.targetRooms[key] && !myRoom.memory.combatReady) continue;
