@@ -155,7 +155,7 @@ function roadBuilder(room, layout) {
             if (buildRoad(pos)) return true;
         }
 
-        // Every tile already has a road â€” skip future iterations for this path
+        // Every tile already has a road — skip future iterations for this path
         if (ROAD_CACHE[room.name] && ROAD_CACHE[room.name][key]) {
             ROAD_CACHE[room.name][key].complete = true;
         }
@@ -217,14 +217,12 @@ function roadBuilder(room, layout) {
 
     function removeRedundantRoads(room, layout) {
         const spawn = room.spawns[0];
-        // Without a spawn we can't re-derive path-based roads â€” bail rather than delete blindly
         if (!spawn) return;
 
         const needed = new Set();
+        const rampartTiles = new Set();
         const addPos = (x, y) => needed.add(`${x}x${y}`);
 
-        // Re-derive the path for a (from, to) pair. Prefers the existing cache entry
-        // but falls back to PathFinder so a missing/partial cache can never cause deletion.
         const addPath = (from, to) => {
             if (!from || !to) return;
             const begin = from instanceof RoomPosition ? from : from.pos;
@@ -244,12 +242,9 @@ function roadBuilder(room, layout) {
                 points = result.path;
             }
             for (const p of points) addPos(p.x, p.y);
-            // PathFinder range=1 stops adjacent to target; protect the target tile too
-            // in case a road was placed there (e.g. on a container).
             addPos(target.x, target.y);
         };
 
-        // Layout-defined roads (offsets from hub)
         if (layout) {
             const roadStructures = _.filter(layout, s => s.structureType === STRUCTURE_ROAD);
             for (const r of roadStructures) {
@@ -257,17 +252,14 @@ function roadBuilder(room, layout) {
             }
         }
 
-        // Source container paths
         const sourceContainers = room.sources
             .map(s => Game.getObjectById(s.memory.container))
             .filter(c => c);
         for (const c of sourceContainers) addPath(spawn, c);
 
-        // Controller container path
         const controllerContainer = Game.getObjectById(room.memory.controllerContainer);
         if (controllerContainer) addPath(spawn, controllerContainer);
 
-        // Exit paths (match buildRoadToNeighborExits)
         const neighboring = Game.map.describeExits(room.name);
         if (neighboring) {
             const dirToExit = {
@@ -284,12 +276,10 @@ function roadBuilder(room, layout) {
             }
         }
 
-        // Tower paths
         if (room.memory.towerHubs && room.memory.towerHubs.length) {
             for (const tower of room.towers) addPath(spawn, tower);
         }
 
-        // RCL 6+ mineral/lab/link paths
         if (room.level >= 6) {
             const extractorContainer = Game.getObjectById(room.memory.extractorContainer);
             if (extractorContainer) addPath(spawn, extractorContainer);
@@ -297,17 +287,41 @@ function roadBuilder(room, layout) {
             for (const s of room.labs.concat(room.links)) addPath(s, hub);
         }
 
-        // RCL 7+ rampart road paths (the rampart tiles themselves are always protected
-        // by the checkForRampart skip below, but the path leading to them is not)
-        if (room.level >= 7 && ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name]) {
-            const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
-            if (ramparts) {
-                for (const p of ramparts) addPath(new RoomPosition(p.x, p.y, room.name), spawn);
+        if (room.level >= 7) {
+            if (ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name]) {
+                const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
+                if (ramparts) {
+                    for (const p of ramparts) {
+                        rampartTiles.add(`${p.x}x${p.y}`);
+                        addPath(new RoomPosition(p.x, p.y, room.name), spawn);
+                    }
+                }
+            }
+            for (const rampart of room.ramparts) {
+                rampartTiles.add(`${rampart.pos.x}x${rampart.pos.y}`);
             }
         }
 
+        const roomCache = ROAD_CACHE[room.name];
+        if (roomCache) {
+            for (const entry of Object.values(roomCache)) {
+                if (!entry.path) continue;
+                for (const p of JSON.parse(entry.path)) addPos(p.x, p.y);
+            }
+        }
+
+        const isRampartApproach = (x, y) => {
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    if (rampartTiles.has(`${x + dx}x${y + dy}`)) return true;
+                }
+            }
+            return false;
+        };
+
         for (const road of room.roads) {
             if (road.pos.checkForRampart()) continue;
+            if (rampartTiles.size && isRampartApproach(road.pos.x, road.pos.y)) continue;
             if (!needed.has(`${road.pos.x}x${road.pos.y}`)) road.destroy();
         }
     }
