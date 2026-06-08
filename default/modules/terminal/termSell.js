@@ -71,9 +71,7 @@ Object.assign(TerminalControl.prototype, {
         }
 
         return false;
-    }
-
-    quickSell(terminal, globalOrders) {
+    }, quickSell(terminal, globalOrders) {
         const storageSpace = terminal.room.storage ? terminal.room.storage.store.getFreeCapacity() : 0;
         const spareSpace = terminal.store.getFreeCapacity() + storageSpace;
         const dynamicBuffer = Math.max(CREDIT_BUFFER, Game.market.credits * 0.20);

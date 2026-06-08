@@ -69,9 +69,7 @@ Object.assign(TerminalControl.prototype, {
                     return true;
             }
         }
-    }
-
-    balanceEnergy(terminal) {
+    }, balanceEnergy(terminal) {
         if (terminal.room.memory.dangerousAttack || terminal.room.energyState < 2) return false;
         if (state.usedTerminals[terminal.room.name] && state.usedTerminals[terminal.room.name].tick > Game.time) return false;
 
@@ -156,9 +154,7 @@ Object.assign(TerminalControl.prototype, {
             }
             return false;
         }
-    }
-
-    emergencyEnergy(terminal) {
+    }, emergencyEnergy(terminal) {
         const roomIntel = INTEL[terminal.room.name];
         if (!terminal.room.energyState || !terminal.store[RESOURCE_ENERGY] || terminal.room.memory.dangerousAttack
             || (roomIntel && roomIntel.threatLevel) || terminal.room.nukes.length) {

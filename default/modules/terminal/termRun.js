@@ -47,11 +47,11 @@ Object.assign(TerminalControl.prototype, {
         }
 
         if (this.emergencyEnergy(terminal) || this.balanceEnergy(terminal) || this.balanceResources(terminal)) return;
-    }
+    },
 
     getGlobalOrders() {
         return this.globalOrders || (this.globalOrders = getCachedGlobalOrders());
-    }
+    },
 
     getCreditTrend() {
         return Memory._banker && Memory._banker.creditTrend ? Memory._banker.creditTrend : 0;

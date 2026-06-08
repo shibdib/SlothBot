@@ -45,9 +45,8 @@ Object.assign(TerminalControl.prototype, {
                 }
             }
         }
-    }
+    },
 
-    ,
     sellPixels() {
         if (Game.resources[PIXEL] && Game.resources[PIXEL] > PIXEL_BUFFER) {
             let sellAmount = Game.resources[PIXEL] - PIXEL_BUFFER;
@@ -75,8 +74,7 @@ Object.assign(TerminalControl.prototype, {
             }
         }
         return false;
-    }
-
+    },
 
     orderCleanup(myOrders) {
         // Ensure myOrders is an object and contains valid order data
@@ -229,14 +227,14 @@ Object.assign(TerminalControl.prototype, {
                 }
             }
         }
-    }
+    },
 
     cancelOrder(order, reason) {
         if (Game.market.cancelOrder(order.id) === OK) {
             delete state.priceUpdateTracker[order.id];
             log.a(`Order Cancelled: ${order.id} - ${order.resourceType} - ${reason}`, 'MARKET: ');
         }
-    }
+    },
 
     calculatePrice(orderType, resource, currentPrice = null) {
         const marketHistory = latestMarketHistory(resource);

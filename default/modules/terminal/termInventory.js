@@ -46,34 +46,26 @@ Object.assign(TerminalControl.prototype, {
             return REACTION_AMOUNT * MY_ROOMS.filter(r => Game.rooms[r] && Game.rooms[r].terminal).length;
         }
         return this.determineKeepAmount(resource);
-    }
-
-    computeSellableAmount(terminal, resource) {
+    }, computeSellableAmount(terminal, resource) {
         const inTerminal = terminal.store[resource] || 0;
         if (!inTerminal) return 0;
         const empireKeep = this.getEmpireKeepAmount(resource);
         const surplus = Math.max(0, getResourceTotal(resource) - empireKeep);
         return Math.min(inTerminal, surplus);
-    }
-
-    canSellSurplusEnergy(terminal) {
+    }, canSellSurplusEnergy(terminal) {
         if (terminal.room.level < 8 || terminal.room.energyState < 3) return false;
         if (terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER + 5000) return false;
         return !_.find(MY_ROOMS, r => {
             const room = Game.rooms[r];
             return room && room.terminal && room.energyState < 2;
         });
-    }
-
-    allowEnergySell(terminal) {
+    }, allowEnergySell(terminal) {
         if (SELL_ENERGY) {
             return terminal.room.level >= 8 && terminal.room.energyState >= 2
                 && !_.find(MY_ROOMS, r => Game.rooms[r].terminal && !Game.rooms[r].energyState);
         }
         return this.canSellSurplusEnergy(terminal);
-    }
-
-    determineKeepAmount(resource) {
+    }, determineKeepAmount(resource) {
         // Dynamically determine keepAmount based on resource type
         if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) {
             return 0;
