@@ -65,7 +65,7 @@ function considerGlobalEntry(room, entry) {
         return null;
     }
 
-    //if (!room.memory.combatReady && !CRITICAL_OP_TYPES.has(opMemory.type)) return null;
+    if (!room.memory.combatReady && !CRITICAL_OP_TYPES.has(opMemory.type)) return null;
 
     if (room.level < levelTarget) return null;
 

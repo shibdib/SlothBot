@@ -13,6 +13,12 @@ let OPERATION_LIMIT;
 
 let SIEGE_LIMIT;
 
+let AUXILIARY_LIMIT;
+
+let OFFENSIVE_ALLOWED;
+
+let EMPIRE_READINESS;
+
 let lastNoSiegeWarning = 0;
 
 const lastRun = {};
@@ -35,6 +41,30 @@ module.exports = {
 
     set SIEGE_LIMIT(v) {
         SIEGE_LIMIT = v;
+    },
+
+    get AUXILIARY_LIMIT() {
+        return AUXILIARY_LIMIT;
+    },
+
+    set AUXILIARY_LIMIT(v) {
+        AUXILIARY_LIMIT = v;
+    },
+
+    get OFFENSIVE_ALLOWED() {
+        return OFFENSIVE_ALLOWED;
+    },
+
+    set OFFENSIVE_ALLOWED(v) {
+        OFFENSIVE_ALLOWED = v;
+    },
+
+    get EMPIRE_READINESS() {
+        return EMPIRE_READINESS;
+    },
+
+    set EMPIRE_READINESS(v) {
+        EMPIRE_READINESS = v;
     },
 
     lastNoSiegeWarning,

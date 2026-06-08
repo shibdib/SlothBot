@@ -25,6 +25,8 @@ const {manualAttacks} = require('hcFlags');
 
 const {autoNuke} = require('hcNukes');
 
+const {applyOperationLimits} = require('hcReadiness');
+
 
 function getCooldown(task) {
     switch (task) {
@@ -58,8 +60,14 @@ function highCommand() {
 
     if (typeof MAX_LEVEL === 'undefined') return;
 
-    state.OPERATION_LIMIT = Math.ceil(MY_ROOMS.filter(r => Game.rooms[r].memory.combatReady).length * 0.7) || 1;
-    state.SIEGE_LIMIT = Math.ceil(MY_ROOMS.filter(r => Game.rooms[r].level >= 7 && Game.rooms[r].memory.combatReady).length * 0.25);
+    const readiness = applyOperationLimits(state);
+    if (!readiness.canLaunchOps && state.lastNoSiegeWarning + 5000 < Game.time) {
+        state.lastNoSiegeWarning = Game.time;
+        log.a(`Operations paused — ${readiness.combatReady}/${readiness.total} combat-ready (need ${readiness.minCombatReady}).`, 'HIGH COMMAND: ');
+    } else if (readiness.empireCritical && state.lastNoSiegeWarning + 5000 < Game.time) {
+        state.lastNoSiegeWarning = Game.time;
+        log.a(`Operations paused — ${readiness.struggling}/${readiness.total} rooms energy-stressed.`, 'HIGH COMMAND: ');
+    }
 
     const sinceReset = (global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99);
 

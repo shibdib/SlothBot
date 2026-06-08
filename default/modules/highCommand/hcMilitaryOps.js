@@ -56,7 +56,9 @@ function militaryOperations() {
     }
 
     // Strongholds
-    if (activeStrongholds < state.OPERATION_LIMIT) {
+    if (!state.OFFENSIVE_ALLOWED && state.OPERATION_LIMIT <= 0) return;
+
+    if (state.OPERATION_LIMIT > 0 && activeStrongholds < state.OPERATION_LIMIT) {
         let best = null, bestScore = Infinity;
         for (const r of Object.values(INTEL)) {
             if (!r?.sk || !r.towers || !r.name || Memory.targetRooms[r.name]) continue;
@@ -73,7 +75,7 @@ function militaryOperations() {
         if (best) setTarget(best.name, 'stronghold', 1);
     }
 
-    if (!OFFENSIVE_OPERATIONS) return;
+    if (!OFFENSIVE_OPERATIONS || !state.OFFENSIVE_ALLOWED) return;
 
     // Candidate filter is permissive on strength â€” guards/harass against a stronger user are
     // fine. The strict siege-only feasibility check happens in the siege block below.

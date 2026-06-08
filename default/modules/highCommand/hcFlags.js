@@ -9,6 +9,9 @@
  */
 
 
+const {getLoadedNukers, pickLauncher} = require('hcNukes');
+
+
 function manualAttacks() {
     for (let name in Game.flags) {
         const flag = Game.flags[name];
@@ -21,7 +24,7 @@ function manualAttacks() {
         if (operation.toLowerCase() === 'test') {
             const testRoom = Game.rooms[roomName];
             if (!testRoom) {
-                removeFlagAndLog('Test flag removed â€” room ' + roomLink(roomName) + ' not visible.');
+                removeFlagAndLog('Test flag removed — room ' + roomLink(roomName) + ' not visible.');
                 continue;
             }
             if (!testRoom.memory.testDefense) testRoom.memory.testDefense = true;
@@ -31,8 +34,9 @@ function manualAttacks() {
         }
 
         if (operation.includes('nuke')) {
-            nukeFlag(flag);
-            removeFlagAndLog('Nuke operation initiated in ' + roomLink(roomName));
+            if (nukeFlag(flag)) {
+                removeFlagAndLog('Nuke operation initiated in ' + roomLink(roomName));
+            }
             continue;
         }
 
@@ -126,23 +130,21 @@ function manualAttacks() {
 }
 
 function nukeFlag(flag) {
-    const nuker = _.find(Game.structures, s =>
-        s.structureType === STRUCTURE_NUKER &&
-        !s.store.getFreeCapacity(RESOURCE_ENERGY) &&
-        !s.store.getFreeCapacity(RESOURCE_GHODIUM) &&
-        !s.cooldown &&
-        Game.map.getRoomLinearDistance(s.room.name, flag.pos.roomName) <= 10
-    );
+    const nuker = pickLauncher(getLoadedNukers(), flag.pos.roomName);
 
     if (!nuker) {
-        log.a('Nuke request for ' + roomLink(flag.pos.roomName) + ' denied â€” no nukers in range.');
-        flag.remove();
-        return;
+        log.a('Nuke request for ' + roomLink(flag.pos.roomName) + ' denied — no nukers in range.');
+        return false;
     }
 
-    nuker.launchNuke(flag.pos);
-    log.a('NUCLEAR LAUNCH DETECTED â€” ' + roomLink(flag.pos.roomName) + ' has a nuke inbound from ' + roomLink(nuker.room.name) + ' (impact in 50,000 ticks).', 'HIGH COMMAND: ');
-    flag.remove();
+    const result = nuker.launchNuke(flag.pos);
+    if (result !== OK) {
+        log.w('Nuke launch failed for ' + roomLink(flag.pos.roomName) + ' from ' + roomLink(nuker.room.name) + ': ' + result, 'HIGH COMMAND: ');
+        return false;
+    }
+
+    log.a('NUCLEAR LAUNCH DETECTED — ' + roomLink(flag.pos.roomName) + ' has a nuke inbound from ' + roomLink(nuker.room.name) + ' (impact in 50,000 ticks).', 'HIGH COMMAND: ');
+    return true;
 }
 
 module.exports = {

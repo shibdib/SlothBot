@@ -1,8 +1,9 @@
-/*
+﻿/*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 const profiler = require("tools.profiler");
 const towers = require('module.towerController');
+const {addToMad} = require('hcNukes');
 const ROOM_STATE_CACHE = {};
 const PLAYER_HOSTILE_PARTS = [ATTACK, RANGED_ATTACK, WORK, CLAIM];
 
@@ -29,7 +30,7 @@ class DefenseManager {
         const playerArmed = armedHostiles.filter(c => c.owner && c.owner.username !== 'Invader');
         const underAttack = armedHostiles.length > 0 || !!this.room.controller.safeMode;
 
-        // towerController used to set this — labTech, shuttle, terminal, and spawn still read it
+        // towerController used to set this â€” labTech, shuttle, terminal, and spawn still read it
         if (underAttack) {
             this.room.memory.dangerousAttack = true;
             this.alertHostileAttack();
@@ -136,7 +137,7 @@ class DefenseManager {
         const launchRoom = nukes[0].launchRoomName;
         const launchIntel = INTEL[launchRoom];
         if (launchIntel && launchIntel.owner) {
-            Memory.MAD = _.uniq((Memory.MAD || []).concat(launchIntel.owner));
+            addToMad(launchIntel.owner);
         }
 
         const criticalStructures = this.room.structures.filter(s => [STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN].includes(s.structureType));

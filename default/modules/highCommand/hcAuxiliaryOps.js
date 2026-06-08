@@ -9,8 +9,11 @@
  */
 
 
+const state = require('hcState');
+
 function auxiliaryOperations() {
     const cache = Memory.auxiliaryTargets || {};
+    const auxLimit = state.AUXILIARY_LIMIT != null ? state.AUXILIARY_LIMIT : 3;
 
     let activePowerOps = 0, activeCommodityOps = 0;
     for (const key in cache) {
@@ -24,7 +27,7 @@ function auxiliaryOperations() {
         r?.name && !cache[r.name] && !r.hostile && !Memory.nonCombatRooms.includes(r.name)
     );
 
-    if (MAX_LEVEL >= 4) {
+    if (MAX_LEVEL >= 4 && auxLimit > 0) {
         // Power
         if (MAX_LEVEL >= 8 && activePowerOps === 0 && getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT) {
             let best = null, bestScore = Infinity;
@@ -46,7 +49,7 @@ function auxiliaryOperations() {
         }
 
         // Commodity
-        if (activeCommodityOps < 3) {
+        if (activeCommodityOps < auxLimit) {
             const cutoff = Game.market.credits < CREDIT_BUFFER * 2 ? 150 : 40;
             let best = null, bestDist = Infinity;
             for (const r of candidates) {
@@ -80,7 +83,7 @@ function auxiliaryOperations() {
         }
     }
 
-    // Rebuild
+    // Rebuild — always allowed regardless of empire stress
     for (const r of MY_ROOMS) {
         if (Game.rooms[r].memory.buildersNeeded && INTEL[r] && !INTEL[r].hostile && !cache[r]) {
             cache[r] = {tick: Game.time, type: 'rebuild', level: 1, priority: PRIORITIES.priority};
