@@ -115,10 +115,11 @@ class StateManager {
 
         // Read energyState once — getter may enqueue ally energy requests.
         const energyState = room.energyState;
+        const flowStressed = spareIncome < 0 || trend < -3;
 
-        if (!room.memory.combatReady && energyState >= 2 && room.level >= 4) room.memory.combatReady = true;
-        else if (!room.memory.combatReady && energyState >= 1 && room.level === 8) room.memory.combatReady = true;
-        else if (room.memory.combatReady && !energyState) room.memory.combatReady = undefined;
+        if (!room.memory.combatReady && energyState >= 2 && room.level >= 4 && !flowStressed) room.memory.combatReady = true;
+        else if (!room.memory.combatReady && energyState >= 1 && room.level === 8 && !flowStressed) room.memory.combatReady = true;
+        else if (room.memory.combatReady && (!energyState || flowStressed)) room.memory.combatReady = undefined;
 
         if (!room.memory.auxilaryReady && energyState >= 1 && room.level >= 4) room.memory.auxilaryReady = true;
         else if (room.memory.auxilaryReady && !energyState) room.memory.auxilaryReady = undefined;

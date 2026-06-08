@@ -195,6 +195,11 @@ class ModuleBodyGenerator {
                 const roadsBuilt = INTEL[this.room.name].roadsBuilt && !this.room.memory.dynamicLayout;
                 carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + (roadsBuilt ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE]))) || 1;
                 carry = Math.min(carry, this.room.level >= 6 ? this.room.level * 2 : this.room.level * 4); // Scale with room level, halved at RCL6+ for dual hauler coverage
+                if (!this.room.energyState) {
+                    carry = Math.max(1, Math.floor(carry * 0.25));
+                } else if (this.room.energyState < 3 || this.trend < 0) {
+                    carry = Math.max(1, Math.floor(carry * this.flowScale(0.5, 10)));
+                }
 
                 if (roadsBuilt) halfMove = true;
                 break;
@@ -212,6 +217,11 @@ class ModuleBodyGenerator {
                 } else {
                     carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + moveCostPerCarry)) || 1;
                     carry = Math.min(carry, Math.max(10, this.room.level * 4));
+                }
+                if (!this.room.energyState) {
+                    carry = Math.max(1, Math.floor(carry * 0.25));
+                } else if (this.room.energyState < 3 || this.trend < 0) {
+                    carry = Math.max(1, Math.floor(carry * this.flowScale(0.5, 10)));
                 }
                 if (roadsBuilt) halfMove = true;
                 break;

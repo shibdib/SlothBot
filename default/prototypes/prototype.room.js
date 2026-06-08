@@ -148,7 +148,8 @@ Object.defineProperty(Room.prototype, 'energyState', {
         if (!this.controller) return 2;
         if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + ENERGY_STATE_CACHE_TTL > Game.time) return ENERGY_STATE_CACHE[this.name].state;
 
-        let energy = this.rawEnergy;
+        const batteryEquiv = Math.floor((this.store(RESOURCE_BATTERY) / 50) * 600 * 0.9);
+        let energy = this.rawEnergy + batteryEquiv;
         const upgradeCost = this.level === 8 ? 250000 : constructionCost(this.controller.level + 1) - constructionCost(this.controller.level);
         const progressFraction = this.controller.progress / this.controller.progressTotal;
         let target = this.level === 8 ? 250000 : Math.max(this.level * 31250, Math.min(Math.round(upgradeCost * progressFraction) * 0.7, STORAGE_CAPACITY * 0.5));

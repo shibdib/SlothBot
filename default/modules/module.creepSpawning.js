@@ -383,7 +383,7 @@ module.exports.essentialCreepQueue = function (room) {
     let dronePriority = PRIORITIES.drone;
     if (earlyRush) {
         if (!harvesterCount) droneCount = 1;
-        else droneCount = importantBuilds ? 9 - room.level : 1;
+        else droneCount = importantBuilds ? Math.min(9 - room.level, 3) : 1;
         dronePriority = 1;
     } else if (importantBuilds && trendOk && room.energyState) {
         droneCount = 9 - room.level;
@@ -396,9 +396,10 @@ module.exports.essentialCreepQueue = function (room) {
     }
 
     // Cap drone fleet to what spare flow can sustain. Full build counts need trend >= 0.
-    if (!earlyRush && droneCount > 1) {
-        if (!flowHealthy || spareIncome < 8) droneCount = 1;
-        else droneCount = Math.max(1, Math.min(droneCount, Math.floor(spareIncome / 8)));
+    if (droneCount > 1) {
+        const droneBudget = earlyRush ? 6 : 8;
+        if (!flowHealthy || spareIncome < droneBudget) droneCount = 1;
+        else droneCount = Math.max(1, Math.min(droneCount, Math.floor(spareIncome / droneBudget)));
     }
 
     queueCreepIfNeeded({
@@ -433,19 +434,22 @@ module.exports.essentialCreepQueue = function (room) {
         if (room.storage || protoStorage) {
             let haulerAmount = room.level >= 4 ? 2 : 1;
             if (roomHasOperateExtensionOperator(room.name)) haulerAmount = 1;
-            const haulerUrgent = room.memory.needsHaulers;
-            const priority = !getCreepCount(room, 'hauler') || haulerUrgent ? 1 : PRIORITIES.hauler;
+            if (spareIncome < 0 || !trendOk) haulerAmount = 1;
+            else haulerAmount = Math.min(haulerAmount, Math.max(1, Math.floor(spareIncome / 6)));
+            const priority = !getCreepCount(room, 'hauler') ? 1 : PRIORITIES.hauler;
             queueCreepIfNeeded({
                 room, role: 'hauler', priority,
                 numberNeeded: haulerAmount,
-                rebootCondition: !getCreepCount(room, 'hauler') || !room.energyState || haulerUrgent
+                rebootCondition: !getCreepCount(room, 'hauler') || !room.energyState
             });
         }
 
         for (const source of room.sources) {
             if (source.memory.link && room.memory.hubLink) continue;
             const priority = !getCreepCount(room, 'shuttle') ? 1 : PRIORITIES.hauler;
-            const number = room.level >= 5 ? 1 : 2; // 2 at RCL3, 1 at RCL4, 0 at RCL5+
+            let number = room.level >= 5 ? 1 : 2; // 2 at RCL3, 1 at RCL4+
+            if (spareIncome < 0 || !trendOk) number = 1;
+            else number = Math.min(number, Math.max(1, Math.floor(spareIncome / 8)));
             queueCreepIfNeeded({
                 room, role: 'shuttle', priority: priority,
                 numberNeeded: number,
@@ -1729,7 +1733,11 @@ function adjustQueuePriority(queue, room) {
         }
 
         if (creep.destination && (Memory.targetRooms[creep.destination] || Memory.auxiliaryTargets[creep.destination])) {
-            if (room.energyState && room.storage) creep.priority *= 0.5;
+            const milInfo = room.memory.energyInfo;
+            const milTrend = (milInfo && milInfo.trend) || 0;
+            const milSpare = (milInfo && milInfo.spareIncome) || 0;
+            const flowReady = room.energyState >= 2 && milTrend >= 0 && milSpare >= 8;
+            if (flowReady && room.storage) creep.priority *= 0.5;
             else if (creep.military) creep.priority *= 6;
         }
         creep.priority = Math.max(1, Math.round(creep.priority));
