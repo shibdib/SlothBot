@@ -442,7 +442,7 @@ class ModuleBodyGenerator {
             case 'remoteHauler':
                 const remoteRoomName = this.creepInfo.other.remoteRoom;
                 if (!remoteRoomName) return false;
-                const otherAssignedHaulers = this.room.level < 7 ? getHaulersBySource()[this.creepInfo.other.source] || [] : [];
+                const otherAssignedHaulers = getHaulersBySource()[this.creepInfo.other.source] || [];
                 const currentHaulingCapacity = _.sum(otherAssignedHaulers, c => c.getActiveBodyparts(CARRY) * 50);
                 const harvestRate = this.creepInfo.other.harvestAmount - currentHaulingCapacity;
                 const desiredCarry = Math.ceil(harvestRate / CARRY_CAPACITY) || 1;
@@ -465,6 +465,10 @@ class ModuleBodyGenerator {
 
                 // Limit carry to what is actually needed
                 carry = Math.min(carry, desiredCarry);
+
+                if (this.room.energyState < 3 || this.trend < 0) {
+                    carry = Math.max(1, Math.floor(carry * this.flowScale(0.5, 10)));
+                }
 
                 // Pre-RCL7 rooms have 1 spawn — cap hauler size so it doesn't block the queue.
                 // Smaller haulers spawn faster and multiple will be queued to cover the deficit.

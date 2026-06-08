@@ -255,11 +255,14 @@ function handleRemoteHaulers(room) {
         if (shouldSkipRemote(room, harvester.memory.destination)) continue;
         const sourceId = harvester.memory.other.source;
         const assignedHaulers = haulersBySource[sourceId] || [];
-        const count = room.memory.remotePenalty ? 1 : INTEL[harvester.memory.destination] && INTEL[harvester.memory.destination].sk ? 4 : 3;
+        const targetCapacity = harvester.memory.other.haulingRequired;
+        const maxCarryPerHauler = room.level < 7 ? room.level * 2 : 32;
+        const maxHaulers = room.memory.remotePenalty ? 1
+            : INTEL[harvester.memory.destination] && INTEL[harvester.memory.destination].sk ? 4 : 3;
+        const count = Math.min(maxHaulers, Math.max(1, Math.ceil(targetCapacity / (maxCarryPerHauler * CARRY_CAPACITY))));
         if (assignedHaulers.length >= count) continue;
         const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
-        const harvestAmount = harvester.memory.other.haulingRequired * 2.25;
-        if (harvestAmount && haulingCapacity < harvestAmount) {
+        if (targetCapacity && haulingCapacity < targetCapacity) {
             // Same flow check as remoteHarvester â€” don't deprioritize haulers if trend is bad.
             const rhlEnergyInfo = room.memory.energyInfo;
             const rhlTrendOk = !rhlEnergyInfo || (rhlEnergyInfo.trend || 0) >= -3;
@@ -270,7 +273,7 @@ function handleRemoteHaulers(room) {
                 other: {
                     source: sourceId,
                     remoteRoom: harvester.memory.destination,
-                    harvestAmount: harvestAmount
+                    harvestAmount: targetCapacity
                 }
             });
         }

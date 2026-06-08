@@ -144,7 +144,10 @@ function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
     const actualRate = Math.min(power, maxRate);
     creep.memory.other.haulingScore = sourceInfo.score;
     creep.memory.other.haulingRoads = roadsBuilt;
-    creep.memory.other.haulingRequired = actualRate * sourceInfo.score * (roadsBuilt ? 4.2 : 2.2);
+    // Total carry capacity (energy units) to clear one round-trip backlog. score ≈ one-way
+    // path cost; round trip ≈ 2×score ticks of production at actualRate.
+    const roundTripBuffer = roadsBuilt ? 1.15 : 1.35;
+    creep.memory.other.haulingRequired = actualRate * sourceInfo.score * 2 * roundTripBuffer;
 }
 
 function harvestDepositContainer(source, creep) {
