@@ -142,6 +142,7 @@ class ModuleBodyGenerator {
 
                 if (this.room.controller.level === 8 && this.room.energyState < 2) {
                     work = 1;
+                    carry = 1;
                 } else if (hasLink || hasContainer) {
                     // Stationary — sits on a container or beside the controller link, no moves.
                     carry = hasLink ? 4 : 1;
