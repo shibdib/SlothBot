@@ -38,16 +38,18 @@ function findRoute(origin, destination, options = {}) {
             if (Memory.avoidRooms?.includes(roomName)) return 250;
             if (!intel || intel.cached + 10000 < Game.time) return 100;
             if (intel.user && intel.user === MY_USERNAME) return 1;
-            if (intel.user && FRIENDLIES.includes(intel.user)) return !NO_RAMPART_CODE.includes(intel.user) ? 25 : 1;
-            if (intel.user && !FRIENDLIES.includes(intel.user)) return intel.towers ? Infinity : 150;
+            if (intel.owner && FRIENDLIES.includes(intel.owner)) return !NO_RAMPART_CODE.includes(intel.owner) ? 25 : 1;
+            if (intel.user && FRIENDLIES.includes(intel.user)) return 1;
+            if (intel.owner && !FRIENDLIES.includes(intel.owner)) return intel.towers ? Infinity : 150;
+            if (intel.user && !FRIENDLIES.includes(intel.user)) return 5;
             if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) return 50;
-            if (intel.obstacles) return 200;
+            if (intel.obstacles) return 100;
             // SK rooms: tower-defended OR no cached danger points (we've never scouted the
             // lair/source positions, so the in-room matrix can't carve a safe path).
             if (intel.sk && (intel.towers || !intel.skDangerPoints)) return 250;
-            if (intel.threatLevel) return 60 * intel.threatLevel;
+            if (intel.threatLevel) return 10 * intel.threatLevel;
             if (intel.swampRoom) return 15;
-            return intel.isHighway ? 3 : 10;
+            return intel.isHighway ? 2 : 3;
         }
     });
 
