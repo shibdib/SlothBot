@@ -64,6 +64,7 @@ class RoleClaimer {
                     Memory.auxiliaryTargets[this.room.name] = undefined;
                     Memory.targetRooms[this.room.name] = undefined;
                     MY_ROOMS.push(this.room.name);
+                    this.room.structures.forEach((s) => s.destroy());
             }
         }
     }
