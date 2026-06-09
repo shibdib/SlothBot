@@ -15,6 +15,10 @@ const {checkForNap, scoreTarget} = require('hcUtils');
 
 const {getEmpireReadiness} = require('hcReadiness');
 
+function empireReadiness() {
+    return state.EMPIRE_READINESS || getEmpireReadiness();
+}
+
 
 function sanitizeMadList() {
     if (!Memory.MAD) return;
@@ -151,7 +155,7 @@ function autoNuke() {
     sanitizeMadList();
     if (!Memory.MAD || !Memory.MAD.length) return false;
 
-    const readiness = getEmpireReadiness();
+    const readiness = empireReadiness();
     if (readiness.empireCritical) return false;
 
     const availableLaunchers = getLoadedNukers();
@@ -183,7 +187,7 @@ function autoNuke() {
 function offensiveNuke() {
     if (!OFFENSIVE_NUKES || !OFFENSIVE_OPERATIONS || !state.OFFENSIVE_ALLOWED) return false;
 
-    const readiness = getEmpireReadiness();
+    const readiness = empireReadiness();
     if (readiness.empireCritical || readiness.empireStressed) return false;
 
     if (Memory.MAD?.length) return false;

@@ -61,12 +61,16 @@ function highCommand() {
     if (typeof MAX_LEVEL === 'undefined') return;
 
     const readiness = applyOperationLimits(state);
-    if (!readiness.canLaunchOps && state.lastNoSiegeWarning + 5000 < Game.time) {
+    if ((!readiness.canLaunchOps || readiness.empireCritical) && state.lastNoSiegeWarning + 5000 < Game.time) {
         state.lastNoSiegeWarning = Game.time;
-        log.a(`Operations paused — ${readiness.combatReady}/${readiness.total} combat-ready (need ${readiness.minCombatReady}).`, 'HIGH COMMAND: ');
-    } else if (readiness.empireCritical && state.lastNoSiegeWarning + 5000 < Game.time) {
-        state.lastNoSiegeWarning = Game.time;
-        log.a(`Operations paused — ${readiness.struggling}/${readiness.total} rooms energy-stressed.`, 'HIGH COMMAND: ');
+        const reasons = [];
+        if (!readiness.canLaunchOps) {
+            reasons.push(`${readiness.combatReady}/${readiness.total} combat-ready (need ${readiness.minCombatReady})`);
+        }
+        if (readiness.empireCritical) {
+            reasons.push(`${readiness.struggling}/${readiness.total} energy-stressed (${Math.round(readiness.strugglingRatio * 100)}%)`);
+        }
+        log.a(`Operations paused — ${reasons.join('; ')}.`, 'HIGH COMMAND: ');
     }
 
     const sinceReset = (global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99);
