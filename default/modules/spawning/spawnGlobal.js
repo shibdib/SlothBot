@@ -64,20 +64,10 @@ function globalCreepQueue() {
                 queueCreepIfNeeded({role: 'scout', priority: 1, numberNeeded: 1, destination: key, closestRoom: true});
                 break;
             case 'claim':
-                if (!INTEL[key].owner && INTEL[key].hubCheck && !INTEL[key].obstacles) {
-                    queueCreepIfNeeded({
-                        role: 'claimer', priority, numberNeeded: 1, destination: key,
-                        closestRoom: true, operation: 'claim'
-                    });
-                } else {
-                    queueCreepIfNeeded({
-                        role: 'scout',
-                        priority: 1,
-                        numberNeeded: 1,
-                        destination: key,
-                        closestRoom: true
-                    });
-                }
+                queueCreepIfNeeded({
+                    role: 'claimer', priority, numberNeeded: 1, destination: key,
+                    closestRoom: true, operation: 'claim'
+                });
                 break;
             case 'rebuild':
                 if (!INTEL[key] || !INTEL[key].lastPlayerSighting || INTEL[key].lastPlayerSighting + 750 < Game.time || INTEL[key].safemode) {
@@ -255,7 +245,7 @@ function globalCreepQueue() {
                     numberNeeded: opLevel * 2,
                     destination: key,
                     closestRoom: true,
-                    operation: 'roomDenial'
+                    operation: 'stronghold'
                 });
                 if (operation.loot) queueCreepIfNeeded({
                     role: 'remoteHauler',

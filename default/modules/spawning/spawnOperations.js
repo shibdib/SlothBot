@@ -6,9 +6,13 @@
 
 const generator = require('module.bodyGenerator');
 
-const CRITICAL_OP_TYPES = new Set(['rebuild', 'claim']);
 const CLAIM_ROLES = new Set(['claimer', 'claimAttacker', 'reserver']);
+const INVISIBLE_ASSIGNMENT_TIMEOUT = 50;
+const ASSIGNMENT_SUCCESS_COOLDOWN = 50;
+const ASSIGNMENT_FAILURE_COOLDOWN = 5;
 const assignmentCooldown = {};
+let assignmentCountsCache = {tick: -1, counts: null};
+let assignedRoomCache = {tick: -1, results: {}};
 
 function buildOperationsSignature() {
     let sig = '';
@@ -65,15 +69,12 @@ function considerGlobalEntry(room, entry) {
         return null;
     }
 
-    if (!room.memory.combatReady && !CRITICAL_OP_TYPES.has(opMemory.type)) return null;
-
     if (room.level < levelTarget) return null;
 
     return {...entry};
 }
 
 function computeOpLevelTarget(target, opMemory, intel) {
-    if (Memory.auxiliaryTargets[target]) return MAX_LEVEL - 1;
     switch (opMemory.type) {
         case 'scout':
             return 1;
@@ -88,40 +89,70 @@ function computeOpLevelTarget(target, opMemory, intel) {
         case 'guard':
             return 5;
     }
+    if (Memory.auxiliaryTargets[target]) return MAX_LEVEL - 1;
     if (intel && intel.user) return Math.max(1, (intel.level || 4) - 1);
     if (intel) return 4;
     return MAX_LEVEL;
+}
+
+function clearAssignmentWaitState(opMemory) {
+    delete opMemory.assignmentEnergyCounter;
+    delete opMemory.assignmentEnergyLastTick;
+    delete opMemory.assignmentInvisibleCounter;
+    delete opMemory.assignmentInvisibleLastTick;
+}
+
+function assignmentAllowsMissingIntel(opMemory, entry) {
+    return opMemory.type === 'scout' || entry.role === 'scout';
+}
+
+function handleInvisibleAssignmentWait(target, opMemory) {
+    const now = Game.time;
+    if (opMemory.assignmentInvisibleLastTick !== now) {
+        opMemory.assignmentInvisibleCounter = (opMemory.assignmentInvisibleCounter || 0) + 1;
+        opMemory.assignmentInvisibleLastTick = now;
+        if (opMemory.assignmentInvisibleCounter > INVISIBLE_ASSIGNMENT_TIMEOUT) {
+            unassignRoom(target, 'Assigned room is not visible.');
+            return false;
+        }
+    }
+    return true;
+}
+
+function handleAssignmentReadinessWait(room, target, opMemory, reason) {
+    if (room.name !== opMemory.assignedRoom) return opMemory.assignedRoom;
+
+    const now = Game.time;
+    if (opMemory.assignmentEnergyLastTick !== now) {
+        opMemory.assignmentEnergyCounter = (opMemory.assignmentEnergyCounter || 0) + 1;
+        opMemory.assignmentEnergyLastTick = now;
+        if (opMemory.assignmentEnergyCounter > 100) {
+            unassignRoom(target, reason);
+            return null;
+        }
+    }
+    return opMemory.assignedRoom;
 }
 
 function resolveAssignment(room, target, opMemory, levelTarget, entry, intel) {
     const now = Game.time;
     if (opMemory.assignedRoom) {
         const assigned = Game.rooms[opMemory.assignedRoom];
-        if (!assigned) return opMemory.assignedRoom;
-
-        if (Memory.targetRooms[target] && !assigned.memory.combatReady) {
-            if (!opMemory.assignmentEnergyCounter) opMemory.assignmentEnergyCounter = 0;
-            if (opMemory.assignmentEnergyCounter > 100) {
-                unassignRoom(target, 'Room is not combat ready.');
-            }
-            opMemory.assignmentEnergyCounter++;
-            return opMemory.assignedRoom;
+        if (!assigned) {
+            if (handleInvisibleAssignmentWait(target, opMemory)) return opMemory.assignedRoom;
+        } else if (Memory.targetRooms[target] && !assigned.memory.combatReady) {
+            const held = handleAssignmentReadinessWait(room, target, opMemory, 'Room is not combat ready.');
+            if (held) return held;
         } else if (Memory.auxiliaryTargets[target] && !assigned.memory.auxilaryReady) {
-            if (!opMemory.assignmentEnergyCounter) opMemory.assignmentEnergyCounter = 0;
-            if (opMemory.assignmentEnergyCounter > 100) {
-                unassignRoom(target, 'Room is not auxiliary ready.');
-            }
-            opMemory.assignmentEnergyCounter++;
-            return opMemory.assignedRoom;
-        }
+            const held = handleAssignmentReadinessWait(room, target, opMemory, 'Room is not auxiliary ready.');
+            if (held) return held;
+        } else {
+            clearAssignmentWaitState(opMemory);
 
-        const stale = opMemory.assignedAt && opMemory.assignedAt + (CREEP_LIFE_TIME * 2) < now;
+            const stale = opMemory.assignedAt && opMemory.assignedAt + (CREEP_LIFE_TIME * 2) < now;
+            if (!stale) return opMemory.assignedRoom;
 
-        if (!stale) return opMemory.assignedRoom;
-
-        if (stale) {
-            const assignedRoom = Game.rooms[opMemory.assignedRoom];
-            const inflight = assignedRoom && assignedRoom.myCreeps.some(c =>
+            const inflight = assigned.myCreeps.some(c =>
                 c.memory.waitingToAssemble &&
                 (c.memory.destination === target ||
                     (c.memory.other && c.memory.other.assignment === target)));
@@ -130,64 +161,128 @@ function resolveAssignment(room, target, opMemory, levelTarget, entry, intel) {
         }
     }
 
-    if (!intel) return null;
+    if (!intel && !assignmentAllowsMissingIntel(opMemory, entry)) return null;
 
     const resolved = getAssignedRoom(target, levelTarget, entry);
     if (!resolved) return null;
 
     opMemory.assignedRoom = resolved;
     opMemory.assignedAt = now;
+    clearAssignmentWaitState(opMemory);
     log.a(`Assigning the operation in ${roomLink(target)} to ${roomLink(resolved)}`, 'OPERATIONS:');
     return resolved;
 }
 
-function getAssignedRoom(targetRoom, level, creepInfo) {
-    if (assignmentCooldown[targetRoom] && assignmentCooldown[targetRoom] > Game.time) return null;
+function getAssignmentCounts() {
+    if (assignmentCountsCache.tick === Game.time) return assignmentCountsCache.counts;
 
-    let assignmentCounts = {};
+    const counts = {};
     for (const op of Object.values(Memory.targetRooms)) {
-        if (op && op.assignedRoom) assignmentCounts[op.assignedRoom] = (assignmentCounts[op.assignedRoom] || 0) + 1;
+        if (op && op.assignedRoom) counts[op.assignedRoom] = (counts[op.assignedRoom] || 0) + 1;
     }
     for (const op of Object.values(Memory.auxiliaryTargets)) {
-        if (op && op.assignedRoom) assignmentCounts[op.assignedRoom] = (assignmentCounts[op.assignedRoom] || 0) + 1;
+        if (op && op.assignedRoom) counts[op.assignedRoom] = (counts[op.assignedRoom] || 0) + 1;
     }
 
-    const candidates = MY_ROOMS
-        .filter((key) => key !== targetRoom)
-        .map((key) => ({key, linear: Game.map.getRoomLinearDistance(targetRoom, key)}))
-        .sort((a, b) => a.linear - b.linear);
+    assignmentCountsCache = {tick: Game.time, counts};
+    return counts;
+}
 
+function getAssignedRoomCacheKey(targetRoom, level, creepInfo) {
+    return `${targetRoom}:${level}:${creepInfo.role || ''}`;
+}
+
+function isBetterAssignmentCandidate(score, distance, assignedOps, key, best) {
+    if (!best) return true;
+    if (score < best.score) return true;
+    if (score > best.score) return false;
+    if (distance < best.distance) return true;
+    if (distance > best.distance) return false;
+    if (assignedOps < best.assignedOps) return true;
+    if (assignedOps > best.assignedOps) return false;
+    return key < best.key;
+}
+
+function computeAssignmentScore(myRoom, routeDistance, assignmentCount, isAuxiliary) {
+    let score = routeDistance;
+
+    const energyState = myRoom.energyState || 0;
+    const ei = myRoom.memory.energyInfo;
+    const spare = (ei && ei.spareIncome) || 0;
+    const trend = (ei && ei.trend) || 0;
+    const flowStressed = spare < 0 || trend < -3;
+    const flowReady = energyState >= 2 && trend >= 0 && spare >= 8;
+
+    const energyWeight = isAuxiliary ? 3 : 6;
+    if (energyState < 3) score += (3 - energyState) * energyWeight;
+
+    if (flowStressed) score += isAuxiliary ? 6 : 14;
+    else if (!isAuxiliary && energyState < 2) score += 8;
+
+    if (spare < 0) score += isAuxiliary ? 5 : 12;
+    else if (spare < 4) score += isAuxiliary ? 2 : 5;
+    else if (flowReady) score -= 4;
+
+    const spawnCap = CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level];
+    if (spawnCap > 0) score += (assignmentCount / spawnCap) * 5;
+
+    return score;
+}
+
+function getAssignedRoom(targetRoom, level, creepInfo) {
+    const cacheKey = getAssignedRoomCacheKey(targetRoom, level, creepInfo);
+    if (assignedRoomCache.tick === Game.time &&
+        Object.prototype.hasOwnProperty.call(assignedRoomCache.results, cacheKey)) {
+        return assignedRoomCache.results[cacheKey];
+    }
+    if (assignedRoomCache.tick !== Game.time) assignedRoomCache = {tick: Game.time, results: {}};
+
+    if (assignmentCooldown[targetRoom] && assignmentCooldown[targetRoom] > Game.time) {
+        assignedRoomCache.results[cacheKey] = null;
+        return null;
+    }
+
+    const assignmentCounts = getAssignmentCounts();
+    const isAuxiliary = !!Memory.auxiliaryTargets[targetRoom];
+    const opType = Memory.targetRooms[targetRoom] && Memory.targetRooms[targetRoom].type;
+    const isScout = opType === 'scout' || creepInfo.role === 'scout';
     const maxDistance = CLAIM_ROLES.has(creepInfo.role) ? 12 : 22;
 
-    let closest = null;
-    let closestDistance = Infinity;
+    let best = null;
+    for (const key of MY_ROOMS) {
+        if (key === targetRoom) continue;
 
-    for (const {key, linear} of candidates) {
-        if (linear >= closestDistance) break;
         const myRoom = Game.rooms[key];
         if (!myRoom) continue;
         if (myRoom.controller.level !== myRoom.level || myRoom.downgraded) continue;
         if (myRoom.level < level) continue;
 
-        if (Memory.targetRooms[key] && !myRoom.memory.combatReady) continue;
-        if (Memory.auxiliaryTargets[key] && !myRoom.memory.auxilaryReady) continue;
+        if (isAuxiliary) {
+            if (!myRoom.memory.auxilaryReady) continue;
+        } else if (!isScout && !myRoom.memory.combatReady) {
+            continue;
+        }
 
         const route = myRoom.shibRoute(targetRoom);
         const distance = Array.isArray(route) && route.length ? route.length : Infinity;
-        if (distance >= closestDistance || distance > maxDistance) continue;
+        if (distance > maxDistance) continue;
 
-        if ((assignmentCounts[key] || 0) >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level]) continue;
+        const assignedOps = assignmentCounts[key] || 0;
+        if (assignedOps >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level]) continue;
 
         const generatedInfo = new generator(myRoom.level, creepInfo.role, myRoom, creepInfo).generateBody();
         if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) continue;
 
-        closestDistance = distance;
-        closest = key;
-        if (distance === 1) break;
+        const score = computeAssignmentScore(myRoom, distance, assignedOps, isAuxiliary);
+        if (isBetterAssignmentCandidate(score, distance, assignedOps, key, best)) {
+            best = {key, score, distance, assignedOps};
+        }
     }
 
-    assignmentCooldown[targetRoom] = Game.time + 50;
-    return closest;
+    const resolved = best ? best.key : null;
+    assignedRoomCache.results[cacheKey] = resolved;
+    assignmentCooldown[targetRoom] = Game.time + (resolved ? ASSIGNMENT_SUCCESS_COOLDOWN : ASSIGNMENT_FAILURE_COOLDOWN);
+    return resolved;
 }
 
 function unassignRoom(destination, logEntry) {
@@ -196,6 +291,10 @@ function unassignRoom(destination, logEntry) {
     const fromRoom = opMemory.assignedRoom;
     delete opMemory.assignedRoom;
     delete opMemory.assignedAt;
+    delete opMemory.assignmentEnergyCounter;
+    delete opMemory.assignmentEnergyLastTick;
+    delete opMemory.assignmentInvisibleCounter;
+    delete opMemory.assignmentInvisibleLastTick;
     log.a(`Unassigning the operation in ${roomLink(destination)} from ${roomLink(fromRoom)}. ${logEntry}`, 'OPERATIONS:');
 }
 

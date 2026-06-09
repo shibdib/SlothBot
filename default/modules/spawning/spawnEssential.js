@@ -42,11 +42,11 @@ function essentialCreepQueue(room) {
         else droneCount = importantBuilds ? Math.min(9 - room.level, 3) : 1;
         dronePriority = 1;
     } else if (importantBuilds && trendOk && room.energyState) {
-        droneCount = 9 - room.level;
-    } else if (room.constructionSites.length && room.energyState > 2) {
+        droneCount = (9 - room.level) + room.energyState;
+    } else if (room.constructionSites.length && room.energyState) {
         droneCount = 2;
     } else if (!room.storage) {
-        droneCount = importantBuilds ? 9 - room.level : 1;
+        droneCount = importantBuilds ? (9 - room.level) + room.energyState : 1;
     } else {
         droneCount = 1;
     }
