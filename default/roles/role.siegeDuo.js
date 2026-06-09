@@ -9,6 +9,9 @@ const profiler = require("tools.profiler");
 // is well above that. Past it the partner is almost certainly never coming.
 const SOLO_RECYCLE_AFTER = 300;
 
+const RETREAT_CRITICAL_PER_CREEP = 0.25;
+const RETREAT_RECOVERY_THRESHOLD = 0.8;
+
 // Per-tick cache of unpaired siegeDuo creeps grouped by destination, so each
 // creep's pair-search is an O(1) lookup instead of a full Game.creeps scan.
 // Rebuilt once per tick; in-tick pairings still re-check `memory.partner`
@@ -81,6 +84,7 @@ class RoleSiegeDuo {
                     leader.memory.partner = follower.id;
                     follower.memory.partner = leader.id;
                     follower.memory.leader = undefined;
+                    if (leader.memory.operation) follower.memory.operation = leader.memory.operation;
                 }
             }
         }
@@ -88,13 +92,24 @@ class RoleSiegeDuo {
 
     handleLeader() {
         const partner = Game.getObjectById(this.creep.memory.partner);
-        const isReady = this.hasFullSquad() && this.isPartnerNearby(partner, this.creep);
+        if (!partner) return;
+
+        if (this.shouldRetreat([this.creep, partner])) {
+            this.creep.fleeHome(true);
+            return;
+        }
+        if (this.duoRenewal(partner)) return;
+
+        const isReady = this.hasFullSquad(partner) && this.isPartnerNearby(partner, this.creep);
 
         if (isReady) {
+            this.creep.memory.waitingToAssemble = undefined;
             if (!this.creep.memory.initialFormUp) this.creep.memory.initialFormUp = true;
-            if (this.creep.memory.operation) this.operationManagement(); else if (this.creep.memory.destination) this.destinationManagement();
+            if (this.creep.memory.operation) this.operationManagement();
+            else if (this.creep.memory.destination) this.destinationManagement();
             else this.creep.handleMilitaryCreep();
         } else {
+            this.creep.memory.waitingToAssemble = true;
             this.creep.findDefensivePosition();
         }
     }
@@ -105,14 +120,16 @@ class RoleSiegeDuo {
             this.creep.memory.partner = undefined;
             return;
         }
+        if (partner.memory.operation) this.creep.memory.operation = partner.memory.operation;
+        if (partner.memory.waitingToAssemble) this.creep.memory.waitingToAssemble = true;
+        else this.creep.memory.waitingToAssemble = undefined;
         this.creep.shibMove(partner, {range: 0});
-        if (partner.memory.idle) {
+        if (this.creep.pos.isNearTo(partner) && partner.memory.idle) {
             this.creep.memory.idle = partner.memory.idle;
         }
     }
 
     handleSolo() {
-        if (this.creep.handleMilitaryCreep()) return;
         if (!this.creep.memory.soloSince) this.creep.memory.soloSince = Game.time;
         if (Game.time - this.creep.memory.soloSince > SOLO_RECYCLE_AFTER) return this.creep.recycleCreep();
         if (this.creep.findDefensivePosition()) this.creep.idleFor(5);
@@ -141,14 +158,59 @@ class RoleSiegeDuo {
         }
     }
 
-    hasFullSquad() {
+    duoRenewal(partner) {
+        if (this.creep.memory.initialFormUp || this.creep.room.level < 7) return false;
+        if (this.room.hostileCreeps.length || this.room.hostileStructures.length) return false;
+        if (!this.creep.memory.hasBoosted && !this.creep.memory.boostAttempt &&
+            this.creep.handleRenewing(CREEP_LIFE_TIME * 0.8)) return true;
+        if (partner && !partner.memory.hasBoosted && !partner.memory.boostAttempt &&
+            partner.handleRenewing(CREEP_LIFE_TIME * 0.8)) return true;
+        return false;
+    }
+
+    shouldRetreat(duo) {
+        const creep = this.creep;
+        let totalHits = 0;
+        let totalHitsMax = 0;
+        let criticalMember = false;
+        for (const c of duo) {
+            if (!c) continue;
+            totalHits += c.hits;
+            totalHitsMax += c.hitsMax;
+            if (c.hits / c.hitsMax < RETREAT_CRITICAL_PER_CREEP) criticalMember = true;
+        }
+        const duoHealth = totalHitsMax ? totalHits / totalHitsMax : 1;
+
+        if (creep.memory.retreating) {
+            if (duoHealth >= RETREAT_RECOVERY_THRESHOLD && !criticalMember) {
+                creep.memory.retreating = undefined;
+                return false;
+            }
+            return true;
+        }
+
+        if (criticalMember || duoHealth < 0.45) {
+            creep.memory.retreating = true;
+            return true;
+        }
+        return false;
+    }
+
+    hasFullSquad(partner) {
         if (this.creep.memory.initialFormUp) return true;
-        const partner = Game.getObjectById(this.creep.memory.partner);
-        return !!(partner && partner.memory.boostAttempt);
+        partner = partner || Game.getObjectById(this.creep.memory.partner);
+        if (!partner) return false;
+        return !!(this.creep.memory.boostAttempt && partner.memory.boostAttempt);
     }
 
     isPartnerNearby(partner, leader) {
-        if (!partner || partner.pos.roomName !== leader.pos.roomName) return true;
+        if (!partner) return false;
+        if (partner.pos.roomName !== leader.pos.roomName) {
+            const safeTransit = !leader.room.hostileCreeps.length && !leader.room.hostileStructures.length &&
+                !partner.room.hostileCreeps.length && !partner.room.hostileStructures.length &&
+                !this.nearDestination(leader);
+            return safeTransit;
+        }
         // Safe territory and not yet near the target — don't force adjacency.
         if (!partner.room.hostileCreeps.length && !partner.room.hostileStructures.length && !this.nearDestination(leader)) return true;
         // Partner straddling a room border (mid-transition) — treat as ready.
