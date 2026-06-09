@@ -187,7 +187,8 @@ class RoleDrone {
 
     hauling() {
         if (this.creep.memory.task && this.creep.memory.task !== 'haul') return false;
-        if (!this.room.controller || !this.room.controller.my) return false;
+        const spawn = this.room.find(FIND_MY_SPAWNS)[0];
+        if (!this.room.controller || !this.room.controller.my || !spawn) return false;
 
         const needsHaul = !this.room.myCreeps.some(c => c.memory.role === 'shuttle' || c.memory.role === 'hauler');
 
