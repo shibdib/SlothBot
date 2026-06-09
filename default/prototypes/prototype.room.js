@@ -145,7 +145,8 @@ const ENERGY_STATE_CACHE = {};
 const ENERGY_STATE_CACHE_TTL = 25;
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
-        if (!this.controller) return 2;
+        const spawn = this.find(FIND_MY_SPAWNS)[0];
+        if (!this.controller || !spawn) return 2;
         if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + ENERGY_STATE_CACHE_TTL > Game.time) return ENERGY_STATE_CACHE[this.name].state;
 
         const batteryEquiv = Math.floor((this.store(RESOURCE_BATTERY) / 50) * 600 * 0.9);
