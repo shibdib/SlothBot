@@ -46,8 +46,8 @@ function controllerBuilder(room) {
     let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
     let controllerLink = Game.getObjectById(room.memory.controllerLink);
     if (!controllerContainer && room.level >= 2 && room.level < 8) {
-        controllerContainer = room.controller.pos.findInRange(room.containers, 3, {
-            filter: (s) => !s.pos.isNearTo(s.pos.findClosestByRange(FIND_SOURCES)) &&
+        controllerContainer = room.controller.pos.findInRange(FIND_STRUCTURES, 3, {
+            filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.pos.findClosestByRange(FIND_SOURCES)) &&
                 !s.pos.isNearTo(s.pos.findClosestByRange(FIND_MINERALS))
         })[0];
         if (!controllerContainer) {
