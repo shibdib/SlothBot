@@ -151,6 +151,19 @@ function parsePosKey(key) {
 }
 
 
+function gatherThreats(creep, fleeRange) {
+    const threats = creep.room.hostileCreeps.filter(c =>
+        (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) &&
+        creep.pos.getRangeTo(c) <= fleeRange + 2
+    );
+    const lairs = creep.room.structures.filter(s =>
+        s.structureType === STRUCTURE_KEEPER_LAIR &&
+        s.ticksToSpawn && s.ticksToSpawn <= fleeRange + 2 &&
+        creep.pos.getRangeTo(s) <= fleeRange + 2
+    );
+    return threats.concat(lairs);
+}
+
 function endpointInRange(endpointKey, target, range) {
     if (range === undefined) return false;
     let parsed;
@@ -190,5 +203,7 @@ module.exports = {
     parsePosKey,
 
     endpointInRange,
+
+    gatherThreats,
 
 };
