@@ -6,6 +6,7 @@
 
 const generator = require('module.bodyGenerator');
 const {estimateClaimRouteTicks} = require('pathRoute');
+const {isLiveCombatReady, isRoomStruggling} = require('hcReadiness');
 
 const CLAIM_ROLES = new Set(['claimer', 'claimAttacker', 'reserver']);
 const INVISIBLE_ASSIGNMENT_TIMEOUT = 50;
@@ -53,7 +54,13 @@ function collectGlobalOperations(room) {
 }
 
 function considerGlobalEntry(room, entry) {
-    if (!entry.destination) return {...entry};
+    if (!entry.destination) {
+        if (entry.operation === 'harass') {
+            const minLevel = Math.max(4, MAX_LEVEL - 2);
+            if (room.level < minLevel || !isLiveCombatReady(room) || isRoomStruggling(room)) return null;
+        }
+        return {...entry};
+    }
     if (entry.destination === room.name) return null;
 
     const target = entry.other && entry.other.assignment ? entry.other.assignment : entry.destination;

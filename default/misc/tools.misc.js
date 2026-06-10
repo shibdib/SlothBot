@@ -170,8 +170,8 @@ module.exports.status = function () {
                 log.a(`⚔️ Hostile Empires: <font color="#FF4500">${ENEMIES.join(", ")}</font>`, ' ');
             }
             if (activeHarassers.length > 0) {
-                const targetRooms = _.uniq(_.pluck(activeHarassers, 'memory.destination')).join(", ");
-                log.a(`🎯 Harassment: ${activeHarassers.length} units targeting ${targetRooms}`, ' ');
+                const targetRooms = _.uniq(activeHarassers.map(c => c.memory.targetRoom || c.memory.destination).filter(Boolean)).join(", ");
+                log.a(`🎯 Harassment: ${activeHarassers.length} units raiding ${targetRooms || 'threat remotes'}`, ' ');
             }
         }
 

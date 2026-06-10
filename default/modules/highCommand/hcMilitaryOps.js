@@ -43,7 +43,7 @@ function militaryOperations() {
     const warTargetUsers = new Set(Object.keys(warPriorityByUser));
 
     // Count active operations + attacked owners in one pass
-    let activeStrongholds = 0, activeNonSiege = 0, activeSiege = 0;
+    let activeStrongholds = 0, activeNonSiege = 0, activeSiege = 0, activeRemoteDenials = 0;
     const attackedOwners = new Set();
 
     for (const key in Memory.targetRooms) {
@@ -51,7 +51,10 @@ function militaryOperations() {
         if (!op) continue;
         if (op.type === 'stronghold') activeStrongholds++;
         else if (op.type === 'roomDenial' || op.dDay) activeSiege++;
-        else activeNonSiege++;
+        else {
+            activeNonSiege++;
+            if (op.type === 'remoteDenial') activeRemoteDenials++;
+        }
         if (INTEL[key]?.owner) attackedOwners.add(INTEL[key].owner);
     }
 
@@ -125,11 +128,20 @@ function militaryOperations() {
         }
     }
 
-    // Remote denial
-    if (activeNonSiege < state.OPERATION_LIMIT) {
+    // Remote denial — capped when harassment raids threat remotes broadly
+    const maxRemoteDenial = HARASSMENT_OPERATIONS
+        ? (REMOTE_DENIAL_MAX_WITH_HARASS || 1)
+        : Math.min(REMOTE_DENIAL_MAX_WITHOUT_HARASS || 3, state.OPERATION_LIMIT);
+    const topWarPriority = WAR_TARGETS.length ? _.max(WAR_TARGETS, 'priority').priority : 0;
+
+    if (activeRemoteDenials < maxRemoteDenial && activeNonSiege < state.OPERATION_LIMIT) {
         let bestDenial = null, bestDenialScore = Infinity;
         for (const r of candidates) {
             if (!candidateExits.get(r.name).hasRemote) continue;
+            if (HARASSMENT_OPERATIONS) {
+                const ownerPriority = warPriorityByUser[r.owner] || 0;
+                if (!r.towers && ownerPriority < topWarPriority) continue;
+            }
             const score = scoreTarget(r.name, 'remoteDenial', attackedOwners, warPriorityByUser);
             if (score < bestDenialScore) {
                 bestDenialScore = score;

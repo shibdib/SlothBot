@@ -5,9 +5,40 @@
  */
 
 const spawnState = require('spawnState');
+const state = require('hcState');
+const {getEmpireReadiness} = require('hcReadiness');
+const {collectThreatRemotes} = require('harassUtils');
 const {getCreepCount} = require('spawnCounts');
 const {queueCreepIfNeeded, pruneQueueCache} = require('spawnQueue');
 const {buildOperationsSignature, pruneEmptyOperations, getPriority} = require('spawnOperations');
+
+function queueHarassmentCreeps() {
+    if (!HARASSMENT_OPERATIONS || !OFFENSIVE_OPERATIONS || !state.OFFENSIVE_ALLOWED) return;
+
+    const readiness = state.EMPIRE_READINESS || getEmpireReadiness();
+    if (!readiness.canLaunchOps || readiness.empireCritical || readiness.empireStressed) return;
+    if (!THREATS || !THREATS.length) return;
+
+    const remotePool = collectThreatRemotes();
+    if (!remotePool.length) return;
+
+    const ratio = typeof HARASSMENT_BUDGET_RATIO === 'number' ? HARASSMENT_BUDGET_RATIO : 0.15;
+    const hardCap = typeof HARASSMENT_MAX === 'number' ? HARASSMENT_MAX : 3;
+    const budget = Math.min(
+        Math.max(1, Math.ceil(readiness.combatReady * ratio)),
+        THREATS.length,
+        remotePool.length,
+        hardCap
+    );
+
+    queueCreepIfNeeded({
+        role: 'longbow',
+        global: true,
+        priority: PRIORITIES.secondary,
+        numberNeeded: budget,
+        operation: 'harass',
+    });
+}
 
 function globalCreepQueue() {
     pruneQueueCache();
@@ -18,17 +49,9 @@ function globalCreepQueue() {
     spawnState.lastGlobalOpSignature = signature;
     if (!fullScan) return;
 
-    const operations = {...Memory.targetRooms, ...Memory.auxiliaryTargets};
+    queueHarassmentCreeps();
 
-    /**
-     if (HARASSMENT_OPERATIONS && THREATS && THREATS.length && _.filter(INTEL, i => THREATS.includes(i.user)).length) {
-     const amount = _.filter(MY_ROOMS, r => Game.rooms[r].level >= MAX_LEVEL - 1 && Game.rooms[r].energyState).length * 0.25 || 1;
-     queueCreepIfNeeded({
-     role: 'longbow', priority: PRIORITIES.secondary,
-     numberNeeded: Math.min(amount, _.filter(INTEL, i => THREATS.includes(i.user)).length),
-     operation: 'harass'
-     });
-     }**/
+    const operations = {...Memory.targetRooms, ...Memory.auxiliaryTargets};
 
     if (_.isEmpty(operations)) return;
 
