@@ -59,7 +59,6 @@ function refreshRemoteRoomTargets(room) {
     const registeredRooms = new Set(ROOM_REMOTE_TARGETS[room.name].map(s => s.room));
     for (const r of spawnState.remoteRoomTargets[room.name]) {
         const rName = r.name || r;
-        if (!INTEL[rName]) continue;
 
         trackRemoteRoom(rName, room);
 
