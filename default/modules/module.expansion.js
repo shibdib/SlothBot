@@ -3,14 +3,15 @@
  */
 
 const profiler = require("tools.profiler");
+const {findRoute} = require('pathRoute');
 
 let _lastRun = 0;
 let _lastRejectLog = 0;
 let _terrainCache = {}; // Terrain is static — cache forever
 
 function routeDistance(from, to) {
-    const route = Game.map.findRoute(from, to);
-    return typeof route === 'number' ? Infinity : route.length;
+    const route = findRoute(from, to, {shortest: true});
+    return route.length ? route.length : Infinity;
 }
 
 class ExpansionControl {

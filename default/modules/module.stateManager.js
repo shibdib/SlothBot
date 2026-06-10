@@ -4,13 +4,19 @@
 
 const profiler = require("tools.profiler");
 const energyTracker = require("module.energyTracker");
+const {isLiveCombatReady, isRoomStruggling} = require('hcReadiness');
 const LAST_UPDATE = {};
 const ENERGY_TRACKER = {};
+const COMBAT_READY_STRESS_CLEAR = 40;
 
 function ensureAllyRequests() {
     if (!ALLY_HELP_REQUESTS[MY_USERNAME]) ALLY_HELP_REQUESTS[MY_USERNAME] = {requests: {}};
     if (!ALLY_HELP_REQUESTS[MY_USERNAME].requests) ALLY_HELP_REQUESTS[MY_USERNAME].requests = {};
     return ALLY_HELP_REQUESTS[MY_USERNAME].requests;
+}
+
+function isMilitaryCreep(creep) {
+    return !!(creep.memory.military || (typeof COMBAT_ROLES !== 'undefined' && COMBAT_ROLES.includes(creep.memory.role)));
 }
 
 class StateManager {
@@ -59,17 +65,21 @@ class StateManager {
         const income = Math.round(snap.income);
         const trend = energyTracker.colonyTrend(room.name);
 
-        // Colony-wide creep scan — spawnExpense must include remotes assigned to this room.
+        // Colony-wide creep scan — spawnExpense counts economic creeps only; military
+        // amortization is tracked separately and excluded from flow stress.
         let upgraderCnt = 0, droneCnt = 0, wallerCnt = 0;
         let upgradeWork = 0, maintenanceWork = 0;
-        let totalBodyCost = 0;
+        let economicBodyCost = 0;
+        let militaryBodyCost = 0;
         const statHarvesters = [];
         const remoteHarvesters = [];
         for (const creepName in Game.creeps) {
             const c = Game.creeps[creepName];
             if (!c.my || c.memory.colony !== room.name) continue;
             const role = c.memory.role;
-            totalBodyCost += global.UNIT_COST(c.body);
+            const bodyCost = global.UNIT_COST(c.body);
+            if (isMilitaryCreep(c)) militaryBodyCost += bodyCost;
+            else economicBodyCost += bodyCost;
             if (role === 'upgrader') {
                 upgraderCnt++;
                 upgradeWork += c.getActiveBodyparts(WORK);
@@ -87,9 +97,11 @@ class StateManager {
         }
         const upgradeExpense = Math.ceil(upgradeWork);
         const maintenanceExpense = Math.ceil(maintenanceWork);
-        const spawnExpense = Math.ceil(totalBodyCost / CREEP_LIFE_TIME);
+        const spawnExpense = Math.ceil(economicBodyCost / CREEP_LIFE_TIME);
+        const militarySpawnExpense = Math.ceil(militaryBodyCost / CREEP_LIFE_TIME);
         const expense = Math.round(snap.expense) + spawnExpense;
         const spareIncome = income - expense;
+        const flowStressed = spareIncome < 0 || trend < -3;
 
         // Upgrader duty cycle = avg actual upgrade energy / avg theoretical WORK, both over
         // the same 50-tick window so a recent body resize doesn't skew the ratio. < 1 means
@@ -99,7 +111,7 @@ class StateManager {
             ? Math.min(1.0, roomSnap.upgrade / roomSnap.upgradeWork)
             : 1.0;
 
-        room.memory.energyInfo = {income, expense, spareIncome, trend, upgraderDuty};
+        room.memory.energyInfo = {income, expense, spareIncome, trend, upgraderDuty, flowStressed};
 
         room.memory.energyDiag = {
             statHarv: statHarvesters.length,
@@ -110,19 +122,49 @@ class StateManager {
             wallerCnt,
             maintenanceExpense,
             spawnExpense,
+            militarySpawnExpense,
             samples: snap.samples || 0,
         };
 
         // Read energyState once — getter may enqueue ally energy requests.
         const energyState = room.energyState;
-        const flowStressed = spareIncome < 0 || trend < -3;
+        const canGainCombatReady = !flowStressed &&
+            ((energyState >= 1 && room.level === 8) || (energyState >= 2 && room.level >= 4 && room.level < 8));
+        const wouldLoseCombatReady = room.memory.combatReady && (!energyState || flowStressed);
 
-        if (!room.memory.combatReady && energyState >= 1 && room.level === 8 && !flowStressed) room.memory.combatReady = true;
-        else if (!room.memory.combatReady && energyState >= 2 && room.level >= 4 && !flowStressed) room.memory.combatReady = true;
-        else if (room.memory.combatReady && (!energyState || flowStressed)) room.memory.combatReady = undefined;
+        if (!room.memory.combatReady && canGainCombatReady) {
+            room.memory.combatReady = true;
+            room.memory.combatReadyStress = 0;
+        } else if (wouldLoseCombatReady) {
+            room.memory.combatReadyStress = (room.memory.combatReadyStress || 0) + 10;
+            if (room.memory.combatReadyStress >= COMBAT_READY_STRESS_CLEAR) {
+                room.memory.combatReady = undefined;
+                room.memory.combatReadyStress = undefined;
+            }
+        } else if (room.memory.combatReady) {
+            room.memory.combatReadyStress = Math.max(0, (room.memory.combatReadyStress || 0) - 10);
+        }
 
         if (!room.memory.auxilaryReady && energyState >= 1 && room.level >= 4) room.memory.auxilaryReady = true;
         else if (room.memory.auxilaryReady && !energyState) room.memory.auxilaryReady = undefined;
+
+        const batteryEquiv = Math.floor((room.store(RESOURCE_BATTERY) / 50) * 600 * 0.9);
+        const stockEnergy = room.rawEnergy + batteryEquiv;
+        const upgradeCost = room.level === 8 ? 250000
+            : constructionCost(room.controller.level + 1) - constructionCost(room.controller.level);
+        const progressFraction = room.controller.progress / room.controller.progressTotal;
+        const stockTarget = room.level === 8 ? 250000
+            : Math.max(room.level * 31250, Math.min(Math.round(upgradeCost * progressFraction) * 0.7, STORAGE_CAPACITY * 0.5));
+
+        Object.assign(room.memory.energyDiag, {
+            stockEnergy,
+            stockTarget,
+            stockpilePct: stockTarget > 0 ? Math.min(150, Math.round((stockEnergy / stockTarget) * 100)) : 0,
+            liveCombatReady: isLiveCombatReady(room),
+            auxReady: !!(room.memory.auxilaryReady && energyState >= 1),
+            struggling: isRoomStruggling(room),
+            combatReadyStress: room.memory.combatReadyStress || 0,
+        });
     }
 
     levelingStatTracking(room) {

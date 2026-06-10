@@ -5,8 +5,15 @@
  */
 
 const spawnState = require('spawnState');
+const {getFlowContext} = require('spawnFlow');
 const {getCreepCount} = require('spawnCounts');
 const {queueCreepIfNeeded, queueCreep} = require('spawnQueue');
+
+function shouldDeprioritizeRemotes(room) {
+    const {spareIncome, flowHealthy} = getFlowContext(room);
+    const energyState = room.energyState || 0;
+    return energyState >= 3 && room.storage && flowHealthy && spareIncome >= 8;
+}
 
 function ingestColonyRemoteSources(colonyRoom, rName) {
     const remoteIntel = INTEL[rName];
@@ -221,11 +228,9 @@ function handleRemoteHarvesters(room) {
         }), 'score');
 
         if (remoteSource && remoteSource.room) {
-            // Deprioritize remote spawn only when both stock and flow are healthy. A stockpiled
-            // room with negative trend needs the income â€” keep remote priority high.
-            const rhEnergyInfo = room.memory.energyInfo;
-            const rhTrendOk = !rhEnergyInfo || (rhEnergyInfo.trend || 0) >= -3;
-            const priority = room.energyState > 1 && room.storage && rhTrendOk ? PRIORITIES.remoteHarvester * 2 : PRIORITIES.remoteHarvester;
+            const priority = shouldDeprioritizeRemotes(room)
+                ? PRIORITIES.remoteHarvester * 2
+                : PRIORITIES.remoteHarvester;
             queueCreepIfNeeded({
                 room, role: 'remoteHarvester', priority,
                 numberNeeded: 1, destination: remoteSource.room,
@@ -262,10 +267,9 @@ function handleRemoteHaulers(room) {
         if (assignedHaulers.length >= count) continue;
         const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
         if (targetCapacity && haulingCapacity < targetCapacity) {
-            // Same flow check as remoteHarvester â€” don't deprioritize haulers if trend is bad.
-            const rhlEnergyInfo = room.memory.energyInfo;
-            const rhlTrendOk = !rhlEnergyInfo || (rhlEnergyInfo.trend || 0) >= -3;
-            const priority = room.energyState > 1 && room.storage && rhlTrendOk ? PRIORITIES.remoteHauler * 2 : PRIORITIES.remoteHauler;
+            const priority = shouldDeprioritizeRemotes(room)
+                ? PRIORITIES.remoteHauler * 2
+                : PRIORITIES.remoteHauler;
             queueCreep(room, priority + getCreepCount(undefined, 'remoteHauler', room.name), {
                 role: 'remoteHauler',
                 destination: room.name,

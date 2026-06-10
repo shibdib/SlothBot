@@ -13,7 +13,28 @@ const {DEFAULT_MAXOPS, STATE_STUCK, TOW_TRUCK_CACHE} = require('pathState');
 
 const {normalizePos, clearTrailerTowState, pickTowTruck} = require('pathUtils');
 
-const {findRoute, deleteRoute} = require('pathRoute');
+const {findRoute, deleteRoute, estimateClaimRouteTicks} = require('pathRoute');
+
+function applyClaimRouting(creep, options, target) {
+    if (!(creep instanceof Creep) || !creep.hasActiveBodyparts(CLAIM)) return;
+
+    options.shortest = true;
+
+    const ticksRemaining = creep.ticksToLive;
+    const destRoom = target?.roomName;
+    if (!ticksRemaining || !destRoom) return;
+
+    const route = options.route || creep.memory._shibMove?.route;
+    if (!route?.length) return;
+
+    const roomIdx = route.indexOf(creep.room.name);
+    const remainingRooms = roomIdx >= 0 ? route.length - roomIdx : route.length;
+    if (ticksRemaining < estimateClaimRouteTicks(remainingRooms)) {
+        delete creep.memory._shibMove?.route;
+        delete creep.memory._shibMove?.path;
+        deleteRoute(creep.room.name, destRoom);
+    }
+}
 
 const {getPath, cachePath, serializePath} = require('pathPathCache');
 
@@ -55,6 +76,8 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         useCache: true,
         ignoreCreeps: true
     });
+
+    applyClaimRouting(creep, options, target);
 
     if (pathOnly) {
         const cached = getPath(creep, origin, target, undefined);
@@ -264,6 +287,7 @@ function handleBarrier(creep, pathInfo, options) {
 
 function shibPath(creep, heading, pathInfo, origin, target, options) {
     pathInfo.pathOptions = options;
+    applyClaimRouting(creep, options, target);
     const pathKey = `${origin.roomName}_${origin.x}_${origin.y}_${target.roomName}_${target.x}_${target.y}`;
 
     // Early exit for adjacent same-room targets

@@ -47,7 +47,7 @@ RoomPosition.prototype.shibMove = function (destination, options = {}) {
 };
 
 Room.prototype.shibRoute = function (destination, options = {}) {
-    const route = getRoute(this.name, destination);
+    const route = getRoute(this.name, destination, options);
     if (route) return route;
     return findRoute(this.name, destination, options);
 };

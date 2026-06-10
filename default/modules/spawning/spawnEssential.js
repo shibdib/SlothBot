@@ -8,6 +8,7 @@ const spawnState = require('spawnState');
 const {getFlowContext, roomHasOperateExtensionOperator} = require('spawnFlow');
 const {getCreepCount} = require('spawnCounts');
 const {queueCreepIfNeeded} = require('spawnQueue');
+const {empireOpsPaused} = require('hcReadiness');
 
 function essentialCreepQueue(room) {
     if (!spawnState.throttleReady(spawnState.essentialTick, room.name, 10)) return;
@@ -62,7 +63,7 @@ function essentialCreepQueue(room) {
         numberNeeded: droneCount, rebootCondition: room.friendlyCreeps.length < 5
     });
 
-    if (room.level >= BUNKER_LEVEL) {
+    if (room.level >= BUNKER_LEVEL && !empireOpsPaused()) {
         let wallerCount = 0;
         if (room.energyState >= 2 && flowHealthy && spareIncome >= 8) {
             wallerCount = room.energyState >= 3 && room.level >= 8 ? 2 : 1;

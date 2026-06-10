@@ -2,6 +2,7 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 const profiler = require("tools.profiler");
+const {empireOpsPaused} = require('hcReadiness');
 let tickTracker = {};
 let cooldownTracker = {};
 
@@ -120,10 +121,17 @@ class FactoryControl {
         log.i(`${roomLink(factory.room.name)} producing ${resource}${inputs ? ` (${inputs})` : ''} — ${reason}`, 'FACTORY CONTROL:');
     }
 
+    isEmergencyProduction(resource) {
+        return resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY;
+    }
+
     shouldStopProduction(room, factory) {
         if (room.memory.dangerousAttack) return true;
 
         const producing = factory.memory.producing;
+        if (empireOpsPaused() && producing && !this.isEmergencyProduction(producing)) {
+            return true;
+        }
         const commodity = COMMODITIES[producing];
         if (!commodity) {
             log.w(`${roomLink(room.name)} unknown production target ${producing}, clearing.`, 'FACTORY CONTROL:');
@@ -175,6 +183,7 @@ class FactoryControl {
     decideProduction(room, factory, factoryLevel) {
         const batteryStored = room.store(RESOURCE_BATTERY);
         const batteryCost = COMMODITIES[RESOURCE_ENERGY].components[RESOURCE_BATTERY] || 50;
+        const opsPaused = empireOpsPaused();
 
         // Convert batteries to energy if energy is low and batteries are available
         if (!room.energyState && batteryStored >= batteryCost) {
@@ -187,6 +196,8 @@ class FactoryControl {
             this.setProduction(factory, RESOURCE_BATTERY, 'storage full');
             return;
         }
+
+        if (opsPaused) return;
 
         // Space guard — don't manufacture if output has nowhere to go
         const totalFree = (room.storage ? room.storage.store.getFreeCapacity() : 0) +
@@ -239,6 +250,7 @@ class FactoryControl {
     }
 
     commodityProduction(room, factory, factoryLevel) {
+        if (empireOpsPaused()) return;
         if (!room.mineral || !room.mineral.mineralType) return;
         const roomResource = room.mineral.mineralType;
         if (!room.memory.commodityProduction) {

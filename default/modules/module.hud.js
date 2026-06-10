@@ -5,6 +5,7 @@
  */
 
 const profiler = require("tools.profiler");
+const {getEmpireReadiness, getOpsPauseReason, isLiveCombatReady} = require('hcReadiness');
 
 const VALID_ROOM_NAME = /^[WE]\d+[NS]\d+$/;
 let _MapVisuals;
@@ -13,6 +14,15 @@ let creepTrailCache = [];
 let activeIntelCache = {tick: 0, rooms: []};
 let staticIntelCache = {tick: 0, rooms: []};
 let subtleIntelCache = {tick: 0, rooms: []};
+
+const HUD_LAYOUT = {
+    x: 0.45,
+    width: 9.3,
+    rowH: 0.92,
+    pad: 0.14,
+    colValue: 3.6,
+    colMeta: 7.0,
+};
 
 class HUD {
     constructor() {
@@ -26,6 +36,7 @@ class HUD {
         if (!Memory.tickInfo) return;
 
         Memory._mapVisuals = undefined;
+        this._empireReadiness = getEmpireReadiness();
 
         this.updateGCLData();
 
@@ -83,134 +94,249 @@ class HUD {
         return arr.reduce((a, b) => a + b, 0) / arr.length;
     }
 
-    renderDashboard(room) {
-        let y = 0.75;
-        const x = 0.5;
-        const width = 9.0;
-        const hasAudit = room.memory.energyDiag && room.memory.energyInfo;
+    formatCompactEnergy(amount) {
+        if (amount >= 1000000) return (amount / 1000000).toFixed(1) + 'm';
+        if (amount >= 1000) return Math.round(amount / 1000) + 'k';
+        return String(amount || 0);
+    }
 
-        let rows = 1 + (room.level < 8 ? 1 : 0) + 1 + (hasAudit ? 3 : 1);
-
-        room.visual.rect(x - 0.25, y - 0.5, width + 0.5, (rows * 1.05) + 0.15, {
-            fill: '#0a0a0a',
-            opacity: 0.82,
-            stroke: '#222222',
-            strokeWidth: 0.04
+    drawHudPanel(room, x, y, width, height) {
+        room.visual.rect(x - 0.2, y - 0.48, width + 0.4, height + 0.12, {
+            fill: '#080b10',
+            opacity: 0.88,
+            stroke: '#1e2a38',
+            strokeWidth: 0.05
         });
+        room.visual.line(x - 0.05, y - 0.48, x + width + 0.05, y - 0.48, {
+            color: '#2a3d52', opacity: 0.9, width: 0.04
+        });
+    }
+
+    drawHudSeparator(room, x, y, width) {
+        room.visual.line(x + 0.05, y - 0.42, x + width - 0.05, y - 0.42, {
+            color: '#243040', opacity: 0.75, width: 0.025
+        });
+    }
+
+    drawHudRow(room, x, y, width, left, right, opts = {}) {
+        this.drawHudRow3(room, x, y, width, left, null, right, opts);
+    }
+
+    drawHudRow3(room, x, y, width, left, value, meta, opts = {}) {
+        const {pad, colValue, colMeta} = HUD_LAYOUT;
+        const ty = y + 0.11;
+        if (left) {
+            room.visual.text(left, x + pad, ty, {
+                color: opts.leftColor || '#d8dee9',
+                align: 'left',
+                font: opts.leftFont || 'bold 0.36 Tahoma'
+            });
+        }
+        if (value) {
+            room.visual.text(value, x + colValue, ty, {
+                color: opts.valueColor || opts.rightColor || '#d8dee9',
+                align: 'left',
+                font: opts.valueFont || opts.rightFont || 'bold 0.36 Tahoma'
+            });
+        }
+        if (meta) {
+            room.visual.text(meta, x + colMeta, ty, {
+                color: opts.metaColor || opts.rightColor || '#9aa8b5',
+                align: 'right',
+                font: opts.metaFont || opts.rightFont || '0.34 Tahoma'
+            });
+        }
+    }
+
+    drawHudRowSplit(room, x, y, width, left, value, subline, opts = {}) {
+        const {pad} = HUD_LAYOUT;
+        const ty = y + 0.07;
+        if (left) {
+            room.visual.text(left, x + pad, ty, {
+                color: opts.leftColor || '#d8dee9',
+                align: 'left',
+                font: opts.leftFont || 'bold 0.36 Tahoma'
+            });
+        }
+        if (value) {
+            room.visual.text(value, x + width - pad, ty, {
+                color: opts.valueColor || '#d8dee9',
+                align: 'right',
+                font: opts.valueFont || 'bold 0.36 Tahoma'
+            });
+        }
+        if (subline) {
+            room.visual.text(subline, x + width - pad, y + 0.4, {
+                color: opts.subColor || '#7a8794',
+                align: 'right',
+                font: opts.subFont || '0.28 Tahoma'
+            });
+        }
+    }
+
+    drawMiniBar(room, x, y, width, pct, color) {
+        const clamped = Math.max(0, Math.min(100, pct || 0));
+        const barY = y - 0.28;
+        const barH = 0.42;
+        room.visual.rect(x, barY, width, barH, {fill: '#141c26', opacity: 0.95});
+        const fillW = width * (clamped / 100);
+        if (fillW > 0) room.visual.rect(x, barY, fillW, barH, {fill: color, opacity: 0.72});
+    }
+
+    renderDashboard(room) {
+        const {x, width, rowH} = HUD_LAYOUT;
+        let y = 0.75;
+        const hasAudit = room.memory.energyDiag && room.memory.energyInfo;
+        const empire = this._empireReadiness || getEmpireReadiness();
+        const pauseReason = hasAudit ? getOpsPauseReason(empire) : null;
+        const readinessRows = hasAudit ? (pauseReason ? 3 : 2) : 0;
+        const rows = 1 + (room.level < 8 ? 1 : 0) + 2 + (hasAudit ? 3 + readinessRows : 1);
+
+        this.drawHudPanel(room, x, y, width, rows * rowH);
 
         const gclInfo = this.getGCLInfo();
         this.drawBar(room, x, y, width, gclInfo.progress, '#00B7EB', `GCL ${gclInfo.level}`, gclInfo.time);
-        y += 1.05;
+        y += rowH;
 
         if (room.level < 8) {
             const rclInfo = this.getRCLInfo(room);
             this.drawBar(room, x, y, width, rclInfo.progress, '#9B59B6', `RCL ${rclInfo.level}`, rclInfo.time);
-            y += 1.05;
+            y += rowH;
         }
 
-        this.renderStatusAndDefense(room, x, y, width);
-        y += 1.05;
+        y = this.renderStatusAndDefense(room, x, y, width);
+        y += rowH;
 
-        this.renderEnergyAudit(room, x, y, width, hasAudit);
+        y = this.renderEnergyAudit(room, x, y, width, hasAudit);
+        if (hasAudit) this.renderReadiness(room, x, y, width, empire, pauseReason);
     }
 
     renderStatusAndDefense(room, x, y, width) {
-        const divider = x + 3.2;
+        const {rowH} = HUD_LAYOUT;
         const opCount = this.countMilitaryOps();
-
         const storage = room.storage ? room.storage.store[RESOURCE_ENERGY] : 0;
         const terminal = room.terminal ? room.terminal.store[RESOURCE_ENERGY] : 0;
-        const totalEnergy = storage + terminal;
-        let displayEnergy = totalEnergy >= 1000000 ? (totalEnergy / 1000000).toFixed(1) + 'm' :
-            totalEnergy >= 1000 ? (totalEnergy / 1000).toFixed(0) + 'k' : totalEnergy;
+        const displayEnergy = this.formatCompactEnergy(storage + terminal);
 
-        const bucket = Game.cpu.bucket;
-        const cpuColor = bucket < 2000 ? '#ff5555' : bucket < 5000 ? '#ffaa00' : '#4fc3f7';
-        const opsText = opCount > 0 ? ` | OPS ${opCount}` : '';
-
-        room.visual.text(`⚡${displayEnergy}`, x + 0.15, y + 0.12, {
-            color: '#FFD700', align: 'left', font: 'bold 0.48 Tahoma'
-        });
-        room.visual.text(`CPU ${Game.cpu.getUsed().toFixed(1)} | B ${bucket}${opsText}`, divider, y + 0.12, {
-            color: cpuColor, align: 'left', font: '0.38 Tahoma'
-        });
-
-        let statusText = '✓ Secure';
-        let statusColor = '#66BB6A';
+        let statusText = 'Secure';
+        let statusColor = '#7dcea0';
 
         if (room.controller.safeMode) {
-            statusText = `🛡️ Safe ${this.timeFormat(room.controller.safeMode * Memory.tickInfo.tickLength)}`;
-            statusColor = '#4CAF50';
+            statusText = `Safe ${this.timeFormat(room.controller.safeMode * Memory.tickInfo.tickLength)}`;
+            statusColor = '#58d68d';
         } else if (INTEL[room.name] && INTEL[room.name].threatLevel) {
             const threat = INTEL[room.name].threatLevel;
-            statusText = `⚔️ Threat L${threat}`;
-            statusColor = threat >= 4 ? '#ff2222' : threat >= 3 ? '#ff8800' : '#ffaa00';
+            statusText = `Threat L${threat}`;
+            statusColor = threat >= 4 ? '#ff5252' : threat >= 3 ? '#ff9f43' : '#ffd166';
         } else if (room.hostileCreeps.length) {
-            statusText = `⚠️ ${room.hostileCreeps.length} Hostile`;
-            statusColor = '#ffaa00';
+            statusText = `${room.hostileCreeps.length} Hostile`;
+            statusColor = '#ffd166';
         }
 
         const towers = room.towers.filter(t => t.isActive() && t.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST).length;
-        const towerText = towers > 0 ? ` ${towers}T` : '';
+        if (towers > 0) statusText += ` · ${towers}T`;
 
-        room.visual.text(`${statusText}${towerText}`, x + width - 0.15, y + 0.12, {
-            color: statusColor, align: 'right', font: 'bold 0.42 Tahoma'
+        this.drawHudRow3(room, x, y, width, `⚡ ${displayEnergy}`, null, statusText, {
+            leftColor: '#ffd76a', leftFont: 'bold 0.4 Tahoma',
+            metaColor: statusColor, metaFont: 'bold 0.36 Tahoma'
         });
+        y += rowH;
+
+        const bucket = Game.cpu.bucket;
+        const cpuColor = bucket < 2000 ? '#ff6b6b' : bucket < 5000 ? '#ffb347' : '#7ec8e3';
+        const cpuText = `CPU ${Game.cpu.getUsed().toFixed(1)} · B${bucket}`;
+        const milText = opCount > 0 ? `${opCount} mil` : null;
+
+        this.drawHudRow3(room, x, y, width, cpuText, null, milText, {
+            leftColor: cpuColor, leftFont: '0.34 Tahoma',
+            metaColor: '#8aa0b2', metaFont: '0.32 Tahoma'
+        });
+        return y;
     }
 
     renderEnergyAudit(room, x, y, width, hasAudit) {
+        const {rowH} = HUD_LAYOUT;
+
         if (!hasAudit) {
-            room.visual.text('Energy audit pending…', x + 0.15, y + 0.12, {
-                color: '#888888', align: 'left', font: '0.36 Tahoma'
+            this.drawHudRow(room, x, y, width, 'Energy audit pending…', null, {
+                leftColor: '#6d7a86', leftFont: '0.34 Tahoma'
             });
-            return;
+            return y + rowH;
         }
 
         const diag = room.memory.energyDiag;
         const info = room.memory.energyInfo;
-        const divider = x + 2.6;
+        const spendDetail = `upg ${diag.upgradeExpense} · drn ${diag.maintenanceExpense || diag.droneExpense || 0} · spn ${diag.spawnExpense}`;
 
-        room.visual.line(x - 0.1, y - 0.45, x + width + 0.1, y - 0.45, {color: '#333333', opacity: 0.7, width: 0.03});
+        this.drawHudSeparator(room, x, y, width);
+        this.drawHudRowSplit(room, x, y, width, 'Income', `+${info.income}/t`, `harv ${diag.statHarv} · rem ${diag.remoteHarv}`, {
+            leftColor: '#5dade2', valueColor: '#5dade2', subColor: '#607080'
+        });
+        y += rowH;
 
-        room.visual.text('IN', x + 0.15, y + 0.12, {color: '#4fc3f7', align: 'left', font: 'bold 0.38 Tahoma'});
-        room.visual.text(`+${info.income}/t`, divider, y + 0.12, {
-            color: '#4fc3f7',
-            align: 'right',
-            font: 'bold 0.38 Tahoma'
+        this.drawHudRowSplit(room, x, y, width, 'Spend', `-${info.expense}/t`, spendDetail, {
+            leftColor: '#f1948a', valueColor: '#f1948a', subColor: '#806868'
         });
-        room.visual.text(`stat:${diag.statHarv} rem:${diag.remoteHarv}`, x + width - 0.15, y + 0.12, {
-            color: '#7a9ab0', align: 'right', font: '0.32 Tahoma'
-        });
-        y += 0.95;
-
-        room.visual.text('OUT', x + 0.15, y + 0.12, {color: '#ef9a9a', align: 'left', font: 'bold 0.38 Tahoma'});
-        room.visual.text(`-${info.expense}/t`, divider, y + 0.12, {
-            color: '#ef9a9a',
-            align: 'right',
-            font: 'bold 0.38 Tahoma'
-        });
-        room.visual.text(`upg:${diag.upgradeExpense} drn:${diag.maintenanceExpense || diag.droneExpense || 0} spn:${diag.spawnExpense}`, x + width - 0.15, y + 0.12, {
-            color: '#8a7070', align: 'right', font: '0.32 Tahoma'
-        });
-        y += 0.95;
+        y += rowH;
 
         const measured = info.spareIncome != null ? Math.round(info.spareIncome) : (room.energyIncome || 0);
         const netSign = measured >= 0 ? '+' : '';
-        const netColor = measured >= 0 ? '#a5d6a7' : '#ef5350';
+        const netColor = measured >= 0 ? '#9fd89f' : '#ef6b6b';
         const stateLabels = ['CRIT', 'LOW', 'OK', 'SURPLUS'];
-        const stateColors = ['#ef5350', '#FFB347', '#66BB6A', '#4fc3f7'];
+        const stateColors = ['#ef6b6b', '#ffb347', '#7dcea0', '#5dade2'];
         const state = Math.min(3, Math.max(0, room.energyState || 0));
+        const trend = info.trend != null ? ` Δ${Math.floor(info.trend)}` : '';
 
-        room.visual.text('NET', x + 0.15, y + 0.12, {color: netColor, align: 'left', font: 'bold 0.38 Tahoma'});
-        room.visual.text(`${netSign}${measured}/t`, divider, y + 0.12, {
-            color: netColor,
-            align: 'right',
-            font: 'bold 0.38 Tahoma'
+        this.drawHudRow3(room, x, y, width, 'Net', `${netSign}${measured}/t`, `${stateLabels[state]}${trend}`, {
+            leftColor: netColor, valueColor: netColor,
+            metaColor: stateColors[state] || '#7dcea0', metaFont: 'bold 0.34 Tahoma'
         });
-        const trend = info.trend != null ? ` tr:${Math.floor(info.trend)}` : '';
-        room.visual.text(`[${state}] ${stateLabels[state] || 'OK'}${trend}`, x + width - 0.15, y + 0.12, {
-            color: stateColors[state] || '#66BB6A', align: 'right', font: 'bold 0.36 Tahoma'
+        return y + rowH;
+    }
+
+    renderReadiness(room, x, y, width, empire, pauseReason) {
+        const {pad, rowH} = HUD_LAYOUT;
+        const diag = room.memory.energyDiag;
+        const opsPaused = !!pauseReason;
+        const opsColor = opsPaused ? '#ef6b6b' : '#7dcea0';
+        const opsLabel = opsPaused ? '● HOLD' : '● GO';
+
+        this.drawHudSeparator(room, x, y, width);
+        this.drawHudRow(room, x, y, width, opsLabel, `Empire ${empire.combatReady}/${empire.minCombatReady}`, {
+            leftColor: opsColor, leftFont: 'bold 0.38 Tahoma',
+            rightColor: '#aeb9c4', rightFont: '0.34 Tahoma'
         });
+        y += rowH;
+
+        const liveCr = isLiveCombatReady(room);
+        const crFlag = room.memory.combatReady ? (liveCr ? 'CR ✓' : 'CR ~') : 'CR ✗';
+        const crColor = liveCr ? '#7dcea0' : room.memory.combatReady ? '#ffb347' : '#ef6b6b';
+        const stockPct = Math.min(100, diag.stockpilePct || 0);
+        const stockColor = stockPct >= 100 ? '#5dade2' : stockPct >= 50 ? '#7dcea0' : '#ffb347';
+        const barW = width * 0.46;
+        const barX = x + pad;
+
+        this.drawMiniBar(room, barX, y, barW, stockPct, stockColor);
+
+        const stockLabel = room.level >= 8
+            ? `${this.formatCompactEnergy(diag.stockEnergy)} / ${this.formatCompactEnergy(diag.stockTarget)}`
+            : `${stockPct}%`;
+        let roomStatus = `${crFlag}  ${stockLabel}`;
+        if (diag.combatReadyStress) roomStatus += `  (−${diag.combatReadyStress})`;
+
+        room.visual.text(roomStatus, x + width - pad, y + 0.11, {
+            color: crColor, align: 'right', font: '0.34 Tahoma'
+        });
+        y += rowH;
+
+        if (pauseReason) {
+            this.drawHudRow(room, x, y, width, pauseReason, null, {
+                leftColor: '#c97a7a', leftFont: '0.32 Tahoma'
+            });
+            y += rowH;
+        }
+
+        return y;
     }
 
     getGCLInfo() {
@@ -242,14 +368,15 @@ class HUD {
 
     drawBar(room, x, y, width, progress, color, textLeft, textRight) {
         const pct = Number.isFinite(progress) ? progress : 0;
-        room.visual.rect(x, y - 0.38, width, 0.76, {fill: '#1a1a1a', opacity: 0.85});
-        const fillWidth = Math.max(0, Math.min(width, width * (pct / 100)));
+        const pad = HUD_LAYOUT.pad;
+        room.visual.rect(x + pad * 0.5, y - 0.34, width - pad, 0.68, {fill: '#121820', opacity: 0.9});
+        const fillWidth = Math.max(0, Math.min(width - pad, (width - pad) * (pct / 100)));
         if (fillWidth > 0) {
-            room.visual.rect(x, y - 0.38, fillWidth, 0.76, {fill: color, opacity: 0.65});
+            room.visual.rect(x + pad * 0.5, y - 0.34, fillWidth, 0.68, {fill: color, opacity: 0.7});
         }
-        room.visual.text(textLeft, x + 0.15, y + 0.12, {color: '#ffffff', align: 'left', font: 'bold 0.42 Tahoma'});
-        room.visual.text(`${pct.toFixed(1)}% | ${textRight}`, x + width - 0.15, y + 0.12, {
-            color: '#cccccc', align: 'right', font: '0.38 Tahoma'
+        room.visual.text(textLeft, x + pad, y + 0.1, {color: '#eef2f6', align: 'left', font: 'bold 0.4 Tahoma'});
+        room.visual.text(`${pct.toFixed(1)}% · ${textRight}`, x + width - pad, y + 0.1, {
+            color: '#b8c4ce', align: 'right', font: '0.35 Tahoma'
         });
     }
 

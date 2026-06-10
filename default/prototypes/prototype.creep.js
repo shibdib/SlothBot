@@ -21,6 +21,8 @@
 
 'use strict';
 
+const {empireOpsPaused} = require('hcReadiness');
+
 const exitTileCache = {};
 
 function getRoomExits(room) {
@@ -296,6 +298,25 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         return false;
     }
 
+    // Handle hostile storages and terminals. Empty them then destroy if empty.
+    const hostileStorages = room.hostileStructures.filter(s => s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL);
+    if (hostileStorages.length) {
+        for (let i = 0; i < hostileStorages.length; i++) {
+            const s = hostileStorages[i];
+            if (s.store[RESOURCE_ENERGY] > 0) {
+                const result = this.withdraw(s, RESOURCE_ENERGY);
+                if (result === OK) {
+                    delete this.memory.energyDestination;
+                    return true;
+                } else if (result === ERR_NOT_IN_RANGE) {
+                    this.shibMove(s);
+                }
+            } else {
+                s.destroy();
+            }
+        }
+    }
+
     if (!room.storage && room.controller && room.controller.my && !['hauler', 'shuttle', 'remoteHauler', 'upgrader'].includes(this.memory.role)) {
         for (let i = 0; i < myCreeps.length; i++) {
             const c = myCreeps[i];
@@ -310,7 +331,16 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         if (hubLink && hubLink.store[RESOURCE_ENERGY] > 0) {
             const upgrader = room.myCreeps.find(c => c.memory.role === 'upgrader' && c.memory.other && c.memory.other.stationary);
             const controllerLink = Game.getObjectById(room.memory.controllerLink);
-            if (!room.storage || room.energyState <= 2 || !upgrader || !controllerLink || controllerLink.store[RESOURCE_ENERGY] > LINK_CAPACITY * 0.5) {
+            const controllerEnergy = controllerLink ? controllerLink.store[RESOURCE_ENERGY] : 0;
+            const hubEnergy = hubLink.store[RESOURCE_ENERGY];
+            let preferHub = !room.storage || room.energyState <= 2 || !upgrader || !controllerLink ||
+                controllerEnergy > LINK_CAPACITY * 0.5;
+            if (!preferHub && room.energyState >= 3) {
+                const controllerNeedsFeed = controllerEnergy < LINK_CAPACITY * 0.25;
+                const hubHasSurplus = hubEnergy >= LINK_CAPACITY * 0.85;
+                preferHub = hubHasSurplus || !controllerNeedsFeed;
+            }
+            if (preferHub) {
                 this.memory.energyDestination = hubLink.id;
                 return true;
             }
@@ -458,7 +488,8 @@ Creep.prototype.haulerDelivery = function () {
     }
 
     const hubLink = Game.getObjectById(this.room.memory.hubLink);
-    if (this.room.level < 8 && hubLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && this.room.energyState > 1) {
+    const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
+    if (this.room.level < 8 && hubLink && controllerLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && this.room.energyState > 1) {
         targets.push(hubLink);
     }
 
@@ -477,7 +508,8 @@ Creep.prototype.haulerDelivery = function () {
         if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 200) targets.push(controllerContainer);
     }
 
-    if (this.room.nuker && this.room.energyState >= 3 && this.room.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
+    if (this.room.nuker && !empireOpsPaused() && this.room.energyState >= 3 &&
+        this.room.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
         targets.push(this.room.nuker);
     }
 

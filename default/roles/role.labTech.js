@@ -3,6 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
+const {empireOpsPaused} = require('hcReadiness');
 
 class RoleLabTech {
     constructor(creep) {
@@ -206,7 +207,8 @@ class RoleLabTech {
                 return {withdrawTarget: storage.id, deliveryTarget: powerSpawn.id, resource: RESOURCE_POWER};
             }
         }
-        if (nuker && storage && storage.store[RESOURCE_GHODIUM] > 0 && nuker.store.getFreeCapacity(RESOURCE_GHODIUM) > 0) {
+        if (!empireOpsPaused() && nuker && storage && storage.store[RESOURCE_GHODIUM] > 0 &&
+            nuker.store.getFreeCapacity(RESOURCE_GHODIUM) > 0) {
             return {withdrawTarget: storage.id, deliveryTarget: nuker.id, resource: RESOURCE_GHODIUM};
         }
 

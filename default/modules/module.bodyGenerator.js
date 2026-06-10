@@ -3,6 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
+const {findRoute, routeWithinClaimTTL} = require('pathRoute');
 
 
 let bodyCache = {};
@@ -165,10 +166,17 @@ class ModuleBodyGenerator {
                             work *= 0.15;
                         } else if (this.room.energyState < 3) {
                             work *= this.flowScale(0.75, 12);
+                        } else {
+                            work *= this.flowScale(0.5, 10);
                         }
                         if (this.room.energyState < 3 && this.upgraderDuty < 0.7) {
                             const dutyScale = Math.max(0.5, this.upgraderDuty + 0.15);
                             work *= dutyScale;
+                        }
+                        if (this.room.level === 8 && this.room.energyState >= 2) {
+                            const stockpileCap = this.room.energyState >= 3 ? 5 : 10;
+                            const spareCap = Math.max(3, Math.floor(this.spareIncome / 3));
+                            work = Math.min(work, stockpileCap, spareCap);
                         }
                         work = this.room.level === 8 ? Math.min(work, 15) : Math.min(affordableWork, work);
                     }
@@ -297,7 +305,7 @@ class ModuleBodyGenerator {
                     const defaultWaitFor = this.role === 'longbow' ? 1 : 2;
                     const waitFor = this.creepInfo.misc && this.creepInfo.misc.waitFor || defaultWaitFor;
                     if (this.creepInfo.misc && this.creepInfo.misc.boosts && this.creepInfo.misc.boosts.includes(TOUGH)) {
-                        tough = this.checkForNeededTough(waitFor);
+                        toughData = this.checkForNeededTough(waitFor);
                         tough = toughData.count;
                     }
                     const toughModifier = toughData && toughData.boost ? toughMulti[toughData.boost] : 1;
@@ -364,7 +372,7 @@ class ModuleBodyGenerator {
                         }
                         const toughModifier = toughData && toughData.boost ? toughMulti[toughData.boost] : 1;
                         heal = Math.ceil(this.checkForNeededHeal(1, toughModifier));
-                        if (this.room.name === 'E43S22') console.log(`SiegeDuo ${this.creepInfo.name} checking for heal, got ${heal} with modifier ${toughModifier} and tough ${tough}`);
+
                         if (!heal) return false;
                     } else {
                         heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
@@ -380,26 +388,38 @@ class ModuleBodyGenerator {
                 break;
 
             case 'claimAttacker':
+                if (this.creepInfo?.destination &&
+                    !routeWithinClaimTTL(this.room.name, this.creepInfo.destination, CREEP_CLAIM_LIFE_TIME - 10)) {
+                    return false;
+                }
                 claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
                 claim = Math.min(claim, 25);  // Max claim to 25
                 break;
 
             case 'claimer':
+                if (this.creepInfo?.destination &&
+                    !routeWithinClaimTTL(this.room.name, this.creepInfo.destination, CREEP_CLAIM_LIFE_TIME - 10)) {
+                    return false;
+                }
                 claim = 1;
                 move = 2;
                 break;
 
             case 'reserver':
+                if (this.creepInfo?.destination &&
+                    !routeWithinClaimTTL(this.room.name, this.creepInfo.destination, CREEP_CLAIM_LIFE_TIME - 10)) {
+                    return false;
+                }
                 // Calculate claim based on energy and the cost of CLAIM and MOVE parts.
                 claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
                 claim = Math.min(claim, 2 * (this.room.energyState || 1));
 
                 // Half-move only if every room on the route has roads — intermediate rooms count too.
             {
-                const route = Game.map.findRoute(this.room.name, this.creepInfo.destination);
-                const fullRouteHasRoads = Array.isArray(route) &&
+                const route = findRoute(this.room.name, this.creepInfo.destination, {shortest: true});
+                const fullRouteHasRoads = route.length &&
                     INTEL[this.room.name] && INTEL[this.room.name].roadsBuilt &&
-                    route.every(step => INTEL[step.room] && INTEL[step.room].roadsBuilt);
+                    route.every(roomName => INTEL[roomName] && INTEL[roomName].roadsBuilt);
                 if (fullRouteHasRoads) {
                     claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
                     claim = Math.min(claim, 5 * (this.room.energyState || 1));
@@ -648,7 +668,7 @@ class ModuleBodyGenerator {
                 return {boost: boost, count: partCount};
             }
         }
-        return 0;
+        return {boost: undefined, count: 0};
     }
 }
 

@@ -110,7 +110,7 @@ function linkBuilder(room) {
         if (site) return true;
 
         // If we're right near the hub don't build
-        if (room.name === 'E42S26') console.log('hub', room.name, source.pos.getRangeTo(room.hub));
+
         if (sourceContainer.pos.getRangeTo(room.hub) <= 8) return false;
 
         const zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, sourceContainer.pos.y - 1, sourceContainer.pos.x - 1,

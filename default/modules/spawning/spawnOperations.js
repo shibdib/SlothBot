@@ -5,6 +5,7 @@
  */
 
 const generator = require('module.bodyGenerator');
+const {estimateClaimRouteTicks} = require('pathRoute');
 
 const CLAIM_ROLES = new Set(['claimer', 'claimAttacker', 'reserver']);
 const INVISIBLE_ASSIGNMENT_TIMEOUT = 50;
@@ -246,7 +247,8 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
     const isAuxiliary = !!Memory.auxiliaryTargets[targetRoom];
     const opType = Memory.targetRooms[targetRoom] && Memory.targetRooms[targetRoom].type;
     const isScout = opType === 'scout' || creepInfo.role === 'scout';
-    const maxDistance = CLAIM_ROLES.has(creepInfo.role) ? 12 : 22;
+    const isClaimRole = CLAIM_ROLES.has(creepInfo.role);
+    const maxDistance = isClaimRole ? 12 : 22;
 
     let best = null;
     for (const key of MY_ROOMS) {
@@ -263,9 +265,10 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
             continue;
         }
 
-        const route = myRoom.shibRoute(targetRoom);
+        const route = myRoom.shibRoute(targetRoom, isClaimRole ? {shortest: true} : {});
         const distance = Array.isArray(route) && route.length ? route.length : Infinity;
         if (distance > maxDistance) continue;
+        if (isClaimRole && estimateClaimRouteTicks(distance) > CREEP_CLAIM_LIFE_TIME - 10) continue;
 
         const assignedOps = assignmentCounts[key] || 0;
         if (assignedOps >= CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level]) continue;
