@@ -410,8 +410,9 @@ class ModuleBodyGenerator {
                 if (claim > CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][this.room.level] * 3) claim = CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][this.room.level] * 3;
                 if (this.room.memory.remotePenalty) claim = Math.min(claim, 1);
                 if (this.room.energyState < 3 || this.trend < 0) {
-                    claim = Math.max(1, Math.floor(claim * this.flowScale(0.5, 10)));
+                    claim = Math.max(2, Math.floor(claim * this.flowScale(0.5, 10)));
                 }
+                claim = Math.max(claim, 2);
                 break;
 
             case 'remoteHarvester':
