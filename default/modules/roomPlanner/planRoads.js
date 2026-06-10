@@ -216,6 +216,8 @@ function roadBuilder(room, layout) {
     }
 
     function removeRedundantRoads(room, layout) {
+        const lastReset = Memory.lastGlobalReset;
+        if (lastReset && lastReset + 5000 > Game.time) return;
         const spawn = room.spawns[0];
         if (!spawn) return;
 
