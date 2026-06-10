@@ -353,6 +353,8 @@ function selectBestDroneSource(creep, sources) {
     let best = null, bestScore = -Infinity;
     for (const source of sources) {
         const empty = source.energy === 0;
+        const stationaryHarvester = creep.room.myCreeps.find(c => c.memory.role === 'stationaryHarvester' && c.memory.source === source.id);
+        if (stationaryHarvester) continue; // Don't compete with stationary harvesters
         const adjacentDrones = source.pos.findInRange(FIND_MY_CREEPS, 1).filter(c => c.id !== creep.id).length;
         const distance = creep.pos.getRangeTo(source);
         // Heavy penalty for empty sources; moderate penalty per adjacent drone; mild penalty for distance
