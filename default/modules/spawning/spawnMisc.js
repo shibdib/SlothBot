@@ -41,7 +41,7 @@ function miscCreepQueue(room) {
 
     if (room.memory.dangerousAttack) return;
 
-    const explorerNeededCount = Game.shard.name === 'shardSeason' ? 20 : 10 - room.level;
+    const explorerNeededCount = Game.shard.name === 'shardSeason' ? 20 : MAX_LEVEL === 8 ? 1 : 10 - room.level;
     queueCreepIfNeeded({
         colony: room,
         role: 'explorer',
