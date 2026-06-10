@@ -8,9 +8,11 @@ const ROOM_STATE_CACHE = {};
 const PLAYER_HOSTILE_PARTS = [ATTACK, RANGED_ATTACK, WORK, CLAIM];
 
 // Re-send an "ongoing attack" reminder at most this often (~3 hours real time)
-const ALERT_REMINDER_TICKS = 5000;
+const ALERT_REMINDER_TICKS = CREEP_LIFE_TIME * 2;
 // Email grouping window passed to Game.notify (minutes)
 const ALERT_GROUP_MINUTES = 30;
+// track attackstate for each room
+const ALERT_STATE_TRACKING = {};
 
 class DefenseManager {
     constructor(room) {
@@ -28,17 +30,18 @@ class DefenseManager {
             PLAYER_HOSTILE_PARTS.some(p => c.hasActiveBodyparts(p))
         );
         const playerArmed = armedHostiles.filter(c => c.owner && c.owner.username !== 'Invader');
-        const underAttack = armedHostiles.length > 0 || !!this.room.controller.safeMode;
+        const underAttack = armedHostiles.length > 0;
 
         // towerController used to set this â€” labTech, shuttle, terminal, and spawn still read it
         if (underAttack) {
+            ALERT_STATE_TRACKING[this.room.name] = Game.time;
             this.room.memory.dangerousAttack = true;
             this.alertHostileAttack();
             if (playerArmed.length) {
                 this.safeModeManager();
                 if (intel) intel.requestingSupport = true;
             }
-        } else {
+        } else if (!ALERT_STATE_TRACKING[this.room.name] || Game.time - ALERT_STATE_TRACKING[this.room.name] > ALERT_REMINDER_TICKS) {
             this.room.memory.dangerousAttack = undefined;
             clearHostileAlert(this.room);
             if (intel) intel.requestingSupport = undefined;
