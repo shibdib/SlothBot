@@ -11,7 +11,7 @@
 
 const {DEFAULT_MAXOPS, FLEE_RANGE} = require('pathState');
 
-const {normalizePos, getPosKey, getMoveWeight, endpointInRange} = require('pathUtils');
+const {normalizePos, getPosKey, getMoveWeight, endpointInRange, gatherThreats} = require('pathUtils');
 
 const {findRoute} = require('pathRoute');
 
