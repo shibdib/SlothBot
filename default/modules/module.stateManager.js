@@ -137,7 +137,7 @@ class StateManager {
 
     requestBuilders(room) {
         const hasSpawn = room.spawns.find(s => s.isActive() && s.my);
-        room.memory.buildersNeeded = !hasSpawn || room.downgraded;
+        room.memory.buildersNeeded = !hasSpawn || room.downgraded || (room.level < MAX_LEVEL * 0.5);
     }
 
     funnelRequest(room) {
