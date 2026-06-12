@@ -84,6 +84,13 @@ class FactoryControl {
             const result = factory.produce(factory.memory.producing);
             if (result === OK) {
                 cooldownTracker[room.name] = commodity.cooldown + 1;
+                // Record if this production consumed ENERGY component (a sink, similar to terminal exports).
+                if (commodity.components && commodity.components[RESOURCE_ENERGY]) {
+                    const amt = commodity.components[RESOURCE_ENERGY];
+                    Memory.factoryEnergyExpense = Memory.factoryEnergyExpense || {};
+                    const rn = room.name;
+                    Memory.factoryEnergyExpense[rn] = (Memory.factoryEnergyExpense[rn] || 0) + amt;
+                }
             } else {
                 log.w(`${roomLink(room.name)} factory produce() failed for ${factory.memory.producing} (${result}), re-evaluating.`, 'FACTORY CONTROL:');
                 this.clearProduction(factory);

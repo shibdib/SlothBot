@@ -137,6 +137,11 @@ Object.assign(TerminalControl.prototype, {
             if (Game.rooms[destinationRoom] && Game.rooms[destinationRoom].factory && terminal.store[RESOURCE_BATTERY]) {
                 const bAmount = Math.min(terminal.store[RESOURCE_BATTERY], 500);
                 if (bAmount >= 50 && terminal.send(RESOURCE_BATTERY, bAmount, destinationRoom) === OK) {
+                    const txCost = Game.market.calcTransactionCost(bAmount, terminal.room.name, destinationRoom);
+                    // record hidden energy sink (fee for battery balancing send)
+                    Memory.terminalEnergyExpense = Memory.terminalEnergyExpense || {};
+                    const rn = terminal.room.name;
+                    Memory.terminalEnergyExpense[rn] = (Memory.terminalEnergyExpense[rn] || 0) + txCost;
                     state.usedTerminals[terminal.room.name] = {tick: Game.time};
                     state.usedTerminals[destinationRoom] = {tick: Game.time + 500};
                     return true;
@@ -147,6 +152,12 @@ Object.assign(TerminalControl.prototype, {
             if (sendAmount < 5000) return false;
 
             if (terminal.send(RESOURCE_ENERGY, sendAmount, destinationRoom) === OK) {
+                const txCost = Game.market.calcTransactionCost(sendAmount, terminal.room.name, destinationRoom);
+                const energyCost = sendAmount + txCost;
+                // record hidden energy sink (exported energy + send fee)
+                Memory.terminalEnergyExpense = Memory.terminalEnergyExpense || {};
+                const rn = terminal.room.name;
+                Memory.terminalEnergyExpense[rn] = (Memory.terminalEnergyExpense[rn] || 0) + energyCost;
                 log.i(`Balancing ${sendAmount} energy to ${roomLink(destinationRoom)} from ${roomLink(terminal.room.name)}`, 'Market: ');
                 state.usedTerminals[terminal.room.name] = {tick: Game.time};
                 state.usedTerminals[destinationRoom] = {tick: Game.time + 500};
@@ -171,6 +182,12 @@ Object.assign(TerminalControl.prototype, {
         if (availableAmount <= 0) return false;
 
         if (terminal.send(RESOURCE_ENERGY, availableAmount, needyTerminal.room.name) === OK) {
+            const txCost = Game.market.calcTransactionCost(availableAmount, terminal.room.name, needyTerminal.room.name);
+            const energyCost = availableAmount + txCost;
+            // record hidden energy sink
+            Memory.terminalEnergyExpense = Memory.terminalEnergyExpense || {};
+            const rn = terminal.room.name;
+            Memory.terminalEnergyExpense[rn] = (Memory.terminalEnergyExpense[rn] || 0) + energyCost;
             log.a(`Emergency Supplies: Sent ${availableAmount} ${RESOURCE_ENERGY} to ${roomLink(needyTerminal.room.name)} from ${roomLink(terminal.room.name)}`, "Market: ");
             return true;
         }

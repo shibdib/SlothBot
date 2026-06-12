@@ -99,7 +99,15 @@ class StateManager {
         const maintenanceExpense = Math.ceil(maintenanceWork);
         const spawnExpense = Math.ceil(economicBodyCost / CREEP_LIFE_TIME);
         const militarySpawnExpense = Math.ceil(militaryBodyCost / CREEP_LIFE_TIME);
-        const expense = Math.round(snap.expense) + spawnExpense;
+        // Add previously untracked sinks:
+        // - terminal export (sends for balancing + tx fees for deals/sells/buys)
+        // - renewal energy (spawn.renewCreep to extend economy creep life)
+        // These are real ongoing expenses not fully in event log.
+        const termExp = global.prevTickTerminalEnergyExpense ? (global.prevTickTerminalEnergyExpense[room.name] || 0) : 0;
+        const renewalExp = global.prevTickRenewalEnergyExpense ? (global.prevTickRenewalEnergyExpense[room.name] || 0) : 0;
+        const nukeExp = global.prevTickNukeEnergyExpense ? (global.prevTickNukeEnergyExpense[room.name] || 0) : 0;
+        const factoryExp = global.prevTickFactoryEnergyExpense ? (global.prevTickFactoryEnergyExpense[room.name] || 0) : 0;
+        const expense = Math.round(snap.expense) + spawnExpense + termExp + renewalExp + nukeExp + factoryExp;
         const spareIncome = income - expense;
         const flowStressed = spareIncome < 0 || trend < -3;
 
@@ -122,6 +130,9 @@ class StateManager {
             wallerCnt,
             maintenanceExpense,
             spawnExpense,
+            renewalExpense: renewalExp,
+            nukeExpense: nukeExp,
+            factoryExpense: factoryExp,
             militarySpawnExpense,
             samples: snap.samples || 0,
         };

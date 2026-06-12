@@ -125,6 +125,9 @@ function tickRoom(room) {
 
     // Snapshot theoretical upgrader WORK at this tick. Only meaningful in owned rooms;
     // remotes never have upgraders so we skip the iteration there.
+    // Note: additional sinks like terminal exports, renewals, nuke payloads, and factory energy components
+    // are accounted as manual expenses in stateManager (snapshotted from previous tick activity) since
+    // they are not (fully) reflected in the room event log.
     let theoryUpg = 0;
     if (room.controller && room.controller.my) {
         const creeps = room.myCreeps;

@@ -122,10 +122,18 @@ function pickLauncher(launchers, targetRoom) {
 function executeNukeLaunch(launcher, intel, options = {}) {
     const roomName = intel.name;
     const target = options.targetPos || resolveNukeTarget(intel);
+    // Record before launch as launch consumes the loaded energy/ghodium.
+    const nukeEnergySunk = launcher.store[RESOURCE_ENERGY] || 0;
     const result = launcher.launchNuke(target);
     if (result !== OK) {
         log.w(`Nuke launch failed for ${roomLink(roomName)} from ${roomLink(launcher.room.name)}: ${result}`, 'HIGH COMMAND: ');
         return false;
+    }
+
+    if (nukeEnergySunk > 0) {
+        Memory.nukeEnergyExpense = Memory.nukeEnergyExpense || {};
+        const rn = launcher.room.name;
+        Memory.nukeEnergyExpense[rn] = (Memory.nukeEnergyExpense[rn] || 0) + nukeEnergySunk;
     }
 
     intel.lastNuke = Game.time;

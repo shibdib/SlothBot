@@ -111,6 +111,11 @@ Object.assign(TerminalControl.prototype, {
             }
             if (sellAmount * buyer.price < 5) return false;
             if (Game.market.deal(buyer.id, sellAmount, terminal.pos.roomName) !== OK) return false;
+            const txCost = Game.market.calcTransactionCost(sellAmount, terminal.pos.roomName, buyer.roomName);
+            // record hidden energy sink (market deal tx fee)
+            Memory.terminalEnergyExpense = Memory.terminalEnergyExpense || {};
+            const rn = terminal.room.name;
+            Memory.terminalEnergyExpense[rn] = (Memory.terminalEnergyExpense[rn] || 0) + txCost;
             const credits = buyer.price * sellAmount;
             log.w(`${terminal.pos.roomName} Sell Off Completed - ${sellAmount} ${resourceType} for ${credits} credits in ${roomLink(terminal.room.name)}`, "Market: ");
             Memory._banker.spendingAccount += credits * 0.75;
@@ -129,6 +134,11 @@ Object.assign(TerminalControl.prototype, {
                 const amount = Math.min(sellAmount, buyer.remainingAmount);
                 if (transactionCost(amount, buyer.roomName) < terminal.store[RESOURCE_ENERGY]
                     && Game.market.deal(buyer.id, amount, terminal.pos.roomName) === OK) {
+                    const txCost = Game.market.calcTransactionCost(amount, terminal.pos.roomName, buyer.roomName);
+                    // record hidden energy sink (fire sale deal fee)
+                    Memory.terminalEnergyExpense = Memory.terminalEnergyExpense || {};
+                    const rn = terminal.room.name;
+                    Memory.terminalEnergyExpense[rn] = (Memory.terminalEnergyExpense[rn] || 0) + txCost;
                     log.w(`FIRE SALE: Dumped ${amount} ${resourceType} to ${roomLink(buyer.roomName)} for ${buyer.price * amount} credits to clear space.`, "Market: ");
                     return true;
                 }
@@ -144,6 +154,12 @@ Object.assign(TerminalControl.prototype, {
             }
             if (sellAmount <= 1000) return false;
             if (terminal.send(resourceType, sellAmount, friend) !== OK) return false;
+            const txCost = Game.market.calcTransactionCost(sellAmount, terminal.pos.roomName, friend);
+            const energyCost = (resourceType === RESOURCE_ENERGY ? sellAmount : 0) + txCost;
+            // record hidden energy sink (offload send + fee)
+            Memory.terminalEnergyExpense = Memory.terminalEnergyExpense || {};
+            const rn = terminal.room.name;
+            Memory.terminalEnergyExpense[rn] = (Memory.terminalEnergyExpense[rn] || 0) + energyCost;
             log.w(`Dumped ${sellAmount} ${resourceType} to Ally ${roomLink(friend)} to clear space.`, "Market: ");
             return true;
         };

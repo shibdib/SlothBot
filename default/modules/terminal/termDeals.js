@@ -60,10 +60,20 @@ Object.assign(TerminalControl.prototype, {
 
             if (haveMineral) {
                 if (Game.market.deal(highestBuy.id, amount, terminal.room.name) === OK) {
+                    const txCost = Game.market.calcTransactionCost(amount, terminal.room.name, highestBuy.roomName);
+                    // record hidden energy sink (arbitrage sell deal fee)
+                    Memory.terminalEnergyExpense = Memory.terminalEnergyExpense || {};
+                    const rn = terminal.room.name;
+                    Memory.terminalEnergyExpense[rn] = (Memory.terminalEnergyExpense[rn] || 0) + txCost;
                     this.recordBankerDeal('sell', mineral, amount, highestBuy.price * amount);
                     return true;
                 }
             } else if (Game.market.deal(lowestSell.id, amount, terminal.room.name) === OK) {
+                const txCost = Game.market.calcTransactionCost(amount, terminal.room.name, lowestSell.roomName);
+                // record hidden energy sink (arbitrage buy deal fee)
+                Memory.terminalEnergyExpense = Memory.terminalEnergyExpense || {};
+                const rn = terminal.room.name;
+                Memory.terminalEnergyExpense[rn] = (Memory.terminalEnergyExpense[rn] || 0) + txCost;
                 this.recordBankerDeal('buy', mineral, amount, lowestSell.price * amount);
                 return true;
             }
@@ -99,6 +109,10 @@ Object.assign(TerminalControl.prototype, {
 
                 if (cost < Memory._banker.spendingAccount && transCost < terminal.store[RESOURCE_ENERGY]) {
                     if (Game.market.deal(bestDeal.id, buyAmount, terminal.room.name) === OK) {
+                        // record hidden energy sink (bargain buy deal fee)
+                        Memory.terminalEnergyExpense = Memory.terminalEnergyExpense || {};
+                        const rn = terminal.room.name;
+                        Memory.terminalEnergyExpense[rn] = (Memory.terminalEnergyExpense[rn] || 0) + transCost;
                         log.w(`DEAL FINDER: Bought ${buyAmount} ${mineral} for ${cost} credits (Bargain Price: ${bestDeal.price}) in ${roomLink(terminal.room.name)}`, "Market: ");
                         Memory._banker.spendingAccount -= cost;
                         this.recordBankerDeal('buy', mineral, buyAmount, cost);

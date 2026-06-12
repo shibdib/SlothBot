@@ -64,7 +64,16 @@ function renewNearbyCreepIfNeeded(room, availableSpawn) {
 
     if (nearbyCreeps.length) {
         const creepToRenew = _.min(nearbyCreeps, c => c.ticksToLive);
-        availableSpawn.renewCreep(creepToRenew);
+        const before = availableSpawn.store[RESOURCE_ENERGY] || 0;
+        if (availableSpawn.renewCreep(creepToRenew) === OK) {
+            const after = availableSpawn.store[RESOURCE_ENERGY] || 0;
+            const cost = before - after;
+            if (cost > 0) {
+                Memory.renewalEnergyExpense = Memory.renewalEnergyExpense || {};
+                const rn = room.name;
+                Memory.renewalEnergyExpense[rn] = (Memory.renewalEnergyExpense[rn] || 0) + cost;
+            }
+        }
     }
 }
 

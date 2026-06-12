@@ -96,6 +96,11 @@ Object.assign(TerminalControl.prototype, {
                         if (sellOrder.price * buyAmount > Memory._banker.spendingAccount) buyAmount = _.floor(Memory._banker.spendingAccount / sellOrder.price);
                         if (buyAmount >= 100) {
                             if (Game.market.deal(sellOrder.id, buyAmount, terminal.room.name) === OK) {
+                                const txCost = Game.market.calcTransactionCost(buyAmount, terminal.room.name, sellOrder.roomName);
+                                // record hidden energy sink (buy deal fee)
+                                Memory.terminalEnergyExpense = Memory.terminalEnergyExpense || {};
+                                const rn = terminal.room.name;
+                                Memory.terminalEnergyExpense[rn] = (Memory.terminalEnergyExpense[rn] || 0) + txCost;
                                 const dealCost = sellOrder.price * buyAmount;
                                 log.w(`Bought ${buyAmount} ${mineral} for ${dealCost} credits in ${roomLink(terminal.room.name)} ${isLabNeed ? '(LAB NEED)' : ''}`, "Market: ");
                                 Memory._banker.spendingAccount -= dealCost;
@@ -145,6 +150,11 @@ Object.assign(TerminalControl.prototype, {
                 if (cheapSell.price * amount > Memory._banker.spendingAccount) amount = Math.floor(Memory._banker.spendingAccount / cheapSell.price);
                 if (amount >= 100) {
                     if (Game.market.deal(cheapSell.id, amount, terminal.room.name) === OK) {
+                        const txCost = Game.market.calcTransactionCost(amount, terminal.room.name, cheapSell.roomName);
+                        // record hidden energy sink (cheap buy deal fee)
+                        Memory.terminalEnergyExpense = Memory.terminalEnergyExpense || {};
+                        const rn = terminal.room.name;
+                        Memory.terminalEnergyExpense[rn] = (Memory.terminalEnergyExpense[rn] || 0) + txCost;
                         log.w(`Bought ${amount} ${t1boost} at ${cheapSell.price}/u (raw cost: ${rawCost.toFixed(3)}/u) in ${roomLink(terminal.room.name)}`, "Market: ");
                         Memory._banker.spendingAccount -= cheapSell.price * amount;
                         return true;

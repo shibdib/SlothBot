@@ -45,6 +45,40 @@ class World {
         // Must run before stateManager, which snapshots the rolling averages.
         energyTracker.runAll();
 
+        // Terminal energy export accounting (sends + market deals).
+        // The Memory value at the *start* of the tick holds the costs from the *previous* tick's terminal activity.
+        // Snapshot for use in this tick's expense/spare calc (stateManager), then clear so this tick's sends accumulate for next tick.
+        if (!Memory.terminalEnergyExpense) Memory.terminalEnergyExpense = {};
+        global.prevTickTerminalEnergyExpense = {};
+        for (const r in Memory.terminalEnergyExpense) {
+            global.prevTickTerminalEnergyExpense[r] = Memory.terminalEnergyExpense[r] || 0;
+        }
+        Memory.terminalEnergyExpense = {};  // reset for this tick's terminal.send / market.deal activity
+
+        // Similar for renewal energy (spawn.renewCreep for economy creeps)
+        if (!Memory.renewalEnergyExpense) Memory.renewalEnergyExpense = {};
+        global.prevTickRenewalEnergyExpense = {};
+        for (const r in Memory.renewalEnergyExpense) {
+            global.prevTickRenewalEnergyExpense[r] = Memory.renewalEnergyExpense[r] || 0;
+        }
+        Memory.renewalEnergyExpense = {};
+
+        // For nuke launches (energy payload consumed on launchNuke - infrequent but significant sink)
+        if (!Memory.nukeEnergyExpense) Memory.nukeEnergyExpense = {};
+        global.prevTickNukeEnergyExpense = {};
+        for (const r in Memory.nukeEnergyExpense) {
+            global.prevTickNukeEnergyExpense[r] = Memory.nukeEnergyExpense[r] || 0;
+        }
+        Memory.nukeEnergyExpense = {};
+
+        // For factory production that consumes ENERGY as a component (e.g. some commodities, battery production)
+        if (!Memory.factoryEnergyExpense) Memory.factoryEnergyExpense = {};
+        global.prevTickFactoryEnergyExpense = {};
+        for (const r in Memory.factoryEnergyExpense) {
+            global.prevTickFactoryEnergyExpense[r] = Memory.factoryEnergyExpense[r] || 0;
+        }
+        Memory.factoryEnergyExpense = {};
+
         // Handle seasonal score assignment
         if (Game.time % 25 === 0 && Game.shard.name === 'shardSeason') {
             seasonalScoreFinder();
