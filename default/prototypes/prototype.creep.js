@@ -517,6 +517,30 @@ Creep.prototype.haulerDelivery = function () {
     if (this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && this.memory.lastWithdraw !== this.room.storage.id) targets.push(this.room.storage);
 
     let target = this.pos.findClosestByRange(targets);
+    // Stockpiling bias: once extensions are healthy (nearly full), route surplus hauler loads
+    // to storage instead of micro-topping the last bits of the buffer. This helps build
+    // actual reserves in storage while still keeping operational energyAvailable high.
+    // We never starve spawns.
+    if (this.room.energyState >= 2 && this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+        const hasCriticalSpawnNeed = targets.some(s =>
+            s.structureType === STRUCTURE_SPAWN && s.store.getUsedCapacity(RESOURCE_ENERGY) < 200
+        );
+        if (!hasCriticalSpawnNeed) {
+            const extCount = this.room.extensions ? this.room.extensions.length : 0;
+            if (extCount > 0) {
+                const extEnergy = this.room.extensions.reduce((sum, e) => sum + (e.store[RESOURCE_ENERGY] || 0), 0);
+                const extCapacity = extCount * 2000;
+                const extFill = extEnergy / extCapacity;
+                if (extFill > 0.85) {
+                    // Buffers are healthy -- prioritize stockpile over last 15% of ext fill.
+                    target = this.room.storage;
+                }
+            } else {
+                // No extensions (early room) -- go to storage.
+                target = this.room.storage;
+            }
+        }
+    }
     if (target) {
         this.memory.storageDestination = target.id;
         return true;
@@ -622,10 +646,11 @@ Creep.prototype.constructionWork = function () {
         if (rampartSites) return pickBuild(this.pos.findClosestByRange(rampartSites));
     }
 
-    // 5. Critical economy structures. Storage/container/link/terminal used to fall
-    // through to the energyState>0 fallback — but a room sits at energyState=0
-    // precisely because it lacks storage, so building storage was gated on the
-    // outcome it was supposed to enable.
+    // 5. Critical economy / level-unlock structures. These are always prioritized for
+    // construction even at low energyState (a room at energyState=0 often precisely
+    // lacks the storage/extensions/links/etc. that the current RCL unlocks and that we
+    // just placed construction sites for on level-up). Previously this list was too
+    // short (labs/factory etc. at RCL6+ would hit the energy gate in the fallback).
     const buildableStructures = [
         STRUCTURE_SPAWN,
         STRUCTURE_EXTENSION,
@@ -633,13 +658,17 @@ Creep.prototype.constructionWork = function () {
         STRUCTURE_CONTAINER,
         STRUCTURE_LINK,
         STRUCTURE_TERMINAL,
+        STRUCTURE_LAB,
+        STRUCTURE_FACTORY,
+        STRUCTURE_POWER_SPAWN,
     ];
     for (const structureType of buildableStructures) {
         const list = sitesByType[structureType];
         if (list && list.length) return pickBuild(list[0]);
     }
 
-    // 6. Containers below half / roads below quarter.
+    // 6. Containers below half / critical roads below quarter. Also medium roads if energy allows
+    // (to keep roads maintained by creeps rather than inefficient towers).
     site = damagedContainers.find(s => s.hits < s.hitsMax * 0.5);
     if (site) return pickRepair(site, site.hitsMax * 0.65);
 
@@ -649,8 +678,21 @@ Creep.prototype.constructionWork = function () {
         return pickRepair(road, road.hitsMax * 0.5);
     }
 
-    // 7. Energy-permitting fallback: any non-barrier non-road site, then barriers,
-    // then any non-barrier damaged structure.
+    // Medium damaged roads (even if not "critical" <25%) when we have at least some energy.
+    // Prioritize creep repair over towers for efficiency (~100hp/energy vs tower 20-80).
+    if (room.energyState >= 1) {
+        const mediumRoads = damagedRoads.filter(s => s.hits < s.hitsMax * 0.6);
+        if (mediumRoads.length) {
+            const road = _.min(mediumRoads, s => s.hits / s.hitsMax);
+            return pickRepair(road, road.hitsMax * 0.8);
+        }
+    }
+
+    // 7. Energy-permitting fallback: any non-barrier non-road site (e.g. extra roads,
+    // optional barriers, low-priority repairs), then barriers, then any non-barrier
+    // damaged structure. Core/level-unlock structures are handled unconditionally in #5
+    // above (and towers in #1) to avoid the bootstrap problem on newly-leveled rooms.
+    // Note: medium road repair now handled earlier (step 6) when energyState >=1 to reduce tower use.
     const buildEnergyInfo = room.memory.energyInfo;
     const buildTrend = (buildEnergyInfo && buildEnergyInfo.trend) || 0;
     const buildFallback = room.energyState >= 2 || (room.energyState === 1 && buildTrend >= 0);

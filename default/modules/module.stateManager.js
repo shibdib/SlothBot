@@ -128,9 +128,13 @@ class StateManager {
 
         // Read energyState once — getter may enqueue ally energy requests.
         const energyState = room.energyState;
+        // For RCL8, combatReady is gated primarily on !flowStressed (good net income/trend) rather than
+        // strict bulk energyState, because a healthy high-level room should be able to participate in ops
+        // as long as income is positive (sustained by remotes etc.). This prevents the stockpiling
+        // threshold from blocking combatReady. Lower levels still require higher energyState buffer.
         const canGainCombatReady = !flowStressed &&
-            ((energyState >= 1 && room.level === 8) || (energyState >= 2 && room.level >= 4 && room.level < 8));
-        const wouldLoseCombatReady = room.memory.combatReady && (!energyState || flowStressed);
+            (room.level === 8 || (energyState >= 2 && room.level >= 4 && room.level < 8));
+        const wouldLoseCombatReady = room.memory.combatReady && flowStressed;  // RCL8 doesn't lose just from low energyState if income ok
 
         if (!room.memory.combatReady && canGainCombatReady) {
             room.memory.combatReady = true;
@@ -145,15 +149,15 @@ class StateManager {
             room.memory.combatReadyStress = Math.max(0, (room.memory.combatReadyStress || 0) - 10);
         }
 
-        if (!room.memory.auxilaryReady && energyState >= 1 && room.level >= 4) room.memory.auxilaryReady = true;
-        else if (room.memory.auxilaryReady && !energyState) room.memory.auxilaryReady = undefined;
+        if (!room.memory.auxilaryReady && (room.level === 8 || energyState >= 1) && room.level >= 4) room.memory.auxilaryReady = true;
+        else if (room.memory.auxilaryReady && room.level !== 8 && !energyState) room.memory.auxilaryReady = undefined;
 
         const batteryEquiv = Math.floor((room.store(RESOURCE_BATTERY) / 50) * 600 * 0.9);
         const stockEnergy = room.rawEnergy + batteryEquiv;
-        const upgradeCost = room.level === 8 ? 250000
+        const upgradeCost = room.level === 8 ? 500000
             : constructionCost(room.controller.level + 1) - constructionCost(room.controller.level);
         const progressFraction = room.controller.progress / room.controller.progressTotal;
-        const stockTarget = room.level === 8 ? 250000
+        const stockTarget = room.level === 8 ? 500000
             : Math.max(room.level * 31250, Math.min(Math.round(upgradeCost * progressFraction) * 0.7, STORAGE_CAPACITY * 0.5));
 
         Object.assign(room.memory.energyDiag, {

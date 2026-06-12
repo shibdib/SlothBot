@@ -151,9 +151,9 @@ Object.defineProperty(Room.prototype, 'energyState', {
 
         const batteryEquiv = Math.floor((this.store(RESOURCE_BATTERY) / 50) * 600 * 0.9);
         let energy = this.rawEnergy + batteryEquiv;
-        const upgradeCost = this.level === 8 ? 250000 : constructionCost(this.controller.level + 1) - constructionCost(this.controller.level);
+        const upgradeCost = this.level === 8 ? 500000 : constructionCost(this.controller.level + 1) - constructionCost(this.controller.level);
         const progressFraction = this.controller.progress / this.controller.progressTotal;
-        let target = this.level === 8 ? 250000 : Math.max(this.level * 31250, Math.min(Math.round(upgradeCost * progressFraction) * 0.7, STORAGE_CAPACITY * 0.5));
+        let target = this.level === 8 ? 500000 : Math.max(this.level * 31250, Math.min(Math.round(upgradeCost * progressFraction) * 0.7, STORAGE_CAPACITY * 0.5));
 
         if (energy > target * 1.5 || (!this.storage && !this.terminal && this.level < 4)) this._energyState = 3;
         else if (energy >= target) this._energyState = 2;

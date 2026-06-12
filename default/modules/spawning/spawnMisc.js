@@ -21,7 +21,7 @@ function miscCreepQueue(room) {
             const other = Game.rooms[r];
             const intel = INTEL[r];
             return r !== room.name && other &&
-                (other.memory.dangerousAttack || intel?.requestingSupport ||
+                (intel?.requestingSupport ||
                     (other.memory.defenseCooldown || 0) > Game.time) &&
                 room.routeSafe(r, 3, 999, 15);
         });

@@ -114,11 +114,14 @@ class ModuleBodyGenerator {
                     && INTEL[this.room.name].roadsBuilt;
 
                 if (halfMove) {
-                    work = Math.min(Math.floor(this.energyAmount * 0.51 / BODYPART_COST[WORK]) || 1, 20);
-                    carry = Math.min(Math.floor(this.energyAmount * 0.23 / BODYPART_COST[CARRY]) || 1, 12);
+                    // Roaded: cheaper moves → bias toward more total work+carry. Raised carry for fewer refills
+                    // (target ~15-16 ticks of building/repair per load to amortize travel to energy sources).
+                    work = Math.min(Math.floor(this.energyAmount * 0.40 / BODYPART_COST[WORK]) || 1, 25);
+                    carry = Math.min(Math.floor(this.energyAmount * 0.32 / BODYPART_COST[CARRY]) || 1, 20);
                 } else {
-                    work = Math.min(Math.floor(this.energyAmount * 0.35 / BODYPART_COST[WORK]) || 1, 15);
-                    carry = Math.min(Math.floor(this.energyAmount * 0.15 / BODYPART_COST[CARRY]) || 1, 10);
+                    // No roads/dest/waller: full moves. More carry to reduce time spent traveling for energy.
+                    work = Math.min(Math.floor(this.energyAmount * 0.28 / BODYPART_COST[WORK]) || 1, 20);
+                    carry = Math.min(Math.floor(this.energyAmount * 0.22 / BODYPART_COST[CARRY]) || 1, 16);
                 }
                 if (!this.room.energyState) {
                     work *= 0.15;
@@ -531,6 +534,29 @@ class ModuleBodyGenerator {
                 carry = Math.min(carry, 25);
                 break;
         }
+
+        // General safeguard for 50-part limit (max body size): limit non-move parts
+        // (primarily work+carry from % allocations) so that MOVE parts (full 1:1 or halfMove 0.5)
+        // can be added without the final slice(0,50) stripping mobility. This was exposed
+        // by drone body carry boosts (to reduce "getting energy" time) + raised caps, which
+        // at high energyCapacityAvailable (RCL8, E~12k+) produce w+c > what fits balanced under 50.
+        // E.g. without cap: halfMove 25W+20C +23M =68 parts → slice keeps ~45+5M (bad ratio).
+        // halfMove is set by roles on roads; defaults to full moves.
+        const approxNonMove = (work || 0) + (carry || 0) + (claim || 0) + (attack || 0) + (rangedAttack || 0);
+        const willHaveMoves = (typeof move === 'undefined' || move !== 0);
+        if (willHaveMoves && approxNonMove > 0) {
+            const moveRatio = halfMove ? 0.5 : 1.0;
+            const maxNonMove = Math.floor(50 / (1 + moveRatio));
+            if (approxNonMove > maxNonMove) {
+                const scale = maxNonMove / approxNonMove;
+                if (work) work = Math.max(1, Math.floor(work * scale));
+                if (carry) carry = Math.max(1, Math.floor(carry * scale));
+                if (claim) claim = Math.max(1, Math.floor(claim * scale));
+                if (attack) attack = Math.max(1, Math.floor(attack * scale));
+                if (rangedAttack) rangedAttack = Math.max(1, Math.floor(rangedAttack * scale));
+            }
+        }
+
         // Utility function to add body parts
         const addBodyParts = (count, part, array) => {
             count = Math.floor(count);
@@ -579,7 +605,10 @@ class ModuleBodyGenerator {
             generatedBody = [...toughArray, ..._.shuffle(bodyArray), ...moveArray, ...healArray];
         }
 
-        // Ensure the body is valid, 50 parts max
+        // Ensure the body is valid, 50 parts max.
+        // The general non-move cap (above) prevents unbalancing MOVE parts for roles
+        // that compute work/carry via energy % (the recent drone carry boosts etc.);
+        // this is final safety net (and trims for roles that intentionally compute high).
         if (generatedBody.length > 50) {
             generatedBody = generatedBody.slice(0, 50);
         }

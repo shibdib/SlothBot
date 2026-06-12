@@ -63,6 +63,7 @@ class RoleWaller {
         if (this.hauling()) return;
 
         // Maintenance: Strengthen barriers if nothing else to do (prevents idling)
+        // Only in rich rooms; low-energy wallers (spawned at energyState=1) focus on normal (limited) walling.
         if (this.room.energyState >= 3 && this.walling(true)) return;
 
         // Final fallback: Idle
@@ -157,6 +158,12 @@ class RoleWaller {
             let targetLimit = 100000;
             if (this.room.controller.level >= 8) targetLimit = 10000000;
             else if (this.room.controller.level >= 6) targetLimit = 5000000;
+
+            // In low energy (but not barren), limit ambition — don't fully stockpile walls, just keep them functional
+            // to avoid draining the last energy on barriers instead of core economy.
+            if (this.room.energyState === 1) {
+                targetLimit = Math.min(targetLimit, 200000);
+            }
 
             if (maintenance && this.room.level === 8) targetLimit = RAMPART_HITS_MAX[this.room.level];
 

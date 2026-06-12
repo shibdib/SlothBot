@@ -145,13 +145,13 @@ function manageMilitary() {
             continue;
         }
 
-        if (owner === MY_USERNAME && type !== 'guard') {
+        if (owner === MY_USERNAME && !(target.manual && type === 'guard')) {
             log.a(`Canceling operation in ${roomLink(key)} â€” targeting our own room.`, 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             continue;
         }
 
-        if (owner && (FRIENDLIES.includes(owner) || checkForNap(owner)) && type !== 'guard') {
+        if (owner && (FRIENDLIES.includes(owner) || checkForNap(owner)) && !(target.manual && type === 'guard')) {
             log.a(`Canceling operation in ${roomLink(key)} â€” allied/NAP room.`, 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             continue;

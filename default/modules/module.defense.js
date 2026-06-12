@@ -41,10 +41,16 @@ class DefenseManager {
                 this.safeModeManager();
                 if (intel) intel.requestingSupport = true;
             }
-        } else if (!ALERT_STATE_TRACKING[this.room.name] || Game.time - ALERT_STATE_TRACKING[this.room.name] > ALERT_REMINDER_TICKS) {
+        } else {
+            // Clear attack state immediately so economy/military response logic (e.g. guard spawns)
+            // stops treating the room as threatened once hostiles are gone. Notification timing
+            // (reminders + all-clear) is handled separately via ALERT_STATE_TRACKING / _defenseAlerts.
             this.room.memory.dangerousAttack = undefined;
-            clearHostileAlert(this.room);
             if (intel) intel.requestingSupport = undefined;
+            if (!ALERT_STATE_TRACKING[this.room.name] || Game.time - ALERT_STATE_TRACKING[this.room.name] > ALERT_REMINDER_TICKS) {
+                clearHostileAlert(this.room);
+                delete ALERT_STATE_TRACKING[this.room.name];
+            }
         }
 
         if (!Memory._rampartsSet || RAMPART_ACCESS) this.rampartManager();

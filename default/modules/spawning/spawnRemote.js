@@ -349,12 +349,13 @@ function remoteCreepQueue(room) {
 
     if (room.memory.noRemote) return;
 
-    const rEnergyInfo = room.memory.energyInfo;
-    const rTrendOk = !rEnergyInfo || (rEnergyInfo.trend || 0) >= -3;
-    if (room.energyState < 3 || room.level < 8 || !rTrendOk) {
-        handleRemoteHarvesters(room);
-        handleRemoteHaulers(room);
-    }
+    // Always maintain remote harvesting and hauling for RCL8+ rooms (even at high energyState).
+    // This sustains the surplus income needed to actually stockpile well beyond the "healthy" threshold
+    // (instead of throttling collection once stockpiled, which was causing oscillation and inability to push storage higher).
+    // New/expansion spawns inside the handlers are deprioritized when energyState>=3 via shouldDeprioritizeRemotes.
+    // Replacements for dead creeps are still allowed (at lower priority) so income doesn't decay.
+    handleRemoteHarvesters(room);
+    handleRemoteHaulers(room);
 
     if (spawnState.contestedRemotes[room.name] && room.energyState) handleContestedRoom(room);
     if (spawnState.blockedRemotes[room.name] && room.energyState) handleBlockedRoom(room);

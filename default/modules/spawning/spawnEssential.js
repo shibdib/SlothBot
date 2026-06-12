@@ -33,29 +33,50 @@ function essentialCreepQueue(room) {
 
     const {energyInfo, trendOk, flowHealthy, spareIncome} = getFlowContext(room);
     const importantBuilds = _.some(room.constructionSites, s => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
+    const hasRoadMaintenance = _.some(room.structures, s => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.75);
     const harvesterCount = getCreepCount(room, 'stationaryHarvester');
     const earlyRush = !room.storage && room.level < 5;
+
+    // Critical structures (esp. ones newly unlocked on controller level-up) should
+    // bootstrap builders even if energyState is temporarily low (common right after
+    // an upgrade that depleted reserves; these structures are exactly what improve
+    // energy capacity/income). Matches the "always build" priority in constructionWork.
+    const criticalBuildTypes = [STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_CONTAINER, STRUCTURE_LINK, STRUCTURE_TERMINAL, STRUCTURE_TOWER, STRUCTURE_LAB, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN];
+    const hasCriticalBuilds = _.some(room.constructionSites, s => criticalBuildTypes.includes(s.structureType));
 
     let droneCount;
     let dronePriority = PRIORITIES.drone;
     if (earlyRush) {
         if (!harvesterCount) droneCount = 1;
-        else droneCount = importantBuilds ? Math.min(9 - room.level, 3) : 1;
+        else droneCount = (importantBuilds || hasRoadMaintenance) ? Math.min(9 - room.level, 3) : 1;
         dronePriority = 1;
-    } else if (importantBuilds && trendOk && room.energyState) {
-        droneCount = (9 - room.level) + room.energyState;
-    } else if (room.constructionSites.length && room.energyState) {
-        droneCount = 2;
+    } else if (importantBuilds && trendOk && (room.energyState || hasCriticalBuilds)) {
+        droneCount = (9 - room.level) + (room.energyState || 1);
+    } else if ((room.constructionSites.length || hasRoadMaintenance) && (room.energyState || hasCriticalBuilds)) {
+        droneCount = hasCriticalBuilds ? 3 : 2;
     } else if (!room.storage) {
-        droneCount = importantBuilds ? (9 - room.level) + room.energyState : 1;
+        droneCount = (importantBuilds || hasRoadMaintenance) ? (9 - room.level) + (room.energyState || (hasCriticalBuilds ? 1 : 0)) : 1;
     } else {
         droneCount = 1;
+        if (hasRoadMaintenance && room.energyState >= 1) {
+            droneCount = 2;  // Second drone for road maintenance to avoid inefficient tower repairs
+        }
     }
 
     if (droneCount > 1) {
         const droneBudget = earlyRush ? 6 : 8;
-        if (!flowHealthy || spareIncome < droneBudget) droneCount = 1;
-        else droneCount = Math.max(1, Math.min(droneCount, Math.floor(spareIncome / droneBudget)));
+        if (!flowHealthy || spareIncome < droneBudget) {
+            // Still allow a couple drones to bootstrap critical new structures on level-up
+            // even if economy looks tight; otherwise fall back to 1.
+            // Also allow 2nd for road maintenance to keep roads creep-repaired (towers inefficient).
+            if (hasCriticalBuilds || hasRoadMaintenance) {
+                droneCount = Math.min(droneCount, 2);
+            } else {
+                droneCount = 1;
+            }
+        } else {
+            droneCount = Math.max(1, Math.min(droneCount, Math.floor(spareIncome / droneBudget)));
+        }
     }
 
     queueCreepIfNeeded({
@@ -65,7 +86,11 @@ function essentialCreepQueue(room) {
 
     if (room.level >= BUNKER_LEVEL && !empireOpsPaused()) {
         let wallerCount = 0;
-        if (room.energyState >= 2 && flowHealthy && spareIncome >= 8) {
+        // Spawn wallers for barrier maintenance unless the room is completely energy barren (energyState==0).
+        // At energyState==1 we allow minimal (body will be heavily scaled down by flowScale anyway).
+        // This prevents completely abandoning wall/rampart building in low-but-not-zero energy rooms.
+        // Previously gated strictly at >=2; drones still only do "energy rich" walling at >=3.
+        if (room.energyState >= 1 && flowHealthy && spareIncome >= 4) {
             wallerCount = room.energyState >= 3 && room.level >= 8 ? 2 : 1;
             wallerCount = Math.max(1, Math.min(wallerCount, Math.floor(spareIncome / 10)));
         }
@@ -127,6 +152,15 @@ function essentialCreepQueue(room) {
         if (room.level >= 7) upgraderAmount = Math.min(upgraderAmount, 2);
         if (earlyRush && harvesterCount && room.energyState >= 2 && (energyInfo && (energyInfo.trend || 0) >= 0)) {
             upgraderAmount = Math.max(upgraderAmount, 2);
+        }
+    } else if (room.controller.level === 8) {
+        // At RCL8 we always maintain 1 upgrader (bodyGenerator shrinks it to 1W/1C when
+        // energyState is low). This is the minimum to prevent controller downgrade ticks
+        // (which would eventually lose the room and safe mode capability). We scale up
+        // the number only when we have good reserves for faster GCL progress.
+        upgraderAmount = 1;
+        if (room.energyState >= 3 && spareIncome > 8) {
+            upgraderAmount = Math.min(3, Math.max(1, Math.floor(spareIncome / 15)));
         }
     }
     const fastTrack = (room.energyState > 1 && room.storage && trendOk) ||

@@ -17,18 +17,24 @@ function roomFlowStressed(room) {
 }
 
 function minEnergyStateForRoom(room) {
-    return room.level === 8 ? 1 : 2;
+    return room.level === 8 ? 0 : 2;  // RCL8 rooms can be "not struggling" with low local bulk storage if net income/spare is healthy (remotes etc.); combat logic already special-cases RCL8.
 }
 
 function isLiveCombatReady(room) {
     if (!room.memory.combatReady) return false;
     if (roomFlowStressed(room)) return false;
+    // RCL8 rooms can be live combat ready based on the memory flag + !stressed (see stateManager
+    // canGain which doesn't strictly require energyState for RCL8 to allow stockpiling without
+    // blocking ops). Lower levels check the energy buffer.
+    if (room.level === 8) return true;
     const energyState = room.energyState || 0;
     return energyState >= minEnergyStateForRoom(room);
 }
 
 function isLiveAuxReady(room) {
-    return !!(room.memory.auxilaryReady && (room.energyState || 0) >= 1);
+    if (!room.memory.auxilaryReady) return false;
+    if (room.level === 8) return true;  // RCL8 aux ready as long as the flag is set (relaxed for stockpiling)
+    return (room.energyState || 0) >= 1;
 }
 
 function isRoomStruggling(room) {
