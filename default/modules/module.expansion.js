@@ -114,7 +114,7 @@ class ExpansionControl {
         const friendlyRooms = [];
         const enemyRooms = [];
         for (const intel of Object.values(INTEL)) {
-            if (!intel.level || !intel.owner) continue;
+            if (!intel || !intel.level || !intel.owner) continue;
             if (FRIENDLIES.includes(intel.owner)) friendlyRooms.push(intel);
             else if (HOSTILES.includes(intel.owner)) enemyRooms.push(intel);
         }

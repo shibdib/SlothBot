@@ -106,7 +106,7 @@ module.exports.loop = function () {
                 GENERATE_PIXELS &&
                 (!Memory.lastPixel || Memory.lastPixel + 100 < Game.time) &&
                 currentBucket >= PIXEL_CPU_COST &&
-                !MY_ROOMS.some((r) => INTEL[r].threatLevel)
+                !MY_ROOMS.some((r) => INTEL[r] && INTEL[r].threatLevel)
             ) {
                 log.a('Pixel Generated');
                 Game.cpu.generatePixel();

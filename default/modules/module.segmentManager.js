@@ -118,6 +118,8 @@ module.exports.retrieveIntel = function () {
                     }
                 }
                 if (!isValidIntel()) global.INTEL = {};
+                // Remove any tombstones left by legacy purge code (INTEL[r] = undefined)
+                for (const k in global.INTEL) if (!global.INTEL[k]) delete global.INTEL[k];
                 global.rebuildIntelIndexes();
                 log.a('Intel segments retrieved, restoring old intel.', 'INTEL MANAGER: ');
             } else {
@@ -165,7 +167,7 @@ module.exports.storeIntel = function () {
         if (INTEL_ROOM_PURGE.length) {
             INTEL_ROOM_PURGE.forEach((r) => {
                 const old = INTEL[r];
-                INTEL[r] = undefined;
+                delete INTEL[r];
                 if (global.updateIntelIndex) global.updateIntelIndex(r, old, null);
             });
             global.INTEL_ROOM_PURGE = [];
