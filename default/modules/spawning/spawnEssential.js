@@ -154,10 +154,6 @@ function essentialCreepQueue(room) {
             upgraderAmount = Math.max(upgraderAmount, 2);
         }
     } else if (room.controller.level === 8) {
-        // At RCL8 we always maintain 1 upgrader (bodyGenerator shrinks it to 1W/1C when
-        // energyState is low). This is the minimum to prevent controller downgrade ticks
-        // (which would eventually lose the room and safe mode capability). We scale up
-        // the number only when we have good reserves for faster GCL progress.
         upgraderAmount = 1;
         if (room.energyState >= 3 && spareIncome > 8) {
             upgraderAmount = Math.min(3, Math.max(1, Math.floor(spareIncome / 15)));

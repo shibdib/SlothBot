@@ -91,12 +91,13 @@ module.exports.status = function () {
             return str;
         };
 
-        MY_ROOMS.forEach(roomName => {
+        (global.MY_ROOMS || []).forEach(roomName => {
             const room = Game.rooms[roomName];
             if (!room || !room.controller) return;
 
             const roomCreeps = _.filter(Game.creeps, c => c.memory && c.memory.colony === room.name).length;
-            const avgCpu = ROOM_CPU_ARRAY[room.name] ? (_.round(average(ROOM_CPU_ARRAY[room.name]), 1) || '0.0') : '0.0';
+            const cpuArr = global.ROOM_CPU_ARRAY || {};
+            const avgCpu = cpuArr[room.name] ? (_.round(average(cpuArr[room.name]), 1) || '0.0') : '0.0';
             const lowPowerText = room.memory.noRemote ? '<font color="#FF4500">*</font>' : ' ';
 
             let progress = ((room.controller.progress / room.controller.progressTotal) * 100).toFixed(1) + "%";
@@ -162,12 +163,14 @@ module.exports.status = function () {
         // DIPLOMACY & HARASSMENT
         // -------------------------
         const activeHarassers = _.filter(Game.creeps, c => c.memory && c.memory.operation === 'harass');
-        if (activeHarassers.length > 0 || (ENEMIES && ENEMIES.length > 0)) {
+        const enemies = global.ENEMIES || [];
+        const warTargets = global.WAR_TARGETS || [];
+        if (activeHarassers.length > 0 || (enemies.length > 0)) {
             log.a('---------------------------- DIPLOMACY & COMBAT ---------------------------', ' ');
-            if (WAR_TARGETS && WAR_TARGETS.length > 0) {
-                log.a(`⚔️ War Targets: <font color="#FF4500">${WAR_TARGETS.map(t => t.user).join(", ")}</font>`, ' ');
-            } else if (ENEMIES && ENEMIES.length > 0) {
-                log.a(`⚔️ Hostile Empires: <font color="#FF4500">${ENEMIES.join(", ")}</font>`, ' ');
+            if (warTargets.length > 0) {
+                log.a(`⚔️ War Targets: <font color="#FF4500">${warTargets.map(t => t.user).join(", ")}</font>`, ' ');
+            } else if (enemies.length > 0) {
+                log.a(`⚔️ Hostile Empires: <font color="#FF4500">${enemies.join(", ")}</font>`, ' ');
             }
             if (activeHarassers.length > 0) {
                 const targetRooms = _.uniq(activeHarassers.map(c => c.memory.targetRoom || c.memory.destination).filter(Boolean)).join(", ");

@@ -183,6 +183,7 @@ let globals = function () {
     // Set some diplo stuff
     global.ENEMIES = [];
     global.THREATS = [];
+    global.WAR_TARGETS = [];
     global.MY_ROOMS = [];
     global.FRIENDLIES = [];
 

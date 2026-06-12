@@ -36,7 +36,7 @@ function getLoadedNukers() {
     const launchers = [];
     for (const name of MY_ROOMS) {
         const room = Game.rooms[name];
-        if (!room || room.level < 8 || !room.memory.combatReady) continue;
+        if (!room || room.level < 8) continue;
         const nuker = room.nuker;
         if (!nuker || nuker.cooldown) continue;
         if (nuker.store.getFreeCapacity(RESOURCE_ENERGY) || nuker.store.getFreeCapacity(RESOURCE_GHODIUM)) continue;
