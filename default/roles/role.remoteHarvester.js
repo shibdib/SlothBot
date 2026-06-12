@@ -146,7 +146,7 @@ function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
     creep.memory.other.haulingRoads = roadsBuilt;
     // Total carry capacity (energy units) to clear one round-trip backlog. score ≈ one-way
     // path cost; round trip ≈ 2×score ticks of production at actualRate.
-    const roundTripBuffer = roadsBuilt ? 1.15 : 1.35;
+    const roundTripBuffer = roadsBuilt ? 1.25 : 1.4;
     creep.memory.other.haulingRequired = actualRate * sourceInfo.score * 2 * roundTripBuffer;
 }
 
