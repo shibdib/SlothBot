@@ -13,7 +13,7 @@ function miscCreepQueue(room) {
     if (!spawnState.throttleReady(spawnState.miscTick, room.name, 12)) return;
 
     if (room.storage && (room.terminal || room.factory)) {
-        queueCreepIfNeeded({room, role: 'labTech', priority: PRIORITIES.miscHauler, numberNeeded: 1});
+        queueCreepIfNeeded({room, role: 'labTech', priority: PRIORITIES.hauler + 1, numberNeeded: 1});
     }
 
     if (room.level >= MAX_LEVEL - 1 && room.level >= 4) {

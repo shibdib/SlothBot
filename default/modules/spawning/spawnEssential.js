@@ -138,7 +138,9 @@ function essentialCreepQueue(room) {
     }
 
     let upgraderAmount = 1;
-    if (room.controller.level < 8 && room.energyState) {
+    if (room.controller.level === 8) {
+        upgraderAmount = 1;
+    } else if (room.energyState) {
         let container = Game.getObjectById(room.memory.controllerContainer);
         if (container && room.energyState && room.controller.level < 8) {
             const trend = (energyInfo && energyInfo.trend) || 0;
@@ -151,11 +153,6 @@ function essentialCreepQueue(room) {
         if (room.level >= 7) upgraderAmount = Math.min(upgraderAmount, 2);
         if (earlyRush && harvesterCount && room.energyState >= 2 && (energyInfo && (energyInfo.trend || 0) >= 0)) {
             upgraderAmount = Math.max(upgraderAmount, 2);
-        }
-    } else if (room.controller.level === 8) {
-        upgraderAmount = 1;
-        if (room.energyState >= 3 && spareIncome > 8) {
-            upgraderAmount = Math.min(3, Math.max(1, Math.floor(spareIncome / 15)));
         }
     }
     const fastTrack = (room.energyState > 1 && room.storage && trendOk) ||

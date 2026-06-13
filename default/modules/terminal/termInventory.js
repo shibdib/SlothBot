@@ -16,6 +16,25 @@ const {getDerivedCommodityAmount} = require('termCache');
 
 const TerminalControl = require('termClass');
 
+function getRoomKeepAmount(room, resource) {
+    if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) return 0;
+    if (ALL_COMMODITIES.includes(resource) && !COMPRESSED_COMMODITIES.includes(resource)) {
+        if (room.memory.neededCommodity === resource) return REACTION_AMOUNT;
+        if (state.needsCommodities[room.name] === resource) return REACTION_AMOUNT;
+        if (room.memory.commodityProduction) {
+            const comm = COMMODITIES[room.memory.commodityProduction];
+            if (comm && comm.components && comm.components[resource]) return REACTION_AMOUNT;
+        }
+        return 0;
+    }
+    if (ALL_BOOSTS.includes(resource)) return BOOST_AMOUNT(room, resource);
+    if (resource === RESOURCE_BATTERY) return 1000;
+    if (room.memory.commodityProduction && room.mineral && room.mineral.mineralType === resource) return REACTION_AMOUNT * 2;
+    if (BASE_MINERALS.includes(resource)) return REACTION_AMOUNT;
+    if (COMPRESSED_COMMODITIES.includes(resource)) return 1000;
+    if (resource === RESOURCE_GHODIUM) return BOOST_AMOUNT(room, resource);
+    return REACTION_AMOUNT;
+}
 
 Object.assign(TerminalControl.prototype, {
 
@@ -66,26 +85,9 @@ Object.assign(TerminalControl.prototype, {
         }
         return this.canSellSurplusEnergy(terminal);
     }, determineKeepAmount(resource) {
-        // Dynamically determine keepAmount based on resource type
-        if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) {
-            return 0;
-        }
-        if (ALL_COMMODITIES.includes(resource) && !COMPRESSED_COMMODITIES.includes(resource)) {
-            if (this.room.memory.neededCommodity === resource) return REACTION_AMOUNT;
-            if (state.needsCommodities[this.room.name] === resource) return REACTION_AMOUNT;
-            if (this.room.memory.commodityProduction) {
-                const comm = COMMODITIES[this.room.memory.commodityProduction];
-                if (comm && comm.components && comm.components[resource]) return REACTION_AMOUNT;
-            }
-            return 0;
-        }
-        if (ALL_BOOSTS.includes(resource)) return BOOST_AMOUNT(this.room, resource);
-        if (resource === RESOURCE_BATTERY) return 1000;
-        if (this.room.commodityProduction && this.room.mineral.mineralType === resource) return REACTION_AMOUNT * 2;
-        if (BASE_MINERALS.includes(resource)) return REACTION_AMOUNT;
-        if (COMPRESSED_COMMODITIES.includes(resource)) return 1000;
-        if (resource === RESOURCE_GHODIUM) return BOOST_AMOUNT(this.room, resource);
-        return REACTION_AMOUNT; // Default reaction amount
+        return getRoomKeepAmount(this.room, resource);
     }
 
 });
+
+module.exports.getRoomKeepAmount = getRoomKeepAmount;

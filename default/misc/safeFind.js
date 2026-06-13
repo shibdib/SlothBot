@@ -1,7 +1,8 @@
 /*
  * Intercept structure-related room.find / findInRange / lookFor calls so the
  * Screeps driver never rebuilds FIND caches over corrupt owner refs (common on
- * private servers after downgrade). All call sites are covered — no per-file hunt needed.
+ * private servers after downgrade). Healthy rooms use native find; only rooms
+ * flagged in Memory._corruptFindRooms take the safe (cached Game.*) path.
  */
 
 function structureFilterMatch(s, filter) {
@@ -32,7 +33,7 @@ function nativeRoomFind(room, type, opts) {
         return room.__nativeFind(type, opts);
     } catch (e) {
         if (global.reportCorruptFind) global.reportCorruptFind(room.name, type, e);
-        return [];
+        return null;
     }
 }
 
@@ -64,9 +65,22 @@ function safeRoomFind(room, type, opts) {
                 !safeConstructionSiteMy(s) && structureFilterMatch(s, filter)
             );
         case FIND_RUINS:
-            return nativeRoomFind(room, FIND_RUINS, opts).filter(r => structureFilterMatch(r, filter));
+            return (nativeRoomFind(room, FIND_RUINS, opts) || []).filter(r => structureFilterMatch(r, filter));
         default:
             return nativeRoomFind(room, type, opts);
+    }
+}
+
+function roomFind(room, type, opts) {
+    if (!global.roomNeedsSafeFind(room)) {
+        const result = nativeRoomFind(room, type, opts);
+        if (result !== null) return result;
+    }
+    try {
+        return safeRoomFind(room, type, opts) || [];
+    } catch (e) {
+        if (global.reportCorruptFind) global.reportCorruptFind(room.name, type, e);
+        return [];
     }
 }
 
@@ -83,30 +97,26 @@ const UNSAFE_FIND_TYPES = new Set([
 ]);
 
 function structuresAt(pos) {
-    const room = Game.rooms[pos.roomName];
-    if (!room) return [];
-    return global.roomStructuresFromGame(room).filter(s => s.pos.x === pos.x && s.pos.y === pos.y);
+    return global.roomStructuresFromGame(Game.rooms[pos.roomName]).filter(s => s.pos.x === pos.x && s.pos.y === pos.y);
 }
 
 function constructionSitesAt(pos) {
-    const room = Game.rooms[pos.roomName];
-    if (!room) return [];
-    return global.roomConstructionSitesFromGame(room).filter(s => s.pos.x === pos.x && s.pos.y === pos.y);
+    return global.roomConstructionSitesFromGame(Game.rooms[pos.roomName]).filter(s => s.pos.x === pos.x && s.pos.y === pos.y);
+}
+
+function safeLookFor(pos, type) {
+    if (type === LOOK_STRUCTURES) return structuresAt(pos);
+    if (type === LOOK_CONSTRUCTION_SITES) return constructionSitesAt(pos);
+    return pos.__nativeLookFor(type);
 }
 
 function installSafeFindPatches() {
     if (!Room.prototype.__nativeFind) {
         Room.prototype.__nativeFind = Room.prototype.find;
         Room.prototype.find = function (type, opts) {
-            if (UNSAFE_FIND_TYPES.has(type)) {
-                try {
-                    return safeRoomFind(this, type, opts);
-                } catch (e) {
-                    if (global.reportCorruptFind) global.reportCorruptFind(this.name, type, e);
-                    return [];
-                }
-            }
-            return nativeRoomFind(this, type, opts);
+            if (UNSAFE_FIND_TYPES.has(type)) return roomFind(this, type, opts);
+            const result = nativeRoomFind(this, type, opts);
+            return result === null ? [] : result;
         };
     }
 
@@ -116,8 +126,15 @@ function installSafeFindPatches() {
             if (UNSAFE_FIND_TYPES.has(type)) {
                 const room = Game.rooms[this.roomName];
                 if (!room) return [];
+                if (!global.roomNeedsSafeFind(room)) {
+                    try {
+                        return this.__nativeFindInRange(type, range, opts);
+                    } catch (e) {
+                        if (global.reportCorruptFind) global.reportCorruptFind(this.roomName, type, e);
+                    }
+                }
                 try {
-                    return safeRoomFind(room, type, opts).filter(o => this.getRangeTo(o) <= range);
+                    return roomFind(room, type, opts).filter(o => this.getRangeTo(o) <= range);
                 } catch (e) {
                     if (global.reportCorruptFind) global.reportCorruptFind(this.roomName, type, e);
                     return [];
@@ -139,7 +156,7 @@ function installSafeFindPatches() {
                 const room = Game.rooms[this.roomName];
                 if (!room) return null;
                 try {
-                    const list = safeRoomFind(room, targets, opts);
+                    const list = roomFind(room, targets, opts);
                     return list.length ? this.__nativeFindClosestByRange(list) : null;
                 } catch (e) {
                     if (global.reportCorruptFind) global.reportCorruptFind(this.roomName, targets, e);
@@ -162,7 +179,7 @@ function installSafeFindPatches() {
                 const room = Game.rooms[this.roomName];
                 if (!room) return null;
                 try {
-                    const list = safeRoomFind(room, targets, opts);
+                    const list = roomFind(room, targets, opts);
                     return list.length ? this.__nativeFindClosestByPath(list, opts) : null;
                 } catch (e) {
                     if (global.reportCorruptFind) global.reportCorruptFind(this.roomName, targets, e);
@@ -181,10 +198,24 @@ function installSafeFindPatches() {
     if (!RoomPosition.prototype.__nativeLookFor) {
         RoomPosition.prototype.__nativeLookFor = RoomPosition.prototype.lookFor;
         RoomPosition.prototype.lookFor = function (type) {
+            if (type !== LOOK_STRUCTURES && type !== LOOK_CONSTRUCTION_SITES) {
+                try {
+                    return this.__nativeLookFor(type);
+                } catch (e) {
+                    if (global.reportCorruptFind) global.reportCorruptFind(this.roomName, type, e);
+                    return [];
+                }
+            }
+            const room = Game.rooms[this.roomName];
+            if (room && !global.roomNeedsSafeFind(room)) {
+                try {
+                    return this.__nativeLookFor(type);
+                } catch (e) {
+                    if (global.reportCorruptFind) global.reportCorruptFind(this.roomName, type, e);
+                }
+            }
             try {
-                if (type === LOOK_STRUCTURES) return structuresAt(this);
-                if (type === LOOK_CONSTRUCTION_SITES) return constructionSitesAt(this);
-                return this.__nativeLookFor(type);
+                return safeLookFor(this, type);
             } catch (e) {
                 if (global.reportCorruptFind) global.reportCorruptFind(this.roomName, type, e);
                 return [];

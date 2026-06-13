@@ -85,28 +85,53 @@ let globals = function () {
         }
     };
 
-    // Avoid room.find(FIND_STRUCTURES) — the driver rebuilds FIND caches and can throw on
-    // corrupt owner refs in downgraded rooms before our code gets a chance to catch it.
-    global.roomStructuresFromGame = function (room) {
-        if (!room) return [];
-        const out = [];
-        const roomName = room.name;
+    let structureRoomCacheTick = -1;
+    let structureRoomCache = Object.create(null);
+    let constructionSiteRoomCache = Object.create(null);
+
+    global.invalidateStructureRoomCaches = function () {
+        structureRoomCacheTick = -1;
+        structureRoomCache = Object.create(null);
+        constructionSiteRoomCache = Object.create(null);
+    };
+
+    global.ensureStructureRoomCaches = function () {
+        if (structureRoomCacheTick === Game.time) return;
+        structureRoomCacheTick = Game.time;
+        structureRoomCache = Object.create(null);
+        constructionSiteRoomCache = Object.create(null);
         for (const id in Game.structures) {
             const s = Game.structures[id];
-            if (s && s.pos && s.pos.roomName === roomName) out.push(s);
+            if (!s || !s.pos) continue;
+            const roomName = s.pos.roomName;
+            if (!structureRoomCache[roomName]) structureRoomCache[roomName] = [];
+            structureRoomCache[roomName].push(s);
         }
-        return out;
+        for (const id in Game.constructionSites) {
+            const s = Game.constructionSites[id];
+            if (!s || !s.pos) continue;
+            const roomName = s.pos.roomName;
+            if (!constructionSiteRoomCache[roomName]) constructionSiteRoomCache[roomName] = [];
+            constructionSiteRoomCache[roomName].push(s);
+        }
+    };
+
+    global.roomNeedsSafeFind = function (room) {
+        if (!room) return true;
+        return !!(Memory._corruptFindRooms && Memory._corruptFindRooms[room.name]);
+    };
+
+    // Safe substitute for room.find(FIND_STRUCTURES) on corrupt rooms — one empire scan per tick.
+    global.roomStructuresFromGame = function (room) {
+        if (!room) return [];
+        global.ensureStructureRoomCaches();
+        return structureRoomCache[room.name] || [];
     };
 
     global.roomConstructionSitesFromGame = function (room) {
         if (!room) return [];
-        const out = [];
-        const roomName = room.name;
-        for (const id in Game.constructionSites) {
-            const s = Game.constructionSites[id];
-            if (s && s.pos && s.pos.roomName === roomName) out.push(s);
-        }
-        return out;
+        global.ensureStructureRoomCaches();
+        return constructionSiteRoomCache[room.name] || [];
     };
 
     function structureFilterMatch(s, filter) {
@@ -221,6 +246,8 @@ let globals = function () {
             tryPurgeOwned(s, 'constructionSite', () => s.remove());
         }
         if (purged) {
+            if (global.invalidateStructureRoomCaches) global.invalidateStructureRoomCaches();
+            delete Memory._corruptFindRooms;
             for (const roomName in Game.rooms) {
                 const r = Game.rooms[roomName];
                 r._structures = undefined;

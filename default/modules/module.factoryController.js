@@ -7,14 +7,140 @@ let tickTracker = {};
 let cooldownTracker = {};
 
 const FACTORY_MIN_FREE_SPACE = 50000;
+const BATTERY_FEED_STOCK = 300;
+const FACTORY_BATTERY_MAX = 2500;
+const TERMINAL_BATTERY_SEND_MAX = 2000;
 
 class FactoryControl {
     constructor() {
     }
 
+    static energyTarget(room) {
+        if (!room.controller) return 50000;
+        const upgradeCost = room.level === 8 ? 500000
+            : constructionCost(room.controller.level + 1) - constructionCost(room.controller.level);
+        const progressFraction = room.controller.progress / room.controller.progressTotal;
+        return room.level === 8 ? 500000
+            : Math.max(room.level * 31250, Math.min(Math.round(upgradeCost * progressFraction) * 0.7, STORAGE_CAPACITY * 0.5));
+    }
+
+    static batteryBatchCost() {
+        return COMMODITIES[RESOURCE_ENERGY]?.components[RESOURCE_BATTERY] || 50;
+    }
+
+    static batteryPackCost() {
+        return COMMODITIES[RESOURCE_BATTERY]?.components[RESOURCE_ENERGY] || 600;
+    }
+
+    static needsBatteryUnpack(room) {
+        const batteryCost = FactoryControl.batteryBatchCost();
+        if (room.store(RESOURCE_BATTERY) < batteryCost) return false;
+        const target = FactoryControl.energyTarget(room);
+        const unpackThreshold = Math.min(10000, target * 0.1);
+        return room.rawEnergy < unpackThreshold;
+    }
+
+    static batteryUnpackRecovered(room) {
+        return room.rawEnergy >= FactoryControl.energyTarget(room) * 0.25;
+    }
+
+    static shouldContinueBatteryUnpack(room) {
+        if (room.store(RESOURCE_BATTERY) < FactoryControl.batteryBatchCost()) return false;
+        return !FactoryControl.batteryUnpackRecovered(room);
+    }
+
+    static canExportEnergy(room) {
+        if (!room.terminal) return false;
+        const terminal = room.terminal;
+        const surplus = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
+        if (surplus < 5000) return false;
+        return MY_ROOMS.some(name => {
+            if (name === room.name) return false;
+            const dest = Game.rooms[name];
+            if (!dest?.terminal) return false;
+            if (!FactoryControl.needsBatteryUnpack(dest) && dest.energyState >= 2) return false;
+            const amount = Math.min(surplus, 10000);
+            return Game.market.calcTransactionCost(amount, room.name, name) < amount * 0.25;
+        });
+    }
+
+    static hasEnergyStoragePressure(room) {
+        if (room.storage && room.storage.store.getFreeCapacity(RESOURCE_ENERGY) < STORAGE_CAPACITY * 0.15) return true;
+        const storageFull = room.storage && room.storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1;
+        const terminalFull = room.terminal && room.terminal.store.getFreeCapacity() < 10000;
+        if (!room.storage) return terminalFull;
+        if (!room.terminal) return storageFull;
+        return storageFull && terminalFull;
+    }
+
+    static rawEnergyMeetsPackThreshold(room) {
+        return room.rawEnergy >= FactoryControl.energyTarget(room) * 0.5;
+    }
+
+    static shouldPackBatteries(room) {
+        const packCost = FactoryControl.batteryPackCost();
+        if (!FactoryControl.rawEnergyMeetsPackThreshold(room)) return false;
+        if (room.rawEnergy < packCost) return false;
+        if (!FactoryControl.hasEnergyStoragePressure(room)) return false;
+        if (FactoryControl.canExportEnergy(room)) return false;
+        return true;
+    }
+
+    static factoryNeedsBatteryFeed(room, factory) {
+        if (!factory) return false;
+        try {
+            if (!factory.isActive()) return false;
+        } catch (e) {
+            return false;
+        }
+        if (!FactoryControl.needsBatteryUnpack(room)) return false;
+        return (factory.store[RESOURCE_BATTERY] || 0) < BATTERY_FEED_STOCK;
+    }
+
+    static factoryBatteryInboundNeed(room) {
+        if (!room?.terminal || !FactoryControl.shouldContinueBatteryUnpack(room)) return 0;
+        let need = 0;
+        const factory = room.factory;
+        if (factory) {
+            try {
+                if (factory.isActive()) {
+                    need = Math.max(need, FACTORY_BATTERY_MAX - (factory.store[RESOURCE_BATTERY] || 0));
+                }
+            } catch (e) {
+            }
+        }
+        const terminalBats = room.terminal.store[RESOURCE_BATTERY] || 0;
+        need = Math.max(need, BATTERY_FEED_STOCK - terminalBats);
+        return Math.max(0, need);
+    }
+
+    static roomNeedsBatteryInbound(room) {
+        return FactoryControl.factoryBatteryInboundNeed(room) >= FactoryControl.batteryBatchCost();
+    }
+
+    static terminalBatterySendAmount(surplus, terminalFreeCapacity) {
+        const free = terminalFreeCapacity || TERMINAL_BATTERY_SEND_MAX;
+        return Math.min(surplus, TERMINAL_BATTERY_SEND_MAX, free);
+    }
+
+    _factoryIsActive(factory) {
+        try {
+            return factory.isActive();
+        } catch (e) {
+            return false;
+        }
+    }
+
+    _factoryHasOutputSpace(factory, resource) {
+        const commodity = COMMODITIES[resource];
+        if (!commodity) return false;
+        const outputAmount = commodity.amount || 1;
+        return factory.store.getFreeCapacity(resource) >= outputAmount;
+    }
+
     run(room) {
         const factory = room.factory;
-        if (!factory || !factory.isActive() || room.nukes.length) return;
+        if (!factory || !this._factoryIsActive(factory) || room.nukes.length) return;
 
         const currentTime = Game.time;
         const factoryLevel = factory.level || 0;
@@ -78,6 +204,10 @@ class FactoryControl {
             const commodity = COMMODITIES[factory.memory.producing];
             // Confirm inputs are actually loaded into the factory store before calling produce
             if (!Object.keys(commodity.components).every(c => (factory.store[c] || 0) >= commodity.components[c])) {
+                cooldownTracker[room.name] = 3;
+                return;
+            }
+            if (!this._factoryHasOutputSpace(factory, factory.memory.producing)) {
                 cooldownTracker[room.name] = 3;
                 return;
             }
@@ -148,13 +278,13 @@ class FactoryControl {
         const batteryStored = room.store(RESOURCE_BATTERY);
         const batteryCost = commodity.components[RESOURCE_BATTERY] || 0;
 
-        if (producing === RESOURCE_BATTERY && room.energyState < 2) {
-            log.i(`${roomLink(room.name)} stopping battery production — low energy.`, 'FACTORY CONTROL:');
+        if (producing === RESOURCE_BATTERY && !FactoryControl.shouldPackBatteries(room)) {
+            log.i(`${roomLink(room.name)} stopping battery production — pack no longer needed.`, 'FACTORY CONTROL:');
             return true;
         }
         if (producing === RESOURCE_ENERGY) {
-            if (room.energyState > 1) {
-                log.i(`${roomLink(room.name)} stopping battery→energy — energy restored.`, 'FACTORY CONTROL:');
+            if (FactoryControl.batteryUnpackRecovered(room)) {
+                log.i(`${roomLink(room.name)} stopping battery→energy — usable energy restored.`, 'FACTORY CONTROL:');
                 return true;
             }
             if (batteryStored < batteryCost) {
@@ -188,19 +318,17 @@ class FactoryControl {
     }
 
     decideProduction(room, factory, factoryLevel) {
-        const batteryStored = room.store(RESOURCE_BATTERY);
-        const batteryCost = COMMODITIES[RESOURCE_ENERGY].components[RESOURCE_BATTERY] || 50;
         const opsPaused = empireOpsPaused();
 
-        // Convert batteries to energy if energy is low and batteries are available
-        if (!room.energyState && batteryStored >= batteryCost) {
-            this.setProduction(factory, RESOURCE_ENERGY, 'low energy');
+        // Unpack until usable energy recovers (25% target); start threshold is 10% via shouldContinue
+        if (FactoryControl.shouldContinueBatteryUnpack(room)) {
+            this.setProduction(factory, RESOURCE_ENERGY, 'low usable energy');
             return;
         }
 
-        // Make batteries if energy surplus and storage is filling up
-        if (room.energyState > 1 && !this.hasStorageSpace(room)) {
-            this.setProduction(factory, RESOURCE_BATTERY, 'storage full');
+        // Pack when energy is overflowing locally and cannot be sent elsewhere
+        if (FactoryControl.shouldPackBatteries(room)) {
+            this.setProduction(factory, RESOURCE_BATTERY, 'energy overflow');
             return;
         }
 
@@ -247,11 +375,10 @@ class FactoryControl {
             if (!commodity) return;
             // Build intermediate components (factory.produce must target the component resource)
             for (const component of Object.keys(commodity.components)) {
+                if (!this.isValidProductionTarget(component, room, factoryLevel)) continue;
                 if (BASE_COMMODITIES.includes(component)) room.memory.neededCommodity = component;
-                if (this.isValidProductionTarget(component, room, factoryLevel)) {
-                    this.setProduction(factory, component, `component for ${assigned}`);
-                    return;
-                }
+                this.setProduction(factory, component, `component for ${assigned}`);
+                return;
             }
         }
     }
@@ -263,8 +390,11 @@ class FactoryControl {
         if (!room.memory.commodityProduction) {
             for (const commodity in COMMODITY_RESOURCE_TYPES) {
                 const alreadyProducing = MY_ROOMS.some(name => {
+                    if (name === room.name) return false;
                     const otherRoom = Game.rooms[name];
-                    return otherRoom && otherRoom.memory.commodityProduction === commodity;
+                    if (!otherRoom || otherRoom.memory.commodityProduction !== commodity) return false;
+                    const otherFactory = otherRoom.factory;
+                    return otherFactory && this._factoryIsActive(otherFactory);
                 });
                 if (alreadyProducing) continue;
                 if (COMMODITY_RESOURCE_TYPES[commodity] === roomResource) {
@@ -283,12 +413,11 @@ class FactoryControl {
 
         // Validate battery↔energy conversions against their specific inputs
         if (resource === RESOURCE_ENERGY) {
-            const needed = commodity.components[RESOURCE_BATTERY] || 50;
-            return room.store(RESOURCE_BATTERY) >= needed;
+            return FactoryControl.shouldContinueBatteryUnpack(room);
         }
         if (resource === RESOURCE_BATTERY) {
-            const needed = commodity.components[RESOURCE_ENERGY] || 600;
-            return room.energyState >= 2 && room.store(RESOURCE_ENERGY, true) >= needed;
+            const needed = FactoryControl.batteryPackCost();
+            return FactoryControl.shouldPackBatteries(room) && room.rawEnergy >= needed;
         }
 
         const threshold = BASE_MINERALS.includes(resource) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
@@ -315,4 +444,7 @@ class FactoryControl {
 }
 
 profiler.registerClass(FactoryControl, 'FactoryControl');
+FactoryControl.BATTERY_FEED_STOCK = BATTERY_FEED_STOCK;
+FactoryControl.FACTORY_BATTERY_MAX = FACTORY_BATTERY_MAX;
+FactoryControl.TERMINAL_BATTERY_SEND_MAX = TERMINAL_BATTERY_SEND_MAX;
 module.exports = FactoryControl;

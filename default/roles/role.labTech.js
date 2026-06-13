@@ -4,6 +4,19 @@
 
 const profiler = require("tools.profiler");
 const {empireOpsPaused} = require('hcReadiness');
+const FactoryControl = require('module.factoryController');
+const {getRoomKeepAmount} = require('termInventory');
+
+const BALANCE_MIN_TRANSFER = 100;
+const STORAGE_ENERGY_RESERVE = 25000;
+const BALANCE_KEEP_HYSTERESIS = 500;
+const TERMINAL_ENERGY_LOW = TERMINAL_ENERGY_BUFFER - 5000;
+const TERMINAL_ENERGY_HIGH = TERMINAL_ENERGY_BUFFER + 10000;
+const BATTERY_TERMINAL_SOFT_CAP = 2000;
+const OVERFLOW_FREE_THRESHOLD = 2000;
+const TERMINAL_EXPORT_CEILING = 5000;
+const BALANCE_DIRECTION_COOLDOWN = 50;
+
 
 class RoleLabTech {
     constructor(creep) {
@@ -89,6 +102,12 @@ class RoleLabTech {
             }
         }
 
+        // -- PRIORITY 1: FACTORY BATTERY FEED (full loads, leave room for unpack output) --
+        if (factory && FactoryControl.shouldContinueBatteryUnpack(this.room)) {
+            const batteryTask = this.findFactoryBatterySupply(factory, storage, terminal);
+            if (batteryTask) return batteryTask;
+        }
+
         // -- PRIORITY 1: URGENT BALANCING STORAGE & TERMINAL --
         let balancingTask = this.findBalancingTask(storage, terminal, 1000);
         if (balancingTask) return balancingTask;
@@ -126,9 +145,12 @@ class RoleLabTech {
         }
         if (factory && factory.store.getUsedCapacity() > 0) {
             for (const res in factory.store) {
+                if (res === RESOURCE_BATTERY && FactoryControl.shouldContinueBatteryUnpack(this.room)) continue;
                 if (factory.memory.producing && COMMODITIES[factory.memory.producing] && COMMODITIES[factory.memory.producing].components[res]) continue;
                 if (factory.memory.producing === res && factory.store[res] < 5000) continue;
-                return {withdrawTarget: factory.id, deliveryTarget: (terminal || storage).id, resource: res};
+                const dumpTarget = this.pickFactoryClogTarget(res, storage, terminal);
+                if (!dumpTarget) continue;
+                return {withdrawTarget: factory.id, deliveryTarget: dumpTarget.id, resource: res};
             }
         }
 
@@ -174,17 +196,24 @@ class RoleLabTech {
         if (factory && factory.memory.producing) {
             const commodity = COMMODITIES[factory.memory.producing];
             if (commodity) {
-                for (const [component, required] of Object.entries(commodity.components)) {
-                    const inFactory = factory.store[component] || 0;
-                    const target = required * 10; // keep ~10 runs worth in the factory
-                    if (inFactory >= target) continue;
+                const components = Object.entries(commodity.components).sort((a, b) => {
+                    if (a[0] === RESOURCE_BATTERY) return -1;
+                    if (b[0] === RESOURCE_BATTERY) return 1;
+                    return 0;
+                });
+                for (const [component] of components) {
+                    if (component === RESOURCE_BATTERY && !this.shouldFeedFactoryBatteries(factory)) continue;
                     const supplier = [storage, terminal].find(s => s && s.store[component] > 0);
-                    if (supplier) return {
-                        withdrawTarget: supplier.id,
-                        deliveryTarget: factory.id,
-                        resource: component,
-                        amount: Math.min(target - inFactory, factory.store.getFreeCapacity())
-                    };
+                    if (!supplier) continue;
+                    const amount = this.getFactorySupplyAmount(factory, component, supplier);
+                    if (amount > 0) {
+                        return {
+                            withdrawTarget: supplier.id,
+                            deliveryTarget: factory.id,
+                            resource: component,
+                            amount
+                        };
+                    }
                 }
             }
         }
@@ -228,60 +257,419 @@ class RoleLabTech {
         return null;
     }
 
-    findBalancingTask(storage, terminal, trigger = Infinity) {
-        if (!storage || !terminal) return null;
+    shouldFeedFactoryBatteries(factory) {
+        return (factory.store[RESOURCE_BATTERY] || 0) < FactoryControl.FACTORY_BATTERY_MAX;
+    }
 
-        const terminalFree = terminal.store.getFreeCapacity();
-        const storageFree = storage.store.getFreeCapacity();
-        if (terminalFree > trigger || storageFree > trigger) return null;
-        const myOrders = Game.market.orders;
+    findFactoryBatterySupply(factory, storage, terminal) {
+        if (!this.shouldFeedFactoryBatteries(factory)) return null;
+        const batchCost = FactoryControl.batteryBatchCost();
+        const supplier = [storage, terminal].find(s => s && s.store[RESOURCE_BATTERY] >= batchCost);
+        if (!supplier) return null;
+        const amount = this.getFactorySupplyAmount(factory, RESOURCE_BATTERY, supplier);
+        if (amount < batchCost) return null;
+        return {
+            withdrawTarget: supplier.id,
+            deliveryTarget: factory.id,
+            resource: RESOURCE_BATTERY,
+            amount
+        };
+    }
 
-        // -- STORAGE -> TERMINAL (terminal is primary holder of distributable resources) --
-        if (terminalFree > 5000) {
-            // Ensure energy buffer for sending
-            if (terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER && storage.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER * 2) {
-                return {
-                    withdrawTarget: storage.id,
-                    deliveryTarget: terminal.id,
-                    resource: RESOURCE_ENERGY,
-                    amount: TERMINAL_ENERGY_BUFFER - terminal.store[RESOURCE_ENERGY]
-                };
+    getFactorySupplyAmount(factory, resource, supplier) {
+        const creepFree = this.creep.store.getFreeCapacity(resource) || this.creep.store.getFreeCapacity();
+        const available = supplier.store[resource] || 0;
+        if (!creepFree || !available) return 0;
+
+        if (resource === RESOURCE_BATTERY && (factory.memory.producing === RESOURCE_ENERGY
+            || FactoryControl.shouldContinueBatteryUnpack(this.room))) {
+            const batchCost = FactoryControl.batteryBatchCost();
+            const outputRoom = COMMODITIES[RESOURCE_ENERGY]?.amount || 600;
+            const loadCap = Math.min(
+                factory.store.getFreeCapacity(RESOURCE_BATTERY),
+                factory.store.getFreeCapacity() - outputRoom
+            );
+            if (loadCap < batchCost) return 0;
+            return Math.min(creepFree, available, loadCap);
+        }
+
+        if (resource === RESOURCE_ENERGY && factory.memory.producing === RESOURCE_BATTERY) {
+            const outputRoom = COMMODITIES[RESOURCE_BATTERY]?.amount || 50;
+            const loadCap = Math.min(
+                factory.store.getFreeCapacity(RESOURCE_ENERGY),
+                factory.store.getFreeCapacity() - outputRoom
+            );
+            if (loadCap < FactoryControl.batteryPackCost()) return 0;
+            const commodity = COMMODITIES[RESOURCE_BATTERY];
+            const required = commodity?.components[RESOURCE_ENERGY] || 600;
+            const inFactory = factory.store[RESOURCE_ENERGY] || 0;
+            const target = required * 10;
+            if (inFactory >= target) return 0;
+            return Math.min(target - inFactory, available, creepFree, loadCap);
+        }
+
+        const commodity = factory.memory.producing && COMMODITIES[factory.memory.producing];
+        const required = commodity?.components[resource];
+        if (!required) return 0;
+        const inFactory = factory.store[resource] || 0;
+        const target = required * 10;
+        if (inFactory >= target) return 0;
+        return Math.min(target - inFactory, available, creepFree, factory.store.getFreeCapacity());
+    }
+
+    getKeepAmount(resource) {
+        return getRoomKeepAmount(this.room, resource);
+    }
+
+    getSellOrderTerminalTarget(resource) {
+        let target = 0;
+        for (const id in Game.market.orders) {
+            const order = Game.market.orders[id];
+            if (order.roomName !== this.room.name || order.type !== ORDER_SELL || order.resourceType !== resource) continue;
+            target = Math.max(target, Math.min(order.remainingAmount, REACTION_AMOUNT));
+        }
+        return target;
+    }
+
+    getTerminalRetainFloor(resource) {
+        const keep = this.getKeepAmount(resource);
+        if (!keep) return 0;
+        return Math.max(keep + BALANCE_KEEP_HYSTERESIS, this.getSellOrderTerminalTarget(resource));
+    }
+
+    isStructureCongested(structure) {
+        return structure && structure.store.getFreeCapacity() <= OVERFLOW_FREE_THRESHOLD;
+    }
+
+    getStorageRetainTarget(resource) {
+        const keep = this.getKeepAmount(resource);
+        const feedTarget = this.getStorageFeedTarget(resource);
+        return Math.max(keep, feedTarget, keep ? keep * 1.5 : 0);
+    }
+
+    getTerminalDrainSurplus(terminal, resource, emergency = false) {
+        const amount = terminal.store[resource] || 0;
+        if (!amount) return 0;
+        if (emergency) {
+            const keep = this.getKeepAmount(resource);
+            return keep ? Math.max(0, amount - keep) : amount;
+        }
+        return this.getTerminalSurplus(terminal, resource);
+    }
+
+    getTerminalSurplus(structure, resource) {
+        const floor = this.getTerminalRetainFloor(resource);
+        if (!floor) return 0;
+        return (structure.store[resource] || 0) - floor;
+    }
+
+    getTerminalShortfall(structure, resource) {
+        const keep = this.getKeepAmount(resource);
+        if (!keep) return 0;
+        const sellTarget = this.getSellOrderTerminalTarget(resource);
+        if (sellTarget) return 0;
+        return keep - BALANCE_KEEP_HYSTERESIS - (structure.store[resource] || 0);
+    }
+
+    allowsBatteryStorageTerminalTransfer() {
+        return false;
+    }
+
+    pickFactoryClogTarget(resource, storage, terminal) {
+        if (resource !== RESOURCE_BATTERY) return terminal || storage;
+        const terminalBats = terminal?.store[RESOURCE_BATTERY] || 0;
+        const cap = Math.max(this.getKeepAmount(RESOURCE_BATTERY) * 2, BATTERY_TERMINAL_SOFT_CAP);
+        if (storage && storage.store.getFreeCapacity() > 0) return storage;
+        if (terminal && terminal.store.getFreeCapacity(RESOURCE_BATTERY) > 0 && terminalBats < cap) return terminal;
+        return storage || terminal;
+    }
+
+    getStorageFeedTarget(resource) {
+        const factory = this.room.factory;
+        if (factory && factory.memory.producing) {
+            const commodity = COMMODITIES[factory.memory.producing];
+            if (commodity && commodity.components[resource]) {
+                return commodity.components[resource] * 10;
             }
+        }
+        if (resource === RESOURCE_BATTERY && factory && FactoryControl.shouldContinueBatteryUnpack(this.room)) {
+            return FactoryControl.BATTERY_FEED_STOCK;
+        }
+        if (resource === RESOURCE_ENERGY && FactoryControl.shouldContinueBatteryUnpack(this.room)) {
+            return 5000;
+        }
+        return 0;
+    }
 
-            // Sell orders: ensure terminal has what's needed
-            for (const id in myOrders) {
-                const order = myOrders[id];
-                if (order.roomName !== this.room.name || order.type !== ORDER_SELL) continue;
-                const res = order.resourceType;
-                const amountNeeded = Math.min(order.remainingAmount, 10000) - (terminal.store[res] || 0);
-                if (amountNeeded > 500 && storage.store[res] > 0) {
-                    return {
-                        withdrawTarget: storage.id,
-                        deliveryTarget: terminal.id,
-                        resource: res,
-                        amount: Math.min(amountNeeded, storage.store[res], terminalFree)
-                    };
-                }
+    isStorageTerminalShuffle(withdrawTarget, deliveryTarget) {
+        if (!withdrawTarget || !deliveryTarget) return false;
+        const pair = [withdrawTarget.structureType, deliveryTarget.structureType];
+        return (pair[0] === STRUCTURE_TERMINAL && pair[1] === STRUCTURE_STORAGE)
+            || (pair[0] === STRUCTURE_STORAGE && pair[1] === STRUCTURE_TERMINAL);
+    }
+
+    isBalanceDirectionBlocked(resource, terminalToStorage) {
+        const lock = this.room.memory._labTechBalance?.[resource];
+        if (!lock || lock.tick + BALANCE_DIRECTION_COOLDOWN < Game.time) return false;
+        return lock.terminalToStorage !== terminalToStorage;
+    }
+
+    setBalanceDirectionLock(resource, terminalToStorage) {
+        if (!this.room.memory._labTechBalance) this.room.memory._labTechBalance = {};
+        this.room.memory._labTechBalance[resource] = {terminalToStorage, tick: Game.time};
+    }
+
+    makeBalanceTask(withdrawTarget, deliveryTarget, resource, amount) {
+        if (!withdrawTarget || !deliveryTarget || amount < BALANCE_MIN_TRANSFER) return null;
+        const available = withdrawTarget.store[resource] || 0;
+        const free = deliveryTarget.store.getFreeCapacity(resource);
+        if (!available || free <= 0) return null;
+        amount = Math.min(amount, available, free);
+        if (amount < BALANCE_MIN_TRANSFER) return null;
+
+        if (this.isStorageTerminalShuffle(withdrawTarget, deliveryTarget)) {
+            const storage = this.room.storage;
+            const terminal = this.room.terminal;
+            if (storage && terminal && this.isStructureCongested(storage) && this.isStructureCongested(terminal)) {
+                return null;
             }
+            const terminalToStorage = withdrawTarget.structureType === STRUCTURE_TERMINAL;
+            if (this.isBalanceDirectionBlocked(resource, terminalToStorage)) return null;
+            this.setBalanceDirectionLock(resource, terminalToStorage);
+        }
 
-            // Fill terminal from storage — terminal holds distributable resources first
-            // base minerals target 2000 for inter-room distribution; everything else 1000
-            for (const res of Object.keys(storage.store)) {
-                if (res === RESOURCE_ENERGY) continue;
-                const terminalHas = terminal.store[res] || 0;
-                const target = BASE_MINERALS.includes(res) ? 2000 : 1000;
-                if (terminalHas < target && storage.store[res] > 0) {
-                    return {
-                        withdrawTarget: storage.id,
-                        deliveryTarget: terminal.id,
-                        resource: res,
-                        amount: Math.min(target - terminalHas, storage.store[res], terminalFree)
-                    };
-                }
+        return {withdrawTarget: withdrawTarget.id, deliveryTarget: deliveryTarget.id, resource, amount};
+    }
+
+    findFactoryStorageBalance(storage, terminal) {
+        const factory = this.room.factory;
+        if (!factory) return null;
+
+        if (!factory.memory.producing) return null;
+
+        const commodity = COMMODITIES[factory.memory.producing];
+        if (!commodity) return null;
+
+        const components = Object.keys(commodity.components).sort((a, b) => {
+            if (a === RESOURCE_BATTERY) return -1;
+            if (b === RESOURCE_BATTERY) return 1;
+            if (a === RESOURCE_ENERGY) return 1;
+            if (b === RESOURCE_ENERGY) return -1;
+            return 0;
+        });
+
+        for (const resource of components) {
+            if (resource === RESOURCE_BATTERY) continue;
+            const feedTarget = this.getStorageFeedTarget(resource) || this.getKeepAmount(resource) * 0.25;
+            if (!feedTarget) continue;
+            const inStorage = storage.store[resource] || 0;
+            if (inStorage >= feedTarget) continue;
+            if (this.isStructureCongested(storage)) continue;
+            if ((terminal.store[resource] || 0) > 0) {
+                return this.makeBalanceTask(terminal, storage, resource, feedTarget - inStorage);
+            }
+        }
+        return null;
+    }
+
+    findEnergyStorageBalance(storage, terminal) {
+        const terminalEnergy = terminal.store[RESOURCE_ENERGY] || 0;
+        const storageEnergy = storage.store[RESOURCE_ENERGY] || 0;
+
+        if (this.isStructureCongested(storage) && this.isStructureCongested(terminal)) {
+            return null;
+        }
+
+        if (this.isStructureCongested(terminal) && terminalEnergy > TERMINAL_ENERGY_LOW) {
+            const storageFree = storage.store.getFreeCapacity(RESOURCE_ENERGY);
+            if (storageFree > BALANCE_MIN_TRANSFER) {
+                return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
+                    Math.min(terminalEnergy - TERMINAL_ENERGY_BUFFER, storageFree, 10000));
             }
         }
 
+        if (this.isStructureCongested(storage) && !this.isStructureCongested(terminal)
+            && storageEnergy > STORAGE_ENERGY_RESERVE + 10000 && terminalEnergy < TERMINAL_ENERGY_LOW) {
+            const terminalFree = terminal.store.getFreeCapacity(RESOURCE_ENERGY);
+            if (terminalFree > BALANCE_MIN_TRANSFER) {
+                return this.makeBalanceTask(storage, terminal, RESOURCE_ENERGY,
+                    Math.min(storageEnergy - STORAGE_ENERGY_RESERVE, terminalFree, TERMINAL_ENERGY_BUFFER - terminalEnergy, 10000));
+            }
+        }
+
+        if (!this.isStructureCongested(terminal) && terminalEnergy < TERMINAL_ENERGY_LOW
+            && storageEnergy > TERMINAL_ENERGY_BUFFER + STORAGE_ENERGY_RESERVE) {
+            return this.makeBalanceTask(storage, terminal, RESOURCE_ENERGY, TERMINAL_ENERGY_BUFFER - terminalEnergy);
+        }
+
+        if (terminalEnergy <= TERMINAL_ENERGY_HIGH || this.isStructureCongested(storage)) return null;
+
+        if (FactoryControl.shouldContinueBatteryUnpack(this.room) && storageEnergy < 5000) {
+            return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
+                Math.min(terminalEnergy - TERMINAL_ENERGY_BUFFER, STORAGE_ENERGY_RESERVE - storageEnergy));
+        }
+
+        if (storageEnergy < STORAGE_ENERGY_RESERVE && storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+            return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
+                Math.min(terminalEnergy - TERMINAL_ENERGY_BUFFER - 5000, STORAGE_ENERGY_RESERVE - storageEnergy));
+        }
+
+        if (storageEnergy < TERMINAL_ENERGY_BUFFER && storage.store.getFreeCapacity(RESOURCE_ENERGY) > 5000) {
+            return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
+                Math.min(terminalEnergy - TERMINAL_ENERGY_BUFFER, 10000));
+        }
+
         return null;
+    }
+
+    findSellOrderBalance(storage, terminal) {
+        const terminalFree = terminal.store.getFreeCapacity();
+        if (terminalFree < 1000 || this.isStructureCongested(terminal)) return null;
+
+        for (const id in Game.market.orders) {
+            const order = Game.market.orders[id];
+            if (order.roomName !== this.room.name || order.type !== ORDER_SELL) continue;
+            const res = order.resourceType;
+            if (res === RESOURCE_BATTERY && !this.allowsBatteryStorageTerminalTransfer()) continue;
+            const sellTarget = this.getSellOrderTerminalTarget(res);
+            if (!sellTarget) continue;
+            const amountNeeded = sellTarget - (terminal.store[res] || 0);
+            if (amountNeeded >= BALANCE_MIN_TRANSFER && (storage.store[res] || 0) > 0) {
+                return this.makeBalanceTask(storage, terminal, res, Math.min(amountNeeded, 5000, terminalFree));
+            }
+        }
+        return null;
+    }
+
+    findExcessTerminalToStorage(storage, terminal, emergency = false) {
+        const storageFree = storage.store.getFreeCapacity();
+        if (!emergency && (storageFree < 1000 || this.isStructureCongested(storage))) return null;
+        if (emergency && storageFree < BALANCE_MIN_TRANSFER) return null;
+
+        const resources = Object.keys(terminal.store)
+            .filter(r => r !== RESOURCE_ENERGY)
+            .sort((a, b) => (terminal.store[b] || 0) - (terminal.store[a] || 0));
+
+        for (const resource of resources) {
+            if (resource === RESOURCE_BATTERY && !this.allowsBatteryStorageTerminalTransfer()) continue;
+            const excess = this.getTerminalDrainSurplus(terminal, resource, emergency);
+            if (excess < BALANCE_MIN_TRANSFER) continue;
+            const task = this.makeBalanceTask(terminal, storage, resource, Math.min(excess, 5000, storageFree));
+            if (task) return task;
+        }
+        return null;
+    }
+
+    findStorageOverflowToTerminal(storage, terminal) {
+        const terminalFree = terminal.store.getFreeCapacity();
+        if (terminalFree < BALANCE_MIN_TRANSFER || this.isStructureCongested(terminal)) return null;
+
+        const resources = Object.keys(storage.store)
+            .filter(r => r !== RESOURCE_ENERGY)
+            .sort((a, b) => (storage.store[b] || 0) - (storage.store[a] || 0));
+
+        for (const resource of resources) {
+            if (resource === RESOURCE_BATTERY) {
+                if (!this.isStructureCongested(storage)) continue;
+                const terminalBats = terminal.store[RESOURCE_BATTERY] || 0;
+                const cap = Math.max(this.getKeepAmount(RESOURCE_BATTERY) * 2, BATTERY_TERMINAL_SOFT_CAP);
+                if (terminalBats >= cap) continue;
+                const excess = (storage.store[RESOURCE_BATTERY] || 0) - FactoryControl.BATTERY_FEED_STOCK;
+                if (excess < BALANCE_MIN_TRANSFER) continue;
+                const task = this.makeBalanceTask(storage, terminal, RESOURCE_BATTERY,
+                    Math.min(excess, 5000, terminalFree, cap - terminalBats));
+                if (task) return task;
+                continue;
+            }
+
+            const retain = this.getStorageRetainTarget(resource);
+            if (!retain) continue;
+            const inStorage = storage.store[resource] || 0;
+            const excess = inStorage - retain;
+            if (excess < BALANCE_MIN_TRANSFER) continue;
+
+            const inTerminal = terminal.store[resource] || 0;
+            const exportCeiling = this.getTerminalRetainFloor(resource) + TERMINAL_EXPORT_CEILING;
+            if (inTerminal >= exportCeiling) continue;
+
+            const task = this.makeBalanceTask(storage, terminal, resource,
+                Math.min(excess, 5000, terminalFree, exportCeiling - inTerminal));
+            if (task) return task;
+        }
+        return null;
+    }
+
+    findOverflowRelief(storage, terminal) {
+        const terminalCongested = this.isStructureCongested(terminal);
+        const storageCongested = this.isStructureCongested(storage);
+        if (!terminalCongested && !storageCongested) return null;
+        if (terminalCongested && storageCongested) return null;
+
+        if (terminalCongested) {
+            const drain = this.findExcessTerminalToStorage(storage, terminal, true);
+            if (drain) return drain;
+            const energyTask = this.findEnergyStorageBalance(storage, terminal);
+            if (energyTask && energyTask.withdrawTarget === terminal.id) return energyTask;
+            return null;
+        }
+
+        const fill = this.findStorageOverflowToTerminal(storage, terminal);
+        if (fill) return fill;
+        return this.findEnergyStorageBalance(storage, terminal);
+    }
+
+    findDeficitStorageToTerminal(storage, terminal) {
+        const terminalFree = terminal.store.getFreeCapacity();
+        if (terminalFree < 1000 || this.isStructureCongested(terminal) || this.isStructureCongested(storage)) return null;
+
+        const candidates = [];
+        for (const resource of Object.keys(storage.store)) {
+            if (resource === RESOURCE_ENERGY) continue;
+            if (resource === RESOURCE_BATTERY && !this.allowsBatteryStorageTerminalTransfer()) continue;
+            const keep = this.getKeepAmount(resource);
+            if (!keep) continue;
+            const deficit = this.getTerminalShortfall(terminal, resource);
+            if (deficit < BALANCE_MIN_TRANSFER || !(storage.store[resource] > 0)) continue;
+            candidates.push({resource, deficit, priority: deficit / keep});
+        }
+        candidates.sort((a, b) => b.priority - a.priority);
+
+        for (const {resource, deficit} of candidates) {
+            const task = this.makeBalanceTask(storage, terminal, resource, Math.min(deficit, 5000, terminalFree));
+            if (task) return task;
+        }
+        return null;
+    }
+
+    findBalancingTask(storage, terminal, congestionTrigger = Infinity) {
+        if (!storage || !terminal) return null;
+        if (this.isStructureCongested(storage) && this.isStructureCongested(terminal)) {
+            return null;
+        }
+
+        const overflowTask = this.findOverflowRelief(storage, terminal);
+        if (overflowTask) return overflowTask;
+
+        const factoryTask = this.findFactoryStorageBalance(storage, terminal);
+        if (factoryTask) return factoryTask;
+
+        const sellTask = this.findSellOrderBalance(storage, terminal);
+        if (sellTask) return sellTask;
+
+        const energyTask = this.findEnergyStorageBalance(storage, terminal);
+        if (energyTask) return energyTask;
+
+        const needsRoutineBalance = congestionTrigger >= Infinity
+            || this.isStructureCongested(storage)
+            || this.isStructureCongested(terminal)
+            || (storage.store.getFreeCapacity() <= congestionTrigger
+                && terminal.store.getFreeCapacity() <= congestionTrigger);
+        if (!needsRoutineBalance) return null;
+
+        const drainTask = this.findExcessTerminalToStorage(storage, terminal);
+        if (drainTask) return drainTask;
+
+        return this.findDeficitStorageToTerminal(storage, terminal);
     }
 
     // Chain compatible lab tasks to the primary so we make one trip for many

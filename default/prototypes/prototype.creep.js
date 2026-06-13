@@ -25,6 +25,11 @@ const {empireOpsPaused} = require('hcReadiness');
 
 const exitTileCache = {};
 
+function factoryUnpackingEnergy(room) {
+    const factory = room.factory;
+    return factory && (factory.memory.producing === RESOURCE_ENERGY || !factory.memory.producing) && factory.store[RESOURCE_ENERGY] > 0;
+}
+
 function getRoomExits(room) {
     if (!exitTileCache[room.name]) exitTileCache[room.name] = room.find(FIND_EXIT);
     return exitTileCache[room.name];
@@ -327,6 +332,10 @@ Creep.prototype.locateEnergy = function (room = this.room) {
     }
 
     if (this.memory.role === 'hauler') {
+        if (factoryUnpackingEnergy(room)) {
+            this.memory.energyDestination = room.factory.id;
+            return true;
+        }
         const hubLink = Game.getObjectById(room.memory.hubLink);
         if (hubLink && hubLink.store[RESOURCE_ENERGY] > 0) {
             const upgrader = room.myCreeps.find(c => c.memory.role === 'upgrader' && c.memory.other && c.memory.other.stationary);
@@ -349,7 +358,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
 
     for (let i = 0; i < room.tombstones.length; i++) if (room.tombstones[i].store[RESOURCE_ENERGY] > 0) potentialEnergy.push(room.tombstones[i]);
     for (let i = 0; i < room.ruins.length; i++) if (room.ruins[i].store[RESOURCE_ENERGY] > 0) potentialEnergy.push(room.ruins[i]);
-    if (room.factory && room.factory.store[RESOURCE_ENERGY] > 0) potentialEnergy.push(room.factory);
+    if (factoryUnpackingEnergy(room)) potentialEnergy.push(room.factory);
 
     if (this.memory.role !== 'shuttle') {
         const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;

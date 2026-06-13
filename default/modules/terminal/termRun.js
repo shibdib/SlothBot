@@ -46,7 +46,7 @@ Object.assign(TerminalControl.prototype, {
                 || this.placeBuyOrders(terminal, globalOrders, myOrders)) return;
         }
 
-        if (this.emergencyEnergy(terminal) || this.balanceEnergy(terminal) || this.balanceResources(terminal)) return;
+        if (this.emergencyEnergy(terminal) || this.balanceEnergy(terminal) || this.balanceBatteries(terminal) || this.balanceResources(terminal)) return;
     },
 
     getGlobalOrders() {
