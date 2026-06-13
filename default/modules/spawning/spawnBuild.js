@@ -53,14 +53,19 @@ function updateRoomAndGlobalQueue(room, building) {
 function renewNearbyCreepIfNeeded(room, availableSpawn) {
     const renewInfo = room.memory.energyInfo;
     const renewTrend = (renewInfo && renewInfo.trend) || 0;
-    if (!room.energyState || room.energyState < 2 || renewTrend < -3) return;
+    // Harvesters are the base income engine for the room (link-fed sources). Renew them more
+    // aggressively than other economy creeps even in marginal state 1, because extending a
+    // productive harvester directly increases net energy gain and avoids expensive full respawns
+    // (especially the large 1450 bodies). Cost is still tracked and will influence spareIncome.
+    if (!room.energyState) return;
+    const strict = room.energyState < 2 || renewTrend < -3;
 
-    const nearbyCreeps = _.filter(room.myCreeps, c =>
-        RENEW_ROLES.has(c.memory.role) &&
-        !_.find(c.body, b => b.boost) &&
-        c.pos.isNearTo(availableSpawn) &&
-        c.ticksToLive < CREEP_LIFE_TIME
-    );
+    const nearbyCreeps = _.filter(room.myCreeps, c => {
+        if (!RENEW_ROLES.has(c.memory.role) || _.find(c.body, b => b.boost) || !c.pos.isNearTo(availableSpawn) || c.ticksToLive >= CREEP_LIFE_TIME) return false;
+        if (!strict) return true;
+        // In strict/lean: only renew the critical income producers (stationaryHarvesters)
+        return c.memory.role === 'stationaryHarvester';
+    });
 
     if (nearbyCreeps.length) {
         const creepToRenew = _.min(nearbyCreeps, c => c.ticksToLive);

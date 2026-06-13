@@ -123,6 +123,7 @@ class StateManager {
 
         room.memory.energyDiag = {
             statHarv: statHarvesters.length,
+            statHarvWork: _.sum(statHarvesters, c => c.getActiveBodyparts(WORK)) || 0,
             remoteHarv: remoteHarvesters.length,
             upgraderCnt,
             upgradeExpense,

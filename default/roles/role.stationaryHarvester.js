@@ -28,7 +28,12 @@ class RoleStationaryHarvester {
                 || harvesters.find(c => c.memory.other.reboot);
             if (!oldestHarvester || !oldestHarvester.id) return this.creep.suicide();
             this.creep.memory.other.source = oldestHarvester.memory.other.source;
-            oldestHarvester.suicide();
+            // Do NOT suicide the old one here. Let it run until natural death (or its own low TTL).
+            // This prevents killing a still-productive full-size harvester when the replacement
+            // was forced to spawn small (low energy bank) or is still being towed into position.
+            // The new creep now "claims" the source id (so findSource won't duplicate), and will
+            // tow/wait at range 1 until the spot frees. Eliminates harvest gaps on owned sources.
+            // Overlap is brief and only at replacement time; net win for sustained energy gain.
         }
     }
 
@@ -135,6 +140,10 @@ function depositEnergy(creep, source, container) {
     }
 
     // If structures are full, use energy for maintenance (prevent decay/waste)
+    // Container repair/build is always critical (harvester lives on it, positioning + no dropped energy).
+    // Rampart repair is the "oversize benefit" for defense, but only do it when the room is healthy
+    // (energyState or spare) so we don't divert scarce mined energy from stockpile in lean times.
+    // This directly helps the "struggling to stockpile" goal while still maintaining the container.
     if (creep.store[RESOURCE_ENERGY] > 0) {
         if (!container) {
             const containerSite = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
@@ -142,9 +151,12 @@ function depositEnergy(creep, source, container) {
         } else if (container && container.hits < container.hitsMax) {
             return creep.repair(container);
         }
-        const rampart = creep.pos.checkForRampart();
-        if (rampart && rampart.hits < rampart.hitsMax) {
-            return creep.repair(rampart);
+        const roomHealthy = creep.room.energyState >= 2 || (creep.room.memory.energyInfo && (creep.room.memory.energyInfo.spareIncome || 0) > 2);
+        if (roomHealthy) {
+            const rampart = creep.pos.checkForRampart();
+            if (rampart && rampart.hits < rampart.hitsMax) {
+                return creep.repair(rampart);
+            }
         }
     }
 

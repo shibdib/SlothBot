@@ -245,14 +245,24 @@ class ModuleBodyGenerator {
             case 'stationaryHarvester':
                 if (this.room.level >= 2) {
                     work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
-                    const additionalWork = this.room.controller.level >= 7 ? 9 : 0;
+                    // Oversize (+extra WORK for fast container/rampart repair + ext fill) only when the room
+                    // can afford the larger body and the repair spend. This protects energy gain and spawn
+                    // reliability in lean/flow-stressed rooms while preserving the CPU-save + self-maintain
+                    // benefit when healthy. Always guarantee saturation WORK so home sources never mine slow.
+                    const isHealthy = (this.room.energyState >= 2 || this.spareIncome > 3 || this.trend >= 0);
+                    const additionalWork = this.room.controller.level >= 7 ? (isHealthy ? 9 : 2) : 0;
+                    const baseSaturation = Math.ceil(SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME));
                     // Handle power creep stuff
                     let powerCreep = _.find(Game.powerCreeps, c => c.my && c.memory.destinationRoom === this.room.name && c.powers[PWR_REGEN_SOURCE]);
                     if (powerCreep) {
-                        work = Math.floor((SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME)) + additionalWork;
+                        const boostedSat = Math.floor((SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME));
+                        work = boostedSat + additionalWork;
+                        // ensure at least the computed boosted need
+                        work = Math.max(boostedSat, work);
                     } else {
-                        work = Math.ceil(Math.min(work, (SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)))) + additionalWork;
+                        work = Math.ceil(Math.min(work, baseSaturation)) + additionalWork;
                     }
+                    work = Math.max(baseSaturation, work);
                     move = 0;
                 } else {
                     work = 1;
@@ -592,10 +602,33 @@ class ModuleBodyGenerator {
         }
 
         // Validate body composition
+        // Graceful trim: remove excess from the "work/carry" array (prefer WORK over CARRY for roles
+        // that need carry like stationaryHarvester). Re-enforce min saturation for stationary after trim
+        // so caller sees realistic min cost (and blocks spawn rather than producing sub-5 WORK miners).
         let i = 0;
-        while (this.bodyCost([...toughArray, ...moveArray, ..._.shuffle(bodyArray), ...healArray]) > this.energyAmount && i < bodyArray.length) {
+        let currentCostBody = [...toughArray, ...moveArray, ...bodyArray, ...healArray];
+        while (this.bodyCost(currentCostBody) > this.energyAmount && bodyArray.length > 1 && i < 50) {
             i++;
-            bodyArray = _.uniq(bodyArray);
+            // Prefer trimming WORK before the final CARRY for harvesters etc.
+            if (bodyArray.length > 1 && bodyArray[bodyArray.length - 1] === CARRY && bodyArray.filter(p => p === WORK).length > 1) {
+                // remove a WORK instead of the carry
+                const wi = bodyArray.lastIndexOf(WORK);
+                if (wi >= 0) bodyArray.splice(wi, 1);
+                else bodyArray.pop();
+            } else {
+                bodyArray.pop();
+            }
+            currentCostBody = [...toughArray, ...moveArray, ...bodyArray, ...healArray];
+        }
+        // Post-trim safety for stationaryHarvester: ensure at least base mining rate in the generated
+        // body. The spawn cost gate + energyAvailable check will refuse to launch if unaffordable,
+        // preserving the old harvester instead of accepting a weak one.
+        if (this.role === 'stationaryHarvester') {
+            const baseSat = Math.ceil(SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME));
+            let wCount = bodyArray.filter(p => p === WORK).length;
+            if (wCount < baseSat && bodyArray.length < 50) {
+                addBodyParts(baseSat - wCount, WORK, bodyArray);
+            }
         }
 
         // Assemble the final body
