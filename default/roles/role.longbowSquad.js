@@ -571,6 +571,7 @@ class RoleLongbowSquad {
         const hostiles = this.room.hostileCreeps.concat(this.room.hostileStructures || []);
         const inRange = [];
         for (const h of hostiles) {
+            if (h instanceof Structure && (h.my || (h.owner && h.owner.username === MY_USERNAME))) continue;
             const r = creep.pos.getRangeTo(h);
             if (r <= 3) inRange.push({h, r});
         }

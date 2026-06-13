@@ -254,7 +254,7 @@ Object.defineProperty(Room.prototype, 'hostileStructures', {
             this._hostileStructures = _.filter(this.structures, s => {
                 if ([STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_POWER_BANK, STRUCTURE_ROAD].includes(s.structureType)) return false;
                 const owner = safeStructureOwner(s);
-                if (!owner || safeStructureMy(s)) return false;
+                if (!owner || safeStructureMy(s) || owner === MY_USERNAME) return false;
                 return !FRIENDLIES.includes(owner);
             });
             this._hostileStructures_ts = Game.time;
