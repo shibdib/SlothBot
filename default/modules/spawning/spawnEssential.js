@@ -33,7 +33,7 @@ function essentialCreepQueue(room) {
 
     const {energyInfo, trendOk, flowHealthy, spareIncome} = getFlowContext(room);
     const importantBuilds = _.some(room.constructionSites, s => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    const hasRoadMaintenance = _.some(room.structures, s => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.75);
+    const hasRoadMaintenance = _.filter(room.structures, s => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5);
     const harvesterCount = getCreepCount(room, 'stationaryHarvester');
     const earlyRush = !room.storage && room.level < 5;
 
@@ -48,17 +48,17 @@ function essentialCreepQueue(room) {
     let dronePriority = PRIORITIES.drone;
     if (earlyRush) {
         if (!harvesterCount) droneCount = 1;
-        else droneCount = (importantBuilds || hasRoadMaintenance) ? Math.min(9 - room.level, 3) : 1;
+        else droneCount = (importantBuilds || hasRoadMaintenance.length > 3) ? Math.min(9 - room.level, 3) : 1;
         dronePriority = 1;
     } else if (importantBuilds && trendOk && (room.energyState || hasCriticalBuilds)) {
         droneCount = (9 - room.level) + (room.energyState || 1);
-    } else if ((room.constructionSites.length || hasRoadMaintenance) && (room.energyState || hasCriticalBuilds)) {
+    } else if ((room.constructionSites.length || hasRoadMaintenance.length > 3) && (room.energyState || hasCriticalBuilds)) {
         droneCount = hasCriticalBuilds ? 3 : 2;
     } else if (!room.storage) {
-        droneCount = (importantBuilds || hasRoadMaintenance) ? (9 - room.level) + (room.energyState || (hasCriticalBuilds ? 1 : 0)) : 1;
+        droneCount = (importantBuilds || hasRoadMaintenance.length > 3) ? (9 - room.level) + (room.energyState || (hasCriticalBuilds ? 1 : 0)) : 1;
     } else {
         droneCount = 1;
-        if (hasRoadMaintenance && room.energyState >= 1) {
+        if (hasRoadMaintenance.length > 3 && room.energyState >= 1) {
             droneCount = 2;  // Second drone for road maintenance to avoid inefficient tower repairs
         }
     }
