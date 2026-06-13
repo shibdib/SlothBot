@@ -182,10 +182,11 @@ function handleReservation(room, remoteName) {
 }
 
 function handleRoadBuilder(room) {
-    if (getCreepCount(room, 'remoteHarvester')) {
+    const harvesters = getCreepCount(room, 'remoteHarvester');
+    if (harvesters) {
         queueCreepIfNeeded({
             room, role: 'roadBuilder', priority: PRIORITIES.roadBuilder,
-            numberNeeded: getCreepCount(room, 'remoteHarvester') * 0.2
+            numberNeeded: Math.max(1, Math.ceil(harvesters * 0.2))
         });
     }
 }

@@ -9,7 +9,7 @@
  */
 
 
-const {cacheRoad, getPathKey} = require('planUtils');
+const {cacheRoad, getPathKey, getRoad, isRoadPathComplete, markRoadPathComplete} = require('planUtils');
 
 function roadBuilder(room, layout) {
     let spawn = room.spawns[0];
@@ -131,15 +131,12 @@ function roadBuilder(room, layout) {
         if (start instanceof RoomPosition) begin = start; else begin = start.pos;
         if (end instanceof RoomPosition) target = end; else target = end.pos;
 
-        const key = getPathKey(begin, target);
-        const roomCache = ROAD_CACHE[room.name];
-        const cached = roomCache && roomCache[key];
-
-        if (cached && cached.complete) return false;
+        if (isRoadPathComplete(room, begin, target)) return false;
 
         let points;
-        if (cached) {
-            points = JSON.parse(cached.path);
+        let path = getRoad(room, begin, target);
+        if (path) {
+            points = JSON.parse(path);
         } else {
             const result = PathFinder.search(begin, {pos: target, range: 1}, {
                 heuristicWeight: 0.8,
@@ -155,10 +152,7 @@ function roadBuilder(room, layout) {
             if (buildRoad(pos)) return true;
         }
 
-        // Every tile already has a road — skip future iterations for this path
-        if (ROAD_CACHE[room.name] && ROAD_CACHE[room.name][key]) {
-            ROAD_CACHE[room.name][key].complete = true;
-        }
+        markRoadPathComplete(room, begin, target);
     }
 
     function buildCostMatrix(roomName) {
@@ -229,11 +223,10 @@ function roadBuilder(room, layout) {
             if (!from || !to) return;
             const begin = from instanceof RoomPosition ? from : from.pos;
             const target = to instanceof RoomPosition ? to : to.pos;
-            const key = getPathKey(begin, target);
-            const cached = ROAD_CACHE[room.name] && ROAD_CACHE[room.name][key];
             let points;
-            if (cached) {
-                points = JSON.parse(cached.path);
+            let path = getRoad(room, begin, target);
+            if (path) {
+                points = JSON.parse(path);
             } else {
                 const result = PathFinder.search(begin, {pos: target, range: 1}, {
                     heuristicWeight: 0.8,

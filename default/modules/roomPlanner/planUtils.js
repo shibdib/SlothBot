@@ -72,6 +72,8 @@ function isValidRampartPosition(position) {
         !position.checkForRampart();
 }
 
+const ROAD_CACHE_TTL = 5000;
+
 function cacheRoad(room, from, to, path) {
     let key = getPathKey(from, to);
     let cache = ROAD_CACHE[room.name] || {};
@@ -84,14 +86,29 @@ function cacheRoad(room, from, to, path) {
     ROAD_CACHE[room.name] = cache;
 }
 
-function getRoad(room, from, to) {
-    let cache = ROAD_CACHE[room.name] || undefined;
+function getRoadCacheEntry(room, from, to) {
+    let cache = ROAD_CACHE[room.name];
     if (!cache) return;
-    let cachedPath = cache[getPathKey(from, to)];
-    if (cachedPath) {
-        return cachedPath.path;
-    } else {
+    let entry = cache[getPathKey(from, to)];
+    if (!entry) return;
+    if (entry.tick && entry.tick + ROAD_CACHE_TTL < Game.time) return;
+    return entry;
+}
 
+function getRoad(room, from, to) {
+    let entry = getRoadCacheEntry(room, from, to);
+    return entry && entry.path;
+}
+
+function isRoadPathComplete(room, from, to) {
+    let entry = getRoadCacheEntry(room, from, to);
+    return !!(entry && entry.complete);
+}
+
+function markRoadPathComplete(room, from, to) {
+    const key = getPathKey(from, to);
+    if (ROAD_CACHE[room.name] && ROAD_CACHE[room.name][key]) {
+        ROAD_CACHE[room.name][key].complete = true;
     }
 }
 
@@ -148,6 +165,12 @@ module.exports = {
     cacheRoad,
 
     getRoad,
+
+    getRoadCacheEntry,
+
+    isRoadPathComplete,
+
+    markRoadPathComplete,
 
     getPathKey,
 
