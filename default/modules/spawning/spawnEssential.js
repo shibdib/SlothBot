@@ -103,7 +103,7 @@ function essentialCreepQueue(room) {
 
     queueCreepIfNeeded({
         room, role: 'stationaryHarvester', priority: PRIORITIES.stationaryHarvester,
-        numberNeeded: room.sources.length, rebootCondition: !harvesterCount
+        numberNeeded: room.sources.length, rebootCondition: !getCreepCount(room, 'stationaryHarvester')
     });
 
     if (harvesterCount) {

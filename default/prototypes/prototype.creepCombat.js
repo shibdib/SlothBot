@@ -1,3 +1,29 @@
+function structOwner(s) {
+    if (s && typeof s.safeOwnerName === 'function') return s.safeOwnerName();
+    try {
+        return s.owner && s.owner.username;
+    } catch (e) {
+        return undefined;
+    }
+}
+
+function structMy(s) {
+    if (s && typeof s.safeIsMy === 'function') return s.safeIsMy();
+    try {
+        return !!s.my;
+    } catch (e) {
+        return false;
+    }
+}
+
+function structActive(s) {
+    try {
+        return s.isActive();
+    } catch (e) {
+        return false;
+    }
+}
+
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  *
@@ -111,7 +137,7 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
             else this._directHostileCreeps.push(c);
         }
         this._hostileStructures = this.room.impassibleStructures.filter(s =>
-            s.owner && !FRIENDLIES.includes(s.owner.username) &&
+            structOwner(s) && !FRIENDLIES.includes(structOwner(s)) &&
             inRange(s) &&
             ![STRUCTURE_KEEPER_LAIR, STRUCTURE_CONTROLLER, STRUCTURE_POWER_BANK].includes(s.structureType) &&
             (this.hasActiveBodyparts(ATTACK) || s.structureType !== STRUCTURE_INVADER_CORE)
@@ -279,7 +305,7 @@ Creep.prototype.attackHostile = function (hostile) {
     let moveTarget = hostile;
 
     const rampartCover = this.pos.findClosestByPath(this.room.ramparts, {
-        filter: r => r.my && !r.pos.checkForObstacleStructure() && !r.pos.checkForConstructionSites() &&
+        filter: r => structMy(r) && !r.pos.checkForObstacleStructure() && !r.pos.checkForConstructionSites() &&
             (!r.pos.checkForCreep() || r.pos.isEqualTo(this.pos)) && r.pos.getRangeTo(hostile) <= 1
     });
     if (rampartCover) moveTarget = rampartCover;
@@ -334,18 +360,19 @@ Creep.prototype.fightFromRampart = function (hostile = undefined) {
     if (!target || !target.pos || !(this.hasActiveBodyparts(ATTACK) || this.hasActiveBodyparts(RANGED_ATTACK))) return false;
 
     const range = this.hasActiveBodyparts(RANGED_ATTACK) ? 3 : 1;
-    let ramparts = target.pos.findInRange(FIND_MY_STRUCTURES, range, {
-        filter: r => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() &&
-            (!r.pos.checkForCreep() || r.pos.isEqualTo(this.pos))
-    });
+    const rampartFilter = r => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() &&
+        (!r.pos.checkForCreep() || r.pos.isEqualTo(this.pos));
+    let ramparts = global.posMyStructuresInRange
+        ? global.posMyStructuresInRange(target.pos, range, {filter: rampartFilter})
+        : target.pos.findInRange(FIND_MY_STRUCTURES, range, {filter: rampartFilter});
 
     let position = this.pos.findClosestByPath(ramparts);
 
     if (!position) {
-        position = target.pos.findClosestByPath(FIND_MY_STRUCTURES, {
-            filter: r => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() &&
-                (!r.pos.checkForCreep() || r.pos.isEqualTo(this.pos))
-        });
+        const allRamparts = global.roomMyStructures
+            ? global.roomMyStructures(this.room, {filter: rampartFilter})
+            : this.room.find(FIND_MY_STRUCTURES, {filter: rampartFilter});
+        position = target.pos.findClosestByPath(allRamparts);
     }
 
     if (!position) return false;
@@ -368,10 +395,12 @@ Creep.prototype.fightRanged = function (target) {
     const range = this.pos.getRangeTo(target);
 
     if (MY_ROOMS.includes(this.room.name)) {
-        const rampartCover = this.pos.findClosestByPath(FIND_MY_STRUCTURES, {
-            filter: r => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() &&
-                r.pos.getRangeTo(target) <= 3 && (!r.pos.checkForCreep() || r.pos.isEqualTo(this.pos))
-        });
+        const rampartCoverFilter = r => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() &&
+            r.pos.getRangeTo(target) <= 3 && (!r.pos.checkForCreep() || r.pos.isEqualTo(this.pos));
+        const rampartCandidates = global.roomMyStructures
+            ? global.roomMyStructures(this.room, {filter: rampartCoverFilter})
+            : this.room.find(FIND_MY_STRUCTURES, {filter: rampartCoverFilter});
+        const rampartCover = this.pos.findClosestByPath(rampartCandidates);
         if (rampartCover) {
             if (!this.pos.isEqualTo(rampartCover)) this.shibMove(rampartCover, {range: 0});
             this.rangedAttack(target);
@@ -381,7 +410,7 @@ Creep.prototype.fightRanged = function (target) {
 
     if (!MY_ROOMS.includes(this.room.name)) {
         const dangerTower = this.room.impassibleStructures.find(s =>
-            s.structureType === STRUCTURE_TOWER && s.owner && !FRIENDLIES.includes(s.owner.username) &&
+            s.structureType === STRUCTURE_TOWER && structOwner(s) && !FRIENDLIES.includes(structOwner(s)) &&
             s.isActive() && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && this.pos.getRangeTo(s) <= 5
         );
         if (dangerTower) {
@@ -417,9 +446,9 @@ Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, o
 
     let site = Game.getObjectById(this.memory.stompSite) ||
         this.pos.findClosestByRange(this.room.constructionSites, {
-            filter: s => (!onlyInBuild || s.progress) && !s.my && !s.pos.checkForCreep()
+            filter: s => (!onlyInBuild || s.progress) && !structMy(s) && !s.pos.checkForCreep()
         }) || this.pos.findClosestByRange(this.room.constructionSites, {
-            filter: s => !s.my && !s.pos.checkForCreep()
+            filter: s => !structMy(s) && !s.pos.checkForCreep()
         });
 
     if (site) {
@@ -528,7 +557,7 @@ Creep.prototype.fleeHome = function (force = false) {
 
 Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     if (this.room.controller?.safeMode && this.room.controller.owner?.username !== MY_USERNAME) return false;
-    if (this.room.name === this.memory.colony || (!this.room.hostileCreeps.length && !this.room.impassibleStructures.some(s => s.owner && s.structureType === STRUCTURE_TOWER && !FRIENDLIES.includes(s.owner.username) && s.isActive()))) return true;
+    if (this.room.name === this.memory.colony || (!this.room.hostileCreeps.length && !this.room.impassibleStructures.some(s => s.structureType === STRUCTURE_TOWER && structOwner(s) && !FRIENDLIES.includes(structOwner(s)) && structActive(s)))) return true;
     if (!INTEL[this.room.name]) return true;
 
     // Use cached power if available this tick
@@ -562,8 +591,8 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
             power += ap.attack + ap.effectiveHeal + (ap.defense / 100);
         });
         const towers = creep.room.impassibleStructures.filter(s =>
-            s.structureType === STRUCTURE_TOWER && (!s.owner || !FRIENDLIES.includes(s.owner.username)) &&
-            s.isActive() && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST
+            s.structureType === STRUCTURE_TOWER && (!structOwner(s) || !FRIENDLIES.includes(structOwner(s))) &&
+            structActive(s) && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST
         );
         for (const tower of towers) power += determineTowerDamage(tower.pos.getRangeTo(creep));
         return power;
@@ -585,9 +614,11 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
             return sum;
         }, 0);
 
-        power += creep.room.find(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_TOWER}})
-            .reduce((sum, t) => (t.pos.getRangeTo(creep) <= range && t.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST)
-                ? sum + determineTowerDamage(t.pos.getRangeTo(creep)) : sum, 0);
+        const towers = global.roomMyStructures
+            ? global.roomMyStructures(creep.room, {filter: {structureType: STRUCTURE_TOWER}})
+            : creep.room.find(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_TOWER}});
+        power += towers.reduce((sum, t) => (t.pos.getRangeTo(creep) <= range && t.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST)
+            ? sum + determineTowerDamage(t.pos.getRangeTo(creep)) : sum, 0);
 
         return power;
     }
@@ -735,7 +766,7 @@ function determineTowerDamage(range) {
 }
 
 Creep.prototype.pathingDebug = function () {
-    const spawn = this.room.find(FIND_MY_SPAWNS)[0];
+    const spawn = global.roomMySpawns ? global.roomMySpawns(this.room)[0] : this.room.find(FIND_MY_SPAWNS)[0];
     const path = findBestCleaningPath(this, spawn);
     console.log(`Cleaning path: ${JSON.stringify(path)}`);
 };
@@ -745,7 +776,10 @@ function findBestCleaningPath(creep, target) {
     if (!room) return [];
 
     const costMatrix = new PathFinder.CostMatrix();
-    room.find(FIND_STRUCTURES).forEach(s => {
+    const structs = global.roomStructuresFromGame
+        ? global.roomStructuresFromGame(room)
+        : room.find(FIND_STRUCTURES);
+    structs.forEach(s => {
         if (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) {
             costMatrix.set(s.pos.x, s.pos.y, Math.round(255 * (s.hits / s.hitsMax)));
         }
@@ -817,7 +851,7 @@ function getAssignedRampart(creep, target = undefined) {
     if (target || !position) {
         if (target) delete creep.memory.assignedRampart;
 
-        const filter = r => r.my && r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() &&
+        const filter = r => structMy(r) && r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() &&
             !creep.room.myCreeps.some(c => c.memory.assignedRampart === r.id && c.id !== creep.id);
 
         if (target) {

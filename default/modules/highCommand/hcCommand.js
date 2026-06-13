@@ -75,8 +75,8 @@ function highCommand() {
 
     const sinceReset = (global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99);
 
-    if (sinceReset < 15) {
-        return;  // defer ALL highCommand (military planning, aux, response, flags, nukes, housekeeping) for first 2 ticks after reset -- these can be very CPU heavy with full scoring loops
+    if (global.isPostResetDangerWindow && global.isPostResetDangerWindow()) {
+        return;  // defer ALL highCommand during post-reset danger window
     }
 
     for (const task of state.tasks) {

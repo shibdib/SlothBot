@@ -54,7 +54,13 @@ function getEmpireReadiness() {
 
     for (const name of MY_ROOMS) {
         const room = Game.rooms[name];
-        if (!room || !room.controller || !room.controller.my) {
+        let controllerMy = false;
+        try {
+            controllerMy = !!(room && room.controller && room.controller.my);
+        } catch (e) {
+            controllerMy = false;
+        }
+        if (!room || !room.controller || !controllerMy) {
             total++;
             struggling++;
             invisible++;

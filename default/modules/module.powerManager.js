@@ -20,7 +20,7 @@ function getLowestMyOperator() {
 
 function getRoomPowerSpawn(room) {
     if (!room || !room.structures) return undefined;
-    return room.structures.find(s => s.my && s.structureType === STRUCTURE_POWER_SPAWN);
+    return room.structures.find(s => (s.safeIsMy ? s.safeIsMy() : false) && s.structureType === STRUCTURE_POWER_SPAWN);
 }
 
 function findSpawnForPowerCreep(powerCreep) {
@@ -45,7 +45,13 @@ function findSpawnForPowerCreep(powerCreep) {
         if (spawn && spawn.isActive()) return spawn;
     }
 
-    return _.find(Game.structures, s => s.my && s.structureType === STRUCTURE_POWER_SPAWN && s.isActive());
+    return _.find(Game.structures, s => (s.safeIsMy ? s.safeIsMy() : false) && s.structureType === STRUCTURE_POWER_SPAWN && (function () {
+        try {
+            return s.isActive();
+        } catch (e) {
+            return false;
+        }
+    })());
 }
 
 function createOperator() {

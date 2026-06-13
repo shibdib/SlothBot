@@ -41,6 +41,9 @@ function queueHarassmentCreeps() {
 }
 
 function globalCreepQueue() {
+    const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+    if (global.isPostResetDangerWindow && global.isPostResetDangerWindow()) return;
+
     pruneQueueCache();
     pruneEmptyOperations();
 

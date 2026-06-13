@@ -11,7 +11,7 @@
 
 const {bunkerTemplate, coreTemplate} = require('planTemplates');
 
-const {isAttackRecoveryMode, shouldSkipStructure} = require('planUtils');
+const {isAttackRecoveryMode, shouldSkipStructure, safeStructureMy} = require('planUtils');
 
 const {buildTowersFromHubs} = require('planHub');
 
@@ -50,7 +50,7 @@ function buildAuxiliaryStructures(room) {
 
 function buildFromLayout(room, countCheck) {
     const hub = room.hub;
-    const initialSpawn = _.find(Game.structures, s => s.structureType === STRUCTURE_SPAWN && s.my);
+    const initialSpawn = _.find(Game.structures, s => s.structureType === STRUCTURE_SPAWN && safeStructureMy(s));
     const roomTower = room.towers[0];
     const roomSpawn = room.spawns[0];
     let filter = [];

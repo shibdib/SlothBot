@@ -25,6 +25,9 @@ class StateManager {
     }
 
     run() {
+        const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+        if (global.isPostResetDangerWindow && global.isPostResetDangerWindow()) return;
+
         // Run every 10 ticks
         const lastRun = LAST_UPDATE.tick || 0;
         if (lastRun + 10 > Game.time) return;
@@ -43,7 +46,13 @@ class StateManager {
 
     roomTracking(roomName) {
         const room = Game.rooms[roomName];
-        if (!room || !room.controller || !room.controller.my) return;
+        let controllerMy = false;
+        try {
+            controllerMy = !!(room && room.controller && room.controller.my);
+        } catch (e) {
+            controllerMy = false;
+        }
+        if (!room || !room.controller || !controllerMy) return;
 
         this.energyTracking(room);
         this.levelingStatTracking(room);
@@ -194,7 +203,14 @@ class StateManager {
     }
 
     requestBuilders(room) {
-        const hasSpawn = room.spawns.find(s => s.isActive() && s.my);
+        const hasSpawn = room.spawns.find(s => {
+            try {
+                const mine = s.safeIsMy ? s.safeIsMy() : s.my;
+                return mine && s.isActive();
+            } catch (e) {
+                return false;
+            }
+        });
         room.memory.buildersNeeded = !hasSpawn || room.downgraded || (room.level < MAX_LEVEL * 0.5);
     }
 

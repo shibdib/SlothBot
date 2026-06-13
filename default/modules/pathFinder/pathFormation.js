@@ -11,12 +11,14 @@
 
 const {MATRIX_CACHE} = require('pathState');
 
-const {hashStructures} = require('pathUtils');
+const {hashStructures, applyLookObstaclesToMatrix, lookObstacleHash} = require('pathUtils');
 
 function getSquadMatrix(roomName, orientation = 0, squadSize = 4) {
     const room = Game.rooms[roomName];
-    const structuresHash = room ? hashStructures(room.impassibleStructures || []) : 'static';
-    // Duos (size â‰¤ 2) get a slimmer footprint than quads â€” see buildSquadMatrix.
+    const impassibleHash = room ? hashStructures(room.impassibleStructures || []) : '';
+    const lookHash = room ? lookObstacleHash(room) : '';
+    const structuresHash = room ? (lookHash ? `${impassibleHash}|L:${lookHash}` : impassibleHash) || 'static' : 'static';
+    // Duos (size ≤ 2) get a slimmer footprint than quads — see buildSquadMatrix.
     const footprint = squadSize >= 3 ? `q${orientation}` : 'd';
     const cacheType = `squad_${footprint}_${structuresHash}`;
     return getCachedMatrix(roomName, cacheType, 200, () => buildSquadMatrix(roomName, orientation, squadSize));
@@ -36,10 +38,6 @@ function buildSquadMatrix(roomName, orientation, squadSize = 4) {
     const PLAIN = 1, SWAMP = 35, EDGE = 10, HOSTILE = 20, SOFT = 200, INFLATE = 250, IMPASSIBLE = 256;
     const matrix = new PathFinder.CostMatrix();
     const terrain = Game.map.getRoomTerrain(roomName);
-    // Quads need the full 2Ã—2 formation footprint inflated around obstacles. Duos
-    // only need leader clearance â€” the follower trails via solo movement and can
-    // single-file through 1-tile corridors (e.g. border row sandwiched between
-    // a wall and the exit).
     const vectors = squadSize >= 3 ? getFormationVectors(orientation) : [{x: 0, y: 0}];
 
     const raise = (x, y, cost) => {
@@ -71,7 +69,13 @@ function buildSquadMatrix(roomName, orientation, squadSize = 4) {
             if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
                 matrix.set(structure.pos.x, structure.pos.y, IMPASSIBLE);
                 inflate(structure.pos.x, structure.pos.y, INFLATE);
-            } else if (structure instanceof StructureRampart && FRIENDLIES.includes(structure.owner.username)) {
+            } else if (structure instanceof StructureRampart && (() => {
+                try {
+                    return structure.owner && FRIENDLIES.includes(structure.owner.username);
+                } catch (e) {
+                    return false;
+                }
+            })()) {
                 raise(structure.pos.x, structure.pos.y, SOFT);
                 inflate(structure.pos.x, structure.pos.y, INFLATE);
             } else if (structure instanceof StructurePortal) {
@@ -89,9 +93,21 @@ function buildSquadMatrix(roomName, orientation, squadSize = 4) {
             }
         }
         for (const site of room.constructionSites) {
-            if (FRIENDLIES.includes(site.owner.username) || OBSTACLE_OBJECT_TYPES.includes(site.structureType)) {
+            let friendlySite = false;
+            try {
+                friendlySite = site.owner && FRIENDLIES.includes(site.owner.username);
+            } catch (e) {
+            }
+            if (friendlySite || OBSTACLE_OBJECT_TYPES.includes(site.structureType)) {
                 raise(site.pos.x, site.pos.y, INFLATE);
                 inflate(site.pos.x, site.pos.y, INFLATE);
+            }
+        }
+
+        applyLookObstaclesToMatrix(matrix, room, IMPASSIBLE);
+        for (let y = 0; y < 50; y++) {
+            for (let x = 0; x < 50; x++) {
+                if (matrix.get(x, y) === IMPASSIBLE) inflate(x, y, INFLATE);
             }
         }
     }
@@ -111,9 +127,6 @@ const QUAD_FOLLOWER_OFFSETS = {
     1: [{dx: 0, dy: -1}, {dx: -1, dy: 0}, {dx: -1, dy: -1}]
 };
 
-// Internal form used by buildSquadMatrix / isFootprintWalkable. Derived by
-// negating follower offsets (the matrix encodes "obstacle â†’ blocked-leader"
-// vectors) and prepending the leader's own cell.
 const formationVectorsByOrientation = {
     0: [{x: 0, y: 0}, ...QUAD_FOLLOWER_OFFSETS[0].map(v => ({x: -v.dx, y: -v.dy}))],
     1: [{x: 0, y: 0}, ...QUAD_FOLLOWER_OFFSETS[1].map(v => ({x: -v.dx, y: -v.dy}))]

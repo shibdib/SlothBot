@@ -22,15 +22,17 @@ function labBuilder(room) {
     if (CONTROLLER_STRUCTURES[STRUCTURE_LAB][room.level] <= builtLabs || labInBuild) return;
 
     // Define the lab hub position from memory
-    let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
+    if (room.memory.labHub) {
+        let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
 
-    // Iterate through the lab template to place lab construction sites
-    for (let structure of labTemplate) {
-        let pos = new RoomPosition(labHub.x + structure.x, labHub.y + structure.y, room.name);
-        if (pos.checkForBuiltWall()) {
-            pos.checkForBuiltWall().destroy();
-        } else if (!pos.checkForConstructionSites() && !pos.checkForAllStructure()) {
-            pos.createConstructionSite(STRUCTURE_LAB);
+        // Iterate through the lab template to place lab construction sites
+        for (let structure of labTemplate) {
+            let pos = new RoomPosition(labHub.x + structure.x, labHub.y + structure.y, room.name);
+            if (pos.checkForBuiltWall()) {
+                pos.checkForBuiltWall().destroy();
+            } else if (!pos.checkForConstructionSites() && !pos.checkForAllStructure()) {
+                pos.createConstructionSite(STRUCTURE_LAB);
+            }
         }
     }
 }
@@ -41,10 +43,16 @@ function mineralBuilder(room) {
     if (extractor) {
         let extractorContainer = Game.getObjectById(room.memory.extractorContainer);
         if (!extractorContainer) {
-            extractorContainer = extractor.pos.findInRange(FIND_STRUCTURES, 1).find(s => s.structureType === STRUCTURE_CONTAINER);
+            extractorContainer = (global.posStructuresInRange
+                    ? global.posStructuresInRange(extractor.pos, 1, {filter: {structureType: STRUCTURE_CONTAINER}})
+                    : extractor.pos.findInRange(FIND_STRUCTURES, 1)
+            ).find(s => s.structureType === STRUCTURE_CONTAINER);
             if (!extractorContainer) {
                 room.memory.extractorContainer = undefined;
-                if (!extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).find((s) => s.structureType === STRUCTURE_CONTAINER)) {
+                const extractorSites = global.posConstructionSitesInRange
+                    ? global.posConstructionSitesInRange(extractor.pos, 1, {filter: {structureType: STRUCTURE_CONTAINER}})
+                    : extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1);
+                if (!extractorSites.find((s) => s.structureType === STRUCTURE_CONTAINER)) {
                     createExtractorContainerSite(extractor, room);
                 }
             } else {

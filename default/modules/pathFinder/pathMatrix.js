@@ -11,7 +11,7 @@
 
 const {MATRIX_CACHE, ROOM_BASE_MATRIX_CACHE} = require('pathState');
 
-const {hashStructures} = require('pathUtils');
+const {hashStructures, applyLookObstaclesToMatrix, lookObstacleHash} = require('pathUtils');
 
 function getBaseMatrix(roomName, creep, options) {
     const type = options.offRoad || options.tunnel ? 3 : options.ignoreRoads ? 2 : options.squad ? 4 : 1;
@@ -39,7 +39,13 @@ function getBaseMatrix(roomName, creep, options) {
             roadCost = 1;
     }
 
-    const structuresHash = room ? hashStructures(room.impassibleStructures.concat(room.constructionSites.filter((s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType))) || []) : 'no-room';
+    const impassibleHash = room
+        ? hashStructures(room.impassibleStructures.concat(room.constructionSites.filter((s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType))) || [])
+        : '';
+    const lookHash = room ? lookObstacleHash(room) : '';
+    const structuresHash = room
+        ? (lookHash ? `${impassibleHash}|L:${lookHash}` : impassibleHash) || 'no-obstacles'
+        : 'no-room';
     const baseKey = `${roomName}_base_${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${structuresHash}`;
 
     // Per-tick reuse (biggest CPU win)
@@ -103,9 +109,16 @@ function getBaseMatrix(roomName, creep, options) {
             }
 
             if (structure instanceof StructureRampart) {
-                if ((structure.my || structure.isPublic) && !pos.checkForObstacleStructure()) {
+                let myRampart = false;
+                let friendlyRampart = false;
+                try {
+                    myRampart = structure.my || structure.isPublic;
+                    friendlyRampart = structure.owner && FRIENDLIES.includes(structure.owner.username);
+                } catch (e) {
+                }
+                if (myRampart && !pos.checkForObstacleStructure()) {
                     matrix.set(pos.x, pos.y, room.hostileCreeps.length ? roadCost : 1);
-                } else if (FRIENDLIES.includes(structure.owner.username) && !pos.checkForObstacleStructure()) {
+                } else if (friendlyRampart && !pos.checkForObstacleStructure()) {
                     matrix.set(pos.x, pos.y, 150);
                 } else if (noWallWrecker) {
                     matrix.set(pos.x, pos.y, 256);
@@ -124,7 +137,12 @@ function getBaseMatrix(roomName, creep, options) {
         }
 
         for (const site of room.constructionSites) {
-            if (OBSTACLE_OBJECT_TYPES.includes(site.structureType) && (site.my || FRIENDLIES.includes(site.owner.username))) {
+            let friendlySite = false;
+            try {
+                friendlySite = site.my || (site.owner && FRIENDLIES.includes(site.owner.username));
+            } catch (e) {
+            }
+            if (OBSTACLE_OBJECT_TYPES.includes(site.structureType) && friendlySite) {
                 matrix.set(site.pos.x, site.pos.y, 256);
             }
         }
@@ -137,6 +155,9 @@ function getBaseMatrix(roomName, creep, options) {
                 matrix.set(sCreep.pos.x, sCreep.pos.y, 200);
             }
         }
+
+        // Engine lookFor is authoritative for constructed walls/containers/etc.
+        applyLookObstaclesToMatrix(matrix, room);
     }
 
     const finalMatrix = addSksToMatrix(roomName, matrix, options);
@@ -227,7 +248,7 @@ function addSksToMatrix(roomName, matrix, options) {
     // current threat and may have wandered off their lair/source.
     let sks = [];
     if (room) {
-        sks = room.hostileCreeps.filter(c => c.owner.username === 'Source Keeper');
+        sks = room.hostileCreeps.filter(c => c.owner && c.owner.username === 'Source Keeper');
         if (options.ignoreKeeper) sks = sks.filter(c => c.id !== options.ignoreKeeper);
     }
 

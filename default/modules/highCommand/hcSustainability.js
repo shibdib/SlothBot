@@ -45,8 +45,15 @@ function operationSustainability(room, operationRoom = room.name) {
     operation.isAtRisk = isAtRisk;
 
     if (room.tombstones.length) {
-        const deadEnemy = _.filter(room.tombstones, t => !FRIENDLIES.includes(t.creep.owner.username));
-        operation.lastEnemyKilled = _.max(deadEnemy, 'deathTime');
+        const deadEnemy = _.filter(room.tombstones, t => {
+            try {
+                const owner = t.creep && t.creep.owner && t.creep.owner.username;
+                return owner && !FRIENDLIES.includes(owner);
+            } catch (e) {
+                return false;
+            }
+        });
+        if (deadEnemy.length) operation.lastEnemyKilled = _.max(deadEnemy, 'deathTime');
     }
 
     if (isAtRisk && Memory.targetRooms[operationRoom]) {
@@ -78,9 +85,17 @@ function markAsPending(operationRoom, room) {
 }
 
 function processTombstones(tombstones, friendlyList, deadCount, trackedList) {
-    const relevant = _.filter(tombstones, s => s.creep.ticksToLive > 5 && friendlyList
-        ? _.includes(friendlyList, s.creep.owner.username)
-        : !_.includes(FRIENDLIES, s.creep.owner.username));
+    const relevant = _.filter(tombstones, s => {
+        if (!s.creep || s.creep.ticksToLive <= 5) return false;
+        let owner;
+        try {
+            owner = s.creep.owner && s.creep.owner.username;
+        } catch (e) {
+            return false;
+        }
+        if (!owner) return false;
+        return friendlyList ? _.includes(friendlyList, owner) : !_.includes(FRIENDLIES, owner);
+    });
 
     for (const tomb of relevant) {
         if (_.includes(trackedList, tomb.id)) continue;

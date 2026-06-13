@@ -79,10 +79,55 @@ let isActive = OwnedStructure.prototype.isActive;
  * @returns {boolean|*}
  */
 OwnedStructure.prototype.isActive = function () {
-    if (this.room.memory && this.room.memory.stats && this.room.memory.stats.highestRCL && this.room.memory.stats.highestRCL === (this.room.controller.level || 0)) {
-        return true;
+    try {
+        const room = this.room;
+        const controller = room && room.controller;
+        const highestRCL = room && room.memory && room.memory.stats && room.memory.stats.highestRCL;
+        if (highestRCL && controller && highestRCL === controller.level) {
+            return true;
+        }
+        return isActive.call(this);
+    } catch (e) {
+        try {
+            return isActive.call(this);
+        } catch (ignored) {
+            return false;
+        }
     }
-    return isActive.call(this);
+};
+
+OwnedStructure.prototype.safeOwnerName = function () {
+    try {
+        return this.owner && this.owner.username;
+    } catch (e) {
+        return undefined;
+    }
+};
+
+OwnedStructure.prototype.safeIsMy = function () {
+    try {
+        return !!this.my;
+    } catch (e) {
+        return false;
+    }
+};
+
+if (typeof ConstructionSite !== 'undefined') {
+    ConstructionSite.prototype.safeOwnerName = function () {
+        try {
+            return this.owner && this.owner.username;
+        } catch (e) {
+            return undefined;
+        }
+    };
+
+    ConstructionSite.prototype.safeIsMy = function () {
+        try {
+            return !!this.my;
+        } catch (e) {
+            return false;
+        }
+    };
 }
 
 /**

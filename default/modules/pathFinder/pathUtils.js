@@ -77,12 +77,70 @@ const reverseDirection = dir => (9 - parseInt(dir, 10)) % 8 + 1;
 
 const getPathKey = (from, to, weight) => `${from.x},${from.y},${from.roomName}_${to.x},${to.y},${to.roomName}_${weight}`;
 
-const hashStructures = structs => (structs && structs.length ? structs.map(s => `${s.x},${s.y},${s.structureType}`).join('|') : '');
+const hashStructures = structs => {
+    if (!structs || !structs.length) return '';
+    return structs
+        .map(s => {
+            const x = s.pos ? s.pos.x : s.x;
+            const y = s.pos ? s.pos.y : s.y;
+            return `${x},${y},${s.structureType}`;
+        })
+        .sort()
+        .join('|');
+};
 
+let lookObstacleCache = {};
+
+function getLookObstacleData(room) {
+    if (!room) return {hash: '', tiles: []};
+    const cached = lookObstacleCache[room.name];
+    if (cached && cached.tick === Game.time) return cached.data;
+
+    const native = RoomPosition.prototype.__nativeLookFor;
+    const parts = [];
+    const tiles = [];
+    if (native) {
+        for (let y = 0; y < 50; y++) {
+            for (let x = 0; x < 50; x++) {
+                try {
+                    const structs = native.call(new RoomPosition(x, y, room.name), LOOK_STRUCTURES);
+                    for (const s of structs) {
+                        if (OBSTACLE_OBJECT_TYPES.includes(s.structureType)) {
+                            parts.push(`${x},${y},${s.structureType}`);
+                            tiles.push({x, y});
+                        }
+                    }
+                } catch (e) {
+                }
+            }
+        }
+    }
+
+    const data = {hash: parts.sort().join('|'), tiles};
+    lookObstacleCache[room.name] = {tick: Game.time, data};
+    return data;
+}
+
+function lookObstacleHash(room) {
+    return getLookObstacleData(room).hash;
+}
+
+/**
+ * Mark impassible tiles from native lookFor — authoritative for pathing on private
+ * servers where Game.structures can disagree with the room view.
+ */
+function applyLookObstaclesToMatrix(matrix, room, impassibleCost = 256) {
+    if (!matrix || !room) return;
+    for (const {x, y} of getLookObstacleData(room).tiles) {
+        matrix.set(x, y, impassibleCost);
+    }
+}
 
 function hashRoomStructures(room) {
-    if (!room || !room.structures) return '';
-    return hashStructures(room.structures);
+    if (!room || !room.structures) return lookObstacleHash(room);
+    const gameHash = hashStructures(room.structures);
+    const lookHash = lookObstacleHash(room);
+    return lookHash ? `${gameHash}|L:${lookHash}` : gameHash;
 }
 
 function getMoveWeight(creep, options = {}) {
@@ -193,6 +251,10 @@ module.exports = {
     hashStructures,
 
     hashRoomStructures,
+
+    lookObstacleHash,
+
+    applyLookObstaclesToMatrix,
 
     getMoveWeight,
 

@@ -3,6 +3,7 @@
  */
 
 require("globals")();
+require("safeFind")();
 require("globals.Helpers")();
 require("prototype.creep");
 require("prototype.creepCombat");

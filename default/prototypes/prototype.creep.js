@@ -591,7 +591,14 @@ Creep.prototype.constructionWork = function () {
     // Bucket construction sites by type.
     const sitesByType = {};
     for (const s of room.constructionSites) {
-        if (s.owner && !_.includes(FRIENDLIES, s.owner.username)) continue;
+        const o = (s.safeOwnerName && s.safeOwnerName()) || (function () {
+            try {
+                return s.owner && s.owner.username;
+            } catch (e) {
+                return undefined;
+            }
+        })();
+        if (o && !_.includes(FRIENDLIES, o)) continue;
         (sitesByType[s.structureType] = sitesByType[s.structureType] || []).push(s);
     }
 
@@ -1307,7 +1314,8 @@ Creep.prototype.tryToBoost = function (bodyPart = []) {
 Creep.prototype.recycleCreep = function () {
     if (!this.hasActiveBodyparts(MOVE) && !MY_ROOMS.includes(this.room.name)) return this.suicide();
     this.memory.recycling = true;
-    let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
+    const spawns = global.roomMySpawns ? global.roomMySpawns(this.room) : this.room.find(FIND_MY_SPAWNS);
+    let spawn = spawns.length ? this.pos.findClosestByRange(spawns) : null;
     if (!spawn) {
         if (this.memory.colony && this.room.name !== this.memory.colony) {
             this.shibMove(new RoomPosition(25, 25, this.memory.colony), {range: 22});

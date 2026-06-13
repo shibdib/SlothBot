@@ -8,7 +8,7 @@ let activeConfig;
 // noinspection JSUnresolvedReference
 let globals = function () {
 
-    global.PROFILER_ENABLED = true; // Disable if you don't want to use the profiler. Should save CPU.
+    global.PROFILER_ENABLED = false; // Disable if you don't want to use the profiler. Should save CPU.
 
     // Creep build priorities (Lower is higher priority)
     global.PRIORITIES = {
@@ -56,6 +56,182 @@ let globals = function () {
     // (many module-level caches, lastRun trackers, and ring buffers are empty, causing CPU spikes)
     global.ticksSinceLastGlobalReset = function () {
         return Game.time - (Memory.lastGlobalReset || Game.time);
+    };
+
+    // Ticks after global reset where we avoid heavy work and watch for cold-cache spikes.
+    global.POST_RESET_DANGER_TICKS = 150;
+    // Spread heavy room intel (tower grids, areExitsReachable) — one room per slot, not all at once.
+    global.POST_RESET_HEAVY_INTEL_SPREAD = 150;
+
+    global.isPostResetDangerWindow = function () {
+        return global.ticksSinceLastGlobalReset() <= global.POST_RESET_DANGER_TICKS;
+    };
+
+    global.safeStructureOwner = function (structure) {
+        if (!structure || !(structure instanceof OwnedStructure)) return undefined;
+        try {
+            return structure.owner && structure.owner.username;
+        } catch (e) {
+            return undefined;
+        }
+    };
+
+    global.safeStructureMy = function (structure) {
+        if (!structure || !(structure instanceof OwnedStructure)) return false;
+        try {
+            return !!structure.my;
+        } catch (e) {
+            return false;
+        }
+    };
+
+    // Avoid room.find(FIND_STRUCTURES) — the driver rebuilds FIND caches and can throw on
+    // corrupt owner refs in downgraded rooms before our code gets a chance to catch it.
+    global.roomStructuresFromGame = function (room) {
+        if (!room) return [];
+        const out = [];
+        const roomName = room.name;
+        for (const id in Game.structures) {
+            const s = Game.structures[id];
+            if (s && s.pos && s.pos.roomName === roomName) out.push(s);
+        }
+        return out;
+    };
+
+    global.roomConstructionSitesFromGame = function (room) {
+        if (!room) return [];
+        const out = [];
+        const roomName = room.name;
+        for (const id in Game.constructionSites) {
+            const s = Game.constructionSites[id];
+            if (s && s.pos && s.pos.roomName === roomName) out.push(s);
+        }
+        return out;
+    };
+
+    function structureFilterMatch(s, filter) {
+        if (!filter) return true;
+        if (typeof filter === 'function') return filter(s);
+        if (filter.structureType) return s.structureType === filter.structureType;
+        return true;
+    }
+
+    function inRangeOf(pos, obj, range) {
+        return pos.getRangeTo(obj) <= range;
+    }
+
+    // Safe substitutes for room.find(FIND_MY_STRUCTURES) / pos.findInRange(FIND_STRUCTURES, …)
+    global.roomMyStructures = function (room, opts) {
+        if (!room) return [];
+        const filter = opts && opts.filter;
+        return global.roomStructuresFromGame(room).filter(s =>
+            global.safeStructureMy(s) && structureFilterMatch(s, filter)
+        );
+    };
+
+    global.roomMySpawns = function (room) {
+        return global.roomMyStructures(room, {filter: {structureType: STRUCTURE_SPAWN}});
+    };
+
+    global.posStructuresInRange = function (pos, range, opts) {
+        const room = Game.rooms[pos.roomName];
+        if (!room) return [];
+        const filter = opts && opts.filter;
+        return global.roomStructuresFromGame(room).filter(s =>
+            inRangeOf(pos, s, range) && structureFilterMatch(s, filter)
+        );
+    };
+
+    global.posMyStructuresInRange = function (pos, range, opts) {
+        const room = Game.rooms[pos.roomName];
+        if (!room) return [];
+        const filter = opts && opts.filter;
+        return global.roomMyStructures(room).filter(s =>
+            inRangeOf(pos, s, range) && structureFilterMatch(s, filter)
+        );
+    };
+
+    global.posConstructionSitesInRange = function (pos, range, opts) {
+        const room = Game.rooms[pos.roomName];
+        if (!room) return [];
+        const filter = opts && opts.filter;
+        return global.roomConstructionSitesFromGame(room).filter(s =>
+            inRangeOf(pos, s, range) && structureFilterMatch(s, filter)
+        );
+    };
+
+    global.reportCorruptObject = function (obj, kind, err) {
+        if (!Memory._corruptObjects) Memory._corruptObjects = [];
+        const entry = {
+            id: obj && obj.id,
+            kind,
+            room: obj && obj.pos && obj.pos.roomName,
+            structureType: obj && obj.structureType,
+            tick: Game.time,
+            error: err && String(err.message || err),
+        };
+        const dupe = Memory._corruptObjects.find(o => o.id === entry.id && o.tick === entry.tick);
+        if (!dupe) {
+            Memory._corruptObjects.push(entry);
+            if (Memory._corruptObjects.length > 30) Memory._corruptObjects = Memory._corruptObjects.slice(-30);
+        }
+    };
+
+    global.reportCorruptFind = function (roomName, findType, err) {
+        global.reportCorruptObject({id: `${roomName}:${findType}`, pos: {roomName}}, 'find', err);
+        if (!Memory._corruptFindRooms) Memory._corruptFindRooms = {};
+        Memory._corruptFindRooms[roomName] = Game.time;
+    };
+
+    global.purgeCorruptOwnedStructures = function () {
+        let purged = 0;
+        const tryPurgeOwned = function (obj, kind, removeFn) {
+            let corrupt = false;
+            let err;
+            try {
+                const owner = obj.owner;
+                if (!owner || !owner.username) corrupt = true;
+            } catch (e) {
+                corrupt = true;
+                err = e;
+            }
+            if (!corrupt) {
+                try {
+                    if (obj instanceof OwnedStructure) void obj.my;
+                } catch (e) {
+                    corrupt = true;
+                    err = e;
+                }
+            }
+            if (!corrupt) return;
+            global.reportCorruptObject(obj, kind, err);
+            try {
+                removeFn();
+                purged++;
+            } catch (ignored) {
+            }
+        };
+        for (const id in Game.structures) {
+            const s = Game.structures[id];
+            if (!(s instanceof OwnedStructure)) continue;
+            tryPurgeOwned(s, 'structure', () => s.destroy());
+        }
+        for (const id in Game.constructionSites) {
+            const s = Game.constructionSites[id];
+            tryPurgeOwned(s, 'constructionSite', () => s.remove());
+        }
+        if (purged) {
+            for (const roomName in Game.rooms) {
+                const r = Game.rooms[roomName];
+                r._structures = undefined;
+                r._downgraded = undefined;
+                r._impassibleStructures = undefined;
+                r._hostileStructures = undefined;
+                r._constructionSites = undefined;
+            }
+            log.a(`Purged ${purged} corrupt owned object(s). Share Memory._corruptObjects with your server admin.`);
+        }
+        return purged;
     };
 
     try {
@@ -626,9 +802,9 @@ let globals = function () {
         const startTime = Game.cpu.getUsed();
         const matrix = new PathFinder.CostMatrix();
 
-        room.find(FIND_STRUCTURES, {
-            filter: s => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART
-        }).forEach(s => matrix.set(s.pos.x, s.pos.y, 255));
+        global.roomStructuresFromGame(room)
+            .filter(s => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART)
+            .forEach(s => matrix.set(s.pos.x, s.pos.y, 255));
 
         // Seed all four edges (i = 0..49 covers every tile including corners)
         const queue = [];

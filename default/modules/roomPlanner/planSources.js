@@ -25,7 +25,12 @@ function sourceBuilder(room) {
         if (!sourceContainer) {
             source.memory.container = undefined;
             delete source.memory.containerID;
-            let sourceBuild = _.find(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
+            let sourceBuild = _.find(
+                global.posConstructionSitesInRange
+                    ? global.posConstructionSitesInRange(source.pos, 1, {filter: {structureType: STRUCTURE_CONTAINER}})
+                    : source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1),
+                (s) => s.structureType === STRUCTURE_CONTAINER
+            );
             if (!sourceBuild) {
                 let containerSite = findBestContainerPos(source);
                 if (containerSite && !containerSite.checkForConstructionSites()) {
@@ -46,14 +51,20 @@ function controllerBuilder(room) {
     let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
     let controllerLink = Game.getObjectById(room.memory.controllerLink);
     if (!controllerContainer && room.level >= 2 && room.level < 8) {
-        controllerContainer = room.controller.pos.findInRange(FIND_STRUCTURES, 3, {
-            filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.pos.findClosestByRange(FIND_SOURCES)) &&
-                !s.pos.isNearTo(s.pos.findClosestByRange(FIND_MINERALS))
-        })[0];
+        const containerFilter = (s) => s.structureType === STRUCTURE_CONTAINER &&
+            !s.pos.isNearTo(s.pos.findClosestByRange(FIND_SOURCES)) &&
+            !s.pos.isNearTo(s.pos.findClosestByRange(FIND_MINERALS));
+        controllerContainer = (global.posStructuresInRange
+                ? global.posStructuresInRange(room.controller.pos, 3, {filter: containerFilter})
+                : room.controller.pos.findInRange(FIND_STRUCTURES, 3, {filter: containerFilter})
+        )[0];
         if (!controllerContainer) {
-            let controllerBuild = room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 3, {
-                filter: (s) => s.structureType === STRUCTURE_CONTAINER
-            })[0];
+            let controllerBuild = (global.posConstructionSitesInRange
+                    ? global.posConstructionSitesInRange(room.controller.pos, 3, {filter: {structureType: STRUCTURE_CONTAINER}})
+                    : room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 3, {
+                        filter: (s) => s.structureType === STRUCTURE_CONTAINER
+                    })
+            )[0];
             if (!controllerBuild) {
                 // If we have a link, build next to that but in range of the controller
                 let possibles = [];

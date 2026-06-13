@@ -180,7 +180,7 @@ class World {
         // biggest CPU consumers. On global reset many caches are cold and other systems are
         // already spiking, so defer it for the first couple ticks.
         const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
-        if (since < 10) return;
+        if (global.isPostResetDangerWindow && global.isPostResetDangerWindow()) return;
         planner.buildRoom();
     }
 

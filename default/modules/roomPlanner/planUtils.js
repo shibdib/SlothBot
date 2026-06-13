@@ -23,6 +23,24 @@ function setRoadsBuiltFlag(room, value) {
     else intel.roadsBuilt = value;
 }
 
+function safeStructureOwner(structure) {
+    if (!structure || !(structure instanceof OwnedStructure)) return undefined;
+    try {
+        return structure.owner && structure.owner.username;
+    } catch (e) {
+        return undefined;
+    }
+}
+
+function safeStructureMy(structure) {
+    if (!structure || !(structure instanceof OwnedStructure)) return false;
+    try {
+        return !!structure.my;
+    } catch (e) {
+        return false;
+    }
+}
+
 // Helper function to determine if a structure should be skipped
 function shouldSkipStructure(room, structure) {
     return room.controller.level !== room.level &&
@@ -140,5 +158,9 @@ module.exports = {
     determineTowerDamage,
 
     isCoreHubTileValid,
+
+    safeStructureOwner,
+
+    safeStructureMy,
 
 };

@@ -803,7 +803,10 @@ class RoleLongbowSquad {
             creep.memory._engageCache = {tick: Game.time, room: creep.room.name, ours, theirs};
         }
 
-        const hostileTowers = (this.room.towers || []).filter(t => t.owner && !FRIENDLIES.includes(t.owner.username));
+        const hostileTowers = (this.room.towers || []).filter(t => {
+            const o = t.safeOwnerName ? t.safeOwnerName() : undefined;
+            return o && !FRIENDLIES.includes(o);
+        });
         let towerDmg = 0;
         for (const t of hostileTowers) {
             const range = t.pos.getRangeTo(creep);

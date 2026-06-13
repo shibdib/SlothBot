@@ -406,10 +406,20 @@ RoomPosition.prototype.checkForObstacleStructure = function () {
     const structures = this.lookFor(LOOK_STRUCTURES);
     let obstacle = false;
     for (let s of structures) {
-        if (OBSTACLE_OBJECT_TYPES.includes(s.structureType) ||
-            (s.structureType === STRUCTURE_RAMPART && !s.my && !s.isPublic && !FRIENDLIES.includes(s.owner.username))) {
+        if (OBSTACLE_OBJECT_TYPES.includes(s.structureType)) {
             obstacle = true;
             break;
+        }
+        if (s.structureType === STRUCTURE_RAMPART) {
+            try {
+                if (!s.my && !s.isPublic && s.owner && !FRIENDLIES.includes(s.owner.username)) {
+                    obstacle = true;
+                    break;
+                }
+            } catch (e) {
+                obstacle = true;
+                break;
+            }
         }
     }
 
@@ -423,7 +433,7 @@ RoomPosition.prototype.checkForObstacleStructure = function () {
         }
     }
 
-    OBSTACLE_CACHE[cacheKey] = {value: obstacle, expiry: currentTick + 5000};
+    OBSTACLE_CACHE[cacheKey] = {value: obstacle, expiry: currentTick + 5};
     return obstacle;
 };
 

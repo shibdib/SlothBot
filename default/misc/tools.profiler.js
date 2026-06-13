@@ -114,6 +114,7 @@ const functionBlackList = [
     'constructor', // es6 class constructors need to be called with `new`
     'toJSON', // native Screeps toJSON methods access internal state that can be undefined; wrapping them causes crashes during JSON.stringify
     'owner', // native getter that can cause crashes when wrapped and stringified
+    'my', // derived from owner; unsafe during object init or with corrupt runtime data
 ];
 
 const commonProperties = ['length', 'name', 'arguments', 'caller', 'prototype'];

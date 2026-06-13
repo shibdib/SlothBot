@@ -71,7 +71,13 @@ class RoleClaimer {
 
     cleanRoom() {
         _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_ROAD).forEach((s) => s.destroy());
-        _.filter(this.room.constructionSites, (s) => s.owner.username !== MY_USERNAME).forEach((s) => s.remove());
+        _.filter(this.room.constructionSites, (s) => {
+            try {
+                return s.owner && s.owner.username !== MY_USERNAME;
+            } catch (e) {
+                return false;
+            }
+        }).forEach((s) => s.remove());
     }
 
     claimClear() {

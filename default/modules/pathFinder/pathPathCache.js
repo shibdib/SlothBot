@@ -76,7 +76,7 @@ function getPath(creep, from, to, pathInfo) {
     const key = getPathKey(from, to, weight);
     let cached = CACHE.PATH_CACHE[key] || CACHE.PATH_CACHE[getPathKey(to, from, weight)];
 
-    if (creep.room && cached && Game.time < cached.tick + 200 &&
+    if (creep.room && cached && Game.time < cached.tick + 25 &&
         cached.structuresHash === hashRoomStructures(creep.room) &&
         (creep.memory._shibMove?.pathPosTime || 0) < STATE_STUCK) {
         cached.uses++;

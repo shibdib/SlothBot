@@ -11,7 +11,7 @@
 
 const {coreTemplate, bunkerTemplate, labTemplate} = require('planTemplates');
 
-const {getUndefendedExits, determineTowerDamage, isCoreHubTileValid} = require('planUtils');
+const {getUndefendedExits, determineTowerDamage, isCoreHubTileValid, safeStructureOwner} = require('planUtils');
 
 function findHub(room, hubCheck = undefined) {
     if (room.controller.owner && room.controller.owner.username === MY_USERNAME && room.memory.bunkerHub && room.memory.bunkerHub.x && room.memory.bunkerHub.y) {
@@ -22,7 +22,11 @@ function findHub(room, hubCheck = undefined) {
     if (!hubCheck) {
         // Destroy non-owned structures so the room is clear for the new layout
         room.structures.forEach(s => {
-            if (!s.owner || s.owner.username !== MY_USERNAME) s.destroy();
+            if (s instanceof OwnedStructure && safeStructureOwner(s) === MY_USERNAME) return;
+            try {
+                s.destroy();
+            } catch (e) {
+            }
         });
 
         // Recover hub from already-placed key structures (respects dynamic layout too)

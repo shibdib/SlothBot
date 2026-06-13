@@ -260,14 +260,15 @@ class DiplomacyControl {
             // (cold caches after reset) + userStrength calls elsewhere are the source of 3rd/4th tick timeouts.
             // Spread the expensive intel scoring over 20 ticks (only during the post-reset window).
             let intelScore = 0;
-            if (sinceReset >= 20) {
+            const dangerTicks = global.POST_RESET_DANGER_TICKS || 150;
+            if (sinceReset >= dangerTicks) {
                 intelScore = this._scoreUserFromIntel(name, currentTime, ownerToRooms[name]);
             } else {
                 // Stagger: process ~1/20 of users per tick during the first ~20 ticks after reset.
                 // This spreads the work (especially the cold-cache findClosestOwnedRoom + route costs)
                 // so that we process the full _userList gradually instead of all at once.
-                const phase = sinceReset % 20;
-                const h = ((name.charCodeAt(0) || 0) * 33 + (name.charCodeAt(1) || 0)) % 20;
+                const phase = sinceReset % dangerTicks;
+                const h = ((name.charCodeAt(0) || 0) * 33 + (name.charCodeAt(1) || 0)) % dangerTicks;
                 if (h === phase) {
                     intelScore = this._scoreUserFromIntel(name, currentTime, ownerToRooms[name]);
                 }

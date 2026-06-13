@@ -11,7 +11,7 @@
 
 const {bunkerTemplate, coreTemplate} = require('planTemplates');
 
-const {setRoadsBuiltFlag} = require('planUtils');
+const {setRoadsBuiltFlag, safeStructureOwner} = require('planUtils');
 
 const {sourceBuilder, controllerBuilder} = require('planSources');
 
@@ -95,10 +95,12 @@ function auxiliaryBuilding(room) {
 
     // Helper function to check if a structure is considered "bad" and should be removed
     function isBadStructure(structure, room) {
+        const owner = safeStructureOwner(structure);
+        if (!owner) return false;
         if (room.controller.level >= 6) {
-            return structure.owner && structure.owner.username !== MY_USERNAME;
+            return owner !== MY_USERNAME;
         } else if (room.controller.level >= 4) {
-            return structure.owner && structure.owner.username !== MY_USERNAME && structure.structureType !== STRUCTURE_TERMINAL;
+            return owner !== MY_USERNAME && structure.structureType !== STRUCTURE_TERMINAL;
         }
         return false;
     }

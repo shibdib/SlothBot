@@ -59,7 +59,7 @@ class ModuleBodyGenerator {
 
     // Method to ensure the energy amount is correct based on conditions
     setEnergyAmount() {
-        if (this.creepInfo && this.creepInfo.other && this.creepInfo.other.reboot || this.room.myCreeps.length <= 2) {
+        if (this.creepInfo && this.creepInfo.other && this.creepInfo.other.reboot || this.room.myCreeps.length <= 3) {
             this.energyAmount = Math.max(this.room.energyAvailable, 300); // Ensure a minimum of 300 energy
         } else if (!this.creepInfo || !this.creepInfo.military) {
             this.energyAmount = this.room.energyCapacityAvailable;
@@ -265,7 +265,7 @@ class ModuleBodyGenerator {
                     work = Math.min(Math.max(baseSaturation, work), Math.max(1, Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK])));
                     move = 0;
                 } else {
-                    work = 1;
+                    work = Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
                     move = 0;
                 }
                 carry = 1;

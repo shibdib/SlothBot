@@ -159,10 +159,22 @@ function processBuildQueue(room) {
 
     const totalSpawns = room.spawns;
     const renewalCreep = room.myCreeps.find(c => c.memory.needsRenewal);
-    let availableSpawns = totalSpawns.filter(s => s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning);
+    let availableSpawns = totalSpawns.filter(s => (s.safeIsMy ? s.safeIsMy() : (function () {
+        try {
+            return s.my;
+        } catch (e) {
+            return false;
+        }
+    })()) && s.structureType === STRUCTURE_SPAWN && !s.spawning);
 
     if (renewalCreep && totalSpawns.length > 1) {
-        availableSpawns = totalSpawns.filter(s => s.id !== totalSpawns[0].id && s.my && s.structureType === STRUCTURE_SPAWN && !s.spawning);
+        availableSpawns = totalSpawns.filter(s => s.id !== totalSpawns[0].id && (s.safeIsMy ? s.safeIsMy() : (function () {
+            try {
+                return s.my;
+            } catch (e) {
+                return false;
+            }
+        })()) && s.structureType === STRUCTURE_SPAWN && !s.spawning);
     }
 
     for (let availableSpawn of availableSpawns) {

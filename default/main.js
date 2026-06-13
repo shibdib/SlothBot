@@ -10,6 +10,7 @@ const world = require('main.world');
 const segments = require('module.segmentManager');
 const cleanUp = require('module.cleanup');
 const profiler = require('tools.profiler');
+let counter = 0;
 
 if (PROFILER_ENABLED) profiler.enable();
 module.exports.loop = function () {
@@ -17,6 +18,9 @@ module.exports.loop = function () {
         profiler.wrap(function () {
             // Memhack Initialization
             tryInitSameMemory();
+
+            // Purge broken owner refs before any room.find() rebuilds driver FIND caches.
+            if (global.purgeCorruptOwnedStructures) global.purgeCorruptOwnedStructures();
 
             // CPU Bucket Cooldown Check
             if (!Memory.cpuTracking) Memory.cpuTracking = {};
@@ -78,7 +82,13 @@ module.exports.loop = function () {
                 const ownedRoom = Object.values(Game.rooms).find(
                     (r) => r.controller && r.controller.my
                 );
-                const spawn = _.filter(Game.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
+                const spawn = _.filter(Game.structures, (s) => {
+                    try {
+                        return s.my && s.structureType === STRUCTURE_SPAWN;
+                    } catch (e) {
+                        return false;
+                    }
+                });
                 const creeps = _.filter(Game.creeps, (s) => s.my);
 
                 if (ownedRoom && ownedRoom.controller.level === 1 && ((!_.size(spawn) && !_.size(creeps)) || (_.size(spawn) === 1 && !_.size(creeps)))) {

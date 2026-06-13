@@ -41,7 +41,8 @@ class Colony {
         // Observer controller for room level >= 8
         if (this.room.level >= 8) {
             const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
-            if (since > 10 || ((this.room.name.charCodeAt(1) || 0) % 3 === since % 3)) {
+            const dangerTicks = global.POST_RESET_DANGER_TICKS || 150;
+            if (since > dangerTicks - 1 || ((this.room.name.charCodeAt(1) || 0) % 3 === since % 3)) {
                 this.observerController();
             }
         }

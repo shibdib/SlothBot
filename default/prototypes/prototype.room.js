@@ -23,6 +23,48 @@
 
 const roomPlanner = require('module.roomPlanner');
 
+function safeOwnerName(creep) {
+    try {
+        return creep.owner && creep.owner.username;
+    } catch (e) {
+        return undefined;
+    }
+}
+
+function safeIsMy(creep) {
+    try {
+        return !!creep.my;
+    } catch (e) {
+        return false;
+    }
+}
+
+function safeStructureOwner(structure) {
+    if (!structure || !(structure instanceof OwnedStructure)) return undefined;
+    try {
+        return structure.owner && structure.owner.username;
+    } catch (e) {
+        return undefined;
+    }
+}
+
+function safeStructureMy(structure) {
+    if (!structure || !(structure instanceof OwnedStructure)) return false;
+    try {
+        return !!structure.my;
+    } catch (e) {
+        return false;
+    }
+}
+
+function safeStructureIsActive(structure) {
+    try {
+        return structure.isActive();
+    } catch (e) {
+        return false;
+    }
+}
+
 let hubCache = {};
 Object.defineProperty(Room.prototype, 'hub', {
     get: function () {
@@ -102,7 +144,12 @@ Object.defineProperty(Room.prototype, 'mineral', {
 
 Object.defineProperty(Room.prototype, 'structures', {
     get: function () {
-        if (!this._structures) this._structures = this.find(FIND_STRUCTURES);
+        if (!this._structures || this._structures_ts !== Game.time) {
+            this._structures = global.roomStructuresFromGame
+                ? global.roomStructuresFromGame(this)
+                : this.find(FIND_STRUCTURES);
+            this._structures_ts = Game.time;
+        }
         return this._structures;
     },
     enumerable: false,
@@ -111,7 +158,10 @@ Object.defineProperty(Room.prototype, 'structures', {
 
 Object.defineProperty(Room.prototype, 'barriers', {
     get: function () {
-        if (!this._barriers) this._barriers = this.ramparts.concat(this.constructedWalls);
+        if (!this._barriers || this._barriers_ts !== Game.time) {
+            this._barriers = this.ramparts.concat(this.constructedWalls);
+            this._barriers_ts = Game.time;
+        }
         return this._barriers;
     },
     enumerable: false,
@@ -120,7 +170,16 @@ Object.defineProperty(Room.prototype, 'barriers', {
 
 Object.defineProperty(Room.prototype, 'downgraded', {
     get: function () {
-        if (!this._downgraded) this._downgraded = this.find(FIND_STRUCTURES).some(s => !s.isActive());
+        if (this._downgraded === undefined) {
+            try {
+                const structs = global.roomStructuresFromGame
+                    ? global.roomStructuresFromGame(this)
+                    : this.find(FIND_STRUCTURES);
+                this._downgraded = structs.some(s => !safeStructureIsActive(s));
+            } catch (e) {
+                this._downgraded = true;
+            }
+        }
         return this._downgraded;
     },
     enumerable: false,
@@ -129,11 +188,14 @@ Object.defineProperty(Room.prototype, 'downgraded', {
 
 Object.defineProperty(Room.prototype, 'impassibleStructures', {
     get: function () {
-        if (!this._impassibleStructures) {
-            this._impassibleStructures = _.filter(this.structures, s =>
-                OBSTACLE_OBJECT_TYPES.includes(s.structureType) ||
-                (s.structureType === STRUCTURE_RAMPART && (!s.owner || !FRIENDLIES.includes(s.owner.username)))
-            );
+        if (!this._impassibleStructures || this._impassibleStructures_ts !== Game.time) {
+            this._impassibleStructures = _.filter(this.structures, s => {
+                if (OBSTACLE_OBJECT_TYPES.includes(s.structureType)) return true;
+                if (s.structureType !== STRUCTURE_RAMPART) return false;
+                const owner = safeStructureOwner(s);
+                return !owner || !FRIENDLIES.includes(owner);
+            });
+            this._impassibleStructures_ts = Game.time;
         }
         return this._impassibleStructures;
     },
@@ -145,7 +207,9 @@ const ENERGY_STATE_CACHE = {};
 const ENERGY_STATE_CACHE_TTL = 25;
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
-        const spawn = this.find(FIND_MY_SPAWNS)[0];
+        const spawn = global.roomMySpawns
+            ? global.roomMySpawns(this)[0]
+            : _.find(this.spawns, s => safeStructureMy(s));
         if (!this.controller || !spawn) return 2;
         if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + ENERGY_STATE_CACHE_TTL > Game.time) return ENERGY_STATE_CACHE[this.name].state;
 
@@ -186,12 +250,14 @@ Object.defineProperty(Room.prototype, 'energyState', {
 
 Object.defineProperty(Room.prototype, 'hostileStructures', {
     get: function () {
-        if (!this._hostileStructures) {
-            this._hostileStructures = _.filter(this.structures, s =>
-                !s.my && s.owner &&
-                ![STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_POWER_BANK, STRUCTURE_ROAD].includes(s.structureType) &&
-                (!s.owner || !FRIENDLIES.includes(s.owner.username))
-            );
+        if (!this._hostileStructures || this._hostileStructures_ts !== Game.time) {
+            this._hostileStructures = _.filter(this.structures, s => {
+                if ([STRUCTURE_CONTROLLER, STRUCTURE_KEEPER_LAIR, STRUCTURE_POWER_BANK, STRUCTURE_ROAD].includes(s.structureType)) return false;
+                const owner = safeStructureOwner(s);
+                if (!owner || safeStructureMy(s)) return false;
+                return !FRIENDLIES.includes(owner);
+            });
+            this._hostileStructures_ts = Game.time;
         }
         return this._hostileStructures;
     },
@@ -254,8 +320,14 @@ Object.defineProperty(Room.prototype, 'powerCreeps', {
 Object.defineProperty(Room.prototype, 'hostileCreeps', {
     get: function () {
         if (!this._Hostilecreeps) {
-            this._Hostilecreeps = _.filter(this.creeps, c => !c.my && (!FRIENDLIES.includes(c.owner.username) || HOSTILES.includes(c.owner.username)) && c.owner.username !== 'Source Keeper');
-            this._Hostilecreeps = this._Hostilecreeps.concat(_.filter(this.powerCreeps, c => !c.my && (!FRIENDLIES.includes(c.owner.username) || HOSTILES.includes(c.owner.username))));
+            this._Hostilecreeps = _.filter(this.creeps, c => {
+                const owner = safeOwnerName(c);
+                return owner && !safeIsMy(c) && (!FRIENDLIES.includes(owner) || HOSTILES.includes(owner)) && owner !== 'Source Keeper';
+            });
+            this._Hostilecreeps = this._Hostilecreeps.concat(_.filter(this.powerCreeps, c => {
+                const owner = safeOwnerName(c);
+                return owner && !safeIsMy(c) && (!FRIENDLIES.includes(owner) || HOSTILES.includes(owner));
+            }));
         }
         return this._Hostilecreeps;
     },
@@ -266,7 +338,10 @@ Object.defineProperty(Room.prototype, 'hostileCreeps', {
 Object.defineProperty(Room.prototype, 'friendlyCreeps', {
     get: function () {
         if (!this._friendlyCreeps) {
-            this._friendlyCreeps = _.filter(this.creeps, c => (_.includes(FRIENDLIES, c.owner.username) || c.my) && !_.includes(THREATS, c.owner.username));
+            this._friendlyCreeps = _.filter(this.creeps, c => {
+                const owner = safeOwnerName(c);
+                return (owner && _.includes(FRIENDLIES, owner) || safeIsMy(c)) && (!owner || !_.includes(THREATS, owner));
+            });
         }
         return this._friendlyCreeps;
     },
@@ -276,7 +351,12 @@ Object.defineProperty(Room.prototype, 'friendlyCreeps', {
 
 Object.defineProperty(Room.prototype, 'alliedCreeps', {
     get: function () {
-        if (!this._alliedCreeps) this._alliedCreeps = _.filter(this.creeps, c => !c.my && _.includes(FRIENDLIES, c.owner.username) && !_.includes(THREATS, c.owner.username));
+        if (!this._alliedCreeps) {
+            this._alliedCreeps = _.filter(this.creeps, c => {
+                const owner = safeOwnerName(c);
+                return owner && !safeIsMy(c) && _.includes(FRIENDLIES, owner) && !_.includes(THREATS, owner);
+            });
+        }
         return this._alliedCreeps;
     },
     enumerable: false,
@@ -285,7 +365,12 @@ Object.defineProperty(Room.prototype, 'alliedCreeps', {
 
 Object.defineProperty(Room.prototype, 'constructionSites', {
     get: function () {
-        if (!this._constructionSites) this._constructionSites = this.find(FIND_CONSTRUCTION_SITES);
+        if (!this._constructionSites || this._constructionSites_ts !== Game.time) {
+            this._constructionSites = global.roomConstructionSitesFromGame
+                ? global.roomConstructionSitesFromGame(this)
+                : this.find(FIND_CONSTRUCTION_SITES);
+            this._constructionSites_ts = Game.time;
+        }
         return this._constructionSites;
     },
     enumerable: false,
@@ -405,7 +490,9 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 
     // === LIGHT UPDATE (every ~150 ticks) ===
     if (!roomIntel.microUpdate || roomIntel.microUpdate + 150 < currentTime) {
-        const structures = this.find(FIND_STRUCTURES);
+        const structures = global.roomStructuresFromGame
+            ? global.roomStructuresFromGame(this)
+            : this.find(FIND_STRUCTURES);
         const deposits = this.find(FIND_DEPOSITS);
 
         // Invader Core
@@ -540,10 +627,13 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         if (since < 3 && this.controller && this.controller.my) {
             return;  // absolutely no heavy intel (towerData 50x50 grids, areExitsReachable PathFinders, rampart sorts, hubChecks) on first 2 ticks after reset -- light only is enough
         }
-        if (since < 6 && this.controller && this.controller.my) {
-            // Deterministic per-room stagger so different rooms heavy-update on different early ticks
+        const spreadTicks = global.POST_RESET_HEAVY_INTEL_SPREAD || 150;
+        if (since < spreadTicks && this.controller && this.controller.my) {
+            // One owned room per tick slot — never burst all rooms when the danger window ends.
+            if (since < 6) return;
             const hash = (this.name.charCodeAt(1) || 0) + (this.name.charCodeAt(3) || 0);
-            if (since !== (hash % 5)) return;
+            const slot = 6 + (hash % Math.max(1, spreadTicks - 6));
+            if (since !== slot) return;
         }
     }
 
@@ -591,7 +681,13 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         }
 
         // Towers
-        const towers = this.towers.filter(s => s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && s.isActive());
+        const towers = this.towers.filter(s => {
+            try {
+                return s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && safeStructureIsActive(s);
+            } catch (e) {
+                return false;
+            }
+        });
         if (towers.length) {
             purgeBadRoute(this.name);
             roomIntel.towers = towers.length;
@@ -722,7 +818,10 @@ function areExitsReachable(room) {
                     let r = Game.rooms[roomName];
                     if (!r) return false;
                     let costs = new PathFinder.CostMatrix();
-                    r.find(FIND_STRUCTURES).forEach(s => {
+                    const rStructs = global.roomStructuresFromGame
+                        ? global.roomStructuresFromGame(r)
+                        : r.find(FIND_STRUCTURES);
+                    rStructs.forEach(s => {
                         if (_.union(OBSTACLE_OBJECT_TYPES, [STRUCTURE_RAMPART]).includes(s.structureType)) costs.set(s.pos.x, s.pos.y, Infinity);
                     });
                     r.find(FIND_CREEPS).forEach(c => costs.set(c.pos.x, c.pos.y, 0));
@@ -835,7 +934,7 @@ Room.prototype.invaderCheck = function () {
     roomData.tickDetected = Game.time;
     roomData.numberOfHostiles = Math.max(roomData.numberOfHostiles || 0, hostileCreeps.length);
 
-    const ownerArray = _.uniq(hostileCreeps.map(c => c.owner.username));
+    const ownerArray = _.uniq(hostileCreeps.map(c => safeOwnerName(c)).filter(Boolean));
 
     if (armedInvaders.length) {
         roomData.invaderTTL = Math.max(...armedInvaders.map(c => c.ticksToLive)) + Game.time;
@@ -848,17 +947,18 @@ Room.prototype.invaderCheck = function () {
 
     const updateThreatLevel = () => {
         if (!armedInvaders.length) return 1;
-        const boosted = armedInvaders.find(c => c.owner.username !== 'Invader' && c.body.find(b => b.type === HEAL && b.boost));
-        if (armedInvaders.length > 1 && (armedInvaders[0].owner.username !== 'Invader' || ownerArray.length > 1)) {
+        const boosted = armedInvaders.find(c => safeOwnerName(c) !== 'Invader' && c.body.find(b => b.type === HEAL && b.boost));
+        const leadOwner = safeOwnerName(armedInvaders[0]);
+        if (armedInvaders.length > 1 && (leadOwner !== 'Invader' || ownerArray.length > 1)) {
             roomData.lastPlayerSighting = Game.time;
             roomData.lastMajorAttack = Game.time;
             roomData.hostileOwners = ownerArray;
             return boosted ? 5 : 4;
-        } else if (armedInvaders[0].owner.username !== 'Invader' && ownerArray.length === 1) {
+        } else if (leadOwner !== 'Invader' && ownerArray.length === 1) {
             roomData.lastPlayerSighting = Game.time;
             roomData.hostileOwners = ownerArray;
             return 3;
-        } else if (armedInvaders[0].owner.username === 'Invader' && ownerArray.length === 1) return 2;
+        } else if (leadOwner === 'Invader' && ownerArray.length === 1) return 2;
         return 0;
     };
 
@@ -938,7 +1038,10 @@ function getCacheExpiration() {
 Room.prototype._checkRoomCache = function _checkRoomCache() {
     if (!roomStructuresExpiration[this.name] || !roomStructures[this.name] || roomStructuresExpiration[this.name] < Game.time) {
         roomStructuresExpiration[this.name] = Game.time + getCacheExpiration();
-        roomStructures[this.name] = _.groupBy(this.find(FIND_STRUCTURES), s => s.structureType);
+        const structs = global.roomStructuresFromGame
+            ? global.roomStructuresFromGame(this)
+            : this.find(FIND_STRUCTURES);
+        roomStructures[this.name] = _.groupBy(structs, s => s.structureType);
         for (let i in roomStructures[this.name]) {
             roomStructures[this.name][i] = _.map(roomStructures[this.name][i], s => s.id);
         }
