@@ -24,6 +24,35 @@ function structActive(s) {
     }
 }
 
+function isFriendlyCombatRoom(room) {
+    if (!room) return false;
+    if (MY_ROOMS.includes(room.name)) return true;
+    if (room.controller?.my) return true;
+    if (room.user && FRIENDLIES.includes(room.user)) return true;
+    const intel = INTEL[room.name];
+    if (!intel) return false;
+    if (intel.owner && FRIENDLIES.includes(intel.owner)) return true;
+    if (intel.user && FRIENDLIES.includes(intel.user)) return true;
+    return false;
+}
+
+function isValidHostileTarget(target) {
+    if (!target) return false;
+    if (target instanceof Creep) {
+        if (target.my) return false;
+        const owner = target.owner && target.owner.username;
+        return !owner || !FRIENDLIES.includes(owner);
+    }
+    if (target instanceof Structure) {
+        const room = target.room || Game.rooms[target.pos.roomName];
+        if (room && isFriendlyCombatRoom(room)) return false;
+        if (structMy(target)) return false;
+        const owner = structOwner(target);
+        if (owner && FRIENDLIES.includes(owner)) return false;
+    }
+    return true;
+}
+
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  *
@@ -157,7 +186,9 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
 
     if (this.memory.target) {
         const oldTarget = Game.getObjectById(this.memory.target);
-        if (oldTarget instanceof Structure && !armedHostile && Math.random() > 0.75) return oldTarget;
+        if (oldTarget instanceof Structure && isValidHostileTarget(oldTarget) && !armedHostile && Math.random() > 0.75) {
+            return oldTarget;
+        }
         this.memory.target = undefined;
     }
 
@@ -442,7 +473,7 @@ Creep.prototype.fightRanged = function (target) {
 };
 
 Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, onlyInBuild = true) {
-    if (!this.room.constructionSites.length || this.room.controller?.safeMode || FRIENDLIES.includes(INTEL[this.room.name]?.user)) return false;
+    if (!this.room.constructionSites.length || this.room.controller?.safeMode || isFriendlyCombatRoom(this.room)) return false;
 
     let site = Game.getObjectById(this.memory.stompSite) ||
         this.pos.findClosestByRange(this.room.constructionSites, {
@@ -463,7 +494,7 @@ Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, o
 };
 
 Creep.prototype.scorchedEarth = function () {
-    if (this.room.controller?.safeMode || FRIENDLIES.includes(INTEL[this.room.name]?.user)) return false;
+    if (this.room.controller?.safeMode || isFriendlyCombatRoom(this.room)) return false;
 
     const hostile = this.findClosestEnemy(true);
     if (!hostile) return false;
@@ -489,20 +520,24 @@ Creep.prototype.attackInRange = function () {
     if (!this.hasActiveBodyparts(RANGED_ATTACK) || (!this.room.hostileCreeps.length && !this.room.hostileStructures.length)) return false;
 
     const target = Game.getObjectById(this.memory.target);
-    if (target && this.pos.inRangeTo(target, 3)) {
+    if (target && isValidHostileTarget(target) && this.pos.inRangeTo(target, 3)) {
         this.rangedAttack(target);
         return true;
     }
 
     let hostile = Game.getObjectById(this.memory.opportunityAttack);
-    if (!hostile || !hostile.pos.inRangeTo(this, 3) || hostile.pos.roomName !== this.room.name) {
+    if (!hostile || !isValidHostileTarget(hostile) || !hostile.pos.inRangeTo(this, 3) || hostile.pos.roomName !== this.room.name) {
         this.memory.opportunityAttack = undefined;
-        hostile = FRIENDLIES.includes(INTEL[this.room.name]?.user)
-            ? this.pos.findFirstInRange(this.room.hostileCreeps.concat(this.room.hostileStructures), 3)
-            : this.pos.findFirstInRange(this.room.hostileCreeps.concat(this.room.structures), 3);
+        const candidates = this.room.hostileCreeps.concat(this.room.hostileStructures);
+        if (!isFriendlyCombatRoom(this.room)) {
+            for (const s of this.room.structures) {
+                if (isValidHostileTarget(s) && !candidates.includes(s)) candidates.push(s);
+            }
+        }
+        hostile = this.pos.findFirstInRange(candidates, 3);
     }
 
-    if (hostile) {
+    if (hostile && isValidHostileTarget(hostile)) {
         this.memory.opportunityAttack = hostile.id;
         this.rangedAttack(hostile);
         return true;
