@@ -47,8 +47,7 @@ function essentialCreepQueue(room) {
     let droneCount;
     let dronePriority = PRIORITIES.drone;
     if (earlyRush) {
-        if (!harvesterCount) droneCount = 1;
-        else droneCount = (importantBuilds || hasRoadMaintenance.length > 3) ? Math.min(9 - room.level, 3) : 1;
+        droneCount = (importantBuilds || hasRoadMaintenance.length > 3) ? Math.min(9 - room.level, 3) : 3;
         dronePriority = 1;
     } else if (importantBuilds && trendOk && (room.energyState || hasCriticalBuilds)) {
         droneCount = (9 - room.level) + (room.energyState || 1);

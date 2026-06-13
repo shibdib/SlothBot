@@ -322,7 +322,7 @@ Object.defineProperty(Room.prototype, 'ruins', {
 
 Object.defineProperty(Room.prototype, 'level', {
     get: function () {
-        if (!this._level) this._level = getLevel(this);
+        if (this._level === undefined) this._level = getLevel(this);
         return this._level;
     },
     enumerable: false,

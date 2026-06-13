@@ -44,7 +44,7 @@ class ModuleBodyGenerator {
         const ei = this.room.memory.energyInfo;
         this.spareIncome = (ei && ei.spareIncome) || 0;
         // Per-tick slope of colony spareIncome. Negative means we're trending toward
-        // net-negative — bodies pre-emptively shrink instead of reacting after the fact.
+        // net-negative â€” bodies pre-emptively shrink instead of reacting after the fact.
         this.trend = (ei && ei.trend) || 0;
         // Upgrader-only: actual upgrade-energy / theoretical WORK output, [0..1].
         // < 1 means body is oversized for the link feed; anti-waste shrink in the upgrader case.
@@ -114,7 +114,7 @@ class ModuleBodyGenerator {
                     && INTEL[this.room.name].roadsBuilt;
 
                 if (halfMove) {
-                    // Roaded: cheaper moves → bias toward more total work+carry. Raised carry for fewer refills
+                    // Roaded: cheaper moves â†’ bias toward more total work+carry. Raised carry for fewer refills
                     // (target ~15-16 ticks of building/repair per load to amortize travel to energy sources).
                     work = Math.min(Math.floor(this.energyAmount * 0.40 / BODYPART_COST[WORK]) || 1, 25);
                     carry = Math.min(Math.floor(this.energyAmount * 0.32 / BODYPART_COST[CARRY]) || 1, 20);
@@ -149,7 +149,7 @@ class ModuleBodyGenerator {
                     carry = 1;
                     move = 0;
                 } else if (hasLink || hasContainer) {
-                    // Stationary — sits on a container or beside the controller link, no moves.
+                    // Stationary â€” sits on a container or beside the controller link, no moves.
                     carry = hasLink ? 4 : 1;
                     const affordableWork = Math.floor((this.energyAmount - (BODYPART_COST[CARRY] * carry)) / BODYPART_COST[WORK]) || 1;
                     work = affordableWork;
@@ -188,7 +188,7 @@ class ModuleBodyGenerator {
                     work = Math.max(Math.min(work, 49), 1);
                     move = 0;
                 } else {
-                    // Mobile upgrader — no infrastructure yet, walks to and from the controller.
+                    // Mobile upgrader â€” no infrastructure yet, walks to and from the controller.
                     work = Math.min(Math.floor(this.energyAmount * 0.4 / BODYPART_COST[WORK]) || 1, 15);
                     carry = Math.min(Math.floor(this.energyAmount * 0.1 / BODYPART_COST[CARRY]) || 1, 10);
                     if (INTEL[this.room.name].roadsBuilt) halfMove = true;
@@ -225,7 +225,7 @@ class ModuleBodyGenerator {
                 const moveCostPerCarry = roadsBuilt ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE];
                 const distToHub = this.creepInfo && this.creepInfo.other && this.creepInfo.other.distanceToHub;
                 if (distToHub) {
-                    // Size to match source throughput: 10e/tick × round-trip ticks / 50e per CARRY
+                    // Size to match source throughput: 10e/tick Ã— round-trip ticks / 50e per CARRY
                     carry = Math.max(4, Math.ceil(10 * 2 * (distToHub + 1) / BODYPART_COST[CARRY]));
                     // Cap to what the room can actually afford
                     carry = Math.min(carry, Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + moveCostPerCarry)));
@@ -248,7 +248,7 @@ class ModuleBodyGenerator {
                     // Oversize (+extra WORK for fast container/rampart repair + ext fill) only when the room
                     // can afford the larger body and the repair spend. This protects energy gain and spawn
                     // reliability in lean/flow-stressed rooms while preserving the CPU-save + self-maintain
-                    // benefit when healthy. Always guarantee saturation WORK so home sources never mine slow.
+                    // benefit when healthy. Saturate sources only when energyCapacity can fund it.
                     const isHealthy = (this.room.energyState >= 2 || this.spareIncome > 3 || this.trend >= 0);
                     const additionalWork = this.room.controller.level >= 7 ? (isHealthy ? 9 : 2) : 0;
                     const baseSaturation = Math.ceil(SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME));
@@ -262,10 +262,11 @@ class ModuleBodyGenerator {
                     } else {
                         work = Math.ceil(Math.min(work, baseSaturation)) + additionalWork;
                     }
-                    work = Math.max(baseSaturation, work);
+                    work = Math.min(Math.max(baseSaturation, work), Math.max(1, Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK])));
                     move = 0;
                 } else {
                     work = 1;
+                    move = 0;
                 }
                 carry = 1;
                 break;
@@ -349,7 +350,7 @@ class ModuleBodyGenerator {
             case 'siegeDuo': {
                 // Balance the queue by counting unpaired creeps on BOTH sides
                 // for this destination, then spawn whichever role is short.
-                // A "find unpaired healer → spawn attacker" approach races
+                // A "find unpaired healer â†’ spawn attacker" approach races
                 // against the stale-partner clear window: role.siegeDuo
                 // housekeeping clears dead-partner refs, but it runs in
                 // militaryCreepManager (after colonyManager's spawn pass), so
@@ -369,7 +370,7 @@ class ModuleBodyGenerator {
                 }
 
                 if (unpairedHealers > unpairedAttackers) {
-                    // Healer surplus — spawn the attacker that will pair with one.
+                    // Healer surplus â€” spawn the attacker that will pair with one.
                     if (this.creepInfo.misc && this.creepInfo.misc.boosts && this.creepInfo.misc.boosts.includes(TOUGH)) {
                         toughData = this.checkForNeededTough(2);
                         tough = toughData.count;
@@ -378,7 +379,7 @@ class ModuleBodyGenerator {
                     attack = Math.min(attack, 25);
                     attack -= tough || 0;
                 } else {
-                    // No surplus healer (or attacker surplus) — spawn a healer.
+                    // No surplus healer (or attacker surplus) â€” spawn a healer.
                     if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
                         if (this.creepInfo.misc && this.creepInfo.misc.boosts && this.creepInfo.misc.boosts.includes(TOUGH)) {
                             toughData = this.checkForNeededTough(2);
@@ -428,7 +429,7 @@ class ModuleBodyGenerator {
                 claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
                 claim = Math.min(claim, 2 * (this.room.energyState || 1));
 
-                // Half-move only if every room on the route has roads — intermediate rooms count too.
+                // Half-move only if every room on the route has roads â€” intermediate rooms count too.
             {
                 const route = findRoute(this.room.name, this.creepInfo.destination, {shortest: true});
                 const fullRouteHasRoads = route.length &&
@@ -465,7 +466,7 @@ class ModuleBodyGenerator {
                     work = Math.max(1, Math.floor(work * this.flowScale(0.5, 10)));
                 }
 
-                // Half-move only if every room on the route has roads — intermediate rooms count too.
+                // Half-move only if every room on the route has roads â€” intermediate rooms count too.
             {
                 const route = Game.map.findRoute(this.room.name, this.creepInfo.destination);
                 const fullRouteHasRoads = Array.isArray(route) &&
@@ -506,7 +507,7 @@ class ModuleBodyGenerator {
                     carry = Math.max(1, Math.floor(carry * this.flowScale(0.5, 10)));
                 }
 
-                // Pre-RCL7 rooms have 1 spawn — cap hauler size so it doesn't block the queue.
+                // Pre-RCL7 rooms have 1 spawn â€” cap hauler size so it doesn't block the queue.
                 // Smaller haulers spawn faster and multiple will be queued to cover the deficit.
                 const maxCarry = this.room.level < 7 ? this.room.level * 2 : 33;
                 if (halfMove) {
@@ -551,7 +552,7 @@ class ModuleBodyGenerator {
         // can be added without the final slice(0,50) stripping mobility. This was exposed
         // by drone body carry boosts (to reduce "getting energy" time) + raised caps, which
         // at high energyCapacityAvailable (RCL8, E~12k+) produce w+c > what fits balanced under 50.
-        // E.g. without cap: halfMove 25W+20C +23M =68 parts → slice keeps ~45+5M (bad ratio).
+        // E.g. without cap: halfMove 25W+20C +23M =68 parts â†’ slice keeps ~45+5M (bad ratio).
         // halfMove is set by roles on roads; defaults to full moves.
         const approxNonMove = (work || 0) + (carry || 0) + (claim || 0) + (attack || 0) + (rangedAttack || 0);
         const willHaveMoves = (typeof move === 'undefined' || move !== 0);
@@ -620,14 +621,16 @@ class ModuleBodyGenerator {
             }
             currentCostBody = [...toughArray, ...moveArray, ...bodyArray, ...healArray];
         }
-        // Post-trim safety for stationaryHarvester: ensure at least base mining rate in the generated
-        // body. The spawn cost gate + energyAvailable check will refuse to launch if unaffordable,
-        // preserving the old harvester instead of accepting a weak one.
+        // stationaryHarvester: cap WORK to what energyAmount can fund (downgraded rooms included).
         if (this.role === 'stationaryHarvester') {
-            const baseSat = Math.ceil(SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME));
+            const maxHarvesterWork = Math.max(1, Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]));
+            const workCap = this.room.level < 2 ? 1 : maxHarvesterWork;
             let wCount = bodyArray.filter(p => p === WORK).length;
-            if (wCount < baseSat && bodyArray.length < 50) {
-                addBodyParts(baseSat - wCount, WORK, bodyArray);
+            while (wCount > workCap && bodyArray.length > 1) {
+                const wi = bodyArray.lastIndexOf(WORK);
+                if (wi < 0) break;
+                bodyArray.splice(wi, 1);
+                wCount--;
             }
         }
 
@@ -708,7 +711,7 @@ class ModuleBodyGenerator {
     // Sizes a TOUGH buffer for siege creeps. Returns part count to add to the
     // body, scaled by tower damage; 0 when damage is low enough that heal-only
     // is more efficient, or when no tough boost is available in storage. The
-    // boost itself is picked at runtime by tryToBoost (via misc.boosts) — we
+    // boost itself is picked at runtime by tryToBoost (via misc.boosts) â€” we
     // only verify here that *some* tier is in stock so we don't allocate parts
     // that'll go unboosted and just bloat the body.
     checkForNeededTough(squadSize = 1) {
@@ -720,7 +723,7 @@ class ModuleBodyGenerator {
         if (towerData.average < 300) return {boost: undefined, count: 0};
 
         // Buffer scales modestly with damage. Capped so tough never crowds out
-        // ranged_attack — 8 tough + ~13 heal still leaves room for ~25 ranged
+        // ranged_attack â€” 8 tough + ~13 heal still leaves room for ~25 ranged
         // in a 50-part body with boosted MOVE.
         const partCount = towerData.average >= 1000 ? 8 : (towerData.average >= 600 ? 6 : 4);
 

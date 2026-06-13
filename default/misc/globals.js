@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
@@ -14,14 +14,14 @@ let globals = function () {
     global.PRIORITIES = {
         // Harvesters
         stationaryHarvester: 1,
-        // Workers — upgrader sits a step ahead of drone so it wins ties at equal count.
+        // Workers â€” upgrader sits a step ahead of drone so it wins ties at equal count.
         // Drone/upgrader were both 6, with drone queued first in essentialCreepQueue. Stable
         // sort meant drone always took the first slot after leveling, leaving the controller
         // idle while extensions filled.
         upgrader: 6, drone: 5, mineralHarvester: 7,
-        // Haulers — slightly behind harvesters since they're gated by harvester presence
+        // Haulers â€” slightly behind harvesters since they're gated by harvester presence
         hauler: 2, miscHauler: 7,
-        // Remotes — harvesters before haulers (a hauler without a harvester does nothing)
+        // Remotes â€” harvesters before haulers (a hauler without a harvester does nothing)
         remoteHarvester: 4, remoteHauler: 5, roadBuilder: 7, fuelTruck: 8, reserver: 6,
         // Military
         defender: 3, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9
@@ -103,7 +103,7 @@ let globals = function () {
     global.BOOST_AMOUNT = function (room, boost) {
         const base = room.level === 6 ? 5000 : room.level === 7 ? 25000 : 50000;
         if (!boost) return base;
-        // T3 is the end-goal stockpile (largest target). T1/T2 are intermediate —
+        // T3 is the end-goal stockpile (largest target). T1/T2 are intermediate â€”
         // we want plenty for conversion and direct-use boosting, but at half the volume.
         if (LAB_WAR_PRIORITY.includes(boost) || LAB_PEACE_PRIORITY.includes(boost) || BUY_THESE_BOOSTS.includes(boost)) return base * 2;
         if (TIER_3_BOOSTS.includes(boost) || BASE_COMPOUNDS.includes(boost)) return base;
@@ -541,14 +541,19 @@ let globals = function () {
     };
 
     global.getLevel = function (room) {
-        if (!room.controller || !room.energyCapacityAvailable) return 0;
+        if (!room.controller) return 0;
+        const capacity = room.energyCapacityAvailable || 0;
+        if (!capacity) return 0;
         let energyLevel = 0;
-        while (room.energyCapacityAvailable >= ROOM_ENERGY_CAPACITY[energyLevel]) {
-            energyLevel++;
+        for (let lvl = 8; lvl >= 0; lvl--) {
+            if (capacity >= ROOM_ENERGY_CAPACITY[lvl]) {
+                energyLevel = lvl;
+                break;
+            }
         }
-        if (room.energyCapacityAvailable < ROOM_ENERGY_CAPACITY[energyLevel]) energyLevel--;
-        if (energyLevel <= room.controller.level) return energyLevel; else return room.controller.level;
+        return Math.min(energyLevel, room.controller.level);
     };
+
 
     global.roomLink = function (roomArg, text = undefined, select = true) {
         let id;
@@ -646,7 +651,7 @@ let globals = function () {
             }
         }
 
-        // O(n) BFS with a head pointer — avoids O(n²) splice-per-level
+        // O(n) BFS with a head pointer â€” avoids O(nÂ²) splice-per-level
         let head = 0;
         while (head < queue.length) {
             const [x, y] = queue[head++];
