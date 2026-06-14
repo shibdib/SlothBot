@@ -36,39 +36,8 @@ function invalidateRampartSpots(room) {
 
 function getSourceProtectionRects(room) {
     const rects = [];
-    const hub = room.hub;
     for (const source of room.sources) {
-        const container = Game.getObjectById(source.memory.container);
-        const anchor = container ? container.pos : source.pos;
-        rects.push(pointRect(anchor.x, anchor.y, 2));
-        if (source.memory.accessReserved) {
-            const a = source.memory.accessReserved;
-            rects.push(pointRect(a.x, a.y, 1));
-        }
-        for (const ext of room.extensions) {
-            if (ext.pos.getRangeTo(source) <= 2) rects.push(pointRect(ext.pos.x, ext.pos.y, 1));
-        }
-        for (const site of room.constructionSites) {
-            if (site.structureType !== STRUCTURE_EXTENSION) continue;
-            if (site.pos.getRangeTo(source) <= 2) rects.push(pointRect(site.pos.x, site.pos.y, 1));
-        }
-        if (!container || !hub) continue;
-        const accessCandidates = [];
-        for (let dx = -1; dx <= 1; dx++) {
-            for (let dy = -1; dy <= 1; dy++) {
-                if (!dx && !dy) continue;
-                const x = container.pos.x + dx, y = container.pos.y + dy;
-                if (x < 2 || x > 47 || y < 2 || y > 47) continue;
-                const pos = new RoomPosition(x, y, room.name);
-                if (pos.checkForWall()) continue;
-                if (pos.isEqualTo(source.pos)) continue;
-                accessCandidates.push(pos);
-            }
-        }
-        if (accessCandidates.length) {
-            const reserved = _.min(accessCandidates, p => p.getRangeTo(hub));
-            rects.push(pointRect(reserved.x, reserved.y, 1));
-        }
+        rects.push(pointRect(source.pos.x, source.pos.y, 4));
     }
     return rects;
 }
@@ -87,7 +56,7 @@ function getTowerProtectionRects(room) {
     for (const tp of towerPositions) {
         rects.push(pointRect(tp.x, tp.y, 2));
         const path = tp.findPathTo(hub, {ignoreCreeps: true, maxOps: 4000});
-        for (const step of path) rects.push(pointRect(step.x, step.y, 1));
+        for (const step of path) rects.push(pointRect(step.x, step.y, 2));
     }
     return rects;
 }
