@@ -333,6 +333,30 @@ let globals = function () {
         return structureRoomCache[room.name] || [];
     };
 
+    // Walls + ramparts from Game.structures cache. Room.constructedWalls uses native find and
+    // is empty/unreliable on corrupt-room safe-find paths; ramparts alone omit perimeter walls.
+    global.collectRoomBarriers = function (room) {
+        if (!room) return [];
+        const seen = new Set();
+        const barriers = [];
+        const add = (s) => {
+            if (!s || seen.has(s.id)) return;
+            const t = s.structureType;
+            if (t !== STRUCTURE_RAMPART && t !== STRUCTURE_WALL) return;
+            seen.add(s.id);
+            barriers.push(s);
+        };
+        global.roomStructuresFromGame(room).forEach(add);
+        if (!barriers.length) {
+            for (const s of room.ramparts) add(s);
+            for (const s of room.walls) add(s);
+            try {
+                for (const s of (room.constructedWalls || [])) add(s);
+            } catch (e) { /* native find unavailable */ }
+        }
+        return barriers;
+    };
+
     global.roomConstructionSitesFromGame = function (room) {
         if (!room) return [];
         global.ensureStructureRoomCaches();

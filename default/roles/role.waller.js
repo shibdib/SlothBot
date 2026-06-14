@@ -147,22 +147,33 @@ class RoleWaller {
         return false;
     }
 
-    barriersNeedRepair(maintenance = false) {
-        if (!this.room.controller || !this.room.controller.my) return false;
-        if (this.room.ramparts.some((s) => s.hits < SAFE_RAMPART_HITS)) return true;
-
+    barrierRepairCap(maintenance = false) {
         let targetLimit = 100000;
         if (this.room.controller.level >= 8) targetLimit = 10000000;
         else if (this.room.controller.level >= 6) targetLimit = 5000000;
         if (this.room.energyState === 1) targetLimit = Math.min(targetLimit, 200000);
         if (maintenance && this.room.level === 8) targetLimit = RAMPART_HITS_MAX[this.room.level];
+        return targetLimit;
+    }
 
+    barriersNeedingRepair(maintenance = false) {
         const quadTrapWalls = new Set((this.room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
-        return this.room.barriers.some((s) => {
-            if (s.structureType === STRUCTURE_RAMPART && s.hits < SAFE_RAMPART_HITS) return false;
+        const targetLimit = this.barrierRepairCap(maintenance);
+        return this.room.barriers.filter((s) => {
             const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : targetLimit;
             return s.hits < cap;
         });
+    }
+
+    pickBarrierRepairPool(barrierStructures) {
+        const walls = barrierStructures.filter((s) => s.structureType === STRUCTURE_WALL);
+        return walls.length ? walls : barrierStructures;
+    }
+
+    barriersNeedRepair(maintenance = false) {
+        if (!this.room.controller || !this.room.controller.my) return false;
+        if (this.room.ramparts.some((s) => s.hits < SAFE_RAMPART_HITS)) return true;
+        return this.barriersNeedingRepair(maintenance).length > 0;
     }
 
     walling(maintenance = false) {
@@ -194,32 +205,16 @@ class RoleWaller {
             }
 
             if (!this.creep.memory.currentTarget) {
-                let targetLimit = 100000;
-                if (this.room.controller.level >= 8) targetLimit = 10000000;
-                else if (this.room.controller.level >= 6) targetLimit = 5000000;
-
-                // In low energy (but not barren), limit ambition — don't fully stockpile walls, just keep them functional
-                // to avoid draining the last energy on barriers instead of core economy.
-                if (this.room.energyState === 1) {
-                    targetLimit = Math.min(targetLimit, 200000);
-                }
-
-                if (maintenance && this.room.level === 8) targetLimit = RAMPART_HITS_MAX[this.room.level];
-
-                const quadTrapWalls = new Set((this.room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
-                const barrierStructures = this.room.barriers.filter(s => {
-                    if (s.structureType === STRUCTURE_RAMPART && s.hits < SAFE_RAMPART_HITS) return false;
-                    const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : targetLimit;
-                    return s.hits < cap;
-                });
+                const barrierStructures = this.barriersNeedingRepair(maintenance);
 
                 if (barrierStructures.length && this.room.controller && this.room.controller.my) {
+                    const repairPool = this.pickBarrierRepairPool(barrierStructures);
                     let target;
                     if (threatLevel) {
-                        target = _.min(barrierStructures, 'hits');
+                        target = _.min(repairPool, 'hits');
                     } else {
                         // To avoid multiple wallers on the same wall unless necessary
-                        const available = barrierStructures.filter(s =>
+                        const available = repairPool.filter(s =>
                             !this.room.myCreeps.some(c => c.memory.currentTarget === s.id && c.id !== this.creep.id)
                         );
 
@@ -231,7 +226,7 @@ class RoleWaller {
                             target = this.creep.pos.findClosestByRange(candidates);
                         } else {
                             // Fallback to absolute lowest if all are targeted
-                            target = _.min(barrierStructures, 'hits');
+                            target = _.min(repairPool, 'hits');
                         }
                     }
 
@@ -273,6 +268,12 @@ class RoleWaller {
         if (!this.creep.memory.targetWallHits) {
             if (target.structureType === STRUCTURE_RAMPART && target.hits < SAFE_RAMPART_HITS) {
                 this.creep.memory.targetWallHits = SAFE_RAMPART_HITS;
+            } else if (target.structureType === STRUCTURE_WALL) {
+                this.creep.memory.targetWallHits = Math.min(
+                    target.hits + 50000,
+                    this.barrierRepairCap(maintenance),
+                    RAMPART_HITS_MAX[this.room.controller.level] || 300000000
+                );
             } else {
                 this.creep.memory.targetWallHits = Math.min(target.hits + 50000, RAMPART_HITS_MAX[this.room.controller.level] || 300000000);
             }
