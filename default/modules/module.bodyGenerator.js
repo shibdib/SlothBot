@@ -474,35 +474,41 @@ class ModuleBodyGenerator {
                 move = 2;
                 break;
 
-            case 'reserver':
+            case 'reserver': {
                 if (this.creepInfo?.destination &&
                     !routeWithinClaimTTL(this.room.name, this.creepInfo.destination, CREEP_CLAIM_LIFE_TIME - 10)) {
                     return false;
                 }
-                // Calculate claim based on energy and the cost of CLAIM and MOVE parts.
-                claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
-                claim = Math.min(claim, 2 * (this.room.energyState || 1));
-
-                // Half-move only if every room on the route has roads â€” intermediate rooms count too.
-            {
+                const leanColony = this.room.level >= 7;
                 const route = findRoute(this.room.name, this.creepInfo.destination, {shortest: true});
                 const fullRouteHasRoads = route.length &&
                     INTEL[this.room.name] && INTEL[this.room.name].roadsBuilt &&
                     route.every(roomName => INTEL[roomName] && INTEL[roomName].roadsBuilt);
-                if (fullRouteHasRoads) {
-                    claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + (BODYPART_COST[MOVE] * 0.5))) || 1;
-                    claim = Math.min(claim, 5 * (this.room.energyState || 1));
-                    halfMove = true;
-                }
-                }
+                if (fullRouteHasRoads) halfMove = true;
 
-                if (claim > CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][this.room.level] * 3) claim = CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][this.room.level] * 3;
+                const moveCost = halfMove ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE];
+                const maxClaim = leanColony
+                    ? maxBodyNonMoveParts(!!halfMove)
+                    : (fullRouteHasRoads ? 5 * (this.room.energyState || 1) : 2 * (this.room.energyState || 1));
+
+                claim = Math.floor(this.energyAmount / (BODYPART_COST[CLAIM] + moveCost)) || 1;
+                claim = Math.min(claim, maxClaim);
+
+                if (claim > CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][this.room.level] * 3) {
+                    claim = CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][this.room.level] * 3;
+                }
                 if (this.room.memory.remotePenalty) claim = Math.min(claim, 1);
-                if (this.room.energyState < 3 || this.trend < 0) {
+
+                if (leanColony) {
+                    if (this.room.energyState < 2 || this.trend < 0) {
+                        claim = Math.max(1, Math.floor(claim * this.flowScale(0.5, 10)));
+                    }
+                } else if (this.room.energyState < 3 || this.trend < 0) {
                     claim = Math.max(2, Math.floor(claim * this.flowScale(0.5, 10)));
                 }
-                claim = Math.max(claim, 2);
+                claim = Math.max(claim, leanColony ? 1 : 2);
                 break;
+            }
 
             case 'remoteHarvester': {
                 const destIntel = INTEL[this.creepInfo.destination];

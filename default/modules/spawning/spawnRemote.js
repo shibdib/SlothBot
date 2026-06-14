@@ -184,9 +184,16 @@ function handleThreatLevel(room, remoteName) {
     }
 }
 
+function reserverCountForRemote(room, remoteName) {
+    if (room.level >= 7 || room.energyState < 2) return 1;
+    const cap = INTEL[remoteName] && INTEL[remoteName].reserverCap;
+    if (!cap || cap < 3) return cap || 1;
+    return cap > 3 ? 3 : 1;
+}
+
 function handleReservation(room, remoteName) {
     if (room.level >= 4 && getCreepCount(undefined, 'remoteHarvester', remoteName) && (!INTEL[remoteName].reservationExpires || (INTEL[remoteName].reservationExpires - CREEP_LIFE_TIME) < Game.time) && !INTEL[remoteName].sk) {
-        const count = room.energyState < 2 || room.level >= 7 ? 1 : INTEL[remoteName].reserverCap && INTEL[remoteName].reserverCap < 3 ? INTEL[remoteName].reserverCap : INTEL[remoteName].reserverCap && INTEL[remoteName].reserverCap > 3 ? 3 : 1;
+        const count = reserverCountForRemote(room, remoteName);
         const reserverPriority = room.energyState < 2 || room.level < 7 ? PRIORITIES.reserver + 3 : PRIORITIES.reserver;
         queueCreepIfNeeded({
             room, role: 'reserver', priority: reserverPriority + getCreepCount(undefined, 'reserver', remoteName),
