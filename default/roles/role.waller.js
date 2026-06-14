@@ -53,7 +53,35 @@ class RoleWaller {
         return false;
     }
 
+    wallsNeedingRepair(maintenance = false) {
+        return this.barriersNeedingRepair(maintenance).filter((s) => s.structureType === STRUCTURE_WALL);
+    }
+
+    preemptForWallRepair(maintenance = false) {
+        const wallsNeeding = this.wallsNeedingRepair(maintenance);
+        if (!wallsNeeding.length) return;
+
+        if (this.creep.memory.task === 'build' || this.creep.memory.task === 'repair') {
+            delete this.creep.memory.constructionSite;
+            delete this.creep.memory.task;
+            delete this.creep.memory.targetHits;
+            delete this.creep.memory.sitePos;
+        }
+
+        if (this.creep.memory.task === 'waller' && this.creep.memory.currentTarget) {
+            const current = Game.getObjectById(this.creep.memory.currentTarget);
+            if (current && current.structureType !== STRUCTURE_WALL) {
+                const worstWall = _.min(wallsNeeding, 'hits');
+                if (worstWall && worstWall.hits < current.hits) {
+                    delete this.creep.memory.currentTarget;
+                    delete this.creep.memory.targetWallHits;
+                }
+            }
+        }
+    }
+
     jobManager() {
+        this.preemptForWallRepair();
         // If already tasked out
         if (this.creep.memory.task && this.taskedOut()) return;
 
@@ -138,6 +166,7 @@ class RoleWaller {
     }
 
     building() {
+        if (this.wallsNeedingRepair().length) return false;
         if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return false;
         if (this.creep.memory.task || this.creep.constructionWork('barriers')) {
             if (this.creep.builderFunction()) {
@@ -165,11 +194,6 @@ class RoleWaller {
         });
     }
 
-    pickBarrierRepairPool(barrierStructures) {
-        const walls = barrierStructures.filter((s) => s.structureType === STRUCTURE_WALL);
-        return walls.length ? walls : barrierStructures;
-    }
-
     barriersNeedRepair(maintenance = false) {
         if (!this.room.controller || !this.room.controller.my) return false;
         if (this.room.ramparts.some((s) => s.hits < SAFE_RAMPART_HITS)) return true;
@@ -182,59 +206,50 @@ class RoleWaller {
             delete this.creep.memory.targetWallHits;
 
             const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
+            const barrierStructures = this.barriersNeedingRepair(maintenance);
+            const wallsNeeding = barrierStructures.filter((s) => s.structureType === STRUCTURE_WALL);
+            const unsafeRamparts = this.room.ramparts.filter((s) => s.hits < SAFE_RAMPART_HITS);
 
             // Repair existing barriers before new construction sites (planner keeps sites queued).
-            const unsafeRamparts = this.room.ramparts.filter((s) => s.hits < SAFE_RAMPART_HITS);
-            if (unsafeRamparts.length) {
-                let rampartTarget;
-                if (threatLevel) {
-                    rampartTarget = _.min(unsafeRamparts, 'hits');
-                } else {
-                    const available = unsafeRamparts.filter((s) =>
-                        !this.room.myCreeps.some((c) => c.memory.currentTarget === s.id && c.id !== this.creep.id)
-                    );
-                    rampartTarget = available.length
-                        ? this.creep.pos.findClosestByRange(available)
-                        : _.min(unsafeRamparts, 'hits');
-                }
-                if (rampartTarget) {
-                    this.creep.memory.currentTarget = rampartTarget.id;
-                    this.creep.memory.task = 'waller';
-                    this.creep.memory.targetWallHits = SAFE_RAMPART_HITS * 2;
-                }
+            let repairPool;
+            if (threatLevel) {
+                repairPool = barrierStructures;
+            } else if (wallsNeeding.length) {
+                repairPool = wallsNeeding;
+            } else if (unsafeRamparts.length) {
+                repairPool = unsafeRamparts;
+            } else {
+                repairPool = barrierStructures;
             }
 
-            if (!this.creep.memory.currentTarget) {
-                const barrierStructures = this.barriersNeedingRepair(maintenance);
+            if (repairPool.length && this.room.controller && this.room.controller.my) {
+                let target;
+                if (threatLevel) {
+                    target = _.min(repairPool, 'hits');
+                } else {
+                    const available = repairPool.filter((s) =>
+                        !this.room.myCreeps.some((c) => c.memory.currentTarget === s.id && c.id !== this.creep.id)
+                    );
 
-                if (barrierStructures.length && this.room.controller && this.room.controller.my) {
-                    const repairPool = this.pickBarrierRepairPool(barrierStructures);
-                    let target;
-                    if (threatLevel) {
-                        target = _.min(repairPool, 'hits');
+                    if (available.length) {
+                        const minHits = _.min(available, 'hits').hits;
+                        const jitterThreshold = maintenance ? 100000 : 25000;
+                        const candidates = available.filter((s) => s.hits <= minHits + jitterThreshold);
+                        target = this.creep.pos.findClosestByRange(candidates);
                     } else {
-                        // To avoid multiple wallers on the same wall unless necessary
-                        const available = repairPool.filter(s =>
-                            !this.room.myCreeps.some(c => c.memory.currentTarget === s.id && c.id !== this.creep.id)
-                        );
-
-                        if (available.length) {
-                            // Pick the closest of the lowest health ones to reduce travel jitter
-                            const minHits = _.min(available, 'hits').hits;
-                            const jitterThreshold = maintenance ? 100000 : 25000;
-                            const candidates = available.filter(s => s.hits <= minHits + jitterThreshold);
-                            target = this.creep.pos.findClosestByRange(candidates);
-                        } else {
-                            // Fallback to absolute lowest if all are targeted
-                            target = _.min(repairPool, 'hits');
-                        }
+                        target = _.min(repairPool, 'hits');
                     }
+                }
 
-                    if (target) {
-                        this.creep.memory.currentTarget = target.id;
-                        this.creep.memory.task = "waller";
-                        // Increase the hit buffer for maintenance to reduce retargeting frequency
-                        if (maintenance) this.creep.memory.targetWallHits = target.hits + 100000;
+                if (target) {
+                    this.creep.memory.currentTarget = target.id;
+                    this.creep.memory.task = 'waller';
+                    if (target.structureType === STRUCTURE_RAMPART && target.hits < SAFE_RAMPART_HITS) {
+                        this.creep.memory.targetWallHits = SAFE_RAMPART_HITS * 2;
+                    } else if (maintenance) {
+                        this.creep.memory.targetWallHits = target.hits + 100000;
+                    } else {
+                        delete this.creep.memory.targetWallHits;
                     }
                 }
             }
