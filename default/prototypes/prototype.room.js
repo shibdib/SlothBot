@@ -161,7 +161,7 @@ Object.defineProperty(Room.prototype, 'barriers', {
         if (!this._barriers || this._barriers_ts !== Game.time) {
             this._barriers = global.collectRoomBarriers
                 ? global.collectRoomBarriers(this)
-                : this.ramparts.concat(this.walls || []).concat(this.constructedWalls || []).filter(Boolean);
+                : this.ramparts.concat(this.constructedWalls || []).filter(Boolean);
             this._barriers_ts = Game.time;
         }
         return this._barriers;
@@ -843,7 +843,7 @@ function areExitsReachable(room) {
 function determineBestAttackRoute(room) {
     const barriers = global.collectRoomBarriers
         ? global.collectRoomBarriers(room)
-        : room.ramparts.concat(room.walls || []).concat(room.constructedWalls || []).filter(Boolean);
+        : room.ramparts.concat(room.constructedWalls || []).filter(Boolean);
     if (!barriers.length) return undefined;
     const roomExits = Object.values(Game.map.describeExits(room.name));
     const viableExits = roomExits.filter(exit => !INTEL[exit] || !INTEL[exit].owner || INTEL[exit].owner === MY_USERNAME);
