@@ -31,6 +31,16 @@ const BUNKER_LAYOUT_ROAD_TYPES = new Set([
     STRUCTURE_NUKER,
 ]);
 
+function isInRoomBounds(x, y) {
+    return x >= 0 && x <= 49 && y >= 0 && y <= 49;
+}
+
+function toRoomPosition(point, fallbackRoomName) {
+    const roomName = point.roomName || fallbackRoomName;
+    if (!isInRoomBounds(point.x, point.y) || !roomName) return null;
+    return new RoomPosition(point.x, point.y, roomName);
+}
+
 function getRoadOrigin(room) {
     // Walkable hub tile beside storage/terminal; structures are not valid path origins.
     if (room.hub) return room.hub;
@@ -189,8 +199,8 @@ function roadBuilder(room, layout) {
         }
 
         for (const point of points) {
-            const pos = new RoomPosition(point.x, point.y, room.name);
-            if (buildRoad(pos)) return true;
+            const pos = toRoomPosition(point, room.name);
+            if (pos && buildRoad(pos)) return true;
         }
 
         if (isPathFullyRoaded(room, points, target)) {
@@ -201,7 +211,8 @@ function roadBuilder(room, layout) {
 
     function isPathFullyRoaded(room, points, target) {
         for (const point of points) {
-            const pos = new RoomPosition(point.x, point.y, room.name);
+            const pos = toRoomPosition(point, room.name);
+            if (!pos) continue;
             const site = pos.checkForConstructionSites();
             if (!pos.checkForRoad() && !(site && site.structureType === STRUCTURE_ROAD)) return false;
         }
@@ -209,7 +220,10 @@ function roadBuilder(room, layout) {
         for (let dx = -1; dx <= 1; dx++) {
             for (let dy = -1; dy <= 1; dy++) {
                 if (!dx && !dy) continue;
-                const adj = new RoomPosition(targetPos.x + dx, targetPos.y + dy, room.name);
+                const ax = targetPos.x + dx;
+                const ay = targetPos.y + dy;
+                if (!isInRoomBounds(ax, ay)) continue;
+                const adj = new RoomPosition(ax, ay, targetPos.roomName || room.name);
                 const adjSite = adj.checkForConstructionSites();
                 if (adj.checkForRoad() || (adjSite && adjSite.structureType === STRUCTURE_ROAD)) return true;
             }
