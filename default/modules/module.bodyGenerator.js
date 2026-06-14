@@ -120,29 +120,32 @@ class ModuleBodyGenerator {
             case 'roadBuilder':
             case 'drone':
             case 'waller': {
+                const leanColony = this.room.level >= 7 && !this.creepInfo.destination;
                 halfMove = !this.creepInfo.destination
                     && !['roadBuilder', 'waller'].includes(this.role)
                     && INTEL[this.room.name].roadsBuilt;
 
-                if (halfMove) {
-                    // Roaded: cheaper moves â†’ bias toward more total work+carry. Raised carry for fewer refills
-                    // (target ~15-16 ticks of building/repair per load to amortize travel to energy sources).
-                    work = Math.min(Math.floor(this.energyAmount * 0.40 / BODYPART_COST[WORK]) || 1, 25);
-                    carry = Math.min(Math.floor(this.energyAmount * 0.32 / BODYPART_COST[CARRY]) || 1, 20);
-                } else {
-                    // No roads/dest/waller: full moves. More carry to reduce time spent traveling for energy.
-                    work = Math.min(Math.floor(this.energyAmount * 0.28 / BODYPART_COST[WORK]) || 1, 20);
-                    carry = Math.min(Math.floor(this.energyAmount * 0.22 / BODYPART_COST[CARRY]) || 1, 16);
-                }
+                const workShare = halfMove ? (leanColony ? 0.45 : 0.40) : (leanColony ? 0.32 : 0.28);
+                const carryShare = halfMove ? (leanColony ? 0.35 : 0.32) : (leanColony ? 0.25 : 0.22);
+                const workCap = leanColony ? 33 : (halfMove ? 25 : 20);
+                const carryCap = leanColony ? 25 : (halfMove ? 20 : 16);
+
+                work = Math.min(Math.floor(this.energyAmount * workShare / BODYPART_COST[WORK]) || 1, workCap);
+                carry = Math.min(Math.floor(this.energyAmount * carryShare / BODYPART_COST[CARRY]) || 1, carryCap);
+
                 if (!this.room.energyState) {
-                    work *= 0.15;
-                    carry *= 0.05;
+                    work *= leanColony ? 0.25 : 0.15;
+                    carry *= leanColony ? 0.1 : 0.05;
                 } else if (this.role === 'roadBuilder' && this.room.energyState < 3) {
                     work *= 0.4;
                     carry *= 0.3;
-                } else if (this.room.energyState < 3 ||
-                    (this.room.energyState === 3 && ['drone', 'waller'].includes(this.role))) {
+                } else if (!leanColony && (this.room.energyState < 3 ||
+                    (this.room.energyState === 3 && ['drone', 'waller'].includes(this.role)))) {
                     const scale = this.flowScale(0.3, 15);
+                    work *= scale;
+                    carry *= scale;
+                } else if (leanColony && (this.room.energyState < 2 || this.trend < 0)) {
+                    const scale = this.flowScale(0.5, 15);
                     work *= scale;
                     carry *= scale;
                 }
@@ -220,7 +223,8 @@ class ModuleBodyGenerator {
             case 'hauler': {
                 const roadsBuilt = INTEL[this.room.name].roadsBuilt && !this.room.memory.dynamicLayout;
                 carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + (roadsBuilt ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE]))) || 1;
-                carry = Math.min(carry, this.room.level >= 6 ? this.room.level * 2 : this.room.level * 4); // Scale with room level, halved at RCL6+ for dual hauler coverage
+                const maxHaulerCarry = this.room.level >= 7 ? 25 : (this.room.level >= 6 ? this.room.level * 2 : this.room.level * 4);
+                carry = Math.min(carry, maxHaulerCarry);
                 if (!this.room.energyState) {
                     carry = Math.max(1, Math.floor(carry * 0.25));
                 } else if (this.room.energyState < 3 || this.trend < 0) {
@@ -242,7 +246,8 @@ class ModuleBodyGenerator {
                     carry = Math.min(carry, Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + moveCostPerCarry)));
                 } else {
                     carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + moveCostPerCarry)) || 1;
-                    carry = Math.min(carry, Math.max(10, this.room.level * 4));
+                    const maxShuttleCarry = this.room.level >= 7 ? 25 : Math.max(10, this.room.level * 4);
+                    carry = Math.min(carry, maxShuttleCarry);
                 }
                 if (!this.room.energyState) {
                     carry = Math.max(1, Math.floor(carry * 0.25));

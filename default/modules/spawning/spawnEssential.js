@@ -10,6 +10,46 @@ const {getCreepCount} = require('spawnCounts');
 const {queueCreepIfNeeded} = require('spawnQueue');
 const {empireOpsPaused} = require('hcReadiness');
 
+function resolveDroneCount(room, ctx) {
+    const {
+        earlyRush, importantBuilds, hasCriticalBuilds, hasRoadMaintenance,
+        flowHealthy, spareIncome,
+    } = ctx;
+
+    const siteCount = room.constructionSites.length;
+    const heavyRoadRepair = hasRoadMaintenance.length > 3;
+    const hasBuildWork = importantBuilds || hasCriticalBuilds || siteCount > 0;
+    const hasWork = hasBuildWork || heavyRoadRepair;
+
+    if (!hasWork && !room.energyState && !hasCriticalBuilds) return 0;
+
+    let count;
+    if (room.level >= 7) {
+        count = 1;
+        if (room.energyState >= 2 && flowHealthy && hasBuildWork && heavyRoadRepair) count = 2;
+        else if (room.energyState >= 2 && hasCriticalBuilds && siteCount > 4) count = 2;
+    } else if (earlyRush) {
+        count = hasWork ? (hasCriticalBuilds ? 3 : 2) : 2;
+    } else if (room.storage) {
+        if (!hasWork) count = room.energyState ? 1 : 0;
+        else if (heavyRoadRepair && room.energyState >= 1) count = 2;
+        else count = hasCriticalBuilds ? 2 : 1;
+    } else if (!hasWork) {
+        count = room.energyState ? 1 : 0;
+    } else {
+        count = hasCriticalBuilds ? 2 : (room.energyState >= 2 ? 2 : 1);
+    }
+
+    if (count <= 1) return count;
+
+    const droneBudget = earlyRush ? 6 : (room.level >= 7 ? 12 : 8);
+    if (!flowHealthy || spareIncome < droneBudget) {
+        return (hasCriticalBuilds || heavyRoadRepair) ? Math.min(count, 2) : 1;
+    }
+    const incomeCap = room.level >= 7 ? 2 : Math.min(2, Math.floor(spareIncome / droneBudget));
+    return Math.max(1, Math.min(count, incomeCap));
+}
+
 function essentialCreepQueue(room) {
     if (!spawnState.throttleReady(spawnState.essentialTick, room.name, 10)) return;
 
@@ -44,39 +84,11 @@ function essentialCreepQueue(room) {
     const criticalBuildTypes = [STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_CONTAINER, STRUCTURE_LINK, STRUCTURE_TERMINAL, STRUCTURE_TOWER, STRUCTURE_LAB, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN];
     const hasCriticalBuilds = _.some(room.constructionSites, s => criticalBuildTypes.includes(s.structureType));
 
-    let droneCount;
-    let dronePriority = PRIORITIES.drone;
-    if (earlyRush) {
-        droneCount = (importantBuilds || hasRoadMaintenance.length > 3) ? Math.min(9 - room.level, 3) : 3;
-        dronePriority = 1;
-    } else if (importantBuilds && trendOk && (room.energyState || hasCriticalBuilds)) {
-        droneCount = (9 - room.level) + (room.energyState || 1);
-    } else if ((room.constructionSites.length || hasRoadMaintenance.length > 3) && (room.energyState || hasCriticalBuilds)) {
-        droneCount = hasCriticalBuilds ? 3 : 2;
-    } else if (!room.storage) {
-        droneCount = (importantBuilds || hasRoadMaintenance.length > 3) ? (9 - room.level) + (room.energyState || (hasCriticalBuilds ? 1 : 0)) : 1;
-    } else {
-        droneCount = 1;
-        if (hasRoadMaintenance.length > 3 && room.energyState >= 1) {
-            droneCount = 2;  // Second drone for road maintenance to avoid inefficient tower repairs
-        }
-    }
-
-    if (droneCount > 1) {
-        const droneBudget = earlyRush ? 6 : 8;
-        if (!flowHealthy || spareIncome < droneBudget) {
-            // Still allow a couple drones to bootstrap critical new structures on level-up
-            // even if economy looks tight; otherwise fall back to 1.
-            // Also allow 2nd for road maintenance to keep roads creep-repaired (towers inefficient).
-            if (hasCriticalBuilds || hasRoadMaintenance) {
-                droneCount = Math.min(droneCount, 2);
-            } else {
-                droneCount = 1;
-            }
-        } else {
-            droneCount = Math.max(1, Math.min(droneCount, Math.floor(spareIncome / droneBudget)));
-        }
-    }
+    const dronePriority = earlyRush ? 1 : PRIORITIES.drone;
+    const droneCount = resolveDroneCount(room, {
+        earlyRush, importantBuilds, hasCriticalBuilds, hasRoadMaintenance,
+        flowHealthy, spareIncome,
+    });
 
     queueCreepIfNeeded({
         room, role: 'drone', priority: dronePriority + getCreepCount(room, 'drone'),
@@ -90,8 +102,10 @@ function essentialCreepQueue(room) {
         // This prevents completely abandoning wall/rampart building in low-but-not-zero energy rooms.
         // Previously gated strictly at >=2; drones still only do "energy rich" walling at >=3.
         if (room.energyState >= 1 && flowHealthy && spareIncome >= 4) {
-            wallerCount = room.energyState >= 3 && room.level >= 8 ? 2 : 1;
-            wallerCount = Math.max(1, Math.min(wallerCount, Math.floor(spareIncome / 10)));
+            wallerCount = room.level >= 7 ? 1 : (room.energyState >= 3 && room.level >= 8 ? 2 : 1);
+            if (room.level < 7) {
+                wallerCount = Math.max(1, Math.min(wallerCount, Math.floor(spareIncome / 10)));
+            }
         }
         if (wallerCount) {
             queueCreepIfNeeded({
@@ -109,10 +123,12 @@ function essentialCreepQueue(room) {
     if (harvesterCount) {
         const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
         if (room.storage || protoStorage) {
-            let haulerAmount = room.level >= 4 ? 2 : 1;
+            let haulerAmount = room.level >= 7 ? 1 : (room.level >= 4 ? 2 : 1);
             if (roomHasOperateExtensionOperator(room.name)) haulerAmount = 1;
             if (spareIncome < 0 || !trendOk) haulerAmount = 1;
-            else haulerAmount = Math.min(haulerAmount, Math.max(1, Math.floor(spareIncome / 6)));
+            else if (room.level < 7) {
+                haulerAmount = Math.min(haulerAmount, Math.max(1, Math.floor(spareIncome / 6)));
+            }
             const priority = !getCreepCount(room, 'hauler') ? 1 : PRIORITIES.hauler;
             queueCreepIfNeeded({
                 room, role: 'hauler', priority,
@@ -126,7 +142,9 @@ function essentialCreepQueue(room) {
             const priority = !getCreepCount(room, 'shuttle') ? 1 : PRIORITIES.hauler;
             let number = room.level >= 5 ? 1 : 2;
             if (spareIncome < 0 || !trendOk) number = 1;
-            else number = Math.min(number, Math.max(1, Math.floor(spareIncome / 8)));
+            else if (room.level < 7) {
+                number = Math.min(number, Math.max(1, Math.floor(spareIncome / 8)));
+            }
             queueCreepIfNeeded({
                 room, role: 'shuttle', priority: priority,
                 numberNeeded: number,
@@ -150,8 +168,8 @@ function essentialCreepQueue(room) {
                 container.pos.countOpenTerrainAround()
             ));
         }
-        if (room.level >= 7) upgraderAmount = Math.min(upgraderAmount, 2);
-        if (earlyRush && harvesterCount && room.energyState >= 2 && (energyInfo && (energyInfo.trend || 0) >= 0)) {
+        if (room.level >= 7) upgraderAmount = 1;
+        else if (earlyRush && harvesterCount && room.energyState >= 2 && (energyInfo && (energyInfo.trend || 0) >= 0)) {
             upgraderAmount = Math.max(upgraderAmount, 2);
         }
     }
