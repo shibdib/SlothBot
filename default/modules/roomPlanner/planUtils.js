@@ -290,6 +290,115 @@ function resolveControllerContainer(room, syncMemory = false) {
     return null;
 }
 
+
+function sourceContainersAdjacent(source) {
+    if (!source) return [];
+    const seen = new Set();
+    const out = [];
+    const add = (s) => {
+        if (!s || s.structureType !== STRUCTURE_CONTAINER || !s.pos.isNearTo(source) || seen.has(s.id)) return;
+        seen.add(s.id);
+        out.push(s);
+    };
+    if (global.posStructuresInRange) {
+        for (const s of global.posStructuresInRange(source.pos, 1, {filter: {structureType: STRUCTURE_CONTAINER}})) add(s);
+    }
+    const room = Game.rooms[source.pos.roomName];
+    if (room) {
+        for (const s of source.pos.findInRange(FIND_STRUCTURES, 1, {filter: {structureType: STRUCTURE_CONTAINER}})) add(s);
+        if (room.containers) {
+            for (const s of room.containers) {
+                if (s.pos.isNearTo(source)) add(s);
+            }
+        }
+    }
+    return out;
+}
+
+function sourceContainerSitesAdjacent(source) {
+    if (!source) return [];
+    const seen = new Set();
+    const out = [];
+    const add = (s) => {
+        if (!s || s.structureType !== STRUCTURE_CONTAINER || !s.pos.isNearTo(source) || seen.has(s.id)) return;
+        seen.add(s.id);
+        out.push(s);
+    };
+    if (global.posConstructionSitesInRange) {
+        for (const s of global.posConstructionSitesInRange(source.pos, 1, {filter: {structureType: STRUCTURE_CONTAINER}})) add(s);
+    }
+    const room = Game.rooms[source.pos.roomName];
+    if (room) {
+        for (const s of source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: {structureType: STRUCTURE_CONTAINER}})) add(s);
+        if (room.constructionSites) {
+            for (const s of room.constructionSites) add(s);
+        }
+    }
+    return out;
+}
+
+function pickCanonicalSourceContainer(source, structures) {
+    if (!structures.length) return null;
+    const withStore = structures.filter((s) => s.store);
+    if (!withStore.length) return null;
+    const bestPos = findBestContainerPos(source);
+    if (bestPos) {
+        const atBest = withStore.find((s) => s.pos.isEqualTo(bestPos));
+        if (atBest) return atBest;
+    }
+    return source.pos.findClosestByRange(withStore);
+}
+
+function resolveSourceContainer(source, room, syncMemory = false) {
+    if (!source) return null;
+    room = room || Game.rooms[source.pos.roomName];
+
+    const containerId = source.memory.container || source.memory.containerID;
+    const remembered = Game.getObjectById(containerId);
+    if (remembered && remembered.structureType === STRUCTURE_CONTAINER && remembered.pos.isNearTo(source) && remembered.store) {
+        if (syncMemory) {
+            source.memory.container = remembered.id;
+            delete source.memory.containerID;
+        }
+        return remembered;
+    }
+    if (containerId && (!remembered || remembered.structureType !== STRUCTURE_CONTAINER || !remembered.pos.isNearTo(source))) {
+        source.memory.container = undefined;
+        delete source.memory.containerID;
+    }
+
+    const adjacent = sourceContainersAdjacent(source).filter((s) => s.store);
+    const keeper = pickCanonicalSourceContainer(source, adjacent);
+    if (keeper && adjacent.length > 1) {
+        for (const s of adjacent) {
+            if (s.id !== keeper.id) s.destroy();
+        }
+    }
+    if (keeper) {
+        if (syncMemory) {
+            source.memory.container = keeper.id;
+            delete source.memory.containerID;
+        }
+        return keeper;
+    }
+    return null;
+}
+
+function resolveSourceContainerSite(source) {
+    const sites = sourceContainerSitesAdjacent(source);
+    if (!sites.length) return null;
+    const bestPos = findBestContainerPos(source);
+    if (bestPos) {
+        const atBest = sites.find((s) => s.pos.isEqualTo(bestPos));
+        if (atBest) return atBest;
+    }
+    return source.pos.findClosestByRange(sites);
+}
+
+function hasSourceContainerSite(source) {
+    return sourceContainerSitesAdjacent(source).length > 0;
+}
+
 function hasControllerContainerSite(room) {
     return controllerContainerSitesAdjacent(room).length > 0;
 }
@@ -337,5 +446,13 @@ module.exports = {
     hasControllerContainerSite,
 
     controllerContainersAdjacent,
+
+    resolveSourceContainer,
+
+    resolveSourceContainerSite,
+
+    hasSourceContainerSite,
+
+    sourceContainersAdjacent,
 
 };

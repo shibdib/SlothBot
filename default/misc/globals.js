@@ -545,6 +545,28 @@ let globals = function () {
         return resolved;
     };
 
+    let sourceContainerCacheTick = -1;
+    const sourceContainerCache = {};
+    global.resolveSourceContainer = function (source, room) {
+        if (!source) return null;
+        if (sourceContainerCacheTick !== Game.time) {
+            sourceContainerCacheTick = Game.time;
+            for (const key in sourceContainerCache) delete sourceContainerCache[key];
+        }
+        if (sourceContainerCache[source.id] !== undefined) {
+            return sourceContainerCache[source.id];
+        }
+        const {resolveSourceContainer} = require('planUtils');
+        const resolved = resolveSourceContainer(source, room, true);
+        sourceContainerCache[source.id] = resolved;
+        return resolved;
+    };
+
+    global.resolveSourceContainerSite = function (source) {
+        const {resolveSourceContainerSite} = require('planUtils');
+        return resolveSourceContainerSite(source);
+    };
+
     // Debug
     global.PATHING_DEBUG = false;
 

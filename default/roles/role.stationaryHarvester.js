@@ -39,15 +39,16 @@ class RoleStationaryHarvester {
 
     harvestSource() {
         let source = Game.getObjectById(this.creep.memory.other.source);
+        if (!source) return;
         // If in place harvest
         if (this.creep.memory.onContainer) {
             // Resolve container once per tick — passed to depositEnergy to avoid repeated getObjectById
-            let container = Game.getObjectById(source.memory.container);
-            // Build container if missing
-            if (!container && this.creep.store[RESOURCE_ENERGY]) {
-                source.memory.container = undefined;
+            let container = global.resolveSourceContainer(source, this.room);
+            let containerSite = !container ? global.resolveSourceContainerSite(source) : null;
+            // Build container site if missing
+            if (!container && !containerSite && this.creep.store[RESOURCE_ENERGY]) {
                 const site = this.creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
-                if (site) {
+                if (site && site.structureType === STRUCTURE_CONTAINER) {
                     this.creep.build(site);
                     const dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
                     if (dropped) this.creep.pickup(dropped);
@@ -64,7 +65,7 @@ class RoleStationaryHarvester {
             }
             switch (this.creep.harvest(source)) {
                 case ERR_NOT_IN_RANGE:
-                    if (container) this.creep.shibMove(container, {range: 0});
+                    if (container || containerSite) this.creep.shibMove(container || containerSite, {range: 0});
                     this.creep.memory.onContainer = undefined;
                     break;
                 case ERR_NOT_ENOUGH_RESOURCES:
@@ -94,20 +95,18 @@ class RoleStationaryHarvester {
                     break;
             }
         } else {
-            let container = Game.getObjectById(source.memory.container) || _.find(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER);
-            //Make sure you're on the container
-            if (container) {
-                if (!this.creep.pos.isEqualTo(container.pos)) {
-                    return this.creep.shibMove(container, {range: 0});
-                } else {
-                    this.creep.memory.onContainer = true;
+            let container = global.resolveSourceContainer(source, this.room);
+            let containerSite = !container ? global.resolveSourceContainerSite(source) : null;
+            const standPos = container || containerSite;
+            if (standPos) {
+                if (!this.creep.pos.isEqualTo(standPos.pos)) {
+                    return this.creep.shibMove(standPos, {range: 0});
                 }
+                this.creep.memory.onContainer = true;
+            } else if (this.creep.pos.getRangeTo(source) > 1) {
+                return this.creep.shibMove(source);
             } else {
-                if (this.creep.pos.getRangeTo(source) > 1) {
-                    return this.creep.shibMove(source);
-                } else {
-                    this.creep.memory.onContainer = true;
-                }
+                this.creep.memory.onContainer = true;
             }
         }
     }
@@ -116,7 +115,7 @@ class RoleStationaryHarvester {
 // Deposit harvested energy into link → container → repair in priority order
 function depositEnergy(creep, source, container) {
     if (!source) source = Game.getObjectById(creep.memory.other.source);
-    if (!container) container = Game.getObjectById(source.memory.container);
+    if (!container && source) container = global.resolveSourceContainer(source, creep.room);
 
     // Fill nearby extensions (Critical)
     if (extensionFiller(creep)) return;
@@ -146,8 +145,9 @@ function depositEnergy(creep, source, container) {
     // This directly helps the "struggling to stockpile" goal while still maintaining the container.
     if (creep.store[RESOURCE_ENERGY] > 0) {
         if (!container) {
-            const containerSite = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
-            return creep.build(containerSite);
+            const containerSite = global.resolveSourceContainerSite(source)
+                || creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
+            if (containerSite) return creep.build(containerSite);
         } else if (container && container.hits < container.hitsMax) {
             return creep.repair(container);
         }

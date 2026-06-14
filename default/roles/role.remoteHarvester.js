@@ -9,8 +9,30 @@ class RoleRemoteHarvester {
         this.creep = creep;
         this.room = creep.room;
         this.source = Game.getObjectById(this.creep.memory.other.source);
-        this.container = Game.getObjectById(this.creep.memory.containerID) || Game.getObjectById(this.creep.memory.containerSite);
+        this.refreshContainerTarget();
         this.performRoleActions();
+    }
+
+    refreshContainerTarget() {
+        if (!this.source) {
+            this.container = Game.getObjectById(this.creep.memory.containerID) || Game.getObjectById(this.creep.memory.containerSite);
+            return;
+        }
+        const resolved = global.resolveSourceContainer(this.source, this.room);
+        if (resolved) {
+            this.container = resolved;
+            this.creep.memory.containerID = resolved.id;
+            delete this.creep.memory.containerSite;
+            return;
+        }
+        const site = global.resolveSourceContainerSite(this.source);
+        if (site) {
+            this.container = site;
+            this.creep.memory.containerSite = site.id;
+            delete this.creep.memory.containerID;
+            return;
+        }
+        this.container = Game.getObjectById(this.creep.memory.containerID) || Game.getObjectById(this.creep.memory.containerSite);
     }
 
     performRoleActions() {
@@ -57,6 +79,8 @@ class RoleRemoteHarvester {
             return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 15});
         }
 
+        if (!this.container || Game.time % 5 === 0) this.refreshContainerTarget();
+
         // Move to or stay on container
         if (this.container && !this.creep.memory.onContainer) {
             if (!this.creep.pos.isEqualTo(this.container.pos)) {
@@ -65,6 +89,7 @@ class RoleRemoteHarvester {
             this.creep.memory.onContainer = true;
         } else if (!this.container && Game.time % 10 === 0) {
             harvestDepositContainer(this.source, this.creep);
+            this.refreshContainerTarget();
         } else if (!this.creep.memory.onContainer && !this.creep.pos.isNearTo(this.source)) {
             return this.creep.shibMove(this.source);
         }
@@ -161,20 +186,31 @@ function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
 }
 
 function harvestDepositContainer(source, creep) {
-    let container = source.pos.findClosestByRange(creep.room.containers, {filter: (s) => s.pos.getRangeTo(source) === 1});
+    const container = global.resolveSourceContainer(source, creep.room);
     if (container) {
         creep.memory.containerID = container.id;
+        delete creep.memory.containerSite;
         return container.id;
-    } else {
-        let site = source.pos.findInRange(creep.room.constructionSites, 3, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
-        if (!creep.memory.siteAttempt && !site && creep.pos.getRangeTo(source) === 1 && !creep.pos.checkForWall()) {
-            creep.memory.siteAttempt = true;
-            creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
-        } else if (!site && creep.pos.checkForWall()) {
-            findContainerSpot(creep.room, source.pos);
-        } else if (site && site.pos.getRangeTo(source) === 1) {
-            creep.memory.containerSite = site.id;
-        }
+    }
+
+    const site = global.resolveSourceContainerSite(source);
+    if (site) {
+        creep.memory.containerSite = site.id;
+        delete creep.memory.containerID;
+        return site.id;
+    }
+
+    if (creep.memory.siteAttempt) return;
+
+    const {findBestContainerPos} = require('planUtils');
+    const buildPos = findBestContainerPos(source);
+    if (!buildPos || buildPos.checkForConstructionSites() || buildPos.checkForImpassible()) return;
+
+    if (creep.pos.isEqualTo(buildPos) && creep.pos.getRangeTo(source) === 1) {
+        creep.memory.siteAttempt = true;
+        buildPos.createConstructionSite(STRUCTURE_CONTAINER);
+    } else if (creep.pos.checkForWall()) {
+        findContainerSpot(creep.room, source.pos);
     }
 }
 
@@ -183,7 +219,10 @@ function findContainerSpot(room, position) {
         for (let yOff = -1; yOff <= 1; yOff++) {
             if (xOff !== 0 || yOff !== 0) {
                 let pos = new RoomPosition(position.x + xOff, position.y + yOff, room.name);
-                if (!pos.checkForImpassible()) pos.createConstructionSite(STRUCTURE_CONTAINER);
+                if (!pos.checkForImpassible() && !pos.checkForConstructionSites()) {
+                    pos.createConstructionSite(STRUCTURE_CONTAINER);
+                    return;
+                }
             }
         }
     }

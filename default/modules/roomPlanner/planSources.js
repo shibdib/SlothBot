@@ -15,6 +15,8 @@ const {
     resolveControllerContainer,
     hasControllerContainerSite,
     controllerContainersAdjacent,
+    resolveSourceContainer,
+    hasSourceContainerSite,
 } = require('planUtils');
 
 function getControllerPlacementPositions(room) {
@@ -70,30 +72,20 @@ function sourceBuilder(room) {
 
     // Helper function to handle the creation of source containers
     function buildSourceContainer(source, room) {
-        const containerId = source.memory.container || source.memory.containerID;
-        let sourceContainer = Game.getObjectById(containerId) || source.pos.findInRange(room.containers, 1)[0];
-        if (!sourceContainer) {
-            source.memory.container = undefined;
-            delete source.memory.containerID;
-            let sourceBuild = _.find(
-                global.posConstructionSitesInRange
-                    ? global.posConstructionSitesInRange(source.pos, 1, {filter: {structureType: STRUCTURE_CONTAINER}})
-                    : source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1),
-                (s) => s.structureType === STRUCTURE_CONTAINER
-            );
-            if (!sourceBuild) {
-                let containerSite = findBestContainerPos(source);
-                if (containerSite && !containerSite.checkForConstructionSites()) {
-                    if (containerSite.createConstructionSite(STRUCTURE_CONTAINER) === OK) return true;
-                }
-            }
-        } else {
+        const sourceContainer = resolveSourceContainer(source, room, true);
+        if (sourceContainer) {
             if (!source.memory.distanceToHub) {
                 source.memory.distanceToHub = source.pos.findPathTo(room.hub).length;
             }
-            source.memory.container = sourceContainer.id;
-            delete source.memory.containerID;
+            return false;
         }
+        if (hasSourceContainerSite(source)) return false;
+
+        const containerSite = findBestContainerPos(source);
+        if (containerSite && !containerSite.checkForConstructionSites()) {
+            if (containerSite.createConstructionSite(STRUCTURE_CONTAINER) === OK) return true;
+        }
+        return false;
     }
 }
 
