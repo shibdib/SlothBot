@@ -9,6 +9,23 @@ const {getFlowContext} = require('spawnFlow');
 const {getCreepCount, getBodyAbilityPower} = require('spawnCounts');
 const {queueCreepIfNeeded} = require('spawnQueue');
 
+function colonyIntelFresh(room) {
+    const exits = Game.map.describeExits(room.name);
+    for (const dir in exits) {
+        const r = exits[dir];
+        const intel = INTEL[r];
+        if (!intel || !intel.tickDetected || intel.tickDetected + CREEP_LIFE_TIME < Game.time) return false;
+    }
+    return true;
+}
+
+function getExplorerNeededCount(room) {
+    if (Game.shard.name === 'shardSeason') return 20;
+    if (room.level >= 8) return 0;
+    if (room.level >= 7) return colonyIntelFresh(room) ? 1 : 2;
+    return MAX_LEVEL === 8 ? 1 : 10 - room.level;
+}
+
 function miscCreepQueue(room) {
     if (!spawnState.throttleReady(spawnState.miscTick, room.name, 12)) return;
 
@@ -41,13 +58,15 @@ function miscCreepQueue(room) {
 
     if (room.memory.dangerousAttack) return;
 
-    const explorerNeededCount = Game.shard.name === 'shardSeason' ? 20 : MAX_LEVEL === 8 ? 1 : 10 - room.level;
-    queueCreepIfNeeded({
-        colony: room,
-        role: 'explorer',
-        priority: PRIORITIES.medium + getCreepCount(room, 'explorer'),
-        numberNeeded: explorerNeededCount
-    });
+    const explorerCount = getExplorerNeededCount(room);
+    if (explorerCount > 0) {
+        queueCreepIfNeeded({
+            colony: room,
+            role: 'explorer',
+            priority: PRIORITIES.medium + getCreepCount(room, 'explorer'),
+            numberNeeded: explorerCount
+        });
+    }
 
     if (room.storage && room.level >= 6 && room.memory.extractorContainer && room.mineral.mineralAmount) {
         queueCreepIfNeeded({

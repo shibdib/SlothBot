@@ -575,12 +575,11 @@ class ModuleBodyGenerator {
                     carry = Math.max(minCarryParts, Math.floor(carry * this.flowScale(0.5, 10)));
                 }
 
-                const maxCarry = this.room.level < 7 ? this.room.level * 2 : 33;
-                if (halfMove) {
-                    if (carry + work > maxCarry) carry = maxCarry - work;
-                } else if (carry + work > Math.min(maxCarry, 25)) {
-                    carry = Math.min(maxCarry, 25) - work;
-                }
+                const maxNonMove = maxBodyNonMoveParts(!!halfMove);
+                const maxCarry = this.room.level >= 7
+                    ? Math.max(1, maxNonMove - (work || 0))
+                    : this.room.level * 2;
+                carry = Math.min(carry, maxCarry);
 
                 carry = Math.max(minCarryParts, carry);
                 break;

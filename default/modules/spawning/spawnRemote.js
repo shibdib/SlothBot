@@ -9,6 +9,20 @@ const {getFlowContext} = require('spawnFlow');
 const {getCreepCount, haulerCarryCapacity} = require('spawnCounts');
 const {queueCreepIfNeeded, queueCreep} = require('spawnQueue');
 
+function maxRemoteHaulerCarryParts(roomLevel, onRoads) {
+    const halfMove = onRoads;
+    const maxNonMove = Math.floor(50 / (1 + (halfMove ? 0.5 : 1.0)));
+    const work = roomLevel >= 7 ? 1 : 0;
+    return maxNonMove - work;
+}
+
+function maxRemoteHarvesters(room) {
+    const multiplier = room.memory.remotePenalty ? 0.5 : 99;
+    if (room.level < 7) return 10 * multiplier;
+    const {spareIncome} = getFlowContext(room);
+    return Math.max(1, Math.min(5, Math.floor(spareIncome / 15)));
+}
+
 function shouldDeprioritizeRemotes(room) {
     const {spareIncome, flowHealthy} = getFlowContext(room);
     const energyState = room.energyState || 0;
@@ -82,7 +96,7 @@ function refreshRemoteRoomTargets(room) {
         }
 
         const harvesterEnRoute = _.find(Game.creeps, c => c.my && c.memory.role === 'remoteHarvester' && c.memory.destination === rName);
-        if (!harvesterEnRoute && getCreepCount(undefined, 'explorer', undefined, undefined, room) < 2) {
+        if (room.level < 8 && !harvesterEnRoute && getCreepCount(undefined, 'explorer', undefined, undefined, room) < (room.level >= 7 ? 1 : 2)) {
             queueCreepIfNeeded({
                 room, role: 'explorer', priority: PRIORITIES.secondary,
                 numberNeeded: 1, destination: rName
@@ -228,8 +242,7 @@ function handleSkCreeps(room, remoteName) {
 
 function handleRemoteHarvesters(room) {
     let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-    const multiplier = room.memory.remotePenalty ? 0.5 : 99;
-    if (ROOM_REMOTE_TARGETS[room.name] && totalHarvesters < 10 * multiplier) {
+    if (ROOM_REMOTE_TARGETS[room.name] && totalHarvesters < maxRemoteHarvesters(room)) {
         let remoteSource = ROOM_REMOTE_TARGETS[room.name];
         const acceptedScore = REMOTE_DISTANCE_MAX;
 
@@ -317,9 +330,13 @@ function handleRemoteHaulers(room) {
         const assignedHaulers = scan.haulersBySource[sourceId] || [];
         const targetCapacity = harvester.memory.other.haulingRequired;
         const onRoads = remoteRouteHasRoads(room.name, harvester.memory.destination);
-        const maxCarryPerHauler = room.level < 7 ? room.level * 2 : (onRoads ? 32 : 25);
+        const maxCarryPerHauler = room.level < 7
+            ? room.level * 2
+            : maxRemoteHaulerCarryParts(room.level, onRoads);
+        const destIntel = INTEL[harvester.memory.destination];
         let maxHaulers = room.memory.remotePenalty ? 1
-            : INTEL[harvester.memory.destination] && INTEL[harvester.memory.destination].sk ? 3 : 2;
+            : destIntel && destIntel.sk ? 3 : 2;
+        if (room.level >= 7 && !(destIntel && destIntel.sk)) maxHaulers = 1;
         if (shouldDeprioritizeRemotes(room)) maxHaulers = Math.min(maxHaulers, 2);
         const minCarryPerHauler = room.level >= 7 ? (onRoads ? 12 : 8) : Math.max(2, room.level * 2);
         const count = Math.min(maxHaulers, Math.max(1,
