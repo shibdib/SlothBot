@@ -82,6 +82,18 @@ function collectConstructionBuckets(room) {
     return {byType, misc, roads, barriers};
 }
 
+function wallRepairCap(room, structure) {
+    let targetLimit = 100000;
+    if (room.controller.level >= 8) targetLimit = 10000000;
+    else if (room.controller.level >= 6) targetLimit = 5000000;
+    if (room.energyState === 1) targetLimit = Math.min(targetLimit, 200000);
+    const quadTrapWalls = new Set((room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
+    if (structure && quadTrapWalls.has(`${structure.pos.x},${structure.pos.y}`)) {
+        targetLimit = Math.min(targetLimit, 20000);
+    }
+    return targetLimit;
+}
+
 function collectStructureDamage(room, claimedIds, ownedByMe) {
     const walls = [];
     const ramparts = [];
@@ -92,11 +104,19 @@ function collectStructureDamage(room, claimedIds, ownedByMe) {
     for (const s of room.structures) {
         const t = s.structureType;
         if (t === STRUCTURE_WALL || t === STRUCTURE_RAMPART) allBarriers.push(s);
-        if (s.hits >= s.hitsMax || claimedIds.has(s.id)) continue;
+        if (claimedIds.has(s.id)) continue;
         if (!ownedByMe && !REMOTE_REPAIRABLE.has(t)) continue;
-        if (t === STRUCTURE_WALL) walls.push(s);
-        else if (t === STRUCTURE_RAMPART) ramparts.push(s);
-        else if (t === STRUCTURE_CONTAINER) containers.push(s);
+        // Walls report hitsMax=1 in the API; use RCL-based caps instead of hits/hitsMax.
+        if (t === STRUCTURE_WALL) {
+            if (s.hits < wallRepairCap(room, s)) walls.push(s);
+            continue;
+        }
+        if (t === STRUCTURE_RAMPART) {
+            if (s.hits < s.hitsMax) ramparts.push(s);
+            continue;
+        }
+        if (s.hits >= s.hitsMax) continue;
+        if (t === STRUCTURE_CONTAINER) containers.push(s);
         else if (t === STRUCTURE_ROAD) roads.push(s);
         else other.push(s);
     }
@@ -721,7 +741,12 @@ Creep.prototype.constructionWork = function (scope) {
             const walls = wallBarrierSites();
             if (walls.length) return buildClosest(walls);
             site = weakestByHitsRatio(damage.walls.concat(damage.ramparts.filter(s => s.hits >= SAFE_RAMPART_HITS)));
-            if (site) return repair(site, site.hitsMax);
+            if (site) {
+                const targetHits = site.structureType === STRUCTURE_WALL
+                    ? Math.min(site.hits + 50000, RAMPART_HITS_MAX[room.controller.level] || 300000000)
+                    : site.hitsMax;
+                return repair(site, targetHits);
+            }
         }
 
         clearConstructionMemory(this);
