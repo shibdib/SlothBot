@@ -528,9 +528,21 @@ let globals = function () {
     global.RAMPART_VERSION = 2;
     global.SAFE_RAMPART_HITS = 10000; // Minimum rampart HP before wallers move on to other barriers
 
+    let controllerContainerCacheTick = -1;
+    const controllerContainerCache = {};
     global.resolveControllerContainer = function (room) {
+        if (!room) return null;
+        if (controllerContainerCacheTick !== Game.time) {
+            controllerContainerCacheTick = Game.time;
+            for (const key in controllerContainerCache) delete controllerContainerCache[key];
+        }
+        if (controllerContainerCache[room.name] !== undefined) {
+            return controllerContainerCache[room.name];
+        }
         const {resolveControllerContainer} = require('planUtils');
-        return resolveControllerContainer(room, true);
+        const resolved = resolveControllerContainer(room, true);
+        controllerContainerCache[room.name] = resolved;
+        return resolved;
     };
 
     // Debug

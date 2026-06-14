@@ -3,7 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
-const {resolveControllerContainer} = require('planUtils');
+
 
 function resolveControllerLink(room) {
     const obj = Game.getObjectById(room.memory.controllerLink);
@@ -15,7 +15,7 @@ class RoleUpgrader {
     constructor(creep) {
         this.creep = creep;
         this.room = creep.room;
-        this.container = resolveControllerContainer(this.room);
+        this.container = global.resolveControllerContainer(this.room);
         this.link = resolveControllerLink(this.room);
         this.performRoleActions();
     }
