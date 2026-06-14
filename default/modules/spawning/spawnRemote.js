@@ -6,7 +6,7 @@
 
 const spawnState = require('spawnState');
 const {getFlowContext} = require('spawnFlow');
-const {getCreepCount} = require('spawnCounts');
+const {getCreepCount, haulerCarryCapacity} = require('spawnCounts');
 const {queueCreepIfNeeded, queueCreep} = require('spawnQueue');
 
 function shouldDeprioritizeRemotes(room) {
@@ -288,11 +288,6 @@ function scanColonyRemoteCreeps() {
     }
 }
 
-function haulerEffectiveCarry(creep) {
-    if (creep.spawning) return 0;
-    return creep.getActiveBodyparts(CARRY) * CARRY_CAPACITY;
-}
-
 function countQueuedHaulers(roomName, sourceId) {
     const queue = CREEP_QUEUES[roomName];
     if (!queue) return 0;
@@ -332,7 +327,7 @@ function handleRemoteHaulers(room) {
         const queuedHaulers = countQueuedHaulers(room.name, sourceId);
         // Count spawning haulers toward the cap — excluding them caused runaway spawns.
         if (assignedHaulers.length + queuedHaulers >= count) continue;
-        const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + haulerEffectiveCarry(creep), 0);
+        const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + haulerCarryCapacity(creep), 0);
         const queuedCapacity = queuedHaulers * minCarryPerHauler * CARRY_CAPACITY;
         if (!targetCapacity || haulingCapacity + queuedCapacity >= targetCapacity) continue;
         const priority = shouldDeprioritizeRemotes(room)

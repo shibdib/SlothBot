@@ -515,8 +515,8 @@ class ModuleBodyGenerator {
                 if (!remoteRoomName) return false;
                 const sourceId = this.creepInfo.other.source;
                 const otherAssignedHaulers = getHaulersBySource()[sourceId] || [];
-                const currentHaulingCapacity = _.sum(otherAssignedHaulers, c =>
-                    c.spawning ? 0 : c.getActiveBodyparts(CARRY) * CARRY_CAPACITY);
+                const {haulerCarryCapacity} = require('spawnCounts');
+                const currentHaulingCapacity = _.sum(otherAssignedHaulers, haulerCarryCapacity);
 
                 work = this.room.level >= 7 ? 1 : 0;
 

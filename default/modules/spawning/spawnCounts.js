@@ -103,8 +103,21 @@ function getBodyAbilityPower(room, role) {
     return abilityPower(generated.body);
 }
 
+
+function haulerCarryCapacity(creep) {
+    if (creep.spawning) {
+        let carry = 0;
+        for (let i = 0; i < creep.body.length; i++) {
+            if (creep.body[i].type === CARRY) carry++;
+        }
+        return carry * CARRY_CAPACITY;
+    }
+    return creep.getActiveBodyparts(CARRY) * CARRY_CAPACITY;
+}
+
 module.exports = {
     getCreepCount,
     creepExpiringSoon,
     getBodyAbilityPower,
+    haulerCarryCapacity,
 };
