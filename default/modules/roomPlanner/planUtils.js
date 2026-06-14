@@ -168,6 +168,22 @@ function isNearController(pos, room, maxRange = 2) {
     return !!(room.controller && pos.getRangeTo(room.controller) <= maxRange);
 }
 
+function isSourceOrMineralContainer(structure, room) {
+    if (!structure || !room) return false;
+    if (room.mineral && structure.pos.isNearTo(room.mineral)) return true;
+    for (const source of room.sources) {
+        if (structure.pos.isNearTo(source)) return true;
+    }
+    return false;
+}
+
+function isControllerAreaContainer(structure, room) {
+    return structure
+        && structure.structureType === STRUCTURE_CONTAINER
+        && isNearController(structure.pos, room, 2)
+        && !isSourceOrMineralContainer(structure, room);
+}
+
 function controllerContainersNear(room) {
     if (!room.controller) return [];
     if (global.posStructuresInRange) {
@@ -196,13 +212,18 @@ function controllerContainersAdjacent(room) {
     const seen = new Set();
     const out = [];
     const add = (s) => {
-        if (!s || s.structureType !== STRUCTURE_CONTAINER || !isNearController(s.pos, room) || seen.has(s.id)) return;
+        if (!isControllerAreaContainer(s, room) || seen.has(s.id)) return;
         seen.add(s.id);
         out.push(s);
     };
     for (const s of controllerContainersNear(room)) add(s);
     if (room.containers) {
         for (const s of room.containers) add(s);
+    }
+    if (!out.length && room.controller && Game.rooms[room.name]) {
+        for (const s of room.controller.pos.findInRange(FIND_STRUCTURES, 2, {
+            filter: (st) => st.structureType === STRUCTURE_CONTAINER,
+        })) add(s);
     }
     return out;
 }
@@ -211,13 +232,19 @@ function controllerContainerSitesAdjacent(room) {
     const seen = new Set();
     const out = [];
     const add = (s) => {
-        if (!s || s.structureType !== STRUCTURE_CONTAINER || !isNearController(s.pos, room) || seen.has(s.id)) return;
+        if (!s || s.structureType !== STRUCTURE_CONTAINER || !isNearController(s.pos, room, 2)
+            || isSourceOrMineralContainer(s, room) || seen.has(s.id)) return;
         seen.add(s.id);
         out.push(s);
     };
     for (const s of controllerContainerSitesNear(room)) add(s);
     if (room.constructionSites) {
         for (const s of room.constructionSites) add(s);
+    }
+    if (!out.length && room.controller && Game.rooms[room.name]) {
+        for (const s of room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 2, {
+            filter: (st) => st.structureType === STRUCTURE_CONTAINER,
+        })) add(s);
     }
     return out;
 }
@@ -242,8 +269,7 @@ function pickCanonicalControllerContainer(room, structures) {
 function resolveControllerContainer(room, syncMemory = false) {
     if (!room || !room.controller) return null;
     const remembered = Game.getObjectById(room.memory.controllerContainer);
-    if (remembered && remembered.structureType === STRUCTURE_CONTAINER && remembered.store &&
-        isNearController(remembered.pos, room)) {
+    if (remembered && remembered.store && isControllerAreaContainer(remembered, room)) {
         return remembered;
     }
     if (room.memory.controllerContainer && (!remembered || !remembered.store)) {

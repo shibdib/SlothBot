@@ -52,7 +52,10 @@ function pickContainerBuildPos(room, positions) {
         return a.findPathTo(hub).length - b.findPathTo(hub).length;
     });
     for (const pos of sorted) {
-        if (pos.checkForAllStructure() || pos.checkForConstructionSites()) continue;
+        const structures = pos.lookFor(LOOK_STRUCTURES);
+        const sites = pos.lookFor(LOOK_CONSTRUCTION_SITES);
+        const blocked = structures.some((s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
+        if (blocked || sites.length) continue;
         return pos;
     }
     return null;
@@ -114,7 +117,7 @@ function controllerBuilder(room) {
 
     if (resolveControllerContainer(room, true)) return false;
     if (hasControllerContainerSite(room)) return false;
-    if (controllerContainersAdjacent(room).some((s) => s.store)) return false;
+    if (controllerContainersAdjacent(room).length) return false;
 
     const buildPos = pickContainerBuildPos(room, getControllerPlacementPositions(room));
     if (!buildPos) return false;
