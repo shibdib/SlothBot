@@ -319,7 +319,7 @@ function handleRemoteHaulers(room) {
         const onRoads = remoteRouteHasRoads(room.name, harvester.memory.destination);
         const maxCarryPerHauler = room.level < 7 ? room.level * 2 : (onRoads ? 32 : 25);
         let maxHaulers = room.memory.remotePenalty ? 1
-            : INTEL[harvester.memory.destination] && INTEL[harvester.memory.destination].sk ? 4 : 3;
+            : INTEL[harvester.memory.destination] && INTEL[harvester.memory.destination].sk ? 3 : 2;
         if (shouldDeprioritizeRemotes(room)) maxHaulers = Math.min(maxHaulers, 2);
         const minCarryPerHauler = room.level >= 7 ? (onRoads ? 12 : 8) : Math.max(2, room.level * 2);
         const count = Math.min(maxHaulers, Math.max(1,
