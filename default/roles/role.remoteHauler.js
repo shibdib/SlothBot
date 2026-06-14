@@ -193,6 +193,13 @@ function dropOff(creep) {
             return memory.storageDestination = creep.memory.exitLink;
         } else if (!link) {
             memory.exitLink = undefined;
+        } else if (link && !link.store.getFreeCapacity(RESOURCE_ENERGY)) {
+            if (link.pos.getRangeTo(creep) > 1) {
+                creep.shibMove(link, {range: 1});
+            } else {
+                creep.idleFor(5);
+            }
+            return;
         }
     }
 
