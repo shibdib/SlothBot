@@ -11,6 +11,23 @@ let _haulerCacheTick = -1;
 let _haulersBySource = {};
 const toughMulti = {"GO": 0.75, "GHO2": 0.55, "XGHO2": 0.35}
 
+// Max non-MOVE parts that fit in a 50-part body (halfMove adds ceil(n*0.5) MOVE, else 1:1).
+function maxBodyNonMoveParts(halfMove) {
+    return Math.floor(50 / (1 + (halfMove ? 0.5 : 1.0)));
+}
+
+function clampWorkCarryPair(work, carry, maxNonMove) {
+    work = Math.floor(work) || 1;
+    carry = Math.floor(carry) || 1;
+    if (work + carry <= maxNonMove) return {work, carry};
+    const scale = maxNonMove / (work + carry);
+    work = Math.max(1, Math.floor(work * scale));
+    carry = Math.max(1, Math.floor(carry * scale));
+    while (work + carry > maxNonMove && carry > 1) carry--;
+    while (work + carry > maxNonMove && work > 1) work--;
+    return {work, carry};
+}
+
 function getHaulersBySource() {
     if (_haulerCacheTick === Game.time) return _haulersBySource;
     _haulerCacheTick = Game.time;
@@ -125,10 +142,12 @@ class ModuleBodyGenerator {
                     && !['roadBuilder', 'waller'].includes(this.role)
                     && INTEL[this.room.name].roadsBuilt;
 
+                const maxNonMove = maxBodyNonMoveParts(halfMove);
                 const workShare = halfMove ? (leanColony ? 0.45 : 0.40) : (leanColony ? 0.32 : 0.28);
                 const carryShare = halfMove ? (leanColony ? 0.35 : 0.32) : (leanColony ? 0.25 : 0.22);
-                const workCap = leanColony ? 33 : (halfMove ? 25 : 20);
-                const carryCap = leanColony ? 25 : (halfMove ? 20 : 16);
+                let workCap = leanColony ? Math.max(1, Math.floor(maxNonMove * 0.6)) : (halfMove ? 25 : 20);
+                let carryCap = leanColony ? (maxNonMove - workCap) : (halfMove ? 20 : 16);
+                if (workCap + carryCap > maxNonMove) carryCap = Math.max(1, maxNonMove - workCap);
 
                 work = Math.min(Math.floor(this.energyAmount * workShare / BODYPART_COST[WORK]) || 1, workCap);
                 carry = Math.min(Math.floor(this.energyAmount * carryShare / BODYPART_COST[CARRY]) || 1, carryCap);
@@ -149,8 +168,7 @@ class ModuleBodyGenerator {
                     work *= scale;
                     carry *= scale;
                 }
-                if (work < 1) work = 1;
-                if (carry < 1) carry = 1;
+                ({work, carry} = clampWorkCarryPair(work, carry, maxNonMove));
                 break;
             }
 
@@ -223,7 +241,9 @@ class ModuleBodyGenerator {
             case 'hauler': {
                 const roadsBuilt = INTEL[this.room.name].roadsBuilt && !this.room.memory.dynamicLayout;
                 carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + (roadsBuilt ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE]))) || 1;
-                const maxHaulerCarry = this.room.level >= 7 ? 25 : (this.room.level >= 6 ? this.room.level * 2 : this.room.level * 4);
+                const maxHaulerCarry = this.room.level >= 7
+                    ? maxBodyNonMoveParts(roadsBuilt)
+                    : (this.room.level >= 6 ? this.room.level * 2 : this.room.level * 4);
                 carry = Math.min(carry, maxHaulerCarry);
                 if (!this.room.energyState) {
                     carry = Math.max(1, Math.floor(carry * 0.25));
@@ -239,14 +259,15 @@ class ModuleBodyGenerator {
                 const roadsBuilt = INTEL[this.room.name].roadsBuilt && !this.room.memory.dynamicLayout;
                 const moveCostPerCarry = roadsBuilt ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE];
                 const distToHub = this.creepInfo && this.creepInfo.other && this.creepInfo.other.distanceToHub;
+                const maxShuttleCarry = this.room.level >= 7
+                    ? maxBodyNonMoveParts(roadsBuilt)
+                    : Math.max(10, this.room.level * 4);
                 if (distToHub) {
-                    // Size to match source throughput: 10e/tick Ã— round-trip ticks / 50e per CARRY
+                    // Size to match source throughput: 10e/tick × round-trip ticks / 50e per CARRY
                     carry = Math.max(4, Math.ceil(10 * 2 * (distToHub + 1) / BODYPART_COST[CARRY]));
-                    // Cap to what the room can actually afford
-                    carry = Math.min(carry, Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + moveCostPerCarry)));
+                    carry = Math.min(carry, Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + moveCostPerCarry)), maxShuttleCarry);
                 } else {
                     carry = Math.floor(this.energyAmount / (BODYPART_COST[CARRY] + moveCostPerCarry)) || 1;
-                    const maxShuttleCarry = this.room.level >= 7 ? 25 : Math.max(10, this.room.level * 4);
                     carry = Math.min(carry, maxShuttleCarry);
                 }
                 if (!this.room.energyState) {
@@ -604,8 +625,7 @@ class ModuleBodyGenerator {
         const approxNonMove = (work || 0) + (carry || 0) + (claim || 0) + (attack || 0) + (rangedAttack || 0);
         const willHaveMoves = (typeof move === 'undefined' || move !== 0);
         if (willHaveMoves && approxNonMove > 0) {
-            const moveRatio = halfMove ? 0.5 : 1.0;
-            const maxNonMove = Math.floor(50 / (1 + moveRatio));
+            const maxNonMove = maxBodyNonMoveParts(halfMove);
             if (approxNonMove > maxNonMove) {
                 const scale = maxNonMove / approxNonMove;
                 if (work) work = Math.max(1, Math.floor(work * scale));
