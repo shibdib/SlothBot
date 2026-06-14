@@ -150,6 +150,76 @@ function isCoreHubTileValid(pos, room) {
     return !pos.checkForImpassible() && !pos.isNearTo(room.controller) && !(src && pos.isNearTo(src));
 }
 
+
+function isSourceOrMineralPad(pos, room) {
+    if (room.mineral && pos.isNearTo(room.mineral)) return true;
+    for (const source of room.sources) {
+        if (pos.isNearTo(source)) return true;
+    }
+    return false;
+}
+
+function isControllerContainerPos(pos, room) {
+    if (!room.controller || pos.getRangeTo(room.controller) > 2) return false;
+    return !isSourceOrMineralPad(pos, room);
+}
+
+function controllerContainersNear(room) {
+    if (!room.controller) return [];
+    if (global.posStructuresInRange) {
+        return global.posStructuresInRange(room.controller.pos, 3, {
+            filter: (s) => s.structureType === STRUCTURE_CONTAINER,
+        });
+    }
+    return room.controller.pos.findInRange(FIND_STRUCTURES, 3, {
+        filter: (s) => s.structureType === STRUCTURE_CONTAINER,
+    });
+}
+
+function controllerContainerSitesNear(room) {
+    if (!room.controller) return [];
+    if (global.posConstructionSitesInRange) {
+        return global.posConstructionSitesInRange(room.controller.pos, 3, {
+            filter: {structureType: STRUCTURE_CONTAINER},
+        });
+    }
+    return room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 3, {
+        filter: (s) => s.structureType === STRUCTURE_CONTAINER,
+    });
+}
+
+function resolveControllerContainer(room, syncMemory = false) {
+    if (!room || !room.controller) return null;
+    const remembered = Game.getObjectById(room.memory.controllerContainer);
+    if (remembered && remembered.structureType === STRUCTURE_CONTAINER && remembered.store &&
+        isControllerContainerPos(remembered.pos, room)) {
+        return remembered;
+    }
+    if (room.memory.controllerContainer && (!remembered || !remembered.store)) {
+        room.memory.controllerContainer = undefined;
+    }
+
+    const structures = controllerContainersNear(room).filter((s) =>
+        s.store && isControllerContainerPos(s.pos, room));
+    if (structures.length > 1) {
+        const hub = room.hub;
+        structures.sort((a, b) => {
+            if (!hub) return 0;
+            return a.pos.findPathTo(hub).length - b.pos.findPathTo(hub).length;
+        });
+        for (let i = 1; i < structures.length; i++) structures[i].destroy();
+    }
+    if (structures[0]) {
+        if (syncMemory) room.memory.controllerContainer = structures[0].id;
+        return structures[0];
+    }
+    return null;
+}
+
+function hasControllerContainerSite(room) {
+    return controllerContainerSitesNear(room).some((s) => isControllerContainerPos(s.pos, room));
+}
+
 module.exports = {
 
     isAttackRecoveryMode,
@@ -185,5 +255,11 @@ module.exports = {
     safeStructureOwner,
 
     safeStructureMy,
+
+    isControllerContainerPos,
+
+    resolveControllerContainer,
+
+    hasControllerContainerSite,
 
 };

@@ -22,7 +22,8 @@ function linkBuilder(room) {
             room.memory.controllerLink = existingLink.id;
         } else {
             room.memory.controllerLink = undefined;
-            const base = room.level === 8 ? room.controller : room.memory.controllerContainer && Game.getObjectById(room.memory.controllerContainer) ? Game.getObjectById(room.memory.controllerContainer) : room.controller
+            const controllerContainer = global.resolveControllerContainer(room);
+            const base = room.level === 8 ? room.controller : controllerContainer || room.controller;
             if (!base) return false;
             // If too close to the hub don't build one
             if (base.pos.getRangeTo(room.hub) <= 5) return false;

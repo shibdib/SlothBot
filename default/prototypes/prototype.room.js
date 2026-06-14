@@ -159,7 +159,7 @@ Object.defineProperty(Room.prototype, 'structures', {
 Object.defineProperty(Room.prototype, 'barriers', {
     get: function () {
         if (!this._barriers || this._barriers_ts !== Game.time) {
-            this._barriers = this.ramparts.concat(this.constructedWalls);
+            this._barriers = this.ramparts.concat(this.constructedWalls).filter(Boolean);
             this._barriers_ts = Game.time;
         }
         return this._barriers;
@@ -839,7 +839,7 @@ function areExitsReachable(room) {
 }
 
 function determineBestAttackRoute(room) {
-    const barriers = room.ramparts.concat(room.constructedWalls);
+    const barriers = room.ramparts.concat(room.constructedWalls).filter(Boolean);
     if (!barriers.length) return undefined;
     const roomExits = Object.values(Game.map.describeExits(room.name));
     const viableExits = roomExits.filter(exit => !INTEL[exit] || !INTEL[exit].owner || INTEL[exit].owner === MY_USERNAME);
@@ -973,6 +973,7 @@ Room.prototype.towerData = function (towers) {
     const terrain = Game.map.getRoomTerrain(this.name);
     let maxDamage = 0;
     let dangerousSpot;
+    let operated = false;
     const damageTracker = [];
 
     for (let y = 0; y < 50; y++) {
@@ -980,7 +981,11 @@ Room.prototype.towerData = function (towers) {
             if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
                 const pos = new RoomPosition(x, y, this.name);
                 let damage = 0;
-                towers.forEach(t => damage += determineDamage(pos.getRangeTo(t)));
+                towers.forEach(t => {
+                    const operateMult = getTowerOperateMultiplier(t);
+                    if (operateMult > 1) operated = true;
+                    damage += determineDamage(pos.getRangeTo(t)) * operateMult;
+                });
                 damageTracker.push(damage);
                 if (damage > maxDamage) {
                     maxDamage = damage;
@@ -1000,11 +1005,19 @@ Room.prototype.towerData = function (towers) {
             y: dangerousSpot.y,
             roomName: dangerousSpot.roomName
         } : undefined,
-        average: p85
+        average: p85,
+        operated: operated
     };
 
     function determineDamage(range) {
         return TOWER_POWER_FROM_RANGE(range, TOWER_POWER_ATTACK);
+    }
+
+    function getTowerOperateMultiplier(tower) {
+        if (!tower.effects || !tower.effects.length) return 1;
+        const op = tower.effects.find(e => e.effect === PWR_OPERATE_TOWER);
+        if (!op || !op.level) return 1;
+        return 1 + (POWER_INFO[PWR_OPERATE_TOWER].effect[op.level - 1] / 100);
     }
 };
 

@@ -220,8 +220,11 @@ function buildTowersFromHubs(room) {
     for (const {x, y} of hubs.slice(0, allowed)) {
         const pos = new RoomPosition(x, y, room.name);
         if (!pos.checkForAllStructure() && !pos.checkForConstructionSites()) {
-            pos.createConstructionSite(STRUCTURE_TOWER);
-            return true;
+            if (pos.createConstructionSite(STRUCTURE_TOWER) === OK) {
+                const {invalidateRampartSpots} = require('planRamparts');
+                invalidateRampartSpots(room);
+                return true;
+            }
         }
     }
     return false;

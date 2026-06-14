@@ -132,7 +132,7 @@ class RoleWaller {
 
     building() {
         if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return false;
-        if (this.creep.memory.task || this.creep.constructionWork()) {
+        if (this.creep.memory.task || this.creep.constructionWork('barriers')) {
             if (this.creep.builderFunction()) {
                 return true;
             }
@@ -142,9 +142,14 @@ class RoleWaller {
 
     walling(maintenance = false) {
         if (!this.creep.memory.currentTarget || !Game.getObjectById(this.creep.memory.currentTarget)) {
-            // Check for ramparts that need to be built (priority over repairs)
+            delete this.creep.memory.currentTarget;
+            delete this.creep.memory.targetWallHits;
+
+            const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
+
+            // Rampart sites, then ramparts below safe HP, before walls or other barriers
             if (!maintenance && this.room.constructionSites.length) {
-                const rampartSite = _.find(this.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
+                const rampartSite = _.find(this.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART);
                 if (rampartSite && rampartSite.id) {
                     this.creep.memory.task = 'build';
                     this.creep.memory.constructionSite = rampartSite.id;
@@ -152,58 +157,86 @@ class RoleWaller {
                 }
             }
 
-            delete this.creep.memory.currentTarget;
-            delete this.creep.memory.targetWallHits;
-
-            let targetLimit = 100000;
-            if (this.room.controller.level >= 8) targetLimit = 10000000;
-            else if (this.room.controller.level >= 6) targetLimit = 5000000;
-
-            // In low energy (but not barren), limit ambition — don't fully stockpile walls, just keep them functional
-            // to avoid draining the last energy on barriers instead of core economy.
-            if (this.room.energyState === 1) {
-                targetLimit = Math.min(targetLimit, 200000);
-            }
-
-            if (maintenance && this.room.level === 8) targetLimit = RAMPART_HITS_MAX[this.room.level];
-
-            const quadTrapWalls = new Set((this.room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
-            const barrierStructures = this.room.barriers.filter(s => {
-                const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : targetLimit;
-                return s.hits < cap;
-            });
-
-            if (!barrierStructures.length || !this.room.controller || !this.room.controller.my) return false;
-
-            let target;
-            const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
-            if (threatLevel) {
-                target = _.min(barrierStructures, 'hits');
-            } else {
-                // To avoid multiple wallers on the same wall unless necessary
-                const available = barrierStructures.filter(s =>
-                    !this.room.myCreeps.some(c => c.memory.currentTarget === s.id && c.id !== this.creep.id)
-                );
-
-                if (available.length) {
-                    // Pick the closest of the lowest health ones to reduce travel jitter
-                    const minHits = _.min(available, 'hits').hits;
-                    const jitterThreshold = maintenance ? 100000 : 25000;
-                    const candidates = available.filter(s => s.hits <= minHits + jitterThreshold);
-                    target = this.creep.pos.findClosestByRange(candidates);
+            const unsafeRamparts = this.room.ramparts.filter((s) => s.hits < SAFE_RAMPART_HITS);
+            if (unsafeRamparts.length) {
+                let rampartTarget;
+                if (threatLevel) {
+                    rampartTarget = _.min(unsafeRamparts, 'hits');
                 } else {
-                    // Fallback to absolute lowest if all are targeted
-                    target = _.min(barrierStructures, 'hits');
+                    const available = unsafeRamparts.filter((s) =>
+                        !this.room.myCreeps.some((c) => c.memory.currentTarget === s.id && c.id !== this.creep.id)
+                    );
+                    rampartTarget = available.length
+                        ? this.creep.pos.findClosestByRange(available)
+                        : _.min(unsafeRamparts, 'hits');
+                }
+                if (rampartTarget) {
+                    this.creep.memory.currentTarget = rampartTarget.id;
+                    this.creep.memory.task = 'waller';
+                    this.creep.memory.targetWallHits = SAFE_RAMPART_HITS;
                 }
             }
 
-            if (target) {
-                this.creep.memory.currentTarget = target.id;
-                this.creep.memory.task = "waller";
-                // Increase the hit buffer for maintenance to reduce retargeting frequency
-                if (maintenance) this.creep.memory.targetWallHits = target.hits + 100000;
-            } else {
-                return false;
+            if (!this.creep.memory.currentTarget) {
+                if (!maintenance && this.room.constructionSites.length) {
+                    const wallSite = _.find(this.room.constructionSites, (s) => s.structureType === STRUCTURE_WALL);
+                    if (wallSite && wallSite.id) {
+                        this.creep.memory.task = 'build';
+                        this.creep.memory.constructionSite = wallSite.id;
+                        return this.building();
+                    }
+                }
+
+                let targetLimit = 100000;
+                if (this.room.controller.level >= 8) targetLimit = 10000000;
+                else if (this.room.controller.level >= 6) targetLimit = 5000000;
+
+                // In low energy (but not barren), limit ambition — don't fully stockpile walls, just keep them functional
+                // to avoid draining the last energy on barriers instead of core economy.
+                if (this.room.energyState === 1) {
+                    targetLimit = Math.min(targetLimit, 200000);
+                }
+
+                if (maintenance && this.room.level === 8) targetLimit = RAMPART_HITS_MAX[this.room.level];
+
+                const quadTrapWalls = new Set((this.room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
+                const barrierStructures = this.room.barriers.filter(s => {
+                    if (s.structureType === STRUCTURE_RAMPART && s.hits < SAFE_RAMPART_HITS) return false;
+                    const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : targetLimit;
+                    return s.hits < cap;
+                });
+
+                if (!barrierStructures.length || !this.room.controller || !this.room.controller.my) return false;
+
+                let target;
+                if (threatLevel) {
+                    target = _.min(barrierStructures, 'hits');
+                } else {
+                    // To avoid multiple wallers on the same wall unless necessary
+                    const available = barrierStructures.filter(s =>
+                        !this.room.myCreeps.some(c => c.memory.currentTarget === s.id && c.id !== this.creep.id)
+                    );
+
+                    if (available.length) {
+                        // Pick the closest of the lowest health ones to reduce travel jitter
+                        const minHits = _.min(available, 'hits').hits;
+                        const jitterThreshold = maintenance ? 100000 : 25000;
+                        const candidates = available.filter(s => s.hits <= minHits + jitterThreshold);
+                        target = this.creep.pos.findClosestByRange(candidates);
+                    } else {
+                        // Fallback to absolute lowest if all are targeted
+                        target = _.min(barrierStructures, 'hits');
+                    }
+                }
+
+                if (target) {
+                    this.creep.memory.currentTarget = target.id;
+                    this.creep.memory.task = "waller";
+                    // Increase the hit buffer for maintenance to reduce retargeting frequency
+                    if (maintenance) this.creep.memory.targetWallHits = target.hits + 100000;
+                } else {
+                    return false;
+                }
             }
         }
 
@@ -216,7 +249,11 @@ class RoleWaller {
 
         this.creep.memory.task = "waller";
         if (!this.creep.memory.targetWallHits) {
-            this.creep.memory.targetWallHits = Math.min(target.hits + 50000, RAMPART_HITS_MAX[this.room.controller.level] || 300000000);
+            if (target.structureType === STRUCTURE_RAMPART && target.hits < SAFE_RAMPART_HITS) {
+                this.creep.memory.targetWallHits = SAFE_RAMPART_HITS;
+            } else {
+                this.creep.memory.targetWallHits = Math.min(target.hits + 50000, RAMPART_HITS_MAX[this.room.controller.level] || 300000000);
+            }
         }
 
         this.creep.say(ICONS.castle, true);

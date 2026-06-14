@@ -16,6 +16,117 @@ const {extensionPositionCache, quadTraps} = require('planState');
 const {bunkerTemplate, coreTemplate, protectedStructureTypes} = require('planTemplates');
 
 const {isValidRampartPosition} = require('planUtils');
+function clampRect(rect) {
+    return {
+        x1: Math.max(rect.x1, 2),
+        y1: Math.max(rect.y1, 2),
+        x2: Math.min(rect.x2, 47),
+        y2: Math.min(rect.y2, 47)
+    };
+}
+
+function pointRect(x, y, radius = 1) {
+    return clampRect({x1: x - radius, y1: y - radius, x2: x + radius, y2: y + radius});
+}
+
+function invalidateRampartSpots(room) {
+    if (ROOM_RAMPART_SPOTS) ROOM_RAMPART_SPOTS[room.name] = undefined;
+    quadTraps[room.name] = undefined;
+}
+
+function getSourceProtectionRects(room) {
+    const rects = [];
+    const hub = room.hub;
+    for (const source of room.sources) {
+        const container = Game.getObjectById(source.memory.container);
+        const anchor = container ? container.pos : source.pos;
+        rects.push(pointRect(anchor.x, anchor.y, 2));
+        if (source.memory.accessReserved) {
+            const a = source.memory.accessReserved;
+            rects.push(pointRect(a.x, a.y, 1));
+        }
+        for (const ext of room.extensions) {
+            if (ext.pos.getRangeTo(source) <= 2) rects.push(pointRect(ext.pos.x, ext.pos.y, 1));
+        }
+        for (const site of room.constructionSites) {
+            if (site.structureType !== STRUCTURE_EXTENSION) continue;
+            if (site.pos.getRangeTo(source) <= 2) rects.push(pointRect(site.pos.x, site.pos.y, 1));
+        }
+        if (!container || !hub) continue;
+        const accessCandidates = [];
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                if (!dx && !dy) continue;
+                const x = container.pos.x + dx, y = container.pos.y + dy;
+                if (x < 2 || x > 47 || y < 2 || y > 47) continue;
+                const pos = new RoomPosition(x, y, room.name);
+                if (pos.checkForWall()) continue;
+                if (pos.isEqualTo(source.pos)) continue;
+                accessCandidates.push(pos);
+            }
+        }
+        if (accessCandidates.length) {
+            const reserved = _.min(accessCandidates, p => p.getRangeTo(hub));
+            rects.push(pointRect(reserved.x, reserved.y, 1));
+        }
+    }
+    return rects;
+}
+
+function getTowerProtectionRects(room) {
+    const rects = [];
+    const hub = room.hub;
+    if (!hub) return rects;
+    const towerPositions = room.towers.map(t => t.pos);
+    if (room.memory.towerHubs) {
+        for (const {x, y} of room.memory.towerHubs) {
+            const pos = new RoomPosition(x, y, room.name);
+            if (!towerPositions.some(p => p.isEqualTo(pos))) towerPositions.push(pos);
+        }
+    }
+    for (const tp of towerPositions) {
+        rects.push(pointRect(tp.x, tp.y, 2));
+        const path = tp.findPathTo(hub, {ignoreCreeps: true, maxOps: 4000});
+        for (const step of path) rects.push(pointRect(step.x, step.y, 1));
+    }
+    return rects;
+}
+
+function getRampartWalkCorridors(room) {
+    const keys = new Set();
+    const hub = room.hub;
+    if (!hub) return keys;
+    const addPath = (from) => {
+        const path = from.findPathTo(hub, {ignoreCreeps: true, maxOps: 4000});
+        for (const step of path) keys.add(step.x + ',' + step.y);
+    };
+    for (const tower of room.towers) addPath(tower.pos);
+    if (room.memory.towerHubs) {
+        for (const {x, y} of room.memory.towerHubs) {
+            addPath(new RoomPosition(x, y, room.name));
+        }
+    }
+    for (const source of room.sources) {
+        const container = Game.getObjectById(source.memory.container);
+        if (!container) continue;
+        addPath(container.pos);
+        if (source.memory.accessReserved) {
+            keys.add(source.memory.accessReserved.x + ',' + source.memory.accessReserved.y);
+        }
+    }
+    return keys;
+}
+
+function isOnSourcePad(pos, room) {
+    for (const source of room.sources) {
+        const container = Game.getObjectById(source.memory.container);
+        const anchor = container ? container.pos : source.pos;
+        if (pos.getRangeTo(anchor) <= 2) return true;
+    }
+    return false;
+}
+
+
 
 function rampartBuilder(room, layout = undefined, count = false) {
     // Clean old ramparts
@@ -59,8 +170,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
         let counter = 0;
         const rampartPositions = ramparts.map(p => new RoomPosition(p.x, p.y, room.name));
         const vulnerableStructures = room.structures.filter((s) =>
-            s.structureType !== STRUCTURE_ROAD &&
-            s.structureType !== STRUCTURE_WALL &&
+            protectedStructureTypes.includes(s.structureType) &&
             !s.pos.checkForRampart() &&
             !s.pos.checkForConstructionSites());
         for (const structure of vulnerableStructures) {
@@ -115,6 +225,10 @@ function rampartBuilder(room, layout = undefined, count = false) {
             const pos = new RoomPosition(trap.x, trap.y, room.name);
             if (pos.isNearTo(room.controller) || pos.isNearTo(room.mineral) ||
                 room.sources.some(s => pos.isNearTo(s))) continue;
+            if (room.towers.some(t => pos.getRangeTo(t) <= 2)) continue;
+            if (room.memory.towerHubs && room.memory.towerHubs.some(h => Math.max(Math.abs(pos.x - h.x), Math.abs(pos.y - h.y)) <= 2)) continue;
+            if (room.extensions.some(e => pos.getRangeTo(e) <= 1 && room.sources.some(s => e.pos.getRangeTo(s) <= 2))) continue;
+            if (isOnSourcePad(pos, room)) continue;
 
             const isWallTile = (pos.x + pos.y) % 2 === 0;
             if (isWallTile) {
@@ -163,7 +277,8 @@ function rampartBuilder(room, layout = undefined, count = false) {
         let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
 
         try {
-            ROOM_RAMPART_SPOTS[room.name] = JSON.stringify(minCut.GetCutTiles(room.name, rectArray, bounds));
+            const spots = minCut.GetCutTiles(room.name, rectArray, bounds) || [];
+            ROOM_RAMPART_SPOTS[room.name] = JSON.stringify(spots);
         } catch (e) {
             log.e('MinCut Error in room ' + room.name);
             log.e(e.stack);
@@ -198,21 +313,17 @@ function rampartBuilder(room, layout = undefined, count = false) {
                 rectArray.push({x1: x - 1, y1: y - 1, x2: x + 1, y2: y + 1});
             }
         }
+        // Built towers and resupply corridors
+        rectArray = rectArray.concat(getTowerProtectionRects(room));
+        // Source containers, access paths, and nearby extensions
+        rectArray = rectArray.concat(getSourceProtectionRects(room));
         // Dynamic Extensions
         if (extensionPositionCache[room.name]) {
             for (const {x, y} of extensionPositionCache[room.name]) {
-                rectArray.push({x1: x - 1, y1: y - 1, x2: x + 1, y2: y + 1});
+                rectArray.push(pointRect(x, y, 1));
             }
         }
-        // Set bounds
-        for (let key in rectArray) {
-            let rect = rectArray[key];
-            rect.x1 = Math.max(rect.x1, 2);
-            rect.y1 = Math.max(rect.y1, 2);
-            rect.x2 = Math.min(rect.x2, 47);
-            rect.y2 = Math.min(rect.y2, 47);
-        }
-        return rectArray;
+        return rectArray.map(clampRect);
     }
 
     function placeRamparts(room) {
@@ -225,18 +336,18 @@ function rampartBuilder(room, layout = undefined, count = false) {
         let inBuild = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length;
 
         // Avoid exceeding 5 constructions at a time
+        const corridors = getRampartWalkCorridors(room);
         let cycles = 0;
         for (let pos of buildPositions) {
             if (cycles + inBuild >= 5) return true;
-            if (shouldBuildRampartAtPosition(pos, room)) {
-                const isWallTile = (pos.x + pos.y) % 2 === 0;
-                if (isWallTile) {
-                    if (pos.createConstructionSite(STRUCTURE_WALL) === OK) {
-                        cycles++;
-                    }
-                } else if (pos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
-                    cycles++;
-                }
+            if (!shouldBuildRampartAtPosition(pos, room)) continue;
+            const onCorridor = corridors.has(pos.x + ',' + pos.y);
+            const isWallTile = (pos.x + pos.y) % 2 === 0;
+            if (isWallTile && !onCorridor) {
+                if (pos.createConstructionSite(STRUCTURE_WALL) === OK) cycles++;
+            } else if (!pos.checkForRampart() && !pos.checkForConstructionSites() &&
+                pos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
+                cycles++;
             }
         }
         if (cycles || inBuild.length) return true;
@@ -244,11 +355,14 @@ function rampartBuilder(room, layout = undefined, count = false) {
 
     function addExistingRampartsToSpots(room, spots) {
         // Only add existing ramparts or walls once
-        let existingRamparts = room.ramparts.concat(room.constructedWalls);
+        let existingRamparts = room.ramparts.concat(room.constructedWalls).filter(Boolean);
         existingRamparts.forEach((b) => spots.push({x: b.pos.x, y: b.pos.y}));
     }
 
     function shouldBuildRampartAtPosition(pos, room) {
+        if (isOnSourcePad(pos, room)) return false;
+        if (pos.checkForAllStructure() && !pos.checkForRoad()) return false;
+
         // General rampart check based on proximity to important structures
         if (isNearProtectedStructure(pos, room)) {
             return !pos.checkForRampart() && !pos.checkForConstructionSites();
@@ -304,5 +418,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
 module.exports = {
 
     rampartBuilder,
+
+    invalidateRampartSpots,
 
 };

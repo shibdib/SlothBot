@@ -158,6 +158,25 @@ class RoleRoadBuilder {
     ensureDestination() {
         if (this.creep.memory.destination) return;
         const colony = this.creep.memory.colony;
+        const remoteTargets = ROOM_REMOTE_TARGETS[colony] || [];
+
+        const unfinished = _.chain(remoteTargets)
+            .filter(s => INTEL[s.room] && !INTEL[s.room].owner && !INTEL[s.room].roadsBuilt)
+            .sortBy('score')
+            .map('room')
+            .uniq()
+            .value();
+        if (unfinished.length) {
+            this.creep.memory.destination = unfinished[0];
+            return;
+        }
+
+        const assignedRemotes = _.uniq(remoteTargets.map(s => s.room));
+        if (assignedRemotes.length) {
+            this.creep.memory.destination = _.sample(assignedRemotes);
+            return;
+        }
+
         if (harvesterCacheTick !== Game.time) {
             harvesterCacheTick = Game.time;
             harvesterCache = {};
@@ -172,8 +191,7 @@ class RoleRoadBuilder {
             return;
         }
         const destinations = _.uniq(_.pluck(harvesters, 'memory.destination'));
-        const unfinished = destinations.find(d => INTEL[d] && !INTEL[d].roadsBuilt);
-        this.creep.memory.destination = unfinished || _.sample(destinations);
+        this.creep.memory.destination = _.sample(destinations);
     }
 
     placeRoads() {

@@ -24,6 +24,9 @@ const {roadBuilder} = require('planRoads');
 const {labBuilder, mineralBuilder} = require('planStructures');
 
 function auxiliaryBuilding(room) {
+    // Perform cleanup tasks
+    performCleanup(room);
+
     // Sanity check if hub and controller links exist and clear them from memory if not
     if (room.memory.controllerLink && !Game.getObjectById(room.memory.controllerLink)) room.memory.controllerLink = undefined;
     if (room.memory.hubLink && !Game.getObjectById(room.memory.hubLink)) room.memory.hubLink = undefined;
@@ -32,6 +35,8 @@ function auxiliaryBuilding(room) {
     if (sourceBuilder(room)) return;
     if (controllerBuilder(room)) return;
     const layoutForAux = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
+
+    if (rampartBuilder(room, layoutForAux)) return;
 
     // Handle hub and lab constructions
     if (room.storage) {
@@ -43,14 +48,10 @@ function auxiliaryBuilding(room) {
         if (linkBuilder(room)) return true;
     }
 
-    if (rampartBuilder(room, layoutForAux)) return;
-
-    // Perform cleanup tasks
-    performCleanup(room);
-
     // Helper function to build roads and manage their construction.
     // Returns true while road sites are still being placed (pause other aux work).
     function buildRoads(room, bunkerTemplate) {
+        if (Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time) return false;
         if (room.level < ROAD_LEVEL) {
             setRoadsBuiltFlag(room, undefined);
             return false;

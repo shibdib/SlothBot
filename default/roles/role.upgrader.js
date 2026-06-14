@@ -3,13 +3,20 @@
  */
 
 const profiler = require("tools.profiler");
+const {resolveControllerContainer} = require('planUtils');
+
+function resolveControllerLink(room) {
+    const obj = Game.getObjectById(room.memory.controllerLink);
+    if (obj && obj.structureType === STRUCTURE_LINK && obj.store) return obj;
+    return null;
+}
 
 class RoleUpgrader {
     constructor(creep) {
         this.creep = creep;
         this.room = creep.room;
-        this.container = Game.getObjectById(this.room.memory.controllerContainer);
-        this.link = Game.getObjectById(this.room.memory.controllerLink);
+        this.container = resolveControllerContainer(this.room);
+        this.link = resolveControllerLink(this.room);
         this.performRoleActions();
     }
 
@@ -45,10 +52,10 @@ class RoleUpgrader {
                 else if (targetPos) return this.creep.shibMove(targetPos, {range: 0});
                 else if (this.creep.pos.isNearTo(this.link) && this.creep.pos.getRangeTo(this.room.controller) <= 3) this.creep.memory.inPosition = true;
                 else return this.creep.shibMove(this.link, {range: 1});
-            } else {
+            } else if (this.container && this.link) {
                 if (this.creep.pos.isEqualTo(this.container.pos) || this.creep.pos.isNearTo(this.link)) this.creep.memory.inPosition = true;
-                else if (!this.container.pos.checkForCreep()) return this.creep.shibMove(this.container, {range: 0})
-                else return this.creep.shibMove([this.container, this.link], {range: 1})
+                else if (!this.container.pos.checkForCreep()) return this.creep.shibMove(this.container, {range: 0});
+                else return this.creep.shibMove([this.container, this.link], {range: 1});
             }
         }
 
@@ -76,7 +83,7 @@ class RoleUpgrader {
         } else if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
             this.creep.memory.other.stationary = undefined;
             this.creep.withdrawResource();
-        } else if (this.container && this.container.store[RESOURCE_ENERGY] > 0) {
+        } else if (this.container && this.container.store && this.container.store[RESOURCE_ENERGY] > 0) {
             this.creep.memory.other.stationary = undefined;
             this.creep.withdrawResource(this.container);
         } else {
@@ -121,9 +128,9 @@ class RoleUpgrader {
     }
 
     withdraw() {
-        if (this.link && this.creep.pos.isNearTo(this.link) && this.link.store[RESOURCE_ENERGY] > 0) {
+        if (this.link && this.link.store && this.creep.pos.isNearTo(this.link) && this.link.store[RESOURCE_ENERGY] > 0) {
             return this.creep.withdraw(this.link, RESOURCE_ENERGY);
-        } else if (this.container && this.creep.pos.isNearTo(this.container) && this.container.store[RESOURCE_ENERGY] > 0) {
+        } else if (this.container && this.container.store && this.creep.pos.isNearTo(this.container) && this.container.store[RESOURCE_ENERGY] > 0) {
             return this.creep.withdraw(this.container, RESOURCE_ENERGY);
         } else if (this.room.level < 4 && Game.time % 10 === 0) {
             const nearbyUpgrader = this.creep.pos.findInRange(this.room.myCreeps, 1, {filter: c => c.id !== this.creep.id && c.memory.role === 'upgrader' && c.store[RESOURCE_ENERGY] > 0})[0];

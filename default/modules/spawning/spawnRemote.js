@@ -181,14 +181,35 @@ function handleReservation(room, remoteName) {
     }
 }
 
-function handleRoadBuilder(room) {
-    const harvesters = getCreepCount(room, 'remoteHarvester');
-    if (harvesters) {
-        queueCreepIfNeeded({
-            room, role: 'roadBuilder', priority: PRIORITIES.roadBuilder,
-            numberNeeded: Math.max(1, Math.ceil(harvesters * 0.2))
-        });
+function countQueuedRoadBuilders(colonyName) {
+    const queue = CREEP_QUEUES[colonyName];
+    if (!queue) return 0;
+    let n = 0;
+    for (const key in queue) {
+        if (queue[key].role === 'roadBuilder') n++;
     }
+    return n;
+}
+
+function colonyRoadBuilderTotal(colonyName) {
+    return getCreepCount(undefined, 'roadBuilder', undefined, undefined, colonyName)
+        + countQueuedRoadBuilders(colonyName);
+}
+
+function handleRoadBuilder(room) {
+    const colony = room.name;
+    const remoteTargets = ROOM_REMOTE_TARGETS[colony];
+    if (!remoteTargets || !remoteTargets.length) return;
+    if (!getCreepCount(undefined, 'remoteHarvester', undefined, undefined, colony)) return;
+    if (colonyRoadBuilderTotal(colony) >= 1) return;
+
+    const priority = shouldDeprioritizeRemotes(room)
+        ? PRIORITIES.roadBuilder * 2
+        : PRIORITIES.roadBuilder;
+    queueCreep(room, priority, {
+        role: 'roadBuilder',
+        destination: colony
+    });
 }
 
 function handleSkCreeps(room, remoteName) {
@@ -242,6 +263,29 @@ function handleRemoteHarvesters(room) {
     }
 }
 
+function haulerEffectiveCarry(creep) {
+    if (creep.spawning) return 0;
+    return creep.getActiveBodyparts(CARRY) * CARRY_CAPACITY;
+}
+
+function countQueuedHaulers(roomName, sourceId) {
+    const queue = CREEP_QUEUES[roomName];
+    if (!queue) return 0;
+    let n = 0;
+    for (const key in queue) {
+        const entry = queue[key];
+        if (entry.role === 'remoteHauler' && entry.other && entry.other.source === sourceId) n++;
+    }
+    return n;
+}
+
+function remoteRouteHasRoads(colonyName, remoteName) {
+    const route = Game.map.findRoute(colonyName, remoteName);
+    return Array.isArray(route)
+        && INTEL[colonyName] && INTEL[colonyName].roadsBuilt
+        && route.every(step => INTEL[step.room] && INTEL[step.room].roadsBuilt);
+}
+
 function handleRemoteHaulers(room) {
     const roomHarvesters = [];
     const haulersBySource = {};
@@ -261,26 +305,32 @@ function handleRemoteHaulers(room) {
         const sourceId = harvester.memory.other.source;
         const assignedHaulers = haulersBySource[sourceId] || [];
         const targetCapacity = harvester.memory.other.haulingRequired;
-        const maxCarryPerHauler = room.level < 7 ? room.level * 2 : 32;
-        const maxHaulers = room.memory.remotePenalty ? 1
+        const onRoads = remoteRouteHasRoads(room.name, harvester.memory.destination);
+        const maxCarryPerHauler = room.level < 7 ? room.level * 2 : (onRoads ? 32 : 25);
+        let maxHaulers = room.memory.remotePenalty ? 1
             : INTEL[harvester.memory.destination] && INTEL[harvester.memory.destination].sk ? 4 : 3;
-        const count = Math.min(maxHaulers, Math.max(1, Math.ceil(targetCapacity / (maxCarryPerHauler * CARRY_CAPACITY))));
-        if (assignedHaulers.length >= count) continue;
-        const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + creep.getActiveBodyparts(CARRY) * 50, 0);
-        if (targetCapacity && haulingCapacity < targetCapacity) {
-            const priority = shouldDeprioritizeRemotes(room)
-                ? PRIORITIES.remoteHauler * 2
-                : PRIORITIES.remoteHauler;
-            queueCreep(room, priority + getCreepCount(undefined, 'remoteHauler', room.name), {
-                role: 'remoteHauler',
-                destination: room.name,
-                other: {
-                    source: sourceId,
-                    remoteRoom: harvester.memory.destination,
-                    harvestAmount: targetCapacity
-                }
-            });
-        }
+        if (shouldDeprioritizeRemotes(room)) maxHaulers = Math.min(maxHaulers, 2);
+        const carryNeeded = Math.ceil(targetCapacity / CARRY_CAPACITY);
+        const minCarryPerHauler = room.level >= 7 ? (onRoads ? 12 : 8) : Math.max(2, room.level * 2);
+        const count = Math.min(maxHaulers, Math.max(1, Math.ceil(carryNeeded / Math.max(maxCarryPerHauler, minCarryPerHauler))));
+        const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + haulerEffectiveCarry(creep), 0);
+        if (!targetCapacity || haulingCapacity >= targetCapacity) continue;
+        const activeHaulers = assignedHaulers.filter(c => !c.spawning).length;
+        const queuedHaulers = countQueuedHaulers(room.name, sourceId);
+        if (activeHaulers + queuedHaulers >= count) continue;
+        const priority = shouldDeprioritizeRemotes(room)
+            ? PRIORITIES.remoteHauler * 2
+            : PRIORITIES.remoteHauler;
+        queueCreep(room, priority + getCreepCount(undefined, 'remoteHauler', room.name), {
+            role: 'remoteHauler',
+            destination: room.name,
+            other: {
+                source: sourceId,
+                remoteRoom: harvester.memory.destination,
+                harvestAmount: targetCapacity,
+                harvestRate: harvester.memory.other.harvestRate
+            }
+        });
     }
 }
 
@@ -289,7 +339,6 @@ function processRemoteSpecificTasks(room, remoteName) {
     trackRemoteRoom(remoteName, room);
     if (!INTEL[remoteName].sk) handleReservation(room, remoteName);
     if (INTEL[remoteName].invaderCore) handleInvaderCore(room, remoteName);
-    handleRoadBuilder(room);
     if (SK_MINING && INTEL[remoteName].sk && !INTEL[remoteName].towers && room.level >= SK_MINING_LEVEL) {
         spawnState.activeSkMining[room.name] = Game.time;
         handleSkCreeps(room, remoteName);
@@ -357,6 +406,7 @@ function remoteCreepQueue(room) {
     // Replacements for dead creeps are still allowed (at lower priority) so income doesn't decay.
     handleRemoteHarvesters(room);
     handleRemoteHaulers(room);
+    handleRoadBuilder(room);
 
     if (spawnState.contestedRemotes[room.name] && room.energyState) handleContestedRoom(room);
     if (spawnState.blockedRemotes[room.name] && room.energyState) handleBlockedRoom(room);

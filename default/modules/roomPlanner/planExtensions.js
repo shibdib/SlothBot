@@ -13,6 +13,8 @@ const {extensionPositionCache} = require('planState');
 
 const {coreTemplate} = require('planTemplates');
 
+const {invalidateRampartSpots} = require('planRamparts');
+
 function buildSourceExtensions(room) {
     const hub = room.hub;
 
@@ -20,14 +22,14 @@ function buildSourceExtensions(room) {
         const container = Game.getObjectById(source.memory.container);
         if (!container) continue;
 
-        // Must have a confirmed link before placing â€” link builder picks its own tile first
+        // Must have a confirmed link before placing — link builder picks its own tile first
         const link = source.memory.link ? Game.getObjectById(source.memory.link) : null;
         if (!link) {
             // Skip if link is mid-build (don't block the in-progress site)
             const linkSite = container.pos.findInRange(FIND_CONSTRUCTION_SITES, 1)
                 .find(s => s.structureType === STRUCTURE_LINK);
             if (linkSite) continue;
-            // No link and no site â€” link hasn't been built for this source yet, skip
+            // No link and no site — link hasn't been built for this source yet, skip
             continue;
         }
 
@@ -51,12 +53,16 @@ function buildSourceExtensions(room) {
         let reserved = null;
         if (hub && candidates.length > 0) {
             reserved = _.min(candidates, p => p.getRangeTo(hub));
+            source.memory.accessReserved = {x: reserved.x, y: reserved.y};
         }
 
         for (const pos of candidates) {
             if (reserved && pos.isEqualTo(reserved)) continue;
             if (hub && pos.getRangeTo(hub) <= 5) continue;   // hub cluster handles its own
-            if (pos.createConstructionSite(STRUCTURE_EXTENSION) === OK) return true;
+            if (pos.createConstructionSite(STRUCTURE_EXTENSION) === OK) {
+                invalidateRampartSpots(room);
+                return true;
+            }
         }
     }
     return false;
@@ -92,13 +98,13 @@ function generateExtensionPositions(room) {
             const nx = x + dx, ny = y + dy, key = `${nx},${ny}`;
             if (visited.has(key) || nx < 2 || nx > 47 || ny < 2 || ny > 47) continue;
             visited.add(key);
-            // Don't propagate BFS through terrain walls â€” otherwise expansion tunnels
+            // Don't propagate BFS through terrain walls — otherwise expansion tunnels
             // through walls and places extensions on tiles that are far from the hub by path
             if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
             queue.push({x: nx, y: ny});
             if (excluded.has(key)) continue;
             // Checkerboard: only use even-parity tiles so every extension is surrounded by
-            // non-extension tiles on all 4 cardinal directions â€” guarantees no pathing blockage
+            // non-extension tiles on all 4 cardinal directions — guarantees no pathing blockage
             if ((nx + ny) % 2 !== 0) continue;
             const pos = new RoomPosition(nx, ny, room.name);
             if (pos.checkForImpassible()) continue;
@@ -111,6 +117,7 @@ function generateExtensionPositions(room) {
     extensionPositionCache[room.name] = positions;
     room.memory.dynamicExtensionsPacked = positions.map(p => p.x + p.y * 50);
     if (room.memory.dynamicExtensions) room.memory.dynamicExtensions = undefined; // clean up old format
+    invalidateRampartSpots(room);
     log.a(`${room.name} generated ${positions.length} dynamic extension positions`);
     return positions;
 }
@@ -123,7 +130,10 @@ function placeExtensionsDynamically(room) {
     if (existing >= needed) return false;
     for (const {x, y} of positions) {
         const result = new RoomPosition(x, y, room.name).createConstructionSite(STRUCTURE_EXTENSION);
-        if (result === OK) return true;
+        if (result === OK) {
+            invalidateRampartSpots(room);
+            return true;
+        }
         if (result === ERR_FULL) return false;
         if (result === ERR_RCL_NOT_ENOUGH) return false;
     }
@@ -135,5 +145,7 @@ module.exports = {
     buildSourceExtensions,
 
     placeExtensionsDynamically,
+
+    getExtensionPositions,
 
 };

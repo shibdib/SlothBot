@@ -58,12 +58,12 @@ function getCreepCount(room = undefined, role, destination = undefined, operatio
 
     let key;
     if (assignment) key = `${role}_${assignment}`;
+    else if (!destination && !operation && !assignment && colonyKey) key = `${role}_noDest_noOp_${colonyKey}`;
     else if (!destination && !operation && !assignment && room) key = `${role}_${room.name}_noDest_noOp`;
     else if (room && operation && !destination && !assignment) key = `${role}_${room.name}_noDest_${operation}`;
     else if (destination && !operation) key = `${role}_${destination}_noOp`;
     else if (!destination && operation) key = `${role}_noDest_${operation}`;
     else if (destination && operation) key = `${role}_${destination}_${operation}`;
-    else if (!destination && !operation && !room && colonyKey) key = `${role}_noDest_noOp_${colonyKey}`;
     else if (!destination && !operation && !room) key = `${role}_noDest_noOp_noColony`;
     else return 0;
 
@@ -77,12 +77,12 @@ function creepExpiringSoon(room = undefined, role, destination = undefined, oper
 
     let key;
     if (assignment) key = `${role}_${assignment}`;
+    else if (!destination && !operation && !assignment && colonyKey) key = `${role}_noDest_noOp_${colonyKey}`;
     else if (!destination && !operation && !assignment && room) key = `${role}_${room.name}_noDest_noOp`;
     else if (room && operation && !destination && !assignment) key = `${role}_${room.name}_noDest_${operation}`;
     else if (destination && !operation) key = `${role}_${destination}_noOp`;
     else if (!destination && operation) key = `${role}_noDest_${operation}`;
     else if (destination && operation) key = `${role}_${destination}_${operation}`;
-    else if (!destination && !operation && !room && colonyKey) key = `${role}_noDest_noOp_${colonyKey}`;
     else if (!destination && !operation && !room) key = `${role}_noDest_noOp_noColony`;
     else return false;
 

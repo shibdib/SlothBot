@@ -78,26 +78,12 @@ class RoleDrone {
     jobManager() {
         const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
 
-        // 1. Maintain Sticky Task
         if (this.creep.memory.task && this.taskedOut()) return;
-
-        // 2. Urgent Defense (Under attack or targeting low wall)
         if ((threatLevel || this.creep.memory.currentTarget) && this.walling()) return;
-
-        // 3. Emergency Hauling (If no haulers exist)
         if (this.hauling()) return;
-
-        // 4. Primary: Building
         if (this.building()) return;
-
-        // 5. Fallback: Upgrading (If no upgraders or low level)
         if (this.upgrading()) return;
         if ((this.room.level < 4 || this.creep.memory.destination) && this.upgrading(true)) return;
-
-        // 6. Energy rich walling
-        if (this.room.energyState >= 3 && this.walling()) return;
-
-        // Final fallback: Idle (No maintenance walling for drones)
         this.creep.memory.task = undefined;
         this.creep.idleFor(5);
     }
@@ -249,6 +235,16 @@ class RoleDrone {
 
     building() {
         if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return false;
+        const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
+        if (!threatLevel && this.creep.memory.constructionSite) {
+            const target = Game.getObjectById(this.creep.memory.constructionSite);
+            if (target && (target.structureType === STRUCTURE_WALL || target.structureType === STRUCTURE_RAMPART)) {
+                delete this.creep.memory.constructionSite;
+                delete this.creep.memory.task;
+                delete this.creep.memory.sitePos;
+                delete this.creep.memory.targetHits;
+            }
+        }
         if (this.creep.memory.task || this.creep.constructionWork()) {
             if (this.creep.builderFunction()) {
                 return true;
@@ -258,10 +254,11 @@ class RoleDrone {
     }
 
     walling() {
+        const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
+        if (!threatLevel && !this.creep.memory.currentTarget) return false;
         if (!this.room.controller || !this.room.controller.my) return false;
 
         if (!this.creep.memory.currentTarget || !Game.getObjectById(this.creep.memory.currentTarget)) {
-            // Check for ramparts that need to be built (priority over repairs)
             if (this.room.constructionSites.length) {
                 const rampartSite = _.find(this.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
                 if (rampartSite && rampartSite.id) {
@@ -274,30 +271,22 @@ class RoleDrone {
             delete this.creep.memory.currentTarget;
             delete this.creep.memory.targetWallHits;
 
-            let targetLimit = 100000;
-            if (this.room.controller.level >= 8) targetLimit = 3000000;
-            else if (this.room.controller.level >= 6) targetLimit = 1000000;
-
             const quadTrapWalls = new Set((this.room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
             const barrierStructures = this.room.barriers.filter(s => {
-                const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : targetLimit;
+                const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : 100000;
                 return s.hits < cap;
             });
 
             if (!barrierStructures.length) return false;
 
             let target;
-            const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
             if (threatLevel) {
                 target = _.min(barrierStructures, 'hits');
             } else {
-                // To avoid multiple creeps on the same wall unless necessary
                 const available = barrierStructures.filter(s =>
                     !this.room.myCreeps.some(c => c.memory.currentTarget === s.id && c.id !== this.creep.id)
                 );
-
                 if (available.length) {
-                    // Pick the closest of the lowest health ones
                     const minHits = _.min(available, 'hits').hits;
                     const candidates = available.filter(s => s.hits <= minHits + 25000);
                     target = this.creep.pos.findClosestByRange(candidates);
@@ -308,7 +297,7 @@ class RoleDrone {
 
             if (target) {
                 this.creep.memory.currentTarget = target.id;
-                this.creep.memory.task = "waller";
+                this.creep.memory.task = 'waller';
             } else {
                 return false;
             }
@@ -321,7 +310,7 @@ class RoleDrone {
             return false;
         }
 
-        this.creep.memory.task = "waller";
+        this.creep.memory.task = 'waller';
         if (!this.creep.memory.targetWallHits) {
             this.creep.memory.targetWallHits = Math.min(target.hits + 50000, RAMPART_HITS_MAX[this.room.controller.level] || 300000000);
         }

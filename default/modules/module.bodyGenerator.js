@@ -26,6 +26,17 @@ function getHaulersBySource() {
     return _haulersBySource;
 }
 
+function countQueuedHaulersForSource(roomName, sourceId) {
+    const queue = CREEP_QUEUES[roomName];
+    if (!queue) return 0;
+    let n = 0;
+    for (const key in queue) {
+        const entry = queue[key];
+        if (entry.role === 'remoteHauler' && entry.other && entry.other.source === sourceId) n++;
+    }
+    return n;
+}
+
 /**
  * Generates Creep Bodies.
  * @constructor
@@ -142,7 +153,7 @@ class ModuleBodyGenerator {
 
             case 'upgrader': {
                 const hasLink = !!this.room.memory.controllerLink;
-                const hasContainer = !!this.room.memory.controllerContainer;
+                const hasContainer = !!global.resolveControllerContainer(this.room);
 
                 if (this.room.controller.level === 8 && this.room.energyState < 2) {
                     work = 1;
@@ -319,12 +330,21 @@ class ModuleBodyGenerator {
                 } else if (this.creepInfo && Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
                     const defaultWaitFor = this.role === 'longbow' ? 1 : 2;
                     const waitFor = this.creepInfo.misc && this.creepInfo.misc.waitFor || defaultWaitFor;
+                    heal = false;
                     if (this.creepInfo.misc && this.creepInfo.misc.boosts && this.creepInfo.misc.boosts.includes(TOUGH)) {
-                        toughData = this.checkForNeededTough(waitFor);
-                        tough = toughData.count;
+                        const desiredTough = this.checkForNeededTough(waitFor, true);
+                        for (let t = desiredTough.count; t >= 0; t -= 2) {
+                            toughData = t === desiredTough.count ? desiredTough : {boost: desiredTough.boost, count: t};
+                            const toughModifier = toughData.boost ? toughMulti[toughData.boost] : 1;
+                            heal = this.checkForNeededHeal(1, toughModifier, true, t);
+                            if (heal) {
+                                tough = t;
+                                break;
+                            }
+                        }
+                    } else {
+                        heal = this.checkForNeededHeal(1, 1, true, 0);
                     }
-                    const toughModifier = toughData && toughData.boost ? toughMulti[toughData.boost] : 1;
-                    heal = this.checkForNeededHeal(waitFor, toughModifier, true);
                     if (!heal) return false;
                 } else {
                     heal = Math.floor((this.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
@@ -333,7 +353,7 @@ class ModuleBodyGenerator {
                 const toughEnergy = (tough || 0) * (BODYPART_COST[TOUGH] + BODYPART_COST[MOVE]);
                 const remainingEnergy = this.energyAmount - ((heal * BODYPART_COST[HEAL]) + heal * BODYPART_COST[MOVE]) - toughEnergy;
                 rangedAttack = Math.floor(remainingEnergy / (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE])) || 1;
-                rangedAttack = Math.min(rangedAttack, 25 - heal - (tough || 0));
+                rangedAttack = Math.min(rangedAttack, getMaxSiegeCombatBudget() - heal - (tough || 0));
 
                 // Handle scaling down military creeps based on power
                 if (this.creepInfo && this.creepInfo.other && this.creepInfo.other.power) {
@@ -376,17 +396,25 @@ class ModuleBodyGenerator {
                         tough = toughData.count;
                     }
                     attack = Math.floor(this.energyAmount / (BODYPART_COST[ATTACK] + BODYPART_COST[MOVE])) || 1;
-                    attack = Math.min(attack, 25);
-                    attack -= tough || 0;
+                    attack = Math.min(attack, getMaxSiegeCombatBudget() - (tough || 0));
                 } else {
                     // No surplus healer (or attacker surplus) â€” spawn a healer.
                     if (Memory.targetRooms[this.creepInfo.destination] && Memory.targetRooms[this.creepInfo.destination].boosts) {
+                        heal = false;
                         if (this.creepInfo.misc && this.creepInfo.misc.boosts && this.creepInfo.misc.boosts.includes(TOUGH)) {
-                            toughData = this.checkForNeededTough(2);
-                            tough = toughData.count;
+                            const desiredTough = this.checkForNeededTough(2);
+                            for (let t = desiredTough.count; t >= 0; t -= 2) {
+                                toughData = t === desiredTough.count ? desiredTough : {boost: desiredTough.boost, count: t};
+                                const toughModifier = toughData.boost ? toughMulti[toughData.boost] : 1;
+                                heal = this.checkForNeededHeal(2, toughModifier, false, t);
+                                if (heal) {
+                                    tough = t;
+                                    break;
+                                }
+                            }
+                        } else {
+                            heal = this.checkForNeededHeal(2, 1, false, 0);
                         }
-                        const toughModifier = toughData && toughData.boost ? toughMulti[toughData.boost] : 1;
-                        heal = Math.ceil(this.checkForNeededHeal(1, toughModifier));
 
                         if (!heal) return false;
                     } else {
@@ -450,49 +478,64 @@ class ModuleBodyGenerator {
                 claim = Math.max(claim, 2);
                 break;
 
-            case 'remoteHarvester':
-                // Set source energy capacity for a reserved room, double it at level 7 for CPU
-                const SOURCE_CAPACITY = this.room.controller.level >= 7 ? SOURCE_ENERGY_CAPACITY : SOURCE_ENERGY_CAPACITY;
-                const additionalWork = this.room.controller.level >= 7 ? 9 : 1;
-                if (INTEL[this.creepInfo.destination] && INTEL[this.creepInfo.destination].sk) {
-                    work = Math.ceil(SOURCE_ENERGY_KEEPER_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + additionalWork;
-                } else if (INTEL[this.creepInfo.destination] && INTEL[this.creepInfo.destination].reservation === MY_USERNAME) {
-                    work = Math.ceil(SOURCE_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + additionalWork;
+            case 'remoteHarvester': {
+                const destIntel = INTEL[this.creepInfo.destination];
+                let baseSaturation;
+                if (destIntel && destIntel.sk) {
+                    baseSaturation = Math.ceil(SOURCE_ENERGY_KEEPER_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME));
+                } else if (destIntel && destIntel.reservation === MY_USERNAME) {
+                    baseSaturation = Math.ceil(SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME));
                 } else {
-                    work = Math.ceil(SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME)) + additionalWork;
+                    baseSaturation = Math.ceil(SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME));
                 }
+                // Extra WORK for container repair only when the colony can afford the spawn cost.
+                const isHealthy = (this.room.energyState >= 2 || this.spareIncome > 3 || this.trend >= 0);
+                const additionalWork = this.room.level >= 7 ? (isHealthy ? 2 : 0) : 0;
+                work = baseSaturation + additionalWork;
                 carry = 1;
-                if (this.room.energyState < 3 || this.trend < 0) {
-                    work = Math.max(1, Math.floor(work * this.flowScale(0.5, 10)));
-                }
 
-                // Half-move only if every room on the route has roads â€” intermediate rooms count too.
-            {
                 const route = Game.map.findRoute(this.room.name, this.creepInfo.destination);
                 const fullRouteHasRoads = Array.isArray(route) &&
                     INTEL[this.room.name] && INTEL[this.room.name].roadsBuilt &&
                     route.every(step => INTEL[step.room] && INTEL[step.room].roadsBuilt);
                 if (fullRouteHasRoads) halfMove = true;
-            }
-                break;
 
-            case 'remoteHauler':
+                if (this.room.energyState < 3 || this.trend < 0) {
+                    work = Math.max(1, Math.floor(work * this.flowScale(0.5, 10)));
+                }
+
+                const moveRatio = halfMove ? 0.5 : 1;
+                const maxWork = Math.max(1, Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / (BODYPART_COST[WORK] + BODYPART_COST[MOVE] * moveRatio)));
+                work = Math.min(Math.max(baseSaturation, work), maxWork);
+                break;
+            }
+
+            case 'remoteHauler': {
                 const remoteRoomName = this.creepInfo.other.remoteRoom;
                 if (!remoteRoomName) return false;
-                const otherAssignedHaulers = getHaulersBySource()[this.creepInfo.other.source] || [];
-                const currentHaulingCapacity = _.sum(otherAssignedHaulers, c => c.getActiveBodyparts(CARRY) * 50);
-                const harvestRate = this.creepInfo.other.harvestAmount - currentHaulingCapacity;
-                const desiredCarry = Math.ceil(harvestRate / CARRY_CAPACITY) || 1;
+                const sourceId = this.creepInfo.other.source;
+                const otherAssignedHaulers = getHaulersBySource()[sourceId] || [];
+                const currentHaulingCapacity = _.sum(otherAssignedHaulers, c =>
+                    c.spawning ? 0 : c.getActiveBodyparts(CARRY) * CARRY_CAPACITY);
 
-                // Work parts after level 7
                 work = this.room.level >= 7 ? 1 : 0;
 
-                // Half-move only if every room on the route (including intermediate rooms) has roads.
-                // Checking just home+destination misses rooms in between that the hauler must cross.
                 const route = Game.map.findRoute(this.room.name, remoteRoomName);
                 const fullRouteHasRoads = Array.isArray(route) &&
                     INTEL[this.room.name].roadsBuilt &&
                     route.every(step => INTEL[step.room] && INTEL[step.room].roadsBuilt);
+
+                const minCarryParts = this.room.level >= 7
+                    ? (fullRouteHasRoads ? 12 : 8)
+                    : Math.max(2, this.room.level * 2);
+                const queuedHaulers = countQueuedHaulersForSource(this.room.name, sourceId);
+                const queuedCapacity = queuedHaulers * minCarryParts * CARRY_CAPACITY;
+                const harvestAmount = this.creepInfo.other.harvestAmount || 0;
+                const carryDeficit = Math.max(0, harvestAmount - currentHaulingCapacity - queuedCapacity);
+                const desiredCarry = carryDeficit > 0
+                    ? Math.max(minCarryParts, Math.ceil(carryDeficit / CARRY_CAPACITY))
+                    : minCarryParts;
+
                 if (fullRouteHasRoads) {
                     carry = Math.floor((this.energyAmount - (work * BODYPART_COST[WORK])) / (BODYPART_COST[CARRY] + (BODYPART_COST[MOVE] * 0.5))) || 1;
                     halfMove = true;
@@ -500,15 +543,12 @@ class ModuleBodyGenerator {
                     carry = Math.floor((this.energyAmount - (work * BODYPART_COST[WORK])) / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
                 }
 
-                // Limit carry to what is actually needed
                 carry = Math.min(carry, desiredCarry);
 
                 if (this.room.energyState < 3 || this.trend < 0) {
-                    carry = Math.max(1, Math.floor(carry * this.flowScale(0.5, 10)));
+                    carry = Math.max(minCarryParts, Math.floor(carry * this.flowScale(0.5, 10)));
                 }
 
-                // Pre-RCL7 rooms have 1 spawn â€” cap hauler size so it doesn't block the queue.
-                // Smaller haulers spawn faster and multiple will be queued to cover the deficit.
                 const maxCarry = this.room.level < 7 ? this.room.level * 2 : 33;
                 if (halfMove) {
                     if (carry + work > maxCarry) carry = maxCarry - work;
@@ -516,7 +556,9 @@ class ModuleBodyGenerator {
                     carry = Math.min(maxCarry, 25) - work;
                 }
 
+                carry = Math.max(minCarryParts, carry);
                 break;
+            }
 
             case 'SKMineral':
             case 'commodityMiner':
@@ -662,35 +704,53 @@ class ModuleBodyGenerator {
         return body.reduce((cost, part) => cost + BODYPART_COST[part], 0);
     }
 
-    checkForNeededHeal(multiplier = 1, toughModifier = 1, rangedParts = false) {
+
+    checkForNeededHeal(exposureBodies = 1, toughModifier = 1, rangedParts = false, toughCount = 0) {
         const destination = this.creepInfo.destination;
-        const towerData = INTEL[destination] && INTEL[destination].towerData;
+        const intel = INTEL[destination];
         const targetMemory = Memory.targetRooms[destination];
-        if (!towerData || !towerData.average) {
+        const damageToTank = getSiegeTowerDamage(intel);
+        if (!damageToTank) {
             if (targetMemory) targetMemory.boostTier = undefined;
             return false;
         }
 
-        const damageToTank = Math.round(towerData.average);
         const tiers = determineNeededHeals(damageToTank);
-        const squadSize = Math.max(1, Math.round(1 / multiplier));
-        const MAX_HEAL_PARTS = rangedParts ? 20 : 25;
+        const squadSize = Math.max(1, (this.creepInfo.misc && this.creepInfo.misc.waitFor) || 1);
         const MIN_RANGED_PARTS = rangedParts ? 5 : 0;
+        const MAX_HEAL_PARTS = getMaxSiegeHealParts(toughCount, MIN_RANGED_PARTS);
         const reservedEnergy = MIN_RANGED_PARTS * (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE]);
         const energyPerHealPair = BODYPART_COST[HEAL] + BODYPART_COST[MOVE];
+        const healToughFactor = Math.max(toughModifier, 0.85);
 
         const tierKeys = Object.keys(tiers);
         let chosen;
         let chosenHeals = 0;
         for (const key of tierKeys) {
             const tier = tiers[key];
-            const perCreepHeals = Math.ceil(Math.ceil(tier.amount * multiplier) * toughModifier);
-            if (perCreepHeals > MAX_HEAL_PARTS) continue;
+            const rawHeals = Math.ceil(tier.amount * exposureBodies * healToughFactor);
+            if (rawHeals > MAX_HEAL_PARTS) continue;
+            const perCreepHeals = rawHeals;
+            if (perCreepHeals < 1) continue;
             if (perCreepHeals * energyPerHealPair + reservedEnergy > this.energyAmount) continue;
             if (this.room.store(tier.boost) < 30 * perCreepHeals * squadSize) continue;
             chosen = tier;
             chosenHeals = perCreepHeals;
             break;
+        }
+
+        if (!chosen) {
+            for (let i = tierKeys.length - 1; i >= 0; i--) {
+                const tier = tiers[tierKeys[i]];
+                const rawHeals = Math.ceil(tier.amount * exposureBodies * healToughFactor);
+                if (rawHeals > MAX_HEAL_PARTS) continue;
+                const perCreepHeals = rawHeals;
+                if (perCreepHeals * energyPerHealPair + reservedEnergy > this.energyAmount) continue;
+                if (this.room.store(tier.boost) < 30 * perCreepHeals * squadSize) continue;
+                chosen = tier;
+                chosenHeals = perCreepHeals;
+                break;
+            }
         }
 
         if (!chosen) {
@@ -708,27 +768,18 @@ class ModuleBodyGenerator {
         return chosenHeals;
     }
 
-    // Sizes a TOUGH buffer for siege creeps. Returns part count to add to the
-    // body, scaled by tower damage; 0 when damage is low enough that heal-only
-    // is more efficient, or when no tough boost is available in storage. The
-    // boost itself is picked at runtime by tryToBoost (via misc.boosts) â€” we
-    // only verify here that *some* tier is in stock so we don't allocate parts
-    // that'll go unboosted and just bloat the body.
-    checkForNeededTough(squadSize = 1) {
+    checkForNeededTough(squadSize = 1, rangedCreep = false) {
         const destination = this.creepInfo.destination;
-        const towerData = INTEL[destination] && INTEL[destination].towerData;
-        if (!towerData || !towerData.average) return {boost: undefined, count: 0};
-        // Below this threshold heal alone tanks efficiently; tough body slots
-        // are better spent on ranged_attack.
-        if (towerData.average < 300) return {boost: undefined, count: 0};
+        const siegeDamage = getSiegeTowerDamage(INTEL[destination]);
+        if (!siegeDamage) return {boost: undefined, count: 0};
+        if (siegeDamage < 300) return {boost: undefined, count: 0};
 
-        // Buffer scales modestly with damage. Capped so tough never crowds out
-        // ranged_attack â€” 8 tough + ~13 heal still leaves room for ~25 ranged
-        // in a 50-part body with boosted MOVE.
-        const partCount = towerData.average >= 1000 ? 8 : (towerData.average >= 600 ? 6 : 4);
+        let partCount = siegeDamage >= 1000 ? 8 : (siegeDamage >= 600 ? 6 : 4);
+        if (rangedCreep) partCount = Math.min(partCount, 6);
+        const healReserve = rangedCreep ? 10 : 12;
+        const rangedReserve = rangedCreep ? 5 : 0;
+        partCount = Math.min(partCount, Math.max(0, getMaxSiegeCombatBudget() - healReserve - rangedReserve));
 
-        // Require at least one tier of TOUGH boost in stock for the whole squad.
-        // tryToBoost will pick whichever tier is available at apply-time.
         for (const boost of BOOST_USE[TOUGH]) {
             if (this.room.store(boost) >= 30 * partCount * squadSize) {
                 return {boost: boost, count: partCount};
@@ -740,6 +791,30 @@ class ModuleBodyGenerator {
 
 profiler.registerClass(ModuleBodyGenerator, 'BodyGenerator');
 module.exports = ModuleBodyGenerator;
+
+function getMaxSiegeCombatBudget() {
+    return 25;
+}
+
+function getMaxSiegeHealParts(toughCount = 0, rangedParts = 0) {
+    return Math.max(1, getMaxSiegeCombatBudget() - toughCount - rangedParts);
+}
+
+function getSiegeTowerDamage(intel) {
+    if (!intel) return 0;
+    const td = intel.towerData;
+    let damage = 0;
+    if (td) {
+        damage = Math.max(td.maxDamage || 0, td.average || 0);
+        damage = Math.ceil(damage * (td.operated ? 1.1 : 1.05));
+    } else if (intel.towers) {
+        damage = intel.towers * TOWER_POWER_ATTACK;
+    }
+    return damage;
+}
+
+module.exports.getSiegeTowerDamage = getSiegeTowerDamage;
+module.exports.getMaxSiegeHealParts = getMaxSiegeHealParts;
 
 function determineNeededHeals(damage) {
     const healTiers = {};

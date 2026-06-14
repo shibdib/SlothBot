@@ -11,6 +11,7 @@ const {collectThreatRemotes} = require('harassUtils');
 const {getCreepCount} = require('spawnCounts');
 const {queueCreepIfNeeded, pruneQueueCache} = require('spawnQueue');
 const {buildOperationsSignature, pruneEmptyOperations, getPriority} = require('spawnOperations');
+const {getSiegeTowerDamage} = require('module.bodyGenerator');
 
 function queueHarassmentCreeps() {
     if (!HARASSMENT_OPERATIONS || !OFFENSIVE_OPERATIONS || !state.OFFENSIVE_ALLOWED) return;
@@ -170,8 +171,8 @@ function globalCreepQueue() {
                 const rdWaves = operation.waves || 0;
                 if (rdTowers) {
                     Memory.targetRooms[key].boosts = [TOUGH, HEAL];
-                    const p85Damage = rdIntel.towerData ? rdIntel.towerData.average : rdTowers * 300;
-                    const useSolo = MAX_LEVEL >= 7 && p85Damage <= 960 && !rdIntel.activeDefenders && rdWaves < 2;
+                    const siegeDamage = getSiegeTowerDamage(rdIntel) || rdTowers * 600;
+                    const useSolo = MAX_LEVEL >= 7 && siegeDamage <= 960 && !rdIntel.activeDefenders && rdWaves < 2;
                     if (useSolo) {
                         queueCreepIfNeeded({
                             role: 'longbow',
@@ -183,9 +184,10 @@ function globalCreepQueue() {
                             misc: {boosts: [TOUGH, RANGED_ATTACK, HEAL]}
                         });
                     } else {
-                        // If a room has activeDefenders spawn a longbowSquad otherwise a siege pair
-                        if (rdIntel.activeDefenders) {
-                            const waitFor = (rdWaves >= 2 || p85Damage > 960) ? 4 : 2;
+                        // siegeDuo healer must cover two stacked bodies; multi-tower or high-DPS rooms need a squad.
+                        const useSquad = rdIntel.activeDefenders || rdTowers > 1 || siegeDamage > 660 || rdWaves >= 2;
+                        if (useSquad) {
+                            const waitFor = (rdWaves >= 2 || siegeDamage > 960) ? 4 : 2;
                             queueCreepIfNeeded({
                                 role: 'longbowSquad', priority, numberNeeded: waitFor, destination: key,
                                 misc: {waitFor: waitFor, boosts: [TOUGH, RANGED_ATTACK, HEAL]},

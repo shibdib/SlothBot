@@ -124,10 +124,14 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
     }
 
     // Recreate pathInfo if target changed
-    if (!creep.memory._shibMove || !creep.memory._shibMove.target ||
-        creep.memory._shibMove.targetRoom !== target.roomName ||
-        creep.memory._shibMove.target.x !== target.x ||
-        creep.memory._shibMove.target.y !== target.y) {
+    const pathState = creep.memory._shibMove;
+    const prevRange = pathState?.pathOptions?.range ?? 1;
+    const targetChanged = !pathState?.target ||
+        pathState.targetRoom !== target.roomName ||
+        pathState.target.x !== target.x ||
+        pathState.target.y !== target.y ||
+        prevRange !== (options.range ?? 1);
+    if (!pathState || targetChanged) {
         creep.memory._shibMove = {};
     }
 

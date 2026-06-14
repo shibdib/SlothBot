@@ -219,7 +219,7 @@ function dropOff(creep) {
     // Only search for new target occasionally or if we don't have one
     if (memory.storageDestination) return;
 
-    const controllerContainer = Game.getObjectById(colony.memory.controllerContainer);
+    const controllerContainer = global.resolveControllerContainer(colony);
 
     // Efficiently find towers needing energy
     const lowTower = colony.towers.find(s => s.store.getFreeCapacity(RESOURCE_ENERGY) > TOWER_CAPACITY * 0.4);

@@ -34,10 +34,13 @@ Creep.prototype.shibMove = function (destination, options = {}) {
     if (this.memory.grouped) options.squad = true;
     destination = normalizePos(destination);
     if (!destination) return false;
-    // If the destination is in the same room as the old destination but the old path takes it out of that room it'll refresh, avoid that and use the old destination
-    if (this.memory._shibMove && this.memory._shibMove.target &&
-        this.memory._shibMove.target.roomName === destination.roomName && this.memory._shibMove.target.x != null) {
-        destination = new RoomPosition(this.memory._shibMove.target.x, this.memory._shibMove.target.y, this.memory._shibMove.target.roomName);
+    // While en route, ignore room-center hops (25,25) so a cross-room path isn't torn down
+    // every tick. Real in-room target changes must flow through so the cached path clears.
+    const cached = this.memory._shibMove?.target;
+    if (cached && cached.roomName === destination.roomName && cached.x != null &&
+        this.room.name !== destination.roomName &&
+        destination.x === 25 && destination.y === 25) {
+        destination = new RoomPosition(cached.x, cached.y, cached.roomName);
     }
     return shibMove(this, destination, options);
 };

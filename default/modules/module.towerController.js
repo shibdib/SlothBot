@@ -48,6 +48,7 @@ module.exports.towerController = function (room) {
 
         const combatBarriers = hasHostiles
             ? room.barriers.filter(b =>
+                b && b.structureType &&
                 b.hits < CRITICAL_BARRIER_HP &&
                 hostiles.some(h => h.pos.getRangeTo(b) <= COMBAT_BARRIER_RANGE))
             : [];

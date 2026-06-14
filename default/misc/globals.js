@@ -95,6 +95,211 @@ let globals = function () {
         constructionSiteRoomCache = Object.create(null);
     };
 
+    global.collectOwnedRoads = function (roomName) {
+        const seen = new Set();
+        const roads = [];
+        const add = (s) => {
+            if (!s || s.structureType !== STRUCTURE_ROAD || seen.has(s.id)) return;
+            seen.add(s.id);
+            roads.push(s);
+        };
+        const roomList = roomName
+            ? [Game.rooms[roomName]].filter(Boolean)
+            : ((MY_ROOMS && MY_ROOMS.length)
+                ? MY_ROOMS.map((n) => Game.rooms[n]).filter(Boolean)
+                : Object.values(Game.rooms).filter((r) => r.controller && r.controller.my));
+
+        for (const room of roomList) {
+            if (!room.controller || !room.controller.my) continue;
+            if (room.__nativeFind) {
+                try {
+                    (room.__nativeFind(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_ROAD}}) || []).forEach(add);
+                } catch (e) { /* corrupt room */ }
+            }
+            try {
+                room.find(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_ROAD}}).forEach(add);
+            } catch (e) { /* corrupt room */ }
+            try {
+                room.find(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_ROAD}}).forEach(add);
+            } catch (e) { /* corrupt room */ }
+            if (room.roads && room.roads.length) room.roads.forEach(add);
+        }
+        if (Game.structures) {
+            for (const id in Game.structures) {
+                const s = Game.structures[id];
+                if (!s || s.structureType !== STRUCTURE_ROAD) continue;
+                const room = Game.rooms[s.pos.roomName];
+                if (!room || !room.controller || !room.controller.my) continue;
+                if (roomName && room.name !== roomName) continue;
+                add(s);
+            }
+        }
+        return {roads, visibleOwnedRooms: roomList.map((r) => r.name)};
+    };
+
+    // Console: clearOwnedRoads() or clearOwnedRoads('E1N1') — needs vision in target room(s).
+    global.clearOwnedRoads = function (pauseTicks = 500, roomName) {
+        let destroyed = 0;
+        let failed = 0;
+        let sites = 0;
+        const seen = new Set();
+        const {roads, visibleOwnedRooms} = global.collectOwnedRoads(roomName);
+
+        for (const s of roads) {
+            if (seen.has(s.id)) continue;
+            seen.add(s.id);
+            const ret = s.destroy();
+            if (ret === OK) destroyed++;
+            else failed++;
+        }
+
+        const siteRooms = roomName
+            ? [Game.rooms[roomName]].filter(Boolean)
+            : visibleOwnedRooms.map((n) => Game.rooms[n]).filter(Boolean);
+        for (const room of siteRooms) {
+            let roomSites = [];
+            if (room.__nativeFind) {
+                try {
+                    roomSites = room.__nativeFind(FIND_MY_CONSTRUCTION_SITES, {filter: {structureType: STRUCTURE_ROAD}}) || [];
+                } catch (e) { /* corrupt room */ }
+            }
+            if (!roomSites.length) {
+                try {
+                    roomSites = room.find(FIND_MY_CONSTRUCTION_SITES, {filter: {structureType: STRUCTURE_ROAD}});
+                } catch (e) { /* corrupt room */ }
+            }
+            for (const site of roomSites) {
+                if (site.remove() === OK) sites++;
+            }
+        }
+
+        global.invalidateStructureRoomCaches();
+        const resetRooms = roomName ? [roomName] : (MY_ROOMS && MY_ROOMS.length ? MY_ROOMS : visibleOwnedRooms);
+        for (const rn of resetRooms) {
+            if (INTEL[rn]) {
+                delete INTEL[rn].roadsBuilt;
+                delete INTEL[rn].roadCount;
+            }
+            ROAD_CACHE[rn] = undefined;
+        }
+        if (pauseTicks > 0) Memory.pauseOwnedRoads = Game.time + pauseTicks;
+        return {
+            destroyed,
+            failed,
+            sites,
+            roadsFound: roads.length,
+            visibleOwnedRooms,
+            ownedRooms: MY_ROOMS || [],
+            pauseUntil: Memory.pauseOwnedRoads,
+        };
+    };
+
+    global.collectOwnedBarriers = function (roomName) {
+        const types = new Set([STRUCTURE_WALL, STRUCTURE_RAMPART]);
+        const seen = new Set();
+        const walls = [];
+        const ramparts = [];
+        const add = (s) => {
+            if (!s || !types.has(s.structureType) || seen.has(s.id)) return;
+            const room = Game.rooms[s.pos.roomName];
+            if (!room || !room.controller || !room.controller.my) return;
+            if (roomName && room.name !== roomName) return;
+            seen.add(s.id);
+            if (s.structureType === STRUCTURE_WALL) walls.push(s);
+            else ramparts.push(s);
+        };
+        const roomList = roomName
+            ? [Game.rooms[roomName]].filter(Boolean)
+            : ((MY_ROOMS && MY_ROOMS.length)
+                ? MY_ROOMS.map((n) => Game.rooms[n]).filter(Boolean)
+                : Object.values(Game.rooms).filter((r) => r.controller && r.controller.my));
+
+        for (const room of roomList) {
+            if (!room.controller || !room.controller.my) continue;
+            if (room.constructedWalls && room.constructedWalls.length) room.constructedWalls.forEach(add);
+            if (room.ramparts && room.ramparts.length) room.ramparts.forEach(add);
+            const fromCache = global.roomStructuresFromGame
+                ? global.roomStructuresFromGame(room)
+                : [];
+            fromCache.forEach(add);
+            try {
+                room.find(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_WALL}}).forEach(add);
+                room.find(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_RAMPART}}).forEach(add);
+            } catch (e) { /* corrupt room */ }
+        }
+        if (Game.structures) {
+            for (const id in Game.structures) add(Game.structures[id]);
+        }
+        return {walls, ramparts, barriers: walls.concat(ramparts), visibleOwnedRooms: roomList.map((r) => r.name)};
+    };
+
+    // Console: clearOwnedBarriers() or clearOwnedBarriers('E1N1') — needs vision in target room(s).
+    global.clearOwnedBarriers = function (roomName) {
+        const types = [STRUCTURE_WALL, STRUCTURE_RAMPART];
+        let destroyed = 0;
+        let wallsDestroyed = 0;
+        let rampartsDestroyed = 0;
+        let failed = 0;
+        let sites = 0;
+        const {walls, ramparts, barriers, visibleOwnedRooms} = global.collectOwnedBarriers(roomName);
+
+        for (const s of barriers) {
+            const ret = s.destroy();
+            if (ret === OK) {
+                destroyed++;
+                if (s.structureType === STRUCTURE_WALL) wallsDestroyed++;
+                else rampartsDestroyed++;
+            } else failed++;
+        }
+
+        const siteRooms = roomName
+            ? [Game.rooms[roomName]].filter(Boolean)
+            : visibleOwnedRooms.map((n) => Game.rooms[n]).filter(Boolean);
+        for (const room of siteRooms) {
+            if (!room.controller || !room.controller.my) continue;
+            let roomSites = [];
+            if (room.__nativeFind) {
+                try {
+                    roomSites = room.__nativeFind(FIND_MY_CONSTRUCTION_SITES) || [];
+                } catch (e) { /* corrupt room */ }
+            }
+            if (!roomSites.length) {
+                try {
+                    roomSites = room.find(FIND_MY_CONSTRUCTION_SITES);
+                } catch (e) { /* corrupt room */ }
+            }
+            if (global.roomConstructionSitesFromGame) {
+                roomSites = roomSites.concat(global.roomConstructionSitesFromGame(room));
+            }
+            const seenSites = new Set();
+            for (const site of roomSites) {
+                if (!types.includes(site.structureType) || seenSites.has(site.id)) continue;
+                seenSites.add(site.id);
+                if (site.remove() === OK) sites++;
+            }
+        }
+
+        global.invalidateStructureRoomCaches();
+        const resetRooms = roomName ? [roomName] : (MY_ROOMS && MY_ROOMS.length ? MY_ROOMS : visibleOwnedRooms);
+        for (const rn of resetRooms) {
+            if (ROOM_RAMPART_SPOTS) ROOM_RAMPART_SPOTS[rn] = undefined;
+            if (typeof quadTraps !== 'undefined') quadTraps[rn] = undefined;
+            const mem = Game.rooms[rn] && Game.rooms[rn].memory;
+            if (mem) mem.quadTrapWalls = undefined;
+        }
+        return {
+            destroyed,
+            wallsDestroyed,
+            rampartsDestroyed,
+            failed,
+            sites,
+            wallsFound: walls.length,
+            rampartsFound: ramparts.length,
+            visibleOwnedRooms,
+            ownedRooms: MY_ROOMS || [],
+        };
+    };
+
     global.ensureStructureRoomCaches = function () {
         if (structureRoomCacheTick === Game.time) return;
         structureRoomCacheTick = Game.time;
@@ -320,7 +525,13 @@ let globals = function () {
     // Versioning for cache purposes
     global.PATHFINDER_VERSION = 1;
     global.INTEL_VERSION = 5;
-    global.RAMPART_VERSION = 1;
+    global.RAMPART_VERSION = 2;
+    global.SAFE_RAMPART_HITS = 10000; // Minimum rampart HP before wallers move on to other barriers
+
+    global.resolveControllerContainer = function (room) {
+        const {resolveControllerContainer} = require('planUtils');
+        return resolveControllerContainer(room, true);
+    };
 
     // Debug
     global.PATHING_DEBUG = false;

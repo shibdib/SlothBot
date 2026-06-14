@@ -141,7 +141,7 @@ function essentialCreepQueue(room) {
     if (room.controller.level === 8) {
         upgraderAmount = 1;
     } else if (room.energyState) {
-        let container = Game.getObjectById(room.memory.controllerContainer);
+        const container = global.resolveControllerContainer(room);
         if (container && room.energyState && room.controller.level < 8) {
             const trend = (energyInfo && energyInfo.trend) || 0;
             const effectiveIncome = Math.min(spareIncome, spareIncome + trend * 50);

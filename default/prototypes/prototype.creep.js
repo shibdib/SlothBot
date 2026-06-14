@@ -35,6 +35,94 @@ function getRoomExits(room) {
     return exitTileCache[room.name];
 }
 
+const REMOTE_REPAIRABLE = new Set([STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_WALL, STRUCTURE_RAMPART]);
+const PRIORITY_BUILD_TYPES = [
+    STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_CONTAINER,
+    STRUCTURE_LINK, STRUCTURE_TERMINAL, STRUCTURE_LAB, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN,
+];
+
+function constructionSiteOwner(site) {
+    if (site.safeOwnerName) return site.safeOwnerName();
+    try {
+        return site.owner && site.owner.username;
+    } catch (e) {
+        return undefined;
+    }
+}
+
+function isFriendlyConstructionSite(site) {
+    const owner = constructionSiteOwner(site);
+    return !owner || _.includes(FRIENDLIES, owner);
+}
+
+function getClaimedConstructionIds(room) {
+    const claimed = new Set();
+    for (const c of room.myCreeps) {
+        if (c.memory.constructionSite) claimed.add(c.memory.constructionSite);
+    }
+    return claimed;
+}
+
+function collectConstructionBuckets(room) {
+    const byType = {};
+    const roads = [];
+    const barriers = [];
+    let misc = [];
+    for (const s of room.constructionSites) {
+        if (!isFriendlyConstructionSite(s)) continue;
+        (byType[s.structureType] = byType[s.structureType] || []).push(s);
+        if (s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART) barriers.push(s);
+        else if (s.structureType === STRUCTURE_ROAD) roads.push(s);
+    }
+    for (const t in byType) {
+        if (t !== STRUCTURE_WALL && t !== STRUCTURE_RAMPART && t !== STRUCTURE_ROAD) {
+            misc = misc.concat(byType[t]);
+        }
+    }
+    return {byType, misc, roads, barriers};
+}
+
+function collectStructureDamage(room, claimedIds, ownedByMe) {
+    const walls = [];
+    const ramparts = [];
+    const containers = [];
+    const roads = [];
+    const other = [];
+    const allBarriers = [];
+    for (const s of room.structures) {
+        const t = s.structureType;
+        if (t === STRUCTURE_WALL || t === STRUCTURE_RAMPART) allBarriers.push(s);
+        if (s.hits >= s.hitsMax || claimedIds.has(s.id)) continue;
+        if (!ownedByMe && !REMOTE_REPAIRABLE.has(t)) continue;
+        if (t === STRUCTURE_WALL) walls.push(s);
+        else if (t === STRUCTURE_RAMPART) ramparts.push(s);
+        else if (t === STRUCTURE_CONTAINER) containers.push(s);
+        else if (t === STRUCTURE_ROAD) roads.push(s);
+        else other.push(s);
+    }
+    return {walls, ramparts, containers, roads, other, allBarriers};
+}
+
+function weakestByHitsRatio(structures) {
+    return structures.length ? _.min(structures, s => s.hits / s.hitsMax) : null;
+}
+
+function weakestBarrierNearHostiles(barriers, hostiles) {
+    let weakest = null;
+    for (const s of barriers) {
+        if (!s.pos.findInRange(hostiles, 5).length) continue;
+        if (!weakest || s.hits < weakest.hits) weakest = s;
+    }
+    return weakest;
+}
+
+function clearConstructionMemory(creep) {
+    creep.memory.constructionSite = undefined;
+    creep.memory.task = undefined;
+    creep.memory.sitePos = undefined;
+    creep.memory.targetHits = undefined;
+}
+
 Object.defineProperty(Creep.prototype, "idle", {
     configurable: true,
     get: function () {
@@ -378,9 +466,10 @@ Creep.prototype.locateEnergy = function (room = this.room) {
     }
 
     if (['shuttle', 'remoteHauler', 'drone'].includes(this.memory.role) || !room.storage || room.myCreeps.length < 4) {
+        const ctrlContainer = global.resolveControllerContainer(room);
         for (let i = 0; i < room.structures.length; i++) {
             const s = room.structures[i];
-            if (s.structureType === STRUCTURE_CONTAINER && (s.id !== room.memory.controllerContainer || room.level === 8) && s.store[RESOURCE_ENERGY] > 0) {
+            if (s.structureType === STRUCTURE_CONTAINER && (s.id !== (ctrlContainer && ctrlContainer.id) || room.level === 8) && s.store[RESOURCE_ENERGY] > 0) {
                 if (!myCreepsFilter(s.id) || s.store[RESOURCE_ENERGY] > (myCreepsFilter(s.id) + 1) * (freeCapacity * 0.5)) {
                     potentialEnergy.push(s);
                 }
@@ -513,7 +602,7 @@ Creep.prototype.haulerDelivery = function () {
     }
 
     if (!this.room.memory.controllerLink && this.room.energyState > 0) {
-        let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+        const controllerContainer = global.resolveControllerContainer(this.room);
         if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 200) targets.push(controllerContainer);
     }
 
@@ -563,184 +652,120 @@ Creep.prototype.haulerDelivery = function () {
     return false;
 };
 
-Creep.prototype.constructionWork = function () {
+Creep.prototype.constructionWork = function (scope) {
+    const barriersOnly = scope === 'barriers';
     const room = this.room;
     const intel = INTEL[room.name];
     const ownedByMe = intel && intel.owner === MY_USERNAME;
+    const claimedIds = getClaimedConstructionIds(room);
+    const damage = collectStructureDamage(room, claimedIds, ownedByMe);
+    const sites = collectConstructionBuckets(room);
 
-    // Old code did `_.find(myCreeps, c => c.memory.constructionSite === s.id)` inside
-    // a filter over every structure — O(N*M). One pass into a Set is O(N+M).
-    const claimedIds = new Set();
-    for (const c of room.myCreeps) {
-        if (c.memory.constructionSite) claimedIds.add(c.memory.constructionSite);
-    }
-
-    // Single-pass bucket of room.structures. Each repair priority below previously
-    // re-filtered room.structures from scratch.
-    const REMOTE_REPAIRABLE = new Set([STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_WALL, STRUCTURE_RAMPART]);
-    const damagedWalls = [];
-    const damagedRamparts = [];
-    const damagedContainers = [];
-    const damagedRoads = [];
-    const damagedOther = [];
-    const wallsAndRamparts = []; // includes undamaged — hostile-barrier scan needs them
-    for (const s of room.structures) {
-        const t = s.structureType;
-        if (t === STRUCTURE_WALL || t === STRUCTURE_RAMPART) wallsAndRamparts.push(s);
-        if (s.hits >= s.hitsMax) continue;
-        if (claimedIds.has(s.id)) continue;
-        if (!ownedByMe && !REMOTE_REPAIRABLE.has(t)) continue;
-        if (t === STRUCTURE_WALL) damagedWalls.push(s);
-        else if (t === STRUCTURE_RAMPART) damagedRamparts.push(s);
-        else if (t === STRUCTURE_CONTAINER) damagedContainers.push(s);
-        else if (t === STRUCTURE_ROAD) damagedRoads.push(s);
-        else damagedOther.push(s);
-    }
-
-    // Bucket construction sites by type.
-    const sitesByType = {};
-    for (const s of room.constructionSites) {
-        const o = (s.safeOwnerName && s.safeOwnerName()) || (function () {
-            try {
-                return s.owner && s.owner.username;
-            } catch (e) {
-                return undefined;
-            }
-        })();
-        if (o && !_.includes(FRIENDLIES, o)) continue;
-        (sitesByType[s.structureType] = sitesByType[s.structureType] || []).push(s);
-    }
-
-    const pickBuild = (site) => {
+    const assign = (site, task, targetHits) => {
         this.memory.constructionSite = site.id;
-        this.memory.task = 'build';
+        this.memory.task = task;
         this.memory.sitePos = JSON.stringify(site.pos);
+        if (targetHits !== undefined) this.memory.targetHits = targetHits;
         return true;
     };
-    const pickRepair = (site, targetHits) => {
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        this.memory.targetHits = targetHits;
-        this.memory.sitePos = JSON.stringify(site.pos);
-        return true;
+    const build = (site) => assign(site, 'build');
+    const repair = (site, targetHits) => assign(site, 'repair', targetHits);
+    const buildClosest = (list) => list.length && build(this.pos.findClosestByRange(list));
+    let site;
+
+    const pickCombatBarriers = () => {
+        let site = damage.walls.find(s => s.hits < 5000) || damage.ramparts.find(s => s.hits < 5000);
+        if (site) return repair(site, 12500);
+        if (intel && intel.threatLevel) {
+            const dangerous = room.hostileCreeps.filter(c =>
+                c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK));
+            const near = dangerous.length && weakestBarrierNearHostiles(damage.allBarriers, dangerous);
+            if (near) return repair(near, near.hits + 25000);
+        }
+        return false;
     };
 
-    // 1. Tower construction sites.
-    if (sitesByType[STRUCTURE_TOWER]) return pickBuild(sitesByType[STRUCTURE_TOWER][0]);
+    const pickUnsafeRampartWork = () => {
+        const rampartSites = sites.byType[STRUCTURE_RAMPART];
+        if (rampartSites && rampartSites.length) return buildClosest(rampartSites);
+        const unsafeRamparts = damage.ramparts.filter(s => s.hits < SAFE_RAMPART_HITS);
+        if (unsafeRamparts.length) {
+            const target = _.min(unsafeRamparts, 'hits');
+            return repair(target, SAFE_RAMPART_HITS);
+        }
+        return false;
+    };
 
-    // 2. Patch newly-built barriers to 12500.
-    let site = damagedWalls.find(s => s.hits < 5000) || damagedRamparts.find(s => s.hits < 5000);
-    if (site) return pickRepair(site, 12500);
+    const wallBarrierSites = () => sites.barriers.filter(s => s.structureType === STRUCTURE_WALL);
 
-    // 3. Reinforce barriers near hostiles. Hoist the hostile filter — old code
-    // re-filtered hostileCreeps inside the _.min loop for every barrier.
+    if (barriersOnly) {
+        const combat = pickCombatBarriers();
+        if (combat) return combat;
+
+        const unsafeRampart = pickUnsafeRampartWork();
+        if (unsafeRampart) return unsafeRampart;
+
+        const spawn = room.spawns[0];
+        if (spawn && room.controller && (room.controller.safeMode || (room.controller.owner && room.controller.owner.username !== MY_USERNAME))) {
+            const walls = wallBarrierSites();
+            if (walls.length) return buildClosest(walls);
+            const lowBarriers = damage.walls.concat(damage.ramparts.filter(s => s.hits >= SAFE_RAMPART_HITS)).filter(s => s.hits < 500000);
+            if (lowBarriers.length) return repair(_.min(lowBarriers, 'hits'), 502500);
+        } else if (!spawn) {
+            const ramparts = sites.byType[STRUCTURE_RAMPART];
+            if (ramparts) return buildClosest(ramparts);
+        }
+
+        const trend = (room.memory.energyInfo && room.memory.energyInfo.trend) || 0;
+        if (room.energyState >= 2 || (room.energyState === 1 && trend >= 0)) {
+            const walls = wallBarrierSites();
+            if (walls.length) return buildClosest(walls);
+            site = weakestByHitsRatio(damage.walls.concat(damage.ramparts.filter(s => s.hits >= SAFE_RAMPART_HITS)));
+            if (site) return repair(site, site.hitsMax);
+        }
+
+        clearConstructionMemory(this);
+        return false;
+    }
+
     if (intel && intel.threatLevel) {
-        const dangerousHostiles = room.hostileCreeps.filter(c =>
-            c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK));
-        if (dangerousHostiles.length) {
-            let weakest = null;
-            for (const s of wallsAndRamparts) {
-                if (!s.pos.findInRange(dangerousHostiles, 5).length) continue;
-                if (!weakest || s.hits < weakest.hits) weakest = s;
-            }
-            if (weakest) return pickRepair(weakest, weakest.hits + 25000);
-        }
+        const combat = pickCombatBarriers();
+        if (combat) return combat;
+        if (sites.barriers.length) return buildClosest(sites.barriers);
     }
 
-    // 4. Safe-mode rebuild or hostile-owned room — focus barriers.
-    const spawn = room.spawns[0];
-    if (spawn && room.controller && (room.controller.safeMode || (room.controller.owner && room.controller.owner.username !== MY_USERNAME))) {
-        const barrierSites = (sitesByType[STRUCTURE_RAMPART] || []).concat(sitesByType[STRUCTURE_WALL] || []);
-        if (barrierSites.length) return pickBuild(this.pos.findClosestByRange(barrierSites));
-        const lowBarriers = damagedWalls.concat(damagedRamparts).filter(s => s.hits < 500000);
-        if (lowBarriers.length) {
-            const weakest = _.min(lowBarriers, 'hits');
-            return pickRepair(weakest, 502500);
-        }
-    } else if (!spawn) {
-        const rampartSites = sitesByType[STRUCTURE_RAMPART];
-        if (rampartSites) return pickBuild(this.pos.findClosestByRange(rampartSites));
+    const towers = sites.byType[STRUCTURE_TOWER];
+    if (towers) return build(towers[0]);
+
+    for (const type of PRIORITY_BUILD_TYPES) {
+        const list = sites.byType[type];
+        if (list && list.length) return build(list[0]);
     }
 
-    // 5. Critical economy / level-unlock structures. These are always prioritized for
-    // construction even at low energyState (a room at energyState=0 often precisely
-    // lacks the storage/extensions/links/etc. that the current RCL unlocks and that we
-    // just placed construction sites for on level-up). Previously this list was too
-    // short (labs/factory etc. at RCL6+ would hit the energy gate in the fallback).
-    const buildableStructures = [
-        STRUCTURE_SPAWN,
-        STRUCTURE_EXTENSION,
-        STRUCTURE_STORAGE,
-        STRUCTURE_CONTAINER,
-        STRUCTURE_LINK,
-        STRUCTURE_TERMINAL,
-        STRUCTURE_LAB,
-        STRUCTURE_FACTORY,
-        STRUCTURE_POWER_SPAWN,
-    ];
-    for (const structureType of buildableStructures) {
-        const list = sitesByType[structureType];
-        if (list && list.length) return pickBuild(list[0]);
-    }
+    site = damage.containers.find(s => s.hits < s.hitsMax * 0.5);
+    if (site) return repair(site, site.hitsMax * 0.65);
 
-    // 6. Containers below half / critical roads below quarter. Also medium roads if energy allows
-    // (to keep roads maintained by creeps rather than inefficient towers).
-    site = damagedContainers.find(s => s.hits < s.hitsMax * 0.5);
-    if (site) return pickRepair(site, site.hitsMax * 0.65);
+    site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.25));
+    if (site) return repair(site, site.hitsMax * 0.5);
 
-    const criticalRoads = damagedRoads.filter(s => s.hits < s.hitsMax * 0.25);
-    if (criticalRoads.length) {
-        const road = _.min(criticalRoads, s => s.hits / s.hitsMax);
-        return pickRepair(road, road.hitsMax * 0.5);
-    }
-
-    // Medium damaged roads (even if not "critical" <25%) when we have at least some energy.
-    // Prioritize creep repair over towers for efficiency (~100hp/energy vs tower 20-80).
     if (room.energyState >= 1) {
-        const mediumRoads = damagedRoads.filter(s => s.hits < s.hitsMax * 0.6);
-        if (mediumRoads.length) {
-            const road = _.min(mediumRoads, s => s.hits / s.hitsMax);
-            return pickRepair(road, road.hitsMax * 0.8);
-        }
+        site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.6));
+        if (site) return repair(site, site.hitsMax * 0.8);
     }
 
-    // 7. Energy-permitting fallback: any non-barrier non-road site (e.g. extra roads,
-    // optional barriers, low-priority repairs), then barriers, then any non-barrier
-    // damaged structure. Core/level-unlock structures are handled unconditionally in #5
-    // above (and towers in #1) to avoid the bootstrap problem on newly-leveled rooms.
-    // Note: medium road repair now handled earlier (step 6) when energyState >=1 to reduce tower use.
-    const buildEnergyInfo = room.memory.energyInfo;
-    const buildTrend = (buildEnergyInfo && buildEnergyInfo.trend) || 0;
-    const buildFallback = room.energyState >= 2 || (room.energyState === 1 && buildTrend >= 0);
-    if (buildFallback) {
-        const nonBarrierNonRoadSites = [];
-        const barrierSites = [];
-        const roadSites = [];
-        for (const t in sitesByType) {
-            if (t === STRUCTURE_WALL || t === STRUCTURE_RAMPART) barrierSites.push(...sitesByType[t]);
-            else if (t !== STRUCTURE_ROAD) nonBarrierNonRoadSites.push(...sitesByType[t]);
-            else if (t === STRUCTURE_ROAD) roadSites.push(...sitesByType[t]);
-        }
-        if (nonBarrierNonRoadSites.length) return pickBuild(this.pos.findClosestByRange(nonBarrierNonRoadSites));
-        if (roadSites.length) return pickBuild(this.pos.findClosestByRange(roadSites));
-        if (damagedContainers.length) {
-            const container = _.min(damagedContainers, s => s.hits / s.hitsMax);
-            return pickRepair(container, container.hitsMax * 0.75);
-        }
-        if (damagedRoads.length) {
-            const road = _.min(damagedRoads, s => s.hits / s.hitsMax);
-            return pickRepair(road, road.hitsMax * 0.75);
-        }
-        if (barrierSites.length) return pickBuild(this.pos.findClosestByRange(barrierSites));
-
-        const anyDamagedNonBarrier = damagedContainers[0] || damagedRoads[0] || damagedOther[0];
-        if (anyDamagedNonBarrier) return pickRepair(anyDamagedNonBarrier, anyDamagedNonBarrier.hitsMax);
+    const trend = (room.memory.energyInfo && room.memory.energyInfo.trend) || 0;
+    if (room.energyState >= 2 || (room.energyState === 1 && trend >= 0)) {
+        if (sites.misc.length) return buildClosest(sites.misc);
+        if (sites.roads.length) return buildClosest(sites.roads);
+        site = weakestByHitsRatio(damage.containers);
+        if (site) return repair(site, site.hitsMax * 0.75);
+        site = weakestByHitsRatio(damage.roads);
+        if (site) return repair(site, site.hitsMax * 0.75);
+        site = damage.containers[0] || damage.roads[0] || damage.other[0];
+        if (site) return repair(site, site.hitsMax);
     }
 
-    this.memory.constructionSite = undefined;
-    this.memory.task = undefined;
-    this.memory.sitePos = undefined;
-    this.memory.targetHits = undefined;
+    clearConstructionMemory(this);
     return false;
 };
 
@@ -793,23 +818,6 @@ Creep.prototype.builderFunction = function () {
     } else {
         this.say('Build!', true);
         construction.say(construction.progress + '/' + construction.progressTotal);
-
-        const remaining = construction.progressTotal - construction.progress;
-        if (remaining > this.store[RESOURCE_ENERGY] && this.pos.getRangeTo(construction) <= 4) {
-            const activeBuilder = this.pos.findInRange(FIND_MY_CREEPS, 1).find(c =>
-                c.id !== this.id &&
-                c.memory.constructionSite === construction.id &&
-                c.store.getFreeCapacity(RESOURCE_ENERGY) > 0
-            );
-            if (activeBuilder) {
-                this.transfer(activeBuilder, RESOURCE_ENERGY);
-                this.memory.constructionSite = undefined;
-                this.memory.task = undefined;
-                this.memory.working = undefined;
-                return false;
-            }
-        }
-
         switch (this.build(construction)) {
             case OK:
                 if (this.pos.isNearTo(this.pos.findClosestByRange(FIND_SOURCES))) this.moveRandom();

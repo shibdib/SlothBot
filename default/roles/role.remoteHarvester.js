@@ -133,21 +133,31 @@ function routeHasRoads(colony, destination) {
 
 function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
     const roadsBuilt = routeHasRoads(creep.memory.colony, creep.memory.destination);
+    const colony = Game.rooms[creep.memory.colony];
+    const linkFed = !!(colony && colony.links && colony.links.length >= 2);
     if (onlyIfChanged && creep.memory.other.haulingRequired
         && creep.memory.other.haulingScore === sourceInfo.score
-        && creep.memory.other.haulingRoads === roadsBuilt) {
+        && creep.memory.other.haulingRoads === roadsBuilt
+        && creep.memory.other.haulingLinkFed === linkFed) {
         return;
     }
     const power = creep.getActiveBodyparts(WORK) * HARVEST_POWER;
-    const reserved = INTEL[creep.memory.destination] && INTEL[creep.memory.destination].reservation === MY_USERNAME;
-    const maxRate = (reserved ? SOURCE_ENERGY_CAPACITY : SOURCE_ENERGY_NEUTRAL_CAPACITY) / ENERGY_REGEN_TIME;
+    const destIntel = INTEL[creep.memory.destination];
+    const reserved = destIntel && destIntel.reservation === MY_USERNAME;
+    const isSk = destIntel && destIntel.sk;
+    const sourceCap = isSk ? SOURCE_ENERGY_KEEPER_CAPACITY
+        : (reserved ? SOURCE_ENERGY_CAPACITY : SOURCE_ENERGY_NEUTRAL_CAPACITY);
+    const maxRate = sourceCap / ENERGY_REGEN_TIME;
     const actualRate = Math.min(power, maxRate);
     creep.memory.other.haulingScore = sourceInfo.score;
     creep.memory.other.haulingRoads = roadsBuilt;
+    creep.memory.other.haulingLinkFed = linkFed;
+    creep.memory.other.harvestRate = actualRate;
     // Total carry capacity (energy units) to clear one round-trip backlog. score ≈ one-way
     // path cost; round trip ≈ 2×score ticks of production at actualRate.
     const roundTripBuffer = roadsBuilt ? 1.25 : 1.4;
-    creep.memory.other.haulingRequired = actualRate * sourceInfo.score * 2 * roundTripBuffer;
+    const linkScale = linkFed ? 0.55 : 1;
+    creep.memory.other.haulingRequired = actualRate * sourceInfo.score * 2 * roundTripBuffer * linkScale;
 }
 
 function harvestDepositContainer(source, creep) {
