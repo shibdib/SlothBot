@@ -173,7 +173,7 @@ class RoleWaller {
                 if (rampartTarget) {
                     this.creep.memory.currentTarget = rampartTarget.id;
                     this.creep.memory.task = 'waller';
-                    this.creep.memory.targetWallHits = SAFE_RAMPART_HITS;
+                    this.creep.memory.targetWallHits = SAFE_RAMPART_HITS * 2;
                 }
             }
 
