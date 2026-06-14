@@ -164,6 +164,10 @@ function isControllerContainerPos(pos, room) {
     return !isSourceOrMineralPad(pos, room);
 }
 
+function isNearController(pos, room, maxRange = 2) {
+    return !!(room.controller && pos.getRangeTo(room.controller) <= maxRange);
+}
+
 function controllerContainersNear(room) {
     if (!room.controller) return [];
     if (global.posStructuresInRange) {
@@ -188,36 +192,80 @@ function controllerContainerSitesNear(room) {
     });
 }
 
+function controllerContainersAdjacent(room) {
+    const seen = new Set();
+    const out = [];
+    const add = (s) => {
+        if (!s || s.structureType !== STRUCTURE_CONTAINER || !isNearController(s.pos, room) || seen.has(s.id)) return;
+        seen.add(s.id);
+        out.push(s);
+    };
+    for (const s of controllerContainersNear(room)) add(s);
+    if (room.containers) {
+        for (const s of room.containers) add(s);
+    }
+    return out;
+}
+
+function controllerContainerSitesAdjacent(room) {
+    const seen = new Set();
+    const out = [];
+    const add = (s) => {
+        if (!s || s.structureType !== STRUCTURE_CONTAINER || !isNearController(s.pos, room) || seen.has(s.id)) return;
+        seen.add(s.id);
+        out.push(s);
+    };
+    for (const s of controllerContainerSitesNear(room)) add(s);
+    if (room.constructionSites) {
+        for (const s of room.constructionSites) add(s);
+    }
+    return out;
+}
+
+function pickCanonicalControllerContainer(room, structures) {
+    if (!structures.length) return null;
+    const hub = room.hub;
+    const withStore = structures.filter((s) => s.store);
+    if (!withStore.length) return null;
+    const canonical = withStore.filter((s) => isControllerContainerPos(s.pos, room));
+    const pool = canonical.length ? canonical : withStore;
+    pool.sort((a, b) => {
+        const aCanon = isControllerContainerPos(a.pos, room) ? 0 : 1;
+        const bCanon = isControllerContainerPos(b.pos, room) ? 0 : 1;
+        if (aCanon !== bCanon) return aCanon - bCanon;
+        if (!hub) return 0;
+        return a.pos.findPathTo(hub).length - b.pos.findPathTo(hub).length;
+    });
+    return pool[0];
+}
+
 function resolveControllerContainer(room, syncMemory = false) {
     if (!room || !room.controller) return null;
     const remembered = Game.getObjectById(room.memory.controllerContainer);
     if (remembered && remembered.structureType === STRUCTURE_CONTAINER && remembered.store &&
-        isControllerContainerPos(remembered.pos, room)) {
+        isNearController(remembered.pos, room)) {
         return remembered;
     }
     if (room.memory.controllerContainer && (!remembered || !remembered.store)) {
         room.memory.controllerContainer = undefined;
     }
 
-    const structures = controllerContainersNear(room).filter((s) =>
-        s.store && isControllerContainerPos(s.pos, room));
-    if (structures.length > 1) {
-        const hub = room.hub;
-        structures.sort((a, b) => {
-            if (!hub) return 0;
-            return a.pos.findPathTo(hub).length - b.pos.findPathTo(hub).length;
-        });
-        for (let i = 1; i < structures.length; i++) structures[i].destroy();
+    const adjacent = controllerContainersAdjacent(room).filter((s) => s.store);
+    const keeper = pickCanonicalControllerContainer(room, adjacent);
+    if (keeper && adjacent.length > 1) {
+        for (const s of adjacent) {
+            if (s.id !== keeper.id) s.destroy();
+        }
     }
-    if (structures[0]) {
-        if (syncMemory) room.memory.controllerContainer = structures[0].id;
-        return structures[0];
+    if (keeper) {
+        if (syncMemory) room.memory.controllerContainer = keeper.id;
+        return keeper;
     }
     return null;
 }
 
 function hasControllerContainerSite(room) {
-    return controllerContainerSitesNear(room).some((s) => isControllerContainerPos(s.pos, room));
+    return controllerContainerSitesAdjacent(room).length > 0;
 }
 
 module.exports = {
@@ -261,5 +309,7 @@ module.exports = {
     resolveControllerContainer,
 
     hasControllerContainerSite,
+
+    controllerContainersAdjacent,
 
 };

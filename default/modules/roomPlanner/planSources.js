@@ -14,6 +14,7 @@ const {
     isControllerContainerPos,
     resolveControllerContainer,
     hasControllerContainerSite,
+    controllerContainersAdjacent,
 } = require('planUtils');
 
 function getControllerPlacementPositions(room) {
@@ -113,6 +114,7 @@ function controllerBuilder(room) {
 
     if (resolveControllerContainer(room, true)) return false;
     if (hasControllerContainerSite(room)) return false;
+    if (controllerContainersAdjacent(room).some((s) => s.store)) return false;
 
     const buildPos = pickContainerBuildPos(room, getControllerPlacementPositions(room));
     if (!buildPos) return false;
