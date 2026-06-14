@@ -53,35 +53,7 @@ class RoleWaller {
         return false;
     }
 
-    wallsNeedingRepair(maintenance = false) {
-        return this.barriersNeedingRepair(maintenance).filter((s) => s.structureType === STRUCTURE_WALL);
-    }
-
-    preemptForWallRepair(maintenance = false) {
-        const wallsNeeding = this.wallsNeedingRepair(maintenance);
-        if (!wallsNeeding.length) return;
-
-        if (this.creep.memory.task === 'build' || this.creep.memory.task === 'repair') {
-            delete this.creep.memory.constructionSite;
-            delete this.creep.memory.task;
-            delete this.creep.memory.targetHits;
-            delete this.creep.memory.sitePos;
-        }
-
-        if (this.creep.memory.task === 'waller' && this.creep.memory.currentTarget) {
-            const current = Game.getObjectById(this.creep.memory.currentTarget);
-            if (current && current.structureType !== STRUCTURE_WALL) {
-                const worstWall = _.min(wallsNeeding, 'hits');
-                if (worstWall && worstWall.hits < current.hits) {
-                    delete this.creep.memory.currentTarget;
-                    delete this.creep.memory.targetWallHits;
-                }
-            }
-        }
-    }
-
     jobManager() {
-        this.preemptForWallRepair();
         // If already tasked out
         if (this.creep.memory.task && this.taskedOut()) return;
 
@@ -166,7 +138,7 @@ class RoleWaller {
     }
 
     building() {
-        if (this.wallsNeedingRepair().length) return false;
+        if (this.barriersNeedingRepair().length) return false;
         if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return false;
         if (this.creep.memory.task || this.creep.constructionWork('barriers')) {
             if (this.creep.builderFunction()) {
@@ -207,27 +179,14 @@ class RoleWaller {
 
             const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
             const barrierStructures = this.barriersNeedingRepair(maintenance);
-            const wallsNeeding = barrierStructures.filter((s) => s.structureType === STRUCTURE_WALL);
-            const unsafeRamparts = this.room.ramparts.filter((s) => s.hits < SAFE_RAMPART_HITS);
 
             // Repair existing barriers before new construction sites (planner keeps sites queued).
-            let repairPool;
-            if (threatLevel) {
-                repairPool = barrierStructures;
-            } else if (wallsNeeding.length) {
-                repairPool = wallsNeeding;
-            } else if (unsafeRamparts.length) {
-                repairPool = unsafeRamparts;
-            } else {
-                repairPool = barrierStructures;
-            }
-
-            if (repairPool.length && this.room.controller && this.room.controller.my) {
+            if (barrierStructures.length && this.room.controller && this.room.controller.my) {
                 let target;
                 if (threatLevel) {
-                    target = _.min(repairPool, 'hits');
+                    target = _.min(barrierStructures, 'hits');
                 } else {
-                    const available = repairPool.filter((s) =>
+                    const available = barrierStructures.filter((s) =>
                         !this.room.myCreeps.some((c) => c.memory.currentTarget === s.id && c.id !== this.creep.id)
                     );
 
@@ -237,7 +196,7 @@ class RoleWaller {
                         const candidates = available.filter((s) => s.hits <= minHits + jitterThreshold);
                         target = this.creep.pos.findClosestByRange(candidates);
                     } else {
-                        target = _.min(repairPool, 'hits');
+                        target = _.min(barrierStructures, 'hits');
                     }
                 }
 
@@ -255,16 +214,13 @@ class RoleWaller {
             }
 
             if (!this.creep.memory.currentTarget && !maintenance && this.room.constructionSites.length) {
-                const rampartSite = _.find(this.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART);
-                if (rampartSite && rampartSite.id) {
+                const barrierSites = this.room.constructionSites.filter(
+                    (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL
+                );
+                const barrierSite = barrierSites.length ? this.creep.pos.findClosestByRange(barrierSites) : null;
+                if (barrierSite && barrierSite.id) {
                     this.creep.memory.task = 'build';
-                    this.creep.memory.constructionSite = rampartSite.id;
-                    return this.building();
-                }
-                const wallSite = _.find(this.room.constructionSites, (s) => s.structureType === STRUCTURE_WALL);
-                if (wallSite && wallSite.id) {
-                    this.creep.memory.task = 'build';
-                    this.creep.memory.constructionSite = wallSite.id;
+                    this.creep.memory.constructionSite = barrierSite.id;
                     return this.building();
                 }
             }

@@ -101,20 +101,21 @@ function collectStructureDamage(room, claimedIds, ownedByMe) {
     const roads = [];
     const other = [];
     const allBarriers = [];
+    const barriers = room.barriers || [];
+    for (const s of barriers) {
+        allBarriers.push(s);
+        if (claimedIds.has(s.id)) continue;
+        if (s.structureType === STRUCTURE_WALL) {
+            if (s.hits < wallRepairCap(room, s)) walls.push(s);
+        } else if (s.structureType === STRUCTURE_RAMPART && s.hits < s.hitsMax) {
+            ramparts.push(s);
+        }
+    }
     for (const s of room.structures) {
         const t = s.structureType;
-        if (t === STRUCTURE_WALL || t === STRUCTURE_RAMPART) allBarriers.push(s);
+        if (t === STRUCTURE_WALL || t === STRUCTURE_RAMPART) continue;
         if (claimedIds.has(s.id)) continue;
         if (!ownedByMe && !REMOTE_REPAIRABLE.has(t)) continue;
-        // Walls report hitsMax=1 in the API; use RCL-based caps instead of hits/hitsMax.
-        if (t === STRUCTURE_WALL) {
-            if (s.hits < wallRepairCap(room, s)) walls.push(s);
-            continue;
-        }
-        if (t === STRUCTURE_RAMPART) {
-            if (s.hits < s.hitsMax) ramparts.push(s);
-            continue;
-        }
         if (s.hits >= s.hitsMax) continue;
         if (t === STRUCTURE_CONTAINER) containers.push(s);
         else if (t === STRUCTURE_ROAD) roads.push(s);
@@ -740,7 +741,8 @@ Creep.prototype.constructionWork = function (scope) {
         if (room.energyState >= 2 || (room.energyState === 1 && trend >= 0)) {
             const walls = wallBarrierSites();
             if (walls.length) return buildClosest(walls);
-            site = weakestByHitsRatio(damage.walls.concat(damage.ramparts.filter(s => s.hits >= SAFE_RAMPART_HITS)));
+            const repairPool = damage.walls.concat(damage.ramparts.filter(s => s.hits >= SAFE_RAMPART_HITS));
+            site = repairPool.length ? _.min(repairPool, 'hits') : null;
             if (site) {
                 const targetHits = site.structureType === STRUCTURE_WALL
                     ? Math.min(site.hits + 50000, RAMPART_HITS_MAX[room.controller.level] || 300000000)
@@ -812,7 +814,14 @@ Creep.prototype.builderFunction = function () {
     if (!this.memory.task) this.memory.task = 'build';
 
     if (this.memory.task === 'repair') {
-        if (construction.hits === construction.hitsMax || construction.hits >= this.memory.targetHits) {
+        const isWall = construction.structureType === STRUCTURE_WALL;
+        const repairTarget = this.memory.targetHits !== undefined
+            ? this.memory.targetHits
+            : (isWall ? wallRepairCap(this.room, construction) : construction.hitsMax);
+        const done = isWall
+            ? construction.hits >= repairTarget
+            : (construction.hits === construction.hitsMax || construction.hits >= repairTarget);
+        if (done) {
             this.memory.constructionSite = undefined;
             this.memory.task = undefined;
             this.memory.targetHits = undefined;
