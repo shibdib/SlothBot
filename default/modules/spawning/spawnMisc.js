@@ -60,10 +60,11 @@ function miscCreepQueue(room) {
 
     const explorerCount = getExplorerNeededCount(room);
     if (explorerCount > 0) {
+        const explorerPriority = Game.shard.name === 'shardSeason' ? 1 : PRIORITIES.medium;
         queueCreepIfNeeded({
             colony: room,
             role: 'explorer',
-            priority: PRIORITIES.medium + getCreepCount(room, 'explorer'),
+            priority: explorerPriority + getCreepCount(undefined, 'explorer', undefined, undefined, room),
             numberNeeded: explorerCount
         });
     }
