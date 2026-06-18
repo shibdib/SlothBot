@@ -191,14 +191,17 @@ function roadBuilder(room, layout) {
         } else {
             const result = PathFinder.search(begin, {pos: target, range: 1}, {
                 heuristicWeight: 0.8,
+                maxRooms: 1,
                 roomCallback: roomName => buildCostMatrix(roomName),
             });
-            if (!result.path.length) return false;
+            if (result.incomplete || !result.path.length) return false;
             cacheRoad(room, begin, target, result.path);
             points = result.path;
         }
 
         for (const point of points) {
+            const roomName = point.roomName || room.name;
+            if (roomName !== room.name) continue;
             const pos = toRoomPosition(point, room.name);
             if (pos && buildRoad(pos)) return true;
         }
@@ -211,6 +214,8 @@ function roadBuilder(room, layout) {
 
     function isPathFullyRoaded(room, points, target) {
         for (const point of points) {
+            const roomName = point.roomName || room.name;
+            if (roomName !== room.name) continue;
             const pos = toRoomPosition(point, room.name);
             if (!pos) continue;
             const site = pos.checkForConstructionSites();
@@ -267,6 +272,7 @@ function roadBuilder(room, layout) {
     }
 
     function buildRoad(pos) {
+        if (pos.roomName !== room.name || !Game.rooms[pos.roomName]) return false;
         if (pos.checkForRoad() || pos.checkForConstructionSites() || pos.checkForImpassible() || pos.checkForWall()) {
             return false;
         }
@@ -292,13 +298,17 @@ function roadBuilder(room, layout) {
             } else {
                 const result = PathFinder.search(begin, {pos: target, range: 1}, {
                     heuristicWeight: 0.8,
+                    maxRooms: 1,
                     roomCallback: roomName => buildCostMatrix(roomName),
                 });
-                if (!result.path.length) return;
+                if (result.incomplete || !result.path.length) return;
                 cacheRoad(room, begin, target, result.path);
                 points = result.path;
             }
-            for (const p of points) addPos(p.x, p.y);
+            for (const p of points) {
+                if ((p.roomName || room.name) !== room.name) continue;
+                addPos(p.x, p.y);
+            }
             addPos(target.x, target.y);
         };
 
