@@ -79,6 +79,11 @@ class RoleDrone {
         const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
 
         if (this.creep.memory.task && this.taskedOut()) return;
+
+        const hasBuilderWork = this.room.constructionSites.some(s =>
+            s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
+        if (hasBuilderWork && this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0 && this.building()) return;
+
         if ((threatLevel || this.creep.memory.currentTarget) && this.walling()) return;
         if (this.hauling()) return;
         if (this.building()) return;

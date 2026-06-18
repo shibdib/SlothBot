@@ -57,7 +57,10 @@ class RoleWaller {
         // If already tasked out
         if (this.creep.memory.task && this.taskedOut()) return;
 
-        // Task priority
+        // Construction sites before routine rampart grinding.
+        const pendingBuilds = this.room.constructionSites.length > 0 || this.creep.memory.constructionSite;
+        if (pendingBuilds && this.building()) return;
+
         if (this.walling()) return;
         if (this.building()) return;
         if (this.hauling()) return;
@@ -109,7 +112,7 @@ class RoleWaller {
             delete this.creep.memory.storageDestination;
             return false;
         }
-        if (needsHaul && this.creep.isFull && this.barriersNeedRepair()) return false;
+        if (needsHaul && this.creep.isFull && this.barriersNeedUrgentRepair()) return false;
 
         if (this.creep.memory.task === 'haul' || (this.creep.isFull && needsHaul)) {
             this.creep.memory.task = 'haul';
@@ -138,7 +141,7 @@ class RoleWaller {
     }
 
     building() {
-        if (this.barriersNeedingRepair().length) return false;
+        if (this.barriersNeedUrgentRepair()) return false;
         if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return false;
         if (this.creep.memory.task || this.creep.constructionWork('barriers')) {
             if (this.creep.builderFunction()) {
@@ -167,9 +170,17 @@ class RoleWaller {
         });
     }
 
-    barriersNeedRepair(maintenance = false) {
+    barriersNeedUrgentRepair(maintenance = false) {
         if (!this.room.controller || !this.room.controller.my) return false;
         if (this.room.ramparts.some((s) => s.hits < SAFE_RAMPART_HITS)) return true;
+        const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
+        if (threatLevel && this.room.barriers.some((s) => s.hits < 25000)) return true;
+        if (this.room.barriers.some((s) => s.structureType === STRUCTURE_WALL && s.hits < 5000)) return true;
+        return false;
+    }
+
+    barriersNeedRepair(maintenance = false) {
+        if (this.barriersNeedUrgentRepair(maintenance)) return true;
         return this.barriersNeedingRepair(maintenance).length > 0;
     }
 
@@ -179,6 +190,19 @@ class RoleWaller {
             delete this.creep.memory.targetWallHits;
 
             const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
+
+            if (!maintenance && !this.barriersNeedUrgentRepair(maintenance) && this.room.constructionSites.length) {
+                const barrierSites = this.room.constructionSites.filter(
+                    (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL
+                );
+                const barrierSite = barrierSites.length ? this.creep.pos.findClosestByRange(barrierSites) : null;
+                if (barrierSite && barrierSite.id) {
+                    this.creep.memory.task = 'build';
+                    this.creep.memory.constructionSite = barrierSite.id;
+                    return this.building();
+                }
+            }
+
             const barrierStructures = this.barriersNeedingRepair(maintenance);
 
             // Repair existing barriers before new construction sites (planner keeps sites queued).
@@ -211,18 +235,6 @@ class RoleWaller {
                     } else {
                         delete this.creep.memory.targetWallHits;
                     }
-                }
-            }
-
-            if (!this.creep.memory.currentTarget && !maintenance && this.room.constructionSites.length) {
-                const barrierSites = this.room.constructionSites.filter(
-                    (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL
-                );
-                const barrierSite = barrierSites.length ? this.creep.pos.findClosestByRange(barrierSites) : null;
-                if (barrierSite && barrierSite.id) {
-                    this.creep.memory.task = 'build';
-                    this.creep.memory.constructionSite = barrierSite.id;
-                    return this.building();
                 }
             }
 

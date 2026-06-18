@@ -19,7 +19,7 @@ const {linkBuilder} = require('planLinks');
 
 const {rampartBuilder} = require('planRamparts');
 
-const {roadBuilder} = require('planRoads');
+const {roadBuilder, layoutRoadsComplete} = require('planRoads');
 
 const {labBuilder, mineralBuilder} = require('planStructures');
 
@@ -56,7 +56,9 @@ function auxiliaryBuilding(room) {
             setRoadsBuiltFlag(room, undefined);
             return false;
         }
-        if (room.constructionSites.filter(s => s.structureType === STRUCTURE_ROAD).length >= 3) {
+        const layoutTemplate = room.memory.dynamicLayout ? null : bunkerTemplate;
+        const layoutDone = layoutRoadsComplete(room, layoutTemplate);
+        if (room.constructionSites.filter(s => s.structureType === STRUCTURE_ROAD).length >= 3 && !layoutDone) {
             setRoadsBuiltFlag(room, undefined);
             return true;
         }
