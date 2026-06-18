@@ -190,16 +190,17 @@ function dropOff(creep) {
     if (creep.memory.exitLink) {
         const link = Game.getObjectById(creep.memory.exitLink);
         if (link && link.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+            creep.memory.linkWait = 0;
             return memory.storageDestination = creep.memory.exitLink;
         } else if (!link) {
             memory.exitLink = undefined;
         } else if (link && !link.store.getFreeCapacity(RESOURCE_ENERGY)) {
             if (link.pos.getRangeTo(creep) > 1) {
-                creep.shibMove(link, {range: 1});
-            } else {
-                creep.idleFor(5);
+                return creep.shibMove(link, {range: 1});
+            } else if (!creep.memory.linkWait || creep.memory.linkWait <= 5) {
+                if (!creep.memory.linkWait) creep.memory.linkWait = 1; else creep.memory.linkWait++;
+                return creep.idleFor(5);
             }
-            return;
         }
     }
 
