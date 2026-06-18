@@ -83,9 +83,10 @@ function collectConstructionBuckets(room) {
 }
 
 function wallRepairCap(room, structure) {
+    const rcl = room.level;
     let targetLimit = 100000;
-    if (room.controller.level >= 8) targetLimit = 10000000;
-    else if (room.controller.level >= 6) targetLimit = 5000000;
+    if (rcl >= 8) targetLimit = 10000000;
+    else if (rcl >= 6) targetLimit = 5000000;
     if (room.energyState === 1) targetLimit = Math.min(targetLimit, 200000);
     const quadTrapWalls = new Set((room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
     if (structure && quadTrapWalls.has(`${structure.pos.x},${structure.pos.y}`)) {
@@ -745,7 +746,7 @@ Creep.prototype.constructionWork = function (scope) {
             site = repairPool.length ? _.min(repairPool, 'hits') : null;
             if (site) {
                 const targetHits = site.structureType === STRUCTURE_WALL
-                    ? Math.min(site.hits + 50000, RAMPART_HITS_MAX[room.controller.level] || 300000000)
+                    ? Math.min(site.hits + 50000, RAMPART_HITS_MAX[room.level] || 300000000)
                     : site.hitsMax;
                 return repair(site, targetHits);
             }
@@ -784,9 +785,9 @@ Creep.prototype.constructionWork = function (scope) {
     if (room.energyState >= 2 || (room.energyState === 1 && trend >= 0)) {
         if (sites.misc.length) return buildClosest(sites.misc);
         if (sites.roads.length) return buildClosest(sites.roads);
-        site = weakestByHitsRatio(damage.containers);
+        site = weakestByHitsRatio(damage.containers.filter(s => s.hits < s.hitsMax * 0.75));
         if (site) return repair(site, site.hitsMax * 0.75);
-        site = weakestByHitsRatio(damage.roads);
+        site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.75));
         if (site) return repair(site, site.hitsMax * 0.75);
         site = damage.containers[0] || damage.roads[0] || damage.other[0];
         if (site) return repair(site, site.hitsMax);
@@ -822,10 +823,7 @@ Creep.prototype.builderFunction = function () {
             ? construction.hits >= repairTarget
             : (construction.hits === construction.hitsMax || construction.hits >= repairTarget);
         if (done) {
-            this.memory.constructionSite = undefined;
-            this.memory.task = undefined;
-            this.memory.targetHits = undefined;
-            this.say('Done!', true);
+            clearConstructionMemory(this);
             return false;
         }
 

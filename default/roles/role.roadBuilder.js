@@ -107,11 +107,12 @@ class RoleRoadBuilder {
         }
 
         if (this.creep.memory.constructionSite || this.creep.constructionWork()) {
-            this.creep.builderFunction();
-            if (this.shouldPlaceRoadsAfterBuild()) {
-                this.handlePlaceRoadsResult(this.placeRoads());
+            if (this.creep.builderFunction()) {
+                if (this.shouldPlaceRoadsAfterBuild()) {
+                    this.handlePlaceRoadsResult(this.placeRoads());
+                }
+                return;
             }
-            return;
         }
 
         if (this.creep.room.name === this.creep.memory.colony) {
