@@ -149,11 +149,12 @@ class RoleWaller {
     }
 
     barrierRepairCap(maintenance = false) {
+        const rcl = this.room.level;
         let targetLimit = 100000;
-        if (this.room.controller.level >= 8) targetLimit = 10000000;
-        else if (this.room.controller.level >= 6) targetLimit = 5000000;
+        if (rcl >= 8) targetLimit = 10000000;
+        else if (rcl >= 6) targetLimit = 5000000;
         if (this.room.energyState === 1) targetLimit = Math.min(targetLimit, 200000);
-        if (maintenance && this.room.level === 8) targetLimit = RAMPART_HITS_MAX[this.room.level];
+        if (maintenance && rcl === 8) targetLimit = RAMPART_HITS_MAX[rcl];
         return targetLimit;
     }
 
@@ -243,10 +244,10 @@ class RoleWaller {
                 this.creep.memory.targetWallHits = Math.min(
                     target.hits + 50000,
                     this.barrierRepairCap(maintenance),
-                    RAMPART_HITS_MAX[this.room.controller.level] || 300000000
+                    RAMPART_HITS_MAX[this.room.level] || 300000000
                 );
             } else {
-                this.creep.memory.targetWallHits = Math.min(target.hits + 50000, RAMPART_HITS_MAX[this.room.controller.level] || 300000000);
+                this.creep.memory.targetWallHits = Math.min(target.hits + 50000, RAMPART_HITS_MAX[this.room.level] || 300000000);
             }
         }
 
