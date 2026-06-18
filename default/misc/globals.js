@@ -1049,6 +1049,21 @@ let globals = function () {
         return Math.min(energyLevel, room.controller.level);
     };
 
+    global.terminalEnergyTarget = function () {
+        return global.TERMINAL_ENERGY_TARGET || TERMINAL_ENERGY_BUFFER + 20000;
+    };
+
+    global.terminalExportableEnergy = function (terminal, destRoomName, desiredAmount) {
+        const stored = terminal.store[RESOURCE_ENERGY] || 0;
+        const floor = TERMINAL_ENERGY_BUFFER;
+        if (stored <= floor) return 0;
+        let amount = Math.min(desiredAmount || stored - floor, stored - floor);
+        if (amount <= 0) return 0;
+        const txCost = Game.market.calcTransactionCost(amount, terminal.room.name, destRoomName);
+        const maxSafe = stored - floor - txCost;
+        return Math.max(0, Math.min(amount, maxSafe));
+    };
+
 
     global.roomLink = function (roomArg, text = undefined, select = true) {
         let id;

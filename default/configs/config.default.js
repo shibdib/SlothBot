@@ -53,7 +53,8 @@ global.DEFENSIVE_BUBBLE = 1; // What range are we more aggressive
 global.BUY_ENERGY = true; // If true it will buy energy when above the buffer
 global.BUY_ENERGY_CREDIT_BUFFER = 500000; // Stay above this to buy energy
 global.CREDIT_BUFFER = 10000; // Stay above this amount
-global.TERMINAL_ENERGY_BUFFER = 10000; // Keep this much in terminal (Needed for trade)
+global.TERMINAL_ENERGY_BUFFER = 15000; // Floor retained after sends, trades, and tx costs
+global.TERMINAL_ENERGY_TARGET = 35000; // Export-ready level (buffer + 10k send + tx headroom)
 global.SELL_BOOSTS = true; // If we should sell spare boosts or not
 global.SELL_ENERGY = false;
 

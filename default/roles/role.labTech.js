@@ -10,9 +10,12 @@ const {getRoomKeepAmount} = require('termInventory');
 const BALANCE_MIN_TRANSFER = 100;
 const STORAGE_ENERGY_RESERVE = 25000;
 const BALANCE_KEEP_HYSTERESIS = 500;
-const TERMINAL_ENERGY_LOW = TERMINAL_ENERGY_BUFFER - 5000;
-const TERMINAL_ENERGY_HIGH = TERMINAL_ENERGY_BUFFER + 10000;
+const TERMINAL_ENERGY_TARGET = terminalEnergyTarget();
+const TERMINAL_ENERGY_LOW = TERMINAL_ENERGY_TARGET - 10000;
+const TERMINAL_ENERGY_HIGH = TERMINAL_ENERGY_TARGET + 10000;
 const BATTERY_TERMINAL_SOFT_CAP = 2000;
+const BATTERY_TRANSFER_MAX = 5000;
+const ENERGY_TRANSFER_MAX = 15000;
 const OVERFLOW_FREE_THRESHOLD = 2000;
 const TERMINAL_EXPORT_CEILING = 5000;
 const BALANCE_DIRECTION_COOLDOWN = 50;
@@ -264,7 +267,10 @@ class RoleLabTech {
     findFactoryBatterySupply(factory, storage, terminal) {
         if (!this.shouldFeedFactoryBatteries(factory)) return null;
         const batchCost = FactoryControl.batteryBatchCost();
-        const supplier = [storage, terminal].find(s => s && s.store[RESOURCE_BATTERY] >= batchCost);
+        // Storage is the primary battery stockpile; terminal is the export reserve.
+        const supplier = (storage && storage.store[RESOURCE_BATTERY] >= batchCost) ? storage
+            : (terminal && terminal.store[RESOURCE_BATTERY] >= batchCost) ? terminal
+                : null;
         if (!supplier) return null;
         const amount = this.getFactorySupplyAmount(factory, RESOURCE_BATTERY, supplier);
         if (amount < batchCost) return null;
@@ -372,7 +378,15 @@ class RoleLabTech {
     }
 
     allowsBatteryStorageTerminalTransfer() {
-        return false;
+        return true;
+    }
+
+    getTerminalBatteryTarget() {
+        return Math.max(this.getKeepAmount(RESOURCE_BATTERY), BATTERY_TERMINAL_SOFT_CAP);
+    }
+
+    getStorageBatteryFloor() {
+        return Math.max(FactoryControl.BATTERY_FEED_STOCK, this.getStorageFeedTarget(RESOURCE_BATTERY) || 0);
     }
 
     pickFactoryClogTarget(resource, storage, terminal) {
@@ -475,48 +489,104 @@ class RoleLabTech {
     findEnergyStorageBalance(storage, terminal) {
         const terminalEnergy = terminal.store[RESOURCE_ENERGY] || 0;
         const storageEnergy = storage.store[RESOURCE_ENERGY] || 0;
+        const storageFree = storage.store.getFreeCapacity(RESOURCE_ENERGY);
+        const terminalFree = terminal.store.getFreeCapacity(RESOURCE_ENERGY);
 
         if (this.isStructureCongested(storage) && this.isStructureCongested(terminal)) {
             return null;
         }
 
+        // Congestion relief: drain terminal toward storage, keeping export buffer.
         if (this.isStructureCongested(terminal) && terminalEnergy > TERMINAL_ENERGY_LOW) {
-            const storageFree = storage.store.getFreeCapacity(RESOURCE_ENERGY);
             if (storageFree > BALANCE_MIN_TRANSFER) {
                 return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
-                    Math.min(terminalEnergy - TERMINAL_ENERGY_BUFFER, storageFree, 10000));
+                    Math.min(terminalEnergy - TERMINAL_ENERGY_BUFFER, storageFree, ENERGY_TRANSFER_MAX));
             }
         }
 
+        // Congestion relief: top up terminal export reserve from storage surplus.
         if (this.isStructureCongested(storage) && !this.isStructureCongested(terminal)
-            && storageEnergy > STORAGE_ENERGY_RESERVE + 10000 && terminalEnergy < TERMINAL_ENERGY_LOW) {
-            const terminalFree = terminal.store.getFreeCapacity(RESOURCE_ENERGY);
+            && storageEnergy > STORAGE_ENERGY_RESERVE + ENERGY_TRANSFER_MAX && terminalEnergy < TERMINAL_ENERGY_LOW) {
             if (terminalFree > BALANCE_MIN_TRANSFER) {
                 return this.makeBalanceTask(storage, terminal, RESOURCE_ENERGY,
-                    Math.min(storageEnergy - STORAGE_ENERGY_RESERVE, terminalFree, TERMINAL_ENERGY_BUFFER - terminalEnergy, 10000));
+                    Math.min(storageEnergy - STORAGE_ENERGY_RESERVE, terminalFree,
+                        TERMINAL_ENERGY_TARGET - terminalEnergy, ENERGY_TRANSFER_MAX));
             }
         }
 
+        // Maintain terminal export reserve from storage — only after storage has met its reserve.
         if (!this.isStructureCongested(terminal) && terminalEnergy < TERMINAL_ENERGY_LOW
-            && storageEnergy > TERMINAL_ENERGY_BUFFER + STORAGE_ENERGY_RESERVE) {
-            return this.makeBalanceTask(storage, terminal, RESOURCE_ENERGY, TERMINAL_ENERGY_BUFFER - terminalEnergy);
+            && storageEnergy > STORAGE_ENERGY_RESERVE + TERMINAL_ENERGY_TARGET) {
+            return this.makeBalanceTask(storage, terminal, RESOURCE_ENERGY,
+                Math.min(TERMINAL_ENERGY_TARGET - terminalEnergy, storageEnergy - STORAGE_ENERGY_RESERVE,
+                    terminalFree, ENERGY_TRANSFER_MAX));
         }
 
-        if (terminalEnergy <= TERMINAL_ENERGY_HIGH || this.isStructureCongested(storage)) return null;
+        if (this.isStructureCongested(storage)) return null;
 
-        if (FactoryControl.shouldContinueBatteryUnpack(this.room) && storageEnergy < 5000) {
-            return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
-                Math.min(terminalEnergy - TERMINAL_ENERGY_BUFFER, STORAGE_ENERGY_RESERVE - storageEnergy));
+        const terminalRetain = TERMINAL_ENERGY_BUFFER;
+        const drainable = Math.max(0, terminalEnergy - terminalRetain);
+
+        // Storage is primary: pull from terminal into storage when local reserve is low.
+        if (drainable >= BALANCE_MIN_TRANSFER && storageFree >= BALANCE_MIN_TRANSFER) {
+            if (storageEnergy < STORAGE_ENERGY_RESERVE) {
+                return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
+                    Math.min(drainable, STORAGE_ENERGY_RESERVE - storageEnergy, storageFree, ENERGY_TRANSFER_MAX));
+            }
+
+            if (FactoryControl.shouldContinueBatteryUnpack(this.room) && storageEnergy < 5000) {
+                return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
+                    Math.min(drainable, STORAGE_ENERGY_RESERVE - storageEnergy, storageFree, ENERGY_TRANSFER_MAX));
+            }
         }
 
-        if (storageEnergy < STORAGE_ENERGY_RESERVE && storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+        // Consolidate terminal excess above the export ceiling into storage bulk.
+        if (terminalEnergy > TERMINAL_ENERGY_HIGH && storageFree >= BALANCE_MIN_TRANSFER) {
             return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
-                Math.min(terminalEnergy - TERMINAL_ENERGY_BUFFER - 5000, STORAGE_ENERGY_RESERVE - storageEnergy));
+                Math.min(terminalEnergy - TERMINAL_ENERGY_HIGH, storageFree, ENERGY_TRANSFER_MAX));
         }
 
-        if (storageEnergy < TERMINAL_ENERGY_BUFFER && storage.store.getFreeCapacity(RESOURCE_ENERGY) > 5000) {
-            return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
-                Math.min(terminalEnergy - TERMINAL_ENERGY_BUFFER, 10000));
+        return null;
+    }
+
+    findBatteryStorageBalance(storage, terminal) {
+        if (!this.allowsBatteryStorageTerminalTransfer()) return null;
+
+        const terminalBats = terminal.store[RESOURCE_BATTERY] || 0;
+        const storageBats = storage.store[RESOURCE_BATTERY] || 0;
+        const terminalKeep = this.getKeepAmount(RESOURCE_BATTERY);
+        const terminalTarget = this.getTerminalBatteryTarget();
+        const storageFloor = this.getStorageBatteryFloor();
+        const storageFree = storage.store.getFreeCapacity(RESOURCE_BATTERY);
+        const terminalFree = terminal.store.getFreeCapacity(RESOURCE_BATTERY);
+
+        if (this.isStructureCongested(storage) && this.isStructureCongested(terminal)) {
+            return null;
+        }
+
+        // Top up terminal export reserve from storage surplus (storage stays primary).
+        if (!this.isStructureCongested(terminal) && terminalBats < terminalKeep
+            && storageBats > storageFloor + BALANCE_KEEP_HYSTERESIS) {
+            return this.makeBalanceTask(storage, terminal, RESOURCE_BATTERY,
+                Math.min(terminalTarget - terminalBats, storageBats - storageFloor,
+                    terminalFree, BATTERY_TRANSFER_MAX));
+        }
+
+        if (this.isStructureCongested(storage)) return null;
+
+        const terminalRetain = terminalKeep;
+        const drainable = Math.max(0, terminalBats - terminalRetain);
+
+        // Fill storage working stock from terminal when storage is below factory floor.
+        if (drainable >= BALANCE_MIN_TRANSFER && storageBats < storageFloor && storageFree >= BALANCE_MIN_TRANSFER) {
+            return this.makeBalanceTask(terminal, storage, RESOURCE_BATTERY,
+                Math.min(drainable, storageFloor - storageBats, storageFree, BATTERY_TRANSFER_MAX));
+        }
+
+        // Consolidate terminal excess above export target into storage bulk.
+        if (terminalBats > terminalTarget && storageFree >= BALANCE_MIN_TRANSFER) {
+            return this.makeBalanceTask(terminal, storage, RESOURCE_BATTERY,
+                Math.min(terminalBats - terminalTarget, storageFree, BATTERY_TRANSFER_MAX));
         }
 
         return null;
@@ -570,15 +640,8 @@ class RoleLabTech {
 
         for (const resource of resources) {
             if (resource === RESOURCE_BATTERY) {
-                if (!this.isStructureCongested(storage)) continue;
-                const terminalBats = terminal.store[RESOURCE_BATTERY] || 0;
-                const cap = Math.max(this.getKeepAmount(RESOURCE_BATTERY) * 2, BATTERY_TERMINAL_SOFT_CAP);
-                if (terminalBats >= cap) continue;
-                const excess = (storage.store[RESOURCE_BATTERY] || 0) - FactoryControl.BATTERY_FEED_STOCK;
-                if (excess < BALANCE_MIN_TRANSFER) continue;
-                const task = this.makeBalanceTask(storage, terminal, RESOURCE_BATTERY,
-                    Math.min(excess, 5000, terminalFree, cap - terminalBats));
-                if (task) return task;
+                const batteryTask = this.findBatteryStorageBalance(storage, terminal);
+                if (batteryTask && batteryTask.withdrawTarget === storage.id) return batteryTask;
                 continue;
             }
 
@@ -615,6 +678,8 @@ class RoleLabTech {
 
         const fill = this.findStorageOverflowToTerminal(storage, terminal);
         if (fill) return fill;
+        const batteryTask = this.findBatteryStorageBalance(storage, terminal);
+        if (batteryTask) return batteryTask;
         return this.findEnergyStorageBalance(storage, terminal);
     }
 
@@ -658,6 +723,9 @@ class RoleLabTech {
 
         const energyTask = this.findEnergyStorageBalance(storage, terminal);
         if (energyTask) return energyTask;
+
+        const batteryTask = this.findBatteryStorageBalance(storage, terminal);
+        if (batteryTask) return batteryTask;
 
         const needsRoutineBalance = congestionTrigger >= Infinity
             || this.isStructureCongested(storage)

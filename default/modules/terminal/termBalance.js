@@ -132,8 +132,8 @@ Object.assign(TerminalControl.prototype, {
         if (terminal.room.memory.dangerousAttack || terminal.room.energyState < 2) return false;
         if (state.usedTerminals[terminal.room.name] && state.usedTerminals[terminal.room.name].tick > Game.time) return false;
 
-        const surplus = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
-        if (surplus < ENERGY_SEND_MIN) return false;
+        const stored = terminal.store[RESOURCE_ENERGY] || 0;
+        if (stored - TERMINAL_ENERGY_BUFFER < ENERGY_SEND_MIN) return false;
 
         const target = findBestOwnedTarget();
         if (target) return sendEnergyOrBattery(terminal, target.room, target.amount);
@@ -156,7 +156,8 @@ Object.assign(TerminalControl.prototype, {
                     const destFree = room.terminal.store.getFreeCapacity(RESOURCE_ENERGY);
                     if (destFree < ENERGY_SEND_MIN) return null;
                     const energyGap = Math.max(0, FactoryControl.energyTarget(room) * 0.25 - room.rawEnergy);
-                    const amount = Math.min(surplus, RESOURCE_SEND_MAX * 2, destFree, Math.max(ENERGY_SEND_MIN, Math.floor(energyGap)));
+                    const desired = Math.min(RESOURCE_SEND_MAX * 2, destFree, Math.max(ENERGY_SEND_MIN, Math.floor(energyGap)));
+                    const amount = terminalExportableEnergy(terminal, r, desired);
                     if (amount < ENERGY_SEND_MIN) return null;
                     const txCost = Game.market.calcTransactionCost(amount, terminal.room.name, r);
                     if (txCost > amount * 0.25) return null;
@@ -206,7 +207,7 @@ Object.assign(TerminalControl.prototype, {
                 }
             }
 
-            const sendAmount = amount || Math.min(surplus, RESOURCE_SEND_MAX * 2);
+            const sendAmount = amount || terminalExportableEnergy(terminal, destinationRoom, RESOURCE_SEND_MAX * 2);
             if (sendAmount < ENERGY_SEND_MIN) return false;
 
             if (terminal.send(RESOURCE_ENERGY, sendAmount, destinationRoom) === OK) {
@@ -235,8 +236,9 @@ Object.assign(TerminalControl.prototype, {
         let lowestEnergyRoom = _.min(responseNeeded, (r) => Game.rooms[r].energy);
         let needyTerminal = Game.rooms[lowestEnergyRoom].terminal;
 
-        let availableAmount = Math.max(terminal.store[RESOURCE_ENERGY] * 0.2, 1);  // Ensure at least 1 energy is sent if possible
-        if (availableAmount <= 0) return false;
+        let availableAmount = Math.floor((terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER) * 0.2);
+        availableAmount = terminalExportableEnergy(terminal, needyTerminal.room.name, Math.max(availableAmount, ENERGY_SEND_MIN));
+        if (availableAmount < ENERGY_SEND_MIN) return false;
 
         if (terminal.send(RESOURCE_ENERGY, availableAmount, needyTerminal.room.name) === OK) {
             const txCost = Game.market.calcTransactionCost(availableAmount, terminal.room.name, needyTerminal.room.name);
