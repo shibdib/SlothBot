@@ -8,7 +8,14 @@
 
  */
 
-const {cacheRoad, getRoad, getPathKey, isRoadPathComplete, markRoadPathComplete} = require('planUtils');
+const {
+    cacheRoad,
+    getRoad,
+    getPathKey,
+    isRoadPathComplete,
+    markRoadPathComplete,
+    resolveSourceContainer
+} = require('planUtils');
 const {getExtensionPositions} = require('planExtensions');
 
 const ROAD_CONNECT_TYPES = new Set([
@@ -42,10 +49,32 @@ function toRoomPosition(point, fallbackRoomName) {
 }
 
 function getRoadOrigin(room) {
-    // Walkable hub tile beside storage/terminal; structures are not valid path origins.
-    if (room.hub) return room.hub;
+    if (room.hub) {
+        if (!room.hub.checkForImpassible(true)) return room.hub;
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                if (!dx && !dy) continue;
+                const pos = new RoomPosition(room.hub.x + dx, room.hub.y + dy, room.name);
+                if (!pos.checkForImpassible(true)) return pos;
+            }
+        }
+        return room.hub;
+    }
     const spawn = room.spawns[0];
     return spawn || null;
+}
+
+function isLayoutRoadPlaceable(pos) {
+    if (pos.checkForRoad()) return false;
+    const site = pos.checkForConstructionSites();
+    if (site) return false;
+    if (pos.checkForWall() || pos.checkForImpassible(true)) return false;
+    const structures = pos.lookFor(LOOK_STRUCTURES);
+    for (const s of structures) {
+        if (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART) continue;
+        return false;
+    }
+    return true;
 }
 
 function getMiddleExitTile(room, exitConstant) {
@@ -94,6 +123,7 @@ function layoutRoadsComplete(room, layout) {
         if (pos.checkForRoad()) continue;
         const site = pos.checkForConstructionSites();
         if (site && site.structureType === STRUCTURE_ROAD) continue;
+        if (!isLayoutRoadPlaceable(pos)) continue;
         return false;
     }
     return true;
@@ -107,13 +137,13 @@ function roadBuilder(room, layout) {
     if (buildStructureRoads(room, origin, layout)) return true;
 
     const sourceContainers = room.sources
-        .map(source => Game.getObjectById(source.memory.container))
+        .map(source => resolveSourceContainer(source, room))
         .filter(container => container);
     for (const container of sourceContainers) {
         if (buildRoadFromTo(room, origin, container)) return true;
     }
     for (const source of room.sources) {
-        if (!source.memory.container && buildRoadFromTo(room, origin, source)) return true;
+        if (!resolveSourceContainer(source, room) && buildRoadFromTo(room, origin, source)) return true;
     }
 
     const controllerContainer = global.resolveControllerContainer(room);
@@ -143,6 +173,7 @@ function roadBuilder(room, layout) {
         const allPositions = [].concat(...roadStructures.map(s => s.pos));
         for (const structure of allPositions) {
             const pos = new RoomPosition(room.hub.x + structure.x, room.hub.y + structure.y, room.name);
+            if (!isLayoutRoadPlaceable(pos)) continue;
             if (buildRoad(pos)) return true;
         }
         return false;
@@ -196,13 +227,13 @@ function roadBuilder(room, layout) {
         }
 
         const sourceContainers = room.sources
-            .map(source => Game.getObjectById(source.memory.container))
+            .map(source => resolveSourceContainer(source, room))
             .filter(container => container);
         for (const container of sourceContainers) {
             if (pathNeedsRoads(room, start, container)) return true;
         }
         for (const source of room.sources) {
-            if (!source.memory.container && pathNeedsRoads(room, start, source)) return true;
+            if (!resolveSourceContainer(source, room) && pathNeedsRoads(room, start, source)) return true;
         }
 
         const controllerContainer = global.resolveControllerContainer(room);
@@ -267,6 +298,10 @@ function roadBuilder(room, layout) {
                 return true;
             }
         }
+        if (!isPathFullyRoaded(room, points, target)) {
+            clearRoadPathComplete(room, begin, target);
+            return true;
+        }
         return false;
     }
 
@@ -309,8 +344,25 @@ function roadBuilder(room, layout) {
             if (pos && buildRoad(pos)) return true;
         }
 
+        if (!isPathFullyRoaded(room, points, target) && tryPlaceRoadNearTarget(room, target)) return true;
+
         if (isPathFullyRoaded(room, points, target)) {
             markRoadPathComplete(room, begin, target);
+        }
+        return false;
+    }
+
+    function tryPlaceRoadNearTarget(room, target) {
+        const targetPos = target instanceof RoomPosition ? target : target.pos;
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                if (!dx && !dy) continue;
+                const ax = targetPos.x + dx;
+                const ay = targetPos.y + dy;
+                if (!isInRoomBounds(ax, ay)) continue;
+                const pos = new RoomPosition(ax, ay, targetPos.roomName || room.name);
+                if (buildRoad(pos)) return true;
+            }
         }
         return false;
     }
@@ -376,9 +428,8 @@ function roadBuilder(room, layout) {
 
     function buildRoad(pos) {
         if (pos.roomName !== room.name || !Game.rooms[pos.roomName]) return false;
-        if (pos.checkForRoad() || pos.checkForConstructionSites() || pos.checkForImpassible() || pos.checkForWall()) {
-            return false;
-        }
+        if (pos.checkForRoad() || pos.checkForConstructionSites()) return false;
+        if (pos.checkForImpassible(true) || pos.checkForWall()) return false;
         return pos.createConstructionSite(STRUCTURE_ROAD) === OK;
     }
 
@@ -425,11 +476,11 @@ function roadBuilder(room, layout) {
         for (const target of collectStructureTargets(room, layout)) addPath(start, target);
 
         const sourceContainers = room.sources
-            .map(s => Game.getObjectById(s.memory.container))
+            .map(s => resolveSourceContainer(s, room))
             .filter(c => c);
         for (const c of sourceContainers) addPath(start, c);
         for (const source of room.sources) {
-            if (!source.memory.container) addPath(start, source);
+            if (!resolveSourceContainer(source, room)) addPath(start, source);
         }
 
         const controllerContainer = global.resolveControllerContainer(room);
