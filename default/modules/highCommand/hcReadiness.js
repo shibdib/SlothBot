@@ -12,34 +12,30 @@ function matureRoomLevel() {
 function roomFlowStressed(room) {
     const ei = room.memory.energyInfo;
     if (!ei) return false;
+    // A room at/above its stock target can absorb transient negative income (military spend, etc.)
+    if ((room.energyState || 0) >= 2) return false;
     if (typeof ei.flowStressed === 'boolean') return ei.flowStressed;
     return ei.spareIncome < 0 || ei.trend < -3;
 }
 
-function minEnergyStateForRoom(room) {
-    return room.level === 8 ? 0 : 2;  // RCL8 rooms can be "not struggling" with low local bulk storage if net income/spare is healthy (remotes etc.); combat logic already special-cases RCL8.
-}
-
 function isLiveCombatReady(room) {
-    if (!room.memory.combatReady) return false;
-    if (roomFlowStressed(room)) return false;
-    // RCL8 rooms can be live combat ready based on the memory flag + !stressed (see stateManager
-    // canGain which doesn't strictly require energyState for RCL8 to allow stockpiling without
-    // blocking ops). Lower levels check the energy buffer.
-    if (room.level === 8) return true;
+    if (room.level < matureRoomLevel()) return false;
     const energyState = room.energyState || 0;
-    return energyState >= minEnergyStateForRoom(room);
+    if (energyState >= 2) return true;
+    // RCL8 still stockpiling: need a modest buffer plus healthy income
+    if (room.level === 8) return energyState >= 1 && !roomFlowStressed(room);
+    return false;
 }
 
 function isLiveAuxReady(room) {
-    if (!room.memory.auxilaryReady) return false;
-    if (room.level === 8) return true;  // RCL8 aux ready as long as the flag is set (relaxed for stockpiling)
-    return (room.energyState || 0) >= 1;
+    if (room.level < matureRoomLevel()) return false;
+    const energyState = room.energyState || 0;
+    if (energyState >= 1) return true;
+    return room.level === 8 && !roomFlowStressed(room);
 }
 
 function isRoomStruggling(room) {
-    const energyState = room.energyState || 0;
-    return energyState < minEnergyStateForRoom(room) || roomFlowStressed(room);
+    return !isLiveCombatReady(room) && (room.energyState || 0) < 1;
 }
 
 function getEmpireReadiness() {
@@ -151,6 +147,7 @@ module.exports = {
     getEmpireReadiness,
     applyOperationLimits,
     isLiveCombatReady,
+    isLiveAuxReady,
     isRoomStruggling,
     roomFlowStressed,
     getOpsPauseReason,

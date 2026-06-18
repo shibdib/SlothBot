@@ -4,10 +4,10 @@
 
 const profiler = require("tools.profiler");
 const energyTracker = require("module.energyTracker");
-const {isLiveCombatReady, isRoomStruggling} = require('hcReadiness');
+const {isLiveCombatReady, isLiveAuxReady, isRoomStruggling} = require('hcReadiness');
 const LAST_UPDATE = {};
 const ENERGY_TRACKER = {};
-const COMBAT_READY_STRESS_CLEAR = 40;
+
 
 function ensureAllyRequests() {
     if (!ALLY_HELP_REQUESTS[MY_USERNAME]) ALLY_HELP_REQUESTS[MY_USERNAME] = {requests: {}};
@@ -149,29 +149,14 @@ class StateManager {
 
         // Read energyState once — getter may enqueue ally energy requests.
         const energyState = room.energyState;
-        // For RCL8, combatReady is gated primarily on !flowStressed (good net income/trend) rather than
-        // strict bulk energyState, because a healthy high-level room should be able to participate in ops
-        // as long as income is positive (sustained by remotes etc.). This prevents the stockpiling
-        // threshold from blocking combatReady. Lower levels still require higher energyState buffer.
-        const canGainCombatReady = !flowStressed &&
-            (room.level === 8 || (energyState >= 2 && room.level >= 4 && room.level < 8));
-        const wouldLoseCombatReady = room.memory.combatReady && flowStressed;  // RCL8 doesn't lose just from low energyState if income ok
+        const combatReady = isLiveCombatReady(room);
+        if (combatReady) room.memory.combatReady = true;
+        else room.memory.combatReady = undefined;
+        delete room.memory.combatReadyStress;
 
-        if (!room.memory.combatReady && canGainCombatReady) {
-            room.memory.combatReady = true;
-            room.memory.combatReadyStress = 0;
-        } else if (wouldLoseCombatReady) {
-            room.memory.combatReadyStress = (room.memory.combatReadyStress || 0) + 10;
-            if (room.memory.combatReadyStress >= COMBAT_READY_STRESS_CLEAR) {
-                room.memory.combatReady = undefined;
-                room.memory.combatReadyStress = undefined;
-            }
-        } else if (room.memory.combatReady) {
-            room.memory.combatReadyStress = Math.max(0, (room.memory.combatReadyStress || 0) - 10);
-        }
-
-        if (!room.memory.auxilaryReady && (room.level === 8 || energyState >= 1) && room.level >= 4) room.memory.auxilaryReady = true;
-        else if (room.memory.auxilaryReady && room.level !== 8 && !energyState) room.memory.auxilaryReady = undefined;
+        const auxReady = isLiveAuxReady(room);
+        if (auxReady) room.memory.auxilaryReady = true;
+        else room.memory.auxilaryReady = undefined;
 
         const batteryEquiv = Math.floor((room.store(RESOURCE_BATTERY) / 50) * 600 * 0.9);
         const stockEnergy = room.rawEnergy + batteryEquiv;
@@ -185,10 +170,9 @@ class StateManager {
             stockEnergy,
             stockTarget,
             stockpilePct: stockTarget > 0 ? Math.min(150, Math.round((stockEnergy / stockTarget) * 100)) : 0,
-            liveCombatReady: isLiveCombatReady(room),
-            auxReady: !!(room.memory.auxilaryReady && energyState >= 1),
+            liveCombatReady: combatReady,
+            auxReady,
             struggling: isRoomStruggling(room),
-            combatReadyStress: room.memory.combatReadyStress || 0,
         });
     }
 

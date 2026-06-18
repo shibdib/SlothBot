@@ -6,7 +6,7 @@
 
 const generator = require('module.bodyGenerator');
 const {estimateClaimRouteTicks} = require('pathRoute');
-const {isLiveCombatReady, isRoomStruggling} = require('hcReadiness');
+const {isLiveCombatReady, isLiveAuxReady, isRoomStruggling} = require('hcReadiness');
 
 const CLAIM_ROLES = new Set(['claimer', 'claimAttacker', 'reserver']);
 const INVISIBLE_ASSIGNMENT_TIMEOUT = 50;
@@ -148,10 +148,10 @@ function resolveAssignment(room, target, opMemory, levelTarget, entry, intel) {
         const assigned = Game.rooms[opMemory.assignedRoom];
         if (!assigned) {
             if (handleInvisibleAssignmentWait(target, opMemory)) return opMemory.assignedRoom;
-        } else if (Memory.targetRooms[target] && !assigned.memory.combatReady) {
+        } else if (Memory.targetRooms[target] && !isLiveCombatReady(assigned)) {
             const held = handleAssignmentReadinessWait(room, target, opMemory, 'Room is not combat ready.');
             if (held) return held;
-        } else if (Memory.auxiliaryTargets[target] && !assigned.memory.auxilaryReady) {
+        } else if (Memory.auxiliaryTargets[target] && !isLiveAuxReady(assigned)) {
             const held = handleAssignmentReadinessWait(room, target, opMemory, 'Room is not auxiliary ready.');
             if (held) return held;
         } else {
@@ -267,8 +267,8 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
         if (myRoom.level < level) continue;
 
         if (isAuxiliary) {
-            if (!myRoom.memory.auxilaryReady) continue;
-        } else if (!isScout && !myRoom.memory.combatReady) {
+            if (!isLiveAuxReady(myRoom)) continue;
+        } else if (!isScout && !isLiveCombatReady(myRoom)) {
             continue;
         }
 

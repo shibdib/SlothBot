@@ -309,8 +309,8 @@ class HUD {
         y += rowH;
 
         const liveCr = isLiveCombatReady(room);
-        const crFlag = room.memory.combatReady ? (liveCr ? 'CR ✓' : 'CR ~') : 'CR ✗';
-        const crColor = liveCr ? '#7dcea0' : room.memory.combatReady ? '#ffb347' : '#ef6b6b';
+        const crFlag = liveCr ? 'CR ✓' : 'CR ✗';
+        const crColor = liveCr ? '#7dcea0' : '#ef6b6b';
         const stockPct = Math.min(100, diag.stockpilePct || 0);
         const stockColor = stockPct >= 100 ? '#5dade2' : stockPct >= 50 ? '#7dcea0' : '#ffb347';
         const barW = width * 0.46;
@@ -321,8 +321,7 @@ class HUD {
         const stockLabel = room.level >= 8
             ? `${this.formatCompactEnergy(diag.stockEnergy)} / ${this.formatCompactEnergy(diag.stockTarget)}`
             : `${stockPct}%`;
-        let roomStatus = `${crFlag}  ${stockLabel}`;
-        if (diag.combatReadyStress) roomStatus += `  (−${diag.combatReadyStress})`;
+        const roomStatus = `${crFlag}  ${stockLabel}`;
 
         room.visual.text(roomStatus, x + width - pad, y + 0.11, {
             color: crColor, align: 'right', font: '0.34 Tahoma'

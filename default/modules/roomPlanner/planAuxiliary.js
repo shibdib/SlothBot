@@ -32,11 +32,11 @@ function auxiliaryBuilding(room) {
     if (room.memory.hubLink && !Game.getObjectById(room.memory.hubLink)) room.memory.hubLink = undefined;
 
     // Build necessary structures for sources, controller, ramparts, roads, etc.
-    if (sourceBuilder(room)) return;
-    if (controllerBuilder(room)) return;
+    sourceBuilder(room);
+    controllerBuilder(room);
     const layoutForAux = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
 
-    if (rampartBuilder(room, layoutForAux)) return;
+    rampartBuilder(room, layoutForAux);
 
     // Handle hub and lab constructions
     if (room.storage) {
@@ -44,8 +44,8 @@ function auxiliaryBuilding(room) {
             mineralBuilder(room);
             labBuilder(room);
         }
-        if (buildRoads(room, room.memory.dynamicLayout ? null : bunkerTemplate)) return;
-        if (linkBuilder(room)) return true;
+        buildRoads(room, room.memory.dynamicLayout ? null : bunkerTemplate);
+        linkBuilder(room);
     }
 
     // Helper function to build roads and manage their construction.
