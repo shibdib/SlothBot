@@ -77,12 +77,29 @@ class FactoryControl {
         return room.rawEnergy >= FactoryControl.energyTarget(room) * 0.5;
     }
 
+    static hasEnergyPackSurplus(room) {
+        const target = FactoryControl.energyTarget(room);
+        return room.rawEnergy >= target * 1.25;
+    }
+
+    static terminalHasExportableEnergy(room) {
+        if (!room.terminal) return false;
+        return (room.terminal.store[RESOURCE_ENERGY] || 0) - TERMINAL_ENERGY_BUFFER >= 5000;
+    }
+
     static shouldPackBatteries(room) {
         const packCost = FactoryControl.batteryPackCost();
         if (!FactoryControl.rawEnergyMeetsPackThreshold(room)) return false;
         if (room.rawEnergy < packCost) return false;
+
+        if (FactoryControl.hasEnergyPackSurplus(room)) return true;
+
         if (!FactoryControl.hasEnergyStoragePressure(room)) return false;
-        if (FactoryControl.canExportEnergy(room)) return false;
+
+        // Near-full storage: try terminal first only when it already holds exportable energy.
+        if (FactoryControl.canExportEnergy(room) && FactoryControl.terminalHasExportableEnergy(room)) {
+            return false;
+        }
         return true;
     }
 
