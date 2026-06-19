@@ -773,21 +773,16 @@ Creep.prototype.constructionWork = function (scope) {
     site = damage.containers.find(s => s.hits < s.hitsMax * 0.5);
     if (site) return repair(site, site.hitsMax * 0.65);
 
-    site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.25));
-    if (site) return repair(site, site.hitsMax * 0.5);
-
-    if (room.energyState >= 1) {
-        site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.6));
-        if (site) return repair(site, site.hitsMax * 0.8);
-    }
+    site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.5));
+    if (site) return repair(site, site.hitsMax * 0.8);
 
     const trend = (room.memory.energyInfo && room.memory.energyInfo.trend) || 0;
     if (room.energyState >= 2 || (room.energyState === 1 && trend >= 0)) {
         if (sites.misc.length) return buildClosest(sites.misc);
         if (sites.roads.length) return buildClosest(sites.roads);
-        site = weakestByHitsRatio(damage.containers.filter(s => s.hits < s.hitsMax * 0.75));
-        if (site) return repair(site, site.hitsMax * 0.75);
         site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.75));
+        if (site) return repair(site, site.hitsMax * 0.75);
+        site = weakestByHitsRatio(damage.containers.filter(s => s.hits < s.hitsMax * 0.75));
         if (site) return repair(site, site.hitsMax * 0.75);
         site = damage.containers[0] || damage.roads[0] || damage.other[0];
         if (site) return repair(site, site.hitsMax);
