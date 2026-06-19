@@ -208,6 +208,8 @@ function findLabHub(room) {
 }
 
 
+const {canPlaceConstructionSite, tryCreateConstructionSite} = require('planUtils');
+
 // Places towers from the stored hub list up to the RCL-gated maximum.
 // Called each build tick; only creates one site at a time.
 function buildTowersFromHubs(room) {
@@ -216,11 +218,11 @@ function buildTowersFromHubs(room) {
     const allowed = CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level];
     const current = room.towers.length +
         room.constructionSites.filter(s => s.structureType === STRUCTURE_TOWER).length;
-    if (current >= allowed) return false;
+    if (current >= allowed || !canPlaceConstructionSite(room)) return false;
     for (const {x, y} of hubs.slice(0, allowed)) {
         const pos = new RoomPosition(x, y, room.name);
         if (!pos.checkForAllStructure() && !pos.checkForConstructionSites()) {
-            if (pos.createConstructionSite(STRUCTURE_TOWER) === OK) {
+            if (tryCreateConstructionSite(pos, STRUCTURE_TOWER) === OK) {
                 const {invalidateRampartSpots} = require('planRamparts');
                 invalidateRampartSpots(room);
                 return true;

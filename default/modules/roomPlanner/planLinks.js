@@ -1,3 +1,5 @@
+const {canPlaceConstructionSite, tryCreateConstructionSite} = require('planUtils');
+
 /*
 
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
@@ -35,7 +37,7 @@ function linkBuilder(room) {
             for (let key in zoneTerrain) {
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
                 if (position.checkForAllStructure() || position.checkForImpassible() || position.isNearTo(room.controller)) continue;
-                if (position.createConstructionSite(STRUCTURE_LINK) === OK) return true;
+                if (tryCreateConstructionSite(position, STRUCTURE_LINK) === OK) return true;
             }
         }
     }
@@ -59,7 +61,7 @@ function linkBuilder(room) {
             if (site) return true;
             const extension = hubLinkPos.lookFor(LOOK_STRUCTURES).find(s => s.structureType === STRUCTURE_EXTENSION);
             if (extension) extension.destroy();
-            if (hubLinkPos.createConstructionSite(STRUCTURE_LINK) === OK) return true;
+            if (tryCreateConstructionSite(hubLinkPos, STRUCTURE_LINK) === OK) return true;
         }
     }
 
@@ -89,7 +91,7 @@ function linkBuilder(room) {
                     if (startPos.x + xOff < 1 || startPos.x + xOff > 48 || startPos.y + yOff < 1 || startPos.y + yOff > 48) continue;
                     let pos = new RoomPosition(startPos.x + xOff, startPos.y + yOff, room.name);
                     if (pos.checkForAllStructure() || pos.checkForImpassible()) continue;
-                    if (pos.createConstructionSite(STRUCTURE_LINK) === OK) return true;
+                    if (tryCreateConstructionSite(pos, STRUCTURE_LINK) === OK) return true;
                 }
             }
         }
@@ -119,7 +121,7 @@ function linkBuilder(room) {
         for (let key in zoneTerrain) {
             let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
             if (position.checkForWall() || position.checkForAllStructure() || position.isNearTo(room.controller)) continue;
-            if (position.createConstructionSite(STRUCTURE_LINK) === OK) return true;
+            if (tryCreateConstructionSite(position, STRUCTURE_LINK) === OK) return true;
         }
         return false;
     }

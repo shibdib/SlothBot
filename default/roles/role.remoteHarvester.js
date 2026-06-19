@@ -202,13 +202,13 @@ function harvestDepositContainer(source, creep) {
 
     if (creep.memory.siteAttempt) return;
 
-    const {findBestContainerPos} = require('planUtils');
+    const {findBestContainerPos, canPlaceConstructionSite, tryCreateConstructionSite} = require('planUtils');
     const buildPos = findBestContainerPos(source);
     if (!buildPos || buildPos.checkForConstructionSites() || buildPos.checkForImpassible()) return;
 
     if (creep.pos.isEqualTo(buildPos) && creep.pos.getRangeTo(source) === 1) {
         creep.memory.siteAttempt = true;
-        buildPos.createConstructionSite(STRUCTURE_CONTAINER);
+        if (canPlaceConstructionSite(creep.room)) tryCreateConstructionSite(buildPos, STRUCTURE_CONTAINER);
     } else if (creep.pos.checkForWall()) {
         findContainerSpot(creep.room, source.pos);
     }
@@ -220,7 +220,7 @@ function findContainerSpot(room, position) {
             if (xOff !== 0 || yOff !== 0) {
                 let pos = new RoomPosition(position.x + xOff, position.y + yOff, room.name);
                 if (!pos.checkForImpassible() && !pos.checkForConstructionSites()) {
-                    pos.createConstructionSite(STRUCTURE_CONTAINER);
+                    if (canPlaceConstructionSite(room)) tryCreateConstructionSite(pos, STRUCTURE_CONTAINER);
                     return;
                 }
             }

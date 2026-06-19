@@ -167,7 +167,8 @@ class DefenseManager {
 
             for (let structure of nearbyStructures) {
                 if (structure.pos.checkForConstructionSites() || structure.pos.checkForRampart()) continue;
-                structure.pos.createConstructionSite(STRUCTURE_RAMPART);
+                const {tryCreateConstructionSite} = require('planUtils');
+                tryCreateConstructionSite(structure.pos, STRUCTURE_RAMPART);
             }
         }
         return true;

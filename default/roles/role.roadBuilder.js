@@ -3,7 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
-const {setRoadsBuiltFlag} = require('planUtils');
+const {setRoadsBuiltFlag, canPlaceConstructionSite, tryCreateConstructionSite} = require('planUtils');
 const {findRoadPath, pathTilesNeedRoads} = require('planRoadPaths');
 
 const PLACE_RESULT = {
@@ -274,10 +274,10 @@ class RoleRoadBuilder {
 
     buildRoad(position, room) {
         if (position.checkForImpassible(true) || position.checkForRoad() || position.checkForConstructionSites()
-            || room.constructionSites.length >= 5) {
+            || !canPlaceConstructionSite(room)) {
             return false;
         }
-        return position.createConstructionSite(STRUCTURE_ROAD) === OK;
+        return tryCreateConstructionSite(position, STRUCTURE_ROAD) === OK;
     }
 }
 

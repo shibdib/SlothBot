@@ -14,6 +14,7 @@ const {extensionPositionCache} = require('planState');
 const {coreTemplate} = require('planTemplates');
 
 const {invalidateRampartSpots} = require('planRamparts');
+const {canPlaceConstructionSite, tryCreateConstructionSite} = require('planUtils');
 
 function buildSourceExtensions(room) {
     const hub = room.hub;
@@ -59,7 +60,8 @@ function buildSourceExtensions(room) {
         for (const pos of candidates) {
             if (reserved && pos.isEqualTo(reserved)) continue;
             if (hub && pos.getRangeTo(hub) <= 5) continue;   // hub cluster handles its own
-            if (pos.createConstructionSite(STRUCTURE_EXTENSION) === OK) {
+            if (!canPlaceConstructionSite(room)) return false;
+            if (tryCreateConstructionSite(pos, STRUCTURE_EXTENSION) === OK) {
                 invalidateRampartSpots(room);
                 return true;
             }
@@ -129,7 +131,8 @@ function placeExtensionsDynamically(room) {
         room.constructionSites.filter(s => s.structureType === STRUCTURE_EXTENSION).length;
     if (existing >= needed) return false;
     for (const {x, y} of positions) {
-        const result = new RoomPosition(x, y, room.name).createConstructionSite(STRUCTURE_EXTENSION);
+        if (!canPlaceConstructionSite(room)) return false;
+        const result = tryCreateConstructionSite(new RoomPosition(x, y, room.name), STRUCTURE_EXTENSION);
         if (result === OK) {
             invalidateRampartSpots(room);
             return true;

@@ -64,7 +64,8 @@ class RoleMineralHarvester {
                     this.creep.shibMove(mineral);
                     break;
                 case ERR_NOT_FOUND:
-                    mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+                    const {tryCreateConstructionSite} = require('planUtils');
+                    tryCreateConstructionSite(mineral.pos, STRUCTURE_EXTRACTOR);
                     break;
             }
         }

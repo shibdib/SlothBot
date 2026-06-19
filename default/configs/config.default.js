@@ -67,6 +67,7 @@ global.PROTECT_CONTROLLER = true; // Build ramparts around the controller
 global.PROTECT_MINERAL = false; // Build ramparts around the mineral
 global.PROTECT_SOURCES = false; // Build ramparts around the source
 global.ROAD_LEVEL = 4 // What level to build roads
+global.MAX_CONSTRUCTION_SITES_PER_ROOM = 10; // Per-room cap so one room cannot hog the global 100-site limit
 
 // Manual Operations
 global.MANUAL_OPERATIONS = []; // Manually set rooms to attack

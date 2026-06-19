@@ -10,6 +10,7 @@
 
 
 const {labTemplate} = require('planTemplates');
+const {canPlaceConstructionSite, tryCreateConstructionSite} = require('planUtils');
 
 function labBuilder(room) {
     // Check the current number of built labs
@@ -31,7 +32,8 @@ function labBuilder(room) {
             if (pos.checkForBuiltWall()) {
                 pos.checkForBuiltWall().destroy();
             } else if (!pos.checkForConstructionSites() && !pos.checkForAllStructure()) {
-                pos.createConstructionSite(STRUCTURE_LAB);
+                if (!canPlaceConstructionSite(room)) return;
+                tryCreateConstructionSite(pos, STRUCTURE_LAB);
             }
         }
     }
@@ -69,7 +71,8 @@ function mineralBuilder(room) {
         for (let key in containerSpots) {
             let position = new RoomPosition(containerSpots[key].x, containerSpots[key].y, room.name);
             if (position && position.getRangeTo(extractor) === 1 && !position.checkForImpassible()) {
-                position.createConstructionSite(STRUCTURE_CONTAINER);
+                if (!canPlaceConstructionSite(room)) break;
+                tryCreateConstructionSite(position, STRUCTURE_CONTAINER);
                 break;
             }
         }
@@ -78,7 +81,8 @@ function mineralBuilder(room) {
     // Helper function to create an extractor for minerals
     function handleMineralExtractorCreation(room) {
         if (!room.mineral.pos.checkForAllStructure() && !room.mineral.pos.checkForConstructionSites()) {
-            room.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+            if (!canPlaceConstructionSite(room)) return;
+            tryCreateConstructionSite(room.mineral.pos, STRUCTURE_EXTRACTOR);
         }
     }
 }

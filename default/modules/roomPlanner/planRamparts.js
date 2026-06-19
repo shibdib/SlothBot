@@ -15,7 +15,7 @@ const {extensionPositionCache, quadTraps} = require('planState');
 
 const {bunkerTemplate, coreTemplate, protectedStructureTypes} = require('planTemplates');
 
-const {isValidRampartPosition} = require('planUtils');
+const {isValidRampartPosition, canPlaceConstructionSite, tryCreateConstructionSite} = require('planUtils');
 function clampRect(rect) {
     return {
         x1: Math.max(rect.x1, 2),
@@ -147,7 +147,8 @@ function rampartBuilder(room, layout = undefined, count = false) {
             const rangeFromRampart = structure.pos.getRangeTo(structure.pos.findClosestByRange(rampartPositions));
             const inBunker = structure.pos.isInBunker();
             if ((rangeFromRampart <= 3 && inBunker) || !inBunker) {
-                if (structure.pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
+                if (!canPlaceConstructionSite(room)) return true;
+                if (tryCreateConstructionSite(structure.pos, STRUCTURE_RAMPART) === OK) counter++;
             }
         }
         if (room.level >= SPECIAL_RAMPARTS) {
@@ -172,7 +173,8 @@ function rampartBuilder(room, layout = undefined, count = false) {
                     if (counter >= 3) return true;
                     if (protectedStructureTypes.includes(structure.structureType)) {
                         if (!structure.pos.checkForRampart() && !structure.pos.checkForConstructionSites()) {
-                            if (structure.pos.createConstructionSite(STRUCTURE_RAMPART) === OK) counter++;
+                            if (!canPlaceConstructionSite(room)) return true;
+                            if (tryCreateConstructionSite(structure.pos, STRUCTURE_RAMPART) === OK) counter++;
                         }
                     }
                 }
@@ -205,7 +207,8 @@ function rampartBuilder(room, layout = undefined, count = false) {
                 const existing = pos.lookFor(LOOK_STRUCTURES).find(s => s.structureType === STRUCTURE_WALL);
                 if (existing && existing.hits >= QUAD_WALL_CAP) continue;
                 if (existing || pos.checkForConstructionSites()) continue;
-                if (pos.createConstructionSite(STRUCTURE_WALL) === OK) {
+                if (!canPlaceConstructionSite(room)) return true;
+                if (tryCreateConstructionSite(pos, STRUCTURE_WALL) === OK) {
                     counter++;
                     if (!newWallPositions.has(`${pos.x},${pos.y}`)) {
                         newWallPositions.add(`${pos.x},${pos.y}`);
@@ -313,9 +316,10 @@ function rampartBuilder(room, layout = undefined, count = false) {
             const onCorridor = corridors.has(pos.x + ',' + pos.y);
             const isWallTile = (pos.x + pos.y) % 2 === 0;
             if (isWallTile && !onCorridor) {
-                if (pos.createConstructionSite(STRUCTURE_WALL) === OK) cycles++;
+                if (!canPlaceConstructionSite(room)) return true;
+                if (tryCreateConstructionSite(pos, STRUCTURE_WALL) === OK) cycles++;
             } else if (!pos.checkForRampart() && !pos.checkForConstructionSites() &&
-                pos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
+                tryCreateConstructionSite(pos, STRUCTURE_RAMPART) === OK) {
                 cycles++;
             }
         }
@@ -355,7 +359,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
                 if (xOff !== 0 || yOff !== 0) {
                     let newPos = new RoomPosition(pos.x + xOff, pos.y + yOff, pos.roomName);
                     if (!newPos.checkForWall() && !newPos.checkForBarrierStructure() && !newPos.checkForConstructionSites() &&
-                        newPos.createConstructionSite(STRUCTURE_RAMPART) === OK) {
+                        tryCreateConstructionSite(newPos, STRUCTURE_RAMPART) === OK) {
                         return true;
                     }
                 }
@@ -375,7 +379,8 @@ function rampartBuilder(room, layout = undefined, count = false) {
 
                 // Check if the position is valid for placing a rampart
                 if (isValidRampartPosition(targetPos)) {
-                    targetPos.createConstructionSite(STRUCTURE_RAMPART);
+                    if (!canPlaceConstructionSite(Game.rooms[targetPos.roomName])) return false;
+                    tryCreateConstructionSite(targetPos, STRUCTURE_RAMPART);
                     return true; // Stop after placing one rampart
                 }
             }

@@ -17,6 +17,8 @@ const {
     controllerContainersAdjacent,
     resolveSourceContainer,
     hasSourceContainerSite,
+    canPlaceConstructionSite,
+    tryCreateConstructionSite,
 } = require('planUtils');
 
 function getControllerPlacementPositions(room) {
@@ -83,7 +85,8 @@ function sourceBuilder(room) {
 
         const containerSite = findBestContainerPos(source);
         if (containerSite && !containerSite.checkForConstructionSites()) {
-            if (containerSite.createConstructionSite(STRUCTURE_CONTAINER) === OK) return true;
+            if (!canPlaceConstructionSite(room)) return false;
+            if (tryCreateConstructionSite(containerSite, STRUCTURE_CONTAINER) === OK) return true;
         }
         return false;
     }
@@ -114,7 +117,8 @@ function controllerBuilder(room) {
     const buildPos = pickContainerBuildPos(room, getControllerPlacementPositions(room));
     if (!buildPos) return false;
 
-    return buildPos.createConstructionSite(STRUCTURE_CONTAINER) === OK;
+    if (!canPlaceConstructionSite(room)) return false;
+    return tryCreateConstructionSite(buildPos, STRUCTURE_CONTAINER) === OK;
 }
 
 module.exports = {

@@ -11,7 +11,13 @@
 
 const {bunkerTemplate, coreTemplate} = require('planTemplates');
 
-const {isAttackRecoveryMode, shouldSkipStructure, safeStructureMy} = require('planUtils');
+const {
+    isAttackRecoveryMode,
+    shouldSkipStructure,
+    safeStructureMy,
+    canPlaceConstructionSite,
+    tryCreateConstructionSite
+} = require('planUtils');
 
 const {buildTowersFromHubs} = require('planHub');
 
@@ -67,7 +73,8 @@ function buildFromLayout(room, countCheck) {
     } else if (!roomSpawn) {
         const spawnPos = tmpl.filter(s => s.structureType === STRUCTURE_SPAWN)[0].pos[0];
         const pos = new RoomPosition(hub.x + spawnPos.x, hub.y + spawnPos.y, room.name);
-        if (!pos.checkForRampart()) pos.createConstructionSite(STRUCTURE_RAMPART); else if (pos.checkForRampart().hits >= 10000) pos.createConstructionSite(STRUCTURE_SPAWN);
+        if (!canPlaceConstructionSite(room)) return;
+        if (!pos.checkForRampart()) tryCreateConstructionSite(pos, STRUCTURE_RAMPART); else if (pos.checkForRampart().hits >= 10000) tryCreateConstructionSite(pos, STRUCTURE_SPAWN);
         return;
     } else {
         filter = countCheck.filter(s => CONTROLLER_STRUCTURES[s.structureType][room.controller.level]);
@@ -80,7 +87,8 @@ function buildFromLayout(room, countCheck) {
             for (const buildPos of structure.pos) {
                 const pos = new RoomPosition(hub.x + buildPos.x, hub.y + buildPos.y, room.name);
                 if (!pos.checkForConstructionSites() && !pos.checkForAllStructure()) {
-                    pos.createConstructionSite(structure.structureType);
+                    if (!canPlaceConstructionSite(room)) return;
+                    tryCreateConstructionSite(pos, structure.structureType);
                 }
             }
         }

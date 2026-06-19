@@ -23,6 +23,25 @@ function setRoadsBuiltFlag(room, value) {
     else intel.roadsBuilt = value;
 }
 
+function maxConstructionSitesPerRoom() {
+    return MAX_CONSTRUCTION_SITES_PER_ROOM || 10;
+}
+
+function roomConstructionSiteBudget(room) {
+    if (!room) return 0;
+    return Math.max(0, maxConstructionSitesPerRoom() - room.constructionSites.length);
+}
+
+function canPlaceConstructionSite(room) {
+    return roomConstructionSiteBudget(room) > 0;
+}
+
+function tryCreateConstructionSite(pos, structureType) {
+    const room = Game.rooms[pos.roomName];
+    if (!room || !canPlaceConstructionSite(room)) return ERR_FULL;
+    return pos.createConstructionSite(structureType);
+}
+
 function safeStructureOwner(structure) {
     if (!structure || !(structure instanceof OwnedStructure)) return undefined;
     try {
@@ -399,6 +418,14 @@ module.exports = {
     isAttackRecoveryMode,
 
     setRoadsBuiltFlag,
+
+    maxConstructionSitesPerRoom,
+
+    roomConstructionSiteBudget,
+
+    canPlaceConstructionSite,
+
+    tryCreateConstructionSite,
 
     shouldSkipStructure,
 
