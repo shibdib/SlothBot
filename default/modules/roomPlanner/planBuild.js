@@ -15,9 +15,7 @@ const {buildMissingStructures, buildAuxiliaryStructures} = require('planLayout')
 
 const {findHub, findLabHub, findTowerHub} = require('planHub');
 
-const {bunkerTemplate} = require('planTemplates');
-
-const {roadBuilder} = require('planRoads');
+const {planOwnedRoomRoads} = require('planOwnedRoads');
 
 function getNextRoom() {
     const rooms = MY_ROOMS.map(name => Game.rooms[name]).filter(r => r);
@@ -40,13 +38,6 @@ function shouldRunAuxiliary(lastRun) {
     return !lastRun.task || lastRun.task === 'layout';
 }
 
-function planRoadsForRoom(room) {
-    if (!room.storage || room.level < ROAD_LEVEL) return;
-    if (Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time) return;
-    const layout = room.memory.dynamicLayout ? null : bunkerTemplate;
-    roadBuilder(room, layout);
-}
-
 
 function buildRoom() {
 
@@ -65,7 +56,6 @@ function buildRoom() {
         // Check if bunker layout needs to be built
         if (shouldRunLayout(lastRun)) {
             buildMissingStructures(room, room.controller.level);
-            planRoadsForRoom(room);
             lastRun.task = 'layout';
         }
         // Check if auxiliary buildings need to be built
@@ -73,6 +63,8 @@ function buildRoom() {
             buildAuxiliaryStructures(room);
             lastRun.task = 'auxiliary';
         }
+
+        if (room.storage) planOwnedRoomRoads(room);
     } else {
         // Find hub if not already found
         findHub(room);

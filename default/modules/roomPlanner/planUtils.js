@@ -74,42 +74,33 @@ function isValidRampartPosition(position) {
 
 const ROAD_CACHE_TTL = 5000;
 
-function cacheRoad(room, from, to, path) {
-    let key = getPathKey(from, to);
-    let cache = ROAD_CACHE[room.name] || {};
-    let tick = Game.time;
-    cache[key] = {
-        path: JSON.stringify(path),
-        tick: tick
-    };
-    room.memory._roadCache = undefined;
-    ROAD_CACHE[room.name] = cache;
+function cacheRoad(room, from, to, path, profile = 'owned') {
+    const {cachePath} = require('planRoadPaths');
+    cachePath(room, from, to, path, profile);
 }
 
-function getRoadCacheEntry(room, from, to) {
-    let cache = ROAD_CACHE[room.name];
-    if (!cache) return;
-    let entry = cache[getPathKey(from, to)];
-    if (!entry) return;
-    if (entry.tick && entry.tick + ROAD_CACHE_TTL < Game.time) return;
-    return entry;
+function getRoadCacheEntry(room, from, to, profile = 'owned') {
+    const {getCachedPath} = require('planRoadPaths');
+    const path = getCachedPath(room, from, to, profile);
+    if (!path) return;
+    return {path: JSON.stringify(path), tick: Game.time};
 }
 
-function getRoad(room, from, to) {
-    let entry = getRoadCacheEntry(room, from, to);
-    return entry && entry.path;
+function getRoad(room, from, to, profile = 'owned') {
+    const {getCachedPath} = require('planRoadPaths');
+    const path = getCachedPath(room, from, to, profile);
+    return path ? JSON.stringify(path) : undefined;
 }
 
-function isRoadPathComplete(room, from, to) {
-    let entry = getRoadCacheEntry(room, from, to);
-    return !!(entry && entry.complete);
+function isRoadPathComplete(room, from, to, profile = 'remote') {
+    const {getCachedPath, pathTilesNeedRoads} = require('planRoadPaths');
+    const path = getCachedPath(room, from, to, profile);
+    if (!path) return false;
+    return !pathTilesNeedRoads(room, path, to);
 }
 
-function markRoadPathComplete(room, from, to) {
-    const key = getPathKey(from, to);
-    if (ROAD_CACHE[room.name] && ROAD_CACHE[room.name][key]) {
-        ROAD_CACHE[room.name][key].complete = true;
-    }
+function markRoadPathComplete() {
+    // No-op: completion is derived from room tiles, not cache flags.
 }
 
 function getPathKey(from, to) {

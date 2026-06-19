@@ -137,6 +137,57 @@ let globals = function () {
         return {roads, visibleOwnedRooms: roomList.map((r) => r.name)};
     };
 
+    // Console: resumeOwnedRoads() — clears the planner pause from clearOwnedRoads().
+    global.resumeOwnedRoads = function () {
+        delete Memory.pauseOwnedRoads;
+        return {resumed: true, gameTime: Game.time};
+    };
+
+    // Console: inspectOwnedRoads('E1N1') — diagnose why owned-room road sites are/aren't placing.
+    global.inspectOwnedRoads = function (roomName) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {getDesiredRoadTiles, diffRoadTiles, getRoadOrigin} = require('planOwnedRoads');
+        const desired = getDesiredRoadTiles(room);
+        const diff = diffRoadTiles(room, desired);
+        const intel = INTEL[roomName] || {};
+        return {
+            roomName,
+            rcl: room.controller && room.controller.level,
+            storage: !!room.storage,
+            bunkerHub: room.memory.bunkerHub,
+            origin: getRoadOrigin(room) && {x: getRoadOrigin(room).x, y: getRoadOrigin(room).y},
+            pauseOwnedRoads: Memory.pauseOwnedRoads,
+            pauseActive: !!(Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time),
+            roadsBuilt: intel.roadsBuilt,
+            desiredTiles: desired.size,
+            missingPlaceable: diff.missing.length,
+            complete: diff.complete,
+            roadSites: room.constructionSites.filter(s => s.structureType === STRUCTURE_ROAD).length,
+            totalSites: room.constructionSites.length,
+            globalSites: _.size(Game.constructionSites),
+            globalSiteCap: 100,
+            sitesUntilCap: 100 - _.size(Game.constructionSites),
+            globalCapBlocking: _.size(Game.constructionSites) >= 100,
+            staleRoadsBuilt: !!intel.roadsBuilt && !diff.complete,
+            sampleMissing: diff.missing.slice(0, 5).map(p => `${p.x},${p.y}`),
+        };
+    };
+
+    // Console: resetOwnedRoadFlags('E1N1') — clear stale roadsBuilt / pause without destroying roads.
+    global.resetOwnedRoadFlags = function (roomName) {
+        delete Memory.pauseOwnedRoads;
+        const rooms = roomName ? [roomName] : (MY_ROOMS || []);
+        for (const rn of rooms) {
+            if (INTEL[rn]) {
+                delete INTEL[rn].roadsBuilt;
+                delete INTEL[rn].roadCount;
+            }
+            if (global.ROAD_CACHE_OWNED) ROAD_CACHE_OWNED[rn] = undefined;
+        }
+        return {reset: rooms, pauseCleared: true};
+    };
+
     // Console: clearOwnedRoads() or clearOwnedRoads('E1N1') — needs vision in target room(s).
     global.clearOwnedRoads = function (pauseTicks = 500, roomName) {
         let destroyed = 0;
@@ -180,7 +231,7 @@ let globals = function () {
                 delete INTEL[rn].roadsBuilt;
                 delete INTEL[rn].roadCount;
             }
-            ROAD_CACHE[rn] = undefined;
+            ROAD_CACHE_OWNED[rn] = undefined;
         }
         if (pauseTicks > 0) Memory.pauseOwnedRoads = Game.time + pauseTicks;
         return {
@@ -659,7 +710,9 @@ let globals = function () {
     global.CACHE = {};
     global.ROUTE_CACHE = CACHE.ROUTE_CACHE = {};
     global.PATH_CACHE = CACHE.PATH_CACHE = {};
-    global.ROAD_CACHE = CACHE.ROAD_CACHE = {};
+    global.ROAD_CACHE_OWNED = CACHE.ROAD_CACHE_OWNED = {};
+    global.ROAD_CACHE_REMOTE = CACHE.ROAD_CACHE_REMOTE = {};
+    global.ROAD_CACHE = CACHE.ROAD_CACHE = CACHE.ROAD_CACHE_OWNED;
     global.ROOM_CPU_ARRAY = CACHE.ROOM_CPU_ARRAY = {};
     global.ROOM_REMOTE_TARGETS = CACHE.ROOM_REMOTE_TARGETS = {};
     global.ROOM_HARVESTER_EXTENSIONS = CACHE.ROOM_HARVESTER_EXTENSIONS = {};
