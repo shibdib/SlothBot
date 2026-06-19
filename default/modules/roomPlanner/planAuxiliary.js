@@ -38,7 +38,6 @@ function auxiliaryBuilding(room) {
 
     rampartBuilder(room, layoutForAux);
 
-    // Handle hub and lab constructions
     if (room.storage) {
         if (room.level >= 6) {
             mineralBuilder(room);
@@ -48,8 +47,6 @@ function auxiliaryBuilding(room) {
         linkBuilder(room);
     }
 
-    // Helper function to build roads and manage their construction.
-    // Returns true while road sites are still being placed (pause other aux work).
     function buildRoads(room, bunkerTemplate) {
         if (Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time) return false;
         if (room.level < ROAD_LEVEL) {
@@ -64,16 +61,13 @@ function auxiliaryBuilding(room) {
         return false;
     }
 
-    // Helper function for cleaning up unwanted structures and roads
     function performCleanup(room) {
-        // Random chance to perform cleanup
         if (Math.random() > 0.9) {
             removeExcessRoads(room);
             removeBadStructures(room);
         }
     }
 
-    // Helper function to remove roads that shouldn't exist
     function removeExcessRoads(room) {
         let noRoad = _.filter(room.impassibleStructures, (s) => s.pos.checkForRoad());
         if (noRoad.length) {
@@ -82,7 +76,6 @@ function auxiliaryBuilding(room) {
         }
     }
 
-    // Helper function to remove bad structures
     function removeBadStructures(room) {
         let badStructure = _.filter(room.structures, (s) => isBadStructure(s, room));
         if (badStructure.length) {
@@ -90,7 +83,6 @@ function auxiliaryBuilding(room) {
         }
     }
 
-    // Helper function to check if a structure is considered "bad" and should be removed
     function isBadStructure(structure, room) {
         const owner = safeStructureOwner(structure);
         if (!owner) return false;

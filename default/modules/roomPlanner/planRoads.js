@@ -129,37 +129,143 @@ function layoutRoadsComplete(room, layout) {
     return true;
 }
 
+const COST_MATRIX_CACHE = {};
+
+function buildRoadCostMatrix(roomName) {
+    const cached = COST_MATRIX_CACHE[roomName];
+    if (cached && cached.tick === Game.time) return cached.matrix;
+
+    const costMatrix = new PathFinder.CostMatrix();
+    const terrain = Game.map.getRoomTerrain(roomName);
+    for (let y = 0; y < 50; y++) {
+        for (let x = 0; x < 50; x++) {
+            const tile = terrain.get(x, y);
+            if (tile === TERRAIN_MASK_WALL) {
+                costMatrix.set(x, y, Infinity);
+            } else if (tile === TERRAIN_MASK_SWAMP) {
+                costMatrix.set(x, y, 60);
+            } else {
+                costMatrix.set(x, y, 20);
+            }
+        }
+    }
+    const pathRoom = Game.rooms[roomName];
+    if (pathRoom) {
+        pathRoom.structures.forEach(structure => {
+            if (structure.structureType === STRUCTURE_ROAD) {
+                costMatrix.set(structure.pos.x, structure.pos.y, 1);
+            } else if (structure.structureType === STRUCTURE_CONTAINER) {
+                costMatrix.set(structure.pos.x, structure.pos.y, 100);
+            } else if (_.includes(OBSTACLE_OBJECT_TYPES, structure.structureType)) {
+                costMatrix.set(structure.pos.x, structure.pos.y, Infinity);
+            }
+        });
+        pathRoom.constructionSites.forEach(site => {
+            if (site.structureType === STRUCTURE_ROAD) {
+                costMatrix.set(site.pos.x, site.pos.y, 1);
+            }
+        });
+    }
+    COST_MATRIX_CACHE[roomName] = {tick: Game.time, matrix: costMatrix};
+    return costMatrix;
+}
+
+function findConnectorPathForRoom(room, begin, target) {
+    const cached = getRoad(room, begin, target);
+    if (cached) return JSON.parse(cached);
+
+    const result = PathFinder.search(begin, {pos: target, range: 1}, {
+        heuristicWeight: 0.8,
+        maxRooms: 1,
+        roomCallback: roomName => buildRoadCostMatrix(roomName),
+    });
+    if (result.incomplete || !result.path.length) return null;
+    cacheRoad(room, begin, target, result.path);
+    return result.path;
+}
+
+function clearConnectorPathComplete(room, from, to) {
+    const key = getPathKey(from, to);
+    if (ROAD_CACHE[room.name] && ROAD_CACHE[room.name][key]) {
+        delete ROAD_CACHE[room.name][key].complete;
+    }
+}
+
+function isConnectorPathFullyRoaded(room, points, target) {
+    for (const point of points) {
+        const roomName = point.roomName || room.name;
+        if (roomName !== room.name) continue;
+        const pos = toRoomPosition(point, room.name);
+        if (!pos) continue;
+        const site = pos.checkForConstructionSites();
+        if (!pos.checkForRoad() && !(site && site.structureType === STRUCTURE_ROAD)) return false;
+    }
+    const targetPos = target instanceof RoomPosition ? target : target.pos;
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            if (!dx && !dy) continue;
+            const ax = targetPos.x + dx;
+            const ay = targetPos.y + dy;
+            if (!isInRoomBounds(ax, ay)) continue;
+            const adj = new RoomPosition(ax, ay, targetPos.roomName || room.name);
+            const adjSite = adj.checkForConstructionSites();
+            if (adj.checkForRoad() || (adjSite && adjSite.structureType === STRUCTURE_ROAD)) return true;
+        }
+    }
+    return false;
+}
+
+function cachedPathNeedsRoads(room, begin, target) {
+    const cached = getRoad(room, begin, target);
+    if (!cached) return true;
+    const points = JSON.parse(cached);
+    for (const point of points) {
+        const roomName = point.roomName || room.name;
+        if (roomName !== room.name) continue;
+        const pos = toRoomPosition(point, room.name);
+        if (!pos) continue;
+        const site = pos.checkForConstructionSites();
+        if (!pos.checkForRoad() && !(site && site.structureType === STRUCTURE_ROAD)) return true;
+    }
+    return !isConnectorPathFullyRoaded(room, points, target);
+}
+
 function roadBuilder(room, layout) {
     const origin = getRoadOrigin(room);
     if (!origin) return false;
 
+    if (buildConnectorRoads(room, origin, layout)) return true;
+
     if (layout && !layoutRoadsComplete(room, layout) && buildLayoutRoads(room, layout)) return true;
-    if (buildStructureRoads(room, origin, layout)) return true;
-
-    const sourceContainers = room.sources
-        .map(source => resolveSourceContainer(source, room))
-        .filter(container => container);
-    for (const container of sourceContainers) {
-        if (buildRoadFromTo(room, origin, container)) return true;
-    }
-    for (const source of room.sources) {
-        if (!resolveSourceContainer(source, room) && buildRoadFromTo(room, origin, source)) return true;
-    }
-
-    const controllerContainer = global.resolveControllerContainer(room);
-    if (controllerContainer && buildRoadFromTo(room, origin, controllerContainer)) return true;
-    if (!controllerContainer && room.controller && buildRoadFromTo(room, origin, room.controller)) return true;
-
-    if (buildRoadToExits(room, origin)) return true;
-
-    if (room.level >= 6 && buildMineralRoads(room, origin)) return true;
-
-    if (room.level >= 7 && buildRoadsForRamparts(room)) return true;
-
-    if (hasPendingConnectorPaths(room, origin, layout)) return true;
 
     removeRedundantRoads(room, layout, origin);
     return false;
+
+    function buildConnectorRoads(room, start, layout) {
+        const sourceContainers = room.sources
+            .map(source => resolveSourceContainer(source, room))
+            .filter(container => container);
+        for (const container of sourceContainers) {
+            if (buildRoadFromTo(room, start, container)) return true;
+        }
+        for (const source of room.sources) {
+            if (!resolveSourceContainer(source, room) && buildRoadFromTo(room, start, source)) return true;
+        }
+
+        const controllerContainer = global.resolveControllerContainer(room);
+        if (controllerContainer && buildRoadFromTo(room, start, controllerContainer)) return true;
+        if (!controllerContainer && room.controller && buildRoadFromTo(room, start, room.controller)) return true;
+
+        if (buildRoadToExits(room, start)) return true;
+
+        if (room.level >= 6 && buildMineralRoads(room, start)) return true;
+
+        if (!layout && buildStructureRoads(room, start, null)) return true;
+
+        if (room.level >= 7 && buildRoadsForRamparts(room)) return true;
+
+        return false;
+    }
 
     function buildStructureRoads(room, start, layout) {
         for (const target of collectStructureTargets(room, layout)) {
@@ -221,97 +327,6 @@ function roadBuilder(room, layout) {
         return false;
     }
 
-    function hasPendingConnectorPaths(room, start, layout) {
-        for (const target of collectStructureTargets(room, layout)) {
-            if (pathNeedsRoads(room, start, target)) return true;
-        }
-
-        const sourceContainers = room.sources
-            .map(source => resolveSourceContainer(source, room))
-            .filter(container => container);
-        for (const container of sourceContainers) {
-            if (pathNeedsRoads(room, start, container)) return true;
-        }
-        for (const source of room.sources) {
-            if (!resolveSourceContainer(source, room) && pathNeedsRoads(room, start, source)) return true;
-        }
-
-        const controllerContainer = global.resolveControllerContainer(room);
-        if (controllerContainer && pathNeedsRoads(room, start, controllerContainer)) return true;
-        if (!controllerContainer && room.controller && pathNeedsRoads(room, start, room.controller)) return true;
-
-        const neighboring = Game.map.describeExits(room.name);
-        if (neighboring) {
-            const directionToExit = {
-                '1': FIND_EXIT_TOP,
-                '3': FIND_EXIT_RIGHT,
-                '5': FIND_EXIT_BOTTOM,
-                '7': FIND_EXIT_LEFT,
-            };
-            for (const direction in directionToExit) {
-                if (!neighboring[direction]) continue;
-                const exitTile = getMiddleExitTile(room, directionToExit[direction]);
-                if (exitTile && pathNeedsRoads(room, start, exitTile)) return true;
-            }
-        }
-
-        if (room.level >= 6) {
-            const container = Game.getObjectById(room.memory.extractorContainer);
-            if (container && pathNeedsRoads(room, start, container)) return true;
-            if (room.mineral && pathNeedsRoads(room, start, room.mineral)) return true;
-        }
-
-        return false;
-    }
-
-    function pathNeedsRoads(room, start, end) {
-        let target;
-        let begin;
-        if (start instanceof RoomPosition) begin = start;
-        else begin = start.pos;
-        if (end instanceof RoomPosition) target = end;
-        else target = end.pos;
-
-        let points;
-        const path = getRoad(room, begin, target);
-        if (path) {
-            points = JSON.parse(path);
-        } else {
-            const result = PathFinder.search(begin, {pos: target, range: 1}, {
-                heuristicWeight: 0.8,
-                maxRooms: 1,
-                roomCallback: roomName => buildCostMatrix(roomName),
-            });
-            if (result.incomplete || !result.path.length) return false;
-            cacheRoad(room, begin, target, result.path);
-            points = result.path;
-        }
-
-        for (const point of points) {
-            const roomName = point.roomName || room.name;
-            if (roomName !== room.name) continue;
-            const pos = toRoomPosition(point, room.name);
-            if (!pos) continue;
-            const site = pos.checkForConstructionSites();
-            if (!pos.checkForRoad() && !(site && site.structureType === STRUCTURE_ROAD)) {
-                clearRoadPathComplete(room, begin, target);
-                return true;
-            }
-        }
-        if (!isPathFullyRoaded(room, points, target)) {
-            clearRoadPathComplete(room, begin, target);
-            return true;
-        }
-        return false;
-    }
-
-    function clearRoadPathComplete(room, from, to) {
-        const key = getPathKey(from, to);
-        if (ROAD_CACHE[room.name] && ROAD_CACHE[room.name][key]) {
-            delete ROAD_CACHE[room.name][key].complete;
-        }
-    }
-
     function buildRoadFromTo(room, start, end) {
         let target;
         let begin;
@@ -320,22 +335,13 @@ function roadBuilder(room, layout) {
         if (end instanceof RoomPosition) target = end;
         else target = end.pos;
 
-        if (isRoadPathComplete(room, begin, target) && !pathNeedsRoads(room, start, end)) return false;
-
-        let points;
-        const path = getRoad(room, begin, target);
-        if (path) {
-            points = JSON.parse(path);
-        } else {
-            const result = PathFinder.search(begin, {pos: target, range: 1}, {
-                heuristicWeight: 0.8,
-                maxRooms: 1,
-                roomCallback: roomName => buildCostMatrix(roomName),
-            });
-            if (result.incomplete || !result.path.length) return false;
-            cacheRoad(room, begin, target, result.path);
-            points = result.path;
+        if (isRoadPathComplete(room, begin, target)) {
+            if (!cachedPathNeedsRoads(room, begin, target)) return false;
+            clearConnectorPathComplete(room, begin, target);
         }
+
+        let points = findConnectorPathForRoom(room, begin, target);
+        if (!points) return false;
 
         for (const point of points) {
             const roomName = point.roomName || room.name;
@@ -344,9 +350,9 @@ function roadBuilder(room, layout) {
             if (pos && buildRoad(pos)) return true;
         }
 
-        if (!isPathFullyRoaded(room, points, target) && tryPlaceRoadNearTarget(room, target)) return true;
+        if (!isConnectorPathFullyRoaded(room, points, target) && tryPlaceRoadNearTarget(room, target)) return true;
 
-        if (isPathFullyRoaded(room, points, target)) {
+        if (isConnectorPathFullyRoaded(room, points, target)) {
             markRoadPathComplete(room, begin, target);
         }
         return false;
@@ -365,65 +371,6 @@ function roadBuilder(room, layout) {
             }
         }
         return false;
-    }
-
-    function isPathFullyRoaded(room, points, target) {
-        for (const point of points) {
-            const roomName = point.roomName || room.name;
-            if (roomName !== room.name) continue;
-            const pos = toRoomPosition(point, room.name);
-            if (!pos) continue;
-            const site = pos.checkForConstructionSites();
-            if (!pos.checkForRoad() && !(site && site.structureType === STRUCTURE_ROAD)) return false;
-        }
-        const targetPos = target instanceof RoomPosition ? target : target.pos;
-        for (let dx = -1; dx <= 1; dx++) {
-            for (let dy = -1; dy <= 1; dy++) {
-                if (!dx && !dy) continue;
-                const ax = targetPos.x + dx;
-                const ay = targetPos.y + dy;
-                if (!isInRoomBounds(ax, ay)) continue;
-                const adj = new RoomPosition(ax, ay, targetPos.roomName || room.name);
-                const adjSite = adj.checkForConstructionSites();
-                if (adj.checkForRoad() || (adjSite && adjSite.structureType === STRUCTURE_ROAD)) return true;
-            }
-        }
-        return false;
-    }
-
-    function buildCostMatrix(roomName) {
-        const costMatrix = new PathFinder.CostMatrix();
-        const terrain = Game.map.getRoomTerrain(roomName);
-        for (let y = 0; y < 50; y++) {
-            for (let x = 0; x < 50; x++) {
-                const tile = terrain.get(x, y);
-                if (tile === TERRAIN_MASK_WALL) {
-                    costMatrix.set(x, y, Infinity);
-                } else if (tile === TERRAIN_MASK_SWAMP) {
-                    costMatrix.set(x, y, 60);
-                } else {
-                    costMatrix.set(x, y, 20);
-                }
-            }
-        }
-        const pathRoom = Game.rooms[roomName];
-        if (pathRoom) {
-            pathRoom.structures.forEach(structure => {
-                if (structure.structureType === STRUCTURE_ROAD) {
-                    costMatrix.set(structure.pos.x, structure.pos.y, 1);
-                } else if (structure.structureType === STRUCTURE_CONTAINER) {
-                    costMatrix.set(structure.pos.x, structure.pos.y, 100);
-                } else if (_.includes(OBSTACLE_OBJECT_TYPES, structure.structureType)) {
-                    costMatrix.set(structure.pos.x, structure.pos.y, Infinity);
-                }
-            });
-            pathRoom.constructionSites.forEach(site => {
-                if (site.structureType === STRUCTURE_ROAD) {
-                    costMatrix.set(site.pos.x, site.pos.y, 1);
-                }
-            });
-        }
-        return costMatrix;
     }
 
     function buildRoad(pos) {
@@ -453,7 +400,7 @@ function roadBuilder(room, layout) {
                 const result = PathFinder.search(begin, {pos: target, range: 1}, {
                     heuristicWeight: 0.8,
                     maxRooms: 1,
-                    roomCallback: roomName => buildCostMatrix(roomName),
+                    roomCallback: roomName => buildRoadCostMatrix(roomName),
                 });
                 if (result.incomplete || !result.path.length) return;
                 cacheRoad(room, begin, target, result.path);
