@@ -561,6 +561,16 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
 
+    if (this.room.controller && this.room.controller.level >= 3) {
+        const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
+        const targetAmount = threatLevel ? 1 : 0.75;
+        targets = allTowers.filter(s => s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * targetAmount);
+        if (targets.length) {
+            this.memory.storageDestination = this.pos.findClosestByRange(targets).id;
+            return true;
+        }
+    }
+
     targets = allSpawnExtensions.filter(s => s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
     if (targets.length) {
         const roomHaulers = this.room.myCreeps.filter(c => c.memory.role === 'hauler' && !c.spawning);
@@ -595,16 +605,6 @@ Creep.prototype.haulerDelivery = function () {
         }
         this.memory.storageDestination = _.max(targets, s => this.pos.getRangeTo(s)).id;
         return true;
-    }
-
-    if (this.room.controller && this.room.controller.level >= 3) {
-        const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
-        const targetAmount = threatLevel ? 1 : 0.75;
-        targets = allTowers.filter(s => s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * targetAmount);
-        if (targets.length) {
-            this.memory.storageDestination = this.pos.findClosestByRange(targets).id;
-            return true;
-        }
     }
 
     const hubLink = Game.getObjectById(this.room.memory.hubLink);
