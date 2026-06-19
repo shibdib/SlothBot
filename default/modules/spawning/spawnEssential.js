@@ -25,7 +25,9 @@ function resolveDroneCount(room, ctx) {
 
     let count;
     if (room.level >= 7) {
-        return (hasWork || room.energyState || hasCriticalBuilds) ? 1 : 0;
+        if (!hasWork && !room.energyState && !hasCriticalBuilds) return 0;
+        if (heavyRoadRepair && room.energyState >= 1 && flowHealthy) return 2;
+        return 1;
     } else if (earlyRush) {
         count = hasWork ? (hasCriticalBuilds ? 3 : 2) : 2;
     } else if (room.storage) {
