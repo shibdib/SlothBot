@@ -3,14 +3,8 @@
  */
 
 const profiler = require("tools.profiler");
-const {
-    cacheRoad,
-    getRoad,
-    getPathKey,
-    isRoadPathComplete,
-    markRoadPathComplete,
-    setRoadsBuiltFlag
-} = require('planUtils');
+const {setRoadsBuiltFlag} = require('planUtils');
+const {findRoadPath, pathTilesNeedRoads} = require('planRoadPaths');
 
 const PLACE_RESULT = {
     COMPLETE: 'complete',
@@ -266,21 +260,8 @@ class RoleRoadBuilder {
         if (!room || !start || !end) return false;
         const begin = start instanceof RoomPosition ? start : start.pos;
         const target = end instanceof RoomPosition ? end : end.pos;
-        if (isRoadPathComplete(room, begin, target)) return false;
-
-        let path = getRoad(room, begin, target);
-        if (!path) {
-            const result = PathFinder.search(begin, {pos: target, range: 1}, {
-                heuristicWeight: 0.8,
-                maxRooms: 1,
-                roomCallback: buildCostMatrix
-            });
-            if (result.incomplete || !result.path.length) return false;
-            path = result.path;
-            cacheRoad(room, begin, target, path);
-        } else {
-            path = JSON.parse(path);
-        }
+        const path = findRoadPath(room, begin, target, 'remote');
+        if (!path || !pathTilesNeedRoads(room, path, target)) return false;
 
         for (const point of path) {
             const roomName = point.roomName || room.name;
@@ -288,8 +269,6 @@ class RoleRoadBuilder {
             const pos = new RoomPosition(point.x, point.y, roomName);
             if (this.buildRoad(pos, room)) return true;
         }
-
-        markRoadPathComplete(room, begin, target);
         return false;
     }
 
@@ -304,41 +283,3 @@ class RoleRoadBuilder {
 
 profiler.registerClass(RoleRoadBuilder, 'RoadBuilder');
 module.exports = RoleRoadBuilder;
-
-let roomMatrix = {};
-const COST_MATRIX_TTL = 200;
-
-function buildCostMatrix(roomName) {
-    if (roomMatrix[roomName] && Game.time - roomMatrix[roomName].tick < COST_MATRIX_TTL) return roomMatrix[roomName].matrix;
-    const costMatrix = new PathFinder.CostMatrix();
-    const terrain = Game.map.getRoomTerrain(roomName);
-
-    for (let y = 0; y < 50; y++) {
-        for (let x = 0; x < 50; x++) {
-            const tile = terrain.get(x, y);
-            if (tile === TERRAIN_MASK_WALL) {
-                costMatrix.set(x, y, 225);
-            } else if (tile === TERRAIN_MASK_SWAMP) {
-                costMatrix.set(x, y, 25);
-            } else {
-                costMatrix.set(x, y, 5);
-            }
-        }
-    }
-
-    const room = Game.rooms[roomName];
-    if (room) {
-        for (const structure of room.structures) {
-            if (structure.structureType === STRUCTURE_ROAD) {
-                costMatrix.set(structure.pos.x, structure.pos.y, 1);
-            } else if (structure.structureType === STRUCTURE_CONTAINER) {
-                costMatrix.set(structure.pos.x, structure.pos.y, 15);
-            } else if (_.includes(OBSTACLE_OBJECT_TYPES, structure.structureType)) {
-                costMatrix.set(structure.pos.x, structure.pos.y, Infinity);
-            }
-        }
-    }
-
-    roomMatrix[roomName] = {matrix: costMatrix, tick: Game.time};
-    return costMatrix;
-}
