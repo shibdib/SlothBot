@@ -59,11 +59,7 @@ function cleanConstructionSites() {
         const site = Game.constructionSites[id];
         if (
             Math.random() > 0.5 &&
-            (!site.room || !site.pos.findClosestByRange(FIND_MY_CREEPS)) &&
-            site.structureType !== STRUCTURE_SPAWN &&
-            site.structureType !== STRUCTURE_EXTENSION &&
-            site.structureType !== STRUCTURE_CONTAINER &&
-            site.structureType !== STRUCTURE_ROAD
+            (!site.room || !site.pos.findClosestByRange(FIND_MY_CREEPS))
         ) {
             site.remove();
         }
