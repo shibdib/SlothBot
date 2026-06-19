@@ -105,6 +105,17 @@ class RoleLabTech {
             }
         }
 
+        if (nuker && ((storage && storage.store[RESOURCE_GHODIUM] > 0) || (terminal && terminal.store[RESOURCE_GHODIUM] > 0)) &&
+            nuker.store.getFreeCapacity(RESOURCE_GHODIUM) > 0) {
+            const ghodiumStore = storage && storage.store[RESOURCE_GHODIUM] ? storage.id : terminal.id;
+            return {
+                withdrawTarget: ghodiumStore,
+                deliveryTarget: nuker.id,
+                resource: RESOURCE_GHODIUM,
+                amount: nuker.store.getFreeCapacity(RESOURCE_GHODIUM)
+            };
+        }
+
         // -- PRIORITY 1: FACTORY BATTERY FEED (full loads, leave room for unpack output) --
         if (factory && FactoryControl.shouldContinueBatteryUnpack(this.room)) {
             const batteryTask = this.findFactoryBatterySupply(factory, storage, terminal);
@@ -238,10 +249,6 @@ class RoleLabTech {
             if (powerSpawn.store.getFreeCapacity(RESOURCE_POWER) > 50 && storage && storage.store[RESOURCE_POWER] > 0) {
                 return {withdrawTarget: storage.id, deliveryTarget: powerSpawn.id, resource: RESOURCE_POWER};
             }
-        }
-        if (!empireOpsPaused() && nuker && storage && storage.store[RESOURCE_GHODIUM] > 0 &&
-            nuker.store.getFreeCapacity(RESOURCE_GHODIUM) > 0) {
-            return {withdrawTarget: storage.id, deliveryTarget: nuker.id, resource: RESOURCE_GHODIUM};
         }
 
         // -- PRIORITY 5: BALANCING STORAGE & TERMINAL --
