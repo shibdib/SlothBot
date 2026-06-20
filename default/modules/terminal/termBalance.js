@@ -22,15 +22,40 @@ const ENERGY_SEND_MIN = 5000;
 
 Object.assign(TerminalControl.prototype, {
 
-    balanceResources(terminal) {
-        const sortedKeys = Object.keys(terminal.store).sort((a, b) => terminal.store[b] - terminal.store[a]);
+    relieveStoragePressure(terminal) {
+        const storage = terminal.room.storage;
+        const terminalPressure = terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.1;
+        const storagePressure = storage && storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1;
+        if (!terminalPressure && !storagePressure) return false;
+        return this.balanceResources(terminal, true);
+    },
+
+    balanceResources(terminal, pressureRelief = false) {
+        const storage = terminal.room.storage;
+        const resourceSet = new Set(Object.keys(terminal.store));
+        if (pressureRelief && storage) {
+            Object.keys(storage.store).forEach(r => resourceSet.add(r));
+        }
+        const sortedKeys = [...resourceSet].sort((a, b) => {
+            if (pressureRelief) return (terminal.room.store(b) || 0) - (terminal.room.store(a) || 0);
+            return (terminal.store[b] || 0) - (terminal.store[a] || 0);
+        });
+
         for (const resource of sortedKeys) {
             if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
             const keepAmount = this.determineKeepAmount(resource);
-            if (!keepAmount || terminal.room.store(resource) < keepAmount) continue;
+            const inTerminal = terminal.store[resource] || 0;
+            if (!inTerminal) continue;
 
-            let available = Math.max(0, terminal.room.store(resource) - keepAmount);
-            available = Math.min(available, terminal.store[resource] || 0);
+            let available;
+            if (pressureRelief) {
+                available = Math.max(0, terminal.room.store(resource) - keepAmount);
+                available = Math.min(available, inTerminal);
+            } else {
+                if (!keepAmount || terminal.room.store(resource) < keepAmount) continue;
+                available = Math.max(0, terminal.room.store(resource) - keepAmount);
+                available = Math.min(available, inTerminal);
+            }
             if (available < RESOURCE_SEND_MIN) continue;
 
             const candidates = [];
@@ -40,20 +65,29 @@ Object.assign(TerminalControl.prototype, {
                 if (!room?.terminal) continue;
                 if (state.usedTerminals[name] && state.usedTerminals[name].tick > Game.time) continue;
 
-                const destKeep = this.determineKeepAmount(resource);
-                const need = destKeep - room.store(resource);
-                if (need < RESOURCE_SEND_MIN) continue;
-
                 const destFree = room.terminal.store.getFreeCapacity(resource);
                 if (destFree < RESOURCE_SEND_MIN) continue;
 
-                const amount = Math.min(available, RESOURCE_SEND_MAX, need, destFree);
-                if (amount < RESOURCE_SEND_MIN) continue;
+                let amount;
+                let score;
+                if (pressureRelief) {
+                    amount = Math.min(available, RESOURCE_SEND_MAX, destFree);
+                    if (amount < RESOURCE_SEND_MIN) continue;
+                    const txCost = Game.market.calcTransactionCost(amount, terminal.room.name, name);
+                    if (txCost > amount * 0.25) continue;
+                    score = destFree - txCost;
+                } else {
+                    const destKeep = this.determineKeepAmount(resource);
+                    const need = destKeep - room.store(resource);
+                    if (need < RESOURCE_SEND_MIN) continue;
+                    amount = Math.min(available, RESOURCE_SEND_MAX, need, destFree);
+                    if (amount < RESOURCE_SEND_MIN) continue;
+                    const txCost = Game.market.calcTransactionCost(amount, terminal.room.name, name);
+                    if (txCost > amount * 0.25) continue;
+                    score = need / (1 + txCost);
+                }
 
-                const txCost = Game.market.calcTransactionCost(amount, terminal.room.name, name);
-                if (txCost > amount * 0.25) continue;
-
-                candidates.push({room: name, amount, score: need / (1 + txCost)});
+                candidates.push({room: name, amount, score});
             }
 
             candidates.sort((a, b) => b.score - a.score);

@@ -633,7 +633,7 @@ Creep.prototype.haulerDelivery = function () {
         targets.push(this.room.nuker);
     }
 
-    if (this.room.terminal && this.room.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < terminalEnergyTarget()) targets.push(this.room.terminal);
+    if (this.room.terminal && this.room.terminal.store.getFreeCapacity() > this.store[RESOURCE_ENERGY] && this.room.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < terminalEnergyTarget()) targets.push(this.room.terminal);
     if (this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && this.memory.lastWithdraw !== this.room.storage.id) targets.push(this.room.storage);
 
     let target = this.pos.findClosestByRange(targets);

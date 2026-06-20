@@ -50,15 +50,16 @@ function linkBuilder(room) {
 
     if (!room.memory.controllerLink) return false;
 
-    // 3. Hub Link (RCL 6+)
+    // 3. Hub Link (RCL 6+) — bunker template owns (0,1); dynamic layout still places here ad hoc
     if (!room.memory.hubLink || !Game.getObjectById(room.memory.hubLink)) {
-        let hubLinkPos = new RoomPosition(room.hub.x, room.hub.y + 1, room.name);
+        const hubLinkPos = new RoomPosition(room.hub.x, room.hub.y + 1, room.name);
         const existingLink = hubLinkPos.lookFor(LOOK_STRUCTURES).find(s => s.structureType === STRUCTURE_LINK);
         if (existingLink) {
             room.memory.hubLink = existingLink.id;
         } else {
             const site = hubLinkPos.lookFor(LOOK_CONSTRUCTION_SITES).find(s => s.structureType === STRUCTURE_LINK);
             if (site) return true;
+            if (!room.memory.dynamicLayout) return false;
             const extension = hubLinkPos.lookFor(LOOK_STRUCTURES).find(s => s.structureType === STRUCTURE_EXTENSION);
             if (extension) extension.destroy();
             if (tryCreateConstructionSite(hubLinkPos, STRUCTURE_LINK) === OK) return true;

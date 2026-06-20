@@ -72,12 +72,16 @@ Object.assign(TerminalControl.prototype, {
 
         return false;
     }, quickSell(terminal, globalOrders) {
-        const storageSpace = terminal.room.storage ? terminal.room.storage.store.getFreeCapacity() : 0;
+        const storage = terminal.room.storage;
+        const storageSpace = storage ? storage.store.getFreeCapacity() : 0;
         const spareSpace = terminal.store.getFreeCapacity() + storageSpace;
+        const terminalPressure = terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.1;
+        const storagePressure = storage && storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1;
         const dynamicBuffer = Math.max(CREDIT_BUFFER, Game.market.credits * 0.20);
         const spendingAccount = Memory._banker.spendingAccount || 0;
         const creditTrend = this.getCreditTrend();
-        if (spareSpace > STORAGE_CAPACITY * 0.2 && spendingAccount > dynamicBuffer && creditTrend <= 0) return false;
+        if (!terminalPressure && !storagePressure
+            && spareSpace > STORAGE_CAPACITY * 0.2 && spendingAccount > dynamicBuffer && creditTrend <= 0) return false;
 
         const sortedKeys = Object.keys(terminal.store).sort((a, b) => terminal.store[a] - terminal.store[b]);
 
@@ -178,7 +182,7 @@ Object.assign(TerminalControl.prototype, {
             const buyer = findBestBuyer(resourceType, sellAmount);
             if (buyer) {
                 if (handleSale(buyer, sellAmount, resourceType)) return true;
-            } else if (terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.1 && sellAmount >= keepAmount * 2) {
+            } else if ((terminalPressure || storagePressure) && sellAmount >= keepAmount * 2) {
                 if (handleOffload(sellAmount, resourceType)) return true;
             }
         }

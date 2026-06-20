@@ -38,6 +38,13 @@ Object.assign(TerminalControl.prototype, {
             state.lastRun['updates'] = Game.time;
         }
 
+        const storage = terminal.room.storage;
+        const terminalPressure = terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.1;
+        const storagePressure = storage && storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1;
+        if (terminalPressure || storagePressure) {
+            if (this.relieveStoragePressure(terminal)) return;
+        }
+
         // Market (requires mineral tracking). Deals and instant sells before passive sell orders.
         if (_.size(MY_MINERALS)) {
             if (this.dealFinder(terminal, globalOrders)
