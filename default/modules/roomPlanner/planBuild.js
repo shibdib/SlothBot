@@ -53,6 +53,9 @@ function buildRoom() {
 
     // Ensure the room has a bunker hub
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
+        if (!room.memory.towerHubs) findTowerHub(room);
+        if (!room.memory.labHub) findLabHub(room);
+
         // Check if bunker layout needs to be built
         if (shouldRunLayout(lastRun)) {
             buildMissingStructures(room, room.controller.level);
@@ -68,11 +71,6 @@ function buildRoom() {
     } else {
         // Find hub if not already found
         findHub(room);
-    }
-
-    if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
-        if (!room.memory.labHub) findLabHub(room);
-        if (!room.memory.towerHubs) findTowerHub(room);
     }
 
     // Update tick tracker

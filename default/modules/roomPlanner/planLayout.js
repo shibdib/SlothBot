@@ -68,8 +68,6 @@ function buildFromLayout(room, countCheck) {
         room.constructionSites.filter(s => ![STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL, STRUCTURE_RAMPART, STRUCTURE_WALL].includes(s.structureType) && !s.progress).forEach(s => s.remove());
         filter = tmpl.filter(s => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType));
         rampartBuilder(room, tmpl);
-    } else if ((TOWER_FIRST && !roomTower && MY_ROOMS.length > 1) || (room.controller.level >= 3 && !roomTower)) {
-        if (buildTowersFromHubs(room)) return;
     } else if (!roomSpawn) {
         const spawnPos = tmpl.filter(s => s.structureType === STRUCTURE_SPAWN)[0].pos[0];
         const pos = new RoomPosition(hub.x + spawnPos.x, hub.y + spawnPos.y, room.name);
