@@ -776,8 +776,7 @@ Creep.prototype.constructionWork = function (scope) {
     site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.5));
     if (site) return repair(site, site.hitsMax * 0.8);
 
-    const trend = (room.memory.energyInfo && room.memory.energyInfo.trend) || 0;
-    if (room.energyState >= 2 || (room.energyState === 1 && trend >= 0)) {
+    if (room.energyState >= 1) {
         if (sites.misc.length) return buildClosest(sites.misc);
         if (sites.roads.length) return buildClosest(sites.roads);
         site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.75));

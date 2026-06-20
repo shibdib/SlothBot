@@ -490,6 +490,19 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     roomIntel.lastObservation = currentTime;
     roomIntel.safemode = this.controller && this.controller.safeMode ? currentTime + this.controller.safeMode : undefined;
 
+    // SK rooms — detect before light update so tower logic below sees fresh sk, and so
+    // skDangerPoints exist for no-vision pathing without waiting for the heavy cadence.
+    roomIntel.sk = this.keeperLairs.length > 0;
+    if (roomIntel.sk) {
+        const points = [];
+        for (const lair of this.keeperLairs) points.push({x: lair.pos.x, y: lair.pos.y});
+        for (const src of this.sources) points.push({x: src.pos.x, y: src.pos.y});
+        if (this.mineral) points.push({x: this.mineral.pos.x, y: this.mineral.pos.y});
+        roomIntel.skDangerPoints = points;
+    } else {
+        delete roomIntel.skDangerPoints;
+    }
+
     // === LIGHT UPDATE (every ~150 ticks) ===
     if (!roomIntel.microUpdate || roomIntel.microUpdate + 150 < currentTime) {
         const structures = global.roomStructuresFromGame
@@ -747,22 +760,8 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         delete roomIntel.rampartMaxHP;
     }
 
-    // Room type flags
-    roomIntel.sk = this.keeperLairs.length > 0;
+    // Room type flags (sk + skDangerPoints are set at the top of cacheRoomIntel)
     roomIntel.isHighway = roomIntel.sources === 0;
-
-    // Cache danger-zone anchors so no-vision pathing through this room can still avoid
-    // the kill zones. Lairs are where SKs spawn; sources and the mineral are where they
-    // camp. All three positions are static for the lifetime of the room.
-    if (roomIntel.sk) {
-        const points = [];
-        for (const lair of this.keeperLairs) points.push({x: lair.pos.x, y: lair.pos.y});
-        for (const src of this.sources) points.push({x: src.pos.x, y: src.pos.y});
-        if (this.mineral) points.push({x: this.mineral.pos.x, y: this.mineral.pos.y});
-        roomIntel.skDangerPoints = points;
-    } else {
-        delete roomIntel.skDangerPoints;
-    }
 
     const oldHeavy = INTEL[this.name];
     INTEL[this.name] = roomIntel;
@@ -1040,38 +1039,30 @@ Room.prototype.boostCheck = function (body = undefined, parts = undefined, tier 
     }
 };
 
-/* Room.structures caching (unchanged from original, still excellent) */
-let roomStructures = {};
-let roomStructuresExpiration = {};
-const CACHE_TIMEOUT = 50;
-const CACHE_OFFSET = 4;
+/* Typed structure accessors — lazy per-tick index over this.structures (no ID round-trip). */
 const multipleList = [STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_ROAD, STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_KEEPER_LAIR, STRUCTURE_PORTAL, STRUCTURE_LINK, STRUCTURE_TOWER, STRUCTURE_LAB, STRUCTURE_CONTAINER, STRUCTURE_POWER_BANK];
 const singleList = [STRUCTURE_OBSERVER, STRUCTURE_POWER_SPAWN, STRUCTURE_EXTRACTOR, STRUCTURE_NUKER, STRUCTURE_INVADER_CORE, STRUCTURE_FACTORY];
 
-function getCacheExpiration() {
-    return CACHE_TIMEOUT + Math.round((Math.random() * CACHE_OFFSET * 2) - CACHE_OFFSET);
-}
-
-Room.prototype._checkRoomCache = function _checkRoomCache() {
-    if (!roomStructuresExpiration[this.name] || !roomStructures[this.name] || roomStructuresExpiration[this.name] < Game.time) {
-        roomStructuresExpiration[this.name] = Game.time + getCacheExpiration();
-        const structs = global.roomStructuresFromGame
-            ? global.roomStructuresFromGame(this)
-            : this.find(FIND_STRUCTURES);
-        roomStructures[this.name] = _.groupBy(structs, s => s.structureType);
-        for (let i in roomStructures[this.name]) {
-            roomStructures[this.name][i] = _.map(roomStructures[this.name][i], s => s.id);
-        }
+Room.prototype._ensureStructuresByType = function _ensureStructuresByType() {
+    if (!this._structuresByType || this._structuresByType_ts !== Game.time) {
+        this.structures;
+        this._structuresByType = _.groupBy(this._structures, s => s.structureType);
+        this._structuresByType_ts = Game.time;
     }
+    return this._structuresByType;
+};
+
+Room.prototype._invalidateStructureCaches = function _invalidateStructureCaches() {
+    this._structures = undefined;
+    this._structures_ts = undefined;
+    this._structuresByType = undefined;
+    this._structuresByType_ts = undefined;
 };
 
 multipleList.forEach(function (type) {
     Object.defineProperty(Room.prototype, type + 's', {
         get: function () {
-            if (this['_' + type + 's'] && this['_' + type + 's_ts'] === Game.time) return this['_' + type + 's'];
-            this._checkRoomCache();
-            this['_' + type + 's_ts'] = Game.time;
-            return this['_' + type + 's'] = (roomStructures[this.name][type] || []).map(Game.getObjectById).filter(Boolean);
+            return this._ensureStructuresByType()[type] || [];
         },
         set: function () {
         },
@@ -1083,10 +1074,8 @@ multipleList.forEach(function (type) {
 singleList.forEach(function (type) {
     Object.defineProperty(Room.prototype, type, {
         get: function () {
-            if (this['_' + type] && this['_' + type + '_ts'] === Game.time) return this['_' + type];
-            this._checkRoomCache();
-            this['_' + type + '_ts'] = Game.time;
-            return this['_' + type] = roomStructures[this.name][type] ? Game.getObjectById(roomStructures[this.name][type][0]) : undefined;
+            const group = this._ensureStructuresByType()[type];
+            return group ? group[0] : undefined;
         },
         set: function () {
         },

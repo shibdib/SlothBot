@@ -93,6 +93,10 @@ let globals = function () {
         structureRoomCacheTick = -1;
         structureRoomCache = Object.create(null);
         constructionSiteRoomCache = Object.create(null);
+        for (const roomName in Game.rooms) {
+            const room = Game.rooms[roomName];
+            if (room && room._invalidateStructureCaches) room._invalidateStructureCaches();
+        }
     };
 
     global.collectOwnedRoads = function (roomName) {
@@ -554,7 +558,7 @@ let globals = function () {
             delete Memory._corruptFindRooms;
             for (const roomName in Game.rooms) {
                 const r = Game.rooms[roomName];
-                r._structures = undefined;
+                if (r._invalidateStructureCaches) r._invalidateStructureCaches();
                 r._downgraded = undefined;
                 r._impassibleStructures = undefined;
                 r._hostileStructures = undefined;
