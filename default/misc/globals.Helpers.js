@@ -145,6 +145,20 @@ let helpers = function () {
     }
 
     /**
+     * Source Keeper rooms sit at the center of each 10x10 sector (x%10===4 && y%10===4).
+     * @param {string} roomName
+     * @returns {boolean}
+     */
+    global.isSourceKeeperRoomName = function (roomName) {
+        if (!roomName || roomName.length < 4) return false;
+        const nsIndex = roomName.indexOf('N') !== -1 ? roomName.indexOf('N') : roomName.indexOf('S');
+        if (nsIndex < 2) return false;
+        const x = parseInt(roomName.slice(1, nsIndex), 10);
+        const y = parseInt(roomName.slice(nsIndex + 1), 10);
+        return !isNaN(x) && !isNaN(y) && x % 10 === 4 && y % 10 === 4;
+    };
+
+    /**
      * Get the total amount of a resource you have
      * @param resource
      * @returns {number}

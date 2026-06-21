@@ -269,7 +269,10 @@ Creep.prototype.skSafety = function () {
         return true;
     }
 
-    if (this.room.controller || (INTEL[this.room.name] && !INTEL[this.room.name].sk)) return false;
+    const intel = INTEL[this.room.name];
+    const isSkRoom = !!(intel?.sk || this.room.keeperLairs.length ||
+        (global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(this.room.name)));
+    if (!isSkRoom && (this.room.controller || intel)) return false;
 
     const range = 7;
     const sk = this.room.creeps.find(c => c.owner && c.owner.username === 'Source Keeper' && c.pos.inRangeTo(this, range));

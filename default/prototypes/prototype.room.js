@@ -492,13 +492,26 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
 
     // SK rooms — detect before light update so tower logic below sees fresh sk, and so
     // skDangerPoints exist for no-vision pathing without waiting for the heavy cadence.
-    roomIntel.sk = this.keeperLairs.length > 0;
+    const hasLairs = this.keeperLairs.length > 0;
+    const isSkByMap = global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(this.name);
+    roomIntel.sk = hasLairs || isSkByMap;
     if (roomIntel.sk) {
+        const seen = new Set();
         const points = [];
-        for (const lair of this.keeperLairs) points.push({x: lair.pos.x, y: lair.pos.y});
-        for (const src of this.sources) points.push({x: src.pos.x, y: src.pos.y});
-        if (this.mineral) points.push({x: this.mineral.pos.x, y: this.mineral.pos.y});
-        roomIntel.skDangerPoints = points;
+        const addPoint = (x, y) => {
+            const key = x + ',' + y;
+            if (seen.has(key)) return;
+            seen.add(key);
+            points.push({x, y});
+        };
+        if (hasLairs) {
+            for (const lair of this.keeperLairs) addPoint(lair.pos.x, lair.pos.y);
+        } else if (roomIntel.skDangerPoints) {
+            for (const pt of roomIntel.skDangerPoints) addPoint(pt.x, pt.y);
+        }
+        for (const src of this.sources) addPoint(src.pos.x, src.pos.y);
+        if (this.mineral) addPoint(this.mineral.pos.x, this.mineral.pos.y);
+        if (points.length) roomIntel.skDangerPoints = points;
     } else {
         delete roomIntel.skDangerPoints;
     }

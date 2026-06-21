@@ -29,7 +29,17 @@ function shouldDeprioritizeRemotes(room) {
     return energyState >= 3 && room.storage && flowHealthy && spareIncome >= 8;
 }
 
+function ensureSkIntel(roomName) {
+    if (!global.isSourceKeeperRoomName || !global.isSourceKeeperRoomName(roomName)) return;
+    const old = INTEL[roomName];
+    if (!INTEL[roomName]) INTEL[roomName] = {name: roomName, shardName: Game.shard.name};
+    if (INTEL[roomName].sk) return;
+    INTEL[roomName].sk = true;
+    if (global.updateIntelIndex) global.updateIntelIndex(roomName, old, INTEL[roomName]);
+}
+
 function ingestColonyRemoteSources(colonyRoom, rName) {
+    ensureSkIntel(rName);
     const remoteIntel = INTEL[rName];
     if (!remoteIntel || !remoteIntel.remoteSourceData) return false;
     let added = false;
@@ -47,6 +57,7 @@ function refreshRemoteRoomTargets(room) {
     spawnState.remoteRoomTargets[room.name] = undefined;
 
     const surroundingRooms = getSurroundingRooms(room.name);
+    for (const r of surroundingRooms) ensureSkIntel(r);
     let remoteTargets = surroundingRooms.filter(r =>
         r !== room.name &&
         roomStatus(r) === roomStatus(room.name) &&
@@ -80,6 +91,7 @@ function refreshRemoteRoomTargets(room) {
     const registeredRooms = new Set(ROOM_REMOTE_TARGETS[room.name].map(s => s.room));
     for (const r of spawnState.remoteRoomTargets[room.name]) {
         const rName = r.name || r;
+        ensureSkIntel(rName);
 
         trackRemoteRoom(rName, room);
 
@@ -382,6 +394,7 @@ function processRemoteSpecificTasks(room, remoteName) {
 }
 
 function trackRemoteRoom(remoteName, room) {
+    ensureSkIntel(remoteName);
     if (!INTEL[remoteName].remoteRoom || INTEL[remoteName].remoteRoom.indexOf(room.name) === -1) {
         if (!INTEL[remoteName].remoteRoom) INTEL[remoteName].remoteRoom = [];
         INTEL[remoteName].remoteRoom.push(room.name);
