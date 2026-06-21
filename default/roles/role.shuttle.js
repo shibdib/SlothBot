@@ -66,8 +66,8 @@ class RoleShuttle {
         }
 
         // Prefer assigned source container when available
-        if (!this.creep.memory.energyDestination && this.creep.memory.other.assignedSource) {
-            const source = Game.getObjectById(this.creep.memory.other.assignedSource);
+        if (!this.creep.memory.energyDestination && this.creep.memory.assignment) {
+            const source = Game.getObjectById(this.creep.memory.assignment);
             if (source && source.memory.container) {
                 const container = Game.getObjectById(source.memory.container);
                 if (container && container.store[RESOURCE_ENERGY] > 0) {
