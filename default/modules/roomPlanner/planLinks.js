@@ -1,4 +1,9 @@
-const {canPlaceConstructionSite, tryCreateConstructionSite} = require('planUtils');
+const {
+    canPlaceConstructionSite,
+    tryCreateConstructionSite,
+    isControllerLinkPos,
+    isControllerAreaLink,
+} = require('planUtils');
 
 /*
 
@@ -18,8 +23,12 @@ function linkBuilder(room) {
         room.constructionSites.filter(s => s.structureType === STRUCTURE_LINK).length;
 
     // 1. Controller Link (RCL 5+)
-    if (!room.memory.controllerLink || !Game.getObjectById(room.memory.controllerLink)) {
-        const existingLink = room.controller.pos.findInRange(room.links, 3)[0];
+    const rememberedControllerLink = Game.getObjectById(room.memory.controllerLink);
+    if (!rememberedControllerLink || !isControllerAreaLink(rememberedControllerLink, room)) {
+        if (room.memory.controllerLink) room.memory.controllerLink = undefined;
+        const existingLink = room.controller.pos.findInRange(room.links, 3)
+            .filter((l) => isControllerAreaLink(l, room))
+            .sort((a, b) => a.pos.getRangeTo(room.controller) - b.pos.getRangeTo(room.controller))[0];
         if (existingLink) {
             room.memory.controllerLink = existingLink.id;
         } else {
@@ -30,13 +39,14 @@ function linkBuilder(room) {
             // If too close to the hub don't build one
             if (base.pos.getRangeTo(room.hub) <= 5) return false;
             const range = base.id === room.controller.id ? 2 : 1;
-            const site = _.find(base.pos.findInRange(FIND_CONSTRUCTION_SITES, range), s => s.structureType === STRUCTURE_LINK);
+            const site = _.find(base.pos.findInRange(FIND_CONSTRUCTION_SITES, range), (s) => s.structureType === STRUCTURE_LINK && isControllerLinkPos(s.pos, room));
             if (site) return true;
             const zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, base.pos.y - range, base.pos.x - range,
                 base.pos.y + range, base.pos.x + range, true);
             for (let key in zoneTerrain) {
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
                 if (position.checkForAllStructure() || position.checkForImpassible() || position.isNearTo(room.controller)) continue;
+                if (!isControllerLinkPos(position, room)) continue;
                 if (tryCreateConstructionSite(position, STRUCTURE_LINK) === OK) return true;
             }
         }

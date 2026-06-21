@@ -11,11 +11,11 @@
 
 const {tickTracker} = require('planState');
 
-const {buildMissingStructures, buildAuxiliaryStructures} = require('planLayout');
+const {buildMissingStructures, buildAuxiliaryStructures, hasPendingLayoutStructures} = require('planLayout');
 
 const {findHub, findLabHub, findTowerHub} = require('planHub');
 
-const {planOwnedRoomRoads} = require('planOwnedRoads');
+const {planOwnedRoomRoads} = require('planRoads');
 
 function getNextRoom() {
     const rooms = MY_ROOMS.map(name => Game.rooms[name]).filter(r => r);
@@ -67,7 +67,9 @@ function buildRoom() {
             lastRun.task = 'auxiliary';
         }
 
-        if (room.storage) planOwnedRoomRoads(room);
+        if (room.storage) {
+            planOwnedRoomRoads(room, {layoutPending: hasPendingLayoutStructures(room)});
+        }
     } else {
         // Find hub if not already found
         findHub(room);

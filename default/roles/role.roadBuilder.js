@@ -4,7 +4,7 @@
 
 const profiler = require("tools.profiler");
 const {setRoadsBuiltFlag, canPlaceConstructionSite, tryCreateConstructionSite} = require('planUtils');
-const {findRoadPath, pathTilesNeedRoads} = require('planRoadPaths');
+const {findRoadPath, pathTilesNeedRoads} = require('planRoads');
 
 const PLACE_RESULT = {
     COMPLETE: 'complete',

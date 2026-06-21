@@ -34,11 +34,23 @@ function getStructureCounts(room) {
     return counts;
 }
 
+const LAYOUT_SKIP_TYPES = [STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD];
+
+function hasPendingLayoutStructures(room) {
+    const existingCounts = getStructureCounts(room);
+    const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
+    const skipTypes = room.memory.dynamicLayout ? [...LAYOUT_SKIP_TYPES, STRUCTURE_EXTENSION] : LAYOUT_SKIP_TYPES;
+    const level = room.controller.level;
+    return tmpl.some(s =>
+        !skipTypes.includes(s.structureType) &&
+        CONTROLLER_STRUCTURES[s.structureType][level] > (existingCounts[s.structureType] || 0)
+    );
+}
+
 function buildMissingStructures(room, level) {
     const existingCounts = getStructureCounts(room);
     const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
-    const skipTypes = [STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD];
-    if (room.memory.dynamicLayout) skipTypes.push(STRUCTURE_EXTENSION); // extensions placed separately
+    const skipTypes = room.memory.dynamicLayout ? [...LAYOUT_SKIP_TYPES, STRUCTURE_EXTENSION] : LAYOUT_SKIP_TYPES;
     const countCheck = tmpl.filter(s =>
         !skipTypes.includes(s.structureType) &&
         CONTROLLER_STRUCTURES[s.structureType][level] > (existingCounts[s.structureType] || 0)
@@ -104,5 +116,7 @@ module.exports = {
     buildMissingStructures,
 
     buildAuxiliaryStructures,
+
+    hasPendingLayoutStructures,
 
 };

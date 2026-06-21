@@ -1,4 +1,5 @@
 const profiler = require("tools.profiler");
+const {isControllerAreaLink} = require('planUtils');
 
 const CONTROLLER_LINK_RANGE = 3;
 const UPGRADER_STARVE_THRESHOLD = 0.65;
@@ -175,14 +176,15 @@ class LinkControl {
 
         let controllerLink = Game.getObjectById(room.memory.controllerLink);
         if (controllerLink && room.controller &&
-            controllerLink.pos.getRangeTo(room.controller) > CONTROLLER_LINK_RANGE) {
+            (controllerLink.pos.getRangeTo(room.controller) > CONTROLLER_LINK_RANGE
+                || !isControllerAreaLink(controllerLink, room))) {
             delete room.memory.controllerLink;
             controllerLink = undefined;
         }
 
         if (!controllerLink && room.controller) {
             const candidates = room.controller.pos.findInRange(links, CONTROLLER_LINK_RANGE)
-                .filter(l => l.isActive())
+                .filter(l => l.isActive() && isControllerAreaLink(l, room))
                 .sort((a, b) => a.pos.getRangeTo(room.controller) - b.pos.getRangeTo(room.controller));
             if (candidates.length) {
                 room.memory.controllerLink = candidates[0].id;

@@ -94,25 +94,25 @@ function isValidRampartPosition(position) {
 const ROAD_CACHE_TTL = 5000;
 
 function cacheRoad(room, from, to, path, profile = 'owned') {
-    const {cachePath} = require('planRoadPaths');
+    const {cachePath} = require('planRoads');
     cachePath(room, from, to, path, profile);
 }
 
 function getRoadCacheEntry(room, from, to, profile = 'owned') {
-    const {getCachedPath} = require('planRoadPaths');
+    const {getCachedPath} = require('planRoads');
     const path = getCachedPath(room, from, to, profile);
     if (!path) return;
     return {path: JSON.stringify(path), tick: Game.time};
 }
 
 function getRoad(room, from, to, profile = 'owned') {
-    const {getCachedPath} = require('planRoadPaths');
+    const {getCachedPath} = require('planRoads');
     const path = getCachedPath(room, from, to, profile);
     return path ? JSON.stringify(path) : undefined;
 }
 
 function isRoadPathComplete(room, from, to, profile = 'remote') {
-    const {getCachedPath, pathTilesNeedRoads} = require('planRoadPaths');
+    const {getCachedPath, pathTilesNeedRoads} = require('planRoads');
     const path = getCachedPath(room, from, to, profile);
     if (!path) return false;
     return !pathTilesNeedRoads(room, path, to);
@@ -128,6 +128,23 @@ function getPathKey(from, to) {
 
 function getPosKey(pos) {
     return pos.x + 'x' + pos.y;
+}
+
+function isRoadSatisfied(pos) {
+    if (pos.checkForRoad()) return true;
+    const site = pos.checkForConstructionSites();
+    return !!(site && site.structureType === STRUCTURE_ROAD);
+}
+
+function isRoadPlaceable(pos) {
+    if (pos.checkForRoad()) return false;
+    if (pos.checkForConstructionSites()) return false;
+    if (pos.checkForWall() || pos.checkForImpassible(true)) return false;
+    for (const s of pos.lookFor(LOOK_STRUCTURES)) {
+        if (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART) continue;
+        return false;
+    }
+    return true;
 }
 
 function findBestContainerPos(source) {
@@ -161,12 +178,25 @@ function isCoreHubTileValid(pos, room) {
 }
 
 
-function isSourceOrMineralPad(pos, room) {
-    if (room.mineral && pos.isNearTo(room.mineral)) return true;
+function isNearAnySource(pos, room, range = 1) {
     for (const source of room.sources) {
-        if (pos.isNearTo(source)) return true;
+        if (pos.getRangeTo(source.pos) <= range) return true;
     }
     return false;
+}
+
+function isAssignedSourceContainer(structure, room) {
+    if (!structure || !room) return false;
+    for (const source of room.sources) {
+        const containerId = source.memory.container || source.memory.containerID;
+        if (containerId && containerId === structure.id) return true;
+    }
+    return false;
+}
+
+function isSourceOrMineralPad(pos, room) {
+    if (room.mineral && pos.isNearTo(room.mineral)) return true;
+    return isNearAnySource(pos, room, 1);
 }
 
 function isControllerContainerPos(pos, room) {
@@ -180,11 +210,9 @@ function isNearController(pos, room, maxRange = 2) {
 
 function isSourceOrMineralContainer(structure, room) {
     if (!structure || !room) return false;
+    if (isAssignedSourceContainer(structure, room)) return true;
     if (room.mineral && structure.pos.isNearTo(room.mineral)) return true;
-    for (const source of room.sources) {
-        if (structure.pos.isNearTo(source)) return true;
-    }
-    return false;
+    return isNearAnySource(structure.pos, room, 1);
 }
 
 function isControllerAreaContainer(structure, room) {
@@ -192,6 +220,29 @@ function isControllerAreaContainer(structure, room) {
         && structure.structureType === STRUCTURE_CONTAINER
         && isNearController(structure.pos, room, 2)
         && !isSourceOrMineralContainer(structure, room);
+}
+
+const CONTROLLER_LINK_MAX_RANGE = 3;
+
+function isAssignedSourceLink(structure, room) {
+    if (!structure || !room || structure.structureType !== STRUCTURE_LINK) return false;
+    for (const source of room.sources) {
+        if (source.memory.link && source.memory.link === structure.id) return true;
+    }
+    return false;
+}
+
+function isControllerLinkPos(pos, room) {
+    if (!room.controller || pos.getRangeTo(room.controller) > CONTROLLER_LINK_MAX_RANGE) return false;
+    return !isNearAnySource(pos, room, 2);
+}
+
+function isControllerAreaLink(structure, room) {
+    return structure
+        && structure.structureType === STRUCTURE_LINK
+        && (!structure.isActive || structure.isActive())
+        && isControllerLinkPos(structure.pos, room)
+        && !isAssignedSourceLink(structure, room);
 }
 
 function controllerContainersNear(room) {
@@ -262,18 +313,15 @@ function controllerContainerSitesAdjacent(room) {
 function pickCanonicalControllerContainer(room, structures) {
     if (!structures.length) return null;
     const hub = room.hub;
-    const withStore = structures.filter((s) => s.store);
-    if (!withStore.length) return null;
-    const canonical = withStore.filter((s) => isControllerContainerPos(s.pos, room));
-    const pool = canonical.length ? canonical : withStore;
-    pool.sort((a, b) => {
-        const aCanon = isControllerContainerPos(a.pos, room) ? 0 : 1;
-        const bCanon = isControllerContainerPos(b.pos, room) ? 0 : 1;
-        if (aCanon !== bCanon) return aCanon - bCanon;
+    const candidates = structures.filter((s) =>
+        s.store && isControllerContainerPos(s.pos, room) && !isAssignedSourceContainer(s, room)
+    );
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => {
         if (!hub) return 0;
         return a.pos.findPathTo(hub).length - b.pos.findPathTo(hub).length;
     });
-    return pool[0];
+    return candidates[0];
 }
 
 function resolveControllerContainer(room, syncMemory = false) {
@@ -282,7 +330,7 @@ function resolveControllerContainer(room, syncMemory = false) {
     if (remembered && remembered.store && isControllerAreaContainer(remembered, room)) {
         return remembered;
     }
-    if (room.memory.controllerContainer && (!remembered || !remembered.store)) {
+    if (room.memory.controllerContainer) {
         room.memory.controllerContainer = undefined;
     }
 
@@ -447,6 +495,10 @@ module.exports = {
 
     getPosKey,
 
+    isRoadSatisfied,
+
+    isRoadPlaceable,
+
     findBestContainerPos,
 
     determineTowerDamage,
@@ -458,6 +510,10 @@ module.exports = {
     safeStructureMy,
 
     isControllerContainerPos,
+
+    isControllerLinkPos,
+
+    isControllerAreaLink,
 
     resolveControllerContainer,
 

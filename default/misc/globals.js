@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
@@ -14,14 +14,14 @@ let globals = function () {
     global.PRIORITIES = {
         // Harvesters
         stationaryHarvester: 1,
-        // Workers â€” upgrader sits a step ahead of drone so it wins ties at equal count.
+        // Workers — upgrader sits a step ahead of drone so it wins ties at equal count.
         // Drone/upgrader were both 6, with drone queued first in essentialCreepQueue. Stable
         // sort meant drone always took the first slot after leveling, leaving the controller
         // idle while extensions filled.
         upgrader: 6, drone: 5, mineralHarvester: 7,
-        // Haulers â€” slightly behind harvesters since they're gated by harvester presence
+        // Haulers — slightly behind harvesters since they're gated by harvester presence
         hauler: 2, miscHauler: 7,
-        // Remotes â€” harvesters before haulers (a hauler without a harvester does nothing)
+        // Remotes — harvesters before haulers (a hauler without a harvester does nothing)
         remoteHarvester: 4, remoteHauler: 5, roadBuilder: 7, fuelTruck: 8, reserver: 6,
         // Military
         defender: 3, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9
@@ -60,7 +60,7 @@ let globals = function () {
 
     // Ticks after global reset where we avoid heavy work and watch for cold-cache spikes.
     global.POST_RESET_DANGER_TICKS = 150;
-    // Spread heavy room intel (tower grids, areExitsReachable) — one room per slot, not all at once.
+    // Spread heavy room intel (tower grids, areExitsReachable) � one room per slot, not all at once.
     global.POST_RESET_HEAVY_INTEL_SPREAD = 150;
 
     global.isPostResetDangerWindow = function () {
@@ -141,47 +141,64 @@ let globals = function () {
         return {roads, visibleOwnedRooms: roomList.map((r) => r.name)};
     };
 
-    // Console: resumeOwnedRoads() — clears the planner pause from clearOwnedRoads().
+    // Console: resumeOwnedRoads() � clears the planner pause from clearOwnedRoads().
     global.resumeOwnedRoads = function () {
         delete Memory.pauseOwnedRoads;
         return {resumed: true, gameTime: Game.time};
     };
 
-    // Console: inspectOwnedRoads('E1N1') — diagnose why owned-room road sites are/aren't placing.
+    // Console: inspectOwnedRoads('E1N1') � diagnose why owned-room road sites are/aren't placing.
     global.inspectOwnedRoads = function (roomName) {
         const room = Game.rooms[roomName];
         if (!room) return {error: 'no vision', roomName};
-        const {getDesiredRoadTiles, diffRoadTiles, getRoadOrigin} = require('planOwnedRoads');
+        const {
+            getDesiredRoadTiles,
+            evaluateRoadPlan,
+            getRoadOrigin,
+            roadPlacementLimit,
+            countRoadConstructionSites
+        } = require('planRoads');
+        const {hasPendingLayoutStructures} = require('planLayout');
+        const plan = evaluateRoadPlan(room);
         const desired = getDesiredRoadTiles(room);
-        const diff = diffRoadTiles(room, desired);
         const intel = INTEL[roomName] || {};
+        const origin = getRoadOrigin(room);
         return {
             roomName,
             rcl: room.controller && room.controller.level,
             storage: !!room.storage,
             bunkerHub: room.memory.bunkerHub,
-            origin: getRoadOrigin(room) && {x: getRoadOrigin(room).x, y: getRoadOrigin(room).y},
+            origin: origin && {x: origin.x, y: origin.y},
+            originImpassible: origin && (origin.checkForWall() || origin.checkForImpassible(true)),
+            layoutTiles: plan.layout.size,
+            connectorTiles: plan.connector.size,
+            connectorRequired: plan.connectorRequired,
+            connectorMissing: plan.connectorMissing,
+            pathTargets: plan.stats.targetCount,
+            pathFailures: plan.stats.failedPaths,
             pauseOwnedRoads: Memory.pauseOwnedRoads,
             pauseActive: !!(Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time),
             roadsBuilt: intel.roadsBuilt,
             desiredTiles: desired.size,
-            missingPlaceable: diff.missing.length,
-            complete: diff.complete,
-            roadSites: room.constructionSites.filter(s => s.structureType === STRUCTURE_ROAD).length,
+            missingPlaceable: plan.missing.length,
+            complete: plan.complete,
+            roadSites: countRoadConstructionSites(room),
             totalSites: room.constructionSites.length,
             maxPerRoom: MAX_CONSTRUCTION_SITES_PER_ROOM || 10,
             siteBudget: Math.max(0, (MAX_CONSTRUCTION_SITES_PER_ROOM || 10) - room.constructionSites.length),
+            layoutPending: hasPendingLayoutStructures(room),
+            roadPlacementLimit: roadPlacementLimit(room, hasPendingLayoutStructures(room)),
             roomCapBlocking: room.constructionSites.length >= (MAX_CONSTRUCTION_SITES_PER_ROOM || 10),
             globalSites: _.size(Game.constructionSites),
             globalSiteCap: 100,
             sitesUntilCap: 100 - _.size(Game.constructionSites),
             globalCapBlocking: _.size(Game.constructionSites) >= 100,
-            staleRoadsBuilt: !!intel.roadsBuilt && !diff.complete,
-            sampleMissing: diff.missing.slice(0, 5).map(p => `${p.x},${p.y}`),
+            staleRoadsBuilt: !!intel.roadsBuilt && !plan.complete,
+            sampleMissing: plan.missing.slice(0, 5).map(p => `${p.x},${p.y}`),
         };
     };
 
-    // Console: resetOwnedRoadFlags('E1N1') — clear stale roadsBuilt / pause without destroying roads.
+    // Console: resetOwnedRoadFlags('E1N1') � clear stale roadsBuilt / pause without destroying roads.
     global.resetOwnedRoadFlags = function (roomName) {
         delete Memory.pauseOwnedRoads;
         const rooms = roomName ? [roomName] : (MY_ROOMS || []);
@@ -195,7 +212,7 @@ let globals = function () {
         return {reset: rooms, pauseCleared: true};
     };
 
-    // Console: clearOwnedRoads() or clearOwnedRoads('E1N1') — needs vision in target room(s).
+    // Console: clearOwnedRoads() or clearOwnedRoads('E1N1') � needs vision in target room(s).
     global.clearOwnedRoads = function (pauseTicks = 500, roomName) {
         let destroyed = 0;
         let failed = 0;
@@ -291,7 +308,7 @@ let globals = function () {
         return {walls, ramparts, barriers: walls.concat(ramparts), visibleOwnedRooms: roomList.map((r) => r.name)};
     };
 
-    // Console: clearOwnedBarriers() or clearOwnedBarriers('E1N1') — needs vision in target room(s).
+    // Console: clearOwnedBarriers() or clearOwnedBarriers('E1N1') � needs vision in target room(s).
     global.clearOwnedBarriers = function (roomName) {
         const types = [STRUCTURE_WALL, STRUCTURE_RAMPART];
         let destroyed = 0;
@@ -384,7 +401,7 @@ let globals = function () {
         return !!(Memory._corruptFindRooms && Memory._corruptFindRooms[room.name]);
     };
 
-    // Safe substitute for room.find(FIND_STRUCTURES) on corrupt rooms — one empire scan per tick.
+    // Safe substitute for room.find(FIND_STRUCTURES) on corrupt rooms � one empire scan per tick.
     global.roomStructuresFromGame = function (room) {
         if (!room) return [];
         global.ensureStructureRoomCaches();
@@ -453,7 +470,7 @@ let globals = function () {
         return pos.getRangeTo(obj) <= range;
     }
 
-    // Safe substitutes for room.find(FIND_MY_STRUCTURES) / pos.findInRange(FIND_STRUCTURES, …)
+    // Safe substitutes for room.find(FIND_MY_STRUCTURES) / pos.findInRange(FIND_STRUCTURES, �)
     global.roomMyStructures = function (room, opts) {
         if (!room) return [];
         const filter = opts && opts.filter;
@@ -614,7 +631,7 @@ let globals = function () {
     global.BOOST_AMOUNT = function (room, boost) {
         const base = room.level === 6 ? 5000 : room.level === 7 ? 25000 : 50000;
         if (!boost) return base;
-        // T3 is the end-goal stockpile (largest target). T1/T2 are intermediate â€”
+        // T3 is the end-goal stockpile (largest target). T1/T2 are intermediate —
         // we want plenty for conversion and direct-use boosting, but at half the volume.
         if (LAB_WAR_PRIORITY.includes(boost) || LAB_PEACE_PRIORITY.includes(boost) || BUY_THESE_BOOSTS.includes(boost)) return base * 2;
         if (TIER_3_BOOSTS.includes(boost) || BASE_COMPOUNDS.includes(boost)) return base;
@@ -1221,7 +1238,7 @@ let globals = function () {
             }
         }
 
-        // O(n) BFS with a head pointer â€” avoids O(nÂ²) splice-per-level
+        // O(n) BFS with a head pointer — avoids O(n²) splice-per-level
         let head = 0;
         while (head < queue.length) {
             const [x, y] = queue[head++];
