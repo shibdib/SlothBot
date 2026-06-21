@@ -5,6 +5,8 @@
  *
  * - Strategic picks use global priority then Chebyshev distance (not distance-only)
  * - Cross-observer dedup: skip rooms already in-flight on any observer
+ * - Cross-observer recently-observed TTL: skip rooms another observer refreshed recently
+ * - Strategic picks skip fresh intel unless priority >= HIGH_PRIORITY
  * - Heavy intel refresh for claim corridor / expansion scouts (hubCheck + cached)
  * - Highway, active remotes, early-warning exits, and auxiliary scout ops in target pool
  * - Background/exploratory sweep now reliably refreshes very old intel (BACKGROUND_STALE_TICKS window)
@@ -24,6 +26,7 @@ const TUNING = {
     PRUNE_INTERVAL_TICKS: 1500,
     MAX_OBSERVE_RETRIES: 3,
     HIGH_PRIORITY: 85,
+    RECENTLY_OBSERVED_TICKS: 75,
     HIGH_STRATEGIC_FOR_RANDOM: 50,    // below this, prefer background oldest-intel maintenance over low-prio strategic
     HEAVY_INTEL_TICKS: CREEP_LIFE_TIME * 5,
     ACTIVE_REMOTE_WINDOW: 500,
@@ -113,6 +116,7 @@ class ObserverControl {
             const forceHeavy = priority >= 88 || needsHeavyIntel(INTEL[previous], currentTime);
             observed.cacheRoomIntel(forceHeavy);
             observer.operationPlanner(observed);
+            markRecentlyObserved(state, previous, currentTime);
             delete state.observedRooms[roomName];
             delete state.observeAttempts[roomName];
             return true;
@@ -205,10 +209,13 @@ class ObserverControl {
             if (!pos) continue;
             if (hasCreepVision(target, currentTime)) continue;
             if (inFlight.has(target)) continue;
+            if (isRecentlyObserved(target, currentTime, state)) continue;
+            const priority = priorities[target] || 0;
+            if (priority < TUNING.HIGH_PRIORITY && !isIntelStale(INTEL[target], currentTime)) continue;
             const dist = chebyshev(base, pos);
             if (dist > OBSERVER_RANGE) continue;
             if (roomStatus(target) === 'closed') continue;
-            reachable.push({target, dist, priority: priorities[target] || 0});
+            reachable.push({target, dist, priority});
         }
 
         reachable.sort((a, b) => b.priority - a.priority || a.dist - b.dist);
@@ -349,6 +356,7 @@ class ObserverControl {
             if (roomStatus(target) === 'closed') continue;
             if (hasCreepVision(target, currentTime)) continue;
             if (inFlight.has(target)) continue;
+            if (isRecentlyObserved(target, currentTime, state)) continue;
 
             const intel = INTEL[target];
             // Background maintenance: only rooms whose intel is older than the background window
@@ -404,6 +412,7 @@ class ObserverControl {
         if (!s.lastRun) s.lastRun = {};
         if (!s.lastEmptySweep) s.lastEmptySweep = {};
         if (!s.observeAttempts) s.observeAttempts = {};
+        if (!s.recentlyObserved) s.recentlyObserved = {};
         return s;
     }
 
@@ -411,6 +420,7 @@ class ObserverControl {
         const owned = global.MY_ROOMS;
         if (!owned || !owned.length) return;
         const ownedSet = new Set(owned);
+        pruneRecentlyObserved(state, Game.time);
         for (const bucket of [
             state.observedRooms,
             state.manualIssued,
@@ -458,6 +468,33 @@ function getInFlightTargets(state) {
     return inFlight;
 }
 
+
+function markRecentlyObserved(state, targetRoom, currentTime) {
+    if (!state.recentlyObserved) state.recentlyObserved = {};
+    state.recentlyObserved[targetRoom] = currentTime;
+}
+
+function pruneRecentlyObserved(state, currentTime) {
+    const bucket = state.recentlyObserved;
+    if (!bucket) return;
+    for (const roomName in bucket) {
+        if (currentTime - (bucket[roomName] | 0) > TUNING.RECENTLY_OBSERVED_TICKS) {
+            delete bucket[roomName];
+        }
+    }
+}
+
+function isRecentlyObserved(target, currentTime, state) {
+    const bucket = state.recentlyObserved;
+    if (!bucket) return false;
+    const tick = bucket[target];
+    if (!tick) return false;
+    if (currentTime - tick > TUNING.RECENTLY_OBSERVED_TICKS) {
+        delete bucket[target];
+        return false;
+    }
+    return true;
+}
 function isIntelStale(intel, currentTime) {
     // Short-horizon "reactive" staleness for urgent things (power banks, active threats, etc.).
     // Background/exploratory maintenance of ancient intel uses BACKGROUND_STALE_TICKS instead.
