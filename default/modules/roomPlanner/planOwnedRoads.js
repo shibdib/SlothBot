@@ -1,42 +1,20 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  *
- * Owned-room road planning: desired tile set, site placement, cleanup, completion.
+ * Owned-room roads: layout template tiles + paths from hub to towers, sources,
+ * controller, mineral, and exit centers. Self-contained — remote roads stay in planRoadPaths.js.
  */
 
-const {bunkerTemplate} = require('planTemplates');
-const {getExtensionPositions} = require('planExtensions');
+const {bunkerTemplate, coreTemplate} = require('planTemplates');
+const {getCorridorPositions} = require('planExtensions');
 const {
     setRoadsBuiltFlag,
     resolveSourceContainer,
     canPlaceConstructionSite,
-    tryCreateConstructionSite
+    tryCreateConstructionSite,
 } = require('planUtils');
-const {findRoadPath} = require('planRoadPaths');
 
 const MAX_SITES_PER_TICK = 5;
-const CLEANUP_COOLDOWN = 5000;
-
-const ROAD_CONNECT_TYPES = new Set([
-    STRUCTURE_EXTENSION,
-    STRUCTURE_SPAWN,
-    STRUCTURE_TOWER,
-    STRUCTURE_FACTORY,
-    STRUCTURE_POWER_SPAWN,
-    STRUCTURE_NUKER,
-    STRUCTURE_LAB,
-    STRUCTURE_LINK,
-    STRUCTURE_EXTRACTOR,
-]);
-
-const BUNKER_LAYOUT_ROAD_TYPES = new Set([
-    STRUCTURE_EXTENSION,
-    STRUCTURE_SPAWN,
-    STRUCTURE_FACTORY,
-    STRUCTURE_POWER_SPAWN,
-    STRUCTURE_NUKER,
-    STRUCTURE_LINK,
-]);
 
 const EXIT_DIRS = {
     '1': FIND_EXIT_TOP,
@@ -44,6 +22,8 @@ const EXIT_DIRS = {
     '5': FIND_EXIT_BOTTOM,
     '7': FIND_EXIT_LEFT,
 };
+
+const matrixCache = {room: null, tick: 0, matrix: null};
 
 function tileKey(x, y) {
     return `${x}x${y}`;
@@ -64,10 +44,155 @@ function getRoadOrigin(room) {
     return room.spawns[0] || null;
 }
 
+function buildRoadMatrix(room) {
+    if (matrixCache.room === room.name && matrixCache.tick === Game.time) return matrixCache.matrix;
+
+    const costs = new PathFinder.CostMatrix();
+    const terrain = Game.map.getRoomTerrain(room.name);
+
+    for (let y = 0; y < 50; y++) {
+        for (let x = 0; x < 50; x++) {
+            const tile = terrain.get(x, y);
+            if (tile === TERRAIN_MASK_WALL) costs.set(x, y, 255);
+            else if (tile === TERRAIN_MASK_SWAMP) costs.set(x, y, 60);
+            else costs.set(x, y, 20);
+        }
+    }
+
+    for (const structure of room.structures) {
+        if (structure.structureType === STRUCTURE_ROAD) costs.set(structure.pos.x, structure.pos.y, 1);
+        else if (structure.structureType === STRUCTURE_CONTAINER) costs.set(structure.pos.x, structure.pos.y, 100);
+        else if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) costs.set(structure.pos.x, structure.pos.y, 255);
+    }
+    for (const site of room.constructionSites) {
+        if (site.structureType === STRUCTURE_ROAD) costs.set(site.pos.x, site.pos.y, 1);
+    }
+
+    matrixCache.room = room.name;
+    matrixCache.tick = Game.time;
+    matrixCache.matrix = costs;
+    return costs;
+}
+
+function pathTiles(room, from, to) {
+    const begin = from instanceof RoomPosition ? from : from.pos;
+    const end = to instanceof RoomPosition ? to : to.pos;
+    const result = PathFinder.search(begin, {pos: end, range: 1}, {
+        heuristicWeight: 0.8,
+        maxRooms: 1,
+        roomCallback: () => buildRoadMatrix(room),
+    });
+    if (result.incomplete || !result.path.length) return [];
+    return result.path.filter(p => (p.roomName || room.name) === room.name);
+}
+
 function getMiddleExitTile(room, exitConstant) {
     const exits = room.find(exitConstant);
-    if (!exits.length) return undefined;
+    if (!exits.length) return null;
     return exits[Math.floor((exits.length - 1) / 2)];
+}
+
+function getRoadTargets(room) {
+    const targets = [];
+    const seen = new Set();
+    const add = (pos) => {
+        if (!pos) return;
+        const key = tileKey(pos.x, pos.y);
+        if (seen.has(key)) return;
+        seen.add(key);
+        targets.push(pos);
+    };
+
+    for (const tower of room.towers) add(tower.pos);
+    if (room.memory.towerHubs) {
+        for (const {x, y} of room.memory.towerHubs) {
+            add(new RoomPosition(x, y, room.name));
+        }
+    }
+
+    for (const source of room.sources) {
+        const container = resolveSourceContainer(source, room);
+        add(container ? container.pos : source.pos);
+    }
+
+    const controllerContainer = global.resolveControllerContainer(room);
+    if (controllerContainer) add(controllerContainer.pos);
+    else if (room.controller) add(room.controller.pos);
+
+    if (room.level >= 6) {
+        const extractorContainer = Game.getObjectById(room.memory.extractorContainer);
+        if (extractorContainer) add(extractorContainer.pos);
+        else if (room.mineral) add(room.mineral.pos);
+    }
+
+    const neighboring = Game.map.describeExits(room.name);
+    if (neighboring) {
+        for (const direction in EXIT_DIRS) {
+            if (!neighboring[direction]) continue;
+            add(getMiddleExitTile(room, EXIT_DIRS[direction]));
+        }
+    }
+
+    return targets;
+}
+
+function getHubPadTiles(room) {
+    const tiles = new Set();
+    if (!room.hub) return tiles;
+
+    const coreKeys = new Set();
+    for (const entry of coreTemplate) {
+        for (const {x, y} of entry.pos) {
+            coreKeys.add(tileKey(room.hub.x + x, room.hub.y + y));
+        }
+    }
+
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+    for (const key of coreKeys) {
+        const [cx, cy] = key.split('x').map(Number);
+        for (const [dx, dy] of dirs) {
+            const neighbor = tileKey(cx + dx, cy + dy);
+            if (!coreKeys.has(neighbor)) tiles.add(neighbor);
+        }
+    }
+    return tiles;
+}
+
+function getLayoutRoadTiles(room) {
+    const tiles = new Set();
+    if (!room.hub) return tiles;
+
+    if (room.memory.dynamicLayout) {
+        for (const {x, y} of getCorridorPositions(room)) tiles.add(tileKey(x, y));
+        for (const key of getHubPadTiles(room)) tiles.add(key);
+        return tiles;
+    }
+
+    for (const entry of bunkerTemplate) {
+        if (entry.structureType !== STRUCTURE_ROAD) continue;
+        for (const offset of entry.pos) {
+            tiles.add(tileKey(room.hub.x + offset.x, room.hub.y + offset.y));
+        }
+    }
+    return tiles;
+}
+
+function getConnectorRoadTiles(room) {
+    const tiles = new Set();
+    const origin = getRoadOrigin(room);
+    if (!origin) return tiles;
+    for (const target of getRoadTargets(room)) {
+        for (const step of pathTiles(room, origin, target)) {
+            tiles.add(tileKey(step.x, step.y));
+        }
+    }
+    return tiles;
+}
+
+function isRoadSatisfied(pos) {
+    if (pos.checkForRoad()) return true;
+    const site = pos.checkForConstructionSites();
+    return !!(site && site.structureType === STRUCTURE_ROAD);
 }
 
 function isRoadPlaceable(pos) {
@@ -81,186 +206,40 @@ function isRoadPlaceable(pos) {
     return true;
 }
 
-function isRoadSatisfied(pos) {
-    if (pos.checkForRoad()) return true;
-    const site = pos.checkForConstructionSites();
-    return !!(site && site.structureType === STRUCTURE_ROAD);
-}
-
-function getLayout(room) {
-    return room.memory.dynamicLayout ? null : bunkerTemplate;
-}
-
-function addLayoutRoadTiles(tiles, room, layout) {
-    if (!layout || !room.hub) return;
-    for (const entry of layout) {
-        if (entry.structureType !== STRUCTURE_ROAD) continue;
-        for (const offset of entry.pos) {
-            tiles.add(tileKey(room.hub.x + offset.x, room.hub.y + offset.y));
-        }
-    }
-}
-
-function collectStructureTargets(room, layout) {
-    const seen = new Set();
-    const targets = [];
-    const add = (pos) => {
-        if (!pos) return;
-        const key = tileKey(pos.x, pos.y);
-        if (seen.has(key)) return;
-        seen.add(key);
-        targets.push(pos);
-    };
-
-    const skipType = (type) => layout && BUNKER_LAYOUT_ROAD_TYPES.has(type);
-
-    for (const structure of room.structures) {
-        if (!ROAD_CONNECT_TYPES.has(structure.structureType) || skipType(structure.structureType)) continue;
-        add(structure.pos);
-    }
-    for (const site of room.constructionSites) {
-        if (!ROAD_CONNECT_TYPES.has(site.structureType) || skipType(site.structureType)) continue;
-        add(site.pos);
-    }
-    if (room.memory.dynamicLayout) {
-        for (const {x, y} of getExtensionPositions(room)) {
-            add(new RoomPosition(x, y, room.name));
-        }
-    }
-    return targets;
-}
-
-function getConnectorTargets(room) {
-    const layout = getLayout(room);
-    const targets = collectStructureTargets(room, layout);
-
-    for (const source of room.sources) {
-        const container = resolveSourceContainer(source, room);
-        if (container) targets.push(container.pos);
-        else targets.push(source.pos);
-    }
-
-    const controllerContainer = global.resolveControllerContainer(room);
-    if (controllerContainer) targets.push(controllerContainer.pos);
-    else if (room.controller) targets.push(room.controller.pos);
-
-    const neighboring = Game.map.describeExits(room.name);
-    if (neighboring) {
-        for (const direction in EXIT_DIRS) {
-            if (!neighboring[direction]) continue;
-            const exitTile = getMiddleExitTile(room, EXIT_DIRS[direction]);
-            if (exitTile) targets.push(exitTile);
-        }
-    }
-
-    if (room.level >= 6) {
-        const extractorContainer = Game.getObjectById(room.memory.extractorContainer);
-        if (extractorContainer) targets.push(extractorContainer.pos);
-        else if (room.mineral) targets.push(room.mineral.pos);
-    }
-
-    return targets;
-}
-
-function addPathTiles(tiles, room, origin, target) {
-    const path = findRoadPath(room, origin, target, 'owned');
-    if (!path) return;
-    for (const point of path) {
-        if ((point.roomName || room.name) !== room.name) continue;
-        tiles.add(tileKey(point.x, point.y));
-    }
-}
-
-function addRampartPatrolTiles(tiles, room) {
-    if (room.level < 7) return;
-    if (ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name]) {
-        const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
-        if (ramparts) {
-            for (const p of ramparts) {
-                const pos = new RoomPosition(p.x, p.y, room.name);
-                if (pos.checkForRampart()) tiles.add(tileKey(p.x, p.y));
-            }
-        }
-    }
-    for (const rampart of room.ramparts) {
-        tiles.add(tileKey(rampart.pos.x, rampart.pos.y));
-    }
-}
-
-function getDesiredRoadTiles(room) {
-    const tiles = new Set();
-    const layout = getLayout(room);
-    const origin = getRoadOrigin(room);
-
-    addLayoutRoadTiles(tiles, room, layout);
-
-    if (origin) {
-        for (const target of getConnectorTargets(room)) {
-            addPathTiles(tiles, room, origin, target);
-        }
-    }
-
-    addRampartPatrolTiles(tiles, room);
-    return tiles;
-}
-
-function diffRoadTiles(room, desired) {
+function missingTiles(room, tileSets) {
     const missing = [];
     let complete = true;
-    for (const key of desired) {
-        const [x, y] = key.split('x').map(Number);
-        const pos = new RoomPosition(x, y, room.name);
-        if (isRoadSatisfied(pos)) continue;
-        complete = false;
-        if (isRoadPlaceable(pos)) missing.push(pos);
+    const seen = new Set();
+
+    for (const set of tileSets) {
+        for (const key of set) {
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const [x, y] = key.split('x').map(Number);
+            const pos = new RoomPosition(x, y, room.name);
+            if (isRoadSatisfied(pos)) continue;
+            complete = false;
+            if (isRoadPlaceable(pos)) missing.push(pos);
+        }
     }
     return {missing, complete};
 }
 
+function getDesiredRoadTiles(room) {
+    const connector = getConnectorRoadTiles(room);
+    const layout = getLayoutRoadTiles(room);
+    const all = new Set([...connector, ...layout]);
+    return all;
+}
+
 function isRoadPlanComplete(room) {
-    return diffRoadTiles(room, getDesiredRoadTiles(room)).complete;
+    const connector = getConnectorRoadTiles(room);
+    const layout = getLayoutRoadTiles(room);
+    return missingTiles(room, [connector, layout]).complete;
 }
 
-function countRoadSites(room) {
-    let n = 0;
-    for (const site of room.constructionSites) {
-        if (site.structureType === STRUCTURE_ROAD) n++;
-    }
-    return n;
-}
-
-function createRoadSite(pos, room) {
-    if (pos.roomName !== room.name || !Game.rooms[pos.roomName]) return ERR_INVALID_ARGS;
-    if (!isRoadPlaceable(pos)) return ERR_INVALID_TARGET;
-    return tryCreateConstructionSite(pos, STRUCTURE_ROAD);
-}
-
-function placeRoadSites(room, missing) {
-    let placed = 0;
-    for (const pos of missing) {
-        if (placed >= MAX_SITES_PER_TICK) break;
-        if (!canPlaceConstructionSite(room)) break;
-        const result = createRoadSite(pos, room);
-        if (result === OK) placed++;
-        else if (result === ERR_FULL) break;
-    }
-    return placed;
-}
-
-function cleanupStrayRoads(room, desired) {
-    const lastReset = Memory.lastGlobalReset;
-    if (lastReset && lastReset + CLEANUP_COOLDOWN > Game.time) return;
-    for (const road of room.roads) {
-        if (!desired.has(tileKey(road.pos.x, road.pos.y))) road.destroy();
-    }
-}
-
-function cleanupRoadsOnImpassible(room) {
-    const bad = _.filter(room.impassibleStructures, s => s.pos.checkForRoad());
-    if (!bad.length) return;
-    const {clearRoomPathCache} = require('planRoadPaths');
-    clearRoomPathCache(room.name, 'owned');
-    bad.forEach(s => s.pos.checkForRoad().destroy());
+function diffRoadTiles(room, desired) {
+    return missingTiles(room, [desired]);
 }
 
 function planOwnedRoomRoads(room) {
@@ -270,15 +249,18 @@ function planOwnedRoomRoads(room) {
     }
     if (Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time) return false;
 
-    cleanupRoadsOnImpassible(room);
+    const connector = getConnectorRoadTiles(room);
+    const layout = getLayoutRoadTiles(room);
+    const {missing, complete} = missingTiles(room, [connector, layout]);
 
-    const desired = getDesiredRoadTiles(room);
-    const {missing, complete} = diffRoadTiles(room, desired);
-    const placed = placeRoadSites(room, missing);
+    let placed = 0;
+    for (const pos of missing) {
+        if (placed >= MAX_SITES_PER_TICK) break;
+        if (!canPlaceConstructionSite(room)) break;
+        if (tryCreateConstructionSite(pos, STRUCTURE_ROAD) === OK) placed++;
+    }
 
-    if (complete) cleanupStrayRoads(room, desired);
     setRoadsBuiltFlag(room, complete ? true : undefined);
-
     return placed > 0;
 }
 
@@ -288,5 +270,4 @@ module.exports = {
     getDesiredRoadTiles,
     isRoadPlanComplete,
     diffRoadTiles,
-    cleanupRoadsOnImpassible,
 };

@@ -77,10 +77,14 @@ class LinkControl {
 
         const policy = buildLinkPolicy(room, hubLink, controllerLink);
 
+        let hubFreeRemaining = hubLink ? hubLink.store.getFreeCapacity(RESOURCE_ENERGY) : 0;
+
         if (controllerLink && !controllerLink.cooldown && hubLink && !hubLink.cooldown &&
             policy.recycleControllerSurplus &&
-            hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-            controllerLink.transferEnergy(hubLink);
+            hubFreeRemaining > 0) {
+            if (controllerLink.transferEnergy(hubLink) === OK) {
+                hubFreeRemaining = hubLink.store.getFreeCapacity(RESOURCE_ENERGY);
+            }
         }
 
         if (controllerLink && hubLink && !hubLink.cooldown &&
@@ -88,7 +92,9 @@ class LinkControl {
             policy.needsControllerDrip &&
             hubLink.store.getUsedCapacity(RESOURCE_ENERGY) >= HUB_DRIP_MIN &&
             controllerLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-            hubLink.transferEnergy(controllerLink);
+            if (hubLink.transferEnergy(controllerLink) === OK) {
+                hubFreeRemaining = hubLink.store.getFreeCapacity(RESOURCE_ENERGY);
+            }
         }
 
         const sourceLinks = allLinks.filter(l =>
@@ -96,11 +102,22 @@ class LinkControl {
             l.id !== room.memory.controllerLink &&
             !l.cooldown &&
             l.store[RESOURCE_ENERGY] > 0
-        );
+        ).sort((a, b) => b.store[RESOURCE_ENERGY] - a.store[RESOURCE_ENERGY]);
 
+        let hubInboundThisTick = false;
         for (const link of sourceLinks) {
-            const target = this.pickSourceDestination(link, controllerLink, hubLink, room, policy);
-            if (target) link.transferEnergy(target);
+            const target = this.pickSourceDestination(link, controllerLink, hubLink, room, policy, {
+                hubFreeRemaining,
+                allowHubInbound: !hubInboundThisTick,
+            });
+            if (!target) continue;
+            const amount = link.store[RESOURCE_ENERGY];
+            if (target === hubLink && amount > hubFreeRemaining) continue;
+            if (link.transferEnergy(target) !== OK) continue;
+            if (target === hubLink) {
+                hubInboundThisTick = true;
+                hubFreeRemaining = Math.max(0, hubFreeRemaining - amount);
+            }
         }
 
         if (controllerLink && !controllerLink.cooldown && hubLink && !room.energyState &&
@@ -109,12 +126,17 @@ class LinkControl {
         }
     }
 
-    pickSourceDestination(link, controllerLink, hubLink, room, policy) {
+    pickSourceDestination(link, controllerLink, hubLink, room, policy, options = {}) {
         const carrying = link.store.getUsedCapacity(RESOURCE_ENERGY);
         const cFree = controllerLink ? controllerLink.store.getFreeCapacity(RESOURCE_ENERGY) : 0;
-        const hFree = hubLink ? hubLink.store.getFreeCapacity(RESOURCE_ENERGY) : 0;
+        const hFree = options.hubFreeRemaining != null
+            ? options.hubFreeRemaining
+            : (hubLink ? hubLink.store.getFreeCapacity(RESOURCE_ENERGY) : 0);
         const cEnergy = controllerLink ? controllerLink.store.getUsedCapacity(RESOURCE_ENERGY) : 0;
-        const canSendToHub = hubLink && hubLink.id !== link.id && hFree >= carrying;
+        const allowHubInbound = options.allowHubInbound !== false;
+        const hubFill = hubLink ? (LINK_CAPACITY - hFree) / LINK_CAPACITY : 0;
+        const hubSaturated = hubFill >= HUB_OVERFLOW_RATIO;
+        const canSendToHub = allowHubInbound && hubLink && hubLink.id !== link.id && hFree >= carrying;
         const canSendToController = controllerLink && cFree >= carrying && cEnergy < policy.controllerTarget;
 
         if (!room.energyState) {
@@ -132,7 +154,7 @@ class LinkControl {
             return canSendToController ? controllerLink : null;
         }
 
-        if (canSendToHub && !policy.hubSaturated) return hubLink;
+        if (canSendToHub && !hubSaturated) return hubLink;
 
         if (policy.allowControllerOverflow && canSendToController) return controllerLink;
         if (policy.upgraderStarved && canSendToController) return controllerLink;
