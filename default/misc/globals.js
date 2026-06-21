@@ -198,6 +198,35 @@ let globals = function () {
         };
     };
 
+    // pruneExcessOwnedRoads('E31S16') preview | pruneExcessOwnedRoads('E31S16', false) destroy
+    global.pruneExcessOwnedRoads = function (roomName, dryRun = true) {
+        const room = Game.rooms[roomName];
+        if (!room || !room.controller || !room.controller.my) return {error: 'need vision in owned room', roomName};
+        const desired = require('planRoads').getDesiredRoadTiles(room);
+        const tileKey = (pos) => pos.x + 'x' + pos.y;
+        const roads = room.roads || [];
+        const excess = roads.filter((s) => !desired.has(tileKey(s.pos)));
+        const excessSites = room.constructionSites.filter((s) =>
+            s.structureType === STRUCTURE_ROAD && !desired.has(tileKey(s.pos)));
+        if (dryRun) {
+            return {
+                dryRun: true, roomName, built: roads.length, desired: desired.size,
+                excess: excess.length, excessSites: excessSites.length,
+                run: "pruneExcessOwnedRoads('" + roomName + "', false)",
+            };
+        }
+        let destroyed = 0, failed = 0, sites = 0;
+        for (const s of excess) (s.destroy() === OK ? destroyed++ : failed++);
+        for (const site of excessSites) if (site.remove() === OK) sites++;
+        if (INTEL[roomName]) {
+            delete INTEL[roomName].roadsBuilt;
+            delete INTEL[roomName].roadCount;
+        }
+        if (global.ROAD_CACHE_OWNED) global.ROAD_CACHE_OWNED[roomName] = undefined;
+        if (global.invalidateStructureRoomCaches) global.invalidateStructureRoomCaches();
+        return {roomName, destroyed, failed, sites, kept: roads.length - destroyed};
+    };
+
     // Console: resetOwnedRoadFlags('E1N1') � clear stale roadsBuilt / pause without destroying roads.
     global.resetOwnedRoadFlags = function (roomName) {
         delete Memory.pauseOwnedRoads;
