@@ -288,7 +288,7 @@ function minionController(minion) {
         const _ri = INTEL[minion.room.name];
         if (!_ri || _ri.microUpdate + 150 < Game.time || !_ri.cached) {
             minion.room.invaderCheck();
-            minion.room.cacheRoomIntel(false, minion);
+            minion.room.cacheRoomIntel();
         }
     }
     // Run role

@@ -342,7 +342,7 @@ class RoleExplorer {
         // get properly recorded in INTEL (heavy data like towerData, ramparts, hubCheck etc.).
         // This helps future targeting, highCommand, remotes, etc.
         if (this.room) {
-            this.room.cacheRoomIntel(true);
+            this.room.cacheRoomIntel();
         }
 
         if (SIGN_ROOMS && this.creep.memory.lastRoom !== this.room.name) {

@@ -484,15 +484,19 @@ function getRoomResource(room, resource, unused = false) {
     return count;
 }
 
-Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
+Room.prototype.cacheRoomIntel = function (force = false) {
     const currentTime = Game.time;
-    const roomIntel = INTEL[this.name] || {name: this.name, shardName: Game.shard.name};
+    if (!INTEL[this.name]) INTEL[this.name] = {name: this.name, shardName: Game.shard.name};
+    const roomIntel = INTEL[this.name];
     roomIntel.lastObservation = currentTime;
     roomIntel.safemode = this.controller && this.controller.safeMode ? currentTime + this.controller.safeMode : undefined;
 
-    // SK rooms — detect before light update so tower logic below sees fresh sk, and so
-    // skDangerPoints exist for no-vision pathing without waiting for the heavy cadence.
-    roomIntel.sk = this.structures.some(s => s.structureType === STRUCTURE_KEEPER_LAIR);
+    // SK rooms — lairs in vision, or sector layout (x/y % 10 === 4). Name-based detection must
+    // stick: structure caches on some servers omit keeper lairs and were clearing sk, which let
+    // remote harvesters spawn into SK rooms without an SKAttacker.
+    const hasKeeperLairs = this.structures.some(s => s.structureType === STRUCTURE_KEEPER_LAIR);
+    const nameIsSk = global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(this.name);
+    roomIntel.sk = hasKeeperLairs || nameIsSk;
     if (roomIntel.sk) {
         const seen = new Set();
         const points = [];
@@ -509,6 +513,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     } else {
         delete roomIntel.skDangerPoints;
     }
+    INTEL[this.name] = roomIntel;
 
     // === LIGHT UPDATE (every ~150 ticks) ===
     if (!roomIntel.microUpdate || roomIntel.microUpdate + 150 < currentTime) {
@@ -532,7 +537,11 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
             const newOwner = this.controller.owner?.username;
             if (newOwner !== roomIntel.owner) roomIntel.ownerChanged = true;
             roomIntel.owner = newOwner;
-            if (roomIntel.owner) roomIntel.attackDirection = determineBestAttackRoute(this);
+            if (roomIntel.owner) {
+                if (roomIntel.ownerChanged) roomIntel.attackDirection = determineBestAttackRoute(this);
+            } else {
+                delete roomIntel.attackDirection;
+            }
             roomIntel.reservation = this.controller.reservation?.username;
 
             // Fast-changing strength signals — refreshed every light update (~150 ticks) so
@@ -552,11 +561,16 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
                 delete roomIntel.ticksToDowngrade;
                 delete roomIntel.controllerProgress;
             }
+
+            if (roomIntel.ownerChanged) {
+                roomIntel.obstacles = !areExitsReachable(this);
+                roomIntel.ownerChanged = undefined;
+            }
         }
 
         // Highway intel
         if (this.sources.length === 0) {
-            const commodityDeposit = deposits.find(d => d.ticksToDecay >= 2000);
+            const commodityDeposit = _.max(deposits.filter(d => d.ticksToDecay >= 2000), d => d.ticksToDecay);
             roomIntel.commodity = commodityDeposit?.depositType;
             roomIntel.commodityCooldown = commodityDeposit?.lastCooldown;
             const powerBank = structures.find(s => s.structureType === STRUCTURE_POWER_BANK);
@@ -566,6 +580,11 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
                 destination: portal.destination,
                 ticks: portal.ticksToDecay
             }) : undefined;
+        } else {
+            roomIntel.commodity = undefined;
+            roomIntel.commodityCooldown = undefined;
+            roomIntel.power = undefined;
+            roomIntel.portal = undefined;
         }
 
         // Armed hostiles
@@ -633,6 +652,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         INTEL[this.name] = roomIntel;
         if (global.updateIntelIndex) global.updateIntelIndex(this.name, oldLight, roomIntel);
     }
+    INTEL[this.name] = roomIntel;
 
     // === HEAVY UPDATE (forced, or by cadence) ===
     // My rooms refresh on CREEP_LIFE_TIME so rampart/spawn data stays fresh for MY_STRENGTH
@@ -663,7 +683,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
     roomIntel.sources = this.sources.length;
 
     // Expensive check — only on ownership change or force
-    if (roomIntel.obstacles === undefined || roomIntel.ownerChanged) {
+    if (force || roomIntel.obstacles === undefined || roomIntel.ownerChanged) {
         roomIntel.obstacles = !areExitsReachable(this);
         roomIntel.ownerChanged = undefined;
     }
@@ -718,6 +738,7 @@ Room.prototype.cacheRoomIntel = function (force = false, creep = undefined) {
         } else {
             roomIntel.towers = undefined;
             roomIntel.towerData = undefined;
+            delete roomIntel.nukeTarget;
         }
 
         // Loot

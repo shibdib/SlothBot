@@ -23,6 +23,7 @@ global.MANUAL_FRIENDS = []; // Manually set players as friends (overrides COMBAT
 global.MANUAL_WAR_TARGETS = []; // Always-war list. Bypasses standing/qualification and is included in WAR_TARGETS even when otherwise at peace.
 global.NO_DIRECT_ATTACKS = []; // Manually set players that will not have their rooms sieged but still can be harassed
 global.RAMPART_ACCESS = true // Allow friends and allies access through ramparts. Having this disabled does save CPU.
+global.USE_NATIVE_LOOK_OBSTACLES = false; // Private servers only: full-room lookFor for path obstacles (high CPU)
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
 global.FUNNEL_REQUESTS = false; // Whether to make energy funneling requests
 

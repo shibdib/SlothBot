@@ -8,7 +8,7 @@ let activeConfig;
 // noinspection JSUnresolvedReference
 let globals = function () {
 
-    global.PROFILER_ENABLED = false; // Disable if you don't want to use the profiler. Should save CPU.
+    global.PROFILER_ENABLED = true; // Disable if you don't want to use the profiler. Should save CPU.
 
     // Creep build priorities (Lower is higher priority)
     global.PRIORITIES = {
@@ -156,7 +156,8 @@ let globals = function () {
             evaluateRoadPlan,
             getRoadOrigin,
             roadPlacementLimit,
-            countRoadConstructionSites
+            countRoadConstructionSites,
+            getRoomRoadStructures,
         } = require('planRoads');
         const {hasPendingLayoutStructures} = require('planLayout');
         const plan = evaluateRoadPlan(room);
@@ -169,133 +170,78 @@ let globals = function () {
             storage: !!room.storage,
             bunkerHub: room.memory.bunkerHub,
             origin: origin && {x: origin.x, y: origin.y},
-            originImpassible: origin && (origin.checkForWall() || origin.checkForImpassible(true)),
             layoutTiles: plan.layout.size,
             connectorTiles: plan.connector.size,
-            connectorRequired: plan.connectorRequired,
-            connectorMissing: plan.connectorMissing,
-            pathTargets: plan.stats.targetCount,
-            pathFailures: plan.stats.failedPaths,
-            pauseOwnedRoads: Memory.pauseOwnedRoads,
-            pauseActive: !!(Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time),
-            roadsBuilt: intel.roadsBuilt,
             desiredTiles: desired.size,
+            builtRoads: getRoomRoadStructures(room).length,
             missingPlaceable: plan.missing.length,
             complete: plan.complete,
+            roadsBuilt: intel.roadsBuilt,
             roadSites: countRoadConstructionSites(room),
-            totalSites: room.constructionSites.length,
-            maxPerRoom: MAX_CONSTRUCTION_SITES_PER_ROOM || 10,
-            siteBudget: Math.max(0, (MAX_CONSTRUCTION_SITES_PER_ROOM || 10) - room.constructionSites.length),
-            layoutPending: hasPendingLayoutStructures(room),
             roadPlacementLimit: roadPlacementLimit(room, hasPendingLayoutStructures(room)),
-            roomCapBlocking: room.constructionSites.length >= (MAX_CONSTRUCTION_SITES_PER_ROOM || 10),
-            globalSites: _.size(Game.constructionSites),
-            globalSiteCap: 100,
-            sitesUntilCap: 100 - _.size(Game.constructionSites),
-            globalCapBlocking: _.size(Game.constructionSites) >= 100,
-            staleRoadsBuilt: !!intel.roadsBuilt && !plan.complete,
             sampleMissing: plan.missing.slice(0, 5).map(p => `${p.x},${p.y}`),
         };
     };
 
-    // pruneExcessOwnedRoads('E31S16') preview | pruneExcessOwnedRoads('E31S16', false) destroy
-    global.pruneExcessOwnedRoads = function (roomName, dryRun = true) {
-        const room = Game.rooms[roomName];
-        if (!room || !room.controller || !room.controller.my) return {error: 'need vision in owned room', roomName};
-        const desired = require('planRoads').getDesiredRoadTiles(room);
-        const tileKey = (pos) => pos.x + 'x' + pos.y;
-        const roads = room.roads || [];
-        const excess = roads.filter((s) => !desired.has(tileKey(s.pos)));
-        const excessSites = room.constructionSites.filter((s) =>
-            s.structureType === STRUCTURE_ROAD && !desired.has(tileKey(s.pos)));
-        if (dryRun) {
-            return {
-                dryRun: true, roomName, built: roads.length, desired: desired.size,
-                excess: excess.length, excessSites: excessSites.length,
-                run: "pruneExcessOwnedRoads('" + roomName + "', false)",
-            };
-        }
-        let destroyed = 0, failed = 0, sites = 0;
-        for (const s of excess) (s.destroy() === OK ? destroyed++ : failed++);
-        for (const site of excessSites) if (site.remove() === OK) sites++;
-        if (INTEL[roomName]) {
-            delete INTEL[roomName].roadsBuilt;
-            delete INTEL[roomName].roadCount;
-        }
-        if (global.ROAD_CACHE_OWNED) global.ROAD_CACHE_OWNED[roomName] = undefined;
-        if (global.invalidateStructureRoomCaches) global.invalidateStructureRoomCaches();
-        return {roomName, destroyed, failed, sites, kept: roads.length - destroyed};
-    };
 
-    // Console: resetOwnedRoadFlags('E1N1') � clear stale roadsBuilt / pause without destroying roads.
-    global.resetOwnedRoadFlags = function (roomName) {
-        delete Memory.pauseOwnedRoads;
-        const rooms = roomName ? [roomName] : (MY_ROOMS || []);
-        for (const rn of rooms) {
-            if (INTEL[rn]) {
-                delete INTEL[rn].roadsBuilt;
-                delete INTEL[rn].roadCount;
-            }
-            if (global.ROAD_CACHE_OWNED) ROAD_CACHE_OWNED[rn] = undefined;
+    // Wipe owned-room roads + caches. clearOwnedRoads() = all MY_ROOMS | clearOwnedRoads('E41S23') = one room
+    global.clearOwnedRoads = function (pauseTicksOrRoom, roomName) {
+        let pauseTicks = 500;
+        let targetRoom;
+        if (typeof pauseTicksOrRoom === 'string') {
+            targetRoom = pauseTicksOrRoom;
+            pauseTicks = 0;
+        } else {
+            pauseTicks = pauseTicksOrRoom === undefined ? 500 : Number(pauseTicksOrRoom) || 0;
+            targetRoom = roomName;
         }
-        return {reset: rooms, pauseCleared: true};
-    };
 
-    // Console: clearOwnedRoads() or clearOwnedRoads('E1N1') � needs vision in target room(s).
-    global.clearOwnedRoads = function (pauseTicks = 500, roomName) {
+        const planRoads = require('planRoads');
+        const roomNames = targetRoom
+            ? [targetRoom]
+            : ((MY_ROOMS && MY_ROOMS.length)
+                ? MY_ROOMS.slice()
+                : Object.values(Game.rooms)
+                    .filter((r) => r.controller && r.controller.my)
+                    .map((r) => r.name));
         let destroyed = 0;
         let failed = 0;
         let sites = 0;
-        const seen = new Set();
-        const {roads, visibleOwnedRooms} = global.collectOwnedRoads(roomName);
+        let roadsFound = 0;
+        const roomsCleared = [];
 
-        for (const s of roads) {
-            if (seen.has(s.id)) continue;
-            seen.add(s.id);
-            const ret = s.destroy();
-            if (ret === OK) destroyed++;
-            else failed++;
+        for (const rn of roomNames) {
+            const room = Game.rooms[rn];
+            if (room && (!room.controller || !room.controller.my)) continue;
+            const result = planRoads.clearOwnedRoomRoadNetwork(rn);
+            destroyed += result.destroyed;
+            failed += result.failed;
+            sites += result.sites;
+            roadsFound += result.roadsFound || 0;
+            roomsCleared.push(rn);
         }
 
-        const siteRooms = roomName
-            ? [Game.rooms[roomName]].filter(Boolean)
-            : visibleOwnedRooms.map((n) => Game.rooms[n]).filter(Boolean);
-        for (const room of siteRooms) {
-            let roomSites = [];
-            if (room.__nativeFind) {
-                try {
-                    roomSites = room.__nativeFind(FIND_MY_CONSTRUCTION_SITES, {filter: {structureType: STRUCTURE_ROAD}}) || [];
-                } catch (e) { /* corrupt room */ }
-            }
-            if (!roomSites.length) {
-                try {
-                    roomSites = room.find(FIND_MY_CONSTRUCTION_SITES, {filter: {structureType: STRUCTURE_ROAD}});
-                } catch (e) { /* corrupt room */ }
-            }
-            for (const site of roomSites) {
-                if (site.remove() === OK) sites++;
-            }
-        }
-
-        global.invalidateStructureRoomCaches();
-        const resetRooms = roomName ? [roomName] : (MY_ROOMS && MY_ROOMS.length ? MY_ROOMS : visibleOwnedRooms);
-        for (const rn of resetRooms) {
-            if (INTEL[rn]) {
-                delete INTEL[rn].roadsBuilt;
-                delete INTEL[rn].roadCount;
-            }
-            ROAD_CACHE_OWNED[rn] = undefined;
-        }
+        delete Memory.pauseOwnedRoads;
         if (pauseTicks > 0) Memory.pauseOwnedRoads = Game.time + pauseTicks;
+        global.invalidateStructureRoomCaches();
         return {
             destroyed,
             failed,
             sites,
-            roadsFound: roads.length,
-            visibleOwnedRooms,
+            roadsFound,
+            rooms: roomsCleared,
             ownedRooms: MY_ROOMS || [],
             pauseUntil: Memory.pauseOwnedRoads,
+            resume: pauseTicks > 0 ? 'resumeOwnedRoads()' : 'planner active immediately',
         };
+    };
+
+    global.resetOwnedRoadNetwork = function (roomName) {
+        return global.clearOwnedRoads(roomName);
+    };
+
+    global.resetAllOwnedRoadNetworks = function () {
+        return global.clearOwnedRoads(0);
     };
 
     global.collectOwnedBarriers = function (roomName) {
@@ -409,19 +355,21 @@ let globals = function () {
         structureRoomCacheTick = Game.time;
         structureRoomCache = Object.create(null);
         constructionSiteRoomCache = Object.create(null);
-        for (const id in Game.structures) {
-            const s = Game.structures[id];
-            if (!s || !s.pos) continue;
-            const roomName = s.pos.roomName;
-            if (!structureRoomCache[roomName]) structureRoomCache[roomName] = [];
-            structureRoomCache[roomName].push(s);
+        for (const roomName in Game.rooms) {
+            const room = Game.rooms[roomName];
+            const roomStructures = room.find(FIND_STRUCTURES);
+            for (const structure of roomStructures) {
+                if (!structureRoomCache[roomName]) structureRoomCache[roomName] = [];
+                structureRoomCache[roomName].push(structure);
+            }
         }
-        for (const id in Game.constructionSites) {
-            const s = Game.constructionSites[id];
-            if (!s || !s.pos) continue;
-            const roomName = s.pos.roomName;
-            if (!constructionSiteRoomCache[roomName]) constructionSiteRoomCache[roomName] = [];
-            constructionSiteRoomCache[roomName].push(s);
+        for (const roomName in Game.rooms) {
+            const room = Game.rooms[roomName];
+            const roomSites = room.find(FIND_CONSTRUCTION_SITES);
+            for (const site of roomSites) {
+                if (!constructionSiteRoomCache[roomName]) constructionSiteRoomCache[roomName] = [];
+                constructionSiteRoomCache[roomName].push(site);
+            }
         }
     };
 

@@ -1,13 +1,8 @@
 /*
-
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
-
  *
-
  * Shared pathfinding helpers and position utilities.
-
  */
-
 
 function clearTrailerTowState(creep) {
     creep.memory.towDestination = undefined;
@@ -15,7 +10,6 @@ function clearTrailerTowState(creep) {
     creep.memory.towCreep = undefined;
     creep.memory.towOptions = undefined;
 }
-
 
 function getCreepMoveWeight(creep) {
     return creep.body.filter(p => p.type !== MOVE && p.type !== CARRY).length + (_.ceil(_.sum(creep.store) / 50) || 0);
@@ -64,14 +58,12 @@ function pickTowTruck(trailer, candidates) {
     return fallback || trailer.pos.findClosestByRange(candidates);
 }
 
-
 function normalizePos(destination) {
     if (!(destination instanceof RoomPosition)) {
         return destination?.pos ?? undefined;
     }
     return destination;
 }
-
 
 const reverseDirection = dir => (9 - parseInt(dir, 10)) % 8 + 1;
 
@@ -91,33 +83,99 @@ const hashStructures = structs => {
 
 let lookObstacleCache = {};
 
-function getLookObstacleData(room) {
-    if (!room) return {hash: '', tiles: []};
-    const cached = lookObstacleCache[room.name];
-    if (cached && cached.tick === Game.time) return cached.data;
+function useNativeLookObstacles() {
+    return !!global.USE_NATIVE_LOOK_OBSTACLES;
+}
 
-    const native = RoomPosition.prototype.__nativeLookFor;
+function lookObstacleCacheTTL(roomName) {
+    return INTEL[roomName]?.threatLevel ? 150 : 500;
+}
+
+function structureObstacleFingerprint(room) {
+    const obstacles = [];
+    for (const s of room.structures) {
+        if (OBSTACLE_OBJECT_TYPES.includes(s.structureType)) obstacles.push(s);
+    }
+    for (const site of room.constructionSites) {
+        if (OBSTACLE_OBJECT_TYPES.includes(site.structureType)) obstacles.push(site);
+    }
+    return hashStructures(obstacles);
+}
+
+function collectObstacleTilesFromStructures(room) {
     const parts = [];
     const tiles = [];
-    if (native) {
-        for (let y = 0; y < 50; y++) {
-            for (let x = 0; x < 50; x++) {
-                try {
-                    const structs = native.call(new RoomPosition(x, y, room.name), LOOK_STRUCTURES);
-                    for (const s of structs) {
-                        if (OBSTACLE_OBJECT_TYPES.includes(s.structureType)) {
-                            parts.push(`${x},${y},${s.structureType}`);
-                            tiles.push({x, y});
-                        }
+    const tileSeen = new Set();
+    const add = (s) => {
+        const x = s.pos.x;
+        const y = s.pos.y;
+        parts.push(`${x},${y},${s.structureType}`);
+        const tileKey = `${x},${y}`;
+        if (!tileSeen.has(tileKey)) {
+            tileSeen.add(tileKey);
+            tiles.push({x, y});
+        }
+    };
+
+    for (const s of room.structures) {
+        if (OBSTACLE_OBJECT_TYPES.includes(s.structureType)) add(s);
+    }
+    for (const site of room.constructionSites) {
+        if (OBSTACLE_OBJECT_TYPES.includes(site.structureType)) add(site);
+    }
+
+    parts.sort();
+    return {hash: parts.join('|'), tiles};
+}
+
+function scanNativeLookObstacles(room) {
+    const native = RoomPosition.prototype.__nativeLookFor;
+    if (!native) return collectObstacleTilesFromStructures(room);
+
+    const parts = [];
+    const tiles = [];
+    const tileSeen = new Set();
+
+    for (let y = 0; y < 50; y++) {
+        for (let x = 0; x < 50; x++) {
+            try {
+                const structs = native.call(new RoomPosition(x, y, room.name), LOOK_STRUCTURES);
+                for (const s of structs) {
+                    if (!OBSTACLE_OBJECT_TYPES.includes(s.structureType)) continue;
+                    parts.push(`${x},${y},${s.structureType}`);
+                    const tileKey = `${x},${y}`;
+                    if (!tileSeen.has(tileKey)) {
+                        tileSeen.add(tileKey);
+                        tiles.push({x, y});
                     }
-                } catch (e) {
                 }
+            } catch (e) { /* corrupt tile */
             }
         }
     }
 
-    const data = {hash: parts.sort().join('|'), tiles};
-    lookObstacleCache[room.name] = {tick: Game.time, data};
+    parts.sort();
+    return {hash: parts.join('|'), tiles};
+}
+
+function getLookObstacleData(room) {
+    if (!room) return {hash: '', tiles: []};
+
+    const fingerprint = structureObstacleFingerprint(room);
+    const cached = lookObstacleCache[room.name];
+    const ttl = lookObstacleCacheTTL(room.name);
+
+    if (cached && cached.fingerprint === fingerprint) {
+        if (cached.tick === Game.time || Game.time - cached.tick < ttl) {
+            return cached.data;
+        }
+    }
+
+    const data = useNativeLookObstacles()
+        ? scanNativeLookObstacles(room)
+        : collectObstacleTilesFromStructures(room);
+
+    lookObstacleCache[room.name] = {tick: Game.time, fingerprint, data};
     return data;
 }
 
@@ -126,14 +184,20 @@ function lookObstacleHash(room) {
 }
 
 /**
- * Mark impassible tiles from native lookFor — authoritative for pathing on private
- * servers where Game.structures can disagree with the room view.
+ * Extra obstacle pass from native lookFor — only when USE_NATIVE_LOOK_OBSTACLES is set
+ * (private servers where room.structures disagrees with vision). On official servers
+ * getBaseMatrix already marks OBSTACLE_OBJECT_TYPES from room.structures.
  */
 function applyLookObstaclesToMatrix(matrix, room, impassibleCost = 256) {
-    if (!matrix || !room) return;
+    if (!matrix || !room || !useNativeLookObstacles()) return;
     for (const {x, y} of getLookObstacleData(room).tiles) {
         matrix.set(x, y, impassibleCost);
     }
+}
+
+function clearLookObstacleCache(roomName) {
+    if (roomName) delete lookObstacleCache[roomName];
+    else lookObstacleCache = {};
 }
 
 function hashRoomStructures(room) {
@@ -208,7 +272,6 @@ function parsePosKey(key) {
     return {x: parseInt(x, 10), y: parseInt(y, 10), roomName};
 }
 
-
 function gatherThreats(creep, fleeRange) {
     const threats = creep.room.hostileCreeps.filter(c =>
         (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) &&
@@ -235,37 +298,21 @@ function endpointInRange(endpointKey, target, range) {
 }
 
 module.exports = {
-
     clearTrailerTowState,
-
     getCreepMoveWeight,
-
     pickTowTruck,
-
     normalizePos,
-
     reverseDirection,
-
     getPathKey,
-
     hashStructures,
-
     hashRoomStructures,
-
     lookObstacleHash,
-
     applyLookObstaclesToMatrix,
-
+    clearLookObstacleCache,
     getMoveWeight,
-
     findMultiHeadingPos,
-
     getPosKey,
-
     parsePosKey,
-
     endpointInRange,
-
     gatherThreats,
-
 };

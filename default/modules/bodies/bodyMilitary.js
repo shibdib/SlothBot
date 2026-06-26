@@ -1,0 +1,160 @@
+/*
+ * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
+ */
+
+const {getSiegeDuoUnpaired} = require('bodyHelpers');
+const {
+    toughMulti,
+    getMaxSiegeCombatBudget,
+    checkForNeededHeal,
+    checkForNeededTough,
+} = require('bodySiegeBoosts');
+
+function buildLongbowFamily(gen) {
+    let tough, toughData, heal, rangedAttack;
+
+    if (gen.creepInfo && gen.creepInfo.operation === 'harass') {
+        return {rangedAttack: 1};
+    }
+    if (gen.creepInfo && Memory.targetRooms[gen.creepInfo.destination] && Memory.targetRooms[gen.creepInfo.destination].boosts) {
+        const defaultWaitFor = gen.role === 'longbow' ? 1 : 2;
+        const waitFor = gen.creepInfo.misc && gen.creepInfo.misc.waitFor || defaultWaitFor;
+        heal = false;
+        if (gen.creepInfo.misc && gen.creepInfo.misc.boosts && gen.creepInfo.misc.boosts.includes(TOUGH)) {
+            const desiredTough = checkForNeededTough(gen, waitFor, true);
+            for (let t = desiredTough.count; t >= 0; t -= 2) {
+                toughData = t === desiredTough.count ? desiredTough : {boost: desiredTough.boost, count: t};
+                const toughModifier = toughData.boost ? toughMulti[toughData.boost] : 1;
+                heal = checkForNeededHeal(gen, 1, toughModifier, true, t);
+                if (heal) {
+                    tough = t;
+                    break;
+                }
+            }
+        } else {
+            heal = checkForNeededHeal(gen, 1, 1, true, 0);
+        }
+        if (!heal) return false;
+    } else {
+        heal = Math.floor((gen.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
+        heal = Math.min(heal, 6);
+    }
+
+    const toughEnergy = (tough || 0) * (BODYPART_COST[TOUGH] + BODYPART_COST[MOVE]);
+    const remainingEnergy = gen.energyAmount - ((heal * BODYPART_COST[HEAL]) + heal * BODYPART_COST[MOVE]) - toughEnergy;
+    rangedAttack = Math.floor(remainingEnergy / (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE])) || 1;
+    rangedAttack = Math.min(rangedAttack, getMaxSiegeCombatBudget() - heal - (tough || 0));
+
+    if (gen.creepInfo && gen.creepInfo.other && gen.creepInfo.other.power) {
+        let totalPower = (rangedAttack * RANGED_ATTACK_POWER) + (heal * HEAL_POWER);
+        if (totalPower > gen.creepInfo.other.power) {
+            const ratio = gen.creepInfo.other.power / totalPower;
+            rangedAttack = Math.ceil(rangedAttack * ratio);
+            heal = Math.ceil(heal * ratio);
+        }
+        gen.room.memory.additionalPowerNeeded = totalPower < gen.creepInfo.other.power ? true : undefined;
+    }
+    return {tough, toughData, heal, rangedAttack};
+}
+
+function buildSiegeDuo(gen) {
+    const dest = gen.creepInfo.destination;
+    const {unpairedHealers, unpairedAttackers} = getSiegeDuoUnpaired(dest);
+    let tough, toughData, attack, heal;
+
+    if (unpairedHealers > unpairedAttackers) {
+        if (gen.creepInfo.misc && gen.creepInfo.misc.boosts && gen.creepInfo.misc.boosts.includes(TOUGH)) {
+            toughData = checkForNeededTough(gen, 2);
+            tough = toughData.count;
+        }
+        attack = Math.floor(gen.energyAmount / (BODYPART_COST[ATTACK] + BODYPART_COST[MOVE])) || 1;
+        attack = Math.min(attack, getMaxSiegeCombatBudget() - (tough || 0));
+    } else {
+        if (Memory.targetRooms[gen.creepInfo.destination] && Memory.targetRooms[gen.creepInfo.destination].boosts) {
+            heal = false;
+            if (gen.creepInfo.misc && gen.creepInfo.misc.boosts && gen.creepInfo.misc.boosts.includes(TOUGH)) {
+                const desiredTough = checkForNeededTough(gen, 2);
+                for (let t = desiredTough.count; t >= 0; t -= 2) {
+                    toughData = t === desiredTough.count ? desiredTough : {boost: desiredTough.boost, count: t};
+                    const toughModifier = toughData.boost ? toughMulti[toughData.boost] : 1;
+                    heal = checkForNeededHeal(gen, 2, toughModifier, false, t);
+                    if (heal) {
+                        tough = t;
+                        break;
+                    }
+                }
+            } else {
+                heal = checkForNeededHeal(gen, 2, 1, false, 0);
+            }
+            if (!heal) return false;
+        } else {
+            heal = Math.floor((gen.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
+            heal = Math.min(heal, 6);
+        }
+    }
+    return {tough, toughData, attack, heal};
+}
+
+const builders = {
+    attacker(gen) {
+        let attack = Math.floor(gen.energyAmount / (BODYPART_COST[ATTACK] + BODYPART_COST[MOVE])) || 1;
+        attack = Math.min(attack, 25);
+        return {attack};
+    },
+
+    defender(gen) {
+        const halfMove = gen.room.level >= 4 || undefined;
+        const moveRatio = halfMove ? 0.5 : 1;
+        const meleeMan = gen.room.myCreeps.filter((c) => c.memory.role === 'defender' && c.hasActiveBodyparts(ATTACK));
+        let heal, attack, rangedAttack;
+
+        if (meleeMan.length && meleeMan.length >= gen.room.hostileCreeps.length / 4) {
+            heal = Math.max(Math.floor(gen.energyAmount * 0.15 / (BODYPART_COST[HEAL] + (BODYPART_COST[MOVE] * moveRatio))), 1);
+            heal = Math.min(heal, 6);
+            const remainingEnergy = gen.energyAmount - (heal * (BODYPART_COST[HEAL] + (BODYPART_COST[MOVE] * moveRatio)));
+            rangedAttack = Math.floor(remainingEnergy / (BODYPART_COST[RANGED_ATTACK] + (BODYPART_COST[MOVE] * moveRatio))) || 1;
+            rangedAttack = Math.min(rangedAttack, 49 - heal);
+        } else {
+            heal = Math.max(Math.floor(gen.energyAmount * 0.1 / (BODYPART_COST[HEAL] + (BODYPART_COST[MOVE] * moveRatio))), 1);
+            heal = Math.min(heal, 4);
+            const remainingEnergy = gen.energyAmount - (heal * (BODYPART_COST[HEAL] + (BODYPART_COST[MOVE] * moveRatio)));
+            attack = Math.floor(remainingEnergy / (BODYPART_COST[ATTACK] + (BODYPART_COST[MOVE] * moveRatio))) || 1;
+            attack = Math.min(attack, 49 - heal);
+        }
+        return {heal, attack, rangedAttack, halfMove};
+    },
+
+    longbow: buildLongbowFamily,
+    testSquad: buildLongbowFamily,
+    longbowSquad: buildLongbowFamily,
+    siegeDuo: buildSiegeDuo,
+
+    SKAttacker(gen) {
+        const movePair = (part) => BODYPART_COST[part] + BODYPART_COST[MOVE];
+        const minCost = 5 * movePair(ATTACK) + 1 * movePair(RANGED_ATTACK) + 3 * movePair(HEAL);
+        if (gen.energyAmount < minCost) return false;
+
+        const targetCost = 18 * movePair(ATTACK) + 2 * movePair(RANGED_ATTACK) + 5 * movePair(HEAL);
+        const scale = Math.min(1, gen.energyAmount / targetCost);
+        const attack = Math.max(5, Math.floor(18 * scale));
+        const rangedAttack = Math.max(1, Math.floor(2 * scale));
+        const heal = Math.max(3, Math.floor(5 * scale));
+        return {attack, rangedAttack, heal};
+    },
+
+    powerAttacker: () => ({attack: 25}),
+    powerHealer: () => ({heal: 16}),
+
+    powerHauler(gen) {
+        let carry = Math.floor(gen.energyAmount / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
+        carry = Math.min(carry, 25);
+        return {carry};
+    },
+};
+
+function build(role, gen) {
+    const fn = builders[role];
+    return fn ? fn(gen) : undefined;
+}
+
+module.exports = {build, builders};

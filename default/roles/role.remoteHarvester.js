@@ -54,7 +54,8 @@ class RoleRemoteHarvester {
             const hostile = intel.level || (intel.reservation && intel.reservation !== MY_USERNAME && intel.reservation !== 'Invader');
             const blocked = intel.threatLevel > 1 || intel.roomHeat > 250 || intel.obstacles;
             const dropped = Memory.avoidRemotes && Memory.avoidRemotes.includes(this.creep.memory.destination);
-            const skUnsafe = intel.sk && (!SK_MINING || !colony || colony.level < SK_MINING_LEVEL);
+            const destIsSk = intel.sk || (global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(this.creep.memory.destination));
+            const skUnsafe = destIsSk && (!SK_MINING || !colony || colony.level < SK_MINING_LEVEL);
             if (hostile || blocked || dropped || skUnsafe || !intel.sources) {
                 if (hostile) this.room.cacheRoomIntel(true);
                 return this.creep.recycleCreep();

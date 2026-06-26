@@ -3,8 +3,18 @@
  */
 
 const profiler = require("tools.profiler");
-const {setRoadsBuiltFlag, canPlaceConstructionSite, tryCreateConstructionSite} = require('planUtils');
-const {findRoadPath, pathTilesNeedRoads} = require('planRoads');
+const {setRoadsBuiltFlag} = require('planUtils');
+const {
+    shouldVerifyRemoteRoads,
+    remoteRoomRoadPathsComplete,
+    remoteRoomNeedsRoadWork,
+    isColonyRoadRoom,
+    getUnfinishedRoadRooms,
+    tryPlaceNextRemoteRoad,
+    canPlaceRemoteRoadSite,
+    countRoadConstructionSites,
+    clearRemoteRoadVerifyCache,
+} = require('planRoads');
 
 const PLACE_RESULT = {
     COMPLETE: 'complete',
@@ -12,7 +22,6 @@ const PLACE_RESULT = {
     ABORT: 'abort',
 };
 
-const ROAD_VERIFY_INTERVAL = 50;
 const PLACE_AFTER_BUILD_INTERVAL = 3;
 const PLACE_AFTER_BUILT_INTERVAL = 5;
 
@@ -85,6 +94,18 @@ class RoleRoadBuilder {
         }
     }
 
+    assignRoadConstructionWork() {
+        if (this.creep.memory.constructionSite && !Game.getObjectById(this.creep.memory.constructionSite)) {
+            this.creep.memory.constructionSite = undefined;
+            this.creep.memory.task = undefined;
+            this.creep.memory.sitePos = undefined;
+            this.creep.memory.targetHits = undefined;
+        }
+        if (!this.creep.memory.constructionSite) {
+            this.creep.constructionWork('roads');
+        }
+    }
+
     doWork() {
         if (!this.creep.store[RESOURCE_ENERGY]) {
             this.creep.memory.working = undefined;
@@ -100,13 +121,19 @@ class RoleRoadBuilder {
             return;
         }
 
-        if (this.creep.memory.constructionSite || this.creep.constructionWork()) {
+        this.assignRoadConstructionWork();
+        if (this.creep.memory.constructionSite) {
             if (this.creep.builderFunction()) {
                 if (this.shouldPlaceRoadsAfterBuild()) {
                     this.handlePlaceRoadsResult(this.placeRoads());
                 }
                 return;
             }
+        }
+
+        if (countRoadConstructionSites(this.creep.room) > 0 && !this.creep.memory.constructionSite) {
+            this.creep.memory.destination = undefined;
+            return;
         }
 
         if (this.creep.room.name === this.creep.memory.colony) {
@@ -129,12 +156,23 @@ class RoleRoadBuilder {
 
     handlePlaceRoadsResult(result) {
         const room = this.creep.room;
+        const colony = this.creep.memory.colony;
+        const context = this.getRoadContext(room.name);
+
         if (result === PLACE_RESULT.COMPLETE) {
             this.markRoadsComplete(room);
             this.creep.memory.destination = undefined;
-        } else if (result === PLACE_RESULT.ABORT) {
+            return;
+        }
+        if (result === PLACE_RESULT.ABORT) {
             this.creep.memory.destination = undefined;
             this.creep.idleFor(10);
+            return;
+        }
+        if (result === PLACE_RESULT.PENDING && context
+            && !remoteRoomNeedsRoadWork(room, colony, context)
+            && countRoadConstructionSites(room) === 0) {
+            this.creep.memory.destination = undefined;
         }
     }
 
@@ -142,6 +180,7 @@ class RoleRoadBuilder {
         setRoadsBuiltFlag(room, true);
         const intel = INTEL[room.name];
         if (intel) intel.roadCount = room.roads.length;
+        clearRemoteRoadVerifyCache(room.name);
         const claimants = intel && intel.remoteRoom;
         if (claimants) {
             for (let i = 0; i < claimants.length; i++) {
@@ -150,25 +189,37 @@ class RoleRoadBuilder {
         }
     }
 
+    getRoadContext(roomName) {
+        const colony = this.creep.memory.colony;
+        const info = isColonyRoadRoom(roomName, colony);
+        if (!info) return null;
+        return info.type === 'transit'
+            ? {type: 'transit', remote: info.remote}
+            : {type: 'remote'};
+    }
+
     ensureDestination() {
         if (this.creep.memory.destination) return;
         const colony = this.creep.memory.colony;
-        const remoteTargets = ROOM_REMOTE_TARGETS[colony] || [];
 
-        const unfinished = _.chain(remoteTargets)
-            .filter(s => INTEL[s.room] && !INTEL[s.room].owner && !INTEL[s.room].roadsBuilt)
-            .sortBy('score')
-            .map('room')
-            .uniq()
-            .value();
+        const unfinished = getUnfinishedRoadRooms(colony);
         if (unfinished.length) {
-            this.creep.memory.destination = unfinished[0];
+            this.creep.memory.destination = unfinished[0].room;
             return;
         }
 
+        const remoteTargets = ROOM_REMOTE_TARGETS[colony] || [];
         const assignedRemotes = _.uniq(remoteTargets.map(s => s.room));
         if (assignedRemotes.length) {
-            this.creep.memory.destination = _.sample(assignedRemotes);
+            const maintenanceRooms = assignedRemotes.slice();
+            for (const remote of assignedRemotes) {
+                const route = Game.map.findRoute(colony, remote);
+                if (!Array.isArray(route)) continue;
+                for (const step of route) {
+                    if (step.room !== colony && step.room !== remote) maintenanceRooms.push(step.room);
+                }
+            }
+            this.creep.memory.destination = _.sample(_.uniq(maintenanceRooms));
             return;
         }
 
@@ -191,93 +242,33 @@ class RoleRoadBuilder {
 
     placeRoads() {
         const room = this.creep.room;
+        const colony = this.creep.memory.colony;
         const intel = INTEL[room.name];
-        if (!intel) return PLACE_RESULT.ABORT;
-        if (intel.owner) return PLACE_RESULT.ABORT;
-        if (room.constructionSites.length >= 2) return PLACE_RESULT.PENDING;
+        if (!intel || intel.owner) return PLACE_RESULT.ABORT;
         if (_.size(Game.constructionSites) >= 70) return PLACE_RESULT.PENDING;
 
-        const isAssigned = (ROOM_REMOTE_TARGETS[this.creep.memory.colony] || []).some(s => s.room === room.name);
-        if (!isAssigned) return PLACE_RESULT.ABORT;
+        const context = this.getRoadContext(room.name);
+        if (!context) return PLACE_RESULT.ABORT;
 
-        if (intel.roadsBuilt) {
-            if (Game.time % ROAD_VERIFY_INTERVAL === 0) {
-                const currentRoads = room.roads.length;
-                if ((intel.roadCount || 0) > currentRoads) {
-                    setRoadsBuiltFlag(room, undefined);
-                    delete intel.roadCount;
-                } else {
-                    return PLACE_RESULT.PENDING;
-                }
-            } else {
-                return PLACE_RESULT.PENDING;
+        if (intel.roadsBuilt && shouldVerifyRemoteRoads(room.name)) {
+            if (!remoteRoomRoadPathsComplete(room, colony, context)) {
+                setRoadsBuiltFlag(room, undefined);
+                delete intel.roadCount;
+                clearRemoteRoadVerifyCache(room.name);
             }
         }
 
-        const goHome = Game.map.findExit(room.name, this.creep.memory.colony);
-        const homeExits = room.find(goHome);
-        if (!homeExits.length) return PLACE_RESULT.ABORT;
-        const homeTarget = homeExits[Math.round(homeExits.length / 2)];
-
-        const containers = room.containers;
-        const origins = containers.length ? containers : room.sources;
-
-        for (const origin of origins) {
-            if (_.size(Game.constructionSites) >= 70) return PLACE_RESULT.PENDING;
-            if (this.buildRoadFromTo(room, origin, homeTarget)) return PLACE_RESULT.PENDING;
-        }
-
-        if (intel.sk) {
-            const mineral = room.find(FIND_MINERALS)[0];
-            if (mineral && this.buildRoadFromTo(room, mineral, homeTarget)) return PLACE_RESULT.PENDING;
-            for (const lair of room.impassibleStructures.filter(s => s.structureType === STRUCTURE_KEEPER_LAIR)) {
-                if (_.size(Game.constructionSites) >= 70) return PLACE_RESULT.PENDING;
-                if (this.buildRoadFromTo(room, lair, homeTarget)) return PLACE_RESULT.PENDING;
-            }
-        }
-
-        if (room.controller && this.buildRoadFromTo(room, room.controller, homeTarget)) {
+        if (canPlaceRemoteRoadSite(room) && tryPlaceNextRemoteRoad(room, colony, context)) {
             return PLACE_RESULT.PENDING;
         }
 
-        const colonyRemotes = new Set((ROOM_REMOTE_TARGETS[this.creep.memory.colony] || []).map(s => s.room));
-        for (const neighbor of Object.values(Game.map.describeExits(room.name))) {
-            if (!colonyRemotes.has(neighbor)) continue;
-            const exitDir = Game.map.findExit(room.name, neighbor);
-            const exitTiles = room.find(exitDir);
-            if (!exitTiles.length) continue;
-            const exitTarget = exitTiles[Math.round(exitTiles.length / 2)];
-            for (const origin of origins) {
-                if (_.size(Game.constructionSites) >= 70) return PLACE_RESULT.PENDING;
-                if (this.buildRoadFromTo(room, origin, exitTarget)) return PLACE_RESULT.PENDING;
-            }
+        if (remoteRoomRoadPathsComplete(room, colony, context, {force: true})) {
+            return PLACE_RESULT.COMPLETE;
         }
+
+        if (remoteRoomNeedsRoadWork(room, colony, context)) return PLACE_RESULT.PENDING;
 
         return PLACE_RESULT.COMPLETE;
-    }
-
-    buildRoadFromTo(room, start, end) {
-        if (!room || !start || !end) return false;
-        const begin = start instanceof RoomPosition ? start : start.pos;
-        const target = end instanceof RoomPosition ? end : end.pos;
-        const path = findRoadPath(room, begin, target, 'remote');
-        if (!path || !pathTilesNeedRoads(room, path, target)) return false;
-
-        for (const point of path) {
-            const roomName = point.roomName || room.name;
-            if (roomName !== room.name) continue;
-            const pos = new RoomPosition(point.x, point.y, roomName);
-            if (this.buildRoad(pos, room)) return true;
-        }
-        return false;
-    }
-
-    buildRoad(position, room) {
-        if (position.checkForImpassible(true) || position.checkForRoad() || position.checkForConstructionSites()
-            || !canPlaceConstructionSite(room)) {
-            return false;
-        }
-        return tryCreateConstructionSite(position, STRUCTURE_ROAD) === OK;
     }
 }
 

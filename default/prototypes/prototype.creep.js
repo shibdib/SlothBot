@@ -679,6 +679,7 @@ Creep.prototype.haulerDelivery = function () {
 
 Creep.prototype.constructionWork = function (scope) {
     const barriersOnly = scope === 'barriers';
+    const roadsOnly = scope === 'roads';
     const room = this.room;
     const intel = INTEL[room.name];
     const ownedByMe = intel && intel.owner === MY_USERNAME;
@@ -722,6 +723,16 @@ Creep.prototype.constructionWork = function (scope) {
     };
 
     const wallBarrierSites = () => sites.barriers.filter(s => s.structureType === STRUCTURE_WALL);
+
+    if (roadsOnly) {
+        if (sites.roads.length) return buildClosest(sites.roads);
+        site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.5));
+        if (site) return repair(site, site.hitsMax * 0.8);
+        site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.75));
+        if (site) return repair(site, site.hitsMax * 0.75);
+        clearConstructionMemory(this);
+        return false;
+    }
 
     if (barriersOnly) {
         const combat = pickCombatBarriers();
