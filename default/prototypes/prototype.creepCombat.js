@@ -36,18 +36,34 @@ function isFriendlyCombatRoom(room) {
     return false;
 }
 
-function roomHasInvaderCore(room) {
+function roomHasInvaderThreat(room) {
     if (!room) return false;
     const intel = INTEL[room.name];
     if (intel?.invaderCore && intel.invaderCore > Game.time) return true;
-    return !!room.structures.find(s => s.structureType === STRUCTURE_INVADER_CORE);
+    if (room.hostileCreeps.some(c => c.owner?.username === 'Invader')) return true;
+    return room.structures.some(s =>
+        s.structureType === STRUCTURE_INVADER_CORE || structOwner(s) === 'Invader'
+    );
+}
+
+function roomHasResolvableCombatThreat(room) {
+    if (!room) return false;
+    if (room.hostileCreeps.length) return true;
+    if (roomHasInvaderThreat(room)) return true;
+    return room.impassibleStructures.some(s =>
+        s.structureType === STRUCTURE_TOWER && isStructureCombatHostile(s) && structActive(s)
+    );
 }
 
 function isStrongholdRoom(room) {
     if (!room) return false;
-    if (roomHasInvaderCore(room)) return true;
+    if (roomHasInvaderThreat(room)) return true;
     const intel = INTEL[room.name];
     return !!(intel?.sk && intel.towers);
+}
+
+function friendlyRoomBlocksCombat(room) {
+    return isFriendlyCombatRoom(room) && !roomHasInvaderThreat(room);
 }
 
 function isStructureCombatHostile(structure) {
@@ -182,7 +198,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         const cores = this.room.structures.filter(s => s.structureType === STRUCTURE_INVADER_CORE);
         const invaderStructs = this.room.structures.filter(s => structOwner(s) === 'Invader').length;
         combatTargetDebug(this,
-            `${this.room.name} no target | dest=${this.memory.destination || 'none'} friendly=${isFriendlyCombatRoom(this.room)} ` +
+            `${this.room.name} no target | dest=${this.memory.destination || 'none'} friendly=${isFriendlyCombatRoom(this.room)} invaderThreat=${roomHasInvaderThreat(this.room)} ` +
             `hostileCreeps=${this.room.hostileCreeps.length} cores=${cores.length} invaderStructs=${invaderStructs} ` +
             `cachedHostileStructs=${(this._hostileStructures || []).length} coreHostile=${cores[0] ? isStructureCombatHostile(cores[0]) : 'n/a'}`
         );
@@ -212,15 +228,23 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
     if (!structuresOnly && this.hasActiveBodyparts(WORK)) structuresOnly = true;
 
     const isArmed = c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || (MY_ROOMS.includes(this.room.name) && c.hasActiveBodyparts(WORK));
-    const inRange = c => !guardLocation || c.pos.getRangeTo(guardLocation) < guardRange;
+    const inRange = c => !guardLocation || c.pos.getRangeTo(guardLocation) <= guardRange;
     const onBorder = pos => pos.x <= 0 || pos.x >= 49 || pos.y <= 0 || pos.y >= 49;
+
+    const hostileCacheKey = [
+        Game.time,
+        structuresOnly ? 1 : 0,
+        ignoreBorder ? 1 : 0,
+        guardLocation ? `${guardLocation.x},${guardLocation.y},${guardLocation.roomName}` : '',
+        guardRange,
+    ].join(':');
 
     // === TICK CACHE for hostiles (big CPU win) ===
     // Split hostile creeps by rampart cover at cache time so we only pay
     // checkForRampart once per hostile per tick. The two lists feed the
     // priority chain below — direct hostiles first, then structures, then
     // the ramparts protecting any hostiles we couldn't otherwise reach.
-    if (!this._hostileCache_ts || this._hostileCache_ts !== Game.time) {
+    if (this._hostileCache_key !== hostileCacheKey) {
         this._directHostileCreeps = [];
         this._rampartedHostileCreeps = [];
         for (const c of this.room.hostileCreeps) {
@@ -233,7 +257,7 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
             inRange(s) &&
             ![STRUCTURE_KEEPER_LAIR, STRUCTURE_CONTROLLER, STRUCTURE_POWER_BANK].includes(s.structureType)
         );
-        this._hostileCache_ts = Game.time;
+        this._hostileCache_key = hostileCacheKey;
     }
 
     const hostileCreeps = this._directHostileCreeps;
@@ -318,13 +342,14 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
     // all, because a high creep score could otherwise dominate the structure pass.
     if (!structuresOnly) {
         for (const c of hostileCreeps) {
-            if ((ignoreBorder && onBorder(c.pos))) continue;
+            if (!isArmed(c) || (ignoreBorder && onBorder(c.pos))) continue;
             const s = scoreTarget(c);
             if (s > bestScore) {
                 bestScore = s;
                 bestTarget = c;
             }
         }
+        if (bestTarget) return updateTarget(this, bestTarget);
     }
 
     // Priority 2: hostile structures. Ramparts get proxy-scored by what's
@@ -332,7 +357,7 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
     // attacks chipping walls when there's something real to kill.
     const bareRampartTargets = [];
     for (const s of hostileStructures) {
-        if (!s.isActive()) continue;
+        if (!s.isActive() && s.structureType !== STRUCTURE_INVADER_CORE) continue;
         if (s.structureType === STRUCTURE_RAMPART) {
             const proxy = scoreRampartProxy(s);
             if (proxy === null) {
@@ -351,6 +376,7 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
             }
         }
     }
+    if (bestTarget) return updateTarget(this, bestTarget);
 
     // Priority 3: ramparts protecting hostile creeps we can't reach directly.
     // Armed occupants get a +500 bonus so we chip through to threats rather than
@@ -367,6 +393,21 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
             bestScore = sc;
             bestTarget = rampart;
         }
+    }
+    if (bestTarget) return updateTarget(this, bestTarget);
+
+    // Priority 4: unarmed direct hostiles (skipped in structuresOnly mode for the
+    // same reason priority 1 is — workers shouldn't path off to chase haulers).
+    if (!structuresOnly) {
+        for (const c of hostileCreeps) {
+            if (isArmed(c) || (ignoreBorder && onBorder(c.pos))) continue;
+            const s = scoreTarget(c);
+            if (s > bestScore) {
+                bestScore = s;
+                bestTarget = c;
+            }
+        }
+        if (bestTarget) return updateTarget(this, bestTarget);
     }
 
     // Priority 5: bare ramparts. Walls with nothing on the other side — only
@@ -536,7 +577,7 @@ Creep.prototype.fightRanged = function (target) {
 };
 
 Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, onlyInBuild = true) {
-    if (!this.room.constructionSites.length || this.room.controller?.safeMode || isFriendlyCombatRoom(this.room)) return false;
+    if (!this.room.constructionSites.length || this.room.controller?.safeMode || friendlyRoomBlocksCombat(this.room)) return false;
 
     let site = Game.getObjectById(this.memory.stompSite) ||
         this.pos.findClosestByRange(this.room.constructionSites, {
@@ -557,7 +598,7 @@ Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, o
 };
 
 Creep.prototype.scorchedEarth = function () {
-    if (this.room.controller?.safeMode || isFriendlyCombatRoom(this.room)) return false;
+    if (this.room.controller?.safeMode || friendlyRoomBlocksCombat(this.room)) return false;
 
     const hostile = this.findClosestEnemy(true);
     if (!hostile) return false;
@@ -592,7 +633,7 @@ Creep.prototype.attackInRange = function () {
     if (!hostile || !isValidHostileTarget(hostile) || !hostile.pos.inRangeTo(this, 3) || hostile.pos.roomName !== this.room.name) {
         this.memory.opportunityAttack = undefined;
         const candidates = this.room.hostileCreeps.concat(this.room.hostileStructures);
-        if (!isFriendlyCombatRoom(this.room)) {
+        if (!friendlyRoomBlocksCombat(this.room)) {
             for (const s of this.room.structures) {
                 if (isValidHostileTarget(s) && !candidates.includes(s)) candidates.push(s);
             }
@@ -655,7 +696,7 @@ Creep.prototype.fleeHome = function (force = false) {
 
 Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     if (this.room.controller?.safeMode && this.room.controller.owner?.username !== MY_USERNAME) return false;
-    if (this.room.name === this.memory.colony || (!this.room.hostileCreeps.length && !this.room.impassibleStructures.some(s => s.structureType === STRUCTURE_TOWER && isStructureCombatHostile(s) && structActive(s)))) return true;
+    if (this.room.name === this.memory.colony || !roomHasResolvableCombatThreat(this.room)) return true;
     if (!INTEL[this.room.name]) return true;
 
     // Use cached power if available this tick
@@ -727,6 +768,7 @@ Creep.prototype.findDefensivePosition = function (target) {
 
     const rampart = getAssignedRampart(this);
     if (rampart) {
+        if (!this.memory.other) this.memory.other = {};
         if (this.pos.getRangeTo(rampart)) {
             this.memory.other.stationary = undefined;
             return this.shibMove(rampart, {range: 0});
