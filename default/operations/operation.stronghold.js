@@ -10,14 +10,20 @@ Creep.prototype.strongholdAttack = function () {
     if (this.room.name !== this.memory.destination) {
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
     } else {
+        const core = this.room.structures.find((s) => s.structureType === STRUCTURE_INVADER_CORE);
+        if (core && this.attackHostile(core.pos.checkForRampart() || core)) return;
+
         const tower = this.room.towers[0];
         if (!tower) {
             const container = this.room.containers.find((s) => _.sum(s.store) > s.store[RESOURCE_ENERGY]);
             if (container) {
                 if (container.pos.checkForRampart()) this.memory.target = container.pos.checkForRampart().id;
                 else {
-                    Memory.targetRooms[this.room.name].loot = true;
-                    Memory.targetRooms[this.room.name].level = 0;
+                    const op = Memory.targetRooms[this.room.name] || Memory.auxiliaryTargets[this.room.name];
+                    if (op) {
+                        op.loot = true;
+                        op.level = 0;
+                    }
                 }
             }
         }

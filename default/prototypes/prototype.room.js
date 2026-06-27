@@ -526,7 +526,9 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         const invaderCore = structures.find(s => s.structureType === STRUCTURE_INVADER_CORE);
         if (invaderCore) {
             const effect = invaderCore.effects?.find(e => e.effect === EFFECT_COLLAPSE_TIMER || e.effect === EFFECT_INVULNERABILITY);
-            roomIntel.invaderCore = effect ? Game.time + (effect.effect === EFFECT_COLLAPSE_TIMER ? effect.ticksRemaining : 50000 + effect.ticksRemaining) : undefined;
+            roomIntel.invaderCore = effect
+                ? Game.time + (effect.effect === EFFECT_COLLAPSE_TIMER ? effect.ticksRemaining : 50000 + effect.ticksRemaining)
+                : Game.time + CREEP_LIFE_TIME;
         } else {
             roomIntel.invaderCore = undefined;
         }

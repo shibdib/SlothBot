@@ -54,13 +54,34 @@ class RoleAttacker {
 
     unassignedTasks(creep) {
         if (!Game.getObjectById(creep.memory.target) && creep.memory.destination && creep.memory.destination !== creep.room.name) {
+            if (Memory.combatTargetDebug) {
+                if (!creep.memory._combatDbgTick || creep.memory._combatDbgTick + 10 <= Game.time) {
+                    creep.memory._combatDbgTick = Game.time;
+                    log.w(`traveling to ${roomLink(creep.memory.destination)} from ${roomLink(creep.room.name)}`, `COMBAT DBG ${creep.name}:`);
+                }
+            }
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22});
         }
         if (!creep.handleMilitaryCreep()) {
-            if (creep.memory.destination) {
-                creep.room.cacheRoomIntel(true);
-                creep.memory.destination = undefined;
+            const dest = creep.memory.destination;
+            if (dest) {
+                const destRoom = Game.rooms[dest];
+                const intel = INTEL[dest];
+                const corePresent = destRoom?.structures.some(s => s.structureType === STRUCTURE_INVADER_CORE) ||
+                    (intel?.invaderCore && intel.invaderCore > Game.time);
+                const invadersPresent = destRoom?.hostileCreeps.some(c => c.owner?.username === 'Invader');
+                if (!corePresent && !invadersPresent) {
+                    if (destRoom) destRoom.cacheRoomIntel(true);
+                    creep.memory.destination = undefined;
+                } else if (Memory.combatTargetDebug) {
+                    if (!creep.memory._combatDbgTick || creep.memory._combatDbgTick + 10 <= Game.time) {
+                        creep.memory._combatDbgTick = Game.time;
+                        log.w(`${dest} mission active core=${!!corePresent} invaders=${!!invadersPresent} — holding destination`, `COMBAT DBG ${creep.name}:`);
+                    }
+                }
             }
+            const core = creep.room.structures.find(s => s.structureType === STRUCTURE_INVADER_CORE);
+            if (core && creep.attackHostile(core.pos.checkForRampart() || core)) return;
             creep.findDefensivePosition(creep);
         }
     }
@@ -68,4 +89,3 @@ class RoleAttacker {
 
 profiler.registerClass(RoleAttacker, 'Attacker');
 module.exports = RoleAttacker;
-

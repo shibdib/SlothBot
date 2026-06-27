@@ -36,15 +36,47 @@ function isFriendlyCombatRoom(room) {
     return false;
 }
 
+function roomHasInvaderCore(room) {
+    if (!room) return false;
+    const intel = INTEL[room.name];
+    if (intel?.invaderCore && intel.invaderCore > Game.time) return true;
+    return !!room.structures.find(s => s.structureType === STRUCTURE_INVADER_CORE);
+}
+
+function isStrongholdRoom(room) {
+    if (!room) return false;
+    if (roomHasInvaderCore(room)) return true;
+    const intel = INTEL[room.name];
+    return !!(intel?.sk && intel.towers);
+}
+
 function isStructureCombatHostile(structure) {
     if (!structure || !(structure instanceof Structure)) return false;
     if (structMy(structure)) return false;
-    const owner = structOwner(structure);
-    if (!owner || owner === MY_USERNAME) return false;
-    if (FRIENDLIES.includes(owner)) return false;
     const room = structure.room || Game.rooms[structure.pos.roomName];
+    const owner = structOwner(structure);
+
+    // Invader structures are hostile even inside our reserved remotes and owned rooms.
+    if (structure.structureType === STRUCTURE_INVADER_CORE) return !!room;
+    if (owner === 'Invader') return !!room;
+
     if (room && isFriendlyCombatRoom(room)) return false;
+
+    if (!owner || owner === MY_USERNAME) {
+        // Stronghold perimeter ramparts are often ownerless but still block the core.
+        if (structure.structureType === STRUCTURE_RAMPART && isStrongholdRoom(room)) return true;
+        return false;
+    }
+    if (FRIENDLIES.includes(owner)) return false;
     return true;
+}
+
+function combatTargetDebug(creep, message) {
+    if (!Memory.combatTargetDebug) return;
+    if (!creep.memory._combatDbgTick || creep.memory._combatDbgTick + 10 <= Game.time) {
+        creep.memory._combatDbgTick = Game.time;
+        log.w(message, `COMBAT DBG ${creep.name}:`);
+    }
 }
 
 function isValidHostileTarget(target) {
@@ -95,7 +127,8 @@ const IMPORTANT_UNDER_RAMPART = new Set([
     STRUCTURE_LAB,
     STRUCTURE_NUKER,
     STRUCTURE_POWER_SPAWN,
-    STRUCTURE_FACTORY
+    STRUCTURE_FACTORY,
+    STRUCTURE_INVADER_CORE,
 ]);
 
 Object.defineProperty(Creep.prototype, 'combatPower', {
@@ -139,9 +172,22 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         this.memory.targetPos = undefined;
     }
 
-    if (hostile && combatAction(this, hostile, rampart)) return true;
+    if (hostile && combatAction(this, hostile, rampart)) {
+        combatTargetDebug(this, `attacking ${hostile.structureType || hostile.name} @${hostile.pos.x},${hostile.pos.y}`);
+        return true;
+    }
 
-    return this.moveToHostileConstructionSites();
+    const movedToSites = this.moveToHostileConstructionSites();
+    if (!hostile && !movedToSites) {
+        const cores = this.room.structures.filter(s => s.structureType === STRUCTURE_INVADER_CORE);
+        const invaderStructs = this.room.structures.filter(s => structOwner(s) === 'Invader').length;
+        combatTargetDebug(this,
+            `${this.room.name} no target | dest=${this.memory.destination || 'none'} friendly=${isFriendlyCombatRoom(this.room)} ` +
+            `hostileCreeps=${this.room.hostileCreeps.length} cores=${cores.length} invaderStructs=${invaderStructs} ` +
+            `cachedHostileStructs=${(this._hostileStructures || []).length} coreHostile=${cores[0] ? isStructureCombatHostile(cores[0]) : 'n/a'}`
+        );
+    }
+    return movedToSites;
 
     function canEngageCombat(creep) {
         return (creep.hasActiveBodyparts(HEAL) && creep.getActiveBodyparts(HEAL) > 1) ||
@@ -185,8 +231,7 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
         this._hostileStructures = this.room.impassibleStructures.filter(s =>
             isStructureCombatHostile(s) &&
             inRange(s) &&
-            ![STRUCTURE_KEEPER_LAIR, STRUCTURE_CONTROLLER, STRUCTURE_POWER_BANK].includes(s.structureType) &&
-            (this.hasActiveBodyparts(ATTACK) || s.structureType !== STRUCTURE_INVADER_CORE)
+            ![STRUCTURE_KEEPER_LAIR, STRUCTURE_CONTROLLER, STRUCTURE_POWER_BANK].includes(s.structureType)
         );
         this._hostileCache_ts = Game.time;
     }
@@ -234,7 +279,8 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
             score += alliesAttacking * 150;
         } else {
             // Structures
-            if (target.structureType === STRUCTURE_TOWER) score += 900;
+            if (target.structureType === STRUCTURE_INVADER_CORE) score += 950;
+            else if (target.structureType === STRUCTURE_TOWER) score += 900;
             else if (target.structureType === STRUCTURE_SPAWN) score += 850;
             else if (target.structureType === STRUCTURE_RAMPART) score += 50; // bare wall — proxy-scored elsewhere when it covers something
             else if (IMPORTANT_UNDER_RAMPART.has(target.structureType)) score += 500; // storage / terminal / lab / nuker / etc.
