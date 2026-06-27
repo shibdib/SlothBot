@@ -237,7 +237,7 @@ function findTowerHub(room) {
     if (!room.memory.bunkerHub || !room.memory.bunkerHub.x) return;
     // Clear existing towers so we reposition from scratch
     room.towers.forEach(t => t.destroy());
-    room.constructionSites.filter(s => s.structureType === STRUCTURE_TOWER).forEach(t => t.remove());
+    room.constructionSites.filter(s => s.structureType === STRUCTURE_TOWER && !s.progress).forEach(t => t.remove());
 
     const hubX = room.memory.bunkerHub.x, hubY = room.memory.bunkerHub.y;
     const neighboring = Game.map.describeExits(room.name);

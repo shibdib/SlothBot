@@ -68,6 +68,7 @@ function globalCreepQueue() {
         const opRoom = Game.rooms[key];
         if (opRoom && spawnState.MILITARY_SUSTAIN_OPS.has(operation.type)) {
             checkSustainability(opRoom, key);
+            if (!Memory.targetRooms[key] && !Memory.auxiliaryTargets[key]) continue;
         }
 
         const opLevel = Memory.targetRooms[key] ? operation.level : operation.level || 1;
@@ -170,7 +171,7 @@ function globalCreepQueue() {
                 const rdTowers = rdIntel && rdIntel.towers || 0;
                 const rdWaves = operation.waves || 0;
                 if (rdTowers) {
-                    Memory.targetRooms[key].boosts = [TOUGH, HEAL];
+                    operation.boosts = [TOUGH, HEAL];
                     const siegeDamage = getSiegeTowerDamage(rdIntel) || rdTowers * 600;
                     const useSolo = MAX_LEVEL >= 7 && siegeDamage <= 960 && !rdIntel.activeDefenders && rdWaves < 2;
                     if (useSolo) {
@@ -207,7 +208,7 @@ function globalCreepQueue() {
                         }
                     }
                 } else {
-                    Memory.targetRooms[key].boosts = undefined;
+                    operation.boosts = undefined;
                     queueCreepIfNeeded({
                         role: 'longbow',
                         priority,
@@ -266,7 +267,7 @@ function globalCreepQueue() {
                 }
                 break;
             case 'stronghold':
-                Memory.targetRooms[key].boosts = [HEAL];
+                operation.boosts = [HEAL];
                 queueCreepIfNeeded({
                     role: 'siegeDuo',
                     priority,

@@ -240,16 +240,6 @@ class RoleDrone {
 
     building() {
         if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return false;
-        const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
-        if (!threatLevel && this.creep.memory.constructionSite) {
-            const target = Game.getObjectById(this.creep.memory.constructionSite);
-            if (target && (target.structureType === STRUCTURE_WALL || target.structureType === STRUCTURE_RAMPART)) {
-                delete this.creep.memory.constructionSite;
-                delete this.creep.memory.task;
-                delete this.creep.memory.sitePos;
-                delete this.creep.memory.targetHits;
-            }
-        }
         if (this.creep.memory.task || this.creep.constructionWork()) {
             if (this.creep.builderFunction()) {
                 return true;

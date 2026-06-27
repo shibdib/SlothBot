@@ -11,13 +11,14 @@ let _terrainCache = {}; // Terrain is static — cache forever
 
 function routeDistance(from, to) {
     const route = findRoute(from, to, {shortest: true});
-    return route.length ? route.length : Infinity;
+    return Array.isArray(route) && route.length ? route.length : Infinity;
 }
 
 class ExpansionControl {
     constructor() {
         this.claimTarget = {};
         this.worthyRooms = [];
+        this.roomScores = {};
     }
 
     run() {
@@ -39,7 +40,8 @@ class ExpansionControl {
             _lastRejectLog = Game.time;
             log.a(`No claim targets found out of ${this.worthyRooms.length} scored rooms.`, 'EXPANSION CONTROL:');
             for (const room of this.worthyRooms.slice(0, 5)) {
-                log.a(`  ${roomLink(room.name)} rejected: ${room.rejectReason || 'unknown'}`, 'EXPANSION CONTROL:');
+                const scored = this.roomScores[room.name];
+                log.a(`  ${roomLink(room.name)} rejected: ${scored?.rejectReason || 'unknown'}`, 'EXPANSION CONTROL:');
             }
         }
     }
@@ -76,10 +78,12 @@ class ExpansionControl {
         if (sameSectorRooms.length) this.worthyRooms = sameSectorRooms;
 
         this.scoreRooms();
-        const candidates = this.worthyRooms.filter(r => r.claimValue != null && r.claimValue > -Infinity);
+        const candidates = this.worthyRooms
+            .map(room => ({room, ...this.roomScores[room.name]}))
+            .filter(r => r.claimValue != null && r.claimValue > -Infinity);
         const max = _.max(candidates, 'claimValue');
-        if (max && max.name) {
-            this.claimTarget = {room: max.name, tick: Game.time};
+        if (max && max.room) {
+            this.claimTarget = {room: max.room.name, tick: Game.time};
             Memory.claimTarget = this.claimTarget;
         }
     }
@@ -102,14 +106,26 @@ class ExpansionControl {
         const neighboring = Object.values(Game.map.describeExits(roomName));
         for (const neighbor of neighboring) {
             const intel = INTEL[neighbor];
-            // Only hard-reject if we know the neighbor is owned by someone else.
-            // Missing intel is not a dealbreaker — we may not have scouted every room yet.
-            if (intel && intel.owner && intel.owner !== MY_USERNAME) return false;
+            if (!intel) continue;
+            if (intel.owner === MY_USERNAME) return false;
+            if (intel.owner && HOSTILES.includes(intel.owner)) return false;
+            if (intel.reservation && intel.reservation !== MY_USERNAME && intel.reservation !== 'Invader') return false;
         }
         return true;
     }
 
+    clearExpansionIntelFields() {
+        for (const intel of Object.values(INTEL)) {
+            if (!intel) continue;
+            delete intel.claimValue;
+            delete intel.rejectReason;
+        }
+    }
+
     scoreRooms() {
+        this.roomScores = {};
+        this.clearExpansionIntelFields();
+
         // Single pass to build both lists instead of two separate filter scans
         const friendlyRooms = [];
         const enemyRooms = [];
@@ -120,18 +136,16 @@ class ExpansionControl {
         }
 
         for (const room of this.worthyRooms) {
-            room.claimValue = this.calculateRoomScore(room, friendlyRooms, enemyRooms);
+            this.roomScores[room.name] = this.calculateRoomScore(room, friendlyRooms, enemyRooms);
         }
     }
 
     calculateRoomScore(room, friendlyRooms, enemyRooms) {
         let score = 10000;
-        room.rejectReason = undefined;
 
         if (room.failedClaim) {
             if (room.failedClaim >= 5) {
-                room.rejectReason = `failedClaim=${room.failedClaim} (>=5)`;
-                return undefined;
+                return {rejectReason: `failedClaim=${room.failedClaim} (>=5)`};
             }
             score -= room.failedClaim * 1000;
         }
@@ -142,8 +156,7 @@ class ExpansionControl {
             if (linearDist > 20) continue;
             const distance = routeDistance(room.name, fRoom.name);
             if (distance <= 2) {
-                room.rejectReason = `friendly ${fRoom.name} too close (route dist ${distance})`;
-                return undefined;
+                return {rejectReason: `friendly ${fRoom.name} too close (route dist ${distance})`};
             }
             score += this.friendlyRoomScoreAdjustment(distance);
             if (AVOID_ALLIED_SECTORS && sameSectorCheck(room.name, fRoom.name)) score -= 500;
@@ -175,8 +188,9 @@ class ExpansionControl {
         }, 0);
 
         if (!sourceCount) {
-            room.rejectReason = `no remote sources (neighbors=${neighboring.length}, unscouted=${unscoutedNeighbors})`;
-            return undefined;
+            return {
+                rejectReason: `no remote sources (neighbors=${neighboring.length}, unscouted=${unscoutedNeighbors})`,
+            };
         }
         score += sourceCount * 250;
 
@@ -190,7 +204,7 @@ class ExpansionControl {
 
         if (myRoomInSectorCheck(room.name)) score += 7000;
 
-        return score;
+        return {claimValue: score};
     }
 
     getSwampPenalty(roomName) {

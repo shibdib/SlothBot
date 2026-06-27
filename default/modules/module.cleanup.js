@@ -19,7 +19,7 @@ module.exports.cleanup = function () {
     since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
     if (Game.time % 5 === 0 && since > 25) {
         // Cleanup old creep memory
-        // Defer on first 2 ticks after reset (looping potentially large stale Memory.creeps/flags can cost CPU)
+        // Defer on first 2 ticks after reset (looping potentially large Memory.creeps/flags can cost CPU)
         for (let name in Memory.creeps) {
             if (!Game.creeps[name]) {
                 delete Memory.creeps[name];
@@ -57,9 +57,11 @@ function cleanDistanceCacheByUsage() {
 function cleanConstructionSites() {
     for (let id in Game.constructionSites) {
         const site = Game.constructionSites[id];
+        const room = site.room;
+        if (room && room.controller && room.controller.my && site.progress > 0) continue;
         if (
             Math.random() > 0.5 &&
-            (!site.room || !site.pos.findClosestByRange(FIND_MY_CREEPS))
+            (!room || !site.pos.findClosestByRange(FIND_MY_CREEPS))
         ) {
             site.remove();
         }
