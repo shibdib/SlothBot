@@ -244,10 +244,20 @@ class RoleLabTech {
         // -- PRIORITY 4: LOGISTICS (Power/Nuke) --
         if (powerSpawn && this.room.energyState) {
             if (powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 1000 && storage && storage.store[RESOURCE_ENERGY] > 10000) {
-                return {withdrawTarget: storage.id, deliveryTarget: powerSpawn.id, resource: RESOURCE_ENERGY};
+                return {
+                    withdrawTarget: storage.id,
+                    deliveryTarget: powerSpawn.id,
+                    resource: RESOURCE_ENERGY,
+                    amount: powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY)
+                };
             }
             if (powerSpawn.store.getFreeCapacity(RESOURCE_POWER) > 50 && storage && storage.store[RESOURCE_POWER] > 0) {
-                return {withdrawTarget: storage.id, deliveryTarget: powerSpawn.id, resource: RESOURCE_POWER};
+                return {
+                    withdrawTarget: storage.id,
+                    deliveryTarget: powerSpawn.id,
+                    resource: RESOURCE_POWER,
+                    amount: powerSpawn.store.getFreeCapacity(RESOURCE_POWER)
+                };
             }
         }
 
