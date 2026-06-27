@@ -4,6 +4,12 @@
  * Colony energy-flow helpers shared across spawn queue runners.
  */
 
+/** Per-tick energy state cached by Colony before spawn queues run. */
+function spawnEnergyState(room) {
+    if (room && room._spawnEnergyState !== undefined) return room._spawnEnergyState;
+    return room ? room.energyState : 0;
+}
+
 function getFlowContext(room) {
     const energyInfo = room.memory.energyInfo;
     const trend = (energyInfo && energyInfo.trend) || 0;
@@ -30,6 +36,7 @@ function roomHasOperateExtensionOperator(roomName) {
 }
 
 module.exports = {
+    spawnEnergyState,
     getFlowContext,
     roomHasOperateExtensionOperator,
 };

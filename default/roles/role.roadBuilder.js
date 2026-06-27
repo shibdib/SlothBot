@@ -142,6 +142,10 @@ class RoleRoadBuilder {
             return;
         }
 
+        if (!this.shouldPlaceRoadsAfterBuild()) {
+            this.creep.idleFor(2);
+            return;
+        }
         this.handlePlaceRoadsResult(this.placeRoads());
     }
 
@@ -262,7 +266,7 @@ class RoleRoadBuilder {
             return PLACE_RESULT.PENDING;
         }
 
-        if (remoteRoomRoadPathsComplete(room, colony, context, {force: true})) {
+        if (remoteRoomRoadPathsComplete(room, colony, context)) {
             return PLACE_RESULT.COMPLETE;
         }
 

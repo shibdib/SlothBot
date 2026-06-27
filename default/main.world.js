@@ -223,7 +223,7 @@ class World {
             }
 
             try {
-                room.invaderCheck();
+                // invaderCheck runs inside Colony.defenseController — avoid duplicate creep scans here
                 room.cacheRoomIntel();
                 new colony(room, this.colonyCreeps[roomName] || []);
             } catch (e) {

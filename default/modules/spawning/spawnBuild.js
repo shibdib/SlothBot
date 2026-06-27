@@ -6,6 +6,7 @@
 
 const generator = require('module.bodyGenerator');
 const spawnState = require('spawnState');
+const {spawnEnergyState} = require('spawnFlow');
 const {getQueue, generateCreepName, queueCacheKey} = require('spawnQueue');
 
 const RENEW_ROLES = new Set(['hauler', 'shuttle', 'stationaryHarvester', 'upgrader']);
@@ -57,8 +58,9 @@ function renewNearbyCreepIfNeeded(room, availableSpawn) {
     // aggressively than other economy creeps even in marginal state 1, because extending a
     // productive harvester directly increases net energy gain and avoids expensive full respawns
     // (especially the large 1450 bodies). Cost is still tracked and will influence spareIncome.
-    if (!room.energyState) return;
-    const strict = room.energyState < 2 || renewTrend < -3;
+    const energyState = spawnEnergyState(room);
+    if (!energyState) return;
+    const strict = energyState < 2 || renewTrend < -3;
 
     const nearbyCreeps = _.filter(room.myCreeps, c => {
         if (!RENEW_ROLES.has(c.memory.role) || _.find(c.body, b => b.boost) || !c.pos.isNearTo(availableSpawn) || c.ticksToLive >= CREEP_LIFE_TIME) return false;

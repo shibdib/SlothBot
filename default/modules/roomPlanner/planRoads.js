@@ -429,6 +429,7 @@ const MAX_ROAD_SITES_REMOTE = 2;
 const ROAD_VERIFY_INTERVAL = 50;
 const VERIFY_CACHE_TTL = 50;
 const VERIFY_CACHE = Object.create(null);
+const NEEDS_WORK_CACHE = Object.create(null);
 
 function canPlaceRemoteRoadSite(room) {
     if (countRoadConstructionSites(room) >= MAX_ROAD_SITES_REMOTE) return false;
@@ -506,6 +507,9 @@ function clearRemoteRoadVerifyCache(roomName) {
     const prefix = `${roomName}|`;
     for (const key of Object.keys(VERIFY_CACHE)) {
         if (key.startsWith(prefix)) delete VERIFY_CACHE[key];
+    }
+    for (const key of Object.keys(NEEDS_WORK_CACHE)) {
+        if (key.startsWith(prefix)) delete NEEDS_WORK_CACHE[key];
     }
 }
 
@@ -613,26 +617,36 @@ function tryPlaceNextRemoteRoad(room, colony, context = {}) {
 }
 
 function remoteRoomNeedsRoadWork(room, colony, context = {}) {
-    if (countRoadConstructionSites(room) > 0) return true;
+    const cacheKey = verifyCacheKey(room.name, colony, context) + '|work';
+    const cached = NEEDS_WORK_CACHE[cacheKey];
+    if (cached && cached.tick + VERIFY_CACHE_TTL > Game.time) return cached.needsWork;
 
-    for (const road of room.roads) {
-        if (road.hits < road.hitsMax * 0.75) return true;
+    let needsWork = false;
+    if (countRoadConstructionSites(room) > 0) needsWork = true;
+    else if (!needsWork) {
+        for (const road of room.roads) {
+            if (road.hits < road.hitsMax * 0.75) {
+                needsWork = true;
+                break;
+            }
+        }
+    }
+    if (!needsWork && canPlaceRemoteRoadSite(room)) {
+        const pairs = getRemoteRoadPathPairs(room, colony, context);
+        for (const pair of pairs) {
+            const begin = pair.from instanceof RoomPosition ? pair.from : pair.from.pos;
+            const target = pair.to instanceof RoomPosition ? pair.to : pair.to.pos;
+            const path = getCachedPath(room, begin, target, 'remote')
+                || findRoadPath(room, begin, target, 'remote');
+            if (!path || pathTilesNeedRoads(room, path, target)) {
+                needsWork = true;
+                break;
+            }
+        }
     }
 
-    if (!canPlaceRemoteRoadSite(room)) return false;
-
-    const pairs = getRemoteRoadPathPairs(room, colony, context);
-    if (!pairs.length) return false;
-
-    for (const pair of pairs) {
-        const begin = pair.from instanceof RoomPosition ? pair.from : pair.from.pos;
-        const target = pair.to instanceof RoomPosition ? pair.to : pair.to.pos;
-        const path = getCachedPath(room, begin, target, 'remote')
-            || findRoadPath(room, begin, target, 'remote');
-        if (!path) return true;
-        if (pathTilesNeedRoads(room, path, target)) return true;
-    }
-    return false;
+    NEEDS_WORK_CACHE[cacheKey] = {tick: Game.time, needsWork};
+    return needsWork;
 }
 
 function roadPlacementLimit(room, layoutPending) {

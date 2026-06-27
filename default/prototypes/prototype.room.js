@@ -209,11 +209,22 @@ const ENERGY_STATE_CACHE = {};
 const ENERGY_STATE_CACHE_TTL = 25;
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
+        if (this._spawnEnergyState !== undefined) return this._spawnEnergyState;
+        if (this._energyStateTick === Game.time) return this._energyStateCached;
+
         const spawn = global.roomMySpawns
             ? global.roomMySpawns(this)[0]
             : _.find(this.spawns, s => safeStructureMy(s));
-        if (!this.controller || !spawn) return 2;
-        if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + ENERGY_STATE_CACHE_TTL > Game.time) return ENERGY_STATE_CACHE[this.name].state;
+        if (!this.controller || !spawn) {
+            this._energyStateTick = Game.time;
+            this._energyStateCached = 2;
+            return 2;
+        }
+        if (ENERGY_STATE_CACHE[this.name] && ENERGY_STATE_CACHE[this.name].tick + ENERGY_STATE_CACHE_TTL > Game.time) {
+            this._energyStateTick = Game.time;
+            this._energyStateCached = ENERGY_STATE_CACHE[this.name].state;
+            return this._energyStateCached;
+        }
 
         const batteryEquiv = Math.floor((this.store(RESOURCE_BATTERY) / 50) * 600 * 0.9);
         let energy = this.rawEnergy + batteryEquiv;
@@ -244,6 +255,8 @@ Object.defineProperty(Room.prototype, 'energyState', {
         }
 
         ENERGY_STATE_CACHE[this.name] = {state: this._energyState, tick: Game.time};
+        this._energyStateTick = Game.time;
+        this._energyStateCached = this._energyState;
         return this._energyState;
     },
     enumerable: false,
@@ -418,7 +431,10 @@ Object.defineProperty(Room.prototype, 'level', {
 
 Object.defineProperty(Room.prototype, 'energy', {
     get: function () {
-        if (!this._energy) this._energy = this.store(RESOURCE_ENERGY, true) + ((this.store(RESOURCE_BATTERY) / 50) * 600);
+        if (this._energyTick !== Game.time) {
+            this._energyTick = Game.time;
+            this._energy = this.store(RESOURCE_ENERGY, true) + ((this.store(RESOURCE_BATTERY) / 50) * 600);
+        }
         return this._energy;
     },
     enumerable: false,
@@ -427,7 +443,10 @@ Object.defineProperty(Room.prototype, 'energy', {
 
 Object.defineProperty(Room.prototype, 'rawEnergy', {
     get: function () {
-        if (!this._rawEnergy) this._rawEnergy = this.store(RESOURCE_ENERGY, true);
+        if (this._rawEnergyTick !== Game.time) {
+            this._rawEnergyTick = Game.time;
+            this._rawEnergy = this.store(RESOURCE_ENERGY, true);
+        }
         return this._rawEnergy;
     },
     enumerable: false,
@@ -453,36 +472,50 @@ Object.defineProperty(Room.prototype, 'energyIncome', {
     configurable: true
 });
 
-Room.prototype.store = function (resource, unused = false) {
-    if (!this._resourceStore) this._resourceStore = {};
-    if (!this._resourceStore[resource]) this._resourceStore[resource] = getRoomResource(this, resource, unused);
-    return this._resourceStore[resource];
-};
+function ensureRoomResourceScan(room) {
+    if (room._resourceScanTick === Game.time) return;
+    room._resourceScanTick = Game.time;
+    room._resourceStore = Object.create(null);
+    room._resourceStoreUnused = Object.create(null);
 
-function getRoomResource(room, resource, unused = false) {
-    if (!room || !resource) return undefined;
-    let count = 0;
+    const add = (map, resource, amount) => {
+        map[resource] = (map[resource] || 0) + amount;
+    };
 
     for (const s of room.impassibleStructures) {
         if (!s.store) continue;
-        const used = s.store.getUsedCapacity(resource);
-        if (used === 0) continue;
+        const structType = s.structureType;
+        const skipNormal = [STRUCTURE_NUKER, STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION].includes(structType);
+        const countsUnused = [STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_CONTAINER, STRUCTURE_FACTORY].includes(structType);
 
-        if (!unused) {
-            if (![STRUCTURE_NUKER, STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION].includes(s.structureType)) count += used;
-        } else {
-            if ([STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_CONTAINER, STRUCTURE_FACTORY].includes(s.structureType)) count += used;
+        for (const resource in s.store) {
+            const amount = s.store[resource];
+            if (!amount) continue;
+            if (!skipNormal) add(room._resourceStore, resource, amount);
+            if (countsUnused) add(room._resourceStoreUnused, resource, amount);
         }
     }
 
-    if (!unused || resource !== RESOURCE_ENERGY) {
-        for (const c of room.myCreeps) if (c.store[resource]) count += c.store[resource];
+    for (const c of room.myCreeps) {
+        for (const resource in c.store) {
+            const amount = c.store[resource];
+            if (!amount) continue;
+            add(room._resourceStore, resource, amount);
+        }
     }
 
-    for (const r of room.droppedResources) if (r.resourceType === resource) count += r.amount;
-
-    return count;
+    return room._resourceStore;
 }
+
+Room.prototype.store = function (resource, unused = false) {
+    if (!resource) return undefined;
+    ensureRoomResourceScan(this);
+    let count = (unused ? this._resourceStoreUnused : this._resourceStore)[resource] || 0;
+    for (const r of this.droppedResources) {
+        if (r.resourceType === resource) count += r.amount;
+    }
+    return count;
+};
 
 Room.prototype.cacheRoomIntel = function (force = false) {
     const currentTime = Game.time;
@@ -910,12 +943,13 @@ let invaderAlert = {};
 Room.prototype.invaderCheck = function () {
     if (!INTEL[this.name]) return false;
     const roomData = INTEL[this.name];
-    const {hostileCreeps, friendlyCreeps} = this;
     const previousCheck = roomData.lastInvaderCheck || Game.time;
 
-    const cooldown = hostileCreeps.length ? 3 : 15;
-    if (roomData.lastInvaderCheck + cooldown > Game.time) return false;
+    const cooldown = (roomData.numberOfHostiles || roomData.threatLevel) ? 3 : 15;
+    if (roomData.lastInvaderCheck && roomData.lastInvaderCheck + cooldown > Game.time) return false;
     roomData.lastInvaderCheck = Game.time;
+
+    const {hostileCreeps, friendlyCreeps} = this;
 
     if ((roomData.owner && roomData.owner !== MY_USERNAME) || (roomData.reservation && roomData.reservation !== MY_USERNAME) || findClosestOwnedRoom(this.name, true) > 2) {
         Object.assign(roomData, {

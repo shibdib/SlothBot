@@ -5,7 +5,7 @@
  */
 
 const spawnState = require('spawnState');
-const {getFlowContext} = require('spawnFlow');
+const {getFlowContext, spawnEnergyState} = require('spawnFlow');
 const {getCreepCount, getBodyAbilityPower} = require('spawnCounts');
 const {queueCreepIfNeeded} = require('spawnQueue');
 
@@ -28,6 +28,7 @@ function getExplorerNeededCount(room) {
 
 function miscCreepQueue(room) {
     if (!spawnState.throttleReady(spawnState.miscTick, room.name, 12)) return;
+    const energyState = spawnEnergyState(room);
 
     if (room.storage && (room.terminal || room.factory)) {
         queueCreepIfNeeded({room, role: 'labTech', priority: PRIORITIES.hauler + 1, numberNeeded: 1});
@@ -47,7 +48,7 @@ function miscCreepQueue(room) {
             queueCreepIfNeeded({
                 room,
                 role: 'longbowSquad',
-                priority: room.energyState > 1 && room.storage && trendOk ? PRIORITIES.priority : PRIORITIES.secondary,
+                priority: energyState > 1 && room.storage && trendOk ? PRIORITIES.priority : PRIORITIES.secondary,
                 numberNeeded: 2,
                 destination: needsDefense,
                 misc: {waitFor: 2, boosts: [RANGED_ATTACK, HEAL]},
@@ -96,7 +97,7 @@ function miscCreepQueue(room) {
             destination: needyBorderPatrol.memory.destination, operation: 'borderPatrol'
         });
     } else if (room.memory.borderPatrol && INTEL[room.memory.borderPatrol] &&
-        INTEL[room.memory.borderPatrol].hostilePower < (longbowPower * (room.energyState + 1))) {
+        INTEL[room.memory.borderPatrol].hostilePower < (longbowPower * (energyState + 1))) {
         const borderIntel = INTEL[room.memory.borderPatrol];
         const power = borderIntel ? (borderIntel.hostilePower * 1.5) - (borderIntel.friendlyPower || 0) : 50;
         if (power > 0) {
@@ -106,7 +107,7 @@ function miscCreepQueue(room) {
                 destination: room.memory.borderPatrol, operation: 'borderPatrol', other: {power}
             });
         }
-    } else if (room.energyState && needsBorderResponse && INTEL[needsBorderResponse] &&
+    } else if (energyState && needsBorderResponse && INTEL[needsBorderResponse] &&
         INTEL[needsBorderResponse].hostilePower < longbowPower) {
         const responseIntel = INTEL[needsBorderResponse];
         const power = responseIntel ? (responseIntel.hostilePower * 1.5) - (responseIntel.friendlyPower || 0) : 50;

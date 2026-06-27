@@ -8,6 +8,7 @@ const FactoryControl = require('module.factoryController');
 const DefenseControl = require('module.defense');
 const LinkControl = require('module.linkController');
 const TerminalControl = require('module.terminalController');
+const {lastRun: terminalLastRun} = require('termState');
 const spawning = require('module.creepSpawning');
 const DiplomacyControl = require('module.diplomacy');
 const profiler = require('tools.profiler');
@@ -19,6 +20,8 @@ class Colony {
         const worldStart = Game.cpu.getUsed();
         this.room = room;
         this.creeps = creeps;
+        this.energyState = room.energyState;
+        room._spawnEnergyState = this.energyState;
 
         // Handle room creeps
         this.creepManager();
@@ -94,6 +97,8 @@ class Colony {
     }
 
     terminalController() {
+        const last = terminalLastRun[this.room.name] || 0;
+        if (last + 25 > Game.time) return;
         new TerminalControl(this.room).run();
     }
 
@@ -110,6 +115,7 @@ class Colony {
     }
 
     creepSpawningController() {
+        this.room._spawnEnergyState = this.energyState;
         spawning.processBuildQueue(this.room);
         const spawnFunctions = [
             {name: 'essentialSpawning', f: spawning.essentialCreepQueue},
@@ -138,7 +144,7 @@ class Colony {
             const avgCpu = average(cpuUsageArray);
             let roomCount = MY_ROOMS.length;
             // If we're RCL8 and have energy, make this more likely
-            if (this.room.level === 8 && this.room.energyState) roomCount *= 1.5
+            if (this.room.level === 8 && this.energyState) roomCount *= 1.5
             const roomCpuTarget = (Game.cpu.limit * 0.95) / roomCount
             if (avgCpu > roomCpuTarget) {
                 let cpuOverCount = this.room.memory.cpuOverage || 0;

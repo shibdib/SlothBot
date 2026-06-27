@@ -42,8 +42,8 @@ let helpers = function () {
             // Only clear relevant memory if room is fully owned
             const roomName = room.name;
             delete room.memory;
-            Memory.targetRooms[roomName] = undefined;
-            Memory.auxiliaryTargets[roomName] = undefined;
+            if (Memory.targetRooms) Memory.targetRooms[roomName] = undefined;
+            if (Memory.auxiliaryTargets) Memory.auxiliaryTargets[roomName] = undefined;
         }
 
         function resetRoomIntel(room) {

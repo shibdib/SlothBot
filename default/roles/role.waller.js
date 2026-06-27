@@ -3,6 +3,50 @@
  */
 
 const profiler = require("tools.profiler");
+const {spawnEnergyState} = require('spawnFlow');
+
+let barrierListTick = -1;
+let barrierListCache = {};
+let wallerTargetTick = -1;
+let wallerTargetCache = {};
+
+function getBarrierRepairList(room, maintenance) {
+    const key = `${room.name}|${maintenance ? 1 : 0}`;
+    if (barrierListTick !== Game.time) {
+        barrierListTick = Game.time;
+        barrierListCache = {};
+    }
+    if (barrierListCache[key]) return barrierListCache[key];
+
+    const quadTrapWalls = new Set((room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
+    let targetLimit = 100000;
+    const rcl = room.level;
+    if (rcl >= 8) targetLimit = 10000000;
+    else if (rcl >= 6) targetLimit = 5000000;
+    if (spawnEnergyState(room) === 1) targetLimit = Math.min(targetLimit, 200000);
+    if (maintenance && rcl === 8) targetLimit = RAMPART_HITS_MAX[rcl];
+
+    barrierListCache[key] = room.barriers.filter((s) => {
+        const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : targetLimit;
+        return s.hits < cap;
+    });
+    return barrierListCache[key];
+}
+
+function getWallerTargetIds(roomName) {
+    if (wallerTargetTick !== Game.time) {
+        wallerTargetTick = Game.time;
+        wallerTargetCache = {};
+        for (const name in Game.creeps) {
+            const c = Game.creeps[name];
+            if (!c.my || c.memory.role !== 'waller' || !c.memory.currentTarget) continue;
+            const colony = c.memory.colony;
+            if (!wallerTargetCache[colony]) wallerTargetCache[colony] = new Set();
+            wallerTargetCache[colony].add(c.memory.currentTarget);
+        }
+    }
+    return wallerTargetCache[roomName] || null;
+}
 
 class RoleWaller {
     constructor(creep) {
@@ -67,7 +111,7 @@ class RoleWaller {
 
         // Maintenance: Strengthen barriers if nothing else to do (prevents idling)
         // Only in rich rooms; low-energy wallers (spawned at energyState=1) focus on normal (limited) walling.
-        if (this.room.energyState >= 3 && this.walling(true)) return;
+        if (spawnEnergyState(this.room) >= 3 && this.walling(true)) return;
 
         // Final fallback: Idle
         this.creep.memory.task = undefined;
@@ -156,18 +200,13 @@ class RoleWaller {
         let targetLimit = 100000;
         if (rcl >= 8) targetLimit = 10000000;
         else if (rcl >= 6) targetLimit = 5000000;
-        if (this.room.energyState === 1) targetLimit = Math.min(targetLimit, 200000);
+        if (spawnEnergyState(this.room) === 1) targetLimit = Math.min(targetLimit, 200000);
         if (maintenance && rcl === 8) targetLimit = RAMPART_HITS_MAX[rcl];
         return targetLimit;
     }
 
     barriersNeedingRepair(maintenance = false) {
-        const quadTrapWalls = new Set((this.room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
-        const targetLimit = this.barrierRepairCap(maintenance);
-        return this.room.barriers.filter((s) => {
-            const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : targetLimit;
-            return s.hits < cap;
-        });
+        return getBarrierRepairList(this.room, maintenance);
     }
 
     barriersNeedUrgentRepair(maintenance = false) {
@@ -211,8 +250,9 @@ class RoleWaller {
                 if (threatLevel) {
                     target = _.min(barrierStructures, 'hits');
                 } else {
+                    const claimed = getWallerTargetIds(this.room.name);
                     const available = barrierStructures.filter((s) =>
-                        !this.room.myCreeps.some((c) => c.memory.currentTarget === s.id && c.id !== this.creep.id)
+                        !claimed || !claimed.has(s.id) || this.creep.memory.currentTarget === s.id
                     );
 
                     if (available.length) {

@@ -7,6 +7,7 @@
 const generator = require('module.bodyGenerator');
 const {estimateClaimRouteTicks} = require('pathRoute');
 const {isLiveCombatReady, isLiveAuxReady, isRoomStruggling} = require('hcReadiness');
+const {spawnEnergyState} = require('spawnFlow');
 
 const CLAIM_ROLES = new Set(['claimer', 'claimAttacker', 'reserver']);
 const INVISIBLE_ASSIGNMENT_TIMEOUT = 50;
@@ -214,7 +215,7 @@ function isBetterAssignmentCandidate(score, distance, assignedOps, key, best) {
 function computeAssignmentScore(myRoom, routeDistance, assignmentCount, isAuxiliary) {
     let score = routeDistance;
 
-    const energyState = myRoom.energyState || 0;
+    const energyState = spawnEnergyState(myRoom) || 0;
     const ei = myRoom.memory.energyInfo;
     const spare = (ei && ei.spareIncome) || 0;
     const trend = (ei && ei.trend) || 0;
@@ -314,7 +315,7 @@ function getPriority(operationRoom) {
     const op = Memory.targetRooms[operationRoom] || Memory.auxiliaryTargets[operationRoom];
     const colonyName = (op && op.assignedRoom) || findClosestOwnedRoom(operationRoom, false, 1);
     const colony = colonyName && Game.rooms[colonyName];
-    const energyMulti = colony && colony.energyState < 2 ? 1.5 : 1;
+    const energyMulti = colony && spawnEnergyState(colony) < 2 ? 1.5 : 1;
     if (range <= 3) return (PRIORITIES.priority * typeMulti) * energyMulti;
     else if (range <= 5) return (PRIORITIES.urgent * typeMulti) * energyMulti;
     else if (range <= 7) return (PRIORITIES.high * typeMulti) * energyMulti;

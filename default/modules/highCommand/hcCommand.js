@@ -60,6 +60,10 @@ function highCommand() {
 
     if (typeof MAX_LEVEL === 'undefined') return;
 
+    // Ensure op containers exist early (housekeeping is on long cooldown; many direct accesses assume objects)
+    if (!Memory.targetRooms) Memory.targetRooms = {};
+    if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
+
     const readiness = applyOperationLimits(state);
     if ((!readiness.canLaunchOps || readiness.empireCritical) && state.lastNoSiegeWarning + 5000 < Game.time) {
         state.lastNoSiegeWarning = Game.time;

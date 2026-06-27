@@ -388,22 +388,36 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         creep.memory.badPathing = (creep.memory.badPathing || 0) + 1;
         if (creep.memory.badPathing > 10) {
             if (!roomDistance) {
-                log.d(`${creep.name} is stuck in ${creep.room.name} and is unable to path from ${creep.pos} to ${target}. Suiciding for the good of the CPU.`);
-                log.d('Ret - ' + JSON.stringify(result));
-                if (allowedRooms) log.d('Path - ' + allowedRooms);
-                if (creep.memory.destination && (Memory.targetRooms[creep.memory.destination] || Memory.auxiliaryTargets[creep.memory.destination])) {
-                    delete Memory.targetRooms[creep.memory.destination];
-                    delete Memory.auxiliaryTargets[creep.memory.destination];
-                    delete INTEL[creep.memory.destination];
-                    log.d('Canceling operation in ' + roomLink(creep.memory.destination) + ' as we cannot find a path.', 'HIGH COMMAND: ');
+                const dest = creep.memory.destination;
+                const hasTargetOp = dest && Memory.targetRooms && Memory.targetRooms[dest];
+                const hasAuxOp = dest && Memory.auxiliaryTargets && Memory.auxiliaryTargets[dest];
+                if (hasTargetOp || hasAuxOp) {
+                    log.d(`${creep.name} is stuck in ${creep.room.name} and is unable to path from ${creep.pos} to ${target}. Suiciding for the good of the CPU.`);
+                    log.d('Ret - ' + JSON.stringify(result));
+                    if (allowedRooms) log.d('Path - ' + allowedRooms);
+                    if (Memory.targetRooms) delete Memory.targetRooms[dest];
+                    if (Memory.auxiliaryTargets) delete Memory.auxiliaryTargets[dest];
+                    if (INTEL) delete INTEL[dest];
+                    log.d('Canceling operation in ' + roomLink(dest) + ' as we cannot find a path.', 'HIGH COMMAND: ');
+                    return creep.suicide();
                 }
-                return creep.suicide();
+                // Non-operation destination (e.g. explorer signing/exploring): just give up this target.
+                log.d(`${creep.name} is stuck in ${creep.room.name} and is unable to path from ${creep.pos} to ${target}. Clearing destination.`);
+                creep.memory._shibMove = undefined;
+                if (dest) creep.memory.destination = undefined;
+                return false;
             }
-            return creep.moveTo(target);
+            log.d(`${creep.name} is stuck in ${creep.room.name} and is unable to path from ${creep.pos} to ${target}. Clearing destination.`);
+            creep.memory._shibMove = undefined;
+            creep.memory.badPathing = undefined;
+            if (creep.memory.destination) creep.memory.destination = undefined;
+            creep.idleFor(5);
+            return false;
         }
     }
 
-    return creep.moveTo(target);
+    creep.idleFor(3);
+    return false;
 }
 
 

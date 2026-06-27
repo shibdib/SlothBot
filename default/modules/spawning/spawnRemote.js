@@ -5,7 +5,7 @@
  */
 
 const spawnState = require('spawnState');
-const {getFlowContext} = require('spawnFlow');
+const {getFlowContext, spawnEnergyState} = require('spawnFlow');
 const {getCreepCount, haulerCarryCapacity} = require('spawnCounts');
 const {queueCreepIfNeeded, queueCreep} = require('spawnQueue');
 const {routeHasBuiltRoads, countQueuedHaulersForSource} = require('bodyHelpers');
@@ -27,7 +27,7 @@ function maxRemoteHarvesters(room) {
 
 function shouldDeprioritizeRemotes(room) {
     const {spareIncome, flowHealthy} = getFlowContext(room);
-    const energyState = room.energyState || 0;
+    const energyState = spawnEnergyState(room) || 0;
     return energyState >= 3 && room.storage && flowHealthy && spareIncome >= 8;
 }
 
@@ -222,7 +222,7 @@ function handleThreatLevel(room, remoteName) {
 }
 
 function reserverCountForRemote(room, remoteName) {
-    if (room.level >= 7 || room.energyState < 2) return 1;
+    if (room.level >= 7 || spawnEnergyState(room) < 2) return 1;
     const cap = INTEL[remoteName] && INTEL[remoteName].reserverCap;
     if (!cap || cap < 3) return cap || 1;
     return cap > 3 ? 3 : 1;
@@ -231,7 +231,7 @@ function reserverCountForRemote(room, remoteName) {
 function handleReservation(room, remoteName) {
     if (room.level >= 4 && getCreepCount(undefined, 'remoteHarvester', remoteName) && (!INTEL[remoteName].reservationExpires || (INTEL[remoteName].reservationExpires - CREEP_LIFE_TIME) < Game.time) && !isSkRoom(remoteName)) {
         const count = reserverCountForRemote(room, remoteName);
-        const reserverPriority = room.energyState < 2 || room.level < 7 ? PRIORITIES.reserver + 3 : PRIORITIES.reserver;
+        const reserverPriority = spawnEnergyState(room) < 2 || room.level < 7 ? PRIORITIES.reserver + 3 : PRIORITIES.reserver;
         queueCreepIfNeeded({
             room, role: 'reserver', priority: reserverPriority + getCreepCount(undefined, 'reserver', remoteName),
             numberNeeded: count, destination: remoteName
@@ -431,6 +431,7 @@ function handleInvaderCore(room, remoteName) {
 
 function remoteCreepQueue(room) {
     if (!spawnState.throttleReady(spawnState.remoteTick, room.name, 5)) return;
+    const energyState = spawnEnergyState(room);
     room.memory.borderPatrol = undefined;
 
     const homeIntel = INTEL[room.name];
@@ -465,8 +466,8 @@ function remoteCreepQueue(room) {
     handleRemoteHaulers(room);
     handleRoadBuilder(room);
 
-    if (spawnState.contestedRemotes[room.name] && room.energyState) handleContestedRoom(room);
-    if (spawnState.blockedRemotes[room.name] && room.energyState) handleBlockedRoom(room);
+    if (spawnState.contestedRemotes[room.name] && energyState) handleContestedRoom(room);
+    if (spawnState.blockedRemotes[room.name] && energyState) handleBlockedRoom(room);
 }
 
 module.exports = {remoteCreepQueue};

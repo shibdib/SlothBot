@@ -24,6 +24,8 @@ module.exports.loop = function () {
 
             // CPU Bucket Cooldown Check
             if (!Memory.cpuTracking) Memory.cpuTracking = {};
+            if (!Memory.targetRooms) Memory.targetRooms = {};
+            if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
             const cpuTracking = Memory.cpuTracking;
             const currentBucket = Game.cpu.bucket;
 
@@ -171,6 +173,8 @@ global.resetMemory = function () {
     Memory.rooms = {};
     Memory.flags = {};
     Memory.spawns = {};
+    Memory.targetRooms = {};
+    Memory.auxiliaryTargets = {};
 }
 
 global.lastMemoryTick = undefined;

@@ -129,11 +129,11 @@ function adjustQueuePriority(queue, room) {
             continue;
         }
 
-        if (creep.destination && (Memory.targetRooms[creep.destination] || Memory.auxiliaryTargets[creep.destination])) {
+        if (creep.destination && ((Memory.targetRooms && Memory.targetRooms[creep.destination]) || (Memory.auxiliaryTargets && Memory.auxiliaryTargets[creep.destination]))) {
             const milInfo = room.memory.energyInfo;
             const milTrend = (milInfo && milInfo.trend) || 0;
             const milSpare = (milInfo && milInfo.spareIncome) || 0;
-            const flowReady = room.energyState >= 2 && milTrend >= 0 && milSpare >= 8;
+            const flowReady = spawnEnergyState(room) >= 2 && milTrend >= 0 && milSpare >= 8;
             if (flowReady && room.storage) creep.priority *= 0.5;
             else if (creep.military) creep.priority *= 6;
         }
