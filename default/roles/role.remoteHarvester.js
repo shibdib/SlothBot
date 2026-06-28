@@ -8,9 +8,34 @@ class RoleRemoteHarvester {
     constructor(creep) {
         this.creep = creep;
         this.room = creep.room;
-        this.source = Game.getObjectById(this.creep.memory.other.source);
+        if (!this.creep.memory.other) this.creep.memory.other = {};
+        this.source = this.resolveSource();
         this.refreshContainerTarget();
         this.performRoleActions();
+    }
+
+    resolveSource() {
+        const other = this.creep.memory.other;
+        if (!other) return undefined;
+
+        let source = other.source ? Game.getObjectById(other.source) : undefined;
+        if (source) {
+            if (!this.creep.memory.destination) this.creep.memory.destination = source.pos.roomName;
+            return source;
+        }
+
+        const colony = this.creep.memory.colony;
+        const destination = this.creep.memory.destination;
+        if (colony && destination && ROOM_REMOTE_TARGETS[colony]) {
+            const match = _.find(ROOM_REMOTE_TARGETS[colony],
+                s => s.room === destination && (!other.source || s.source === other.source));
+            if (match) {
+                other.source = match.source;
+                source = Game.getObjectById(match.source);
+                if (source) return source;
+            }
+        }
+        return undefined;
     }
 
     refreshContainerTarget() {
@@ -62,7 +87,7 @@ class RoleRemoteHarvester {
             }
         }
 
-        if (Game.time % 50 === 0) {
+        if (Game.time % 50 === 0 && this.creep.memory.other && this.creep.memory.other.source) {
             const sourceInfo = _.find(ROOM_REMOTE_TARGETS[this.creep.memory.colony], (s) => s.source === this.creep.memory.other.source);
             if (sourceInfo) updateHaulingRequired(this.creep, sourceInfo, true);
         }
@@ -76,8 +101,17 @@ class RoleRemoteHarvester {
 
     harvestSource() {
         if (!this.source) {
-            // Move to a general area if source not found
-            return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 15});
+            this.source = this.resolveSource();
+            if (this.source) return this.harvestSource();
+
+            const dest = this.creep.memory.destination;
+            if (!dest || typeof dest !== 'string') return this.creep.recycleCreep();
+
+            if (this.creep.room.name !== dest) {
+                return this.creep.shibMove(new RoomPosition(25, 25, dest), {range: 15});
+            }
+            this.creep.idleFor(5);
+            return;
         }
 
         if (!this.container || Game.time % 5 === 0) this.refreshContainerTarget();

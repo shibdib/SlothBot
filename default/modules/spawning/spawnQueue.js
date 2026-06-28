@@ -7,6 +7,7 @@
 const generator = require('module.bodyGenerator');
 const {getCreepCount, creepExpiringSoon} = require('spawnCounts');
 const {collectGlobalOperations, unassignRoom} = require('spawnOperations');
+const {spawnEnergyState} = require('spawnFlow');
 
 let queueCache = {};
 
