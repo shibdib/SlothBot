@@ -18,11 +18,11 @@ let globals = function () {
         // Drone/upgrader were both 6, with drone queued first in essentialCreepQueue. Stable
         // sort meant drone always took the first slot after leveling, leaving the controller
         // idle while extensions filled.
-        upgrader: 6, drone: 5, mineralHarvester: 7,
+        upgrader: 6, drone: 3, mineralHarvester: 7,
         // Haulers — slightly behind harvesters since they're gated by harvester presence
         hauler: 2, miscHauler: 7,
         // Remotes — harvesters before haulers (a hauler without a harvester does nothing)
-        remoteHarvester: 4, remoteHauler: 5, roadBuilder: 7, fuelTruck: 8, reserver: 6,
+        remoteHarvester: 5, remoteHauler: 4, roadBuilder: 7, fuelTruck: 8, reserver: 6,
         // Military
         defender: 3, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9
     };
