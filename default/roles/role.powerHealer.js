@@ -21,10 +21,14 @@ class RolePowerHealer {
     }
 
     housekeeping() {
-        if (!Memory.auxiliaryTargets[this.creep.memory.destination]) return this.creep.recycleCreep();
+        if (!this.creep.memory.destination || !Memory.auxiliaryTargets[this.creep.memory.destination]) return this.creep.recycleCreep();
     }
 
     travel() {
+        if (!this.creep.memory.destination) {
+            this.creep.recycleCreep();
+            return;
+        }
         this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 23});
     }
 

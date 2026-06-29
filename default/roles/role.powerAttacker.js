@@ -28,6 +28,10 @@ class RolePowerAttacker {
     }
 
     travel() {
+        if (!this.creep.memory.destination) {
+            this.creep.recycleCreep();
+            return;
+        }
         this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 23});
     }
 

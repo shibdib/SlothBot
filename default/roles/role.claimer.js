@@ -15,7 +15,10 @@ class RoleClaimer {
     performRoleActions() {
         if (this.housekeeping()) {
             return true;
-        } else if (this.room.name !== this.creep.memory.destination) {
+        } else if (!this.creep.memory.destination || this.room.name !== this.creep.memory.destination) {
+            if (!this.creep.memory.destination) {
+                return this.creep.recycleCreep();
+            }
             this.travel();
         } else if (this.creep.memory.operation === 'claimClear') {
             this.claimClear();
@@ -34,6 +37,10 @@ class RoleClaimer {
     }
 
     travel() {
+        if (!this.creep.memory.destination) {
+            this.creep.recycleCreep();
+            return;
+        }
         this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 23});
     }
 

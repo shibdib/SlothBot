@@ -28,6 +28,9 @@ class RolePowerHauler {
             this.creep.memory.destination = undefined;
             return this.creep.recycleCreep();
         }
+        if (!this.creep.memory.destination) {
+            return this.creep.recycleCreep();
+        }
     }
 
     pickupResource() {

@@ -15,7 +15,10 @@ class RoleReserver {
         if (this.creep.skSafety()) {
             this.creep.memory.other.stationary = undefined;
             return true;
-        } else if (this.room.name !== this.creep.memory.destination) {
+        } else if (!this.creep.memory.destination || this.room.name !== this.creep.memory.destination) {
+            if (!this.creep.memory.destination) {
+                return this.creep.recycleCreep();
+            }
             this.travel();
         } else if (!this.creep.memory.inPlace) {
             this.getToController();
@@ -58,6 +61,10 @@ class RoleReserver {
     }
 
     travel() {
+        if (!this.creep.memory.destination) {
+            this.creep.recycleCreep();
+            return;
+        }
         let destination = new RoomPosition(25, 25, this.creep.memory.destination);
         if (this.creep.memory.controllerTarget) {
             try {

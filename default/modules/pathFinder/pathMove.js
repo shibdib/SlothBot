@@ -32,6 +32,11 @@ function applyClaimRouting(creep, options, target) {
     if (ticksRemaining < estimateClaimRouteTicks(remainingRooms)) {
         delete creep.memory._shibMove?.route;
         delete creep.memory._shibMove?.path;
+        if (creep.memory._shibMove) {
+            delete creep.memory._shibMove.newPos;
+            delete creep.memory._shibMove.pathPos;
+            creep.memory._shibMove.pathPosTime = 0;
+        }
         deleteRoute(creep.room.name, destRoom);
     }
 }
@@ -147,6 +152,7 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
             creep.memory._shibMove.pathPosTime = 0;
             delete creep.memory._shibMove.path;
             delete creep.memory._shibMove.pathPos;
+            delete creep.memory._shibMove.newPos;
             return shibPath(creep, heading, creep.memory._shibMove, origin, target, options);
         }
         return false;
@@ -428,9 +434,9 @@ function creepBumping(creep, pathInfo, options) {
     // re-queue a coordinated move next tick instead of randomising now.
     const isGrouped = !!creep.memory?.grouped;
 
-    if (!pathInfo?.newPos) {
+    if (!pathInfo?.newPos || !pathInfo?.path?.length) {
         if (isGrouped) return false;
-        return creep.moveRandom();
+        return false;
     }
 
     const nextPosition = creep.pos.positionAtDirection(parseInt(pathInfo.path[0], 10));
