@@ -78,6 +78,11 @@ class RoleDrone {
     jobManager() {
         const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
 
+        if (controllerDowngradeUrgent(this.room) && this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+            if (this.creep.memory.task && this.creep.memory.task !== 'upgrade') clearDroneTaskForUpgrade(this.creep);
+            if (this.upgrading(true)) return;
+        }
+
         if (this.creep.memory.task && this.taskedOut()) return;
 
         const hasBuilderWork = this.room.constructionSites.some(s =>
@@ -210,20 +215,19 @@ class RoleDrone {
     }
 
     upgrading(force) {
-        if (this.creep.memory.task && this.creep.memory.task !== 'upgrade') return false;
+        if (!force && this.creep.memory.task && this.creep.memory.task !== 'upgrade') return false;
 
-        // Drones should not upgrade if a specialized upgrader exists
-        if (this.room.myCreeps.some(c => c.memory.role === 'upgrader') && !force) {
-            if (this.creep.memory.task === 'upgrade') delete this.creep.memory.task;
-            return false;
-        }
+        const controller = this.room.controller;
+        if (!controller || !controller.my || controller.upgradeBlocked || controller.level === 8) return false;
 
         if (!force) {
-            const controller = this.room.controller;
-            if (!controller || !controller.my || controller.upgradeBlocked || controller.level === 8) return false;
+            if (!controllerDowngradeUrgent(this.room) && !this.creep.memory.task) return false;
 
-            // Throttled check for downgrade risk
-            if (!controller.ticksToDowngrade || (controller.ticksToDowngrade > CONTROLLER_DOWNGRADE[controller.level] * 0.9 && !this.creep.memory.task)) return false;
+            // Drones should not upgrade if a specialized upgrader exists
+            if (this.room.myCreeps.some(c => c.memory.role === 'upgrader')) {
+                if (this.creep.memory.task === 'upgrade') delete this.creep.memory.task;
+                return false;
+            }
         }
 
         this.creep.memory.task = 'upgrade';
@@ -329,6 +333,22 @@ class RoleDrone {
 
 profiler.registerClass(RoleDrone, 'Drone');
 module.exports = RoleDrone;
+
+function controllerDowngradeUrgent(room) {
+    const controller = room.controller;
+    if (!controller || !controller.my) return false;
+    const ticks = controller.ticksToDowngrade;
+    if (typeof ticks !== 'number') return false;
+    return ticks < CONTROLLER_DOWNGRADE[controller.level] * 0.9;
+}
+
+function clearDroneTaskForUpgrade(creep) {
+    delete creep.memory.task;
+    delete creep.memory.constructionSite;
+    delete creep.memory.currentTarget;
+    delete creep.memory.targetWallHits;
+    delete creep.memory.storageDestination;
+}
 
 // Scores each source and picks the best for a drone to harvest from.
 // Prefers sources with energy, avoids overcrowded spots, weights by distance.
