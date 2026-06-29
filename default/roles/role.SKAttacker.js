@@ -13,7 +13,9 @@ class RoleSKAttacker {
 
     performRoleActions() {
         if (this.housekeeping()) return;
-        if (!this.creep.memory.keeper && !this.creep.memory.lair && this.room.name !== this.creep.memory.destination) {
+        if (this.room.name !== this.creep.memory.destination) {
+            this.creep.memory.keeper = undefined;
+            this.creep.memory.lair = undefined;
             this.travel();
         } else {
             this.creep.memory.arrived = true;
@@ -24,6 +26,10 @@ class RoleSKAttacker {
     housekeeping() {
         // Boosting
         if (this.creep.tryToBoost()) return true;
+        if (!this.creep.memory.destination) {
+            this.creep.recycleCreep();
+            return true;
+        }
         // Handle invader core in sk
         if (this.room.hostileStructures.length) {
             let core = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0];
@@ -35,6 +41,10 @@ class RoleSKAttacker {
     }
 
     travel() {
+        if (!this.creep.memory.destination) {
+            this.creep.recycleCreep();
+            return;
+        }
         this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 23});
     }
 
@@ -61,6 +71,12 @@ class RoleSKAttacker {
             this.creep.healInRange();
             let lair = Game.getObjectById(this.creep.memory.lair) || _.min(_.filter(this.room.keeperLairs, (s) =>
                 s.room.name === this.creep.memory.destination), 'ticksToSpawn');
+            if (!lair) {
+                this.creep.memory.keeper = undefined;
+                this.creep.memory.lair = undefined;
+                this.creep.shibMove(new RoomPosition(25, 25, this.room.name), {range: 10});
+                return;
+            }
             this.creep.memory.keeper = undefined;
             this.creep.memory.lair = lair.id;
             if (this.creep.hits < this.creep.hitsMax * 0.8 && this.creep.pos.getRangeTo(lair) < 12) return;
