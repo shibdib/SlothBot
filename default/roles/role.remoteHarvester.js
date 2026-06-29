@@ -108,7 +108,7 @@ class RoleRemoteHarvester {
             if (!dest || typeof dest !== 'string') return this.creep.recycleCreep();
 
             if (this.creep.room.name !== dest) {
-                return this.creep.shibMove(new RoomPosition(25, 25, dest), {range: 15});
+                return this.creep.shibMove(new RoomPosition(25, 25, dest), {range: 23});
             }
             this.creep.idleFor(5);
             return;
