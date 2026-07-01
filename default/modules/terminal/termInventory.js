@@ -53,7 +53,30 @@ Object.assign(TerminalControl.prototype, {
             return REACTION_AMOUNT * MY_ROOMS.filter(r => Game.rooms[r] && Game.rooms[r].terminal).length;
         }
         return this.determineKeepAmount(resource);
-    }, computeSellableAmount(terminal, resource) {
+    },
+
+    empireLabPipelineReserve(resource) {
+        let reserve = 0;
+        for (const name of MY_ROOMS) {
+            const room = Game.rooms[name];
+            if (!room) continue;
+            if (room.memory.producingBoost === resource) {
+                reserve += Math.max(0, BOOST_AMOUNT(room, resource) - room.store(resource));
+            }
+            for (const lab of room.labs || []) {
+                if (lab.memory?.itemNeeded === resource) {
+                    reserve += Math.max(0, REACTION_AMOUNT - (lab.store[resource] || 0));
+                }
+                if (lab.memory?.neededBoost === resource) {
+                    const amt = lab.memory.amount || BOOST_AMOUNT(room, resource);
+                    reserve += Math.max(0, amt - (lab.store[resource] || 0));
+                }
+            }
+        }
+        return reserve;
+    },
+
+    computeSellableAmount(terminal, resource) {
         const inTerminal = terminal.store[resource] || 0;
         if (!inTerminal) return 0;
         if (!empireCanSell(resource)) return 0;
@@ -63,8 +86,9 @@ Object.assign(TerminalControl.prototype, {
         }
 
         const empireKeep = this.getEmpireKeepAmount(resource);
+        const pipeline = this.empireLabPipelineReserve(resource);
         const total = getEffectiveSupply(resource);
-        const surplus = Math.max(0, total - empireKeep);
+        const surplus = Math.max(0, total - empireKeep - pipeline);
         return Math.min(inTerminal, surplus);
     }, canEmpireSell(resource) {
         return empireCanSell(resource);

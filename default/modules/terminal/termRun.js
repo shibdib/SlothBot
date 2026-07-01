@@ -33,7 +33,10 @@ Object.assign(TerminalControl.prototype, {
         const globalOrders = this.getGlobalOrders();
         const myOrders = Game.market.orders;
 
-        if (hub) runHousekeeping(this, globalOrders, myOrders);
+        if (hub) {
+            this.pruneNonHubOrders(myOrders);
+            runHousekeeping(this, globalOrders, myOrders);
+        }
 
         const terminal = this.room.terminal;
         const storage = terminal.room.storage;
@@ -44,7 +47,13 @@ Object.assign(TerminalControl.prototype, {
         }
 
         // Internal network before market — route empire stock first.
-        if (this.emergencyEnergy(terminal) || this.executePlannedTransfers(terminal)) return;
+        const planned = state.ledger?.plannedTransfers || [];
+        const hasPriorityOutbound = planned.some(t =>
+            t.from === this.room.name && ['urgent', 'battery', 'energy', 'resource'].includes(t.kind)
+        );
+        if (this.emergencyEnergy(terminal)) return;
+        if (!hub && !hasPriorityOutbound && this.executePlannedTransfers(terminal, {kinds: ['hub']})) return;
+        if (this.executePlannedTransfers(terminal)) return;
 
         // Active market (deals, fire sales) — any room, after transfers.
         if (runActiveMarket(this, globalOrders)) return;

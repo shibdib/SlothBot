@@ -77,25 +77,33 @@ Object.assign(TerminalControl.prototype, {
         return false;
     },
 
+    pruneNonHubOrders(myOrders) {
+        if (typeof myOrders !== 'object' || !Object.keys(myOrders).length) return;
+        const marketHub = state.ledger?.marketHub || selectMarketHub();
+        if (!marketHub) return;
+        for (const orderId in myOrders) {
+            const order = myOrders[orderId];
+            if (!order) continue;
+            if (_.includes(MY_ROOMS, order.roomName) && order.roomName !== marketHub
+                && (order.type === ORDER_BUY || order.type === ORDER_SELL)) {
+                this.cancelOrder(order, 'Passive orders centralized on market hub');
+            }
+        }
+    },
+
     orderCleanup(myOrders) {
         // Ensure myOrders is an object and contains valid order data
         if (typeof myOrders !== 'object' || Object.keys(myOrders).length === 0) {
             return;
         }
 
+        this.pruneNonHubOrders(myOrders);
+
         const currentCredits = Game.market.credits;
-        const marketHub = state.ledger?.marketHub || selectMarketHub();
         for (let orderId in myOrders) {
             let order = myOrders[orderId];
 
             if (!order) continue;
-
-            // Passive buy/sell orders live on the market hub only
-            if (marketHub && _.includes(MY_ROOMS, order.roomName) && order.roomName !== marketHub
-                && (order.type === ORDER_BUY || order.type === ORDER_SELL)) {
-                this.cancelOrder(order, 'Passive orders centralized on market hub');
-                continue;
-            }
 
             // Check if room still exists
             if (!Game.rooms[order.roomName] && Game.market.cancelOrder(order.id) === OK) {
@@ -106,6 +114,15 @@ Object.assign(TerminalControl.prototype, {
             // Cancel inactive orders
             if (!order.active) {
                 this.cancelOrder(order, 'Order no longer active');
+                continue;
+            }
+
+            // Sell vs buy on the same room/resource — lab procurement conflict
+            if (order.type === ORDER_SELL && _.some(myOrders, o =>
+                o.id !== order.id && o.roomName === order.roomName
+                && o.type === ORDER_BUY && o.resourceType === order.resourceType
+            )) {
+                this.cancelOrder(order, 'Conflicting buy order active');
                 continue;
             }
 

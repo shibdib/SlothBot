@@ -10,6 +10,7 @@
 
 
 const {getEffectiveSupply} = require('termNetwork');
+const {isMarketHub} = require('termMarket');
 const {recordMarketEnergyCost, canAffordSend} = require('termBudget');
 const {recordTransferEnergyCost, markTerminalsUsed} = require('termTransfers');
 
@@ -19,6 +20,7 @@ const TerminalControl = require('termClass');
 Object.assign(TerminalControl.prototype, {
 
     placeSellOrders(terminal, globalOrders, myOrders) {
+        if (!isMarketHub(terminal.room.name)) return false;
         if (Game.market.credits <= 0) return false;
 
         for (let resource of Object.keys(terminal.store)) {
@@ -27,10 +29,19 @@ Object.assign(TerminalControl.prototype, {
                 if (resource === RESOURCE_ENERGY && terminal.room.energyState < 3) continue;
             }
 
+            if (this.empireLabPipelineReserve(resource) > 0) continue;
             if (MY_ROOMS.some(name => {
                 const room = Game.rooms[name];
-                return room && room.memory.neededCommodity === resource;
+                if (!room) return false;
+                if (room.memory.neededCommodity === resource) return true;
+                if (room.memory.producingBoost === resource) return true;
+                return (room.labs || []).some(lab =>
+                    lab.memory?.itemNeeded === resource || lab.memory?.neededBoost === resource
+                );
             })) continue;
+            if (_.some(myOrders, o =>
+                o.roomName === terminal.pos.roomName && o.type === ORDER_BUY && o.resourceType === resource
+            )) continue;
             if (hasExistingSellOrder(myOrders, terminal, resource)) continue;
             if ((!SELL_BOOSTS || terminal.room.level < 8) && ALL_BOOSTS.includes(resource)) continue;
 
@@ -165,9 +176,15 @@ Object.assign(TerminalControl.prototype, {
         for (const resourceType of sortedKeys) {
             if ((resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) && !this.allowEnergySell(terminal)) continue;
 
+            if (this.empireLabPipelineReserve(resourceType) > 0) continue;
             if (MY_ROOMS.some(name => {
                 const room = Game.rooms[name];
-                return room && room.memory.neededCommodity === resourceType;
+                if (!room) return false;
+                if (room.memory.neededCommodity === resourceType) return true;
+                if (room.memory.producingBoost === resourceType) return true;
+                return (room.labs || []).some(lab =>
+                    lab.memory?.itemNeeded === resourceType || lab.memory?.neededBoost === resourceType
+                );
             })) continue;
 
             if (COMPRESSED_COMMODITIES.includes(resourceType) && !this.canEmpireSell(resourceType)) continue;
