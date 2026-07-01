@@ -760,7 +760,7 @@ let helpers = function () {
         if (!r.cached || r.cached + 10000 <= ct) return false;
         if (r.noClaim && r.noClaim >= ct) return false;
         if (r.obstacles) return false;
-        if (r.reservation && r.reservation !== MY_USERNAME && r.reservation !== 'Invader') return false;
+        if (r.reservation && r.reservation !== MY_USERNAME) return false;
         return true;
     }
 

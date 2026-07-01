@@ -30,10 +30,18 @@ function isValidHarassRemote(roomName, visited = []) {
 }
 
 function collectThreatRemotes(visited = []) {
+    const idx = global.getIntelIndexes ? global.getIntelIndexes() : null;
+    if (idx && idx.harassRemotes) {
+        const remotes = [];
+        for (const rName of idx.harassRemotes) {
+            if (!visited.includes(rName)) remotes.push(rName);
+        }
+        return remotes;
+    }
+
     const remotes = [];
-    for (const r of Object.values(INTEL)) {
-        if (!r?.name) continue;
-        if (isValidHarassRemote(r.name, visited)) remotes.push(r.name);
+    for (const rName in INTEL) {
+        if (isValidHarassRemote(rName, visited)) remotes.push(rName);
     }
     return remotes;
 }

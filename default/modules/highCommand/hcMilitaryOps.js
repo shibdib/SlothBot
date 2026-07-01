@@ -15,6 +15,27 @@ const {siegeLevel, siegeFeasibility, scoreTarget, checkForNap} = require('hcUtil
 
 const {setTarget} = require('hcTargets');
 
+function collectWarCandidates(idx, warTargetUsers, strengthCeiling) {
+    const candidates = [];
+    const ct = Game.time;
+    for (const user of warTargetUsers) {
+        const rooms = idx.byOwner[user];
+        if (!rooms) continue;
+        for (let i = 0; i < rooms.length; i++) {
+            const r = rooms[i];
+            if (!r?.name || Memory.targetRooms[r.name]) continue;
+            if (!r.owner || r.sk) continue;
+            if (FRIENDLIES.includes(r.owner)) continue;
+            if (Memory.nonCombatRooms.includes(r.name)) continue;
+            if (checkForNap(r.owner)) continue;
+            if (userStrength(r.owner) > strengthCeiling) continue;
+            if ((r.lastOperation || 0) + ATTACK_COOLDOWN >= ct) continue;
+            candidates.push(r);
+        }
+    }
+    return candidates;
+}
+
 function militaryOperations() {
     // Manual operations
     if (MANUAL_OPERATIONS.length) {
@@ -37,7 +58,9 @@ function militaryOperations() {
         }
     }
 
-    // Pre-compute WAR_TARGETS lookups â€” used in candidate filtering and scoring.
+    const idx = global.getIntelIndexes ? global.getIntelIndexes() : {byOwner: {}, strongholdActive: new Set()};
+
+    // Pre-compute WAR_TARGETS lookups — used in candidate filtering and scoring.
     const warPriorityByUser = {};
     for (const t of WAR_TARGETS) warPriorityByUser[t.user] = t.priority;
     const warTargetUsers = new Set(Object.keys(warPriorityByUser));
@@ -63,9 +86,10 @@ function militaryOperations() {
 
     if (state.OPERATION_LIMIT > 0 && activeStrongholds < state.OPERATION_LIMIT) {
         let best = null, bestScore = Infinity;
-        for (const r of Object.values(INTEL)) {
-            if (!r?.sk || !r.towers || !r.name || Memory.targetRooms[r.name]) continue;
-            if (!r.invaderCore || r.invaderCore + CREEP_LIFE_TIME <= Game.time) continue;
+        for (const rName of (idx.strongholdActive || [])) {
+            const r = INTEL[rName];
+            if (!r?.name || Memory.targetRooms[r.name]) continue;
+            if (!r.invaderCore || r.invaderCore <= Game.time) continue;
             if (!siegeLevel(r.towers) || !myRoomInSectorCheck(r.name)) continue;
             if ((r.lastOperation || 0) + ATTACK_COOLDOWN >= Game.time) continue;
 
@@ -80,16 +104,10 @@ function militaryOperations() {
 
     if (!OFFENSIVE_OPERATIONS || !state.OFFENSIVE_ALLOWED) return;
 
-    // Candidate filter is permissive on strength â€” guards/harass against a stronger user are
+    // Candidate filter is permissive on strength — guards/harass against a stronger user are
     // fine. The strict siege-only feasibility check happens in the siege block below.
     const strengthCeiling = (global.MY_STRENGTH || MAX_LEVEL) + 2;
-    const candidates = Object.values(INTEL).filter(r =>
-        r?.name && !Memory.targetRooms[r.name] && r.owner && !r.sk &&
-        !FRIENDLIES.includes(r.owner) && !Memory.nonCombatRooms.includes(r.name) &&
-        !checkForNap(r.owner) && userStrength(r.owner) <= strengthCeiling &&
-        (r.lastOperation || 0) + ATTACK_COOLDOWN < Game.time &&
-        warTargetUsers.has(r.owner)
-    );
+    const candidates = collectWarCandidates(idx, warTargetUsers, strengthCeiling);
 
     if (!candidates.length) return;
 
@@ -163,7 +181,7 @@ function militaryOperations() {
             // No direct attacks check
             if (NO_DIRECT_ATTACKS.includes(r.owner)) continue;
 
-            // Siege feasibility â€” combines relative strength and rampart depth. Lets us siege
+            // Siege feasibility — combines relative strength and rampart depth. Lets us siege
             // a strong-RCL-but-naked room and skip a turtle. Negative = outmatched.
             if (siegeFeasibility(r) < -1.0) continue;
 
@@ -189,7 +207,7 @@ function militaryOperations() {
         }
     } else if (!state.SIEGE_LIMIT && state.lastNoSiegeWarning + 5000 < Game.time) {
         state.lastNoSiegeWarning = Game.time;
-        log.a('No combat-ready rooms â€” siege operations disabled.', 'HIGH COMMAND: ');
+        log.a('No combat-ready rooms — siege operations disabled.', 'HIGH COMMAND: ');
     }
 }
 

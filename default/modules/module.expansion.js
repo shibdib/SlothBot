@@ -106,7 +106,7 @@ class ExpansionControl {
                 if (room.cached + 10000 <= Game.time) continue;
                 if (room.noClaim && room.noClaim >= Game.time) continue;
                 if (room.obstacles) continue;
-                if (room.reservation && room.reservation !== MY_USERNAME && room.reservation !== 'Invader') continue;
+                if (room.reservation && room.reservation !== MY_USERNAME) continue;
                 if (this.checkNeighboringRooms(room.name) && findClosestOwnedRoom(room.name, true) <= 14) {
                     worthy.push(room);
                 }
@@ -128,21 +128,22 @@ class ExpansionControl {
     }
 
     clearExpansionIntelFields() {
-        const idx = global.getIntelIndexes ? global.getIntelIndexes() : null;
-        if (idx && idx.claimCandidates) {
-            for (const roomName of idx.claimCandidates) {
-                const intel = INTEL[roomName];
-                if (!intel) continue;
-                delete intel.claimValue;
-                delete intel.rejectReason;
-            }
-            return;
-        }
-        for (const intel of Object.values(INTEL)) {
-            if (!intel) continue;
+        const cleared = new Set();
+        const clearIntel = (intel) => {
+            if (!intel?.name || cleared.has(intel.name)) return;
+            cleared.add(intel.name);
             delete intel.claimValue;
             delete intel.rejectReason;
+        };
+
+        for (const room of this.worthyRooms) clearIntel(room);
+
+        const idx = global.getIntelIndexes ? global.getIntelIndexes() : null;
+        if (idx && idx.claimCandidates) {
+            for (const roomName of idx.claimCandidates) clearIntel(INTEL[roomName]);
+            return;
         }
+        for (const intel of Object.values(INTEL)) clearIntel(intel);
     }
 
     collectOwnedRoomsByAffiliation(idx) {

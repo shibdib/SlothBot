@@ -11,9 +11,18 @@
 
 const state = require('hcState');
 
+function auxEntryEligible(r, cache) {
+    return r?.name && !cache[r.name] && !r.hostile && !Memory.nonCombatRooms.includes(r.name);
+}
+
 function auxiliaryOperations() {
     const cache = Memory.auxiliaryTargets || {};
     const auxLimit = state.AUXILIARY_LIMIT != null ? state.AUXILIARY_LIMIT : 3;
+    const idx = global.getIntelIndexes ? global.getIntelIndexes() : {
+        power: new Set(),
+        commodity: new Set(),
+        mineralCandidates: new Set(),
+    };
 
     let activePowerOps = 0, activeCommodityOps = 0;
     for (const key in cache) {
@@ -23,15 +32,13 @@ function auxiliaryOperations() {
         if (op.type === 'commodity') activeCommodityOps++;
     }
 
-    const candidates = Object.values(INTEL).filter(r =>
-        r?.name && !cache[r.name] && !r.hostile && !Memory.nonCombatRooms.includes(r.name)
-    );
-
     if (MAX_LEVEL >= 4 && auxLimit > 0) {
         // Power
         if (MAX_LEVEL >= 8 && activePowerOps === 0 && getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT) {
             let best = null, bestScore = Infinity;
-            for (const r of candidates) {
+            for (const rName of (idx.power || [])) {
+                const r = INTEL[rName];
+                if (!auxEntryEligible(r, cache)) continue;
                 if (!r.power || r.power - CREEP_LIFE_TIME < Game.time) continue;
                 const dist = findClosestOwnedRoom(r.name, true);
                 if (dist > 8) continue;
@@ -52,7 +59,9 @@ function auxiliaryOperations() {
         if (activeCommodityOps < auxLimit) {
             const cutoff = Game.market.credits < CREDIT_BUFFER * 2 ? 150 : 40;
             let best = null, bestDist = Infinity;
-            for (const r of candidates) {
+            for (const rName of (idx.commodity || [])) {
+                const r = INTEL[rName];
+                if (!auxEntryEligible(r, cache)) continue;
                 if (!r.commodity || r.commodityCooldown >= cutoff || getResourceTotal(r.commodity) >= DUMP_AMOUNT) continue;
                 const dist = findClosestOwnedRoom(r.name, true);
                 if (dist <= 8 && dist < bestDist) {
@@ -68,8 +77,10 @@ function auxiliaryOperations() {
 
         // Mineral
         let bestMineral = null, bestDist = Infinity;
-        for (const r of candidates) {
-            if (r.sk || r.sources < 3 || (r.user && !FRIENDLIES.includes(r.user)) || !r.mineralAmount || MY_MINERALS[r.mineral]) continue;
+        for (const rName of (idx.mineralCandidates || [])) {
+            const r = INTEL[rName];
+            if (!auxEntryEligible(r, cache)) continue;
+            if (MY_MINERALS[r.mineral]) continue;
             if (!myRoomInSectorCheck(r.name)) continue;
             const dist = findClosestOwnedRoom(r.name, true);
             if (dist <= 5 && dist < bestDist) {

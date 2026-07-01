@@ -169,10 +169,19 @@ function autoNuke() {
     const availableLaunchers = getLoadedNukers();
     if (!availableLaunchers.length) return false;
 
-    const MADTarget = _.min(
-        Object.values(INTEL).filter(r => isValidMadTarget(r, availableLaunchers)),
-        r => findClosestOwnedRoom(r.name, true)
-    );
+    const idx = global.getIntelIndexes ? global.getIntelIndexes() : {byOwner: {}};
+    const madCandidates = [];
+    for (let i = 0; i < Memory.MAD.length; i++) {
+        const owner = Memory.MAD[i];
+        const rooms = idx.byOwner[owner];
+        if (!rooms) continue;
+        for (let j = 0; j < rooms.length; j++) {
+            const r = rooms[j];
+            if (isValidMadTarget(r, availableLaunchers)) madCandidates.push(r);
+        }
+    }
+
+    const MADTarget = _.min(madCandidates, r => findClosestOwnedRoom(r.name, true));
 
     if (!MADTarget?.name) return false;
 
