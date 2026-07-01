@@ -6,6 +6,9 @@
 
 const profiler = require('tools.profiler');
 
+require('termKeep');
+require('termBudget');
+require('termMarket');
 require('termRun');
 require('termInventory');
 require('termBanker');
@@ -13,6 +16,7 @@ require('termPricing');
 require('termBuy');
 require('termSell');
 require('termDeals');
+require('termTransfers');
 require('termBalance');
 
 const TerminalControl = require('termClass');

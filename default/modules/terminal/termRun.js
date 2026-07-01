@@ -11,7 +11,8 @@
 
 const state = require('termState');
 
-const {pruneTerminalCaches, getCachedGlobalOrders} = require('termCache');
+const {getCachedGlobalOrders} = require('termCache');
+const {isMarketHub, runHousekeeping, runActiveMarket, runPassiveMarket} = require('termMarket');
 
 const TerminalControl = require('termClass');
 
@@ -21,23 +22,20 @@ Object.assign(TerminalControl.prototype, {
     run() {
         if (!this.room.terminal || (state.lastRun[this.room.name] && state.lastRun[this.room.name] + 25 > Game.time)) return;
 
-        if (!Memory._banker) Memory._banker = {};
-
         state.lastRun[this.room.name] = Game.time;
 
-        const terminal = this.room.terminal;
-        const myOrders = Game.market.orders;
-        const globalOrders = this.getGlobalOrders();
-
-        if (!state.lastRun['updates'] || state.lastRun['updates'] + 50 < Game.time) {
-            this.updateSpendingMoney();
-            this.pricingUpdate(globalOrders, myOrders);
-            this.orderCleanup(myOrders);
-            pruneTerminalCaches();
-            if (['shard0', 'shard1', 'shard2', 'shard3', 'shardX'].includes(Game.shard.name) && SELL_PIXELS) this.sellPixels();
-            state.lastRun['updates'] = Game.time;
+        if (!Memory._banker) Memory._banker = {};
+        if (Memory._banker.spendingAccount == null) {
+            Memory._banker.spendingAccount = Math.max(0, Game.market.credits - CREDIT_BUFFER);
         }
 
+        const hub = isMarketHub(this.room.name);
+        const globalOrders = this.getGlobalOrders();
+        const myOrders = Game.market.orders;
+
+        if (hub) runHousekeeping(this, globalOrders, myOrders);
+
+        const terminal = this.room.terminal;
         const storage = terminal.room.storage;
         const terminalPressure = terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.1;
         const storagePressure = storage && storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1;
@@ -45,15 +43,14 @@ Object.assign(TerminalControl.prototype, {
             if (this.relieveStoragePressure(terminal)) return;
         }
 
-        // Market (requires mineral tracking). Deals and instant sells before passive sell orders.
-        if (_.size(MY_MINERALS)) {
-            if (this.dealFinder(terminal, globalOrders)
-                || this.quickSell(terminal, globalOrders)
-                || this.placeSellOrders(terminal, globalOrders, myOrders)
-                || this.placeBuyOrders(terminal, globalOrders, myOrders)) return;
-        }
+        // Internal network before market — route empire stock first.
+        if (this.emergencyEnergy(terminal) || this.executePlannedTransfers(terminal)) return;
 
-        if (this.emergencyEnergy(terminal) || this.balanceEnergy(terminal) || this.balanceBatteries(terminal) || this.balanceResources(terminal)) return;
+        // Active market (deals, fire sales) — any room, after transfers.
+        if (runActiveMarket(this, globalOrders)) return;
+
+        // Passive orders — hub only, avoids duplicate buy/sell orders empire-wide.
+        if (hub && runPassiveMarket(this, globalOrders, myOrders)) return;
     },
 
     getGlobalOrders() {

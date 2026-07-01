@@ -10,35 +10,23 @@
 
 
 const state = require('termState');
-
-const {getDerivedCommodityAmount} = require('termCache');
+const {getRoomKeepAmount} = require('termKeep');
+const {
+    canEmpireSell: empireCanSell,
+    getEffectiveSupply,
+    getEmpireDemand,
+    compressedSellableUnits,
+} = require('termNetwork');
 
 
 const TerminalControl = require('termClass');
 
-function getRoomKeepAmount(room, resource) {
-    if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) return 0;
-    if (ALL_COMMODITIES.includes(resource) && !COMPRESSED_COMMODITIES.includes(resource)) {
-        if (room.memory.neededCommodity === resource) return REACTION_AMOUNT;
-        if (state.needsCommodities[room.name] === resource) return REACTION_AMOUNT;
-        if (room.memory.commodityProduction) {
-            const comm = COMMODITIES[room.memory.commodityProduction];
-            if (comm && comm.components && comm.components[resource]) return REACTION_AMOUNT;
-        }
-        return 0;
-    }
-    if (ALL_BOOSTS.includes(resource)) return BOOST_AMOUNT(room, resource);
-    if (resource === RESOURCE_BATTERY) return 1000;
-    if (room.memory.commodityProduction && room.mineral && room.mineral.mineralType === resource) return REACTION_AMOUNT * 2;
-    if (BASE_MINERALS.includes(resource)) return REACTION_AMOUNT;
-    if (COMPRESSED_COMMODITIES.includes(resource)) return 1000;
-    if (resource === RESOURCE_GHODIUM) return BOOST_AMOUNT(room, resource);
-    return REACTION_AMOUNT;
-}
-
 Object.assign(TerminalControl.prototype, {
 
     getEmpireKeepAmount(resource) {
+        const ledgerDemand = getEmpireDemand(resource);
+        if (ledgerDemand) return ledgerDemand;
+
         if (ALL_COMMODITIES.includes(resource) && !COMPRESSED_COMMODITIES.includes(resource)) {
             let need = 0;
             for (const name of MY_ROOMS) {
@@ -68,9 +56,18 @@ Object.assign(TerminalControl.prototype, {
     }, computeSellableAmount(terminal, resource) {
         const inTerminal = terminal.store[resource] || 0;
         if (!inTerminal) return 0;
+        if (!empireCanSell(resource)) return 0;
+
+        if (COMPRESSED_COMMODITIES.includes(resource)) {
+            return compressedSellableUnits(resource, inTerminal);
+        }
+
         const empireKeep = this.getEmpireKeepAmount(resource);
-        const surplus = Math.max(0, getResourceTotal(resource) - empireKeep);
+        const total = getEffectiveSupply(resource);
+        const surplus = Math.max(0, total - empireKeep);
         return Math.min(inTerminal, surplus);
+    }, canEmpireSell(resource) {
+        return empireCanSell(resource);
     }, canSellSurplusEnergy(terminal) {
         if (terminal.room.level < 8 || terminal.room.energyState < 3) return false;
         if (terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER + 5000) return false;
@@ -81,7 +78,10 @@ Object.assign(TerminalControl.prototype, {
     }, allowEnergySell(terminal) {
         if (SELL_ENERGY) {
             return terminal.room.level >= 8 && terminal.room.energyState >= 2
-                && !_.find(MY_ROOMS, r => Game.rooms[r].terminal && !Game.rooms[r].energyState);
+                && !_.find(MY_ROOMS, r => {
+                    const room = Game.rooms[r];
+                    return room && room.terminal && !room.energyState;
+                });
         }
         return this.canSellSurplusEnergy(terminal);
     }, determineKeepAmount(resource) {

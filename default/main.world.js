@@ -13,6 +13,7 @@ const HudControl = require('module.hud');
 const DefenseVisualizer = require('module.defenseVisualizer');
 const StateManager = require('module.stateManager');
 const energyTracker = require('module.energyTracker');
+const {buildLedger} = require('termNetwork');
 const profiler = require('tools.profiler');
 const planner = require('module.roomPlanner');
 let tickTracker = {};
@@ -44,6 +45,8 @@ class World {
         // Accumulate per-tick energy events (owned rooms + visible remotes).
         // Must run before stateManager, which snapshots the rolling averages.
         energyTracker.runAll();
+
+        buildLedger();
 
         // Terminal energy export accounting (sends + market deals).
         // The Memory value at the *start* of the tick holds the costs from the *previous* tick's terminal activity.

@@ -10,6 +10,7 @@
 
 
 const state = require('termState');
+const {buildEquivalenceMap} = require('termNetwork');
 
 
 function getCachedGlobalOrders() {
@@ -31,9 +32,15 @@ function pruneTerminalCaches() {
 }
 
 function getDerivedCommodityAmount(room, mineral) {
-    const key = Object.keys(COMMODITIES).find(k => COMMODITIES[k].components && COMMODITIES[k].components[mineral]);
-    if (!key) return 0;
-    return (room.store(key) || 0) * 5;
+    const equivalence = buildEquivalenceMap();
+    let total = 0;
+    for (const product of Object.keys(equivalence)) {
+        for (const {base, ratio} of equivalence[product]) {
+            if (base !== mineral) continue;
+            total += (room.store(product) || 0) * ratio;
+        }
+    }
+    return total;
 }
 
 module.exports = {

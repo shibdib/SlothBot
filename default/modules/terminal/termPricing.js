@@ -10,6 +10,7 @@
 
 
 const state = require('termState');
+const {selectMarketHub} = require('termMarket');
 
 const TerminalControl = require('termClass');
 
@@ -83,10 +84,18 @@ Object.assign(TerminalControl.prototype, {
         }
 
         const currentCredits = Game.market.credits;
+        const marketHub = state.ledger?.marketHub || selectMarketHub();
         for (let orderId in myOrders) {
             let order = myOrders[orderId];
 
             if (!order) continue;
+
+            // Passive buy/sell orders live on the market hub only
+            if (marketHub && _.includes(MY_ROOMS, order.roomName) && order.roomName !== marketHub
+                && (order.type === ORDER_BUY || order.type === ORDER_SELL)) {
+                this.cancelOrder(order, 'Passive orders centralized on market hub');
+                continue;
+            }
 
             // Check if room still exists
             if (!Game.rooms[order.roomName] && Game.market.cancelOrder(order.id) === OK) {
@@ -145,7 +154,10 @@ Object.assign(TerminalControl.prototype, {
                         this.cancelOrder(order, 'Pre-RCL8 rooms do not sell energy');
                         continue;
                     }
-                    if (_.find(MY_ROOMS, r => Game.rooms[r].terminal && Game.rooms[r].energyState < 2)) {
+                    if (_.find(MY_ROOMS, r => {
+                        const room = Game.rooms[r];
+                        return room && room.terminal && room.energyState < 2;
+                    })) {
                         this.cancelOrder(order, 'Energy shortage detected');
                         continue;
                     }
@@ -165,7 +177,7 @@ Object.assign(TerminalControl.prototype, {
             }
 
             // Cancel fulfilled orders
-            if (order.amount === 0) {
+            if (order.remainingAmount === 0) {
                 this.cancelOrder(order, 'Order Fulfilled');
                 continue;
             }
@@ -177,7 +189,7 @@ Object.assign(TerminalControl.prototype, {
             }
 
             // Cancel if not enough resources for non-energy/battery orders
-            if (order.type === ORDER_SELL && !order.amount) {
+            if (order.type === ORDER_SELL && !order.remainingAmount) {
                 this.cancelOrder(order, 'Not enough resources in terminal');
                 continue;
             }
