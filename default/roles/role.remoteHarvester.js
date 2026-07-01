@@ -3,6 +3,8 @@
  */
 
 const profiler = require("tools.profiler");
+const {routeHasBuiltRoads} = require('bodyHelpers');
+const {canPlaceConstructionSite, tryCreateConstructionSite, findBestContainerPos} = require('planUtils');
 
 class RoleRemoteHarvester {
     constructor(creep) {
@@ -185,10 +187,7 @@ class RoleRemoteHarvester {
 }
 
 function routeHasRoads(colony, destination) {
-    const route = Game.map.findRoute(colony, destination);
-    return Array.isArray(route)
-        && INTEL[colony] && INTEL[colony].roadsBuilt
-        && route.every(step => INTEL[step.room] && INTEL[step.room].roadsBuilt);
+    return routeHasBuiltRoads(colony, destination);
 }
 
 function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
@@ -237,7 +236,6 @@ function harvestDepositContainer(source, creep) {
 
     if (creep.memory.siteAttempt) return;
 
-    const {findBestContainerPos, canPlaceConstructionSite, tryCreateConstructionSite} = require('planUtils');
     const buildPos = findBestContainerPos(source);
     if (!buildPos || buildPos.checkForConstructionSites() || buildPos.checkForImpassible()) return;
 

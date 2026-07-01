@@ -89,17 +89,30 @@ class ExpansionControl {
     }
 
     filterWorthyRooms() {
-        this.worthyRooms = Object.values(INTEL).filter(room =>
-            room &&
-            room.hubCheck &&
-            !room.owner &&
-            room.cached + 10000 > Game.time &&
-            (!room.noClaim || room.noClaim < Game.time) &&
-            !room.obstacles &&
-            (!room.reservation || room.reservation === MY_USERNAME) &&
-            this.checkNeighboringRooms(room.name) &&
-            findClosestOwnedRoom(room.name, true) <= 14
-        );
+        const idx = global.getIntelIndexes ? global.getIntelIndexes() : null;
+        const worthy = [];
+        if (idx && idx.claimCandidates) {
+            for (const roomName of idx.claimCandidates) {
+                const room = INTEL[roomName];
+                if (!room) continue;
+                if (this.checkNeighboringRooms(room.name) && findClosestOwnedRoom(room.name, true) <= 14) {
+                    worthy.push(room);
+                }
+            }
+        } else {
+            for (const roomName in INTEL) {
+                const room = INTEL[roomName];
+                if (!room || !room.hubCheck || room.owner) continue;
+                if (room.cached + 10000 <= Game.time) continue;
+                if (room.noClaim && room.noClaim >= Game.time) continue;
+                if (room.obstacles) continue;
+                if (room.reservation && room.reservation !== MY_USERNAME && room.reservation !== 'Invader') continue;
+                if (this.checkNeighboringRooms(room.name) && findClosestOwnedRoom(room.name, true) <= 14) {
+                    worthy.push(room);
+                }
+            }
+        }
+        this.worthyRooms = worthy;
     }
 
     checkNeighboringRooms(roomName) {
@@ -115,6 +128,16 @@ class ExpansionControl {
     }
 
     clearExpansionIntelFields() {
+        const idx = global.getIntelIndexes ? global.getIntelIndexes() : null;
+        if (idx && idx.claimCandidates) {
+            for (const roomName of idx.claimCandidates) {
+                const intel = INTEL[roomName];
+                if (!intel) continue;
+                delete intel.claimValue;
+                delete intel.rejectReason;
+            }
+            return;
+        }
         for (const intel of Object.values(INTEL)) {
             if (!intel) continue;
             delete intel.claimValue;
@@ -122,17 +145,43 @@ class ExpansionControl {
         }
     }
 
+    collectOwnedRoomsByAffiliation(idx) {
+        const friendlyRooms = [];
+        const enemyRooms = [];
+        for (let i = 0; i < FRIENDLIES.length; i++) {
+            const rooms = idx.byOwner[FRIENDLIES[i]];
+            if (!rooms) continue;
+            for (let j = 0; j < rooms.length; j++) {
+                const intel = rooms[j];
+                if (intel?.level && intel.owner) friendlyRooms.push(intel);
+            }
+        }
+        for (let i = 0; i < HOSTILES.length; i++) {
+            const rooms = idx.byOwner[HOSTILES[i]];
+            if (!rooms) continue;
+            for (let j = 0; j < rooms.length; j++) {
+                const intel = rooms[j];
+                if (intel?.level && intel.owner) enemyRooms.push(intel);
+            }
+        }
+        return {friendlyRooms, enemyRooms};
+    }
+
     scoreRooms() {
         this.roomScores = {};
         this.clearExpansionIntelFields();
 
-        // Single pass to build both lists instead of two separate filter scans
-        const friendlyRooms = [];
-        const enemyRooms = [];
-        for (const intel of Object.values(INTEL)) {
-            if (!intel || !intel.level || !intel.owner) continue;
-            if (FRIENDLIES.includes(intel.owner)) friendlyRooms.push(intel);
-            else if (HOSTILES.includes(intel.owner)) enemyRooms.push(intel);
+        const idx = global.getIntelIndexes ? global.getIntelIndexes() : null;
+        let friendlyRooms = [];
+        let enemyRooms = [];
+        if (idx && idx.byOwner) {
+            ({friendlyRooms, enemyRooms} = this.collectOwnedRoomsByAffiliation(idx));
+        } else {
+            for (const intel of Object.values(INTEL)) {
+                if (!intel || !intel.level || !intel.owner) continue;
+                if (FRIENDLIES.includes(intel.owner)) friendlyRooms.push(intel);
+                else if (HOSTILES.includes(intel.owner)) enemyRooms.push(intel);
+            }
         }
 
         for (const room of this.worthyRooms) {

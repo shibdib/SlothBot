@@ -722,6 +722,61 @@ let helpers = function () {
     // === INTEL INDEXES: one full scan per tick to feed fast queries everywhere ===
     // Replaces multiple O(|INTEL|) loops in diplomacy, highCommand, explorer, observer, HUD etc.
     // Updated incrementally on intel changes for mid-tick accuracy.
+
+    function intelIndexThreatUser(user) {
+        return !!(user && global.THREATS && THREATS.includes(user) &&
+            !(global.NO_DIRECT_ATTACKS && NO_DIRECT_ATTACKS.includes(user)) &&
+            !(global.FRIENDLIES && FRIENDLIES.includes(user)));
+    }
+
+    function intelIndexHarassRemote(roomName, r, ct) {
+        if (!r || r.owner || r.towers) return false;
+        if (r.safemode && r.safemode > ct) return false;
+        const exits = Game.map.describeExits(roomName);
+        if (!exits || Object.values(exits).length <= 1) return false;
+        for (const neighbor of Object.values(exits)) {
+            const ni = global.INTEL && INTEL[neighbor];
+            if (!ni || !intelIndexThreatUser(ni.owner)) continue;
+            if (ni.safemode && ni.safemode > ct) continue;
+            return true;
+        }
+        return false;
+    }
+
+    function intelIndexStrongholdActive(r, ct) {
+        return !!(r && r.sk && r.towers && r.invaderCore && r.invaderCore > ct);
+    }
+
+    function intelIndexMineralCandidate(r) {
+        if (!r || r.sk) return false;
+        if (!r.sources || r.sources < 3) return false;
+        if (r.user && global.FRIENDLIES && !FRIENDLIES.includes(r.user)) return false;
+        if (!r.mineralAmount) return false;
+        return true;
+    }
+
+    function intelIndexClaimCandidate(r, ct) {
+        if (!r || !r.hubCheck || r.owner) return false;
+        if (!r.cached || r.cached + 10000 <= ct) return false;
+        if (r.noClaim && r.noClaim >= ct) return false;
+        if (r.obstacles) return false;
+        if (r.reservation && r.reservation !== MY_USERNAME && r.reservation !== 'Invader') return false;
+        return true;
+    }
+
+    function intelIndexRefreshHarass(idx, roomName, ct) {
+        idx.harassRemotes.delete(roomName);
+        const r = global.INTEL && INTEL[roomName];
+        if (r && intelIndexHarassRemote(roomName, r, ct)) idx.harassRemotes.add(roomName);
+    }
+
+    function intelIndexRefreshHarassNeighborhood(idx, roomName, ct) {
+        intelIndexRefreshHarass(idx, roomName, ct);
+        const exits = Game.map.describeExits(roomName);
+        if (!exits) return;
+        for (const neighbor of Object.values(exits)) intelIndexRefreshHarass(idx, neighbor, ct);
+    }
+
     global.INTEL_INDEX = {
         tick: 0,
         byOwner: {},
@@ -732,7 +787,11 @@ let helpers = function () {
         requestingSupport: new Set(),
         unownedSources: new Set(),
         invaderCores: new Set(),
-        activeRemotes: new Set()
+        activeRemotes: new Set(),
+        strongholdActive: new Set(),
+        mineralCandidates: new Set(),
+        harassRemotes: new Set(),
+        claimCandidates: new Set(),
     };
 
     global.rebuildIntelIndexes = function (currentTime = Game.time) {
@@ -746,6 +805,10 @@ let helpers = function () {
         const unownedSources = new Set();
         const invaderCores = new Set();
         const activeRemotes = new Set();
+        const strongholdActive = new Set();
+        const mineralCandidates = new Set();
+        const harassRemotes = new Set();
+        const claimCandidates = new Set();
         const ct = currentTime;
         const intel = global.INTEL || {};
         for (const roomName in intel) {
@@ -763,6 +826,10 @@ let helpers = function () {
             if (r.sources && !r.owner) unownedSources.add(roomName);
             if (r.invaderCore && r.invaderCore > ct) invaderCores.add(roomName);
             if (r.activeRemote && r.activeRemote + 500 > ct) activeRemotes.add(roomName);
+            if (intelIndexStrongholdActive(r, ct)) strongholdActive.add(roomName);
+            if (intelIndexMineralCandidate(r)) mineralCandidates.add(roomName);
+            if (intelIndexHarassRemote(roomName, r, ct)) harassRemotes.add(roomName);
+            if (intelIndexClaimCandidate(r, ct)) claimCandidates.add(roomName);
         }
         global.INTEL_INDEX = {
             tick: currentTime,
@@ -774,7 +841,11 @@ let helpers = function () {
             requestingSupport,
             unownedSources,
             invaderCores,
-            activeRemotes
+            activeRemotes,
+            strongholdActive,
+            mineralCandidates,
+            harassRemotes,
+            claimCandidates,
         };
         return global.INTEL_INDEX;
     };
@@ -786,18 +857,19 @@ let helpers = function () {
         }
         const idx = global.INTEL_INDEX;
         const ct = currentTime;
-        const intel = global.INTEL || {};
 
         // byOwner update (remove from old, add to new if changed)
         const oldAccount = oldIntel && (oldIntel.owner || oldIntel.user || oldIntel.reservation);
         const newAccount = newIntel && (newIntel.owner || newIntel.user || newIntel.reservation);
-        if (oldAccount && oldAccount !== newAccount && idx.byOwner[oldAccount]) {
+        if (oldAccount && idx.byOwner[oldAccount]) {
             idx.byOwner[oldAccount] = idx.byOwner[oldAccount].filter(item => item && item.name !== roomName);
             if (idx.byOwner[oldAccount].length === 0) delete idx.byOwner[oldAccount];
         }
         if (newAccount) {
             const list = (idx.byOwner[newAccount] = idx.byOwner[newAccount] || []);
-            if (!list.some(item => item && item.name === roomName)) list.push(newIntel);
+            const existing = list.findIndex(item => item && item.name === roomName);
+            if (existing >= 0) list[existing] = newIntel;
+            else list.push(newIntel);
         }
 
         // category sets: remove then conditionally add
@@ -809,6 +881,9 @@ let helpers = function () {
         idx.unownedSources.delete(roomName);
         idx.invaderCores.delete(roomName);
         idx.activeRemotes.delete(roomName);
+        idx.strongholdActive.delete(roomName);
+        idx.mineralCandidates.delete(roomName);
+        idx.claimCandidates.delete(roomName);
 
         if (newIntel) {
             if (newIntel.power && newIntel.power > ct) idx.power.add(roomName);
@@ -819,7 +894,12 @@ let helpers = function () {
             if (newIntel.sources && !newIntel.owner) idx.unownedSources.add(roomName);
             if (newIntel.invaderCore && newIntel.invaderCore > ct) idx.invaderCores.add(roomName);
             if (newIntel.activeRemote && newIntel.activeRemote + 500 > ct) idx.activeRemotes.add(roomName);
+            if (intelIndexStrongholdActive(newIntel, ct)) idx.strongholdActive.add(roomName);
+            if (intelIndexMineralCandidate(newIntel)) idx.mineralCandidates.add(roomName);
+            if (intelIndexClaimCandidate(newIntel, ct)) idx.claimCandidates.add(roomName);
         }
+
+        intelIndexRefreshHarassNeighborhood(idx, roomName, ct);
     };
 
     // Helper to get (and ensure built) indexes for this tick

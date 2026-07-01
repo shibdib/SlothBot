@@ -87,11 +87,22 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
     if (pathOnly) {
         const cached = getPath(creep, origin, target, undefined);
         if (cached) return cached;
-        return PathFinder.search(origin, {pos: target, range: options.range}, {
+        let allowedRooms = options.route;
+        if (!allowedRooms && origin.roomName !== target.roomName) {
+            const route = findRoute(origin.roomName, target.roomName, options);
+            if (route && route.length) {
+                allowedRooms = route.includes(origin.roomName) ? route : [origin.roomName].concat(route);
+            }
+        }
+        if (!allowedRooms) allowedRooms = [origin.roomName];
+        return PathFinder.search(origin, {pos: target, range: options.range || 1}, {
             maxOps: options.maxOps || DEFAULT_MAXOPS,
-            maxRooms: options.maxRooms || 16,
+            maxRooms: allowedRooms.length ? allowedRooms.length + 2 : (options.maxRooms || 16),
             heuristicWeight: options.heuristicWeight || 1,
-            roomCallback: (roomName) => getMatrix(roomName, creep, options),
+            roomCallback: (roomName) => {
+                if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
+                return getMatrix(roomName, creep, options);
+            },
         });
     }
 

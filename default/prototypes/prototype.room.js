@@ -22,6 +22,7 @@
 'use strict';
 
 const roomPlanner = require('module.roomPlanner');
+const remoteMining = require('remoteMining');
 
 function safeOwnerName(creep) {
     try {
@@ -638,6 +639,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             }
         }
 
+        if (this.sources.length && !roomIntel.owner) {
+            remoteMining.bootstrapRemoteRoomOnVision(this);
+        }
+
         // Remote source data — register new sources or refresh stale distance scores.
         if (this.sources.length && roomIntel.remoteRoom) {
             const staleScores = Game.time - (roomIntel.activeRemote || 0) > 500;
@@ -845,13 +850,7 @@ function swampRoom(roomName) {
 }
 
 function calculateDistanceToHub(room, source, targetRoom) {
-    if (!Game.rooms[targetRoom] || !Game.rooms[targetRoom].memory) return Infinity;
-    const storage = Game.rooms[targetRoom]?.storage;
-    const target = storage || (Game.rooms[targetRoom].memory.bunkerHub
-        ? new RoomPosition(Game.rooms[targetRoom].memory.bunkerHub.x, Game.rooms[targetRoom].memory.bunkerHub.y, targetRoom)
-        : new RoomPosition(25, 25, targetRoom));
-    const pathResult = source.pos.shibMove(target);
-    return Math.ceil(pathResult.cost / 2);
+    return remoteMining.calculateRemoteSourceScore(room, source, targetRoom);
 }
 
 function updateRemoteSourceData(room, roomName, source, distance) {

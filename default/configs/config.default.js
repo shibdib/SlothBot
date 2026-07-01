@@ -30,6 +30,15 @@ global.FUNNEL_REQUESTS = false; // Whether to make energy funneling requests
 // Remote Mining
 global.REMOTE_MINING = true; // Whether we remote mine or not
 global.REMOTE_DISTANCE_MAX = 110; // Max distance score per source
+global.REMOTE_ROUTE_MAX = 3; // Max intel-weighted map hops for remote mining routes
+global.REMOTE_ROUTE_PROBE_MAX = 12; // Max route probes per colony per refresh cycle
+global.REMOTE_LINEAR_MAX = 4; // Max linear room distance before route probe
+global.REMOTE_SCORE_ROUTE_MULT = 20; // Estimate score multiplier per map hop
+global.REMOTE_SCORE_ROUTE_BASE = 12; // Estimate score base offset
+global.REMOTE_SCORE_SWAMP_PENALTY = 8; // Extra estimate score for swamp remotes
+global.REMOTE_NO_ROAD_SCORE_RATIO = 0.8; // Block high-score remotes without roads above MAX * ratio
+global.REMOTE_REFRESH_STAGGER = 150; // Spread refreshRemoteRoomTargets across ticks
+global.REMOTE_MINING_ROUTE_TTL = 1500; // miningRoutes cache TTL (ticks)
 global.SK_MINING = true; // Do we SK mine
 global.SK_MINING_LEVEL = 7; // What level do we do this (won't work before 7 atm)
 

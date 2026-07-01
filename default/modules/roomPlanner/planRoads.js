@@ -16,6 +16,7 @@ const {
     roomConstructionSiteBudget,
     tryCreateConstructionSite,
 } = require('planUtils');
+const {getMiningRouteRooms} = require('remoteMining');
 
 const COSTS = {
     owned: {wall: 255, swamp: 75, plain: 45, road: 1, container: 50},
@@ -479,13 +480,13 @@ function collectRemoteMiningPathPairs(room, colony) {
 }
 
 function collectTransitPathPairs(room, colony, remoteName) {
-    const route = Game.map.findRoute(colony, remoteName);
-    if (!Array.isArray(route)) return [];
-    const idx = route.findIndex(step => step.room === room.name);
+    const route = getMiningRouteRooms(colony, remoteName);
+    if (!route.length) return [];
+    const idx = route.indexOf(room.name);
     if (idx < 0) return [];
 
-    const prevRoom = idx === 0 ? colony : route[idx - 1].room;
-    const nextRoom = idx === route.length - 1 ? remoteName : route[idx + 1].room;
+    const prevRoom = idx === 0 ? colony : route[idx - 1];
+    const nextRoom = idx === route.length - 1 ? remoteName : route[idx + 1];
     const enter = getExitCenter(room, prevRoom);
     const exit = getExitCenter(room, nextRoom);
     if (!enter || !exit) return [];
@@ -551,8 +552,8 @@ function isColonyRoadRoom(roomName, colony) {
     const targets = ROOM_REMOTE_TARGETS[colony] || [];
     if (targets.some(s => s.room === roomName)) return {type: 'remote'};
     for (const s of targets) {
-        const route = Game.map.findRoute(colony, s.room);
-        if (Array.isArray(route) && route.some(step => step.room === roomName)) {
+        const route = getMiningRouteRooms(colony, s.room);
+        if (route.length && route.includes(roomName)) {
             return {type: 'transit', remote: s.room};
         }
     }
@@ -576,10 +577,10 @@ function getUnfinishedRoadRooms(colony) {
 
     const remotes = _.uniq(targets.map(s => s.room));
     for (const remote of remotes) {
-        const route = Game.map.findRoute(colony, remote);
-        if (!Array.isArray(route)) continue;
+        const route = getMiningRouteRooms(colony, remote);
+        if (!route.length) continue;
         for (let i = 0; i < route.length; i++) {
-            const r = route[i].room;
+            const r = route[i];
             if (r === colony || r === remote) continue;
             add(r, (i + 1) * 10);
         }

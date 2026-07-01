@@ -5,6 +5,7 @@
  */
 
 const {findRoute} = require('pathRoute');
+const {getMiningRouteRooms} = require('remoteMining');
 
 let _cacheTick = -1;
 let _roadsBuiltCache = {};
@@ -77,10 +78,16 @@ function routeRoomNames(route) {
 function routeHasBuiltRoads(colonyName, destName, options = {}) {
     if (!colonyName || !destName || !colonyRoadsBuilt(colonyName)) return false;
 
-    const route = options.usePathRoute
-        ? findRoute(colonyName, destName, options.pathRouteOpts || {shortest: true})
-        : Game.map.findRoute(colonyName, destName);
-    const rooms = routeRoomNames(route);
+    let rooms;
+    if (!options.forceVanillaRoute) {
+        rooms = getMiningRouteRooms(colonyName, destName);
+    }
+    if (!rooms || !rooms.length) {
+        const route = options.usePathRoute || options.forceVanillaRoute
+            ? findRoute(colonyName, destName, options.pathRouteOpts || {shortest: true})
+            : findRoute(colonyName, destName);
+        rooms = routeRoomNames(route);
+    }
     if (!rooms.length) return false;
     return rooms.every(roomName => INTEL[roomName] && INTEL[roomName].roadsBuilt);
 }
