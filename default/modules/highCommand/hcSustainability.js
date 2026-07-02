@@ -9,6 +9,8 @@
  */
 
 
+const {recordSiegeCancellation} = require('hcReadiness');
+
 function operationSustainability(room, operationRoom = room.name) {
     let operation = Memory.targetRooms[operationRoom] || Memory.auxiliaryTargets[operationRoom]
         || Memory.targetRooms[room.name] || Memory.auxiliaryTargets[room.name];
@@ -58,7 +60,9 @@ function operationSustainability(room, operationRoom = room.name) {
 
     if (isAtRisk && Memory.targetRooms[operationRoom]) {
         const ratio = friendlyDead / (enemyDead || 100);
-        log.a(`Canceling operation in ${roomLink(operationRoom)} â€” unsustainable casualties (${ratio.toFixed(2)}).`, 'HIGH COMMAND: ');
+        const opType = Memory.targetRooms[operationRoom].type;
+        log.a(`Canceling operation in ${roomLink(operationRoom)} — unsustainable casualties (${ratio.toFixed(2)}).`, 'HIGH COMMAND: ');
+        if (opType === 'roomDenial' || opType === 'stronghold') recordSiegeCancellation();
         delete Memory.targetRooms[operationRoom];
         if (INTEL[operationRoom]) {
             INTEL[operationRoom].lastOperation = Game.time;

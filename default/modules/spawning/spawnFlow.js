@@ -14,14 +14,18 @@ function getFlowContext(room) {
     const energyInfo = room.memory.energyInfo;
     const trend = (energyInfo && energyInfo.trend) || 0;
     const spareIncome = (energyInfo && energyInfo.spareIncome) || 0;
+    const flowSpare = (energyInfo && typeof energyInfo.flowSpare === 'number')
+        ? energyInfo.flowSpare
+        : spareIncome + ((energyInfo && energyInfo.militarySpawnExpense) || 0);
     const flowStressed = energyInfo && typeof energyInfo.flowStressed === 'boolean'
         ? energyInfo.flowStressed
-        : spareIncome < 0 || trend < -2;
+        : flowSpare < 0 || trend < -2;
     return {
         energyInfo,
         trend,
         spareIncome,
-        trendOk: trend >= -3,
+        flowSpare,
+        trendOk: trend >= -2,
         flowHealthy: trend >= 0,
         flowStressed,
     };

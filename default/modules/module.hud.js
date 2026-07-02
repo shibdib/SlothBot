@@ -5,7 +5,14 @@
  */
 
 const profiler = require("tools.profiler");
-const {getEmpireReadiness, getOpsPauseReason, getOpsStressNote, isLiveCombatReady} = require('hcReadiness');
+const state = require('hcState');
+const {
+    getEmpireReadiness,
+    getOpsPauseReason,
+    getOpsStressNote,
+    isLiveCombatReady,
+    getCombatReadyFailReason,
+} = require('hcReadiness');
 
 const VALID_ROOM_NAME = /^[WE]\d+[NS]\d+$/;
 let _MapVisuals;
@@ -36,7 +43,7 @@ class HUD {
         if (!Memory.tickInfo) return;
 
         Memory._mapVisuals = undefined;
-        this._empireReadiness = getEmpireReadiness();
+        this._empireReadiness = state.EMPIRE_READINESS || getEmpireReadiness();
 
         this.updateGCLData();
 
@@ -304,14 +311,17 @@ class HUD {
         const opsLabel = opsPaused ? '● HOLD' : (opsThrottled ? '● LOW' : '● GO');
 
         this.drawHudSeparator(room, x, y, width);
-        this.drawHudRow(room, x, y, width, opsLabel, `Empire ${empire.combatReady}/${empire.minCombatReady}`, {
+        const nvSuffix = empire.invisible > 0 ? ` (+${empire.invisible} nv)` : '';
+        const empireLabel = `Empire ${empire.combatReady}/${empire.minCombatReady}${nvSuffix}`;
+        this.drawHudRow(room, x, y, width, opsLabel, empireLabel, {
             leftColor: opsColor, leftFont: 'bold 0.38 Tahoma',
             rightColor: '#aeb9c4', rightFont: '0.34 Tahoma'
         });
         y += rowH;
 
         const liveCr = isLiveCombatReady(room);
-        const crFlag = liveCr ? 'CR ✓' : 'CR ✗';
+        const crFail = getCombatReadyFailReason(room);
+        const crFlag = liveCr ? 'CR ✓' : (crFail ? `CR ✗ ${crFail}` : 'CR ✗');
         const crColor = liveCr ? '#7dcea0' : '#ef6b6b';
         const stockPct = Math.min(100, diag.stockpilePct || 0);
         const stockColor = stockPct >= 100 ? '#5dade2' : stockPct >= 50 ? '#7dcea0' : '#ffb347';

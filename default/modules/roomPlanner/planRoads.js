@@ -610,15 +610,17 @@ function getRemoteRoadPlan(room, colony, context = {}) {
             || findRoadPath(room, targets[0], targets[1], 'remote'));
     }
 
-    let complete = false;
+    let complete = true;
     if (planValid) {
-        complete = true;
         for (const key of desired) {
             const parts = key.split('x');
             const pos = new RoomPosition(Number(parts[0]), Number(parts[1]), room.name);
+            if (isRoadSatisfied(pos)) continue;
             complete = false;
             if (isRoadPlaceable(pos)) missing.push(pos);
         }
+    } else {
+        complete = false;
     }
 
     const plan = {targets, desired, missing, complete};

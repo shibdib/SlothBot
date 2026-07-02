@@ -6,7 +6,14 @@
 
 const generator = require('module.bodyGenerator');
 const {estimateClaimRouteTicks} = require('pathRoute');
-const {isLiveCombatReady, isLiveAuxReady, isRoomStruggling} = require('hcReadiness');
+const {
+    isLiveAuxReady,
+    isRoomReadyForTier,
+    getOpTier,
+    OP_TIER,
+    roomMilitaryFlowSpare,
+    roomStockpileRatio,
+} = require('hcReadiness');
 const {spawnEnergyState} = require('spawnFlow');
 
 const CLAIM_ROLES = new Set(['claimer', 'claimAttacker', 'reserver']);
@@ -57,8 +64,7 @@ function collectGlobalOperations(room) {
 function considerGlobalEntry(room, entry) {
     if (!entry.destination) {
         if (entry.operation === 'harass') {
-            const minLevel = Math.max(4, MAX_LEVEL - 2);
-            if (room.level < minLevel || !isLiveCombatReady(room) || isRoomStruggling(room)) return null;
+            if (!isRoomReadyForTier(room, OP_TIER.HARASS)) return null;
         }
         return {...entry};
     }
@@ -149,13 +155,23 @@ function resolveAssignment(room, target, opMemory, levelTarget, entry, intel) {
         const assigned = Game.rooms[opMemory.assignedRoom];
         if (!assigned) {
             if (handleInvisibleAssignmentWait(target, opMemory)) return opMemory.assignedRoom;
-        } else if (Memory.targetRooms[target] && !isLiveCombatReady(assigned)) {
-            const held = handleAssignmentReadinessWait(room, target, opMemory, 'Room is not combat ready.');
-            if (held) return held;
-        } else if (Memory.auxiliaryTargets[target] && !isLiveAuxReady(assigned)) {
-            const held = handleAssignmentReadinessWait(room, target, opMemory, 'Room is not auxiliary ready.');
-            if (held) return held;
         } else {
+            if (Memory.targetRooms[target]) {
+                const tier = getOpTier(opMemory, entry);
+                if (!isRoomReadyForTier(assigned, tier)) {
+                    const inflight = assigned.myCreeps.some(c =>
+                        c.memory.waitingToAssemble &&
+                        (c.memory.destination === target ||
+                            (c.memory.other && c.memory.other.assignment === target)));
+                    if (inflight && isRoomReadyForTier(assigned, OP_TIER.HARASS)) {
+                        return opMemory.assignedRoom;
+                    }
+                    return handleAssignmentReadinessWait(room, target, opMemory, 'Room is not combat ready.');
+                }
+            } else if (Memory.auxiliaryTargets[target] && !isLiveAuxReady(assigned)) {
+                return handleAssignmentReadinessWait(room, target, opMemory, 'Room is not auxiliary ready.');
+            }
+
             clearAssignmentWaitState(opMemory);
 
             const stale = opMemory.assignedAt && opMemory.assignedAt + (CREEP_LIFE_TIME * 2) < now;
@@ -219,17 +235,19 @@ function computeAssignmentScore(myRoom, routeDistance, assignmentCount, isAuxili
     const ei = myRoom.memory.energyInfo;
     const spare = (ei && ei.spareIncome) || 0;
     const trend = (ei && ei.trend) || 0;
-    const flowStressed = spare < 0 || trend < -3;
-    const flowReady = energyState >= 2 && trend >= 0 && spare >= 8;
+    const flowSpare = roomMilitaryFlowSpare(myRoom);
+    const flowStressed = flowSpare < 0 || trend < -2;
+    const stocked = roomStockpileRatio(myRoom) >= 0.8;
+    const flowReady = (energyState >= 2 || stocked) && trend >= 0 && flowSpare >= 4;
 
     const energyWeight = isAuxiliary ? 3 : 6;
     if (energyState < 3) score += (3 - energyState) * energyWeight;
 
     if (flowStressed) score += isAuxiliary ? 6 : 14;
-    else if (!isAuxiliary && energyState < 2) score += 8;
+    else if (!isAuxiliary && energyState < 2 && !stocked) score += 5;
 
-    if (spare < 0) score += isAuxiliary ? 5 : 12;
-    else if (spare < 4) score += isAuxiliary ? 2 : 5;
+    if (flowSpare < 0) score += isAuxiliary ? 5 : 10;
+    else if (flowSpare < 4) score += isAuxiliary ? 2 : 4;
     else if (flowReady) score -= 4;
 
     const spawnCap = CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level];
@@ -267,11 +285,9 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
         if (myRoom.controller.level !== myRoom.level || myRoom.downgraded) continue;
         if (myRoom.level < level) continue;
 
-        if (isAuxiliary) {
-            if (!isLiveAuxReady(myRoom)) continue;
-        } else if (!isScout && !isLiveCombatReady(myRoom)) {
-            continue;
-        }
+        const tier = isAuxiliary ? OP_TIER.HARASS
+            : (isScout ? OP_TIER.HARASS : getOpTier({type: opType}, creepInfo));
+        if (!isRoomReadyForTier(myRoom, tier)) continue;
 
         const route = myRoom.shibRoute(targetRoom, isClaimRole ? {shortest: true} : {});
         const distance = Array.isArray(route) && route.length ? route.length : Infinity;

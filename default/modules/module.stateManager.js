@@ -118,7 +118,8 @@ class StateManager {
         const factoryExp = global.prevTickFactoryEnergyExpense ? (global.prevTickFactoryEnergyExpense[room.name] || 0) : 0;
         const expense = Math.round(snap.expense) + spawnExpense + termExp + renewalExp + nukeExp + factoryExp;
         const spareIncome = income - expense;
-        const flowStressed = spareIncome < 0 || trend < -2;
+        const flowSpare = spareIncome + militarySpawnExpense;
+        const flowStressed = flowSpare < 0 || trend < -2;
 
         // Upgrader duty cycle = avg actual upgrade energy / avg theoretical WORK, both over
         // the same 50-tick window so a recent body resize doesn't skew the ratio. < 1 means
@@ -128,7 +129,9 @@ class StateManager {
             ? Math.min(1.0, roomSnap.upgrade / roomSnap.upgradeWork)
             : 1.0;
 
-        room.memory.energyInfo = {income, expense, spareIncome, trend, upgraderDuty, flowStressed};
+        room.memory.energyInfo = {
+            income, expense, spareIncome, flowSpare, trend, upgraderDuty, flowStressed, militarySpawnExpense,
+        };
 
         room.memory.energyDiag = {
             statHarv: statHarvesters.length,
