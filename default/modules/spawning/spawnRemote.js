@@ -9,7 +9,7 @@ const {getFlowContext, spawnEnergyState} = require('spawnFlow');
 const {getCreepCount, haulerCarryCapacity} = require('spawnCounts');
 const {queueCreepIfNeeded, queueCreep} = require('spawnQueue');
 const {routeHasBuiltRoads, countQueuedHaulersForSource} = require('bodyHelpers');
-const {roadBuildersNeeded} = require('planRoads');
+const {roadBuildersNeeded, colonyNeedsRoadWork} = require('planRoads');
 const remoteMining = require('remoteMining');
 
 function maxRemoteHaulerCarryParts(roomLevel, onRoads) {
@@ -257,6 +257,7 @@ function handleRoadBuilder(room) {
     const remoteTargets = ROOM_REMOTE_TARGETS[colony];
     if (!remoteTargets || !remoteTargets.length) return;
     if (!getCreepCount(undefined, 'remoteHarvester', undefined, undefined, colony)) return;
+    if (!colonyNeedsRoadWork(colony)) return;
     const needed = roadBuildersNeeded(colony);
     if (!needed || colonyRoadBuilderTotal(colony) >= needed) return;
 

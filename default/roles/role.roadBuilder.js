@@ -4,29 +4,20 @@
 
 const profiler = require("tools.profiler");
 const {setRoadsBuiltFlag} = require('planUtils');
+const {getCreepCount} = require('spawnCounts');
 const {
-    shouldVerifyRemoteRoads,
-    remoteRoomRoadPathsComplete,
-    remoteRoomNeedsRoadWork,
     isColonyRoadRoom,
-    getUnfinishedRoadRooms,
+    pickRoadWorkRoom,
+    colonyNeedsRoadWork,
+    roadBuildersNeeded,
     tryPlaceNextRemoteRoad,
     canPlaceRemoteRoadSite,
     countRoadConstructionSites,
+    remoteRoomNeedsRoadWork,
+    isRemoteRoadPlanComplete,
+    syncRemoteRoadBuiltFlag,
     clearRemoteRoadVerifyCache,
 } = require('planRoads');
-
-const PLACE_RESULT = {
-    COMPLETE: 'complete',
-    PENDING: 'pending',
-    ABORT: 'abort',
-};
-
-const PLACE_AFTER_BUILD_INTERVAL = 3;
-const PLACE_AFTER_BUILT_INTERVAL = 5;
-
-let harvesterCacheTick = -1;
-let harvesterCache = {};
 
 class RoleRoadBuilder {
     constructor(creep) {
@@ -45,7 +36,6 @@ class RoleRoadBuilder {
             return;
         }
         if (this.creep.skSafety()) return;
-        this.creep.say('HIGHWAY', true);
 
         if (!this.creep.memory.working) {
             this.getEnergy();
@@ -112,72 +102,87 @@ class RoleRoadBuilder {
             return;
         }
 
-        this.ensureDestination();
-        if (!this.creep.memory.destination) return;
+        const colony = this.creep.memory.colony;
+        if (!colonyNeedsRoadWork(colony)) {
+            this.handleNoWork();
+            return;
+        }
 
-        if (this.creep.pos.roomName !== this.creep.memory.destination) {
+        const destination = this.pickDestination();
+        if (!destination) {
+            this.handleNoWork();
+            return;
+        }
+
+        if (this.creep.pos.roomName !== destination) {
             this.creep.memory.constructionSite = undefined;
-            this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 20});
+            this.creep.say('Roads', true);
+            this.creep.shibMove(new RoomPosition(25, 25, destination), {range: 20});
+            return;
+        }
+
+        const room = this.creep.room;
+        const context = this.getRoadContext(destination);
+        if (!context) {
+            this.creep.memory.destination = undefined;
             return;
         }
 
         this.assignRoadConstructionWork();
-        if (this.creep.memory.constructionSite) {
-            if (this.creep.builderFunction()) {
-                if (this.shouldPlaceRoadsAfterBuild()) {
-                    this.handlePlaceRoadsResult(this.placeRoads());
-                }
-                return;
-            }
-        }
-
-        if (countRoadConstructionSites(this.creep.room) > 0 && !this.creep.memory.constructionSite) {
-            this.creep.memory.destination = undefined;
+        if (this.creep.memory.constructionSite && this.creep.builderFunction()) {
+            this.tryPlaceRoadSites(room, colony, context);
             return;
         }
 
-        if (this.creep.room.name === this.creep.memory.colony) {
-            this.creep.memory.destination = undefined;
-            this.creep.idleFor(15);
+        if (this.tryPlaceRoadSites(room, colony, context)) {
+            this.assignRoadConstructionWork();
             return;
         }
 
-        if (!this.shouldPlaceRoadsAfterBuild()) {
-            this.creep.idleFor(2);
-            return;
-        }
-        this.handlePlaceRoadsResult(this.placeRoads());
-    }
-
-    shouldPlaceRoadsAfterBuild() {
-        if (!this.creep.store[RESOURCE_ENERGY]) return false;
-        if (this.creep.room.name === this.creep.memory.colony) return false;
-        const intel = INTEL[this.creep.room.name];
-        if (!intel) return false;
-        if (intel.roadsBuilt) return Game.time % PLACE_AFTER_BUILT_INTERVAL === 0;
-        return Game.time % PLACE_AFTER_BUILD_INTERVAL === 0;
-    }
-
-    handlePlaceRoadsResult(result) {
-        const room = this.creep.room;
-        const colony = this.creep.memory.colony;
-        const context = this.getRoadContext(room.name);
-
-        if (result === PLACE_RESULT.COMPLETE) {
+        syncRemoteRoadBuiltFlag(room, colony, context);
+        if (isRemoteRoadPlanComplete(room, colony, context) && !remoteRoomNeedsRoadWork(room, colony, context)) {
             this.markRoadsComplete(room);
             this.creep.memory.destination = undefined;
             return;
         }
-        if (result === PLACE_RESULT.ABORT) {
-            this.creep.memory.destination = undefined;
-            this.creep.idleFor(10);
+
+        if (countRoadConstructionSites(room) > 0) {
+            this.creep.idleFor(2);
             return;
         }
-        if (result === PLACE_RESULT.PENDING && context
-            && !remoteRoomNeedsRoadWork(room, colony, context)
-            && countRoadConstructionSites(room) === 0) {
-            this.creep.memory.destination = undefined;
+
+        this.creep.memory.destination = undefined;
+    }
+
+    pickDestination() {
+        if (this.creep.memory.destination) return this.creep.memory.destination;
+        const destination = pickRoadWorkRoom(this.creep.memory.colony, this.creep.name);
+        if (destination) this.creep.memory.destination = destination;
+        return destination;
+    }
+
+    tryPlaceRoadSites(room, colony, context) {
+        if (!this.creep.store[RESOURCE_ENERGY] || !canPlaceRemoteRoadSite(room)) return false;
+        return tryPlaceNextRemoteRoad(room, colony, context);
+    }
+
+    handleNoWork() {
+        const colony = this.creep.memory.colony;
+        this.creep.memory.destination = undefined;
+        this.creep.memory.constructionSite = undefined;
+
+        if (this.creep.pos.roomName !== colony) {
+            this.creep.say('Home', true);
+            this.creep.shibMove(new RoomPosition(25, 25, colony), {range: 20});
+            return;
         }
+
+        const liveCount = getCreepCount(undefined, 'roadBuilder', undefined, undefined, colony);
+        if (liveCount > roadBuildersNeeded(colony)) {
+            this.creep.recycleCreep();
+            return;
+        }
+        this.creep.idleFor(10);
     }
 
     markRoadsComplete(room) {
@@ -200,79 +205,6 @@ class RoleRoadBuilder {
         return info.type === 'transit'
             ? {type: 'transit', remote: info.remote}
             : {type: 'remote'};
-    }
-
-    ensureDestination() {
-        if (this.creep.memory.destination) return;
-        const colony = this.creep.memory.colony;
-
-        const unfinished = getUnfinishedRoadRooms(colony);
-        if (unfinished.length) {
-            this.creep.memory.destination = unfinished[0].room;
-            return;
-        }
-
-        const remoteTargets = ROOM_REMOTE_TARGETS[colony] || [];
-        const assignedRemotes = _.uniq(remoteTargets.map(s => s.room));
-        if (assignedRemotes.length) {
-            const maintenanceRooms = assignedRemotes.slice();
-            for (const remote of assignedRemotes) {
-                const route = Game.map.findRoute(colony, remote);
-                if (!Array.isArray(route)) continue;
-                for (const step of route) {
-                    if (step.room !== colony && step.room !== remote) maintenanceRooms.push(step.room);
-                }
-            }
-            this.creep.memory.destination = _.sample(_.uniq(maintenanceRooms));
-            return;
-        }
-
-        if (harvesterCacheTick !== Game.time) {
-            harvesterCacheTick = Game.time;
-            harvesterCache = {};
-        }
-        if (!harvesterCache[colony]) {
-            harvesterCache[colony] = _.filter(Game.creeps, c =>
-                c.my && c.memory.colony === colony && c.memory.role === 'remoteHarvester');
-        }
-        const harvesters = harvesterCache[colony];
-        if (!harvesters.length) {
-            this.creep.memory.destination = colony;
-            return;
-        }
-        const destinations = _.uniq(_.pluck(harvesters, 'memory.destination'));
-        this.creep.memory.destination = _.sample(destinations);
-    }
-
-    placeRoads() {
-        const room = this.creep.room;
-        const colony = this.creep.memory.colony;
-        const intel = INTEL[room.name];
-        if (!intel || intel.owner) return PLACE_RESULT.ABORT;
-        if (_.size(Game.constructionSites) >= 70) return PLACE_RESULT.PENDING;
-
-        const context = this.getRoadContext(room.name);
-        if (!context) return PLACE_RESULT.ABORT;
-
-        if (intel.roadsBuilt && shouldVerifyRemoteRoads(room.name)) {
-            if (!remoteRoomRoadPathsComplete(room, colony, context)) {
-                setRoadsBuiltFlag(room, undefined);
-                delete intel.roadCount;
-                clearRemoteRoadVerifyCache(room.name);
-            }
-        }
-
-        if (canPlaceRemoteRoadSite(room) && tryPlaceNextRemoteRoad(room, colony, context)) {
-            return PLACE_RESULT.PENDING;
-        }
-
-        if (remoteRoomRoadPathsComplete(room, colony, context)) {
-            return PLACE_RESULT.COMPLETE;
-        }
-
-        if (remoteRoomNeedsRoadWork(room, colony, context)) return PLACE_RESULT.PENDING;
-
-        return PLACE_RESULT.COMPLETE;
     }
 }
 

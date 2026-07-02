@@ -427,10 +427,10 @@ function countRoadConstructionSites(room) {
 }
 
 const MAX_ROAD_SITES_REMOTE = 2;
-const ROAD_VERIFY_INTERVAL = 50;
 const VERIFY_CACHE_TTL = 50;
 const VERIFY_CACHE = Object.create(null);
 const NEEDS_WORK_CACHE = Object.create(null);
+const REMOTE_PLAN_CACHE = Object.create(null);
 
 function canPlaceRemoteRoadSite(room) {
     if (countRoadConstructionSites(room) >= MAX_ROAD_SITES_REMOTE) return false;
@@ -445,66 +445,147 @@ function getExitCenter(room, targetRoomName) {
     return tiles[Math.round(tiles.length / 2)];
 }
 
-function collectRemoteMiningPathPairs(room, colony) {
-    const pairs = [];
-    const homeTarget = getExitCenter(room, colony);
-    if (!homeTarget) return pairs;
+function getRouteNeighborRooms(roomName, colony) {
+    const exits = Game.map.describeExits(roomName);
+    if (!exits) return [];
 
-    const containers = room.containers;
-    const origins = containers.length ? containers : room.sources;
-    for (const origin of origins) {
-        pairs.push({from: origin, to: homeTarget});
+    const remotes = (ROOM_REMOTE_TARGETS[colony] || []).map(s => s.room);
+    const onRoute = new Set([colony, ...remotes]);
+    for (const remote of remotes) {
+        const route = getMiningRouteRooms(colony, remote);
+        for (let i = 0; i < route.length; i++) onRoute.add(route[i]);
     }
+
+    const neighbors = [];
+    for (const neighbor of Object.values(exits)) {
+        if (onRoute.has(neighbor)) neighbors.push(neighbor);
+    }
+    return neighbors;
+}
+
+function getRemoteRoadTargets(room, colony, context = {}) {
+    if (context.type === 'transit' && context.remote) {
+        const route = getMiningRouteRooms(colony, context.remote);
+        if (!route.length) return [];
+        const idx = route.indexOf(room.name);
+        if (idx < 0) return [];
+
+        const prevRoom = idx === 0 ? colony : route[idx - 1];
+        const nextRoom = idx === route.length - 1 ? context.remote : route[idx + 1];
+        const enter = getExitCenter(room, prevRoom);
+        const exit = getExitCenter(room, nextRoom);
+        if (!enter || !exit) return [];
+        return [enter, exit];
+    }
+
+    const targets = [];
+    const seen = new Set();
+    const add = (pos) => {
+        if (!pos) return;
+        const key = getPosKey(pos);
+        if (seen.has(key)) return;
+        seen.add(key);
+        targets.push(pos);
+    };
+
+    add(getExitCenter(room, colony));
+
+    for (const source of room.sources) {
+        const container = resolveSourceContainer(source, room);
+        add(container ? container.pos : source.pos);
+    }
+
+    if (room.controller) add(room.controller.pos);
 
     const intel = INTEL[room.name];
     if (intel && intel.sk) {
-        const mineral = room.find(FIND_MINERALS)[0];
-        if (mineral) pairs.push({from: mineral, to: homeTarget});
-        for (const lair of room.impassibleStructures.filter(s => s.structureType === STRUCTURE_KEEPER_LAIR)) {
-            pairs.push({from: lair, to: homeTarget});
+        const mineral = room.mineral || room.find(FIND_MINERALS)[0];
+        if (mineral) add(mineral.pos);
+    }
+
+    for (const neighbor of getRouteNeighborRooms(room.name, colony)) {
+        add(getExitCenter(room, neighbor));
+    }
+
+    return targets;
+}
+
+function sortRemoteTargets(room, origin, targets) {
+    return targets.slice().sort((a, b) => {
+        const pa = TARGET_ORDER[classifyTarget(room, a)] ?? 9;
+        const pb = TARGET_ORDER[classifyTarget(room, b)] ?? 9;
+        if (pa !== pb) return pa - pb;
+        if (origin) return origin.getRangeTo(a) - origin.getRangeTo(b);
+        return 0;
+    });
+}
+
+function addPathTilesNeedingRoads(room, path, needed) {
+    for (const point of path) {
+        if ((point.roomName || room.name) !== room.name) continue;
+        const pos = new RoomPosition(point.x, point.y, room.name);
+        if (!isRoadSatisfied(pos)) needed.add(getPosKey(pos));
+    }
+}
+
+function buildRemoteRoadTiles(room, colony, context = {}) {
+    const needed = new Set();
+    const targets = getRemoteRoadTargets(room, colony, context);
+    if (!targets.length) return needed;
+
+    if (context.type === 'transit') {
+        const path = findRoadPath(room, targets[0], targets[1], 'remote');
+        if (path) addPathTilesNeedingRoads(room, path, needed);
+        return needed;
+    }
+
+    const network = new Set();
+    const matrix = ensureRoomMatrix(room.name, 'remote').clone();
+
+    for (const road of room.roads) {
+        const key = getPosKey(road.pos);
+        network.add(key);
+        markTileOnMatrix(matrix, key, 'remote');
+    }
+
+    const anchor = targets[0];
+    if (anchor) {
+        network.add(getPosKey(anchor));
+        markTileOnMatrix(matrix, getPosKey(anchor), 'remote');
+    }
+
+    for (const target of sortRemoteTargets(room, anchor, targets.slice(1))) {
+        const networkAnchor = nearestNetworkPos(target, network, room.name);
+        if (!networkAnchor || networkAnchor.getRangeTo(target) <= 1) continue;
+
+        const path = searchOnMatrix(networkAnchor, target, matrix);
+        if (!path) continue;
+
+        for (const step of path) {
+            const key = getPosKey(step);
+            network.add(key);
+            markTileOnMatrix(matrix, key, 'remote');
+            const pos = new RoomPosition(step.x, step.y, room.name);
+            if (!isRoadSatisfied(pos)) needed.add(key);
         }
     }
 
-    if (room.controller) pairs.push({from: room.controller, to: homeTarget});
-
-    const colonyRemotes = new Set((ROOM_REMOTE_TARGETS[colony] || []).map(s => s.room));
-    for (const neighbor of Object.values(Game.map.describeExits(room.name) || {})) {
-        if (!colonyRemotes.has(neighbor)) continue;
-        const exitTarget = getExitCenter(room, neighbor);
-        if (!exitTarget) continue;
-        for (const origin of origins) {
-            pairs.push({from: origin, to: exitTarget});
-        }
-    }
-    return pairs;
-}
-
-function collectTransitPathPairs(room, colony, remoteName) {
-    const route = getMiningRouteRooms(colony, remoteName);
-    if (!route.length) return [];
-    const idx = route.indexOf(room.name);
-    if (idx < 0) return [];
-
-    const prevRoom = idx === 0 ? colony : route[idx - 1];
-    const nextRoom = idx === route.length - 1 ? remoteName : route[idx + 1];
-    const enter = getExitCenter(room, prevRoom);
-    const exit = getExitCenter(room, nextRoom);
-    if (!enter || !exit) return [];
-    return [{from: enter, to: exit}];
-}
-
-function getRemoteRoadPathPairs(room, colony, context = {}) {
-    if (context.type === 'transit' && context.remote) {
-        return collectTransitPathPairs(room, colony, context.remote);
-    }
-    return collectRemoteMiningPathPairs(room, colony);
+    return needed;
 }
 
 function verifyCacheKey(roomName, colony, context) {
     return `${roomName}|${colony}|${context.type || 'remote'}|${context.remote || ''}`;
 }
 
+function clearRemoteRoadPlanCache(roomName) {
+    const prefix = `${roomName}|`;
+    for (const key of Object.keys(REMOTE_PLAN_CACHE)) {
+        if (key.startsWith(prefix)) delete REMOTE_PLAN_CACHE[key];
+    }
+}
+
 function clearRemoteRoadVerifyCache(roomName) {
+    clearRemoteRoadPlanCache(roomName);
     const prefix = `${roomName}|`;
     for (const key of Object.keys(VERIFY_CACHE)) {
         if (key.startsWith(prefix)) delete VERIFY_CACHE[key];
@@ -514,9 +595,52 @@ function clearRemoteRoadVerifyCache(roomName) {
     }
 }
 
-function shouldVerifyRemoteRoads(roomName) {
-    const stagger = (roomName.charCodeAt(0) + (roomName.charCodeAt(4) || 0)) % ROAD_VERIFY_INTERVAL;
-    return Game.time % ROAD_VERIFY_INTERVAL === stagger;
+function getRemoteRoadPlan(room, colony, context = {}) {
+    const cacheKey = verifyCacheKey(room.name, colony, context);
+    const cached = REMOTE_PLAN_CACHE[cacheKey];
+    if (cached && cached.tick === Game.time) return cached.plan;
+
+    const targets = getRemoteRoadTargets(room, colony, context);
+    const desired = buildRemoteRoadTiles(room, colony, context);
+    const missing = [];
+    let planValid = targets.length > 0;
+
+    if (context.type === 'transit' && targets.length >= 2) {
+        planValid = !!(getCachedPath(room, targets[0], targets[1], 'remote')
+            || findRoadPath(room, targets[0], targets[1], 'remote'));
+    }
+
+    let complete = false;
+    if (planValid) {
+        complete = true;
+        for (const key of desired) {
+            const parts = key.split('x');
+            const pos = new RoomPosition(Number(parts[0]), Number(parts[1]), room.name);
+            complete = false;
+            if (isRoadPlaceable(pos)) missing.push(pos);
+        }
+    }
+
+    const plan = {targets, desired, missing, complete};
+    REMOTE_PLAN_CACHE[cacheKey] = {tick: Game.time, plan};
+    return plan;
+}
+
+function isRemoteRoadPlanComplete(room, colony, context = {}) {
+    const plan = getRemoteRoadPlan(room, colony, context);
+    return plan.complete && countRoadConstructionSites(room) === 0;
+}
+
+function syncRemoteRoadBuiltFlag(room, colony, context = {}) {
+    const intel = INTEL[room.name];
+    if (!intel) return;
+    if (isRemoteRoadPlanComplete(room, colony, context)) {
+        setRoadsBuiltFlag(room, true);
+        intel.roadCount = room.roads.length;
+    } else if (intel.roadsBuilt) {
+        setRoadsBuiltFlag(room, undefined);
+        delete intel.roadCount;
+    }
 }
 
 function remoteRoomRoadPathsComplete(room, colony, context = {}, options = {}) {
@@ -526,23 +650,7 @@ function remoteRoomRoadPathsComplete(room, colony, context = {}, options = {}) {
         if (cached && cached.tick + VERIFY_CACHE_TTL > Game.time) return cached.complete;
     }
 
-    const pairs = getRemoteRoadPathPairs(room, colony, context);
-    if (!pairs.length) {
-        VERIFY_CACHE[cacheKey] = {tick: Game.time, complete: false};
-        return false;
-    }
-
-    let complete = true;
-    for (const pair of pairs) {
-        const begin = pair.from instanceof RoomPosition ? pair.from : pair.from.pos;
-        const target = pair.to instanceof RoomPosition ? pair.to : pair.to.pos;
-        const path = getCachedPath(room, begin, target, 'remote')
-            || findRoadPath(room, begin, target, 'remote');
-        if (!path || pathTilesNeedRoads(room, path, target)) {
-            complete = false;
-            break;
-        }
-    }
+    const complete = isRemoteRoadPlanComplete(room, colony, context);
     VERIFY_CACHE[cacheKey] = {tick: Game.time, complete};
     return complete;
 }
@@ -560,17 +668,17 @@ function isColonyRoadRoom(roomName, colony) {
     return null;
 }
 
-function getUnfinishedRoadRooms(colony) {
+function getColonyRoadRooms(colony) {
     const targets = ROOM_REMOTE_TARGETS[colony] || [];
-    const unfinished = [];
+    const rooms = [];
     const seen = new Set();
 
-    const add = (roomName, score) => {
-        if (seen.has(roomName)) return;
+    const add = (roomName, priority) => {
+        if (seen.has(roomName) || roomName === colony) return;
         const intel = INTEL[roomName];
-        if (!intel || intel.owner || intel.roadsBuilt) return;
+        if (!intel || intel.owner) return;
         seen.add(roomName);
-        unfinished.push({room: roomName, score: score || 50});
+        rooms.push({room: roomName, priority: priority || 50});
     };
 
     for (const s of targets) add(s.room, s.score);
@@ -578,40 +686,60 @@ function getUnfinishedRoadRooms(colony) {
     const remotes = _.uniq(targets.map(s => s.room));
     for (const remote of remotes) {
         const route = getMiningRouteRooms(colony, remote);
-        if (!route.length) continue;
         for (let i = 0; i < route.length; i++) {
             const r = route[i];
             if (r === colony || r === remote) continue;
-            add(r, (i + 1) * 10);
+            add(r, 20 + i);
         }
     }
-    return _.sortBy(unfinished, 'score');
+    return _.sortBy(rooms, 'priority');
+}
+
+function roomNeedsRoadWorkByName(roomName, colony) {
+    const intel = INTEL[roomName];
+    if (!intel || intel.owner) return false;
+    const context = isColonyRoadRoom(roomName, colony);
+    if (!context) return false;
+    const room = Game.rooms[roomName];
+    if (room) return remoteRoomNeedsRoadWork(room, colony, context);
+    return !intel.roadsBuilt;
+}
+
+function getColonyRoadWorkRooms(colony) {
+    return getColonyRoadRooms(colony).filter(entry => roomNeedsRoadWorkByName(entry.room, colony));
+}
+
+function getUnfinishedRoadRooms(colony) {
+    return getColonyRoadWorkRooms(colony);
+}
+
+function colonyNeedsRoadWork(colony) {
+    return getColonyRoadWorkRooms(colony).length > 0;
+}
+
+function pickRoadWorkRoom(colony, creepId) {
+    const work = getColonyRoadWorkRooms(colony);
+    if (!work.length) return null;
+    let hash = 0;
+    if (creepId) {
+        for (let i = 0; i < creepId.length; i++) hash += creepId.charCodeAt(i);
+    }
+    return work[hash % work.length].room;
 }
 
 function roadBuildersNeeded(colony) {
-    const targets = ROOM_REMOTE_TARGETS[colony] || [];
-    if (!targets.length) return 0;
-    const unfinished = getUnfinishedRoadRooms(colony);
-    return Math.max(1, 1 + Math.floor(unfinished.length / 2));
+    const remotes = _.uniq((ROOM_REMOTE_TARGETS[colony] || []).map(s => s.room));
+    if (!remotes.length || !colonyNeedsRoadWork(colony)) return 0;
+    return Math.min(3, Math.max(1, remotes.length));
 }
 
 function tryPlaceNextRemoteRoad(room, colony, context = {}) {
-    const pairs = getRemoteRoadPathPairs(room, colony, context);
-    for (const pair of pairs) {
-        const begin = pair.from instanceof RoomPosition ? pair.from : pair.from.pos;
-        const target = pair.to instanceof RoomPosition ? pair.to : pair.to.pos;
-        const path = getCachedPath(room, begin, target, 'remote')
-            || findRoadPath(room, begin, target, 'remote');
-        if (!path || !pathTilesNeedRoads(room, path, target)) continue;
-        for (const point of path) {
-            if ((point.roomName || room.name) !== room.name) continue;
-            const pos = new RoomPosition(point.x, point.y, room.name);
-            if (pos.checkForImpassible(true) || pos.checkForRoad() || pos.checkForConstructionSites()) continue;
-            if (!canPlaceRemoteRoadSite(room)) return false;
-            if (tryCreateConstructionSite(pos, STRUCTURE_ROAD) === OK) {
-                clearRemoteRoadVerifyCache(room.name);
-                return true;
-            }
+    const plan = getRemoteRoadPlan(room, colony, context);
+    for (const pos of plan.missing) {
+        if (!canPlaceRemoteRoadSite(room)) return false;
+        if (tryCreateConstructionSite(pos, STRUCTURE_ROAD) === OK) {
+            clearRemoteRoadVerifyCache(room.name);
+            return true;
         }
     }
     return false;
@@ -622,9 +750,8 @@ function remoteRoomNeedsRoadWork(room, colony, context = {}) {
     const cached = NEEDS_WORK_CACHE[cacheKey];
     if (cached && cached.tick + VERIFY_CACHE_TTL > Game.time) return cached.needsWork;
 
-    let needsWork = false;
-    if (countRoadConstructionSites(room) > 0) needsWork = true;
-    else if (!needsWork) {
+    let needsWork = countRoadConstructionSites(room) > 0;
+    if (!needsWork) {
         for (const road of room.roads) {
             if (road.hits < road.hitsMax * 0.75) {
                 needsWork = true;
@@ -632,18 +759,9 @@ function remoteRoomNeedsRoadWork(room, colony, context = {}) {
             }
         }
     }
-    if (!needsWork && canPlaceRemoteRoadSite(room)) {
-        const pairs = getRemoteRoadPathPairs(room, colony, context);
-        for (const pair of pairs) {
-            const begin = pair.from instanceof RoomPosition ? pair.from : pair.from.pos;
-            const target = pair.to instanceof RoomPosition ? pair.to : pair.to.pos;
-            const path = getCachedPath(room, begin, target, 'remote')
-                || findRoadPath(room, begin, target, 'remote');
-            if (!path || pathTilesNeedRoads(room, path, target)) {
-                needsWork = true;
-                break;
-            }
-        }
+    if (!needsWork) {
+        const plan = getRemoteRoadPlan(room, colony, context);
+        needsWork = plan.missing.length > 0;
     }
 
     NEEDS_WORK_CACHE[cacheKey] = {tick: Game.time, needsWork};
@@ -817,16 +935,21 @@ module.exports = {
     countRoadConstructionSites,
     getRoomRoadStructures,
     canPlaceRemoteRoadSite,
-    collectRemoteMiningPathPairs,
-    collectTransitPathPairs,
-    getRemoteRoadPathPairs,
+    getRemoteRoadTargets,
+    getRemoteRoadPlan,
+    isRemoteRoadPlanComplete,
+    syncRemoteRoadBuiltFlag,
+    clearRemoteRoadPlanCache,
     clearRemoteRoadVerifyCache,
-    shouldVerifyRemoteRoads,
     remoteRoomRoadPathsComplete,
     isColonyRoadRoom,
+    getColonyRoadRooms,
+    getColonyRoadWorkRooms,
     getUnfinishedRoadRooms,
+    colonyNeedsRoadWork,
+    pickRoadWorkRoom,
     roadBuildersNeeded,
     tryPlaceNextRemoteRoad,
     remoteRoomNeedsRoadWork,
-    ROAD_VERIFY_INTERVAL,
+    roomNeedsRoadWorkByName,
 };
