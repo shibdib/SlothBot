@@ -5,7 +5,7 @@
  */
 
 const profiler = require("tools.profiler");
-const {getEmpireReadiness, getOpsPauseReason, isLiveCombatReady} = require('hcReadiness');
+const {getEmpireReadiness, getOpsPauseReason, getOpsStressNote, isLiveCombatReady} = require('hcReadiness');
 
 const VALID_ROOM_NAME = /^[WE]\d+[NS]\d+$/;
 let _MapVisuals;
@@ -189,7 +189,8 @@ class HUD {
         const hasAudit = room.memory.energyDiag && room.memory.energyInfo;
         const empire = this._empireReadiness || getEmpireReadiness();
         const pauseReason = hasAudit ? getOpsPauseReason(empire) : null;
-        const readinessRows = hasAudit ? (pauseReason ? 3 : 2) : 0;
+        const stressNote = hasAudit ? getOpsStressNote(empire) : null;
+        const readinessRows = hasAudit ? ((pauseReason || stressNote) ? 3 : 2) : 0;
         const rows = 1 + (room.level < 8 ? 1 : 0) + 2 + (hasAudit ? 3 + readinessRows : 1);
 
         this.drawHudPanel(room, x, y, width, rows * rowH);
@@ -208,7 +209,7 @@ class HUD {
         y += rowH;
 
         y = this.renderEnergyAudit(room, x, y, width, hasAudit);
-        if (hasAudit) this.renderReadiness(room, x, y, width, empire, pauseReason);
+        if (hasAudit) this.renderReadiness(room, x, y, width, empire, pauseReason, stressNote);
     }
 
     renderStatusAndDefense(room, x, y, width) {
@@ -294,12 +295,13 @@ class HUD {
         return y + rowH;
     }
 
-    renderReadiness(room, x, y, width, empire, pauseReason) {
+    renderReadiness(room, x, y, width, empire, pauseReason, stressNote) {
         const {pad, rowH} = HUD_LAYOUT;
         const diag = room.memory.energyDiag;
         const opsPaused = !!pauseReason;
-        const opsColor = opsPaused ? '#ef6b6b' : '#7dcea0';
-        const opsLabel = opsPaused ? '● HOLD' : '● GO';
+        const opsThrottled = !opsPaused && !!stressNote;
+        const opsColor = opsPaused ? '#ef6b6b' : (opsThrottled ? '#ffb347' : '#7dcea0');
+        const opsLabel = opsPaused ? '● HOLD' : (opsThrottled ? '● LOW' : '● GO');
 
         this.drawHudSeparator(room, x, y, width);
         this.drawHudRow(room, x, y, width, opsLabel, `Empire ${empire.combatReady}/${empire.minCombatReady}`, {
@@ -328,9 +330,10 @@ class HUD {
         });
         y += rowH;
 
-        if (pauseReason) {
-            this.drawHudRow(room, x, y, width, pauseReason, null, {
-                leftColor: '#c97a7a', leftFont: '0.32 Tahoma'
+        const statusNote = pauseReason || stressNote;
+        if (statusNote) {
+            this.drawHudRow(room, x, y, width, statusNote, null, {
+                leftColor: opsPaused ? '#c97a7a' : '#d4a55a', leftFont: '0.32 Tahoma'
             });
             y += rowH;
         }

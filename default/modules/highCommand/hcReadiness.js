@@ -4,26 +4,43 @@
  * Empire-wide energy and combat readiness for operation gating.
  */
 
+const STRESS_STRESSED_RATIO = 0.5;
+const STRESS_CRITICAL_RATIO = 0.75;
+const STOCKPILE_COMBAT_READY_RATIO = 0.8;
+const FLOW_TREND_STRESS = -2;
+
 function matureRoomLevel() {
     if (typeof MAX_LEVEL === 'undefined') return 4;
     return Math.max(4, MAX_LEVEL - 1);
 }
 
+function roomStockpileRatio(room) {
+    const diag = room.memory.energyDiag;
+    if (!diag || !diag.stockTarget) return 0;
+    return (diag.stockEnergy || 0) / diag.stockTarget;
+}
+
+function roomHasCombatStockpile(room) {
+    return room.level >= matureRoomLevel() && roomStockpileRatio(room) >= STOCKPILE_COMBAT_READY_RATIO;
+}
+
 function roomFlowStressed(room) {
     const ei = room.memory.energyInfo;
     if (!ei) return false;
-    // A room at/above its stock target can absorb transient negative income (military spend, etc.)
     if ((room.energyState || 0) >= 2) return false;
+    if (roomHasCombatStockpile(room)) return false;
     if (typeof ei.flowStressed === 'boolean') return ei.flowStressed;
-    return ei.spareIncome < 0 || ei.trend < -3;
+    return ei.spareIncome < 0 || ei.trend < FLOW_TREND_STRESS;
 }
 
 function isLiveCombatReady(room) {
     if (room.level < matureRoomLevel()) return false;
     const energyState = room.energyState || 0;
     if (energyState >= 2) return true;
-    // RCL8 still stockpiling: need a modest buffer plus healthy income
-    if (room.level === 8) return energyState >= 1 && !roomFlowStressed(room);
+    if (energyState >= 1) {
+        if (roomHasCombatStockpile(room)) return true;
+        return !roomFlowStressed(room);
+    }
     return false;
 }
 
@@ -35,7 +52,7 @@ function isLiveAuxReady(room) {
 }
 
 function isRoomStruggling(room) {
-    return !isLiveCombatReady(room) && (room.energyState || 0) < 1;
+    return (room.energyState || 0) < 1;
 }
 
 function getEmpireReadiness() {
@@ -57,8 +74,6 @@ function getEmpireReadiness() {
             controllerMy = false;
         }
         if (!room || !room.controller || !controllerMy) {
-            total++;
-            struggling++;
             invisible++;
             continue;
         }
@@ -76,11 +91,11 @@ function getEmpireReadiness() {
         if (isRoomStruggling(room)) struggling++;
     }
 
-    const minCombatReady = Math.max(1, Math.ceil(total * 0.25));
+    const minCombatReady = 1;
     const canLaunchOps = combatReady >= minCombatReady;
     const strugglingRatio = total ? struggling / total : 0;
-    const empireStressed = total > 0 && strugglingRatio >= 0.4;
-    const empireCritical = total > 0 && strugglingRatio >= 0.6;
+    const empireStressed = total > 0 && strugglingRatio >= STRESS_STRESSED_RATIO;
+    const empireCritical = total > 0 && strugglingRatio >= STRESS_CRITICAL_RATIO;
 
     return {
         total,
@@ -107,7 +122,7 @@ function applyOperationLimits(state) {
     const readiness = getEmpireReadiness();
     state.EMPIRE_READINESS = readiness;
 
-    if (!readiness.canLaunchOps || readiness.empireCritical) {
+    if (!readiness.canLaunchOps) {
         state.OPERATION_LIMIT = 0;
         state.SIEGE_LIMIT = 0;
         state.AUXILIARY_LIMIT = 0;
@@ -115,7 +130,14 @@ function applyOperationLimits(state) {
         return readiness;
     }
 
-    state.OFFENSIVE_ALLOWED = true;
+    state.OFFENSIVE_ALLOWED = !readiness.empireCritical;
+
+    if (readiness.empireCritical) {
+        state.OPERATION_LIMIT = Math.max(1, Math.floor(readiness.combatReady * 0.25));
+        state.SIEGE_LIMIT = 0;
+        state.AUXILIARY_LIMIT = auxiliaryLimit(readiness, true);
+        return readiness;
+    }
 
     if (readiness.empireStressed) {
         state.OPERATION_LIMIT = Math.max(1, Math.floor(readiness.combatReady * 0.35));
@@ -132,15 +154,21 @@ function applyOperationLimits(state) {
 
 function getOpsPauseReason(readiness) {
     if (!readiness) readiness = getEmpireReadiness();
-    const reasons = [];
-    if (!readiness.canLaunchOps) reasons.push(`CR ${readiness.combatReady}/${readiness.minCombatReady}`);
-    if (readiness.empireCritical) reasons.push(`stress ${readiness.struggling}/${readiness.total}`);
-    return reasons.length ? reasons.join('; ') : null;
+    if (!readiness.canLaunchOps) return `CR ${readiness.combatReady}/${readiness.minCombatReady}`;
+    return null;
+}
+
+function getOpsStressNote(readiness) {
+    if (!readiness) readiness = getEmpireReadiness();
+    if (!readiness.canLaunchOps) return null;
+    if (readiness.empireCritical) return `critical ${readiness.struggling}/${readiness.total}`;
+    if (readiness.empireStressed) return `stressed ${readiness.struggling}/${readiness.total}`;
+    return null;
 }
 
 function empireOpsPaused(readiness) {
     if (!readiness) readiness = getEmpireReadiness();
-    return !readiness.canLaunchOps || readiness.empireCritical;
+    return !readiness.canLaunchOps;
 }
 
 module.exports = {
@@ -151,5 +179,6 @@ module.exports = {
     isRoomStruggling,
     roomFlowStressed,
     getOpsPauseReason,
+    getOpsStressNote,
     empireOpsPaused,
 };

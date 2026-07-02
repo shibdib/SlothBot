@@ -17,7 +17,7 @@ function queueHarassmentCreeps() {
     if (!HARASSMENT_OPERATIONS || !OFFENSIVE_OPERATIONS || !state.OFFENSIVE_ALLOWED) return;
 
     const readiness = state.EMPIRE_READINESS || getEmpireReadiness();
-    if (!readiness.canLaunchOps || readiness.empireCritical || readiness.empireStressed) return;
+    if (!readiness.canLaunchOps) return;
     if (!THREATS || !THREATS.length) return;
 
     const remotePool = collectThreatRemotes();

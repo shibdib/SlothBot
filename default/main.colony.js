@@ -180,7 +180,7 @@ class Colony {
         const energyInfo = this.room.memory.energyInfo;
         const spareIncome = (energyInfo && energyInfo.spareIncome) || 0;
         const trend = (energyInfo && energyInfo.trend) || 0;
-        const flowStressed = spareIncome < 0 || trend < -3;
+        const flowStressed = spareIncome < 0 || trend < -2;
 
         if (this.room.memory.noRemote && this.room.memory.noRemote <= Game.time) {
             if (flowStressed) {

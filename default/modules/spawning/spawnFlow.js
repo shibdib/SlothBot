@@ -16,7 +16,7 @@ function getFlowContext(room) {
     const spareIncome = (energyInfo && energyInfo.spareIncome) || 0;
     const flowStressed = energyInfo && typeof energyInfo.flowStressed === 'boolean'
         ? energyInfo.flowStressed
-        : spareIncome < 0 || trend < -3;
+        : spareIncome < 0 || trend < -2;
     return {
         energyInfo,
         trend,
