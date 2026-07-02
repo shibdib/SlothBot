@@ -57,6 +57,33 @@ class RoleShuttle {
         }
     }
 
+    resolveAssignedContainer() {
+        if (!this.creep.memory.assignment) return undefined;
+        const source = Game.getObjectById(this.creep.memory.assignment);
+        if (!source) return undefined;
+        if (source.memory.container) return Game.getObjectById(source.memory.container);
+        return global.resolveSourceContainer(source, this.room);
+    }
+
+    findContainerOverflowDrop(container) {
+        if (!container) return undefined;
+        let best;
+        const track = (resource) => {
+            if (!resource || resource.resourceType !== RESOURCE_ENERGY || resource.amount <= 0) return;
+            if (!best || resource.amount > best.amount) best = resource;
+        };
+
+        for (const resource of container.pos.lookFor(LOOK_RESOURCES)) track(resource);
+
+        if (!container.store.getFreeCapacity(RESOURCE_ENERGY)) {
+            for (const resource of this.room.droppedEnergy) {
+                if (resource.pos.getRangeTo(container.pos) <= 1) track(resource);
+            }
+        }
+
+        return best;
+    }
+
     pickup() {
         // During attacks pull from storage for the fastest refill of towers
         if (this.room.memory.dangerousAttack && this.room.storage && this.room.storage.store[RESOURCE_ENERGY] > 0) {
@@ -65,15 +92,17 @@ class RoleShuttle {
             return;
         }
 
+        const container = this.resolveAssignedContainer();
+        const overflow = this.findContainerOverflowDrop(container);
+        if (overflow) {
+            this.creep.memory.energyDestination = overflow.id;
+            this.creep.withdrawResource();
+            return;
+        }
+
         // Prefer assigned source container when available
-        if (!this.creep.memory.energyDestination && this.creep.memory.assignment) {
-            const source = Game.getObjectById(this.creep.memory.assignment);
-            if (source && source.memory.container) {
-                const container = Game.getObjectById(source.memory.container);
-                if (container && container.store[RESOURCE_ENERGY] > 0) {
-                    this.creep.memory.energyDestination = source.memory.container;
-                }
-            }
+        if (!this.creep.memory.energyDestination && container && container.store[RESOURCE_ENERGY] > 0) {
+            this.creep.memory.energyDestination = container.id;
         }
         if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
             this.creep.withdrawResource();
