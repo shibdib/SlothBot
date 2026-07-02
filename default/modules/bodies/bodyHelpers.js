@@ -46,6 +46,8 @@ function stableCreepInfoKey(creepInfo) {
         other.source || '',
         other.remoteRoom || '',
         other.distanceToHub || '',
+        other.haulUrgent ? 'urgent' : '',
+        Math.round(other.harvestRate || 0),
         other.power || '',
         misc.waitFor || '',
         (misc.boosts || []).slice().sort().join('+'),

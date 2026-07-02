@@ -102,6 +102,73 @@ function buildUpgrader(gen) {
     return {work, carry, move, halfMove};
 }
 
+function shuttleHarvestRate(room, trend = 0, spareIncome = 0) {
+    const baseSaturation = Math.ceil(SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME));
+    let work = baseSaturation;
+    const rcl = room.controller ? room.controller.level : room.level;
+    if (rcl >= 7) {
+        const isHealthy = (room.energyState >= 2 || spareIncome > 3 || trend >= 0);
+        work += isHealthy ? 9 : 2;
+    }
+    const powerCreep = _.find(Game.powerCreeps, c =>
+        c.my && c.memory.destinationRoom === room.name && c.powers[PWR_REGEN_SOURCE]);
+    if (powerCreep) {
+        const level = powerCreep.powers[PWR_REGEN_SOURCE].level;
+        const boostedSat = Math.floor((SOURCE_ENERGY_CAPACITY +
+                (POWER_INFO[PWR_REGEN_SOURCE].effect[level - 1] * (ENERGY_REGEN_TIME / 15))) /
+            (HARVEST_POWER * ENERGY_REGEN_TIME));
+        work = Math.max(boostedSat, work);
+    }
+    return work * HARVEST_POWER;
+}
+
+function shuttleCarryTarget(harvestRate, distToHub) {
+    const roundTrip = 2 * (distToHub + 1);
+    return Math.max(4, Math.ceil(harvestRate * roundTrip / CARRY_CAPACITY));
+}
+
+function assessSourceHaulBacklog(source, room) {
+    let containerFill = 0;
+    const container = source.memory.container ? Game.getObjectById(source.memory.container) : undefined;
+    if (container) {
+        containerFill = (container.store[RESOURCE_ENERGY] || 0) / CONTAINER_CAPACITY;
+    }
+    let droppedNearSource = 0;
+    for (const r of room.droppedEnergy) {
+        if (r.pos.getRangeTo(source.pos) <= 2) droppedNearSource += r.amount;
+    }
+    const haulUrgent = containerFill >= 0.5 || droppedNearSource >= CONTAINER_CAPACITY * 0.5;
+    const haulCritical = containerFill >= 0.85 || droppedNearSource >= CONTAINER_CAPACITY * 0.9;
+    return {containerFill, droppedNearSource, haulUrgent, haulCritical};
+}
+
+function planShuttleForSource(room, source, flow = {}) {
+    const trend = flow.trend || 0;
+    const spareIncome = flow.spareIncome || 0;
+    const distToHub = source.memory.distanceToHub || 25;
+    const harvestRate = shuttleHarvestRate(room, trend, spareIncome);
+    const backlog = assessSourceHaulBacklog(source, room);
+
+    let count = 1;
+    if (room.level < 5 && !room.storage) count = 2;
+    if (backlog.haulUrgent) count = Math.max(count, 2);
+    if (backlog.haulCritical) count = Math.min(count + 1, 3);
+    const maxCount = room.level >= 7 ? 2 : 3;
+    count = Math.min(count, maxCount);
+    if (!backlog.haulUrgent && spareIncome < 0) count = Math.min(count, 1);
+
+    return {
+        count,
+        other: {
+            distanceToHub: distToHub,
+            harvestRate,
+            haulUrgent: backlog.haulUrgent,
+            containerFill: Math.round(backlog.containerFill * 100) / 100,
+        },
+        reboot: !backlog.haulUrgent && !room.energyState,
+    };
+}
+
 function buildHauler(gen) {
     const roadsBuilt = colonyRoadsBuilt(gen.room.name) && !gen.room.memory.dynamicLayout;
     let carry = Math.floor(gen.energyAmount / (BODYPART_COST[CARRY] + (roadsBuilt ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE]))) || 1;
@@ -120,23 +187,41 @@ function buildHauler(gen) {
 function buildShuttle(gen) {
     const roadsBuilt = colonyRoadsBuilt(gen.room.name) && !gen.room.memory.dynamicLayout;
     const moveCostPerCarry = roadsBuilt ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE];
-    const distToHub = gen.creepInfo && gen.creepInfo.other && gen.creepInfo.other.distanceToHub;
+    const other = (gen.creepInfo && gen.creepInfo.other) || {};
+    const distToHub = other.distanceToHub;
+    const harvestRate = other.harvestRate || shuttleHarvestRate(gen.room, gen.trend, gen.spareIncome);
+    const haulUrgent = !!other.haulUrgent;
     const maxShuttleCarry = gen.room.level >= 7
         ? maxBodyNonMoveParts(roadsBuilt)
         : Math.max(10, gen.room.level * 4);
+    const affordable = Math.floor(gen.energyAmount / (BODYPART_COST[CARRY] + moveCostPerCarry)) || 1;
+
     let carry;
     if (distToHub) {
-        carry = Math.max(4, Math.ceil(10 * 2 * (distToHub + 1) / BODYPART_COST[CARRY]));
-        carry = Math.min(carry, Math.floor(gen.energyAmount / (BODYPART_COST[CARRY] + moveCostPerCarry)), maxShuttleCarry);
+        carry = shuttleCarryTarget(harvestRate, distToHub);
+        carry = Math.min(carry, affordable, maxShuttleCarry);
     } else {
-        carry = Math.floor(gen.energyAmount / (BODYPART_COST[CARRY] + moveCostPerCarry)) || 1;
-        carry = Math.min(carry, maxShuttleCarry);
+        carry = Math.min(affordable, maxShuttleCarry);
     }
-    if (!gen.room.energyState) {
-        carry = Math.max(1, Math.floor(carry * 0.25));
-    } else if (gen.room.energyState < 3 || gen.trend < 0) {
-        carry = Math.max(1, Math.floor(carry * gen.flowScale(0.5, 10)));
+
+    const throughputFloor = distToHub
+        ? Math.max(4, Math.ceil(shuttleCarryTarget(harvestRate, distToHub) * 0.8))
+        : 1;
+    const minCarry = haulUrgent ? throughputFloor : 1;
+
+    if (!haulUrgent) {
+        if (!gen.room.energyState) {
+            carry = Math.max(minCarry, Math.floor(carry * 0.25));
+        } else if (gen.room.energyState < 3 || gen.trend < 0) {
+            carry = Math.max(minCarry, Math.floor(carry * gen.flowScale(0.5, 10)));
+        }
+    } else if (!gen.room.energyState) {
+        carry = Math.max(minCarry, Math.floor(carry * 0.65));
+    } else if (gen.room.energyState < 3 && gen.trend < -3) {
+        carry = Math.max(minCarry, Math.floor(carry * gen.flowScale(0.75, 12)));
     }
+
+    carry = Math.max(minCarry, carry);
     return {carry, halfMove: roadsBuilt || undefined};
 }
 
@@ -201,4 +286,11 @@ function build(role, gen) {
     return fn ? fn(gen) : undefined;
 }
 
-module.exports = {build, builders};
+module.exports = {
+    build,
+    builders,
+    shuttleHarvestRate,
+    shuttleCarryTarget,
+    assessSourceHaulBacklog,
+    planShuttleForSource,
+};

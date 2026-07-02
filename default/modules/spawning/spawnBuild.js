@@ -10,6 +10,15 @@ const {spawnEnergyState} = require('spawnFlow');
 const {getQueue, generateCreepName, queueCacheKey} = require('spawnQueue');
 
 const RENEW_ROLES = new Set(['hauler', 'shuttle', 'stationaryHarvester', 'upgrader']);
+const {assessSourceHaulBacklog} = require('bodyEconomic');
+
+function shuttleNeedsRenew(creep) {
+    if (creep.memory.role !== 'shuttle' || !creep.memory.assignment) return false;
+    const source = Game.getObjectById(creep.memory.assignment);
+    if (!source) return false;
+    const backlog = assessSourceHaulBacklog(source, creep.room);
+    return backlog.haulUrgent;
+}
 
 function determineEnergyOrder(room) {
     spawnState.storedLevel[room.name] = getLevel(room);
@@ -65,8 +74,8 @@ function renewNearbyCreepIfNeeded(room, availableSpawn) {
     const nearbyCreeps = _.filter(room.myCreeps, c => {
         if (!RENEW_ROLES.has(c.memory.role) || _.find(c.body, b => b.boost) || !c.pos.isNearTo(availableSpawn) || c.ticksToLive >= CREEP_LIFE_TIME) return false;
         if (!strict) return true;
-        // In strict/lean: only renew the critical income producers (stationaryHarvesters)
-        return c.memory.role === 'stationaryHarvester';
+        // In strict/lean: renew income producers and shuttles clearing source backlog
+        return c.memory.role === 'stationaryHarvester' || shuttleNeedsRenew(c);
     });
 
     if (nearbyCreeps.length) {

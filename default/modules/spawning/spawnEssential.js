@@ -9,6 +9,7 @@ const {getFlowContext, roomHasOperateExtensionOperator, spawnEnergyState} = requ
 const {getCreepCount} = require('spawnCounts');
 const {queueCreepIfNeeded} = require('spawnQueue');
 const {empireOpsPaused} = require('hcReadiness');
+const {planShuttleForSource} = require('bodyEconomic');
 
 function resolveDroneCount(room, ctx) {
     const {
@@ -73,7 +74,7 @@ function essentialCreepQueue(room) {
         });
     }
 
-    const {energyInfo, trendOk, flowHealthy, spareIncome} = getFlowContext(room);
+    const {energyInfo, trend, trendOk, flowHealthy, spareIncome} = getFlowContext(room);
     const importantBuilds = _.some(room.constructionSites, s => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
     const hasRoadMaintenance = _.filter(room.structures, s => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5);
     const harvesterCount = getCreepCount(room, 'stationaryHarvester');
@@ -141,17 +142,14 @@ function essentialCreepQueue(room) {
 
         for (const source of room.sources) {
             if (source.memory.link && room.memory.hubLink) continue;
-            const priority = !getCreepCount(room, 'shuttle') ? 1 : PRIORITIES.hauler;
-            let number = room.level >= 5 ? 1 : 2;
-            if (spareIncome < 0 || !trendOk) number = 1;
-            else if (room.level < 7) {
-                number = Math.min(number, Math.max(1, Math.floor(spareIncome / 8)));
-            }
+            const plan = planShuttleForSource(room, source, {trend, spareIncome});
+            const hasShuttle = getCreepCount(room, 'shuttle', undefined, undefined, undefined, source.id);
+            const shuttlePriority = !hasShuttle ? 1 : (plan.other.haulUrgent ? PRIORITIES.hauler * 0.75 : PRIORITIES.hauler);
             queueCreepIfNeeded({
-                room, role: 'shuttle', priority: priority,
-                numberNeeded: number,
-                rebootCondition: room.myCreeps.length < 4 || !getCreepCount(room, 'shuttle') || !energyState,
-                other: {distanceToHub: source.memory.distanceToHub || 25},
+                room, role: 'shuttle', priority: shuttlePriority,
+                numberNeeded: plan.count,
+                rebootCondition: room.myCreeps.length < 4 || (!hasShuttle && plan.reboot),
+                other: plan.other,
                 assignment: source.id
             });
         }
