@@ -26,7 +26,7 @@ class RoleDrone {
     }
 
     houseKeeping() {
-// SK Safety - Throttled
+        // SK Safety - Throttled
         if ((this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk)) && this.creep.skSafety()) return true;
 
         // Boosting
