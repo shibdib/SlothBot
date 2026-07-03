@@ -100,11 +100,13 @@ module.exports.towerController = function (room) {
         }
         if (currentTime % 200 === 0) cleanupDrainState(roomDrain, currentTime);
     } else if (repairAllowed) {
+        const damagedCriticalStructures = cache.criticalStructures.filter(s => s.hits < s.hitsMax);
         const repairCandidates = cache.combatBarriers.length
             ? cache.combatBarriers.slice().sort((a, b) => a.hits - b.hits)
-            : cache.criticalStructures.length ? cache.criticalStructures.slice().sort((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax))
-                : room.structures.filter((s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.hits < s.hitsMax * ratioThreshold).sort
-                ((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax));
+            : damagedCriticalStructures.length ? damagedCriticalStructures.slice().sort((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax))
+                : room.structures.filter((s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5).sort(
+                    (a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax)
+                );
 
         if (repairCandidates.length) {
             // Round-robin to spread repairs — focus-firing 6 towers on one rampart wastes
