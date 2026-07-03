@@ -50,7 +50,7 @@ function hasPendingLayoutStructures(room) {
 function buildMissingStructures(room, level) {
     const existingCounts = getStructureCounts(room);
     const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
-    const skipTypes = room.memory.dynamicLayout ? [...LAYOUT_SKIP_TYPES, STRUCTURE_EXTENSION] : LAYOUT_SKIP_TYPES;
+    const skipTypes = room.memory.dynamicLayout ? [...LAYOUT_SKIP_TYPES, STRUCTURE_EXTENSION] : level < 6 ? [...LAYOUT_SKIP_TYPES, STRUCTURE_LINK] : LAYOUT_SKIP_TYPES;
     const countCheck = tmpl.filter(s =>
         !skipTypes.includes(s.structureType) &&
         CONTROLLER_STRUCTURES[s.structureType][level] > (existingCounts[s.structureType] || 0)

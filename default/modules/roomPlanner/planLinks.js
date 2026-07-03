@@ -22,7 +22,13 @@ function linkBuilder(room) {
     const currentLinks = room.links.length +
         room.constructionSites.filter(s => s.structureType === STRUCTURE_LINK).length;
 
-    // 1. Controller Link (RCL 5+)
+    // 1. Farthest Source Link (RCL 5+)
+    const sortedSources = _.sortBy(room.sources, s => -s.pos.getRangeTo(room.hub));
+    if (currentLinks < linkLimit && sortedSources.length > 0) {
+        if (buildSourceLink(room, sortedSources[0])) return true;
+    }
+
+    // 2. Controller Link (RCL 5+)
     const rememberedControllerLink = Game.getObjectById(room.memory.controllerLink);
     if (!rememberedControllerLink || !isControllerAreaLink(rememberedControllerLink, room)) {
         if (room.memory.controllerLink) room.memory.controllerLink = undefined;
@@ -50,12 +56,6 @@ function linkBuilder(room) {
                 if (tryCreateConstructionSite(position, STRUCTURE_LINK) === OK) return true;
             }
         }
-    }
-
-    // 2. Farthest Source Link (RCL 5+)
-    const sortedSources = _.sortBy(room.sources, s => -s.pos.getRangeTo(room.hub));
-    if (currentLinks < linkLimit && sortedSources.length > 0) {
-        if (buildSourceLink(room, sortedSources[0])) return true;
     }
 
     if (!room.memory.controllerLink) return false;
