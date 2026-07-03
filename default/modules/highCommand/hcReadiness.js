@@ -326,6 +326,7 @@ module.exports = {
     getOpTier,
     roomFlowStressed,
     roomMilitaryFlowSpare,
+    roomStockpileRatio,
     getCombatReadyFailReason,
     recordSiegeCancellation,
     getOpsPauseReason,
