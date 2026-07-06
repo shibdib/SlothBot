@@ -640,33 +640,18 @@ Creep.prototype.haulerDelivery = function () {
     if (this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && this.memory.lastWithdraw !== this.room.storage.id) targets.push(this.room.storage);
 
     let target = this.pos.findClosestByRange(targets);
-    // Stockpiling bias: once extensions are healthy (nearly full), route surplus hauler loads
-    // to storage instead of micro-topping the last bits of the buffer. This helps build
-    // actual reserves in storage while still keeping operational energyAvailable high.
-    // We never starve spawns.
-    if (this.room.energyState >= 2 && this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-        const hasCriticalSpawnNeed = targets.some(s =>
-            s.structureType === STRUCTURE_SPAWN && s.store.getUsedCapacity(RESOURCE_ENERGY) < 200
-        );
-        if (!hasCriticalSpawnNeed) {
-            const extCount = this.room.extensions ? this.room.extensions.length : 0;
-            if (extCount > 0) {
-                const extEnergy = this.room.extensions.reduce((sum, e) => sum + (e.store[RESOURCE_ENERGY] || 0), 0);
-                const extCapacity = extCount * 2000;
-                const extFill = extEnergy / extCapacity;
-                if (extFill > 0.85) {
-                    // Buffers are healthy -- prioritize stockpile over last 15% of ext fill.
-                    target = this.room.storage;
-                }
-            } else {
-                // No extensions (early room) -- go to storage.
-                target = this.room.storage;
-            }
-        }
-    }
     if (target) {
         this.memory.storageDestination = target.id;
         return true;
+    }
+
+    // Fill controller container if the room has energy to spare and the container is empty
+    if (this.room.energyState) {
+        const controllerContainer = Game.getObjectById(this.room.memory.controllerContainer)
+        if (controllerContainer && !controllerContainer.store.getUsedCapacity(RESOURCE_ENERGY)) {
+            this.memory.storageDestination = controllerContainer.id;
+            return true;
+        }
     }
 
     const fallback = this.room.storage || this.room.terminal;
