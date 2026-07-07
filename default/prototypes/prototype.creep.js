@@ -620,10 +620,14 @@ Creep.prototype.haulerDelivery = function () {
     const haulerTrend = (haulerEnergyInfo && haulerEnergyInfo.trend) || 0;
     const haulerFlowOk = this.room.energyState >= 2 && haulerTrend >= 0;
     if (haulerFlowOk) {
-        targets = targets.concat(allLabs.filter(s =>
-            s.store.getFreeCapacity(RESOURCE_ENERGY) > 0 &&
-            (this.room.memory.producingBoost || (s.memory && (s.memory.itemNeeded || s.memory.neededBoost)))
-        ));
+        const labStructMem = this.room.memory._structureMemory;
+        const producingBoost = this.room.memory.producingBoost;
+        targets = targets.concat(allLabs.filter(s => {
+            if (s.store.getFreeCapacity(RESOURCE_ENERGY) <= 0) return false;
+            if (producingBoost) return true;
+            const mem = labStructMem && labStructMem[s.id];
+            return mem && (mem.itemNeeded || mem.neededBoost);
+        }));
     }
 
     if (!this.room.memory.controllerLink && this.room.energyState > 0) {
@@ -1121,57 +1125,62 @@ function waitingForSquad(creep) {
 // Co-opting them would fight labController / labTech. `excludeIds` lets the
 // caller skip labs it has already claimed for other boosts in the same plan.
 function claimBoostLab(creep, boostNeeded, amountNeeded, excludeIds) {
-    const lab = _.find(creep.room.labs, s =>
-        s.isActive() && s.store[RESOURCE_ENERGY] > 0 && !s.memory.itemNeeded &&
-        (!s.memory.neededBoost || s.memory.neededBoost === boostNeeded) &&
-        (!excludeIds || !excludeIds.has(s.id)));
+    const structMem = creep.room.memory._structureMemory;
+    const lab = _.find(creep.room.labs, s => {
+        if (!s.isActive() || s.store[RESOURCE_ENERGY] <= 0 || (excludeIds && excludeIds.has(s.id))) return false;
+        const mem = structMem && structMem[s.id];
+        if (mem && mem.itemNeeded) return false;
+        return !mem || !mem.neededBoost || mem.neededBoost === boostNeeded;
+    });
     if (!lab) return null;
 
-    const preIdx = lab.memory.preReservedFor
-        ? lab.memory.preReservedFor.indexOf(creep.name)
-        : -1;
+    const mem = lab.memory;
+    const preIdx = mem.preReservedFor ? mem.preReservedFor.indexOf(creep.name) : -1;
     if (preIdx >= 0) {
         // Pre-spawn reservation by creepSpawning.preReserveBoostLab already
         // accounted for our amount — just consume the slot.
-        lab.memory.preReservedFor.splice(preIdx, 1);
-        if (!lab.memory.preReservedFor.length) lab.memory.preReservedFor = undefined;
-        lab.memory.neededBoost = boostNeeded;
-        lab.memory.paused = true;
+        mem.preReservedFor.splice(preIdx, 1);
+        if (!mem.preReservedFor.length) mem.preReservedFor = undefined;
+        mem.neededBoost = boostNeeded;
+        mem.paused = true;
     } else {
-        lab.memory.paused = true;
-        lab.memory.neededBoost = boostNeeded;
-        lab.memory.amount = (lab.memory.amount || 0) + amountNeeded;
+        mem.paused = true;
+        mem.neededBoost = boostNeeded;
+        mem.amount = (mem.amount || 0) + amountNeeded;
     }
 
-    lab.memory.requestors = lab.memory.requestors || [];
-    if (!lab.memory.requestors.includes(creep.id)) lab.memory.requestors.push(creep.id);
+    mem.requestors = mem.requestors || [];
+    if (!mem.requestors.includes(creep.id)) mem.requestors.push(creep.id);
     // Refresh on every claim so labController.cleanLabs' 150-tick stale check
     // doesn't trip while creeps are actively using the lab.
-    lab.memory.requested = Game.time;
+    mem.requested = Game.time;
     return lab;
 }
 
 function releaseBoostLab(creep, lab, amountNeeded) {
-    if (!lab || !lab.memory) return;
-    lab.memory.amount = Math.max(0, (lab.memory.amount || 0) - amountNeeded);
+    if (!lab) return;
+    const structMem = lab.room.memory._structureMemory;
+    const mem = structMem && structMem[lab.id];
+    if (!mem) return;
+    mem.amount = Math.max(0, (mem.amount || 0) - amountNeeded);
 
-    if (lab.memory.requestors) {
-        lab.memory.requestors = lab.memory.requestors.filter(id => id !== creep.id);
-        if (!lab.memory.requestors.length) lab.memory.requestors = undefined;
+    if (mem.requestors) {
+        mem.requestors = mem.requestors.filter(id => id !== creep.id);
+        if (!mem.requestors.length) mem.requestors = undefined;
     }
-    if (lab.memory.preReservedFor) {
-        lab.memory.preReservedFor = lab.memory.preReservedFor.filter(n => n !== creep.name);
-        if (!lab.memory.preReservedFor.length) lab.memory.preReservedFor = undefined;
+    if (mem.preReservedFor) {
+        mem.preReservedFor = mem.preReservedFor.filter(n => n !== creep.name);
+        if (!mem.preReservedFor.length) mem.preReservedFor = undefined;
     }
 
     // Wipe boost config only when no live or pre-reserved owner remains.
     // Keeping `paused` is critical — without clearing it the lab is permanently
     // excluded from secondary-reaction selection in labController.
-    if (!lab.memory.requestors && !lab.memory.preReservedFor) {
-        lab.memory.neededBoost = undefined;
-        lab.memory.amount = undefined;
-        lab.memory.paused = undefined;
-        lab.memory.requested = undefined;
+    if (!mem.requestors && !mem.preReservedFor) {
+        mem.neededBoost = undefined;
+        mem.amount = undefined;
+        mem.paused = undefined;
+        mem.requested = undefined;
     }
 }
 
@@ -1183,8 +1192,9 @@ function getEntryLab(creep, entryKey, boostNeeded) {
     // still lists us as a requestor. If labController.cleanLabs wiped it and
     // someone else re-claimed for a different boost, we silently drop the
     // stale id rather than tampering with another creep's reservation.
-    if (!lab || lab.memory.neededBoost !== boostNeeded ||
-        !(lab.memory.requestors && lab.memory.requestors.includes(creep.id))) {
+    const mem = lab && lab.room.memory._structureMemory && lab.room.memory._structureMemory[lab.id];
+    if (!lab || !mem || mem.neededBoost !== boostNeeded ||
+        !(mem.requestors && mem.requestors.includes(creep.id))) {
         delete labs[entryKey];
         return null;
     }

@@ -77,6 +77,7 @@ class RoleLabTech {
     // Task prioritizer - Returns {withdrawTarget, deliveryTarget, resource, amount}
     findTask() {
         const labs = this.room.labs;
+        const labStructMem = this.room.memory._structureMemory;
         const factory = this.room.factory;
         const storage = this.room.storage;
         const terminal = this.room.terminal;
@@ -141,19 +142,22 @@ class RoleLabTech {
         // the lab's actual store, so a stale amount degrades to a partial
         // pickup rather than an error.
         if (storeTarget) {
+            const producingBoost = this.room.memory.producingBoost;
             for (const lab of labs) {
-                if (lab.mineralType) {
-                    // If it has something it shouldn't
-                    if ((lab.memory.itemNeeded && lab.mineralType !== lab.memory.itemNeeded) ||
-                        (lab.memory.neededBoost && lab.mineralType !== lab.memory.neededBoost) ||
-                        (!lab.memory.itemNeeded && !lab.memory.neededBoost && (lab.mineralType !== this.room.memory.producingBoost || lab.store[lab.mineralType] > 500))) {
-                        return {
-                            withdrawTarget: lab.id,
-                            deliveryTarget: storeTarget.id,
-                            resource: lab.mineralType,
-                            amount: lab.store[lab.mineralType]
-                        };
-                    }
+                if (!lab.mineralType) continue;
+                const mem = labStructMem && labStructMem[lab.id];
+                const itemNeeded = mem && mem.itemNeeded;
+                const neededBoost = mem && mem.neededBoost;
+                // If it has something it shouldn't
+                if ((itemNeeded && lab.mineralType !== itemNeeded) ||
+                    (neededBoost && lab.mineralType !== neededBoost) ||
+                    (!itemNeeded && !neededBoost && (lab.mineralType !== producingBoost || lab.store[lab.mineralType] > 500))) {
+                    return {
+                        withdrawTarget: lab.id,
+                        deliveryTarget: storeTarget.id,
+                        resource: lab.mineralType,
+                        amount: lab.store[lab.mineralType]
+                    };
                 }
             }
         }
@@ -169,25 +173,41 @@ class RoleLabTech {
         }
 
         // -- PRIORITY 3: SUPPLY MINERALS (Filling Labs with minerals/boosts only) --
-        const boostNeededLab = labs.find(s => s.memory.neededBoost && s.store.getFreeCapacity(s.memory.neededBoost) > 0 && s.store[s.memory.neededBoost] < s.memory.amount);
+        const boostNeededLab = labs.find(s => {
+            const mem = labStructMem && labStructMem[s.id];
+            if (!mem || !mem.neededBoost) return false;
+            return s.store.getFreeCapacity(mem.neededBoost) > 0 && s.store[mem.neededBoost] < mem.amount;
+        });
         if (boostNeededLab) {
-            const boostNeeded = boostNeededLab.memory.neededBoost;
+            const boostMem = labStructMem[boostNeededLab.id];
+            const boostNeeded = boostMem.neededBoost;
             // Skip labs that are themselves collecting this boost — otherwise we'd churn between them.
-            const labSources = labs.filter(s => s.id !== boostNeededLab.id && s.memory.neededBoost !== boostNeeded && s.memory.itemNeeded !== boostNeeded);
+            const labSources = labs.filter(s => {
+                if (s.id === boostNeededLab.id) return false;
+                const mem = labStructMem && labStructMem[s.id];
+                return !mem || (mem.neededBoost !== boostNeeded && mem.itemNeeded !== boostNeeded);
+            });
             const supplier = [storage, terminal, ...labSources, ...this.room.containers].find(s => s && s.store && s.store.getUsedCapacity(boostNeeded) > 0);
             if (supplier) return {
                 withdrawTarget: supplier.id,
                 deliveryTarget: boostNeededLab.id,
                 resource: boostNeeded,
-                amount: boostNeededLab.memory.amount - boostNeededLab.store.getUsedCapacity(boostNeeded)
+                amount: boostMem.amount - boostNeededLab.store.getUsedCapacity(boostNeeded)
             };
         }
         // Find the lab with the lowest store of itemNeeded
-        const resourceNeededLabs = labs.filter(s => s.memory.itemNeeded && s.store.getUsedCapacity(s.memory.itemNeeded) < 1000 && s.room.store(s.memory.itemNeeded, true));
-        const resourceNeededLab = _.min(resourceNeededLabs, s => s.store.getUsedCapacity(s.memory.itemNeeded))
+        const resourceNeededLabs = labs.filter(s => {
+            const mem = labStructMem && labStructMem[s.id];
+            return mem && mem.itemNeeded && s.store.getUsedCapacity(mem.itemNeeded) < 1000 && s.room.store(mem.itemNeeded, true);
+        });
+        const resourceNeededLab = _.min(resourceNeededLabs, s => s.store.getUsedCapacity(labStructMem[s.id].itemNeeded))
         if (resourceNeededLab && resourceNeededLab.id) {
-            const resourceNeeded = resourceNeededLab.memory.itemNeeded;
-            const labSources = labs.filter(s => s.id !== resourceNeededLab.id && s.memory.neededBoost !== resourceNeeded && s.memory.itemNeeded !== resourceNeeded);
+            const resourceNeeded = labStructMem[resourceNeededLab.id].itemNeeded;
+            const labSources = labs.filter(s => {
+                if (s.id === resourceNeededLab.id) return false;
+                const mem = labStructMem && labStructMem[s.id];
+                return !mem || (mem.neededBoost !== resourceNeeded && mem.itemNeeded !== resourceNeeded);
+            });
             const supplier = [storage, terminal, ...labSources, ...this.room.containers].find(s => s && s.store && s.store.getUsedCapacity(resourceNeeded) > 0);
             if (supplier) return {
                 withdrawTarget: supplier.id,
@@ -269,7 +289,8 @@ class RoleLabTech {
         // Labs hold 2000 energy (5 per reaction = 400 reactions of headroom).
         // Only refill when nearly depleted so energy hauling doesn't crowd out everything else.
         for (const lab of labs) {
-            if (!lab.memory.itemNeeded && lab.store[RESOURCE_ENERGY] < 400 && storage && storage.store[RESOURCE_ENERGY] > 5000) {
+            const mem = labStructMem && labStructMem[lab.id];
+            if (!(mem && mem.itemNeeded) && lab.store[RESOURCE_ENERGY] < 400 && storage && storage.store[RESOURCE_ENERGY] > 5000) {
                 return {withdrawTarget: storage.id, deliveryTarget: lab.id, resource: RESOURCE_ENERGY};
             }
         }
@@ -866,9 +887,13 @@ class RoleLabTech {
     // legitimate or empty.
     candidateLabEmpty(lab, destination) {
         if (!lab.mineralType) return null;
-        const wrongType = (lab.memory.itemNeeded && lab.mineralType !== lab.memory.itemNeeded) ||
-            (lab.memory.neededBoost && lab.mineralType !== lab.memory.neededBoost) ||
-            (!lab.memory.itemNeeded && !lab.memory.neededBoost &&
+        const structMem = this.room.memory._structureMemory;
+        const mem = structMem && structMem[lab.id];
+        const itemNeeded = mem && mem.itemNeeded;
+        const neededBoost = mem && mem.neededBoost;
+        const wrongType = (itemNeeded && lab.mineralType !== itemNeeded) ||
+            (neededBoost && lab.mineralType !== neededBoost) ||
+            (!itemNeeded && !neededBoost &&
                 (lab.mineralType !== this.room.memory.producingBoost || lab.store[lab.mineralType] > 500));
         if (!wrongType) return null;
         const amount = lab.store[lab.mineralType];
@@ -882,23 +907,26 @@ class RoleLabTech {
     }
 
     candidateLabFill(lab, source, excludeResources) {
+        const structMem = this.room.memory._structureMemory;
+        const mem = structMem && structMem[lab.id];
+        if (!mem) return null;
         // Boost reservation refill (mirrors PRIORITY 3 in findTask).
-        if (lab.memory.neededBoost && !excludeResources.has(lab.memory.neededBoost)) {
-            const res = lab.memory.neededBoost;
+        if (mem.neededBoost && !excludeResources.has(mem.neededBoost)) {
+            const res = mem.neededBoost;
             if (lab.store.getFreeCapacity(res) > 0 &&
-                lab.store[res] < lab.memory.amount &&
+                lab.store[res] < mem.amount &&
                 source.store[res] > 0) {
                 return {
                     withdrawTarget: source.id,
                     deliveryTarget: lab.id,
                     resource: res,
-                    amount: Math.min(lab.memory.amount - lab.store.getUsedCapacity(res), source.store[res])
+                    amount: Math.min(mem.amount - lab.store.getUsedCapacity(res), source.store[res])
                 };
             }
         }
         // Reaction input refill (mirrors the itemNeeded path in findTask).
-        if (lab.memory.itemNeeded && !excludeResources.has(lab.memory.itemNeeded)) {
-            const res = lab.memory.itemNeeded;
+        if (mem.itemNeeded && !excludeResources.has(mem.itemNeeded)) {
+            const res = mem.itemNeeded;
             if (lab.store.getUsedCapacity(res) < 1000 && source.store[res] > 0) {
                 return {
                     withdrawTarget: source.id,
@@ -999,7 +1027,11 @@ class RoleLabTech {
         const resource = Object.keys(this.creep.store).find(r => this.creep.store[r] > 0);
         if (!resource) return false;
 
-        const deliveryTarget = this.room.labs.find(s => s.memory.neededBoost === resource && s.store.getUsedCapacity(resource) < s.memory.amount)
+        const labStructMem = this.room.memory._structureMemory;
+        const deliveryTarget = this.room.labs.find(s => {
+                const mem = labStructMem && labStructMem[s.id];
+                return mem && mem.neededBoost === resource && s.store.getUsedCapacity(resource) < mem.amount;
+            })
             || [this.room.storage, this.room.terminal].find(s => s && s.store.getFreeCapacity() >= BALANCE_MIN_TRANSFER
                 && !(s.structureType === STRUCTURE_TERMINAL && this.blocksTerminalInbound(s)))
             || this.room.storage || this.room.terminal;

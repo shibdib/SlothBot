@@ -69,20 +69,23 @@ class LabManager {
         }
 
         const hubIds = this.primaryLabs[room.name];
+        const structMem = room.memory._structureMemory;
         for (const lab of this.hub) {
-            if (!lab || !lab.memory || !lab.memory.itemNeeded) {
+            const mem = lab && structMem && structMem[lab.id];
+            if (!mem || !mem.itemNeeded) {
                 this.stopProduction(room, 'Hub lab memory lost.');
                 return;
             }
         }
 
-        const secondaryLabs = labs.filter(lab =>
-            !lab.cooldown &&
-            !hubIds.includes(lab.id) &&
-            (!lab.memory || !lab.memory.paused || lab.memory.neededBoost === room.memory.producingBoost) &&
-            (!lab.memory || !lab.memory.neededBoost || lab.memory.neededBoost === room.memory.producingBoost) &&
-            (!lab.mineralType || lab.mineralType === room.memory.producingBoost)
-        );
+        const producingBoost = room.memory.producingBoost;
+        const secondaryLabs = labs.filter(lab => {
+            if (lab.cooldown || hubIds.includes(lab.id)) return false;
+            const mem = structMem && structMem[lab.id];
+            if (mem && mem.paused && mem.neededBoost !== producingBoost) return false;
+            if (mem && mem.neededBoost && mem.neededBoost !== producingBoost) return false;
+            return !lab.mineralType || lab.mineralType === producingBoost;
+        });
 
         for (const target of secondaryLabs) {
             const result = target.runReaction(this.hub[0], this.hub[1]);
@@ -103,7 +106,10 @@ class LabManager {
         } else if (productionTracker[this.room.name] && productionTracker[this.room.name] + CREEP_LIFE_TIME * 3 < Game.time) {
             this.stopProduction(room, 'Production stalled — time limit reached.');
         } else if (!this.hub || this.hub.length < 2 ||
-            this.hub.some(lab => !lab || !lab.memory || room.store(lab.memory.itemNeeded) < 50)) {
+            this.hub.some(lab => {
+                const mem = lab && room.memory._structureMemory && room.memory._structureMemory[lab.id];
+                return !mem || room.store(mem.itemNeeded) < 50;
+            })) {
             this.stopProduction(room, 'Input exhausted.');
         }
     }
@@ -202,10 +208,12 @@ class LabManager {
 
     cleanLabs(labs) {
         labs.forEach(lab => {
-            if (!lab.memory || !lab.memory.neededBoost) return;
-            const hasLiveRequestor = lab.memory.requestors && lab.memory.requestors.some(id => Game.getObjectById(id));
+            const structMem = lab.room.memory._structureMemory;
+            const mem = structMem && structMem[lab.id];
+            if (!mem || !mem.neededBoost) return;
+            const hasLiveRequestor = mem.requestors && mem.requestors.some(id => Game.getObjectById(id));
             if (hasLiveRequestor) return;
-            if (!lab.memory.requested || lab.memory.requested + 150 < Game.time) {
+            if (!mem.requested || mem.requested + 150 < Game.time) {
                 lab.memory = undefined;
             }
         });

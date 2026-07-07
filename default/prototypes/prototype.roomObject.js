@@ -3,75 +3,47 @@
  */
 
 /**
- * Provides structure memory.
+ * Per-tick cached structure memory — avoids repeated room.memory walks on hot paths
+ * (lab.memory is accessed tens of thousands of times per tick via haulers / labTech).
  */
-Object.defineProperty(StructureLab.prototype, 'memory', {
-    get: function () {
-        if (this.room.memory._structureMemory === undefined || !this.room.memory._structureMemory) {
-            this.room.memory._structureMemory = {};
-        }
-        if (this.room.memory._structureMemory[this.id] === undefined || !this.room.memory._structureMemory[this.id]) {
-            this.room.memory._structureMemory[this.id] = {};
-        }
-        return this.room.memory._structureMemory[this.id];
-    },
-    set: function (v) {
-        return _.set(this.room.memory, '_structureMemory.' + this.id, v);
-    },
-    configurable: true,
-    enumerable: false,
-});
+function getStructureMemory(obj) {
+    const tick = Game.time;
+    if (obj._structMemTick === tick) return obj._structMem;
 
-Object.defineProperty(StructureFactory.prototype, 'memory', {
-    get: function () {
-        if (this.room.memory._structureMemory === undefined || !this.room.memory._structureMemory) {
-            this.room.memory._structureMemory = {};
-        }
-        if (this.room.memory._structureMemory[this.id] === undefined || !this.room.memory._structureMemory[this.id]) {
-            this.room.memory._structureMemory[this.id] = {};
-        }
-        return this.room.memory._structureMemory[this.id];
-    },
-    set: function (v) {
-        return _.set(this.room.memory, '_structureMemory.' + this.id, v);
-    },
-    configurable: true,
-    enumerable: false,
-});
+    const roomMem = obj.room.memory;
+    let byId = roomMem._structureMemory;
+    if (!byId) byId = roomMem._structureMemory = {};
+    let mem = byId[obj.id];
+    if (!mem) mem = byId[obj.id] = {};
 
-Object.defineProperty(StructureTerminal.prototype, 'memory', {
-    get: function () {
-        if (this.room.memory._structureMemory === undefined || !this.room.memory._structureMemory) {
-            this.room.memory._structureMemory = {};
-        }
-        if (this.room.memory._structureMemory[this.id] === undefined || !this.room.memory._structureMemory[this.id]) {
-            this.room.memory._structureMemory[this.id] = {};
-        }
-        return this.room.memory._structureMemory[this.id];
-    },
-    set: function (v) {
-        return _.set(this.room.memory, '_structureMemory.' + this.id, v);
-    },
-    configurable: true,
-    enumerable: false,
-});
+    obj._structMemTick = tick;
+    obj._structMem = mem;
+    return mem;
+}
 
-Object.defineProperty(Source.prototype, 'memory', {
-    get: function () {
-        if (this.room.memory._structureMemory === undefined || !this.room.memory._structureMemory) {
-            this.room.memory._structureMemory = {};
-        }
-        if (this.room.memory._structureMemory[this.id] === undefined || !this.room.memory._structureMemory[this.id]) {
-            this.room.memory._structureMemory[this.id] = {};
-        }
-        return this.room.memory._structureMemory[this.id];
-    },
-    set: function (v) {
-        return _.set(this.room.memory, '_structureMemory.' + this.id, v);
-    },
-    configurable: true,
-    enumerable: false,
-});
+function setStructureMemory(obj, v) {
+    obj._structMem = undefined;
+    obj._structMemTick = undefined;
+    return _.set(obj.room.memory, '_structureMemory.' + obj.id, v);
+}
+
+function defineStructureMemory(proto) {
+    Object.defineProperty(proto.prototype, 'memory', {
+        get: function () {
+            return getStructureMemory(this);
+        },
+        set: function (v) {
+            return setStructureMemory(this, v);
+        },
+        configurable: true,
+        enumerable: false,
+    });
+}
+
+defineStructureMemory(StructureLab);
+defineStructureMemory(StructureFactory);
+defineStructureMemory(StructureTerminal);
+defineStructureMemory(Source);
 
 let isActive = OwnedStructure.prototype.isActive;
 /**
