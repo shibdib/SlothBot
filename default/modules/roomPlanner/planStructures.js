@@ -24,11 +24,17 @@ function labBuilder(room) {
 
     // Define the lab hub position from memory
     if (room.memory.labHub) {
-        let labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
+        const labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
+        const partial = room.memory.labHubPartial;
+        // Partial: hub inputs (0,1) then first output slot (2), then any other tiles that fit.
+        const offsets = partial
+            ? [labTemplate[0], labTemplate[1], labTemplate[2], ...labTemplate.slice(3)]
+            : labTemplate;
 
-        // Iterate through the lab template to place lab construction sites
-        for (let structure of labTemplate) {
-            let pos = new RoomPosition(labHub.x + structure.x, labHub.y + structure.y, room.name);
+        for (const structure of offsets) {
+            const pos = new RoomPosition(labHub.x + structure.x, labHub.y + structure.y, room.name);
+            if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) continue;
+            if (partial && pos.checkForImpassible() && !pos.checkForBuiltWall()) continue;
             if (pos.checkForBuiltWall()) {
                 pos.checkForBuiltWall().destroy();
             } else if (!pos.checkForConstructionSites() && !pos.checkForAllStructure()) {

@@ -232,20 +232,43 @@ class LabManager {
             (lab.pos.y === hubPos.y || lab.pos.y === hubPos.y + 1)
         );
 
-        if (room.labs.length && hubLabs.length < 2) {
+        if (hubLabs.length >= 2) {
+            const pair = hubLabs.slice(0, 2);
+            this.primaryLabs[room.name] = pair.map(l => l.id);
+            return pair;
+        }
+
+        const hubSites = room.constructionSites.filter(s =>
+            s.structureType === STRUCTURE_LAB &&
+            s.pos.x === hubPos.x &&
+            (s.pos.y === hubPos.y || s.pos.y === hubPos.y + 1)
+        );
+
+        // Hub pair still building — keep anchor to avoid re-running the expensive search.
+        if (hubLabs.length + hubSites.length > 0) {
+            this.primaryLabs[room.name] = undefined;
+            return null;
+        }
+
+        // Labs exist elsewhere but not at the anchor — recover a vertical pair if possible.
+        if (room.labs.length >= 2) {
+            const active = room.labs.filter(l => !l.isActive || l.isActive());
+            for (const lab of active) {
+                const partner = active.find(l => l.id !== lab.id && l.pos.x === lab.pos.x && l.pos.y === lab.pos.y + 1);
+                if (partner) {
+                    room.memory.labHub = {x: lab.pos.x, y: lab.pos.y};
+                    room.memory.labHubPartial = true;
+                    return this.getLabHub(room);
+                }
+            }
+        }
+
+        if (room.labs.length) {
             delete room.memory.labHub;
-            this.primaryLabs[room.name] = undefined;
-            return null;
+            delete room.memory.labHubPartial;
         }
-
-        if (hubLabs.length < 2) {
-            this.primaryLabs[room.name] = undefined;
-            return null;
-        }
-
-        const pair = hubLabs.slice(0, 2);
-        this.primaryLabs[room.name] = pair.map(l => l.id);
-        return pair;
+        this.primaryLabs[room.name] = undefined;
+        return null;
     }
 }
 

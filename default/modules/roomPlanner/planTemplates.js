@@ -102,6 +102,9 @@ let labTemplate = [{"x": 0, "y": 0}, {"x": 0, "y": 1}, {"x": 1, "y": 0}, {"x": -
     "y": -1
 }, {"x": 1, "y": 1}, {"x": 0, "y": 2}, {"x": -1, "y": 1}, {"x": -1, "y": 2}];
 
+// Reaction input pair only — production also needs ≥1 output lab (see searchLabHubAnchorsMinProduction).
+const labHubPairTemplate = [labTemplate[0], labTemplate[1]];
+
 // Compact core used when the full bunker template cannot fit.
 // Only the structures needed from RCL1 onward — extensions, towers, and late-game
 // structures (factory, nuker, power spawn) are placed dynamically or wherever they fit.
@@ -116,5 +119,6 @@ module.exports = {
     bunkerTemplate,
     coreTemplate,
     labTemplate,
+    labHubPairTemplate,
     protectedStructureTypes,
 };
