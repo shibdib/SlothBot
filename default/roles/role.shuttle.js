@@ -38,6 +38,19 @@ class RoleShuttle {
             }
         }
 
+        // Controller container if room has a storage and we have an energyState
+        if (this.room.storage && this.room.energyState) {
+            const controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+            if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > CONTAINER_CAPACITY * 0.5) {
+                const result = this.creep.transfer(controllerContainer, RESOURCE_ENERGY);
+                if (result === OK || result === ERR_NOT_IN_RANGE) {
+                    if (result === ERR_NOT_IN_RANGE) this.creep.shibMove(controllerContainer);
+                    return;
+                }
+            }
+        }
+
+        // Otherwise use the storage
         const protoStorage = this.creep.room.memory.protoStorage ? Game.getObjectById(this.creep.room.memory.protoStorage) : undefined;
         if (this.creep.room.storage || protoStorage) {
             const storeTarget = this.creep.room.storage || protoStorage;
