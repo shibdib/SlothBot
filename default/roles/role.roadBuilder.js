@@ -5,6 +5,9 @@
 const profiler = require("tools.profiler");
 const {setRoadsBuiltFlag} = require('planUtils');
 const {getCreepCount} = require('spawnCounts');
+
+const SCAN_INTERVAL = 5;
+
 const {
     isColonyRoadRoom,
     pickRoadWorkRoom,
@@ -52,7 +55,7 @@ class RoleRoadBuilder {
         this.creep.memory.constructionSite = undefined;
         this.creep.memory.task = undefined;
 
-        if (!this.creep.memory.harvest && (this.creep.memory.energyDestination || this.creep.locateEnergy())) {
+        if (!this.creep.memory.harvest && (this.creep.memory.energyDestination || (this.shouldRunRoadScan() && this.creep.locateEnergy()))) {
             this.creep.say('Energy!', true);
             this.creep.withdrawResource();
         } else if (!this.creep.room.level || this.creep.room.level < 3) {
@@ -84,14 +87,37 @@ class RoleRoadBuilder {
         }
     }
 
-    assignRoadConstructionWork() {
-        if (this.creep.memory.constructionSite && !Game.getObjectById(this.creep.memory.constructionSite)) {
+    getActiveConstructionSite() {
+        const id = this.creep.memory.constructionSite;
+        if (!id) return null;
+        const site = Game.getObjectById(id);
+        if (!site) {
             this.creep.memory.constructionSite = undefined;
             this.creep.memory.task = undefined;
             this.creep.memory.sitePos = undefined;
             this.creep.memory.targetHits = undefined;
+            return null;
         }
-        if (!this.creep.memory.constructionSite) {
+        return site;
+    }
+
+    shouldRunRoadScan() {
+        const creep = this.creep;
+        if (this.getActiveConstructionSite()) return true;
+        const destination = creep.memory.destination;
+        if (destination && creep.pos.roomName !== destination) return true;
+        if (destination) {
+            const room = Game.rooms[destination];
+            if (room && countRoadConstructionSites(room) > 0) return true;
+        }
+        if (creep.memory.roadScanPhase === undefined) {
+            creep.memory.roadScanPhase = creep.name.charCodeAt(creep.name.length - 1) % SCAN_INTERVAL;
+        }
+        return Game.time % SCAN_INTERVAL === creep.memory.roadScanPhase;
+    }
+
+    assignRoadConstructionWork() {
+        if (!this.getActiveConstructionSite()) {
             this.creep.constructionWork('roads');
         }
     }
@@ -108,7 +134,14 @@ class RoleRoadBuilder {
             return;
         }
 
-        const destination = this.pickDestination();
+        let destination = this.creep.memory.destination;
+        if (!destination) {
+            if (!this.shouldRunRoadScan()) {
+                this.creep.idleFor(SCAN_INTERVAL - 1);
+                return;
+            }
+            destination = this.pickDestination();
+        }
         if (!destination) {
             this.handleNoWork();
             return;
@@ -125,6 +158,18 @@ class RoleRoadBuilder {
         const context = this.getRoadContext(destination);
         if (!context) {
             this.creep.memory.destination = undefined;
+            return;
+        }
+
+        if (this.getActiveConstructionSite()) {
+            if (this.creep.builderFunction()) {
+                this.tryPlaceRoadSites(room, colony, context);
+            }
+            return;
+        }
+
+        if (!this.shouldRunRoadScan()) {
+            this.creep.idleFor(SCAN_INTERVAL - 1);
             return;
         }
 
@@ -155,7 +200,6 @@ class RoleRoadBuilder {
     }
 
     pickDestination() {
-        if (this.creep.memory.destination) return this.creep.memory.destination;
         const destination = pickRoadWorkRoom(this.creep.memory.colony, this.creep.name);
         if (destination) this.creep.memory.destination = destination;
         return destination;
