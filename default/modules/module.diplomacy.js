@@ -73,6 +73,26 @@ const INTEL_PENALTY = {
 };
 
 class DiplomacyControl {
+    static refreshFriendlies() {
+        if (!global.LOAN_LIST) global.LOAN_LIST = [];
+        if (!global.MANUAL_FRIENDS) global.MANUAL_FRIENDS = [];
+        if (!Memory.tempHostiles) Memory.tempHostiles = {};
+
+        const currentTime = Game.time;
+        for (const name in Memory.tempHostiles) {
+            if (Memory.tempHostiles[name].tick <= currentTime) delete Memory.tempHostiles[name];
+        }
+
+        global.FRIENDLIES = _.union(
+            LOAN_LIST,
+            MY_USERNAME ? [MY_USERNAME] : [],
+            ['Shibdib'],
+            MANUAL_FRIENDS
+        ).filter(u => u && !Memory.tempHostiles[u]);
+
+        return global.FRIENDLIES;
+    }
+
     static trackThreat(creep) {
         const {room, hits, hitsMax, memory} = creep;
         const currentTime = Game.time;
@@ -162,23 +182,15 @@ class DiplomacyControl {
     }
 
     run() {
+        DiplomacyControl.refreshFriendlies();
+
         if (!Memory._userList || !(Memory._userList instanceof Object)) Memory._userList = {};
         if (!Memory.tempHostiles) Memory.tempHostiles = {};
 
         const currentTime = Game.time;
 
         if (!diplomacyCache.tick || diplomacyCache.tick !== currentTime) {
-            if (!global.LOAN_LIST) global.LOAN_LIST = [];
-            if (!global.MANUAL_FRIENDS) global.MANUAL_FRIENDS = [];
-
-            // Expire temp-hostile entries — keeps Memory clean and the active set well-defined.
-            for (const name in Memory.tempHostiles) {
-                if (Memory.tempHostiles[name].tick <= currentTime) delete Memory.tempHostiles[name];
-            }
             const tempHostileNames = Object.keys(Memory.tempHostiles);
-
-            global.FRIENDLIES = _.union(LOAN_LIST, [MY_USERNAME], ['Shibdib'], MANUAL_FRIENDS)
-                .filter(u => !Memory.tempHostiles[u]);
 
             // Use centrally maintained index (one full INTEL walk per tick max, shared across modules)
             const indexes = global.getIntelIndexes ? global.getIntelIndexes(currentTime) : {byOwner: {}};
@@ -201,7 +213,6 @@ class DiplomacyControl {
 
     _threatManager(ownerToRooms) {
         const currentTime = Game.time;
-        const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
         global.ENEMIES = [];
         global.THREATS = [];
 
@@ -256,23 +267,7 @@ class DiplomacyControl {
                 user.isThreat = true;
             }
 
-            // Post-reset CPU stagger for diplomacyManager: the scoreUserFromIntel + findClosestOwnedRoom
-            // (cold caches after reset) + userStrength calls elsewhere are the source of 3rd/4th tick timeouts.
-            // Spread the expensive intel scoring over 20 ticks (only during the post-reset window).
-            let intelScore = 0;
-            const dangerTicks = global.POST_RESET_DANGER_TICKS || 150;
-            if (sinceReset >= dangerTicks) {
-                intelScore = this._scoreUserFromIntel(name, currentTime, ownerToRooms[name]);
-            } else {
-                // Stagger: process ~1/20 of users per tick during the first ~20 ticks after reset.
-                // This spreads the work (especially the cold-cache findClosestOwnedRoom + route costs)
-                // so that we process the full _userList gradually instead of all at once.
-                const phase = sinceReset % dangerTicks;
-                const h = ((name.charCodeAt(0) || 0) * 33 + (name.charCodeAt(1) || 0)) % dangerTicks;
-                if (h === phase) {
-                    intelScore = this._scoreUserFromIntel(name, currentTime, ownerToRooms[name]);
-                }
-            }
+            const intelScore = this._scoreUserFromIntel(name, currentTime, ownerToRooms[name]);
             if (intelScore < -50) {
                 currentRating = Math.max(currentRating - 20, STANDING_FLOOR);
                 user.lastAction = currentTime;
@@ -291,15 +286,8 @@ class DiplomacyControl {
         const forceWarRebuild = !Memory.warTargets || !Memory._lastWarTargetsBuild
             || Memory._lastWarTargetsBuild + WAR_TARGETS_REBUILD_COOLDOWN <= currentTime;
         if (forceWarRebuild) {
-            if (sinceReset > 0 && sinceReset < 8) {
-                // Stagger / defer the expensive full userlist rebuild right after reset.
-                // HighCommand (the main consumer of WAR_TARGETS) is itself deferred until ~15.
-                // Reusing the previous (or empty) list for the first few ticks avoids the 3rd/4th tick spike.
-                global.WAR_TARGETS = Memory.warTargets || [];
-            } else {
-                this._buildWarTargets(currentTime, ownerToRooms);
-                Memory._lastWarTargetsBuild = currentTime;
-            }
+            this._buildWarTargets(currentTime, ownerToRooms);
+            Memory._lastWarTargetsBuild = currentTime;
         } else {
             global.WAR_TARGETS = Memory.warTargets;
         }
@@ -504,6 +492,7 @@ global.listHostile = function () {
 };
 
 profiler.registerClass(DiplomacyControl, 'DiplomacyControl');
+global.refreshFriendlies = DiplomacyControl.refreshFriendlies;
 module.exports = DiplomacyControl;
 
 

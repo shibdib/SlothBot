@@ -133,6 +133,7 @@ module.exports.loop = function () {
                 tools.cleanMemory();
                 tools.status();
                 populateLOANlist();
+                require('module.diplomacy').refreshFriendlies();
                 cleanUp.cleanup();
             } catch (e) {
                 log.e('Error with a main tool function');

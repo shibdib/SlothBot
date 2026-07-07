@@ -156,13 +156,8 @@ class World {
             MY_MINERALS.roomCount = MY_ROOMS.length;
         }
 
-        // Diplomacy Manager
-        // Defer the first several ticks after reset. diplomacyManager does full _userList passes + findClosest + userStrength scans;
-        // internal staggering handles the userlist, but we still avoid entering on the absolute coldest ticks (segment loads etc.).
-        const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
-        if (sinceReset > 3) {
-            new DiplomacyControl().run();
-        }
+        // Diplomacy Manager — run every tick so FRIENDLIES / THREATS / ENEMIES are current immediately after reset.
+        new DiplomacyControl().run();
     }
 
     hudManager() {

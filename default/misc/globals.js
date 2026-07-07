@@ -956,8 +956,15 @@ let globals = function () {
 
     // Get Username
     global.MY_USERNAME = _.get(_.find(Game.spawns) || _.find(Game.creeps) || _.get(_.find(Game.rooms, room => room.controller && room.controller.my), 'controller'), ['owner', 'username'],);
-    // Diplomacy is deferred a few ticks after reset; keep self friendly immediately.
-    if (MY_USERNAME) global.FRIENDLIES = [MY_USERNAME];
+    // Seed FRIENDLIES on global reset; main.js refreshFriendlies() runs again after populateLOANlist.
+    if (!global.MANUAL_FRIENDS) global.MANUAL_FRIENDS = [];
+    if (!global.LOAN_LIST) global.LOAN_LIST = [...MANUAL_FRIENDS];
+    global.FRIENDLIES = _.union(
+        LOAN_LIST,
+        MY_USERNAME ? [MY_USERNAME] : [],
+        ['Shibdib'],
+        MANUAL_FRIENDS
+    );
 
     /*
      Cached dynamic properties: Declaration
