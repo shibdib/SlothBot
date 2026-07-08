@@ -478,6 +478,7 @@ function ensureRoomResourceScan(room) {
     room._resourceScanTick = Game.time;
     room._resourceStore = Object.create(null);
     room._resourceStoreUnused = Object.create(null);
+    room._droppedResources = undefined;
 
     const add = (map, resource, amount) => {
         map[resource] = (map[resource] || 0) + amount;
@@ -505,17 +506,18 @@ function ensureRoomResourceScan(room) {
         }
     }
 
+    for (const r of room.droppedResources) {
+        add(room._resourceStore, r.resourceType, r.amount);
+        add(room._resourceStoreUnused, r.resourceType, r.amount);
+    }
+
     return room._resourceStore;
 }
 
 Room.prototype.store = function (resource, unused = false) {
     if (!resource) return undefined;
     ensureRoomResourceScan(this);
-    let count = (unused ? this._resourceStoreUnused : this._resourceStore)[resource] || 0;
-    for (const r of this.droppedResources) {
-        if (r.resourceType === resource) count += r.amount;
-    }
-    return count;
+    return (unused ? this._resourceStoreUnused : this._resourceStore)[resource] || 0;
 };
 
 Room.prototype.cacheRoomIntel = function (force = false) {
