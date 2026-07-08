@@ -26,6 +26,11 @@ class RoleShuttle {
     }
 
     hauling() {
+        // If we're somehow outside of the colony room, path back in
+        if (this.room.name !== this.creep.memory.colony) {
+            return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.colony), {range: 23});
+        }
+
         // During attacks, fill towers before depositing — towers need energy to defend
         if (this.room.memory.dangerousAttack && this.creep.store[RESOURCE_ENERGY] > 0) {
             const lowTower = this.room.towers.find(s => s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
