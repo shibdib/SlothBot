@@ -8,6 +8,7 @@ let protectedStructureTypes = [
     STRUCTURE_SPAWN,
     STRUCTURE_STORAGE,
     STRUCTURE_TERMINAL,
+    STRUCTURE_TOWER
 ];
 
 let bunkerTemplate = [
