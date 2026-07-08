@@ -132,8 +132,9 @@ function getPosKey(pos) {
 
 function isRoadSatisfied(pos) {
     if (pos.checkForRoad()) return true;
+    if (pos.checkForContainer()) return true;
     const site = pos.checkForConstructionSites();
-    return !!(site && site.structureType === STRUCTURE_ROAD);
+    return !!(site && (site.structureType === STRUCTURE_ROAD || site.structureType === STRUCTURE_CONTAINER));
 }
 
 function isRoadPlaceable(pos) {
