@@ -15,6 +15,7 @@ const StateManager = require('module.stateManager');
 const energyTracker = require('module.energyTracker');
 const {buildLedger} = require('termNetwork');
 const profiler = require('tools.profiler');
+const {sortCreepsForMovement} = require('pathTraffic');
 const planner = require('module.roomPlanner');
 let tickTracker = {};
 let errorCount = {};
@@ -199,7 +200,7 @@ class World {
     }
 
     militaryCreepManager() {
-        const creeps = shuffle(this.militaryCreeps);
+        const creeps = sortCreepsForMovement(this.militaryCreeps);
 
         for (const creep of creeps) {
             try {

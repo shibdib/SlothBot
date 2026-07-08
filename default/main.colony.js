@@ -12,6 +12,7 @@ const {lastRun: terminalLastRun} = require('termState');
 const spawning = require('module.creepSpawning');
 const DiplomacyControl = require('module.diplomacy');
 const profiler = require('tools.profiler');
+const {sortCreepsForMovement} = require('pathTraffic');
 
 let errorCount = {};
 
@@ -63,7 +64,7 @@ class Colony {
     }
 
     creepManager() {
-        const roomCreeps = shuffle(this.creeps);
+        const roomCreeps = sortCreepsForMovement(this.creeps);
         for (const creep of roomCreeps) {
             try {
                 this.minionController(creep);

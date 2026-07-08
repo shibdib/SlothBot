@@ -45,6 +45,13 @@ const {getPath, cachePath, serializePath} = require('pathPathCache');
 
 const {getMatrix} = require('pathMatrix');
 
+const {
+    creepWinsTraffic,
+    findOccupyingCreep,
+    findYieldDirection,
+    clearYieldAttempts,
+} = require('pathTraffic');
+
 function shibMove(creep, heading, options = {}, pathOnly = false) {
     // Handle move blocked by another creep this tick
     if (heading instanceof Creep && creep.memory.moveBlocked === Game.time) {
@@ -277,16 +284,17 @@ function executePath(creep, pathInfo, options, origin, heading) {
     const nextDirection = parseInt(pathInfo.path[0], 10);
     if (!nextDirection) return false;
 
-    pathInfo.newPos = origin.positionAtDirection(nextDirection);
+    pathInfo.newPos = creep.pos.positionAtDirection(nextDirection);
 
     if (pathInfo.pathPosTime && handleBarrier(creep, pathInfo, options)) return true;
 
     const moveResult = creep.move(nextDirection);
     if (moveResult === OK || moveResult === ERR_TIRED) {
+        clearYieldAttempts(creep);
         creep.memory._shibMove = pathInfo;
         return true;
     }
-    if (moveResult === ERR_BUSY) creep.idleFor(10);
+    if (moveResult === ERR_BUSY) return true;
     return false;
 }
 
@@ -440,45 +448,37 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
 
 function creepBumping(creep, pathInfo, options) {
     // Grouped creeps are positioned by their leader's squadMove. A random or
-    // priority-swap bump here would yank them out of the 2Ã—2 mid-move and the
+    // priority-swap bump here would yank them out of the 2x2 mid-move and the
     // squad would visibly unform until reform kicks in. Defer: let squadMove
     // re-queue a coordinated move next tick instead of randomising now.
     const isGrouped = !!creep.memory?.grouped;
 
-    if (!pathInfo?.newPos || !pathInfo?.path?.length) {
-        if (isGrouped) return false;
-        return false;
-    }
+    if (!pathInfo?.path?.length) return false;
 
-    const nextPosition = creep.pos.positionAtDirection(parseInt(pathInfo.path[0], 10));
-    if (!nextPosition) return false;
+    const nextDirection = parseInt(pathInfo.path[0], 10);
+    if (!nextDirection) return false;
 
-    const potentialObstacles = nextPosition.lookFor(LOOK_CREEPS).concat(nextPosition.lookFor(LOOK_POWER_CREEPS));
-    // Excluding grouped creeps from the bump pool too â€” pushing a squad-mate
-    // off their slot to make room for an outsider breaks formation just as badly.
-    const bumpCreep = _.find(potentialObstacles, c =>
-        c.my &&
-        (c.className || !c.fatigue) &&
-        (!c.memory?.other?.stationary) &&
-        !c.memory?.grouped &&
-        (c.className || c.hasActiveBodyparts(MOVE))
-    );
+    const nextPosition = creep.pos.positionAtDirection(nextDirection);
+    pathInfo.newPos = nextPosition;
+
+    const bumpCreep = nextPosition ? findOccupyingCreep(creep.room, nextPosition, creep.id) : null;
 
     if (bumpCreep) {
-        const myPriority = PRIORITIES[creep.memory.role] || 10;
-        const theirPriority = PRIORITIES[bumpCreep.memory.role] || 10;
-
         if (creep.memory.trailer) {
             const trailer = Game.getObjectById(creep.memory.trailer);
             if (trailer && trailer.pos.isNearTo(creep)) bumpCreep.moveRandom();
         } else if (!creep.className && !creep.memory.trailer) {
-            if (myPriority < theirPriority || bumpCreep.store.getUsedCapacity() === 0) {
-                bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
-                creep.move(creep.pos.getDirectionTo(bumpCreep));
+            if (creepWinsTraffic(creep, bumpCreep) || bumpCreep.store.getUsedCapacity() === 0) {
+                const yieldDir = findYieldDirection(bumpCreep, nextPosition);
+                if (yieldDir) bumpCreep.move(yieldDir);
+                else bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
+                creep.move(nextDirection);
                 if (bumpCreep.memory?._shibMove) bumpCreep.memory._shibMove.pathPosTime = 0;
-            } else {
+            } else if (!isGrouped) {
+                const yieldDir = findYieldDirection(creep, nextPosition);
+                if (yieldDir) creep.move(yieldDir);
+                else creep.moveRandom();
                 bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
-                if (!isGrouped) creep.moveRandom();
                 if (creep.memory?._shibMove) creep.memory._shibMove.pathPosTime = 0;
             }
         } else {
@@ -488,16 +488,15 @@ function creepBumping(creep, pathInfo, options) {
 
         bumpCreep.say(ICONS.traffic, true);
         if (bumpCreep.memory) bumpCreep.memory.moveBlocked = Game.time;
+        clearYieldAttempts(creep);
         return true;
     }
 
     if (!isGrouped && Math.random() > 0.75) creep.moveRandom();
     creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
 
-    // Don't wipe the squad-mate's path cache â€” squadMove relies on it for
-    // continuity across ticks. Only clear for solo creeps where the bump
-    // already disrupted their plan.
     if (!isGrouped) delete creep.memory._shibMove;
+    clearYieldAttempts(creep);
     return false;
 }
 
