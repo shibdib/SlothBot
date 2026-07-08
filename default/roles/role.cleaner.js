@@ -43,6 +43,15 @@ class RoleCleaner {
     }
 
     cleanRoom() {
+        let target = Game.getObjectById(this.creep.memory.target);
+        if (target) {
+            if (this.creep.pos.isNearTo(target)) {
+                if (this.creep.hasActiveBodyparts(WORK)) {
+                    if (this.creep.dismantle(target) === OK) this.creep.memory.other.stationary = true;
+                }
+            } else this.creep.shibMove(target);
+            return;
+        }
         // If we can't get to the controller or sources, clear a path
         const blocked = blockedLocations(this.creep);
         if (blocked && blocked.length) {
