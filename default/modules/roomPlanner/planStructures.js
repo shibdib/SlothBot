@@ -13,35 +13,28 @@ const {labTemplate} = require('planTemplates');
 const {canPlaceConstructionSite, tryCreateConstructionSite} = require('planUtils');
 
 function labBuilder(room) {
-    // Check the current number of built labs
     let builtLabs = room.labs.length;
-
-    // Check if there's already a construction site for labs
     let labInBuild = _.find(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB);
 
-    // If the required number of labs are built, or there's already a construction site, skip further building
     if (CONTROLLER_STRUCTURES[STRUCTURE_LAB][room.level] <= builtLabs || labInBuild) return;
 
-    // Define the lab hub position from memory
-    if (room.memory.labHub) {
-        const labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
-        const partial = room.memory.labHubPartial;
-        // Partial: hub inputs (0,1) then first output slot (2), then any other tiles that fit.
-        const offsets = partial
-            ? [labTemplate[0], labTemplate[1], labTemplate[2], ...labTemplate.slice(3)]
-            : labTemplate;
+    if (!room.memory.labHub) return;
 
-        for (const structure of offsets) {
-            const pos = new RoomPosition(labHub.x + structure.x, labHub.y + structure.y, room.name);
-            if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) continue;
-            if (partial && pos.checkForImpassible() && !pos.checkForBuiltWall()) continue;
-            if (pos.checkForBuiltWall()) {
-                pos.checkForBuiltWall().destroy();
-            } else if (!pos.checkForConstructionSites() && !pos.checkForAllStructure()) {
-                if (!canPlaceConstructionSite(room)) return;
-                tryCreateConstructionSite(pos, STRUCTURE_LAB);
-            }
-        }
+    const labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
+    const partial = room.memory.labHubPartial;
+    const offsets = partial
+        ? [labTemplate[0], labTemplate[1], labTemplate[2], ...labTemplate.slice(3)]
+        : labTemplate;
+
+    for (const structure of offsets) {
+        const pos = new RoomPosition(labHub.x + structure.x, labHub.y + structure.y, room.name);
+        if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) continue;
+        if (partial && pos.checkForImpassible() && !pos.checkForBuiltWall()) continue;
+        const wall = pos.checkForBuiltWall();
+        if (wall) wall.destroy();
+        if (pos.checkForConstructionSites() || pos.checkForAllStructure()) continue;
+        if (!canPlaceConstructionSite(room)) return;
+        if (tryCreateConstructionSite(pos, STRUCTURE_LAB) === OK) return;
     }
 }
 
@@ -71,7 +64,6 @@ function mineralBuilder(room) {
         handleMineralExtractorCreation(room);
     }
 
-    // Helper function to create a construction site for a container near the extractor
     function createExtractorContainerSite(extractor, room) {
         let containerSpots = room.lookForAtArea(LOOK_TERRAIN, extractor.pos.y - 1, extractor.pos.x - 1, extractor.pos.y + 1, extractor.pos.x + 1, true);
         for (let key in containerSpots) {
@@ -84,7 +76,6 @@ function mineralBuilder(room) {
         }
     }
 
-    // Helper function to create an extractor for minerals
     function handleMineralExtractorCreation(room) {
         if (!room.mineral.pos.checkForAllStructure() && !room.mineral.pos.checkForConstructionSites()) {
             if (!canPlaceConstructionSite(room)) return;

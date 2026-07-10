@@ -147,6 +147,65 @@ let globals = function () {
         return {resumed: true, gameTime: Game.time};
     };
 
+    global.inspectExtensions = function (roomName) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {
+            getExtensionDeficit,
+            getExtensionPositions,
+            clearDynamicLayoutMemory,
+            auditExtensionPlacement,
+        } = require('planExtensions');
+        const {tickTracker} = require('planState');
+        const {canPlaceConstructionSite, roomConstructionSiteBudget} = require('planUtils');
+        const needed = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.controller.level] || 0;
+        const built = room.extensions.length;
+        const sites = room.constructionSites.filter(s => s.structureType === STRUCTURE_EXTENSION).length;
+        const positions = room.memory.dynamicLayout ? getExtensionPositions(room) : [];
+        const siteBreakdown = {};
+        for (const s of room.constructionSites) {
+            siteBreakdown[s.structureType] = (siteBreakdown[s.structureType] || 0) + 1;
+        }
+        const lastSiteError = room.memory.plannerLastSiteError;
+        return {
+            roomName,
+            rcl: room.controller && room.controller.level,
+            roomLevel: room.level,
+            energyCapacity: room.energyCapacityAvailable,
+            bunkerHub: room.memory.bunkerHub,
+            dynamicLayout: !!room.memory.dynamicLayout,
+            needed,
+            built,
+            extensionSites: sites,
+            deficit: getExtensionDeficit(room),
+            siteBudget: roomConstructionSiteBudget(room),
+            canPlace: canPlaceConstructionSite(room),
+            totalSites: room.constructionSites.length,
+            siteBreakdown,
+            lastSiteError: lastSiteError && {
+                ...lastSiteError,
+                age: Game.time - lastSiteError.tick,
+            },
+            dynamicPositions: positions.length,
+            samplePositions: positions.slice(0, 5).map(p => `${p.x},${p.y}`),
+            planner: tickTracker[roomName],
+            ...auditExtensionPlacement(room),
+            resetDynamicLayout: room.memory.dynamicLayout
+                ? () => {
+                    clearDynamicLayoutMemory(room);
+                    return 'cleared';
+                }
+                : undefined,
+        };
+    };
+
+    global.forceExtensions = function (roomName) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {tryPlaceRoomExtensions} = require('planExtensions');
+        return tryPlaceRoomExtensions(room);
+    };
+
     // Console: inspectOwnedRoads('E1N1') � diagnose why owned-room road sites are/aren't placing.
     global.inspectOwnedRoads = function (roomName) {
         const room = Game.rooms[roomName];

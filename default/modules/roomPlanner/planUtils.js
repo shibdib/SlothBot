@@ -36,10 +36,35 @@ function canPlaceConstructionSite(room) {
     return roomConstructionSiteBudget(room) > 0;
 }
 
+const SITE_PLACEMENT_LOG_COOLDOWN = 100;
+const sitePlacementLogThrottle = Object.create(null);
+
+function recordSitePlacementFailure(roomName, structureType, pos, result) {
+    const room = Game.rooms[roomName];
+    if (!room) return;
+    room.memory.plannerLastSiteError = {
+        tick: Game.time,
+        x: pos.x,
+        y: pos.y,
+        type: structureType,
+        result,
+    };
+    const key = `${roomName}:${structureType}:${result}:${pos.x},${pos.y}`;
+    const last = sitePlacementLogThrottle[key] || 0;
+    if (Game.time - last < SITE_PLACEMENT_LOG_COOLDOWN) return;
+    sitePlacementLogThrottle[key] = Game.time;
+    log.a(`${roomName} site ${structureType} at (${pos.x},${pos.y}) failed: ${result}`, 'PLANNER');
+}
+
 function tryCreateConstructionSite(pos, structureType) {
     const room = Game.rooms[pos.roomName];
-    if (!room || !canPlaceConstructionSite(room)) return ERR_FULL;
-    return pos.createConstructionSite(structureType);
+    if (!room || !canPlaceConstructionSite(room)) {
+        recordSitePlacementFailure(pos.roomName, structureType, pos, ERR_FULL);
+        return ERR_FULL;
+    }
+    const result = pos.createConstructionSite(structureType);
+    if (result !== OK) recordSitePlacementFailure(room.name, structureType, pos, result);
+    return result;
 }
 
 function safeStructureOwner(structure) {
@@ -60,10 +85,10 @@ function safeStructureMy(structure) {
     }
 }
 
-// Helper function to determine if a structure should be skipped
-function shouldSkipStructure(room, structure) {
-    return room.controller.level !== room.level &&
-        ![STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(structure.structureType);
+// Layout uses controller RCL (buildMissingStructures). room.level is energy tier for
+// spawn bodies and economy — not a gate for which template structures to place.
+function shouldSkipStructure() {
+    return false;
 }
 
 

@@ -15,8 +15,27 @@ const LAB_HUB_SEARCH_COOLDOWN = 500;
 
 const {getUndefendedExits, determineTowerDamage, isCoreHubTileValid, safeStructureOwner} = require('planUtils');
 
+const {assessHubExtensionCapacity, clearDynamicLayoutMemory} = require('planExtensions');
+
+const HUB_EXTENSION_VALIDATE_COOLDOWN = 500;
+
+function validateHubExtensionCapacity(room) {
+    if (room.memory.dynamicLayout) return true;
+    if (!room.controller || room.controller.level < 2) return true;
+    if (room.memory.hubExtensionValidateTick && room.memory.hubExtensionValidateTick > Game.time) return true;
+
+    room.memory.hubExtensionValidateTick = Game.time + HUB_EXTENSION_VALIDATE_COOLDOWN;
+
+    const capacity = assessHubExtensionCapacity(room);
+    if (capacity.sufficient) return true;
+
+    log.a(`${room.name} hub supports ${capacity.placeable} bunker + ${capacity.fallback} fallback slots but needs ${capacity.deficit} extensions - switching to dynamic layout.`);
+    clearDynamicLayoutMemory(room);
+    return findCoreHub(room);
+}
 function findHub(room, hubCheck = undefined) {
     if (room.controller.owner && room.controller.owner.username === MY_USERNAME && room.memory.bunkerHub && room.memory.bunkerHub.x && room.memory.bunkerHub.y) {
+        if (!hubCheck) validateHubExtensionCapacity(room);
         return true;
     }
 
@@ -36,14 +55,17 @@ function findHub(room, hubCheck = undefined) {
         if (room.terminal) {
             room.memory.bunkerHub = {x: room.terminal.pos.x + 1, y: room.terminal.pos.y};
             log.a(`${room.name} hub recovered from terminal.`);
+            validateHubExtensionCapacity(room);
             return true;
         } else if (room.storage) {
             room.memory.bunkerHub = {x: room.storage.pos.x - 1, y: room.storage.pos.y};
             log.a(`${room.name} hub recovered from storage.`);
+            validateHubExtensionCapacity(room);
             return true;
         } else if (spawn) {
             room.memory.bunkerHub = {x: spawn.pos.x + 1, y: spawn.pos.y + 1};
             log.a(`${room.name} hub recovered from spawn.`);
+            validateHubExtensionCapacity(room);
             return true;
         }
     }
@@ -314,11 +336,30 @@ function buildTowersFromHubs(room) {
 }
 
 
+function recoverTowerHubsFromTowers(room) {
+    const positions = [];
+    const seen = new Set();
+    const add = (x, y) => {
+        const key = x + ',' + y;
+        if (seen.has(key)) return;
+        seen.add(key);
+        positions.push({x, y});
+    };
+    for (const tower of room.towers) add(tower.pos.x, tower.pos.y);
+    for (const site of room.constructionSites) {
+        if (site.structureType === STRUCTURE_TOWER) add(site.pos.x, site.pos.y);
+    }
+    if (!positions.length) return false;
+    room.memory.towerHubs = positions.slice(0, 6);
+    ROOM_RAMPART_SPOTS[room.name] = undefined;
+    log.a(`${room.name}: recovered ${room.memory.towerHubs.length} tower hub(s) from existing towers`);
+    return true;
+}
 function findTowerHub(room) {
     if (!room.memory.bunkerHub || !room.memory.bunkerHub.x) return;
-    // Clear existing towers so we reposition from scratch
-    room.towers.forEach(t => t.destroy());
-    room.constructionSites.filter(s => s.structureType === STRUCTURE_TOWER && !s.progress).forEach(t => t.remove());
+    if (room.memory.towerHubs && room.memory.towerHubs.length) return;
+    if (recoverTowerHubsFromTowers(room)) return;
+
 
     const hubX = room.memory.bunkerHub.x, hubY = room.memory.bunkerHub.y;
     const neighboring = Game.map.describeExits(room.name);

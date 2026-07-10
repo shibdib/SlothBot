@@ -1,13 +1,8 @@
 /*
-
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
-
  *
-
  * Room planner tick orchestration.
-
  */
-
 
 const {tickTracker} = require('planState');
 
@@ -16,10 +11,19 @@ const {buildMissingStructures, buildAuxiliaryStructures, hasPendingLayoutStructu
 const {findHub, findLabHub, findTowerHub} = require('planHub');
 
 const {planOwnedRoomRoads} = require('planRoads');
+const {getExtensionDeficit} = require('planExtensions');
 
 function getNextRoom() {
     const rooms = MY_ROOMS.map(name => Game.rooms[name]).filter(r => r);
     if (!rooms.length) return null;
+
+    const needsExtensions = rooms.filter(r =>
+        r.controller && r.controller.my && r.controller.level >= 2 &&
+        r.memory.bunkerHub && r.memory.bunkerHub.x && getExtensionDeficit(r) > 0
+    );
+    if (needsExtensions.length) {
+        return needsExtensions[Game.time % needsExtensions.length];
+    }
 
     const lastIndex = tickTracker.lastRoom ? MY_ROOMS.indexOf(tickTracker.lastRoom) : -1;
     return rooms[(lastIndex + 1) % rooms.length] || rooms[0];

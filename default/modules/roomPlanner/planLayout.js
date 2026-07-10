@@ -1,13 +1,8 @@
 /*
-
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
-
  *
-
  * Bunker layout and missing-structure placement.
-
  */
-
 
 const {bunkerTemplate, coreTemplate} = require('planTemplates');
 
@@ -21,7 +16,11 @@ const {
 
 const {buildTowersFromHubs} = require('planHub');
 
-const {buildSourceExtensions, placeExtensionsDynamically} = require('planExtensions');
+const {
+    buildSourceExtensions,
+    placeRoomExtensions,
+    getExtensionDeficit,
+} = require('planExtensions');
 
 const {rampartBuilder} = require('planRamparts');
 
@@ -48,16 +47,20 @@ function hasPendingLayoutStructures(room) {
 }
 
 function buildMissingStructures(room, level) {
+    if (level >= 2 && getExtensionDeficit(room) > 0) {
+        placeRoomExtensions(room);
+    }
+
     const existingCounts = getStructureCounts(room);
     const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
-    const skipTypes = room.memory.dynamicLayout ? [...LAYOUT_SKIP_TYPES, STRUCTURE_EXTENSION] : level < 6 ? [...LAYOUT_SKIP_TYPES, STRUCTURE_LINK] : LAYOUT_SKIP_TYPES;
+    const skipTypes = room.memory.dynamicLayout
+        ? [...LAYOUT_SKIP_TYPES, STRUCTURE_EXTENSION]
+        : level < 6 ? [...LAYOUT_SKIP_TYPES, STRUCTURE_LINK] : LAYOUT_SKIP_TYPES;
     const countCheck = tmpl.filter(s =>
         !skipTypes.includes(s.structureType) &&
         CONTROLLER_STRUCTURES[s.structureType][level] > (existingCounts[s.structureType] || 0)
     );
     if (countCheck && countCheck.length) buildFromLayout(room, countCheck);
-    if (room.memory.dynamicLayout) placeExtensionsDynamically(room);
-    // Towers are not in the template â€” always check independently so established rooms build them too
     buildTowersFromHubs(room);
 }
 
@@ -69,7 +72,6 @@ function buildAuxiliaryStructures(room) {
 function buildFromLayout(room, countCheck) {
     const hub = room.hub;
     const initialSpawn = _.find(Game.structures, s => s.structureType === STRUCTURE_SPAWN && safeStructureMy(s));
-    const roomTower = room.towers[0];
     const roomSpawn = room.spawns[0];
     let filter = [];
 
@@ -91,8 +93,9 @@ function buildFromLayout(room, countCheck) {
     }
 
     if (filter.length) {
-        if (buildSourceExtensions(room)) return;
+        buildSourceExtensions(room);
         for (const structure of filter) {
+            if (structure.structureType === STRUCTURE_EXTENSION) continue;
             if (shouldSkipStructure(room, structure)) continue;
             for (const buildPos of structure.pos) {
                 const pos = new RoomPosition(hub.x + buildPos.x, hub.y + buildPos.y, room.name);
@@ -112,11 +115,7 @@ function buildFromLayout(room, countCheck) {
 }
 
 module.exports = {
-
     buildMissingStructures,
-
     buildAuxiliaryStructures,
-
     hasPendingLayoutStructures,
-
 };
