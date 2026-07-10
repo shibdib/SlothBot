@@ -32,6 +32,94 @@ function estimateMiningScore(routeLen, remoteIntel) {
     return routeLen * mult + base + swamp;
 }
 
+function remoteDistanceMax() {
+    return cfg('REMOTE_DISTANCE_MAX', 110);
+}
+
+function remoteScorePathMult() {
+    return cfg('REMOTE_SCORE_PATH_MULT', 2);
+}
+
+function getRouteEstimateScore(remoteName, colonyName) {
+    const rec = getMiningRouteRecord(remoteName, colonyName);
+    if (rec && rec.estimateScore) return rec.estimateScore;
+    const route = getMiningRouteRooms(colonyName, remoteName);
+    if (!route.length) return null;
+    return estimateMiningScore(route.length, INTEL[remoteName]);
+}
+
+function isRemoteSourceScoreAcceptable(colonyName, remoteName, score) {
+    if (score === undefined || score === null || score === Infinity || !isFinite(score)) return false;
+    if (score > remoteDistanceMax()) return false;
+    const estimate = getRouteEstimateScore(remoteName, colonyName);
+    if (estimate === null) return false;
+    return score <= estimate * remoteScorePathMult();
+}
+
+function effectiveHaulScore(colonyName, remoteName, score) {
+    if (score === undefined || score === null || score === Infinity || !isFinite(score)) {
+        return remoteDistanceMax();
+    }
+    const max = remoteDistanceMax();
+    const estimate = getRouteEstimateScore(remoteName, colonyName);
+    let effective = score;
+    if (estimate !== null) effective = Math.min(effective, estimate * remoteScorePathMult());
+    return Math.min(effective, max);
+}
+
+function maxRemoteRoomsForColony(colonyRoom) {
+    const level = colonyRoom.level || 0;
+    if (level >= 8) return cfg('REMOTE_MAX_ROOMS_RCL8', 5);
+    if (level >= 7) return cfg('REMOTE_MAX_ROOMS_RCL7', 4);
+    if (level >= 6) return cfg('REMOTE_MAX_ROOMS_RCL6', 2);
+    return cfg('REMOTE_MAX_ROOMS_LOW', 1);
+}
+
+function hasLiveRemoteWork(colonyName, remoteName) {
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (!c.my || c.memory.colony !== colonyName) continue;
+        if (c.memory.destination !== remoteName) continue;
+        if (['remoteHarvester', 'reserver', 'remoteHauler', 'roadBuilder'].includes(c.memory.role)) return true;
+    }
+    const queue = CREEP_QUEUES[colonyName];
+    if (queue) {
+        for (const key in queue) {
+            const entry = queue[key];
+            if (entry.destination !== remoteName) continue;
+            if (['remoteHarvester', 'reserver', 'roadBuilder'].includes(entry.role)) return true;
+        }
+    }
+    return false;
+}
+
+function pruneRemoteRoomCount(colonyName, colonyRoom) {
+    const targets = ROOM_REMOTE_TARGETS[colonyName];
+    if (!targets || !targets.length) return;
+
+    const byRoom = {};
+    for (const s of targets) {
+        if (!byRoom[s.room]) byRoom[s.room] = [];
+        byRoom[s.room].push(s);
+    }
+
+    const rooms = Object.keys(byRoom);
+    const maxRooms = maxRemoteRoomsForColony(colonyRoom);
+    if (rooms.length <= maxRooms) return;
+
+    rooms.sort((a, b) => {
+        const liveA = hasLiveRemoteWork(colonyName, a);
+        const liveB = hasLiveRemoteWork(colonyName, b);
+        if (liveA !== liveB) return liveA ? -1 : 1;
+        const maxA = Math.max(...byRoom[a].map(s => s.score));
+        const maxB = Math.max(...byRoom[b].map(s => s.score));
+        return maxB - maxA;
+    });
+
+    const keep = new Set(rooms.slice(0, maxRooms));
+    ROOM_REMOTE_TARGETS[colonyName] = targets.filter(s => keep.has(s.room));
+}
+
 function routeAcceptable(route) {
     if (!route || !route.length) return false;
     for (let i = 0; i < route.length; i++) {
@@ -156,8 +244,10 @@ function pruneRoomRemoteTargets(colonyName, colonyRoom) {
     const targets = ROOM_REMOTE_TARGETS[colonyName];
     if (!targets || !targets.length) return;
     ROOM_REMOTE_TARGETS[colonyName] = targets.filter(s =>
-        s.score <= REMOTE_DISTANCE_MAX && !shouldSkipRemotePrune(colonyRoom, s.room)
+        isRemoteSourceScoreAcceptable(colonyName, s.room, s.score)
+        && !shouldSkipRemotePrune(colonyRoom, s.room)
     );
+    pruneRemoteRoomCount(colonyName, colonyRoom);
 }
 
 function getCandidateRemotesForProbe(colonyRoom) {
@@ -247,17 +337,18 @@ function maybeRefreshRemoteIntel(rName) {
 function calculateRemoteSourceScore(room, source, colonyName) {
     if (!Game.rooms[colonyName] || !Game.rooms[colonyName].memory) return Infinity;
 
-    const max = REMOTE_DISTANCE_MAX;
-    const rec = getMiningRouteRecord(room.name, colonyName);
-    let estimate = rec ? rec.estimateScore : null;
-    if (estimate === null) {
-        const route = getMiningRouteRooms(colonyName, room.name);
-        if (!route.length) return Infinity;
-        estimate = estimateMiningScore(route.length, INTEL[room.name]);
-    }
+    const max = remoteDistanceMax();
+    const estimate = getRouteEstimateScore(room.name, colonyName);
+    if (estimate === null) return Infinity;
 
     const roomVisible = !!Game.rooms[room.name];
-    if (!roomVisible && estimate < max - SCORE_BORDERLINE_MARGIN) return estimate;
+    if (!roomVisible) {
+        if (estimate < max - SCORE_BORDERLINE_MARGIN
+            && isRemoteSourceScoreAcceptable(colonyName, room.name, estimate)) {
+            return estimate;
+        }
+        return Infinity;
+    }
 
     const colony = Game.rooms[colonyName];
     const target = colony.storage
@@ -269,16 +360,20 @@ function calculateRemoteSourceScore(room, source, colonyName) {
     const options = route.length ? {route, range: 1} : {range: 1};
     const pathResult = source.pos.shibMove(target, options);
     if (!pathResult || pathResult.incomplete || typeof pathResult.cost !== 'number') return Infinity;
-    return Math.ceil(pathResult.cost / 2);
+
+    const raw = Math.ceil(pathResult.cost / 2);
+    if (!isRemoteSourceScoreAcceptable(colonyName, room.name, raw)) return Infinity;
+    return raw;
 }
 
 function getActiveRemoteRooms(colonyRoom, shouldSkipRemote, deps = {}) {
     const colony = colonyRoom.name;
     const rooms = new Set();
-    const max = REMOTE_DISTANCE_MAX;
 
     for (const s of (ROOM_REMOTE_TARGETS[colony] || [])) {
-        if (s.score <= max && !shouldSkipRemote(colonyRoom, s.room)) rooms.add(s.room);
+        if (isRemoteSourceScoreAcceptable(colony, s.room, s.score) && !shouldSkipRemote(colonyRoom, s.room)) {
+            rooms.add(s.room);
+        }
     }
 
     const cached = deps.cachedRemotes || [];
@@ -298,10 +393,11 @@ function getActiveRemoteRooms(colonyRoom, shouldSkipRemote, deps = {}) {
 
 function shouldProcessRemote(colonyRoom, remoteName, deps) {
     const colony = colonyRoom.name;
-    const max = REMOTE_DISTANCE_MAX;
+    const max = remoteDistanceMax();
     if (deps.shouldSkipRemote(colonyRoom, remoteName)) return false;
 
-    if ((ROOM_REMOTE_TARGETS[colony] || []).some(s => s.room === remoteName && s.score <= max)) return true;
+    if ((ROOM_REMOTE_TARGETS[colony] || []).some(s =>
+        s.room === remoteName && isRemoteSourceScoreAcceptable(colony, s.room, s.score))) return true;
     if (deps.getCreepCount(undefined, 'remoteHarvester', remoteName)) return true;
     if (deps.getCreepCount(undefined, 'reserver', remoteName)) return true;
     if (deps.countQueuedRole(colony, 'remoteHarvester', remoteName)) return true;
@@ -329,6 +425,9 @@ module.exports = {
     bootstrapRemoteRoomOnVision,
     maybeRefreshRemoteIntel,
     calculateRemoteSourceScore,
+    getRouteEstimateScore,
+    isRemoteSourceScoreAcceptable,
+    effectiveHaulScore,
     getActiveRemoteRooms,
     shouldProcessRemote,
 };

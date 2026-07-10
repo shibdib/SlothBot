@@ -649,8 +649,9 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         if (this.sources.length && roomIntel.remoteRoom) {
             const staleScores = Game.time - (roomIntel.activeRemote || 0) > 500;
             const needsUpdate = staleScores || roomIntel.remoteRoom.some(colony => {
+                if (!MY_ROOMS.includes(colony)) return false;
                 const targets = ROOM_REMOTE_TARGETS[colony];
-                return !targets || !targets.some(s => s.room === this.name);
+                return targets && targets.some(s => s.room === this.name);
             });
             if (needsUpdate) {
                 let lowestScore = Infinity;
@@ -856,15 +857,22 @@ function calculateDistanceToHub(room, source, targetRoom) {
 }
 
 function updateRemoteSourceData(room, roomName, source, distance) {
+    if (!remoteMining.isRemoteSourceScoreAcceptable(roomName, room.name, distance)) return;
+
     const remoteTargets = ROOM_REMOTE_TARGETS[roomName] || [];
     const existing = remoteTargets.find(s => s.source === source.id);
     if (existing) {
         existing.room = room.name;
         existing.score = distance;
+    } else if (!remoteTargets.some(s => s.room === room.name)) {
+        return;
     } else {
         remoteTargets.push({room: room.name, source: source.id, score: distance});
     }
     ROOM_REMOTE_TARGETS[roomName] = remoteTargets;
+
+    const colonyRoom = Game.rooms[roomName];
+    if (colonyRoom) remoteMining.pruneRoomRemoteTargets(roomName, colonyRoom);
 }
 
 function areExitsReachable(room) {

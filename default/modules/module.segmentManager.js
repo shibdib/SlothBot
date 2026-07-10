@@ -2,10 +2,10 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-// 0-3 intel | 69 path | 70 routes | 77 public ally requests
+// 0-3 intel | 69 path | 70 routes | 90 public ally requests
 const INTEL_SEGMENTS = [0, 1, 2, 3];
-const activeSegments = [...INTEL_SEGMENTS, 69, 70, 77];
-const publicSegments = [77];
+const activeSegments = [...INTEL_SEGMENTS, 69, 70, 90];
+const publicSegments = [90];
 
 const DEFAULT_ALLY_REQUESTS = () => ({
     requests: {
@@ -52,7 +52,7 @@ function ensureMyAllyRequests() {
 
 function readForeignAllyRequests() {
     const foreign = RawMemory.foreignSegment;
-    if (!foreign || !FRIENDLIES.includes(foreign.username) || foreign.id !== 77) return;
+    if (!foreign || !FRIENDLIES.includes(foreign.username) || foreign.id !== 90) return;
     const parsed = parseAllyRequests(foreign.data);
     if (parsed) ALLY_HELP_REQUESTS[foreign.username] = parsed;
 }
@@ -61,7 +61,7 @@ function scheduleForeignAllyRead() {
     const filtered = _.filter(FRIENDLIES, (f) => f !== MY_USERNAME);
     if (!filtered.length) return;
     try {
-        RawMemory.setActiveForeignSegment(filtered[Game.time % filtered.length], 77);
+        RawMemory.setActiveForeignSegment(filtered[Game.time % filtered.length], 90);
     } catch (e) {
     }
 }
@@ -82,7 +82,7 @@ module.exports.storeAllyRequests = function () {
     if (!global.LOAN_CHECK) return;
     ensureMyAllyRequests();
     try {
-        RawMemory.segments[77] = JSON.stringify(ALLY_HELP_REQUESTS[MY_USERNAME]);
+        RawMemory.segments[90] = JSON.stringify(ALLY_HELP_REQUESTS[MY_USERNAME]);
     } catch (e) {
         log.e(`Error storing ally requests: ${e}`, 'SEGMENT MANAGER: ');
     }

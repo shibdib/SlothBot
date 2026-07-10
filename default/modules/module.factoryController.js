@@ -74,7 +74,7 @@ class FactoryControl {
     }
 
     static rawEnergyMeetsPackThreshold(room) {
-        return room.rawEnergy >= FactoryControl.energyTarget(room) * 0.5;
+        return room.rawEnergy >= FactoryControl.energyTarget(room) * 1.2;
     }
 
     static hasEnergyPackSurplus(room) {

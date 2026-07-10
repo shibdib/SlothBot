@@ -4,6 +4,7 @@
 
 const profiler = require("tools.profiler");
 const {routeHasBuiltRoads} = require('bodyHelpers');
+const {effectiveHaulScore} = require('remoteMining');
 const {canPlaceConstructionSite, tryCreateConstructionSite, findBestContainerPos} = require('planUtils');
 
 class RoleRemoteHarvester {
@@ -72,6 +73,17 @@ class RoleRemoteHarvester {
         if ((this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk)) && this.creep.skSafety()) {
             this.creep.memory.onContainer = undefined;
             return true;
+        }
+
+        // Recycle when this source was pruned from colony targets (grace in-transit creeps)
+        if (Game.time % 50 === 0 && this.creep.memory.colony && this.creep.memory.other && this.creep.memory.other.source) {
+            const targets = ROOM_REMOTE_TARGETS[this.creep.memory.colony];
+            const sourceId = this.creep.memory.other.source;
+            const dest = this.creep.memory.destination;
+            const stillAssigned = targets && targets.some(s => s.source === sourceId);
+            if (!stillAssigned && (!dest || this.creep.room.name === dest)) {
+                return this.creep.recycleCreep();
+            }
         }
 
         // Throttled viability check - recycle if the remote is no longer assigned to this colony
@@ -194,8 +206,10 @@ function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
     const roadsBuilt = routeHasRoads(creep.memory.colony, creep.memory.destination);
     const colony = Game.rooms[creep.memory.colony];
     const linkFed = !!(colony && colony.links && colony.links.length >= 2);
+    const haulScore = effectiveHaulScore(creep.memory.colony, creep.memory.destination, sourceInfo.score);
     if (onlyIfChanged && creep.memory.other.haulingRequired
         && creep.memory.other.haulingScore === sourceInfo.score
+        && creep.memory.other.haulingEffectiveScore === haulScore
         && creep.memory.other.haulingRoads === roadsBuilt
         && creep.memory.other.haulingLinkFed === linkFed) {
         return;
@@ -209,6 +223,7 @@ function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
     const maxRate = sourceCap / ENERGY_REGEN_TIME;
     const actualRate = Math.min(power, maxRate);
     creep.memory.other.haulingScore = sourceInfo.score;
+    creep.memory.other.haulingEffectiveScore = haulScore;
     creep.memory.other.haulingRoads = roadsBuilt;
     creep.memory.other.haulingLinkFed = linkFed;
     creep.memory.other.harvestRate = actualRate;
@@ -216,7 +231,7 @@ function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
     // path cost; round trip ≈ 2×score ticks of production at actualRate.
     const roundTripBuffer = roadsBuilt ? 1.25 : 1.4;
     const linkScale = linkFed ? 0.55 : 1;
-    creep.memory.other.haulingRequired = actualRate * sourceInfo.score * 2 * roundTripBuffer * linkScale;
+    creep.memory.other.haulingRequired = actualRate * haulScore * 2 * roundTripBuffer * linkScale;
 }
 
 function harvestDepositContainer(source, creep) {

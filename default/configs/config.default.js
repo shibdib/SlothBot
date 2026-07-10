@@ -30,6 +30,10 @@ global.FUNNEL_REQUESTS = false; // Whether to make energy funneling requests
 // Remote Mining
 global.REMOTE_MINING = true; // Whether we remote mine or not
 global.REMOTE_DISTANCE_MAX = 110; // Max distance score per source
+global.REMOTE_SCORE_PATH_MULT = 2; // Reject visible path scores above estimate * this
+global.REMOTE_MAX_ROOMS_RCL6 = 2;
+global.REMOTE_MAX_ROOMS_RCL7 = 4;
+global.REMOTE_MAX_ROOMS_RCL8 = 5;
 global.REMOTE_ROUTE_MAX = 3; // Max intel-weighted map hops for remote mining routes
 global.REMOTE_ROUTE_PROBE_MAX = 12; // Max route probes per colony per refresh cycle
 global.REMOTE_LINEAR_MAX = 4; // Max linear room distance before route probe

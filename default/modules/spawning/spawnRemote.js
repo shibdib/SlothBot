@@ -72,10 +72,12 @@ function ingestColonyRemoteSources(colonyRoom, rName) {
     if (!remoteIntel || !remoteIntel.remoteSourceData) return false;
     let added = false;
     for (const sd of remoteIntel.remoteSourceData) {
-        if (sd.colony === colonyRoom.name && !ROOM_REMOTE_TARGETS[colonyRoom.name].find(s => s.source === sd.source)) {
-            ROOM_REMOTE_TARGETS[colonyRoom.name].push({room: rName, source: sd.source, score: sd.score});
-            added = true;
-        }
+        if (sd.colony !== colonyRoom.name) continue;
+        if (ROOM_REMOTE_TARGETS[colonyRoom.name].find(s => s.source === sd.source)) continue;
+        if (!remoteMining.getMiningRouteRecord(rName, colonyRoom.name)) continue;
+        if (!remoteMining.isRemoteSourceScoreAcceptable(colonyRoom.name, rName, sd.score)) continue;
+        ROOM_REMOTE_TARGETS[colonyRoom.name].push({room: rName, source: sd.source, score: sd.score});
+        added = true;
     }
     return added;
 }
@@ -126,17 +128,9 @@ function refreshRemoteRoomTargets(room) {
         activeRemotes.add(rName);
         remoteMining.maybeRefreshRemoteIntel(rName);
         ingestColonyRemoteSources(room, rName);
-
-        const hasSources = (ROOM_REMOTE_TARGETS[room.name] || []).some(s => s.room === rName);
-        if (!hasSources && room.level < 8 && !getCreepCount(undefined, 'remoteHarvester', rName)
-            && getCreepCount(undefined, 'explorer', undefined, undefined, room) < (room.level >= 7 ? 1 : 2)) {
-            queueCreepIfNeeded({
-                room, role: 'explorer', priority: PRIORITIES.secondary,
-                numberNeeded: 1, destination: rName
-            });
-        }
     }
 
+    remoteMining.pruneRoomRemoteTargets(room.name, room);
     spawnState.remoteRoomTargets[room.name] = [...activeRemotes];
 
     const exits = Game.map.describeExits(room.name);
@@ -209,12 +203,7 @@ function handleBlockedRoom(room) {
 }
 
 function handleThreatLevel(room, remoteName) {
-    if (INTEL[remoteName].tickDetected + CREEP_LIFE_TIME < Game.time) {
-        queueCreepIfNeeded({
-            room, role: 'explorer', priority: PRIORITIES.secondary,
-            numberNeeded: 1, destination: remoteName
-        });
-    } else if (!INTEL[remoteName].sk) {
+    if (INTEL[remoteName].tickDetected + CREEP_LIFE_TIME >= Game.time && !INTEL[remoteName].sk) {
         room.memory.borderPatrol = remoteName;
     }
 }
@@ -291,10 +280,10 @@ function handleRemoteHarvesters(room) {
     let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
     if (ROOM_REMOTE_TARGETS[room.name] && totalHarvesters < maxRemoteHarvesters(room)) {
         const remoteSource = ROOM_REMOTE_TARGETS[room.name];
-        const acceptedScore = REMOTE_DISTANCE_MAX;
 
         const eligible = _.filter(remoteSource, (s) => {
-            if (shouldSkipRemote(room, s.room) || s.score > acceptedScore) return false;
+            if (shouldSkipRemote(room, s.room)) return false;
+            if (!remoteMining.isRemoteSourceScoreAcceptable(room.name, s.room, s.score)) return false;
             if (isSkRoom(s.room) && !hasSkAttackerCoverage(room.name, s.room)) return false;
             if (!passesNoRoadSpawnGate(room, s)) return false;
             return !scan.occupiedSources.has(s.source);
@@ -353,7 +342,12 @@ function scanColonyRemoteCreeps() {
             bucket.haulersBySource[sid].push(c);
         }
     }
-    for (const colony in colonyRemoteCreepScan) {
+    for (const colony in CREEP_QUEUES) {
+        if (!colonyRemoteCreepScan[colony]) {
+            colonyRemoteCreepScan[colony] = {
+                harvesters: [], haulersBySource: {}, occupiedSources: new Set(), liveRemoteRooms: new Set(),
+            };
+        }
         addQueuedHarvesterSources(colony);
     }
 }
