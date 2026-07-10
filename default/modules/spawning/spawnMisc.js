@@ -21,9 +21,9 @@ function colonyIntelFresh(room) {
 
 function getExplorerNeededCount(room) {
     if (Game.shard.name === 'shardSeason') return 20;
-    if (room.level >= 8) return 0;
+    if (MAX_LEVEL >= 8 || !MAX_LEVEL) return 0;
     if (room.level >= 7) return colonyIntelFresh(room) ? 1 : 2;
-    return MAX_LEVEL === 8 ? 1 : 10 - room.level;
+    return 10 - room.level;
 }
 
 function miscCreepQueue(room) {
