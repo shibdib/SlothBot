@@ -211,11 +211,14 @@ function buildShuttle(gen) {
         : 1;
     const minCarry = haulUrgent ? throughputFloor : 1;
 
+    const criticalBootstrap = haulUrgent || roomHasCriticalBuildSites(gen.room);
+
     if (!haulUrgent) {
         if (!gen.room.energyState) {
-            carry = Math.max(minCarry, Math.floor(carry * 0.25));
+            carry = Math.max(minCarry, Math.floor(carry * (criticalBootstrap ? 0.65 : 0.25)));
         } else if (gen.room.energyState < 3 || gen.trend < 0) {
-            carry = Math.max(minCarry, Math.floor(carry * gen.flowScale(0.5, 10)));
+            const scale = criticalBootstrap ? gen.flowScale(0.75, 10) : gen.flowScale(0.5, 10);
+            carry = Math.max(minCarry, Math.floor(carry * scale));
         }
     } else if (!gen.room.energyState) {
         carry = Math.max(minCarry, Math.floor(carry * 0.65));

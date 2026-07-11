@@ -3,7 +3,12 @@
  */
 
 const profiler = require("tools.profiler");
-const {stableCreepInfoKey, maxBodyNonMoveParts, roomHasCriticalBuildSites} = require('bodyHelpers');
+const {
+    stableCreepInfoKey,
+    maxBodyNonMoveParts,
+    roomHasCriticalBuildSites,
+    harvesterWorkCapUnlocked,
+} = require('bodyHelpers');
 const economic = require('bodyEconomic');
 const remote = require('bodyRemote');
 const military = require('bodyMilitary');
@@ -52,8 +57,13 @@ class ModuleBodyGenerator {
         const dutyBucket = Math.round(this.upgraderDuty * 10);
         const reboot = this.creepInfo && this.creepInfo.other && this.creepInfo.other.reboot;
         const rebootString = reboot ? 'reboot' : '';
-        const criticalBootstrap = this.role === 'drone' && roomHasCriticalBuildSites(this.room) ? 'crit' : '';
-        return `${this.energyAmount}.${this.role}.${this.spareIncome}.${trendBucket}.${dutyBucket}.${rebootString}.${criticalBootstrap}.${stableCreepInfoKey(this.creepInfo)}`;
+        let bootstrapFlag = '';
+        if (this.role === 'drone' && roomHasCriticalBuildSites(this.room)) bootstrapFlag = 'crit';
+        else if (this.role === 'shuttle') {
+            const other = this.creepInfo && this.creepInfo.other;
+            if ((other && other.haulUrgent) || roomHasCriticalBuildSites(this.room)) bootstrapFlag = 'crit';
+        }
+        return `${this.energyAmount}.${this.role}.${this.spareIncome}.${trendBucket}.${dutyBucket}.${rebootString}.${bootstrapFlag}.${stableCreepInfoKey(this.creepInfo)}`;
     }
 
     buildRoleParts() {
@@ -154,7 +164,7 @@ class ModuleBodyGenerator {
 
         if (this.role === 'stationaryHarvester') {
             const maxHarvesterWork = Math.max(1, Math.floor((this.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]));
-            const workCap = this.room.level < 2 ? 1 : maxHarvesterWork;
+            const workCap = harvesterWorkCapUnlocked(this.room) ? maxHarvesterWork : 1;
             let wCount = bodyArray.filter(p => p === WORK).length;
             while (wCount > workCap && bodyArray.length > 1) {
                 const wi = bodyArray.lastIndexOf(WORK);

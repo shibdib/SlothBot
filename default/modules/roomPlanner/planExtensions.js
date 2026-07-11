@@ -12,6 +12,7 @@ const {invalidateRampartSpots} = require('planRamparts');
 const {canPlaceConstructionSite, tryCreateConstructionSite, roomConstructionSiteBudget} = require('planUtils');
 
 const EXTENSION_BATCH_MAX = 3;
+const EXTENSION_BATCH_RUSH = 5;
 
 function unpackPackedTiles(packed) {
     return packed.map(n => ({x: n % 50, y: Math.floor(n / 50)}));
@@ -40,8 +41,14 @@ function getExtensionDeficit(room) {
     return Math.max(0, needed - existing);
 }
 
+function getExtensionBatchMax(room) {
+    if (!room || room.storage || !room.controller) return EXTENSION_BATCH_MAX;
+    if (room.controller.level > 5) return EXTENSION_BATCH_MAX;
+    return getExtensionDeficit(room) > 5 ? EXTENSION_BATCH_RUSH : EXTENSION_BATCH_MAX;
+}
+
 function getExtensionPlacementLimit(room) {
-    return Math.min(getExtensionDeficit(room), roomConstructionSiteBudget(room), EXTENSION_BATCH_MAX);
+    return Math.min(getExtensionDeficit(room), roomConstructionSiteBudget(room), getExtensionBatchMax(room));
 }
 
 function clearDynamicLayoutMemory(room) {

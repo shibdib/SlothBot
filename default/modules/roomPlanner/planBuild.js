@@ -5,6 +5,7 @@
  */
 
 const {tickTracker} = require('planState');
+const {isColonyEarlyRush} = require('bodyHelpers');
 
 const {buildMissingStructures, buildAuxiliaryStructures, hasPendingLayoutStructures} = require('planLayout');
 
@@ -23,6 +24,11 @@ function getNextRoom() {
     );
     if (needsExtensions.length) {
         return needsExtensions[Game.time % needsExtensions.length];
+    }
+
+    const earlyRush = rooms.filter(r => isColonyEarlyRush(r) && r.memory.bunkerHub && r.memory.bunkerHub.x);
+    if (earlyRush.length) {
+        return earlyRush[Game.time % earlyRush.length];
     }
 
     const lastIndex = tickTracker.lastRoom ? MY_ROOMS.indexOf(tickTracker.lastRoom) : -1;
@@ -50,7 +56,8 @@ function buildRoom() {
     let room = getNextRoom();
     if (!room) return;
 
-    tickTracker['lastTick'] = Game.time + 1;
+    const earlyRush = isColonyEarlyRush(room);
+    tickTracker['lastTick'] = earlyRush ? Game.time : Game.time + 1;
     tickTracker['lastRoom'] = room.name;
 
     let lastRun = tickTracker[room.name] || {};
@@ -60,15 +67,13 @@ function buildRoom() {
         if (!room.memory.towerHubs) findTowerHub(room);
         if (!room.memory.labHub) findLabHub(room);
 
-        // Check if bunker layout needs to be built
-        if (shouldRunLayout(lastRun)) {
+        if (earlyRush || shouldRunLayout(lastRun)) {
             buildMissingStructures(room, room.controller.level);
-            lastRun.task = 'layout';
+            if (!earlyRush) lastRun.task = 'layout';
         }
-        // Check if auxiliary buildings need to be built
-        else if (shouldRunAuxiliary(lastRun)) {
+        if (earlyRush || shouldRunAuxiliary(lastRun)) {
             buildAuxiliaryStructures(room);
-            lastRun.task = 'auxiliary';
+            if (!earlyRush) lastRun.task = 'auxiliary';
         }
 
         if (room.storage) {

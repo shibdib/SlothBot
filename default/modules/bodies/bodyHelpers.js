@@ -70,6 +70,17 @@ function roomHasCriticalBuildSites(room) {
     return _.some(room.constructionSites, s => CRITICAL_BUILD_STRUCTURE_TYPES.includes(s.structureType));
 }
 
+function isColonyEarlyRush(room) {
+    if (!room || !room.controller || !room.controller.my) return false;
+    return !room.storage && room.controller.level <= 5;
+}
+
+function harvesterWorkCapUnlocked(room) {
+    if (!room) return false;
+    if (room.controller && room.controller.level >= 2) return true;
+    return (room.energyCapacityAvailable || 0) >= 550;
+}
+
 function clampWorkCarryPair(work, carry, maxNonMove) {
     work = Math.floor(work) || 1;
     carry = Math.floor(carry) || 1;
@@ -158,6 +169,8 @@ module.exports = {
     maxBodyNonMoveParts,
     clampWorkCarryPair,
     roomHasCriticalBuildSites,
+    isColonyEarlyRush,
+    harvesterWorkCapUnlocked,
     routeHasBuiltRoads,
     getHaulersBySource,
     countQueuedHaulersForSource,
