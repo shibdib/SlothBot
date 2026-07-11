@@ -10,6 +10,7 @@ const {getCreepCount} = require('spawnCounts');
 const {queueCreepIfNeeded} = require('spawnQueue');
 const {empireOpsPaused} = require('hcReadiness');
 const {planShuttleForSource} = require('bodyEconomic');
+const {roomHasCriticalBuildSites} = require('bodyHelpers');
 
 function resolveDroneCount(room, ctx) {
     const {
@@ -84,8 +85,7 @@ function essentialCreepQueue(room) {
     // bootstrap builders even if energyState is temporarily low (common right after
     // an upgrade that depleted reserves; these structures are exactly what improve
     // energy capacity/income). Matches the "always build" priority in constructionWork.
-    const criticalBuildTypes = [STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_CONTAINER, STRUCTURE_LINK, STRUCTURE_TERMINAL, STRUCTURE_TOWER, STRUCTURE_LAB, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN];
-    const hasCriticalBuilds = _.some(room.constructionSites, s => criticalBuildTypes.includes(s.structureType));
+    const hasCriticalBuilds = roomHasCriticalBuildSites(room);
 
     const dronePriority = earlyRush ? 1 : PRIORITIES.drone;
     const droneCount = resolveDroneCount(room, {

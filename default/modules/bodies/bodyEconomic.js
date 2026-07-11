@@ -6,6 +6,7 @@ const {
     colonyRoadsBuilt,
     maxBodyNonMoveParts,
     clampWorkCarryPair,
+    roomHasCriticalBuildSites,
 } = require('bodyHelpers');
 
 function buildRoadDroneWaller(gen) {
@@ -32,7 +33,8 @@ function buildRoadDroneWaller(gen) {
         carry *= 0.3;
     } else if (!leanColony && (gen.room.energyState < 3 ||
         (gen.room.energyState === 3 && ['drone', 'waller'].includes(gen.role)))) {
-        const scale = gen.flowScale(0.3, 15);
+        const criticalBootstrap = gen.role === 'drone' && roomHasCriticalBuildSites(gen.room);
+        const scale = criticalBootstrap ? gen.flowScale(0.75, 10) : gen.flowScale(0.3, 15);
         work *= scale;
         carry *= scale;
     } else if (leanColony && (gen.room.energyState < 2 || gen.trend < 0)) {

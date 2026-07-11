@@ -3,7 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
-const {stableCreepInfoKey, maxBodyNonMoveParts} = require('bodyHelpers');
+const {stableCreepInfoKey, maxBodyNonMoveParts, roomHasCriticalBuildSites} = require('bodyHelpers');
 const economic = require('bodyEconomic');
 const remote = require('bodyRemote');
 const military = require('bodyMilitary');
@@ -52,7 +52,8 @@ class ModuleBodyGenerator {
         const dutyBucket = Math.round(this.upgraderDuty * 10);
         const reboot = this.creepInfo && this.creepInfo.other && this.creepInfo.other.reboot;
         const rebootString = reboot ? 'reboot' : '';
-        return `${this.energyAmount}.${this.role}.${this.spareIncome}.${trendBucket}.${dutyBucket}.${rebootString}.${stableCreepInfoKey(this.creepInfo)}`;
+        const criticalBootstrap = this.role === 'drone' && roomHasCriticalBuildSites(this.room) ? 'crit' : '';
+        return `${this.energyAmount}.${this.role}.${this.spareIncome}.${trendBucket}.${dutyBucket}.${rebootString}.${criticalBootstrap}.${stableCreepInfoKey(this.creepInfo)}`;
     }
 
     buildRoleParts() {

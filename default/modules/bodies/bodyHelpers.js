@@ -59,6 +59,17 @@ function maxBodyNonMoveParts(halfMove) {
     return Math.floor(50 / (1 + (halfMove ? 0.5 : 1.0)));
 }
 
+const CRITICAL_BUILD_STRUCTURE_TYPES = [
+    STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_CONTAINER,
+    STRUCTURE_LINK, STRUCTURE_TERMINAL, STRUCTURE_TOWER, STRUCTURE_LAB,
+    STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN,
+];
+
+function roomHasCriticalBuildSites(room) {
+    if (!room || !room.constructionSites || !room.constructionSites.length) return false;
+    return _.some(room.constructionSites, s => CRITICAL_BUILD_STRUCTURE_TYPES.includes(s.structureType));
+}
+
 function clampWorkCarryPair(work, carry, maxNonMove) {
     work = Math.floor(work) || 1;
     carry = Math.floor(carry) || 1;
@@ -140,11 +151,13 @@ function getSiegeDuoUnpaired(dest) {
 }
 
 module.exports = {
+    CRITICAL_BUILD_STRUCTURE_TYPES,
     colonyRoadsBuilt,
     isSkRoom,
     stableCreepInfoKey,
     maxBodyNonMoveParts,
     clampWorkCarryPair,
+    roomHasCriticalBuildSites,
     routeHasBuiltRoads,
     getHaulersBySource,
     countQueuedHaulersForSource,
