@@ -191,6 +191,7 @@ function pathTilesNeedRoads(room, points, target) {
         if ((point.roomName || room.name) !== room.name) continue;
         if (point.x < 0 || point.x > 49 || point.y < 0 || point.y > 49) continue;
         const pos = new RoomPosition(point.x, point.y, room.name);
+        if (pos.isExit()) continue;
         if (!isRoadSatisfied(pos)) return true;
     }
 
@@ -335,6 +336,7 @@ function buildConnectorTiles(room, layout) {
             if ((step.roomName || room.name) !== room.name) continue;
             const key = getPosKey(step);
             const pos = new RoomPosition(step.x, step.y, room.name);
+            if (pos.isExit()) continue;
             network.add(key);
             markTileOnMatrix(matrix, key, 'owned');
             if (!isRoadSatisfied(pos)) markPlannedTile(room.name, 'owned', key);
@@ -362,6 +364,7 @@ function getRoadPlan(room) {
     for (const key of desired) {
         const parts = key.split('x');
         const pos = new RoomPosition(Number(parts[0]), Number(parts[1]), room.name);
+        if (pos.isExit()) continue;
         if (isRoadSatisfied(pos)) continue;
         complete = false;
         if (isRoadPlaceable(pos)) missing.push(pos);
@@ -411,6 +414,7 @@ function diffRoadTiles(room, desired) {
     for (const key of desired) {
         const parts = key.split('x');
         const pos = new RoomPosition(Number(parts[0]), Number(parts[1]), room.name);
+        if (pos.isExit()) continue;
         if (isRoadSatisfied(pos)) continue;
         complete = false;
         if (isRoadPlaceable(pos)) missing.push(pos);
@@ -524,6 +528,7 @@ function addPathTilesNeedingRoads(room, path, needed) {
     for (const point of path) {
         if ((point.roomName || room.name) !== room.name) continue;
         const pos = new RoomPosition(point.x, point.y, room.name);
+        if (pos.isExit()) continue;
         if (!isRoadSatisfied(pos)) needed.add(getPosKey(pos));
     }
 }
@@ -563,9 +568,10 @@ function buildRemoteRoadTiles(room, colony, context = {}) {
 
         for (const step of path) {
             const key = getPosKey(step);
+            const pos = new RoomPosition(step.x, step.y, room.name);
+            if (pos.isExit()) continue;
             network.add(key);
             markTileOnMatrix(matrix, key, 'remote');
-            const pos = new RoomPosition(step.x, step.y, room.name);
             if (!isRoadSatisfied(pos)) needed.add(key);
         }
     }
@@ -615,6 +621,7 @@ function getRemoteRoadPlan(room, colony, context = {}) {
         for (const key of desired) {
             const parts = key.split('x');
             const pos = new RoomPosition(Number(parts[0]), Number(parts[1]), room.name);
+            if (pos.isExit()) continue;
             if (isRoadSatisfied(pos)) continue;
             complete = false;
             if (isRoadPlaceable(pos)) missing.push(pos);
@@ -738,6 +745,7 @@ function roadBuildersNeeded(colony) {
 function tryPlaceNextRemoteRoad(room, colony, context = {}) {
     const plan = getRemoteRoadPlan(room, colony, context);
     for (const pos of plan.missing) {
+        if (pos.isExit()) continue;
         if (!canPlaceRemoteRoadSite(room)) return false;
         if (tryCreateConstructionSite(pos, STRUCTURE_ROAD) === OK) {
             clearRemoteRoadVerifyCache(room.name);
@@ -896,6 +904,7 @@ function planOwnedRoomRoads(room, options = {}) {
     let placed = 0;
     for (const pos of missing) {
         if (placed >= maxThisTick) break;
+        if (pos.isExit()) continue;
         if (tryCreateConstructionSite(pos, STRUCTURE_ROAD) === OK) {
             placed++;
             markPlannedTile(room.name, 'owned', getPosKey(pos));

@@ -15,7 +15,9 @@ const {extensionPositionCache, quadTraps} = require('planState');
 
 const {bunkerTemplate, coreTemplate, protectedStructureTypes} = require('planTemplates');
 
-const {isValidRampartPosition, canPlaceConstructionSite, tryCreateConstructionSite} = require('planUtils');
+const {
+    isValidRampartPosition, canPlaceConstructionSite, tryCreateConstructionSite, canPlaceConstructedWall,
+} = require('planUtils');
 function clampRect(rect) {
     return {
         x1: Math.max(rect.x1, 2),
@@ -194,6 +196,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
         for (const trap of quadTraps[room.name]) {
             if (counter >= 3) return true;
             const pos = new RoomPosition(trap.x, trap.y, room.name);
+            if (pos.checkForWall()) continue;
             if (pos.isNearTo(room.controller) || pos.isNearTo(room.mineral) ||
                 room.sources.some(s => pos.isNearTo(s))) continue;
             if (room.towers.some(t => pos.getRangeTo(t) <= 2)) continue;
@@ -208,6 +211,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
                 if (existing && existing.hits >= QUAD_WALL_CAP) continue;
                 if (existing || pos.checkForConstructionSites()) continue;
                 if (!canPlaceConstructionSite(room)) return true;
+                if (!canPlaceConstructedWall(pos)) continue;
                 if (tryCreateConstructionSite(pos, STRUCTURE_WALL) === OK) {
                     counter++;
                     if (!newWallPositions.has(`${pos.x},${pos.y}`)) {
@@ -249,7 +253,9 @@ function rampartBuilder(room, layout = undefined, count = false) {
         let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
 
         try {
-            const spots = minCut.GetCutTiles(room.name, rectArray, bounds) || [];
+            const rawSpots = minCut.GetCutTiles(room.name, rectArray, bounds) || [];
+            const terrain = Game.map.getRoomTerrain(room.name);
+            const spots = rawSpots.filter(p => terrain.get(p.x, p.y) !== TERRAIN_MASK_WALL);
             ROOM_RAMPART_SPOTS[room.name] = JSON.stringify(spots);
         } catch (e) {
             log.e('MinCut Error in room ' + room.name);
@@ -312,11 +318,13 @@ function rampartBuilder(room, layout = undefined, count = false) {
         let cycles = 0;
         for (let pos of buildPositions) {
             if (cycles + inBuild >= 5) return true;
+            if (pos.checkForWall()) continue;
             if (!shouldBuildRampartAtPosition(pos, room)) continue;
             const onCorridor = corridors.has(pos.x + ',' + pos.y);
             const isWallTile = (pos.x + pos.y) % 2 === 0;
             if (isWallTile && !onCorridor) {
                 if (!canPlaceConstructionSite(room)) return true;
+                if (!canPlaceConstructedWall(pos)) continue;
                 if (tryCreateConstructionSite(pos, STRUCTURE_WALL) === OK) cycles++;
             } else if (!pos.checkForRampart() && !pos.checkForConstructionSites() &&
                 tryCreateConstructionSite(pos, STRUCTURE_RAMPART) === OK) {
@@ -333,6 +341,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
     }
 
     function shouldBuildRampartAtPosition(pos, room) {
+        if (pos.checkForWall()) return false;
         if (isOnSourcePad(pos, room)) return false;
         if (pos.checkForAllStructure() && !pos.checkForRoad()) return false;
 
@@ -341,31 +350,11 @@ function rampartBuilder(room, layout = undefined, count = false) {
             return !pos.checkForRampart() && !pos.checkForConstructionSites();
         }
 
-        // Handle tunnels
-        if (pos.checkForWall() && pos.checkForRoad()) {
-            return handleTunnelRampart(pos);
-        }
-
         return !pos.checkForBarrierStructure() && !pos.checkForConstructionSites();
     }
 
     function isNearProtectedStructure(pos, room) {
         return pos.isNearTo(room.controller) || pos.isNearTo(room.mineral) || pos.isNearTo(pos.findClosestByRange(FIND_SOURCES));
-    }
-
-    function handleTunnelRampart(pos) {
-        for (let xOff = -1; xOff <= 1; xOff++) {
-            for (let yOff = -1; yOff <= 1; yOff++) {
-                if (xOff !== 0 || yOff !== 0) {
-                    let newPos = new RoomPosition(pos.x + xOff, pos.y + yOff, pos.roomName);
-                    if (!newPos.checkForWall() && !newPos.checkForBarrierStructure() && !newPos.checkForConstructionSites() &&
-                        tryCreateConstructionSite(newPos, STRUCTURE_RAMPART) === OK) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
     }
 
     function buildRampartAround(position) {

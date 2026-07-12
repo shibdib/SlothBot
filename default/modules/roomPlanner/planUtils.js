@@ -116,6 +116,14 @@ function isValidRampartPosition(position) {
         !position.checkForRampart();
 }
 
+function canPlaceConstructedWall(pos) {
+    if (!pos || pos.checkIfOutOfBounds()) return false;
+    if (pos.checkForWall()) return false;
+    if (pos.checkForConstructionSites()) return false;
+    if (pos.checkForBarrierStructure && pos.checkForBarrierStructure()) return false;
+    return true;
+}
+
 const ROAD_CACHE_TTL = 5000;
 
 function cacheRoad(room, from, to, path, profile = 'owned') {
@@ -163,6 +171,7 @@ function isRoadSatisfied(pos) {
 }
 
 function isRoadPlaceable(pos) {
+    if (pos.isExit()) return false;
     if (pos.checkForRoad()) return false;
     if (pos.checkForConstructionSites()) return false;
     if (pos.checkForWall() || pos.checkForImpassible(true)) return false;
@@ -506,6 +515,7 @@ module.exports = {
     getUndefendedExits,
 
     isValidRampartPosition,
+    canPlaceConstructedWall,
 
     cacheRoad,
 
