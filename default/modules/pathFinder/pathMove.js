@@ -11,7 +11,10 @@
 
 const {DEFAULT_MAXOPS, STATE_STUCK, TOW_TRUCK_CACHE} = require('pathState');
 
-const {normalizePos, clearTrailerTowState, pickTowTruck, endTow} = require('pathUtils');
+const {
+    normalizePos, clearTrailerTowState, pickTowTruck, endTow,
+    tryPullSwapThrough, isPullSwapBlocker,
+} = require('pathUtils');
 
 const {findRoute, deleteRoute, estimateClaimRouteTicks} = require('pathRoute');
 
@@ -209,8 +212,10 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         if (!creep.memory.towCreep || !Game.getObjectById(creep.memory.towCreep)) {
             const roomName = creep.room.name;
             if (!TOW_TRUCK_CACHE[roomName] || Game.time !== TOW_TRUCK_CACHE[roomName].tick) {
+                let candidates = creep.room.myCreeps.filter(c => c.memory.canTow && !c.memory.trailer && !c.store.getUsedCapacity());
+                if (!candidates.length) candidates = creep.room.myCreeps.filter(c => c.memory.canTow && !c.memory.trailer);
                 TOW_TRUCK_CACHE[roomName] = {
-                    candidates: creep.room.myCreeps.filter(c => c.memory.canTow && !c.memory.trailer && !c.store.getUsedCapacity()),
+                    candidates: candidates,
                     tick: Game.time
                 };
             }
@@ -464,10 +469,24 @@ function creepBumping(creep, pathInfo, options) {
     const bumpCreep = nextPosition ? findOccupyingCreep(creep.room, nextPosition, creep.id) : null;
 
     if (bumpCreep) {
+        if (tryPullSwapThrough(creep, bumpCreep, nextDirection)) {
+            bumpCreep.say(ICONS.traffic, true);
+            if (bumpCreep.memory) bumpCreep.memory.moveBlocked = Game.time;
+            clearYieldAttempts(creep);
+            return true;
+        }
         if (creep.memory.trailer) {
             const trailer = Game.getObjectById(creep.memory.trailer);
-            if (trailer && trailer.pos.isNearTo(creep)) bumpCreep.moveRandom();
+            if (trailer && trailer.pos.isNearTo(creep)) {
+                if (!isPullSwapBlocker(bumpCreep)) bumpCreep.moveRandom();
+            }
         } else if (!creep.className && !creep.memory.trailer) {
+            if (isPullSwapBlocker(bumpCreep)) {
+                bumpCreep.say(ICONS.traffic, true);
+                if (bumpCreep.memory) bumpCreep.memory.moveBlocked = Game.time;
+                clearYieldAttempts(creep);
+                return true;
+            }
             if (creepWinsTraffic(creep, bumpCreep) || bumpCreep.store.getUsedCapacity() === 0) {
                 const yieldDir = findYieldDirection(bumpCreep, nextPosition);
                 if (yieldDir) bumpCreep.move(yieldDir);

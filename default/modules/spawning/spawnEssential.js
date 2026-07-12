@@ -126,7 +126,7 @@ function essentialCreepQueue(room) {
     if (harvesterCount) {
         const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
         if (room.storage || protoStorage) {
-            let haulerAmount = room.level >= 7 ? 1 : (room.level >= 4 ? 2 : 1);
+            let haulerAmount = 1;
             if (roomHasOperateExtensionOperator(room.name)) haulerAmount = 1;
             if (spareIncome < 0 || !trendOk) haulerAmount = 1;
             else if (room.level < 7) {

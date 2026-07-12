@@ -42,6 +42,34 @@ function getCreepMoveWeight(creep) {
     return creep.body.filter(p => p.type !== MOVE && p.type !== CARRY).length + (_.ceil(_.sum(creep.store) / 50) || 0);
 }
 
+function isPullSwapBlocker(creep) {
+    if (!creep || creep.className) return false;
+    if (!creep.hasActiveBodyparts(MOVE)) return true;
+    return !!(creep.memory.towDestination && (creep.memory.willNeedTow || creep.memory.towCreep));
+}
+
+function canPullCreep(puller, pullee) {
+    if (!puller || !pullee || puller.className || !puller.pos.isNearTo(pullee)) return false;
+    if (pullee.memory?.trailer) return false;
+    const pullerMove = puller.getActiveBodyparts(MOVE);
+    if (!pullerMove) return false;
+    return pullerMove >= getCreepMoveWeight(puller) + getCreepMoveWeight(pullee);
+}
+
+function tryPullSwapThrough(mover, blocker, nextDirection) {
+    if (!nextDirection || !blocker || !isPullSwapBlocker(blocker)) return false;
+    if (!canPullCreep(mover, blocker)) return false;
+
+    const pullResult = mover.pull(blocker);
+    if (pullResult !== OK) return false;
+
+    blocker.move(mover);
+    mover.move(nextDirection);
+    if (blocker.memory?._shibMove) blocker.memory._shibMove.pathPosTime = 0;
+    if (mover.memory?._shibMove) mover.memory._shibMove.pathPosTime = 0;
+    return true;
+}
+
 // Pick a tow truck that can pull the trailer (move >= combined weight), preferring spare
 // capacity over proximity. Returns null when no capable truck exists.
 function pickTowTruck(trailer, candidates) {
@@ -54,7 +82,6 @@ function pickTowTruck(trailer, candidates) {
     for (const truck of candidates) {
         const move = truck.getActiveBodyparts(MOVE);
         const weight = getCreepMoveWeight(truck);
-        if (move < weight + trailerWeight) continue;
 
         const score = (move - weight - trailerWeight) * 100 - trailer.pos.getRangeTo(truck);
         if (score > bestScore) {
@@ -311,6 +338,9 @@ module.exports = {
     releaseTruckRef,
     resetTrailerTowState,
     getCreepMoveWeight,
+    isPullSwapBlocker,
+    canPullCreep,
+    tryPullSwapThrough,
     pickTowTruck,
     normalizePos,
     reverseDirection,

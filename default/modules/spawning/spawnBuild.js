@@ -231,7 +231,7 @@ function processBuildQueue(room) {
             }
 
             const moveParts = _.filter(body, b => b === MOVE).length;
-            const attackParts = _.filter(body, b => b === ATTACK).length;
+            const attackParts = _.filter(body, b => b === ATTACK || b === RANGED_ATTACK).length;
             const healParts = _.filter(body, b => b === HEAL).length;
             const claimParts = _.filter(body, b => b === CLAIM).length;
 
@@ -246,7 +246,7 @@ function processBuildQueue(room) {
                     operation,
                     misc,
                     neededBoosts,
-                    canTow: moveParts >= 2 && !attackParts && !healParts && !claimParts && role !== 'labTech',
+                    canTow: moveParts >= 2 && !attackParts && !healParts && !claimParts,
                     assignment
                 }
             };
