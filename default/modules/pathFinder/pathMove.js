@@ -11,7 +11,7 @@
 
 const {DEFAULT_MAXOPS, STATE_STUCK, TOW_TRUCK_CACHE} = require('pathState');
 
-const {normalizePos, clearTrailerTowState, pickTowTruck} = require('pathUtils');
+const {normalizePos, clearTrailerTowState, pickTowTruck, endTow} = require('pathUtils');
 
 const {findRoute, deleteRoute, estimateClaimRouteTicks} = require('pathRoute');
 
@@ -129,9 +129,9 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
 
     // Tow truck handling
     if (creep.memory.towDestination && creep.memory.towCreep) {
-        let towCreep = Game.getObjectById(creep.memory.towCreep);
+        const towCreep = Game.getObjectById(creep.memory.towCreep);
         if (!towCreep || towCreep.pos.roomName !== creep.pos.roomName) {
-            creep.memory.towCreep = undefined;
+            endTow(towCreep, creep);
         } else return;
     }
 

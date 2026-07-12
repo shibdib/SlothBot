@@ -22,6 +22,7 @@
 'use strict';
 
 const {empireOpsPaused} = require('hcReadiness');
+const {endTow} = require('pathUtils');
 
 const exitTileCache = {};
 
@@ -888,10 +889,13 @@ Creep.prototype.towTruck = function () {
     }
     if (trailer.pos.roomName !== this.pos.roomName) {
         this.say('Lost Trailer!', true);
-        releaseTruckRef(this);
+        endTow(this, trailer);
         return false;
     }
-    if (_.sum(this.store)) return false;
+    if (_.sum(this.store)) {
+        endTow(this, trailer);
+        return false;
+    }
     if (!this.memory.towStart) {
         this.memory.towStart = Game.time;
         this.memory.lastTowProgress = Game.time;
@@ -916,9 +920,9 @@ Creep.prototype.towTruck = function () {
         this.memory.lastTowProgress = Game.time;
     }
     this.say('Towing!', true);
-    if (trailer.memory.towOptions && trailer.memory.towOptions.range === 0 && this.pos.isNearTo(towDestination)) {
+    if (trailer.memory.towOptions && trailer.memory.towOptions.range === 0 && trailer.pos.isNearTo(towDestination)) {
         const occupant = towDestination.checkForCreep();
-        if (occupant && occupant.id !== this.id) {
+        if (occupant && occupant.id !== trailer.id && occupant.id !== this.id) {
             trailer.memory.towOptions.range = 1;
         }
     }
@@ -928,14 +932,19 @@ Creep.prototype.towTruck = function () {
     }
     const pullResult = this.pull(trailer);
     if (pullResult === ERR_NOT_IN_RANGE) {
+        this.memory.pullFailStreak = undefined;
         adjustMovement(this, trailer);
         this.shibMove(trailer, {range: 1});
         return true;
     }
     if (pullResult === OK) {
+        this.memory.pullFailStreak = undefined;
         trailer.move(this);
         moveToTowDestination(this, trailer, towDestination);
+        return true;
     }
+    this.memory.pullFailStreak = (this.memory.pullFailStreak || 0) + 1;
+    if (this.memory.pullFailStreak >= 3) endTow(this, trailer);
     return true;
 };
 
@@ -960,34 +969,22 @@ function getTowDestination(trailer) {
 // stranded heavy creeps mid-route on long or congested tows.
 const STALL_LIMIT = 30;
 
+function trailerAtTowRange(trailer, towDestination) {
+    const opts = trailer.memory.towOptions;
+    if (!opts || !towDestination) return false;
+    if (opts.range === 0) {
+        return trailer.pos.x === towDestination.x
+            && trailer.pos.y === towDestination.y
+            && trailer.pos.roomName === towDestination.roomName;
+    }
+    return opts.range >= trailer.pos.getRangeTo(towDestination);
+}
+
 function shouldEndTow(truck, trailer, towDestination) {
     const lastProgress = truck.memory.lastTowProgress || truck.memory.towStart || Game.time;
-    return lastProgress + STALL_LIMIT < Game.time
-        || !towDestination
-        || !trailer.memory.towOptions
-        || trailer.memory.towOptions.range >= trailer.pos.getRangeTo(towDestination);
-}
-
-function endTow(truck, trailer) {
-    releaseTruckRef(truck);
-    if (trailer) resetTowingState(trailer);
-}
-
-function releaseTruckRef(truck) {
-    truck.memory.towStart = undefined;
-    truck.memory.lastRangeToTrailer = undefined;
-    truck.memory.lastTowDist = undefined;
-    truck.memory.lastTowProgress = undefined;
-    truck.memory.trailer = undefined;
-}
-
-function resetTowingState(trailer) {
-    trailer.memory._shibMove = undefined;
-    trailer.memory.towCreep = undefined;
-    trailer.memory.towDestination = undefined;
-    trailer.memory.towDestinationPos = undefined;
-    trailer.memory.towToObject = undefined;
-    trailer.memory.towOptions = undefined;
+    if (lastProgress + STALL_LIMIT < Game.time) return true;
+    if (!towDestination || !trailer.memory.towOptions) return true;
+    return trailerAtTowRange(trailer, towDestination);
 }
 
 function adjustMovement(creep, trailer) {
@@ -1001,12 +998,40 @@ function adjustMovement(creep, trailer) {
 }
 
 function moveToTowDestination(creep, trailer, towDestination) {
-    if (creep.pos.getRangeTo(towDestination) === trailer.memory.towOptions.range) {
-        creep.move(creep.pos.getDirectionTo(trailer));
-    } else {
+    const opts = trailer.memory.towOptions;
+    const targetRange = opts.range;
+    const trailerDist = trailer.pos.getRangeTo(towDestination);
+
+    if (targetRange === 0) {
+        if (trailerDist === 0) return;
+
+        // Truck is on the target tile — step toward the trailer so it slides onto the spot.
+        if (creep.pos.isEqualTo(towDestination)) {
+            const dir = creep.pos.getDirectionTo(trailer);
+            if (dir) creep.move(dir);
+            return;
+        }
+
+        // Trailer is adjacent — step onto the tile (trailer follows to range 1), then swap next tick.
+        if (trailerDist === 1 && creep.pos.isNearTo(towDestination)) {
+            const dir = creep.pos.getDirectionTo(towDestination);
+            if (dir) creep.move(dir);
+            return;
+        }
+
         trailer.memory._shibMove = undefined;
-        creep.shibMove(towDestination, {...trailer.memory.towOptions});
+        creep.shibMove(towDestination, {...opts, range: 1});
+        return;
     }
+
+    if (trailerDist === targetRange) {
+        const dir = creep.pos.getDirectionTo(trailer);
+        if (dir && creep.pos.isNearTo(trailer)) creep.move(dir);
+        return;
+    }
+
+    trailer.memory._shibMove = undefined;
+    creep.shibMove(towDestination, {...opts});
 }
 
 Creep.prototype.borderCheck = function () {

@@ -30,9 +30,15 @@ function creepWinsTraffic(creep, other) {
     return creep.name.localeCompare(other.name) < 0;
 }
 
+function movementSortPriority(creep) {
+    if (creep.memory.trailer) return -1;
+    if (creep.memory.towDestination && creep.memory.towCreep) return 100;
+    return creepTrafficPriority(creep);
+}
+
 function sortCreepsForMovement(creeps) {
     return creeps.slice().sort((a, b) => {
-        const diff = creepTrafficPriority(a) - creepTrafficPriority(b);
+        const diff = movementSortPriority(a) - movementSortPriority(b);
         if (diff) return diff;
         return a.name.localeCompare(b.name);
     });

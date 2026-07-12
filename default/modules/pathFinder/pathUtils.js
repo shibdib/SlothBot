@@ -4,20 +4,46 @@
  * Shared pathfinding helpers and position utilities.
  */
 
-function clearTrailerTowState(creep) {
-    creep.memory.towDestination = undefined;
-    creep.memory.towDestinationPos = undefined;
-    creep.memory.towCreep = undefined;
-    creep.memory.towOptions = undefined;
+function releaseTruckRef(truck) {
+    if (!truck) return;
+    truck.memory.towStart = undefined;
+    truck.memory.lastRangeToTrailer = undefined;
+    truck.memory.lastTowDist = undefined;
+    truck.memory.lastTowProgress = undefined;
+    truck.memory.pullFailStreak = undefined;
+    truck.memory.trailer = undefined;
+}
+
+function resetTrailerTowState(trailer) {
+    if (!trailer) return;
+    trailer.memory._shibMove = undefined;
+    trailer.memory.towCreep = undefined;
+    trailer.memory.towDestination = undefined;
+    trailer.memory.towDestinationPos = undefined;
+    trailer.memory.towToObject = undefined;
+    trailer.memory.towOptions = undefined;
+}
+
+function endTow(truck, trailer) {
+    releaseTruckRef(truck);
+    resetTrailerTowState(trailer);
+}
+
+function clearTrailerTowState(trailer) {
+    if (!trailer) return;
+    const truckId = trailer.memory.towCreep;
+    resetTrailerTowState(trailer);
+    if (!truckId) return;
+    const truck = Game.getObjectById(truckId);
+    if (truck && truck.memory.trailer === trailer.id) releaseTruckRef(truck);
 }
 
 function getCreepMoveWeight(creep) {
     return creep.body.filter(p => p.type !== MOVE && p.type !== CARRY).length + (_.ceil(_.sum(creep.store) / 50) || 0);
 }
 
-// Pick a tow truck that can pull the trailer on roads (move >= combined weight),
-// preferring spare capacity over raw proximity. Falls back to best spare-MOVE truck,
-// then closest, only when no fully-capable tower is available.
+// Pick a tow truck that can pull the trailer (move >= combined weight), preferring spare
+// capacity over proximity. Returns null when no capable truck exists.
 function pickTowTruck(trailer, candidates) {
     if (!candidates.length) return null;
 
@@ -28,34 +54,16 @@ function pickTowTruck(trailer, candidates) {
     for (const truck of candidates) {
         const move = truck.getActiveBodyparts(MOVE);
         const weight = getCreepMoveWeight(truck);
-        if (move < weight) continue;
+        if (move < weight + trailerWeight) continue;
 
-        const dist = trailer.pos.getRangeTo(truck);
-        if (move >= weight + trailerWeight) {
-            const score = (move - weight - trailerWeight) * 100 - dist;
-            if (score > bestScore) {
-                bestScore = score;
-                best = truck;
-            }
+        const score = (move - weight - trailerWeight) * 100 - trailer.pos.getRangeTo(truck);
+        if (score > bestScore) {
+            bestScore = score;
+            best = truck;
         }
     }
 
-    if (best) return best;
-
-    let fallback = null;
-    let fallbackScore = -Infinity;
-    for (const truck of candidates) {
-        const move = truck.getActiveBodyparts(MOVE);
-        const weight = getCreepMoveWeight(truck);
-        if (move < weight) continue;
-        const score = (move - weight) * 10 - trailer.pos.getRangeTo(truck);
-        if (score > fallbackScore) {
-            fallbackScore = score;
-            fallback = truck;
-        }
-    }
-
-    return fallback || trailer.pos.findClosestByRange(candidates);
+    return best;
 }
 
 function normalizePos(destination) {
@@ -219,9 +227,9 @@ function getMoveWeight(creep, options = {}) {
 
     if (creep.memory.trailer) {
         const trailer = Game.getObjectById(creep.memory.trailer);
-        if (trailer && creep.pos.isNearTo(trailer)) {
-            weight += trailer.body.filter(p => p.type !== MOVE && p.type !== CARRY).length;
-        } else if (!trailer) {
+        if (trailer) {
+            weight += getCreepMoveWeight(trailer);
+        } else {
             creep.memory.trailer = undefined;
         }
     }
@@ -299,6 +307,9 @@ function endpointInRange(endpointKey, target, range) {
 
 module.exports = {
     clearTrailerTowState,
+    endTow,
+    releaseTruckRef,
+    resetTrailerTowState,
     getCreepMoveWeight,
     pickTowTruck,
     normalizePos,
