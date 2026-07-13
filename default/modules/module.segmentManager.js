@@ -58,10 +58,13 @@ function readForeignAllyRequests() {
 }
 
 function scheduleForeignAllyRead() {
-    const filtered = _.filter(FRIENDLIES, (f) => f !== MY_USERNAME);
+    const filtered = _.filter(FRIENDLIES, (f) => f !== MY_USERNAME).sort();
     if (!filtered.length) return;
+    if (!Memory.allySegmentCycle) Memory.allySegmentCycle = 0;
+    const ally = filtered[Memory.allySegmentCycle % filtered.length];
+    Memory.allySegmentCycle = (Memory.allySegmentCycle + 1) % filtered.length;
     try {
-        RawMemory.setActiveForeignSegment(filtered[Game.time % filtered.length], 90);
+        RawMemory.setActiveForeignSegment(ally, 90);
     } catch (e) {
     }
 }
@@ -73,7 +76,6 @@ module.exports.init = function () {
 
     if (global.LOAN_CHECK) {
         readForeignAllyRequests();
-        scheduleForeignAllyRead();
         ensureMyAllyRequests();
     }
 };
@@ -86,6 +88,7 @@ module.exports.storeAllyRequests = function () {
     } catch (e) {
         log.e(`Error storing ally requests: ${e}`, 'SEGMENT MANAGER: ');
     }
+    scheduleForeignAllyRead();
 };
 
 let intelSegmentChecked;
