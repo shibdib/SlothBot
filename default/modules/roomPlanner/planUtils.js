@@ -155,10 +155,22 @@ function filterPerimeterBarrierSpots(room, spots) {
     return filtered;
 }
 
+const WALL_DENYLIST_TTL = 5000;
+
+function isWallDenylisted(room, x, y) {
+    const tick = room?.memory?.plannerWallDenylist?.[x + ',' + y];
+    if (!tick) return false;
+    if (Game.time - tick > WALL_DENYLIST_TTL) {
+        delete room.memory.plannerWallDenylist[x + ',' + y];
+        return false;
+    }
+    return true;
+}
+
 function canPlaceConstructedWall(pos) {
     if (!isPerimeterBarrierTile(pos)) return false;
     const room = Game.rooms[pos.roomName];
-    if (room?.memory?.plannerWallDenylist?.[pos.x + ',' + pos.y]) return false;
+    if (isWallDenylisted(room, pos.x, pos.y)) return false;
     if (pos.checkForConstructionSites()) return false;
     if (pos.checkForBarrierStructure && pos.checkForBarrierStructure()) return false;
     return true;

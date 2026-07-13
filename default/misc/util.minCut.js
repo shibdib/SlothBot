@@ -199,23 +199,15 @@ var util_mincut = {
         for (; j < jmax; j++) {
             r = rect[j];
             if (r.x1 === r.x2 || r.y1 === r.y2) {
+                const edgeMin = Math.max(bounds.x1 + 1, 1);
+                const edgeMax = Math.min(bounds.x2 - 1, 48);
                 if (r.x1 === r.x2) {
-                    if (Math.random() > 0.5) {
-                        if (Math.random() > 0.5) r.x1++;
-                        else r.x1--;
-                    } else {
-                        if (Math.random() > 0.5) r.x2++;
-                        else r.x2--;
-                    }
+                    if (r.x1 > edgeMin) r.x1--;
+                    else if (r.x2 < edgeMax) r.x2++;
                 }
                 if (r.y1 === r.y2) {
-                    if (Math.random() > 0.5) {
-                        if (Math.random() > 0.5) r.y1++;
-                        else r.y1--;
-                    } else {
-                        if (Math.random() > 0.5) r.y2++;
-                        else r.y2--;
-                    }
+                    if (r.y1 > edgeMin) r.y1--;
+                    else if (r.y2 < edgeMax) r.y2++;
                 }
             }
             if (r.x1 >= r.x2 || r.y1 >= r.y2) {

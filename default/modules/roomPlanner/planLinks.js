@@ -4,6 +4,7 @@ const {
     isControllerLinkPos,
     isControllerAreaLink,
 } = require('planUtils');
+const {invalidateRampartSpots} = require('planRamparts');
 
 /*
 
@@ -132,7 +133,10 @@ function linkBuilder(room) {
         for (let key in zoneTerrain) {
             let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
             if (position.checkForWall() || position.checkForAllStructure() || position.isNearTo(room.controller)) continue;
-            if (tryCreateConstructionSite(position, STRUCTURE_LINK) === OK) return true;
+            if (tryCreateConstructionSite(position, STRUCTURE_LINK) === OK) {
+                invalidateRampartSpots(room);
+                return true;
+            }
         }
         return false;
     }
