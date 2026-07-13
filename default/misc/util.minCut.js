@@ -367,10 +367,16 @@ var util_mincut = {
             let u, x, y;
             let i = 0;
             const imax = cut_edges.length;
+            const seen = new Set();
             for (; i < imax; i++) {
                 u = cut_edges[i];
+                if (u >= 2500) u -= 2500;
                 x = u % 50;
                 y = Math.floor(u / 50);
+                if (y >= 50) y -= 50;
+                const key = x + ',' + y;
+                if (seen.has(key)) continue;
+                seen.add(key);
                 positions.push({"x": x, "y": y});
             }
         }

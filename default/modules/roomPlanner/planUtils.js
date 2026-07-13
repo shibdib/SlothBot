@@ -62,8 +62,18 @@ function tryCreateConstructionSite(pos, structureType) {
         recordSitePlacementFailure(pos.roomName, structureType, pos, ERR_FULL);
         return ERR_FULL;
     }
+    if (structureType === STRUCTURE_WALL && !canPlaceConstructedWall(pos)) {
+        return ERR_INVALID_TARGET;
+    }
     const result = pos.createConstructionSite(structureType);
-    if (result !== OK) recordSitePlacementFailure(room.name, structureType, pos, result);
+    if (result !== OK) {
+        if (structureType === STRUCTURE_WALL && result === ERR_INVALID_TARGET) {
+            if (!room.memory.plannerWallDenylist) room.memory.plannerWallDenylist = {};
+            room.memory.plannerWallDenylist[pos.x + ',' + pos.y] = Game.time;
+            return result;
+        }
+        recordSitePlacementFailure(room.name, structureType, pos, result);
+    }
     return result;
 }
 
@@ -116,9 +126,39 @@ function isValidRampartPosition(position) {
         !position.checkForRampart();
 }
 
-function canPlaceConstructedWall(pos) {
+function isPerimeterBarrierTile(pos) {
     if (!pos || pos.checkIfOutOfBounds()) return false;
+    if (pos.isExit()) return false;
     if (pos.checkForWall()) return false;
+    if (pos.checkForImpassible(true)) return false;
+    return true;
+}
+
+function filterPerimeterBarrierSpots(room, spots) {
+    if (!spots || !spots.length) return [];
+    const terrain = Game.map.getRoomTerrain(room.name);
+    const filtered = [];
+    const seen = new Set();
+    for (const p of spots) {
+        let x = p.x;
+        let y = p.y;
+        if (y >= 50) y -= 50;
+        if (x < 0 || x > 49 || y < 0 || y > 49) continue;
+        if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+        const key = x + ',' + y;
+        if (seen.has(key)) continue;
+        const pos = new RoomPosition(x, y, room.name);
+        if (!isPerimeterBarrierTile(pos)) continue;
+        seen.add(key);
+        filtered.push({x, y});
+    }
+    return filtered;
+}
+
+function canPlaceConstructedWall(pos) {
+    if (!isPerimeterBarrierTile(pos)) return false;
+    const room = Game.rooms[pos.roomName];
+    if (room?.memory?.plannerWallDenylist?.[pos.x + ',' + pos.y]) return false;
     if (pos.checkForConstructionSites()) return false;
     if (pos.checkForBarrierStructure && pos.checkForBarrierStructure()) return false;
     return true;
@@ -515,6 +555,8 @@ module.exports = {
     getUndefendedExits,
 
     isValidRampartPosition,
+    isPerimeterBarrierTile,
+    filterPerimeterBarrierSpots,
     canPlaceConstructedWall,
 
     cacheRoad,

@@ -17,6 +17,7 @@ const {bunkerTemplate, coreTemplate, protectedStructureTypes} = require('planTem
 
 const {
     isValidRampartPosition, canPlaceConstructionSite, tryCreateConstructionSite, canPlaceConstructedWall,
+    filterPerimeterBarrierSpots,
 } = require('planUtils');
 function clampRect(rect) {
     return {
@@ -254,8 +255,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
 
         try {
             const rawSpots = minCut.GetCutTiles(room.name, rectArray, bounds) || [];
-            const terrain = Game.map.getRoomTerrain(room.name);
-            const spots = rawSpots.filter(p => terrain.get(p.x, p.y) !== TERRAIN_MASK_WALL);
+            const spots = filterPerimeterBarrierSpots(room, rawSpots);
             ROOM_RAMPART_SPOTS[room.name] = JSON.stringify(spots);
         } catch (e) {
             log.e('MinCut Error in room ' + room.name);
@@ -305,10 +305,14 @@ function rampartBuilder(room, layout = undefined, count = false) {
     }
 
     function placeRamparts(room) {
-        let spots = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
-        if (!spots || !spots.length) {
+        let spots = JSON.parse(ROOM_RAMPART_SPOTS[room.name]) || [];
+        if (!spots.length) {
             addExistingRampartsToSpots(room, spots);
         }
+        const sanitized = filterPerimeterBarrierSpots(room, spots);
+        const encodedSpots = JSON.stringify(sanitized);
+        if (encodedSpots !== ROOM_RAMPART_SPOTS[room.name]) ROOM_RAMPART_SPOTS[room.name] = encodedSpots;
+        spots = sanitized;
 
         let buildPositions = spots.map(p => new RoomPosition(p.x, p.y, room.name));
         let inBuild = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length;
