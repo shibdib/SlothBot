@@ -155,6 +155,42 @@ function filterPerimeterBarrierSpots(room, spots) {
     return filtered;
 }
 
+function bridgePerimeterGaps(room, spots) {
+    if (!spots || !spots.length) return [];
+    const terrain = Game.map.getRoomTerrain(room.name);
+    const spotSet = new Set(spots.map((p) => p.x + ',' + p.y));
+    const cardinals = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    const queue = spots.map((p) => ({x: p.x, y: p.y}));
+    const checked = new Set();
+    let head = 0;
+    while (head < queue.length) {
+        const p = queue[head++];
+        for (const [dx, dy] of cardinals) {
+            const x = p.x + dx;
+            const y = p.y + dy;
+            const key = x + ',' + y;
+            if (checked.has(key)) continue;
+            checked.add(key);
+            if (spotSet.has(key)) continue;
+            if (x < 2 || x > 47 || y < 2 || y > 47) continue;
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+            const pos = new RoomPosition(x, y, room.name);
+            if (!isPerimeterBarrierTile(pos)) continue;
+            let neighbors = 0;
+            for (const [ddx, ddy] of cardinals) {
+                if (spotSet.has((x + ddx) + ',' + (y + ddy))) neighbors++;
+            }
+            if (neighbors >= 2) {
+                spotSet.add(key);
+                const tile = {x, y};
+                spots.push(tile);
+                queue.push(tile);
+            }
+        }
+    }
+    return spots;
+}
+
 const WALL_DENYLIST_TTL = 5000;
 
 function isWallDenylisted(room, x, y) {
@@ -569,6 +605,7 @@ module.exports = {
     isValidRampartPosition,
     isPerimeterBarrierTile,
     filterPerimeterBarrierSpots,
+    bridgePerimeterGaps,
     canPlaceConstructedWall,
 
     cacheRoad,

@@ -17,7 +17,7 @@ const {bunkerTemplate, coreTemplate, protectedStructureTypes} = require('planTem
 
 const {
     isValidRampartPosition, canPlaceConstructionSite, tryCreateConstructionSite, canPlaceConstructedWall,
-    filterPerimeterBarrierSpots,
+    filterPerimeterBarrierSpots, bridgePerimeterGaps,
 } = require('planUtils');
 function clampRect(rect) {
     const min = 2;
@@ -61,9 +61,85 @@ const SOURCE_PROTECTION_RADIUS = 4;
 // minCut treats x/y 1 and 48 as TO_EXIT sinks; keep protected rects inset so the cut stays buildable.
 const PERIMETER_BUILD_INSET = 3;
 
+function structureDistToEdge(x, y) {
+    return Math.min(x, y, 49 - x, 49 - y);
+}
+
+function isBorderMinCutStructure(x, y) {
+    return structureDistToEdge(x, y) <= PERIMETER_BUILD_INSET;
+}
+
+function pushProtectionRect(rectArray, x, y, radius = 1) {
+    if (isBorderMinCutStructure(x, y)) return;
+    rectArray.push(borderAwarePointRect(x, y, radius));
+}
+
+function getBorderRampartTiles(room, layout) {
+    const tiles = [];
+    const seen = new Set();
+    const add = (x, y) => {
+        if (!isBorderMinCutStructure(x, y)) return;
+        const key = x + ',' + y;
+        if (seen.has(key)) return;
+        seen.add(key);
+        tiles.push({x, y});
+    };
+
+    if (extensionPositionCache[room.name]) {
+        for (const {x, y} of extensionPositionCache[room.name]) add(x, y);
+    }
+    for (const ext of room.extensions) add(ext.pos.x, ext.pos.y);
+    for (const site of room.constructionSites) {
+        if (site.structureType === STRUCTURE_EXTENSION) add(site.pos.x, site.pos.y);
+    }
+
+    const hub = room.hub;
+    if (layout && hub) {
+        for (const structure of layout) {
+            for (const buildPos of structure.pos) {
+                add(hub.x + buildPos.x, hub.y + buildPos.y);
+            }
+        }
+    }
+
+    for (const source of room.sources) {
+        const container = Game.getObjectById(source.memory.container);
+        if (container) add(container.pos.x, container.pos.y);
+        const link = source.memory.link && Game.getObjectById(source.memory.link);
+        if (link) add(link.pos.x, link.pos.y);
+    }
+
+    for (const tower of room.towers) add(tower.pos.x, tower.pos.y);
+    if (room.memory.towerHubs) {
+        for (const {x, y} of room.memory.towerHubs) add(x, y);
+    }
+
+    return tiles;
+}
+
 function borderInsetRadius(x, y, maxRadius) {
     const distToEdge = Math.min(x, y, 49 - x, 49 - y);
     return Math.min(maxRadius, Math.max(distToEdge - PERIMETER_BUILD_INSET, 1));
+}
+
+function borderAwarePointRect(x, y, maxRadius = 1) {
+    let x1 = x - maxRadius;
+    let x2 = x + maxRadius;
+    let y1 = y - maxRadius;
+    let y2 = y + maxRadius;
+    if (x - PERIMETER_BUILD_INSET < 2) x1 = Math.max(x1, x);
+    if (x + PERIMETER_BUILD_INSET > 47) x2 = Math.min(x2, x);
+    if (y - PERIMETER_BUILD_INSET < 2) y1 = Math.max(y1, y);
+    if (y + PERIMETER_BUILD_INSET > 47) y2 = Math.min(y2, y);
+    return clampRect({x1, y1, x2, y2});
+}
+
+function borderAwareBoxRect(x1, y1, x2, y2, cx, cy) {
+    if (cy <= 2 + PERIMETER_BUILD_INSET) y1 = Math.max(y1, cy);
+    if (cy >= 47 - PERIMETER_BUILD_INSET) y2 = Math.min(y2, cy);
+    if (cx <= 2 + PERIMETER_BUILD_INSET) x1 = Math.max(x1, cx);
+    if (cx >= 47 - PERIMETER_BUILD_INSET) x2 = Math.min(x2, cx);
+    return clampRect({x1, y1, x2, y2});
 }
 
 function getSourceProtectionRects(room) {
@@ -73,21 +149,21 @@ function getSourceProtectionRects(room) {
         const distToEdge = Math.min(x, y, 49 - x, 49 - y);
         // Source tiles are impassable; near edges only wrap container/link so the cut avoids TO_EXIT rows.
         if (distToEdge > SOURCE_PROTECTION_RADIUS) {
-            rects.push(pointRect(x, y, borderInsetRadius(x, y, SOURCE_PROTECTION_RADIUS)));
+            pushProtectionRect(rects, x, y, borderInsetRadius(x, y, SOURCE_PROTECTION_RADIUS));
         }
 
         const container = Game.getObjectById(source.memory.container);
         if (container) {
-            rects.push(pointRect(container.pos.x, container.pos.y, 1));
+            pushProtectionRect(rects, container.pos.x, container.pos.y, 1);
         }
 
         const link = source.memory.link && Game.getObjectById(source.memory.link);
         if (link) {
-            rects.push(pointRect(link.pos.x, link.pos.y, 1));
+            pushProtectionRect(rects, link.pos.x, link.pos.y, 1);
         } else if (container) {
             const linkSite = container.pos.findInRange(FIND_CONSTRUCTION_SITES, 1)
                 .find(s => s.structureType === STRUCTURE_LINK);
-            if (linkSite) rects.push(pointRect(linkSite.pos.x, linkSite.pos.y, 1));
+            if (linkSite) pushProtectionRect(rects, linkSite.pos.x, linkSite.pos.y, 1);
         }
     }
     return rects;
@@ -105,10 +181,10 @@ function getTowerProtectionRects(room) {
         }
     }
     for (const tp of towerPositions) {
-        rects.push(pointRect(tp.x, tp.y, borderInsetRadius(tp.x, tp.y, 2)));
+        pushProtectionRect(rects, tp.x, tp.y, borderInsetRadius(tp.x, tp.y, 2));
         const path = tp.findPathTo(hub, {ignoreCreeps: true, maxOps: 4000});
         for (const step of path) {
-            rects.push(pointRect(step.x, step.y, borderInsetRadius(step.x, step.y, 2)));
+            pushProtectionRect(rects, step.x, step.y, borderInsetRadius(step.x, step.y, 2));
         }
     }
     return rects;
@@ -170,7 +246,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
     // Bunker
     if (room.level >= BUNKER_LEVEL && room.energyState) {
         if (handleBunkerRamparts(room, layout, count)) return true;
-        if (buildProtectiveRamparts(room)) return true;
+        if (buildProtectiveRamparts(room, layout)) return true;
     }
 
     // Handle quad traps â€” RCL8 only, walls capped at 20k
@@ -186,10 +262,11 @@ function rampartBuilder(room, layout = undefined, count = false) {
         }
     }
 
-    function buildProtectiveRamparts(room) {
+    function buildProtectiveRamparts(room, layout) {
         const ramparts = ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name] ? JSON.parse(ROOM_RAMPART_SPOTS[room.name]) : undefined;
         if (!ramparts || !ramparts.length) return false;
         let counter = 0;
+        if (buildBorderStructureRamparts(room, layout)) return true;
         const rampartPositions = ramparts.map(p => new RoomPosition(p.x, p.y, room.name));
         const vulnerableStructures = room.structures.filter((s) =>
             protectedStructureTypes.includes(s.structureType) &&
@@ -234,6 +311,28 @@ function rampartBuilder(room, layout = undefined, count = false) {
             }
         }
         return false;
+    }
+
+    function buildBorderStructureRamparts(room, layout) {
+        const tiles = getBorderRampartTiles(room, layout);
+        let counter = 0;
+        for (const {x, y} of tiles) {
+            if (counter >= 3) return true;
+            const pos = new RoomPosition(x, y, room.name);
+            if (pos.checkForRampart()) continue;
+            if (pos.lookFor(LOOK_CONSTRUCTION_SITES).some((s) => s.structureType === STRUCTURE_RAMPART)) continue;
+            const hasStructure = pos.lookFor(LOOK_STRUCTURES).some((s) =>
+                s.structureType !== STRUCTURE_ROAD &&
+                s.structureType !== STRUCTURE_RAMPART &&
+                s.structureType !== STRUCTURE_WALL);
+            const hasSite = pos.lookFor(LOOK_CONSTRUCTION_SITES).some((s) =>
+                s.structureType !== STRUCTURE_RAMPART &&
+                s.structureType !== STRUCTURE_WALL);
+            if (!hasStructure && !hasSite) continue;
+            if (!canPlaceConstructionSite(room)) return true;
+            if (tryCreateConstructionSite(pos, STRUCTURE_RAMPART) === OK) counter++;
+        }
+        return counter > 0;
     }
 
     function buildQuadTraps(room) {
@@ -306,7 +405,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
 
         try {
             const rawSpots = minCut.GetCutTiles(room.name, rectArray, bounds) || [];
-            const spots = filterPerimeterBarrierSpots(room, rawSpots);
+            const spots = bridgePerimeterGaps(room, filterPerimeterBarrierSpots(room, rawSpots));
             ROOM_RAMPART_SPOTS[room.name] = JSON.stringify(spots);
         } catch (e) {
             log.e('MinCut Error in room ' + room.name);
@@ -323,23 +422,22 @@ function rampartBuilder(room, layout = undefined, count = false) {
         let rectArray = [];
         for (let structure of layout) {
             for (let buildPos of structure.pos) {
-                rectArray.push({
-                    x1: (buildPos.x + room.hub.x) - 1,
-                    y1: (buildPos.y + room.hub.y) - 1,
-                    x2: (buildPos.x + room.hub.x) + 1,
-                    y2: (buildPos.y + room.hub.y) + 1
-                });
+                const sx = buildPos.x + room.hub.x;
+                const sy = buildPos.y + room.hub.y;
+                pushProtectionRect(rectArray, sx, sy, 1);
             }
         }
         // Lab hub
         if (room.memory.labHub) {
             const labHub = room.memory.labHub;
-            rectArray.push({x1: labHub.x - 3, y1: labHub.y - 3, x2: labHub.x + 3, y2: labHub.y + 3});
+            if (!isBorderMinCutStructure(labHub.x, labHub.y)) {
+                rectArray.push(borderAwareBoxRect(labHub.x - 3, labHub.y - 3, labHub.x + 3, labHub.y + 3, labHub.x, labHub.y));
+            }
         }
         // Tower hubs â€” must be inside the rampart perimeter so towers can be resupplied during combat
         if (room.memory.towerHubs) {
             for (const {x, y} of room.memory.towerHubs) {
-                rectArray.push({x1: x - 1, y1: y - 1, x2: x + 1, y2: y + 1});
+                pushProtectionRect(rectArray, x, y, 1);
             }
         }
         // Built towers and resupply corridors
@@ -349,7 +447,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
         // Dynamic Extensions
         if (extensionPositionCache[room.name]) {
             for (const {x, y} of extensionPositionCache[room.name]) {
-                rectArray.push(pointRect(x, y, borderInsetRadius(x, y, 1)));
+                pushProtectionRect(rectArray, x, y, borderInsetRadius(x, y, 1));
             }
         }
         return rectArray.map(clampRect);
@@ -360,7 +458,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
         if (!spots.length) {
             addExistingRampartsToSpots(room, spots);
         }
-        const sanitized = filterPerimeterBarrierSpots(room, spots);
+        const sanitized = bridgePerimeterGaps(room, filterPerimeterBarrierSpots(room, spots));
         const encodedSpots = JSON.stringify(sanitized);
         if (encodedSpots !== ROOM_RAMPART_SPOTS[room.name]) ROOM_RAMPART_SPOTS[room.name] = encodedSpots;
         spots = sanitized;
@@ -374,7 +472,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
         for (let pos of buildPositions) {
             if (cycles + inBuild >= 5) return true;
             if (pos.checkForWall()) continue;
-            if (!shouldBuildRampartAtPosition(pos, room)) continue;
+            if (!shouldBuildRampartAtPosition(pos, room, true)) continue;
             const onCorridor = corridors.has(pos.x + ',' + pos.y);
             const isWallTile = (pos.x + pos.y) % 2 === 0;
             let placed = false;
@@ -399,10 +497,15 @@ function rampartBuilder(room, layout = undefined, count = false) {
         existingRamparts.forEach((b) => spots.push({x: b.pos.x, y: b.pos.y}));
     }
 
-    function shouldBuildRampartAtPosition(pos, room) {
+    function shouldBuildRampartAtPosition(pos, room, forcePerimeter = false) {
         if (pos.checkForWall()) return false;
-        if (isOnSourcePad(pos, room)) return false;
+        if (pos.checkForImpassible(true)) return false;
+        if (!forcePerimeter && isOnSourcePad(pos, room)) return false;
         if (pos.checkForAllStructure() && !pos.checkForRoad()) return false;
+
+        if (forcePerimeter) {
+            return !pos.checkForRampart() && !pos.checkForConstructionSites();
+        }
 
         // General rampart check based on proximity to important structures
         if (isNearProtectedStructure(pos, room)) {
