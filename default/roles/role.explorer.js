@@ -9,11 +9,34 @@ const HIGH_VALUE_SEARCH_INTERVAL = 25;
 const DEST_CACHE_TTL = 15;
 const LOCAL_BFS_HOPS = 4;
 const INTEL_REFRESH_TICKS = 150;
+const MAX_EXPLORERS_PER_DEST = 1;
+
+const EXPLORER_ANCHORS = [
+    [10, 10], [40, 10], [10, 40], [40, 40],
+    [25, 10], [25, 40], [10, 25], [40, 25],
+    [18, 18], [32, 18], [18, 32], [32, 32],
+];
 
 let destinationCache = {};
 let portalDestCache = {};
 let explorerAssignTick = -1;
 let explorerDestCounts = null;
+
+function creepHash(creep, salt = '') {
+    let h = 0;
+    const s = creep.name + salt;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+    return Math.abs(h);
+}
+
+function explorerScatterScore(creep, roomName) {
+    return (creepHash(creep, roomName) % 1000) * 0.001;
+}
+
+function explorerMoveAnchor(roomName, creep) {
+    const anchor = EXPLORER_ANCHORS[creepHash(creep, roomName) % EXPLORER_ANCHORS.length];
+    return new RoomPosition(anchor[0], anchor[1], roomName);
+}
 
 function getExplorerDestCounts() {
     if (explorerAssignTick === Game.time) return explorerDestCounts;
@@ -32,6 +55,11 @@ function explorerAssigned(roomName) {
     return getExplorerDestCounts()[roomName] || 0;
 }
 
+function noteExplorerAssignment(roomName) {
+    getExplorerDestCounts();
+    explorerDestCounts[roomName] = (explorerDestCounts[roomName] || 0) + 1;
+}
+
 class RoleExplorer {
     constructor(creep) {
         this.creep = creep;
@@ -47,12 +75,16 @@ class RoleExplorer {
         } else if (this.room.name === this.creep.memory.destination) {
             this.exploreRoom();
         } else {
-            this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22});
+            this.creep.shibMove(explorerMoveAnchor(this.creep.memory.destination, this.creep), {
+                range: 12,
+                offRoad: true,
+            });
         }
     }
 
     findDestination() {
         const currentTime = Game.time;
+        const searchStagger = creepHash(this.creep) % DEST_SEARCH_INTERVAL;
 
         if (!this.creep.memory.other) this.creep.memory.other = {};
 
@@ -89,13 +121,12 @@ class RoleExplorer {
 
         const cacheKey = this.room.name;
         const cached = destinationCache[cacheKey];
-        if (cached && cached.tick + DEST_CACHE_TTL > currentTime && explorerAssigned(cached.target) < 2) {
-            this.creep.memory.destination = cached.target;
-            return;
+        if (cached && cached.tick + DEST_CACHE_TTL > currentTime) {
+            if (this.assignDestination(cached.target, undefined, currentTime)) return;
         }
 
         const lastSearch = this.creep.memory.destSearchTick || 0;
-        if (lastSearch + DEST_SEARCH_INTERVAL > currentTime) {
+        if (lastSearch + DEST_SEARCH_INTERVAL + searchStagger > currentTime) {
             if (this.pickAdjacentTarget()) return;
         }
 
@@ -104,14 +135,14 @@ class RoleExplorer {
             this.creep.memory.highValueSearchTick = currentTime;
             const highValue = this.findHighValueTarget();
             if (highValue) {
-                this.setDestination(highValue, cacheKey, currentTime);
+                this.assignDestination(highValue, cacheKey, currentTime);
                 return;
             }
         }
 
         const localTarget = this.findBestLocalTarget(LOCAL_BFS_HOPS);
         if (localTarget) {
-            this.setDestination(localTarget, cacheKey, currentTime);
+            this.assignDestination(localTarget, cacheKey, currentTime);
             return;
         }
 
@@ -120,13 +151,16 @@ class RoleExplorer {
             return;
         }
 
-        this.creep.idleFor(6);
+        this.creep.idleFor(3 + (creepHash(this.creep) % 8));
     }
 
-    setDestination(target, cacheKey, currentTime) {
+    assignDestination(target, cacheKey, currentTime) {
+        if (!target || explorerAssigned(target) >= MAX_EXPLORERS_PER_DEST) return false;
         this.creep.memory.destination = target;
         this.creep.memory.destSearchTick = currentTime;
-        destinationCache[cacheKey] = {target, tick: currentTime};
+        noteExplorerAssignment(target);
+        if (cacheKey !== undefined) destinationCache[cacheKey] = {target, tick: currentTime};
+        return true;
     }
 
     pickAdjacentTarget() {
@@ -145,18 +179,19 @@ class RoleExplorer {
 
         const noVision = candidates.filter(n => !Game.rooms[n]);
         const pool = noVision.length ? noVision : candidates;
+        const available = pool.filter(n => explorerAssigned(n) < MAX_EXPLORERS_PER_DEST);
+        if (!available.length) return false;
 
-        const target = _.min(pool, n => {
+        const target = _.min(available, n => {
             const intel = INTEL[n];
             let s = intel ? (intel.lastObservation || 0) : 0;
-            s += explorerAssigned(n) * 1000;
+            s += explorerAssigned(n) * 10000;
+            s += explorerScatterScore(this.creep, n);
             return s;
         });
 
         if (!target) return false;
-        this.creep.memory.destination = target;
-        destinationCache[this.room.name] = {target, tick: Game.time};
-        return true;
+        return this.assignDestination(target, this.room.name, Game.time);
     }
 
     findHighValueTarget() {
@@ -181,7 +216,7 @@ class RoleExplorer {
             if (intel.lastObservation && intel.lastObservation + CREEP_LIFE_TIME > currentTime) continue;
 
             const assigned = explorerAssigned(roomName);
-            if (assigned >= 2) continue;
+            if (assigned >= MAX_EXPLORERS_PER_DEST) continue;
 
             const dist = Game.map.getRoomLinearDistance(this.room.name, roomName);
             if (dist > 40) continue;
@@ -199,7 +234,8 @@ class RoleExplorer {
                 else score -= 150;
             }
 
-            score += assigned * 250;
+            score += assigned * 5000;
+            score += explorerScatterScore(this.creep, roomName);
 
             if (score < bestScore) {
                 bestScore = score;
@@ -229,7 +265,7 @@ class RoleExplorer {
                     next.push(neighbor);
 
                     const assigned = explorerAssigned(neighbor);
-                    if (assigned >= 3) continue;
+                    if (assigned >= MAX_EXPLORERS_PER_DEST) continue;
 
                     const intel = INTEL[neighbor];
                     let score = hop * 80;
@@ -248,7 +284,8 @@ class RoleExplorer {
                         if (age < 800) score += 400;
                     }
 
-                    score += assigned * 180;
+                    score += assigned * 5000;
+                    score += explorerScatterScore(this.creep, neighbor);
 
                     if (score < bestScore) {
                         bestScore = score;
