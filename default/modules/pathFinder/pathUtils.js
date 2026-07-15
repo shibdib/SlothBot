@@ -20,8 +20,8 @@ function resetTrailerTowState(trailer) {
     trailer.memory.towCreep = undefined;
     trailer.memory.towDestination = undefined;
     trailer.memory.towDestinationPos = undefined;
-    trailer.memory.towToObject = undefined;
     trailer.memory.towOptions = undefined;
+
 }
 
 function endTow(truck, trailer) {
@@ -42,55 +42,66 @@ function getCreepMoveWeight(creep) {
     return creep.body.filter(p => p.type !== MOVE && p.type !== CARRY).length + (_.ceil(_.sum(creep.store) / 50) || 0);
 }
 
+function needsTow(creep) {
+    return !!(creep && !creep.className && !creep.hasActiveBodyparts(MOVE));
+}
+
 function isPullSwapBlocker(creep) {
     if (!creep || creep.className) return false;
     if (!creep.hasActiveBodyparts(MOVE)) return true;
-    return !!(creep.memory.towDestination && (creep.memory.willNeedTow || creep.memory.towCreep));
+    return !!(creep.memory.towDestination && (needsTow(creep) || creep.memory.towCreep));
+}
+
+function canTowCreep(puller, trailer) {
+    if (!puller || !trailer || puller.className) return false;
+    const pullerMove = puller.getActiveBodyparts(MOVE);
+    if (!pullerMove) return false;
+    return pullerMove >= getCreepMoveWeight(puller) + getCreepMoveWeight(trailer);
 }
 
 function canPullCreep(puller, pullee) {
     if (!puller || !pullee || puller.className || !puller.pos.isNearTo(pullee)) return false;
     if (pullee.memory?.trailer) return false;
-    const pullerMove = puller.getActiveBodyparts(MOVE);
-    if (!pullerMove) return false;
-    return pullerMove >= getCreepMoveWeight(puller) + getCreepMoveWeight(pullee);
+    return canTowCreep(puller, pullee);
+}
+
+function isCombatTowExempt(creep) {
+    return creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(RANGED_ATTACK) ||
+        creep.hasActiveBodyparts(HEAL) || creep.hasActiveBodyparts(CLAIM);
+}
+
+function canActAsTowTruck(creep, trailer) {
+    if (!creep || !creep.my || creep.className) return false;
+    if (trailer && creep.id === trailer.id) return false;
+    if (creep.memory.trailer) return false;
+    if (needsTow(creep) && creep.memory.towDestination) return false;
+    if (!creep.hasActiveBodyparts(MOVE)) return false;
+    if (isCombatTowExempt(creep)) return false;
+    return true;
+}
+
+function isImmobileBlocker(creep) {
+    return creep && !creep.className && !creep.hasActiveBodyparts(MOVE);
 }
 
 function tryPullSwapThrough(mover, blocker, nextDirection) {
-    if (!nextDirection || !blocker || !isPullSwapBlocker(blocker)) return false;
+    if (!nextDirection || !mover || !blocker || !isPullSwapBlocker(blocker)) return false;
+    if (blocker.memory?.other?.stationary || blocker.memory?.grouped) return false;
+    if (!mover.pos.isNearTo(blocker)) return false;
     if (!canPullCreep(mover, blocker)) return false;
+
+    const backDir = blocker.pos.getDirectionTo(mover);
+    if (!backDir) return false;
 
     const pullResult = mover.pull(blocker);
     if (pullResult !== OK) return false;
 
-    blocker.move(mover);
+    // Step onto the blocker's tile while dragging it back to ours (swap via pull).
+    blocker.move(backDir);
     mover.move(nextDirection);
     if (blocker.memory?._shibMove) blocker.memory._shibMove.pathPosTime = 0;
     if (mover.memory?._shibMove) mover.memory._shibMove.pathPosTime = 0;
     return true;
-}
-
-// Pick a tow truck that can pull the trailer (move >= combined weight), preferring spare
-// capacity over proximity. Returns null when no capable truck exists.
-function pickTowTruck(trailer, candidates) {
-    if (!candidates.length) return null;
-
-    const trailerWeight = getCreepMoveWeight(trailer);
-    let best = null;
-    let bestScore = -Infinity;
-
-    for (const truck of candidates) {
-        const move = truck.getActiveBodyparts(MOVE);
-        const weight = getCreepMoveWeight(truck);
-
-        const score = (move - weight - trailerWeight) * 100 - trailer.pos.getRangeTo(truck);
-        if (score > bestScore) {
-            bestScore = score;
-            best = truck;
-        }
-    }
-
-    return best;
 }
 
 function normalizePos(destination) {
@@ -338,10 +349,13 @@ module.exports = {
     releaseTruckRef,
     resetTrailerTowState,
     getCreepMoveWeight,
+    needsTow,
     isPullSwapBlocker,
+    isImmobileBlocker,
+    canTowCreep,
+    canActAsTowTruck,
     canPullCreep,
     tryPullSwapThrough,
-    pickTowTruck,
     normalizePos,
     reverseDirection,
     getPathKey,

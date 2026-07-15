@@ -16,6 +16,7 @@ const energyTracker = require('module.energyTracker');
 const {buildLedger} = require('termNetwork');
 const profiler = require('tools.profiler');
 const {sortCreepsForMovement} = require('pathTraffic');
+const {needsTow} = require('pathUtils');
 const planner = require('module.roomPlanner');
 let tickTracker = {};
 let errorCount = {};
@@ -316,7 +317,7 @@ function seasonalScoreFinder() {
             for (const s of score) {
                 const assignedCreep = room.myCreeps.find(c => c.memory.scoreTarget === s.id);
                 if (!assignedCreep) {
-                    const scorer = s.pos.findClosestByRange(room.myCreeps, {filter: (c) => !c.memory.scoreTarget && !c.memory.willNeedTow});
+                    const scorer = s.pos.findClosestByRange(room.myCreeps, {filter: (c) => !c.memory.scoreTarget && !needsTow(c)});
                     if (scorer) {
                         scorer.memory.scoreTarget = s.id;
                     }

@@ -9,12 +9,14 @@
  */
 
 
-const {DEFAULT_MAXOPS, STATE_STUCK, TOW_TRUCK_CACHE} = require('pathState');
+const {DEFAULT_MAXOPS, STATE_STUCK} = require('pathState');
 
 const {
-    normalizePos, clearTrailerTowState, pickTowTruck, endTow,
-    tryPullSwapThrough, isPullSwapBlocker,
+    normalizePos, clearTrailerTowState,
+    tryPullSwapThrough, isPullSwapBlocker, isImmobileBlocker,
 } = require('pathUtils');
+
+const {requestTow, needsTow} = require('pathTow');
 
 const {findRoute, deleteRoute, estimateClaimRouteTicks} = require('pathRoute');
 
@@ -130,13 +132,7 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
 
     if (creep.memory.keeper) options.ignoreKeeper = creep.memory.keeper;
 
-    // Tow truck handling
-    if (creep.memory.towDestination && creep.memory.towCreep) {
-        const towCreep = Game.getObjectById(creep.memory.towCreep);
-        if (!towCreep || towCreep.pos.roomName !== creep.pos.roomName) {
-            endTow(towCreep, creep);
-        } else return;
-    }
+    if (needsTow(creep) && requestTow(creep, heading, options)) return true;
 
     // Repathing override
     if (creep.memory.repathing) {
@@ -184,51 +180,6 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         return executePath(creep, creep.memory._shibMove, options, origin, heading);
     }
 
-    // Tow request for heavy creeps
-    if (creep.memory.willNeedTow === undefined) {
-        creep.memory.willNeedTow = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 >
-            _.filter(creep.body, (p) => p.type === MOVE).length;
-    }
-    // Heavy creeps re-request tow when more than 1 tile from heading. Was previously > 3,
-    // which left dropped trailers slow-walking the last few tiles (and looking "stuck"
-    // when terrain or blockers made self-move impractical). At distance â‰¤ 1 self-move is
-    // either unnecessary (already in range) or trivially short, so no cost to lowering.
-    if (!creep.className && creep.memory.willNeedTow && (creep.pos.getRangeTo(heading) > 1 || !creep.hasActiveBodyparts(MOVE))) {
-        if (!creep.memory.towDestination) {
-            creep.memory.towDestination = heading.id || heading;
-            creep.memory.towOptions = options;
-            // Snapshot the destination's position so a mid-tow rebuild (container destroyed
-            // and re-placed under a new id) doesn't strand the trailer â€” see getTowDestination.
-            if (heading.pos) {
-                creep.memory.towDestinationPos = {x: heading.pos.x, y: heading.pos.y, roomName: heading.pos.roomName};
-            }
-        } else if (heading.id && creep.hasActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {
-            clearTrailerTowState(creep);
-        } else if (creep.pos.isNearTo(heading) && ((heading instanceof RoomPosition && heading.checkForCreep()) ||
-            (heading instanceof RoomObject && heading.pos.checkForCreep()))) {
-            clearTrailerTowState(creep);
-        }
-
-        if (!creep.memory.towCreep || !Game.getObjectById(creep.memory.towCreep)) {
-            const roomName = creep.room.name;
-            if (!TOW_TRUCK_CACHE[roomName] || Game.time !== TOW_TRUCK_CACHE[roomName].tick) {
-                let candidates = creep.room.myCreeps.filter(c => c.memory.canTow && !c.memory.trailer && !c.store.getUsedCapacity());
-                if (!candidates.length) candidates = creep.room.myCreeps.filter(c => c.memory.canTow && !c.memory.trailer);
-                TOW_TRUCK_CACHE[roomName] = {
-                    candidates: candidates,
-                    tick: Game.time
-                };
-            }
-            const towTruck = pickTowTruck(creep, TOW_TRUCK_CACHE[roomName].candidates);
-            if (towTruck) {
-                creep.memory.towCreep = towTruck.id;
-                towTruck.memory.trailer = creep.id;
-                _.pull(TOW_TRUCK_CACHE[roomName].candidates, towTruck);
-            }
-        }
-        return true;
-    }
-
     if (options.tunnel) options.maxOps = 15000;
     if (options.showMatrix) return getMatrix(creep.room.name, creep, options);
 
@@ -247,8 +198,9 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         }
     }
 
-    let pathInfo = creep.memory._shibMove;
-    creep.memory._shibMove.targetRoom = target.roomName;
+    if (!creep.memory._shibMove) creep.memory._shibMove = {};
+    const pathInfo = creep.memory._shibMove;
+    pathInfo.targetRoom = target.roomName;
 
     if (pathInfo.path && pathInfo.path.length && !options.getPath) {
         return executePath(creep, pathInfo, options, origin, heading);
@@ -481,7 +433,16 @@ function creepBumping(creep, pathInfo, options) {
                 if (!isPullSwapBlocker(bumpCreep)) bumpCreep.moveRandom();
             }
         } else if (!creep.className && !creep.memory.trailer) {
-            if (isPullSwapBlocker(bumpCreep)) {
+            if (isImmobileBlocker(bumpCreep)) {
+                const yieldDir = findYieldDirection(creep, nextPosition);
+                if (yieldDir) creep.move(yieldDir);
+                else if (!isGrouped) creep.moveRandom();
+                bumpCreep.say(ICONS.traffic, true);
+                if (bumpCreep.memory) bumpCreep.memory.moveBlocked = Game.time;
+                clearYieldAttempts(creep);
+                return true;
+            }
+            if (isPullSwapBlocker(bumpCreep) && bumpCreep.hasActiveBodyparts(MOVE)) {
                 bumpCreep.say(ICONS.traffic, true);
                 if (bumpCreep.memory) bumpCreep.memory.moveBlocked = Game.time;
                 clearYieldAttempts(creep);

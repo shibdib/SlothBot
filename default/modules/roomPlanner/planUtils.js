@@ -62,6 +62,9 @@ function tryCreateConstructionSite(pos, structureType) {
         recordSitePlacementFailure(pos.roomName, structureType, pos, ERR_FULL);
         return ERR_FULL;
     }
+    if (structureType === STRUCTURE_ROAD && !canPlaceRoadInRoom(room)) {
+        return ERR_NOT_OWNER;
+    }
     if (structureType === STRUCTURE_WALL && !canPlaceConstructedWall(pos)) {
         return ERR_INVALID_TARGET;
     }
@@ -258,8 +261,30 @@ function isRoadSatisfied(pos) {
     return !!(site && (site.structureType === STRUCTURE_ROAD || site.structureType === STRUCTURE_CONTAINER));
 }
 
+function canPlaceRoadInRoom(room) {
+    if (!room) return false;
+    const controller = room.controller;
+    if (!controller) return true;
+    if (controller.my) return true;
+    if (controller.owner) return controller.owner.username === MY_USERNAME;
+    const reservation = controller.reservation;
+    if (!reservation) return true;
+    return reservation.username === MY_USERNAME;
+}
+
+function isRemoteRoadRoomEligible(roomName) {
+    const intel = INTEL[roomName];
+    if (!intel || intel.owner) return false;
+    if (intel.reservation && intel.reservation !== MY_USERNAME) return false;
+    const live = Game.rooms[roomName];
+    if (live && !canPlaceRoadInRoom(live)) return false;
+    return true;
+}
+
 function isRoadPlaceable(pos) {
     if (pos.isExit()) return false;
+    const room = Game.rooms[pos.roomName];
+    if (room && !canPlaceRoadInRoom(room)) return false;
     if (pos.checkForRoad()) return false;
     if (pos.checkForConstructionSites()) return false;
     if (pos.checkForWall() || pos.checkForImpassible(true)) return false;
@@ -623,6 +648,10 @@ module.exports = {
     getPosKey,
 
     isRoadSatisfied,
+
+    canPlaceRoadInRoom,
+
+    isRemoteRoadRoomEligible,
 
     isRoadPlaceable,
 

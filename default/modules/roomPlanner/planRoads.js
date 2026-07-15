@@ -13,6 +13,8 @@ const {
     getPosKey,
     isRoadSatisfied,
     isRoadPlaceable,
+    canPlaceRoadInRoom,
+    isRemoteRoadRoomEligible,
     roomConstructionSiteBudget,
     tryCreateConstructionSite,
 } = require('planUtils');
@@ -684,8 +686,7 @@ function getColonyRoadRooms(colony) {
 
     const add = (roomName, priority) => {
         if (seen.has(roomName) || roomName === colony) return;
-        const intel = INTEL[roomName];
-        if (!intel || intel.owner) return;
+        if (!isRemoteRoadRoomEligible(roomName)) return;
         seen.add(roomName);
         rooms.push({room: roomName, priority: priority || 50});
     };
@@ -705,8 +706,9 @@ function getColonyRoadRooms(colony) {
 }
 
 function roomNeedsRoadWorkByName(roomName, colony) {
+    if (!isRemoteRoadRoomEligible(roomName)) return false;
     const intel = INTEL[roomName];
-    if (!intel || intel.owner) return false;
+    if (!intel) return false;
     const context = isColonyRoadRoom(roomName, colony);
     if (!context) return false;
     const room = Game.rooms[roomName];
@@ -743,14 +745,17 @@ function roadBuildersNeeded(colony) {
 }
 
 function tryPlaceNextRemoteRoad(room, colony, context = {}) {
+    if (!canPlaceRoadInRoom(room)) return false;
     const plan = getRemoteRoadPlan(room, colony, context);
     for (const pos of plan.missing) {
         if (pos.isExit()) continue;
         if (!canPlaceRemoteRoadSite(room)) return false;
-        if (tryCreateConstructionSite(pos, STRUCTURE_ROAD) === OK) {
+        const result = tryCreateConstructionSite(pos, STRUCTURE_ROAD);
+        if (result === OK) {
             clearRemoteRoadVerifyCache(room.name);
             return true;
         }
+        if (result === ERR_NOT_OWNER) return false;
     }
     return false;
 }
@@ -769,7 +774,7 @@ function remoteRoomNeedsRoadWork(room, colony, context = {}) {
             }
         }
     }
-    if (!needsWork) {
+    if (!needsWork && canPlaceRoadInRoom(room)) {
         const plan = getRemoteRoadPlan(room, colony, context);
         needsWork = plan.missing.length > 0;
     }
@@ -894,6 +899,7 @@ function planOwnedRoomRoads(room, options = {}) {
         setRoadsBuiltFlag(room, undefined);
         return false;
     }
+    if (!canPlaceRoadInRoom(room)) return false;
     if (Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time) return false;
 
     const maxThisTick = roadPlacementLimit(room, !!options.layoutPending);
@@ -905,11 +911,14 @@ function planOwnedRoomRoads(room, options = {}) {
     for (const pos of missing) {
         if (placed >= maxThisTick) break;
         if (pos.isExit()) continue;
-        if (tryCreateConstructionSite(pos, STRUCTURE_ROAD) === OK) {
+        const result = tryCreateConstructionSite(pos, STRUCTURE_ROAD);
+        if (result === OK) {
             placed++;
             markPlannedTile(room.name, 'owned', getPosKey(pos));
             clearRoomPlanCache(room.name);
             clearRoomMatrixCache(room.name, 'owned');
+        } else if (result === ERR_NOT_OWNER) {
+            break;
         }
     }
 

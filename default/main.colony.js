@@ -13,6 +13,7 @@ const spawning = require('module.creepSpawning');
 const DiplomacyControl = require('module.diplomacy');
 const profiler = require('tools.profiler');
 const {sortCreepsForMovement} = require('pathTraffic');
+const {assignTowsForRoom} = require('pathTow');
 
 let errorCount = {};
 
@@ -64,6 +65,15 @@ class Colony {
     }
 
     creepManager() {
+        const roomsSeen = new Set();
+        for (const creep of this.creeps) {
+            const roomName = creep.pos.roomName;
+            if (roomsSeen.has(roomName)) continue;
+            roomsSeen.add(roomName);
+            const room = Game.rooms[roomName];
+            if (room) assignTowsForRoom(room);
+        }
+
         const roomCreeps = sortCreepsForMovement(this.creeps);
         for (const creep of roomCreeps) {
             try {

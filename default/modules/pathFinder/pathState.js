@@ -18,7 +18,6 @@ const FLEE_RANGE = 4;
 
 const MATRIX_CACHE = {};
 
-const TOW_TRUCK_CACHE = {};
 
 const ROOM_BASE_MATRIX_CACHE = {};
 
@@ -38,7 +37,6 @@ module.exports = {
 
     MATRIX_CACHE,
 
-    TOW_TRUCK_CACHE,
 
     ROOM_BASE_MATRIX_CACHE,
 
