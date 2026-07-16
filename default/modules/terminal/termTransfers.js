@@ -14,7 +14,7 @@ const RESOURCE_SEND_MAX = 5000;
 const RESOURCE_SEND_MIN = 100;
 const ENERGY_SEND_MIN = 5000;
 
-const PRIORITY_RANK = {urgent: 0, battery: 1, energy: 2, resource: 3, hub: 4, pressure: 5};
+const PRIORITY_RANK = {urgent: 0, battery: 1, energy: 2, resource: 3, ally: 4, hub: 5, pressure: 6};
 
 function getRoomLabNeeds(room) {
     const needs = new Set();
@@ -285,6 +285,110 @@ function planEnergyTransfers(transfers, profiles) {
     }
 }
 
+function allyWantsResource(resource) {
+    if (!global.LOAN_CHECK || !ALLY_HELP_REQUESTS) return false;
+    for (const username in ALLY_HELP_REQUESTS) {
+        if (username === MY_USERNAME || !FRIENDLIES.includes(username)) continue;
+        const reqs = ALLY_HELP_REQUESTS[username]?.requests?.resource || [];
+        if (reqs.some(r => r.resourceType === resource)) return true;
+    }
+    return false;
+}
+
+function collectAllyTransferRequests() {
+    if (!global.LOAN_CHECK || !ALLY_HELP_REQUESTS) return [];
+
+    const requests = [];
+    for (const username in ALLY_HELP_REQUESTS) {
+        if (username === MY_USERNAME || !FRIENDLIES.includes(username)) continue;
+        const ally = ALLY_HELP_REQUESTS[username];
+
+        for (const entry of ally?.requests?.funnel || []) {
+            if (!entry?.roomName) continue;
+            requests.push({
+                username,
+                resourceType: RESOURCE_ENERGY,
+                amount: entry.maxAmount || RESOURCE_SEND_MAX * 2,
+                priority: 1,
+                roomName: entry.roomName,
+            });
+        }
+
+        for (const req of ally?.requests?.resource || []) {
+            if (!req?.roomName || !req?.resourceType) continue;
+            requests.push({
+                username,
+                resourceType: req.resourceType,
+                amount: req.amount || RESOURCE_SEND_MAX,
+                priority: req.priority || 0.5,
+                roomName: req.roomName,
+            });
+        }
+    }
+
+    requests.sort((a, b) => b.priority - a.priority);
+    return requests;
+}
+
+function planAllyTransfers(transfers, ledger, profiles) {
+    const {canEmpireSell} = require('termNetwork');
+    const requests = collectAllyTransferRequests();
+    if (!requests.length) return;
+
+    for (const request of requests) {
+        const {username, resourceType, roomName, amount, priority} = request;
+        const candidates = [];
+
+        for (const profile of profiles) {
+            const room = Game.rooms[profile.name];
+            if (!room?.terminal || !canUseTerminal(profile.name) || room.memory.dangerousAttack) continue;
+
+            if (resourceType === RESOURCE_ENERGY) {
+                if (room.energyState < 2) continue;
+                const sendAmount = terminalExportableEnergy(
+                    room.terminal,
+                    roomName,
+                    Math.min(amount, RESOURCE_SEND_MAX * 2));
+                if (sendAmount < ENERGY_SEND_MIN) continue;
+                const cost = txCost(profile.name, roomName, sendAmount);
+                if (cost > sendAmount * 0.25) continue;
+                candidates.push({
+                    from: profile.name,
+                    to: roomName,
+                    resource: RESOURCE_ENERGY,
+                    amount: sendAmount,
+                    kind: 'ally',
+                    ally: username,
+                    score: priority * sendAmount / (1 + cost),
+                });
+                continue;
+            }
+
+            if (resourceType === RESOURCE_BATTERY) continue;
+            if (!canEmpireSell(resourceType, ledger)) continue;
+
+            const available = getTerminalExportable(room, resourceType);
+            const sendAmount = Math.min(available, RESOURCE_SEND_MAX, amount);
+            if (sendAmount < RESOURCE_SEND_MIN) continue;
+
+            const cost = txCost(profile.name, roomName, sendAmount);
+            if (cost > sendAmount * 0.25) continue;
+            candidates.push({
+                from: profile.name,
+                to: roomName,
+                resource: resourceType,
+                amount: sendAmount,
+                kind: 'ally',
+                ally: username,
+                score: priority * sendAmount / (1 + cost),
+            });
+        }
+
+        candidates.sort((a, b) => b.score - a.score);
+        if (candidates[0]) addTransfer(transfers, candidates[0]);
+    }
+}
+
 function planHubConsolidation(transfers, ledger, profiles) {
     const hub = ledger.marketHub;
     if (!hub) return;
@@ -301,6 +405,7 @@ function planHubConsolidation(transfers, ledger, profiles) {
 
         for (const resource of Object.keys(room.terminal.store)) {
             if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
+            if (allyWantsResource(resource)) continue;
             if (!canEmpireSell(resource, ledger)) continue;
 
             const amount = getTerminalExportable(room, resource);
@@ -367,6 +472,7 @@ function planTransfers(ledger) {
         planResourceTransfers(transfers, resource, profiles);
     }
 
+    planAllyTransfers(transfers, ledger, profiles);
     planPressureTransfers(transfers, profiles, resources);
     planHubConsolidation(transfers, ledger, profiles);
 
@@ -412,9 +518,11 @@ function executeTransfer(terminal, transfer) {
     markTerminalsUsed(terminal.room.name, to, resource);
 
     const label = transfer.kind === 'pressure' ? 'Pressure relief'
-        : transfer.kind === 'hub' ? 'Hub feed' : 'Balancing';
+        : transfer.kind === 'hub' ? 'Hub feed'
+            : transfer.kind === 'ally' ? `Ally ${transfer.ally}` : 'Balancing';
     const msg = `${label}: ${amount} ${resource} to ${roomLink(to)} from ${roomLink(terminal.room.name)}`;
-    if (resource === RESOURCE_ENERGY && transfer.kind === 'energy') log.i(msg, 'Market: ');
+    if (transfer.kind === 'ally') log.a(msg, 'Market: ');
+    else if (resource === RESOURCE_ENERGY && transfer.kind === 'energy') log.i(msg, 'Market: ');
     else log.a(msg, 'Market: ');
     return true;
 }
@@ -435,96 +543,6 @@ function executePlannedTransfers(terminal, options = {}) {
         if (executeTransfer(terminal, transfer)) return true;
     }
 
-    if (!options.skipAllies && !allowedKinds) {
-        if (executeAllyEnergyTransfers(terminal)) return true;
-        return executeAllyResourceTransfers(terminal);
-    }
-    return false;
-}
-
-
-function executeAllyEnergyTransfers(terminal) {
-    const {canAffordSend} = require('termBudget');
-    if (terminal.room.memory.dangerousAttack || terminal.room.energyState < 2) return false;
-
-    let needyRoom = null;
-    for (const key in ALLY_HELP_REQUESTS) {
-        if (key === MY_USERNAME) continue;
-        const ally = ALLY_HELP_REQUESTS[key];
-        if (ally?.requests?.funnel?.length) {
-            const entry = _.min(ally.requests.funnel, 'maxAmount');
-            if (!needyRoom || entry.maxAmount < needyRoom.maxAmount) needyRoom = entry;
-        }
-    }
-    if (!needyRoom?.roomName) {
-        for (const key in ALLY_HELP_REQUESTS) {
-            if (key === MY_USERNAME) continue;
-            const energyReq = ALLY_HELP_REQUESTS[key]?.requests?.resource
-                ?.find(re => re.resourceType === RESOURCE_ENERGY);
-            if (energyReq?.roomName) {
-                needyRoom = {roomName: energyReq.roomName};
-                break;
-            }
-        }
-    }
-    if (!needyRoom?.roomName) return false;
-    if (!canUseTerminal(terminal.room.name)) return false;
-
-    const destRoom = needyRoom.roomName;
-    const dest = Game.rooms[destRoom];
-    if (dest?.factory && FactoryControl.roomNeedsBatteryInbound(dest) && terminal.store[RESOURCE_BATTERY]) {
-        const need = FactoryControl.factoryBatteryInboundNeed(dest);
-        const bAmount = FactoryControl.terminalBatterySendAmount(
-            Math.min(terminal.store[RESOURCE_BATTERY] || 0, need),
-            dest.terminal?.store.getFreeCapacity(RESOURCE_BATTERY) || 0);
-        const bTxCost = Game.market.calcTransactionCost(bAmount, terminal.room.name, destRoom);
-        if (bAmount >= 50 && canAffordSend(bTxCost) && terminal.send(RESOURCE_BATTERY, bAmount, destRoom) === OK) {
-            recordTransferEnergyCost(terminal, RESOURCE_BATTERY, bAmount, destRoom);
-            markTerminalsUsed(terminal.room.name, destRoom, RESOURCE_BATTERY);
-            return true;
-        }
-    }
-
-    const sendAmount = terminalExportableEnergy(terminal, destRoom, RESOURCE_SEND_MAX * 2);
-    if (sendAmount < ENERGY_SEND_MIN) return false;
-    const allyEnergyTx = Game.market.calcTransactionCost(sendAmount, terminal.room.name, destRoom);
-    if (!canAffordSend(sendAmount + allyEnergyTx)) return false;
-    if (terminal.send(RESOURCE_ENERGY, sendAmount, destRoom) !== OK) return false;
-
-    recordTransferEnergyCost(terminal, RESOURCE_ENERGY, sendAmount, destRoom);
-    markTerminalsUsed(terminal.room.name, destRoom, RESOURCE_ENERGY);
-    log.i(`Balancing ${sendAmount} energy to ally ${roomLink(destRoom)} from ${roomLink(terminal.room.name)}`, 'Market: ');
-    return true;
-}
-
-function executeAllyResourceTransfers(terminal) {
-    const {canAffordSend} = require('termBudget');
-    const {canEmpireSell} = require('termNetwork');
-    for (const key in ALLY_HELP_REQUESTS) {
-        if (key === MY_USERNAME) continue;
-        const ally = ALLY_HELP_REQUESTS[key];
-
-        for (const resource of Object.keys(terminal.store)) {
-            if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
-            const request = ally?.requests?.resource?.find(re => re.resourceType === resource);
-            if (!request?.roomName) continue;
-            if (!canEmpireSell(resource)) continue;
-
-            const available = getTerminalExportable(terminal.room, resource);
-            const amount = Math.min(available, RESOURCE_SEND_MAX, request.amount || RESOURCE_SEND_MAX);
-            if (amount < RESOURCE_SEND_MIN) continue;
-
-            const allyTxCost = Game.market.calcTransactionCost(amount, terminal.room.name, request.roomName);
-            if (!canAffordSend(allyTxCost)) continue;
-
-            if (terminal.send(resource, amount, request.roomName) === OK) {
-                recordTransferEnergyCost(terminal, resource, amount, request.roomName);
-                markTerminalsUsed(terminal.room.name, request.roomName, resource);
-                log.a(`Balancing ${amount} ${resource} to ally ${roomLink(request.roomName)} from ${roomLink(terminal.room.name)}`, 'Market: ');
-                return true;
-            }
-        }
-    }
     return false;
 }
 

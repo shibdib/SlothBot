@@ -23,7 +23,7 @@ Object.assign(TerminalControl.prototype, {
         const terminalPressure = terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.1;
         const storagePressure = storage && storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1;
         if (!terminalPressure && !storagePressure) return false;
-        return this.executePlannedTransfers(terminal, {kinds: ['pressure', 'urgent', 'battery', 'energy', 'hub', 'resource']});
+        return this.executePlannedTransfers(terminal, {kinds: ['pressure', 'urgent', 'battery', 'energy', 'resource', 'ally', 'hub']});
     },
 
     executePlannedTransfers(terminal, options) {

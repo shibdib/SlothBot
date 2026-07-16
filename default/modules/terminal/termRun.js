@@ -49,7 +49,7 @@ Object.assign(TerminalControl.prototype, {
         // Internal network before market — route empire stock first.
         const planned = state.ledger?.plannedTransfers || [];
         const hasPriorityOutbound = planned.some(t =>
-            t.from === this.room.name && ['urgent', 'battery', 'energy', 'resource'].includes(t.kind)
+            t.from === this.room.name && ['urgent', 'battery', 'energy', 'resource', 'ally'].includes(t.kind)
         );
         if (this.emergencyEnergy(terminal)) return;
         if (!hub && !hasPriorityOutbound && this.executePlannedTransfers(terminal, {kinds: ['hub']})) return;

@@ -51,7 +51,7 @@ function estimateTransferCost(transfer) {
 
 function reserveSendBudget(budget, transfers) {
     if (!budget || !transfers?.length) return;
-    const rank = {urgent: 0, battery: 1, energy: 2, resource: 3, hub: 4, pressure: 5};
+    const rank = {urgent: 0, battery: 1, energy: 2, resource: 3, ally: 4, hub: 5, pressure: 6};
     const sorted = transfers.slice().sort((a, b) => (rank[a.kind] || 9) - (rank[b.kind] || 9));
 
     let reserved = 0;
