@@ -20,6 +20,7 @@ const {
     buildSourceExtensions,
     placeRoomExtensions,
     getExtensionDeficit,
+    ensureExtensionClearance,
 } = require('planExtensions');
 
 const {rampartBuilder} = require('planRamparts');
@@ -47,6 +48,7 @@ function hasPendingLayoutStructures(room) {
 }
 
 function buildMissingStructures(room, level) {
+    ensureExtensionClearance(room);
     if (level >= 2 && getExtensionDeficit(room) > 0) {
         placeRoomExtensions(room);
     }

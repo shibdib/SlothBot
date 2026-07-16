@@ -155,6 +155,7 @@ let globals = function () {
             getExtensionPositions,
             clearDynamicLayoutMemory,
             auditExtensionPlacement,
+            EXTENSION_LAYOUT_VERSION,
         } = require('planExtensions');
         const {tickTracker} = require('planState');
         const {canPlaceConstructionSite, roomConstructionSiteBudget} = require('planUtils');
@@ -174,6 +175,9 @@ let globals = function () {
             energyCapacity: room.energyCapacityAvailable,
             bunkerHub: room.memory.bunkerHub,
             dynamicLayout: !!room.memory.dynamicLayout,
+            extensionClearanceVersion: room.memory.extensionClearanceVersion,
+            extensionLayoutVersion: EXTENSION_LAYOUT_VERSION,
+            clearancePending: room.memory.extensionClearanceVersion !== EXTENSION_LAYOUT_VERSION,
             needed,
             built,
             extensionSites: sites,
@@ -204,6 +208,73 @@ let globals = function () {
         if (!room) return {error: 'no vision', roomName};
         const {tryPlaceRoomExtensions} = require('planExtensions');
         return tryPlaceRoomExtensions(room);
+    };
+
+    global.purgeInvalidExtensions = function (roomName) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {removeInvalidExtensions} = require('planExtensions');
+        return removeInvalidExtensions(room);
+    };
+
+    // Read-only: which extensions violate clearance and whether version cleanup has run.
+    global.inspectExtensionClearance = function (roomName) {
+        const {auditExtensionClearance} = require('planExtensions');
+        const {tickTracker} = require('planState');
+
+        if (!roomName) {
+            return MY_ROOMS.map((name) => {
+                const room = Game.rooms[name];
+                if (!room) return {roomName: name, error: 'no vision'};
+                const audit = auditExtensionClearance(room);
+                audit.planner = tickTracker[name];
+                return audit;
+            }).filter((r) => r.error || r.clearancePending || r.invalidCount > 0);
+        }
+
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const audit = auditExtensionClearance(room);
+        const {auditOrphanBarriers} = require('planRamparts');
+        audit.orphanBarriers = auditOrphanBarriers(room);
+        audit.planner = tickTracker[roomName];
+        audit.lastPlannerRoom = tickTracker.lastRoom;
+        audit.plannerTick = tickTracker.lastTick;
+        audit.plannerDueThisTick = tickTracker.lastTick < Game.time;
+        return audit;
+    };
+
+    global.purgeOrphanBarriers = function (roomName) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {purgeOrphanBarriers} = require('planRamparts');
+        return purgeOrphanBarriers(room);
+    };
+
+    global.recalculateRamparts = function (roomName) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {recalculateRampartsForRoom} = require('planRamparts');
+        return recalculateRampartsForRoom(room);
+    };
+
+    // Run clearance + rampart recalc now. Pass true to force even if version already matches.
+    global.runExtensionClearance = function (roomName, force) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        if (force) delete room.memory.extensionClearanceVersion;
+        const {ensureExtensionClearance} = require('planExtensions');
+        return ensureExtensionClearance(room, {force: !!force});
+    };
+
+    global.inspectRampartRecalc = function (roomName) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {auditRampartRecalc, auditOrphanBarriers} = require('planRamparts');
+        return {
+            ...auditRampartRecalc(room),
+            orphanBarriers: auditOrphanBarriers(room),
+        };
     };
 
     // Console: inspectOwnedRoads('E1N1') � diagnose why owned-room road sites are/aren't placing.

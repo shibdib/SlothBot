@@ -8,11 +8,14 @@ const {extensionPositionCache, dynamicLayoutCache} = require('planState');
 
 const {bunkerTemplate, coreTemplate} = require('planTemplates');
 
-const {invalidateRampartSpots} = require('planRamparts');
+const {invalidateRampartSpots, recalculateRampartsForRoom} = require('planRamparts');
 const {canPlaceConstructionSite, tryCreateConstructionSite, roomConstructionSiteBudget} = require('planUtils');
 
 const EXTENSION_BATCH_MAX = 3;
 const EXTENSION_BATCH_RUSH = 5;
+const EXTENSION_EXIT_CLEARANCE = 5;
+const EXTENSION_ANCHOR_CLEARANCE = 2;
+const EXTENSION_LAYOUT_VERSION = 2;
 
 function unpackPackedTiles(packed) {
     return packed.map(n => ({x: n % 50, y: Math.floor(n / 50)}));
@@ -34,7 +37,49 @@ function buildLayoutExcluded(room) {
     return excluded;
 }
 
+function isWithinExitClearance(pos) {
+    const exit = pos.findClosestByRange(FIND_EXIT);
+    return exit && pos.getRangeTo(exit) <= EXTENSION_EXIT_CLEARANCE;
+}
+
+function isWithinAnchorClearance(room, pos) {
+    if (room.controller && pos.getRangeTo(room.controller) <= EXTENSION_ANCHOR_CLEARANCE) return true;
+    if (room.mineral && pos.getRangeTo(room.mineral) <= EXTENSION_ANCHOR_CLEARANCE) return true;
+    for (const source of room.sources) {
+        if (pos.getRangeTo(source) <= EXTENSION_ANCHOR_CLEARANCE) return true;
+    }
+    return false;
+}
+
+function getExtensionClearanceViolation(room, pos, excluded) {
+    if (!excluded) excluded = buildLayoutExcluded(room);
+    if (excluded.has(`${pos.x},${pos.y}`)) return 'bunkerCore';
+    if (isWithinExitClearance(pos)) return 'nearExit';
+    if (isWithinAnchorClearance(room, pos)) return 'nearAnchor';
+    return null;
+}
+
+function classifyExtensionTile(room, pos, excluded) {
+    if (pos.checkForWall()) return 'wall';
+    if (pos.checkForImpassible()) return 'impassible';
+    if (pos.checkForConstructionSites()) return 'site';
+    if (pos.checkForAllStructure()) return 'structure';
+    const violation = getExtensionClearanceViolation(room, pos, excluded);
+    if (violation) return violation;
+    return 'ok';
+}
+
+
+function classifySourceAccessTile(room, pos) {
+    if (pos.checkForWall()) return false;
+    if (pos.checkForImpassible()) return false;
+    if (pos.checkForConstructionSites()) return false;
+    if (pos.checkForAllStructure()) return false;
+    return true;
+}
+
 function getExtensionDeficit(room) {
+    if (!room.controller) return 0;
     const needed = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.controller.level] || 0;
     const existing = room.extensions.length +
         room.constructionSites.filter(s => s.structureType === STRUCTURE_EXTENSION).length;
@@ -54,32 +99,74 @@ function getExtensionPlacementLimit(room) {
 function clearDynamicLayoutMemory(room) {
     delete room.memory.dynamicExtensionsPacked;
     delete room.memory.dynamicCorridorPacked;
+    delete room.memory.dynamicExtensionsVersion;
     delete dynamicLayoutCache[room.name];
     delete extensionPositionCache[room.name];
 }
 
-function classifyExtensionTile(room, pos) {
-    if (pos.checkForWall()) return 'wall';
-    if (pos.checkForImpassible()) return 'impassible';
-    if (pos.checkForConstructionSites()) return 'site';
-    if (pos.checkForAllStructure()) return 'structure';
-    if (buildLayoutExcluded(room).has(`${pos.x},${pos.y}`)) return 'bunkerCore';
-    if (pos.isNearTo(room.controller)) return 'nearController';
-    for (const source of room.sources) {
-        if (pos.isNearTo(source)) return 'nearSource';
+function removeInvalidExtensions(room, options = {}) {
+    const {skipRampartRecalc = false} = options;
+    const excluded = buildLayoutExcluded(room);
+    const reasons = {};
+    let structures = 0;
+    let sites = 0;
+
+    for (const ext of room.extensions) {
+        const violation = getExtensionClearanceViolation(room, ext.pos, excluded);
+        if (!violation) continue;
+        try {
+            ext.destroy();
+            structures++;
+            reasons[violation] = (reasons[violation] || 0) + 1;
+        } catch (e) {
+        }
     }
-    return 'ok';
+
+    for (const site of room.constructionSites) {
+        if (site.structureType !== STRUCTURE_EXTENSION) continue;
+        const violation = getExtensionClearanceViolation(room, site.pos, excluded);
+        if (!violation) continue;
+        try {
+            site.remove();
+            sites++;
+            reasons[violation] = (reasons[violation] || 0) + 1;
+        } catch (e) {
+        }
+    }
+
+    const removed = structures + sites;
+    let ramparts;
+    if (!skipRampartRecalc && removed) {
+        ramparts = recalculateRampartsForRoom(room);
+    }
+    if (removed) {
+        log.a(`${room.name} removed ${removed} invalid extension(s) (${structures} built, ${sites} sites): ${JSON.stringify(reasons)}`);
+    }
+    return {removed, structures, sites, reasons, ramparts};
+}
+
+function ensureExtensionClearance(room, options = {}) {
+    const {force = false} = options;
+    if (!force && room.memory.extensionClearanceVersion === EXTENSION_LAYOUT_VERSION) {
+        return {removed: 0, skipped: true};
+    }
+    const result = removeInvalidExtensions(room, {skipRampartRecalc: true});
+    clearDynamicLayoutMemory(room);
+    room.memory.extensionClearanceVersion = EXTENSION_LAYOUT_VERSION;
+    result.ramparts = recalculateRampartsForRoom(room);
+    return result;
 }
 
 function countPlaceableBunkerExtensions(room) {
     const hub = room.hub;
     const entry = bunkerTemplate.find(s => s.structureType === STRUCTURE_EXTENSION);
     if (!entry || !hub) return {placeable: 0, total: 0, blocked: []};
+    const excluded = buildLayoutExcluded(room);
     let placeable = 0;
     const blocked = [];
     for (const buildPos of entry.pos) {
         const pos = new RoomPosition(hub.x + buildPos.x, hub.y + buildPos.y, room.name);
-        const reason = classifyExtensionTile(room, pos);
+        const reason = classifyExtensionTile(room, pos, excluded);
         if (reason === 'ok') placeable++;
         else if (blocked.length < 8) blocked.push({x: pos.x, y: pos.y, reason});
     }
@@ -98,6 +185,38 @@ function assessHubExtensionCapacity(room) {
         placeable,
         fallback,
         deficit,
+    };
+}
+
+function auditExtensionClearance(room) {
+    const excluded = buildLayoutExcluded(room);
+    const invalid = [];
+
+    for (const ext of room.extensions) {
+        const reason = getExtensionClearanceViolation(room, ext.pos, excluded);
+        if (reason) invalid.push({x: ext.pos.x, y: ext.pos.y, kind: 'built', reason});
+    }
+    for (const site of room.constructionSites) {
+        if (site.structureType !== STRUCTURE_EXTENSION) continue;
+        const reason = getExtensionClearanceViolation(room, site.pos, excluded);
+        if (reason) invalid.push({x: site.pos.x, y: site.pos.y, kind: 'site', reason});
+    }
+
+    const rampartSpots = ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name]
+        ? JSON.parse(ROOM_RAMPART_SPOTS[room.name])
+        : null;
+
+    return {
+        roomName: room.name,
+        clearancePending: room.memory.extensionClearanceVersion !== EXTENSION_LAYOUT_VERSION,
+        extensionClearanceVersion: room.memory.extensionClearanceVersion,
+        targetVersion: EXTENSION_LAYOUT_VERSION,
+        dynamicExtensionsVersion: room.memory.dynamicExtensionsVersion,
+        hasBunkerHub: !!(room.memory.bunkerHub && room.memory.bunkerHub.x),
+        invalidExtensions: invalid,
+        invalidCount: invalid.length,
+        rampartSpotsCached: !!rampartSpots,
+        rampartSpotCount: rampartSpots ? rampartSpots.length : 0,
     };
 }
 
@@ -142,18 +261,32 @@ function findExtensionCandidatesNearHub(room) {
             if (excluded.has(key)) continue;
             if ((nx + ny) % 2 !== 0) continue;
             const pos = new RoomPosition(nx, ny, room.name);
-            if (classifyExtensionTile(room, pos) !== 'ok') continue;
+            if (classifyExtensionTile(room, pos, excluded) !== 'ok') continue;
             extensions.push({x: nx, y: ny});
         }
     }
     return extensions;
 }
 
+function filterValidExtensionTiles(room, tiles) {
+    const excluded = buildLayoutExcluded(room);
+    return tiles.filter(({x, y}) => classifyExtensionTile(room, new RoomPosition(x, y, room.name), excluded) === 'ok');
+}
+
 function computeDynamicLayoutTiles(room) {
     if (dynamicLayoutCache[room.name]) return dynamicLayoutCache[room.name];
 
-    if (room.memory.dynamicExtensionsPacked && room.memory.dynamicCorridorPacked) {
-        const extensions = unpackPackedTiles(room.memory.dynamicExtensionsPacked);
+    const hub = room.hub;
+    if (!hub) {
+        const empty = {extensions: [], corridors: []};
+        dynamicLayoutCache[room.name] = empty;
+        extensionPositionCache[room.name] = empty.extensions;
+        return empty;
+    }
+
+    if (room.memory.dynamicExtensionsPacked && room.memory.dynamicCorridorPacked
+        && room.memory.dynamicExtensionsVersion === EXTENSION_LAYOUT_VERSION) {
+        const extensions = filterValidExtensionTiles(room, unpackPackedTiles(room.memory.dynamicExtensionsPacked));
         if (!extensions.length && getExtensionDeficit(room) > 0) {
             clearDynamicLayoutMemory(room);
         } else {
@@ -165,9 +298,10 @@ function computeDynamicLayoutTiles(room) {
             extensionPositionCache[room.name] = layout.extensions;
             return layout;
         }
+    } else if (room.memory.dynamicExtensionsPacked) {
+        clearDynamicLayoutMemory(room);
     }
 
-    const hub = room.hub;
     const excluded = buildLayoutExcluded(room);
     const terrain = Game.map.getRoomTerrain(room.name);
     const extensions = [];
@@ -188,12 +322,9 @@ function computeDynamicLayoutTiles(room) {
             let isExtension = false;
             if ((nx + ny) % 2 === 0) {
                 const pos = new RoomPosition(nx, ny, room.name);
-                if (!pos.checkForImpassible() && !pos.isNearTo(room.controller)) {
-                    const src = pos.findClosestByRange(FIND_SOURCES);
-                    if (!(src && pos.isNearTo(src))) {
-                        extensions.push({x: nx, y: ny});
-                        isExtension = true;
-                    }
+                if (classifyExtensionTile(room, pos, excluded) === 'ok') {
+                    extensions.push({x: nx, y: ny});
+                    isExtension = true;
                 }
             }
             if (!isExtension) corridors.push({x: nx, y: ny});
@@ -205,6 +336,7 @@ function computeDynamicLayoutTiles(room) {
     extensionPositionCache[room.name] = extensions;
     room.memory.dynamicExtensionsPacked = packTiles(extensions);
     room.memory.dynamicCorridorPacked = packTiles(corridors);
+    room.memory.dynamicExtensionsVersion = EXTENSION_LAYOUT_VERSION;
     if (room.memory.dynamicExtensions) room.memory.dynamicExtensions = undefined;
     invalidateRampartSpots(room);
     log.a(`${room.name} generated ${extensions.length} dynamic extensions and ${corridors.length} corridor tiles`);
@@ -212,11 +344,14 @@ function computeDynamicLayoutTiles(room) {
 }
 
 function placeExtensionsFromCandidates(room, positions, maxPlacements = 1) {
+    const excluded = buildLayoutExcluded(room);
     let placed = 0;
     for (const {x, y} of positions) {
         if (placed >= maxPlacements || getExtensionDeficit(room) <= 0) break;
         if (!canPlaceConstructionSite(room)) break;
-        const result = tryCreateConstructionSite(new RoomPosition(x, y, room.name), STRUCTURE_EXTENSION);
+        const pos = new RoomPosition(x, y, room.name);
+        if (classifyExtensionTile(room, pos, excluded) !== 'ok') continue;
+        const result = tryCreateConstructionSite(pos, STRUCTURE_EXTENSION);
         if (result === OK) {
             placed++;
             invalidateRampartSpots(room);
@@ -231,11 +366,12 @@ function placeBunkerExtensions(room, maxPlacements = 1) {
     const hub = room.hub;
     const entry = bunkerTemplate.find(s => s.structureType === STRUCTURE_EXTENSION);
     if (!entry || !hub || getExtensionDeficit(room) <= 0) return 0;
+    const excluded = buildLayoutExcluded(room);
     let placed = 0;
     for (const buildPos of entry.pos) {
         if (placed >= maxPlacements) break;
         const pos = new RoomPosition(hub.x + buildPos.x, hub.y + buildPos.y, room.name);
-        if (classifyExtensionTile(room, pos) !== 'ok') continue;
+        if (classifyExtensionTile(room, pos, excluded) !== 'ok') continue;
         if (!canPlaceConstructionSite(room)) break;
         if (tryCreateConstructionSite(pos, STRUCTURE_EXTENSION) === OK) {
             placed++;
@@ -265,7 +401,8 @@ function placeRoomExtensions(room) {
 }
 
 function tryPlaceRoomExtensions(room) {
-    if (getExtensionDeficit(room) <= 0) return {placed: false, reason: 'none needed'};
+    const clearance = ensureExtensionClearance(room);
+    if (getExtensionDeficit(room) <= 0) return {placed: false, reason: 'none needed', clearance};
     const limit = getExtensionPlacementLimit(room);
     if (limit <= 0) return {placed: false, reason: 'no site budget', siteBudget: roomConstructionSiteBudget(room)};
     if (room.memory.dynamicLayout) {
@@ -295,6 +432,7 @@ function tryPlaceRoomExtensions(room) {
 
 function buildSourceExtensions(room) {
     const hub = room.hub;
+    const excluded = buildLayoutExcluded(room);
 
     for (const source of room.sources) {
         const container = Game.getObjectById(source.memory.container);
@@ -308,30 +446,33 @@ function buildSourceExtensions(room) {
             continue;
         }
 
-        const candidates = [];
+        const accessCandidates = [];
+        const extensionCandidates = [];
         for (let dx = -1; dx <= 1; dx++) {
             for (let dy = -1; dy <= 1; dy++) {
                 if (!dx && !dy) continue;
                 const x = container.pos.x + dx, y = container.pos.y + dy;
                 if (x < 1 || x > 48 || y < 1 || y > 48) continue;
                 const pos = new RoomPosition(x, y, room.name);
-                if (pos.checkForWall()) continue;
-                if (pos.isEqualTo(source.pos)) continue;
                 if (pos.isEqualTo(link.pos)) continue;
-                if (pos.checkForAllStructure() || pos.checkForConstructionSites()) continue;
-                candidates.push(pos);
+                if (classifySourceAccessTile(room, pos)) accessCandidates.push(pos);
+                if (classifyExtensionTile(room, pos, excluded) !== 'ok') continue;
+                if (hub && pos.getRangeTo(hub) <= 5) continue;
+                extensionCandidates.push(pos);
             }
         }
 
-        let reserved = null;
-        if (hub && candidates.length > 0) {
-            reserved = _.min(candidates, p => p.getRangeTo(hub));
+        if (hub && accessCandidates.length > 0) {
+            const reserved = _.min(accessCandidates, p => p.getRangeTo(hub));
             source.memory.accessReserved = {x: reserved.x, y: reserved.y};
+        } else {
+            delete source.memory.accessReserved;
         }
 
-        for (const pos of candidates) {
-            if (reserved && pos.isEqualTo(reserved)) continue;
-            if (hub && pos.getRangeTo(hub) <= 5) continue;
+        for (const pos of extensionCandidates) {
+            if (source.memory.accessReserved
+                && pos.x === source.memory.accessReserved.x
+                && pos.y === source.memory.accessReserved.y) continue;
             if (!canPlaceConstructionSite(room)) return false;
             if (tryCreateConstructionSite(pos, STRUCTURE_EXTENSION) === OK) {
                 invalidateRampartSpots(room);
@@ -371,8 +512,15 @@ module.exports = {
     getCorridorPositions,
     getExtensionDeficit,
     clearDynamicLayoutMemory,
+    removeInvalidExtensions,
+    ensureExtensionClearance,
     countPlaceableBunkerExtensions,
     assessHubExtensionCapacity,
+    auditExtensionClearance,
     auditExtensionPlacement,
     getExtensionPlacementLimit,
+    classifyExtensionTile,
+    EXTENSION_EXIT_CLEARANCE,
+    EXTENSION_ANCHOR_CLEARANCE,
+    EXTENSION_LAYOUT_VERSION,
 };
