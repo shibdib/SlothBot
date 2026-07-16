@@ -119,6 +119,15 @@ class RoleLabTech {
             };
         }
 
+        // -- PRIORITY 1: MINERAL CONTAINER OVERFULL --
+        if (storeTarget) {
+            const resourceContainer = this.room.containers.find(s => s.store.getUsedCapacity() > s.store.getUsedCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity());
+            if (resourceContainer) {
+                const res = Object.keys(resourceContainer.store).find(r => r !== RESOURCE_ENERGY && resourceContainer.store[r] > 0);
+                if (res) return {withdrawTarget: resourceContainer.id, deliveryTarget: storeTarget.id, resource: res};
+            }
+        }
+
         // -- PRIORITY 0.5: ACTIVE LAB REACTIONS (hub inputs + output energy) --
         if (this.room.memory.producingBoost) {
             const productionTask = this.findLabProductionTask(labs, labStructMem, storage, terminal);
@@ -215,23 +224,14 @@ class RoleLabTech {
             };
         }
 
-        // -- PRIORITY 1: FACTORY BATTERY FEED (full loads, leave room for unpack output) --
-        if (factory && FactoryControl.shouldContinueBatteryUnpack(this.room)) {
-            const batteryTask = this.findFactoryBatterySupply(factory, storage, terminal);
-            if (batteryTask) return batteryTask;
-        }
-
         // -- PRIORITY 1: URGENT BALANCING STORAGE & TERMINAL --
         let balancingTask = this.findBalancingTask(storage, terminal, 1000);
         if (balancingTask) return balancingTask;
 
-        // -- PRIORITY 1: MINERAL CONTAINER OVERFULL --
-        if (storeTarget) {
-            const resourceContainer = this.room.containers.find(s => s.store.getUsedCapacity() > s.store.getUsedCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity());
-            if (resourceContainer) {
-                const res = Object.keys(resourceContainer.store).find(r => r !== RESOURCE_ENERGY && resourceContainer.store[r] > 0);
-                if (res) return {withdrawTarget: resourceContainer.id, deliveryTarget: storeTarget.id, resource: res};
-            }
+        // -- PRIORITY 1: FACTORY BATTERY FEED (full loads, leave room for unpack output) --
+        if (factory && FactoryControl.shouldContinueBatteryUnpack(this.room)) {
+            const batteryTask = this.findFactoryBatterySupply(factory, storage, terminal);
+            if (batteryTask) return batteryTask;
         }
 
         // -- PRIORITY 7: CLEANUP (dropped resources, tombstones) --
