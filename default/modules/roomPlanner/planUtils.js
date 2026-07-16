@@ -322,7 +322,9 @@ function determineTowerDamage(range) {
 function isCoreHubTileValid(pos, room) {
     if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) return false;
     const src = pos.findClosestByRange(FIND_SOURCES);
-    return !pos.checkForImpassible() && !pos.isNearTo(room.controller) && !(src && pos.isNearTo(src));
+    if (pos.checkForImpassible() || pos.isNearTo(room.controller)) return false;
+    if (room.mineral && pos.isNearTo(room.mineral)) return false;
+    return !(src && pos.isNearTo(src));
 }
 
 

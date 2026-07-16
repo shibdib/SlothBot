@@ -283,6 +283,74 @@ let globals = function () {
         return audit;
     };
 
+    // Wipe towers, re-search ring hubs (dist 6-10), and recalculate ramparts.
+    // resetAllTowerLayouts() queues one room per planner tick; pass true to run all now.
+    global.resetTowerLayout = function (roomName) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {resetTowerLayoutForRoom} = require('planHub');
+        return resetTowerLayoutForRoom(room);
+    };
+
+    global.resetAllTowerLayouts = function (immediate) {
+        const {resetTowerLayoutForRoom, queueTowerLayoutReset} = require('planHub');
+        const roomNames = (MY_ROOMS && MY_ROOMS.length)
+            ? MY_ROOMS.slice()
+            : Object.values(Game.rooms)
+                .filter((r) => r.controller && r.controller.my)
+                .map((r) => r.name);
+
+        if (!immediate) {
+            const queue = queueTowerLayoutReset(roomNames);
+            return {
+                ...queue,
+                rooms: roomNames,
+                mode: 'queued',
+                note: 'one room per planner tick until queue is empty',
+            };
+        }
+
+        const results = [];
+        for (const name of roomNames) {
+            const room = Game.rooms[name];
+            if (!room) {
+                results.push({roomName: name, error: 'no vision'});
+                continue;
+            }
+            results.push(resetTowerLayoutForRoom(room));
+        }
+        return {
+            mode: 'immediate',
+            rooms: roomNames.length,
+            results,
+        };
+    };
+
+    global.inspectTowerLayoutReset = function () {
+        const {TOWER_LAYOUT_VERSION} = require('planHub');
+        const roomNames = (MY_ROOMS && MY_ROOMS.length)
+            ? MY_ROOMS.slice()
+            : Object.values(Game.rooms)
+                .filter((r) => r.controller && r.controller.my)
+                .map((r) => r.name);
+        return {
+            targetVersion: TOWER_LAYOUT_VERSION,
+            queue: Memory.towerLayoutResetQueue || [],
+            rooms: roomNames.map((name) => {
+                const room = Game.rooms[name];
+                if (!room) return {roomName: name, error: 'no vision'};
+                return {
+                    roomName: name,
+                    towerLayoutVersion: room.memory.towerLayoutVersion,
+                    pending: (Memory.towerLayoutResetQueue || []).includes(name),
+                    towerHubs: room.memory.towerHubs ? room.memory.towerHubs.length : 0,
+                    builtTowers: room.towers.length,
+                    towerSites: room.constructionSites.filter((s) => s.structureType === STRUCTURE_TOWER).length,
+                };
+            }),
+        };
+    };
+
     // Console: inspectOwnedRoads('E1N1') � diagnose why owned-room road sites are/aren't placing.
     global.inspectOwnedRoads = function (roomName) {
         const room = Game.rooms[roomName];

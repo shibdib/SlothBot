@@ -15,9 +15,16 @@ const LAB_HUB_SEARCH_COOLDOWN = 500;
 
 const {getUndefendedExits, determineTowerDamage, isCoreHubTileValid, safeStructureOwner} = require('planUtils');
 
-const {assessHubExtensionCapacity, clearDynamicLayoutMemory} = require('planExtensions');
+const {
+    assessHubExtensionCapacity,
+    clearDynamicLayoutMemory,
+    countPlaceableBunkerExtensionsAt
+} = require('planExtensions');
 
 const HUB_EXTENSION_VALIDATE_COOLDOWN = 500;
+const TOWER_HUB_MIN_DIST = 6;
+const TOWER_HUB_MAX_DIST = 10;
+const TOWER_LAYOUT_VERSION = 1;
 
 function validateHubExtensionCapacity(room) {
     if (room.memory.dynamicLayout) return true;
@@ -87,8 +94,14 @@ function findHub(room, hubCheck = undefined) {
         }
 
     if (possiblePos.length) {
-        log.a(`${room.name} hub search complete â€” ${possiblePos.length} candidates`);
-        const choice = _.min(possiblePos, p => {
+        for (const p of possiblePos) {
+            p.placeable = countPlaceableBunkerExtensionsAt(room, p.x, p.y).placeable;
+        }
+        const maxPlaceable = _.max(possiblePos, 'placeable').placeable;
+        const tier = possiblePos.filter(p => p.placeable === maxPlaceable);
+        const extensionTotal = bunkerTemplate.find(s => s.structureType === STRUCTURE_EXTENSION).pos.length;
+        log.a(`${room.name} hub search: ${possiblePos.length} candidates, best extension fit ${maxPlaceable}/${extensionTotal}`);
+        const choice = _.min(tier, p => {
             const pos = new RoomPosition(p.x, p.y, room.name);
             const sourceDist = pos.getRangeTo(_.min(sources, s => pos.getRangeTo(s))) * 2;
             const controllerDist = pos.getRangeTo(room.controller) * 1.5;
@@ -96,7 +109,7 @@ function findHub(room, hubCheck = undefined) {
             return sourceDist + controllerDist - edgeBonus;
         });
         room.memory.bunkerHub = {x: choice.x, y: choice.y};
-        log.a(`Hub at (${choice.x}, ${choice.y}) in ${room.name}`);
+        log.a(`Hub at (${choice.x}, ${choice.y}) in ${room.name} — ${choice.placeable} bunker extension slots`);
         return true;
     } else {
         return handleNoValidPosition(room, hubCheck);
@@ -110,6 +123,7 @@ function findHub(room, hubCheck = undefined) {
                 if (sp.x < 1 || sp.x > 48 || sp.y < 1 || sp.y > 48) return false;
                 if (sp.checkForImpassible()) return false;
                 if (sp.isNearTo(room.controller)) return false;
+                if (room.mineral && sp.isNearTo(room.mineral)) return false;
                 if (sources.some(src => sp.isNearTo(src))) return false;
             }
         }
@@ -336,6 +350,93 @@ function buildTowersFromHubs(room) {
 }
 
 
+function wipeTowersInRoom(room) {
+    let towers = 0;
+    let sites = 0;
+    let failed = 0;
+
+    for (const tower of room.towers) {
+        try {
+            if (tower.destroy() === OK) towers++;
+        } catch (e) {
+            failed++;
+        }
+    }
+
+    for (const site of room.constructionSites) {
+        if (site.structureType !== STRUCTURE_TOWER) continue;
+        try {
+            site.remove();
+            sites++;
+        } catch (e) {
+            failed++;
+        }
+    }
+
+    return {towers, sites, failed};
+}
+
+function resetTowerLayoutForRoom(room) {
+    if (!room.controller || !room.controller.my) {
+        return {roomName: room.name, skipped: true, reason: 'not owned'};
+    }
+    if (!room.memory.bunkerHub || !room.memory.bunkerHub.x) {
+        return {roomName: room.name, skipped: true, reason: 'no hub'};
+    }
+
+    const wiped = wipeTowersInRoom(room);
+    const oldTowerHubs = room.memory.towerHubs ? room.memory.towerHubs.length : 0;
+    delete room.memory.towerHubs;
+
+    findTowerHub(room);
+    const newTowerHubs = room.memory.towerHubs ? room.memory.towerHubs.length : 0;
+
+    const {recalculateRampartsForRoom} = require('planRamparts');
+    const ramparts = recalculateRampartsForRoom(room);
+
+    room.memory.towerLayoutVersion = TOWER_LAYOUT_VERSION;
+    log.a(`${room.name} tower layout reset: destroyed ${wiped.towers} tower(s), ${wiped.sites} site(s), hubs ${oldTowerHubs}->${newTowerHubs}, ramparts ${ramparts.spots} spot(s)`);
+
+    return {
+        roomName: room.name,
+        wiped,
+        oldTowerHubs,
+        newTowerHubs,
+        towerHubs: room.memory.towerHubs,
+        ramparts,
+    };
+}
+
+function queueTowerLayoutReset(roomNames) {
+    const pending = (Memory.towerLayoutResetQueue || []).slice();
+    const seen = new Set(pending);
+    let added = 0;
+    for (const name of roomNames) {
+        if (!name || seen.has(name)) continue;
+        seen.add(name);
+        pending.push(name);
+        added++;
+    }
+    if (pending.length) Memory.towerLayoutResetQueue = pending;
+    else delete Memory.towerLayoutResetQueue;
+    return {queued: pending.length, added};
+}
+
+function processTowerLayoutResetQueue() {
+    const queue = Memory.towerLayoutResetQueue;
+    if (!queue || !queue.length) return null;
+
+    const roomName = queue.shift();
+    if (!queue.length) delete Memory.towerLayoutResetQueue;
+    else Memory.towerLayoutResetQueue = queue;
+
+    const room = Game.rooms[roomName];
+    if (!room) {
+        return {roomName, error: 'no vision', remaining: queue.length};
+    }
+    return resetTowerLayoutForRoom(room);
+}
+
 function recoverTowerHubsFromTowers(room) {
     const positions = [];
     const seen = new Set();
@@ -398,7 +499,7 @@ function findTowerHub(room) {
         for (let y = 4; y <= 45; y++) {
             if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
             const hubDist = cheby(x, y, hubX, hubY);
-            if (hubDist < 6 || hubDist > 23) continue;                     // not inside core, not too far out
+            if (hubDist < TOWER_HUB_MIN_DIST || hubDist > TOWER_HUB_MAX_DIST) continue;
             if (srcPos.some(p => cheby(x, y, p.x, p.y) < 3)) continue;    // away from sources
             if (cheby(x, y, ctrlPos.x, ctrlPos.y) < 3) continue;           // away from controller
             if (minPos && cheby(x, y, minPos.x, minPos.y) < 3) continue;   // away from mineral
@@ -481,5 +582,13 @@ module.exports = {
     findTowerHub,
 
     buildTowersFromHubs,
+
+    resetTowerLayoutForRoom,
+
+    queueTowerLayoutReset,
+
+    processTowerLayoutResetQueue,
+
+    TOWER_LAYOUT_VERSION,
 
 };

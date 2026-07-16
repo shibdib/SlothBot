@@ -21,6 +21,24 @@ const {
 } = require('planUtils');
 
 const PERIMETER_ORPHAN_EXIT_CLEARANCE = 5;
+const TOWER_BUNKER_RING = 5;
+const TOWER_CORRIDOR_MAX_STEPS = 4;
+
+function chebyDistance(ax, ay, bx, by) {
+    return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+}
+
+function getTowerCorridorPathSteps(fromPos, hub) {
+    const path = fromPos.findPathTo(hub, {ignoreCreeps: true, maxOps: 4000});
+    const steps = [];
+    for (let i = 0; i < path.length && i < TOWER_CORRIDOR_MAX_STEPS; i++) {
+        const step = path[i];
+        if (chebyDistance(step.x, step.y, hub.x, hub.y) <= TOWER_BUNKER_RING) break;
+        steps.push(step);
+    }
+    return steps;
+}
+
 function clampRect(rect) {
     const min = 2;
     const max = 47;
@@ -184,8 +202,7 @@ function getTowerProtectionRects(room) {
     }
     for (const tp of towerPositions) {
         pushProtectionRect(rects, tp.x, tp.y, borderInsetRadius(tp.x, tp.y, 2));
-        const path = tp.findPathTo(hub, {ignoreCreeps: true, maxOps: 4000});
-        for (const step of path) {
+        for (const step of getTowerCorridorPathSteps(tp, hub)) {
             pushProtectionRect(rects, step.x, step.y, borderInsetRadius(step.x, step.y, 2));
         }
     }
@@ -196,20 +213,25 @@ function getRampartWalkCorridors(room) {
     const keys = new Set();
     const hub = room.hub;
     if (!hub) return keys;
-    const addPath = (from) => {
+    const addFullPath = (from) => {
         const path = from.findPathTo(hub, {ignoreCreeps: true, maxOps: 4000});
         for (const step of path) keys.add(step.x + ',' + step.y);
     };
-    for (const tower of room.towers) addPath(tower.pos);
+    const addTowerPath = (from) => {
+        for (const step of getTowerCorridorPathSteps(from, hub)) {
+            keys.add(step.x + ',' + step.y);
+        }
+    };
+    for (const tower of room.towers) addTowerPath(tower.pos);
     if (room.memory.towerHubs) {
         for (const {x, y} of room.memory.towerHubs) {
-            addPath(new RoomPosition(x, y, room.name));
+            addTowerPath(new RoomPosition(x, y, room.name));
         }
     }
     for (const source of room.sources) {
         const container = Game.getObjectById(source.memory.container);
         if (!container) continue;
-        addPath(container.pos);
+        addFullPath(container.pos);
         if (source.memory.accessReserved) {
             keys.add(source.memory.accessReserved.x + ',' + source.memory.accessReserved.y);
         }

@@ -25,8 +25,8 @@ function packTiles(tiles) {
     return tiles.map(p => p.x + p.y * 50);
 }
 
-function buildLayoutExcluded(room) {
-    const hub = room.memory.bunkerHub;
+function buildLayoutExcluded(room, hubOverride) {
+    const hub = hubOverride || room.memory.bunkerHub;
     if (!hub || hub.x === undefined) return new Set();
     const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
     const excluded = new Set([`${hub.x},${hub.y}`]);
@@ -158,20 +158,25 @@ function ensureExtensionClearance(room, options = {}) {
     return result;
 }
 
-function countPlaceableBunkerExtensions(room) {
-    const hub = room.hub;
+function countPlaceableBunkerExtensionsAt(room, hubX, hubY) {
     const entry = bunkerTemplate.find(s => s.structureType === STRUCTURE_EXTENSION);
-    if (!entry || !hub) return {placeable: 0, total: 0, blocked: []};
-    const excluded = buildLayoutExcluded(room);
+    if (!entry) return {placeable: 0, total: 0, blocked: []};
+    const excluded = buildLayoutExcluded(room, {x: hubX, y: hubY});
     let placeable = 0;
     const blocked = [];
     for (const buildPos of entry.pos) {
-        const pos = new RoomPosition(hub.x + buildPos.x, hub.y + buildPos.y, room.name);
+        const pos = new RoomPosition(hubX + buildPos.x, hubY + buildPos.y, room.name);
         const reason = classifyExtensionTile(room, pos, excluded);
         if (reason === 'ok') placeable++;
         else if (blocked.length < 8) blocked.push({x: pos.x, y: pos.y, reason});
     }
     return {placeable, total: entry.pos.length, blocked};
+}
+
+function countPlaceableBunkerExtensions(room) {
+    const hub = room.memory.bunkerHub;
+    if (!hub || hub.x === undefined) return {placeable: 0, total: 0, blocked: []};
+    return countPlaceableBunkerExtensionsAt(room, hub.x, hub.y);
 }
 
 function assessHubExtensionCapacity(room) {
@@ -517,6 +522,7 @@ module.exports = {
     removeInvalidExtensions,
     ensureExtensionClearance,
     countPlaceableBunkerExtensions,
+    countPlaceableBunkerExtensionsAt,
     assessHubExtensionCapacity,
     auditExtensionClearance,
     auditExtensionPlacement,

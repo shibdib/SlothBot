@@ -9,7 +9,7 @@ const {isColonyEarlyRush} = require('bodyHelpers');
 
 const {buildMissingStructures, buildAuxiliaryStructures, hasPendingLayoutStructures} = require('planLayout');
 
-const {findHub, findLabHub, findTowerHub} = require('planHub');
+const {findHub, findLabHub, findTowerHub, processTowerLayoutResetQueue} = require('planHub');
 
 const {planOwnedRoomRoads} = require('planRoads');
 const {getExtensionDeficit} = require('planExtensions');
@@ -52,6 +52,12 @@ function shouldRunAuxiliary(lastRun) {
 function buildRoom() {
 
     if (!shouldRunAtAll()) return;
+
+    if (Memory.towerLayoutResetQueue && Memory.towerLayoutResetQueue.length) {
+        processTowerLayoutResetQueue();
+        tickTracker['lastTick'] = Game.time + 1;
+        return;
+    }
 
     let room = getNextRoom();
     if (!room) return;
