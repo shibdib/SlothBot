@@ -677,6 +677,9 @@ let globals = function () {
     };
     global.DUMP_AMOUNT = 50000; // Fills buys (or if overflowing it will offload to other terminals)
     global.REACTION_AMOUNT = 10000; // Minimum amount we aim for base minerals
+    // Per-tick lab reaction cost (not exposed as Screeps API constants).
+    global.LAB_REACTION_MINERAL = 5;
+    global.LAB_REACTION_ENERGY = 5;
 
     // Versioning for cache purposes
     global.PATHFINDER_VERSION = 1;
