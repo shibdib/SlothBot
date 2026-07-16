@@ -54,6 +54,7 @@ function isWithinAnchorClearance(room, pos) {
 function getExtensionClearanceViolation(room, pos, excluded) {
     if (!excluded) excluded = buildLayoutExcluded(room);
     if (excluded.has(`${pos.x},${pos.y}`)) return 'bunkerCore';
+    if (!room.memory.dynamicLayout) return null;
     if (isWithinExitClearance(pos)) return 'nearExit';
     if (isWithinAnchorClearance(room, pos)) return 'nearAnchor';
     return null;
@@ -212,6 +213,7 @@ function auditExtensionClearance(room) {
         extensionClearanceVersion: room.memory.extensionClearanceVersion,
         targetVersion: EXTENSION_LAYOUT_VERSION,
         dynamicExtensionsVersion: room.memory.dynamicExtensionsVersion,
+        dynamicLayout: !!room.memory.dynamicLayout,
         hasBunkerHub: !!(room.memory.bunkerHub && room.memory.bunkerHub.x),
         invalidExtensions: invalid,
         invalidCount: invalid.length,
