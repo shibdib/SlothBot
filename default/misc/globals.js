@@ -270,11 +270,17 @@ let globals = function () {
     global.inspectRampartRecalc = function (roomName) {
         const room = Game.rooms[roomName];
         if (!room) return {error: 'no vision', roomName};
-        const {auditRampartRecalc, auditOrphanBarriers} = require('planRamparts');
-        return {
-            ...auditRampartRecalc(room),
-            orphanBarriers: auditOrphanBarriers(room),
-        };
+        const {auditRampartRecalc, auditStrayBarriers, previewRampartCleanup} = require('planRamparts');
+        const audit = auditRampartRecalc(room);
+        if (audit.cachedSpots > 0) {
+            audit.strayBarriers = auditStrayBarriers(room);
+        } else if (audit.canCompute) {
+            audit.preview = previewRampartCleanup(room);
+            audit.strayBarriers = audit.preview.strayBarriers;
+        } else {
+            audit.strayBarriers = {count: 0, strays: [], reason: 'cannot compute perimeter'};
+        }
+        return audit;
     };
 
     // Console: inspectOwnedRoads('E1N1') � diagnose why owned-room road sites are/aren't placing.

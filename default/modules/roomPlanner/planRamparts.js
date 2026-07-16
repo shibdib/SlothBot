@@ -244,6 +244,92 @@ function isNearNewPerimeterSpot(pos, newSpotSet) {
     return false;
 }
 
+
+function isRemovableStrayBarrier(pos, room, perimeterSpotSet) {
+    if (perimeterSpotSet.has(`${pos.x},${pos.y}`)) return false;
+    if (!isPerimeterBarrierTile(pos)) return false;
+    if (isOnSourcePad(pos, room)) return false;
+    if (hasBarrierUnderlay(pos)) return false;
+    if (pos.isNearTo(room.controller) || (room.mineral && pos.isNearTo(room.mineral))) return false;
+    for (const source of room.sources) {
+        if (pos.isNearTo(source)) return false;
+    }
+    return true;
+}
+
+function auditStrayBarriers(room, spots) {
+    let perimeterSpots = spots;
+    if (!perimeterSpots) {
+        perimeterSpots = ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name]
+            ? JSON.parse(ROOM_RAMPART_SPOTS[room.name])
+            : null;
+    }
+    if (!perimeterSpots || !perimeterSpots.length) {
+        return {count: 0, strays: [], reason: 'no perimeter spots (run recalculateRamparts first)'};
+    }
+    const perimeterSpotSet = new Set(perimeterSpots.map(p => `${p.x},${p.y}`));
+    const strays = [];
+    for (const s of room.structures) {
+        if (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL) continue;
+        if (!isRemovableStrayBarrier(s.pos, room, perimeterSpotSet)) continue;
+        strays.push({x: s.pos.x, y: s.pos.y, kind: 'built', type: s.structureType});
+    }
+    for (const site of room.constructionSites) {
+        if (site.structureType !== STRUCTURE_RAMPART && site.structureType !== STRUCTURE_WALL) continue;
+        if (!isRemovableStrayBarrier(site.pos, room, perimeterSpotSet)) continue;
+        strays.push({x: site.pos.x, y: site.pos.y, kind: 'site', type: site.structureType});
+    }
+    return {count: strays.length, strays, perimeterSpots: perimeterSpots.length};
+}
+
+function removeStrayPerimeterBarriers(room, perimeterSpotSet) {
+    if (!perimeterSpotSet || !perimeterSpotSet.size) return 0;
+    let removed = 0;
+
+    for (const s of room.structures) {
+        if (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL) continue;
+        if (!isRemovableStrayBarrier(s.pos, room, perimeterSpotSet)) continue;
+        try {
+            if (s.destroy() === OK) removed++;
+        } catch (e) {
+        }
+    }
+
+    for (const site of room.constructionSites) {
+        if (site.structureType !== STRUCTURE_RAMPART && site.structureType !== STRUCTURE_WALL) continue;
+        if (!isRemovableStrayBarrier(site.pos, room, perimeterSpotSet)) continue;
+        try {
+            site.remove();
+            removed++;
+        } catch (e) {
+        }
+    }
+
+    if (removed && room.memory.quadTrapWalls && room.memory.quadTrapWalls.length) {
+        const before = room.memory.quadTrapWalls.length;
+        room.memory.quadTrapWalls = room.memory.quadTrapWalls.filter(p =>
+            !isRemovableStrayBarrier(new RoomPosition(p.x, p.y, room.name), room, perimeterSpotSet));
+        if (room.memory.quadTrapWalls.length < before) quadTraps[room.name] = undefined;
+    }
+
+    return removed;
+}
+
+function previewRampartCleanup(room, layout) {
+    const tmpl = layout || (room.memory.dynamicLayout ? coreTemplate : bunkerTemplate);
+    const saved = ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name];
+    if (!shouldComputeBunkerRampartSpots(room)) {
+        return {spots: 0, strayBarriers: auditStrayBarriers(room), reason: 'cannot compute'};
+    }
+    initializeRampartSpots(room, tmpl, false);
+    const spots = ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name]
+        ? JSON.parse(ROOM_RAMPART_SPOTS[room.name])
+        : [];
+    const strayBarriers = auditStrayBarriers(room, spots);
+    if (!saved) delete ROOM_RAMPART_SPOTS[room.name];
+    return {spots: spots.length, strayBarriers};
+}
+
 function isOrphanedUncachedBarrier(pos, room, newSpotSet) {
     if (newSpotSet.has(`${pos.x},${pos.y}`)) return false;
     if (!isPerimeterBarrierTile(pos)) return false;
@@ -429,14 +515,19 @@ function auditOrphanBarriers(room) {
 }
 
 function purgeOrphanBarriers(room) {
-    const audit = auditOrphanBarriers(room);
-    if (!audit.orphans.length) return {removed: 0, ...audit};
-    const newSpotSet = new Set(
+    if (!ROOM_RAMPART_SPOTS || !ROOM_RAMPART_SPOTS[room.name]) {
+        return recalculateRampartsForRoom(room);
+    }
+    const strayAudit = auditStrayBarriers(room);
+    if (!strayAudit.count) return {removed: 0, ...strayAudit};
+    const perimeterSpotSet = new Set(
         JSON.parse(ROOM_RAMPART_SPOTS[room.name]).map(p => `${p.x},${p.y}`)
     );
-    const removed = removeUncachedPerimeterBarriers(room, newSpotSet);
+    const removedOrphans = removeUncachedPerimeterBarriers(room, perimeterSpotSet);
+    const removedStrays = removeStrayPerimeterBarriers(room, perimeterSpotSet);
+    const removed = removedOrphans + removedStrays;
     if (removed) quadTraps[room.name] = undefined;
-    return {removed, ...auditOrphanBarriers(room)};
+    return {removed, removedOrphans, removedStrays, ...auditStrayBarriers(room)};
 }
 
 function recalculateRampartsForRoom(room, layout) {
@@ -468,16 +559,19 @@ function recalculateRampartsForRoom(room, layout) {
     const newSpotSet = new Set(newSpots.map(p => `${p.x},${p.y}`));
     let removedBarriers = removeStalePerimeterBarriers(room, oldSpotSet, newSpotSet);
     let removedOrphans = 0;
+    let removedStrays = 0;
     if (newSpotSet.size) {
         removedOrphans = removeUncachedPerimeterBarriers(room, newSpotSet);
-        removedBarriers += removedOrphans;
+        removedStrays = removeStrayPerimeterBarriers(room, newSpotSet);
+        removedBarriers += removedOrphans + removedStrays;
     }
 
     if (removedBarriers) {
-        const detail = removedOrphans
-            ? ` (${removedOrphans} uncached orphan(s))`
-            : '';
-        log.a(`${room.name} removed ${removedBarriers} stale perimeter barrier(s) after extension layout change${detail}`);
+        const detail = [];
+        if (removedOrphans) detail.push(`${removedOrphans} orphan(s)`);
+        if (removedStrays) detail.push(`${removedStrays} stray(s)`);
+        const detailText = detail.length ? ` (${detail.join(', ')})` : '';
+        log.a(`${room.name} removed ${removedBarriers} stale perimeter barrier(s) after extension layout change${detailText}`);
         quadTraps[room.name] = undefined;
     }
 
@@ -485,6 +579,7 @@ function recalculateRampartsForRoom(room, layout) {
         spots: newSpots.length,
         removedBarriers,
         removedOrphans,
+        removedStrays,
         audit: auditRampartRecalc(room, tmpl),
     };
 }
@@ -757,6 +852,10 @@ module.exports = {
     recalculateRampartsForRoom,
 
     auditRampartRecalc,
+
+    auditStrayBarriers,
+
+    previewRampartCleanup,
 
     shouldComputeBunkerRampartSpots,
 
