@@ -23,17 +23,86 @@ function setRoadsBuiltFlag(room, value) {
     else intel.roadsBuilt = value;
 }
 
+function globalConstructionSiteLimit() {
+    return global.GLOBAL_CONSTRUCTION_SITE_LIMIT || 100;
+}
+
 function maxConstructionSitesPerRoom() {
     return MAX_CONSTRUCTION_SITES_PER_ROOM || 10;
 }
 
+let pendingSiteTick = -1;
+let pendingGlobalSites = 0;
+const pendingRoomSites = Object.create(null);
+const pendingRoomSitesByType = Object.create(null);
+
+function resetPendingSitePlacementsIfNeeded() {
+    if (pendingSiteTick === Game.time) return;
+    pendingSiteTick = Game.time;
+    pendingGlobalSites = 0;
+    for (const key in pendingRoomSites) delete pendingRoomSites[key];
+    for (const key in pendingRoomSitesByType) delete pendingRoomSitesByType[key];
+}
+
+function recordPendingSitePlacement(roomName, structureType) {
+    resetPendingSitePlacementsIfNeeded();
+    pendingGlobalSites++;
+    pendingRoomSites[roomName] = (pendingRoomSites[roomName] || 0) + 1;
+    if (!pendingRoomSitesByType[roomName]) pendingRoomSitesByType[roomName] = Object.create(null);
+    pendingRoomSitesByType[roomName][structureType] =
+        (pendingRoomSitesByType[roomName][structureType] || 0) + 1;
+}
+
+function countGlobalConstructionSites() {
+    resetPendingSitePlacementsIfNeeded();
+    let n = pendingGlobalSites;
+    for (const id in Game.constructionSites) n++;
+    return n;
+}
+
+function countRoomConstructionSites(roomName) {
+    resetPendingSitePlacementsIfNeeded();
+    let n = pendingRoomSites[roomName] || 0;
+    for (const id in Game.constructionSites) {
+        const site = Game.constructionSites[id];
+        if (site.pos.roomName === roomName) n++;
+    }
+    return n;
+}
+
+function countRoomConstructionSitesOfType(roomName, structureType) {
+    resetPendingSitePlacementsIfNeeded();
+    let n = (pendingRoomSitesByType[roomName] && pendingRoomSitesByType[roomName][structureType]) || 0;
+    for (const id in Game.constructionSites) {
+        const site = Game.constructionSites[id];
+        if (site.pos.roomName === roomName && site.structureType === structureType) n++;
+    }
+    return n;
+}
+
+function globalConstructionSiteBudget() {
+    return Math.max(0, globalConstructionSiteLimit() - countGlobalConstructionSites());
+}
+
 function roomConstructionSiteBudget(room) {
     if (!room) return 0;
-    return Math.max(0, maxConstructionSitesPerRoom() - room.constructionSites.length);
+    const roomCap = maxConstructionSitesPerRoom();
+    const roomCount = countRoomConstructionSites(room.name);
+    const globalRemaining = globalConstructionSiteBudget();
+    return Math.max(0, Math.min(roomCap - roomCount, globalRemaining));
 }
 
 function canPlaceConstructionSite(room) {
     return roomConstructionSiteBudget(room) > 0;
+}
+
+function invalidateRoomConstructionSiteCache(room) {
+    if (!room) return;
+    room._constructionSites = undefined;
+    room._constructionSites_ts = undefined;
+    if (global.forceRefreshRoomConstructionSiteCache) {
+        global.forceRefreshRoomConstructionSiteCache(room);
+    }
 }
 
 const SITE_PLACEMENT_LOG_COOLDOWN = 100;
@@ -48,6 +117,10 @@ function recordSitePlacementFailure(roomName, structureType, pos, result) {
         y: pos.y,
         type: structureType,
         result,
+        globalSites: countGlobalConstructionSites(),
+        roomSites: countRoomConstructionSites(roomName),
+        globalBudget: globalConstructionSiteBudget(),
+        roomBudget: roomConstructionSiteBudget(room),
     };
     const key = `${roomName}:${structureType}:${result}:${pos.x},${pos.y}`;
     const last = sitePlacementLogThrottle[key] || 0;
@@ -58,7 +131,15 @@ function recordSitePlacementFailure(roomName, structureType, pos, result) {
 
 function tryCreateConstructionSite(pos, structureType) {
     const room = Game.rooms[pos.roomName];
-    if (!room || !canPlaceConstructionSite(room)) {
+    if (!room) {
+        recordSitePlacementFailure(pos.roomName, structureType, pos, ERR_INVALID_TARGET);
+        return ERR_INVALID_TARGET;
+    }
+    if (globalConstructionSiteBudget() <= 0) {
+        recordSitePlacementFailure(pos.roomName, structureType, pos, ERR_FULL);
+        return ERR_FULL;
+    }
+    if (countRoomConstructionSites(room.name) >= maxConstructionSitesPerRoom()) {
         recordSitePlacementFailure(pos.roomName, structureType, pos, ERR_FULL);
         return ERR_FULL;
     }
@@ -76,6 +157,9 @@ function tryCreateConstructionSite(pos, structureType) {
             return result;
         }
         recordSitePlacementFailure(room.name, structureType, pos, result);
+    } else {
+        recordPendingSitePlacement(room.name, structureType);
+        invalidateRoomConstructionSiteCache(room);
     }
     return result;
 }
@@ -618,6 +702,16 @@ module.exports = {
     setRoadsBuiltFlag,
 
     maxConstructionSitesPerRoom,
+
+    globalConstructionSiteLimit,
+
+    countGlobalConstructionSites,
+
+    countRoomConstructionSites,
+
+    countRoomConstructionSitesOfType,
+
+    globalConstructionSiteBudget,
 
     roomConstructionSiteBudget,
 

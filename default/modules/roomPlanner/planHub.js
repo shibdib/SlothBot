@@ -325,7 +325,91 @@ function findLabHub(room) {
 }
 
 
-const {canPlaceConstructionSite, tryCreateConstructionSite} = require('planUtils');
+const {
+    canPlaceConstructionSite,
+    tryCreateConstructionSite,
+    countRoomConstructionSites,
+    countRoomConstructionSitesOfType,
+    maxConstructionSitesPerRoom,
+} = require('planUtils');
+
+function isTowerHubTile(room, x, y) {
+    const hubs = room.memory.towerHubs;
+    if (!hubs || !hubs.length) return false;
+    return hubs.some(h => h.x === x && h.y === y);
+}
+
+function clearTowerHubBlockers(room, pos) {
+    const site = pos.checkForConstructionSites();
+    if (!site || site.progress) return false;
+    if (![STRUCTURE_RAMPART, STRUCTURE_WALL, STRUCTURE_ROAD].includes(site.structureType)) return false;
+    try {
+        site.remove();
+        invalidateRoomStructureCaches(room);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function auditTowerHubTiles(room) {
+    const hubs = room.memory.towerHubs || [];
+    const level = room.controller && room.controller.level;
+    const allowed = level ? CONTROLLER_STRUCTURES[STRUCTURE_TOWER][level] : 0;
+    const {roomConstructionSiteBudget, canPlaceConstructionSite} = require('planUtils');
+    const terrain = Game.map.getRoomTerrain(room.name);
+    const lastSiteError = room.memory.plannerLastSiteError;
+    return {
+        rcl: level,
+        allowed,
+        current: room.towers.length + countRoomConstructionSitesOfType(room.name, STRUCTURE_TOWER),
+        siteBudget: roomConstructionSiteBudget(room),
+        canPlace: canPlaceConstructionSite(room),
+        totalSites: countRoomConstructionSites(room.name),
+        hubs: hubs.map(({x, y}) => {
+            const pos = new RoomPosition(x, y, room.name);
+            const structure = pos.checkForAllStructure();
+            const site = pos.checkForConstructionSites();
+            return {
+                x,
+                y,
+                terrain: terrain.get(x, y) === TERRAIN_MASK_WALL ? 'wall' : 'clear',
+                structure: structure && structure.structureType,
+                site: site && site.structureType,
+                siteProgress: site && site.progress,
+                blocked: !!(structure || site),
+            };
+        }),
+        lastSiteError: lastSiteError && {
+            ...lastSiteError,
+            age: Game.time - lastSiteError.tick,
+        },
+    };
+}
+
+function getTowerDeficit(room) {
+    if (!room.controller || !room.controller.my) return 0;
+    const hubs = room.memory.towerHubs;
+    if (!hubs || !hubs.length) return 0;
+    const allowed = CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level] || 0;
+    const current = room.towers.length +
+        countRoomConstructionSitesOfType(room.name, STRUCTURE_TOWER);
+    return Math.max(0, allowed - current);
+}
+
+function placeTowerSitesUpToDeficit(room, maxPerCall) {
+    const limit = maxPerCall === undefined ? 1 : maxPerCall;
+    let placed = 0;
+    for (let i = 0; i < limit; i++) {
+        if (getTowerDeficit(room) <= 0) break;
+        const before = countRoomConstructionSitesOfType(room.name, STRUCTURE_TOWER);
+        if (!buildTowersFromHubs(room)) break;
+        const after = countRoomConstructionSitesOfType(room.name, STRUCTURE_TOWER);
+        if (after <= before) break;
+        placed++;
+    }
+    return placed;
+}
 
 // Places towers from the stored hub list up to the RCL-gated maximum.
 // Called each build tick; only creates one site at a time.
@@ -334,10 +418,11 @@ function buildTowersFromHubs(room) {
     if (!hubs || !hubs.length) return false;
     const allowed = CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level];
     const current = room.towers.length +
-        room.constructionSites.filter(s => s.structureType === STRUCTURE_TOWER).length;
+        countRoomConstructionSitesOfType(room.name, STRUCTURE_TOWER);
     if (current >= allowed || !canPlaceConstructionSite(room)) return false;
     for (const {x, y} of hubs.slice(0, allowed)) {
         const pos = new RoomPosition(x, y, room.name);
+        clearTowerHubBlockers(room, pos);
         if (!pos.checkForAllStructure() && !pos.checkForConstructionSites()) {
             if (tryCreateConstructionSite(pos, STRUCTURE_TOWER) === OK) {
                 const {invalidateRampartSpots} = require('planRamparts');
@@ -419,11 +504,13 @@ function resetTowerLayoutForRoom(room) {
     findTowerHub(room, {forceSearch: true});
     const newTowerHubs = room.memory.towerHubs ? room.memory.towerHubs.length : 0;
 
+    const towerSitesPlaced = placeTowerSitesUpToDeficit(room, getTowerDeficit(room));
+
     const {recalculateRampartsForRoom} = require('planRamparts');
     const ramparts = recalculateRampartsForRoom(room);
 
     room.memory.towerLayoutVersion = TOWER_LAYOUT_VERSION;
-    log.a(`${room.name} tower layout reset: destroyed ${wiped.towers} tower(s), ${wiped.sites} site(s), hubs ${oldTowerHubs}->${newTowerHubs}, ramparts ${ramparts.spots} spot(s)`);
+    log.a(`${room.name} tower layout reset: destroyed ${wiped.towers} tower(s), ${wiped.sites} site(s), hubs ${oldTowerHubs}->${newTowerHubs}, placed ${towerSitesPlaced} site(s), ramparts ${ramparts.spots} spot(s)`);
 
     return {
         roomName: room.name,
@@ -431,6 +518,7 @@ function resetTowerLayoutForRoom(room) {
         oldTowerHubs,
         newTowerHubs,
         towerHubs: room.memory.towerHubs,
+        towerSitesPlaced,
         ramparts,
     };
 }
@@ -610,6 +698,12 @@ module.exports = {
     findTowerHub,
 
     buildTowersFromHubs,
+
+    getTowerDeficit,
+
+    placeTowerSitesUpToDeficit,
+
+    auditTowerHubTiles,
 
     resetTowerLayoutForRoom,
 

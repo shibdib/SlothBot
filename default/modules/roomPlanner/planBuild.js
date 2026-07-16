@@ -9,7 +9,14 @@ const {isColonyEarlyRush} = require('bodyHelpers');
 
 const {buildMissingStructures, buildAuxiliaryStructures, hasPendingLayoutStructures} = require('planLayout');
 
-const {findHub, findLabHub, findTowerHub, processTowerLayoutResetQueue} = require('planHub');
+const {
+    findHub,
+    findLabHub,
+    findTowerHub,
+    getTowerDeficit,
+    placeTowerSitesUpToDeficit,
+    processTowerLayoutResetQueue
+} = require('planHub');
 
 const {planOwnedRoomRoads} = require('planRoads');
 const {getExtensionDeficit} = require('planExtensions');
@@ -17,6 +24,13 @@ const {getExtensionDeficit} = require('planExtensions');
 function getNextRoom() {
     const rooms = MY_ROOMS.map(name => Game.rooms[name]).filter(r => r);
     if (!rooms.length) return null;
+
+    const needsTowers = rooms.filter(r =>
+        r.memory.bunkerHub && r.memory.bunkerHub.x && getTowerDeficit(r) > 0
+    );
+    if (needsTowers.length) {
+        return needsTowers[Game.time % needsTowers.length];
+    }
 
     const needsExtensions = rooms.filter(r =>
         r.controller && r.controller.my && r.controller.level >= 2 &&
@@ -55,8 +69,6 @@ function buildRoom() {
 
     if (Memory.towerLayoutResetQueue && Memory.towerLayoutResetQueue.length) {
         processTowerLayoutResetQueue();
-        tickTracker['lastTick'] = Game.time + 1;
-        return;
     }
 
     let room = getNextRoom();
@@ -72,6 +84,10 @@ function buildRoom() {
     if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
         if (!room.memory.towerHubs) findTowerHub(room);
         if (!room.memory.labHub) findLabHub(room);
+
+        if (getTowerDeficit(room) > 0) {
+            placeTowerSitesUpToDeficit(room);
+        }
 
         if (earlyRush || shouldRunLayout(lastRun)) {
             buildMissingStructures(room, room.controller.level);

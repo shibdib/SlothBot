@@ -48,6 +48,9 @@ function hasPendingLayoutStructures(room) {
 }
 
 function buildMissingStructures(room, level) {
+    // Defense-critical — place before extensions/ramparts consume the per-room site budget.
+    buildTowersFromHubs(room);
+
     ensureExtensionClearance(room);
     if (level >= 2 && getExtensionDeficit(room) > 0) {
         placeRoomExtensions(room);
@@ -63,7 +66,6 @@ function buildMissingStructures(room, level) {
         CONTROLLER_STRUCTURES[s.structureType][level] > (existingCounts[s.structureType] || 0)
     );
     if (countCheck && countCheck.length) buildFromLayout(room, countCheck);
-    buildTowersFromHubs(room);
 }
 
 function buildAuxiliaryStructures(room) {

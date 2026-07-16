@@ -331,26 +331,147 @@ let globals = function () {
         return new ExpansionControl().auditExpansion();
     };
 
-    global.inspectTowerLayoutReset = function () {
-        const {TOWER_LAYOUT_VERSION} = require('planHub');
+    global.inspectGlobalConstructionSites = function () {
+        const {
+            countGlobalConstructionSites,
+            globalConstructionSiteBudget,
+            countRoomConstructionSites,
+        } = require('planUtils');
+        const byRoom = {};
+        for (const id in Game.constructionSites) {
+            const site = Game.constructionSites[id];
+            const name = site.pos.roomName;
+            if (!byRoom[name]) byRoom[name] = {};
+            byRoom[name][site.structureType] = (byRoom[name][site.structureType] || 0) + 1;
+        }
+        const owned = (MY_ROOMS && MY_ROOMS.length)
+            ? MY_ROOMS.slice()
+            : Object.values(Game.rooms)
+                .filter((r) => r.controller && r.controller.my)
+                .map((r) => r.name);
+        const {globalConstructionSiteLimit} = require('planUtils');
+        return {
+            globalSites: countGlobalConstructionSites(),
+            globalBudget: globalConstructionSiteBudget(),
+            globalSiteLimit: globalConstructionSiteLimit(),
+            byRoom,
+            ownedRooms: owned.map((name) => ({
+                roomName: name,
+                sites: countRoomConstructionSites(name),
+                breakdown: byRoom[name] || {},
+            })),
+        };
+    };
+
+    global.inspectTowerSites = function (roomName) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {
+            countGlobalConstructionSites,
+            globalConstructionSiteBudget,
+        } = require('planUtils');
+        const {auditTowerHubTiles} = require('planHub');
+        return {
+            roomName,
+            globalSites: countGlobalConstructionSites(),
+            globalBudget: globalConstructionSiteBudget(),
+            globalSiteLimit: 100,
+            ...auditTowerHubTiles(room),
+        };
+    };
+
+    global.placeTowerSites = function (roomName, maxPerCall) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {placeTowerSitesUpToDeficit, getTowerDeficit, auditTowerHubTiles} = require('planHub');
+        const limit = maxPerCall === undefined ? getTowerDeficit(room) : maxPerCall;
+        const placed = placeTowerSitesUpToDeficit(room, limit);
+        return {roomName, placed, ...auditTowerHubTiles(room)};
+    };
+
+    // One tower site per owned room per call — avoids same-tick placement desync on memhack/private servers.
+    global.placeAllTowerSites = function () {
+        const {placeTowerSitesUpToDeficit, getTowerDeficit, auditTowerHubTiles} = require('planHub');
+        const {countGlobalConstructionSites, globalConstructionSiteBudget} = require('planUtils');
         const roomNames = (MY_ROOMS && MY_ROOMS.length)
             ? MY_ROOMS.slice()
             : Object.values(Game.rooms)
                 .filter((r) => r.controller && r.controller.my)
                 .map((r) => r.name);
+        const results = [];
+        for (const name of roomNames) {
+            const room = Game.rooms[name];
+            if (!room) {
+                results.push({roomName: name, error: 'no vision'});
+                continue;
+            }
+            if (!getTowerDeficit(room)) {
+                results.push({roomName: name, placed: 0, skipped: true, reason: 'no deficit'});
+                continue;
+            }
+            if (globalConstructionSiteBudget() <= 0) {
+                results.push({roomName: name, placed: 0, skipped: true, reason: 'global site cap'});
+                continue;
+            }
+            const placed = placeTowerSitesUpToDeficit(room, 1);
+            results.push({roomName: name, placed, ...auditTowerHubTiles(room)});
+        }
+        return {
+            rooms: roomNames.length,
+            globalSites: countGlobalConstructionSites(),
+            globalBudget: globalConstructionSiteBudget(),
+            totalPlaced: results.reduce((sum, r) => sum + (r.placed || 0), 0),
+            note: 'Run each tick until totalPlaced is 0 or deficits are cleared.',
+            results,
+        };
+    };
+
+    global.inspectTowerLayoutReset = function () {
+        const {TOWER_LAYOUT_VERSION} = require('planHub');
+        const {
+            roomConstructionSiteBudget,
+            canPlaceConstructionSite,
+            countGlobalConstructionSites,
+            globalConstructionSiteBudget,
+            countRoomConstructionSites,
+        } = require('planUtils');
+        const roomNames = (MY_ROOMS && MY_ROOMS.length)
+            ? MY_ROOMS.slice()
+            : Object.values(Game.rooms)
+                .filter((r) => r.controller && r.controller.my)
+                .map((r) => r.name);
+        const lastSiteError = (room) => {
+            const err = room.memory.plannerLastSiteError;
+            return err && {...err, age: Game.time - err.tick};
+        };
         return {
             targetVersion: TOWER_LAYOUT_VERSION,
+            globalSites: countGlobalConstructionSites(),
+            globalBudget: globalConstructionSiteBudget(),
+            globalSiteLimit: 100,
             queue: Memory.towerLayoutResetQueue || [],
             rooms: roomNames.map((name) => {
                 const room = Game.rooms[name];
                 if (!room) return {roomName: name, error: 'no vision'};
+                const hubs = room.memory.towerHubs || [];
+                let blockedHubs = 0;
+                for (const {x, y} of hubs) {
+                    const pos = new RoomPosition(x, y, room.name);
+                    if (pos.checkForAllStructure() || pos.checkForConstructionSites()) blockedHubs++;
+                }
                 return {
                     roomName: name,
                     towerLayoutVersion: room.memory.towerLayoutVersion,
                     pending: (Memory.towerLayoutResetQueue || []).includes(name),
-                    towerHubs: room.memory.towerHubs ? room.memory.towerHubs.length : 0,
+                    towerHubs: hubs.length,
+                    blockedHubs,
                     builtTowers: room.towers.length,
                     towerSites: room.constructionSites.filter((s) => s.structureType === STRUCTURE_TOWER).length,
+                    totalSites: countRoomConstructionSites(name),
+                    siteBudget: roomConstructionSiteBudget(room),
+                    globalBudget: globalConstructionSiteBudget(),
+                    canPlace: canPlaceConstructionSite(room),
+                    lastSiteError: lastSiteError(room),
                 };
             }),
         };
@@ -580,6 +701,22 @@ let globals = function () {
                 constructionSiteRoomCache[roomName].push(site);
             }
         }
+    };
+
+    global.forceRefreshRoomConstructionSiteCache = function (room) {
+        if (!room) return;
+        const sites = [];
+        try {
+            room.find(FIND_CONSTRUCTION_SITES).forEach((site) => sites.push(site));
+        } catch (e) {
+            for (const id in Game.constructionSites) {
+                const site = Game.constructionSites[id];
+                if (site.pos.roomName === room.name) sites.push(site);
+            }
+        }
+        constructionSiteRoomCache[room.name] = sites;
+        room._constructionSites = sites;
+        room._constructionSites_ts = Game.time;
     };
 
     global.roomNeedsSafeFind = function (room) {

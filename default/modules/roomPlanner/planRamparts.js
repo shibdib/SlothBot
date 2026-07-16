@@ -823,6 +823,7 @@ function rampartBuilder(room, layout = undefined, count = false) {
     }
 
     function shouldBuildRampartAtPosition(pos, room, forcePerimeter = false) {
+        if (room.memory.towerHubs && room.memory.towerHubs.some(h => h.x === pos.x && h.y === pos.y)) return false;
         if (pos.checkForWall()) return false;
         if (pos.checkForImpassible(true)) return false;
         if (!forcePerimeter && isOnSourcePad(pos, room)) return false;
