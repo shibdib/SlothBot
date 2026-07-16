@@ -11,6 +11,7 @@ function releaseTruckRef(truck) {
     truck.memory.lastTowDist = undefined;
     truck.memory.lastTowProgress = undefined;
     truck.memory.pullFailStreak = undefined;
+    truck.memory.towAtRing = undefined;
     truck.memory.trailer = undefined;
 }
 
