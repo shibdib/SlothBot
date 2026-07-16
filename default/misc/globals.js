@@ -326,6 +326,11 @@ let globals = function () {
         };
     };
 
+    global.inspectExpansion = function () {
+        const ExpansionControl = require('module.expansion');
+        return new ExpansionControl().auditExpansion();
+    };
+
     global.inspectTowerLayoutReset = function () {
         const {TOWER_LAYOUT_VERSION} = require('planHub');
         const roomNames = (MY_ROOMS && MY_ROOMS.length)

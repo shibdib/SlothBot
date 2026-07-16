@@ -350,12 +350,40 @@ function buildTowersFromHubs(room) {
 }
 
 
+function invalidateRoomStructureCaches(room) {
+    if (room._invalidateStructureCaches) room._invalidateStructureCaches();
+    room._constructionSites = undefined;
+    room._constructionSites_ts = undefined;
+}
+
+function getLiveTowerStructures(room) {
+    invalidateRoomStructureCaches(room);
+    if (room.__nativeFind) {
+        try {
+            return room.__nativeFind(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_TOWER}}) || [];
+        } catch (e) {
+        }
+    }
+    return room.find(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_TOWER}});
+}
+
+function getLiveTowerSites(room) {
+    invalidateRoomStructureCaches(room);
+    if (room.__nativeFind) {
+        try {
+            return room.__nativeFind(FIND_CONSTRUCTION_SITES, {filter: {structureType: STRUCTURE_TOWER}}) || [];
+        } catch (e) {
+        }
+    }
+    return room.find(FIND_CONSTRUCTION_SITES, {filter: {structureType: STRUCTURE_TOWER}});
+}
+
 function wipeTowersInRoom(room) {
     let towers = 0;
     let sites = 0;
     let failed = 0;
 
-    for (const tower of room.towers) {
+    for (const tower of getLiveTowerStructures(room)) {
         try {
             if (tower.destroy() === OK) towers++;
         } catch (e) {
@@ -363,8 +391,7 @@ function wipeTowersInRoom(room) {
         }
     }
 
-    for (const site of room.constructionSites) {
-        if (site.structureType !== STRUCTURE_TOWER) continue;
+    for (const site of getLiveTowerSites(room)) {
         try {
             site.remove();
             sites++;
@@ -373,6 +400,7 @@ function wipeTowersInRoom(room) {
         }
     }
 
+    invalidateRoomStructureCaches(room);
     return {towers, sites, failed};
 }
 
@@ -388,7 +416,7 @@ function resetTowerLayoutForRoom(room) {
     const oldTowerHubs = room.memory.towerHubs ? room.memory.towerHubs.length : 0;
     delete room.memory.towerHubs;
 
-    findTowerHub(room);
+    findTowerHub(room, {forceSearch: true});
     const newTowerHubs = room.memory.towerHubs ? room.memory.towerHubs.length : 0;
 
     const {recalculateRampartsForRoom} = require('planRamparts');
@@ -446,20 +474,20 @@ function recoverTowerHubsFromTowers(room) {
         seen.add(key);
         positions.push({x, y});
     };
-    for (const tower of room.towers) add(tower.pos.x, tower.pos.y);
-    for (const site of room.constructionSites) {
-        if (site.structureType === STRUCTURE_TOWER) add(site.pos.x, site.pos.y);
-    }
+    for (const tower of getLiveTowerStructures(room)) add(tower.pos.x, tower.pos.y);
+    for (const site of getLiveTowerSites(room)) add(site.pos.x, site.pos.y);
     if (!positions.length) return false;
     room.memory.towerHubs = positions.slice(0, 6);
     ROOM_RAMPART_SPOTS[room.name] = undefined;
     log.a(`${room.name}: recovered ${room.memory.towerHubs.length} tower hub(s) from existing towers`);
     return true;
 }
-function findTowerHub(room) {
+
+function findTowerHub(room, options) {
+    const {forceSearch = false} = options || {};
     if (!room.memory.bunkerHub || !room.memory.bunkerHub.x) return;
     if (room.memory.towerHubs && room.memory.towerHubs.length) return;
-    if (recoverTowerHubsFromTowers(room)) return;
+    if (!forceSearch && recoverTowerHubsFromTowers(room)) return;
 
 
     const hubX = room.memory.bunkerHub.x, hubY = room.memory.bunkerHub.y;
