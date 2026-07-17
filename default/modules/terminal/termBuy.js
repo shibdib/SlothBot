@@ -16,6 +16,96 @@ const {getInboundPlannedAmount, getEmpireBuyCandidates} = require('termMarket');
 
 const TerminalControl = require('termClass');
 
+/** Combat-oriented boost categories from BOOST_USE. */
+const COMBAT_BOOST_TYPES = new Set(['attack', 'ranged_attack', 'heal', 'tough', 'dismantle', 'move']);
+
+function getBoostUseType(resource) {
+    if (typeof BOOST_USE === 'undefined' || !BOOST_USE) return null;
+    for (const type in BOOST_USE) {
+        if (BOOST_USE[type].includes(resource)) return type;
+    }
+    return null;
+}
+
+function isResourceStockLow(candidate, threshold = 0.5) {
+    if (candidate.stockRatio != null) return candidate.stockRatio < threshold;
+    return true;
+}
+
+/**
+ * Ally help should only ask for base minerals (stockpile), plus boosts we need right now.
+ * Intermediates / peacetime lab pipeline fill should not spam allies.
+ */
+function collectAllyRequestUrgency() {
+    const labBoostNeeds = new Set();
+    let combat = false;
+    let upgrade = false;
+    let build = false;
+
+    for (const name of MY_ROOMS) {
+        const room = Game.rooms[name];
+        if (!room) continue;
+
+        if (room.level < 8) {
+            upgrade = true;
+            build = true;
+        }
+        if (room.constructionSites && room.constructionSites.length) build = true;
+
+        if (room.memory.dangerousAttack) combat = true;
+        const intel = typeof INTEL !== 'undefined' ? INTEL[name] : null;
+        if (intel && intel.threatLevel > 0) combat = true;
+
+        for (const lab of room.labs || []) {
+            const boost = lab.memory && lab.memory.neededBoost;
+            if (!boost) continue;
+            labBoostNeeds.add(boost);
+            const t = getBoostUseType(boost);
+            if (t && COMBAT_BOOST_TYPES.has(t)) combat = true;
+            if (t === 'upgrade') upgrade = true;
+            if (t === 'build') build = true;
+        }
+    }
+
+    if (!combat && typeof CREEP_QUEUES !== 'undefined') {
+        for (const queueName in CREEP_QUEUES) {
+            const queue = CREEP_QUEUES[queueName];
+            if (!queue || typeof queue !== 'object') continue;
+            for (const key in queue) {
+                const entry = queue[key];
+                if (!entry) continue;
+                const isCombat = entry.military
+                    || (typeof COMBAT_ROLES !== 'undefined' && COMBAT_ROLES.includes(entry.role));
+                if (isCombat) {
+                    combat = true;
+                    break;
+                }
+            }
+            if (combat) break;
+        }
+    }
+
+    return {labBoostNeeds, combat, upgrade, build};
+}
+
+function shouldRequestAllyResource(mineral, candidate, urgency) {
+    if (BASE_MINERALS.includes(mineral)) return true;
+
+    const boostType = getBoostUseType(mineral);
+    if (!boostType) return false;
+
+    // Creeps are reserved against labs for this exact boost — pull ASAP if low.
+    if (urgency.labBoostNeeds.has(mineral)) {
+        return isResourceStockLow(candidate, 0.75);
+    }
+
+    if (!isResourceStockLow(candidate, 0.5)) return false;
+
+    if (COMBAT_BOOST_TYPES.has(boostType)) return urgency.combat;
+    if (boostType === 'upgrade') return urgency.upgrade;
+    if (boostType === 'build') return urgency.build;
+    return false;
+}
 
 Object.assign(TerminalControl.prototype, {
 
@@ -23,6 +113,7 @@ Object.assign(TerminalControl.prototype, {
         const labs = terminal.room.labs || [];
         const labNeeds = _.compact(labs.map(l => l.memory.itemNeeded));
         const buyCandidates = shuffle(getEmpireBuyCandidates());
+        const allyUrgency = collectAllyRequestUrgency();
 
         for (const candidate of buyCandidates) {
             const mineral = candidate.resource;
@@ -41,16 +132,22 @@ Object.assign(TerminalControl.prototype, {
                 buyAmount = Math.min(buyAmount, target * 0.5);
             }
 
-            const requests = ALLY_HELP_REQUESTS[MY_USERNAME] ? ALLY_HELP_REQUESTS[MY_USERNAME].requests : {};
-            let resourceRequests = requests.resource ? requests.resource : [];
-            if (resourceRequests && ALLY_HELP_REQUESTS[MY_USERNAME]) {
-                resourceRequests = resourceRequests.filter((r) => (r.resourceType !== mineral && r.roomName === terminal.room.name) || r.roomName !== terminal.room.name);
-                resourceRequests.push({
-                    resourceType: mineral,
-                    amount: buyAmount,
-                    priority: isLabNeed ? 0.8 : 0.2,
-                    roomName: terminal.room.name
-                });
+            // Ally requests: base minerals always; boosts only when urgently needed and low.
+            if (ALLY_HELP_REQUESTS[MY_USERNAME]) {
+                const requests = ALLY_HELP_REQUESTS[MY_USERNAME].requests || {};
+                let resourceRequests = requests.resource ? requests.resource : [];
+                resourceRequests = resourceRequests.filter((r) =>
+                    (r.resourceType !== mineral && r.roomName === terminal.room.name) || r.roomName !== terminal.room.name
+                );
+                if (shouldRequestAllyResource(mineral, candidate, allyUrgency)) {
+                    const isAsapBoost = !BASE_MINERALS.includes(mineral);
+                    resourceRequests.push({
+                        resourceType: mineral,
+                        amount: buyAmount,
+                        priority: isAsapBoost ? 0.9 : (isLabNeed ? 0.5 : 0.2),
+                        roomName: terminal.room.name
+                    });
+                }
                 ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;
             }
 

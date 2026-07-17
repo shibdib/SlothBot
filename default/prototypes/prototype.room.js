@@ -239,12 +239,12 @@ Object.defineProperty(Room.prototype, 'energyState', {
         else this._energyState = 0;
 
         // Ally energy requests
-        if (this.terminal && energy < target && ALLY_HELP_REQUESTS[MY_USERNAME]) {
+        if (this.terminal && energy < target * 0.5 && ALLY_HELP_REQUESTS[MY_USERNAME]) {
             let requests = ALLY_HELP_REQUESTS[MY_USERNAME].requests?.resource || [];
             requests = requests.filter(r => (r.resourceType !== RESOURCE_ENERGY && r.roomName === this.name) || r.roomName !== this.name);
             requests.push({
                 resourceType: RESOURCE_ENERGY,
-                amount: (target * 1.2) - energy,
+                amount: Math.round((target * 1.2) - energy),
                 priority: 1 - (energy / target),
                 roomName: this.name
             });
