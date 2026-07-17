@@ -31,16 +31,7 @@ function getFlowContext(room) {
     };
 }
 
-function roomHasOperateExtensionOperator(roomName) {
-    return _.some(Game.powerCreeps, c =>
-        c.my &&
-        c.memory.destinationRoom === roomName &&
-        c.powers[PWR_OPERATE_EXTENSION]
-    );
-}
-
 module.exports = {
     spawnEnergyState,
     getFlowContext,
-    roomHasOperateExtensionOperator,
 };

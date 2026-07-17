@@ -11,7 +11,6 @@ class RoleClaimer {
         this.performRoleActions();
     }
 
-    // Placeholder for role-specific actions
     performRoleActions() {
         if (this.housekeeping()) {
             return true;

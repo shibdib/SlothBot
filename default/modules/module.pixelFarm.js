@@ -8,9 +8,13 @@ module.exports.farm = function (room) {
     let drone = _.find(room.myCreeps, (c) => c.memory.role === 'drone');
     if (!drone) {
         let spawn = room.spawns[0];
-        if (spawn) spawn.createCreep([WORK, CARRY, MOVE], 'drone' + getRandomInt(1, 99), {role: 'drone', other: {}});
+        if (spawn) {
+            spawn.spawnCreep([WORK, CARRY, MOVE], 'drone' + getRandomInt(1, 99), {
+                memory: {role: 'drone', other: {}}
+            });
+        }
     } else {
-        require('role.drone').role(drone);
+        new (require('role.drone'))(drone);
     }
     // Generate pixels
     if (Game.cpu.bucket === BUCKET_MAX) {

@@ -576,7 +576,7 @@ Creep.prototype.fightRanged = function (target) {
     return true;
 };
 
-Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false, onlyInBuild = true) {
+Creep.prototype.moveToHostileConstructionSites = function (onlyInBuild = true) {
     if (!this.room.constructionSites.length || this.room.controller?.safeMode || friendlyRoomBlocksCombat(this.room)) return false;
 
     let site = Game.getObjectById(this.memory.stompSite) ||
@@ -652,10 +652,9 @@ Creep.prototype.attackInRange = function () {
 Creep.prototype.healInRange = function (blinky = false) {
     if (!this.hasActiveBodyparts(HEAL)) return false;
 
-    // Use cached hostiles if available, else filter
-    const injured = (this.room.creeps.filter(c =>
+    const injured = this.room.creeps.filter(c =>
         c.owner && (FRIENDLIES.includes(c.owner.username) || c.my) && c.hits < c.hitsMax && this.pos.getRangeTo(c) <= 3
-    )).filter(c => c.hits < c.hitsMax && this.pos.getRangeTo(c) <= 3);
+    );
 
     let best = injured.length ? _.min(injured, c => c.hits / c.hitsMax) : null;
 
@@ -904,85 +903,6 @@ function determineTowerDamage(range) {
     if (range < 20) return 600 - 450 * (range - 5) / 15;
     return 150;
 }
-
-Creep.prototype.pathingDebug = function () {
-    const spawn = global.roomMySpawns ? global.roomMySpawns(this.room)[0] : this.room.find(FIND_MY_SPAWNS)[0];
-    const path = findBestCleaningPath(this, spawn);
-    console.log(`Cleaning path: ${JSON.stringify(path)}`);
-};
-
-function findBestCleaningPath(creep, target) {
-    const room = creep.room;
-    if (!room) return [];
-
-    const costMatrix = new PathFinder.CostMatrix();
-    const structs = global.roomStructuresFromGame
-        ? global.roomStructuresFromGame(room)
-        : room.find(FIND_STRUCTURES);
-    structs.forEach(s => {
-        if (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) {
-            costMatrix.set(s.pos.x, s.pos.y, Math.round(255 * (s.hits / s.hitsMax)));
-        }
-    });
-
-    const path = PathFinder.search(creep.pos, {pos: target.pos, range: 1}, {
-        roomCallback: roomName => creep.memory.grouped ? getSquadMatrix(roomName) : costMatrix
-    });
-
-    const checked = new Set();
-    const impassable = [];
-
-    for (const p of path.path) {
-        for (let dx = -1; dx <= 1; dx++) {
-            for (let dy = -1; dy <= 1; dy++) {
-                const x = p.x + dx, y = p.y + dy;
-                if (x < 0 || x > 49 || y < 0 || y > 49) continue;
-                const key = `${x},${y}`;
-                if (checked.has(key)) continue;
-                checked.add(key);
-                const structs = room.structures.filter(s => s.pos.x === x && s.pos.y === y);
-                for (const s of structs) {
-                    if ((OBSTACLE_OBJECT_TYPES.includes(s.structureType) || s.structureType === STRUCTURE_RAMPART) && s.structureType !== STRUCTURE_CONTROLLER) {
-                        impassable.push(s);
-                    }
-                }
-            }
-        }
-    }
-    return impassable;
-
-    function getSquadMatrix(roomName) {
-        const matrix = new PathFinder.CostMatrix();
-        const terrain = Game.map.getRoomTerrain(roomName);
-        for (let y = 0; y < 50; y++) {
-            for (let x = 0; x < 50; x++) {
-                const tile = terrain.get(x, y);
-                if (tile === TERRAIN_MASK_WALL) {
-                    matrix.set(x, y, 256);
-                    for (const v of formationVectors) {
-                        const nx = x + v.x, ny = y + v.y;
-                        if (nx >= 0 && nx <= 49 && ny >= 0 && ny <= 49 && matrix.get(nx, ny) < 256) matrix.set(nx, ny, 256);
-                    }
-                } else if (x <= 1 || x >= 48 || y <= 1 || y >= 48) {
-                    matrix.set(x, y, 10);
-                } else if (tile === TERRAIN_MASK_SWAMP) {
-                    matrix.set(x, y, 25);
-                    for (const v of formationVectors) {
-                        const nx = x + v.x, ny = y + v.y;
-                        if (nx >= 0 && nx <= 49 && ny >= 0 && ny <= 49 && matrix.get(nx, ny) < 25) matrix.set(nx, ny, 25);
-                    }
-                } else {
-                    matrix.set(x, y, 1);
-                }
-            }
-        }
-        return matrix;
-    }
-}
-
-const formationVectors = [
-    {x: 0, y: 0}, {x: 0, y: -1}, {x: -1, y: 0}, {x: -1, y: -1}
-];
 
 function getAssignedRampart(creep, target = undefined) {
     const range = creep.hasActiveBodyparts(RANGED_ATTACK) ? 3 : 1;

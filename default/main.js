@@ -10,7 +10,6 @@ const world = require('main.world');
 const segments = require('module.segmentManager');
 const cleanUp = require('module.cleanup');
 const profiler = require('tools.profiler');
-let counter = 0;
 
 if (PROFILER_ENABLED) profiler.enable();
 module.exports.loop = function () {

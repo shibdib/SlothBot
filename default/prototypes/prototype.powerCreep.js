@@ -16,7 +16,7 @@ Object.defineProperty(PowerCreep.prototype, "idle", {
             return 0;
         }
         this.say(_.sample([ICONS.wait23, ICONS.wait21, ICONS.wait19, ICONS.wait17, ICONS.wait13, ICONS.wait11, ICONS.wait7, ICONS.wait10, ICONS.wait3, ICONS.wait1]), true);
-        if (this.pos.checkForRoad() && this.memory.role !== 'stationaryHarvester' && this.memory.role !== 'upgrader' && this.memory.role !== 'mineralHarvester' && this.memory.role !== 'remoteHarvester') {
+        if (this.pos.checkForRoad()) {
             this.moveRandom();
         } else if (global.roomMySpawns) {
             const spawns = global.roomMySpawns(this.room);
@@ -154,5 +154,11 @@ PowerCreep.prototype.fleeNukeRoom = function () {
         return false;
     }
     if (this.memory.fleeTo && this.room.name !== this.memory.fleeTo) this.shibMove(new RoomPosition(25, 25, this.memory.fleeTo), {range: 23}); else if (this.room.name !== this.memory.fleeTo) this.idleFor(this.memory.fleeNukeTime - Game.time);
-    if (!this.memory.fleeTo) this.memory.fleeTo = _.sample(_.filter(MY_ROOMS, (r) => !r.nukes.length)).name;
+    if (!this.memory.fleeTo) {
+        const safe = MY_ROOMS.filter(r => {
+            const room = Game.rooms[r];
+            return room && !room.nukes.length;
+        });
+        if (safe.length) this.memory.fleeTo = _.sample(safe);
+    }
 };

@@ -24,7 +24,7 @@ StructureObserver.prototype.operationPlanner = function (room) {
     if (Memory.targetRooms[room.name] || (Memory.auxiliaryTargets && Memory.auxiliaryTargets[room.name])) return operationPlanner(room);
 };
 
-function operationPlanner(room, creep = undefined) {
+function operationPlanner(room) {
     if (Memory.targetRooms[room.name]) {
         forwardObserver(room);
     } else if (Memory.auxiliaryTargets && Memory.auxiliaryTargets[room.name]) {
@@ -105,7 +105,7 @@ function handleRoomDenialOperation(room) {
 }
 
 function handleScoutOperation(room) {
-    room.cacheRoomIntel(true)
+    room.cacheRoomIntel(true);
     const towers = room.towers;
     const intel = INTEL[room.name];
     if (!intel) return;

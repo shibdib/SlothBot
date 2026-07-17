@@ -21,7 +21,6 @@ function shuttleNeedsRenew(creep) {
 }
 
 function determineEnergyOrder(room) {
-    spawnState.storedLevel[room.name] = getLevel(room);
     if (!room.hub.x) {
         const planner = require('module.roomPlanner');
         planner.findHub(room);
@@ -264,7 +263,6 @@ function processBuildQueue(room) {
                 if (neededBoosts || (misc && misc.boosts)) {
                     preReserveBoostLab(availableSpawn.room, name, neededBoosts, body, role, misc);
                 }
-                spawnState.lastGlobalSpawn = Game.time;
                 spawnState.lastBuilt[availableSpawn.room.name] = Game.time;
                 if (!queuedBuild.operation) log.d(`${availableSpawn.room.name} Spawning a ${role}`);
                 updateRoomAndGlobalQueue(room, queuedBuild);
@@ -284,5 +282,4 @@ function processBuildQueue(room) {
 
 module.exports = {
     processBuildQueue,
-    preReserveBoostLab,
 };

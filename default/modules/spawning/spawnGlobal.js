@@ -42,7 +42,6 @@ function queueHarassmentCreeps() {
 }
 
 function globalCreepQueue() {
-    const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
     if (global.isPostResetDangerWindow && global.isPostResetDangerWindow()) return;
 
     pruneQueueCache();
@@ -119,7 +118,7 @@ function globalCreepQueue() {
                         const maxLevelOfAttacker = userStrength(_.max(owners, (o) => userStrength(o)));
                         if ((maxLevelOfAttacker >= 7 && MAX_LEVEL < 7) || (maxLevelOfAttacker > MAX_LEVEL + 1)) continue;
                     }
-                    const count = INTEL[key].threatLevel ? 4 : 2;
+                    const count = 4;
                     const boosts = INTEL[key].threatLevel > 2 ? [RANGED_ATTACK, HEAL] : undefined;
                     queueCreepIfNeeded({
                         role: 'longbowSquad', priority: priority + 1, numberNeeded: count, destination: key,

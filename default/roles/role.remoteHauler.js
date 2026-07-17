@@ -276,7 +276,7 @@ function safemodeGeneration(creep) {
         const ghodiumStorage = _.find(creep.room.impassibleStructures,
             s => s.store && s.store[RESOURCE_GHODIUM]);
         if (ghodiumStorage) {
-            const result = creep.transfer(ghodiumStorage, RESOURCE_GHODIUM);
+            const result = creep.withdraw(ghodiumStorage, RESOURCE_GHODIUM, SAFE_MODE_COST);
             if (result === ERR_NOT_IN_RANGE) {
                 creep.shibMove(ghodiumStorage);
             } else if (result === OK || result === ERR_FULL || result === ERR_NOT_ENOUGH_RESOURCES) {

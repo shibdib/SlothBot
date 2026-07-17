@@ -12,12 +12,8 @@ module.exports = {
     GLOBAL_QUEUE_FULL_SCAN_INTERVAL,
     energyOrder: {},
     orderStored: {},
-    storedLevel: {},
     remoteRoomTargets: {},
     lastBuilt: {},
-    creepTTL: {},
-    activeSkMining: {},
-    lastGlobalSpawn: Game.time,
     buildTick: {},
     essentialTick: {},
     miscTick: {},
@@ -26,10 +22,6 @@ module.exports = {
     contestedRemotes: {},
     blockedRemotes: {},
     lastGlobalOpSignature: '',
-    routeLength(from, to) {
-        const route = Game.map.findRoute(from, to);
-        return typeof route === 'number' ? Infinity : route.length;
-    },
     throttleReady(tickMap, roomName, interval) {
         const last = tickMap[roomName];
         if (last !== undefined && last + interval > Game.time) return false;

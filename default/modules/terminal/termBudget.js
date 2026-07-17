@@ -41,25 +41,7 @@ function buildSendBudget() {
 
     if (prevExpense > total * 0.8) total = Math.floor(total * 0.85);
 
-    return {tick: Game.time, total, spent: 0, reserved: 0};
-}
-
-function estimateTransferCost(transfer) {
-    const tx = Game.market.calcTransactionCost(transfer.amount, transfer.from, transfer.to);
-    return (transfer.resource === RESOURCE_ENERGY ? transfer.amount : 0) + tx;
-}
-
-function reserveSendBudget(budget, transfers) {
-    if (!budget || !transfers?.length) return;
-    const rank = {urgent: 0, battery: 1, energy: 2, resource: 3, ally: 4, hub: 5, pressure: 6};
-    const sorted = transfers.slice().sort((a, b) => (rank[a.kind] || 9) - (rank[b.kind] || 9));
-
-    let reserved = 0;
-    for (let i = 0; i < sorted.length; i++) {
-        const cost = estimateTransferCost(sorted[i]);
-        if (reserved + cost <= budget.total) reserved += cost;
-    }
-    budget.reserved = reserved;
+    return {tick: Game.time, total, spent: 0};
 }
 
 function canAffordSend(energyCost) {
@@ -81,27 +63,16 @@ function recordMarketEnergyCost(roomName, energyCost) {
     recordSendCost(energyCost);
 }
 
-function getSendBudgetRemaining() {
-    const budget = state.ledger?.sendBudget;
-    if (!budget) return Infinity;
-    return Math.max(0, budget.total - budget.spent);
-}
-
 profiler.registerObject({
     buildSendBudget,
-    reserveSendBudget,
     canAffordSend,
     recordSendCost,
     recordMarketEnergyCost,
-    getSendBudgetRemaining,
 }, 'TermBudget');
 
 module.exports = {
     buildSendBudget,
-    reserveSendBudget,
     canAffordSend,
     recordSendCost,
     recordMarketEnergyCost,
-    getSendBudgetRemaining,
-    estimateTransferCost,
 };

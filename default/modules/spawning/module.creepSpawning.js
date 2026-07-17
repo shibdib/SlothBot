@@ -9,10 +9,3 @@ module.exports.essentialCreepQueue = require('spawnEssential').essentialCreepQue
 module.exports.miscCreepQueue = require('spawnMisc').miscCreepQueue;
 module.exports.remoteCreepQueue = require('spawnRemote').remoteCreepQueue;
 module.exports.globalCreepQueue = require('spawnGlobal').globalCreepQueue;
-
-module.exports.operationSustainability = function (room, operationRoom) {
-    return require('module.highCommand').operationSustainability(room, operationRoom);
-};
-module.exports.generateThreat = function (creep) {
-    return require('module.highCommand').generateThreat(creep);
-};

@@ -40,7 +40,7 @@ function scoreTarget(roomName, type, attackedOwners = null, warPriorityByUser = 
     if (type === 'roomDenial') {
         score += (r.level || 0) * 10 + (r.towers || 0) * 100;
         // Prefer brittle siege targets. Curve spans real-world rampart depths:
-        // 30M = +9, 100M = +30, 300M = +90 (cap). Among sieageable rooms, picks the thinner one.
+        // 30M = +9, 100M = +30, 300M = +90 (cap). Among siegeable rooms, picks the thinner one.
         if (r.rampartMedHP) {
             score += Math.min(r.rampartMedHP / 10000000, 30) * 3;
         }

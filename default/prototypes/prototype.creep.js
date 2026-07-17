@@ -202,18 +202,6 @@ Object.defineProperty(Creep.prototype, 'isFull', {
     configurable: true
 });
 
-Object.defineProperty(Creep.prototype, 'militaryPower', {
-    get: function () {
-        if (!this._militaryPower) {
-            const ap = abilityPower(this.body);
-            this._militaryPower = ap.attack + ap.effectiveHeal + (ap.defense / 100);
-        }
-        return this._militaryPower;
-    },
-    enumerable: false,
-    configurable: true
-});
-
 Creep.prototype.idleFor = function (ticks = 0) {
     if (this.hits < this.hitsMax && this.hasActiveBodyparts(HEAL)) return this.heal(this);
     if (ticks > 0) {
@@ -322,7 +310,7 @@ Creep.prototype.opportunisticFill = function () {
             return this.transfer(item.structure, RESOURCE_ENERGY) === OK;
         }
         if (item.type === LOOK_CREEPS && item.creep.my && ['upgrader', 'drone'].includes(item.creep.memory.role) && item.creep.store.getFreeCapacity(RESOURCE_ENERGY)) {
-            return this.transfer(item, RESOURCE_ENERGY) === OK;
+            return this.transfer(item.creep, RESOURCE_ENERGY) === OK;
         }
     }
     return false;
@@ -1302,7 +1290,13 @@ Creep.prototype.fleeNukeRoom = function () {
     }
     if (this.memory.fleeTo && this.room.name !== this.memory.fleeTo) this.shibMove(new RoomPosition(25, 25, this.memory.fleeTo), {range: 23});
     else if (this.room.name !== this.memory.fleeTo) this.idleFor(this.memory.fleeNukeTime - Game.time);
-    if (!this.memory.fleeTo) this.memory.fleeTo = _.sample(_.filter(MY_ROOMS, (r) => !Game.rooms[r].nukes.length)).name;
+    if (!this.memory.fleeTo) {
+        const safe = MY_ROOMS.filter(r => {
+            const room = Game.rooms[r];
+            return room && !room.nukes.length;
+        });
+        if (safe.length) this.memory.fleeTo = _.sample(safe);
+    }
 };
 
 Creep.prototype.moveRandom = function () {

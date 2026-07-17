@@ -12,9 +12,8 @@ class RoleClaimAttacker {
     }
 
     performRoleActions() {
-        if (this.houseKeeping()) {
-
-        } else if (this.creep.room.controller && (!INTEL[this.room.name] || INTEL[this.room.name].user !== MY_USERNAME) &&
+        if (this.houseKeeping()) return;
+        if (this.creep.room.controller && (!INTEL[this.room.name] || INTEL[this.room.name].user !== MY_USERNAME) &&
             (this.creep.room.controller.owner || this.creep.room.controller.reservation)) {
             this.attackController(this.creep);
         } else if (this.creep.room.controller) {

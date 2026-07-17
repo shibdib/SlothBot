@@ -56,7 +56,7 @@ class Colony {
         if (this.room.factory) {
             const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
             if (since > 15 || ((this.room.name.charCodeAt(3) || 0) % 2 === since % 2)) {
-                this.factoryController(); // defer a couple ticks on reset
+                this.factoryController(); // defer ~15 ticks on reset
             }
         }
 

@@ -21,7 +21,7 @@ Object.assign(TerminalControl.prototype, {
         for (let key in myOrders) {
             let order = myOrders[key];
 
-            // Energy and base mineral buy orders are repriced by placeBuyOrders with tiered logic â€” skip here
+            // Energy and base mineral buy orders are repriced by placeBuyOrders with tiered logic -- skip here
             if (order.type === ORDER_BUY && (order.resourceType === RESOURCE_ENERGY || BASE_MINERALS.includes(order.resourceType))) continue;
 
             // Initialize the tracker for this order if it doesn't exist
@@ -202,12 +202,6 @@ Object.assign(TerminalControl.prototype, {
             // Shard-specific cancellation
             if (['swc', 'botarena'].includes(Game.shard.name) && order.type === ORDER_SELL) {
                 this.cancelOrder(order, 'No selling in SWC or BA');
-                continue;
-            }
-
-            // Cancel if not enough resources for non-energy/battery orders
-            if (order.type === ORDER_SELL && !order.remainingAmount) {
-                this.cancelOrder(order, 'Not enough resources in terminal');
                 continue;
             }
 

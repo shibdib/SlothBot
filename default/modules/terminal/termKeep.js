@@ -4,14 +4,11 @@
  * Per-room terminal keep amounts.
  */
 
-const state = require('termState');
-
 function getRoomKeepAmount(room, resource) {
     if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) return 0;
     if (resource === RESOURCE_ENERGY) return 0;
     if (ALL_COMMODITIES.includes(resource) && !COMPRESSED_COMMODITIES.includes(resource)) {
         if (room.memory.neededCommodity === resource) return REACTION_AMOUNT;
-        if (state.needsCommodities[room.name] === resource) return REACTION_AMOUNT;
         if (room.memory.commodityProduction) {
             const comm = COMMODITIES[room.memory.commodityProduction];
             if (comm && comm.components && comm.components[resource]) return REACTION_AMOUNT;
@@ -23,7 +20,6 @@ function getRoomKeepAmount(room, resource) {
     if (room.memory.commodityProduction && room.mineral && room.mineral.mineralType === resource) return REACTION_AMOUNT * 2;
     if (BASE_MINERALS.includes(resource)) return room.terminal ? REACTION_AMOUNT : 0;
     if (COMPRESSED_COMMODITIES.includes(resource)) return 1000;
-    if (resource === RESOURCE_GHODIUM) return BOOST_AMOUNT(room, resource);
     return REACTION_AMOUNT;
 }
 

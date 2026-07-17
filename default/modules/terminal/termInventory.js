@@ -9,7 +9,6 @@
  */
 
 
-const state = require('termState');
 const {getRoomKeepAmount} = require('termKeep');
 const {
     canEmpireSell: empireCanSell,
@@ -33,7 +32,6 @@ Object.assign(TerminalControl.prototype, {
                 const room = Game.rooms[name];
                 if (!room) continue;
                 if (room.memory.neededCommodity === resource) need += REACTION_AMOUNT;
-                if (state.needsCommodities[name] === resource) need += REACTION_AMOUNT;
                 if (room.memory.commodityProduction) {
                     const comm = COMMODITIES[room.memory.commodityProduction];
                     if (comm && comm.components && comm.components[resource]) need += REACTION_AMOUNT;

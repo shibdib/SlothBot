@@ -101,8 +101,7 @@ class World {
         // Manage Power Creeps
         this.powerCreepManager();
 
-        // Update HUD
-        // Defer entirely (dashboards + map + defense viz) for first 2 ticks after reset -- room visuals + map visuals add up
+        // Update HUD -- defer for first few ticks after reset (room + map visuals add up)
         {
             const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
             if (sinceReset > 5) {
@@ -176,10 +175,8 @@ class World {
     }
 
     constructionController() {
-        // Room planner (pathing, mincut, structure placement, road building etc.) is one of the
-        // biggest CPU consumers. On global reset many caches are cold and other systems are
-        // already spiking, so defer it for the first couple ticks.
-        const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
+        // Room planner is a major CPU consumer; defer during the post-reset danger window
+        // while caches are cold and other systems are spiking.
         if (global.isPostResetDangerWindow && global.isPostResetDangerWindow()) return;
         planner.buildRoom();
     }

@@ -11,7 +11,6 @@ class RoleCommodityMiner {
         this.performRoleActions();
     }
 
-    // Placeholder for role-specific actions
     performRoleActions() {
         if (this.housekeeping()) return;
         if (!this.creep.memory.deposit && this.room.name !== this.creep.memory.destination && !_.sum(this.creep.store)) {

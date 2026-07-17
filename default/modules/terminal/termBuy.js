@@ -9,7 +9,6 @@
  */
 
 
-const {getDerivedCommodityAmount} = require('termCache');
 const {getEffectiveSupply} = require('termNetwork');
 const {recordMarketEnergyCost, canAffordSend} = require('termBudget');
 const {getInboundPlannedAmount, getEmpireBuyCandidates} = require('termMarket');
@@ -110,8 +109,6 @@ function shouldRequestAllyResource(mineral, candidate, urgency) {
 Object.assign(TerminalControl.prototype, {
 
     placeBuyOrders(terminal, globalOrders, myOrders) {
-        const labs = terminal.room.labs || [];
-        const labNeeds = _.compact(labs.map(l => l.memory.itemNeeded));
         const buyCandidates = shuffle(getEmpireBuyCandidates());
         const allyUrgency = collectAllyRequestUrgency();
 
@@ -180,7 +177,8 @@ Object.assign(TerminalControl.prototype, {
                 }
             }
 
-            let acceptableMarkup = adjustedStored < (target * 0.25) ? getAcceptableMarkup(mineral, activeBuyOrder) * 1.5 : getAcceptableMarkup(mineral, activeBuyOrder);
+            let acceptableMarkup = getAcceptableMarkup(activeBuyOrder);
+            if (adjustedStored < target * 0.25) acceptableMarkup *= 1.5;
             if (isLabNeed && adjustedStored < 500) acceptableMarkup *= 1.5;
 
             let sellOrder = _.min(globalOrders.filter(order => order.resourceType === mineral &&
@@ -203,7 +201,7 @@ Object.assign(TerminalControl.prototype, {
             }
         }
 
-        const empireLabNeeds = new Set(labNeeds);
+        const empireLabNeeds = new Set();
         for (const name of MY_ROOMS) {
             const room = Game.rooms[name];
             if (!room) continue;
@@ -271,21 +269,20 @@ Object.assign(TerminalControl.prototype, {
             }
         }
 
-        let healthySurplus = Game.market.credits > (BUY_ENERGY_CREDIT_BUFFER * 1.5) && (Memory._banker.creditTrend > 0 || Game.market.credits > BUY_ENERGY_CREDIT_BUFFER * 3);
-        if (healthySurplus) {
-            let price;
-            if (BUY_THESE_BOOSTS && BUY_THESE_BOOSTS.length) {
-                for (let mineral of shuffle(BUY_THESE_BOOSTS)) {
-                    const activeBuyOrder = _.some(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY)
-                    if (activeBuyOrder) continue;
-                    let stored = getResourceTotal(mineral) || 0;
-                    const dutyScale = Math.min(1, Math.max(0.5, terminal.room.memory.energyInfo && terminal.room.memory.energyInfo.upgraderDuty != null ? terminal.room.memory.energyInfo.upgraderDuty : 1));
-                    const boostTarget = BOOST_AMOUNT(terminal.room, mineral) * MY_ROOMS.length * dutyScale;
-                    if (stored < boostTarget) {
-                        let buyAmount = Math.min(boostTarget - stored, REACTION_AMOUNT);
-                        price = this.calculatePrice(ORDER_BUY, mineral);
-                        if (createBuyOrder(mineral, price, buyAmount)) break;
-                    }
+        const healthySurplus = Game.market.credits > (BUY_ENERGY_CREDIT_BUFFER * 1.5)
+            && (this.getCreditTrend() > 0 || Game.market.credits > BUY_ENERGY_CREDIT_BUFFER * 3);
+        if (healthySurplus && BUY_THESE_BOOSTS && BUY_THESE_BOOSTS.length) {
+            for (const mineral of shuffle(BUY_THESE_BOOSTS)) {
+                const activeBuyOrder = _.some(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY);
+                if (activeBuyOrder) continue;
+                const stored = getResourceTotal(mineral) || 0;
+                const upgraderDuty = terminal.room.memory.energyInfo && terminal.room.memory.energyInfo.upgraderDuty;
+                const dutyScale = Math.min(1, Math.max(0.5, upgraderDuty != null ? upgraderDuty : 1));
+                const boostTarget = BOOST_AMOUNT(terminal.room, mineral) * MY_ROOMS.length * dutyScale;
+                if (stored < boostTarget) {
+                    const buyAmount = Math.min(boostTarget - stored, REACTION_AMOUNT);
+                    const price = this.calculatePrice(ORDER_BUY, mineral);
+                    if (createBuyOrder(mineral, price, buyAmount)) break;
                 }
             }
         }
@@ -305,7 +302,7 @@ Object.assign(TerminalControl.prototype, {
             return false;
         }
 
-        function getAcceptableMarkup(resourceType, activeBuyOrder) {
+        function getAcceptableMarkup(activeBuyOrder) {
             let markup = 1.2;
             if (activeBuyOrder) {
                 const timeElapsed = Game.time - activeBuyOrder.created;

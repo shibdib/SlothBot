@@ -22,11 +22,8 @@ function labBuilder(room) {
 
     const labHub = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
     const partial = room.memory.labHubPartial;
-    const offsets = partial
-        ? [labTemplate[0], labTemplate[1], labTemplate[2], ...labTemplate.slice(3)]
-        : labTemplate;
 
-    for (const structure of offsets) {
+    for (const structure of labTemplate) {
         const pos = new RoomPosition(labHub.x + structure.x, labHub.y + structure.y, room.name);
         if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) continue;
         if (partial && pos.checkForImpassible() && !pos.checkForBuiltWall()) continue;

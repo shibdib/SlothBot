@@ -24,12 +24,15 @@ Creep.prototype.remoteDenial = function () {
     // If the target room no longer is hostile or exists cancel the operations
     if (INTEL[this.memory.destination]) {
         if (!INTEL[this.memory.destination].owner || FRIENDLIES.includes(INTEL[this.memory.destination].owner)) {
+            const dest = this.memory.destination;
             this.memory.operation = 'borderPatrol';
             this.memory.destination = undefined;
             this.memory.targetRoom = undefined;
-            this.memory.other.target = undefined;
-            this.memory.other.visited = undefined;
-            Memory.targetRooms[this.memory.destination] = undefined;
+            if (this.memory.other) {
+                this.memory.other.target = undefined;
+                this.memory.other.visited = undefined;
+            }
+            if (dest) Memory.targetRooms[dest] = undefined;
             log.a('Operation cancelled due to target room no longer being hostile or no longer existing', 'REMOTE-DENIAL: ');
             return this.fleeHome();
         }

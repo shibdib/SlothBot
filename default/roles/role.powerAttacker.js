@@ -48,9 +48,6 @@ class RolePowerAttacker {
             }
             if (!Memory.auxiliaryTargets[this.creep.memory.destination].space) Memory.auxiliaryTargets[this.creep.memory.destination].space = powerBank.pos.countOpenTerrainAround();
             if (powerBank.hits < 350000) Memory.auxiliaryTargets[this.creep.memory.destination].hauler = powerBank.power / 1250;
-            if (!powerBank) {
-                Memory.auxiliaryTargets[this.creep.memory.destination].complete = true;
-            }
             switch (this.creep.attack(powerBank)) {
                 case OK:
                     this.creep.memory.other.stationary = true;

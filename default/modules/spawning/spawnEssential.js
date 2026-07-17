@@ -5,7 +5,7 @@
  */
 
 const spawnState = require('spawnState');
-const {getFlowContext, roomHasOperateExtensionOperator, spawnEnergyState} = require('spawnFlow');
+const {getFlowContext, spawnEnergyState} = require('spawnFlow');
 const {getCreepCount} = require('spawnCounts');
 const {queueCreepIfNeeded} = require('spawnQueue');
 const {empireOpsPaused} = require('hcReadiness');
@@ -24,11 +24,10 @@ function resolveDroneCount(room, ctx) {
     const hasBuildWork = importantBuilds || hasCriticalBuilds || siteCount > 0;
     const hasWork = hasBuildWork || heavyRoadRepair;
 
-    if (!hasWork && !energyState && !hasCriticalBuilds) return 0;
+    if (!hasWork && !energyState) return 0;
 
     let count;
     if (room.level >= 7) {
-        if (!hasWork && !energyState && !hasCriticalBuilds) return 0;
         if (heavyRoadRepair && energyState >= 1 && flowHealthy) return 2;
         return 1;
     } else if (earlyRush) {
@@ -126,12 +125,8 @@ function essentialCreepQueue(room) {
     if (harvesterCount) {
         const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
         if (room.storage || protoStorage) {
-            let haulerAmount = 1;
-            if (roomHasOperateExtensionOperator(room.name)) haulerAmount = 1;
-            if (spareIncome < 0 || !trendOk) haulerAmount = 1;
-            else if (room.level < 7) {
-                haulerAmount = Math.min(haulerAmount, Math.max(1, Math.floor(spareIncome / 6)));
-            }
+            // Single extension-fill hauler; multi-hauler scaling was a no-op (always 1).
+            const haulerAmount = 1;
             const priority = !getCreepCount(room, 'hauler') ? 1 : PRIORITIES.hauler;
             queueCreepIfNeeded({
                 room, role: 'hauler', priority,
@@ -156,11 +151,9 @@ function essentialCreepQueue(room) {
     }
 
     let upgraderAmount = 1;
-    if (room.controller.level === 8) {
-        upgraderAmount = 1;
-    } else if (energyState) {
+    if (room.controller.level !== 8 && energyState) {
         const container = global.resolveControllerContainer(room);
-        if (container && energyState && room.controller.level < 8) {
+        if (container && room.controller.level < 8) {
             const trend = (energyInfo && energyInfo.trend) || 0;
             const effectiveIncome = Math.min(spareIncome, spareIncome + trend * 50);
             upgraderAmount = Math.max(1, Math.min(

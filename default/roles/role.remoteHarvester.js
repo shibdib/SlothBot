@@ -198,12 +198,8 @@ class RoleRemoteHarvester {
     }
 }
 
-function routeHasRoads(colony, destination) {
-    return routeHasBuiltRoads(colony, destination);
-}
-
 function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
-    const roadsBuilt = routeHasRoads(creep.memory.colony, creep.memory.destination);
+    const roadsBuilt = routeHasBuiltRoads(creep.memory.colony, creep.memory.destination);
     const colony = Game.rooms[creep.memory.colony];
     const linkFed = !!(colony && colony.links && colony.links.length >= 2);
     const haulScore = effectiveHaulScore(creep.memory.colony, creep.memory.destination, sourceInfo.score);

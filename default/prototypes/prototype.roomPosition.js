@@ -39,42 +39,9 @@ RoomPosition.prototype.getClosestSource = function () {
         };
     }
     const cachedSources = SOURCE_CACHE[roomName].sources;
-    let activeSource = _.find(cachedSources, function (s) {
-        return s.active && s.priority > 0;
-    });
-    if (!activeSource) activeSource = _.find(cachedSources, function (s) {
-        return s.priority > 0;
-    });
-    return activeSource ? this.findClosestByRange(_.map(cachedSources, 'source')) : undefined;
-};
-
-/**
- * Find in range structures
- * @param objects
- * @param range
- * @param structureTypes
- * @returns {*}
- */
-RoomPosition.prototype.findInRangeStructures = function (objects, range, structureTypes) {
-    return this.findInRange(objects, 1, {
-        filter: function (object) {
-            return structureTypes.indexOf(object.structureType) >= 0;
-        }
-    });
-};
-
-/**
- * Find closest structure
- * @param structures
- * @param structureType
- * @returns {*}
- */
-RoomPosition.prototype.findClosestStructure = function (structures, structureType) {
-    return this.findClosestByPath(structures, {
-        filter: function (object) {
-            return object.structureType === structureType;
-        }
-    });
+    let viable = cachedSources.filter(s => s.active && s.priority > 0);
+    if (!viable.length) viable = cachedSources.filter(s => s.priority > 0);
+    return viable.length ? this.findClosestByRange(viable.map(s => s.source)) : undefined;
 };
 
 /**
@@ -165,17 +132,6 @@ RoomPosition.prototype.countOpenTerrainAround = function (borderBuild = false, i
  * @param {number} range - The range it should be
  * @returns {object} RoomPosition
  */
-RoomPosition.prototype.getAdjacentPositionAtRange = function (target, range = 3) {
-    for (let xOff = -1; xOff <= 1; xOff++) {
-        for (let yOff = -1; yOff <= 1; yOff++) {
-            if (xOff !== 0 || yOff !== 0) {
-                let pos = new RoomPosition(this.x + xOff, this.y + yOff, this.roomName);
-                if (!pos.checkForImpassible() && pos.getRangeTo(target) === range) return pos;
-            }
-        }
-    }
-};
-
 /**
  * Check if a position is protected in the bunker
  *
@@ -555,16 +511,6 @@ RoomPosition.prototype.findFirstInRange = function (lookUp, range) {
  */
 RoomPosition.prototype.isExit = function () {
     return this.x < 1 || this.x > 48 || this.y < 1 || this.y > 48;
-};
-
-/* Posted December 25th, 2016 by @semperrabbit */
-
-// Special thanks to @helam for finding the client selection code
-RoomPosition.prototype.posToString = function (htmlLink = false, id = undefined, memWatch = undefined) {
-    if (htmlLink) {
-        return `<a href="#!/room/${this.roomName}">[${this.roomName} ${this.x},${this.y}]</a>`;
-    }
-    return `[${this.roomName} ${this.x},${this.y}]`;
 };
 
 RoomPosition.prototype.posFromString = function (str, dontThrowError = false) {

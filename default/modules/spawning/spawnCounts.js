@@ -4,7 +4,7 @@
 
 const generator = require('module.bodyGenerator');
 
-const CREEP_COUNT_CACHE = {counts: {}, tick: 0, lastUpdate: 0};
+const CREEP_COUNT_CACHE = {counts: {}, tick: 0};
 
 function updateCreepCountCache() {
     const currentTick = Game.time;
@@ -20,7 +20,6 @@ function updateCreepCountCache() {
 
     CREEP_COUNT_CACHE.counts = counts;
     CREEP_COUNT_CACHE.tick = currentTick;
-    CREEP_COUNT_CACHE.lastUpdate = currentTick;
 }
 
 function processCreepForCache(counts, creep) {

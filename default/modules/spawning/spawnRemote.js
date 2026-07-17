@@ -420,7 +420,6 @@ function processRemoteSpecificTasks(room, remoteName) {
     if (!isSkRoom(remoteName)) handleReservation(room, remoteName);
     if (INTEL[remoteName].invaderCore) handleInvaderCore(room, remoteName);
     if (skMiningAllowed(room) && isSkRoom(remoteName) && !INTEL[remoteName].towers) {
-        spawnState.activeSkMining[room.name] = Game.time;
         handleSkCreeps(room, remoteName);
     }
 }

@@ -67,7 +67,9 @@ Object.assign(TerminalControl.prototype, {
     },
 
     getCreditTrend() {
-        return Memory._banker && Memory._banker.creditTrend ? Memory._banker.creditTrend : 0;
+        return (Memory._banker && Memory._banker.creditTrend != null)
+            ? Memory._banker.creditTrend
+            : 0;
     }
 
 });

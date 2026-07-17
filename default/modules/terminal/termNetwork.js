@@ -61,7 +61,6 @@ function trackedResources() {
             if (lab.memory && lab.memory.itemNeeded) set.add(lab.memory.itemNeeded);
         }
         if (room.memory.neededCommodity) set.add(room.memory.neededCommodity);
-        if (state.needsCommodities[name]) set.add(state.needsCommodities[name]);
         if (room.memory.commodityProduction) {
             const comm = COMMODITIES[room.memory.commodityProduction];
             if (comm && comm.components) {
@@ -154,7 +153,7 @@ function buildLedger() {
 
     const {selectMarketHub} = require('termMarket');
     const {planTransfers} = require('termTransfers');
-    const {buildSendBudget, reserveSendBudget} = require('termBudget');
+    const {buildSendBudget} = require('termBudget');
 
     const marketHub = selectMarketHub();
     const ledgerDraft = {
@@ -168,7 +167,6 @@ function buildLedger() {
     };
     const plannedTransfers = planTransfers(ledgerDraft);
     const sendBudget = buildSendBudget();
-    reserveSendBudget(sendBudget, plannedTransfers);
 
     const ledger = {
         ...ledgerDraft,

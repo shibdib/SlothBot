@@ -47,7 +47,5 @@ function collectThreatRemotes(visited = []) {
 }
 
 module.exports = {
-    isThreatUser,
-    isValidHarassRemote,
     collectThreatRemotes,
 };

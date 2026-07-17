@@ -180,8 +180,6 @@ module.exports.status = function () {
 
         log.a('===========================================================================', ' ');
 
-        // Update the last status time
-        Memory.lastStatus = undefined;
         getUptime();
     }
 };
