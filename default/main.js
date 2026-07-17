@@ -53,17 +53,23 @@ module.exports.loop = function () {
                 return;
             } else if (currentBucket === BUCKET_MAX && Memory.cpuTracking.bucketIssueCount > 0) Memory.cpuTracking.bucketIssueCount--;
 
-            // Store Owned Rooms (Update Every 250 Ticks)
-            if (!global.MY_ROOMS || !global.MAX_LEVEL || Game.time % 250 === 0) {
+            // Store owned rooms. Full refresh every 250 ticks, but also immediately when a
+            // newly claimed/visible room appears — otherwise planner never sees it (and
+            // never assigns a hub) until the next 250-tick boundary.
+            {
                 const ownedRooms = Object.values(Game.rooms).filter(
                     (r) => r.controller && r.controller.my
                 );
-                if (ownedRooms.length) {
-                    global.MY_ROOMS = ownedRooms.map((r) => r.name);
+                const ownedNames = ownedRooms.map((r) => r.name);
+                const listStale = !global.MY_ROOMS || !global.MY_ROOMS.length || !global.MAX_LEVEL
+                    || Game.time % 250 === 0
+                    || ownedNames.length !== global.MY_ROOMS.length
+                    || ownedNames.some((n) => !global.MY_ROOMS.includes(n));
+                if (listStale && ownedRooms.length) {
+                    global.MY_ROOMS = ownedNames;
                     global.MAX_LEVEL = Math.max(...ownedRooms.map((r) => r.controller.level));
                     global.MIN_LEVEL = Math.min(...ownedRooms.map((r) => r.controller.level));
 
-                    // Clean INTEL Cache
                     Object.keys(INTEL).forEach((key) => {
                         if (INTEL[key] && INTEL[key].owner === MY_USERNAME && !global.MY_ROOMS.includes(key)) {
                             purgeIntel(key);

@@ -82,16 +82,17 @@ function findHub(room, hubCheck = undefined) {
 
     const possiblePos = [];
 
-    primary:
-        for (let y = 10; y <= 40; y++) {
-            for (let x = 10; x <= 40; x++) {
-                const pos = new RoomPosition(x, y, room.name);
-                if (pos.checkForImpassible()) continue;
-                if (!isValidHubPosition(pos, room, sources)) continue primary;
-                if (hubCheck) return true;
-                possiblePos.push({x, y});
-            }
+    for (let y = 10; y <= 40; y++) {
+        for (let x = 10; x <= 40; x++) {
+            const pos = new RoomPosition(x, y, room.name);
+            if (pos.checkForImpassible()) continue;
+            // Try every open tile — `continue primary` previously aborted the rest of the
+            // row after the first invalid hub, skipping valid candidates further right.
+            if (!isValidHubPosition(pos, room, sources)) continue;
+            if (hubCheck) return true;
+            possiblePos.push({x, y});
         }
+    }
 
     if (possiblePos.length) {
         for (const p of possiblePos) {

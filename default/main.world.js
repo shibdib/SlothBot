@@ -175,9 +175,18 @@ class World {
     }
 
     constructionController() {
-        // Room planner is a major CPU consumer; defer during the post-reset danger window
-        // while caches are cold and other systems are spiking.
-        if (global.isPostResetDangerWindow && global.isPostResetDangerWindow()) return;
+        // Room planner is CPU-heavy; defer during post-reset danger window — except when
+        // any visible owned room still needs a hub (new claims must not wait 150 ticks).
+        let needsHubBootstrap = false;
+        for (const name in Game.rooms) {
+            const room = Game.rooms[name];
+            if (!room.controller || !room.controller.my) continue;
+            if (!(room.memory.bunkerHub && room.memory.bunkerHub.x)) {
+                needsHubBootstrap = true;
+                break;
+            }
+        }
+        if (global.isPostResetDangerWindow && global.isPostResetDangerWindow() && !needsHubBootstrap) return;
         planner.buildRoom();
     }
 

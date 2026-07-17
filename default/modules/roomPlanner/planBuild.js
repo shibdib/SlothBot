@@ -21,32 +21,90 @@ const {
 const {planOwnedRoomRoads} = require('planRoads');
 const {getExtensionDeficit} = require('planExtensions');
 
+function hasBunkerHub(room) {
+    return !!(room.memory.bunkerHub && room.memory.bunkerHub.x);
+}
+
+function pickRoundRobin(list) {
+    if (!list.length) return null;
+    return list[Game.time % list.length];
+}
+
+/** All visible owned rooms — do not rely solely on MY_ROOMS (can lag a claim by 250 ticks). */
+function getVisibleOwnedRooms() {
+    const rooms = [];
+    const seen = new Set();
+    if (typeof MY_ROOMS !== 'undefined' && MY_ROOMS && MY_ROOMS.length) {
+        for (const name of MY_ROOMS) {
+            const room = Game.rooms[name];
+            if (!room || seen.has(name)) continue;
+            seen.add(name);
+            rooms.push(room);
+        }
+    }
+    for (const name in Game.rooms) {
+        if (seen.has(name)) continue;
+        const room = Game.rooms[name];
+        if (!room.controller || !room.controller.my) continue;
+        seen.add(name);
+        rooms.push(room);
+    }
+    return rooms;
+}
+
 function getNextRoom() {
-    const rooms = MY_ROOMS.map(name => Game.rooms[name]).filter(r => r);
+    const rooms = getVisibleOwnedRooms();
     if (!rooms.length) return null;
 
-    const needsTowers = rooms.filter(r =>
-        r.memory.bunkerHub && r.memory.bunkerHub.x && getTowerDeficit(r) > 0
+    // Highest priority: new claims cannot place anything until a hub is found.
+    // Without this, rooms that already need extensions/towers starve hub search forever.
+    const needsHub = rooms.filter(r => r.controller && r.controller.my && !hasBunkerHub(r));
+    if (needsHub.length) return pickRoundRobin(needsHub);
+
+    // Bootstrap rooms that have a hub but still no spawn of their own.
+    const needsSpawn = rooms.filter(r =>
+        r.controller && r.controller.my && hasBunkerHub(r) && !(r.spawns && r.spawns.length)
     );
-    if (needsTowers.length) {
-        return needsTowers[Game.time % needsTowers.length];
-    }
+    if (needsSpawn.length) return pickRoundRobin(needsSpawn);
+
+    const needsTowers = rooms.filter(r =>
+        hasBunkerHub(r) && getTowerDeficit(r) > 0
+    );
+    if (needsTowers.length) return pickRoundRobin(needsTowers);
 
     const needsExtensions = rooms.filter(r =>
         r.controller && r.controller.my && r.controller.level >= 2 &&
-        r.memory.bunkerHub && r.memory.bunkerHub.x && getExtensionDeficit(r) > 0
+        hasBunkerHub(r) && getExtensionDeficit(r) > 0
     );
-    if (needsExtensions.length) {
-        return needsExtensions[Game.time % needsExtensions.length];
-    }
+    if (needsExtensions.length) return pickRoundRobin(needsExtensions);
 
-    const earlyRush = rooms.filter(r => isColonyEarlyRush(r) && r.memory.bunkerHub && r.memory.bunkerHub.x);
-    if (earlyRush.length) {
-        return earlyRush[Game.time % earlyRush.length];
-    }
+    const earlyRush = rooms.filter(r => isColonyEarlyRush(r) && hasBunkerHub(r));
+    if (earlyRush.length) return pickRoundRobin(earlyRush);
 
-    const lastIndex = tickTracker.lastRoom ? MY_ROOMS.indexOf(tickTracker.lastRoom) : -1;
+    const lastIndex = tickTracker.lastRoom ? rooms.findIndex(r => r.name === tickTracker.lastRoom) : -1;
     return rooms[(lastIndex + 1) % rooms.length] || rooms[0];
+}
+
+function runRoomLayout(room, lastRun, earlyRush) {
+    if (!room.memory.towerHubs) findTowerHub(room);
+    if (!room.memory.labHub) findLabHub(room);
+
+    if (getTowerDeficit(room) > 0) {
+        placeTowerSitesUpToDeficit(room);
+    }
+
+    if (earlyRush || shouldRunLayout(lastRun)) {
+        buildMissingStructures(room, room.controller.level);
+        if (!earlyRush) lastRun.task = 'layout';
+    }
+    if (earlyRush || shouldRunAuxiliary(lastRun)) {
+        buildAuxiliaryStructures(room);
+        if (!earlyRush) lastRun.task = 'auxiliary';
+    }
+
+    if (room.storage) {
+        planOwnedRoomRoads(room, {layoutPending: hasPendingLayoutStructures(room)});
+    }
 }
 
 function shouldRunAtAll() {
@@ -64,6 +122,23 @@ function shouldRunAuxiliary(lastRun) {
 
 
 function buildRoom() {
+    // Always allow hub bootstrap even if the throttle would skip this tick —
+    // new claims must not wait on the every-other-tick layout cadence.
+    const bootstrapRooms = getVisibleOwnedRooms().filter(r =>
+        r.controller && r.controller.my && !hasBunkerHub(r)
+    );
+    if (bootstrapRooms.length) {
+        const room = pickRoundRobin(bootstrapRooms);
+        tickTracker['lastTick'] = Game.time;
+        tickTracker['lastRoom'] = room.name;
+        const lastRun = tickTracker[room.name] || {};
+        findHub(room);
+        if (hasBunkerHub(room)) {
+            runRoomLayout(room, lastRun, isColonyEarlyRush(room));
+        }
+        tickTracker[room.name] = lastRun;
+        return;
+    }
 
     if (!shouldRunAtAll()) return;
 
@@ -80,35 +155,11 @@ function buildRoom() {
 
     let lastRun = tickTracker[room.name] || {};
 
-    // Ensure the room has a bunker hub
-    if (room.memory.bunkerHub && room.memory.bunkerHub.x) {
-        if (!room.memory.towerHubs) findTowerHub(room);
-        if (!room.memory.labHub) findLabHub(room);
-
-        if (getTowerDeficit(room) > 0) {
-            placeTowerSitesUpToDeficit(room);
-        }
-
-        if (earlyRush || shouldRunLayout(lastRun)) {
-            buildMissingStructures(room, room.controller.level);
-            if (!earlyRush) lastRun.task = 'layout';
-        }
-        if (earlyRush || shouldRunAuxiliary(lastRun)) {
-            buildAuxiliaryStructures(room);
-            if (!earlyRush) lastRun.task = 'auxiliary';
-        }
-
-        if (room.storage) {
-            planOwnedRoomRoads(room, {layoutPending: hasPendingLayoutStructures(room)});
-        }
-    } else {
-        // Find hub if not already found
-        findHub(room);
+    if (hasBunkerHub(room)) {
+        runRoomLayout(room, lastRun, earlyRush);
     }
 
-    // Update tick tracker
     tickTracker[room.name] = lastRun;
-
 }
 
 

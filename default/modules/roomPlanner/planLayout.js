@@ -87,10 +87,23 @@ function buildFromLayout(room, countCheck) {
         filter = tmpl.filter(s => [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL].includes(s.structureType));
         rampartBuilder(room, tmpl);
     } else if (!roomSpawn) {
-        const spawnPos = tmpl.filter(s => s.structureType === STRUCTURE_SPAWN)[0].pos[0];
+        // New claims: place rampart first, then spawn under it as soon as the rampart
+        // exists. Waiting for 10k hits froze bootstrap for thousands of ticks (remote
+        // upgraders can hit RCL3 while zero sites exist if hub search was also starved).
+        const spawnEntry = tmpl.find(s => s.structureType === STRUCTURE_SPAWN);
+        if (!spawnEntry || !spawnEntry.pos || !spawnEntry.pos.length) return;
+        if (!hub) return;
+        const spawnPos = spawnEntry.pos[0];
         const pos = new RoomPosition(hub.x + spawnPos.x, hub.y + spawnPos.y, room.name);
+        if (pos.checkForObstacleStructure()) return;
+        if (pos.checkForConstructionSites()) return;
         if (!canPlaceConstructionSite(room)) return;
-        if (!pos.checkForRampart()) tryCreateConstructionSite(pos, STRUCTURE_RAMPART); else if (pos.checkForRampart().hits >= 10000) tryCreateConstructionSite(pos, STRUCTURE_SPAWN);
+        const rampart = pos.checkForRampart();
+        if (!rampart) {
+            tryCreateConstructionSite(pos, STRUCTURE_RAMPART);
+            return;
+        }
+        tryCreateConstructionSite(pos, STRUCTURE_SPAWN);
         return;
     } else {
         filter = countCheck.filter(s => CONTROLLER_STRUCTURES[s.structureType][room.controller.level]);
