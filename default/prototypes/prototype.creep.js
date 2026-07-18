@@ -1305,9 +1305,12 @@ Creep.prototype.moveRandom = function () {
     for (let i = 0; i < 8; i++) {
         let direction = directions[(startIndex + i) % 8];
         let pos = this.pos.getAdjacentPosition(direction);
-        if (pos && !pos.checkForObstacleStructure() && !pos.checkForWall() && !pos.checkIfOutOfBounds()) {
-            this.move(direction);
-            return;
-        }
+        if (!pos || pos.checkForWall() || pos.checkForObstacleStructure() || pos.checkIfOutOfBounds()) continue;
+        if (pos.isExit && pos.isExit()) continue;
+        const occupant = pos.checkForCreep();
+        if (occupant && occupant.id !== this.id) continue;
+        this.move(direction);
+        return true;
     }
+    return false;
 };

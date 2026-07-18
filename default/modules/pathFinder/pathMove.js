@@ -54,12 +54,13 @@ const {
     creepWinsTraffic,
     findOccupyingCreep,
     findYieldDirection,
-    clearYieldAttempts,
+    isBumperCandidate,
+    markMoveBlocked,
 } = require('pathTraffic');
 
 function shibMove(creep, heading, options = {}, pathOnly = false) {
-    // Handle move blocked by another creep this tick
-    if (heading instanceof Creep && creep.memory.moveBlocked === Game.time) {
+    // Same-tick yield/bump: last move() wins in Screeps — do not let role pathing overwrite it.
+    if (!pathOnly && creep.memory?.moveBlocked === Game.time) {
         return true;
     }
 
@@ -170,7 +171,9 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
             delete creep.memory._shibMove.path;
             delete creep.memory._shibMove.pathPos;
             delete creep.memory._shibMove.newPos;
-            return shibPath(creep, heading, creep.memory._shibMove, origin, target, options);
+            // Route around creeps once — ignoreCreeps caches often re-enter the same jam.
+            const stuckOptions = Object.assign({}, options, {ignoreCreeps: false, useCache: false});
+            return shibPath(creep, heading, creep.memory._shibMove, origin, target, stuckOptions);
         }
         return false;
     }
@@ -247,7 +250,6 @@ function executePath(creep, pathInfo, options, origin, heading) {
 
     const moveResult = creep.move(nextDirection);
     if (moveResult === OK || moveResult === ERR_TIRED) {
-        clearYieldAttempts(creep);
         creep.memory._shibMove = pathInfo;
         return true;
     }
@@ -403,13 +405,14 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
 }
 
 
+/**
+ * Stuck recovery when the next path tile is blocked.
+ * Returns true only if this tick issued a move that can free progress.
+ * Returns false so the caller can repath — never "succeed" while standing still.
+ */
 function creepBumping(creep, pathInfo, options) {
-    // Grouped creeps are positioned by their leader's squadMove. A random or
-    // priority-swap bump here would yank them out of the 2x2 mid-move and the
-    // squad would visibly unform until reform kicks in. Defer: let squadMove
-    // re-queue a coordinated move next tick instead of randomising now.
-    const isGrouped = !!creep.memory?.grouped;
-
+    // Squad members are positioned by squadMove; do not yank them out of formation.
+    if (creep.memory?.grouped) return false;
     if (!pathInfo?.path?.length) return false;
 
     const nextDirection = parseInt(pathInfo.path[0], 10);
@@ -417,66 +420,59 @@ function creepBumping(creep, pathInfo, options) {
 
     const nextPosition = creep.pos.positionAtDirection(nextDirection);
     pathInfo.newPos = nextPosition;
+    if (!nextPosition) return false;
 
-    const bumpCreep = nextPosition ? findOccupyingCreep(creep.room, nextPosition, creep.id) : null;
+    const bumpCreep = findOccupyingCreep(creep.room, nextPosition, creep.id);
 
-    if (bumpCreep) {
-        if (tryPullSwapThrough(creep, bumpCreep, nextDirection)) {
-            bumpCreep.say(ICONS.traffic, true);
-            if (bumpCreep.memory) bumpCreep.memory.moveBlocked = Game.time;
-            clearYieldAttempts(creep);
-            return true;
-        }
-        if (creep.memory.trailer) {
-            const trailer = Game.getObjectById(creep.memory.trailer);
-            if (trailer && trailer.pos.isNearTo(creep)) {
-                if (!isPullSwapBlocker(bumpCreep)) bumpCreep.moveRandom();
-            }
-        } else if (!creep.className && !creep.memory.trailer) {
-            if (isImmobileBlocker(bumpCreep)) {
-                const yieldDir = findYieldDirection(creep, nextPosition);
-                if (yieldDir) creep.move(yieldDir);
-                else if (!isGrouped) creep.moveRandom();
-                bumpCreep.say(ICONS.traffic, true);
-                if (bumpCreep.memory) bumpCreep.memory.moveBlocked = Game.time;
-                clearYieldAttempts(creep);
-                return true;
-            }
-            if (isPullSwapBlocker(bumpCreep) && bumpCreep.hasActiveBodyparts(MOVE)) {
-                bumpCreep.say(ICONS.traffic, true);
-                if (bumpCreep.memory) bumpCreep.memory.moveBlocked = Game.time;
-                clearYieldAttempts(creep);
-                return true;
-            }
-            if (creepWinsTraffic(creep, bumpCreep) || bumpCreep.store.getUsedCapacity() === 0) {
-                const yieldDir = findYieldDirection(bumpCreep, nextPosition);
-                if (yieldDir) bumpCreep.move(yieldDir);
-                else bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
-                creep.move(nextDirection);
-                if (bumpCreep.memory?._shibMove) bumpCreep.memory._shibMove.pathPosTime = 0;
-            } else if (!isGrouped) {
-                const yieldDir = findYieldDirection(creep, nextPosition);
-                if (yieldDir) creep.move(yieldDir);
-                else creep.moveRandom();
-                bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
-                if (creep.memory?._shibMove) creep.memory._shibMove.pathPosTime = 0;
-            }
-        } else {
-            bumpCreep.moveRandom();
-            creep.move(creep.pos.getDirectionTo(bumpCreep));
-        }
+    // No friendly on the next tile (structure, edge case, enemy): repath — do not random thrash.
+    if (!bumpCreep) {
+        creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
+        return false;
+    }
 
-        bumpCreep.say(ICONS.traffic, true);
-        if (bumpCreep.memory) bumpCreep.memory.moveBlocked = Game.time;
-        clearYieldAttempts(creep);
+    // 1) Pull-swap through immobile / tow-waiting blockers when weight allows.
+    if (tryPullSwapThrough(creep, bumpCreep, nextDirection)) {
+        if (ICONS?.traffic) bumpCreep.say(ICONS.traffic, true);
+        markMoveBlocked(bumpCreep);
         return true;
     }
 
-    if (!isGrouped && Math.random() > 0.75) creep.moveRandom();
-    creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
+    // 2) Cannot clear: stationary work, squad, immobile, or tow-waiting (pull-swap failed).
+    if (bumpCreep.memory?.other?.stationary ||
+        bumpCreep.memory?.grouped ||
+        isImmobileBlocker(bumpCreep) ||
+        isPullSwapBlocker(bumpCreep) ||
+        !isBumperCandidate(bumpCreep)) {
+        creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
+        return false;
+    }
 
-    if (!isGrouped) delete creep.memory._shibMove;
-    clearYieldAttempts(creep);
+    // 3) Higher priority (lower PRIORITIES number): ask them to yield onto a free tile.
+    if (creepWinsTraffic(creep, bumpCreep)) {
+        const yieldDir = findYieldDirection(bumpCreep, nextPosition);
+        if (!yieldDir) {
+            creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
+            return false;
+        }
+        bumpCreep.move(yieldDir);
+        if (ICONS?.traffic) bumpCreep.say(ICONS.traffic, true);
+        markMoveBlocked(bumpCreep);
+        if (bumpCreep.memory?._shibMove) bumpCreep.memory._shibMove.pathPosTime = 0;
+        creep.move(nextDirection);
+        return true;
+    }
+
+    // 4) We lose priority: only step aside onto a free tile (no forced dance / random).
+    // Clear path so the next move builds a route that accounts for the higher-priority creep.
+    const selfYield = findYieldDirection(creep, nextPosition);
+    if (selfYield) {
+        creep.move(selfYield);
+        markMoveBlocked(creep);
+        delete creep.memory._shibMove;
+        return true;
+    }
+
+    creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
     return false;
 }
 
