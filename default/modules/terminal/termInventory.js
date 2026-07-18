@@ -88,7 +88,56 @@ Object.assign(TerminalControl.prototype, {
         const total = getEffectiveSupply(resource);
         const surplus = Math.max(0, total - empireKeep - pipeline);
         return Math.min(inTerminal, surplus);
-    }, canEmpireSell(resource) {
+    },
+
+    /**
+     * Amount safe to dump when storage/terminal are under capacity pressure.
+     * Uses room-level surplus (not empire keep) so a non-hub can clear local piles
+     * like hundreds of thousands of UH even if empire stock looks "under target".
+     */
+    computePressureDumpAmount(terminal, resource) {
+        const inTerminal = terminal.store[resource] || 0;
+        if (!inTerminal) return 0;
+        if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) return 0;
+
+        const room = terminal.room;
+        let protect = getRoomKeepAmount(room, resource) || 0;
+        for (const lab of room.labs || []) {
+            if (lab.memory?.itemNeeded === resource) {
+                protect = Math.max(protect, REACTION_AMOUNT);
+            }
+            if (lab.memory?.neededBoost === resource) {
+                const amt = lab.memory.amount || BOOST_AMOUNT(room, resource);
+                protect = Math.max(protect, amt);
+            }
+        }
+        if (room.memory.producingBoost === resource) {
+            protect = Math.max(protect, BOOST_AMOUNT(room, resource));
+        }
+        if (room.memory.neededCommodity === resource) {
+            protect = Math.max(protect, REACTION_AMOUNT);
+        }
+
+        const roomTotal = room.store(resource) || 0;
+        // Always leave a small local floor; dump the rest of what is already in the terminal.
+        const roomSurplus = Math.max(0, roomTotal - protect);
+        if (roomSurplus < 100) return 0;
+        // Prefer dumping terminal stock first; leave at least `protect` in the room overall
+        // by not emptying terminal below max(0, protect - (roomTotal - inTerminal)).
+        const outsideTerminal = Math.max(0, roomTotal - inTerminal);
+        const terminalFloor = Math.max(0, protect - outsideTerminal);
+        return Math.max(0, Math.min(inTerminal - terminalFloor, roomSurplus, inTerminal));
+    },
+
+    isCapacityPressured(room) {
+        const terminal = room && room.terminal;
+        if (!terminal) return false;
+        if (terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.15) return true;
+        const storage = room.storage;
+        return !!(storage && storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1);
+    },
+
+    canEmpireSell(resource) {
         return empireCanSell(resource);
     }, canSellSurplusEnergy(terminal) {
         if (terminal.room.level < 8 || terminal.room.energyState < 3) return false;
@@ -98,6 +147,10 @@ Object.assign(TerminalControl.prototype, {
             return room && room.terminal && room.energyState < 2;
         });
     }, allowEnergySell(terminal) {
+        if (this.isCapacityPressured(terminal.room)
+            && (terminal.store[RESOURCE_ENERGY] || 0) > TERMINAL_ENERGY_BUFFER + 10000) {
+            return true;
+        }
         if (SELL_ENERGY) {
             return terminal.room.level >= 8 && terminal.room.energyState >= 2
                 && !_.find(MY_ROOMS, r => {

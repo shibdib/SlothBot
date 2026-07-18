@@ -44,9 +44,12 @@ function buildSendBudget() {
     return {tick: Game.time, total, spent: 0};
 }
 
-function canAffordSend(energyCost) {
+function canAffordSend(energyCost, options = {}) {
+    if (!energyCost) return true;
+    // Capacity evacuation must not stall because the empire already spent the soft budget.
+    if (options.emergency) return true;
     const budget = state.ledger?.sendBudget;
-    if (!budget || !energyCost) return true;
+    if (!budget) return true;
     return budget.spent + energyCost <= budget.total;
 }
 

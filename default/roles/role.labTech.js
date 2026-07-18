@@ -851,6 +851,7 @@ class RoleLabTech {
         const terminalFree = terminal.store.getFreeCapacity();
         if (terminalFree < BALANCE_MIN_TRANSFER || this.blocksTerminalInbound(terminal)) return null;
 
+        const storageCongested = this.isStorageNearFull(storage);
         const resources = Object.keys(storage.store)
             .filter(r => r !== RESOURCE_ENERGY)
             .sort((a, b) => (storage.store[b] || 0) - (storage.store[a] || 0));
@@ -862,18 +863,30 @@ class RoleLabTech {
                 continue;
             }
 
-            const retain = this.getStorageRetainTarget(resource);
-            if (!retain) continue;
             const inStorage = storage.store[resource] || 0;
-            const excess = inStorage - retain;
+            if (inStorage < BALANCE_MIN_TRANSFER) continue;
+
+            // Normal: only move above storage retain target, capped by terminal export ceiling.
+            // Storage full: ignore export ceiling so bulk piles (e.g. 440k UH) can enter the
+            // terminal for pressure sends / fire sales. Keep only the local keep floor in storage.
+            const retain = storageCongested
+                ? (this.getKeepAmount(resource) || 0)
+                : this.getStorageRetainTarget(resource);
+            if (!storageCongested && !retain) continue;
+
+            const excess = Math.max(0, inStorage - retain);
             if (excess < BALANCE_MIN_TRANSFER) continue;
 
             const inTerminal = terminal.store[resource] || 0;
-            const exportCeiling = this.getTerminalRetainFloor(resource) + TERMINAL_EXPORT_CEILING;
-            if (inTerminal >= exportCeiling) continue;
+            let maxToTerminal = terminalFree;
+            if (!storageCongested) {
+                const exportCeiling = this.getTerminalRetainFloor(resource) + TERMINAL_EXPORT_CEILING;
+                if (inTerminal >= exportCeiling) continue;
+                maxToTerminal = Math.min(maxToTerminal, exportCeiling - inTerminal);
+            }
 
             const task = this.makeBalanceTask(storage, terminal, resource,
-                Math.min(excess, 5000, terminalFree, exportCeiling - inTerminal));
+                Math.min(excess, 5000, maxToTerminal));
             if (task) return task;
         }
         return null;
@@ -884,6 +897,14 @@ class RoleLabTech {
         const storageCongested = this.isStructureCongested(storage);
         if (!terminalCongested && !storageCongested) return null;
 
+        // Both full: do NOT push terminal → storage (nowhere to go). Feed is useless too.
+        // Leave stock in terminal for market/pressure evacuation; only try energy reshape.
+        if (terminalCongested && storageCongested) {
+            const energyTask = this.findEnergyStorageBalance(storage, terminal);
+            if (energyTask) return energyTask;
+            return null;
+        }
+
         if (terminalCongested) {
             const drain = this.findExcessTerminalToStorage(storage, terminal, true);
             if (drain) return drain;
@@ -892,6 +913,7 @@ class RoleLabTech {
             return null;
         }
 
+        // Storage full / congested, terminal has space: push largest surplus into terminal for export.
         const fill = this.findStorageOverflowToTerminal(storage, terminal);
         if (fill) return fill;
         const batteryTask = this.findBatteryStorageBalance(storage, terminal);

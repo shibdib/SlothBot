@@ -7,7 +7,12 @@
 const {tickTracker} = require('planState');
 const {isColonyEarlyRush} = require('bodyHelpers');
 
-const {buildMissingStructures, buildAuxiliaryStructures, hasPendingLayoutStructures} = require('planLayout');
+const {
+    buildMissingStructures,
+    buildAuxiliaryStructures,
+    hasPendingLayoutStructures,
+    ensureSpawnSite,
+} = require('planLayout');
 
 const {
     findHub,
@@ -23,6 +28,17 @@ const {getExtensionDeficit} = require('planExtensions');
 
 function hasBunkerHub(room) {
     return !!(room.memory.bunkerHub && room.memory.bunkerHub.x);
+}
+
+/** Room has a hub but no completed spawn structure. */
+function needsOwnSpawn(room) {
+    return !!(room.controller && room.controller.my && hasBunkerHub(room) && !(room.spawns && room.spawns.length));
+}
+
+/** Spawn structure missing AND no spawn construction site yet — urgent bootstrap. */
+function needsSpawnSite(room) {
+    if (!needsOwnSpawn(room)) return false;
+    return !room.constructionSites.some(s => s.structureType === STRUCTURE_SPAWN);
 }
 
 function pickRoundRobin(list) {
@@ -61,10 +77,9 @@ function getNextRoom() {
     const needsHub = rooms.filter(r => r.controller && r.controller.my && !hasBunkerHub(r));
     if (needsHub.length) return pickRoundRobin(needsHub);
 
-    // Bootstrap rooms that have a hub but still no spawn of their own.
-    const needsSpawn = rooms.filter(r =>
-        r.controller && r.controller.my && hasBunkerHub(r) && !(r.spawns && r.spawns.length)
-    );
+    // Cross-room bootstrap: spawnless rooms before tower/extension work elsewhere.
+    // Within a room, placement order is still tower → spawn → extensions.
+    const needsSpawn = rooms.filter(needsOwnSpawn);
     if (needsSpawn.length) return pickRoundRobin(needsSpawn);
 
     const needsTowers = rooms.filter(r =>
@@ -89,17 +104,25 @@ function runRoomLayout(room, lastRun, earlyRush) {
     if (!room.memory.towerHubs) findTowerHub(room);
     if (!room.memory.labHub) findLabHub(room);
 
+    // Spawnless rooms always run full layout this tick (no auxiliary alternation).
+    const forceLayout = earlyRush || needsOwnSpawn(room);
+
     if (getTowerDeficit(room) > 0) {
         placeTowerSitesUpToDeficit(room);
     }
 
-    if (earlyRush || shouldRunLayout(lastRun)) {
-        buildMissingStructures(room, room.controller.level);
-        if (!earlyRush) lastRun.task = 'layout';
+    // Spawn before the rest of layout work so it cannot lose the tick to extensions.
+    if (needsSpawnSite(room)) {
+        ensureSpawnSite(room);
     }
-    if (earlyRush || shouldRunAuxiliary(lastRun)) {
+
+    if (forceLayout || shouldRunLayout(lastRun)) {
+        buildMissingStructures(room, room.controller.level);
+        if (!forceLayout) lastRun.task = 'layout';
+    }
+    if (forceLayout || shouldRunAuxiliary(lastRun)) {
         buildAuxiliaryStructures(room);
-        if (!earlyRush) lastRun.task = 'auxiliary';
+        if (!forceLayout) lastRun.task = 'auxiliary';
     }
 
     if (room.storage) {
@@ -134,8 +157,21 @@ function buildRoom() {
         const lastRun = tickTracker[room.name] || {};
         findHub(room);
         if (hasBunkerHub(room)) {
-            runRoomLayout(room, lastRun, isColonyEarlyRush(room));
+            runRoomLayout(room, lastRun, true);
         }
+        tickTracker[room.name] = lastRun;
+        return;
+    }
+
+    // Spawn-site bootstrap: same urgency as hub — place the site immediately.
+    // Once a spawn site exists, fall through to normal planner scheduling.
+    const spawnBootstrapRooms = getVisibleOwnedRooms().filter(needsSpawnSite);
+    if (spawnBootstrapRooms.length) {
+        const room = pickRoundRobin(spawnBootstrapRooms);
+        tickTracker['lastTick'] = Game.time;
+        tickTracker['lastRoom'] = room.name;
+        const lastRun = tickTracker[room.name] || {};
+        runRoomLayout(room, lastRun, true);
         tickTracker[room.name] = lastRun;
         return;
     }

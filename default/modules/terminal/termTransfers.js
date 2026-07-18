@@ -11,10 +11,20 @@ const FactoryControl = require('module.factoryController');
 const profiler = require('tools.profiler');
 
 const RESOURCE_SEND_MAX = 5000;
+const PRESSURE_SEND_MAX = 25000;
 const RESOURCE_SEND_MIN = 100;
 const ENERGY_SEND_MIN = 5000;
+const PRESSURE_DEST_FREE_MIN = 5000;
 
-const PRIORITY_RANK = {urgent: 0, battery: 1, energy: 2, resource: 3, ally: 4, hub: 5, pressure: 6};
+// Pressure outranks hub/ally consolidation so overfull rooms evacuate first.
+const PRIORITY_RANK = {urgent: 0, pressure: 1, battery: 2, energy: 3, resource: 4, ally: 5, hub: 6};
+
+function isRoomCapacityPressured(room) {
+    if (!room || !room.terminal) return false;
+    if (room.terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.15) return true;
+    const storage = room.storage;
+    return !!(storage && storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1);
+}
 
 function getRoomLabNeeds(room) {
     const needs = new Set();
@@ -52,11 +62,11 @@ function getTerminalExportable(room, resource, pressureRelief = false) {
     if (pressureRelief) {
         available = Math.max(0, effective - keep);
         available = Math.min(available, inTerminal);
-    } else {
-        if (!keep || effective < keep) return 0;
-        available = Math.max(0, effective - keep);
-        available = Math.min(available, inTerminal);
+        return Math.min(available, PRESSURE_SEND_MAX);
     }
+    if (!keep || effective < keep) return 0;
+    available = Math.max(0, effective - keep);
+    available = Math.min(available, inTerminal);
     return Math.min(available, RESOURCE_SEND_MAX);
 }
 
@@ -394,7 +404,7 @@ function planHubConsolidation(transfers, ledger, profiles) {
     if (!hub) return;
 
     const hubRoom = Game.rooms[hub];
-    if (!hubRoom?.terminal || !canUseTerminal(hub)) return;
+    if (!hubRoom?.terminal || !canUseTerminal(hub) || isRoomCapacityPressured(hubRoom)) return;
 
     const {canEmpireSell} = require('termNetwork');
 
@@ -403,52 +413,99 @@ function planHubConsolidation(transfers, ledger, profiles) {
         const room = Game.rooms[profile.name];
         if (!room?.terminal || !canUseTerminal(profile.name) || room.memory.dangerousAttack) continue;
 
+        const pressured = isRoomCapacityPressured(room);
         for (const resource of Object.keys(room.terminal.store)) {
             if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
+            if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) continue;
             if (allyWantsResource(resource)) continue;
-            if (!canEmpireSell(resource, ledger)) continue;
+            // Pressured rooms may ship local surplus even when empire soft-keep blocks normal sells.
+            if (!pressured && !canEmpireSell(resource, ledger)) continue;
 
-            const amount = getTerminalExportable(room, resource);
+            const amount = getTerminalExportable(room, resource, pressured);
             if (amount < RESOURCE_SEND_MIN) continue;
 
             const hubFree = hubRoom.terminal.store.getFreeCapacity(resource);
             if (hubFree < RESOURCE_SEND_MIN) continue;
 
-            const sendAmount = Math.min(amount, hubFree, RESOURCE_SEND_MAX);
+            const sendAmount = Math.min(amount, hubFree, pressured ? PRESSURE_SEND_MAX : RESOURCE_SEND_MAX);
             const cost = txCost(profile.name, hub, sendAmount);
-            if (cost > sendAmount * 0.25) continue;
+            if (cost > sendAmount * (pressured ? 0.35 : 0.25)) continue;
 
             addTransfer(transfers, {
                 from: profile.name,
                 to: hub,
                 resource,
                 amount: sendAmount,
-                kind: 'hub',
-                score: scoreTransfer(sendAmount, cost, 0.5),
+                kind: pressured ? 'pressure' : 'hub',
+                score: scoreTransfer(sendAmount, cost, pressured ? 2 : 0.5),
             });
         }
     }
 }
 
-function planPressureTransfers(transfers, profiles, resources) {
-    const pressured = new Set();
+/**
+ * Evacuate pressured rooms to ANY non-pressured terminal with free space.
+ * Demand-based balancing alone cannot clear rooms full of resources everyone already has
+ * (e.g. 440k UH sitting in a non-hub storage).
+ */
+function planPressureTransfers(transfers, profiles) {
+    const pressured = [];
     for (const profile of profiles) {
         const room = Game.rooms[profile.name];
-        if (!room?.terminal) continue;
-        const storage = room.storage;
-        const terminalPressure = room.terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.1;
-        const storagePressure = storage && storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1;
-        if (terminalPressure || storagePressure) pressured.add(profile.name);
+        if (!room?.terminal || !canUseTerminal(profile.name)) continue;
+        if (!isRoomCapacityPressured(room)) continue;
+        pressured.push(profile.name);
     }
-    if (!pressured.size) return;
+    if (!pressured.length) return;
 
-    for (const resource of resources) {
-        if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
-        planResourceTransfers(transfers, resource, profiles, {
-            pressureRelief: true,
-            kind: 'pressure',
-            sourceNames: pressured,
-        });
+    for (const srcName of pressured) {
+        const srcRoom = Game.rooms[srcName];
+        if (!srcRoom?.terminal) continue;
+
+        const resources = Object.keys(srcRoom.terminal.store)
+            .filter(r => r !== RESOURCE_ENERGY && r !== RESOURCE_BATTERY && r !== RESOURCE_OPS && r !== RESOURCE_POWER)
+            .sort((a, b) => (srcRoom.terminal.store[b] || 0) - (srcRoom.terminal.store[a] || 0));
+
+        for (const resource of resources) {
+            const amount = getTerminalExportable(srcRoom, resource, true);
+            if (amount < RESOURCE_SEND_MIN) continue;
+
+            const candidates = [];
+            for (const profile of profiles) {
+                if (profile.name === srcName) continue;
+                const destRoom = Game.rooms[profile.name];
+                if (!destRoom?.terminal || !canUseTerminal(profile.name)) continue;
+                if (isRoomCapacityPressured(destRoom)) continue;
+
+                const destFree = destRoom.terminal.store.getFreeCapacity(resource);
+                if (destFree < PRESSURE_DEST_FREE_MIN) continue;
+
+                const sendAmount = Math.min(amount, destFree, PRESSURE_SEND_MAX);
+                if (sendAmount < RESOURCE_SEND_MIN) continue;
+                const cost = txCost(srcName, profile.name, sendAmount);
+                // Slightly more lenient than normal balancing (0.25 → 0.35).
+                if (cost > sendAmount * 0.35) continue;
+
+                const demand = getRoomResourceDemand(destRoom, resource);
+                const effective = getRoomEffective(destRoom, resource);
+                const underKeep = demand ? Math.max(0, demand - effective) : 0;
+                candidates.push({
+                    from: srcName,
+                    to: profile.name,
+                    resource,
+                    amount: sendAmount,
+                    kind: 'pressure',
+                    score: scoreTransfer(underKeep || destFree, cost, underKeep ? 3 : 1) + sendAmount / 5000,
+                });
+            }
+
+            candidates.sort((a, b) => b.score - a.score);
+            if (candidates[0]) {
+                addTransfer(transfers, candidates[0]);
+                // One outbound pressure plan per source room is enough; only one send/tick executes.
+                break;
+            }
+        }
     }
 }
 
@@ -464,6 +521,8 @@ function planTransfers(ledger) {
     const transfers = [];
 
     planUrgentTransfers(transfers, ledger, profiles);
+    // Evacuate overfull rooms before normal battery/energy/resource balancing.
+    planPressureTransfers(transfers, profiles);
     planBatteryTransfers(transfers, profiles);
     planEnergyTransfers(transfers, profiles);
 
@@ -473,7 +532,6 @@ function planTransfers(ledger) {
     }
 
     planAllyTransfers(transfers, ledger, profiles);
-    planPressureTransfers(transfers, profiles, resources);
     planHubConsolidation(transfers, ledger, profiles);
 
     transfers.sort((a, b) => {
@@ -510,7 +568,8 @@ function executeTransfer(terminal, transfer) {
     const txCost = Game.market.calcTransactionCost(amount, terminal.room.name, to);
     const energyCost = (resource === RESOURCE_ENERGY ? amount : 0) + txCost;
     const {canAffordSend} = require('termBudget');
-    if (!canAffordSend(energyCost)) return false;
+    const emergency = transfer.kind === 'pressure' || transfer.kind === 'urgent';
+    if (!canAffordSend(energyCost, {emergency})) return false;
 
     if (terminal.send(resource, amount, to) !== OK) return false;
 
@@ -556,4 +615,5 @@ module.exports = {
     canUseTerminal,
     markTerminalsUsed,
     recordTransferEnergyCost,
+    isRoomCapacityPressured,
 };

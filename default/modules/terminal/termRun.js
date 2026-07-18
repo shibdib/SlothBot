@@ -20,7 +20,13 @@ const TerminalControl = require('termClass');
 Object.assign(TerminalControl.prototype, {
 
     run() {
-        if (!this.room.terminal || (state.lastRun[this.room.name] && state.lastRun[this.room.name] + 25 > Game.time)) return;
+        if (!this.room.terminal) return;
+
+        const pressured = this.isCapacityPressured(this.room);
+        // Pressured rooms run every 5 ticks so multi-hundred-k piles can drain;
+        // healthy rooms keep the cheaper 25-tick cadence.
+        const cooldown = pressured ? 5 : 25;
+        if (state.lastRun[this.room.name] && state.lastRun[this.room.name] + cooldown > Game.time) return;
 
         state.lastRun[this.room.name] = Game.time;
 
@@ -39,17 +45,18 @@ Object.assign(TerminalControl.prototype, {
         }
 
         const terminal = this.room.terminal;
-        const storage = terminal.room.storage;
-        const terminalPressure = terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.1;
-        const storagePressure = storage && storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1;
-        if (terminalPressure || storagePressure) {
+
+        // Overfull rooms: evacuate via planned pressure sends, then fire-sale, before
+        // normal balancing/hub feed can consume the terminal action for the tick.
+        if (pressured) {
             if (this.relieveStoragePressure(terminal)) return;
+            if (runActiveMarket(this, globalOrders)) return;
         }
 
         // Internal network before market — route empire stock first.
         const planned = state.ledger?.plannedTransfers || [];
         const hasPriorityOutbound = planned.some(t =>
-            t.from === this.room.name && ['urgent', 'battery', 'energy', 'resource', 'ally'].includes(t.kind)
+            t.from === this.room.name && ['urgent', 'pressure', 'battery', 'energy', 'resource', 'ally'].includes(t.kind)
         );
         if (this.emergencyEnergy(terminal)) return;
         if (!hub && !hasPriorityOutbound && this.executePlannedTransfers(terminal, {kinds: ['hub']})) return;

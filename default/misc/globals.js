@@ -217,6 +217,56 @@ let globals = function () {
         return removeInvalidExtensions(room);
     };
 
+    // Console: inspectSpawn('E1N1') — diagnose missing spawn on new claims.
+    global.inspectSpawn = function (roomName) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {getSpawnAnchor, ensureSpawnSite} = require('planLayout');
+        const {canPlaceConstructionSite, roomConstructionSiteBudget} = require('planUtils');
+        const {tickTracker} = require('planState');
+        const anchor = getSpawnAnchor(room);
+        const tile = anchor && {
+            x: anchor.x,
+            y: anchor.y,
+            wall: !!(anchor.checkForWall && anchor.checkForWall()),
+            structures: anchor.lookFor(LOOK_STRUCTURES).map(s => s.structureType),
+            sites: anchor.lookFor(LOOK_CONSTRUCTION_SITES).map(s => ({
+                type: s.structureType,
+                progress: s.progress,
+                progressTotal: s.progressTotal,
+            })),
+        };
+        const siteBreakdown = {};
+        for (const s of room.constructionSites) {
+            siteBreakdown[s.structureType] = (siteBreakdown[s.structureType] || 0) + 1;
+        }
+        return {
+            roomName,
+            rcl: room.controller && room.controller.level,
+            bunkerHub: room.memory.bunkerHub,
+            dynamicLayout: !!room.memory.dynamicLayout,
+            spawns: room.spawns.length,
+            spawnSites: room.constructionSites.filter(s => s.structureType === STRUCTURE_SPAWN).length,
+            towers: room.towers.length,
+            extensions: room.extensions.length,
+            siteBreakdown,
+            siteBudget: roomConstructionSiteBudget(room),
+            canPlace: canPlaceConstructionSite(room),
+            spawnAnchor: tile,
+            plannerSpawnBlocked: room.memory.plannerSpawnBlocked,
+            planner: tickTracker[roomName],
+            lastPlannerRoom: tickTracker.lastRoom,
+            force: () => ensureSpawnSite(room),
+        };
+    };
+
+    global.forceSpawn = function (roomName) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {ensureSpawnSite} = require('planLayout');
+        return ensureSpawnSite(room);
+    };
+
     // Read-only: which extensions violate clearance and whether version cleanup has run.
     global.inspectExtensionClearance = function (roomName) {
         const {auditExtensionClearance} = require('planExtensions');

@@ -1,13 +1,8 @@
 /*
-
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
-
  *
-
  * Market sell orders and quick liquidation.
-
  */
-
 
 const {getEffectiveSupply} = require('termNetwork');
 const {isMarketHub} = require('termMarket');
@@ -16,6 +11,7 @@ const {recordTransferEnergyCost, markTerminalsUsed} = require('termTransfers');
 
 const TerminalControl = require('termClass');
 
+const FIRE_SALE_MIN = 100;
 
 Object.assign(TerminalControl.prototype, {
 
@@ -88,25 +84,32 @@ Object.assign(TerminalControl.prototype, {
         }
 
         return false;
-    }, quickSell(terminal, globalOrders) {
-        const MIN_QUICKSELL_PROFIT = 100;
-        const storage = terminal.room.storage;
-        const terminalPressure = terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.1;
-        const storagePressure = storage && storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1;
-        if (!terminalPressure && !storagePressure) return false;
+    },
 
-        const sortedKeys = Object.keys(terminal.store).sort((a, b) => terminal.store[a] - terminal.store[b]);
+    quickSell(terminal, globalOrders) {
+        const MIN_QUICKSELL_PROFIT = 100;
+        if (!this.isCapacityPressured(terminal.room)) return false;
+
+        // Largest stacks first — free capacity is the goal under pressure.
+        const sortedKeys = Object.keys(terminal.store).sort((a, b) =>
+            (terminal.store[b] || 0) - (terminal.store[a] || 0)
+        );
 
         const transferFactor = roomName => 1 - Math.exp(-Game.map.getRoomLinearDistance(terminal.room.name, roomName) / 30);
         const transactionCost = (amount, roomName) => Math.ceil(amount * transferFactor(roomName));
-        const maxAffordable = (energy, roomName) => Math.floor(energy / transferFactor(roomName));
+        const maxAffordable = (energy, roomName) => {
+            const factor = transferFactor(roomName);
+            if (factor <= 0) return energy;
+            return Math.floor(energy / factor);
+        };
         const isHostile = roomName => INTEL[roomName] && HOSTILES.includes(INTEL[roomName].user);
 
         const findBestBuyer = (resourceType, sellAmount) => {
             const orders = globalOrders.filter(o =>
                 o.resourceType === resourceType && o.type === ORDER_BUY &&
                 o.roomName !== terminal.pos.roomName &&
-                transactionCost(sellAmount, o.roomName) < terminal.store[RESOURCE_ENERGY] &&
+                !_.includes(MY_ROOMS, o.roomName) &&
+                transactionCost(Math.min(sellAmount, o.remainingAmount), o.roomName) < terminal.store[RESOURCE_ENERGY] &&
                 !isHostile(o.roomName)
             );
             if (orders.length === 0) return null;
@@ -120,87 +123,97 @@ Object.assign(TerminalControl.prototype, {
             return netProfit(best) > MIN_QUICKSELL_PROFIT ? best : null;
         };
 
-        const handleSale = (buyer, sellAmount, resourceType) => {
+        const findAnyBuyer = (resourceType, sellAmount) => {
+            const orders = globalOrders.filter(o =>
+                o.resourceType === resourceType && o.type === ORDER_BUY &&
+                o.roomName !== terminal.pos.roomName &&
+                !_.includes(MY_ROOMS, o.roomName) &&
+                !isHostile(o.roomName) &&
+                o.remainingAmount >= FIRE_SALE_MIN
+            );
+            if (!orders.length) return null;
+            return _.max(orders, 'price');
+        };
+
+        const handleSale = (buyer, sellAmount, resourceType, fireSale = false) => {
             sellAmount = Math.min(sellAmount, buyer.remainingAmount);
             if (transactionCost(sellAmount, buyer.roomName) > terminal.store[RESOURCE_ENERGY]) {
                 sellAmount = maxAffordable(terminal.store[RESOURCE_ENERGY], buyer.roomName);
             }
-            if (sellAmount * buyer.price < 5) return false;
+            if (sellAmount < FIRE_SALE_MIN) return false;
+            if (!fireSale && sellAmount * buyer.price < 5) return false;
             const txCost = Game.market.calcTransactionCost(sellAmount, terminal.pos.roomName, buyer.roomName);
-            if (!canAffordSend(txCost)) return false;
+            if (!canAffordSend(txCost, {emergency: true})) return false;
             if (Game.market.deal(buyer.id, sellAmount, terminal.pos.roomName) !== OK) return false;
             recordMarketEnergyCost(terminal.room.name, txCost);
             const credits = buyer.price * sellAmount;
-            log.w(`${terminal.pos.roomName} Sell Off Completed - ${sellAmount} ${resourceType} for ${credits} credits in ${roomLink(terminal.room.name)}`, "Market: ");
+            if (fireSale) {
+                log.w(`FIRE SALE: Dumped ${sellAmount} ${resourceType} to ${roomLink(buyer.roomName)} for ${credits} credits to clear space in ${roomLink(terminal.room.name)}.`, "Market: ");
+            } else {
+                log.w(`${terminal.pos.roomName} Sell Off Completed - ${sellAmount} ${resourceType} for ${credits} credits in ${roomLink(terminal.room.name)}`, "Market: ");
+            }
             if (Memory._banker) Memory._banker.spendingAccount += credits * 0.75;
             this.recordBankerDeal('sell', resourceType, sellAmount, credits);
             return true;
         };
 
-        const handleOffload = (sellAmount, resourceType) => {
-            const fireSaleBuyers = globalOrders.filter(o =>
-                o.resourceType === resourceType && o.type === ORDER_BUY &&
-                !_.includes(MY_ROOMS, o.roomName) && !isHostile(o.roomName)
-            );
-            if (fireSaleBuyers.length > 0) {
-                const buyer = _.max(fireSaleBuyers, 'price');
-                const amount = Math.min(sellAmount, buyer.remainingAmount);
-                const fireTxCost = Game.market.calcTransactionCost(amount, terminal.pos.roomName, buyer.roomName);
-                if (transactionCost(amount, buyer.roomName) < terminal.store[RESOURCE_ENERGY]
-                    && canAffordSend(fireTxCost)
-                    && Game.market.deal(buyer.id, amount, terminal.pos.roomName) === OK) {
-                    recordMarketEnergyCost(terminal.room.name, fireTxCost);
-                    log.w(`FIRE SALE: Dumped ${amount} ${resourceType} to ${roomLink(buyer.roomName)} for ${buyer.price * amount} credits to clear space.`, "Market: ");
-                    return true;
-                }
+        const handleAllyDump = (sellAmount, resourceType) => {
+            const friendlyRooms = _.filter(MY_ROOMS, name => {
+                if (name === terminal.room.name) return false;
+                const room = Game.rooms[name];
+                return room && room.terminal && room.controller && room.controller.level >= 6
+                    && !this.isCapacityPressured(room)
+                    && room.terminal.store.getFreeCapacity(resourceType) >= FIRE_SALE_MIN;
+            });
+            // Also consider visible ally (non-owned) rooms with free terminal space.
+            for (const r of _.values(INTEL)) {
+                if (!r || !r.name || !r.user || r.user === MY_USERNAME) continue;
+                if (!FRIENDLIES.includes(r.user) || (r.level || 0) < 6) continue;
+                const room = Game.rooms[r.name];
+                if (!room || !room.terminal) continue;
+                if (room.terminal.store.getFreeCapacity(resourceType) < FIRE_SALE_MIN) continue;
+                friendlyRooms.push(r.name);
             }
+            if (!friendlyRooms.length) return false;
 
-            const friendlyRooms = _.filter(INTEL, r => r.user && FRIENDLIES.includes(r.user) && r.level >= 6
-                && Game.rooms[r.name] && Game.rooms[r.name].terminal);
-            if (friendlyRooms.length === 0) return false;
-            const friend = _.sample(friendlyRooms).name;
+            const friend = _.max(friendlyRooms, name => {
+                const room = Game.rooms[name];
+                return room && room.terminal ? room.terminal.store.getFreeCapacity(resourceType) : 0;
+            });
+            if (!friend || !Game.rooms[friend] || !Game.rooms[friend].terminal) return false;
+
+            const destFree = Game.rooms[friend].terminal.store.getFreeCapacity(resourceType);
+            sellAmount = Math.min(sellAmount, destFree, 25000);
             if (transactionCost(sellAmount, friend) > terminal.store[RESOURCE_ENERGY]) {
                 sellAmount = maxAffordable(terminal.store[RESOURCE_ENERGY], friend);
             }
-            if (sellAmount <= 1000) return false;
+            if (sellAmount < FIRE_SALE_MIN) return false;
             const txCost = Game.market.calcTransactionCost(sellAmount, terminal.pos.roomName, friend);
             const energyCost = (resourceType === RESOURCE_ENERGY ? sellAmount : 0) + txCost;
-            if (!canAffordSend(energyCost)) return false;
+            if (!canAffordSend(energyCost, {emergency: true})) return false;
             if (terminal.send(resourceType, sellAmount, friend) !== OK) return false;
             recordTransferEnergyCost(terminal, resourceType, sellAmount, friend);
             markTerminalsUsed(terminal.room.name, friend, resourceType);
-            log.w(`Dumped ${sellAmount} ${resourceType} to Ally ${roomLink(friend)} to clear space.`, "Market: ");
+            log.w(`Dumped ${sellAmount} ${resourceType} to ${roomLink(friend)} to clear space in ${roomLink(terminal.room.name)}.`, "Market: ");
             return true;
         };
 
         for (const resourceType of sortedKeys) {
-            if ((resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) && !this.allowEnergySell(terminal)) continue;
-
-            if (this.empireLabPipelineReserve(resourceType) > 0) continue;
-            if (MY_ROOMS.some(name => {
-                const room = Game.rooms[name];
-                if (!room) return false;
-                if (room.memory.neededCommodity === resourceType) return true;
-                if (room.memory.producingBoost === resourceType) return true;
-                return (room.labs || []).some(lab =>
-                    lab.memory?.itemNeeded === resourceType || lab.memory?.neededBoost === resourceType
-                );
-            })) continue;
-
-            if (COMPRESSED_COMMODITIES.includes(resourceType) && !this.canEmpireSell(resourceType)) continue;
-            if (ALL_BOOSTS.includes(resourceType) && getEffectiveSupply(resourceType) < this.getEmpireKeepAmount(resourceType) * 1.5) continue;
-
-            const sellAmount = this.computeSellableAmount(terminal, resourceType);
-            if (sellAmount < 100) continue;
-
-            const keepAmount = this.determineKeepAmount(resourceType);
-
-            const buyer = findBestBuyer(resourceType, sellAmount);
-            if (buyer) {
-                if (handleSale(buyer, sellAmount, resourceType)) return true;
-            } else if (sellAmount >= keepAmount * 2) {
-                if (handleOffload(sellAmount, resourceType)) return true;
+            if (resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY) {
+                if (!this.allowEnergySell(terminal)) continue;
             }
+
+            // Under pressure only protect THIS room's active lab/boost work, not empire soft targets.
+            const dumpAmount = this.computePressureDumpAmount(terminal, resourceType);
+            if (dumpAmount < FIRE_SALE_MIN) continue;
+
+            const profitable = findBestBuyer(resourceType, dumpAmount);
+            if (profitable && handleSale(profitable, dumpAmount, resourceType, false)) return true;
+
+            const anyBuyer = findAnyBuyer(resourceType, dumpAmount);
+            if (anyBuyer && handleSale(anyBuyer, dumpAmount, resourceType, true)) return true;
+
+            if (handleAllyDump(dumpAmount, resourceType)) return true;
         }
         return false;
     }

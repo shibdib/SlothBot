@@ -161,10 +161,11 @@ function runHousekeeping(ctrl, globalOrders, myOrders) {
 }
 
 function runActiveMarket(ctrl, globalOrders) {
-    if (!_.size(MY_MINERALS)) return false;
     const terminal = ctrl.room.terminal;
-    return ctrl.dealFinder(terminal, globalOrders)
-        || ctrl.quickSell(terminal, globalOrders);
+    // Fire sales must run even when MY_MINERALS is empty (cache lag / early empire).
+    if (ctrl.quickSell(terminal, globalOrders)) return true;
+    if (!_.size(MY_MINERALS)) return false;
+    return ctrl.dealFinder(terminal, globalOrders);
 }
 
 function runPassiveMarket(ctrl, globalOrders, myOrders) {
