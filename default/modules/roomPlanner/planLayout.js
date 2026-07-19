@@ -21,6 +21,7 @@ const {
     placeRoomExtensions,
     getExtensionDeficit,
     ensureExtensionClearance,
+    ensureDynamicSpecialStructures,
 } = require('planExtensions');
 
 const {rampartBuilder} = require('planRamparts');
@@ -41,10 +42,18 @@ function hasPendingLayoutStructures(room) {
     const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
     const skipTypes = room.memory.dynamicLayout ? [...LAYOUT_SKIP_TYPES, STRUCTURE_EXTENSION] : LAYOUT_SKIP_TYPES;
     const level = room.controller.level;
-    return tmpl.some(s =>
+    if (tmpl.some(s =>
         !skipTypes.includes(s.structureType) &&
         CONTROLLER_STRUCTURES[s.structureType][level] > (existingCounts[s.structureType] || 0)
-    );
+    )) return true;
+    // Dynamic rooms also need factory / power spawn / nuker / observer (not in core stamps).
+    if (room.memory.dynamicLayout && level >= 7) {
+        for (const type of [STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN, STRUCTURE_NUKER, STRUCTURE_OBSERVER]) {
+            const allowed = CONTROLLER_STRUCTURES[type][level] || 0;
+            if (allowed > (existingCounts[type] || 0)) return true;
+        }
+    }
+    return false;
 }
 
 function hasSpawnOrSpawnSite(room) {
@@ -181,7 +190,17 @@ function buildMissingStructures(room, level) {
     }
 
     // No extensions until a spawn (or spawn site) exists.
-    if (!hasSpawnOrSpawnSite(room)) return;
+    if (!hasSpawnOrSpawnSite(room)) {
+        room.memory.plannerExtensionSkip = {tick: Game.time, reason: 'no-spawn-or-site'};
+        return;
+    }
+
+    // Extensions before the rest of bunker/core stamps so labs/links/etc. cannot
+    // fill the room site cap and leave energy capacity stuck after a wipe.
+    ensureExtensionClearance(room);
+    if (level >= 2 && getExtensionDeficit(room) > 0) {
+        placeRoomExtensions(room);
+    }
 
     const existingCounts = getStructureCounts(room);
     const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
@@ -194,9 +213,10 @@ function buildMissingStructures(room, level) {
     );
     if (countCheck && countCheck.length) buildFromLayout(room, countCheck);
 
-    ensureExtensionClearance(room);
-    if (level >= 2 && getExtensionDeficit(room) > 0) {
-        placeRoomExtensions(room);
+    // Dynamic rooms have no bunker stamps for factory / power spawn / nuker / observer —
+    // claim the closest extension tiles to the hub (destroying extensions if needed).
+    if (room.memory.dynamicLayout && level >= 7) {
+        ensureDynamicSpecialStructures(room);
     }
 }
 

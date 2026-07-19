@@ -9,7 +9,7 @@ const {getFlowContext, spawnEnergyState} = require('spawnFlow');
 const {getCreepCount, haulerCarryCapacity} = require('spawnCounts');
 const {queueCreepIfNeeded, queueCreep} = require('spawnQueue');
 const {routeHasBuiltRoads, countQueuedHaulersForSource} = require('bodyHelpers');
-const {roadBuildersNeeded, colonyNeedsRoadWork} = require('planRoads');
+const {remoteBuildersNeeded, colonyNeedsRoadWork} = require('planRoads');
 const remoteMining = require('remoteMining');
 
 function maxRemoteHaulerCarryParts(roomLevel, onRoads) {
@@ -226,35 +226,37 @@ function handleReservation(room, remoteName) {
     }
 }
 
-function countQueuedRoadBuilders(colonyName) {
+function countQueuedRemoteBuilders(colonyName) {
     const queue = CREEP_QUEUES[colonyName];
     if (!queue) return 0;
     let n = 0;
     for (const key in queue) {
-        if (queue[key].role === 'roadBuilder') n++;
+        const role = queue[key].role;
+        if (role === 'remoteBuilder' || role === 'roadBuilder') n++;
     }
     return n;
 }
 
-function colonyRoadBuilderTotal(colonyName) {
-    return getCreepCount(undefined, 'roadBuilder', undefined, undefined, colonyName)
-        + countQueuedRoadBuilders(colonyName);
+function colonyRemoteBuilderTotal(colonyName) {
+    return getCreepCount(undefined, 'remoteBuilder', undefined, undefined, colonyName)
+        + getCreepCount(undefined, 'roadBuilder', undefined, undefined, colonyName)
+        + countQueuedRemoteBuilders(colonyName);
 }
 
-function handleRoadBuilder(room) {
+function handleRemoteBuilder(room) {
     const colony = room.name;
     const remoteTargets = ROOM_REMOTE_TARGETS[colony];
     if (!remoteTargets || !remoteTargets.length) return;
     if (!getCreepCount(undefined, 'remoteHarvester', undefined, undefined, colony)) return;
     if (!colonyNeedsRoadWork(colony)) return;
-    const needed = roadBuildersNeeded(colony);
-    if (!needed || colonyRoadBuilderTotal(colony) >= needed) return;
+    const needed = remoteBuildersNeeded(colony);
+    if (!needed || colonyRemoteBuilderTotal(colony) >= needed) return;
 
     const priority = shouldDeprioritizeRemotes(room)
-        ? PRIORITIES.roadBuilder * 2
-        : PRIORITIES.roadBuilder;
+        ? PRIORITIES.remoteBuilder * 2
+        : PRIORITIES.remoteBuilder;
     queueCreep(room, priority, {
-        role: 'roadBuilder',
+        role: 'remoteBuilder',
         destination: colony
     });
 }
@@ -484,7 +486,7 @@ function remoteCreepQueue(room) {
 
     handleRemoteHarvesters(room);
     handleRemoteHaulers(room);
-    handleRoadBuilder(room);
+    handleRemoteBuilder(room);
 
     if (spawnState.contestedRemotes[room.name] && energyState) handleContestedRoom(room);
     if (spawnState.blockedRemotes[room.name] && energyState) handleBlockedRoom(room);

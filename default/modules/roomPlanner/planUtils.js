@@ -213,11 +213,16 @@ function isValidRampartPosition(position) {
         !position.checkForRampart();
 }
 
+/**
+ * Can a perimeter wall/rampart occupy this tile long-term?
+ * Ignores creeps — temporary blockers must not erase plan tiles from the cache.
+ */
 function isPerimeterBarrierTile(pos) {
     if (!pos || pos.checkIfOutOfBounds()) return false;
     if (pos.isExit()) return false;
-    if (pos.checkForWall()) return false;
-    if (pos.checkForImpassible(true)) return false;
+    if (pos.checkForWall()) return false; // terrain wall
+    // ignoreWall=true, ignoreCreep=true — only real obstacle structures block the plan.
+    if (pos.checkForImpassible(true, true)) return false;
     return true;
 }
 
@@ -242,39 +247,133 @@ function filterPerimeterBarrierSpots(room, spots) {
     return filtered;
 }
 
+function canAddPerimeterBridgeTile(room, terrain, spotSet, x, y) {
+    if (x < 2 || x > 47 || y < 2 || y > 47) return false;
+    const key = x + ',' + y;
+    if (spotSet.has(key)) return false;
+    if (terrain.get(x, y) === TERRAIN_MASK_WALL) return false;
+    const pos = new RoomPosition(x, y, room.name);
+    return isPerimeterBarrierTile(pos);
+}
+
+/**
+ * Flood-fill all walkable tiles that can reach a room exit without stepping on spotSet.
+ * One BFS from the border instead of a full-room BFS per candidate tile.
+ */
+function exteriorTilesOutsideSpots(terrain, spotSet) {
+    const exterior = new Set();
+    const q = [];
+    const seed = (x, y) => {
+        const key = x + ',' + y;
+        if (spotSet.has(key) || exterior.has(key)) return;
+        if (terrain.get(x, y) === TERRAIN_MASK_WALL) return;
+        exterior.add(key);
+        q.push(x, y);
+    };
+    for (let i = 0; i < 50; i++) {
+        seed(i, 0);
+        seed(i, 49);
+        seed(0, i);
+        seed(49, i);
+    }
+    // Index-based queue (avoid Array.shift O(n)).
+    let qi = 0;
+    while (qi < q.length) {
+        const x = q[qi++];
+        const y = q[qi++];
+        if (x > 0) {
+            const nx = x - 1, ny = y, key = nx + ',' + ny;
+            if (!exterior.has(key) && !spotSet.has(key) && terrain.get(nx, ny) !== TERRAIN_MASK_WALL) {
+                exterior.add(key);
+                q.push(nx, ny);
+            }
+        }
+        if (x < 49) {
+            const nx = x + 1, ny = y, key = nx + ',' + ny;
+            if (!exterior.has(key) && !spotSet.has(key) && terrain.get(nx, ny) !== TERRAIN_MASK_WALL) {
+                exterior.add(key);
+                q.push(nx, ny);
+            }
+        }
+        if (y > 0) {
+            const nx = x, ny = y - 1, key = nx + ',' + ny;
+            if (!exterior.has(key) && !spotSet.has(key) && terrain.get(nx, ny) !== TERRAIN_MASK_WALL) {
+                exterior.add(key);
+                q.push(nx, ny);
+            }
+        }
+        if (y < 49) {
+            const nx = x, ny = y + 1, key = nx + ',' + ny;
+            if (!exterior.has(key) && !spotSet.has(key) && terrain.get(nx, ny) !== TERRAIN_MASK_WALL) {
+                exterior.add(key);
+                q.push(nx, ny);
+            }
+        }
+    }
+    return exterior;
+}
+
+/**
+ * Close small holes on a min-cut perimeter without filling the bunker interior.
+ * - Diagonal seams: 4-connect the cut
+ * - Exterior notches only: neighbors>=2 and tile can still reach an exit
+ * CPU: exterior flood is O(room) once per growth batch, not O(room) per candidate.
+ */
 function bridgePerimeterGaps(room, spots) {
     if (!spots || !spots.length) return [];
     const terrain = Game.map.getRoomTerrain(room.name);
     const spotSet = new Set(spots.map((p) => p.x + ',' + p.y));
     const cardinals = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-    const queue = spots.map((p) => ({x: p.x, y: p.y}));
-    const checked = new Set();
-    let head = 0;
-    while (head < queue.length) {
-        const p = queue[head++];
-        for (const [dx, dy] of cardinals) {
-            const x = p.x + dx;
-            const y = p.y + dy;
-            const key = x + ',' + y;
-            if (checked.has(key)) continue;
-            checked.add(key);
-            if (spotSet.has(key)) continue;
-            if (x < 2 || x > 47 || y < 2 || y > 47) continue;
-            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
-            const pos = new RoomPosition(x, y, room.name);
-            if (!isPerimeterBarrierTile(pos)) continue;
-            let neighbors = 0;
-            for (const [ddx, ddy] of cardinals) {
-                if (spotSet.has((x + ddx) + ',' + (y + ddy))) neighbors++;
-            }
-            if (neighbors >= 2) {
-                spotSet.add(key);
-                const tile = {x, y};
-                spots.push(tile);
-                queue.push(tile);
-            }
+    const diagonals = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+    let exterior = exteriorTilesOutsideSpots(terrain, spotSet);
+
+    const tryAddExterior = (x, y) => {
+        if (!canAddPerimeterBridgeTile(room, terrain, spotSet, x, y)) return false;
+        // Must be outside the seal (reachable from exits without crossing the cut).
+        if (!exterior.has(x + ',' + y)) return false;
+        spotSet.add(x + ',' + y);
+        spots.push({x, y});
+        exterior.delete(x + ',' + y);
+        return true;
+    };
+
+    // Pass 1: diagonal seams → orthogonal bridges (exterior only).
+    let pass1Grew = false;
+    for (const p of spots.slice()) {
+        for (const [dx, dy] of diagonals) {
+            const bx = p.x + dx;
+            const by = p.y + dy;
+            if (!spotSet.has(bx + ',' + by)) continue;
+            if (tryAddExterior(p.x + dx, p.y)) pass1Grew = true;
+            if (tryAddExterior(p.x, p.y + dy)) pass1Grew = true;
         }
     }
+    // Spots added may have sealed channels — refresh exterior once after pass 1.
+    if (pass1Grew) exterior = exteriorTilesOutsideSpots(terrain, spotSet);
+
+    // Pass 2: single-tile exterior notches (2+ cut neighbors, still outside).
+    // Cap iterations — pathological growth must not burn a whole tick.
+    let grew = true;
+    let rounds = 0;
+    while (grew && rounds < 8) {
+        grew = false;
+        rounds++;
+        const snapshot = spots.slice();
+        for (const p of snapshot) {
+            for (const [dx, dy] of cardinals) {
+                const x = p.x + dx;
+                const y = p.y + dy;
+                if (spotSet.has(x + ',' + y)) continue;
+                let neighbors = 0;
+                for (const [ddx, ddy] of cardinals) {
+                    if (spotSet.has((x + ddx) + ',' + (y + ddy))) neighbors++;
+                }
+                if (neighbors >= 2 && tryAddExterior(x, y)) grew = true;
+            }
+        }
+        if (grew) exterior = exteriorTilesOutsideSpots(terrain, spotSet);
+    }
+
     return spots;
 }
 
@@ -374,6 +473,7 @@ function isRoadPlaceable(pos) {
     if (pos.checkForWall() || pos.checkForImpassible(true)) return false;
     for (const s of pos.lookFor(LOOK_STRUCTURES)) {
         if (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART) continue;
+        // Containers are walkable and count as road-satisfied; still do not stack a road on them.
         return false;
     }
     return true;
@@ -716,6 +816,8 @@ module.exports = {
     roomConstructionSiteBudget,
 
     canPlaceConstructionSite,
+
+    invalidateRoomConstructionSiteCache,
 
     tryCreateConstructionSite,
 

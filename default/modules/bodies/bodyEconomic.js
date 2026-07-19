@@ -12,7 +12,7 @@ const {
 function buildRoadDroneWaller(gen) {
     const leanColony = gen.room.level >= 7 && !gen.creepInfo.destination;
     const halfMove = !gen.creepInfo.destination
-        && !['roadBuilder', 'waller'].includes(gen.role)
+        && !['remoteBuilder', 'roadBuilder', 'waller'].includes(gen.role)
         && colonyRoadsBuilt(gen.room.name);
 
     const maxNonMove = maxBodyNonMoveParts(halfMove);
@@ -28,7 +28,7 @@ function buildRoadDroneWaller(gen) {
     if (!gen.room.energyState) {
         work *= leanColony ? 0.25 : 0.15;
         carry *= leanColony ? 0.1 : 0.05;
-    } else if (gen.role === 'roadBuilder' && gen.room.energyState < 3) {
+    } else if ((gen.role === 'remoteBuilder' || gen.role === 'roadBuilder') && gen.room.energyState < 3) {
         work *= 0.4;
         carry *= 0.3;
     } else if (!leanColony && (gen.room.energyState < 3 ||
@@ -256,7 +256,8 @@ const builders = {
     explorer: () => ({move: 1}),
     scout: () => ({move: 1}),
     test: () => ({move: 1}),
-    roadBuilder: buildRoadDroneWaller,
+    remoteBuilder: buildRoadDroneWaller,
+    roadBuilder: buildRoadDroneWaller, // legacy alias
     drone: buildRoadDroneWaller,
     waller: buildRoadDroneWaller,
     upgrader: buildUpgrader,

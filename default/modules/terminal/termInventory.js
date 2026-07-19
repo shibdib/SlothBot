@@ -102,6 +102,14 @@ Object.assign(TerminalControl.prototype, {
 
         const room = terminal.room;
         let protect = getRoomKeepAmount(room, resource) || 0;
+        // Energy: protect send buffer + bulk storage reserve. Energy-poor rooms dump nothing.
+        if (resource === RESOURCE_ENERGY) {
+            protect = Math.max(protect, TERMINAL_ENERGY_BUFFER);
+            // Storage is the bulk energy store — do not network-dump energy that belongs there.
+            const storageReserve = typeof STORAGE_ENERGY_RESERVE !== 'undefined' ? STORAGE_ENERGY_RESERVE : 25000;
+            protect = Math.max(protect, storageReserve + TERMINAL_ENERGY_BUFFER);
+            if ((room.energyState || 0) < 2) return 0;
+        }
         for (const lab of room.labs || []) {
             if (lab.memory?.itemNeeded === resource) {
                 protect = Math.max(protect, REACTION_AMOUNT);
@@ -129,12 +137,35 @@ Object.assign(TerminalControl.prototype, {
         return Math.max(0, Math.min(inTerminal - terminalFloor, roomSurplus, inTerminal));
     },
 
+    /**
+     * Bulk overstock only. Storage is the primary warehouse; terminal is a distribution
+     * buffer. Terminal-only congestion with free storage is a labTech rebalance
+     * (terminal → storage), not an empire pressure dump / fire-sale.
+     */
     isCapacityPressured(room) {
-        const terminal = room && room.terminal;
-        if (!terminal) return false;
-        if (terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.15) return true;
+        if (!room) return false;
         const storage = room.storage;
-        return !!(storage && storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1);
+        if (storage) {
+            return storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1;
+        }
+        // No storage: terminal is the only bulk store.
+        const terminal = room.terminal;
+        if (!terminal) return false;
+        return terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.15;
+    },
+
+    /**
+     * True when another owned room can accept energy (free terminal space, not pressured).
+     * Market energy dumps must never run while this is true.
+     */
+    empireCanReceiveEnergy(excludeRoomName, minFree = 100) {
+        return !!_.find(MY_ROOMS, name => {
+            if (name === excludeRoomName) return false;
+            const room = Game.rooms[name];
+            if (!room?.terminal || !room.controller || room.controller.level < 6) return false;
+            if (this.isCapacityPressured(room)) return false;
+            return room.terminal.store.getFreeCapacity(RESOURCE_ENERGY) >= minFree;
+        });
     },
 
     canEmpireSell(resource) {
@@ -142,11 +173,15 @@ Object.assign(TerminalControl.prototype, {
     }, canSellSurplusEnergy(terminal) {
         if (terminal.room.level < 8 || terminal.room.energyState < 3) return false;
         if (terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER + 5000) return false;
+        if (this.empireCanReceiveEnergy(terminal.room.name)) return false;
         return !_.find(MY_ROOMS, r => {
             const room = Game.rooms[r];
             return room && room.terminal && room.energyState < 2;
         });
     }, allowEnergySell(terminal) {
+        // Never market-sell energy while any owned room can still take it.
+        if (this.empireCanReceiveEnergy(terminal.room.name)) return false;
+
         if (this.isCapacityPressured(terminal.room)
             && (terminal.store[RESOURCE_ENERGY] || 0) > TERMINAL_ENERGY_BUFFER + 10000) {
             return true;

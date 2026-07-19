@@ -53,6 +53,13 @@ function cleanConstructionSites() {
     for (let id in Game.constructionSites) {
         const site = Game.constructionSites[id];
         const room = site.room;
+        // Never purge barrier / spawn / tower sites — perimeter gaps and bootstrap must stick.
+        if (site.structureType === STRUCTURE_RAMPART ||
+            site.structureType === STRUCTURE_WALL ||
+            site.structureType === STRUCTURE_SPAWN ||
+            site.structureType === STRUCTURE_TOWER) {
+            continue;
+        }
         if (room && room.controller && room.controller.my && site.progress > 0) continue;
         if (
             Math.random() > 0.5 &&

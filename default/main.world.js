@@ -305,12 +305,13 @@ function minionController(minion) {
 
     // Check if the role is cached
     let Role;
-    if (ROLE_CACHE[minion.memory.role]) {
-        Role = ROLE_CACHE[minion.memory.role];
+    const roleName = minion.memory.role === 'roadBuilder' ? 'remoteBuilder' : minion.memory.role;
+    if (ROLE_CACHE[roleName]) {
+        Role = ROLE_CACHE[roleName];
     } else {
         // Load the role and cache it
-        Role = require('role.' + minion.memory.role);
-        ROLE_CACHE[minion.memory.role] = Role;
+        Role = require('role.' + roleName);
+        ROLE_CACHE[roleName] = Role;
     }
 
     new Role(minion);

@@ -705,6 +705,14 @@ class RoleLabTech {
         const storageFree = storage.store.getFreeCapacity(RESOURCE_ENERGY);
         const terminalFree = terminal.store.getFreeCapacity(RESOURCE_ENERGY);
 
+        // Storage is the bulk warehouse. Any terminal energy above the export target
+        // pulls into storage whenever storage has room — do not leave energy stranded
+        // in the terminal so pressure/network dumps fire incorrectly.
+        if (storageFree >= BALANCE_MIN_TRANSFER && terminalEnergy > TERMINAL_ENERGY_TARGET) {
+            return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
+                Math.min(terminalEnergy - TERMINAL_ENERGY_TARGET, storageFree, ENERGY_TRANSFER_MAX));
+        }
+
         // Congestion relief: drain terminal toward storage, keeping export buffer.
         if (this.isStructureNearFull(terminal)
             && terminalEnergy > TERMINAL_ENERGY_BUFFER + BALANCE_MIN_TRANSFER) {
@@ -714,7 +722,8 @@ class RoleLabTech {
             }
         }
 
-        // Congestion relief: top up terminal export reserve from storage surplus.
+        // Congestion relief: top up terminal export reserve from storage surplus
+        // only when storage itself is full (cannot hold more bulk).
         if (this.isStructureNearFull(storage) && !this.isStructureNearFull(terminal)
             && storageEnergy > STORAGE_ENERGY_RESERVE + ENERGY_TRANSFER_MAX && terminalEnergy < TERMINAL_ENERGY_LOW) {
             if (terminalFree > BALANCE_MIN_TRANSFER) {
@@ -724,7 +733,8 @@ class RoleLabTech {
             }
         }
 
-        // Maintain terminal export reserve from storage — only after storage has met its reserve.
+        // Maintain terminal export reserve from storage — only after storage has met its reserve
+        // and storage is not the right place for more (has free capacity still OK for small reserve).
         if (!this.isStructureNearFull(terminal) && !this.isStructureNearFull(storage)
             && terminalEnergy < TERMINAL_ENERGY_LOW
             && storageEnergy > STORAGE_ENERGY_RESERVE + TERMINAL_ENERGY_TARGET) {

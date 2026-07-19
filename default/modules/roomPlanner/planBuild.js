@@ -77,21 +77,23 @@ function getNextRoom() {
     const needsHub = rooms.filter(r => r.controller && r.controller.my && !hasBunkerHub(r));
     if (needsHub.length) return pickRoundRobin(needsHub);
 
-    // Cross-room bootstrap: spawnless rooms before tower/extension work elsewhere.
-    // Within a room, placement order is still tower → spawn → extensions.
-    const needsSpawn = rooms.filter(needsOwnSpawn);
-    if (needsSpawn.length) return pickRoundRobin(needsSpawn);
+    // Only hard-prioritize rooms that still need a spawn *site*.
+    // A room with a spawn site under construction used to monopolize the planner
+    // forever via needsOwnSpawn, starving every other room's extensions.
+    const needsSpawnSiteOnly = rooms.filter(needsSpawnSite);
+    if (needsSpawnSiteOnly.length) return pickRoundRobin(needsSpawnSiteOnly);
 
-    const needsTowers = rooms.filter(r =>
-        hasBunkerHub(r) && getTowerDeficit(r) > 0
-    );
-    if (needsTowers.length) return pickRoundRobin(needsTowers);
-
-    const needsExtensions = rooms.filter(r =>
-        r.controller && r.controller.my && r.controller.level >= 2 &&
-        hasBunkerHub(r) && getExtensionDeficit(r) > 0
-    );
-    if (needsExtensions.length) return pickRoundRobin(needsExtensions);
+    // Soft work: towers + extensions share one queue so neither starves cross-room.
+    // (Previously any single tower-deficit room blocked all extension-only rooms.)
+    const needsSoftLayout = rooms.filter(r => {
+        if (!r.controller || !r.controller.my || !hasBunkerHub(r)) return false;
+        if (getTowerDeficit(r) > 0) return true;
+        if (r.controller.level >= 2 && getExtensionDeficit(r) > 0) return true;
+        // Incomplete spawn structure still wants layout turns, but not exclusively.
+        if (needsOwnSpawn(r)) return true;
+        return false;
+    });
+    if (needsSoftLayout.length) return pickRoundRobin(needsSoftLayout);
 
     const earlyRush = rooms.filter(r => isColonyEarlyRush(r) && hasBunkerHub(r));
     if (earlyRush.length) return pickRoundRobin(earlyRush);
@@ -105,7 +107,11 @@ function runRoomLayout(room, lastRun, earlyRush) {
     if (!room.memory.labHub) findLabHub(room);
 
     // Spawnless rooms always run full layout this tick (no auxiliary alternation).
-    const forceLayout = earlyRush || needsOwnSpawn(room);
+    // Large extension deficit: always run layout so wipe/rebuild is not stuck on aux turns.
+    const extDeficit = room.controller && room.controller.level >= 2
+        ? getExtensionDeficit(room)
+        : 0;
+    const forceLayout = earlyRush || needsOwnSpawn(room) || extDeficit > 5;
 
     if (getTowerDeficit(room) > 0) {
         placeTowerSitesUpToDeficit(room);
@@ -145,6 +151,23 @@ function shouldRunAuxiliary(lastRun) {
 
 
 function buildRoom() {
+    // Incomplete perimeters every tick (not only when this room is the layout target).
+    // Gaps otherwise linger for thousands of ticks with multi-room round-robin.
+    try {
+        require('planRamparts').ensureAllIncompletePerimeters();
+    } catch (e) {
+        if (typeof log !== 'undefined' && log.e) {
+            log.e(`ensureAllIncompletePerimeters failed: ${e && e.stack ? e.stack : e}`, 'PLANNER');
+        }
+        if (typeof Memory !== 'undefined') {
+            Memory._perimeterEnsureError = {
+                tick: Game.time,
+                error: (e && e.message) || String(e),
+                stack: e && e.stack ? String(e.stack).slice(0, 400) : undefined,
+            };
+        }
+    }
+
     // Always allow hub bootstrap even if the throttle would skip this tick —
     // new claims must not wait on the every-other-tick layout cadence.
     const bootstrapRooms = getVisibleOwnedRooms().filter(r =>

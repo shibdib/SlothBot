@@ -22,7 +22,7 @@ let globals = function () {
         // Haulers — slightly behind harvesters since they're gated by harvester presence
         hauler: 2, miscHauler: 7,
         // Remotes — harvesters before haulers (a hauler without a harvester does nothing)
-        remoteHarvester: 5, remoteHauler: 4, roadBuilder: 7, fuelTruck: 8, reserver: 6,
+        remoteHarvester: 5, remoteHauler: 4, remoteBuilder: 7, roadBuilder: 7, fuelTruck: 8, reserver: 6,
         // Military
         defender: 3, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9
     };
@@ -155,6 +155,7 @@ let globals = function () {
             getExtensionPositions,
             clearDynamicLayoutMemory,
             auditExtensionPlacement,
+            diagnoseExtensionBlockers,
             EXTENSION_LAYOUT_VERSION,
         } = require('planExtensions');
         const {tickTracker} = require('planState');
@@ -168,6 +169,7 @@ let globals = function () {
             siteBreakdown[s.structureType] = (siteBreakdown[s.structureType] || 0) + 1;
         }
         const lastSiteError = room.memory.plannerLastSiteError;
+        const blockers = diagnoseExtensionBlockers(room);
         return {
             roomName,
             rcl: room.controller && room.controller.level,
@@ -177,7 +179,14 @@ let globals = function () {
             dynamicLayout: !!room.memory.dynamicLayout,
             extensionClearanceVersion: room.memory.extensionClearanceVersion,
             extensionLayoutVersion: EXTENSION_LAYOUT_VERSION,
+            /** Packed plan version in Memory — should match extensionLayoutVersion (6+ = connectivity layout). */
+            dynamicPlanVersion: room.memory.dynamicExtensionsVersion,
+            dynamicAccessOk: room.memory.dynamicAccessOk,
+            dynamicAccessFailed: room.memory.dynamicAccessFailed,
             clearancePending: room.memory.extensionClearanceVersion !== EXTENSION_LAYOUT_VERSION,
+            usingNewLayout: room.memory.dynamicLayout
+                && room.memory.dynamicExtensionsVersion === EXTENSION_LAYOUT_VERSION
+                && EXTENSION_LAYOUT_VERSION >= 5,
             needed,
             built,
             extensionSites: sites,
@@ -186,12 +195,19 @@ let globals = function () {
             canPlace: canPlaceConstructionSite(room),
             totalSites: room.constructionSites.length,
             siteBreakdown,
+            primaryBlocker: blockers.primaryBlocker,
+            lastSkip: room.memory.plannerExtensionSkip,
+            lastPlace: room.memory.plannerExtensionLast,
             lastSiteError: lastSiteError && {
                 ...lastSiteError,
                 age: Game.time - lastSiteError.tick,
             },
             dynamicPositions: positions.length,
             samplePositions: positions.slice(0, 5).map(p => `${p.x},${p.y}`),
+            // All plan tiles should be (x+y) even on current generator — visual still “checkerboard”.
+            planParityEven: positions.length
+                ? positions.filter(p => (p.x + p.y) % 2 === 0).length
+                : 0,
             planner: tickTracker[roomName],
             ...auditExtensionPlacement(room),
             resetDynamicLayout: room.memory.dynamicLayout
@@ -203,11 +219,51 @@ let globals = function () {
         };
     };
 
+    /**
+     * Console: diagnoseExtensionBlockers('E1N1') or diagnoseExtensionBlockers() for all owned rooms.
+     * Walks every gate (hub, spawn, deficit, site budget, plan tiles, empire scheduler).
+     */
+    global.diagnoseExtensionBlockers = function (roomName) {
+        const {diagnoseExtensionBlockers} = require('planExtensions');
+        if (!roomName) {
+            const names = (typeof MY_ROOMS !== 'undefined' && MY_ROOMS && MY_ROOMS.length)
+                ? MY_ROOMS.slice()
+                : Object.values(Game.rooms)
+                    .filter(r => r.controller && r.controller.my)
+                    .map(r => r.name);
+            return names.map(name => {
+                const room = Game.rooms[name];
+                if (!room) return {roomName: name, error: 'no vision'};
+                return diagnoseExtensionBlockers(room);
+            }).filter(r => r.error || r.blocked || (r.deficit && r.deficit > 0));
+        }
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        return diagnoseExtensionBlockers(room);
+    };
+
     global.forceExtensions = function (roomName) {
         const room = Game.rooms[roomName];
         if (!room) return {error: 'no vision', roomName};
-        const {tryPlaceRoomExtensions} = require('planExtensions');
-        return tryPlaceRoomExtensions(room);
+        const {
+            tryPlaceRoomExtensions,
+            getExtensionDeficit,
+            getExtensionPositions,
+            clearDynamicLayoutMemory,
+        } = require('planExtensions');
+        const {roomConstructionSiteBudget, canPlaceConstructionSite} = require('planUtils');
+        // Force a fresh dynamic plan when placing after a mass wipe.
+        if (room.memory.dynamicLayout) clearDynamicLayoutMemory(room);
+        const result = tryPlaceRoomExtensions(room);
+        return {
+            ...result,
+            deficit: getExtensionDeficit(room),
+            planTiles: room.memory.dynamicLayout ? getExtensionPositions(room).length : undefined,
+            siteBudget: roomConstructionSiteBudget(room),
+            canPlace: canPlaceConstructionSite(room),
+            dynamicLayout: !!room.memory.dynamicLayout,
+            spawns: room.spawns.length,
+        };
     };
 
     global.purgeInvalidExtensions = function (roomName) {
@@ -331,6 +387,71 @@ let globals = function () {
             audit.strayBarriers = {count: 0, strays: [], reason: 'cannot compute perimeter'};
         }
         return audit;
+    };
+
+    /**
+     * Diagnose bunker perimeter gaps. Draws room visuals this tick.
+     * Usage: debugBarriers('E52S16')
+     *        debugBarriers('E52S16', {draw: false})
+     *        debugBarriers('E52S16', {recompute: true})  // force minCut if cache empty
+     *        debugBarriers('E52S16', {place: true})      // force ensurePerimeterSites this tick
+     *
+     * Legend: green=built, yellow=site, red=missing, orange=blocked, blue=hub, red line=leak path
+     * sealed:false means BFS can still walk hub → exit without crossing planned spots/barriers.
+     * placeFails / probe explain why sites were not created.
+     */
+    global.debugBarriers = function (roomName, options) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {debugBarriers} = require('planRamparts');
+        return debugBarriers(room, options || {});
+    };
+
+    /** Full perimeter tile dump (includes every planned tile status). */
+    global.diagnosePerimeter = function (roomName, options) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {diagnosePerimeter} = require('planRamparts');
+        return diagnosePerimeter(room, options || {});
+    };
+
+    /** Force perimeter recompute, purge off-plan barriers, place missing sites, then debug. */
+    global.rebuildBarriers = function (roomName) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const {
+            recalculateRampartsForRoom,
+            ensurePerimeterSites,
+            purgeOrphanBarriers,
+            debugBarriers,
+        } = require('planRamparts');
+        const recalc = recalculateRampartsForRoom(room);
+        // Extra pass: recalc already strips strays; purge catches anything still off-plan.
+        let purge = {removed: 0};
+        try {
+            purge = purgeOrphanBarriers(room);
+        } catch (e) {
+            purge = {error: (e && e.message) || String(e)};
+        }
+        // Place immediately — waiting on planner round-robin left gaps for thousands of ticks.
+        let placed = 0;
+        try {
+            placed = ensurePerimeterSites(room, {
+                maxPlace: 5,
+                bridge: false,
+                allowInit: false,
+                recordStatus: true,
+            });
+        } catch (e) {
+            room.memory._perimeterPlaceFails = {
+                tick: Game.time,
+                reason: 'exception',
+                error: (e && e.message) || String(e),
+                stack: e && e.stack ? String(e.stack).slice(0, 300) : undefined,
+            };
+        }
+        const debug = debugBarriers(room, {recompute: false, probe: true});
+        return {recalc, purge, placed, debug};
     };
 
     // Wipe towers, re-search ring hubs (dist 6-10), and recalculate ramparts.

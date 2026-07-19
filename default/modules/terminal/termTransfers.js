@@ -19,11 +19,19 @@ const PRESSURE_DEST_FREE_MIN = 5000;
 // Pressure outranks hub/ally consolidation so overfull rooms evacuate first.
 const PRIORITY_RANK = {urgent: 0, pressure: 1, battery: 2, energy: 3, resource: 4, ally: 5, hub: 6};
 
+/**
+ * Bulk overstock only (storage nearly full). Matches termInventory.isCapacityPressured:
+ * free storage means labTech should pull terminal → storage, not network-dump.
+ */
 function isRoomCapacityPressured(room) {
-    if (!room || !room.terminal) return false;
-    if (room.terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.15) return true;
+    if (!room) return false;
     const storage = room.storage;
-    return !!(storage && storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1);
+    if (storage) {
+        return storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1;
+    }
+    const terminal = room.terminal;
+    if (!terminal) return false;
+    return terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.15;
 }
 
 function getRoomLabNeeds(room) {
@@ -447,6 +455,10 @@ function planHubConsolidation(transfers, ledger, profiles) {
  * Evacuate pressured rooms to ANY non-pressured terminal with free space.
  * Demand-based balancing alone cannot clear rooms full of resources everyone already has
  * (e.g. 440k UH sitting in a non-hub storage).
+ *
+ * Minerals first; if the terminal is energy-heavy, also plan energy dumps to rooms
+ * that can still accept energy (prefer low energyState). Never leave energy for
+ * market fire-sales while an owned room has free terminal capacity.
  */
 function planPressureTransfers(transfers, profiles) {
     const pressured = [];
@@ -462,10 +474,12 @@ function planPressureTransfers(transfers, profiles) {
         const srcRoom = Game.rooms[srcName];
         if (!srcRoom?.terminal) continue;
 
+        // Prefer non-energy dumps so energy stays available for send fees and empire use.
         const resources = Object.keys(srcRoom.terminal.store)
             .filter(r => r !== RESOURCE_ENERGY && r !== RESOURCE_BATTERY && r !== RESOURCE_OPS && r !== RESOURCE_POWER)
             .sort((a, b) => (srcRoom.terminal.store[b] || 0) - (srcRoom.terminal.store[a] || 0));
 
+        let planned = false;
         for (const resource of resources) {
             const amount = getTerminalExportable(srcRoom, resource, true);
             if (amount < RESOURCE_SEND_MIN) continue;
@@ -502,10 +516,56 @@ function planPressureTransfers(transfers, profiles) {
             candidates.sort((a, b) => b.score - a.score);
             if (candidates[0]) {
                 addTransfer(transfers, candidates[0]);
+                planned = true;
                 // One outbound pressure plan per source room is enough; only one send/tick executes.
                 break;
             }
         }
+
+        if (planned) continue;
+
+        // Energy network dump only when the room is energy-rich (storage bulk full of
+        // energy or high energyState). Never strip send-buffer energy from needy rooms.
+        if ((srcRoom.energyState || 0) < 2) continue;
+        const storageE = srcRoom.storage ? (srcRoom.storage.store[RESOURCE_ENERGY] || 0) : 0;
+        const storageReserve = 25000;
+        if (srcRoom.storage && storageE < storageReserve) continue;
+
+        const inEnergy = srcRoom.terminal.store[RESOURCE_ENERGY] || 0;
+        const energySurplus = Math.max(0, inEnergy - TERMINAL_ENERGY_BUFFER);
+        if (energySurplus < ENERGY_SEND_MIN) continue;
+
+        const energyCandidates = [];
+        for (const profile of profiles) {
+            if (profile.name === srcName) continue;
+            const destRoom = Game.rooms[profile.name];
+            if (!destRoom?.terminal || !canUseTerminal(profile.name)) continue;
+            if (isRoomCapacityPressured(destRoom)) continue;
+            // Only ship energy to rooms that actually need it — not free-space parking.
+            if ((destRoom.energyState || 0) >= 2) continue;
+
+            const destFree = destRoom.terminal.store.getFreeCapacity(RESOURCE_ENERGY);
+            if (destFree < ENERGY_SEND_MIN) continue;
+
+            const sendAmount = Math.min(energySurplus, destFree, PRESSURE_SEND_MAX);
+            if (sendAmount < ENERGY_SEND_MIN) continue;
+            const cost = txCost(srcName, profile.name, sendAmount);
+            if (cost > sendAmount * 0.4) continue;
+            if (cost + sendAmount > inEnergy - 1000) continue;
+
+            const hunger = destRoom.energyState < 1 ? 4 : 3;
+            energyCandidates.push({
+                from: srcName,
+                to: profile.name,
+                resource: RESOURCE_ENERGY,
+                amount: sendAmount,
+                kind: 'pressure',
+                score: hunger * 10000 + sendAmount / (1 + cost),
+            });
+        }
+
+        energyCandidates.sort((a, b) => b.score - a.score);
+        if (energyCandidates[0]) addTransfer(transfers, energyCandidates[0]);
     }
 }
 

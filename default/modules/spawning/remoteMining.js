@@ -80,14 +80,14 @@ function hasLiveRemoteWork(colonyName, remoteName) {
         const c = Game.creeps[name];
         if (!c.my || c.memory.colony !== colonyName) continue;
         if (c.memory.destination !== remoteName) continue;
-        if (['remoteHarvester', 'reserver', 'remoteHauler', 'roadBuilder'].includes(c.memory.role)) return true;
+        if (['remoteHarvester', 'reserver', 'remoteHauler', 'remoteBuilder', 'roadBuilder'].includes(c.memory.role)) return true;
     }
     const queue = CREEP_QUEUES[colonyName];
     if (queue) {
         for (const key in queue) {
             const entry = queue[key];
             if (entry.destination !== remoteName) continue;
-            if (['remoteHarvester', 'reserver', 'roadBuilder'].includes(entry.role)) return true;
+            if (['remoteHarvester', 'reserver', 'remoteBuilder', 'roadBuilder'].includes(entry.role)) return true;
         }
     }
     return false;

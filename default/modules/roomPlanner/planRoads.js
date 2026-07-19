@@ -22,7 +22,9 @@ const {getMiningRouteRooms} = require('remoteMining');
 
 const COSTS = {
     owned: {wall: 255, swamp: 75, plain: 45, road: 1, container: 50},
-    remote: {wall: 225, swamp: 25, plain: 5, road: 1, container: 15},
+    // wall must be 255 — PathFinder treats lower costs as walkable and will
+    // route through terrain walls, producing unbuildable "desired" tiles.
+    remote: {wall: 255, swamp: 25, plain: 5, road: 1, container: 15},
 };
 
 const PATH_CACHE_TTL = 5000;
@@ -65,16 +67,45 @@ function getCachedPath(room, from, to, profile = 'owned') {
     const bucket = getCacheBucket(room.name, profile);
     const entry = bucket[getPathKey(from, to)];
     if (!entry || entry.tick + PATH_CACHE_TTL < Game.time) return null;
+    const fingerprint = roomStructureFingerprint(room.name);
+    if (entry.fingerprint !== fingerprint) return null;
     return entry.path;
 }
 
 function cachePath(room, from, to, path, profile = 'owned') {
     const bucket = getCacheBucket(room.name, profile);
-    bucket[getPathKey(from, to)] = {path, tick: Game.time};
+    bucket[getPathKey(from, to)] = {
+        path,
+        tick: Game.time,
+        fingerprint: roomStructureFingerprint(room.name),
+    };
 }
 
 function clearRoomPathCache(roomName, profile = 'owned') {
     delete getCacheStore(profile)[roomName];
+}
+
+function isBlockingRoadStructureType(structureType) {
+    if (!structureType || structureType === STRUCTURE_ROAD) return false;
+    if (structureType === STRUCTURE_RAMPART || structureType === STRUCTURE_CONTAINER) return false;
+    return structureType === STRUCTURE_WALL || OBSTACLE_OBJECT_TYPES.includes(structureType);
+}
+
+/**
+ * True when a non-walkable building (extension, spawn, wall, …) occupies the tile.
+ * Roads under those structures are useless; the network should route around them.
+ */
+function tileHasRoadBlockingStructure(pos) {
+    if (!pos) return false;
+    const room = Game.rooms[pos.roomName];
+    if (!room) return false;
+    for (const s of pos.lookFor(LOOK_STRUCTURES)) {
+        if (isBlockingRoadStructureType(s.structureType)) return true;
+    }
+    for (const site of pos.lookFor(LOOK_CONSTRUCTION_SITES)) {
+        if (isBlockingRoadStructureType(site.structureType)) return true;
+    }
+    return false;
 }
 
 function roomStructureFingerprint(roomName) {
@@ -82,13 +113,16 @@ function roomStructureFingerprint(roomName) {
     if (!room) return '0';
     let roads = 0;
     let sites = 0;
+    let blockers = 0;
     for (const s of room.structures) {
         if (s.structureType === STRUCTURE_ROAD) roads++;
+        else if (isBlockingRoadStructureType(s.structureType)) blockers++;
     }
-    for (const s of room.constructionSites) {
-        if (s.structureType === STRUCTURE_ROAD) sites++;
+    for (const site of room.constructionSites) {
+        if (site.structureType === STRUCTURE_ROAD) sites++;
+        else if (isBlockingRoadStructureType(site.structureType)) blockers++;
     }
-    return `${roads}x${sites}`;
+    return `${roads}x${sites}x${blockers}`;
 }
 
 function getHeapEntry(roomName, profile) {
@@ -97,6 +131,18 @@ function getHeapEntry(roomName, profile) {
         store[roomName] = {fingerprint: null, matrix: null, planned: new Set()};
     }
     return store[roomName];
+}
+
+function collectBlockedRoadKeys(room) {
+    const blocked = new Set();
+    if (!room) return blocked;
+    for (const s of room.structures) {
+        if (isBlockingRoadStructureType(s.structureType)) blocked.add(getPosKey(s.pos));
+    }
+    for (const site of room.constructionSites) {
+        if (isBlockingRoadStructureType(site.structureType)) blocked.add(getPosKey(site.pos));
+    }
+    return blocked;
 }
 
 function buildTerrainMatrix(roomName, profile) {
@@ -116,13 +162,25 @@ function buildTerrainMatrix(roomName, profile) {
     const room = Game.rooms[roomName];
     if (!room) return matrix;
 
+    const blocked = collectBlockedRoadKeys(room);
+
+    // Roads/containers first, then blockers always win so stacked road+extension
+    // cannot keep a walkable road cost under a building.
     for (const s of room.structures) {
-        if (s.structureType === STRUCTURE_ROAD) matrix.set(s.pos.x, s.pos.y, costs.road);
-        else if (s.structureType === STRUCTURE_CONTAINER) matrix.set(s.pos.x, s.pos.y, costs.container);
-        else if (_.includes(OBSTACLE_OBJECT_TYPES, s.structureType)) matrix.set(s.pos.x, s.pos.y, costs.wall);
+        if (s.structureType === STRUCTURE_ROAD) {
+            if (!blocked.has(getPosKey(s.pos))) matrix.set(s.pos.x, s.pos.y, costs.road);
+        } else if (s.structureType === STRUCTURE_CONTAINER) {
+            matrix.set(s.pos.x, s.pos.y, costs.container);
+        }
     }
     for (const site of room.constructionSites) {
-        if (site.structureType === STRUCTURE_ROAD) matrix.set(site.pos.x, site.pos.y, costs.road);
+        if (site.structureType === STRUCTURE_ROAD && !blocked.has(getPosKey(site.pos))) {
+            matrix.set(site.pos.x, site.pos.y, costs.road);
+        }
+    }
+    for (const key of blocked) {
+        const parts = key.split('x');
+        matrix.set(Number(parts[0]), Number(parts[1]), costs.wall);
     }
     return matrix;
 }
@@ -136,14 +194,32 @@ function ensureRoomMatrix(roomName, profile = 'owned') {
     const entry = getHeapEntry(roomName, profile);
     const fingerprint = roomStructureFingerprint(roomName);
     if (entry.fingerprint !== fingerprint || !entry.matrix) {
+        if (entry.fingerprint && entry.fingerprint !== fingerprint) {
+            clearRoomPathCache(roomName, profile);
+        }
         entry.matrix = buildTerrainMatrix(roomName, profile);
         entry.fingerprint = fingerprint;
-        for (const key of entry.planned) markTileOnMatrix(entry.matrix, key, profile);
+        for (const key of entry.planned) {
+            if (plannedTileBlocked(roomName, key)) {
+                entry.planned.delete(key);
+                continue;
+            }
+            markTileOnMatrix(entry.matrix, key, profile);
+        }
     }
     return entry.matrix;
 }
 
+function plannedTileBlocked(roomName, key) {
+    const parts = key.split('x');
+    const x = Number(parts[0]);
+    const y = Number(parts[1]);
+    if (Number.isNaN(x) || Number.isNaN(y)) return true;
+    return tileHasRoadBlockingStructure(new RoomPosition(x, y, roomName));
+}
+
 function markPlannedTile(roomName, profile, key) {
+    if (plannedTileBlocked(roomName, key)) return;
     const entry = getHeapEntry(roomName, profile);
     entry.planned.add(key);
     if (entry.matrix) markTileOnMatrix(entry.matrix, key, profile);
@@ -243,6 +319,23 @@ function classifyTarget(room, pos) {
     return 'other';
 }
 
+/**
+ * Exit neighbors worth connecting: hops used by remote mining routes from this colony.
+ * Avoids paving every edge of the room when only one or two exits matter.
+ */
+function getOwnedExitNeighborRooms(room) {
+    const useful = new Set();
+    const remotes = ROOM_REMOTE_TARGETS[room.name] || [];
+    for (const entry of remotes) {
+        const route = getMiningRouteRooms(room.name, entry.room);
+        if (!route.length) continue;
+        const idx = route.indexOf(room.name);
+        if (idx >= 0 && idx < route.length - 1) useful.add(route[idx + 1]);
+        else if (idx < 0) useful.add(route[0]);
+    }
+    return useful;
+}
+
 function getRoadTargets(room) {
     const targets = [];
     const seen = new Set();
@@ -271,8 +364,11 @@ function getRoadTargets(room) {
 
     const neighboring = Game.map.describeExits(room.name);
     if (neighboring) {
+        // Only pave toward remotes on active mining routes (not every room edge).
+        const usefulExits = getOwnedExitNeighborRooms(room);
         for (const direction in EXIT_DIRS) {
-            if (!neighboring[direction]) continue;
+            const neighbor = neighboring[direction];
+            if (!neighbor || !usefulExits.has(neighbor)) continue;
             const exits = room.find(EXIT_DIRS[direction]);
             if (exits.length) add(exits[Math.floor((exits.length - 1) / 2)]);
         }
@@ -366,7 +462,7 @@ function getRoadPlan(room) {
     for (const key of desired) {
         const parts = key.split('x');
         const pos = new RoomPosition(Number(parts[0]), Number(parts[1]), room.name);
-        if (pos.isExit()) continue;
+        if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
         if (isRoadSatisfied(pos)) continue;
         complete = false;
         if (isRoadPlaceable(pos)) missing.push(pos);
@@ -416,7 +512,7 @@ function diffRoadTiles(room, desired) {
     for (const key of desired) {
         const parts = key.split('x');
         const pos = new RoomPosition(Number(parts[0]), Number(parts[1]), room.name);
-        if (pos.isExit()) continue;
+        if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
         if (isRoadSatisfied(pos)) continue;
         complete = false;
         if (isRoadPlaceable(pos)) missing.push(pos);
@@ -432,7 +528,7 @@ function countRoadConstructionSites(room) {
     return count;
 }
 
-const MAX_ROAD_SITES_REMOTE = 2;
+const MAX_ROAD_SITES_REMOTE = 5;
 const VERIFY_CACHE_TTL = 50;
 const VERIFY_CACHE = Object.create(null);
 const NEEDS_WORK_CACHE = Object.create(null);
@@ -469,19 +565,53 @@ function getRouteNeighborRooms(roomName, colony) {
     return neighbors;
 }
 
-function getRemoteRoadTargets(room, colony, context = {}) {
-    if (context.type === 'transit' && context.remote) {
-        const route = getMiningRouteRooms(colony, context.remote);
-        if (!route.length) return [];
-        const idx = route.indexOf(room.name);
-        if (idx < 0) return [];
+function getTransitRemotesThroughRoom(roomName, colony) {
+    const remotes = [];
+    const seen = new Set();
+    for (const entry of ROOM_REMOTE_TARGETS[colony] || []) {
+        if (entry.room === roomName || seen.has(entry.room)) continue;
+        const route = getMiningRouteRooms(colony, entry.room);
+        if (!route.length || !route.includes(roomName)) continue;
+        seen.add(entry.room);
+        remotes.push(entry.room);
+    }
+    return remotes;
+}
 
-        const prevRoom = idx === 0 ? colony : route[idx - 1];
-        const nextRoom = idx === route.length - 1 ? context.remote : route[idx + 1];
-        const enter = getExitCenter(room, prevRoom);
-        const exit = getExitCenter(room, nextRoom);
-        if (!enter || !exit) return [];
-        return [enter, exit];
+function getTransitExitPair(room, colony, remote) {
+    const route = getMiningRouteRooms(colony, remote);
+    if (!route.length) return null;
+    const idx = route.indexOf(room.name);
+    if (idx < 0) return null;
+
+    const prevRoom = idx === 0 ? colony : route[idx - 1];
+    const nextRoom = idx === route.length - 1 ? remote : route[idx + 1];
+    const enter = getExitCenter(room, prevRoom);
+    const exit = getExitCenter(room, nextRoom);
+    if (!enter || !exit) return null;
+    return {enter, exit};
+}
+
+function getRemoteRoadTargets(room, colony, context = {}) {
+    // Transit: union of exit pairs for every remote that routes through this room.
+    if (context.type === 'transit') {
+        const remotes = getTransitRemotesThroughRoom(room.name, colony);
+        const targets = [];
+        const seen = new Set();
+        const add = (pos) => {
+            if (!pos) return;
+            const key = getPosKey(pos);
+            if (seen.has(key)) return;
+            seen.add(key);
+            targets.push(pos);
+        };
+        for (const remote of remotes) {
+            const pair = getTransitExitPair(room, colony, remote);
+            if (!pair) continue;
+            add(pair.enter);
+            add(pair.exit);
+        }
+        return targets;
     }
 
     const targets = [];
@@ -494,14 +624,14 @@ function getRemoteRoadTargets(room, colony, context = {}) {
         targets.push(pos);
     };
 
+    // Colony-facing exit is the haul egress; sources (+ SK mineral) are the cargo.
+    // Controller is intentionally omitted — reservers do not need a paved path.
     add(getExitCenter(room, colony));
 
     for (const source of room.sources) {
         const container = resolveSourceContainer(source, room);
         add(container ? container.pos : source.pos);
     }
-
-    if (room.controller) add(room.controller.pos);
 
     const intel = INTEL[room.name];
     if (intel && intel.sk) {
@@ -530,26 +660,60 @@ function addPathTilesNeedingRoads(room, path, needed) {
     for (const point of path) {
         if ((point.roomName || room.name) !== room.name) continue;
         const pos = new RoomPosition(point.x, point.y, room.name);
-        if (pos.isExit()) continue;
+        if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
         if (!isRoadSatisfied(pos)) needed.add(getPosKey(pos));
     }
 }
 
+/**
+ * Build the set of tiles that still need roads for this room's remote plan.
+ * Returns {needed, pathsAttempted, pathFailures} so callers can refuse to mark
+ * the plan complete when pathfinding failed (empty desired ≠ finished).
+ */
 function buildRemoteRoadTiles(room, colony, context = {}) {
     const needed = new Set();
-    const targets = getRemoteRoadTargets(room, colony, context);
-    if (!targets.length) return needed;
+    let pathsAttempted = 0;
+    let pathFailures = 0;
 
     if (context.type === 'transit') {
-        const path = findRoadPath(room, targets[0], targets[1], 'remote');
-        if (path) addPathTilesNeedingRoads(room, path, needed);
-        return needed;
+        // Plan every remote corridor through this room (shared transit rooms).
+        const remotes = getTransitRemotesThroughRoom(room.name, colony);
+        const matrix = ensureRoomMatrix(room.name, 'remote').clone();
+        for (const road of room.roads) {
+            if (tileHasRoadBlockingStructure(road.pos)) continue;
+            markTileOnMatrix(matrix, getPosKey(road.pos), 'remote');
+        }
+        for (const remote of remotes) {
+            const pair = getTransitExitPair(room, colony, remote);
+            pathsAttempted++;
+            if (!pair) {
+                pathFailures++;
+                continue;
+            }
+            const path = searchOnMatrix(pair.enter, pair.exit, matrix);
+            if (!path) {
+                pathFailures++;
+                continue;
+            }
+            addPathTilesNeedingRoads(room, path, needed);
+            for (const step of path) {
+                if ((step.roomName || room.name) !== room.name) continue;
+                const pos = new RoomPosition(step.x, step.y, room.name);
+                if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
+                markTileOnMatrix(matrix, getPosKey(step), 'remote');
+            }
+        }
+        return {needed, pathsAttempted, pathFailures};
     }
+
+    const targets = getRemoteRoadTargets(room, colony, context);
+    if (!targets.length) return {needed, pathsAttempted, pathFailures};
 
     const network = new Set();
     const matrix = ensureRoomMatrix(room.name, 'remote').clone();
 
     for (const road of room.roads) {
+        if (tileHasRoadBlockingStructure(road.pos)) continue;
         const key = getPosKey(road.pos);
         network.add(key);
         markTileOnMatrix(matrix, key, 'remote');
@@ -563,22 +727,31 @@ function buildRemoteRoadTiles(room, colony, context = {}) {
 
     for (const target of sortRemoteTargets(room, anchor, targets.slice(1))) {
         const networkAnchor = nearestNetworkPos(target, network, room.name);
-        if (!networkAnchor || networkAnchor.getRangeTo(target) <= 1) continue;
+        if (!networkAnchor) {
+            pathsAttempted++;
+            pathFailures++;
+            continue;
+        }
+        if (networkAnchor.getRangeTo(target) <= 1) continue;
 
+        pathsAttempted++;
         const path = searchOnMatrix(networkAnchor, target, matrix);
-        if (!path) continue;
+        if (!path) {
+            pathFailures++;
+            continue;
+        }
 
         for (const step of path) {
             const key = getPosKey(step);
             const pos = new RoomPosition(step.x, step.y, room.name);
-            if (pos.isExit()) continue;
+            if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
             network.add(key);
             markTileOnMatrix(matrix, key, 'remote');
             if (!isRoadSatisfied(pos)) needed.add(key);
         }
     }
 
-    return needed;
+    return {needed, pathsAttempted, pathFailures};
 }
 
 function verifyCacheKey(roomName, colony, context) {
@@ -609,21 +782,23 @@ function getRemoteRoadPlan(room, colony, context = {}) {
     if (cached && cached.tick === Game.time) return cached.plan;
 
     const targets = getRemoteRoadTargets(room, colony, context);
-    const desired = buildRemoteRoadTiles(room, colony, context);
+    const {needed: desired, pathsAttempted, pathFailures} = buildRemoteRoadTiles(room, colony, context);
     const missing = [];
-    let planValid = targets.length > 0;
 
-    if (context.type === 'transit' && targets.length >= 2) {
-        planValid = !!(getCachedPath(room, targets[0], targets[1], 'remote')
-            || findRoadPath(room, targets[0], targets[1], 'remote'));
+    // Targets alone are not enough — pathfinding must succeed. Empty desired with
+    // pathFailures used to mark rooms complete with no roads (false roadsBuilt).
+    let planValid = targets.length > 0 && pathFailures === 0;
+    if (context.type === 'transit') {
+        const remotes = getTransitRemotesThroughRoom(room.name, colony);
+        planValid = remotes.length > 0 && pathFailures === 0 && pathsAttempted > 0;
     }
 
-    let complete = true;
+    let complete = planValid;
     if (planValid) {
         for (const key of desired) {
             const parts = key.split('x');
             const pos = new RoomPosition(Number(parts[0]), Number(parts[1]), room.name);
-            if (pos.isExit()) continue;
+            if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
             if (isRoadSatisfied(pos)) continue;
             complete = false;
             if (isRoadPlaceable(pos)) missing.push(pos);
@@ -632,7 +807,14 @@ function getRemoteRoadPlan(room, colony, context = {}) {
         complete = false;
     }
 
-    const plan = {targets, desired, missing, complete};
+    const plan = {
+        targets,
+        desired,
+        missing,
+        complete,
+        pathsAttempted,
+        pathFailures,
+    };
     REMOTE_PLAN_CACHE[cacheKey] = {tick: Game.time, plan};
     return plan;
 }
@@ -728,27 +910,68 @@ function colonyNeedsRoadWork(colony) {
     return getColonyRoadWorkRooms(colony).length > 0;
 }
 
-function pickRoadWorkRoom(colony, creepId) {
-    const work = getColonyRoadWorkRooms(colony);
-    if (!work.length) return null;
-    let hash = 0;
-    if (creepId) {
-        for (let i = 0; i < creepId.length; i++) hash += creepId.charCodeAt(i);
+const REMOTE_BUILDER_ROLES = new Set(['remoteBuilder', 'roadBuilder']);
+
+function countRemoteBuilderClaims(colony, excludeCreepName) {
+    const claims = Object.create(null);
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (!c.my || !REMOTE_BUILDER_ROLES.has(c.memory.role)) continue;
+        if (c.memory.colony !== colony) continue;
+        if (excludeCreepName && c.name === excludeCreepName) continue;
+        const dest = c.memory.destination;
+        if (!dest || dest === colony) continue;
+        claims[dest] = (claims[dest] || 0) + 1;
     }
-    return work[hash % work.length].room;
+    return claims;
 }
 
-function roadBuildersNeeded(colony) {
+/**
+ * Pick an unfinished remote/transit room. Prefer least-claimed rooms so multiple
+ * remoteBuilders spread out instead of stacking on one hash bucket.
+ */
+function pickRoadWorkRoom(colony, creepName) {
+    const work = getColonyRoadWorkRooms(colony);
+    if (!work.length) return null;
+
+    // Sticky: keep current destination if it still needs work.
+    if (creepName) {
+        const creep = Game.creeps[creepName];
+        const current = creep && creep.memory.destination;
+        if (current && work.some(e => e.room === current)) return current;
+    }
+
+    const claims = countRemoteBuilderClaims(colony, creepName);
+    work.sort((a, b) => {
+        const ca = claims[a.room] || 0;
+        const cb = claims[b.room] || 0;
+        if (ca !== cb) return ca - cb;
+        // Higher remote score / closer transit first (priority field from getColonyRoadRooms).
+        return (b.priority || 0) - (a.priority || 0);
+    });
+    return work[0].room;
+}
+
+function remoteBuildersNeeded(colony) {
+    const workRooms = getColonyRoadWorkRooms(colony).length;
+    if (!workRooms) return 0;
     const remotes = _.uniq((ROOM_REMOTE_TARGETS[colony] || []).map(s => s.room));
-    if (!remotes.length || !colonyNeedsRoadWork(colony)) return 0;
-    return Math.min(3, Math.max(1, remotes.length));
+    if (!remotes.length) return 0;
+    // Scale by unfinished rooms and remote count, cap at 3.
+    return Math.min(3, Math.max(1, Math.min(remotes.length, workRooms)));
+}
+
+/** @deprecated use remoteBuildersNeeded — kept for call-site compatibility */
+function roadBuildersNeeded(colony) {
+    return remoteBuildersNeeded(colony);
 }
 
 function tryPlaceNextRemoteRoad(room, colony, context = {}) {
     if (!canPlaceRoadInRoom(room)) return false;
+    removeRoadsUnderObstacles(room);
     const plan = getRemoteRoadPlan(room, colony, context);
     for (const pos of plan.missing) {
-        if (pos.isExit()) continue;
+        if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
         if (!canPlaceRemoteRoadSite(room)) return false;
         const result = tryCreateConstructionSite(pos, STRUCTURE_ROAD);
         if (result === OK) {
@@ -774,9 +997,11 @@ function remoteRoomNeedsRoadWork(room, colony, context = {}) {
             }
         }
     }
-    if (!needsWork && canPlaceRoadInRoom(room)) {
+    if (!needsWork) {
         const plan = getRemoteRoadPlan(room, colony, context);
-        needsWork = plan.missing.length > 0;
+        // Incomplete plans always need work — including path failures and
+        // unplaceable leftovers (not only missing placeable tiles).
+        needsWork = !plan.complete || plan.missing.length > 0;
     }
 
     NEEDS_WORK_CACHE[cacheKey] = {tick: Game.time, needsWork};
@@ -894,23 +1119,63 @@ function clearOwnedRoomRoadNetwork(roomOrName) {
     return {destroyed, failed, sites, roadsFound: roads.length, roomName};
 }
 
+/**
+ * Destroy roads (and cancel road sites) under obstacle buildings — e.g. dynamic
+ * extensions that landed on an existing road. Network planning already routes
+ * around the building; without this the dead road remains underneath.
+ */
+function removeRoadsUnderObstacles(room) {
+    if (!room) return 0;
+    let changed = 0;
+
+    const roads = room.roads || [];
+    for (const road of roads) {
+        if (!tileHasRoadBlockingStructure(road.pos)) continue;
+        if (road.destroy() === OK) changed++;
+    }
+
+    for (const site of room.constructionSites) {
+        if (site.structureType !== STRUCTURE_ROAD) continue;
+        if (!tileHasRoadBlockingStructure(site.pos)) continue;
+        if (site.remove() === OK) changed++;
+    }
+
+    if (changed) {
+        clearRoomPlanCache(room.name);
+        clearRoomMatrixCache(room.name, 'owned');
+        clearRoomMatrixCache(room.name, 'remote');
+        clearRoomPathCache(room.name, 'owned');
+        clearRoomPathCache(room.name, 'remote');
+        const entry = MATRIX_HEAP.owned[room.name];
+        if (entry && entry.planned) {
+            for (const key of [...entry.planned]) {
+                if (plannedTileBlocked(room.name, key)) entry.planned.delete(key);
+            }
+        }
+    }
+    return changed;
+}
+
 function planOwnedRoomRoads(room, options = {}) {
+    // Always strip roads under buildings (dynamic extensions, rebuilt hubs, etc.).
+    const cleaned = removeRoadsUnderObstacles(room);
+
     if (!room.storage || !room.spawns.length || room.level < ROAD_LEVEL) {
         setRoadsBuiltFlag(room, undefined);
-        return false;
+        return cleaned > 0;
     }
-    if (!canPlaceRoadInRoom(room)) return false;
-    if (Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time) return false;
+    if (!canPlaceRoadInRoom(room)) return cleaned > 0;
+    if (Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time) return cleaned > 0;
 
     const maxThisTick = roadPlacementLimit(room, !!options.layoutPending);
-    if (maxThisTick === 0) return false;
+    if (maxThisTick === 0) return cleaned > 0;
 
     const {missing, complete} = getRoadPlan(room);
 
     let placed = 0;
     for (const pos of missing) {
         if (placed >= maxThisTick) break;
-        if (pos.isExit()) continue;
+        if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
         const result = tryCreateConstructionSite(pos, STRUCTURE_ROAD);
         if (result === OK) {
             placed++;
@@ -923,7 +1188,7 @@ function planOwnedRoomRoads(room, options = {}) {
     }
 
     setRoadsBuiltFlag(room, complete ? true : undefined);
-    return placed > 0;
+    return placed > 0 || cleaned > 0;
 }
 
 module.exports = {
@@ -968,8 +1233,11 @@ module.exports = {
     getUnfinishedRoadRooms,
     colonyNeedsRoadWork,
     pickRoadWorkRoom,
+    remoteBuildersNeeded,
     roadBuildersNeeded,
     tryPlaceNextRemoteRoad,
     remoteRoomNeedsRoadWork,
     roomNeedsRoadWorkByName,
+    removeRoadsUnderObstacles,
+    tileHasRoadBlockingStructure,
 };

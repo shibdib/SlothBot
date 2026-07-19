@@ -1,5 +1,8 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
+ *
+ * Remote / transit road crew only. Owned-room roads are planned by planOwnedRoomRoads
+ * and built by drones — this role never targets the colony room.
  */
 
 const profiler = require("tools.profiler");
@@ -7,12 +10,13 @@ const {setRoadsBuiltFlag} = require('planUtils');
 const {getCreepCount} = require('spawnCounts');
 
 const SCAN_INTERVAL = 5;
+const REMOTE_BUILDER_ROLES = ['remoteBuilder', 'roadBuilder'];
 
 const {
     isColonyRoadRoom,
     pickRoadWorkRoom,
     colonyNeedsRoadWork,
-    roadBuildersNeeded,
+    remoteBuildersNeeded,
     tryPlaceNextRemoteRoad,
     canPlaceRemoteRoadSite,
     countRoadConstructionSites,
@@ -22,7 +26,7 @@ const {
     clearRemoteRoadVerifyCache,
 } = require('planRoads');
 
-class RoleRoadBuilder {
+class RoleRemoteBuilder {
     constructor(creep) {
         this.creep = creep;
         this.performRoleActions();
@@ -55,34 +59,41 @@ class RoleRoadBuilder {
         this.creep.memory.constructionSite = undefined;
         this.creep.memory.task = undefined;
 
-        if (!this.creep.memory.harvest && (this.creep.memory.energyDestination || (this.shouldRunRoadScan() && this.creep.locateEnergy()))) {
+        // Prefer storage/drops when available; otherwise harvest in remotes.
+        if (!this.creep.memory.harvest && (this.creep.memory.energyDestination || this.creep.locateEnergy())) {
             this.creep.say('Energy!', true);
             this.creep.withdrawResource();
-        } else if (!this.creep.room.level || this.creep.room.level < 3) {
-            this.creep.memory.harvest = true;
-            if (!this.creep.memory.other) this.creep.memory.other = {};
-            let source = Game.getObjectById(this.creep.memory.other.source) || this.creep.pos.getClosestSource();
-            if (source) {
-                this.creep.say('Harvest!', true);
-                this.creep.memory.other.source = source.id;
-                switch (this.creep.harvest(source)) {
-                    case ERR_NOT_IN_RANGE:
-                        this.creep.memory.other.stationary = undefined;
-                        this.creep.shibMove(source);
-                        break;
-                    case ERR_NOT_ENOUGH_RESOURCES:
-                        this.creep.memory.other.source = undefined;
-                        break;
-                    case OK:
-                        this.creep.memory.other.stationary = true;
-                        break;
-                }
-            } else {
-                delete this.creep.memory.harvest;
-                delete this.creep.memory.destination;
+            return;
+        }
+
+        // Owned rooms with RCL>=3 should not strip sources — wait for logistics.
+        if (this.creep.room.controller && this.creep.room.controller.my && this.creep.room.level >= 3) {
+            this.creep.memory.harvest = undefined;
+            this.creep.idleFor(5);
+            return;
+        }
+
+        this.creep.memory.harvest = true;
+        if (!this.creep.memory.other) this.creep.memory.other = {};
+        let source = Game.getObjectById(this.creep.memory.other.source) || this.creep.pos.getClosestSource();
+        if (source) {
+            this.creep.say('Harvest!', true);
+            this.creep.memory.other.source = source.id;
+            switch (this.creep.harvest(source)) {
+                case ERR_NOT_IN_RANGE:
+                    this.creep.memory.other.stationary = undefined;
+                    this.creep.shibMove(source);
+                    break;
+                case ERR_NOT_ENOUGH_RESOURCES:
+                    this.creep.memory.other.source = undefined;
+                    break;
+                case OK:
+                    this.creep.memory.other.stationary = true;
+                    break;
             }
         } else {
-            this.creep.memory.harvest = undefined;
+            // Do not clear destination — stay assigned while waiting for energy.
+            delete this.creep.memory.harvest;
             this.creep.idleFor(5);
         }
     }
@@ -135,7 +146,7 @@ class RoleRoadBuilder {
         }
 
         let destination = this.creep.memory.destination;
-        if (!destination) {
+        if (!destination || destination === colony) {
             if (!this.shouldRunRoadScan()) {
                 this.creep.idleFor(SCAN_INTERVAL - 1);
                 return;
@@ -161,15 +172,12 @@ class RoleRoadBuilder {
             return;
         }
 
+        // In the work room with energy: always try build/repair/place (do not
+        // throttle placement behind SCAN_INTERVAL once we are on-site).
         if (this.getActiveConstructionSite()) {
             if (this.creep.builderFunction()) {
                 this.tryPlaceRoadSites(room, colony, context);
             }
-            return;
-        }
-
-        if (!this.shouldRunRoadScan()) {
-            this.creep.idleFor(SCAN_INTERVAL - 1);
             return;
         }
 
@@ -191,7 +199,8 @@ class RoleRoadBuilder {
             return;
         }
 
-        if (countRoadConstructionSites(room) > 0) {
+        // Stay while sites, incomplete plan, or repairs remain.
+        if (countRoadConstructionSites(room) > 0 || remoteRoomNeedsRoadWork(room, colony, context)) {
             this.creep.idleFor(2);
             return;
         }
@@ -221,8 +230,11 @@ class RoleRoadBuilder {
             return;
         }
 
-        const liveCount = getCreepCount(undefined, 'roadBuilder', undefined, undefined, colony);
-        if (liveCount > roadBuildersNeeded(colony)) {
+        const liveCount = REMOTE_BUILDER_ROLES.reduce(
+            (n, role) => n + getCreepCount(undefined, role, undefined, undefined, colony),
+            0
+        );
+        if (liveCount > remoteBuildersNeeded(colony)) {
             this.creep.recycleCreep();
             return;
         }
@@ -252,5 +264,5 @@ class RoleRoadBuilder {
     }
 }
 
-profiler.registerClass(RoleRoadBuilder, 'RoadBuilder');
-module.exports = RoleRoadBuilder;
+profiler.registerClass(RoleRemoteBuilder, 'RemoteBuilder');
+module.exports = RoleRemoteBuilder;

@@ -107,8 +107,9 @@ let labTemplate = [{"x": 0, "y": 0}, {"x": 0, "y": 1}, {"x": 1, "y": 0}, {"x": -
 const labHubPairTemplate = [labTemplate[0], labTemplate[1]];
 
 // Compact core used when the full bunker template cannot fit.
-// Only the structures needed from RCL1 onward — extensions, towers, and late-game
-// structures (factory, nuker, power spawn) are placed dynamically or wherever they fit.
+// Extensions, towers, labs, and late-game singles (factory, power spawn, nuker, observer)
+// are placed dynamically — see ensureDynamicSpecialStructures (closest hub extension tiles).
+// Observer remains on the hub stamp as a first try; dynamic placement covers misses.
 const coreTemplate = [
     {structureType: STRUCTURE_SPAWN, pos: [{x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: -1}]},
     {structureType: STRUCTURE_OBSERVER, pos: [{x: 0, y: 0}]},

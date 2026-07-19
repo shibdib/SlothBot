@@ -66,13 +66,13 @@ function room_2d_array(roomname, bounds = {x1: 0, y1: 0, x2: 49, y2: 49}) {
     // mark Border Tiles as not usable
     y = 1;
     for (; y < max; y++) {
-        room_2d[0][y] == UNWALKABLE;
-        room_2d[49][y] == UNWALKABLE;
+        room_2d[0][y] = UNWALKABLE;
+        room_2d[49][y] = UNWALKABLE;
     }
     x = 1;
     for (; x < max; x++) {
-        room_2d[x][0] == UNWALKABLE;
-        room_2d[x][49] == UNWALKABLE;
+        room_2d[x][0] = UNWALKABLE;
+        room_2d[x][49] = UNWALKABLE;
     }
     return room_2d;
 }
