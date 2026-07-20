@@ -23,7 +23,7 @@ const {
     processTowerLayoutResetQueue
 } = require('planHub');
 
-const {planOwnedRoomRoads} = require('planRoads');
+const {planOwnedRoomRoads, needsOwnedRoadWork, ensureOwnedRoadsProgress} = require('planRoads');
 const {getExtensionDeficit} = require('planExtensions');
 
 function hasBunkerHub(room) {
@@ -83,14 +83,16 @@ function getNextRoom() {
     const needsSpawnSiteOnly = rooms.filter(needsSpawnSite);
     if (needsSpawnSiteOnly.length) return pickRoundRobin(needsSpawnSiteOnly);
 
-    // Soft work: towers + extensions share one queue so neither starves cross-room.
-    // (Previously any single tower-deficit room blocked all extension-only rooms.)
+    // Soft work: towers + extensions + incomplete owned roads share one queue so
+    // neither starves cross-room. (Road-only rooms were previously stuck forever
+    // while any other room still needed towers/extensions.)
     const needsSoftLayout = rooms.filter(r => {
         if (!r.controller || !r.controller.my || !hasBunkerHub(r)) return false;
         if (getTowerDeficit(r) > 0) return true;
         if (r.controller.level >= 2 && getExtensionDeficit(r) > 0) return true;
         // Incomplete spawn structure still wants layout turns, but not exclusively.
         if (needsOwnSpawn(r)) return true;
+        if (needsOwnedRoadWork(r)) return true;
         return false;
     });
     if (needsSoftLayout.length) return pickRoundRobin(needsSoftLayout);
@@ -132,7 +134,10 @@ function runRoomLayout(room, lastRun, earlyRush) {
     }
 
     if (room.storage) {
-        planOwnedRoomRoads(room, {layoutPending: hasPendingLayoutStructures(room)});
+        // Only reserve site slots for layout while energy capacity is still incomplete.
+        // Otherwise factory/labs + LAYOUT_SITE_RESERVE starve roads at roomCap 5.
+        const layoutPending = hasPendingLayoutStructures(room) && extDeficit > 5;
+        planOwnedRoomRoads(room, {layoutPending});
     }
 }
 
@@ -165,6 +170,16 @@ function buildRoom() {
                 error: (e && e.message) || String(e),
                 stack: e && e.stack ? String(e.stack).slice(0, 400) : undefined,
             };
+        }
+    }
+
+    // Owned roads: same idea as perimeters — progress one incomplete room even when
+    // full layout RR is busy with towers/extensions elsewhere.
+    try {
+        ensureOwnedRoadsProgress();
+    } catch (e) {
+        if (typeof log !== 'undefined' && log.e) {
+            log.e(`ensureOwnedRoadsProgress failed: ${e && e.stack ? e.stack : e}`, 'PLANNER');
         }
     }
 

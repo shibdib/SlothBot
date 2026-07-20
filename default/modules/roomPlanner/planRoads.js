@@ -456,6 +456,8 @@ function getRoadPlan(room) {
     const layout = getLayoutRoadTiles(room);
     const connector = buildConnectorTiles(room, layout);
     const desired = new Set([...layout, ...connector]);
+    const targets = getRoadTargets(room);
+    const origin = getRoadOrigin(room);
 
     const missing = [];
     let complete = true;
@@ -468,13 +470,19 @@ function getRoadPlan(room) {
         if (isRoadPlaceable(pos)) missing.push(pos);
     }
 
+    // Empty desired with live targets/origin is failure-to-plan, not "roads done".
+    // (Dynamic rooms have no layout stamp — empty connectors used to set complete=true.)
+    if (complete && !desired.size && targets.length > 0 && origin) {
+        complete = false;
+    }
+
     const plan = {
         layout,
         connector,
         desired,
         missing,
         complete,
-        targetCount: getRoadTargets(room).length,
+        targetCount: targets.length,
     };
     PLAN_CACHE[room.name] = {tick: Game.time, plan};
     return plan;
@@ -1156,6 +1164,90 @@ function removeRoadsUnderObstacles(room) {
     return changed;
 }
 
+function isOwnedRoomRoadEligible(room) {
+    if (!room || !room.controller || !room.controller.my) return false;
+    if (!room.storage || !(room.spawns && room.spawns.length)) return false;
+    const roadLevel = typeof ROAD_LEVEL !== 'undefined' ? ROAD_LEVEL : 4;
+    if ((room.controller.level || room.level || 0) < roadLevel) return false;
+    if (!(room.memory.bunkerHub && room.memory.bunkerHub.x !== undefined)) return false;
+    return true;
+}
+
+/**
+ * True when INTEL does not claim the owned road net is finished.
+ * Cheap soft-queue signal — ensureOwnedRoadsProgress re-verifies via getRoadPlan.
+ */
+function needsOwnedRoadWork(room) {
+    if (!isOwnedRoomRoadEligible(room)) return false;
+    if (Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time) return false;
+    const intel = typeof INTEL !== 'undefined' ? INTEL[room.name] : null;
+    return !(intel && intel.roadsBuilt);
+}
+
+// Round-robin cursor for cross-room road placement (heap — fine if reset).
+let ownedRoadEnsureCursor = 0;
+
+/**
+ * Place owned-room road sites without requiring this room to win full layout RR.
+ * One eligible room per call so extension/tower soft-queue cannot starve roads empire-wide.
+ * @returns {number} sites placed (0 if none / complete / gated)
+ */
+function ensureOwnedRoadsProgress() {
+    if (Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time) return 0;
+    // Alternate with perimeter cadence when bucket is healthy.
+    const bucket = Game.cpu && Game.cpu.bucket != null ? Game.cpu.bucket : 10000;
+    if (bucket < 2000 && Game.time % 5 !== 0) return 0;
+    if (bucket < 5000 && Game.time % 3 !== 0) return 0;
+    if (bucket >= 5000 && Game.time % 2 !== 0) return 0;
+
+    const rooms = [];
+    const seen = new Set();
+    if (typeof MY_ROOMS !== 'undefined' && MY_ROOMS && MY_ROOMS.length) {
+        for (const name of MY_ROOMS) {
+            if (seen.has(name)) continue;
+            seen.add(name);
+            const room = Game.rooms[name];
+            if (room && isOwnedRoomRoadEligible(room)) rooms.push(room);
+        }
+    }
+    for (const name in Game.rooms) {
+        if (seen.has(name)) continue;
+        const room = Game.rooms[name];
+        if (!room || !isOwnedRoomRoadEligible(room)) continue;
+        seen.add(name);
+        rooms.push(room);
+    }
+    if (!rooms.length) return 0;
+
+    const start = ownedRoadEnsureCursor % rooms.length;
+    ownedRoadEnsureCursor = start + 1;
+
+    // Prefer rooms that still look incomplete; fall back to a full cycle verify.
+    for (let offset = 0; offset < rooms.length; offset++) {
+        const room = rooms[(start + offset) % rooms.length];
+        if (!needsOwnedRoadWork(room) && offset < rooms.length - 1) {
+            // Still visit rooms marked complete occasionally (last slot of cycle) for decay.
+            continue;
+        }
+        // Do not reserve site slots for late specials/labs once energy capacity is healthy —
+        // roads were starved at roomCap 5 with LAYOUT_SITE_RESERVE=3.
+        let layoutPending = false;
+        try {
+            const {hasPendingLayoutStructures} = require('planLayout');
+            const {getExtensionDeficit} = require('planExtensions');
+            layoutPending = hasPendingLayoutStructures(room) && getExtensionDeficit(room) > 5;
+        } catch (e) {
+            layoutPending = false;
+        }
+        const beforeSites = countRoadConstructionSites(room);
+        planOwnedRoomRoads(room, {layoutPending});
+        const afterSites = countRoadConstructionSites(room);
+        // Work one room per invocation.
+        return Math.max(0, afterSites - beforeSites);
+    }
+    return 0;
+}
+
 function planOwnedRoomRoads(room, options = {}) {
     // Always strip roads under buildings (dynamic extensions, rebuilt hubs, etc.).
     const cleaned = removeRoadsUnderObstacles(room);
@@ -1172,6 +1264,7 @@ function planOwnedRoomRoads(room, options = {}) {
 
     const {missing, complete} = getRoadPlan(room);
 
+    // Recompute complete after placement attempts — sites count as satisfied.
     let placed = 0;
     for (const pos of missing) {
         if (placed >= maxThisTick) break;
@@ -1187,7 +1280,9 @@ function planOwnedRoomRoads(room, options = {}) {
         }
     }
 
-    setRoadsBuiltFlag(room, complete ? true : undefined);
+    // Fresh complete flag after sites land (plan cache was cleared on place).
+    const done = placed > 0 ? isRoadPlanComplete(room) : complete;
+    setRoadsBuiltFlag(room, done ? true : undefined);
     return placed > 0 || cleaned > 0;
 }
 
@@ -1205,6 +1300,9 @@ module.exports = {
     buildCostMatrix,
     planOwnedRoomRoads,
     roadBuilder: planOwnedRoomRoads,
+    ensureOwnedRoadsProgress,
+    isOwnedRoomRoadEligible,
+    needsOwnedRoadWork,
     getRoadOrigin,
     getDesiredRoadTiles,
     getRoadPlan,
