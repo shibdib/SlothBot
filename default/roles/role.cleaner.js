@@ -52,86 +52,124 @@ class RoleCleaner {
             } else this.creep.shibMove(target);
             return;
         }
-        // If we can't get to the controller or sources, clear a path
         const blocked = blockedLocations(this.creep);
         if (blocked && blocked.length) {
             this.creep.memory.target = blocked[0].structure.id;
-        } else if (!this.creep.scorchedEarth()) {
-            this.room.cacheRoomIntel(true);
-            this.creep.suicide();
+            return;
         }
+        if (this.creep.scorchedEarth()) return;
+        this.room.cacheRoomIntel(true);
+        if (INTEL[this.room.name] && INTEL[this.room.name].obstacles) {
+            const leftover = this.room.structures.find(s => isCleanableObstacle(s));
+            if (leftover) {
+                this.creep.memory.target = leftover.id;
+                this.creep.memory.notBlocked = undefined;
+                return;
+            }
+        }
+        this.creep.suicide();
     }
 }
 
+function isCleanableObstacle(structure) {
+    if (!structure) return false;
+    const type = structure.structureType;
+    if (type === STRUCTURE_CONTROLLER || type === STRUCTURE_ROAD || type === STRUCTURE_CONTAINER) return false;
+    if (type === STRUCTURE_KEEPER_LAIR || type === STRUCTURE_POWER_BANK) return false;
+    const owner = structure.safeOwnerName ? structure.safeOwnerName() : (structure.owner && structure.owner.username);
+    if (owner === MY_USERNAME) return false;
+    return type === STRUCTURE_RAMPART || type === STRUCTURE_WALL
+        || (typeof OBSTACLE_OBJECT_TYPES !== 'undefined' && OBSTACLE_OBJECT_TYPES.includes(type));
+}
+
 function blockedLocations(creep) {
-    if (!creep.memory.notBlocked) {
-        // Check controller
-        if (findBestCleaningPath(creep, creep.room.controller).length) return findBestCleaningPath(creep, creep.room.controller);
-        else INTEL[creep.room.name].claimClear = true;
-        // Check sources
-        for (const source of creep.room.sources) {
-            if (findBestCleaningPath(creep, source).length) return findBestCleaningPath(creep, source);
+    if (creep.memory.notBlocked) return;
+    const room = creep.room;
+    if (!room) return;
+
+    if (room.controller) {
+        const toController = findBestCleaningPath(creep, room.controller.pos, 1);
+        if (toController.structures.length) {
+            if (INTEL[room.name]) INTEL[room.name].claimClear = undefined;
+            return toController.structures;
         }
-        // Check exits
-        for (const exit of Object.values(Game.map.describeExits(creep.room.name))) {
-            const targetPos = creep.pos.findClosestByRange(creep.room.findExitTo(exit))
-            if (findBestCleaningPath(creep, targetPos).length) return findBestCleaningPath(creep, targetPos);
+        if (INTEL[room.name]) {
+            INTEL[room.name].claimClear = toController.complete || undefined;
         }
+    }
+
+    for (const source of room.sources) {
+        const blocked = findBestCleaningPath(creep, source.pos, 1);
+        if (blocked.structures.length) return blocked.structures;
+    }
+
+    const exits = Game.map.describeExits(room.name) || {};
+    for (const exitRoom of Object.values(exits)) {
+        const exitDir = room.findExitTo(exitRoom);
+        if (!(exitDir > 0)) continue;
+        const tiles = room.find(exitDir);
+        if (!tiles.length) continue;
+        const blocked = findBestCleaningPath(creep, tiles, 0);
+        if (blocked.structures.length) return blocked.structures;
     }
     creep.memory.notBlocked = true;
 }
 
-function findBestCleaningPath(creep, target) {
+function findBestCleaningPath(creep, target, range = 0) {
     const room = creep.room;
-    if (!room) return {path: null, structures: []}; // Room not visible
+    if (!room || !target) return {structures: [], complete: false};
+
+    const asGoals = (item) => {
+        if (!item) return null;
+        const pos = item instanceof RoomPosition ? item : item.pos;
+        return pos ? {pos, range} : null;
+    };
+    const goals = (Array.isArray(target) ? target : [target]).map(asGoals).filter(Boolean);
+    if (!goals.length) return {structures: [], complete: false};
+
     const costMatrix = new PathFinder.CostMatrix();
-    room.structures.forEach(structure => {
-        if (structure.structureType === STRUCTURE_RAMPART || structure.structureType === STRUCTURE_WALL) {
-            const owner = structure.safeOwnerName ? structure.safeOwnerName() : (function () {
-                try {
-                    return structure.owner && structure.owner.username;
-                } catch (e) {
-                    return undefined;
-                }
-            })();
-            if (owner === MY_USERNAME) {
-                costMatrix.set(structure.pos.x, structure.pos.y, 1);
-            } else {
-                // Calculate the cost based on hits, higher hits = higher cost
-                let cost = Math.floor(structure.hits / 100000); // Adjust this divisor as needed
-                // Cap the cost to prevent impassable barriers
-                cost = Math.min(cost, 255); // 255 is the max cost in a CostMatrix
-                costMatrix.set(structure.pos.x, structure.pos.y, cost);
-            }
-        }
-    });
-    if (!(target instanceof RoomPosition)) target = target.pos;
-    // Pathfinding options
-    const pathOptions = {
+    if (room.controller) costMatrix.set(room.controller.pos.x, room.controller.pos.y, 255);
+    for (const structure of room.structures) {
+        if (!isCleanableObstacle(structure)) continue;
+        // Never 255 — PathFinder must walk through blockers so we can target them.
+        const cost = structure.hits
+            ? Math.max(10, Math.min(254, Math.floor(structure.hits / 10000)))
+            : 20;
+        costMatrix.set(structure.pos.x, structure.pos.y, cost);
+    }
+
+    const path = PathFinder.search(creep.pos, goals, {
         roomCallback: function (roomName) {
-            if (roomName === room.name) {
-                return costMatrix;
-            }
-            return false;
+            return roomName === room.name ? costMatrix : false;
         },
         plainCost: 1,
         swampCost: 2,
-        maxOps: 2000,
+        maxOps: 5000,
+    });
+
+    const structuresOnPath = [];
+    const seen = new Set();
+    const consider = (x, y) => {
+        const key = x + ',' + y;
+        if (seen.has(key) || x < 0 || x > 49 || y < 0 || y > 49) return;
+        seen.add(key);
+        for (const structure of room.lookForAt(LOOK_STRUCTURES, x, y)) {
+            if (isCleanableObstacle(structure)) {
+                structuresOnPath.push({pos: structure.pos, structure});
+            }
+        }
     };
-    const path = PathFinder.search(creep.pos, {pos: target, range: 1}, pathOptions);
-    let structuresOnPath = [];
-    if (path.path.length > 0) {
-        structuresOnPath = path.path.reduce((acc, pos) => {
-            const structures = room.lookForAt(LOOK_STRUCTURES, pos.x, pos.y);
-            structures.forEach(structure => {
-                if (structure.structureType === STRUCTURE_RAMPART || structure.structureType === STRUCTURE_WALL) {
-                    acc.push({pos: structure.pos, structure: structure});
-                }
-            });
-            return acc;
-        }, []);
+    for (const pos of path.path) consider(pos.x, pos.y);
+
+    // Incomplete paths stop on the last walkable tile, so the wall itself is missing.
+    if (!structuresOnPath.length && path.incomplete) {
+        const end = path.path.length ? path.path[path.path.length - 1] : creep.pos;
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) consider(end.x + dx, end.y + dy);
+        }
     }
-    return structuresOnPath;
+
+    return {structures: structuresOnPath, complete: !path.incomplete};
 }
 
 profiler.registerClass(RoleCleaner, 'Cleaner');

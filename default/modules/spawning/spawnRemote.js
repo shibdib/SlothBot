@@ -274,25 +274,24 @@ function handleContestedRoom(room) {
 }
 
 function handleBlockedRoom(room) {
-    const remoteName = spawnState.blockedRemotes[room.name];
-    if (!remoteName || !remoteMining.isBlockedRemoteCandidate(room, remoteName)) {
+    const exits = Game.map.describeExits(room.name);
+    if (!exits) {
         spawnState.blockedRemotes[room.name] = undefined;
         return;
     }
-    const intel = INTEL[remoteName];
-    if (intel && (!intel.armedHostile || intel.armedHostile + CREEP_LIFE_TIME < Game.time)) {
-        if (intel.claimClear && Game.gcl.level > MY_ROOMS.length) {
-            queueCreepIfNeeded({
-                room, role: 'claimer', priority: PRIORITIES.secondary,
-                numberNeeded: 1, destination: remoteName, operation: 'claimClear'
-            });
-        } else {
-            queueCreepIfNeeded({
-                room, role: 'cleaner', priority: PRIORITIES.secondary,
-                numberNeeded: 2, destination: remoteName
-            });
-        }
+
+    let firstBlocked;
+    for (const remoteName of Object.values(exits)) {
+        if (!remoteMining.isBlockedRemoteCandidate(room, remoteName)) continue;
+        if (!firstBlocked) firstBlocked = remoteName;
+        const intel = INTEL[remoteName];
+        if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) continue;
+        queueCreepIfNeeded({
+            room, role: 'cleaner', priority: PRIORITIES.secondary,
+            numberNeeded: 1, destination: remoteName
+        });
     }
+    spawnState.blockedRemotes[room.name] = firstBlocked;
 }
 
 function handleThreatLevel(room, remoteName) {
@@ -592,6 +591,8 @@ function remoteCreepQueue(room) {
         processRemoteSpecificTasks(room, activeRemotes[i]);
     }
 
+    handleBlockedRoom(room);
+
     if (room.memory.noRemote) return;
 
     purgeUnguardedSkQueue(room);
@@ -600,7 +601,6 @@ function remoteCreepQueue(room) {
     handleRemoteBuilder(room);
 
     if (spawnState.contestedRemotes[room.name] && energyState) handleContestedRoom(room);
-    if (spawnState.blockedRemotes[room.name] && energyState) handleBlockedRoom(room);
 }
 
 module.exports = {remoteCreepQueue};

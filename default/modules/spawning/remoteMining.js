@@ -796,9 +796,13 @@ function isContestedRemoteCandidate(colonyRoom, remoteName) {
 
 function isBlockedRemoteCandidate(colonyRoom, remoteName) {
     if (!remoteName || !INTEL[remoteName]) return false;
+    if (MY_ROOMS && MY_ROOMS.includes(remoteName)) return false;
     if (roomStatus(remoteName) !== roomStatus(colonyRoom.name)) return false;
     const intel = INTEL[remoteName];
-    return !!(intel && !intel.sk && intel.sources && !intel.level && intel.obstacles && !intel.owner);
+    if (!intel.obstacles) return false;
+    if (intel.sk || intel.owner) return false;
+    if (intel.safemode && intel.safemode > Game.time) return false;
+    return true;
 }
 
 const SK_UNGUARDED_RECYCLE_TICKS = 100;
