@@ -53,28 +53,42 @@ module.exports.loop = function () {
                 return;
             } else if (currentBucket === BUCKET_MAX && Memory.cpuTracking.bucketIssueCount > 0) Memory.cpuTracking.bucketIssueCount--;
 
-            // Store owned rooms. Full refresh every 250 ticks, but also immediately when a
-            // newly claimed/visible room appears — otherwise planner never sees it (and
-            // never assigns a hub) until the next 250-tick boundary.
+            // Owned-room list: full scan when visibility changes, every 50 ticks, or if
+            // an existing entry was lost. Avoid Object.values(Game.rooms) every tick.
             {
-                const ownedRooms = Object.values(Game.rooms).filter(
-                    (r) => r.controller && r.controller.my
-                );
-                const ownedNames = ownedRooms.map((r) => r.name);
-                const listStale = !global.MY_ROOMS || !global.MY_ROOMS.length || !global.MAX_LEVEL
-                    || Game.time % 250 === 0
-                    || ownedNames.length !== global.MY_ROOMS.length
-                    || ownedNames.some((n) => !global.MY_ROOMS.includes(n));
-                if (listStale && ownedRooms.length) {
-                    global.MY_ROOMS = ownedNames;
-                    global.MAX_LEVEL = Math.max(...ownedRooms.map((r) => r.controller.level));
-                    global.MIN_LEVEL = Math.min(...ownedRooms.map((r) => r.controller.level));
-
-                    Object.keys(INTEL).forEach((key) => {
-                        if (INTEL[key] && INTEL[key].owner === MY_USERNAME && !global.MY_ROOMS.includes(key)) {
-                            purgeIntel(key);
+                let visibleCount = 0;
+                for (const _n in Game.rooms) visibleCount++;
+                const visibilityChanged = global._lastVisibleRoomCount !== visibleCount;
+                global._lastVisibleRoomCount = visibleCount;
+                let listStale = !global.MY_ROOMS || !global.MY_ROOMS.length || !global.MAX_LEVEL
+                    || Game.time % 50 === 0
+                    || visibilityChanged;
+                if (!listStale && global.MY_ROOMS) {
+                    for (let i = 0; i < global.MY_ROOMS.length; i++) {
+                        const r = Game.rooms[global.MY_ROOMS[i]];
+                        if (!r || !r.controller || !r.controller.my) {
+                            listStale = true;
+                            break;
                         }
-                    });
+                    }
+                }
+                if (listStale) {
+                    const ownedRooms = [];
+                    for (const name in Game.rooms) {
+                        const r = Game.rooms[name];
+                        if (r.controller && r.controller.my) ownedRooms.push(r);
+                    }
+                    if (ownedRooms.length) {
+                        global.MY_ROOMS = ownedRooms.map((r) => r.name);
+                        global.MAX_LEVEL = Math.max(...ownedRooms.map((r) => r.controller.level));
+                        global.MIN_LEVEL = Math.min(...ownedRooms.map((r) => r.controller.level));
+
+                        for (const key in INTEL) {
+                            if (INTEL[key] && INTEL[key].owner === MY_USERNAME && !global.MY_ROOMS.includes(key)) {
+                                purgeIntel(key);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -84,30 +98,27 @@ module.exports.loop = function () {
             // Initialize Pathing Cache
             if (!segments.retrievePathing()) return;
 
-            // Auto Respawn Logic
+            // Auto Respawn Logic — Game.spawns / Game.creeps, not a full Game.structures walk.
             if (!running) {
-                const ownedRoom = Object.values(Game.rooms).find(
-                    (r) => r.controller && r.controller.my
-                );
-                const spawn = _.filter(Game.structures, (s) => {
-                    try {
-                        return s.my && s.structureType === STRUCTURE_SPAWN;
-                    } catch (e) {
-                        return false;
-                    }
-                });
-                const creeps = _.filter(Game.creeps, (s) => s.my);
+                const ownedRoom = (global.MY_ROOMS && global.MY_ROOMS.length)
+                    ? Game.rooms[global.MY_ROOMS[0]]
+                    : null;
+                let spawnCount = 0;
+                for (const _id in Game.spawns) spawnCount++;
+                let creepCount = 0;
+                for (const _n in Game.creeps) creepCount++;
 
-                if (ownedRoom && ownedRoom.controller.level === 1 && ((!_.size(spawn) && !_.size(creeps)) || (_.size(spawn) === 1 && !_.size(creeps)))) {
+                if (ownedRoom && ownedRoom.controller && ownedRoom.controller.level === 1
+                    && ((!spawnCount && !creepCount) || (spawnCount === 1 && !creepCount))) {
                     if (!memWipe) {
                         resetMemory();
                         memWipe = true;
                     }
-                    if (!_.size(spawn)) {
+                    if (!spawnCount) {
                         require('module.roomPlanner').buildRoom(ownedRoom);
                         return;
                     }
-                } else if (_.size(spawn)) {
+                } else if (spawnCount) {
                     running = true;
                 }
             }
@@ -138,7 +149,6 @@ module.exports.loop = function () {
                 tools.cleanMemory();
                 tools.status();
                 populateLOANlist();
-                require('module.diplomacy').refreshFriendlies();
                 cleanUp.cleanup();
             } catch (e) {
                 log.e('Error with a main tool function');

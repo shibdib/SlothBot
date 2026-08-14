@@ -21,11 +21,10 @@ class RoleMineralHarvester {
     }
 
     housekeeping() {
-        // Boosting
         if (this.creep.tryToBoost()) return true;
-        // Check if mineral depleted
-        if (this.creep.memory.other.assignedMineral && Game.getObjectById(this.creep.memory.other.assignedMineral).mineralAmount === 0) {
-            log.a(this.room.name + ' supply of ' + Game.getObjectById(this.creep.memory.other.assignedMineral).mineralType + ' has been depleted.');
+        const mineral = Game.getObjectById(this.creep.memory.other && this.creep.memory.other.assignedMineral);
+        if (mineral && mineral.mineralAmount === 0) {
+            log.a(this.room.name + ' supply of ' + mineral.mineralType + ' has been depleted.');
             return this.creep.recycleCreep();
         }
     }
@@ -40,34 +39,35 @@ class RoleMineralHarvester {
     }
 
     extractResource() {
-        if (!this.creep.memory.onContainer) {
-            let container = Game.getObjectById(this.room.memory.extractorContainer);
-            if (container) {
-                if (this.creep.pos.getRangeTo(container)) return this.creep.shibMove(container, {range: 0}); else this.creep.memory.onContainer = true;
-            } else {
-                this.creep.memory.onContainer = true;
+        const container = Game.getObjectById(this.room.memory.extractorContainer);
+        if (container) {
+            if (!this.creep.pos.isEqualTo(container.pos)) {
+                this.creep.memory.onContainer = undefined;
+                return this.creep.shibMove(container, {range: 0});
             }
-        } else if (Math.random() > 0.9) this.creep.memory.onContainer = undefined;
-        let extractor = Game.getObjectById(this.creep.memory.extractor);
+            this.creep.memory.onContainer = true;
+            if (!container.store.getFreeCapacity()) return this.creep.idleFor(25);
+        }
+
+        const extractor = Game.getObjectById(this.creep.memory.extractor);
         if (!extractor) return this.creep.recycleCreep();
-        if (Game.getObjectById(this.room.memory.extractorContainer) && _.sum(Game.getObjectById(this.room.memory.extractorContainer).store) === 2000
-            && !this.creep.pos.getRangeTo(Game.getObjectById(this.room.memory.extractorContainer))) return this.creep.idleFor(25);
-        if (extractor.cooldown && extractor.pos.getRangeTo(this.creep) < 2) {
-            this.creep.idleFor(extractor.cooldown - 1)
-        } else {
-            let mineral = Game.getObjectById(this.creep.memory.other.assignedMineral);
-            switch (this.creep.harvest(mineral)) {
-                case OK:
-                    this.creep.memory.other.stationary = true;
-                    break;
-                case ERR_NOT_IN_RANGE:
-                    this.creep.shibMove(mineral);
-                    break;
-                case ERR_NOT_FOUND:
-                    const {tryCreateConstructionSite} = require('planUtils');
-                    tryCreateConstructionSite(mineral.pos, STRUCTURE_EXTRACTOR);
-                    break;
-            }
+        if (extractor.cooldown && this.creep.pos.getRangeTo(extractor) < 2) {
+            return this.creep.idleFor(extractor.cooldown - 1);
+        }
+
+        const mineral = Game.getObjectById(this.creep.memory.other && this.creep.memory.other.assignedMineral);
+        if (!mineral) return this.creep.recycleCreep();
+        switch (this.creep.harvest(mineral)) {
+            case OK:
+                this.creep.memory.other.stationary = true;
+                break;
+            case ERR_NOT_IN_RANGE:
+                this.creep.shibMove(mineral);
+                break;
+            case ERR_NOT_FOUND:
+                const {tryCreateConstructionSite} = require('planUtils');
+                tryCreateConstructionSite(mineral.pos, STRUCTURE_EXTRACTOR);
+                break;
         }
     }
 }

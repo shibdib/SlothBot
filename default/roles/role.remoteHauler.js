@@ -4,6 +4,7 @@
 
 const profiler = require("tools.profiler");
 const {empireOpsPaused} = require('hcReadiness');
+const {getRemoteHarvesterForSource} = require('spawnCounts');
 
 class RoleRemoteHauler {
     constructor(creep) {
@@ -59,14 +60,16 @@ class RoleRemoteHauler {
 
         if (!Game.getObjectById(this.memory.energyDestination)) this.memory.energyDestination = undefined;
 
-        if (Game.time % 2 === 0) {
+        if (Game.time % 2 === 0 && this.room.name === this.memory.colony) {
             const colony = Game.rooms[this.memory.colony];
             const colonyInfo = colony && colony.memory.energyInfo;
             const colonyTrend = (colonyInfo && colonyInfo.trend) || 0;
             if (colony && colony.energyState >= 2 && colonyTrend >= 0) {
                 this.creep.opportunisticRepair();
             }
-            this.creep.opportunisticFill();
+            if (this.room.energyAvailable < this.room.energyCapacityAvailable) {
+                this.creep.opportunisticFill();
+            }
         }
 
         const storageId = this.memory.storageDestination;
@@ -78,19 +81,15 @@ class RoleRemoteHauler {
     }
 
     findResource() {
-        if (this.memory.energyDestination) {
-            return this.creep.withdrawResource();
+        if (this.memory.energyDestination && this.creep.withdrawResource()) {
+            return true;
         }
 
-        // Resolve harvester from the cached id; if dead, fall back to a source-keyed lookup.
-        // The source assignment is the source of truth — harvester ids are transient.
-        let harvester = Game.getObjectById(this.memory.other.harvester);
-        if (!harvester) {
-            harvester = _.find(Game.creeps,
-                c => c.my && c.memory.role === 'remoteHarvester' &&
-                    c.memory.other.source === this.memory.other.source
-            );
-            this.memory.other.harvester = harvester ? harvester.id : undefined;
+        const other = this.memory.other || (this.memory.other = {});
+        let harvester = Game.getObjectById(other.harvester);
+        if (!harvester || (harvester.memory.other && harvester.memory.other.source !== other.source)) {
+            harvester = getRemoteHarvesterForSource(other.source);
+            other.harvester = harvester ? harvester.id : undefined;
         }
         if (harvester) {
             if (harvester.memory.containerID) this.memory.containerID = harvester.memory.containerID;
@@ -99,12 +98,17 @@ class RoleRemoteHauler {
 
         const container = Game.getObjectById(this.memory.containerID);
         if (container && container.store) {
-            this.memory.energyDestination = container.id;
-            if (container.store[RESOURCE_ENERGY]) return this.creep.withdrawResource();
+            if (container.store[RESOURCE_ENERGY]) {
+                this.memory.energyDestination = container.id;
+                return this.creep.withdrawResource();
+            }
+            if (this.creep.pos.getRangeTo(container) <= 3) {
+                return this.creep.idleFor(5);
+            }
             return this.creep.shibMove(container, {range: 3});
         }
 
-        const remoteRoom = this.memory.other.remoteRoom;
+        const remoteRoom = other.remoteRoom;
         if (remoteRoom && this.room.name !== remoteRoom) {
             return this.creep.shibMove(new RoomPosition(25, 25, remoteRoom), {range: 20});
         }
@@ -281,7 +285,7 @@ function safemodeGeneration(creep) {
                 creep.shibMove(ghodiumStorage);
             } else if (result === OK || result === ERR_FULL || result === ERR_NOT_ENOUGH_RESOURCES) {
                 memory.storageDestination = undefined;
-                memory._shibMove = undefined;
+                creep.clearShibMove();
             }
             return true;
         }

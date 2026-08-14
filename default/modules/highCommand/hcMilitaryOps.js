@@ -82,6 +82,7 @@ function militaryOperations() {
     }
 
     // Strongholds
+    if (!state.ALLOW_NEW_OPS) return;
     if (!state.OFFENSIVE_ALLOWED && state.OPERATION_LIMIT <= 0) return;
 
     if (state.OPERATION_LIMIT > 0 && activeStrongholds < state.OPERATION_LIMIT) {

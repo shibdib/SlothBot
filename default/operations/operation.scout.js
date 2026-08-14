@@ -2,7 +2,6 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 Creep.prototype.scoutRoom = function () {
-    if (!Memory.targetRooms[this.memory.destination] && !Memory.auxiliaryTargets[this.memory.destination]) return this.recycleCreep();
     if (this.room.name !== this.memory.destination) {
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {
             range: 23,
@@ -19,24 +18,31 @@ Creep.prototype.operationManager = function () {
 
 StructureObserver.prototype.operationPlanner = function (room) {
     if (!room) return;
+    // Intel was just written by ObserverControl.processPreviousObservation.
     room.invaderCheck();
-    room.cacheRoomIntel();
-    if (Memory.targetRooms[room.name] || (Memory.auxiliaryTargets && Memory.auxiliaryTargets[room.name])) return operationPlanner(room);
+    if (Memory.targetRooms[room.name] || (Memory.auxiliaryTargets && Memory.auxiliaryTargets[room.name])) {
+        return operationPlanner(room);
+    }
 };
+
+function refreshRoomIntel(room, force = false) {
+    if (!room) return;
+    const intel = INTEL[room.name];
+    if (intel && intel.lastObservation === Game.time) return;
+    room.cacheRoomIntel(force);
+}
 
 function operationPlanner(room) {
     if (Memory.targetRooms[room.name]) {
         forwardObserver(room);
-    } else if (Memory.auxiliaryTargets && Memory.auxiliaryTargets[room.name]) {
-        room.cacheRoomIntel(true);
     } else {
-        room.cacheRoomIntel();
+        refreshRoomIntel(room);
     }
 }
 
 // Observer tasks
 function forwardObserver(room) {
-    room.cacheRoomIntel();
+    refreshRoomIntel(room);
     const targetRoom = Memory.targetRooms[room.name];
     if (!targetRoom) return false;
 
@@ -105,7 +111,7 @@ function handleRoomDenialOperation(room) {
 }
 
 function handleScoutOperation(room) {
-    room.cacheRoomIntel(true);
+    refreshRoomIntel(room, true);
     const towers = room.towers;
     const intel = INTEL[room.name];
     if (!intel) return;

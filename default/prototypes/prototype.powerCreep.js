@@ -2,6 +2,8 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
+const {getShibMove, clearShibMove} = require('pathUtils');
+
 /**
  * Set the unit to idle-mode until recall tick
  *
@@ -26,7 +28,8 @@ Object.defineProperty(PowerCreep.prototype, "idle", {
             } else {
                 return this.memory.idle;
             }
-        } else if (this.pos.getRangeTo(this.pos.findClosestByRange(FIND_MY_SPAWNS)) === 1) {
+        } else if (this.room.spawns && this.room.spawns.length &&
+            this.pos.getRangeTo(this.pos.findClosestByRange(this.room.spawns)) === 1) {
             this.moveRandom();
         } else {
             return this.memory.idle;
@@ -122,9 +125,9 @@ PowerCreep.prototype.borderCheck = function () {
         return false;
     }
     if (this.memory.borderCountDown) this.memory.borderCountDown++; else this.memory.borderCountDown = 1;
-    if (this.memory.borderCountDown < 5 && this.memory._shibMove) return false;
+    if (this.memory.borderCountDown < 5 && getShibMove(this)) return false;
 
-    this.memory._shibMove = undefined;
+    clearShibMove(this);
     this.memory.moveBlocked = Game.time;
 
     if (x === 0 && y === 0) this.move(BOTTOM_RIGHT);

@@ -19,6 +19,18 @@ class LabManager {
     }
 
     run(room) {
+        if (!room.labs.length) return;
+
+        const idle = !room.memory.producingBoost && runNext[room.name] && runNext[room.name] > Game.time;
+        if (idle && !room.memory.dangerousAttack && !empireOpsPaused()) {
+            if (!lastClean[room.name] || lastClean[room.name] + 100 < Game.time) {
+                const idleLabs = room.labs.filter(l => l.isActive());
+                if (idleLabs.length) this.cleanLabs(idleLabs);
+                lastClean[room.name] = Game.time;
+            }
+            return;
+        }
+
         const labs = room.labs.filter(l => l.isActive());
         if (!labs.length) return;
 
@@ -386,12 +398,20 @@ class LabManager {
     }
 
     getLabHub(room) {
-        if (!room.memory.labHub) {
+        // C4: plan.anchors.lab first.
+        let labXY = null;
+        try {
+            const res = require('planDoc').getLabHub(room);
+            labXY = res && res.hub;
+        } catch (e) {
+            labXY = room.memory.labHub;
+        }
+        if (!labXY) {
             this.primaryLabs[room.name] = undefined;
             return null;
         }
 
-        const hubPos = new RoomPosition(room.memory.labHub.x, room.memory.labHub.y, room.name);
+        const hubPos = new RoomPosition(labXY.x, labXY.y, room.name);
         const hubLabs = room.labs.filter(lab =>
             lab.isActive() &&
             lab.pos.x === hubPos.x &&
@@ -422,14 +442,27 @@ class LabManager {
             for (const lab of active) {
                 const partner = active.find(l => l.id !== lab.id && l.pos.x === lab.pos.x && l.pos.y === lab.pos.y + 1);
                 if (partner) {
-                    room.memory.labHub = {x: lab.pos.x, y: lab.pos.y};
-                    room.memory.labHubPartial = true;
+                    // C5: commit via plan anchors (no dual-write labHub).
+                    try {
+                        require('planAnchors').commitLabHub(room, {x: lab.pos.x, y: lab.pos.y}, true);
+                    } catch (e) {
+                        room.memory.labHub = {x: lab.pos.x, y: lab.pos.y};
+                        room.memory.labHubPartial = true;
+                    }
                     return this.getLabHub(room);
                 }
             }
         }
 
         if (room.labs.length) {
+            try {
+                const plan = room.memory.plan;
+                if (plan && plan.anchors) {
+                    plan.anchors.lab = null;
+                    plan.anchors.labPartial = false;
+                }
+            } catch (e) { /* ignore */
+            }
             delete room.memory.labHub;
             delete room.memory.labHubPartial;
         }

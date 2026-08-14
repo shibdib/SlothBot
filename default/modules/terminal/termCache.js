@@ -21,6 +21,14 @@ function getCachedGlobalOrders() {
     return state.globalOrdersCache.orders;
 }
 
+function getCachedMyOrders() {
+    if (state.myOrdersCache.tick !== Game.time) {
+        state.myOrdersCache.tick = Game.time;
+        state.myOrdersCache.orders = Game.market.orders;
+    }
+    return state.myOrdersCache.orders;
+}
+
 function pruneTerminalCaches() {
     const roomSet = new Set(MY_ROOMS);
     for (const name in state.lastRun) {
@@ -31,21 +39,34 @@ function pruneTerminalCaches() {
     }
 }
 
-function getDerivedCommodityAmount(room, mineral) {
+function derivedCommodityTotals(room) {
+    if (!room) return Object.create(null);
+    if (room._derivedCommodityTick === Game.time) return room._derivedCommodity;
     const equivalence = buildEquivalenceMap();
-    let total = 0;
+    const totals = Object.create(null);
     for (const product of Object.keys(equivalence)) {
-        for (const {base, ratio} of equivalence[product]) {
-            if (base !== mineral) continue;
-            total += (room.store(product) || 0) * ratio;
+        const qty = room.store(product) || 0;
+        if (!qty) continue;
+        const entries = equivalence[product];
+        for (let i = 0; i < entries.length; i++) {
+            const {base, ratio} = entries[i];
+            totals[base] = (totals[base] || 0) + qty * ratio;
         }
     }
-    return total;
+    room._derivedCommodity = totals;
+    room._derivedCommodityTick = Game.time;
+    return totals;
+}
+
+function getDerivedCommodityAmount(room, mineral) {
+    return derivedCommodityTotals(room)[mineral] || 0;
 }
 
 module.exports = {
 
     getCachedGlobalOrders,
+
+    getCachedMyOrders,
 
     pruneTerminalCaches,
 

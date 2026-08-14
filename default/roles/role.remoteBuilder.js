@@ -1,7 +1,7 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  *
- * Remote / transit road crew only. Owned-room roads are planned by planOwnedRoomRoads
+ * Remote / transit road crew only. Owned-room roads are planned by placeOwnedRoads
  * and built by drones — this role never targets the colony room.
  */
 
@@ -24,6 +24,7 @@ const {
     isRemoteRoadPlanComplete,
     syncRemoteRoadBuiltFlag,
     clearRemoteRoadVerifyCache,
+    dropColonyRoadWorkRoom,
 } = require('planRoads');
 
 class RoleRemoteBuilder {
@@ -140,15 +141,14 @@ class RoleRemoteBuilder {
         }
 
         const colony = this.creep.memory.colony;
-        if (!colonyNeedsRoadWork(colony)) {
-            this.handleNoWork();
-            return;
-        }
-
         let destination = this.creep.memory.destination;
         if (!destination || destination === colony) {
             if (!this.shouldRunRoadScan()) {
                 this.creep.idleFor(SCAN_INTERVAL - 1);
+                return;
+            }
+            if (!colonyNeedsRoadWork(colony)) {
+                this.handleNoWork();
                 return;
             }
             destination = this.pickDestination();
@@ -168,34 +168,31 @@ class RoleRemoteBuilder {
         const room = this.creep.room;
         const context = this.getRoadContext(destination);
         if (!context) {
-            this.creep.memory.destination = undefined;
+            this.releaseRoom({name: destination});
             return;
         }
 
-        // In the work room with energy: always try build/repair/place (do not
-        // throttle placement behind SCAN_INTERVAL once we are on-site).
+        // Build/repair an assigned site without replanning or placing.
         if (this.getActiveConstructionSite()) {
-            if (this.creep.builderFunction()) {
-                this.tryPlaceRoadSites(room, colony, context);
-            }
+            this.creep.builderFunction();
             return;
         }
 
         this.assignRoadConstructionWork();
-        if (this.creep.memory.constructionSite && this.creep.builderFunction()) {
-            this.tryPlaceRoadSites(room, colony, context);
+        if (this.creep.memory.constructionSite) {
+            this.creep.builderFunction();
             return;
         }
 
         if (this.tryPlaceRoadSites(room, colony, context)) {
             this.assignRoadConstructionWork();
+            if (this.creep.memory.constructionSite) this.creep.builderFunction();
             return;
         }
 
         syncRemoteRoadBuiltFlag(room, colony, context);
         if (isRemoteRoadPlanComplete(room, colony, context) && !remoteRoomNeedsRoadWork(room, colony, context)) {
             this.markRoadsComplete(room);
-            this.creep.memory.destination = undefined;
             return;
         }
 
@@ -205,7 +202,7 @@ class RoleRemoteBuilder {
             return;
         }
 
-        this.creep.memory.destination = undefined;
+        this.releaseRoom(room);
     }
 
     pickDestination() {
@@ -246,12 +243,19 @@ class RoleRemoteBuilder {
         const intel = INTEL[room.name];
         if (intel) intel.roadCount = room.roads.length;
         clearRemoteRoadVerifyCache(room.name);
+        this.releaseRoom(room);
         const claimants = intel && intel.remoteRoom;
         if (claimants) {
             for (let i = 0; i < claimants.length; i++) {
                 if (INTEL[claimants[i]]) INTEL[claimants[i]].refreshRemotes = true;
             }
         }
+    }
+
+    releaseRoom(room) {
+        if (room) dropColonyRoadWorkRoom(room.name);
+        this.creep.memory.destination = undefined;
+        this.creep.memory.constructionSite = undefined;
     }
 
     getRoadContext(roomName) {

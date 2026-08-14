@@ -11,6 +11,7 @@ const {
     endTow,
     releaseTruckRef,
     clearTrailerTowState,
+    clearShibMove,
 } = require('pathUtils');
 
 const STALL_LIMIT = 30;
@@ -139,7 +140,7 @@ function adjustMovement(truck, trailer) {
     if (truck.memory.lastRangeToTrailer
         && truck.memory.lastRangeToTrailer < 5
         && truck.memory.lastRangeToTrailer < range) {
-        truck.memory._shibMove = undefined;
+        clearShibMove(truck);
     }
     truck.memory.lastRangeToTrailer = range;
 }
@@ -196,7 +197,7 @@ function moveToTowDestination(truck, trailer, towDestination) {
     if (tryTowHandoff(truck, trailer, towDestination, targetRange)) return;
 
     truck.memory.towAtRing = undefined;
-    trailer.memory._shibMove = undefined;
+    clearShibMove(trailer);
     truck.shibMove(towDestination, {...opts, range: targetRange});
 }
 
@@ -306,6 +307,15 @@ function assignTowForTrailer(trailer, busyTrucks) {
 
 function assignTowsForRoom(room) {
     if (!room?.myCreeps?.length) return;
+
+    let needsAny = false;
+    for (const creep of room.myCreeps) {
+        if (needsTow(creep) && creep.memory.towDestination) {
+            needsAny = true;
+            break;
+        }
+    }
+    if (!needsAny) return;
 
     const busyTrucks = new Set();
     for (const creep of room.myCreeps) {

@@ -4,23 +4,23 @@
 
 const profiler = require("tools.profiler");
 const {findRoute} = require('pathRoute');
+const {canSpareCpuForRoom} = require('hcReadiness');
 
 let _lastRun = 0;
 let _lastRejectLog = 0;
 let _terrainCache = {}; // Terrain is static — cache forever
 
-const ACTIVE_REMOTE_WINDOW = 500;
-const REMOTE_CLAIM_BASE_PENALTY = 2500;
-const REMOTE_IMMATURE_PENALTY = 2000;
-const REMOTE_STRESSED_PENALTY = 1500;
 const GREENFIELD_BORDER_BONUS = 3000;
-const ACTIVE_REMOTE_BORDER_BONUS = 500;
-const IMMATURE_PARENT_MAX_RCL = 6;
-const HARD_SKIP_PARENT_RCL = 4;
+/** How long after last active remote work we still treat a room as "ours" for claim blocking. */
+const OWN_REMOTE_PROTECT_WINDOW = 1500;
 
 function routeDistance(from, to) {
     const route = findRoute(from, to, {shortest: true});
     return Array.isArray(route) && route.length ? route.length : Infinity;
+}
+
+function isNonSelfFriendly(user) {
+    return !!(user && user !== MY_USERNAME && FRIENDLIES.includes(user));
 }
 
 class ExpansionControl {
@@ -37,6 +37,7 @@ class ExpansionControl {
         _lastRun = Game.time;
 
         this.claimTarget = Memory.claimTarget || {};
+        this.purgeInvalidClaimMissions();
         this.findClaimTarget();
         this.queueExpansionScouts();
 
@@ -55,23 +56,80 @@ class ExpansionControl {
         }
     }
 
+    /**
+     * Sticky claim targets must stay valid: not owned, not hostile-reserved,
+     * not our remote, not an ally natural remote, and not past lifetime.
+     * FORCE_CLAIM bypasses remote/ally gates (manual override).
+     */
+    isClaimTargetStillValid(roomName, {allowForce = false} = {}) {
+        if (allowForce && FORCE_CLAIM && roomName === FORCE_CLAIM) {
+            const forceIntel = INTEL[roomName];
+            return !forceIntel || !forceIntel.owner;
+        }
+
+        const targetIntel = INTEL[roomName];
+        if (!targetIntel) return false;
+        if (targetIntel.owner) return false;
+
+        const hostileReservation = targetIntel.reservation &&
+            targetIntel.reservation !== MY_USERNAME && targetIntel.reservation !== 'Invader';
+        if (hostileReservation) return false;
+
+        if (this.claimTarget.tick != null && this.claimTarget.tick + CREEP_LIFE_TIME < Game.time) {
+            return false;
+        }
+
+        const ownRemote = this.getOwnRemoteBlock(targetIntel, roomName);
+        if (ownRemote) return false;
+
+        const allyRemote = this.getAllyRemoteBlock(roomName);
+        if (allyRemote) return false;
+
+        return true;
+    }
+
+    clearClaimTarget(reason) {
+        if (this.claimTarget.room) {
+            log.a(`Refreshing claim target. Old claim target - ${this.claimTarget.room}${reason ? ` (${reason})` : ''}`, 'EXPANSION CONTROL:');
+        }
+        Memory.claimTarget = {};
+        this.claimTarget = {};
+    }
+
+    /**
+     * Drop queued claim/rebuild missions that violate own-remote or ally-remote rules.
+     * FORCE_CLAIM rooms are left alone.
+     */
+    purgeInvalidClaimMissions() {
+        const targets = Memory.auxiliaryTargets;
+        if (!targets) return;
+        for (const roomName in targets) {
+            const t = targets[roomName];
+            if (!t || (t.type !== 'claim' && t.type !== 'rebuild')) continue;
+            if (FORCE_CLAIM && roomName === FORCE_CLAIM) continue;
+
+            const intel = INTEL[roomName];
+            if (intel && intel.owner === MY_USERNAME) continue; // already claimed — let op finish/clean
+
+            const ownRemote = this.getOwnRemoteBlock(intel || {}, roomName);
+            const allyRemote = this.getAllyRemoteBlock(roomName);
+            if (!ownRemote && !allyRemote) continue;
+
+            const reason = (ownRemote && ownRemote.rejectReason) || (allyRemote && allyRemote.rejectReason);
+            log.a(`Canceling ${t.type} mission for ${roomLink(roomName)}: ${reason}`, 'EXPANSION CONTROL:');
+            delete targets[roomName];
+        }
+    }
+
     findClaimTarget() {
         if (this.claimTarget.room) {
-            const targetIntel = INTEL[this.claimTarget.room];
-            const hostileReservation = targetIntel && targetIntel.reservation &&
-                targetIntel.reservation !== MY_USERNAME && targetIntel.reservation !== 'Invader';
-            if (!targetIntel || targetIntel.owner || hostileReservation || this.claimTarget.tick + CREEP_LIFE_TIME < Game.time) {
-                if (FORCE_CLAIM && (!INTEL[FORCE_CLAIM] || !INTEL[FORCE_CLAIM].owner)) {
-                    this.claimTarget = {room: FORCE_CLAIM, tick: Game.time};
-                    Memory.claimTarget = this.claimTarget;
-                    return;
-                }
-                log.a(`Refreshing claim target. Old claim target - ${this.claimTarget.room}`, 'EXPANSION CONTROL:');
-                Memory.claimTarget = {};
-                this.claimTarget = {};
-            } else {
+            if (this.isClaimTargetStillValid(this.claimTarget.room, {
+                allowForce: !!(FORCE_CLAIM && this.claimTarget.room === FORCE_CLAIM),
+            })) {
                 return;
             }
+            const reason = this.explainClaimInvalid(this.claimTarget.room);
+            this.clearClaimTarget(reason);
         }
 
         if (FORCE_CLAIM && (!INTEL[FORCE_CLAIM] || !INTEL[FORCE_CLAIM].owner)) {
@@ -92,6 +150,23 @@ class ExpansionControl {
             this.claimTarget = {room: max.room.name, tick: Game.time};
             Memory.claimTarget = this.claimTarget;
         }
+    }
+
+    explainClaimInvalid(roomName) {
+        const intel = INTEL[roomName];
+        if (!intel) return 'no intel';
+        if (intel.owner) return `owned by ${intel.owner}`;
+        if (intel.reservation && intel.reservation !== MY_USERNAME && intel.reservation !== 'Invader') {
+            return `reserved by ${intel.reservation}`;
+        }
+        if (this.claimTarget.tick != null && this.claimTarget.tick + CREEP_LIFE_TIME < Game.time) {
+            return 'expired';
+        }
+        const ownRemote = this.getOwnRemoteBlock(intel, roomName);
+        if (ownRemote) return ownRemote.rejectReason;
+        const allyRemote = this.getAllyRemoteBlock(roomName);
+        if (allyRemote) return allyRemote.rejectReason;
+        return 'invalid';
     }
 
     filterWorthyRooms() {
@@ -195,83 +270,104 @@ class ExpansionControl {
         }
     }
 
-    isViableRemoteCandidate(roomName) {
-        const intel = INTEL[roomName];
-        if (!intel || intel.owner || intel.obstacles) return false;
-        if (intel.reservation && intel.reservation !== MY_USERNAME && intel.reservation !== 'Invader') return false;
-        return (intel.sources || 0) >= 2;
-    }
+    /**
+     * Colonies that currently (or very recently) treat this room as a remote.
+     * Uses live ROOM_REMOTE_TARGETS plus recently-active remoteRoom parents.
+     * Does NOT use bare remoteRoom alone — that list is never pruned and
+     * includes probed-but-unmined rooms.
+     * @param {object} room - intel object
+     * @param {string} [roomName] - fallback when intel.name is missing
+     */
+    getOwnRemoteParents(room, roomName) {
+        const name = (room && room.name) || roomName;
+        const parents = new Set();
 
-    countAlternateRemotesForParent(parentName, excludeRoom) {
-        const exits = Object.values(Game.map.describeExits(parentName) || {});
-        let count = 0;
-        for (const neighbor of exits) {
-            if (neighbor === excludeRoom || !this.isViableRemoteCandidate(neighbor)) continue;
-            count++;
+        if (name) {
+            const targets = global.ROOM_REMOTE_TARGETS;
+            if (targets) {
+                for (let i = 0; i < MY_ROOMS.length; i++) {
+                    const colony = MY_ROOMS[i];
+                    const list = targets[colony];
+                    if (!list || !list.length) continue;
+                    for (let j = 0; j < list.length; j++) {
+                        if (list[j] && list[j].room === name) {
+                            parents.add(colony);
+                            break;
+                        }
+                    }
+                }
+            }
         }
-        return count;
+
+        // Recently worked remote (activeRemote is vision-backed; keep a full creep lifetime)
+        const activeAt = room && room.activeRemote;
+        if (activeAt && activeAt + OWN_REMOTE_PROTECT_WINDOW > Game.time) {
+            const fromIntel = room.remoteRoom || [];
+            for (let i = 0; i < fromIntel.length; i++) {
+                if (MY_ROOMS.includes(fromIntel[i])) parents.add(fromIntel[i]);
+            }
+        }
+
+        // Live remote workforce still assigned here (covers global-reset gaps in ROOM_REMOTE_TARGETS)
+        if (name) {
+            const acc = (c) => {
+                if (!c.my || c.memory.destination !== name) return;
+                const role = c.memory.role;
+                if (role !== 'remoteHarvester' && role !== 'reserver' && role !== 'remoteHauler' &&
+                    role !== 'remoteBuilder' && role !== 'roadBuilder') return;
+                const colony = c.memory.colony;
+                if (colony && MY_ROOMS.includes(colony)) parents.add(colony);
+            };
+            const grouped = global.world && global.world.colonyCreeps;
+            if (grouped) {
+                for (const colonyName in grouped) {
+                    const list = grouped[colonyName];
+                    for (let i = 0; i < list.length; i++) acc(list[i]);
+                }
+            } else {
+                for (const creepName in Game.creeps) acc(Game.creeps[creepName]);
+            }
+        }
+
+        return [...parents];
     }
 
-    isParentFlowStressed(parentName) {
-        const live = Game.rooms[parentName];
-        const ei = live && live.memory && live.memory.energyInfo;
-        if (!ei) return false;
-        return !!(ei.flowStressed || ei.spareIncome < 0 || (ei.trend || 0) < -2);
-    }
-
-    getParentRcl(parentName) {
-        const live = Game.rooms[parentName];
-        if (live && live.controller) return live.controller.level;
-        const intel = INTEL[parentName];
-        return intel && intel.level ? intel.level : 0;
-    }
-
-    getRemoteClaimAdjustment(room) {
-        const result = {
-            penalty: 0,
-            isActiveRemote: false,
-            remoteParents: [],
-            notes: [],
+    /** Hard block: never claim rooms we already mine as remotes. */
+    getOwnRemoteBlock(room, roomName) {
+        if (!room && !roomName) return null;
+        const parents = this.getOwnRemoteParents(room || {}, roomName || (room && room.name));
+        if (!parents.length) return null;
+        return {
+            rejectReason: `owned remote of ${parents.join(',')}`,
+            remoteClaim: `owned remote of ${parents.join(',')}`,
         };
+    }
 
-        const remoteParents = (room.remoteRoom || []).filter(c => MY_ROOMS.includes(c));
-        const isActive = !!(room.activeRemote && room.activeRemote + ACTIVE_REMOTE_WINDOW > Game.time);
-        if (!isActive || !remoteParents.length) return result;
+    /**
+     * Hard block: rooms that are natural remotes of FRIENDLIES (exit neighbor
+     * owned or reserved by a non-self friendly). Does not use activeRemote.
+     */
+    getAllyRemoteBlock(roomName) {
+        const exits = Object.values(Game.map.describeExits(roomName) || {});
+        for (let i = 0; i < exits.length; i++) {
+            const neighbor = exits[i];
+            const intel = INTEL[neighbor];
+            if (!intel) continue;
 
-        result.isActiveRemote = true;
-        result.remoteParents = remoteParents;
-
-        const adjacentOwned = new Set(
-            Object.values(Game.map.describeExits(room.name) || {})
-                .filter(n => INTEL[n] && INTEL[n].owner === MY_USERNAME)
-        );
-
-        for (const parent of remoteParents) {
-            if (!adjacentOwned.has(parent)) continue;
-
-            const parentRcl = this.getParentRcl(parent);
-            result.penalty += REMOTE_CLAIM_BASE_PENALTY;
-            result.notes.push(`active remote of ${parent}`);
-
-            if (parentRcl < IMMATURE_PARENT_MAX_RCL) {
-                result.penalty += REMOTE_IMMATURE_PENALTY;
-                result.notes.push(`${parent} RCL${parentRcl}`);
-            }
-
-            if (this.isParentFlowStressed(parent)) {
-                result.penalty += REMOTE_STRESSED_PENALTY;
-                result.notes.push(`${parent} flow stressed`);
-            }
-
-            if (parentRcl < HARD_SKIP_PARENT_RCL && !this.countAlternateRemotesForParent(parent, room.name)) {
+            if (isNonSelfFriendly(intel.owner)) {
                 return {
-                    ...result,
-                    rejectReason: `sole active remote for ${parent} (RCL ${parentRcl})`,
+                    rejectReason: `ally ${intel.owner} remote of ${neighbor}`,
+                    remoteClaim: `ally remote of ${neighbor} (${intel.owner})`,
+                };
+            }
+            if (isNonSelfFriendly(intel.reservation)) {
+                return {
+                    rejectReason: `ally ${intel.reservation} reserved neighbor ${neighbor}`,
+                    remoteClaim: `ally reserved neighbor ${neighbor} (${intel.reservation})`,
                 };
             }
         }
-
-        return result;
+        return null;
     }
 
     calculateRoomScore(room, friendlyRooms, enemyRooms) {
@@ -284,12 +380,23 @@ class ExpansionControl {
             score -= room.failedClaim * 1000;
         }
 
-        const remoteClaim = this.getRemoteClaimAdjustment(room);
-        if (remoteClaim.rejectReason) {
-            return {rejectReason: remoteClaim.rejectReason, remoteClaim: remoteClaim.notes.join('; ')};
+        const ownRemote = this.getOwnRemoteBlock(room, room.name);
+        if (ownRemote) {
+            return {
+                rejectReason: ownRemote.rejectReason,
+                remoteClaim: ownRemote.remoteClaim,
+            };
         }
 
-        // Proximity to owned vs allied rooms — border claims (dist 1–2 to our rooms) are desired, not blocked
+        const allyRemote = this.getAllyRemoteBlock(room.name);
+        if (allyRemote) {
+            return {
+                rejectReason: allyRemote.rejectReason,
+                remoteClaim: allyRemote.remoteClaim,
+            };
+        }
+
+        // Proximity to owned vs allied rooms — border claims (dist 1–2 to our rooms) are desired
         let closestOwn = Infinity;
         let closestOwnRoom;
         let closestAlly = Infinity;
@@ -319,7 +426,7 @@ class ExpansionControl {
         }
 
         if (closestOwn <= 2) {
-            score += remoteClaim.isActiveRemote ? ACTIVE_REMOTE_BORDER_BONUS : GREENFIELD_BORDER_BONUS;
+            score += GREENFIELD_BORDER_BONUS;
         } else {
             const ownAdjust = this.friendlyRoomScoreAdjustment(closestOwn);
             if (!Number.isFinite(ownAdjust)) {
@@ -327,8 +434,6 @@ class ExpansionControl {
             }
             score += ownAdjust;
         }
-
-        score -= remoteClaim.penalty;
 
         if (AVOID_ALLIED_SECTORS && closestAllyRoom && closestAlly <= 6 && sameSectorCheck(room.name, closestAllyRoom)) {
             score -= 500;
@@ -356,6 +461,8 @@ class ExpansionControl {
                 return sum;
             }
             if (intel.owner) return sum;
+            // Do not count ally-held neighbors as expansion "remote source" value
+            if (isNonSelfFriendly(intel.reservation)) return sum;
             return sum + (intel.sources || 0);
         }, room.sources || 0);
 
@@ -376,8 +483,7 @@ class ExpansionControl {
 
         if (myRoomInSectorCheck(room.name)) score += 7000;
 
-        const remoteNote = remoteClaim.notes.length ? remoteClaim.notes.join('; ') : undefined;
-        return remoteNote ? {claimValue: score, remoteClaim: remoteNote} : {claimValue: score};
+        return {claimValue: score};
     }
 
     getSwampPenalty(roomName) {
@@ -409,6 +515,22 @@ class ExpansionControl {
 
     claimOperation(claimTarget) {
         const roomName = claimTarget.room;
+
+        // Final gate before launching (skip remote/ally gates only for FORCE_CLAIM)
+        if (!(FORCE_CLAIM && roomName === FORCE_CLAIM)) {
+            const intel = INTEL[roomName];
+            const ownRemote = this.getOwnRemoteBlock(intel || {}, roomName);
+            if (ownRemote) {
+                this.clearClaimTarget(ownRemote.rejectReason);
+                return;
+            }
+            const allyRemote = this.getAllyRemoteBlock(roomName);
+            if (allyRemote) {
+                this.clearClaimTarget(allyRemote.rejectReason);
+                return;
+            }
+        }
+
         const noviceRoom = MY_ROOMS.find(r => Game.rooms[r] && roomStatus(r) === 'novice');
         const limit = noviceRoom
             ? 3
@@ -418,7 +540,10 @@ class ExpansionControl {
 
         if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
 
-        if (limit > MY_ROOMS.length && MAX_LEVEL >= 4 && !Memory.auxiliaryTargets[roomName]) {
+        const forceClaim = !!(FORCE_CLAIM && roomName === FORCE_CLAIM);
+        const cpu = forceClaim ? {ok: true} : canSpareCpuForRoom();
+
+        if (limit > MY_ROOMS.length && MAX_LEVEL >= 4 && !Memory.auxiliaryTargets[roomName] && cpu.ok) {
             Memory.claimTarget = {};
             Memory.auxiliaryTargets[roomName] = {
                 tick: Game.time,
@@ -426,6 +551,14 @@ class ExpansionControl {
                 priority: PRIORITIES.priority
             };
             log.a(`Claim Mission for ${roomLink(roomName)} initiated.`, 'EXPANSION CONTROL:');
+        } else if (!cpu.ok) {
+            if (_lastRejectLog + 500 < Game.time) {
+                _lastRejectLog = Game.time;
+                log.a(`Holding claim of ${roomLink(roomName)} — no CPU spare for another room (${cpu.reason}).`, 'EXPANSION CONTROL:');
+            }
+            if (!Memory.claimTarget || Memory.claimTarget.room !== roomName) {
+                Memory.claimTarget = {room: roomName, tick: Game.time};
+            }
         } else if (!Memory.claimTarget || Memory.claimTarget.room !== roomName) {
             log.a(`Next claim target set to ${roomLink(roomName)} once GCL allows (${MY_ROOMS.length}/${limit}).`, 'EXPANSION CONTROL:');
             Memory.claimTarget = {room: roomName, tick: Game.time};
@@ -490,8 +623,10 @@ class ExpansionControl {
         scored.sort((a, b) => b.claimValue - a.claimValue);
 
         const limit = Game.gcl.level;
+        const cpu = canSpareCpuForRoom();
         return {
             claimTarget: Memory.claimTarget,
+            cpu: {ok: cpu.ok, reason: cpu.reason || null, avg: cpu.avg, spare: cpu.spare, need: cpu.need},
             gcl: {owned: MY_ROOMS.length, level: Game.gcl.level, claimSlots: limit},
             funnel: {
                 claimCandidates: candidateNames.length,
@@ -521,7 +656,10 @@ class ExpansionControl {
         }
 
         const unique = [...new Set(candidates)].filter(stale).slice(0, 5);
-        Memory.expansionScoutRooms = unique;
+        const prev = Memory.expansionScoutRooms;
+        if (!prev || prev.length !== unique.length || unique.some((r, i) => prev[i] !== r)) {
+            Memory.expansionScoutRooms = unique;
+        }
         if (!unique.length) return;
         if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
         for (const roomName of unique) {

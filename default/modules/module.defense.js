@@ -52,33 +52,40 @@ class DefenseManager {
         // towerController used to set this — labTech, shuttle, terminal, and spawn still read it
         if (underAttack) {
             ALERT_STATE_TRACKING[this.room.name] = Game.time;
-            this.room.memory.dangerousAttack = true;
+            if (!this.room.memory.dangerousAttack) this.room.memory.dangerousAttack = true;
             this.alertHostileAttack();
             if (playerArmed.length) {
                 this.safeModeManager();
-                if (intel) intel.requestingSupport = true;
+                if (intel && !intel.requestingSupport) intel.requestingSupport = true;
             }
         } else {
-            // Clear attack state immediately so economy/military response logic (e.g. guard spawns)
-            // stops treating the room as threatened once hostiles are gone. Notification timing
-            // (reminders + all-clear) is handled separately via ALERT_STATE_TRACKING / _defenseAlerts.
-            this.room.memory.dangerousAttack = undefined;
-            if (intel) intel.requestingSupport = undefined;
+            if (this.room.memory.dangerousAttack) this.room.memory.dangerousAttack = undefined;
+            if (intel && intel.requestingSupport) intel.requestingSupport = undefined;
             if (!ALERT_STATE_TRACKING[this.room.name] || Game.time - ALERT_STATE_TRACKING[this.room.name] > ALERT_REMINDER_TICKS) {
                 clearHostileAlert(this.room);
                 delete ALERT_STATE_TRACKING[this.room.name];
             }
-            delete this.room.memory.safeModeDeferred;
+            if (this.room.memory.safeModeDeferred) delete this.room.memory.safeModeDeferred;
         }
 
         if (!Memory._rampartsSet || RAMPART_ACCESS) this.rampartManager();
 
         if (Game.time % 100 === 0) this.handleNukeAttack();
 
-        this.room.memory.earlyWarning = _.some(
-            Object.values(Game.map.describeExits(this.room.name)),
-            roomName => INTEL[roomName] && INTEL[roomName].threatLevel > 4
-        );
+        if (Game.time % 10 === 0) {
+            const exits = Game.map.describeExits(this.room.name) || {};
+            let warn;
+            for (const dir in exits) {
+                const intel = INTEL[exits[dir]];
+                if (intel && intel.threatLevel > 4) {
+                    warn = true;
+                    break;
+                }
+            }
+            if (this.room.memory.earlyWarning !== warn) {
+                this.room.memory.earlyWarning = warn || undefined;
+            }
+        }
     }
 
     _pruneRoomStateCache() {

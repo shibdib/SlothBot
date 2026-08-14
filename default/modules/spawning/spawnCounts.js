@@ -4,22 +4,34 @@
 
 const generator = require('module.bodyGenerator');
 
-const CREEP_COUNT_CACHE = {counts: {}, tick: 0};
+const CREEP_COUNT_CACHE = {counts: {}, tick: 0, harvesterBySource: {}};
 
 function updateCreepCountCache() {
     const currentTick = Game.time;
     if (CREEP_COUNT_CACHE.tick === currentTick) return;
 
     const counts = {};
+    const harvesterBySource = {};
     const allCreeps = Object.values(Game.creeps);
 
     for (const creep of allCreeps) {
         if (!creep.my) continue;
         processCreepForCache(counts, creep);
+        if (creep.memory.role === 'remoteHarvester') {
+            const sourceId = creep.memory.other && creep.memory.other.source;
+            if (sourceId) harvesterBySource[sourceId] = creep;
+        }
     }
 
     CREEP_COUNT_CACHE.counts = counts;
+    CREEP_COUNT_CACHE.harvesterBySource = harvesterBySource;
     CREEP_COUNT_CACHE.tick = currentTick;
+}
+
+function getRemoteHarvesterForSource(sourceId) {
+    if (!sourceId) return undefined;
+    updateCreepCountCache();
+    return CREEP_COUNT_CACHE.harvesterBySource[sourceId];
 }
 
 function processCreepForCache(counts, creep) {
@@ -116,6 +128,7 @@ function haulerCarryCapacity(creep) {
 
 module.exports = {
     getCreepCount,
+    getRemoteHarvesterForSource,
     creepExpiringSoon,
     getBodyAbilityPower,
     haulerCarryCapacity,

@@ -5,6 +5,7 @@
  */
 
 const profiler = require("tools.profiler");
+const {getShibMove} = require('pathUtils');
 const state = require('hcState');
 const {
     getEmpireReadiness,
@@ -42,8 +43,9 @@ class HUD {
     run() {
         if (!Memory.tickInfo) return;
 
-        Memory._mapVisuals = undefined;
+        if (Memory._mapVisuals !== undefined) Memory._mapVisuals = undefined;
         this._empireReadiness = state.EMPIRE_READINESS || getEmpireReadiness();
+        this._opCount = this.countMilitaryOps();
 
         this.updateGCLData();
 
@@ -63,22 +65,30 @@ class HUD {
 
     updateGCLData() {
         const currentProgress = Game.gcl.progress;
-        if (currentProgress > this.hudData.GCL.last) {
-            this.hudData.GCL.progress.push(currentProgress - this.hudData.GCL.last);
-            if (this.hudData.GCL.progress.length > 25) this.hudData.GCL.progress.shift();
+        const gcl = this.hudData.GCL;
+        if (currentProgress > gcl.last) {
+            gcl.progress.push(currentProgress - gcl.last);
+            if (gcl.progress.length > 25) gcl.progress.shift();
+            gcl.last = currentProgress;
+        } else if (currentProgress < gcl.last) {
+            gcl.last = currentProgress;
         }
-        this.hudData.GCL.last = currentProgress;
     }
 
     updateRCLData(room) {
         if (!room.controller.progressTotal) return;
         const currentProgress = room.controller.progress;
-        this.hudData.RCL[room.name] = this.hudData.RCL[room.name] || {last: currentProgress, progress: []};
-        if (currentProgress > this.hudData.RCL[room.name].last) {
-            this.hudData.RCL[room.name].progress.push(currentProgress - this.hudData.RCL[room.name].last);
-            if (this.hudData.RCL[room.name].progress.length > 25) this.hudData.RCL[room.name].progress.shift();
+        const rcl = this.hudData.RCL[room.name] || (this.hudData.RCL[room.name] = {
+            last: currentProgress,
+            progress: [],
+        });
+        if (currentProgress > rcl.last) {
+            rcl.progress.push(currentProgress - rcl.last);
+            if (rcl.progress.length > 25) rcl.progress.shift();
+            rcl.last = currentProgress;
+        } else if (currentProgress < rcl.last) {
+            rcl.last = currentProgress;
         }
-        this.hudData.RCL[room.name].last = currentProgress;
     }
 
     countMilitaryOps() {
@@ -221,7 +231,7 @@ class HUD {
 
     renderStatusAndDefense(room, x, y, width) {
         const {rowH} = HUD_LAYOUT;
-        const opCount = this.countMilitaryOps();
+        const opCount = this._opCount || 0;
         const storage = room.storage ? room.storage.store[RESOURCE_ENERGY] : 0;
         const terminal = room.terminal ? room.terminal.store[RESOURCE_ENERGY] : 0;
         const displayEnergy = this.formatCompactEnergy(storage + terminal);
@@ -525,6 +535,8 @@ class HUD {
         // full static rebuild + lots of Game.map.visual calls + export) for the first tick or two.
         const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
         if (since < 2) return;
+        const bucket = Game.cpu.bucket;
+        if (bucket < 2000) return;
 
         const currentTime = Game.time;
         const myRooms = this.getOwnedRooms();
@@ -582,8 +594,9 @@ class HUD {
             Game.map.visual.import(_MapVisuals);
         }
 
-        // Fresh time-sensitive overlays for cached static intel (power ETA always current, cheap text redraw)
-        if (global.INTEL && staticIntelCache.rooms && staticIntelCache.rooms.length) {
+        // Fresh time-sensitive overlays. Age badges are already in the 50-tick export;
+        // skip the per-tick redraw when the bucket is soft.
+        if (bucket >= 4000 && global.INTEL && staticIntelCache.rooms && staticIntelCache.rooms.length) {
             for (const roomName of staticIntelCache.rooms) {
                 const intel = global.INTEL[roomName];
                 if (!intel) continue;
@@ -597,22 +610,44 @@ class HUD {
                         fontSize: 6.5, align: 'center', color: '#ffdd66'
                     });
                 }
-                // Fresh accurate age for notable intel rooms
                 this.renderIntelAgeBadge(roomName, intel, currentTime, false);
             }
         }
 
         if (currentTime - activeIntelCache.tick >= 10) {
             activeIntelCache.rooms = [];
-            if (global.INTEL) {
-                for (const roomName in global.INTEL) {
-                    if (!VALID_ROOM_NAME.test(roomName)) continue;
-                    const intel = global.INTEL[roomName];
-                    if (intel && !myRooms.includes(roomName) &&
-                        (intel.threatLevel > 0 || intel.loot || intel.invaderCore || intel.armedHostile)) {
-                        activeIntelCache.rooms.push(roomName);
+            const owned = new Set(myRooms);
+            const idx = global.getIntelIndexes ? global.getIntelIndexes(currentTime) : null;
+            const add = (roomName) => {
+                if (!roomName || owned.has(roomName) || !VALID_ROOM_NAME.test(roomName)) return;
+                const intel = global.INTEL && global.INTEL[roomName];
+                if (intel && (intel.threatLevel > 0 || intel.loot || intel.invaderCore || intel.armedHostile)) {
+                    activeIntelCache.rooms.push(roomName);
+                }
+            };
+            if (idx) {
+                const seen = new Set();
+                const pushIdx = (set) => {
+                    if (!set) return;
+                    for (const roomName of set) {
+                        if (seen.has(roomName)) continue;
+                        seen.add(roomName);
+                        add(roomName);
+                    }
+                };
+                pushIdx(idx.threats);
+                pushIdx(idx.invaderCores);
+                if (staticIntelCache.rooms) {
+                    for (let i = 0; i < staticIntelCache.rooms.length; i++) {
+                        const roomName = staticIntelCache.rooms[i];
+                        if (seen.has(roomName)) continue;
+                        seen.add(roomName);
+                        const intel = global.INTEL && global.INTEL[roomName];
+                        if (intel && (intel.loot || intel.armedHostile)) add(roomName);
                     }
                 }
+            } else if (global.INTEL) {
+                for (const roomName in global.INTEL) add(roomName);
             }
             activeIntelCache.tick = currentTime;
         }
@@ -720,7 +755,7 @@ class HUD {
             });
         }
 
-        this.renderCreepTrails();
+        if (bucket >= 3000) this.renderCreepTrails();
 
         if (Memory.targetRooms) {
             for (const roomName in Memory.targetRooms) {
@@ -815,15 +850,15 @@ class HUD {
                 }
             }
 
-            for (const name in Game.creeps) {
-                const creep = Game.creeps[name];
-                if (!creep.my || !creep.memory.destination || !creep.memory.operation) continue;
+            const military = global.world && global.world.militaryCreeps;
+            const acc = (creep) => {
+                if (!creep.my || !creep.memory.destination || !creep.memory.operation) return;
 
                 const dest = creep.memory.destination;
                 const room = creep.pos.roomName;
                 let route;
 
-                const shibMove = creep.memory._shibMove;
+                const shibMove = getShibMove(creep);
                 if (shibMove && Array.isArray(shibMove.route) && shibMove.route.includes(room) &&
                     shibMove.route[shibMove.route.length - 1] === dest) {
                     route = shibMove.route;
@@ -840,6 +875,11 @@ class HUD {
                     dest: dest,
                     route: route
                 });
+            };
+            if (military) {
+                for (let i = 0; i < military.length; i++) acc(military[i]);
+            } else {
+                for (const name in Game.creeps) acc(Game.creeps[name]);
             }
         }
 

@@ -147,6 +147,333 @@ let globals = function () {
         return {resumed: true, gameTime: Game.time};
     };
 
+    /**
+     * Planner console API (B2). All methods go through module.roomPlanner facade.
+     * Alias: plannerV2 === planner (deprecated name kept for old macros).
+     *
+     * Soak / flags:
+     *   status | empire | enable | enableEmpire | disable | pause | resume
+     *   live | liveStatus | force | canary | canaryDryRun
+     *   queues | lastRun | classify | budget
+     *
+     * Plan doc:
+     *   inspect | migrate | remigrate | clear | resolved
+     *
+     * Inspect (read):
+     *   anchors | spawn | extensions | core | economy | roads | ramparts
+     *
+     * Ensure (place via siteBudget):
+     *   ensureAnchors | ensureSpawn | placeTowers | ensureExtensions | ensureCore
+     *   ensureEconomy | ensureRoads | ensureRamparts | ensurePerimeter
+     *   resetTowers | queueTowerReset | towerResetQueue
+     *
+     * Tick: orchestrator + plan* act + siteBudget. Memory.planner = pause/shadow only.
+     * Errors: Memory._plannerOrchestratorError | _plannerPhaseError | _plannerSyncError
+     */
+    const _plannerMod = () => require('module.roomPlanner');
+    const _plannerRoom = (roomName) => {
+        if (!roomName) return {error: 'roomName required'};
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        return {room, roomName};
+    };
+
+    global.planner = {
+        // ── Soak / flags ──────────────────────────────────────────────────
+        status() {
+            const mod = _plannerMod();
+            const cfg = mod.getPlannerConfig();
+            const forceRoom = mod.getPlannerForceRoom();
+            const empire = mod.isPlannerEmpire();
+            const rooms = [];
+            for (const name in Game.rooms) {
+                const room = Game.rooms[name];
+                if (!room.controller || !room.controller.my) continue;
+                const v2 = mod.isPlannerEnabled(room);
+                const shadow = mod.isPlannerShadow(room);
+                rooms.push({
+                    room: name,
+                    v2,
+                    shadow,
+                    live: v2 && !shadow,
+                    forced: forceRoom === name,
+                    hasPlan: !!(room.memory && room.memory.plan),
+                    mode: room.memory && room.memory.plan && room.memory.plan.mode,
+                    hub: (() => {
+                        try {
+                            return require('planDoc').getHub(room);
+                        } catch (e) {
+                            return room.memory && room.memory.bunkerHub;
+                        }
+                    })(),
+                });
+            }
+            const warnings = [];
+            if (forceRoom && empire) warnings.push('force_room_pins_turns');
+            if (cfg.shadow) warnings.push('shadow_mode');
+            return {
+                config: cfg,
+                empire,
+                liveEmpire: empire && !cfg.shadow,
+                forceRoom,
+                warnings,
+                schema: mod.PLAN_DOC_SCHEMA_VERSION,
+                tickPath: 'orchestrator',
+                rooms,
+                syncError: Memory._plannerSyncError || Memory._plannerV2SyncError || null,
+                orchestratorError: Memory._plannerOrchestratorError || null,
+                phaseError: Memory._plannerPhaseError || Memory._plannerV2PhaseError || null,
+            };
+        },
+        /** No args / true → empire live. Room name/list → resume + pin first room (no canary list). */
+        enable(roomsOrTrue, opts) {
+            const mod = _plannerMod();
+            if (roomsOrTrue === undefined || roomsOrTrue === true) {
+                return mod.enableEmpire(opts || {});
+            }
+            if (Array.isArray(roomsOrTrue) || typeof roomsOrTrue === 'string') {
+                if (opts && opts.shadow) return this.pause();
+                const first = Array.isArray(roomsOrTrue) ? roomsOrTrue[0] : roomsOrTrue;
+                if (first) return this.live(first, opts);
+                return mod.enableEmpire(opts || {});
+            }
+            return mod.setPlannerFlag(roomsOrTrue);
+        },
+        enableEmpire(opts) {
+            return _plannerMod().enableEmpire(opts || {});
+        },
+        empire() {
+            return _plannerMod().empireStatus();
+        },
+        /** Pause placement (shadow). Resume with resume / enable / enableEmpire. */
+        disable() {
+            const mod = _plannerMod();
+            const cfg = mod.pausePlanner ? mod.pausePlanner() : mod.setPlannerFlag(false);
+            if (typeof Memory !== 'undefined') delete Memory.plannerEmpireSoak;
+            return {paused: true, config: cfg};
+        },
+        /** Alias for disable — E1 pause-only model. */
+        pause() {
+            return this.disable();
+        },
+        /** Resume live placement after pause/disable. */
+        resume() {
+            const mod = _plannerMod();
+            const cfg = mod.resumePlanner ? mod.resumePlanner() : mod.setPlannerFlag(true);
+            return {paused: false, config: cfg};
+        },
+        canary(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().canaryReport(r.room);
+        },
+        /** One-shot place all layers; requires shadow. */
+        canaryDryRun(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().canaryDryRun(r.room);
+        },
+        live(roomName, opts) {
+            return _plannerMod().enableLiveCanary(roomName, opts);
+        },
+        liveStatus(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().canaryLiveStatus(r.room);
+        },
+        force(roomName) {
+            const mod = _plannerMod();
+            if (roomName == null || roomName === false || roomName === '') {
+                return {forceRoom: mod.setPlannerForceRoom(null)};
+            }
+            return {forceRoom: mod.setPlannerForceRoom(roomName)};
+        },
+        queues() {
+            return _plannerMod().inspectPlannerQueues();
+        },
+        lastRun() {
+            return _plannerMod().getLastPlannerTickReport();
+        },
+        classify(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().classifyPlannerRoom(r.room);
+        },
+        budget(roomName, opts) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().getSiteBudgetSnapshot(r.room, opts);
+        },
+
+        // ── Plan doc ──────────────────────────────────────────────────────
+        inspect(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().inspectPlan(r.room);
+        },
+        migrate(roomName) {
+            const mod = _plannerMod();
+            if (!roomName) return mod.ensurePlansForOwnedRooms({forceAll: true});
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            const plan = mod.migrateFromLegacy(r.room);
+            return {roomName, schema: plan.schema, mode: plan.mode, hub: plan.anchors.hub};
+        },
+        remigrate(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            const plan = _plannerMod().remigratePlan(r.room);
+            return {
+                roomName,
+                remigrated: true,
+                hub: plan && plan.anchors && plan.anchors.hub,
+                mode: plan && plan.mode,
+                authority: plan && plan.meta && plan.meta.authority,
+            };
+        },
+        clear(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            _plannerMod().clearPlan(r.room);
+            return {roomName, cleared: true};
+        },
+        resolved(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            const mod = _plannerMod();
+            return {
+                roomName,
+                hub: mod.getHub(r.room),
+                towers: mod.getTowerHubs(r.room),
+                lab: mod.getLabHub(r.room),
+                mode: mod.getPlanMode(r.room),
+                plan: mod.inspectPlan(r.room),
+            };
+        },
+
+        // ── Inspect ───────────────────────────────────────────────────────
+        anchors(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().inspectAnchors(r.room);
+        },
+        spawn(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().inspectSpawn(r.room);
+        },
+        extensions(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().inspectExtensions(r.room);
+        },
+        core(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().inspectCore(r.room);
+        },
+        economy(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().inspectEconomy(r.room);
+        },
+        roads(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().inspectRoads(r.room);
+        },
+        ramparts(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().inspectRamparts(r.room);
+        },
+
+        // ── Ensure / place (siteBudget) ────────────────────────────────────
+        ensureAnchors(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().ensureAllAnchors(r.room);
+        },
+        ensureSpawn(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().ensureSpawnSite(r.room);
+        },
+        placeTowers(roomName, maxPerCall) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            const mod = _plannerMod();
+            const limit = maxPerCall === undefined ? mod.getTowerDeficit(r.room) : maxPerCall;
+            const res = mod.placeTowerSites(r.room, limit);
+            return {
+                roomName,
+                placed: typeof res === 'number' ? res : (res && res.placed) || 0,
+                detail: typeof res === 'object' ? res : undefined,
+                audit: mod.auditTowerHubTiles(r.room),
+            };
+        },
+        ensureExtensions(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().placeExtensions(r.room);
+        },
+        ensureCore(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            const mod = _plannerMod();
+            return {
+                core: mod.placeCoreStamps(r.room),
+                specials: mod.placeSpecials(r.room),
+            };
+        },
+        ensureEconomy(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().placeEconomy(r.room);
+        },
+        ensureRoads(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().placeOwnedRoads(r.room);
+        },
+        ensureRamparts(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().placeRamparts(r.room);
+        },
+        ensurePerimeter(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().placePerimeter(r.room);
+        },
+        resetTowers(roomName) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            return _plannerMod().resetTowerLayoutForRoom(r.room);
+        },
+        /** @param {string|string[]|true} [roomNames] true = all owned visible */
+        queueTowerReset(roomNames) {
+            let list = roomNames;
+            if (list === true || list === undefined) {
+                list = (typeof MY_ROOMS !== 'undefined' && MY_ROOMS && MY_ROOMS.length)
+                    ? MY_ROOMS.slice()
+                    : Object.values(Game.rooms)
+                        .filter(room => room.controller && room.controller.my)
+                        .map(room => room.name);
+            }
+            return _plannerMod().queueTowerLayoutReset(list);
+        },
+        towerResetQueue() {
+            return {
+                queue: Memory.towerLayoutResetQueue || [],
+                misses: Memory._plannerTowerResetMiss || {},
+                targetVersion: _plannerMod().TOWER_LAYOUT_VERSION,
+            };
+        },
+    };
+    /** @deprecated same object as planner */
+    global.plannerV2 = global.planner;
+
     global.inspectExtensions = function (roomName) {
         const room = Game.rooms[roomName];
         if (!room) return {error: 'no vision', roomName};
@@ -273,14 +600,14 @@ let globals = function () {
         return removeInvalidExtensions(room);
     };
 
-    // Console: inspectSpawn('E1N1') — diagnose missing spawn on new claims.
+    // Console: inspectSpawn('E1N1') — diagnose missing spawn (V2 actors path).
     global.inspectSpawn = function (roomName) {
         const room = Game.rooms[roomName];
         if (!room) return {error: 'no vision', roomName};
-        const {getSpawnAnchor, ensureSpawnSite} = require('planLayout');
+        const actors = require('planActors');
         const {canPlaceConstructionSite, roomConstructionSiteBudget} = require('planUtils');
         const {tickTracker} = require('planState');
-        const anchor = getSpawnAnchor(room);
+        const anchor = actors.getSpawnAnchor(room);
         const tile = anchor && {
             x: anchor.x,
             y: anchor.y,
@@ -312,15 +639,15 @@ let globals = function () {
             plannerSpawnBlocked: room.memory.plannerSpawnBlocked,
             planner: tickTracker[roomName],
             lastPlannerRoom: tickTracker.lastRoom,
-            force: () => ensureSpawnSite(room),
+            v2: actors.inspectSpawn(room),
+            force: () => actors.ensureSpawnSite(room),
         };
     };
 
     global.forceSpawn = function (roomName) {
         const room = Game.rooms[roomName];
         if (!room) return {error: 'no vision', roomName};
-        const {ensureSpawnSite} = require('planLayout');
-        return ensureSpawnSite(room);
+        return require('planActors').ensureSpawnSite(room);
     };
 
     // Read-only: which extensions violate clearance and whether version cleanup has run.
@@ -393,7 +720,7 @@ let globals = function () {
      * Diagnose bunker perimeter gaps. Draws room visuals this tick.
      * Usage: debugBarriers('E52S16')
      *        debugBarriers('E52S16', {draw: false})
-     *        debugBarriers('E52S16', {recompute: true})  // force minCut if cache empty
+     *        debugBarriers('E52S16', {recompute: true})  // force hub-floodfill if cache empty
      *        debugBarriers('E52S16', {place: true})      // force ensurePerimeterSites this tick
      *
      * Legend: green=built, yellow=site, red=missing, orange=blocked, blue=hub, red line=leak path
@@ -416,6 +743,33 @@ let globals = function () {
     };
 
     /** Force perimeter recompute, purge off-plan barriers, place missing sites, then debug. */
+    /** Wipe all owned walls/ramparts/sites in a room (or all visible) and recompute the hub-flood plan. */
+    global.wipeAndRebuildBarriers = function (roomName) {
+        const ramparts = require('planRamparts');
+        const rooms = roomName
+            ? [Game.rooms[roomName]].filter(Boolean)
+            : ((MY_ROOMS || []).map((n) => Game.rooms[n]).filter(Boolean));
+        const out = [];
+        for (const room of rooms) {
+            const wiped = ramparts.wipeRoomBarriers(room);
+            if (room.memory) room.memory.perimeterPlanRev = ramparts.PERIMETER_PLAN_REV;
+            let spots = 0;
+            try {
+                spots = ramparts.initializeRampartSpots(room, undefined, true) || 0;
+            } catch (e) {
+                out.push({room: room.name, wiped, error: (e && e.message) || String(e)});
+                continue;
+            }
+            out.push({
+                room: room.name,
+                wiped,
+                spots,
+                debug: ramparts.debugBarriers(room, {recompute: false, probe: false}),
+            });
+        }
+        return roomName ? out[0] : out;
+    };
+
     global.rebuildBarriers = function (roomName) {
         const room = Game.rooms[roomName];
         if (!room) return {error: 'no vision', roomName};
@@ -459,12 +813,12 @@ let globals = function () {
     global.resetTowerLayout = function (roomName) {
         const room = Game.rooms[roomName];
         if (!room) return {error: 'no vision', roomName};
-        const {resetTowerLayoutForRoom} = require('planHub');
+        const {resetTowerLayoutForRoom} = require('module.roomPlanner');
         return resetTowerLayoutForRoom(room);
     };
 
     global.resetAllTowerLayouts = function (immediate) {
-        const {resetTowerLayoutForRoom, queueTowerLayoutReset} = require('planHub');
+        const {resetTowerLayoutForRoom, queueTowerLayoutReset} = require('module.roomPlanner');
         const roomNames = (MY_ROOMS && MY_ROOMS.length)
             ? MY_ROOMS.slice()
             : Object.values(Game.rooms)
@@ -541,7 +895,7 @@ let globals = function () {
             countGlobalConstructionSites,
             globalConstructionSiteBudget,
         } = require('planUtils');
-        const {auditTowerHubTiles} = require('planHub');
+        const {auditTowerHubTiles} = require('module.roomPlanner');
         return {
             roomName,
             globalSites: countGlobalConstructionSites(),
@@ -554,7 +908,7 @@ let globals = function () {
     global.placeTowerSites = function (roomName, maxPerCall) {
         const room = Game.rooms[roomName];
         if (!room) return {error: 'no vision', roomName};
-        const {placeTowerSitesUpToDeficit, getTowerDeficit, auditTowerHubTiles} = require('planHub');
+        const {placeTowerSitesUpToDeficit, getTowerDeficit, auditTowerHubTiles} = require('planAnchors');
         const limit = maxPerCall === undefined ? getTowerDeficit(room) : maxPerCall;
         const placed = placeTowerSitesUpToDeficit(room, limit);
         return {roomName, placed, ...auditTowerHubTiles(room)};
@@ -562,7 +916,7 @@ let globals = function () {
 
     // One tower site per owned room per call — avoids same-tick placement desync on memhack/private servers.
     global.placeAllTowerSites = function () {
-        const {placeTowerSitesUpToDeficit, getTowerDeficit, auditTowerHubTiles} = require('planHub');
+        const {placeTowerSitesUpToDeficit, getTowerDeficit, auditTowerHubTiles} = require('planAnchors');
         const {countGlobalConstructionSites, globalConstructionSiteBudget} = require('planUtils');
         const roomNames = (MY_ROOMS && MY_ROOMS.length)
             ? MY_ROOMS.slice()
@@ -598,7 +952,7 @@ let globals = function () {
     };
 
     global.inspectTowerLayoutReset = function () {
-        const {TOWER_LAYOUT_VERSION} = require('planHub');
+        const {TOWER_LAYOUT_VERSION} = require('module.roomPlanner');
         const {
             roomConstructionSiteBudget,
             canPlaceConstructionSite,
@@ -656,15 +1010,16 @@ let globals = function () {
             getDesiredRoadTiles,
             evaluateRoadPlan,
             getRoadOrigin,
-            roadPlacementLimit,
             countRoadConstructionSites,
             getRoomRoadStructures,
         } = require('planRoads');
-        const {hasPendingLayoutStructures} = require('planLayout');
+        const {computeLayoutPending} = require('planLayout');
+        const siteBudget = require('planSiteBudget');
         const plan = evaluateRoadPlan(room);
         const desired = getDesiredRoadTiles(room);
         const intel = INTEL[roomName] || {};
         const origin = getRoadOrigin(room);
+        const layoutPending = computeLayoutPending(room);
         return {
             roomName,
             rcl: room.controller && room.controller.level,
@@ -677,9 +1032,12 @@ let globals = function () {
             builtRoads: getRoomRoadStructures(room).length,
             missingPlaceable: plan.missing.length,
             complete: plan.complete,
-            roadsBuilt: intel.roadsBuilt,
+            pathFailures: plan.pathFailures || (plan.stats && plan.stats.failedPaths) || 0,
+            roadsBuilt: require('planUtils').getRoadsBuiltFlag(room),
+            roadsBuiltIntelLegacy: intel.roadsBuilt,
             roadSites: countRoadConstructionSites(room),
-            roadPlacementLimit: roadPlacementLimit(room, hasPendingLayoutStructures(room)),
+            layoutPending,
+            roadLimit: siteBudget.roadLimit(room, {layoutPending}),
             sampleMissing: plan.missing.slice(0, 5).map(p => `${p.x},${p.y}`),
         };
     };
@@ -1142,7 +1500,7 @@ let globals = function () {
     // Versioning for cache purposes
     global.PATHFINDER_VERSION = 1;
     global.INTEL_VERSION = 5;
-    global.RAMPART_VERSION = 2;
+    global.RAMPART_VERSION = 3;
     global.SAFE_RAMPART_HITS = 10000; // Minimum rampart HP before wallers move on to other barriers
 
     let controllerContainerCacheTick = -1;
@@ -1230,6 +1588,7 @@ let globals = function () {
     //Cache stuff
     global.CACHE = {};
     global.ROUTE_CACHE = CACHE.ROUTE_CACHE = {};
+    global.ROUTE_DISTANCE = CACHE.ROUTE_DISTANCE = {};
     global.PATH_CACHE = CACHE.PATH_CACHE = {};
     global.ROAD_CACHE_OWNED = CACHE.ROAD_CACHE_OWNED = {};
     global.ROAD_CACHE_REMOTE = CACHE.ROAD_CACHE_REMOTE = {};

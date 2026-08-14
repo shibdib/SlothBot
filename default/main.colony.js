@@ -8,12 +8,12 @@ const FactoryControl = require('module.factoryController');
 const DefenseControl = require('module.defense');
 const LinkControl = require('module.linkController');
 const TerminalControl = require('module.terminalController');
-const {lastRun: terminalLastRun} = require('termState');
 const spawning = require('module.creepSpawning');
 const DiplomacyControl = require('module.diplomacy');
 const profiler = require('tools.profiler');
 const {sortCreepsForMovement} = require('pathTraffic');
 const {assignTowsForRoom} = require('pathTow');
+const {shouldRecycleUnguardedSkCreep} = require('remoteMining');
 
 let errorCount = {};
 
@@ -108,8 +108,7 @@ class Colony {
     }
 
     terminalController() {
-        const last = terminalLastRun[this.room.name] || 0;
-        if (last + 25 > Game.time) return;
+        // Cadence lives in termRun (pressured 5 / healthy 25).
         new TerminalControl(this.room).run();
     }
 
@@ -219,6 +218,8 @@ class Colony {
         }
 
         if (minion.towTruck()) return;
+
+        if (shouldRecycleUnguardedSkCreep(minion)) return minion.recycleCreep();
 
         // Seasonal handling
         if (Game.shard.name === 'shardSeason' && minion.memory.scoreTarget) {

@@ -13,10 +13,9 @@ const HudControl = require('module.hud');
 const DefenseVisualizer = require('module.defenseVisualizer');
 const StateManager = require('module.stateManager');
 const energyTracker = require('module.energyTracker');
-const {buildLedger} = require('termNetwork');
 const profiler = require('tools.profiler');
 const {sortCreepsForMovement} = require('pathTraffic');
-const {needsTow} = require('pathUtils');
+const {needsTow, stripLegacyShibMemory} = require('pathUtils');
 const planner = require('module.roomPlanner');
 let tickTracker = {};
 let errorCount = {};
@@ -47,8 +46,6 @@ class World {
         // Accumulate per-tick energy events (owned rooms + visible remotes).
         // Must run before stateManager, which snapshots the rolling averages.
         energyTracker.runAll();
-
-        buildLedger();
 
         // Terminal energy export accounting (sends + market deals).
         // The Memory value at the *start* of the tick holds the costs from the *previous* tick's terminal activity.
@@ -132,9 +129,16 @@ class World {
                 tickTracker['expansionManager'] = Game.time;
             }
         }
+
+        // Rolling tick CPU for expansion / new-op gating (after colonies + military).
+        try {
+            require('hcReadiness').noteTickCpu();
+        } catch (e) { /* ignore */
+        }
     }
 
     houseKeeping() {
+        stripLegacyShibMemory();
         // Timing
         Memory.tickCooldowns = undefined;
 
@@ -176,17 +180,29 @@ class World {
 
     constructionController() {
         // Room planner is CPU-heavy; defer during post-reset danger window — except when
-        // any visible owned room still needs a hub (new claims must not wait 150 ticks).
-        let needsHubBootstrap = false;
-        for (const name in Game.rooms) {
-            const room = Game.rooms[name];
-            if (!room.controller || !room.controller.my) continue;
-            if (!(room.memory.bunkerHub && room.memory.bunkerHub.x)) {
-                needsHubBootstrap = true;
-                break;
+        // an owned room still needs a hub (new claims must not wait 150 ticks).
+        if (global.isPostResetDangerWindow && global.isPostResetDangerWindow()) {
+            let needsHubBootstrap = false;
+            const names = global.MY_ROOMS || [];
+            let hasHubFn;
+            try {
+                hasHubFn = require('planDoc').hasHub;
+            } catch (e) {
+                hasHubFn = null;
             }
+            for (let i = 0; i < names.length; i++) {
+                const room = Game.rooms[names[i]];
+                if (!room || !room.controller || !room.controller.my) continue;
+                const hub = hasHubFn
+                    ? hasHubFn(room)
+                    : !!(room.memory.bunkerHub && room.memory.bunkerHub.x);
+                if (!hub) {
+                    needsHubBootstrap = true;
+                    break;
+                }
+            }
+            if (!needsHubBootstrap) return;
         }
-        if (global.isPostResetDangerWindow && global.isPostResetDangerWindow() && !needsHubBootstrap) return;
         planner.buildRoom();
     }
 

@@ -111,16 +111,25 @@ function cleanStructures() {
 
 const cleanPathingCaches = () => {
     const now = Game.time;
+    const {ROUTE_TTL, ROUTE_DISTANCE_TTL} = require('pathRoute');
     const routeCache = CACHE.ROUTE_CACHE;
     const pathCache = CACHE.PATH_CACHE;
+    const distanceCache = CACHE.ROUTE_DISTANCE;
 
     for (let key in routeCache) {
-        if (now - routeCache[key].tick > 500) {
+        if (now - routeCache[key].tick > ROUTE_TTL) {
             delete routeCache[key];
         }
     }
+    if (distanceCache) {
+        for (let key in distanceCache) {
+            if (now - distanceCache[key].tick > ROUTE_DISTANCE_TTL) {
+                delete distanceCache[key];
+            }
+        }
+    }
     for (let key in pathCache) {
-        if (now - pathCache[key].tick > 200) {
+        if (now - pathCache[key].tick > 50) {
             delete pathCache[key];
         }
     }

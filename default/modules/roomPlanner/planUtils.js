@@ -16,11 +16,154 @@ function isAttackRecoveryMode(room) {
     return inSafeMode || recentAttack;
 }
 
+/**
+ * True when this is one of our owned rooms (vision preferred; Memory.rooms fallback).
+ * @param {Room|null} room
+ * @param {string} [name]
+ * @returns {boolean}
+ */
+function isMyOwnedRoomName(room, name) {
+    if (room && room.controller && room.controller.my) return true;
+    if (typeof MY_ROOMS !== 'undefined' && MY_ROOMS && name && MY_ROOMS.includes(name)) return true;
+    return false;
+}
+
+// One owned-room list per tick. MY_ROOMS is the source of truth; Game.rooms is
+// only a bootstrap fallback when the list is empty (new claim / first tick).
+let ownedRoomsTick = -1;
+let ownedRoomsCache = [];
+
+function listVisibleOwnedRooms() {
+    if (typeof Game !== 'undefined' && ownedRoomsTick === Game.time) return ownedRoomsCache;
+    const rooms = [];
+    const seen = new Set();
+    if (typeof MY_ROOMS !== 'undefined' && MY_ROOMS && MY_ROOMS.length) {
+        for (let i = 0; i < MY_ROOMS.length; i++) {
+            const name = MY_ROOMS[i];
+            if (seen.has(name)) continue;
+            seen.add(name);
+            const room = typeof Game !== 'undefined' ? Game.rooms[name] : null;
+            if (room) rooms.push(room);
+        }
+    } else if (typeof Game !== 'undefined') {
+        for (const name in Game.rooms) {
+            const room = Game.rooms[name];
+            if (room && room.controller && room.controller.my) rooms.push(room);
+        }
+    }
+    ownedRoomsTick = typeof Game !== 'undefined' ? Game.time : -1;
+    ownedRoomsCache = rooms;
+    return rooms;
+}
+
+/**
+ * @param {string} name
+ * @returns {object|null} plan doc or null
+ */
+function getPlanDocForRoomName(name) {
+    if (!name) return null;
+    try {
+        if (typeof Game !== 'undefined' && Game.rooms[name] && Game.rooms[name].memory) {
+            return Game.rooms[name].memory.plan || null;
+        }
+        if (typeof Memory !== 'undefined' && Memory.rooms && Memory.rooms[name]) {
+            return Memory.rooms[name].plan || null;
+        }
+    } catch (e) { /* ignore */
+    }
+    return null;
+}
+
+/**
+ * Road network complete flag (C2).
+ *
+ * Owned rooms: plan.layers.roads.extra.complete only (no INTEL write).
+ * Remotes / non-owned: INTEL.roadsBuilt only (unchanged).
+ *
+ * @param {Room} room
+ * @param {true|undefined} value true = complete; undefined = not complete / clear
+ */
 function setRoadsBuiltFlag(room, value) {
-    const intel = INTEL[room.name];
+    if (!room || !room.name) return;
+    const name = room.name;
+    const owned = isMyOwnedRoomName(room, name);
+
+    if (owned) {
+        // Plan is sole authority. ensurePlan when missing so roads.extra can stick.
+        try {
+            if (!room.memory) return;
+            let plan = room.memory.plan;
+            if (!plan || !plan.layers || !plan.layers.roads) {
+                try {
+                    plan = require('planDoc').ensurePlan(room, {resync: false}) || plan;
+                } catch (e) { /* ignore */
+                }
+            }
+            if (!plan) return;
+            if (!plan.layers) plan.layers = {};
+            if (!plan.layers.roads) {
+                plan.layers.roads = {packed: null, rev: 0, access: null, extra: {}};
+            }
+            if (!plan.layers.roads.extra) plan.layers.roads.extra = {};
+            if (value === true) {
+                plan.layers.roads.extra.complete = true;
+            } else {
+                delete plan.layers.roads.extra.complete;
+            }
+        } catch (e) { /* ignore */
+        }
+
+        // Drop stale INTEL mirror so owned complete is not double-sourced.
+        if (typeof INTEL !== 'undefined' && INTEL[name] && INTEL[name].roadsBuilt != null) {
+            delete INTEL[name].roadsBuilt;
+        }
+        return;
+    }
+
+    // Remote / foreign vision: INTEL only.
+    if (typeof INTEL === 'undefined') return;
+    const intel = INTEL[name];
     if (!intel) return;
-    if (value === undefined) delete intel.roadsBuilt;
-    else intel.roadsBuilt = value;
+    if (value === true) intel.roadsBuilt = true;
+    else delete intel.roadsBuilt;
+}
+
+/**
+ * Whether the road net is marked complete.
+ * Owned: plan.layers.roads.extra.complete (Memory.rooms if no vision).
+ * Remote / missing plan: INTEL.roadsBuilt.
+ * @param {Room|string} roomOrName
+ * @returns {boolean}
+ */
+function getRoadsBuiltFlag(roomOrName) {
+    const room = typeof roomOrName === 'string'
+        ? (typeof Game !== 'undefined' ? Game.rooms[roomOrName] : null)
+        : roomOrName;
+    const name = typeof roomOrName === 'string'
+        ? roomOrName
+        : (room && room.name);
+
+    const owned = isMyOwnedRoomName(room, name);
+    if (owned) {
+        try {
+            const plan = (room && room.memory && room.memory.plan) || getPlanDocForRoomName(name);
+            const extra = plan && plan.layers && plan.layers.roads && plan.layers.roads.extra;
+            if (extra && typeof extra.complete === 'boolean') {
+                return extra.complete;
+            }
+        } catch (e) { /* ignore */
+        }
+        // One-release grace: if plan never stamped complete, allow legacy INTEL.
+        if (typeof INTEL !== 'undefined' && name && INTEL[name] && INTEL[name].roadsBuilt) {
+            return true;
+        }
+        return false;
+    }
+
+    if (typeof INTEL !== 'undefined' && name && INTEL[name] && INTEL[name].roadsBuilt) {
+        return true;
+    }
+    return false;
 }
 
 function globalConstructionSiteLimit() {
@@ -36,12 +179,43 @@ let pendingGlobalSites = 0;
 const pendingRoomSites = Object.create(null);
 const pendingRoomSitesByType = Object.create(null);
 
+// One full Game.constructionSites scan per tick — siteBudget used to re-walk
+// the empire map on every getRawBudget / request / tryPlace / snapshot.
+let siteCountCacheTick = -1;
+let siteCountGlobal = 0;
+const siteCountByRoom = Object.create(null);
+const siteCountByRoomType = Object.create(null);
+
 function resetPendingSitePlacementsIfNeeded() {
     if (pendingSiteTick === Game.time) return;
     pendingSiteTick = Game.time;
     pendingGlobalSites = 0;
     for (const key in pendingRoomSites) delete pendingRoomSites[key];
     for (const key in pendingRoomSitesByType) delete pendingRoomSitesByType[key];
+}
+
+function rebuildSiteCountCacheIfNeeded() {
+    if (siteCountCacheTick === Game.time) return;
+    siteCountCacheTick = Game.time;
+    siteCountGlobal = 0;
+    for (const key in siteCountByRoom) delete siteCountByRoom[key];
+    for (const key in siteCountByRoomType) delete siteCountByRoomType[key];
+
+    for (const id in Game.constructionSites) {
+        const site = Game.constructionSites[id];
+        if (!site || !site.pos) continue;
+        const roomName = site.pos.roomName;
+        const type = site.structureType;
+        siteCountGlobal++;
+        siteCountByRoom[roomName] = (siteCountByRoom[roomName] || 0) + 1;
+        if (!siteCountByRoomType[roomName]) siteCountByRoomType[roomName] = Object.create(null);
+        siteCountByRoomType[roomName][type] = (siteCountByRoomType[roomName][type] || 0) + 1;
+    }
+}
+
+/** Force next count* call to re-scan Game.constructionSites (same tick after bulk ops). */
+function invalidateSiteCountCache() {
+    siteCountCacheTick = -1;
 }
 
 function recordPendingSitePlacement(roomName, structureType) {
@@ -55,29 +229,22 @@ function recordPendingSitePlacement(roomName, structureType) {
 
 function countGlobalConstructionSites() {
     resetPendingSitePlacementsIfNeeded();
-    let n = pendingGlobalSites;
-    for (const id in Game.constructionSites) n++;
-    return n;
+    rebuildSiteCountCacheIfNeeded();
+    return siteCountGlobal + pendingGlobalSites;
 }
 
 function countRoomConstructionSites(roomName) {
     resetPendingSitePlacementsIfNeeded();
-    let n = pendingRoomSites[roomName] || 0;
-    for (const id in Game.constructionSites) {
-        const site = Game.constructionSites[id];
-        if (site.pos.roomName === roomName) n++;
-    }
-    return n;
+    rebuildSiteCountCacheIfNeeded();
+    return (siteCountByRoom[roomName] || 0) + (pendingRoomSites[roomName] || 0);
 }
 
 function countRoomConstructionSitesOfType(roomName, structureType) {
     resetPendingSitePlacementsIfNeeded();
-    let n = (pendingRoomSitesByType[roomName] && pendingRoomSitesByType[roomName][structureType]) || 0;
-    for (const id in Game.constructionSites) {
-        const site = Game.constructionSites[id];
-        if (site.pos.roomName === roomName && site.structureType === structureType) n++;
-    }
-    return n;
+    rebuildSiteCountCacheIfNeeded();
+    const base = (siteCountByRoomType[roomName] && siteCountByRoomType[roomName][structureType]) || 0;
+    const pending = (pendingRoomSitesByType[roomName] && pendingRoomSitesByType[roomName][structureType]) || 0;
+    return base + pending;
 }
 
 function globalConstructionSiteBudget() {
@@ -100,6 +267,11 @@ function invalidateRoomConstructionSiteCache(room) {
     if (!room) return;
     room._constructionSites = undefined;
     room._constructionSites_ts = undefined;
+    room._extDeficitTick = undefined;
+    room._towerDeficitTick = undefined;
+    room._needsSpawnSiteTick = undefined;
+    room._needsCriticalCoreTick = undefined;
+    invalidateSiteCountCache();
     if (global.forceRefreshRoomConstructionSiteCache) {
         global.forceRefreshRoomConstructionSiteCache(room);
     }
@@ -182,7 +354,7 @@ function safeStructureMy(structure) {
     }
 }
 
-// Layout uses controller RCL (buildMissingStructures). room.level is energy tier for
+// Layout / site caps use controller RCL. room.level is energy tier for
 // spawn bodies and economy — not a gate for which template structures to place.
 function shouldSkipStructure() {
     return false;
@@ -214,14 +386,24 @@ function isValidRampartPosition(position) {
 }
 
 /**
- * Can a perimeter wall/rampart occupy this tile long-term?
- * Ignores creeps — temporary blockers must not erase plan tiles from the cache.
+ * Terrain-only: can this tile be part of the perimeter *plan*?
+ * Structure-occupied tiles stay in the plan — placement uses a rampart on top
+ * (old filter dropped them and left permanent seal gaps through extensions).
  */
-function isPerimeterBarrierTile(pos) {
+function isPerimeterPlanTile(pos) {
     if (!pos || pos.checkIfOutOfBounds()) return false;
     if (pos.isExit()) return false;
     if (pos.checkForWall()) return false; // terrain wall
-    // ignoreWall=true, ignoreCreep=true — only real obstacle structures block the plan.
+    return true;
+}
+
+/**
+ * Clear enough for a constructed wall (no obstacle structure).
+ * Ramparts may still go on structure tiles via choosePerimeterBarrierType fallback.
+ */
+function isPerimeterBarrierTile(pos) {
+    if (!isPerimeterPlanTile(pos)) return false;
+    // ignoreWall=true, ignoreCreep=true — only real obstacle structures block walls.
     if (pos.checkForImpassible(true, true)) return false;
     return true;
 }
@@ -240,7 +422,8 @@ function filterPerimeterBarrierSpots(room, spots) {
         const key = x + ',' + y;
         if (seen.has(key)) continue;
         const pos = new RoomPosition(x, y, room.name);
-        if (!isPerimeterBarrierTile(pos)) continue;
+        // Keep structure tiles in plan (rampart-on-structure); only drop terrain/exits.
+        if (!isPerimeterPlanTile(pos)) continue;
         seen.add(key);
         filtered.push({x, y});
     }
@@ -253,7 +436,7 @@ function canAddPerimeterBridgeTile(room, terrain, spotSet, x, y) {
     if (spotSet.has(key)) return false;
     if (terrain.get(x, y) === TERRAIN_MASK_WALL) return false;
     const pos = new RoomPosition(x, y, room.name);
-    return isPerimeterBarrierTile(pos);
+    return isPerimeterPlanTile(pos);
 }
 
 /**
@@ -401,25 +584,25 @@ function canPlaceConstructedWall(pos) {
 const ROAD_CACHE_TTL = 5000;
 
 function cacheRoad(room, from, to, path, profile = 'owned') {
-    const {cachePath} = require('planRoads');
+    const {cachePath} = require('planGeomRoads');
     cachePath(room, from, to, path, profile);
 }
 
 function getRoadCacheEntry(room, from, to, profile = 'owned') {
-    const {getCachedPath} = require('planRoads');
+    const {getCachedPath} = require('planGeomRoads');
     const path = getCachedPath(room, from, to, profile);
     if (!path) return;
     return {path: JSON.stringify(path), tick: Game.time};
 }
 
 function getRoad(room, from, to, profile = 'owned') {
-    const {getCachedPath} = require('planRoads');
+    const {getCachedPath} = require('planGeomRoads');
     const path = getCachedPath(room, from, to, profile);
     return path ? JSON.stringify(path) : undefined;
 }
 
 function isRoadPathComplete(room, from, to, profile = 'remote') {
-    const {getCachedPath, pathTilesNeedRoads} = require('planRoads');
+    const {getCachedPath, pathTilesNeedRoads} = require('planGeomRoads');
     const path = getCachedPath(room, from, to, profile);
     if (!path) return false;
     return !pathTilesNeedRoads(room, path, to);
@@ -799,7 +982,10 @@ module.exports = {
 
     isAttackRecoveryMode,
 
+    listVisibleOwnedRooms,
+
     setRoadsBuiltFlag,
+    getRoadsBuiltFlag,
 
     maxConstructionSitesPerRoom,
 
@@ -818,6 +1004,8 @@ module.exports = {
     canPlaceConstructionSite,
 
     invalidateRoomConstructionSiteCache,
+
+    invalidateSiteCountCache,
 
     tryCreateConstructionSite,
 

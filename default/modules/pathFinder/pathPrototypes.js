@@ -11,11 +11,18 @@
 
 const {routeSafetyCache} = require('pathState');
 
-const {normalizePos} = require('pathUtils');
+const {normalizePos, getShibMove, clearShibMove} = require('pathUtils');
+
+Creep.prototype.clearShibMove = function () {
+    clearShibMove(this);
+};
+PowerCreep.prototype.clearShibMove = function () {
+    clearShibMove(this);
+};
 
 const {shibMove} = require('pathMove');
 
-const {findRoute, getRoute} = require('pathRoute');
+const {findRoute, getRoute, routeDistance} = require('pathRoute');
 
 const {getMatrix} = require('pathMatrix');
 
@@ -36,7 +43,7 @@ Creep.prototype.shibMove = function (destination, options = {}) {
     if (!destination) return false;
     // While en route, ignore room-center hops (25,25) so a cross-room path isn't torn down
     // every tick. Real in-room target changes must flow through so the cached path clears.
-    const cached = this.memory._shibMove?.target;
+    const cached = getShibMove(this)?.target;
     if (cached && cached.roomName === destination.roomName && cached.x != null &&
         this.room.name !== destination.roomName &&
         destination.x === 25 && destination.y === 25) {
@@ -53,6 +60,11 @@ Room.prototype.shibRoute = function (destination, options = {}) {
     const route = getRoute(this.name, destination, options);
     if (route) return route;
     return findRoute(this.name, destination, options);
+};
+
+Room.prototype.routeDistance = function (destination, options = {}) {
+    const dest = destination && destination.name ? destination.name : destination;
+    return routeDistance(this.name, dest, options);
 };
 
 Creep.prototype.showMatrix = function (destination, tunnel) {

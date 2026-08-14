@@ -9,6 +9,7 @@
  */
 
 
+const profiler = require('tools.profiler');
 const {MATRIX_CACHE, ROOM_BASE_MATRIX_CACHE} = require('pathState');
 
 const {hashStructures, applyLookObstaclesToMatrix, lookObstacleHash} = require('pathUtils');
@@ -151,7 +152,9 @@ function getBaseMatrix(roomName, creep, options) {
         if (room.mineral) matrix.set(room.mineral.pos.x, room.mineral.pos.y, 256);
 
         for (const sCreep of room.myCreeps) {
-            if (sCreep.memory?.other?.stationary || !sCreep.hasActiveBodyparts(MOVE) || sCreep.memory.grouped) {
+            const immobile = sCreep.memory?.other?.stationary || sCreep.memory?.grouped
+                || (typeof sCreep.hasActiveBodyparts === 'function' ? !sCreep.hasActiveBodyparts(MOVE) : false);
+            if (immobile) {
                 matrix.set(sCreep.pos.x, sCreep.pos.y, 200);
             }
         }
@@ -318,18 +321,14 @@ function getOutsideHubMatrix(roomName, matrix, options) {
     return matrix;
 }
 
+getMatrix = profiler.registerFN(getMatrix, 'shibMove.getMatrix');
+getBaseMatrix = profiler.registerFN(getBaseMatrix, 'shibMove.getBaseMatrix');
+
 module.exports = {
-
     getBaseMatrix,
-
     getMatrix,
-
     addCreepsToMatrix,
-
     addHostilesToMatrix,
-
     addSksToMatrix,
-
     getOutsideHubMatrix,
-
 };

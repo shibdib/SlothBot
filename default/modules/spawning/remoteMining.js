@@ -8,13 +8,31 @@ const {findRoute, getRoute} = require('pathRoute');
 
 const MINING_ROUTE_TTL = 1500;
 const DEFAULT_ROUTE_MAX = 3;
-const DEFAULT_PROBE_MAX = 12;
+const DEFAULT_PROBE_MAX = 8;
+const DEFAULT_PROBE_BUDGET = 3; // empire-wide Game.map.findRoute calls per tick
 const DEFAULT_LINEAR_MAX = 4;
 const DEFAULT_SCORE_ROUTE_MULT = 20;
 const DEFAULT_SCORE_ROUTE_BASE = 12;
 const DEFAULT_SWAMP_PENALTY = 8;
 const DEFAULT_REFRESH_STAGGER = 150;
 const SCORE_BORDERLINE_MARGIN = 15;
+
+// Global live findRoute budget (Game.map.findRoute is very expensive).
+let probeBudgetTick = -1;
+let probesRemaining = 0;
+
+function resetProbeBudgetIfNeeded() {
+    if (probeBudgetTick === Game.time) return;
+    probeBudgetTick = Game.time;
+    probesRemaining = cfg('REMOTE_ROUTE_PROBE_BUDGET', DEFAULT_PROBE_BUDGET);
+}
+
+function consumeProbeBudget() {
+    resetProbeBudgetIfNeeded();
+    if (probesRemaining <= 0) return false;
+    probesRemaining--;
+    return true;
+}
 
 function cfg(name, fallback) {
     const v = global[name];
@@ -43,16 +61,24 @@ function remoteScorePathMult() {
 function getRouteEstimateScore(remoteName, colonyName) {
     const rec = getMiningRouteRecord(remoteName, colonyName);
     if (rec && rec.estimateScore) return rec.estimateScore;
+    // Stale but still-known mining route: prefer over a transient failed path cache.
+    const stale = getStaleMiningRouteRecord(remoteName, colonyName);
+    if (stale && stale.estimateScore) return stale.estimateScore;
     const route = getMiningRouteRooms(colonyName, remoteName);
     if (!route.length) return null;
     return estimateMiningScore(route.length, INTEL[remoteName]);
 }
 
-function isRemoteSourceScoreAcceptable(colonyName, remoteName, score) {
+/**
+ * @param {object} [options]
+ * @param {boolean} [options.allowMissingEstimate] - keep existing assignments when route
+ *   estimate is temporarily unavailable (failed path cache, TTL gap).
+ */
+function isRemoteSourceScoreAcceptable(colonyName, remoteName, score, options = {}) {
     if (score === undefined || score === null || score === Infinity || !isFinite(score)) return false;
     if (score > remoteDistanceMax()) return false;
     const estimate = getRouteEstimateScore(remoteName, colonyName);
-    if (estimate === null) return false;
+    if (estimate === null) return !!options.allowMissingEstimate;
     return score <= estimate * remoteScorePathMult();
 }
 
@@ -75,22 +101,178 @@ function maxRemoteRoomsForColony(colonyRoom) {
     return cfg('REMOTE_MAX_ROOMS_LOW', 1);
 }
 
-function hasLiveRemoteWork(colonyName, remoteName) {
+// Per-tick index: one full creep/queue/targets pass instead of O(creeps) per lookup.
+// Built lazily on first hasLiveRemoteWork / isRemoteClaimedByOther call each tick.
+let claimIndexTick = -1;
+/** @type {Object.<string, Object.<string, boolean>>} colony -> remote -> true */
+let liveWorkIndex = null;
+/** @type {Object.<string, Object.<string, boolean>>} remote -> colony -> true (targets or live) */
+let roomOwnersIndex = null;
+/** @type {Object.<string, string>} sourceId -> colony */
+let sourceOwnersIndex = null;
+
+const LIVE_REMOTE_ROLES = {
+    remoteHarvester: true,
+    reserver: true,
+    remoteBuilder: true,
+    roadBuilder: true,
+};
+
+function markLiveWork(colony, remote) {
+    if (!colony || !remote) return;
+    if (!liveWorkIndex[colony]) liveWorkIndex[colony] = {};
+    liveWorkIndex[colony][remote] = true;
+    if (!roomOwnersIndex[remote]) roomOwnersIndex[remote] = {};
+    roomOwnersIndex[remote][colony] = true;
+}
+
+function ensureClaimIndex() {
+    if (claimIndexTick === Game.time && liveWorkIndex) return;
+    claimIndexTick = Game.time;
+    liveWorkIndex = {};
+    roomOwnersIndex = {};
+    sourceOwnersIndex = {};
+
+    // Live creeps — single pass over Game.creeps
     for (const name in Game.creeps) {
         const c = Game.creeps[name];
-        if (!c.my || c.memory.colony !== colonyName) continue;
-        if (c.memory.destination !== remoteName) continue;
-        if (['remoteHarvester', 'reserver', 'remoteHauler', 'remoteBuilder', 'roadBuilder'].includes(c.memory.role)) return true;
+        if (!c.my) continue;
+        const mem = c.memory;
+        const colony = mem.colony;
+        if (!colony) continue;
+        const role = mem.role;
+        if (role === 'remoteHauler') {
+            if (mem.other && mem.other.remoteRoom) markLiveWork(colony, mem.other.remoteRoom);
+            continue;
+        }
+        if (LIVE_REMOTE_ROLES[role] && mem.destination) markLiveWork(colony, mem.destination);
     }
-    const queue = CREEP_QUEUES[colonyName];
-    if (queue) {
+
+    // Spawn queues
+    for (const colony in CREEP_QUEUES) {
+        const queue = CREEP_QUEUES[colony];
+        if (!queue) continue;
         for (const key in queue) {
             const entry = queue[key];
-            if (entry.destination !== remoteName) continue;
-            if (['remoteHarvester', 'reserver', 'remoteBuilder', 'roadBuilder'].includes(entry.role)) return true;
+            if (!entry) continue;
+            if (entry.role === 'remoteHauler') {
+                if (entry.other && entry.other.remoteRoom) markLiveWork(colony, entry.other.remoteRoom);
+                continue;
+            }
+            if (LIVE_REMOTE_ROLES[entry.role] && entry.destination) markLiveWork(colony, entry.destination);
         }
     }
+
+    // ROOM_REMOTE_TARGETS — paper claims (skip noRemote colonies)
+    for (let i = 0; i < MY_ROOMS.length; i++) {
+        const colony = MY_ROOMS[i];
+        const room = Game.rooms[colony];
+        if (room && room.memory.noRemote) continue;
+        const targets = ROOM_REMOTE_TARGETS[colony];
+        if (!targets || !targets.length) continue;
+        for (let j = 0; j < targets.length; j++) {
+            const s = targets[j];
+            if (!s || !s.room) continue;
+            if (!roomOwnersIndex[s.room]) roomOwnersIndex[s.room] = {};
+            roomOwnersIndex[s.room][colony] = true;
+            if (s.source) sourceOwnersIndex[s.source] = colony;
+        }
+    }
+}
+
+function hasLiveRemoteWork(colonyName, remoteName) {
+    ensureClaimIndex();
+    return !!(liveWorkIndex[colonyName] && liveWorkIndex[colonyName][remoteName]);
+}
+
+/**
+ * Another MY_ROOM colony is holding this remote via targets and/or live creeps.
+ * Sticky remoteSourceData alone does not block reclaim (idle assignees with no targets).
+ * noRemote colonies are not treated as owners (excluded when building the index).
+ */
+function isRemoteClaimedByOther(colonyName, remoteName, sourceId) {
+    ensureClaimIndex();
+    if (sourceId) {
+        const owner = sourceOwnersIndex[sourceId];
+        if (owner && owner !== colonyName) return true;
+    }
+    const owners = roomOwnersIndex[remoteName];
+    if (!owners) return false;
+    for (const other in owners) {
+        if (other !== colonyName) return true;
+    }
     return false;
+}
+
+/** Patch claim index after removing a colony's paper claim on a remote. */
+function unindexColonyRemote(colony, remoteName, removedSources) {
+    if (!roomOwnersIndex || !sourceOwnersIndex) return;
+    if (removedSources) {
+        for (let i = 0; i < removedSources.length; i++) {
+            const sid = removedSources[i];
+            if (sourceOwnersIndex[sid] === colony) delete sourceOwnersIndex[sid];
+        }
+    }
+    // Drop room owner only if no remaining targets and no live work
+    const targets = ROOM_REMOTE_TARGETS[colony];
+    const stillTargeted = targets && targets.some(s => s.room === remoteName);
+    const stillLive = liveWorkIndex[colony] && liveWorkIndex[colony][remoteName];
+    if (!stillTargeted && !stillLive && roomOwnersIndex[remoteName]) {
+        delete roomOwnersIndex[remoteName][colony];
+    }
+}
+
+function indexColonyRemote(colony, remoteName, sources) {
+    ensureClaimIndex();
+    if (!roomOwnersIndex[remoteName]) roomOwnersIndex[remoteName] = {};
+    roomOwnersIndex[remoteName][colony] = true;
+    if (sources) {
+        for (let i = 0; i < sources.length; i++) {
+            if (sources[i]) sourceOwnersIndex[sources[i]] = colony;
+        }
+    }
+}
+
+/** Drop a remote room from every colony's targets except keepColony. */
+function stripRemoteFromOtherColonies(remoteName, keepColony) {
+    ensureClaimIndex();
+    for (let i = 0; i < MY_ROOMS.length; i++) {
+        const other = MY_ROOMS[i];
+        if (other === keepColony) continue;
+        const targets = ROOM_REMOTE_TARGETS[other];
+        if (!targets || !targets.length) continue;
+        const removed = [];
+        const next = [];
+        for (let j = 0; j < targets.length; j++) {
+            const s = targets[j];
+            if (s.room === remoteName) {
+                if (s.source) removed.push(s.source);
+            } else {
+                next.push(s);
+            }
+        }
+        if (removed.length) {
+            ROOM_REMOTE_TARGETS[other] = next;
+            unindexColonyRemote(other, remoteName, removed);
+        }
+    }
+}
+
+/** Assign remoteSourceData ownership and strip other colonies' targets for this room. */
+function claimRemoteForColony(colonyName, remoteName) {
+    const intel = INTEL[remoteName];
+    if (intel && intel.remoteSourceData) {
+        for (let i = 0; i < intel.remoteSourceData.length; i++) {
+            intel.remoteSourceData[i].colony = colonyName;
+        }
+    }
+    stripRemoteFromOtherColonies(remoteName, colonyName);
+    const targets = ROOM_REMOTE_TARGETS[colonyName] || [];
+    const sources = [];
+    for (let i = 0; i < targets.length; i++) {
+        if (targets[i].room === remoteName && targets[i].source) sources.push(targets[i].source);
+    }
+    indexColonyRemote(colonyName, remoteName, sources);
 }
 
 function pruneRemoteRoomCount(colonyName, colonyRoom) {
@@ -107,17 +289,33 @@ function pruneRemoteRoomCount(colonyName, colonyRoom) {
     const maxRooms = maxRemoteRoomsForColony(colonyRoom);
     if (rooms.length <= maxRooms) return;
 
+    // Prefer live work, then best (lowest) haul scores. Higher scores are worse.
+    ensureClaimIndex();
     rooms.sort((a, b) => {
-        const liveA = hasLiveRemoteWork(colonyName, a);
-        const liveB = hasLiveRemoteWork(colonyName, b);
+        const liveA = !!(liveWorkIndex[colonyName] && liveWorkIndex[colonyName][a]);
+        const liveB = !!(liveWorkIndex[colonyName] && liveWorkIndex[colonyName][b]);
         if (liveA !== liveB) return liveA ? -1 : 1;
-        const maxA = Math.max(...byRoom[a].map(s => s.score));
-        const maxB = Math.max(...byRoom[b].map(s => s.score));
-        return maxB - maxA;
+        const bestA = Math.min(...byRoom[a].map(s => s.score));
+        const bestB = Math.min(...byRoom[b].map(s => s.score));
+        return bestA - bestB;
     });
 
     const keep = new Set(rooms.slice(0, maxRooms));
-    ROOM_REMOTE_TARGETS[colonyName] = targets.filter(s => keep.has(s.room));
+    const next = [];
+    const removedByRoom = {};
+    for (let i = 0; i < targets.length; i++) {
+        const s = targets[i];
+        if (keep.has(s.room)) {
+            next.push(s);
+        } else {
+            if (!removedByRoom[s.room]) removedByRoom[s.room] = [];
+            if (s.source) removedByRoom[s.room].push(s.source);
+        }
+    }
+    ROOM_REMOTE_TARGETS[colonyName] = next;
+    for (const remoteName in removedByRoom) {
+        unindexColonyRemote(colonyName, remoteName, removedByRoom[remoteName]);
+    }
 }
 
 function routeAcceptable(route) {
@@ -140,13 +338,22 @@ function getMiningRouteRecord(remoteName, colonyName) {
     return rec;
 }
 
+/** Mining route past TTL but still present — used for score grace, not probing. */
+function getStaleMiningRouteRecord(remoteName, colonyName) {
+    const intel = INTEL[remoteName];
+    if (!intel || !intel.miningRoutes) return null;
+    return intel.miningRoutes[colonyName] || null;
+}
+
 function getMiningRouteRooms(colonyName, destName) {
     const rec = getMiningRouteRecord(destName, colonyName);
     if (rec && rec.route && rec.route.length) return rec.route;
+    const stale = getStaleMiningRouteRecord(destName, colonyName);
+    if (stale && stale.route && stale.route.length) return stale.route;
     const cached = getRoute(colonyName, destName);
     if (cached && cached !== 'failed' && cached.length) return cached;
-    const route = findRoute(colonyName, destName);
-    return route && route.length ? route : [];
+    // Never live-pathfind here — only probeMiningRoute (budgeted) may call findRoute.
+    return [];
 }
 
 function storeMiningRoute(remoteName, colonyName, route, safe) {
@@ -162,22 +369,70 @@ function storeMiningRoute(remoteName, colonyName, route, safe) {
     };
 }
 
-function probeMiningRoute(colonyName, remoteName) {
-    const existing = getMiningRouteRecord(remoteName, colonyName);
-    if (existing) return existing;
+/**
+ * Ensure a mining route record exists. Prefer free caches over Game.map.findRoute.
+ * @param {object} [options]
+ * @param {boolean} [options.allowLive] - if false, never call findRoute (default true when budget allows)
+ * @param {boolean} [options.forceLive] - re-path even if a fresh record exists (still budget-gated)
+ */
+function probeMiningRoute(colonyName, remoteName, options = {}) {
+    const allowLive = options.allowLive !== false;
+    const routeMax = cfg('REMOTE_ROUTE_MAX', DEFAULT_ROUTE_MAX);
+
+    if (!options.forceLive) {
+        const existing = getMiningRouteRecord(remoteName, colonyName);
+        if (existing) return existing;
+    }
+
+    // Soft-extend a still-safe stale mining route — free, no pathfind.
+    const stale = getStaleMiningRouteRecord(remoteName, colonyName);
+    if (stale && stale.route && stale.route.length && !options.forceLive) {
+        if (stale.route.length <= routeMax && routeAcceptable(stale.route)) {
+            stale.tick = Game.time;
+            stale.safe = true;
+            if (!stale.estimateScore) {
+                stale.estimateScore = estimateMiningScore(stale.route.length, INTEL[remoteName]);
+            }
+            return stale;
+        }
+    }
+
+    // Reuse pathRoute cache without a new Game.map.findRoute.
+    const cached = getRoute(colonyName, remoteName);
+    if (cached && cached !== 'failed' && cached.length) {
+        if (cached.length <= routeMax && routeAcceptable(cached)) {
+            storeMiningRoute(remoteName, colonyName, cached, true);
+            return INTEL[remoteName].miningRoutes[colonyName];
+        }
+        return null;
+    }
+    if (cached === 'failed') return null;
+
+    // Live pathfind — hard-capped empire-wide per tick.
+    if (!allowLive || !consumeProbeBudget()) {
+        // Return unsafe stale only as a last resort for callers that need *something*
+        return (stale && stale.route && stale.route.length) ? stale : null;
+    }
 
     const route = findRoute(colonyName, remoteName);
     if (!route.length) return null;
-    if (route.length > cfg('REMOTE_ROUTE_MAX', DEFAULT_ROUTE_MAX)) return null;
+    if (route.length > routeMax) return null;
     if (!routeAcceptable(route)) return null;
 
     storeMiningRoute(remoteName, colonyName, route, true);
     return INTEL[remoteName].miningRoutes[colonyName];
 }
 
+function pruneRemoteRoomParents(remoteName) {
+    const intel = INTEL[remoteName];
+    if (!intel || !intel.remoteRoom || !intel.remoteRoom.length) return;
+    intel.remoteRoom = intel.remoteRoom.filter(c => MY_ROOMS.includes(c));
+}
+
 function trackRemoteRoom(remoteName, colonyRoom) {
     const colony = colonyRoom.name || colonyRoom;
     if (!INTEL[remoteName]) INTEL[remoteName] = {name: remoteName, shardName: Game.shard.name};
+    pruneRemoteRoomParents(remoteName);
     if (!INTEL[remoteName].remoteRoom) INTEL[remoteName].remoteRoom = [];
     if (INTEL[remoteName].remoteRoom.indexOf(colony) === -1) {
         INTEL[remoteName].remoteRoom.push(colony);
@@ -204,12 +459,10 @@ function shouldProbeNewRemotes(room) {
 }
 
 function hasRemoteSourceDataForColony(colonyName, remoteName) {
+    // Any source data is enough to probe/ingest. Sticky assignment to another colony
+    // is handled in ingest via reclaim when that colony is idle.
     const intel = INTEL[remoteName];
-    if (!intel || !intel.remoteSourceData) return false;
-    for (let i = 0; i < intel.remoteSourceData.length; i++) {
-        if (intel.remoteSourceData[i].colony === colonyName) return true;
-    }
-    return false;
+    return !!(intel && intel.remoteSourceData && intel.remoteSourceData.length);
 }
 
 function refreshStaggerDue(roomName, force) {
@@ -243,10 +496,28 @@ function shouldSkipRemotePrune(colonyRoom, remoteName) {
 function pruneRoomRemoteTargets(colonyName, colonyRoom) {
     const targets = ROOM_REMOTE_TARGETS[colonyName];
     if (!targets || !targets.length) return;
-    ROOM_REMOTE_TARGETS[colonyName] = targets.filter(s =>
-        isRemoteSourceScoreAcceptable(colonyName, s.room, s.score)
-        && !shouldSkipRemotePrune(colonyRoom, s.room)
-    );
+    ensureClaimIndex();
+    const kept = [];
+    const removedByRoom = {};
+    for (let i = 0; i < targets.length; i++) {
+        const s = targets[i];
+        let keep = true;
+        if (shouldSkipRemotePrune(colonyRoom, s.room)) keep = false;
+        else if (isRemoteClaimedByOther(colonyName, s.room, s.source)) keep = false;
+        else if (!isRemoteSourceScoreAcceptable(colonyName, s.room, s.score, {allowMissingEstimate: true})) {
+            keep = false;
+        }
+        if (keep) {
+            kept.push(s);
+        } else if (s.source) {
+            if (!removedByRoom[s.room]) removedByRoom[s.room] = [];
+            removedByRoom[s.room].push(s.source);
+        }
+    }
+    ROOM_REMOTE_TARGETS[colonyName] = kept;
+    for (const remoteName in removedByRoom) {
+        unindexColonyRemote(colonyName, remoteName, removedByRoom[remoteName]);
+    }
     pruneRemoteRoomCount(colonyName, colonyRoom);
 }
 
@@ -254,39 +525,54 @@ function getCandidateRemotesForProbe(colonyRoom) {
     const colony = colonyRoom.name;
     const seen = new Set();
     const ordered = [];
+    const probeMax = cfg('REMOTE_ROUTE_PROBE_MAX', DEFAULT_PROBE_MAX);
+    const linearMax = cfg('REMOTE_LINEAR_MAX', DEFAULT_LINEAR_MAX);
 
     const add = (rName, priority) => {
-        if (seen.has(rName) || !remoteIntelEligible(colonyRoom, rName)) return;
+        if (seen.has(rName) || !remoteIntelEligible(colonyRoom, rName)) return false;
         seen.add(rName);
         ordered.push({room: rName, priority});
+        return true;
     };
 
-    for (const s of (ROOM_REMOTE_TARGETS[colony] || [])) add(s.room, 0);
+    // Priority 0: already assigned (always include for ingest/prune).
+    const targets = ROOM_REMOTE_TARGETS[colony] || [];
+    for (let i = 0; i < targets.length; i++) add(targets[i].room, 0);
 
-    for (const roomName in INTEL) {
-        const intel = INTEL[roomName];
+    // Use intel indexes only (O(index) not O(all INTEL)).
+    const idx = global.getIntelIndexes ? global.getIntelIndexes() : null;
+    const activeRemotes = idx && idx.activeRemotes ? [...idx.activeRemotes] : [];
+    for (let i = 0; i < activeRemotes.length; i++) {
+        const rName = activeRemotes[i];
+        if (seen.has(rName)) continue;
+        const intel = INTEL[rName];
         if (!intel || !intel.remoteSourceData) continue;
-        for (const sd of intel.remoteSourceData) {
-            if (sd.colony === colony) add(roomName, 1);
+        if (Game.map.getRoomLinearDistance(colony, rName) > linearMax) continue;
+        let priority = 2;
+        for (let j = 0; j < intel.remoteSourceData.length; j++) {
+            if (intel.remoteSourceData[j].colony === colony) {
+                priority = 1;
+                break;
+            }
         }
+        add(rName, priority);
     }
 
-    const linearMax = cfg('REMOTE_LINEAR_MAX', DEFAULT_LINEAR_MAX);
-    const idx = global.getIntelIndexes ? global.getIntelIndexes() : null;
+    // Discovery pool: unowned sources within linear range.
     const unowned = idx && idx.unownedSources ? [...idx.unownedSources] : [];
     const pool = [];
-
     for (let i = 0; i < unowned.length; i++) {
         const rName = unowned[i];
         if (seen.has(rName)) continue;
         if (!remoteIntelEligible(colonyRoom, rName)) continue;
-        if (Game.map.getRoomLinearDistance(colony, rName) > linearMax) continue;
+        const linear = Game.map.getRoomLinearDistance(colony, rName);
+        if (linear > linearMax) continue;
         const intel = INTEL[rName];
         pool.push({
             room: rName,
-            sources: intel.sources || 1,
-            linear: Game.map.getRoomLinearDistance(colony, rName),
-            stale: !intel.cached || intel.cached + 5000 < Game.time ? 1 : 0,
+            sources: (intel && intel.sources) || 1,
+            linear,
+            stale: !intel || !intel.cached || intel.cached + 5000 < Game.time ? 1 : 0,
         });
     }
 
@@ -296,18 +582,29 @@ function getCandidateRemotesForProbe(colonyRoom) {
         return b.stale - a.stale;
     });
 
-    const probeMax = cfg('REMOTE_ROUTE_PROBE_MAX', DEFAULT_PROBE_MAX);
     const slots = Math.max(0, probeMax - ordered.length);
     let cursor = colonyRoom.memory.remoteProbeCursor || 0;
     if (pool.length && slots > 0) {
         for (let i = 0; i < slots; i++) {
-            add(pool[(cursor + i) % pool.length].room, 10 + pool[(cursor + i) % pool.length].linear);
+            const entry = pool[(cursor + i) % pool.length];
+            add(entry.room, 10 + entry.linear);
         }
         colonyRoom.memory.remoteProbeCursor = (cursor + slots) % pool.length;
     }
 
     ordered.sort((a, b) => a.priority - b.priority);
-    return ordered.map(c => c.room);
+
+    // Never drop current assignments; cap discovery extras.
+    let assignedCount = 0;
+    for (let i = 0; i < ordered.length; i++) {
+        if (ordered[i].priority === 0) assignedCount++;
+    }
+    const cap = Math.max(assignedCount, probeMax);
+    const out = [];
+    for (let i = 0; i < ordered.length && out.length < cap; i++) {
+        out.push(ordered[i].room);
+    }
+    return out;
 }
 
 function bootstrapRemoteRoomOnVision(room) {
@@ -315,7 +612,8 @@ function bootstrapRemoteRoomOnVision(room) {
     if (!room.sources.length) return;
     const roomIntel = INTEL[room.name];
     if (!roomIntel || roomIntel.owner) return;
-    if (roomIntel.remoteRoom && roomIntel.remoteRoom.length) return;
+
+    pruneRemoteRoomParents(room.name);
 
     const colony = findClosestOwnedRoom(room.name, false, 4);
     if (!colony || colony === room.name) return;
@@ -334,6 +632,36 @@ function maybeRefreshRemoteIntel(rName) {
     visRoom.cacheRoomIntel();
 }
 
+// Heap cache for visible-path remote scores — pathOnly shibMove never hits creep path cache.
+const SCORE_PATH_TTL = 500;
+let scorePathCacheTick = -1;
+/** @type {Object.<string, {tick: number, cost: number}>} */
+const scorePathCache = Object.create(null);
+
+function scorePathCacheKey(sourceId, colonyName) {
+    return `${sourceId}|${colonyName}`;
+}
+
+function getCachedSourceScore(sourceId, colonyName) {
+    const entry = scorePathCache[scorePathCacheKey(sourceId, colonyName)];
+    if (!entry) return null;
+    if (entry.tick + SCORE_PATH_TTL <= Game.time) return null;
+    return entry.cost;
+}
+
+function setCachedSourceScore(sourceId, colonyName, cost) {
+    // Opportunistic prune once per tick when the map grows large.
+    if (scorePathCacheTick !== Game.time) {
+        scorePathCacheTick = Game.time;
+        if (Object.keys(scorePathCache).length > 200) {
+            for (const k in scorePathCache) {
+                if (scorePathCache[k].tick + SCORE_PATH_TTL <= Game.time) delete scorePathCache[k];
+            }
+        }
+    }
+    scorePathCache[scorePathCacheKey(sourceId, colonyName)] = {tick: Game.time, cost};
+}
+
 function calculateRemoteSourceScore(room, source, colonyName) {
     if (!Game.rooms[colonyName] || !Game.rooms[colonyName].memory) return Infinity;
 
@@ -350,20 +678,61 @@ function calculateRemoteSourceScore(room, source, colonyName) {
         return Infinity;
     }
 
-    const colony = Game.rooms[colonyName];
-    const target = colony.storage
-        || (colony.memory.bunkerHub
-            ? new RoomPosition(colony.memory.bunkerHub.x, colony.memory.bunkerHub.y, colonyName)
-            : new RoomPosition(25, 25, colonyName));
+    const cached = getCachedSourceScore(source.id, colonyName);
+    if (cached !== null) return cached;
 
     const route = getMiningRouteRooms(colonyName, room.name);
-    const options = route.length ? {route, range: 1} : {range: 1};
-    const pathResult = source.pos.shibMove(target, options);
-    if (!pathResult || pathResult.incomplete || typeof pathResult.cost !== 'number') return Infinity;
+    // No known mining route: estimate only — never cold multi-room PathFinder + findRoute.
+    if (!route.length) {
+        if (estimate <= max && isRemoteSourceScoreAcceptable(colonyName, room.name, estimate)) {
+            setCachedSourceScore(source.id, colonyName, estimate);
+            return estimate;
+        }
+        return Infinity;
+    }
+
+    const colony = Game.rooms[colonyName];
+    let hubXY = null;
+    try {
+        hubXY = require('planDoc').getHub(colony);
+    } catch (e) {
+        hubXY = colony.memory.bunkerHub;
+    }
+    const target = colony.storage
+        || (hubXY
+            ? new RoomPosition(hubXY.x, hubXY.y, colonyName)
+            : new RoomPosition(25, 25, colonyName));
+
+    const pathResult = source.pos.shibMove(target, {
+        route,
+        range: 1,
+        noLiveRoute: true,
+        maxOps: 4000,
+    });
+    if (!pathResult || pathResult.incomplete || typeof pathResult.cost !== 'number') {
+        // Vision without a complete path still allows hop-viable remotes via estimate.
+        if (estimate <= max && isRemoteSourceScoreAcceptable(colonyName, room.name, estimate)) {
+            setCachedSourceScore(source.id, colonyName, estimate);
+            return estimate;
+        }
+        return Infinity;
+    }
 
     const raw = Math.ceil(pathResult.cost / 2);
-    if (!isRemoteSourceScoreAcceptable(colonyName, room.name, raw)) return Infinity;
-    return raw;
+    if (raw > max) {
+        setCachedSourceScore(source.id, colonyName, Infinity);
+        return Infinity;
+    }
+    // Cap windy paths at estimate * mult instead of rejecting — otherwise scouting a
+    // hop-viable remote permanently blocks it when the walk path is longer than expected.
+    const pathCap = Math.ceil(estimate * remoteScorePathMult());
+    const capped = Math.min(raw, pathCap);
+    if (!isRemoteSourceScoreAcceptable(colonyName, room.name, capped)) {
+        setCachedSourceScore(source.id, colonyName, Infinity);
+        return Infinity;
+    }
+    setCachedSourceScore(source.id, colonyName, capped);
+    return capped;
 }
 
 function getActiveRemoteRooms(colonyRoom, shouldSkipRemote, deps = {}) {
@@ -371,20 +740,25 @@ function getActiveRemoteRooms(colonyRoom, shouldSkipRemote, deps = {}) {
     const rooms = new Set();
 
     for (const s of (ROOM_REMOTE_TARGETS[colony] || [])) {
-        if (isRemoteSourceScoreAcceptable(colony, s.room, s.score) && !shouldSkipRemote(colonyRoom, s.room)) {
+        if (isRemoteSourceScoreAcceptable(colony, s.room, s.score, {allowMissingEstimate: true})
+            && !shouldSkipRemote(colonyRoom, s.room)
+            && !isRemoteClaimedByOther(colony, s.room, s.source)) {
             rooms.add(s.room);
         }
     }
 
     const cached = deps.cachedRemotes || [];
     for (let i = 0; i < cached.length; i++) {
-        if (!shouldSkipRemote(colonyRoom, cached[i])) rooms.add(cached[i]);
+        if (!shouldSkipRemote(colonyRoom, cached[i])
+            && !isRemoteClaimedByOther(colony, cached[i])) {
+            rooms.add(cached[i]);
+        }
     }
 
     const liveRemotes = deps.liveRemoteRooms;
     if (liveRemotes) {
         for (const r of liveRemotes) {
-            if (!shouldSkipRemote(colonyRoom, r)) rooms.add(r);
+            if (!shouldSkipRemote(colonyRoom, r) && !isRemoteClaimedByOther(colony, r)) rooms.add(r);
         }
     }
 
@@ -395,9 +769,12 @@ function shouldProcessRemote(colonyRoom, remoteName, deps) {
     const colony = colonyRoom.name;
     const max = remoteDistanceMax();
     if (deps.shouldSkipRemote(colonyRoom, remoteName)) return false;
+    if (isRemoteClaimedByOther(colony, remoteName)) return false;
 
     if ((ROOM_REMOTE_TARGETS[colony] || []).some(s =>
-        s.room === remoteName && isRemoteSourceScoreAcceptable(colony, s.room, s.score))) return true;
+        s.room === remoteName && isRemoteSourceScoreAcceptable(colony, s.room, s.score, {allowMissingEstimate: true}))) {
+        return true;
+    }
     if (deps.getCreepCount(undefined, 'remoteHarvester', remoteName)) return true;
     if (deps.getCreepCount(undefined, 'reserver', remoteName)) return true;
     if (deps.countQueuedRole(colony, 'remoteHarvester', remoteName)) return true;
@@ -407,10 +784,91 @@ function shouldProcessRemote(colonyRoom, remoteName, deps) {
     return !!(rec && rec.safe && rec.estimateScore <= max);
 }
 
+function isContestedRemoteCandidate(colonyRoom, remoteName) {
+    if (!remoteName || !INTEL[remoteName]) return false;
+    if (roomStatus(remoteName) !== roomStatus(colonyRoom.name)) return false;
+    const intel = INTEL[remoteName];
+    if (intel.sk || intel.safemode || intel.towers || intel.obstacles || !intel.sources) return false;
+    if (!intel.user || intel.user === 'Invader' || FRIENDLIES.includes(intel.user)) return false;
+    if ((intel.lastContest || 0) + (CREEP_LIFE_TIME * 4) >= Game.time) return false;
+    return true;
+}
+
+function isBlockedRemoteCandidate(colonyRoom, remoteName) {
+    if (!remoteName || !INTEL[remoteName]) return false;
+    if (roomStatus(remoteName) !== roomStatus(colonyRoom.name)) return false;
+    const intel = INTEL[remoteName];
+    return !!(intel && !intel.sk && intel.sources && !intel.level && intel.obstacles && !intel.owner);
+}
+
+const SK_UNGUARDED_RECYCLE_TICKS = 100;
+const SK_GUARD_DEPENDENT_ROLES = new Set([
+    'remoteHarvester', 'remoteHauler', 'remoteBuilder', 'roadBuilder', 'commodityMiner',
+]);
+const skUnguardedSince = Object.create(null);
+
+function isSkRoomName(roomName) {
+    return !!(INTEL[roomName] && INTEL[roomName].sk)
+        || !!(global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
+}
+
+let liveSkTick = -1;
+const liveSkByDest = Object.create(null);
+
+function refreshLiveSkAttackers() {
+    if (liveSkTick === Game.time) return;
+    liveSkTick = Game.time;
+    for (const key in liveSkByDest) delete liveSkByDest[key];
+    for (const name in Game.creeps) {
+        const creep = Game.creeps[name];
+        if (!creep.my || creep.memory.role !== 'SKAttacker') continue;
+        const dest = creep.memory.destination || creep.room.name;
+        if (dest) liveSkByDest[dest] = true;
+    }
+}
+
+function hasLiveSkAttacker(remoteName) {
+    if (!remoteName) return false;
+    refreshLiveSkAttackers();
+    return !!liveSkByDest[remoteName];
+}
+
+function skAssignmentRoom(creep) {
+    const memory = creep && creep.memory;
+    if (!memory) return undefined;
+    if (memory.role === 'remoteHauler') return memory.other && memory.other.remoteRoom;
+    return memory.destination;
+}
+
+function shouldRecycleUnguardedSkCreep(creep) {
+    if (!creep || !creep.memory) return false;
+    if (creep.memory.skUnguardedSince) delete creep.memory.skUnguardedSince;
+    const name = creep.name;
+    if (!SK_GUARD_DEPENDENT_ROLES.has(creep.memory.role)) {
+        delete skUnguardedSince[name];
+        return false;
+    }
+    const remote = skAssignmentRoom(creep);
+    if (!remote || !isSkRoomName(remote)) {
+        delete skUnguardedSince[name];
+        return false;
+    }
+    if (hasLiveSkAttacker(remote)) {
+        delete skUnguardedSince[name];
+        return false;
+    }
+    if (skUnguardedSince[name] === undefined) {
+        skUnguardedSince[name] = Game.time;
+        return false;
+    }
+    return Game.time - skUnguardedSince[name] >= SK_UNGUARDED_RECYCLE_TICKS;
+}
+
 module.exports = {
     estimateMiningScore,
     routeAcceptable,
     getMiningRouteRecord,
+    getStaleMiningRouteRecord,
     getMiningRouteRooms,
     storeMiningRoute,
     probeMiningRoute,
@@ -418,6 +876,10 @@ module.exports = {
     remoteIntelEligible,
     shouldProbeNewRemotes,
     hasRemoteSourceDataForColony,
+    hasLiveRemoteWork,
+    isRemoteClaimedByOther,
+    claimRemoteForColony,
+    stripRemoteFromOtherColonies,
     refreshStaggerDue,
     sourcePickScore,
     pruneRoomRemoteTargets,
@@ -430,4 +892,11 @@ module.exports = {
     effectiveHaulScore,
     getActiveRemoteRooms,
     shouldProcessRemote,
+    isContestedRemoteCandidate,
+    isBlockedRemoteCandidate,
+    isSkRoomName,
+    hasLiveSkAttacker,
+    shouldRecycleUnguardedSkCreep,
+    SK_GUARD_DEPENDENT_ROLES,
+    SK_UNGUARDED_RECYCLE_TICKS,
 };

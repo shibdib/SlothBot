@@ -36,13 +36,16 @@ const builders = {
             return false;
         }
         const leanColony = gen.room.level >= 7;
-        const fullRouteHasRoads = routeHasBuiltRoads(gen.room.name, gen.creepInfo.destination, {usePathRoute: true});
+        // Avoid live route pathfind during body gen — roads flag alone is enough for half-move.
+        const fullRouteHasRoads = routeHasBuiltRoads(gen.room.name, gen.creepInfo.destination);
         const halfMove = fullRouteHasRoads || undefined;
 
         const moveCost = halfMove ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE];
+        // Cap claim parts: a single CLAIM part reserves at 1/tick; big stacks cost spawn CPU
+        // and move slowly. One reserver with modest claim is enough per remote.
         const maxClaim = leanColony
-            ? maxBodyNonMoveParts(!!halfMove)
-            : (fullRouteHasRoads ? 5 * (gen.room.energyState || 1) : 2 * (gen.room.energyState || 1));
+            ? Math.min(12, maxBodyNonMoveParts(!!halfMove))
+            : (fullRouteHasRoads ? Math.min(6, 5 * (gen.room.energyState || 1)) : Math.min(4, 2 * (gen.room.energyState || 1)));
 
         let claim = Math.floor(gen.energyAmount / (BODYPART_COST[CLAIM] + moveCost)) || 1;
         claim = Math.min(claim, maxClaim);

@@ -47,18 +47,23 @@ function selectMarketHub() {
     }
 
     if (stored && isValidMarketHub(stored)) {
-        Memory._banker.marketHub = stored;
+        if (Memory._banker.marketHub !== stored) Memory._banker.marketHub = stored;
         return stored;
     }
 
     const chosen = pickMarketHubCandidate();
-    if (chosen) Memory._banker.marketHub = chosen;
-    else delete Memory._banker.marketHub;
+    if (chosen) {
+        if (Memory._banker.marketHub !== chosen) Memory._banker.marketHub = chosen;
+    } else if (Memory._banker.marketHub !== undefined) {
+        delete Memory._banker.marketHub;
+    }
     return chosen;
 }
 
 function isMarketHub(roomName) {
-    return !!(state.ledger && state.ledger.marketHub === roomName);
+    const hub = (state.ledger && state.ledger.marketHub)
+        || (Memory._banker && Memory._banker.marketHub);
+    return hub === roomName;
 }
 
 function getInboundPlannedAmount(roomName, resource, plannedTransfers = null) {

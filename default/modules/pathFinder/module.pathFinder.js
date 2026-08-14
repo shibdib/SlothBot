@@ -17,6 +17,8 @@ module.exports = {
     findRoute: pathRoute.findRoute,
     deleteRoute: pathRoute.deleteRoute,
     getRoute: pathRoute.getRoute,
+    routeDistance: pathRoute.routeDistance,
     estimateClaimRouteTicks: pathRoute.estimateClaimRouteTicks,
     routeWithinClaimTTL: pathRoute.routeWithinClaimTTL,
+    exitHopTarget: pathRoute.exitHopTarget,
 };

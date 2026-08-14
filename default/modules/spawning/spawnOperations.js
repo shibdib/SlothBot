@@ -289,8 +289,7 @@ function getAssignedRoom(targetRoom, level, creepInfo) {
             : (isScout ? OP_TIER.HARASS : getOpTier({type: opType}, creepInfo));
         if (!isRoomReadyForTier(myRoom, tier)) continue;
 
-        const route = myRoom.shibRoute(targetRoom, isClaimRole ? {shortest: true} : {});
-        const distance = Array.isArray(route) && route.length ? route.length : Infinity;
+        const distance = myRoom.routeDistance(targetRoom, isClaimRole ? {shortest: true} : {});
         if (distance > maxDistance) continue;
         if (isClaimRole && estimateClaimRouteTicks(distance) > CREEP_CLAIM_LIFE_TIME - 10) continue;
 

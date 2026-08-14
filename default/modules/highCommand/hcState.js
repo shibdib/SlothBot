@@ -19,6 +19,8 @@ let OFFENSIVE_ALLOWED;
 
 let EMPIRE_READINESS;
 
+let ALLOW_NEW_OPS = true;
+
 let lastNoSiegeWarning = 0;
 
 const lastRun = {};
@@ -65,6 +67,14 @@ module.exports = {
 
     set EMPIRE_READINESS(v) {
         EMPIRE_READINESS = v;
+    },
+
+    get ALLOW_NEW_OPS() {
+        return ALLOW_NEW_OPS !== false;
+    },
+
+    set ALLOW_NEW_OPS(v) {
+        ALLOW_NEW_OPS = !!v;
     },
 
     lastNoSiegeWarning,

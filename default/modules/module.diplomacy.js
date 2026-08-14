@@ -59,6 +59,59 @@ const WAR_PRIORITY = {
 const TRACK_THREAT_COOLDOWN = 20;
 const STANDING_FLOOR = -1500;
 
+let hostileTowerTick = -1;
+const hostileTowerSeen = Object.create(null);
+let ownedStandingTick = -1;
+const ownedStandingSeen = Object.create(null);
+
+function noteHostileTowers(room) {
+    if (hostileTowerTick !== Game.time) {
+        hostileTowerTick = Game.time;
+        for (const key in hostileTowerSeen) delete hostileTowerSeen[key];
+    }
+    if (hostileTowerSeen[room.name]) return;
+    hostileTowerSeen[room.name] = true;
+
+    const intel = INTEL[room.name];
+    if (intel && intel.towers) return;
+    if (!room.towers.length) return;
+
+    const hostileTower = room.towers.find(t => !t.my);
+    if (hostileTower && (!intel || !intel.towers)) {
+        room.cacheRoomIntel(true);
+        purgeBadRoute(room.name);
+    }
+}
+
+function applyOwnedHostileStanding(room, currentTime) {
+    if (ownedStandingTick !== Game.time) {
+        ownedStandingTick = Game.time;
+        for (const key in ownedStandingSeen) delete ownedStandingSeen[key];
+    }
+    if (ownedStandingSeen[room.name]) return;
+    ownedStandingSeen[room.name] = true;
+
+    const intel = INTEL[room.name];
+    if (!intel || intel.user !== MY_USERNAME || intel.isHighway) return;
+
+    const neutrals = _.uniq(room.hostileCreeps.map(c => c.owner.username));
+    for (const user of neutrals) {
+        if (user === MY_USERNAME || user === 'Invader' || user === 'Source Keeper' ||
+            FRIENDLIES.includes(user)) continue;
+
+        if (!Memory._userList) Memory._userList = {};
+        const cache = Memory._userList;
+        const userEntry = cache[user] || {standing: 0};
+
+        if ((userEntry.lastAction || 0) + 50 > currentTime) continue;
+
+        userEntry.standing = Math.max((userEntry.standing || 0) - 0.75, STANDING_FLOOR);
+        userEntry.lastAction = currentTime;
+        userEntry.lastChange = currentTime;
+        cache[user] = userEntry;
+    }
+}
+
 // Stale-user prune: how often, and how old/inactive a user must be to drop.
 const USERLIST_PRUNE_INTERVAL = 5000;
 const USERLIST_PRUNE_INACTIVE_TICKS = 50000;
@@ -97,15 +150,16 @@ class DiplomacyControl {
         const {room, hits, hitsMax, memory} = creep;
         const currentTime = Game.time;
 
-        if (!INTEL[room.name]) return room.cacheRoomIntel();
+        if (!INTEL[room.name]) room.cacheRoomIntel();
 
-        const hostileTower = room.towers.find(t => !t.my);
-        if (hostileTower && !INTEL[room.name].towers) {
-            room.cacheRoomIntel(true);
-            purgeBadRoute(room.name);
-        }
+        const owned = !!(room.controller && room.controller.my);
+        if (!owned) noteHostileTowers(room);
 
-        if (hits < (memory._lastHits || hitsMax)) {
+        const damaged = hits < (memory._lastHits || hitsMax);
+        memory._lastHits = hits;
+        if (!damaged && !room.hostileCreeps.length) return;
+
+        if (damaged) {
             if (!INTEL[room.name]) return;
 
             INTEL[room.name].lastCombat = currentTime;
@@ -150,27 +204,7 @@ class DiplomacyControl {
             }
         }
 
-        memory._lastHits = hits;
-
-        if (room.hostileCreeps.length && INTEL[room.name] && INTEL[room.name].user === MY_USERNAME) {
-            const neutrals = _.uniq(room.hostileCreeps.map(c => c.owner.username));
-
-            for (const user of neutrals) {
-                if (user === MY_USERNAME || user === 'Invader' || user === 'Source Keeper' ||
-                    FRIENDLIES.includes(user) || (INTEL[room.name] && INTEL[room.name].isHighway)) continue;
-
-                if (!Memory._userList) Memory._userList = {};
-                const cache = Memory._userList;
-                const userEntry = cache[user] || {standing: 0};
-
-                if ((userEntry.lastAction || 0) + 50 > currentTime) continue;
-
-                userEntry.standing = Math.max((userEntry.standing || 0) - 0.75, STANDING_FLOOR);
-                userEntry.lastAction = currentTime;
-                userEntry.lastChange = currentTime;
-                cache[user] = userEntry;
-            }
-        }
+        if (owned && room.hostileCreeps.length) applyOwnedHostileStanding(room, currentTime);
     }
 
     static getWarTargets() {

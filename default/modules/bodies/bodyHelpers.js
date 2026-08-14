@@ -25,7 +25,13 @@ function ensureTickCaches() {
 function colonyRoadsBuilt(roomName) {
     ensureTickCaches();
     if (!Object.prototype.hasOwnProperty.call(_roadsBuiltCache, roomName)) {
-        _roadsBuiltCache[roomName] = !!(INTEL[roomName] && INTEL[roomName].roadsBuilt);
+        // C2: owned rooms use plan.layers.roads.extra.complete (via getRoadsBuiltFlag).
+        // Remotes still resolve through INTEL inside getRoadsBuiltFlag.
+        try {
+            _roadsBuiltCache[roomName] = !!require('planUtils').getRoadsBuiltFlag(roomName);
+        } catch (e) {
+            _roadsBuiltCache[roomName] = !!(INTEL[roomName] && INTEL[roomName].roadsBuilt);
+        }
     }
     return _roadsBuiltCache[roomName];
 }
@@ -107,9 +113,17 @@ function routeHasBuiltRoads(colonyName, destName, options = {}) {
         rooms = getMiningRouteRooms(colonyName, destName);
     }
     if (!rooms || !rooms.length) {
-        const route = options.usePathRoute || options.forceVanillaRoute
-            ? findRoute(colonyName, destName, options.pathRouteOpts || {shortest: true})
-            : findRoute(colonyName, destName);
+        // Default: never live Game.map.findRoute here — that undoes remoteMining's
+        // empire probe budget and spikes spawn/body/hauler ticks on cache miss.
+        // Opt-in only: forceVanillaRoute / usePathRoute for rare explicit callers.
+        if (!(options.forceVanillaRoute || options.usePathRoute)) {
+            return false;
+        }
+        const route = findRoute(
+            colonyName,
+            destName,
+            options.pathRouteOpts || (options.usePathRoute ? {shortest: true} : {})
+        );
         rooms = routeRoomNames(route);
     }
     if (!rooms.length) return false;

@@ -165,19 +165,19 @@ class FactoryControl {
         if (currentTime % 1000 === 0) this._pruneTrackers();
 
         // Render production label every tick so it stays visible during cooldown
-        if (factory.memory.producing) {
+        if (factory.memory.producing && Game.time % 5 === 0 && (!Game.cpu || Game.cpu.bucket >= 5000)) {
             const commodity = COMMODITIES[factory.memory.producing];
             const inputsReady = commodity && Object.keys(commodity.components).every(c => (factory.store[c] || 0) >= commodity.components[c]);
             let status, color;
             if (factory.cooldown) {
                 status = `⚙ ${factory.memory.producing} (${factory.cooldown})`;
-                color = '#00ff00'; // green — actively in production cooldown
+                color = '#00ff00';
             } else if (inputsReady) {
                 status = `⚙ ${factory.memory.producing}`;
-                color = '#ffff00'; // yellow — inputs loaded, ready to produce
+                color = '#ffff00';
             } else {
                 status = `⏳ ${factory.memory.producing}`;
-                color = '#ff8800'; // orange — waiting for inputs to be loaded
+                color = '#ff8800';
             }
             room.visual.text(status, factory.pos.x, factory.pos.y - 0.6, {
                 color, font: 'bold 0.5 Arial', align: 'center', opacity: 0.85

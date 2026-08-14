@@ -69,14 +69,25 @@ function safeStructureIsActive(structure) {
 let hubCache = {};
 Object.defineProperty(Room.prototype, 'hub', {
     get: function () {
-        if (!this.memory.bunkerHub || !this.memory.bunkerHub.x || !this.memory.bunkerHub.y) return roomPlanner.findHub(this);
+        // C4: plan.anchors.hub first, then legacy bunkerHub (getHub), else search.
+        let xy = null;
+        try {
+            xy = require('planDoc').getHub(this);
+        } catch (e) {
+            xy = this.memory.bunkerHub;
+        }
+        if (!xy || typeof xy.x !== 'number' || typeof xy.y !== 'number') {
+            return roomPlanner.findHub(this);
+        }
         if (!this._hub) {
-            if (!hubCache[this.name]) hubCache[this.name] = JSON.stringify({
-                x: this.memory.bunkerHub.x,
-                y: this.memory.bunkerHub.y
-            });
-            let hubInfo = JSON.parse(hubCache[this.name]);
-            this._hub = new RoomPosition(hubInfo.x, hubInfo.y, this.name);
+            const key = xy.x + ',' + xy.y;
+            if (!hubCache[this.name] || hubCache[this.name] !== key) {
+                hubCache[this.name] = key;
+            }
+            this._hub = new RoomPosition(xy.x, xy.y, this.name);
+        } else if (this._hub.x !== xy.x || this._hub.y !== xy.y) {
+            this._hub = new RoomPosition(xy.x, xy.y, this.name);
+            hubCache[this.name] = xy.x + ',' + xy.y;
         }
         return this._hub;
     },
@@ -238,21 +249,25 @@ Object.defineProperty(Room.prototype, 'energyState', {
         else if (energy > target * 0.5) this._energyState = 1;
         else this._energyState = 0;
 
-        // Ally energy requests
+        // Ally energy requests — only mutate when the request set actually changes.
         if (this.terminal && energy < target * 0.5 && ALLY_HELP_REQUESTS[MY_USERNAME]) {
-            let requests = ALLY_HELP_REQUESTS[MY_USERNAME].requests?.resource || [];
-            requests = requests.filter(r => (r.resourceType !== RESOURCE_ENERGY && r.roomName === this.name) || r.roomName !== this.name);
-            requests.push({
-                resourceType: RESOURCE_ENERGY,
-                amount: Math.round((target * 1.2) - energy),
-                priority: 1 - (energy / target),
-                roomName: this.name
-            });
-            ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = requests;
-        } else if (ALLY_HELP_REQUESTS[MY_USERNAME]) {
-            let requests = ALLY_HELP_REQUESTS[MY_USERNAME].requests?.resource || [];
-            const idx = requests.findIndex(r => r.resourceType === RESOURCE_ENERGY && r.roomName === this.name);
-            if (idx !== -1) requests.splice(idx, 1);
+            const bucket = ALLY_HELP_REQUESTS[MY_USERNAME].requests || (ALLY_HELP_REQUESTS[MY_USERNAME].requests = {});
+            const requests = bucket.resource || (bucket.resource = []);
+            const amount = Math.round((target * 1.2) - energy);
+            const priority = 1 - (energy / target);
+            const existing = requests.find(r => r.resourceType === RESOURCE_ENERGY && r.roomName === this.name);
+            if (!existing) {
+                requests.push({resourceType: RESOURCE_ENERGY, amount, priority, roomName: this.name});
+            } else if (existing.amount !== amount || existing.priority !== priority) {
+                existing.amount = amount;
+                existing.priority = priority;
+            }
+        } else if (ALLY_HELP_REQUESTS[MY_USERNAME] && ALLY_HELP_REQUESTS[MY_USERNAME].requests) {
+            const requests = ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource;
+            if (requests && requests.length) {
+                const idx = requests.findIndex(r => r.resourceType === RESOURCE_ENERGY && r.roomName === this.name);
+                if (idx !== -1) requests.splice(idx, 1);
+            }
         }
 
         ENERGY_STATE_CACHE[this.name] = {state: this._energyState, tick: Game.time};
@@ -317,7 +332,15 @@ Object.defineProperty(Room.prototype, 'creeps', {
 
 Object.defineProperty(Room.prototype, 'myCreeps', {
     get: function () {
-        if (!this._myCreeps) this._myCreeps = this.find(FIND_CREEPS).filter(c => c.my);
+        if (!this._myCreeps) {
+            this._myCreeps = this.creeps.filter(c => {
+                try {
+                    return c instanceof Creep && !!c.my;
+                } catch (e) {
+                    return false;
+                }
+            });
+        }
         return this._myCreeps;
     },
     enumerable: false,
@@ -412,7 +435,7 @@ Object.defineProperty(Room.prototype, 'ruins', {
         if (!this._ruins) {
             const hostiles = this.hostileCreeps;
             this._ruins = hostiles.length
-                ? this.find(FIND_RUINS, {filter: r => r.pos.getRangeTo(r.pos.findClosestByRange(hostiles)) > 3})
+                ? this.find(FIND_RUINS, {filter: r => hostiles.every(h => r.pos.getRangeTo(h) > 3)})
                 : this.find(FIND_RUINS);
         }
         return this._ruins;
@@ -527,11 +550,23 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     roomIntel.lastObservation = currentTime;
     roomIntel.safemode = this.controller && this.controller.safeMode ? currentTime + this.controller.safeMode : undefined;
 
+    const owned = !!(this.controller && this.controller.my);
+    if (!force) {
+        const lightDue = !roomIntel.microUpdate || roomIntel.microUpdate + 150 < currentTime;
+        const heavyTTL = owned ? CREEP_LIFE_TIME : CREEP_LIFE_TIME * 5;
+        const heavyDue = !roomIntel.cached || roomIntel.cached + heavyTTL < currentTime;
+        if (!lightDue && !heavyDue) {
+            INTEL[this.name] = roomIntel;
+            return;
+        }
+    }
+
     // SK rooms — lairs in vision, or sector layout (x/y % 10 === 4). Name-based detection must
     // stick: structure caches on some servers omit keeper lairs and were clearing sk, which let
     // remote harvesters spawn into SK rooms without an SKAttacker.
-    const hasKeeperLairs = this.structures.some(s => s.structureType === STRUCTURE_KEEPER_LAIR);
-    const nameIsSk = global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(this.name);
+    // Owned rooms cannot be SK; skip the structure walk.
+    const nameIsSk = !owned && global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(this.name);
+    const hasKeeperLairs = !owned && this.structures.some(s => s.structureType === STRUCTURE_KEEPER_LAIR);
     roomIntel.sk = hasKeeperLairs || nameIsSk;
     if (roomIntel.sk) {
         const seen = new Set();
@@ -646,13 +681,15 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         }
 
         // Remote source data — register new sources or refresh stale distance scores.
+        // Do NOT rescore every micro-intel tick merely because we appear in
+        // ROOM_REMOTE_TARGETS — that re-PathFind'd every assigned remote ~every 150
+        // ticks and stamped refreshRemotes on parents (spawn cascade).
         if (this.sources.length && roomIntel.remoteRoom) {
             const staleScores = Game.time - (roomIntel.activeRemote || 0) > 500;
-            const needsUpdate = staleScores || roomIntel.remoteRoom.some(colony => {
-                if (!MY_ROOMS.includes(colony)) return false;
-                const targets = ROOM_REMOTE_TARGETS[colony];
-                return targets && targets.some(s => s.room === this.name);
-            });
+            // Force scoring when bootstrap set remoteRoom but source data never landed
+            // (path fail / incomplete first visit) so nearby remotes can still be claimed.
+            const missingSourceData = !roomIntel.remoteSourceData || !roomIntel.remoteSourceData.length;
+            const needsUpdate = staleScores || missingSourceData;
             if (needsUpdate) {
                 let lowestScore = Infinity;
                 let lowestRoom = roomIntel.remoteRoom[0];
@@ -683,6 +720,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                         }
                     }
                 }
+                // Only force colony remote refresh when we newly filled data or did a
+                // stale recompute — not on every routine micro update.
                 for (const colony of roomIntel.remoteRoom) {
                     if (INTEL[colony]) INTEL[colony].refreshRemotes = true;
                 }
@@ -734,7 +773,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (roomIntel.swampRoom === undefined) roomIntel.swampRoom = swampRoom(this.name);
 
     // Minerals
-    const mineral = this.find(FIND_MINERALS)[0];
+    const mineral = this.mineral;
     if (mineral) {
         roomIntel.mineral = mineral.mineralType;
         roomIntel.mineralAmount = mineral.mineralAmount;
@@ -752,8 +791,11 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         roomIntel.reservation = controller.reservation?.username;
         roomIntel.safemode = controller.safeMode ? currentTime + controller.safeMode : undefined;
 
-        if (!roomIntel.hubCheck && !roomIntel.obstacles && roomIntel.sources === 2 && !this.find(FIND_HOSTILE_CREEPS).length) {
+        // Attempt once (success or fail) and stamp hubCheckAt so a false
+        // result cannot re-run findHub on every force/observe.
+        if (!roomIntel.hubCheck && !roomIntel.hubCheckAt && !roomIntel.obstacles && roomIntel.sources === 2 && !this.hostileCreeps.length) {
             roomIntel.hubCheck = roomPlanner.hubCheck(this);
+            roomIntel.hubCheckAt = currentTime;
         }
 
         // NCP signage
@@ -788,7 +830,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         roomIntel.loot = !this.hostileCreeps.length && this.structures.some(s =>
             (s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL) &&
             _.sum(s.store) > 0 &&
-            !s.pos.lookFor(LOOK_STRUCTURES).some(str => str.structureType === STRUCTURE_RAMPART)
+            !s.pos.checkForRampart()
         );
 
         // Heavier strength signals — counts and rampart sort. Light-update path handles
@@ -818,6 +860,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         delete roomIntel.reservation;
         delete roomIntel.safemode;
         delete roomIntel.hubCheck;
+        delete roomIntel.hubCheckAt;
         delete roomIntel.nukeTarget;
         delete roomIntel.loot;
         delete roomIntel.lastOwnedAt;
@@ -970,9 +1013,9 @@ Room.prototype.invaderCheck = function () {
     }
 
     if (!hostileCreeps.length) {
-        roomData.lastInvaderSighting = undefined;
+        if (roomData.lastInvaderSighting) roomData.lastInvaderSighting = undefined;
         if (!roomData.roomHeat && !roomData.threatLevel) {
-            roomData.tickDetected = undefined;
+            if (roomData.tickDetected) roomData.tickDetected = undefined;
             const old1 = INTEL[this.name];
             INTEL[this.name] = roomData;
             if (global.updateIntelIndex) global.updateIntelIndex(this.name, old1, roomData);

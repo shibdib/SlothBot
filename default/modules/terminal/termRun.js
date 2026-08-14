@@ -10,8 +10,9 @@
 
 
 const state = require('termState');
+const {getLedger} = require('termNetwork');
 
-const {getCachedGlobalOrders} = require('termCache');
+const {getCachedGlobalOrders, getCachedMyOrders} = require('termCache');
 const {isMarketHub, runHousekeeping, runActiveMarket, runPassiveMarket} = require('termMarket');
 
 const TerminalControl = require('termClass');
@@ -26,18 +27,25 @@ Object.assign(TerminalControl.prototype, {
         // Pressured rooms run every 5 ticks so multi-hundred-k piles can drain;
         // healthy rooms keep the cheaper 25-tick cadence.
         const cooldown = pressured ? 5 : 25;
-        if (state.lastRun[this.room.name] && state.lastRun[this.room.name] + cooldown > Game.time) return;
+        const roomName = this.room.name;
+        const phase = ((roomName.charCodeAt(1) || 0) + (roomName.charCodeAt(3) || 0)) % cooldown;
+        if (Game.time % cooldown !== phase) return;
+        if (state.lastRun[roomName] && state.lastRun[roomName] + cooldown > Game.time) return;
 
-        state.lastRun[this.room.name] = Game.time;
+        state.lastRun[roomName] = Game.time;
 
         if (!Memory._banker) Memory._banker = {};
         if (Memory._banker.spendingAccount == null) {
             Memory._banker.spendingAccount = Math.max(0, Game.market.credits - CREDIT_BUFFER);
         }
 
-        const hub = isMarketHub(this.room.name);
-        const globalOrders = this.getGlobalOrders();
-        const myOrders = Game.market.orders;
+        const looksLikeHub = Memory._banker.marketHub === roomName;
+        if (pressured || looksLikeHub || !state.ledger) getLedger(true);
+
+        const hub = isMarketHub(roomName);
+        const needsMarket = hub || pressured;
+        const globalOrders = needsMarket ? this.getGlobalOrders() : null;
+        const myOrders = hub ? getCachedMyOrders() : null;
 
         if (hub) {
             this.pruneNonHubOrders(myOrders);
@@ -56,14 +64,14 @@ Object.assign(TerminalControl.prototype, {
         // Internal network before market — route empire stock first.
         const planned = state.ledger?.plannedTransfers || [];
         const hasPriorityOutbound = planned.some(t =>
-            t.from === this.room.name && ['urgent', 'pressure', 'battery', 'energy', 'resource', 'ally'].includes(t.kind)
+            t.from === roomName && ['urgent', 'pressure', 'battery', 'energy', 'resource', 'ally'].includes(t.kind)
         );
         if (this.emergencyEnergy(terminal)) return;
         if (!hub && !hasPriorityOutbound && this.executePlannedTransfers(terminal, {kinds: ['hub']})) return;
         if (this.executePlannedTransfers(terminal)) return;
 
-        // Active market (deals, fire sales) — any room, after transfers.
-        if (runActiveMarket(this, globalOrders)) return;
+        // Active market — hub and pressured rooms only. Healthy satellites transfer.
+        if (needsMarket && runActiveMarket(this, globalOrders)) return;
 
         // Passive orders — hub only, avoids duplicate buy/sell orders empire-wide.
         if (hub && runPassiveMarket(this, globalOrders, myOrders)) return;

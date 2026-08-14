@@ -4,6 +4,50 @@
  * Shared pathfinding helpers and position utilities.
  */
 
+const SHIB_MOVE_STATE = Object.create(null);
+
+function getShibMove(creep) {
+    return creep && creep.name ? SHIB_MOVE_STATE[creep.name] : undefined;
+}
+
+function setShibMove(creep, state) {
+    if (!creep || !creep.name) return state;
+    if (!state) delete SHIB_MOVE_STATE[creep.name];
+    else SHIB_MOVE_STATE[creep.name] = state;
+    if (creep.memory && creep.memory._shibMove !== undefined) delete creep.memory._shibMove;
+    return state;
+}
+
+function ensureShibMove(creep) {
+    let state = getShibMove(creep);
+    if (!state) state = setShibMove(creep, {});
+    else if (creep.memory && creep.memory._shibMove !== undefined) delete creep.memory._shibMove;
+    return state;
+}
+
+function clearShibMove(creep) {
+    setShibMove(creep, undefined);
+}
+
+let strippedLegacyShib = false;
+
+function stripLegacyShibMemory() {
+    if (strippedLegacyShib) return;
+    strippedLegacyShib = true;
+    for (const name in Memory.creeps) {
+        if (Memory.creeps[name] && Memory.creeps[name]._shibMove !== undefined) {
+            delete Memory.creeps[name]._shibMove;
+        }
+    }
+    if (Memory.powerCreeps) {
+        for (const name in Memory.powerCreeps) {
+            if (Memory.powerCreeps[name] && Memory.powerCreeps[name]._shibMove !== undefined) {
+                delete Memory.powerCreeps[name]._shibMove;
+            }
+        }
+    }
+}
+
 function releaseTruckRef(truck) {
     if (!truck) return;
     truck.memory.towStart = undefined;
@@ -17,7 +61,7 @@ function releaseTruckRef(truck) {
 
 function resetTrailerTowState(trailer) {
     if (!trailer) return;
-    trailer.memory._shibMove = undefined;
+    clearShibMove(trailer);
     trailer.memory.towCreep = undefined;
     trailer.memory.towDestination = undefined;
     trailer.memory.towDestinationPos = undefined;
@@ -100,8 +144,10 @@ function tryPullSwapThrough(mover, blocker, nextDirection) {
     // Step onto the blocker's tile while dragging it back to ours (swap via pull).
     blocker.move(backDir);
     mover.move(nextDirection);
-    if (blocker.memory?._shibMove) blocker.memory._shibMove.pathPosTime = 0;
-    if (mover.memory?._shibMove) mover.memory._shibMove.pathPosTime = 0;
+    const blockerMove = getShibMove(blocker);
+    if (blockerMove) blockerMove.pathPosTime = 0;
+    const moverMove = getShibMove(mover);
+    if (moverMove) moverMove.pathPosTime = 0;
     return true;
 }
 
@@ -247,11 +293,24 @@ function clearLookObstacleCache(roomName) {
     else lookObstacleCache = {};
 }
 
+let structureHashTick = -1;
+const structureHashCache = Object.create(null);
+
 function hashRoomStructures(room) {
-    if (!room || !room.structures) return lookObstacleHash(room);
-    const gameHash = hashStructures(room.structures);
+    if (!room) return lookObstacleHash(room);
+    if (structureHashTick !== Game.time) {
+        structureHashTick = Game.time;
+        for (const key in structureHashCache) delete structureHashCache[key];
+    }
+    if (structureHashCache[room.name] !== undefined) return structureHashCache[room.name];
+    const gameHash = room.structures ? hashStructures(room.structures) : '';
     const lookHash = lookObstacleHash(room);
-    return lookHash ? `${gameHash}|L:${lookHash}` : gameHash;
+    const stamp = lookHash ? `${gameHash}|L:${lookHash}` : gameHash;
+    let h = 5381;
+    for (let i = 0; i < stamp.length; i++) h = ((h << 5) + h) ^ stamp.charCodeAt(i);
+    const short = (h >>> 0).toString(36);
+    structureHashCache[room.name] = short;
+    return short;
 }
 
 function getMoveWeight(creep, options = {}) {
@@ -345,6 +404,11 @@ function endpointInRange(endpointKey, target, range) {
 }
 
 module.exports = {
+    getShibMove,
+    setShibMove,
+    ensureShibMove,
+    clearShibMove,
+    stripLegacyShibMemory,
     clearTrailerTowState,
     endTow,
     releaseTruckRef,

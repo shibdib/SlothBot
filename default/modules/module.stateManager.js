@@ -34,7 +34,67 @@ class StateManager {
         LAST_UPDATE.tick = Game.time;
 
         this.pruneEnergyTracker();
-        this.myRooms.forEach(roomName => this.roomTracking(roomName));
+        const census = this.censusAllColonies();
+        this.myRooms.forEach(roomName => this.roomTracking(roomName, census));
+    }
+
+    emptyCensus() {
+        return {
+            upgraderCnt: 0,
+            droneCnt: 0,
+            wallerCnt: 0,
+            upgradeWork: 0,
+            maintenanceWork: 0,
+            economicBodyCost: 0,
+            militaryBodyCost: 0,
+            statHarvesters: [],
+            remoteHarvesters: []
+        };
+    }
+
+    // One pass over World.colonyCreeps + militaryCreeps instead of Game.creeps × owned rooms.
+    censusAllColonies() {
+        const byColony = Object.create(null);
+        const acc = (c) => {
+            if (!c || !c.my || !c.memory) return;
+            const colony = c.memory.colony;
+            if (!colony) return;
+            let bucket = byColony[colony];
+            if (!bucket) bucket = byColony[colony] = this.emptyCensus();
+            const role = c.memory.role;
+            const bodyCost = global.UNIT_COST(c.body);
+            if (isMilitaryCreep(c)) bucket.militaryBodyCost += bodyCost;
+            else bucket.economicBodyCost += bodyCost;
+            if (role === 'upgrader') {
+                bucket.upgraderCnt++;
+                bucket.upgradeWork += c.getActiveBodyparts(WORK);
+            } else if (role === 'drone') {
+                bucket.droneCnt++;
+                bucket.maintenanceWork += c.getActiveBodyparts(WORK);
+            } else if (role === 'waller') {
+                bucket.wallerCnt++;
+                bucket.maintenanceWork += c.getActiveBodyparts(WORK);
+            } else if (role === 'stationaryHarvester') {
+                bucket.statHarvesters.push(c);
+            } else if (role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired) {
+                bucket.remoteHarvesters.push(c);
+            }
+        };
+
+        const world = global.world;
+        if (world && world.colonyCreeps) {
+            for (const name in world.colonyCreeps) {
+                const list = world.colonyCreeps[name];
+                for (let i = 0; i < list.length; i++) acc(list[i]);
+            }
+        }
+        if (world && world.militaryCreeps) {
+            for (let i = 0; i < world.militaryCreeps.length; i++) acc(world.militaryCreeps[i]);
+        }
+        if (!world) {
+            for (const name in Game.creeps) acc(Game.creeps[name]);
+        }
+        return byColony;
     }
 
     pruneEnergyTracker() {
@@ -44,7 +104,7 @@ class StateManager {
         }
     }
 
-    roomTracking(roomName) {
+    roomTracking(roomName, census) {
         const room = Game.rooms[roomName];
         let controllerMy = false;
         try {
@@ -54,18 +114,18 @@ class StateManager {
         }
         if (!room || !room.controller || !controllerMy) return;
 
-        this.energyTracking(room);
+        this.energyTracking(room, census && census[roomName]);
         this.levelingStatTracking(room);
         this.requestBuilders(room);
         this.funnelRequest(room);
     }
 
-    energyTracking(room) {
+    energyTracking(room, counts) {
         // Spawn-fill latency tracker (used to request more haulers).
         if (room.energyCapacityAvailable > room.energyAvailable) {
             if (ENERGY_TRACKER[room.name]) ENERGY_TRACKER[room.name]++; else ENERGY_TRACKER[room.name] = 1;
         } else if (ENERGY_TRACKER[room.name] > 0) ENERGY_TRACKER[room.name]--;
-        room.memory.needsHaulers = undefined;
+        if (room.memory.needsHaulers !== undefined) room.memory.needsHaulers = undefined;
 
         // Authoritative income/expense from the event-log accumulator — covers the home
         // room plus visible remotes.
@@ -74,36 +134,12 @@ class StateManager {
         const income = Math.round(snap.income);
         const trend = energyTracker.colonyTrend(room.name);
 
-        // Colony-wide creep scan — spawnExpense counts economic creeps only; military
-        // amortization is tracked separately and excluded from flow stress.
-        let upgraderCnt = 0, droneCnt = 0, wallerCnt = 0;
-        let upgradeWork = 0, maintenanceWork = 0;
-        let economicBodyCost = 0;
-        let militaryBodyCost = 0;
-        const statHarvesters = [];
-        const remoteHarvesters = [];
-        for (const creepName in Game.creeps) {
-            const c = Game.creeps[creepName];
-            if (!c.my || c.memory.colony !== room.name) continue;
-            const role = c.memory.role;
-            const bodyCost = global.UNIT_COST(c.body);
-            if (isMilitaryCreep(c)) militaryBodyCost += bodyCost;
-            else economicBodyCost += bodyCost;
-            if (role === 'upgrader') {
-                upgraderCnt++;
-                upgradeWork += c.getActiveBodyparts(WORK);
-            } else if (role === 'drone') {
-                droneCnt++;
-                maintenanceWork += c.getActiveBodyparts(WORK);
-            } else if (role === 'waller') {
-                wallerCnt++;
-                maintenanceWork += c.getActiveBodyparts(WORK);
-            } else if (role === 'stationaryHarvester') {
-                statHarvesters.push(c);
-            } else if (role === 'remoteHarvester' && c.memory.other && c.memory.other.haulingRequired) {
-                remoteHarvesters.push(c);
-            }
-        }
+        // Pre-bucketed by censusAllColonies — no Game.creeps walk here.
+        if (!counts) counts = this.emptyCensus();
+        const {
+            upgraderCnt, droneCnt, wallerCnt, upgradeWork, maintenanceWork,
+            economicBodyCost, militaryBodyCost, statHarvesters, remoteHarvesters
+        } = counts;
         const upgradeExpense = Math.ceil(upgradeWork);
         const maintenanceExpense = Math.ceil(maintenanceWork);
         const spawnExpense = Math.ceil(economicBodyCost / CREEP_LIFE_TIME);
@@ -153,13 +189,19 @@ class StateManager {
         // Read energyState once — getter may enqueue ally energy requests.
         const energyState = room.energyState;
         const combatReady = isLiveCombatReady(room);
-        if (combatReady) room.memory.combatReady = true;
-        else room.memory.combatReady = undefined;
-        delete room.memory.combatReadyStress;
+        if (combatReady) {
+            if (room.memory.combatReady !== true) room.memory.combatReady = true;
+        } else if (room.memory.combatReady !== undefined) {
+            room.memory.combatReady = undefined;
+        }
+        if (room.memory.combatReadyStress !== undefined) delete room.memory.combatReadyStress;
 
         const auxReady = isLiveAuxReady(room);
-        if (auxReady) room.memory.auxilaryReady = true;
-        else room.memory.auxilaryReady = undefined;
+        if (auxReady) {
+            if (room.memory.auxilaryReady !== true) room.memory.auxilaryReady = true;
+        } else if (room.memory.auxilaryReady !== undefined) {
+            room.memory.auxilaryReady = undefined;
+        }
 
         const batteryEquiv = Math.floor((room.store(RESOURCE_BATTERY) / 50) * 600 * 0.9);
         const stockEnergy = room.rawEnergy + batteryEquiv;

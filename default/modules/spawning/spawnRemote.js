@@ -9,7 +9,7 @@ const {getFlowContext, spawnEnergyState} = require('spawnFlow');
 const {getCreepCount, haulerCarryCapacity} = require('spawnCounts');
 const {queueCreepIfNeeded, queueCreep} = require('spawnQueue');
 const {routeHasBuiltRoads, countQueuedHaulersForSource} = require('bodyHelpers');
-const {remoteBuildersNeeded, colonyNeedsRoadWork} = require('planRoads');
+const {remoteBuildersNeeded, colonyNeedsRoadWork} = require('planGeomRoads');
 const remoteMining = require('remoteMining');
 
 function maxRemoteHaulerCarryParts(roomLevel, onRoads) {
@@ -20,10 +20,15 @@ function maxRemoteHaulerCarryParts(roomLevel, onRoads) {
 }
 
 function maxRemoteHarvesters(room) {
-    const multiplier = room.memory.remotePenalty ? 0.5 : 99;
-    if (room.level < 7) return 10 * multiplier;
+    if (room.memory.remotePenalty) {
+        return room.level < 7 ? 5 : 1;
+    }
+    if (room.level < 7) return 10;
     const {spareIncome} = getFlowContext(room);
-    return Math.max(1, Math.min(5, Math.floor(spareIncome / 15)));
+    const assigned = (ROOM_REMOTE_TARGETS[room.name] || []).length;
+    const fromSpare = Math.floor(spareIncome / 15);
+    // Cover assigned sources up to 4 before spare income alone would allow it.
+    return Math.max(1, Math.min(5, Math.max(fromSpare, Math.min(assigned, 4))));
 }
 
 function shouldDeprioritizeRemotes(room) {
@@ -33,8 +38,7 @@ function shouldDeprioritizeRemotes(room) {
 }
 
 function isSkRoom(roomName) {
-    return !!(INTEL[roomName] && INTEL[roomName].sk)
-        || (global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
+    return remoteMining.isSkRoomName(roomName);
 }
 
 function skMiningAllowed(room) {
@@ -61,34 +65,103 @@ function countQueuedRole(colonyName, role, destination) {
     return n;
 }
 
-function hasSkAttackerCoverage(colonyName, remoteName) {
-    return getCreepCount(undefined, 'SKAttacker', remoteName) > 0
-        || countQueuedRole(colonyName, 'SKAttacker', remoteName) > 0;
+function hasSkAttackerCoverage(remoteName) {
+    return remoteMining.hasLiveSkAttacker(remoteName);
+}
+
+function purgeUnguardedSkQueue(room) {
+    const queue = CREEP_QUEUES[room.name];
+    if (!queue) return;
+    for (const key in queue) {
+        const entry = queue[key];
+        if (!entry || entry.role === 'SKAttacker') continue;
+        if (!remoteMining.SK_GUARD_DEPENDENT_ROLES.has(entry.role)) continue;
+        const dest = (entry.other && entry.other.remoteRoom) || entry.destination;
+        if (!dest || !isSkRoom(dest) || hasSkAttackerCoverage(dest)) continue;
+        delete queue[key];
+    }
 }
 
 function ingestColonyRemoteSources(colonyRoom, rName) {
     ensureSkIntel(rName);
     const remoteIntel = INTEL[rName];
     if (!remoteIntel || !remoteIntel.remoteSourceData) return false;
+
+    const rec = remoteMining.getMiningRouteRecord(rName, colonyRoom.name);
+    if (!rec) return false;
+
+    // Do not steal a remote another colony is actively mining.
+    if (remoteMining.isRemoteClaimedByOther(colonyRoom.name, rName)) return false;
+
     let added = false;
+    let claimed = false;
     for (const sd of remoteIntel.remoteSourceData) {
-        if (sd.colony !== colonyRoom.name) continue;
-        if (ROOM_REMOTE_TARGETS[colonyRoom.name].find(s => s.source === sd.source)) continue;
-        if (!remoteMining.getMiningRouteRecord(rName, colonyRoom.name)) continue;
-        if (!remoteMining.isRemoteSourceScoreAcceptable(colonyRoom.name, rName, sd.score)) continue;
-        ROOM_REMOTE_TARGETS[colonyRoom.name].push({room: rName, source: sd.source, score: sd.score});
+        if (ROOM_REMOTE_TARGETS[colonyRoom.name].find(s => s.source === sd.source)) {
+            // Already have it — still ensure exclusive ownership if we hold targets.
+            claimed = true;
+            continue;
+        }
+
+        // Prefer stored score when this colony owns the assignment; otherwise use route estimate
+        // so a nearby colony can reclaim sticky remoteSourceData from an idle assignee.
+        let score = sd.colony === colonyRoom.name ? sd.score : rec.estimateScore;
+        if (!remoteMining.isRemoteSourceScoreAcceptable(colonyRoom.name, rName, score, {allowMissingEstimate: true})) {
+            if (score === rec.estimateScore) continue;
+            score = rec.estimateScore;
+            if (!remoteMining.isRemoteSourceScoreAcceptable(colonyRoom.name, rName, score, {allowMissingEstimate: true})) {
+                continue;
+            }
+        }
+
+        if (sd.colony !== colonyRoom.name) {
+            sd.colony = colonyRoom.name;
+            sd.score = score;
+        }
+
+        ROOM_REMOTE_TARGETS[colonyRoom.name].push({room: rName, source: sd.source, score});
         added = true;
+        claimed = true;
+    }
+
+    if (claimed) {
+        remoteMining.claimRemoteForColony(colonyRoom.name, rName);
     }
     return added;
 }
 
+/**
+ * High-score remotes without roads are blocked at RCL7+, but allow a single bootstrap
+ * harvester so roads/builders can start (otherwise chicken-and-egg with remoteBuilder).
+ */
 function passesNoRoadSpawnGate(colonyRoom, sourceEntry) {
     const ratio = typeof REMOTE_NO_ROAD_SCORE_RATIO !== 'undefined' ? REMOTE_NO_ROAD_SCORE_RATIO : 0.8;
     if (sourceEntry.score <= REMOTE_DISTANCE_MAX * ratio) return true;
     if (colonyRoom.level < 7) return true;
     if (routeHasBuiltRoads(colonyRoom.name, sourceEntry.room)) return true;
     if (colonyRoom.links && colonyRoom.links.length >= 2) return true;
-    return false;
+    const liveOrQueued = getCreepCount(undefined, 'remoteHarvester', sourceEntry.room)
+        || countQueuedRole(colonyRoom.name, 'remoteHarvester', sourceEntry.room);
+    return !liveOrQueued;
+}
+
+/**
+ * Queue one scout toward a hop-viable remote that still lacks source IDs (needs vision).
+ * Returns true if a scout was requested so callers can stop after one per refresh.
+ */
+function maybeScoutRemoteCandidate(room, rName) {
+    if (Game.rooms[rName]) return false;
+    const rec = remoteMining.getMiningRouteRecord(rName, room.name);
+    if (!rec || rec.estimateScore > REMOTE_DISTANCE_MAX) return false;
+    if (getCreepCount(undefined, 'scout', rName) || countQueuedRole(room.name, 'scout', rName)) return true;
+    if (getCreepCount(undefined, 'explorer', rName)) return true;
+    queueCreepIfNeeded({
+        room,
+        role: 'scout',
+        priority: PRIORITIES.secondary,
+        numberNeeded: 1,
+        destination: rName,
+    });
+    return true;
 }
 
 function refreshRemoteRoomTargets(room) {
@@ -100,11 +173,13 @@ function refreshRemoteRoomTargets(room) {
     const activeRemotes = new Set();
     const probeNew = remoteMining.shouldProbeNewRemotes(room);
     const candidates = remoteMining.getCandidateRemotesForProbe(room);
+    let scoutedOne = false;
 
     for (let i = 0; i < candidates.length; i++) {
         const rName = candidates[i];
         ensureSkIntel(rName);
         if (!remoteMining.remoteIntelEligible(room, rName)) continue;
+        if (remoteMining.isRemoteClaimedByOther(room.name, rName)) continue;
 
         const hasAssignment = (ROOM_REMOTE_TARGETS[room.name] || []).some(s => s.room === rName);
         const hasLiveWork = getCreepCount(undefined, 'remoteHarvester', rName)
@@ -114,14 +189,17 @@ function refreshRemoteRoomTargets(room) {
 
         if (!hasAssignment && !hasLiveWork) {
             if (hasSourceData) {
-                if (probeNew) remoteMining.probeMiningRoute(room.name, rName);
+                // Prefer free stale/cache; live findRoute only if budget remains.
+                remoteMining.probeMiningRoute(room.name, rName, {allowLive: true});
             } else {
                 if (!probeNew) continue;
-                const rec = remoteMining.probeMiningRoute(room.name, rName);
-                if (!rec || rec.estimateScore > REMOTE_DISTANCE_MAX) continue;
+                const rec = remoteMining.probeMiningRoute(room.name, rName, {allowLive: true});
+                if (!rec || !rec.safe || rec.estimateScore > REMOTE_DISTANCE_MAX) continue;
+                if (!scoutedOne) scoutedOne = maybeScoutRemoteCandidate(room, rName);
             }
         } else {
-            remoteMining.probeMiningRoute(room.name, rName);
+            // Assigned remotes: soft-extend only (no live findRoute).
+            remoteMining.probeMiningRoute(room.name, rName, {allowLive: false});
         }
 
         remoteMining.trackRemoteRoom(rName, room);
@@ -133,70 +211,85 @@ function refreshRemoteRoomTargets(room) {
     remoteMining.pruneRoomRemoteTargets(room.name, room);
     spawnState.remoteRoomTargets[room.name] = [...activeRemotes];
 
-    const exits = Game.map.describeExits(room.name);
-    const contestedRemote = _.find(exits, r =>
-        roomStatus(r) === roomStatus(room.name) && INTEL[r] && !INTEL[r].sk && !INTEL[r].safemode && !INTEL[r].towers &&
-        INTEL[r].sources && !INTEL[r].obstacles && INTEL[r].user && INTEL[r].user !== 'Invader' && !_.includes(FRIENDLIES, INTEL[r].user) &&
-        (INTEL[r].lastContest || 0) + (CREEP_LIFE_TIME * 4) < Game.time
-    );
+    updateContestedAndBlocked(room);
+}
+
+function updateContestedAndBlocked(room) {
+    const exits = Game.map.describeExits(room.name) || {};
+    const exitRooms = Object.values(exits);
+
+    const contestedRemote = exitRooms.find(r => remoteMining.isContestedRemoteCandidate(room, r));
     if (contestedRemote) {
         if (spawnState.contestedRemotes[room.name] && spawnState.contestedRemotes[room.name] !== contestedRemote) {
-            INTEL[contestedRemote].contestingCount = 0;
-            INTEL[spawnState.contestedRemotes[room.name]].lastContest = Game.time;
+            const prev = spawnState.contestedRemotes[room.name];
+            if (INTEL[contestedRemote]) INTEL[contestedRemote].contestingCount = 0;
+            if (INTEL[prev]) INTEL[prev].lastContest = Game.time;
         }
         spawnState.contestedRemotes[room.name] = contestedRemote;
+    } else {
+        spawnState.contestedRemotes[room.name] = undefined;
     }
 
-    const blockedRemote = _.find(exits, r =>
-        roomStatus(r) === roomStatus(room.name) && INTEL[r] && !INTEL[r].sk && INTEL[r].sources && !INTEL[r].level && INTEL[r].obstacles && !INTEL[r].owner
-    );
-    if (blockedRemote) spawnState.blockedRemotes[room.name] = blockedRemote;
+    const blockedRemote = exitRooms.find(r => remoteMining.isBlockedRemoteCandidate(room, r));
+    spawnState.blockedRemotes[room.name] = blockedRemote || undefined;
 }
 
 function handleContestedRoom(room) {
     const remoteName = spawnState.contestedRemotes[room.name];
+    if (!remoteName || !remoteMining.isContestedRemoteCandidate(room, remoteName)) {
+        spawnState.contestedRemotes[room.name] = undefined;
+        return;
+    }
     const intel = INTEL[remoteName];
-    if (!intel) return;
+    if (!intel) {
+        spawnState.contestedRemotes[room.name] = undefined;
+        return;
+    }
     if ((intel.contestingCount || 0) > room.level * 2) {
-        log.a(`${roomLink(room.name)} is no longer contesting ${roomLink(spawnState.contestedRemotes[room.name])} due to casualties.`, "LOCAL COMMAND:");
-        INTEL[spawnState.contestedRemotes[room.name]].lastContest = Game.time;
-        INTEL[spawnState.contestedRemotes[room.name]].contestingCount = 0;
+        log.a(`${roomLink(room.name)} is no longer contesting ${roomLink(remoteName)} due to casualties.`, "LOCAL COMMAND:");
+        intel.lastContest = Game.time;
+        intel.contestingCount = 0;
         return spawnState.contestedRemotes[room.name] = undefined;
     }
     if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) {
         if (queueCreepIfNeeded({
             room, role: 'longbowSquad', priority: PRIORITIES.remoteHarvester + 1,
-            numberNeeded: 4, destination: spawnState.contestedRemotes[room.name], misc: {waitFor: 4}
+            numberNeeded: 4, destination: remoteName, misc: {waitFor: 4}
         })) {
-            if (!intel.contestingCount) INTEL[spawnState.contestedRemotes[room.name]].contestingCount = 1;
-            else INTEL[spawnState.contestedRemotes[room.name]].contestingCount++;
+            if (!intel.contestingCount) intel.contestingCount = 1;
+            else intel.contestingCount++;
         }
     } else {
         if (queueCreepIfNeeded({
             room, role: 'longbow', priority: PRIORITIES.remoteHarvester + 1,
-            numberNeeded: 1, destination: spawnState.contestedRemotes[room.name]
+            numberNeeded: 1, destination: remoteName
         })) {
-            if (!intel.contestingCount) INTEL[spawnState.contestedRemotes[room.name]].contestingCount = 1;
-            else INTEL[spawnState.contestedRemotes[room.name]].contestingCount++;
+            if (!intel.contestingCount) intel.contestingCount = 1;
+            else intel.contestingCount++;
         }
     }
     if (!intel.armedHostile || intel.armedHostile + CREEP_LIFE_TIME < Game.time) {
-        handleReservation(room, spawnState.contestedRemotes[room.name]);
+        handleReservation(room, remoteName);
     }
 }
 
 function handleBlockedRoom(room) {
-    const intel = INTEL[spawnState.blockedRemotes[room.name]];
+    const remoteName = spawnState.blockedRemotes[room.name];
+    if (!remoteName || !remoteMining.isBlockedRemoteCandidate(room, remoteName)) {
+        spawnState.blockedRemotes[room.name] = undefined;
+        return;
+    }
+    const intel = INTEL[remoteName];
     if (intel && (!intel.armedHostile || intel.armedHostile + CREEP_LIFE_TIME < Game.time)) {
         if (intel.claimClear && Game.gcl.level > MY_ROOMS.length) {
             queueCreepIfNeeded({
                 room, role: 'claimer', priority: PRIORITIES.secondary,
-                numberNeeded: 1, destination: spawnState.blockedRemotes[room.name], operation: 'claimClear'
+                numberNeeded: 1, destination: remoteName, operation: 'claimClear'
             });
         } else {
             queueCreepIfNeeded({
                 room, role: 'cleaner', priority: PRIORITIES.secondary,
-                numberNeeded: 2, destination: spawnState.blockedRemotes[room.name]
+                numberNeeded: 2, destination: remoteName
             });
         }
     }
@@ -208,22 +301,29 @@ function handleThreatLevel(room, remoteName) {
     }
 }
 
-function reserverCountForRemote(room, remoteName) {
-    if (room.level >= 7 || spawnEnergyState(room) < 2) return 1;
-    const cap = INTEL[remoteName] && INTEL[remoteName].reserverCap;
-    if (!cap || cap < 3) return cap || 1;
-    return cap > 3 ? 3 : 1;
-}
-
 function handleReservation(room, remoteName) {
-    if (room.level >= 4 && getCreepCount(undefined, 'remoteHarvester', remoteName) && (!INTEL[remoteName].reservationExpires || (INTEL[remoteName].reservationExpires - CREEP_LIFE_TIME) < Game.time) && !isSkRoom(remoteName)) {
-        const count = reserverCountForRemote(room, remoteName);
-        const reserverPriority = spawnEnergyState(room) < 2 || room.level < 7 ? PRIORITIES.reserver + 3 : PRIORITIES.reserver;
-        queueCreepIfNeeded({
-            room, role: 'reserver', priority: reserverPriority + getCreepCount(undefined, 'reserver', remoteName),
-            numberNeeded: count, destination: remoteName
-        });
-    }
+    if (room.level < 4 || isSkRoom(remoteName)) return;
+    // Need an active harvester pipeline before spending CLAIM bodies.
+    if (!getCreepCount(undefined, 'remoteHarvester', remoteName)
+        && !countQueuedRole(room.name, 'remoteHarvester', remoteName)) return;
+
+    const intel = INTEL[remoteName];
+    // Only spawn when reservation is missing or will expire within one creep lifetime.
+    // (Avoid early double-up while a healthy reservation still has thousands of ticks.)
+    if (intel && intel.reservationExpires && intel.reservationExpires - CREEP_LIFE_TIME >= Game.time) return;
+
+    // Hard cap: one reserver per remote. Multi-reserver stacks were a major CPU sink
+    // (dozens of CLAIM pathfinders mid-travel).
+    const reserverPriority = spawnEnergyState(room) < 2 || room.level < 7
+        ? PRIORITIES.reserver + 3
+        : PRIORITIES.reserver;
+    queueCreepIfNeeded({
+        room,
+        role: 'reserver',
+        priority: reserverPriority,
+        numberNeeded: 1,
+        destination: remoteName,
+    });
 }
 
 function countQueuedRemoteBuilders(colonyName) {
@@ -265,10 +365,11 @@ function handleSkCreeps(room, remoteName) {
     queueCreepIfNeeded({
         room,
         role: 'SKAttacker',
-        priority: PRIORITIES.remoteHarvester + getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room),
+        priority: Math.max(1, PRIORITIES.remoteHarvester - 2),
         numberNeeded: 1,
         destination: remoteName
     });
+    if (!hasSkAttackerCoverage(remoteName)) return;
     queueCreepIfNeeded({
         room, role: 'commodityMiner', priority: PRIORITIES.roadBuilder,
         numberNeeded: 1, destination: remoteName
@@ -285,8 +386,11 @@ function handleRemoteHarvesters(room) {
 
         const eligible = _.filter(remoteSource, (s) => {
             if (shouldSkipRemote(room, s.room)) return false;
-            if (!remoteMining.isRemoteSourceScoreAcceptable(room.name, s.room, s.score)) return false;
-            if (isSkRoom(s.room) && !hasSkAttackerCoverage(room.name, s.room)) return false;
+            if (remoteMining.isRemoteClaimedByOther(room.name, s.room, s.source)) return false;
+            if (!remoteMining.isRemoteSourceScoreAcceptable(room.name, s.room, s.score, {allowMissingEstimate: true})) {
+                return false;
+            }
+            if (isSkRoom(s.room) && !hasSkAttackerCoverage(s.room)) return false;
             if (!passesNoRoadSpawnGate(room, s)) return false;
             return !scan.occupiedSources.has(s.source);
         });
@@ -342,6 +446,7 @@ function scanColonyRemoteCreeps() {
             const sid = c.memory.other.source;
             if (!bucket.haulersBySource[sid]) bucket.haulersBySource[sid] = [];
             bucket.haulersBySource[sid].push(c);
+            if (c.memory.other.remoteRoom) bucket.liveRemoteRooms.add(c.memory.other.remoteRoom);
         }
     }
     for (const colony in CREEP_QUEUES) {
@@ -361,10 +466,13 @@ function addQueuedHarvesterSources(colony) {
     if (!queue) return;
     for (const key in queue) {
         const entry = queue[key];
-        if (entry.role !== 'remoteHarvester') continue;
-        if (entry.assignment) bucket.occupiedSources.add(entry.assignment);
-        else if (entry.other && entry.other.source) bucket.occupiedSources.add(entry.other.source);
-        if (entry.destination) bucket.liveRemoteRooms.add(entry.destination);
+        if (entry.role === 'remoteHarvester') {
+            if (entry.assignment) bucket.occupiedSources.add(entry.assignment);
+            else if (entry.other && entry.other.source) bucket.occupiedSources.add(entry.other.source);
+            if (entry.destination) bucket.liveRemoteRooms.add(entry.destination);
+        } else if (entry.role === 'remoteHauler' && entry.other && entry.other.remoteRoom) {
+            bucket.liveRemoteRooms.add(entry.other.remoteRoom);
+        }
     }
 }
 
@@ -375,6 +483,7 @@ function handleRemoteHaulers(room) {
 
     for (const harvester of scan.harvesters) {
         if (shouldSkipRemote(room, harvester.memory.destination)) continue;
+        if (isSkRoom(harvester.memory.destination) && !hasSkAttackerCoverage(harvester.memory.destination)) continue;
         const sourceId = harvester.memory.other.source;
         const assignedHaulers = scan.haulersBySource[sourceId] || [];
         const targetCapacity = harvester.memory.other.haulingRequired;
@@ -447,6 +556,7 @@ function handleInvaderCore(room, remoteName) {
 }
 
 function remoteCreepQueue(room) {
+    if (typeof REMOTE_MINING !== 'undefined' && !REMOTE_MINING) return;
     if (!spawnState.throttleReady(spawnState.remoteTick, room.name, 5)) return;
     const energyState = spawnEnergyState(room);
     room.memory.borderPatrol = undefined;
@@ -484,6 +594,7 @@ function remoteCreepQueue(room) {
 
     if (room.memory.noRemote) return;
 
+    purgeUnguardedSkQueue(room);
     handleRemoteHarvesters(room);
     handleRemoteHaulers(room);
     handleRemoteBuilder(room);

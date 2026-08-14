@@ -25,7 +25,7 @@ RoomPosition.prototype.getClosestSource = function () {
     const room = Game.rooms[roomName];
     if (!room) return undefined;
     if (!SOURCE_CACHE[roomName] || SOURCE_CACHE[roomName].tick !== Game.time) {
-        const sources = room.find(FIND_SOURCES);
+        const sources = room.sources;
         const creepAssignments = _.countBy(room.creeps, function (c) {
             return c.memory && c.memory.other && c.memory.other.source ? c.memory.other.source : null;
         });
@@ -74,18 +74,22 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
  * @param {boolean} ignore - Ignore all obstructions besides walls
  * @returns {number}
  */
-RoomPosition.prototype.countOpenTerrainAround = function (borderBuild = false, ignore = false) {
-    const cacheKey = 'countOpenTerrain_' + this.roomName + '_' + this.x + '_' + this.y + '_' + (borderBuild || false) + '_' + (ignore || false);
-    const currentTick = Game.time;
+const openTerrainCache = Object.create(null);
 
-    if (!this._openTerrainCache) this._openTerrainCache = {};
-    const cached = this._openTerrainCache[cacheKey];
+RoomPosition.prototype.countOpenTerrainAround = function (borderBuild = false, ignore = false) {
+    const cacheKey = this.roomName + '_' + this.x + '_' + this.y + '_' + (borderBuild ? 1 : 0) + '_' + (ignore ? 1 : 0);
+    const currentTick = Game.time;
+    const cached = openTerrainCache[cacheKey];
     if (cached && cached.expiry > currentTick) return cached.value;
 
-    let openTerrain = 0; // Start at 0, increment for valid positions
+    let openTerrain = 0;
     const offsets = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
     const terrain = Game.map.getRoomTerrain(this.roomName);
     const room = Game.rooms[this.roomName];
+    let exits = room && room._exitTiles;
+    if (room && !exits) {
+        exits = room._exitTiles = room.find(FIND_EXIT);
+    }
 
     for (let i = 0; i < offsets.length; i++) {
         const x = this.x + offsets[i][0];
@@ -99,29 +103,27 @@ RoomPosition.prototype.countOpenTerrainAround = function (borderBuild = false, i
             if (tile === TERRAIN_MASK_WALL) isOpen = false;
         } else {
             const pos = new RoomPosition(x, y, this.roomName);
+            const occupant = room && pos.checkForCreep();
             if (tile === TERRAIN_MASK_WALL || (room && pos.checkForObstacleStructure()) ||
-                (!ignore && room && pos.checkForCreep() && !pos.checkForCreep().hasActiveBodyparts(MOVE))) {
+                (occupant && !occupant.hasActiveBodyparts(MOVE))) {
                 isOpen = false;
             }
         }
 
-        if (borderBuild && room) {
-            const exitKey = 'exit_' + x + '_' + y + '_' + this.roomName;
-            if (!this._exitCache) this._exitCache = {};
-            let exitRange = this._exitCache[exitKey];
-            if (!exitRange || exitRange.tick !== currentTick) {
-                const pos = new RoomPosition(x, y, this.roomName);
-                exitRange = {value: pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)), tick: currentTick};
-                this._exitCache[exitKey] = exitRange;
-            }
-            if (exitRange.value <= 2) isOpen = false;
+        // Only tiles near the map edge can be within 2 of an exit.
+        if (isOpen && borderBuild && exits && exits.length && (x <= 2 || x >= 47 || y <= 2 || y >= 47)) {
+            const pos = new RoomPosition(x, y, this.roomName);
+            const closest = pos.findClosestByRange(exits);
+            if (closest && pos.getRangeTo(closest) <= 2) isOpen = false;
         }
 
         if (isOpen) openTerrain++;
     }
 
-    const expiry = ignore ? currentTick + 1500 : currentTick + 10; // 1500 for static, 10 for dynamic
-    this._openTerrainCache[cacheKey] = {value: openTerrain, expiry: expiry};
+    openTerrainCache[cacheKey] = {
+        value: openTerrain,
+        expiry: ignore ? currentTick + 1500 : currentTick + 10,
+    };
     return openTerrain;
 };
 
@@ -151,7 +153,19 @@ function buildInsideSet(room, spots, spotsStr) {
         }
     }
 
-    const {x: hx, y: hy} = room.memory.bunkerHub;
+    // C4: plan hub or legacy bunkerHub.
+    let hx;
+    let hy;
+    try {
+        const hub = require('planDoc').getHub(room);
+        if (!hub) return {spotsStr, inside: new Set()};
+        hx = hub.x;
+        hy = hub.y;
+    } catch (e) {
+        if (!room.memory.bunkerHub) return {spotsStr, inside: new Set()};
+        hx = room.memory.bunkerHub.x;
+        hy = room.memory.bunkerHub.y;
+    }
     const hubKey = hx * 50 + hy;
 
     // 8-directional DFS flood fill from hub — same connectivity as PathFinder
@@ -181,7 +195,15 @@ function buildInsideSet(room, spots, spotsStr) {
 
 RoomPosition.prototype.isInBunker = function () {
     const room = Game.rooms[this.roomName];
-    if (!room || !room.memory.bunkerHub || room.level < 5) return false;
+    if (!room || room.level < 5) return false;
+    // C4: need a hub (plan or legacy).
+    let hasHub = false;
+    try {
+        hasHub = !!require('planDoc').getHub(room);
+    } catch (e) {
+        hasHub = !!(room.memory && room.memory.bunkerHub);
+    }
+    if (!hasHub) return false;
 
     const roomName = this.roomName;
     const spotsStr = ROOM_RAMPART_SPOTS[roomName] || '[]';
@@ -253,72 +275,80 @@ RoomPosition.prototype.positionAtDirection = function (direction) {
     return new RoomPosition(x, y, this.roomName);
 };
 
-/**
- * Check for terrain wall
- * @returns {boolean}
- */
+const roomTerrainCache = Object.create(null);
+
+function terrainAt(pos) {
+    let grid = roomTerrainCache[pos.roomName];
+    if (!grid) {
+        const terrain = Game.map.getRoomTerrain(pos.roomName);
+        grid = new Array(2500);
+        for (let y = 0; y < 50; y++) {
+            for (let x = 0; x < 50; x++) {
+                grid[y * 50 + x] = terrain.get(x, y);
+            }
+        }
+        roomTerrainCache[pos.roomName] = grid;
+    }
+    return grid[pos.y * 50 + pos.x];
+}
+
 RoomPosition.prototype.checkForWall = function () {
-    if (!this._wallCache) {
-        this._wallCache = {}; // Initialize a cache object for walls
-    }
-
-    const cacheKey = `checkForWall_${this.roomName}_${this.x}_${this.y}`;
-
-    if (this._wallCache[cacheKey] !== undefined) {
-        return this._wallCache[cacheKey]; // Return cached result if available
-    }
-
-    const result = Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) === 1;
-    this._wallCache[cacheKey] = result; // Cache the result indefinitely
-    return result;
+    return terrainAt(this) === TERRAIN_MASK_WALL;
 };
 
-/**
- * Check for terrain swamp
- * @returns {boolean}
- */
 RoomPosition.prototype.checkForSwamp = function () {
-    if (!this._swampCache) {
-        this._swampCache = {}; // Initialize a cache object for swamps
-    }
-
-    const cacheKey = `checkForSwamp_${this.roomName}_${this.x}_${this.y}`;
-
-    if (this._swampCache[cacheKey] !== undefined) {
-        return this._swampCache[cacheKey]; // Return cached result if available
-    }
-
-    const result = Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) === 2;
-    this._swampCache[cacheKey] = result; // Cache the result indefinitely
-    return result;
+    return terrainAt(this) === TERRAIN_MASK_SWAMP;
 };
 
-/**
- * Check for terrain plain
- * @returns {boolean}
- */
 RoomPosition.prototype.checkForPlain = function () {
-    if (!this._plainCache) {
-        this._plainCache = {}; // Initialize a cache object for plains
-    }
-
-    const cacheKey = `checkForPlain_${this.roomName}_${this.x}_${this.y}`;
-
-    if (this._plainCache[cacheKey] !== undefined) {
-        return this._plainCache[cacheKey]; // Return cached result if available
-    }
-
-    const result = Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) === 0;
-    this._plainCache[cacheKey] = result; // Cache the result indefinitely
-    return result;
+    return terrainAt(this) === 0;
 };
 
 /**
  * Check for creep
  * @returns {*}
  */
+let lookCacheTick = -1;
+const lookStructuresCache = Object.create(null);
+const lookCreepsCache = Object.create(null);
+
+function lookCacheKey(pos) {
+    return pos.roomName + '_' + pos.x + '_' + pos.y;
+}
+
+function resetLookCaches() {
+    if (lookCacheTick === Game.time) return;
+    lookCacheTick = Game.time;
+    for (const key in lookStructuresCache) delete lookStructuresCache[key];
+    for (const key in lookCreepsCache) delete lookCreepsCache[key];
+}
+
+function lookStructuresAt(pos) {
+    resetLookCaches();
+    const key = lookCacheKey(pos);
+    if (lookStructuresCache[key] !== undefined) return lookStructuresCache[key];
+    if (!Game.rooms[pos.roomName]) {
+        lookStructuresCache[key] = [];
+        return lookStructuresCache[key];
+    }
+    lookStructuresCache[key] = pos.lookFor(LOOK_STRUCTURES);
+    return lookStructuresCache[key];
+}
+
+function lookCreepsAt(pos) {
+    resetLookCaches();
+    const key = lookCacheKey(pos);
+    if (lookCreepsCache[key] !== undefined) return lookCreepsCache[key];
+    if (!Game.rooms[pos.roomName]) {
+        lookCreepsCache[key] = [];
+        return lookCreepsCache[key];
+    }
+    lookCreepsCache[key] = pos.lookFor(LOOK_CREEPS);
+    return lookCreepsCache[key];
+}
+
 RoomPosition.prototype.checkForCreep = function () {
-    return this.lookFor(LOOK_CREEPS)[0];
+    return lookCreepsAt(this)[0];
 };
 
 /**
@@ -326,7 +356,7 @@ RoomPosition.prototype.checkForCreep = function () {
  * @returns {*}
  */
 RoomPosition.prototype.checkForBuiltWall = function () {
-    return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_WALL);
+    return _.find(lookStructuresAt(this), (s) => s.structureType === STRUCTURE_WALL);
 };
 
 /**
@@ -335,8 +365,9 @@ RoomPosition.prototype.checkForBuiltWall = function () {
  * @returns {*}
  */
 RoomPosition.prototype.checkForRampart = function (active = undefined) {
-    if (active) return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic);
-    return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART);
+    const structures = lookStructuresAt(this);
+    if (active) return _.find(structures, (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic);
+    return _.find(structures, (s) => s.structureType === STRUCTURE_RAMPART);
 };
 
 /**
@@ -344,7 +375,7 @@ RoomPosition.prototype.checkForRampart = function (active = undefined) {
  * @returns {*}
  */
 RoomPosition.prototype.checkForBarrierStructure = function () {
-    return _.find(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
+    return _.find(lookStructuresAt(this), (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
 };
 
 /**
@@ -359,7 +390,7 @@ RoomPosition.prototype.checkForObstacleStructure = function () {
     const cached = OBSTACLE_CACHE[cacheKey];
     if (cached && cached.expiry > currentTick) return cached.value;
 
-    const structures = this.lookFor(LOOK_STRUCTURES);
+    const structures = lookStructuresAt(this);
     let obstacle = false;
     for (let s of structures) {
         if (OBSTACLE_OBJECT_TYPES.includes(s.structureType)) {
@@ -415,7 +446,7 @@ RoomPosition.prototype.checkForMineral = function () {
  * @returns {*}
  */
 RoomPosition.prototype.checkForRoad = function () {
-    return _.find(this.lookFor(LOOK_STRUCTURES), s => s.structureType === STRUCTURE_ROAD);
+    return _.find(lookStructuresAt(this), s => s.structureType === STRUCTURE_ROAD);
 };
 
 /**
@@ -423,7 +454,7 @@ RoomPosition.prototype.checkForRoad = function () {
  * @returns {*}
  */
 RoomPosition.prototype.checkForContainer = function () {
-    return _.find(this.lookFor(LOOK_STRUCTURES), s => s.structureType === STRUCTURE_CONTAINER);
+    return _.find(lookStructuresAt(this), s => s.structureType === STRUCTURE_CONTAINER);
 };
 
 /**
@@ -441,29 +472,11 @@ RoomPosition.prototype.checkForEnergy = function () {
  * @returns {undefined|Structure|boolean} - Returns the first structure, true/false, or undefined if not in a visible room
  */
 RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
-    if (!Game.rooms[this.roomName]) {
-        return undefined; // Return undefined if the room is not visible
-    }
-
-    const cacheKey = `checkForAllStructure_${this.roomName}_${this.x}_${this.y}_${ramparts}`;
-    const currentTick = Game.time;
-
-    if (!this._structureCache) {
-        this._structureCache = {}; // Initialize a cache object for the position
-    }
-
-    if (this._structureCache[cacheKey] && this._structureCache[cacheKey].expiry > currentTick) {
-        return this._structureCache[cacheKey].value; // Return cached result if available and not expired
-    }
-
-    const structures = this.lookFor(LOOK_STRUCTURES);
-
-    const result = ramparts
-        ? structures[0] || undefined // Cache the first structure if ramparts are included
+    if (!Game.rooms[this.roomName]) return undefined;
+    const structures = lookStructuresAt(this);
+    return ramparts
+        ? structures[0] || undefined
         : structures.find(s => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD);
-
-    this._structureCache[cacheKey] = {value: result, expiry: currentTick + 5000}; // Cache the result with expiry
-    return result;
 };
 
 /**

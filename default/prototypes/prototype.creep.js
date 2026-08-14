@@ -23,6 +23,7 @@
 
 const {empireOpsPaused} = require('hcReadiness');
 const {runTowTruck} = require('pathTow');
+const {clearShibMove, getShibMove} = require('pathUtils');
 
 const exitTileCache = {};
 
@@ -83,17 +84,31 @@ function collectConstructionBuckets(room) {
     return {byType, misc, roads, barriers};
 }
 
+let repairCapTick = -1;
+const repairCapCache = Object.create(null);
+
 function wallRepairCap(room, structure) {
-    const rcl = room.level;
-    let targetLimit = 100000;
-    if (rcl >= 8) targetLimit = 10000000;
-    else if (rcl >= 6) targetLimit = 5000000;
-    if (room.energyState === 1) targetLimit = Math.min(targetLimit, 200000);
-    const quadTrapWalls = new Set((room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
-    if (structure && quadTrapWalls.has(`${structure.pos.x},${structure.pos.y}`)) {
-        targetLimit = Math.min(targetLimit, 20000);
+    if (repairCapTick !== Game.time) {
+        repairCapTick = Game.time;
+        for (const key in repairCapCache) delete repairCapCache[key];
     }
-    return targetLimit;
+    let entry = repairCapCache[room.name];
+    if (!entry) {
+        const rcl = room.level;
+        let targetLimit = 100000;
+        if (rcl >= 8) targetLimit = 10000000;
+        else if (rcl >= 6) targetLimit = 5000000;
+        if (room.energyState === 1) targetLimit = Math.min(targetLimit, 200000);
+        entry = {
+            targetLimit,
+            quadTrap: new Set((room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`)),
+        };
+        repairCapCache[room.name] = entry;
+    }
+    if (structure && entry.quadTrap.has(`${structure.pos.x},${structure.pos.y}`)) {
+        return Math.min(entry.targetLimit, 20000);
+    }
+    return entry.targetLimit;
 }
 
 function collectStructureDamage(room, claimedIds, ownedByMe) {
@@ -113,17 +128,43 @@ function collectStructureDamage(room, claimedIds, ownedByMe) {
             ramparts.push(s);
         }
     }
-    for (const s of room.structures) {
-        const t = s.structureType;
-        if (t === STRUCTURE_WALL || t === STRUCTURE_RAMPART) continue;
-        if (claimedIds.has(s.id)) continue;
-        if (!ownedByMe && !REMOTE_REPAIRABLE.has(t)) continue;
-        if (s.hits >= s.hitsMax) continue;
-        if (t === STRUCTURE_CONTAINER) containers.push(s);
-        else if (t === STRUCTURE_ROAD) roads.push(s);
-        else other.push(s);
+    const addDamaged = (list, dest) => {
+        for (const s of list) {
+            if (claimedIds.has(s.id) || s.hits >= s.hitsMax) continue;
+            dest.push(s);
+        }
+    };
+    addDamaged(room.containers, containers);
+    addDamaged(room.roads, roads);
+    if (ownedByMe) {
+        const extras = (room.spawns || []).concat(room.extensions || [], room.towers || [], room.labs || [], room.links || []);
+        if (room.storage) extras.push(room.storage);
+        if (room.terminal) extras.push(room.terminal);
+        addDamaged(extras, other);
     }
     return {walls, ramparts, containers, roads, other, allBarriers};
+}
+
+let constructionScanTick = -1;
+const constructionScanCache = Object.create(null);
+
+function getConstructionScan(room) {
+    if (constructionScanTick !== Game.time) {
+        constructionScanTick = Game.time;
+        for (const key in constructionScanCache) delete constructionScanCache[key];
+    }
+    if (constructionScanCache[room.name]) return constructionScanCache[room.name];
+    const intel = INTEL[room.name];
+    const ownedByMe = !!(intel && intel.owner === MY_USERNAME);
+    const claimedIds = getClaimedConstructionIds(room);
+    constructionScanCache[room.name] = {
+        intel,
+        ownedByMe,
+        claimedIds,
+        damage: collectStructureDamage(room, claimedIds, ownedByMe),
+        sites: collectConstructionBuckets(room),
+    };
+    return constructionScanCache[room.name];
 }
 
 function weakestByHitsRatio(structures) {
@@ -144,6 +185,14 @@ function clearConstructionMemory(creep) {
     creep.memory.task = undefined;
     creep.memory.sitePos = undefined;
     creep.memory.targetHits = undefined;
+}
+
+function isNearRoomSource(creep) {
+    const sources = creep.room.sources;
+    for (let i = 0; i < sources.length; i++) {
+        if (creep.pos.isNearTo(sources[i])) return true;
+    }
+    return false;
 }
 
 Object.defineProperty(Creep.prototype, "idle", {
@@ -194,7 +243,7 @@ Object.defineProperty(Creep.prototype, "idle", {
 Object.defineProperty(Creep.prototype, 'isFull', {
     get: function () {
         if (!this._isFull) {
-            this._isFull = _.sum(this.store) >= this.store.getCapacity() * 0.98;
+            this._isFull = this.store.getUsedCapacity() >= this.store.getCapacity() * 0.98;
         }
         return this._isFull;
     },
@@ -214,7 +263,7 @@ Creep.prototype.idleFor = function (ticks = 0) {
 };
 
 Creep.prototype.getActiveBodyparts = function (type) {
-    if (this.className) return 0;
+    if (this.className || !this.body) return 0;
     let count = 0;
     for (let i = this.body.length; i-- > 0;) {
         if (this.body[i].hits > 0) {
@@ -225,8 +274,13 @@ Creep.prototype.getActiveBodyparts = function (type) {
 };
 
 Creep.prototype.hasActiveBodyparts = function (type) {
-    if (this.className) return false;
-    return !!this.body.find(part => part.type === type && part.hits > 0);
+    if (this.className || !this.body) return false;
+    for (let i = this.body.length; i-- > 0;) {
+        if (this.body[i].hits > 0) {
+            if (this.body[i].type === type) return true;
+        } else break;
+    }
+    return false;
 };
 
 Creep.prototype.wrongRoom = function () {
@@ -237,8 +291,21 @@ Creep.prototype.wrongRoom = function () {
 };
 
 Creep.prototype.findSource = function (ignoreOthers = false) {
-    let source = _.find(this.room.sources, (s) => !_.find(Game.creeps, (c) => c.id !== this.id && c.memory.role === this.memory.role && c.memory.other.source === s.id));
-    if (ignoreOthers) source = _.sample(this.room.sources);
+    if (!this.memory.other) this.memory.other = {};
+    const sources = this.room.sources;
+    let source;
+    if (ignoreOthers) {
+        source = _.sample(sources);
+    } else {
+        const claimed = new Set();
+        const role = this.memory.role;
+        for (const creep of this.room.myCreeps) {
+            if (creep.id === this.id || creep.memory.role !== role) continue;
+            const sid = creep.memory.other && creep.memory.other.source;
+            if (sid) claimed.add(sid);
+        }
+        source = sources.find(s => !claimed.has(s.id));
+    }
     if (source) {
         this.memory.other.source = source.id;
         return source.id;
@@ -252,8 +319,8 @@ Creep.prototype.skSafety = function () {
         if (this.room.controller.owner && FRIENDLIES.includes(this.room.controller.owner.username) && this.room.towers[0]) return false;
     }
 
-    const armedEnemies = this.room.hostileCreeps.find(c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
-    if (this.hits < this.hitsMax * 0.5 && armedEnemies && this.pos.getRangeTo(this.pos.findClosestByRange(armedEnemies)) <= 4) {
+    const armedEnemy = this.room.hostileCreeps.find(c => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
+    if (this.hits < this.hitsMax * 0.5 && armedEnemy && this.pos.getRangeTo(armedEnemy) <= 4) {
         this.fleeHome(true);
         return true;
     }
@@ -264,8 +331,13 @@ Creep.prototype.skSafety = function () {
     if (!isSkRoom && (this.room.controller || intel)) return false;
 
     const range = 7;
-    const sk = this.room.creeps.find(c => c.owner && c.owner.username === 'Source Keeper' && c.pos.inRangeTo(this, range));
-    const lair = this.room.structures.find(s => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn && s.ticksToSpawn <= 5 && s.pos.inRangeTo(this, range));
+    const room = this.room;
+    if (room._skCreepsTick !== Game.time) {
+        room._skCreeps = room.creeps.filter(c => c.owner && c.owner.username === 'Source Keeper');
+        room._skCreepsTick = Game.time;
+    }
+    const sk = room._skCreeps.find(c => c.pos.inRangeTo(this, range));
+    const lair = room.keeperLairs.find(s => s.ticksToSpawn && s.ticksToSpawn <= 5 && s.pos.inRangeTo(this, range));
 
     if (sk || lair) {
         this.shibKite(range + 2, sk || lair);
@@ -336,7 +408,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
         if (result === OK) {
             this.memory.lastWithdraw = destination.id;
             delete this.memory.energyDestination;
-            delete this.memory._shibMove;
+            clearShibMove(this);
             return true;
         } else if (result === ERR_NOT_IN_RANGE) {
             return this.shibMove(destination);
@@ -348,7 +420,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
         if (result === OK) {
             this.memory.lastWithdraw = destination.id;
             delete this.memory.energyDestination;
-            delete this.memory._shibMove;
+            clearShibMove(this);
         } else if (result === ERR_NOT_IN_RANGE) this.shibMove(destination);
         return true;
     } else if (destination.amount) {
@@ -356,13 +428,13 @@ Creep.prototype.withdrawResource = function (destination = undefined, resourceTy
         if (result === OK) {
             this.memory.lastWithdraw = destination.id;
             delete this.memory.energyDestination;
-            delete this.memory._shibMove;
+            clearShibMove(this);
         } else if (result === ERR_NOT_IN_RANGE) this.shibMove(destination);
         return true;
     }
 
     delete this.memory.energyDestination;
-    delete this.memory._shibMove;
+    clearShibMove(this);
     return false;
 };
 
@@ -481,9 +553,10 @@ Creep.prototype.locateEnergy = function (room = this.room) {
 
     if (['shuttle', 'remoteHauler', 'drone'].includes(this.memory.role) || !room.storage || room.myCreeps.length < 4) {
         const ctrlContainer = global.resolveControllerContainer(room);
-        for (let i = 0; i < room.structures.length; i++) {
-            const s = room.structures[i];
-            if (s.structureType === STRUCTURE_CONTAINER && (s.id !== (ctrlContainer && ctrlContainer.id) || room.level === 8) && s.store[RESOURCE_ENERGY] > 0) {
+        const containers = room.containers;
+        for (let i = 0; i < containers.length; i++) {
+            const s = containers[i];
+            if ((s.id !== (ctrlContainer && ctrlContainer.id) || room.level === 8) && s.store[RESOURCE_ENERGY] > 0) {
                 if (!myCreepsFilter(s.id) || s.store[RESOURCE_ENERGY] > (myCreepsFilter(s.id) + 1) * (freeCapacity * 0.5)) {
                     potentialEnergy.push(s);
                 }
@@ -513,7 +586,7 @@ Creep.prototype.haulerDelivery = function () {
                 let result = this.transfer(storageItem, resourceType);
                 if (result === OK) {
                     delete this.memory.storageDestination;
-                    delete this.memory._shibMove;
+                    clearShibMove(this);
                     return true;
                 } else if (result === ERR_NOT_IN_RANGE) {
                     this.shibMove(storageItem);
@@ -524,7 +597,7 @@ Creep.prototype.haulerDelivery = function () {
             }
         } else {
             delete this.memory.storageDestination;
-            delete this.memory._shibMove;
+            clearShibMove(this);
         }
     }
 
@@ -537,21 +610,9 @@ Creep.prototype.haulerDelivery = function () {
     }
 
     let targets = [];
-    const allSpawnExtensions = [], allTowers = [], allLabs = [];
-    for (const s of this.room.structures) {
-        switch (s.structureType) {
-            case STRUCTURE_SPAWN:
-            case STRUCTURE_EXTENSION:
-                allSpawnExtensions.push(s);
-                break;
-            case STRUCTURE_TOWER:
-                allTowers.push(s);
-                break;
-            case STRUCTURE_LAB:
-                allLabs.push(s);
-                break;
-        }
-    }
+    const allSpawnExtensions = (this.room.spawns || []).concat(this.room.extensions || []);
+    const allTowers = this.room.towers || [];
+    const allLabs = this.room.labs || [];
 
     if (this.room.controller && this.room.controller.level >= 3) {
         const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
@@ -659,26 +720,31 @@ Creep.prototype.constructionWork = function (scope) {
     const barriersOnly = scope === 'barriers';
     const roadsOnly = scope === 'roads';
     const room = this.room;
-    const intel = INTEL[room.name];
-    const ownedByMe = intel && intel.owner === MY_USERNAME;
-    const claimedIds = getClaimedConstructionIds(room);
-    const damage = collectStructureDamage(room, claimedIds, ownedByMe);
-    const sites = collectConstructionBuckets(room);
+    const scan = getConstructionScan(room);
+    const intel = scan.intel;
+    const claimedIds = scan.claimedIds;
+    const damage = scan.damage;
+    const sites = scan.sites;
+    const available = (list) => list.filter(s => !claimedIds.has(s.id));
 
     const assign = (site, task, targetHits) => {
         this.memory.constructionSite = site.id;
         this.memory.task = task;
-        this.memory.sitePos = JSON.stringify(site.pos);
+        this.memory.sitePos = {x: site.pos.x, y: site.pos.y, roomName: site.pos.roomName};
         if (targetHits !== undefined) this.memory.targetHits = targetHits;
+        claimedIds.add(site.id);
         return true;
     };
     const build = (site) => assign(site, 'build');
     const repair = (site, targetHits) => assign(site, 'repair', targetHits);
-    const buildClosest = (list) => list.length && build(this.pos.findClosestByRange(list));
+    const buildClosest = (list) => {
+        const open = available(list);
+        return open.length && build(this.pos.findClosestByRange(open));
+    };
     let site;
 
     const pickCombatBarriers = () => {
-        let site = damage.walls.find(s => s.hits < 5000) || damage.ramparts.find(s => s.hits < 5000);
+        let site = available(damage.walls).find(s => s.hits < 5000) || available(damage.ramparts).find(s => s.hits < 5000);
         if (site) return repair(site, 12500);
         if (intel && intel.threatLevel) {
             const dangerous = room.hostileCreeps.filter(c =>
@@ -692,7 +758,7 @@ Creep.prototype.constructionWork = function (scope) {
     const pickUnsafeRampartWork = () => {
         const rampartSites = sites.byType[STRUCTURE_RAMPART];
         if (rampartSites && rampartSites.length) return buildClosest(rampartSites);
-        const unsafeRamparts = damage.ramparts.filter(s => s.hits < SAFE_RAMPART_HITS);
+        const unsafeRamparts = available(damage.ramparts).filter(s => s.hits < SAFE_RAMPART_HITS);
         if (unsafeRamparts.length) {
             const target = _.min(unsafeRamparts, 'hits');
             return repair(target, SAFE_RAMPART_HITS);
@@ -704,9 +770,9 @@ Creep.prototype.constructionWork = function (scope) {
 
     if (roadsOnly) {
         if (sites.roads.length) return buildClosest(sites.roads);
-        site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.5));
+        site = weakestByHitsRatio(available(damage.roads).filter(s => s.hits < s.hitsMax * 0.5));
         if (site) return repair(site, site.hitsMax * 0.8);
-        site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.75));
+        site = weakestByHitsRatio(available(damage.roads).filter(s => s.hits < s.hitsMax * 0.75));
         if (site) return repair(site, site.hitsMax * 0.75);
         clearConstructionMemory(this);
         return false;
@@ -723,7 +789,7 @@ Creep.prototype.constructionWork = function (scope) {
         if (spawn && room.controller && (room.controller.safeMode || (room.controller.owner && room.controller.owner.username !== MY_USERNAME))) {
             const walls = wallBarrierSites();
             if (walls.length) return buildClosest(walls);
-            const lowBarriers = damage.walls.concat(damage.ramparts.filter(s => s.hits >= SAFE_RAMPART_HITS)).filter(s => s.hits < 500000);
+            const lowBarriers = available(damage.walls.concat(damage.ramparts.filter(s => s.hits >= SAFE_RAMPART_HITS))).filter(s => s.hits < 500000);
             if (lowBarriers.length) return repair(_.min(lowBarriers, 'hits'), 502500);
         } else if (!spawn) {
             const ramparts = sites.byType[STRUCTURE_RAMPART];
@@ -734,7 +800,7 @@ Creep.prototype.constructionWork = function (scope) {
         if (room.energyState >= 2 || (room.energyState === 1 && trend >= 0)) {
             const walls = wallBarrierSites();
             if (walls.length) return buildClosest(walls);
-            const repairPool = damage.walls.concat(damage.ramparts.filter(s => s.hits >= SAFE_RAMPART_HITS));
+            const repairPool = available(damage.walls.concat(damage.ramparts.filter(s => s.hits >= SAFE_RAMPART_HITS)));
             site = repairPool.length ? _.min(repairPool, 'hits') : null;
             if (site) {
                 const targetHits = site.structureType === STRUCTURE_WALL
@@ -762,20 +828,20 @@ Creep.prototype.constructionWork = function (scope) {
         if (list && list.length) return build(list[0]);
     }
 
-    site = damage.containers.find(s => s.hits < s.hitsMax * 0.5);
+    site = available(damage.containers).find(s => s.hits < s.hitsMax * 0.5);
     if (site) return repair(site, site.hitsMax * 0.65);
 
-    site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.5));
+    site = weakestByHitsRatio(available(damage.roads).filter(s => s.hits < s.hitsMax * 0.5));
     if (site) return repair(site, site.hitsMax * 0.8);
 
     if (room.energyState >= 1) {
         if (sites.misc.length) return buildClosest(sites.misc);
         if (sites.roads.length) return buildClosest(sites.roads);
-        site = weakestByHitsRatio(damage.roads.filter(s => s.hits < s.hitsMax * 0.75));
+        site = weakestByHitsRatio(available(damage.roads).filter(s => s.hits < s.hitsMax * 0.75));
         if (site) return repair(site, site.hitsMax * 0.75);
-        site = weakestByHitsRatio(damage.containers.filter(s => s.hits < s.hitsMax * 0.75));
+        site = weakestByHitsRatio(available(damage.containers).filter(s => s.hits < s.hitsMax * 0.75));
         if (site) return repair(site, site.hitsMax * 0.75);
-        site = damage.containers[0] || damage.roads[0] || damage.other[0];
+        site = available(damage.containers)[0] || available(damage.roads)[0] || available(damage.other)[0];
         if (site) return repair(site, site.hitsMax);
     }
 
@@ -786,8 +852,15 @@ Creep.prototype.constructionWork = function (scope) {
 Creep.prototype.builderFunction = function () {
     let construction = Game.getObjectById(this.memory.constructionSite);
     if (!construction) {
-        if (this.memory.sitePos && JSON.parse(this.memory.sitePos).roomName !== this.room.name) {
-            const sitePos = JSON.parse(this.memory.sitePos);
+        let sitePos = this.memory.sitePos;
+        if (typeof sitePos === 'string') {
+            try {
+                sitePos = JSON.parse(sitePos);
+            } catch (e) {
+                sitePos = undefined;
+            }
+        }
+        if (sitePos && sitePos.roomName && sitePos.roomName !== this.room.name) {
             this.shibMove(new RoomPosition(sitePos.x, sitePos.y, sitePos.roomName), {range: 1});
             return true;
         }
@@ -817,7 +890,7 @@ Creep.prototype.builderFunction = function () {
         construction.say(construction.hits + '/' + construction.hitsMax);
         switch (this.repair(construction)) {
             case OK:
-                if (this.pos.isNearTo(this.pos.findClosestByRange(FIND_SOURCES))) this.moveRandom();
+                if (isNearRoomSource(this)) this.moveRandom();
                 return true;
             case ERR_NOT_IN_RANGE:
                 this.memory.other.stationary = undefined;
@@ -838,7 +911,7 @@ Creep.prototype.builderFunction = function () {
         construction.say(construction.progress + '/' + construction.progressTotal);
         switch (this.build(construction)) {
             case OK:
-                if (this.pos.isNearTo(this.pos.findClosestByRange(FIND_SOURCES))) this.moveRandom();
+                if (isNearRoomSource(this)) this.moveRandom();
                 return true;
             case ERR_NOT_IN_RANGE:
                 this.memory.other.stationary = undefined;
@@ -881,9 +954,9 @@ Creep.prototype.borderCheck = function () {
     this.attackInRange();
     this.healInRange(true);
     if (this.memory.borderCountDown) this.memory.borderCountDown++; else this.memory.borderCountDown = 1;
-    if (this.memory.borderCountDown < 5 && this.memory._shibMove) return false;
+    if (this.memory.borderCountDown < 5 && getShibMove(this)) return false;
 
-    this.memory._shibMove = undefined;
+    clearShibMove(this);
     this.memory.moveBlocked = Game.time;
 
     if (x === 0 && y === 0) this.move(BOTTOM_RIGHT);
@@ -1229,7 +1302,16 @@ Creep.prototype.tryToBoost = function (bodyPart = []) {
 Creep.prototype.recycleCreep = function () {
     if (!this.hasActiveBodyparts(MOVE) && !MY_ROOMS.includes(this.room.name)) return this.suicide();
     this.memory.recycling = true;
-    const spawns = global.roomMySpawns ? global.roomMySpawns(this.room) : this.room.find(FIND_MY_SPAWNS);
+    // Clear claim-TTL abort so pathing home is not blocked by applyClaimRouting.
+    delete this.memory._claimAbort;
+    const allSpawns = this.room.spawns || [];
+    const spawns = [];
+    for (let i = 0; i < allSpawns.length; i++) {
+        try {
+            if (allSpawns[i].my) spawns.push(allSpawns[i]);
+        } catch (e) { /* ignore */
+        }
+    }
     let spawn = spawns.length ? this.pos.findClosestByRange(spawns) : null;
     if (!spawn) {
         if (this.memory.colony && this.room.name !== this.memory.colony) {

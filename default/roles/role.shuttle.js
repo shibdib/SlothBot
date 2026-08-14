@@ -103,6 +103,10 @@ class RoleShuttle {
     }
 
     pickup() {
+        if (this.creep.memory.energyDestination) {
+            return this.creep.withdrawResource();
+        }
+
         // During attacks pull from storage for the fastest refill of towers
         if (this.room.memory.dangerousAttack && this.room.storage && this.room.storage.store[RESOURCE_ENERGY] > 0) {
             const result = this.creep.withdraw(this.room.storage, RESOURCE_ENERGY);
@@ -118,11 +122,12 @@ class RoleShuttle {
             return;
         }
 
-        // Prefer assigned source container when available
-        if (!this.creep.memory.energyDestination && container && container.store[RESOURCE_ENERGY] > 0) {
+        if (container && container.store[RESOURCE_ENERGY] > 0) {
             this.creep.memory.energyDestination = container.id;
+            this.creep.withdrawResource();
+            return;
         }
-        if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
+        if (this.creep.locateEnergy()) {
             this.creep.withdrawResource();
         } else {
             this.creep.idleFor(this.creep.room.level);

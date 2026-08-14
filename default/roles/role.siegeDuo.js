@@ -23,14 +23,19 @@ function getSiegeDuoPairsByDestination() {
     if (_pairCacheTick === Game.time) return _siegeDuoPairs;
     _pairCacheTick = Game.time;
     _siegeDuoPairs = {};
-    for (const name in Game.creeps) {
-        const c = Game.creeps[name];
-        if (!c.my || c.spawning || c.memory.role !== 'siegeDuo' || c.memory.partner) continue;
+    const acc = (c) => {
+        if (!c.my || c.spawning || c.memory.role !== 'siegeDuo' || c.memory.partner) return;
         const dest = c.memory.destination;
-        if (!dest) continue;
+        if (!dest) return;
         if (!_siegeDuoPairs[dest]) _siegeDuoPairs[dest] = {attackers: [], healers: []};
         if (c.hasActiveBodyparts(ATTACK)) _siegeDuoPairs[dest].attackers.push(c);
         else if (c.hasActiveBodyparts(HEAL)) _siegeDuoPairs[dest].healers.push(c);
+    };
+    const military = global.world && global.world.militaryCreeps;
+    if (military) {
+        for (let i = 0; i < military.length; i++) acc(military[i]);
+    } else {
+        for (const name in Game.creeps) acc(Game.creeps[name]);
     }
     return _siegeDuoPairs;
 }
@@ -85,6 +90,13 @@ class RoleSiegeDuo {
                     follower.memory.partner = leader.id;
                     follower.memory.leader = undefined;
                     if (leader.memory.operation) follower.memory.operation = leader.memory.operation;
+                    // Keep destination in sync — path failures can wipe one side's dest
+                    // while operation remains set, which crashes RoomPosition in ops.
+                    if (leader.memory.destination && !follower.memory.destination) {
+                        follower.memory.destination = leader.memory.destination;
+                    } else if (follower.memory.destination && !leader.memory.destination) {
+                        leader.memory.destination = follower.memory.destination;
+                    }
                 }
             }
         }
@@ -121,6 +133,9 @@ class RoleSiegeDuo {
             return;
         }
         if (partner.memory.operation) this.creep.memory.operation = partner.memory.operation;
+        if (partner.memory.destination && this.creep.memory.destination !== partner.memory.destination) {
+            this.creep.memory.destination = partner.memory.destination;
+        }
         if (partner.memory.waitingToAssemble) this.creep.memory.waitingToAssemble = true;
         else this.creep.memory.waitingToAssemble = undefined;
         this.creep.shibMove(partner, {range: 0});
@@ -136,6 +151,15 @@ class RoleSiegeDuo {
     }
 
     operationManagement() {
+        // Operation handlers construct RoomPosition from destination; bail if missing.
+        if (!this.creep.memory.destination) {
+            const partner = Game.getObjectById(this.creep.memory.partner);
+            if (partner && partner.memory.destination) {
+                this.creep.memory.destination = partner.memory.destination;
+            } else {
+                return this.destinationManagement();
+            }
+        }
         switch (this.creep.memory.operation) {
             case 'stronghold':
                 this.creep.strongholdAttack();
@@ -147,6 +171,11 @@ class RoleSiegeDuo {
     }
 
     destinationManagement() {
+        if (!this.creep.memory.destination) {
+            if (this.creep.handleMilitaryCreep()) return;
+            if (this.creep.findDefensivePosition()) this.creep.idleFor(5);
+            return;
+        }
         if (this.room.name !== this.creep.memory.destination) {
             return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22});
         } else {

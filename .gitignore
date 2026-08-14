@@ -22,3 +22,6 @@ node_modules/
 package-lock.json
 /.auth.json
 /ScreepsAutocomplete/
+
+# Local agent scratch (never commit)
+/agent-tools/

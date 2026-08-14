@@ -9,41 +9,133 @@
  */
 
 
+const profiler = require('tools.profiler');
 const {DEFAULT_MAXOPS, STATE_STUCK} = require('pathState');
 
 const {
     normalizePos, clearTrailerTowState,
     tryPullSwapThrough, isPullSwapBlocker, isImmobileBlocker,
+    getShibMove, setShibMove, ensureShibMove, clearShibMove,
 } = require('pathUtils');
 
 const {requestTow, needsTow} = require('pathTow');
 
-const {findRoute, deleteRoute, estimateClaimRouteTicks} = require('pathRoute');
+const {findRoute, deleteRoute, estimateClaimRouteTicks, exitHopTarget, onExitToward} = require('pathRoute');
 
+/**
+ * Claim/reserver TTL gate for *mission* travel only.
+ * @returns {boolean} true if the creep cannot reach its claim destination in time.
+ *   Caller must stop mission pathing (role recycles). Never call recycleCreep from
+ *   shibMove — recycleCreep uses shibMove and that recursion blew the stack.
+ */
 function applyClaimRouting(creep, options, target) {
-    if (!(creep instanceof Creep) || !creep.hasActiveBodyparts(CLAIM)) return;
+    if (!(creep instanceof Creep) || !creep.hasActiveBodyparts(CLAIM)) return false;
+    // Allow free pathing home / to spawn once recycling.
+    if (creep.memory.recycling) return false;
 
-    options.shortest = true;
+    // Prefer shortest only when discovering a route. Precomputed mining routes already
+    // encode the intended rooms (often road-optimized); forcing shortest re-finds a
+    // different route and defeats options.route.
+    if (!options.route && !getShibMove(creep)?.route) {
+        options.shortest = true;
+    }
+
+    // Only gate travel toward the assigned claim/reserve room — never colony/home.
+    const missionDest = creep.memory.destination;
+    if (!missionDest) return false;
+    if (missionDest === creep.memory.colony) return false;
+    if (typeof MY_ROOMS !== 'undefined' && MY_ROOMS.includes(missionDest)) return false;
 
     const ticksRemaining = creep.ticksToLive;
-    const destRoom = target?.roomName;
-    if (!ticksRemaining || !destRoom) return;
+    if (!ticksRemaining) return false;
 
-    const route = options.route || creep.memory._shibMove?.route;
-    if (!route?.length) return;
+    // Sticky abort: one decision, no PathFinder thrash for the rest of the TTL.
+    if (creep.memory._claimAbort === missionDest) return true;
+
+    // claimRoute = full remaining rooms (hops pass a 2-room PathFinder slice in options.route).
+    const route = options.claimRoute || options.route || getShibMove(creep)?.route;
+    if (!route?.length) return false;
 
     const roomIdx = route.indexOf(creep.room.name);
     const remainingRooms = roomIdx >= 0 ? route.length - roomIdx : route.length;
     if (ticksRemaining < estimateClaimRouteTicks(remainingRooms)) {
-        delete creep.memory._shibMove?.route;
-        delete creep.memory._shibMove?.path;
-        if (creep.memory._shibMove) {
-            delete creep.memory._shibMove.newPos;
-            delete creep.memory._shibMove.pathPos;
-            creep.memory._shibMove.pathPosTime = 0;
+        creep.memory._claimAbort = missionDest;
+        const moveState = getShibMove(creep);
+        if (moveState) {
+            delete moveState.route;
+            delete moveState.path;
+            delete moveState.pathPos;
+            moveState.pathPosTime = 0;
         }
-        deleteRoute(creep.room.name, destRoom);
+        // Do not deleteRoute here — that poisoned the shared route cache every tick.
+        return true;
     }
+    return false;
+}
+
+// Hop until dest is the next room. PathFinder default maxRooms is 7, so a
+// single search to a far target is incomplete even with a valid findRoute.
+const HOP_WINDOW = 2;
+const HOP_AFTER = 2;
+
+function applyLongDistanceHop(creep, origin, target, options) {
+    if (origin.roomName === target.roomName) return null;
+    if (options.noHop) return null;
+    // Caller already scoped a 1–2 room search (reserver hops).
+    if (options.route && options.route.length <= HOP_WINDOW + 1 &&
+        options.maxRooms != null && options.maxRooms <= HOP_WINDOW + 1) {
+        return null;
+    }
+
+    const stored = getShibMove(creep);
+    const destRoom = target.roomName;
+    let route = options.fullRoute || options.claimRoute || stored?.fullRoute || options.route || stored?.route;
+    if (!route || !route.length || !route.includes(destRoom)) {
+        route = findRoute(origin.roomName, destRoom, options);
+    }
+    if (!route || !route.length) return null;
+
+    if (!route.includes(origin.roomName)) {
+        const fresh = findRoute(origin.roomName, destRoom, options);
+        if (fresh && fresh.length) {
+            route = fresh.includes(origin.roomName) ? fresh : [origin.roomName].concat(fresh);
+        } else {
+            route = [origin.roomName].concat(route);
+        }
+    }
+
+    const idx = route.indexOf(origin.roomName);
+    if (idx < 0 || idx >= route.length - 1) return null;
+
+    options.fullRoute = route;
+    if (!options.claimRoute) options.claimRoute = route.slice(idx);
+
+    const remaining = route.length - idx;
+    const nextRoom = route[idx + 1];
+    if (nextRoom === destRoom || remaining <= HOP_AFTER) {
+        options.route = route.slice(idx);
+        return null;
+    }
+
+    const lookAhead = route[idx + 2] || destRoom;
+    const hop = exitHopTarget(origin.roomName, nextRoom, origin, lookAhead);
+    if (!hop) {
+        options.route = route.slice(idx, idx + HOP_WINDOW);
+        options.maxRooms = HOP_WINDOW;
+        options.range = 23;
+        if (options.maxOps == null || options.maxOps > 3000) options.maxOps = 2500;
+        return new RoomPosition(25, 25, nextRoom);
+    }
+
+    // Stay in this room and walk to the aligned exit. Cheaper than a 2-room
+    // search to (25,25) range 23, which just takes the nearest exit.
+    options.route = [origin.roomName];
+    options.maxRooms = 1;
+    options.range = 0;
+    options.hopGoals = hop.goals;
+    options.hopExitDir = hop.exitDir;
+    if (options.maxOps == null || options.maxOps > 2000) options.maxOps = 2000;
+    return hop.pos;
 }
 
 const {getPath, cachePath, serializePath} = require('pathPathCache');
@@ -87,27 +179,70 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
     let target = normalizePos(heading);
     if (!origin || !target) return;
 
-    _.defaults(options, {
-        maxOps: DEFAULT_MAXOPS,
-        range: 1,
-        maxRooms: 7,
-        useCache: true,
-        ignoreCreeps: true
-    });
+    if (options.maxOps == null) options.maxOps = DEFAULT_MAXOPS;
+    if (options.range == null) options.range = 1;
+    if (options.maxRooms == null) options.maxRooms = 7;
+    if (options.useCache == null) options.useCache = true;
+    if (options.ignoreCreeps == null) options.ignoreCreeps = true;
 
-    applyClaimRouting(creep, options, target);
+    if (creep.memory && creep.memory._shibMove !== undefined) delete creep.memory._shibMove;
+
+    // Long-distance: walk the findRoute room list one hop at a time so
+    // PathFinder is never asked to search more rooms than it is allowed.
+    if (!pathOnly && !options.flee && !options.portal) {
+        const hopped = applyLongDistanceHop(creep, origin, target, options);
+        if (hopped) {
+            heading = hopped;
+            target = hopped;
+        }
+    }
+
+    // On the correct edge: step through. Must run before the range check or
+    // we "arrive" on the exit tile and sit there.
+    if (!pathOnly && !options.flee && options.hopExitDir && onExitToward(origin, options.hopExitDir)) {
+        if (!creep.className && creep.fatigue > 0) {
+            if (creep.memory && !creep.memory.military) creep.idleFor(1);
+            return true;
+        }
+        clearShibMove(creep);
+        creep.move(options.hopExitDir);
+        return true;
+    }
+
+    if (!pathOnly && !options.flee && !options.portal && !(creep.memory && creep.memory.repathing)
+        && origin.getRangeTo(target) <= options.range) {
+        if (getShibMove(creep)) {
+            clearShibMove(creep);
+            clearTrailerTowState(creep);
+        }
+        return false;
+    }
+
+    // Mission unreachable in CLAIM TTL — role handles recycle. Do not call
+    // recycleCreep here (it pathfinds via shibMove → stack overflow).
+    if (applyClaimRouting(creep, options, target)) {
+        return false;
+    }
 
     if (pathOnly) {
         const cached = getPath(creep, origin, target, undefined);
         if (cached) return cached;
         let allowedRooms = options.route;
-        if (!allowedRooms && origin.roomName !== target.roomName) {
+        // Scoring / remote distance must not pay Game.map.findRoute on every call.
+        // Callers that need a route should pass options.route (mining route) or omit noLiveRoute.
+        if (!allowedRooms && origin.roomName !== target.roomName && !options.noLiveRoute) {
             const route = findRoute(origin.roomName, target.roomName, options);
             if (route && route.length) {
                 allowedRooms = route.includes(origin.roomName) ? route : [origin.roomName].concat(route);
             }
         }
-        if (!allowedRooms) allowedRooms = [origin.roomName];
+        if (!allowedRooms || !allowedRooms.length) {
+            if (options.noLiveRoute && origin.roomName !== target.roomName) {
+                // Incomplete multi-room without a known route — cheap fail for scorers.
+                return {path: [], incomplete: true, ops: 0, cost: 0};
+            }
+            allowedRooms = [origin.roomName];
+        }
         return PathFinder.search(origin, {pos: target, range: options.range || 1}, {
             maxOps: options.maxOps || DEFAULT_MAXOPS,
             maxRooms: allowedRooms.length ? allowedRooms.length + 2 : (options.maxRooms || 16),
@@ -121,14 +256,10 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
 
     if (creep.spawning) return false;
 
-    // Fatigue handling
+    // Fatigue handling — no RoomVisual (was free-but-not-free CPU every tired tick).
     if (!creep.className && creep.fatigue > 0 && creep.hasActiveBodyparts(MOVE)) {
         if (!creep.memory.military) creep.idleFor(1);
-        return creep.room.visual.circle(creep.pos, {
-            fill: 'transparent',
-            radius: 0.55,
-            stroke: 'black'
-        });
+        return true;
     }
 
     if (creep.memory.keeper) options.ignoreKeeper = creep.memory.keeper;
@@ -142,12 +273,12 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
             options.range = 23;
         } else {
             creep.memory.repathing = undefined;
-            creep.memory._shibMove = undefined;
+            clearShibMove(creep);
         }
     }
 
     // Recreate pathInfo if target changed
-    const pathState = creep.memory._shibMove;
+    let pathState = getShibMove(creep);
     const prevRange = pathState?.pathOptions?.range ?? 1;
     const targetChanged = !pathState?.target ||
         pathState.targetRoom !== target.roomName ||
@@ -155,32 +286,30 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         pathState.target.y !== target.y ||
         prevRange !== (options.range ?? 1);
     if (!pathState || targetChanged) {
-        creep.memory._shibMove = {};
+        pathState = setShibMove(creep, {});
     }
 
     // Stuck detection
-    if (creep.memory._shibMove?.pathPosTime >= STATE_STUCK) {
-        if (creepBumping(creep, creep.memory._shibMove, options)) {
-            if (creep.memory._shibMove) creep.memory._shibMove.pathPosTime--;
+    if (pathState.pathPosTime >= STATE_STUCK) {
+        if (creepBumping(creep, pathState, options)) {
+            if (pathState) pathState.pathPosTime--;
             return;
         }
         if (!creep.memory._shibStuckRepath || creep.memory._shibStuckRepath + 10 < Game.time) {
             creep.memory._shibStuckRepath = Game.time;
-            if (!creep.memory._shibMove) creep.memory._shibMove = {};
-            creep.memory._shibMove.pathPosTime = 0;
-            delete creep.memory._shibMove.path;
-            delete creep.memory._shibMove.pathPos;
-            delete creep.memory._shibMove.newPos;
-            // Route around creeps once — ignoreCreeps caches often re-enter the same jam.
+            pathState = ensureShibMove(creep);
+            pathState.pathPosTime = 0;
+            delete pathState.path;
+            delete pathState.pathPos;
             const stuckOptions = Object.assign({}, options, {ignoreCreeps: false, useCache: false});
-            return shibPath(creep, heading, creep.memory._shibMove, origin, target, stuckOptions);
+            return shibPath(creep, heading, pathState, origin, target, stuckOptions);
         }
         return false;
     }
 
     // Execute existing path
-    if (creep.memory._shibMove?.path?.length && !options.getPath) {
-        return executePath(creep, creep.memory._shibMove, options, origin, heading);
+    if (pathState.path && pathState.path.length && !options.getPath) {
+        return executePath(creep, pathState, options, origin, heading);
     }
 
     if (options.tunnel) options.maxOps = 15000;
@@ -201,8 +330,7 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         }
     }
 
-    if (!creep.memory._shibMove) creep.memory._shibMove = {};
-    const pathInfo = creep.memory._shibMove;
+    const pathInfo = ensureShibMove(creep);
     pathInfo.targetRoom = target.roomName;
 
     if (pathInfo.path && pathInfo.path.length && !options.getPath) {
@@ -212,11 +340,13 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
 }
 
 function executePath(creep, pathInfo, options, origin, heading) {
+    if (!options.flee && heading && creep.pos.getRangeTo(heading) <= (options.range ?? 1)) {
+        clearShibMove(creep);
+        clearTrailerTowState(creep);
+        return false;
+    }
+
     if (!pathInfo.path?.length) {
-        if (!options.flee && creep.pos.getRangeTo(heading) <= options.range) {
-            creep.memory._shibMove = undefined;
-            clearTrailerTowState(creep);
-        }
         return false;
     }
 
@@ -229,7 +359,7 @@ function executePath(creep, pathInfo, options, origin, heading) {
                 : pathInfo.path.slice(1);
             if (!pathInfo.path.length) {
                 if (!options.flee && creep.pos.getRangeTo(heading) <= options.range) {
-                    creep.memory._shibMove = undefined;
+                    clearShibMove(creep);
                     clearTrailerTowState(creep);
                 }
                 return false;
@@ -244,43 +374,49 @@ function executePath(creep, pathInfo, options, origin, heading) {
     const nextDirection = parseInt(pathInfo.path[0], 10);
     if (!nextDirection) return false;
 
-    pathInfo.newPos = creep.pos.positionAtDirection(nextDirection);
+    const nextPos = creep.pos.positionAtDirection(nextDirection);
 
-    if (pathInfo.pathPosTime && handleBarrier(creep, pathInfo, options)) return true;
+    if (pathInfo.pathPosTime && handleBarrier(creep, nextPos, options)) return true;
 
     const moveResult = creep.move(nextDirection);
     if (moveResult === OK || moveResult === ERR_TIRED) {
-        creep.memory._shibMove = pathInfo;
         return true;
     }
     if (moveResult === ERR_BUSY) return true;
     return false;
 }
 
-function handleBarrier(creep, pathInfo, options) {
-    if (!pathInfo.newPos) return false;
-    const barrier = pathInfo.newPos.checkForBarrierStructure();
-    if (!barrier || (INTEL[pathInfo.newPos.roomName]?.owner && FRIENDLIES.includes(INTEL[pathInfo.newPos.roomName].owner))) return false;
+function handleBarrier(creep, nextPos, options) {
+    if (!nextPos) return false;
+    const barrier = nextPos.checkForBarrierStructure();
+    if (!barrier || (INTEL[nextPos.roomName]?.owner && FRIENDLIES.includes(INTEL[nextPos.roomName].owner))) return false;
 
     if (options.tunnel || creep.hasActiveBodyparts(ATTACK) || creep.hasActiveBodyparts(WORK) || creep.hasActiveBodyparts(RANGED_ATTACK)) {
         creep.memory.barrierClearing = barrier.id;
         if (creep.attack(barrier) === OK || creep.dismantle(barrier) === OK || creep.rangedAttack(barrier) === OK) {
-            pathInfo.pathPosTime = 0;
+            const moveState = getShibMove(creep);
+            if (moveState) moveState.pathPosTime = 0;
             return true;
         }
     }
-    creep.memory._shibMove = undefined;
+    clearShibMove(creep);
     return false;
 }
 
 function shibPath(creep, heading, pathInfo, origin, target, options) {
-    pathInfo.pathOptions = options;
-    applyClaimRouting(creep, options, target);
+    pathInfo.pathOptions = {
+        range: options.range,
+        offRoad: options.offRoad || undefined,
+        ignoreRoads: options.ignoreRoads || undefined,
+    };
+    if (applyClaimRouting(creep, options, target)) {
+        return false;
+    }
     const pathKey = `${origin.roomName}_${origin.x}_${origin.y}_${target.roomName}_${target.x}_${target.y}`;
 
     // Early exit for adjacent same-room targets
     if (origin.roomName === target.roomName && creep.pos.isNearTo(heading)) {
-        creep.memory._shibMove = undefined;
+        clearShibMove(creep);
         return creep.move(creep.pos.getDirectionTo(heading));
     }
 
@@ -290,13 +426,14 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         cached = getPath(creep, origin, target, pathInfo);
     }
     if (cached && options.ignoreCreeps) {
-        pathInfo.target = target;
+        pathInfo.target = {x: target.x, y: target.y, roomName: target.roomName};
         pathInfo.path = cached;
         pathInfo.usingCached = true;
-        pathInfo.newPos = creep.pos.positionAtDirection(parseInt(pathInfo.path[0], 10));
         pathInfo.pathPos = undefined;
         pathInfo.pathPosTime = 0;
-        creep.memory._shibMove = pathInfo;
+        if (options.fullRoute && options.fullRoute.length) pathInfo.fullRoute = options.fullRoute;
+        if (options.route && options.route.length) pathInfo.route = options.route;
+        setShibMove(creep, pathInfo);
         delete creep.memory.repathAttempt;
         delete creep.memory.badPathing;
         return executePath(creep, pathInfo, options, origin, heading);
@@ -306,28 +443,49 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         ? Game.map.getRoomLinearDistance(origin.roomName, target.roomName)
         : 0;
 
+    // Single scale by distance. Previous code did (distance+4)*distance which pushed
+    // multi-room CLAIM searches into 40k–60k maxOps and multi-CPU repaths.
     if (roomDistance) {
-        options.maxOps = DEFAULT_MAXOPS * (roomDistance + 4);
+        options.maxOps = Math.min(12000, DEFAULT_MAXOPS * (roomDistance + 2));
     } else {
-        options.maxOps = DEFAULT_MAXOPS;
+        options.maxOps = options.maxOps || DEFAULT_MAXOPS;
     }
 
+    // Prefer precomputed / in-progress route. Always re-calling findRoute ignored
+    // reserver mining routes and paid Game.map.findRoute on every repath.
     let allowedRooms = pathInfo.route || options.route;
     if (roomDistance) {
-        let route = findRoute(origin.roomName, target.roomName, options);
-        if (route) {
-            if (!route.includes(creep.room.name)) route.unshift(creep.room.name);
-            allowedRooms = route;
-            pathInfo.route = route;
+        if (allowedRooms && allowedRooms.length) {
+            if (!allowedRooms.includes(creep.room.name)) {
+                allowedRooms = [creep.room.name].concat(allowedRooms);
+            }
+            pathInfo.route = allowedRooms;
+        } else {
+            let route = findRoute(origin.roomName, target.roomName, options);
+            if (route && route.length) {
+                if (!route.includes(creep.room.name)) route = [creep.room.name].concat(route);
+                allowedRooms = route;
+                pathInfo.route = route;
+            }
         }
     }
-    if (!allowedRooms) {
-        allowedRooms = [origin.roomName].concat(Object.values(Game.map.describeExits(origin.roomName)));
+    if (options.fullRoute && options.fullRoute.length) pathInfo.fullRoute = options.fullRoute;
+    if (!allowedRooms || !allowedRooms.length) {
+        allowedRooms = roomDistance
+            ? [origin.roomName].concat(Object.values(Game.map.describeExits(origin.roomName)))
+            : [origin.roomName];
     }
 
-    const result = PathFinder.search(origin, {pos: target, range: options.range}, {
-        maxOps: roomDistance ? options.maxOps * roomDistance : options.maxOps,
-        maxRooms: allowedRooms.length ? allowedRooms.length + 2 : 1,
+    const goals = options.hopGoals && options.hopGoals.length
+        ? options.hopGoals
+        : {pos: target, range: options.range};
+    const result = PathFinder.search(origin, goals, {
+        maxOps: options.maxOps,
+        // Same-room searches never need to leave. Multi-room: never cap below
+        // the allowed list (Math.min with maxRooms=7 used to abort 8+ room trips).
+        maxRooms: origin.roomName === target.roomName
+            ? 1
+            : (allowedRooms.length ? allowedRooms.length + 2 : (options.maxRooms || 1)),
         heuristicWeight: 1,
         roomCallback: (roomName) => {
             if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
@@ -336,18 +494,16 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     });
 
     if (!result.incomplete) {
-        const direction = parseInt(result.path[0], 10);
-        pathInfo.target = target;
+        pathInfo.target = {x: target.x, y: target.y, roomName: target.roomName};
         pathInfo.path = serializePath(creep.pos, result.path);
         pathInfo.pathKey = pathKey;
         pathInfo.pathAge = 0;
-        pathInfo.newPos = creep.pos.positionAtDirection(direction);
         pathInfo.pathPos = undefined;
         pathInfo.pathPosTime = 0;
-        creep.memory._shibMove = pathInfo;
+        setShibMove(creep, pathInfo);
 
         if (options.ignoreCreeps) cachePath(creep, origin, target, pathInfo);
-        if (options.getPath) return creep.memory.getPath = pathInfo.path;
+        if (options.getPath) return pathInfo.path;
 
         // Success - clear failure state
         delete creep.memory.repathAttempt;
@@ -387,14 +543,24 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 }
                 // Non-operation destination (e.g. explorer signing/exploring): just give up this target.
                 log.d(`${creep.name} is stuck in ${creep.room.name} and is unable to path from ${creep.pos} to ${target}. Clearing destination.`);
-                creep.memory._shibMove = undefined;
+                clearShibMove(creep);
                 if (dest) creep.memory.destination = undefined;
                 return false;
             }
-            log.d(`${creep.name} is stuck in ${creep.room.name} and is unable to path from ${creep.pos} to ${target}. Clearing destination.`);
-            creep.memory._shibMove = undefined;
+            // Multi-room path failure: idle and repath later. Do not clear destination
+            // for active ops — operation handlers (e.g. strongholdAttack) still need it
+            // and RoomPosition throws on undefined roomName.
+            log.d(`${creep.name} is stuck in ${creep.room.name} and is unable to path from ${creep.pos} to ${target}. Clearing path state.`);
+            clearShibMove(creep);
             creep.memory.badPathing = undefined;
-            if (creep.memory.destination) creep.memory.destination = undefined;
+            const dest = creep.memory.destination;
+            const hasOp = dest && (
+                (Memory.targetRooms && Memory.targetRooms[dest]) ||
+                (Memory.auxiliaryTargets && Memory.auxiliaryTargets[dest])
+            );
+            if (dest && !hasOp && !creep.memory.operation) {
+                creep.memory.destination = undefined;
+            }
             creep.idleFor(5);
             return false;
         }
@@ -419,14 +585,12 @@ function creepBumping(creep, pathInfo, options) {
     if (!nextDirection) return false;
 
     const nextPosition = creep.pos.positionAtDirection(nextDirection);
-    pathInfo.newPos = nextPosition;
     if (!nextPosition) return false;
 
     const bumpCreep = findOccupyingCreep(creep.room, nextPosition, creep.id);
 
     // No friendly on the next tile (structure, edge case, enemy): repath — do not random thrash.
     if (!bumpCreep) {
-        creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
         return false;
     }
 
@@ -443,7 +607,6 @@ function creepBumping(creep, pathInfo, options) {
         isImmobileBlocker(bumpCreep) ||
         isPullSwapBlocker(bumpCreep) ||
         !isBumperCandidate(bumpCreep)) {
-        creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
         return false;
     }
 
@@ -451,13 +614,13 @@ function creepBumping(creep, pathInfo, options) {
     if (creepWinsTraffic(creep, bumpCreep)) {
         const yieldDir = findYieldDirection(bumpCreep, nextPosition);
         if (!yieldDir) {
-            creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
             return false;
         }
         bumpCreep.move(yieldDir);
         if (ICONS?.traffic) bumpCreep.say(ICONS.traffic, true);
         markMoveBlocked(bumpCreep);
-        if (bumpCreep.memory?._shibMove) bumpCreep.memory._shibMove.pathPosTime = 0;
+        const bumpMove = getShibMove(bumpCreep);
+        if (bumpMove) bumpMove.pathPosTime = 0;
         creep.move(nextDirection);
         return true;
     }
@@ -468,24 +631,21 @@ function creepBumping(creep, pathInfo, options) {
     if (selfYield) {
         creep.move(selfYield);
         markMoveBlocked(creep);
-        delete creep.memory._shibMove;
+        clearShibMove(creep);
         return true;
     }
 
-    creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
     return false;
 }
 
+executePath = profiler.registerFN(executePath, 'shibMove.executePath');
+shibPath = profiler.registerFN(shibPath, 'shibMove.shibPath');
+creepBumping = profiler.registerFN(creepBumping, 'shibMove.creepBumping');
+
 module.exports = {
-
     shibMove,
-
     executePath,
-
     handleBarrier,
-
     shibPath,
-
     creepBumping,
-
 };

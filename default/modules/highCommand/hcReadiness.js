@@ -76,12 +76,16 @@ function applyStickyCombatReady(room, rawReady) {
     if (!room.memory.readinessSticky) room.memory.readinessSticky = {};
     const sticky = room.memory.readinessSticky;
     if (rawReady) {
-        sticky.combatReady = true;
-        sticky.until = Game.time + STICKY_CR_TTL;
+        // Refresh only when missing or near expiry — writing Game.time every tick
+        // dirties room.memory for every combat-ready room.
+        if (!sticky.combatReady || !sticky.until || sticky.until < Game.time + 10) {
+            sticky.combatReady = true;
+            sticky.until = Game.time + STICKY_CR_TTL;
+        }
         return true;
     }
     if (sticky.combatReady && sticky.until > Game.time && (room.energyState || 0) >= 1) return true;
-    if (sticky.until <= Game.time) delete sticky.combatReady;
+    if (sticky.until <= Game.time && sticky.combatReady) delete sticky.combatReady;
     return false;
 }
 
@@ -252,9 +256,92 @@ function warBudgetScale(budget) {
     return 0.35;
 }
 
+const TICK_CPU_WINDOW = 25;
+const tickCpuSamples = [];
+
+function noteTickCpu(used) {
+    const value = used != null ? used : (typeof Game !== 'undefined' && Game.cpu ? Game.cpu.getUsed() : 0);
+    tickCpuSamples.push(value);
+    if (tickCpuSamples.length > TICK_CPU_WINDOW) tickCpuSamples.shift();
+}
+
+function averageTickCpu() {
+    if (!tickCpuSamples.length) {
+        return typeof Game !== 'undefined' && Game.cpu ? Game.cpu.getUsed() : 0;
+    }
+    let sum = 0;
+    for (let i = 0; i < tickCpuSamples.length; i++) sum += tickCpuSamples[i];
+    return sum / tickCpuSamples.length;
+}
+
+/**
+ * Whether the empire can absorb another owned room (or equivalent new work).
+ * Uses rolling tick CPU, bucket, and rooms already in CPU-emergency remotes-off.
+ * @returns {{ok: boolean, reason?: string, avg?: number, spare?: number, need?: number}}
+ */
+function canSpareCpuForRoom() {
+    const limit = (typeof Game !== 'undefined' && Game.cpu && Game.cpu.limit) || 20;
+    const bucket = (typeof Game !== 'undefined' && Game.cpu && Game.cpu.bucket) || 0;
+    const bucketMax = typeof BUCKET_MAX !== 'undefined' ? BUCKET_MAX : 10000;
+    const rooms = (typeof MY_ROOMS !== 'undefined' && MY_ROOMS && MY_ROOMS.length) ? MY_ROOMS.length : 0;
+    const avg = averageTickCpu();
+    const newShare = (limit * 0.95) / Math.max(1, rooms + 1);
+    const need = Math.max(8, limit * 0.12, newShare);
+    const spare = limit - avg;
+
+    if (bucket < bucketMax * 0.75) {
+        return {ok: false, reason: `bucket ${bucket}`, avg, spare, need};
+    }
+    const tracking = typeof Memory !== 'undefined' ? Memory.cpuTracking : null;
+    if (tracking && tracking.roomPenalty && tracking.roomPenalty + 50000 > Game.time) {
+        return {ok: false, reason: 'cpu roomPenalty', avg, spare, need};
+    }
+    if (tracking && (tracking.bucketIssueCount || 0) >= 10) {
+        return {ok: false, reason: `bucketIssues ${tracking.bucketIssueCount}`, avg, spare, need};
+    }
+
+    if (typeof MY_ROOMS !== 'undefined' && MY_ROOMS) {
+        for (let i = 0; i < MY_ROOMS.length; i++) {
+            const room = Game.rooms[MY_ROOMS[i]];
+            if (room && room.memory && room.memory.noRemote && room.memory.noRemote > Game.time) {
+                return {ok: false, reason: `${room.name} remotes-off`, avg, spare, need};
+            }
+        }
+    }
+
+    const arrays = typeof ROOM_CPU_ARRAY !== 'undefined' ? ROOM_CPU_ARRAY : {};
+    const currentShare = (limit * 0.95) / Math.max(1, rooms);
+    let over = 0;
+    let sampled = 0;
+    if (typeof MY_ROOMS !== 'undefined' && MY_ROOMS) {
+        for (let i = 0; i < MY_ROOMS.length; i++) {
+            const samples = arrays[MY_ROOMS[i]];
+            if (!samples || samples.length < 10) continue;
+            sampled++;
+            let sum = 0;
+            for (let j = 0; j < samples.length; j++) sum += samples[j];
+            if (sum / samples.length > currentShare) over++;
+        }
+    }
+    if (sampled && over / sampled >= 0.3) {
+        return {ok: false, reason: `rooms over share ${over}/${sampled}`, avg, spare, need};
+    }
+
+    if (avg > limit - need) {
+        return {ok: false, reason: `tick ${avg.toFixed(1)}/${limit} need ${need.toFixed(1)}`, avg, spare, need};
+    }
+    return {ok: true, avg, spare, need};
+}
+
 function applyOperationLimits(state) {
-    const readiness = getEmpireReadiness(true);
+    const readiness = getEmpireReadiness();
+    const cpu = canSpareCpuForRoom();
+    readiness.cpuSpareRoom = cpu.ok;
+    readiness.cpuReason = cpu.reason || null;
+    readiness.tickCpuAvg = cpu.avg;
+    readiness.cpuSpare = cpu.spare;
     state.EMPIRE_READINESS = readiness;
+    state.ALLOW_NEW_OPS = !!(cpu.ok && readiness.canLaunchOps);
 
     if (!readiness.canLaunchOps) {
         state.OPERATION_LIMIT = 0;
@@ -265,7 +352,8 @@ function applyOperationLimits(state) {
     }
 
     const budgetScale = warBudgetScale(readiness.warBudget);
-    state.OFFENSIVE_ALLOWED = !readiness.empireCritical && readiness.warBudget >= WAR_BUDGET_OFFENSE_MIN;
+    // Tight CPU: keep existing ops, but do not start new offensives / rooms.
+    state.OFFENSIVE_ALLOWED = cpu.ok && !readiness.empireCritical && readiness.warBudget >= WAR_BUDGET_OFFENSE_MIN;
 
     if (readiness.empireCritical) {
         state.OPERATION_LIMIT = Math.max(1, Math.floor(readiness.weightedCombatReady * 0.25 * budgetScale));
@@ -292,6 +380,7 @@ function applyOperationLimits(state) {
 function getOpsPauseReason(readiness) {
     if (!readiness) readiness = getEmpireReadiness();
     if (!readiness.canLaunchOps) return `CR ${readiness.combatReady}/${readiness.minCombatReady}`;
+    if (readiness.cpuSpareRoom === false) return `cpu ${readiness.cpuReason || 'tight'}`;
     return null;
 }
 
@@ -301,6 +390,7 @@ function getOpsStressNote(readiness) {
     const parts = [];
     if (readiness.empireCritical) parts.push(`critical ${readiness.struggling}/${readiness.total}`);
     else if (readiness.empireStressed) parts.push(`stressed ${readiness.struggling}/${readiness.total}`);
+    if (readiness.cpuSpareRoom === false) parts.push(`cpu ${readiness.cpuReason || 'tight'}`);
     if (readiness.warBudget < WAR_BUDGET_OFFENSE_MIN) parts.push(`budget ${Math.round(readiness.warBudget)}`);
     else if (readiness.siegeLimitMultiplier < 1) {
         parts.push(`siege x${readiness.siegeLimitMultiplier.toFixed(1)}`);
@@ -332,4 +422,7 @@ module.exports = {
     getOpsPauseReason,
     getOpsStressNote,
     empireOpsPaused,
+    noteTickCpu,
+    averageTickCpu,
+    canSpareCpuForRoom,
 };

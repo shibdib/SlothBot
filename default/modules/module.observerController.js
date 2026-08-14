@@ -7,12 +7,12 @@
  * - Cross-observer dedup: skip rooms already in-flight on any observer
  * - Cross-observer recently-observed TTL: skip rooms another observer refreshed recently
  * - Strategic picks skip fresh intel unless priority >= HIGH_PRIORITY
- * - Heavy intel refresh for claim corridor / expansion scouts (hubCheck + cached)
+ * - Heavy intel refresh only when cached is stale (HEAVY_INTEL_TICKS); hubCheck is once-and-stamped
  * - Highway, active remotes, early-warning exits, and auxiliary scout ops in target pool
  * - Background/exploratory sweep now reliably refreshes very old intel (BACKGROUND_STALE_TICKS window)
  * - Throttled low-prio strategic work opportunistically yields to oldest-intel maintenance
  * - Border-fill low-prio now only for truly background-stale neighbors (prevents starving distant old intel)
- * - High-priority reachable work bypasses throttle
+ * - Throttle bypass only for claim/support (>=95); expansion scouts wait THROTTLE_TICKS
  * - Skip rooms with live creep vision (owned rooms + any room with my creeps)
  */
 
@@ -26,6 +26,7 @@ const TUNING = {
     PRUNE_INTERVAL_TICKS: 1500,
     MAX_OBSERVE_RETRIES: 3,
     HIGH_PRIORITY: 85,
+    THROTTLE_BYPASS_PRIORITY: 95,     // claim (100) / requestingSupport (95); not expansion scouts (88)
     RECENTLY_OBSERVED_TICKS: 75,
     HIGH_STRATEGIC_FOR_RANDOM: 50,    // below this, prefer background oldest-intel maintenance over low-prio strategic
     HEAVY_INTEL_TICKS: CREEP_LIFE_TIME * 5,
@@ -66,8 +67,8 @@ class ObserverControl {
         const topPriority = reachable.length ? (priorities[reachable[0]] || 0) : 0;
         const throttled = (state.lastRun[roomName] | 0) + TUNING.THROTTLE_TICKS > currentTime;
 
-        // High priority strategic work bypasses throttle (as before).
-        if (throttled && topPriority >= TUNING.HIGH_PRIORITY) {
+        // Only claim / support bypass throttle. Expansion scouts (88) wait.
+        if (throttled && topPriority >= TUNING.THROTTLE_BYPASS_PRIORITY) {
             // fall through to pick it
         } else if (throttled && topPriority > 0 && topPriority < TUNING.HIGH_STRATEGIC_FOR_RANDOM) {
             // Throttled + only low/medium strategic work available.
@@ -111,9 +112,7 @@ class ObserverControl {
 
         const observed = Game.rooms[previous];
         if (observed) {
-            const priorities = this.getStrategicPriorities(currentTime);
-            const priority = priorities[previous] || 0;
-            const forceHeavy = priority >= 88 || needsHeavyIntel(INTEL[previous], currentTime);
+            const forceHeavy = needsHeavyIntel(INTEL[previous], currentTime);
             observed.cacheRoomIntel(forceHeavy);
             observer.operationPlanner(observed);
             markRecentlyObserved(state, previous, currentTime);
@@ -505,9 +504,7 @@ function isIntelStale(intel, currentTime) {
 
 function needsHeavyIntel(intel, currentTime) {
     if (!intel) return true;
-    if (!intel.cached || intel.cached + TUNING.HEAVY_INTEL_TICKS <= currentTime) return true;
-    if (!intel.owner && !intel.hubCheck && (intel.sources === 2 || intel.sources === undefined)) return true;
-    return false;
+    return !intel.cached || intel.cached + TUNING.HEAVY_INTEL_TICKS <= currentTime;
 }
 
 function parseRoomName(name) {

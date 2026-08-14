@@ -383,7 +383,14 @@ class RoleLabTech {
     }
 
     getHubLabIds() {
-        const hub = this.room.memory.labHub;
+        // C4: plan.anchors.lab first.
+        let hub = null;
+        try {
+            const res = require('planDoc').getLabHub(this.room);
+            hub = res && res.hub;
+        } catch (e) {
+            hub = this.room.memory.labHub;
+        }
         if (!hub || hub.x === undefined) return new Set();
         const ids = new Set();
         for (const lab of this.room.labs) {

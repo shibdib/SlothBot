@@ -32,7 +32,7 @@ function auxiliaryOperations() {
         if (op.type === 'commodity') activeCommodityOps++;
     }
 
-    if (MAX_LEVEL >= 4 && auxLimit > 0) {
+    if (MAX_LEVEL >= 4 && auxLimit > 0 && state.ALLOW_NEW_OPS) {
         // Power
         if (MAX_LEVEL >= 8 && activePowerOps === 0 && getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT) {
             let best = null, bestScore = Infinity;

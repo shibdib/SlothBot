@@ -41,10 +41,20 @@ module.exports.towerController = function (room) {
         : CRITICAL_STRUCTURE_RATIO_PEACE;
 
     if (!towerCache[cacheKey] || towerCache[cacheKey].tick !== currentTime) {
-        const criticalStructures = room.structures.filter(s =>
-            CRITICAL_STRUCTURE_TYPES.has(s.structureType) &&
-            s.hits < s.hitsMax * ratioThreshold
-        );
+        const criticalStructures = [];
+        const addCritical = (s) => {
+            if (s && CRITICAL_STRUCTURE_TYPES.has(s.structureType) && s.hits < s.hitsMax * ratioThreshold) {
+                criticalStructures.push(s);
+            }
+        };
+        addCritical(room.storage);
+        addCritical(room.terminal);
+        addCritical(room.factory);
+        addCritical(room.nuker);
+        addCritical(room.powerSpawn);
+        for (const s of room.spawns) addCritical(s);
+        for (const s of room.towers) addCritical(s);
+        for (const s of room.labs) addCritical(s);
 
         const combatBarriers = hasHostiles
             ? room.barriers.filter(b =>

@@ -87,6 +87,30 @@ function isStructureCombatHostile(structure) {
     return true;
 }
 
+function allyAttackersOn(room, target) {
+    if (!room || !target) return 0;
+    if (room._allyAtkTick !== Game.time) {
+        const map = Object.create(null);
+        const mine = room.myCreeps;
+        for (let i = 0; i < mine.length; i++) {
+            const c = mine[i];
+            const id = c.memory && c.memory.target;
+            if (!id) continue;
+            if (!map[id]) map[id] = [];
+            map[id].push(c);
+        }
+        room._allyAtk = map;
+        room._allyAtkTick = Game.time;
+    }
+    const list = room._allyAtk[target.id];
+    if (!list || !list.length) return 0;
+    let n = 0;
+    for (let i = 0; i < list.length; i++) {
+        if (list[i].pos.getRangeTo(target) <= 5) n++;
+    }
+    return n;
+}
+
 function combatTargetDebug(creep, message) {
     if (!Memory.combatTargetDebug) return;
     if (!creep.memory._combatDbgTick || creep.memory._combatDbgTick + 10 <= Game.time) {
@@ -167,12 +191,11 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
     let hostile = this.findClosestEnemy(barrier, ignoreBorder, guardLocation, guardRange);
 
     if (hostile) {
-        this.memory.target = hostile.id;
-        this.memory.targetPos = JSON.stringify(hostile.pos);
-    } else {
+        if (this.memory.target !== hostile.id) this.memory.target = hostile.id;
+    } else if (this.memory.target !== undefined) {
         this.memory.target = undefined;
-        this.memory.targetPos = undefined;
     }
+    if (this.memory.targetPos !== undefined) this.memory.targetPos = undefined;
 
     if (hostile?.pos.checkForRampart()) {
         const rampart = hostile.pos.checkForRampart();
@@ -184,8 +207,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
 
     if (hostile && !isValidHostileTarget(hostile)) {
         hostile = undefined;
-        this.memory.target = undefined;
-        this.memory.targetPos = undefined;
+        if (this.memory.target !== undefined) this.memory.target = undefined;
     }
 
     if (hostile && combatAction(this, hostile, rampart)) {
@@ -194,7 +216,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
     }
 
     const movedToSites = this.moveToHostileConstructionSites();
-    if (!hostile && !movedToSites) {
+    if (!hostile && !movedToSites && Memory.combatTargetDebug) {
         const cores = this.room.structures.filter(s => s.structureType === STRUCTURE_INVADER_CORE);
         const invaderStructs = this.room.structures.filter(s => structOwner(s) === 'Invader').length;
         combatTargetDebug(this,
@@ -297,10 +319,8 @@ Creep.prototype.findClosestEnemy = function (structuresOnly = false, ignoreBorde
             if (target.hasActiveBodyparts(WORK)) score += 200;
 
             // Focus fire bonus: prefer targets already being attacked by allies
-            const alliesAttacking = this.room.myCreeps.filter(c =>
-                c.memory.target === target.id && c.pos.getRangeTo(target) <= 5
-            ).length;
-            score += alliesAttacking * 150;
+            const allies = allyAttackersOn(this.room, target);
+            if (allies) score += allies * 150;
         } else {
             // Structures
             if (target.structureType === STRUCTURE_INVADER_CORE) score += 950;
@@ -840,7 +860,9 @@ Creep.prototype.formSquad = function () {
         // and two solos converging on a destination from different sides.
         let candidates = creep.room.myCreeps.filter(candidate);
         if (!candidates.length) {
-            candidates = _.filter(Game.creeps, c =>
+            const pool = (global.world && global.world.militaryCreeps) || Game.creeps;
+            const list = Array.isArray(pool) ? pool : Object.values(pool);
+            candidates = list.filter(c =>
                 c.my && c.room.name !== creep.room.name &&
                 Game.map.getRoomLinearDistance(creep.room.name, c.room.name) <= 1 &&
                 candidate(c)

@@ -464,18 +464,19 @@ let helpers = function () {
      */
     global.findClosestOwnedRoom = function (roomName, range = false, minLevel = 1, includeAllies = false, linear = false) {
         const cacheKey = `${roomName}_${minLevel}_${includeAllies}`;
+        const cache = linear ? closestLinearCache : closestCache;
 
         // Direct check if the current room is owned and meets level criteria
         if (MY_ROOMS.includes(roomName)) {
             const room = Game.rooms[roomName];
             if (room && room.controller && room.controller.level >= minLevel) {
-                closestCache[cacheKey] = {closest: roomName, distance: 0, lastUpdated: Game.time};
+                cache[cacheKey] = {closest: roomName, distance: 0, lastUpdated: Game.time};
                 return range ? 0 : roomName;
             }
         }
 
-        // Cache check
-        const cached = closestCache[cacheKey];
+        // Cache check — linear and route lookups are different values, keep them apart.
+        const cached = cache[cacheKey];
         if (cached && Game.time - cached.lastUpdated < CREEP_LIFE_TIME * 3) {
             return range ? cached.distance : cached.closest;
         }
@@ -506,8 +507,7 @@ let helpers = function () {
             if (!room) continue;
             if (!INTEL[name]) room.cacheRoomIntel();
             if (!INTEL[name] || INTEL[name].level < minLevel) continue;
-            const route = room.shibRoute(roomName);
-            const distance = Array.isArray(route) && route.length ? route.length : Infinity;
+            const distance = room.routeDistance(roomName);
             if (distance < closestDistance) {
                 closestDistance = distance;
                 closest = name;
@@ -520,8 +520,7 @@ let helpers = function () {
             const firstSpawn = Game.spawns[Object.keys(Game.spawns)[0]];
             if (firstSpawn && firstSpawn.room.controller && firstSpawn.room.controller.level >= minLevel) {
                 closest = firstSpawn.room.name;
-                const fallbackRoute = firstSpawn.room.shibRoute(roomName);
-                closestDistance = Array.isArray(fallbackRoute) && fallbackRoute.length ? fallbackRoute.length : Infinity;
+                closestDistance = firstSpawn.room.routeDistance(roomName);
             } else {
                 return range ? Infinity : undefined;
             }

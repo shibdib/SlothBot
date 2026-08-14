@@ -9,9 +9,22 @@
  */
 
 
+const profiler = require('tools.profiler');
 const {STATE_STUCK} = require('pathState');
+const {getPathKey, hashRoomStructures, reverseDirection, getShibMove} = require('pathUtils');
 
-const {getPathKey, hashRoomStructures, reverseDirection} = require('pathUtils');
+const PATH_CACHE_TTL = 25;
+const PATH_CACHE_MAX = 300;
+
+function prunePathCache() {
+    const cache = CACHE.PATH_CACHE;
+    if (!cache) return;
+    const keys = Object.keys(cache);
+    if (keys.length <= PATH_CACHE_MAX) return;
+    keys.sort((a, b) => (cache[a].tick || 0) - (cache[b].tick || 0));
+    const drop = keys.length - PATH_CACHE_MAX;
+    for (let i = 0; i < drop; i++) delete cache[keys[i]];
+}
 
 function serializePath(startPos, path) {
 
@@ -68,6 +81,7 @@ function cachePath(creep, from, to, pathInfo) {
         }
     }
     CACHE.PATH_CACHE[key] = entry;
+    prunePathCache();
 }
 
 function getPath(creep, from, to, pathInfo) {
@@ -76,21 +90,20 @@ function getPath(creep, from, to, pathInfo) {
     const key = getPathKey(from, to, weight);
     let cached = CACHE.PATH_CACHE[key] || CACHE.PATH_CACHE[getPathKey(to, from, weight)];
 
-    if (creep.room && cached && Game.time < cached.tick + 25 &&
+    if (creep.room && cached && Game.time < cached.tick + PATH_CACHE_TTL &&
         cached.structuresHash === hashRoomStructures(creep.room) &&
-        (creep.memory._shibMove?.pathPosTime || 0) < STATE_STUCK) {
+        (getShibMove(creep)?.pathPosTime || 0) < STATE_STUCK) {
         cached.uses++;
         return cached.path;
     }
     return null;
 }
 
+getPath = profiler.registerFN(getPath, 'shibMove.getPath');
+cachePath = profiler.registerFN(cachePath, 'shibMove.cachePath');
+
 module.exports = {
-
     serializePath,
-
     cachePath,
-
     getPath,
-
 };

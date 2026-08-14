@@ -73,12 +73,7 @@ function tickRoom(room) {
         const links = room.links;
         if (links) for (const l of links) linkIds.add(l.id);
         const powerSpawnIds = new Set();
-        const structures = room.structures;
-        if (structures) {
-            for (let s = 0; s < structures.length; s++) {
-                if (structures[s].structureType === STRUCTURE_POWER_SPAWN) powerSpawnIds.add(structures[s].id);
-            }
-        }
+        if (room.powerSpawn) powerSpawnIds.add(room.powerSpawn.id);
 
         for (let i = 0; i < events.length; i++) {
             const e = events[i];

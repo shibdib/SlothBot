@@ -9,27 +9,46 @@
  */
 
 
+const {getMilitaryCreeps} = require('hcUtils');
+
 const MAX_RESPONSE_DISTANCE = 5;
 
 const TRAVEL_TICKS_PER_ROOM = 50;
 
 const RESPONSE_DISPATCH_TTL = 200;
 
+const ROUTE_CACHE_TTL = 50;
+const routeDistCache = Object.create(null);
 
 function responseRouteDistance(from, to) {
     if (from === to) return 0;
+    if (Game.map.getRoomLinearDistance(from, to) > MAX_RESPONSE_DISTANCE) return Infinity;
+    const key = from + '_' + to;
+    const hit = routeDistCache[key];
+    if (hit && hit.tick + ROUTE_CACHE_TTL > Game.time) return hit.d;
     const route = Game.map.findRoute(from, to);
-    return typeof route === 'number' ? Infinity : route.length;
+    const d = typeof route === 'number' ? Infinity : route.length;
+    routeDistCache[key] = {d, tick: Game.time};
+    return d;
 }
 
 function manageResponseForces() {
-    const idleResponders = _.filter(Game.creeps, c => c.memory?.awaitingOrders && (!c.memory.partner || c.memory.leader));
+    const pool = getMilitaryCreeps();
+    const idleResponders = [];
+    const activeResponders = [];
+    const patrols = [];
+    for (let i = 0; i < pool.length; i++) {
+        const c = pool[i];
+        if (!c.memory) continue;
+        if (c.memory.awaitingOrders && (!c.memory.partner || c.memory.leader)) idleResponders.push(c);
+        else if (!c.memory.awaitingOrders) activeResponders.push(c);
+        if (c.memory.destination && c.memory.operation === 'borderPatrol') patrols.push(c);
+    }
     if (!idleResponders.length) return;
 
-    const activeResponders = _.filter(Game.creeps, c => c.memory && !c.memory.awaitingOrders);
     const target = getPriorityTarget();
 
-    trackPower();
+    trackPower(patrols);
 
     function getPriorityTarget() {
         const potential = [];
@@ -95,7 +114,8 @@ function manageResponseForces() {
             responsePower += creep.combatPower;
             creep.memory.destination = targetRoom;
             creep.memory.awaitingOrders = undefined;
-            creep.memory._shibMove = undefined;
+            if (creep.clearShibMove) creep.clearShibMove();
+            else delete creep.memory._shibMove;
             creep.memory.idle = undefined;
             assigned++;
 
@@ -132,8 +152,8 @@ function manageResponseForces() {
         }
     }
 
-    function trackPower() {
-        const patrols = _.filter(Game.creeps, c => c.my && c.memory.destination && c.memory.operation === 'borderPatrol');
+    function trackPower(patrols) {
+        if (!patrols || !patrols.length) return;
         const incoming = {};
 
         for (const patrol of patrols) {

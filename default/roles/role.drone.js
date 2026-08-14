@@ -101,15 +101,95 @@ class RoleDrone {
     taskedOut() {
         switch (this.creep.memory.task) {
             case 'upgrade':
-                return this.upgrading();
+                return this.continueUpgrade();
             case 'build':
             case 'repair':
-                return this.building();
+                return this.continueBuild();
             case 'haul':
-                return this.hauling();
+                return this.continueHaul();
             case 'waller':
-                return this.walling();
+                return this.continueWall();
         }
+        return false;
+    }
+
+    continueBuild() {
+        return this.creep.builderFunction();
+    }
+
+    continueHaul() {
+        const storageItem = Game.getObjectById(this.creep.memory.storageDestination);
+        if (!storageItem) {
+            delete this.creep.memory.storageDestination;
+            delete this.creep.memory.task;
+            return false;
+        }
+        const result = this.creep.transfer(storageItem, RESOURCE_ENERGY);
+        if (result === OK) {
+            delete this.creep.memory.storageDestination;
+            this.creep.clearShibMove();
+            return false;
+        }
+        if (result === ERR_NOT_IN_RANGE) {
+            this.creep.shibMove(storageItem);
+            return true;
+        }
+        delete this.creep.memory.storageDestination;
+        return false;
+    }
+
+    continueUpgrade() {
+        const controller = this.room.controller;
+        if (!controller || !controller.my || controller.upgradeBlocked || controller.level === 8) {
+            delete this.creep.memory.task;
+            return false;
+        }
+        if (!this.creep.memory.other) this.creep.memory.other = {};
+        this.creep.say('Praise!', true);
+        const result = this.creep.upgradeController(controller);
+        if (result === OK) {
+            this.creep.memory.other.stationary = true;
+        } else if (result === ERR_NOT_IN_RANGE) {
+            this.creep.shibMove(controller, {range: 3});
+        } else {
+            delete this.creep.memory.task;
+            return false;
+        }
+        return true;
+    }
+
+    continueWall() {
+        const target = Game.getObjectById(this.creep.memory.currentTarget);
+        if (!target) {
+            delete this.creep.memory.currentTarget;
+            delete this.creep.memory.targetWallHits;
+            delete this.creep.memory.task;
+            return false;
+        }
+
+        this.creep.memory.task = 'waller';
+        if (!this.creep.memory.targetWallHits) {
+            this.creep.memory.targetWallHits = Math.min(target.hits + 50000, RAMPART_HITS_MAX[this.room.controller.level] || 300000000);
+        }
+
+        this.creep.say(ICONS.castle, true);
+        const result = this.creep.repair(target);
+        if (result === OK) {
+            if (target.hits >= this.creep.memory.targetWallHits) {
+                delete this.creep.memory.currentTarget;
+                delete this.creep.memory.targetWallHits;
+                delete this.creep.memory.task;
+                return false;
+            }
+            return true;
+        }
+        if (result === ERR_NOT_IN_RANGE) {
+            this.creep.shibMove(target, {range: 3});
+            return true;
+        }
+        delete this.creep.memory.currentTarget;
+        delete this.creep.memory.targetWallHits;
+        delete this.creep.memory.task;
         return false;
     }
 
@@ -200,7 +280,7 @@ class RoleDrone {
                 const result = this.creep.transfer(storageItem, RESOURCE_ENERGY);
                 if (result === OK) {
                     delete this.creep.memory.storageDestination;
-                    delete this.creep.memory._shibMove;
+                    this.creep.clearShibMove();
                 } else if (result === ERR_NOT_IN_RANGE) {
                     this.creep.shibMove(storageItem);
                 } else {
@@ -244,11 +324,8 @@ class RoleDrone {
 
     building() {
         if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return false;
-        if (this.creep.memory.task || this.creep.constructionWork()) {
-            if (this.creep.builderFunction()) {
-                return true;
-            }
-        }
+        if (this.creep.memory.constructionSite) return this.continueBuild();
+        if (this.creep.constructionWork() && this.creep.builderFunction()) return true;
         return false;
     }
 
@@ -257,77 +334,50 @@ class RoleDrone {
         if (!threatLevel && !this.creep.memory.currentTarget) return false;
         if (!this.room.controller || !this.room.controller.my) return false;
 
-        if (!this.creep.memory.currentTarget || !Game.getObjectById(this.creep.memory.currentTarget)) {
-            if (this.room.constructionSites.length) {
-                const rampartSite = _.find(this.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
-                if (rampartSite && rampartSite.id) {
-                    this.creep.memory.task = 'build';
-                    this.creep.memory.constructionSite = rampartSite.id;
-                    return this.building();
-                }
-            }
+        if (this.creep.memory.currentTarget && Game.getObjectById(this.creep.memory.currentTarget)) {
+            return this.continueWall();
+        }
 
-            delete this.creep.memory.currentTarget;
-            delete this.creep.memory.targetWallHits;
-
-            const quadTrapWalls = new Set((this.room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
-            const barrierStructures = this.room.barriers.filter(s => {
-                const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : 100000;
-                return s.hits < cap;
-            });
-
-            if (!barrierStructures.length) return false;
-
-            let target;
-            if (threatLevel) {
-                target = _.min(barrierStructures, 'hits');
-            } else {
-                const available = barrierStructures.filter(s =>
-                    !this.room.myCreeps.some(c => c.memory.currentTarget === s.id && c.id !== this.creep.id)
-                );
-                if (available.length) {
-                    const minHits = _.min(available, 'hits').hits;
-                    const candidates = available.filter(s => s.hits <= minHits + 25000);
-                    target = this.creep.pos.findClosestByRange(candidates);
-                } else {
-                    target = _.min(barrierStructures, 'hits');
-                }
-            }
-
-            if (target) {
-                this.creep.memory.currentTarget = target.id;
-                this.creep.memory.task = 'waller';
-            } else {
-                return false;
+        if (this.room.constructionSites.length) {
+            const rampartSite = _.find(this.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL);
+            if (rampartSite && rampartSite.id) {
+                this.creep.memory.task = 'build';
+                this.creep.memory.constructionSite = rampartSite.id;
+                return this.continueBuild();
             }
         }
 
-        const target = Game.getObjectById(this.creep.memory.currentTarget);
-        if (!target) {
-            delete this.creep.memory.currentTarget;
-            delete this.creep.memory.targetWallHits;
-            return false;
-        }
+        delete this.creep.memory.currentTarget;
+        delete this.creep.memory.targetWallHits;
 
-        this.creep.memory.task = 'waller';
-        if (!this.creep.memory.targetWallHits) {
-            this.creep.memory.targetWallHits = Math.min(target.hits + 50000, RAMPART_HITS_MAX[this.room.controller.level] || 300000000);
-        }
+        const quadTrapWalls = new Set((this.room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
+        const barrierStructures = this.room.barriers.filter(s => {
+            const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : 100000;
+            return s.hits < cap;
+        });
 
-        this.creep.say(ICONS.castle, true);
-        const result = this.creep.repair(target);
-        if (result === OK) {
-            if (target.hits >= this.creep.memory.targetWallHits) {
-                delete this.creep.memory.currentTarget;
-                delete this.creep.memory.targetWallHits;
-            }
-        } else if (result === ERR_NOT_IN_RANGE) {
-            this.creep.shibMove(target, {range: 3});
+        if (!barrierStructures.length) return false;
+
+        let target;
+        if (threatLevel) {
+            target = _.min(barrierStructures, 'hits');
         } else {
-            delete this.creep.memory.currentTarget;
-            delete this.creep.memory.targetWallHits;
+            const available = barrierStructures.filter(s =>
+                !this.room.myCreeps.some(c => c.memory.currentTarget === s.id && c.id !== this.creep.id)
+            );
+            if (available.length) {
+                const minHits = _.min(available, 'hits').hits;
+                const candidates = available.filter(s => s.hits <= minHits + 25000);
+                target = this.creep.pos.findClosestByRange(candidates);
+            } else {
+                target = _.min(barrierStructures, 'hits');
+            }
         }
-        return true;
+
+        if (!target) return false;
+        this.creep.memory.currentTarget = target.id;
+        this.creep.memory.task = 'waller';
+        return this.continueWall();
     }
 }
 

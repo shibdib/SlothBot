@@ -10,12 +10,13 @@ const FactoryControl = require('module.factoryController');
 const profiler = require('tools.profiler');
 
 const FACTORY_ENERGY_BATCH = 50000;
+const LEDGER_TTL = 25;
 
 let equivalenceCache = null;
-let equivalenceTick = -1;
 
 function buildEquivalenceMap() {
-    if (equivalenceTick === Game.time && equivalenceCache) return equivalenceCache;
+    // COMMODITIES is static — build once per global, not every tick.
+    if (equivalenceCache) return equivalenceCache;
 
     const map = {};
     for (const product of Object.keys(COMMODITIES)) {
@@ -40,7 +41,6 @@ function buildEquivalenceMap() {
     }
 
     equivalenceCache = map;
-    equivalenceTick = Game.time;
     return map;
 }
 
@@ -178,9 +178,10 @@ function buildLedger() {
     return state.ledger;
 }
 
-function getLedger() {
-    if (!state.ledger || state.ledger.tick !== Game.time) return buildLedger();
-    return state.ledger;
+function getLedger(force = false) {
+    if (state.ledger && state.ledger.tick === Game.time) return state.ledger;
+    if (!force && state.ledger && state.ledger.tick + LEDGER_TTL > Game.time) return state.ledger;
+    return buildLedger();
 }
 
 function getEffectiveSupply(resource, ledger = state.ledger) {

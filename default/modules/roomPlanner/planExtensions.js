@@ -1,243 +1,54 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  *
- * Dynamic and source-adjacent extension placement.
+ * Extensions ACT (world mutate) + compat re-exports of planGeomExtensions (E4).
+ *
+ * Tick placement: placeExtensions + siteBudget.
+ * These helpers remain for console / wipe recovery.
  */
 
-const {extensionPositionCache, dynamicLayoutCache} = require('planState');
+const {ensurePlan, getPlan, pushFailure, FailureCodes, packTiles} = require('planDoc');
+const siteBudget = require('planSiteBudget');
+const {isPlannerShadow} = require('planFlag');
+const {hasSpawnOrSpawnSite} = require('planActors');
 
-const {bunkerTemplate, coreTemplate} = require('planTemplates');
+const geom = require('planGeomExtensions');
+const {
+    shouldDeferDynamicSpecials,
+    getExtensionDeficit,
+    DYNAMIC_SPECIAL_EXTENSION_DEFICIT_GATE,
+    DYNAMIC_SPECIAL_STRUCTURES,
+    getDynamicSpecialAssignments,
+    buildLayoutExcluded,
+    getExtensionClearanceViolation,
+    classifyExtensionTile,
+    classifySourceAccessTile,
+    EXTENSION_LAYOUT_VERSION,
+    clearDynamicLayoutMemory,
+    getExtensionPlacementLimit,
+    getExtensionBatchMax,
+    getExtensionPositions,
+    getCorridorPositions,
+    countPlaceableBunkerExtensions,
+    findExtensionCandidatesNearHub,
+    countOwnedOrSites,
+} = geom;
 
-const {invalidateRampartSpots, recalculateRampartsForRoom} = require('planRamparts');
+const {bunkerTemplate} = require('planTemplates');
+const {invalidateRampartSpots} = require('planGeomRamparts');
+const {recalculateRampartsForRoom} = require('planRamparts');
 const {
     canPlaceConstructionSite,
     tryCreateConstructionSite,
     roomConstructionSiteBudget,
     invalidateRoomConstructionSiteCache,
+    resolveSourceContainer,
+    hasSourceContainerSite,
+    resolveControllerContainer,
+    hasControllerContainerSite,
 } = require('planUtils');
 
-const EXTENSION_BATCH_MAX = 3;
-const EXTENSION_BATCH_RUSH = 5;
-// Dynamic extension clearances (Chebyshev / getRangeTo).
-const EXTENSION_EXIT_CLEARANCE = 5;
-const EXTENSION_SOURCE_CLEARANCE = 2;
-const EXTENSION_CONTROLLER_CLEARANCE = 3;
-const EXTENSION_MINERAL_CLEARANCE = 2;
-// Keep ring around spawns open so new creeps can spawn onto a free tile.
-const EXTENSION_SPAWN_CLEARANCE = 1;
-// Legacy alias used by older call sites / audits.
-const EXTENSION_ANCHOR_CLEARANCE = EXTENSION_SOURCE_CLEARANCE;
-// v6: per-anchor clearances + spawn apron.
-const EXTENSION_LAYOUT_VERSION = 6;
-
-const DYNAMIC_EXTENSION_TARGET = 60;
-const DYNAMIC_EXTENSION_CANDIDATE_CAP = 120;
-const CARDINALS = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-const OCTALS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
-
-/**
- * While extension deficit is above this, dynamic rooms:
- *  - do not reserve hub tiles for factory/powerSpawn/nuker/observer
- *  - do not place those specials (or destroy extensions for them)
- *  - may cancel idle special construction sites to free the room site cap
- * Energy capacity recovery beats late-game singles after a wipe.
- */
-const DYNAMIC_SPECIAL_EXTENSION_DEFICIT_GATE = 5;
-
-/**
- * Late-game singles for dynamic (non-bunker) rooms.
- * Assigned to the N closest checkerboard tiles to the hub (replacing extension slots).
- * Order is stable so rebuilds keep the same tiles. Factory is first (RCL 7).
- */
-const DYNAMIC_SPECIAL_STRUCTURES = [
-    {structureType: STRUCTURE_FACTORY, minRcl: 7},
-    {structureType: STRUCTURE_POWER_SPAWN, minRcl: 8},
-    {structureType: STRUCTURE_NUKER, minRcl: 8},
-    {structureType: STRUCTURE_OBSERVER, minRcl: 8},
-];
-
 const DYNAMIC_SPECIAL_SITE_TYPES = DYNAMIC_SPECIAL_STRUCTURES.map(d => d.structureType);
-
-/** True when wipe/recovery should prefer extensions over dynamic specials. */
-function shouldDeferDynamicSpecials(room) {
-    return !!(room && room.memory && room.memory.dynamicLayout &&
-        getExtensionDeficit(room) > DYNAMIC_SPECIAL_EXTENSION_DEFICIT_GATE);
-}
-
-/**
- * Drop only the extension plan (keep special slot packing stable across deficit swings).
- */
-function clearDynamicExtensionPlanOnly(room) {
-    delete room.memory.dynamicExtensionsPacked;
-    delete room.memory.dynamicCorridorPacked;
-    delete room.memory.dynamicExtensionsVersion;
-    delete dynamicLayoutCache[room.name];
-    delete extensionPositionCache[room.name];
-}
-
-/**
- * When specials are deferred, hub tiles they held must re-enter the extension plan.
- * When deficit recovers, plan must exclude those tiles again. One regen per transition.
- */
-function syncDynamicPlanWithSpecialDeferral(room) {
-    if (!room.memory.dynamicLayout) return;
-    const defer = shouldDeferDynamicSpecials(room);
-    const flagged = !!room.memory.dynamicExtPlanAllowsSpecialTiles;
-    if (defer && !flagged) {
-        clearDynamicExtensionPlanOnly(room);
-        room.memory.dynamicExtPlanAllowsSpecialTiles = 1;
-    } else if (!defer && flagged) {
-        clearDynamicExtensionPlanOnly(room);
-        delete room.memory.dynamicExtPlanAllowsSpecialTiles;
-    }
-}
-
-function unpackPackedTiles(packed) {
-    return packed.map(n => ({x: n % 50, y: Math.floor(n / 50)}));
-}
-
-function packTiles(tiles) {
-    return tiles.map(p => p.x + p.y * 50);
-}
-
-function addChebyshevRing(excluded, cx, cy, radius) {
-    for (let dx = -radius; dx <= radius; dx++) {
-        for (let dy = -radius; dy <= radius; dy++) {
-            const x = cx + dx;
-            const y = cy + dy;
-            if (x < 0 || x > 49 || y < 0 || y > 49) continue;
-            excluded.add(`${x},${y}`);
-        }
-    }
-}
-
-function buildLayoutExcluded(room, hubOverride) {
-    const hub = hubOverride || room.memory.bunkerHub;
-    if (!hub || hub.x === undefined) return new Set();
-    const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
-    const excluded = new Set([`${hub.x},${hub.y}`]);
-    for (const entry of tmpl) {
-        if (entry.structureType === STRUCTURE_EXTENSION) continue;
-        for (const {x, y} of entry.pos) {
-            const sx = hub.x + x;
-            const sy = hub.y + y;
-            excluded.add(`${sx},${sy}`);
-            // Spawn stamps: keep apron clear so creeps can spawn (even before spawn exists).
-            if (entry.structureType === STRUCTURE_SPAWN && room.memory.dynamicLayout) {
-                addChebyshevRing(excluded, sx, sy, EXTENSION_SPAWN_CLEARANCE);
-            }
-        }
-    }
-    // Built spawns (any layout): apron for spawn egress.
-    if (room.memory.dynamicLayout) {
-        for (const spawn of room.spawns || []) {
-            addChebyshevRing(excluded, spawn.pos.x, spawn.pos.y, EXTENSION_SPAWN_CLEARANCE);
-        }
-        for (const site of room.constructionSites || []) {
-            if (site.structureType !== STRUCTURE_SPAWN) continue;
-            addChebyshevRing(excluded, site.pos.x, site.pos.y, EXTENSION_SPAWN_CLEARANCE);
-        }
-    }
-    // Dynamic rooms: keep special-structure slots free of extensions.
-    if (room.memory.dynamicLayout && !hubOverride) {
-        for (const key of getDynamicSpecialReservedKeys(room)) excluded.add(key);
-    }
-    return excluded;
-}
-
-function isWithinExitClearance(pos) {
-    const exit = pos.findClosestByRange(FIND_EXIT);
-    return exit && pos.getRangeTo(exit) <= EXTENSION_EXIT_CLEARANCE;
-}
-
-/**
- * @returns {string|null} violation reason, or null if clear of anchors
- */
-function getAnchorClearanceViolation(room, pos) {
-    if (room.controller && pos.getRangeTo(room.controller) <= EXTENSION_CONTROLLER_CLEARANCE) {
-        return 'nearController';
-    }
-    if (room.mineral && pos.getRangeTo(room.mineral) <= EXTENSION_MINERAL_CLEARANCE) {
-        return 'nearMineral';
-    }
-    for (const source of room.sources || []) {
-        if (pos.getRangeTo(source) <= EXTENSION_SOURCE_CLEARANCE) return 'nearSource';
-    }
-    for (const spawn of room.spawns || []) {
-        if (pos.getRangeTo(spawn) <= EXTENSION_SPAWN_CLEARANCE) return 'nearSpawn';
-    }
-    for (const site of room.constructionSites || []) {
-        if (site.structureType !== STRUCTURE_SPAWN) continue;
-        if (pos.getRangeTo(site) <= EXTENSION_SPAWN_CLEARANCE) return 'nearSpawn';
-    }
-    // Planned spawn stamps (dynamic core) before structure exists.
-    const hub = room.memory.bunkerHub;
-    if (hub && room.memory.dynamicLayout) {
-        const tmpl = coreTemplate;
-        const spawnEntry = tmpl.find(s => s.structureType === STRUCTURE_SPAWN);
-        if (spawnEntry) {
-            for (const p of spawnEntry.pos) {
-                const sx = hub.x + p.x;
-                const sy = hub.y + p.y;
-                if (Math.max(Math.abs(pos.x - sx), Math.abs(pos.y - sy)) <= EXTENSION_SPAWN_CLEARANCE) {
-                    return 'nearSpawn';
-                }
-            }
-        }
-    }
-    return null;
-}
-
-/** @deprecated prefer getAnchorClearanceViolation for reason codes */
-function isWithinAnchorClearance(room, pos) {
-    return !!getAnchorClearanceViolation(room, pos);
-}
-
-function getExtensionClearanceViolation(room, pos, excluded) {
-    if (!excluded) excluded = buildLayoutExcluded(room);
-    if (excluded.has(`${pos.x},${pos.y}`)) return 'bunkerCore';
-    if (!room.memory.dynamicLayout) return null;
-    if (isWithinExitClearance(pos)) return 'nearExit';
-    return getAnchorClearanceViolation(room, pos);
-}
-
-function classifyExtensionTile(room, pos, excluded) {
-    if (pos.checkForWall()) return 'wall';
-    // ignoreWall + ignoreCreep — creeps must not block construction planning.
-    if (pos.checkForImpassible(true, true)) return 'impassible';
-    if (pos.checkForConstructionSites()) return 'site';
-    if (pos.checkForAllStructure()) return 'structure';
-    const violation = getExtensionClearanceViolation(room, pos, excluded);
-    if (violation) return violation;
-    return 'ok';
-}
-
-
-function classifySourceAccessTile(room, pos) {
-    if (pos.checkForWall()) return false;
-    if (pos.checkForImpassible()) return false;
-    if (pos.checkForConstructionSites()) return false;
-    if (pos.checkForAllStructure()) return false;
-    return true;
-}
-
-function getExtensionDeficit(room) {
-    if (!room.controller) return 0;
-    const needed = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.controller.level] || 0;
-    const existing = room.extensions.length +
-        room.constructionSites.filter(s => s.structureType === STRUCTURE_EXTENSION).length;
-    return Math.max(0, needed - existing);
-}
-
-function getExtensionBatchMax(room) {
-    if (!room || room.storage || !room.controller) return EXTENSION_BATCH_MAX;
-    if (room.controller.level > 5) return EXTENSION_BATCH_MAX;
-    return getExtensionDeficit(room) > 5 ? EXTENSION_BATCH_RUSH : EXTENSION_BATCH_MAX;
-}
-
-function getExtensionPlacementLimit(room) {
-    return Math.min(getExtensionDeficit(room), roomConstructionSiteBudget(room), getExtensionBatchMax(room));
-}
 
 /**
  * Free construction-site slots so extensions can place after a wipe.
@@ -259,7 +70,10 @@ function freeSiteSlotsForExtensions(room, want) {
         }
     };
     // Pass 1: idle non-critical sites.
-    const preferIdle = [STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_LINK];
+    // Do NOT cancel container/link sites — freeSiteSlots used to remove them for
+    // extension headroom, and V2 forceLayout (ext deficit > 5) then permanently
+    // starved source/controller containers and links. Roads/barriers can re-queue.
+    const preferIdle = [STRUCTURE_ROAD, STRUCTURE_WALL, STRUCTURE_RAMPART];
     for (const type of preferIdle) {
         if (freed >= want) break;
         removeSites(room.constructionSites.filter(s => s.structureType === type && !s.progress));
@@ -298,139 +112,6 @@ function recordExtensionSkip(room, reason, extra) {
     };
 }
 
-function clearDynamicLayoutMemory(room) {
-    delete room.memory.dynamicExtensionsPacked;
-    delete room.memory.dynamicCorridorPacked;
-    delete room.memory.dynamicExtensionsVersion;
-    delete room.memory.dynamicSpecialPacked;
-    delete room.memory.dynamicSpecialVersion;
-    delete dynamicLayoutCache[room.name];
-    delete extensionPositionCache[room.name];
-}
-
-function countOwnedOrSites(room, structureType) {
-    let n = 0;
-    for (const s of room.structures) {
-        if (s.structureType === structureType) n++;
-    }
-    for (const s of room.constructionSites) {
-        if (s.structureType === structureType) n++;
-    }
-    return n;
-}
-
-function structureExistsElsewhere(room, structureType, x, y) {
-    for (const s of room.structures) {
-        if (s.structureType === structureType && (s.pos.x !== x || s.pos.y !== y)) return true;
-    }
-    for (const s of room.constructionSites) {
-        if (s.structureType === structureType && (s.pos.x !== x || s.pos.y !== y)) return true;
-    }
-    return false;
-}
-
-/**
- * Pick the N closest extension-pattern tiles to the hub for late-game specials.
- * Uses the same flood as dynamic extensions (walkable, not core-template reserved).
- */
-function computeDynamicSpecialSlotTiles(room) {
-    const hub = room.hub || room.memory.bunkerHub;
-    if (!hub || hub.x === undefined) return [];
-    const hubPos = room.hub || new RoomPosition(hub.x, hub.y, room.name);
-    // Exclude core template only — do not call buildLayoutExcluded (would recurse into specials).
-    const tmpl = coreTemplate;
-    const excluded = new Set([`${hub.x},${hub.y}`]);
-    for (const entry of tmpl) {
-        if (entry.structureType === STRUCTURE_EXTENSION) continue;
-        for (const {x, y} of entry.pos) excluded.add(`${hub.x + x},${hub.y + y}`);
-    }
-    const terrain = Game.map.getRoomTerrain(room.name);
-    const candidates = [];
-    const visited = new Set([`${hub.x},${hub.y}`]);
-    const queue = [{x: hub.x, y: hub.y}];
-    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
-
-    while (queue.length && candidates.length < 40) {
-        const {x, y} = queue.shift();
-        for (const [dx, dy] of dirs) {
-            const nx = x + dx, ny = y + dy, key = `${nx},${ny}`;
-            if (visited.has(key) || nx < 2 || nx > 47 || ny < 2 || ny > 47) continue;
-            visited.add(key);
-            if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
-            queue.push({x: nx, y: ny});
-            if (excluded.has(key)) continue;
-            if ((nx + ny) % 2 !== 0) continue; // same checkerboard as extensions
-            const pos = new RoomPosition(nx, ny, room.name);
-            // Allow tiles that currently have an extension (we will replace them).
-            if (pos.checkForWall()) continue;
-            if (isWithinExitClearance(pos)) continue;
-            if (isWithinAnchorClearance(room, pos)) continue;
-            const blocking = pos.lookFor(LOOK_STRUCTURES).find(s =>
-                s.structureType !== STRUCTURE_ROAD &&
-                s.structureType !== STRUCTURE_RAMPART &&
-                s.structureType !== STRUCTURE_EXTENSION &&
-                s.structureType !== STRUCTURE_CONTAINER);
-            if (blocking) continue;
-            candidates.push({
-                x: nx, y: ny,
-                range: pos.getRangeTo(hubPos),
-            });
-        }
-    }
-
-    candidates.sort((a, b) => a.range - b.range || a.y - b.y || a.x - b.x);
-    return candidates.slice(0, DYNAMIC_SPECIAL_STRUCTURES.length).map(c => ({x: c.x, y: c.y}));
-}
-
-function getDynamicSpecialSlotTiles(room) {
-    if (!room.memory.dynamicLayout) return [];
-    if (room.memory.dynamicSpecialPacked && room.memory.dynamicSpecialVersion === EXTENSION_LAYOUT_VERSION) {
-        const tiles = unpackPackedTiles(room.memory.dynamicSpecialPacked);
-        if (tiles.length >= DYNAMIC_SPECIAL_STRUCTURES.length) return tiles.slice(0, DYNAMIC_SPECIAL_STRUCTURES.length);
-    }
-    const tiles = computeDynamicSpecialSlotTiles(room);
-    if (tiles.length) {
-        room.memory.dynamicSpecialPacked = packTiles(tiles);
-        room.memory.dynamicSpecialVersion = EXTENSION_LAYOUT_VERSION;
-    }
-    return tiles;
-}
-
-/**
- * Assign each special type to a reserved tile. If that type already exists elsewhere
- * (e.g. observer on hub from coreTemplate), the tile is not reserved for extensions.
- */
-function getDynamicSpecialAssignments(room) {
-    if (!room.memory.dynamicLayout) return [];
-    const tiles = getDynamicSpecialSlotTiles(room);
-    const assignments = [];
-    for (let i = 0; i < DYNAMIC_SPECIAL_STRUCTURES.length; i++) {
-        const def = DYNAMIC_SPECIAL_STRUCTURES[i];
-        const tile = tiles[i];
-        if (!tile) break;
-        assignments.push({
-            structureType: def.structureType,
-            minRcl: def.minRcl,
-            x: tile.x,
-            y: tile.y,
-        });
-    }
-    return assignments;
-}
-
-function getDynamicSpecialReservedKeys(room) {
-    const keys = new Set();
-    if (!room.memory.dynamicLayout) return keys;
-    // During extension recovery, do not hold hub tiles for specials that are not needed yet.
-    if (shouldDeferDynamicSpecials(room)) return keys;
-    for (const a of getDynamicSpecialAssignments(room)) {
-        // Already built/sited elsewhere — free this slot for extensions.
-        if (structureExistsElsewhere(room, a.structureType, a.x, a.y)) continue;
-        keys.add(`${a.x},${a.y}`);
-    }
-    return keys;
-}
-
 /**
  * Free a tile for a late-game special: remove extension / wrong sites; keep roads/ramparts.
  * @returns {boolean} true if the tile is clear enough to place
@@ -460,6 +141,11 @@ function freeTileForDynamicSpecial(room, pos, structureType) {
     return true;
 }
 
+/**
+ * Place power spawn / nuker / observer on reserved near-hub tiles for dynamic rooms.
+ * Replaces the closest extensions when those slots are occupied.
+ * @returns {{placed: number, destroyedExtensions: number, details: object[]}}
+ */
 /**
  * Place power spawn / nuker / observer on reserved near-hub tiles for dynamic rooms.
  * Replaces the closest extensions when those slots are occupied.
@@ -594,547 +280,6 @@ function ensureExtensionClearance(room, options = {}) {
     return result;
 }
 
-function countPlaceableBunkerExtensionsAt(room, hubX, hubY) {
-    const entry = bunkerTemplate.find(s => s.structureType === STRUCTURE_EXTENSION);
-    if (!entry) return {placeable: 0, total: 0, blocked: []};
-    const excluded = buildLayoutExcluded(room, {x: hubX, y: hubY});
-    let placeable = 0;
-    const blocked = [];
-    for (const buildPos of entry.pos) {
-        const pos = new RoomPosition(hubX + buildPos.x, hubY + buildPos.y, room.name);
-        const reason = classifyExtensionTile(room, pos, excluded);
-        if (reason === 'ok') placeable++;
-        else if (blocked.length < 8) blocked.push({x: pos.x, y: pos.y, reason});
-    }
-    return {placeable, total: entry.pos.length, blocked};
-}
-
-function countPlaceableBunkerExtensions(room) {
-    const hub = room.memory.bunkerHub;
-    if (!hub || hub.x === undefined) return {placeable: 0, total: 0, blocked: []};
-    return countPlaceableBunkerExtensionsAt(room, hub.x, hub.y);
-}
-
-function assessHubExtensionCapacity(room) {
-    const deficit = getExtensionDeficit(room);
-    if (deficit <= 0 || room.memory.dynamicLayout || !room.memory.bunkerHub) {
-        return {sufficient: true, placeable: 0, fallback: 0, deficit};
-    }
-    const placeable = countPlaceableBunkerExtensions(room).placeable;
-    const fallback = findExtensionCandidatesNearHub(room).length;
-    return {
-        sufficient: placeable >= deficit || (placeable + fallback) >= deficit,
-        placeable,
-        fallback,
-        deficit,
-    };
-}
-
-function auditExtensionClearance(room) {
-    const excluded = buildLayoutExcluded(room);
-    const invalid = [];
-
-    for (const ext of room.extensions) {
-        const reason = getExtensionClearanceViolation(room, ext.pos, excluded);
-        if (reason) invalid.push({x: ext.pos.x, y: ext.pos.y, kind: 'built', reason});
-    }
-    for (const site of room.constructionSites) {
-        if (site.structureType !== STRUCTURE_EXTENSION) continue;
-        const reason = getExtensionClearanceViolation(room, site.pos, excluded);
-        if (reason) invalid.push({x: site.pos.x, y: site.pos.y, kind: 'site', reason});
-    }
-
-    const rampartSpots = ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name]
-        ? JSON.parse(ROOM_RAMPART_SPOTS[room.name])
-        : null;
-
-    return {
-        roomName: room.name,
-        clearancePending: room.memory.extensionClearanceVersion !== EXTENSION_LAYOUT_VERSION,
-        extensionClearanceVersion: room.memory.extensionClearanceVersion,
-        targetVersion: EXTENSION_LAYOUT_VERSION,
-        dynamicExtensionsVersion: room.memory.dynamicExtensionsVersion,
-        dynamicLayout: !!room.memory.dynamicLayout,
-        hasBunkerHub: !!(room.memory.bunkerHub && room.memory.bunkerHub.x),
-        invalidExtensions: invalid,
-        invalidCount: invalid.length,
-        rampartSpotsCached: !!rampartSpots,
-        rampartSpotCount: rampartSpots ? rampartSpots.length : 0,
-    };
-}
-
-function auditExtensionPlacement(room) {
-    const spawn = room.spawns.find(s => s.name !== 'auto') || room.spawns[0];
-    const hub = room.memory.bunkerHub;
-    const bunkerSlots = countPlaceableBunkerExtensions(room);
-    const hubCandidates = room.memory.dynamicLayout ? [] : findExtensionCandidatesNearHub(room);
-    return {
-        spawn: spawn && {x: spawn.pos.x, y: spawn.pos.y, name: spawn.name},
-        controller: room.controller && {x: room.controller.pos.x, y: room.controller.pos.y},
-        hubToController: hub && room.controller
-            ? new RoomPosition(hub.x, hub.y, room.name).getRangeTo(room.controller)
-            : undefined,
-        hubAlignedToSpawn: !!(spawn && hub && spawn.pos.x + 1 === hub.x && spawn.pos.y + 1 === hub.y),
-        bunkerSlots,
-        fallbackCandidates: hubCandidates.length,
-        sampleFallback: hubCandidates.slice(0, 5).map(p => `${p.x},${p.y}`),
-        hubCapacity: assessHubExtensionCapacity(room),
-        batchLimit: getExtensionPlacementLimit(room),
-    };
-}
-
-function findExtensionCandidatesNearHub(room) {
-    const hub = room.hub;
-    if (!hub) return [];
-    const excluded = buildLayoutExcluded(room);
-    const terrain = Game.map.getRoomTerrain(room.name);
-    const extensions = [];
-    const visited = new Set([`${hub.x},${hub.y}`]);
-    const queue = [{x: hub.x, y: hub.y}];
-    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
-
-    while (queue.length && extensions.length < 100) {
-        const {x, y} = queue.shift();
-        for (const [dx, dy] of dirs) {
-            const nx = x + dx, ny = y + dy, key = `${nx},${ny}`;
-            if (visited.has(key) || nx < 2 || nx > 47 || ny < 2 || ny > 47) continue;
-            visited.add(key);
-            if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
-            queue.push({x: nx, y: ny});
-            if (excluded.has(key)) continue;
-            if ((nx + ny) % 2 !== 0) continue;
-            const pos = new RoomPosition(nx, ny, room.name);
-            if (classifyExtensionTile(room, pos, excluded) !== 'ok') continue;
-            extensions.push({x: nx, y: ny});
-        }
-    }
-    return extensions;
-}
-
-function filterValidExtensionTiles(room, tiles) {
-    const excluded = buildLayoutExcluded(room);
-    return tiles.filter(({x, y}) => classifyExtensionTile(room, new RoomPosition(x, y, room.name), excluded) === 'ok');
-}
-
-function tileKey(x, y) {
-    return x + ',' + y;
-}
-
-/**
- * Static blocked tiles for layout *pathing* only.
- * - Terrain walls + real obstacle buildings
- * - NOT constructed walls/ramparts (perimeter seal would make exits/sources look
- *   "already unreachable" and force a 0-extension plan)
- * - NOT the extension excluded set (spawn apron must stay walkable for path checks)
- */
-function buildLayoutBlockedSet(room, terrain) {
-    const blocked = new Set();
-    for (let x = 0; x < 50; x++) {
-        for (let y = 0; y < 50; y++) {
-            if (terrain.get(x, y) === TERRAIN_MASK_WALL) blocked.add(tileKey(x, y));
-        }
-    }
-    const structs = room.structures || [];
-    for (let i = 0; i < structs.length; i++) {
-        const s = structs[i];
-        if (!s || !s.pos) continue;
-        const t = s.structureType;
-        if (t === STRUCTURE_ROAD || t === STRUCTURE_RAMPART || t === STRUCTURE_CONTAINER) continue;
-        if (t === STRUCTURE_WALL) continue; // perimeter barriers — not layout path blocks
-        if (t === STRUCTURE_EXTENSION) continue;
-        if (OBSTACLE_OBJECT_TYPES.includes(t)) {
-            blocked.add(tileKey(s.pos.x, s.pos.y));
-        }
-    }
-    // Core stamps that already exist as buildings are covered above; planned-only stamps
-    // (e.g. empty spawn tile) stay walkable for access BFS.
-    return blocked;
-}
-
-function addWalkableAdjacents(targets, terrain, blocked, x, y) {
-    for (const [dx, dy] of OCTALS) {
-        const nx = x + dx;
-        const ny = y + dy;
-        if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
-        const key = tileKey(nx, ny);
-        if (blocked.has(key)) continue;
-        if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
-        targets.push({x: nx, y: ny, key});
-    }
-}
-
-/**
- * Access groups that must stay pathable from the base after extensions are placed.
- * Each group needs ≥1 reachable tile (controller/sources/mineral use open adj tiles;
- * each exit edge needs ≥1 exit tile for that neighbour room).
- */
-function collectCriticalAccessGroups(room, terrain, blocked) {
-    const groups = [];
-
-    if (room.controller) {
-        const tiles = [];
-        addWalkableAdjacents(tiles, terrain, blocked, room.controller.pos.x, room.controller.pos.y);
-        if (tiles.length) groups.push({id: 'controller', tiles});
-    }
-
-    const sources = room.sources || [];
-    for (let i = 0; i < sources.length; i++) {
-        const s = sources[i];
-        const tiles = [];
-        addWalkableAdjacents(tiles, terrain, blocked, s.pos.x, s.pos.y);
-        if (tiles.length) groups.push({id: 'source:' + s.id, tiles});
-    }
-
-    if (room.mineral) {
-        const tiles = [];
-        addWalkableAdjacents(tiles, terrain, blocked, room.mineral.pos.x, room.mineral.pos.y);
-        if (tiles.length) groups.push({id: 'mineral', tiles});
-    }
-
-    // One group per open exit edge so every neighbouring room stays reachable.
-    const exits = Game.map.describeExits(room.name) || {};
-    const edgeTiles = {
-        [TOP]: [],
-        [RIGHT]: [],
-        [BOTTOM]: [],
-        [LEFT]: [],
-    };
-    for (let i = 0; i < 50; i++) {
-        if (terrain.get(i, 0) !== TERRAIN_MASK_WALL) edgeTiles[TOP].push({x: i, y: 0, key: tileKey(i, 0)});
-        if (terrain.get(i, 49) !== TERRAIN_MASK_WALL) edgeTiles[BOTTOM].push({x: i, y: 49, key: tileKey(i, 49)});
-        if (terrain.get(0, i) !== TERRAIN_MASK_WALL) edgeTiles[LEFT].push({x: 0, y: i, key: tileKey(0, i)});
-        if (terrain.get(49, i) !== TERRAIN_MASK_WALL) edgeTiles[RIGHT].push({x: 49, y: i, key: tileKey(49, i)});
-    }
-    for (const dir of [TOP, RIGHT, BOTTOM, LEFT]) {
-        if (!exits[dir]) continue;
-        const tiles = edgeTiles[dir].filter(t => !blocked.has(t.key));
-        if (tiles.length) groups.push({id: 'exit:' + dir + ':' + exits[dir], tiles});
-    }
-
-    return groups;
-}
-
-/** Walk seeds: open tiles at/near hub and core stamps (hub may be an obstacle observer). */
-function collectLayoutPathSeeds(room, terrain, blocked) {
-    const seeds = [];
-    const seen = new Set();
-    const trySeed = (x, y) => {
-        if (x < 0 || x > 49 || y < 0 || y > 49) return;
-        const key = tileKey(x, y);
-        if (seen.has(key) || blocked.has(key)) return;
-        if (terrain.get(x, y) === TERRAIN_MASK_WALL) return;
-        seen.add(key);
-        seeds.push({x, y, key});
-    };
-    const seedAround = (x, y) => {
-        trySeed(x, y);
-        for (const [dx, dy] of OCTALS) trySeed(x + dx, y + dy);
-    };
-
-    const hub = room.hub || room.memory.bunkerHub;
-    if (hub) seedAround(hub.x, hub.y);
-
-    const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
-    if (hub && tmpl) {
-        for (const entry of tmpl) {
-            for (const p of entry.pos) seedAround(hub.x + p.x, hub.y + p.y);
-        }
-    }
-    for (const spawn of room.spawns || []) {
-        seedAround(spawn.pos.x, spawn.pos.y);
-    }
-    return seeds;
-}
-
-/**
- * BFS from seeds; returns true only if every access group has ≥1 reachable tile.
- * Early-exits once all groups are satisfied (cheap when base is well connected).
- */
-function accessGroupsReachable(seeds, blocked, extensionSet, groups) {
-    if (!groups.length) return true;
-    const need = [];
-    const tileToGroup = Object.create(null);
-    for (let g = 0; g < groups.length; g++) {
-        need.push(true);
-        const tiles = groups[g].tiles;
-        for (let t = 0; t < tiles.length; t++) {
-            const key = tiles[t].key;
-            if (!tileToGroup[key]) tileToGroup[key] = [];
-            tileToGroup[key].push(g);
-        }
-    }
-    let remaining = groups.length;
-    const reached = new Set();
-    const q = [];
-    const hitGroup = (key) => {
-        const list = tileToGroup[key];
-        if (!list) return;
-        for (let i = 0; i < list.length; i++) {
-            const gi = list[i];
-            if (!need[gi]) continue;
-            need[gi] = false;
-            remaining--;
-        }
-    };
-
-    for (let i = 0; i < seeds.length; i++) {
-        const s = seeds[i];
-        if (blocked.has(s.key) || extensionSet.has(s.key)) continue;
-        if (reached.has(s.key)) continue;
-        reached.add(s.key);
-        q.push(s.x, s.y);
-        hitGroup(s.key);
-    }
-    let qi = 0;
-    while (qi < q.length && remaining > 0) {
-        const x = q[qi++];
-        const y = q[qi++];
-        for (const [dx, dy] of CARDINALS) {
-            const nx = x + dx;
-            const ny = y + dy;
-            if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
-            const key = tileKey(nx, ny);
-            if (reached.has(key) || blocked.has(key) || extensionSet.has(key)) continue;
-            reached.add(key);
-            q.push(nx, ny);
-            hitGroup(key);
-            if (remaining <= 0) break;
-        }
-    }
-    return remaining <= 0;
-}
-
-function listFailedAccessGroups(seeds, blocked, extensionSet, groups) {
-    const failed = [];
-    for (let g = 0; g < groups.length; g++) {
-        // Per-group check via full flood is wasteful; reuse one flood.
-        break;
-    }
-    // Single flood then test each group.
-    const reached = new Set();
-    const q = [];
-    for (let i = 0; i < seeds.length; i++) {
-        const s = seeds[i];
-        if (blocked.has(s.key) || extensionSet.has(s.key) || reached.has(s.key)) continue;
-        reached.add(s.key);
-        q.push(s.x, s.y);
-    }
-    let qi = 0;
-    while (qi < q.length) {
-        const x = q[qi++];
-        const y = q[qi++];
-        for (const [dx, dy] of CARDINALS) {
-            const nx = x + dx, ny = y + dy;
-            if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
-            const key = tileKey(nx, ny);
-            if (reached.has(key) || blocked.has(key) || extensionSet.has(key)) continue;
-            reached.add(key);
-            q.push(nx, ny);
-        }
-    }
-    for (let g = 0; g < groups.length; g++) {
-        if (!groups[g].tiles.some(t => reached.has(t.key))) failed.push(groups[g].id);
-    }
-    return failed;
-}
-
-/** Extension must keep at least one cardinal walkable neighbour for refill creeps. */
-function extensionHasWalkAccess(x, y, blocked, extensionSet) {
-    for (const [dx, dy] of CARDINALS) {
-        const nx = x + dx;
-        const ny = y + dy;
-        if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
-        const key = tileKey(nx, ny);
-        if (!blocked.has(key) && !extensionSet.has(key)) return true;
-    }
-    return false;
-}
-
-/**
- * Only enforce access groups that are already reachable with the static blocked set.
- * Groups sealed by existing walls/terrain (outside the base) must not zero the plan.
- */
-function filterCurrentlyReachableGroups(seeds, blocked, groups) {
-    if (!groups.length) return [];
-    const empty = new Set();
-    return groups.filter(g => accessGroupsReachable(seeds, blocked, empty, [g]));
-}
-
-/**
- * Single-pass greedy: nearer hub first, light cluster bias, reject tiles that cut
- * currently-reachable access to controller / sources / mineral / exits.
- */
-function selectConnectivitySafeExtensions(room, candidates, seeds, groups, blocked) {
-    const hub = room.hub;
-    const extensionSet = new Set();
-    const chosen = [];
-
-    // Only protect access that works today without counting walls as path blocks.
-    const activeGroups = filterCurrentlyReachableGroups(seeds, blocked, groups);
-    if (!activeGroups.length && groups.length) {
-        log.w(`${room.name} dynamic layout: no access groups reachable via terrain/buildings (placing near hub only)`);
-    } else if (activeGroups.length < groups.length) {
-        const skipped = groups.filter(g => !activeGroups.some(a => a.id === g.id)).map(g => g.id);
-        if (Game.time % 100 === 0) {
-            log.a(`${room.name} dynamic layout: protecting ${activeGroups.length}/${groups.length} access groups; skip ${JSON.stringify(skipped)}`, 'PLANNER');
-        }
-    }
-
-    const scored = candidates.map(c => {
-        const range = Math.max(Math.abs(c.x - hub.x), Math.abs(c.y - hub.y));
-        return {x: c.x, y: c.y, range, key: tileKey(c.x, c.y)};
-    });
-    scored.sort((a, b) => a.range - b.range || a.y - b.y || a.x - b.x);
-
-    // Pass 1: prefer tiles touching already-chosen (compact growth).
-    // Pass 2: any remaining safe tile (fill to target).
-    for (let pass = 0; pass < 2 && chosen.length < DYNAMIC_EXTENSION_TARGET; pass++) {
-        for (let i = 0; i < scored.length && chosen.length < DYNAMIC_EXTENSION_TARGET; i++) {
-            const c = scored[i];
-            if (extensionSet.has(c.key) || blocked.has(c.key)) continue;
-
-            if (pass === 0 && chosen.length > 0) {
-                let touch = false;
-                for (const [dx, dy] of OCTALS) {
-                    if (extensionSet.has(tileKey(c.x + dx, c.y + dy))) {
-                        touch = true;
-                        break;
-                    }
-                }
-                if (!touch) continue;
-            }
-
-            extensionSet.add(c.key);
-            if (!extensionHasWalkAccess(c.x, c.y, blocked, extensionSet)) {
-                extensionSet.delete(c.key);
-                continue;
-            }
-            if (activeGroups.length &&
-                !accessGroupsReachable(seeds, blocked, extensionSet, activeGroups)) {
-                extensionSet.delete(c.key);
-                continue;
-            }
-            chosen.push({x: c.x, y: c.y});
-        }
-    }
-
-    return chosen;
-}
-
-function computeDynamicLayoutTiles(room) {
-    // Same-tick only — never reuse a filtered free-tile list across ticks (tiles free up).
-    const heapHit = dynamicLayoutCache[room.name];
-    if (heapHit && heapHit.tick === Game.time) return heapHit;
-
-    // When specials are deferred / un-deferred, regen so hub special tiles enter or leave the plan.
-    syncDynamicPlanWithSpecialDeferral(room);
-
-    const hub = room.hub;
-    if (!hub) {
-        // Tick-scoped only so a missing hub does not permanently zero the plan.
-        const empty = {extensions: [], corridors: [], access: null, tick: Game.time};
-        dynamicLayoutCache[room.name] = empty;
-        extensionPositionCache[room.name] = empty.extensions;
-        return empty;
-    }
-
-    if (room.memory.dynamicExtensionsPacked && room.memory.dynamicCorridorPacked
-        && room.memory.dynamicExtensionsVersion === EXTENSION_LAYOUT_VERSION) {
-        // Always re-filter packed coords against live room state (structures/sites change).
-        const extensions = filterValidExtensionTiles(room, unpackPackedTiles(room.memory.dynamicExtensionsPacked));
-        if (!extensions.length && getExtensionDeficit(room) > 0) {
-            clearDynamicExtensionPlanOnly(room);
-        } else {
-            const layout = {
-                extensions,
-                corridors: unpackPackedTiles(room.memory.dynamicCorridorPacked),
-                tick: Game.time,
-            };
-            dynamicLayoutCache[room.name] = layout;
-            extensionPositionCache[room.name] = layout.extensions;
-            return layout;
-        }
-    } else if (room.memory.dynamicExtensionsPacked) {
-        clearDynamicExtensionPlanOnly(room);
-    }
-
-    const excluded = buildLayoutExcluded(room);
-    const terrain = Game.map.getRoomTerrain(room.name);
-    const blocked = buildLayoutBlockedSet(room, terrain);
-    const groups = collectCriticalAccessGroups(room, terrain, blocked);
-    const seeds = collectLayoutPathSeeds(room, terrain, blocked);
-    const activeGroups = filterCurrentlyReachableGroups(seeds, blocked, groups);
-
-    // Gather candidates via flood (checkerboard keeps natural corridors on odd tiles).
-    const candidates = [];
-    const floodVisited = new Set([tileKey(hub.x, hub.y)]);
-    const queue = [{x: hub.x, y: hub.y}];
-    while (queue.length && candidates.length < DYNAMIC_EXTENSION_CANDIDATE_CAP) {
-        const {x, y} = queue.shift();
-        for (const [dx, dy] of OCTALS) {
-            const nx = x + dx, ny = y + dy, key = tileKey(nx, ny);
-            if (floodVisited.has(key) || nx < 2 || nx > 47 || ny < 2 || ny > 47) continue;
-            floodVisited.add(key);
-            if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
-            queue.push({x: nx, y: ny});
-            if (excluded.has(key)) continue;
-            // Checkerboard: leave odd tiles as default corridor lattice.
-            if ((nx + ny) % 2 !== 0) continue;
-            const pos = new RoomPosition(nx, ny, room.name);
-            if (classifyExtensionTile(room, pos, excluded) !== 'ok') continue;
-            candidates.push({x: nx, y: ny});
-        }
-    }
-
-    const extensions = selectConnectivitySafeExtensions(room, candidates, seeds, groups, blocked);
-    const extensionSet = new Set(extensions.map(p => tileKey(p.x, p.y)));
-
-    // Corridors = flooded walkable tiles not claimed as extensions (path skeleton).
-    const corridors = [];
-    for (const key of floodVisited) {
-        if (extensionSet.has(key) || excluded.has(key)) continue;
-        const comma = key.indexOf(',');
-        const x = Number(key.slice(0, comma));
-        const y = Number(key.slice(comma + 1));
-        if (x < 1 || x > 48 || y < 1 || y > 48) continue;
-        if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
-        corridors.push({x, y});
-    }
-
-    // Audit only groups we tried to protect (reachable at baseline).
-    const failed = activeGroups.length
-        ? listFailedAccessGroups(seeds, blocked, extensionSet, activeGroups)
-        : [];
-    const access = {
-        groups: groups.length,
-        activeGroups: activeGroups.length,
-        ok: failed.length === 0,
-        failed,
-        skippedUnreachable: groups.filter(g => !activeGroups.some(a => a.id === g.id)).map(g => g.id),
-        extensions: extensions.length,
-        candidates: candidates.length,
-    };
-
-    const layout = {extensions, corridors, access, tick: Game.time};
-    dynamicLayoutCache[room.name] = layout;
-    extensionPositionCache[room.name] = extensions;
-    room.memory.dynamicExtensionsPacked = packTiles(extensions);
-    room.memory.dynamicCorridorPacked = packTiles(corridors);
-    room.memory.dynamicExtensionsVersion = EXTENSION_LAYOUT_VERSION;
-    room.memory.dynamicAccessOk = access.ok;
-    room.memory.dynamicAccessFailed = access.failed;
-    room.memory.dynamicAccessSkipped = access.skippedUnreachable;
-    if (room.memory.dynamicExtensions) room.memory.dynamicExtensions = undefined;
-    invalidateRampartSpots(room);
-    log.a(
-        `${room.name} dynamic layout: ${extensions.length} ext, ${corridors.length} corridors, ` +
-        `access=${access.ok ? 'OK' : 'FAIL ' + JSON.stringify(access.failed)}` +
-        (access.skippedUnreachable.length ? ` skip=${JSON.stringify(access.skippedUnreachable)}` : ''),
-        'PLANNER'
-    );
-    return layout;
-}
-
 function placeExtensionsFromCandidates(room, positions, maxPlacements = 1) {
     const excluded = buildLayoutExcluded(room);
     let placed = 0;
@@ -1146,11 +291,13 @@ function placeExtensionsFromCandidates(room, positions, maxPlacements = 1) {
         const result = tryCreateConstructionSite(pos, STRUCTURE_EXTENSION);
         if (result === OK) {
             placed++;
-            invalidateRampartSpots(room);
         } else if (result === ERR_FULL || result === ERR_RCL_NOT_ENOUGH) {
             break;
         }
     }
+    // One footprint invalidation after the batch — not per site (each wipe left
+    // ensureAllIncompletePerimeters with no spots until a lucky aux layout turn).
+    if (placed) invalidateRampartSpots(room);
     return placed;
 }
 
@@ -1167,9 +314,9 @@ function placeBunkerExtensions(room, maxPlacements = 1) {
         if (!canPlaceConstructionSite(room)) break;
         if (tryCreateConstructionSite(pos, STRUCTURE_EXTENSION) === OK) {
             placed++;
-            invalidateRampartSpots(room);
         }
     }
+    if (placed) invalidateRampartSpots(room);
     return placed;
 }
 
@@ -1287,136 +434,25 @@ function tryPlaceRoomExtensions(room) {
  * Single console call that walks every gate blocking extension placement.
  * Usage: diagnoseExtensionBlockers('E1N1') or diagnoseExtensionBlockers() for all rooms.
  */
-function diagnoseExtensionBlockers(room) {
-    const {tickTracker} = require('planState');
-    const needed = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.controller.level] || 0;
-    const built = room.extensions.length;
-    const sites = room.constructionSites.filter(s => s.structureType === STRUCTURE_EXTENSION).length;
-    const deficit = getExtensionDeficit(room);
-    const budget = roomConstructionSiteBudget(room);
-    const batchMax = getExtensionBatchMax(room);
-    const siteBreakdown = {};
-    for (const s of room.constructionSites) {
-        siteBreakdown[s.structureType] = (siteBreakdown[s.structureType] || 0) + 1;
-    }
+/**
+ * Place one source-pad extension (link+container present, outside hub ring).
+ * @param {Room} room
+ * @param {{
+ *   placeSite?: (pos: RoomPosition, structureType: string) => number,
+ *   canPlace?: (room: Room) => boolean,
+ * }} [options]
+ *   placeSite / canPlace let planner V2 inject siteBudget.
+ * @returns {boolean} true if a site was placed
+ */
+function buildSourceExtensions(room, options) {
+    const opts = options || {};
+    const placeFn = typeof opts.placeSite === 'function'
+        ? opts.placeSite
+        : tryCreateConstructionSite;
+    const canPlaceFn = typeof opts.canPlace === 'function'
+        ? opts.canPlace
+        : canPlaceConstructionSite;
 
-    const gates = [];
-    if (!room.controller || !room.controller.my) gates.push({gate: 'not-owned', blocks: true});
-    if (room.controller.level < 2) gates.push({gate: 'rcl-too-low', blocks: true, rcl: room.controller.level});
-    if (!(room.memory.bunkerHub && room.memory.bunkerHub.x !== undefined)) {
-        gates.push({gate: 'no-hub', blocks: true});
-    }
-    const hasSpawn = !!(room.spawns && room.spawns.length);
-    const hasSpawnSite = room.constructionSites.some(s => s.structureType === STRUCTURE_SPAWN);
-    if (!hasSpawn && !hasSpawnSite) gates.push({gate: 'no-spawn-or-site', blocks: true});
-    if (deficit <= 0) gates.push({gate: 'no-deficit', blocks: true, needed, built, sites});
-    if (budget <= 0 && deficit > 0) {
-        gates.push({
-            gate: 'no-site-budget',
-            blocks: true,
-            budget,
-            roomCap: typeof MAX_CONSTRUCTION_SITES_PER_ROOM !== 'undefined' ? MAX_CONSTRUCTION_SITES_PER_ROOM : 10,
-            siteBreakdown,
-            hint: 'Idle road/wall/rampart sites fill the room cap; freeSiteSlotsForExtensions should clear them on place.',
-        });
-    }
-    if (deficit > 0 && budget > 0 && Math.min(deficit, budget, batchMax) <= 0) {
-        gates.push({gate: 'batch-zero', blocks: true, batchMax});
-    }
-
-    let planTiles = 0;
-    let placeablePlan = 0;
-    let bunker = null;
-    let fallback = 0;
-    if (room.memory.dynamicLayout) {
-        const positions = getExtensionPositions(room);
-        planTiles = positions.length;
-        const excluded = buildLayoutExcluded(room);
-        for (const p of positions) {
-            if (classifyExtensionTile(room, new RoomPosition(p.x, p.y, room.name), excluded) === 'ok') placeablePlan++;
-        }
-        if (planTiles === 0 && deficit > 0) {
-            gates.push({gate: 'empty-dynamic-plan', blocks: true, accessFailed: room.memory.dynamicAccessFailed});
-        } else if (placeablePlan === 0 && deficit > 0) {
-            gates.push({
-                gate: 'no-placeable-plan-tiles',
-                blocks: true,
-                planTiles,
-                accessFailed: room.memory.dynamicAccessFailed
-            });
-        }
-    } else if (room.memory.bunkerHub) {
-        bunker = countPlaceableBunkerExtensions(room);
-        fallback = findExtensionCandidatesNearHub(room).length;
-        if (bunker.placeable === 0 && fallback === 0 && deficit > 0) {
-            gates.push({
-                gate: 'no-placeable-tiles',
-                blocks: true,
-                bunkerPlaceable: bunker.placeable,
-                bunkerBlockedSample: bunker.blocked,
-                fallbackCandidates: fallback,
-            });
-        }
-    }
-
-    // Cross-room scheduler visibility (why this room may never get a layout tick).
-    const rooms = [];
-    if (typeof MY_ROOMS !== 'undefined' && MY_ROOMS) {
-        for (const name of MY_ROOMS) if (Game.rooms[name]) rooms.push(Game.rooms[name]);
-    }
-    let empireTowerDeficitRooms = 0;
-    let empireExtDeficitRooms = 0;
-    let empireSpawnSiteRooms = 0;
-    for (const r of rooms) {
-        if (!r.controller || !r.controller.my) continue;
-        try {
-            const {getTowerDeficit} = require('planHub');
-            if (getTowerDeficit(r) > 0) empireTowerDeficitRooms++;
-        } catch (e) { /* ignore */
-        }
-        if (r.controller.level >= 2 && getExtensionDeficit(r) > 0) empireExtDeficitRooms++;
-        if (!(r.spawns && r.spawns.length) &&
-            !r.constructionSites.some(s => s.structureType === STRUCTURE_SPAWN) &&
-            r.memory.bunkerHub) {
-            empireSpawnSiteRooms++;
-        }
-    }
-
-    const blocking = gates.filter(g => g.blocks);
-    return {
-        roomName: room.name,
-        rcl: room.controller.level,
-        needed,
-        built,
-        sites,
-        deficit,
-        budget,
-        batchMax,
-        limit: Math.min(deficit, budget, batchMax),
-        dynamicLayout: !!room.memory.dynamicLayout,
-        planTiles,
-        placeablePlan,
-        bunker,
-        fallbackCandidates: fallback || findExtensionCandidatesNearHub(room).length,
-        siteBreakdown,
-        gates,
-        primaryBlocker: blocking.length ? blocking[0].gate : null,
-        blocked: blocking.length > 0,
-        lastSkip: room.memory.plannerExtensionSkip,
-        lastPlace: room.memory.plannerExtensionLast,
-        lastSiteError: room.memory.plannerLastSiteError,
-        planner: tickTracker[room.name],
-        lastPlannerRoom: tickTracker.lastRoom,
-        empire: {
-            towerDeficitRooms: empireTowerDeficitRooms,
-            extensionDeficitRooms: empireExtDeficitRooms,
-            spawnSiteRooms: empireSpawnSiteRooms,
-            note: 'Tower/extension rooms now share soft-priority RR (spawn site still hard-priority).',
-        },
-    };
-}
-
-function buildSourceExtensions(room) {
     const hub = room.hub;
     const excluded = buildLayoutExcluded(room);
 
@@ -1459,22 +495,17 @@ function buildSourceExtensions(room) {
             if (source.memory.accessReserved
                 && pos.x === source.memory.accessReserved.x
                 && pos.y === source.memory.accessReserved.y) continue;
-            if (!canPlaceConstructionSite(room)) return false;
-            if (tryCreateConstructionSite(pos, STRUCTURE_EXTENSION) === OK) {
+            if (!canPlaceFn(room)) return false;
+            const result = placeFn(pos, STRUCTURE_EXTENSION);
+            if (result === OK) {
                 invalidateRampartSpots(room);
                 return true;
             }
+            // Soft budget exhausted (V2 signals via ERR_NOT_OWNER)
+            if (result === ERR_NOT_OWNER || result === ERR_FULL) return false;
         }
     }
     return false;
-}
-
-function getExtensionPositions(room) {
-    return computeDynamicLayoutTiles(room).extensions;
-}
-
-function getCorridorPositions(room) {
-    return computeDynamicLayoutTiles(room).corridors;
 }
 
 function placeExtensionsDynamically(room, maxPlacements = 1) {
@@ -1498,40 +529,574 @@ function placeExtensionsDynamically(room, maxPlacements = 1) {
     return placed;
 }
 
-module.exports = {
+function economySiteReserve(room) {
+    if (!room || !room.controller) return 0;
+    const level = room.controller.level;
+    if (level < 2) return 0;
+
+    let need = 0;
+    if (level >= 2 && level < 8) {
+        if (!resolveControllerContainer(room, false) && !hasControllerContainerSite(room)) {
+            need++;
+        }
+    }
+    if (level >= 3) {
+        const sources = room.sources || [];
+        for (let i = 0; i < sources.length; i++) {
+            const s = sources[i];
+            if (!resolveSourceContainer(s, room, false) && !hasSourceContainerSite(s)) {
+                need++;
+                // One shared hold is enough to break monopoly; avoid starving
+                // extensions for multiple source containers in one tick.
+                break;
+            }
+        }
+    }
+    // Cap at 1: placeEconomy only sites one container per tick anyway.
+    return need > 0 ? 1 : 0;
+}
+
+// ---------------------------------------------------------------------------
+// Plan
+// ---------------------------------------------------------------------------
+
+/**
+ * Bunker stamp extension tiles (world coords), unfiltered.
+ * @param {Room} room
+ * @returns {{x:number,y:number}[]}
+ */
+function getBunkerExtensionTiles(room) {
+    // C4: room.hub is plan-first; getHub fallback.
+    const hub = room.hub || (() => {
+        try {
+            return require('planDoc').getHub(room);
+        } catch (e) {
+            return room.memory.bunkerHub;
+        }
+    })();
+    if (!hub) return [];
+    const entry = bunkerTemplate.find(s => s.structureType === STRUCTURE_EXTENSION);
+    if (!entry || !entry.pos) return [];
+    const tiles = [];
+    for (let i = 0; i < entry.pos.length; i++) {
+        const off = entry.pos[i];
+        tiles.push({x: hub.x + off.x, y: hub.y + off.y});
+    }
+    return tiles;
+}
+
+/**
+ * Live placeable plan tiles for the room mode.
+ * Dynamic: connectivity-safe plan from planExtensions.
+ * Bunker: stamp tiles that currently classify as ok.
+ * @param {Room} room
+ * @returns {{
+ *   mode: 'dynamic'|'bunker',
+ *   extensions: {x:number,y:number}[],
+ *   corridors: {x:number,y:number}[],
+ *   fallback: {x:number,y:number}[],
+ *   deficit: number,
+ *   access: *|null
+ * }}
+ */
+function computeExtensionPlan(room) {
+    const deficit = getExtensionDeficit(room);
+    const mode = room.memory.dynamicLayout ? 'dynamic' : 'bunker';
+
+    if (mode === 'dynamic') {
+        const extensions = getExtensionPositions(room) || [];
+        const corridors = getCorridorPositions(room) || [];
+        return {
+            mode,
+            extensions: extensions.map(p => ({x: p.x, y: p.y})),
+            corridors: corridors.map(p => ({x: p.x, y: p.y})),
+            fallback: [],
+            deficit,
+            access: {
+                ok: room.memory.dynamicAccessOk,
+                failed: room.memory.dynamicAccessFailed,
+                skipped: room.memory.dynamicAccessSkipped,
+            },
+        };
+    }
+
+    // Bunker: stamp tiles still free
+    const stamps = getBunkerExtensionTiles(room);
+    const extensions = [];
+    for (let i = 0; i < stamps.length; i++) {
+        const t = stamps[i];
+        const pos = new RoomPosition(t.x, t.y, room.name);
+        if (classifyExtensionTile(room, pos) === 'ok') extensions.push(t);
+    }
+
+    // Fallback candidates (near-hub flood) only if stamps exhausted and deficit remains
+    let fallback = [];
+    if (deficit > 0 && extensions.length === 0) {
+        // Lazy require to avoid expanding surface — reuse V1 near-hub flood via try path
+        // by reading placeable count and letting placeRoomExtensions' candidates...
+        // Instead: use bunker placeable audit + empty fallback filled at act time.
+        fallback = [];
+    }
+
+    return {
+        mode,
+        extensions,
+        corridors: [],
+        fallback,
+        deficit,
+        access: null,
+        bunkerPlaceable: countPlaceableBunkerExtensions(room),
+    };
+}
+
+/**
+ * Write extension plan into room.memory.plan layers (and keep rev in sync).
+ * @param {Room} room
+ * @param {object} [planResult] from computeExtensionPlan
+ */
+function syncExtensionPlanToDoc(room, planResult) {
+    const plan = ensurePlan(room, {resync: false}) || getPlan(room);
+    if (!plan || !plan.layers) return null;
+    const result = planResult || computeExtensionPlan(room);
+
+    plan.layers.extensions.packed = result.extensions.length
+        ? packTiles(result.extensions)
+        : [];
+    plan.layers.extensions.rev = EXTENSION_LAYOUT_VERSION;
+    plan.layers.extensions.access = result.access;
+
+    if (result.corridors && result.corridors.length) {
+        plan.layers.corridors.packed = packTiles(result.corridors);
+        plan.layers.corridors.rev = EXTENSION_LAYOUT_VERSION;
+    }
+
+    plan.meta.layoutVersions = plan.meta.layoutVersions || {};
+    plan.meta.layoutVersions.extensions = EXTENSION_LAYOUT_VERSION;
+    plan.meta.lastSyncTick = Game.time;
+    return plan;
+}
+
+// ---------------------------------------------------------------------------
+// Act
+// ---------------------------------------------------------------------------
+
+function recordSkip(room, reason, extra) {
+    room.memory.plannerExtensionSkip = Object.assign({
+        tick: Game.time,
+        reason,
+        deficit: getExtensionDeficit(room),
+        v2: true,
+    }, extra || {});
+
+    const plan = getPlan(room);
+    if (!plan) return;
+
+    let code = FailureCodes.PLAN_EMPTY;
+    if (reason === 'no-site-budget') {
+        code = FailureCodes.SITE_BUDGET_ROOM;
+    } else if (reason === 'no-spawn-or-site') {
+        code = FailureCodes.NO_SPAWN_ANCHOR;
+    } else if (reason === 'rcl') {
+        code = FailureCodes.RCL_GATE;
+    } else if (reason === 'access-failed') {
+        code = FailureCodes.ACCESS_FAILED;
+    }
+
+    pushFailure(plan, {
+        code,
+        layer: 'extensions',
+        detail: room.memory.plannerExtensionSkip,
+        tick: Game.time,
+        source: 'planExtensions.placeExtensions',
+    });
+}
+
+/**
+ * Place up to `limit` extensions from candidate tiles via siteBudget.
+ * @returns {number} placed count
+ */
+function placeFromCandidates(room, positions, limit) {
+    let placed = 0;
+    const shadow = isPlannerShadow(room);
+
+    for (let i = 0; i < positions.length; i++) {
+        if (placed >= limit || getExtensionDeficit(room) <= 0) break;
+
+        const {x, y} = positions[i];
+        const pos = new RoomPosition(x, y, room.name);
+        if (classifyExtensionTile(room, pos) !== 'ok') continue;
+
+        const req = siteBudget.request(room, 'extensions', 1);
+        if (req.allowed < 1) {
+            if (!placed) {
+                recordSkip(room, 'no-site-budget', {
+                    code: req.code,
+                    reservedHigher: req.reservedHigher,
+                    rawBudget: req.rawBudget,
+                });
+            }
+            break;
+        }
+
+        if (shadow) {
+            placed++;
+            continue;
+        }
+
+        const res = siteBudget.tryPlace(room, 'extensions', pos, STRUCTURE_EXTENSION);
+        if (res.ok) {
+            placed++;
+        } else if (res.code === FailureCodes.SITE_BUDGET_GLOBAL
+            || res.code === FailureCodes.SITE_BUDGET_ROOM
+            || res.code === FailureCodes.BUDGET_RESERVED_FOR_HIGHER
+            || res.result === ERR_FULL
+            || res.result === ERR_RCL_NOT_ENOUGH) {
+            if (!placed) {
+                recordSkip(room, 'no-site-budget', {code: res.code, result: res.result});
+            }
+            break;
+        }
+    }
+
+    if (placed && !shadow) {
+        try {
+            require('planGeomRamparts').invalidateRampartSpots(room);
+        } catch (e) { /* optional */
+        }
+    }
+    return placed;
+}
+
+/**
+ * Fallback near-hub flood (same idea as planExtensions.findExtensionCandidatesNearHub).
+ * Kept local so we do not depend on a non-exported helper.
+ */
+function findFallbackCandidates(room) {
+    // C4: room.hub is plan-first; getHub fallback.
+    const hub = room.hub || (() => {
+        try {
+            return require('planDoc').getHub(room);
+        } catch (e) {
+            return room.memory.bunkerHub;
+        }
+    })();
+    if (!hub) return [];
+    const terrain = Game.map.getRoomTerrain(room.name);
+    const extensions = [];
+    const visited = new Set([`${hub.x},${hub.y}`]);
+    const queue = [{x: hub.x, y: hub.y}];
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+
+    while (queue.length && extensions.length < 100) {
+        const cur = queue.shift();
+        for (let d = 0; d < dirs.length; d++) {
+            const nx = cur.x + dirs[d][0];
+            const ny = cur.y + dirs[d][1];
+            const key = `${nx},${ny}`;
+            if (visited.has(key) || nx < 2 || nx > 47 || ny < 2 || ny > 47) continue;
+            visited.add(key);
+            if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
+            queue.push({x: nx, y: ny});
+            if ((nx + ny) % 2 !== 0) continue;
+            const pos = new RoomPosition(nx, ny, room.name);
+            if (classifyExtensionTile(room, pos) !== 'ok') continue;
+            extensions.push({x: nx, y: ny});
+        }
+    }
+    return extensions;
+}
+
+/**
+ * Full extension placement pass for a V2 room.
+ * @param {Room} room
+ * @param {{max?: number}} [options]
+ * @returns {{
+ *   placed: number,
+ *   method?: string,
+ *   limit: number,
+ *   deficit: number,
+ *   planTiles: number,
+ *   freed: number,
+ *   shadow?: boolean,
+ *   reason?: string,
+ *   clearance?: *
+ * }}
+ */
+function placeExtensions(room, options) {
+    const opts = options || {};
+
+    if (!room.controller || room.controller.level < 2) {
+        return {placed: 0, limit: 0, deficit: 0, planTiles: 0, freed: 0, reason: 'rcl'};
+    }
+
+    if (!hasSpawnOrSpawnSite(room)) {
+        recordSkip(room, 'no-spawn-or-site');
+        return {
+            placed: 0,
+            limit: 0,
+            deficit: getExtensionDeficit(room),
+            planTiles: 0,
+            freed: 0,
+            reason: 'no-spawn-or-site'
+        };
+    }
+
+    const shadow = isPlannerShadow(room);
+    // Clearance can destroy wrong-type sites/structures — skip in shadow.
+    const clearance = shadow ? {skipped: 'shadow'} : ensureExtensionClearance(room);
+    const deficit = getExtensionDeficit(room);
+    if (deficit <= 0) {
+        delete room.memory.plannerExtensionSkip;
+        const plan = computeExtensionPlan(room);
+        syncExtensionPlanToDoc(room, plan);
+        return {
+            placed: 0,
+            limit: 0,
+            deficit: 0,
+            planTiles: plan.extensions.length,
+            freed: 0,
+            reason: 'none-needed',
+            clearance,
+            shadow: shadow || undefined,
+        };
+    }
+
+    // Soft reserve already done by orchestrator; request still enforces it.
+    // Hold one slot for containers until storage exists (see economySiteReserve).
+    const ecoReserve = economySiteReserve(room);
+    const extAvailable = Math.max(0, siteBudget.available(room, 'extensions') - ecoReserve);
+    let limit = Math.min(
+        deficit,
+        getExtensionBatchMax(room),
+        extAvailable,
+        opts.max != null ? opts.max : Infinity
+    );
+
+    let freed = 0;
+    if (limit <= 0 && !shadow) {
+        const want = Math.min(deficit, getExtensionBatchMax(room));
+        freed = freeSiteSlotsForExtensions(room, want);
+        const availAfter = Math.max(0, siteBudget.available(room, 'extensions') - ecoReserve);
+        limit = Math.min(
+            deficit,
+            getExtensionBatchMax(room),
+            availAfter,
+            opts.max != null ? opts.max : Infinity
+        );
+        if (limit <= 0) {
+            recordSkip(room, 'no-site-budget', {freed});
+            return {
+                placed: 0,
+                limit: 0,
+                deficit,
+                planTiles: 0,
+                freed,
+                reason: 'no-site-budget',
+                clearance,
+                shadow: shadow || undefined,
+            };
+        }
+    } else if (limit <= 0 && shadow) {
+        // Shadow: do not free sites; still compute plan for diagnostics.
+        recordSkip(room, 'no-site-budget', {shadow: true});
+        const plan = computeExtensionPlan(room);
+        syncExtensionPlanToDoc(room, plan);
+        return {
+            placed: 0,
+            limit: 0,
+            deficit,
+            planTiles: plan.extensions.length,
+            freed: 0,
+            reason: 'no-site-budget',
+            clearance,
+            shadow: true,
+        };
+    }
+
+    const plan = computeExtensionPlan(room);
+    syncExtensionPlanToDoc(room, plan);
+
+    let placed = 0;
+    let method;
+
+    if (plan.mode === 'dynamic') {
+        placed = placeFromCandidates(room, plan.extensions, limit);
+        method = placed ? 'dynamic' : undefined;
+        if (!placed && deficit > 0) {
+            const fallback = findFallbackCandidates(room);
+            placed = placeFromCandidates(room, fallback, limit);
+            if (placed) method = 'dynamic-fallback';
+        }
+    } else {
+        placed = placeFromCandidates(room, plan.extensions, limit);
+        method = placed ? 'bunker' : undefined;
+        if (placed < limit && getExtensionDeficit(room) > 0) {
+            const fallback = findFallbackCandidates(room);
+            const more = placeFromCandidates(room, fallback, limit - placed);
+            if (more) {
+                placed += more;
+                method = method ? 'bunker+fallback' : 'fallback';
+            }
+        }
+    }
+
+    // Source-pad extensions (link+container) — budgeted; V1 used raw planUtils from layout/core.
+    let sourcePlaced = 0;
+    if (getExtensionDeficit(room) > 0 && placed < limit) {
+        const src = placeSourceExtensions(room, {max: Math.min(1, limit - placed)});
+        sourcePlaced = src.placed || 0;
+        if (sourcePlaced) {
+            placed += sourcePlaced;
+            method = method ? method + '+source' : 'source';
+        }
+    }
+
+    if (placed > 0) {
+        delete room.memory.plannerExtensionSkip;
+        room.memory.plannerExtensionLast = {
+            tick: Game.time,
+            placed,
+            limit,
+            deficit,
+            method,
+            sourcePlaced: sourcePlaced || undefined,
+            v2: true,
+            shadow: shadow || undefined,
+        };
+    } else {
+        recordSkip(room, 'place-failed', {
+            limit,
+            planTiles: plan.extensions.length,
+            mode: plan.mode,
+            access: plan.access,
+            bunkerPlaceable: plan.bunkerPlaceable,
+        });
+    }
+
+    return {
+        placed,
+        method,
+        limit,
+        deficit,
+        planTiles: plan.extensions.length,
+        freed,
+        sourcePlaced,
+        shadow: shadow || undefined,
+        reason: placed ? undefined : 'place-failed',
+        clearance,
+    };
+}
+
+/**
+ * Place source-adjacent extensions via siteBudget (parity with planExtensions.buildSourceExtensions).
+ * @param {Room} room
+ * @param {{max?: number}} [options]
+ * @returns {{placed: number, shadow?: boolean, reason?: string}}
+ */
+function placeSourceExtensions(room, options) {
+    const opts = options || {};
+    const max = opts.max != null ? opts.max : 1;
+    if (max <= 0) return {placed: 0, reason: 'max-zero'};
+    if (!room.controller || room.controller.level < 2) {
+        return {placed: 0, reason: 'rcl'};
+    }
+    if (getExtensionDeficit(room) <= 0) {
+        return {placed: 0, reason: 'none-needed'};
+    }
+
+    const shadow = isPlannerShadow(room);
+    let placed = 0;
+
+    for (let n = 0; n < max; n++) {
+        if (getExtensionDeficit(room) <= 0) break;
+
+        const ok = buildSourceExtensions(room, {
+            canPlace: (r) => siteBudget.available(r, 'extensions') > 0
+                || isPlannerShadow(r),
+            placeSite: (pos, structureType) => {
+                if (structureType !== STRUCTURE_EXTENSION) {
+                    return require('planUtils').tryCreateConstructionSite(pos, structureType);
+                }
+                if (shadow) return OK;
+                const res = siteBudget.tryPlace(room, 'extensions', pos, STRUCTURE_EXTENSION);
+                if (res.ok) return OK;
+                if (res.code === FailureCodes.SITE_BUDGET_GLOBAL
+                    || res.code === FailureCodes.SITE_BUDGET_ROOM
+                    || res.code === FailureCodes.BUDGET_RESERVED_FOR_HIGHER) {
+                    const plan = getPlan(room);
+                    if (plan && res.code) {
+                        pushFailure(plan, {
+                            code: res.code,
+                            layer: 'extensions',
+                            detail: {x: pos.x, y: pos.y, kind: 'source-pad'},
+                            tick: Game.time,
+                            source: 'planExtensions.placeSourceExtensions',
+                        });
+                    }
+                    return ERR_NOT_OWNER;
+                }
+                return res.result != null ? res.result : ERR_FULL;
+            },
+        });
+
+        if (ok) {
+            placed++;
+            if (shadow) break; // one shadow attempt is enough for diagnostics
+        } else {
+            break;
+        }
+    }
+
+    return {placed, shadow: shadow || undefined};
+}
+
+/**
+ * Diagnostics for console.
+ * @param {Room} room
+ */
+function inspectExtensions(room) {
+    const plan = computeExtensionPlan(room);
+    const doc = getPlan(room);
+    return {
+        room: room.name,
+        mode: plan.mode,
+        deficit: plan.deficit,
+        planTiles: plan.extensions.length,
+        corridorTiles: plan.corridors.length,
+        sample: plan.extensions.slice(0, 8).map(p => `${p.x},${p.y}`),
+        access: plan.access,
+        bunkerPlaceable: plan.bunkerPlaceable,
+        batchMax: getExtensionBatchMax(room),
+        availableBudget: siteBudget.available(room, 'extensions'),
+        hasSpawnOrSite: hasSpawnOrSpawnSite(room),
+        lastSkip: room.memory.plannerExtensionSkip || null,
+        lastPlace: room.memory.plannerExtensionLast || null,
+        docLayer: doc && doc.layers && doc.layers.extensions
+            ? {
+                tiles: doc.layers.extensions.packed ? doc.layers.extensions.packed.length : 0,
+                rev: doc.layers.extensions.rev
+            }
+            : null,
+        layoutVersion: EXTENSION_LAYOUT_VERSION,
+    };
+}
+
+module.exports = Object.assign({}, geom, {
+    computeExtensionPlan,
+    syncExtensionPlanToDoc,
+    getBunkerExtensionTiles,
+    placeExtensions,
+    placeSourceExtensions,
+    placeFromCandidates,
+    inspectExtensions,
     buildSourceExtensions,
     placeExtensionsDynamically,
     placeBunkerExtensions,
     placeExtensionsFallback,
     placeRoomExtensions,
     tryPlaceRoomExtensions,
-    getExtensionPositions,
-    getCorridorPositions,
-    getExtensionDeficit,
-    clearDynamicLayoutMemory,
     removeInvalidExtensions,
     ensureExtensionClearance,
     ensureDynamicSpecialStructures,
-    getDynamicSpecialAssignments,
-    countPlaceableBunkerExtensions,
-    countPlaceableBunkerExtensionsAt,
-    assessHubExtensionCapacity,
-    auditExtensionClearance,
-    auditExtensionPlacement,
-    getExtensionPlacementLimit,
-    getExtensionBatchMax,
     freeSiteSlotsForExtensions,
-    diagnoseExtensionBlockers,
-    shouldDeferDynamicSpecials,
-    DYNAMIC_SPECIAL_EXTENSION_DEFICIT_GATE,
-    classifyExtensionTile,
-    EXTENSION_EXIT_CLEARANCE,
-    EXTENSION_SOURCE_CLEARANCE,
-    EXTENSION_CONTROLLER_CLEARANCE,
-    EXTENSION_MINERAL_CLEARANCE,
-    EXTENSION_SPAWN_CLEARANCE,
-    EXTENSION_ANCHOR_CLEARANCE,
-    EXTENSION_LAYOUT_VERSION,
-    DYNAMIC_SPECIAL_STRUCTURES,
-    collectCriticalAccessGroups,
-};
+});

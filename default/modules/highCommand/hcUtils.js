@@ -101,9 +101,23 @@ function siegeLevel(towerCount) {
     return MAX_LEVEL >= 6;
 }
 
+/** World already grouped these this tick. Fallback walks Game.creeps only if World is missing. */
+function getMilitaryCreeps() {
+    const world = typeof global !== 'undefined' ? global.world : null;
+    if (world && world.militaryCreeps) return world.militaryCreeps;
+    const out = [];
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (c.my && (c.memory.military || !c.memory.colony)) out.push(c);
+    }
+    return out;
+}
+
 module.exports = {
 
     intelOwner,
+
+    getMilitaryCreeps,
 
     rampartLevelEquivalent,
 

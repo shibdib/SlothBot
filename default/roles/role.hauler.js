@@ -21,7 +21,9 @@ class RoleHauler {
 
     housekeeping() {
         this.creep.say(ICONS.haul, true);
-        this.creep.opportunisticFill();
+        if (this.creep.room.energyAvailable < this.creep.room.energyCapacityAvailable) {
+            this.creep.opportunisticFill();
+        }
     }
 
     deliverResource() {
@@ -29,7 +31,7 @@ class RoleHauler {
     }
 
     findResource() {
-        if (!this.creep.memory.energyDestination) this.creep.memory._shibMove = undefined;
+        if (!this.creep.memory.energyDestination) this.creep.clearShibMove();
         if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
             this.creep.withdrawResource()
         } else {
