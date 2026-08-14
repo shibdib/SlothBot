@@ -40,11 +40,12 @@ Object.assign(TerminalControl.prototype, {
         }
 
         const looksLikeHub = Memory._banker.marketHub === roomName;
-        if (pressured || looksLikeHub || !state.ledger) getLedger(true);
+        // Only the hub force-rebuilds. Pressured satellites reuse the plan (25-tick TTL).
+        if (looksLikeHub || !state.ledger) getLedger(true);
+        else getLedger();
 
         const hub = isMarketHub(roomName);
-        const needsMarket = hub || pressured;
-        const globalOrders = needsMarket ? this.getGlobalOrders() : null;
+        const globalOrders = hub ? this.getGlobalOrders() : null;
         const myOrders = hub ? getCachedMyOrders() : null;
 
         if (hub) {
@@ -54,11 +55,11 @@ Object.assign(TerminalControl.prototype, {
 
         const terminal = this.room.terminal;
 
-        // Overfull rooms: evacuate via planned pressure sends, then fire-sale, before
-        // normal balancing/hub feed can consume the terminal action for the tick.
+        // Overfull rooms: evacuate via planned pressure sends first.
+        // Fire-sale is hub-only so stuffed satellites do not parse the market.
         if (pressured) {
             if (this.relieveStoragePressure(terminal)) return;
-            if (runActiveMarket(this, globalOrders)) return;
+            if (hub && runActiveMarket(this, globalOrders)) return;
         }
 
         // Internal network before market — route empire stock first.
@@ -70,10 +71,7 @@ Object.assign(TerminalControl.prototype, {
         if (!hub && !hasPriorityOutbound && this.executePlannedTransfers(terminal, {kinds: ['hub']})) return;
         if (this.executePlannedTransfers(terminal)) return;
 
-        // Active market — hub and pressured rooms only. Healthy satellites transfer.
-        if (needsMarket && runActiveMarket(this, globalOrders)) return;
-
-        // Passive orders — hub only, avoids duplicate buy/sell orders empire-wide.
+        if (hub && runActiveMarket(this, globalOrders)) return;
         if (hub && runPassiveMarket(this, globalOrders, myOrders)) return;
     },
 
