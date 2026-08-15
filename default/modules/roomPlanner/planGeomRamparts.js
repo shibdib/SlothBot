@@ -73,7 +73,7 @@ function resolveLabHubXY(room) {
  * Bump when the perimeter algorithm changes so owned rooms wipe old
  * min-cut rings and rebuild from the hub floodfill.
  */
-const PERIMETER_PLAN_REV = 6;
+const PERIMETER_PLAN_REV = 7;
 
 function chebyDistance(ax, ay, bx, by) {
     return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -415,6 +415,15 @@ function snapSpotsToExisting(room, spots, interior, terrain, exterior) {
 }
 
 /**
+ * Interior must stay inside [3,46] so the exit-facing contour can sit on
+ * buildable tiles at 2/47. Plan filter rejects x/y <= 1 and >= 49; placing
+ * on 0/1/48/49 is invalid, so an interior that reaches the strip leaves a gap.
+ */
+function perimeterInteriorInset() {
+    return PERIMETER_EDGE + 1;
+}
+
+/**
  * Interior = hub-walkable tiles inside the padded bounding box of protect seeds.
  * Grows only as far as the seeds, not a full radius ball in empty directions.
  */
@@ -432,10 +441,19 @@ function computeSeedWrapInterior(hub, valid, flood, pad) {
         if (s.x > x2) x2 = s.x;
         if (s.y > y2) y2 = s.y;
     }
-    x1 = Math.max(0, x1 - pad);
-    y1 = Math.max(0, y1 - pad);
-    x2 = Math.min(49, x2 + pad);
-    y2 = Math.min(49, y2 + pad);
+    const inset = perimeterInteriorInset();
+    x1 = Math.max(inset, x1 - pad);
+    y1 = Math.max(inset, y1 - pad);
+    x2 = Math.min(49 - inset, x2 + pad);
+    y2 = Math.min(49 - inset, y2 + pad);
+    if (x1 > x2) {
+        x1 = inset;
+        x2 = 49 - inset;
+    }
+    if (y1 > y2) {
+        y1 = inset;
+        y2 = 49 - inset;
+    }
 
     for (const key of flood.set) {
         const comma = key.indexOf(',');
@@ -444,11 +462,24 @@ function computeSeedWrapInterior(hub, valid, flood, pad) {
         if (x >= x1 && x <= x2 && y >= y1 && y <= y2) interior.add(key);
     }
     interior.add(xyKey(hub.x, hub.y));
+    stripEdgeInterior(interior, inset, xyKey(hub.x, hub.y));
     return {
         interior,
         bounds: {x1, y1, x2, y2},
         radius: Math.max(x2 - x1, y2 - y1),
     };
+}
+
+function stripEdgeInterior(interior, inset, keepKey) {
+    const drop = [];
+    for (const key of interior) {
+        if (key === keepKey) continue;
+        const comma = key.indexOf(',');
+        const x = Number(key.slice(0, comma));
+        const y = Number(key.slice(comma + 1));
+        if (structureDistToEdge(x, y) < inset) drop.push(key);
+    }
+    for (let i = 0; i < drop.length; i++) interior.delete(drop[i]);
 }
 
 /**
