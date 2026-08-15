@@ -3,10 +3,14 @@
  *
  * Refactored & Deep-Dived by Grok (xAI) - May 2026
  *
- * Version 2.6 - markHostile/clearHostile/listHostile console helpers; temp-hostiles now
+ * Version 2.8 - HOSTILES join worthy pool; generateThreat no longer rewrites
+ *               standing; strength bonus inverted (prefer weaker targets).
+ *               v2.7 - WAR_TARGETS: seed INTEL owners; lastAggression is combat-only;
+ *               drop per-tick intel standing melt.
+ *               v2.6: markHostile/clearHostile/listHostile console helpers; temp-hostiles now
  *               persist in Memory.tempHostiles and push onto THREATS.
  *               v2.5: MY_STRENGTH baseline exposed as global; diplomacyReport plain text.
- *               v2.4: precomputed owner→rooms map; grouped WAR_PRIORITY/INTEL_PENALTY
+ *               v2.4: precomputed owner→rooms map; grouped WAR_PRIORITY
  *               constants; composite userStrength mixed into war target priority.
  */
 
@@ -31,7 +35,7 @@ const WAR_TARGETS_STICKY_BONUS = 30;     // score nudge for users already on the
 // tier when the worthy tier is empty (peace mode → pick on weaker neighbours
 // we can actually handle). When BOTH tiers are empty, WAR_TARGETS is empty
 // and the bot focuses on economy.
-const AGGRESSOR_RECENCY_TICKS = 5000;        // attacked or harassed us within this window
+const AGGRESSOR_RECENCY_TICKS = 5000;        // we took combat damage from them within this window
 const ENCROACH_DISTANCE = 2;                 // their rooms within this many of ours = encroachment
 const ENCROACH_MIN_THREAT_LEVEL = 2;         // ...and they need at least this much hostile signal
 const OPPORTUNISTIC_DISTANCE = 3;            // peace-mode targets must be within this distance
@@ -41,7 +45,7 @@ const MANUAL_WAR_TARGET_PRIORITY = 9999;     // synthetic priority for config-de
 // Raw-priority weights for buildWarTargets — grouped so tuning is one place.
 const WAR_PRIORITY = {
     standingDivisor: 10,         // negative standing / 10 contributes to raw
-    lastActionBase: 50,          // bonus that decays over 500 ticks from last action
+    lastActionBase: 50,          // bonus that decays over 500 ticks from lastAggression
     lastActionDecayTicks: 500,
     intelCombatBase: 80,         // recent combat in their room
     intelCombatDecayTicks: 300,
@@ -50,8 +54,8 @@ const WAR_PRIORITY = {
     intelThreatHigh: 40,         // threatLevel >= 3 in their room
     intelClose: 70,              // their room within 3 of one of mine
     intelTowers: 30,             // they have towers in this room
-    strengthPerLevel: 8,         // composite strength contribution (matches userStrength scale)
-    strengthCap: 60              // ...capped so a megacorp doesn't drown out closer threats
+    strengthPerLevel: 8,         // subtracted so weaker targets we can handle rank higher
+    strengthCap: 60              // ...capped so a 0-strength nobody doesn't drown out a close aggressor
 };
 
 // trackThreat gate: at most one standing hit per user per this many ticks.
@@ -115,15 +119,51 @@ function applyOwnedHostileStanding(room, currentTime) {
 // Stale-user prune: how often, and how old/inactive a user must be to drop.
 const USERLIST_PRUNE_INTERVAL = 5000;
 const USERLIST_PRUNE_INACTIVE_TICKS = 50000;
+const NPC_USERS = {Invader: true, 'Source Keeper': true};
 
-// scoreUserFromIntel weights — separate scaling because this nudges standing, not priority.
-const INTEL_PENALTY = {
-    recentCombat: -80,           // intel.lastCombat within 500 ticks
-    armedHostileClose: -120,     // intel.armedHostile recent AND distance < 4
-    highThreatNearby: -60,       // threatLevel >= 3 AND distance < 5
-    powerOrCommodity: -40,
-    fortifiedNeighbor: -100      // towers/SK at distance <= 2 and not friendly
-};
+function skipWarCandidate(name, manualSet) {
+    if (!name || name === MY_USERNAME || name === 'undefined' || name.length < 2) return true;
+    if (NPC_USERS[name]) return true;
+    if (FRIENDLIES.includes(name) || NO_DIRECT_ATTACKS.includes(name)) return true;
+    if (manualSet && manualSet.has(name)) return true;
+    return false;
+}
+
+function ownerHasOwnedRoom(rooms, name) {
+    if (!rooms) return false;
+    for (let i = 0; i < rooms.length; i++) {
+        if (rooms[i] && rooms[i].owner === name) return true;
+    }
+    return false;
+}
+
+function collectWarCandidateNames(ownerToRooms, manualSet) {
+    const names = [];
+    const seen = new Set();
+    for (const name in Memory._userList) {
+        if (skipWarCandidate(name, manualSet)) continue;
+        seen.add(name);
+        names.push(name);
+    }
+    // Scouted INTEL owners are eligible even with no standing history (opportunistic /
+    // encroachment). Reservations-only names stay out — no owned room to prosecute.
+    for (const name in ownerToRooms) {
+        if (seen.has(name) || skipWarCandidate(name, manualSet)) continue;
+        if (!ownerHasOwnedRoom(ownerToRooms[name], name)) continue;
+        seen.add(name);
+        names.push(name);
+    }
+    // Config HOSTILES are already unioned into ENEMIES; they must still enter this
+    // list or they never get scored (they may have no _userList row and no INTEL yet).
+    const hostiles = HOSTILES || [];
+    for (let i = 0; i < hostiles.length; i++) {
+        const name = hostiles[i];
+        if (seen.has(name) || skipWarCandidate(name, manualSet)) continue;
+        seen.add(name);
+        names.push(name);
+    }
+    return names;
+}
 
 class DiplomacyControl {
     static refreshFriendlies() {
@@ -188,8 +228,8 @@ class DiplomacyControl {
                 const cache = Memory._userList;
                 const userEntry = cache[user] || {standing: 0};
 
-                // Cooldown so a sustained engagement compounds at most once per N ticks per user.
-                if ((userEntry.lastAction || 0) + TRACK_THREAT_COOLDOWN > currentTime) continue;
+                // Combat-only cooldown. Trespass lastAction must not suppress aggression stamps.
+                if ((userEntry.lastAggression || 0) + TRACK_THREAT_COOLDOWN > currentTime) continue;
 
                 const multiplier = (INTEL[room.name].user === MY_USERNAME) ? 3 : 1.0;
                 let standing = userEntry.standing || 0;
@@ -198,6 +238,7 @@ class DiplomacyControl {
                 standing = Math.max(standing, STANDING_FLOOR);
 
                 userEntry.standing = standing;
+                userEntry.lastAggression = currentTime;
                 userEntry.lastAction = currentTime;
                 userEntry.lastChange = currentTime;
                 cache[user] = userEntry;
@@ -301,12 +342,6 @@ class DiplomacyControl {
                 user.isThreat = true;
             }
 
-            const intelScore = this._scoreUserFromIntel(name, currentTime, ownerToRooms[name]);
-            if (intelScore < -50) {
-                currentRating = Math.max(currentRating - 20, STANDING_FLOOR);
-                user.lastAction = currentTime;
-            }
-
             user.standing = Math.round(currentRating * 100) / 100;
         }
 
@@ -327,22 +362,6 @@ class DiplomacyControl {
         }
     }
 
-    _scoreUserFromIntel(username, currentTime, userRooms) {
-        if (!userRooms || !userRooms.length) return 0;
-        let score = 0;
-        const userIsFriendly = FRIENDLIES.includes(username);
-        for (const intel of userRooms) {
-            const distance = findClosestOwnedRoom(intel.name, true, 1, false, true) || 99;
-
-            if (intel.lastCombat && intel.lastCombat + 500 > currentTime) score += INTEL_PENALTY.recentCombat;
-            if (intel.armedHostile && intel.armedHostile + 300 > currentTime && distance < 4) score += INTEL_PENALTY.armedHostileClose;
-            if (intel.threatLevel && intel.threatLevel >= 3 && distance < 5) score += INTEL_PENALTY.highThreatNearby;
-            if ((intel.power && intel.power > currentTime) || intel.commodity) score += INTEL_PENALTY.powerOrCommodity;
-            if (distance <= 2 && (intel.towers || intel.sk) && !userIsFriendly) score += INTEL_PENALTY.fortifiedNeighbor;
-        }
-        return score;
-    }
-
     _buildWarTargets(currentTime, ownerToRooms) {
         if (!Memory.warTargets) Memory.warTargets = [];
         const previousMembers = new Set(Memory.warTargets.map(t => t && t.user).filter(Boolean));
@@ -354,20 +373,18 @@ class DiplomacyControl {
         );
         const manualSet = new Set(manualList);
 
-        // Two-tier candidate pools. We only fall through to the opportunistic tier
-        // when the worthy tier is empty — that's the "peace mode → pick on weak
-        // neighbours we can actually handle" branch the user wanted. When both tiers
-        // are empty, we emit just the manual list (possibly empty) and the bot is
-        // free to invest CPU into economy / boost stockpile instead of churning ops.
+        // Two-tier candidate pools from _userList PLUS scouted INTEL owners.
+        // We only fall through to opportunistic when worthy is empty (peace mode →
+        // pick on weaker neighbours we can handle). When both tiers are empty, we
+        // emit just the manual list and the bot stays on economy.
         const worthy = [];
         const opportunistic = [];
+        const candidates = collectWarCandidateNames(ownerToRooms, manualSet);
 
-        for (const name in Memory._userList) {
-            if (!name || name === MY_USERNAME || name === 'undefined' || name.length < 2
-                || FRIENDLIES.includes(name) || NO_DIRECT_ATTACKS.includes(name)
-                || manualSet.has(name)) continue;
-
-            const user = Memory._userList[name];
+        for (let i = 0; i < candidates.length; i++) {
+            const name = candidates[i];
+            const tracked = Memory._userList[name];
+            const user = tracked || {};
             const userRooms = ownerToRooms[name] || [];
 
             // Walk the user's rooms once and capture three signals we need below:
@@ -386,11 +403,11 @@ class DiplomacyControl {
             }
 
             // ===== Worthy tier =====
-            // ENEMY classification, a recent aggression on us, or hostile encroachment
-            // near our rooms. These users earned a place on the list.
+            // ENEMY (includes config HOSTILES), combat damage they dealt us, or hostile
+            // encroachment near our rooms. Trespass and our own raids do not count.
             const isEnemy = ENEMIES.includes(name);
-            const isAggressor = user.lastAction
-                && (currentTime - user.lastAction) < AGGRESSOR_RECENCY_TICKS;
+            const isAggressor = user.lastAggression
+                && (currentTime - user.lastAggression) < AGGRESSOR_RECENCY_TICKS;
 
             let tier;
             if (isEnemy || isAggressor || encroachingHostile) {
@@ -404,7 +421,7 @@ class DiplomacyControl {
             } else {
                 // Neither worthy nor handleable. Decay any stale priority EMA so a
                 // long-dormant user doesn't keep an inflated score around.
-                if (user.warPriority) {
+                if (tracked && user.warPriority) {
                     const decayed = Math.round(user.warPriority * (1 - WAR_TARGETS_EMA_ALPHA));
                     user.warPriority = decayed > 1 ? decayed : undefined;
                 }
@@ -414,9 +431,9 @@ class DiplomacyControl {
             // Raw priority — same formula as before; the difference is who's allowed
             // into this scoring step.
             let raw = user.standing < 0 ? -user.standing / WAR_PRIORITY.standingDivisor : 0;
-            if (user.lastAction) {
+            if (user.lastAggression) {
                 raw += WAR_PRIORITY.lastActionBase
-                    * Math.max(0, 1 - (currentTime - user.lastAction) / WAR_PRIORITY.lastActionDecayTicks);
+                    * Math.max(0, 1 - (currentTime - user.lastAggression) / WAR_PRIORITY.lastActionDecayTicks);
             }
             for (const intel of userRooms) {
                 const dist = findClosestOwnedRoom(intel.name, true, 1, false, true) || 99;
@@ -434,13 +451,13 @@ class DiplomacyControl {
             }
 
             const strength = userStrength(name);
-            raw += Math.min(strength * WAR_PRIORITY.strengthPerLevel, WAR_PRIORITY.strengthCap);
+            raw -= Math.min(strength * WAR_PRIORITY.strengthPerLevel, WAR_PRIORITY.strengthCap);
             raw = Math.round(raw);
 
-            // EMA smoothing as before.
+            // EMA smoothing. Only persist on a real _userList row.
             const prevEMA = user.warPriority != null ? user.warPriority : raw;
             const smoothed = Math.round(prevEMA * (1 - WAR_TARGETS_EMA_ALPHA) + raw * WAR_TARGETS_EMA_ALPHA);
-            user.warPriority = smoothed;
+            if (tracked) user.warPriority = smoothed;
 
             const ranking = smoothed + (previousMembers.has(name) ? WAR_TARGETS_STICKY_BONUS : 0);
             const entry = {user: name, priority: smoothed, ranking};
