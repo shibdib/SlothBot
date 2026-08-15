@@ -5,7 +5,16 @@
  */
 
 function isThreatUser(user) {
-    return !!(user && THREATS.includes(user) && !NO_DIRECT_ATTACKS.includes(user) && !FRIENDLIES.includes(user));
+    if (global.isHarassOwner) return global.isHarassOwner(user);
+    if (!user || FRIENDLIES.includes(user) || NO_DIRECT_ATTACKS.includes(user)) return false;
+    if (THREATS && THREATS.includes(user)) return true;
+    const war = global.WAR_TARGETS;
+    if (war) {
+        for (let i = 0; i < war.length; i++) {
+            if (war[i] && war[i].user === user) return true;
+        }
+    }
+    return false;
 }
 
 function adjacentThreatOwned(roomName) {

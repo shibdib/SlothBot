@@ -82,6 +82,16 @@ function manageMilitary() {
                     activeNonSiege--;
                     continue;
                 }
+                // Occupy of an owned room drops when diplomacy moves on. Unowned
+                // sit-guards (scout fallback) have no owner and stay until stale.
+                if (INTEL[key] && INTEL[key].owner
+                    && !FRIENDLIES.includes(INTEL[key].owner)
+                    && !warTargetUsers.has(INTEL[key].owner)) {
+                    log.a(`Canceling guard in ${roomLink(key)} — not a war target.`, 'HIGH COMMAND: ');
+                    delete Memory.targetRooms[key];
+                    activeNonSiege--;
+                    continue;
+                }
                 break;
 
             case 'stronghold':

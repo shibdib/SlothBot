@@ -701,25 +701,27 @@ function activateSafeMode(room, crisis = {}) {
 
 function addThreat(room) {
     const neutrals = _.uniq(room.hostileCreeps
-        .filter(c => c.owner && !_.includes(FRIENDLIES, c.owner.username) &&
+        .filter(c => c.owner && !FRIENDLIES.includes(c.owner.username) &&
             c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper')
         .map(c => c.owner.username));
-    if (neutrals.length) {
-        for (let user of neutrals) {
-            if (user === MY_USERNAME || _.includes(FRIENDLIES, user)) continue;
-            let cache = Memory._userList || {};
-            let standing;
-            if (cache[user]) {
-                standing = cache[user]['standing'] - 0.25;
-            } else if (!cache[user]) {
-                standing = 0;
-                log.w(roomLink(room.name) + ' has detected a neutral.' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
-            }
-            cache[user] = {
-                standing: standing,
-                lastAction: Game.time,
-            };
-            Memory._userList = cache;
+    if (!neutrals.length) return;
+
+    if (!Memory._userList) Memory._userList = {};
+    const cache = Memory._userList;
+
+    for (let i = 0; i < neutrals.length; i++) {
+        const user = neutrals[i];
+        if (user === MY_USERNAME || FRIENDLIES.includes(user)) continue;
+
+        const entry = cache[user];
+        if (!entry) {
+            cache[user] = {standing: 0, lastAction: Game.time};
+            log.w(roomLink(room.name) + ' has detected a neutral.' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
+            continue;
         }
+        // Mutate in place — do not wipe lastAggression / isEnemy / isThreat / warPriority.
+        entry.standing = (entry.standing || 0) - 0.25;
+        entry.lastAction = Game.time;
+        entry.lastChange = Game.time;
     }
 }

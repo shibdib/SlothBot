@@ -44,7 +44,8 @@ function collectWarCandidates(idx, warTargetUsers, strengthCeiling) {
             if (Memory.nonCombatRooms && Memory.nonCombatRooms.includes(r.name)) continue;
             if (checkForNap(r.owner)) continue;
             if (userStrength(r.owner) > strengthCeiling) continue;
-            if ((r.lastOperation || 0) + ATTACK_COOLDOWN >= ct) continue;
+            const crushNew = NEW_SPAWN_DENIAL && (r.level || 0) <= 3;
+            if (!crushNew && (r.lastOperation || 0) + ATTACK_COOLDOWN >= ct) continue;
             list.push(r);
         }
         if (list.length) {
@@ -81,16 +82,19 @@ function pickMissionForUser(rooms, opts) {
         const r = rooms[i];
         const noDirect = NO_DIRECT_ATTACKS.includes(r.owner);
         const safe = !(r.safemode > ct);
-        const siegeReady = safe && (r.lastSiege || 0) + siegeCooldown < ct;
+        const crushNew = NEW_SPAWN_DENIAL && (r.level || 0) <= 3 && !noDirect && safe;
+        const siegeReady = crushNew || (safe && (r.lastSiege || 0) + siegeCooldown < ct);
 
         if (r.towers && !noDirect && siegeReady && siegeLevel(r.towers) && siegeFeasibility(r) >= -1) {
-            const score = scoreTarget(r.name, 'roomDenial', null, warPriorityByUser);
+            let score = scoreTarget(r.name, 'roomDenial', warPriorityByUser);
+            if (crushNew) score -= 200;
             if (score < bestSiegeScore) {
                 bestSiegeScore = score;
                 bestSiege = r;
             }
         } else if (!r.towers && !noDirect && siegeReady) {
-            const score = scoreTarget(r.name, 'guard', null, warPriorityByUser);
+            let score = scoreTarget(r.name, 'guard', warPriorityByUser);
+            if (crushNew) score -= 200;
             if (score < bestNakedScore) {
                 bestNakedScore = score;
                 bestNaked = r;
@@ -98,7 +102,7 @@ function pickMissionForUser(rooms, opts) {
         }
 
         if (allowDenial && roomHasRemote(r.name, r.owner)) {
-            const score = scoreTarget(r.name, 'remoteDenial', null, warPriorityByUser);
+            const score = scoreTarget(r.name, 'remoteDenial', warPriorityByUser);
             if (score < bestDenialScore) {
                 bestDenialScore = score;
                 bestDenial = r;
@@ -182,7 +186,7 @@ function militaryOperations() {
             if (!siegeLevel(r.towers) || !myRoomInSectorCheck(r.name)) continue;
             if ((r.lastOperation || 0) + ATTACK_COOLDOWN >= Game.time) continue;
 
-            const score = scoreTarget(r.name, 'stronghold', attackedOwners, warPriorityByUser);
+            const score = scoreTarget(r.name, 'stronghold', warPriorityByUser);
             if (score < bestScore) {
                 bestScore = score;
                 best = r;

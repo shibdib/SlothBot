@@ -722,10 +722,24 @@ let helpers = function () {
     // Replaces multiple O(|INTEL|) loops in diplomacy, highCommand, explorer, observer, HUD etc.
     // Updated incrementally on intel changes for mid-tick accuracy.
 
+    function isHarassOwner(user) {
+        if (!user) return false;
+        if (global.FRIENDLIES && FRIENDLIES.includes(user)) return false;
+        if (global.NO_DIRECT_ATTACKS && NO_DIRECT_ATTACKS.includes(user)) return false;
+        if (global.THREATS && THREATS.includes(user)) return true;
+        const war = global.WAR_TARGETS;
+        if (war) {
+            for (let i = 0; i < war.length; i++) {
+                if (war[i] && war[i].user === user) return true;
+            }
+        }
+        return false;
+    }
+
+    global.isHarassOwner = isHarassOwner;
+
     function intelIndexThreatUser(user) {
-        return !!(user && global.THREATS && THREATS.includes(user) &&
-            !(global.NO_DIRECT_ATTACKS && NO_DIRECT_ATTACKS.includes(user)) &&
-            !(global.FRIENDLIES && FRIENDLIES.includes(user)));
+        return isHarassOwner(user);
     }
 
     function intelIndexHarassRemote(roomName, r, ct) {

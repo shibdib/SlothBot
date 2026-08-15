@@ -3,7 +3,9 @@
  *
  * Refactored & Deep-Dived by Grok (xAI) - May 2026
  *
- * Version 2.8 - HOSTILES join worthy pool; generateThreat no longer rewrites
+ * Version 2.9 - threat standing recovers after combat peace; trespass-only
+ *               threats are not locked.
+ *               v2.8 - HOSTILES join worthy pool; generateThreat no longer rewrites
  *               standing; strength bonus inverted (prefer weaker targets).
  *               v2.7 - WAR_TARGETS: seed INTEL owners; lastAggression is combat-only;
  *               drop per-tick intel standing melt.
@@ -25,6 +27,7 @@ const THREAT_ADD = -25;          // standing must reach this to join THREATS
 const THREAT_REMOVE = -5;        // ...and rise above this to leave
 const ENEMY_ADD = -300;
 const ENEMY_REMOVE = -200;
+const THREAT_PEACE_TICKS = 20000; // no combat damage from them for this long → allow recovery
 const WAR_TARGETS_MAX = 3;
 const WAR_TARGETS_REBUILD_COOLDOWN = 25; // recompute list at most this often
 const WAR_TARGETS_EMA_ALPHA = 0.15;      // smoothing factor on per-user priority
@@ -163,6 +166,52 @@ function collectWarCandidateNames(ownerToRooms, manualSet) {
         names.push(name);
     }
     return names;
+}
+
+function evaluateWarSignals(name, user, userRooms, currentTime) {
+    let minDistance = 99;
+    let encroachingHostile = false;
+    for (let i = 0; i < userRooms.length; i++) {
+        const intel = userRooms[i];
+        if (!intel || !intel.name) continue;
+        const dist = findClosestOwnedRoom(intel.name, true, 1, false, true) || 99;
+        if (dist < minDistance) minDistance = dist;
+        if (dist <= ENCROACH_DISTANCE) {
+            const hostileSignal = intel.lastCombat || intel.armedHostile
+                || (intel.threatLevel || 0) >= ENCROACH_MIN_THREAT_LEVEL || intel.towers;
+            if (hostileSignal) encroachingHostile = true;
+        }
+    }
+
+    const strength = userStrength(name);
+    const isHostile = (HOSTILES || []).includes(name);
+    const isEnemy = ENEMIES.includes(name);
+    const isAggressor = !!(user.lastAggression
+        && (currentTime - user.lastAggression) < AGGRESSOR_RECENCY_TICKS);
+    const closeEnough = minDistance <= OPPORTUNISTIC_DISTANCE;
+    const weakEnough = strength < (global.MY_STRENGTH || 1) * OPPORTUNISTIC_STRENGTH_RATIO;
+
+    if (isHostile) return {tier: 'worthy', reason: 'HOSTILES', minDistance, strength};
+    if (isEnemy) return {tier: 'worthy', reason: 'ENEMY', minDistance, strength};
+    if (isAggressor) return {tier: 'worthy', reason: 'combat', minDistance, strength};
+    if (encroachingHostile) return {tier: 'worthy', reason: `encroach d${minDistance}`, minDistance, strength};
+    if (closeEnough && weakEnough) {
+        return {tier: 'opportunistic', reason: `weak d${minDistance} s${strength.toFixed(1)}`, minDistance, strength};
+    }
+    if (!closeEnough && !weakEnough) {
+        return {tier: null, reason: `far d${minDistance} strong s${strength.toFixed(1)}`, minDistance, strength};
+    }
+    if (!closeEnough) return {tier: null, reason: `far d${minDistance}`, minDistance, strength};
+    return {tier: null, reason: `strong s${strength.toFixed(1)}`, minDistance, strength};
+}
+
+function skipWarReason(name, manualSet) {
+    if (!name || name === MY_USERNAME || name === 'undefined' || name.length < 2) return 'invalid';
+    if (NPC_USERS[name]) return 'npc';
+    if (FRIENDLIES.includes(name)) return 'friend';
+    if (NO_DIRECT_ATTACKS.includes(name)) return 'no-direct';
+    if (manualSet && manualSet.has(name)) return 'manual';
+    return null;
 }
 
 class DiplomacyControl {
@@ -314,8 +363,11 @@ class DiplomacyControl {
             const decayEligible = (user.lastChange || 0) + 25 < currentTime
                 && (user.lastAction || 0) + 25 < currentTime;
             if (decayEligible) {
-                // Don't decay current threats out of threat range — wait for active improvement.
-                const protectedFromDecay = user.isThreat && currentRating < THREAT_REMOVE;
+                // Combat threats stay locked until they have not shot us for THREAT_PEACE_TICKS.
+                // Trespass-only threats (no lastAggression) recover so THREATS is not a one-way door.
+                const recentCombat = user.lastAggression
+                    && (currentTime - user.lastAggression) < THREAT_PEACE_TICKS;
+                const protectedFromDecay = user.isThreat && currentRating < THREAT_REMOVE && recentCombat;
                 if (!protectedFromDecay) {
                     currentRating = (currentRating > 5)
                         ? currentRating - decayRate
@@ -386,41 +438,9 @@ class DiplomacyControl {
             const tracked = Memory._userList[name];
             const user = tracked || {};
             const userRooms = ownerToRooms[name] || [];
+            const signals = evaluateWarSignals(name, user, userRooms, currentTime);
 
-            // Walk the user's rooms once and capture three signals we need below:
-            // closest distance to a room of ours, whether they're encroaching on a
-            // neighbour of ours, and whether their close room is showing hostile signs.
-            let minDistance = 99;
-            let encroachingHostile = false;
-            for (const intel of userRooms) {
-                const dist = findClosestOwnedRoom(intel.name, true, 1, false, true) || 99;
-                if (dist < minDistance) minDistance = dist;
-                if (dist <= ENCROACH_DISTANCE) {
-                    const hostileSignal = intel.lastCombat || intel.armedHostile
-                        || (intel.threatLevel || 0) >= ENCROACH_MIN_THREAT_LEVEL || intel.towers;
-                    if (hostileSignal) encroachingHostile = true;
-                }
-            }
-
-            // ===== Worthy tier =====
-            // ENEMY (includes config HOSTILES), combat damage they dealt us, or hostile
-            // encroachment near our rooms. Trespass and our own raids do not count.
-            const isEnemy = ENEMIES.includes(name);
-            const isAggressor = user.lastAggression
-                && (currentTime - user.lastAggression) < AGGRESSOR_RECENCY_TICKS;
-
-            let tier;
-            if (isEnemy || isAggressor || encroachingHostile) {
-                tier = 'worthy';
-            } else if (minDistance <= OPPORTUNISTIC_DISTANCE
-                && userStrength(name) < (global.MY_STRENGTH || 1) * OPPORTUNISTIC_STRENGTH_RATIO) {
-                // ===== Opportunistic tier =====
-                // Close enough to be a credible target AND weaker than us, so we
-                // know we can handle them. Only used when worthy is empty.
-                tier = 'opportunistic';
-            } else {
-                // Neither worthy nor handleable. Decay any stale priority EMA so a
-                // long-dormant user doesn't keep an inflated score around.
+            if (!signals.tier) {
                 if (tracked && user.warPriority) {
                     const decayed = Math.round(user.warPriority * (1 - WAR_TARGETS_EMA_ALPHA));
                     user.warPriority = decayed > 1 ? decayed : undefined;
@@ -460,14 +480,16 @@ class DiplomacyControl {
             if (tracked) user.warPriority = smoothed;
 
             const ranking = smoothed + (previousMembers.has(name) ? WAR_TARGETS_STICKY_BONUS : 0);
-            const entry = {user: name, priority: smoothed, ranking};
-            if (tier === 'worthy') worthy.push(entry); else opportunistic.push(entry);
+            const entry = {user: name, priority: smoothed, ranking, reason: signals.reason};
+            if (signals.tier === 'worthy') worthy.push(entry); else opportunistic.push(entry);
         }
 
         // Manual targets always go on the list, with synthetic max priority. The
         // remaining slots are filled from the worthy pool, or from opportunistic
         // when worthy is empty (peace-mode aggression).
-        const targets = manualList.map(name => ({user: name, priority: MANUAL_WAR_TARGET_PRIORITY, manual: true}));
+        const targets = manualList.map(name => ({
+            user: name, priority: MANUAL_WAR_TARGET_PRIORITY, manual: true, reason: 'manual',
+        }));
         const remainingSlots = WAR_TARGETS_MAX - targets.length;
         if (remainingSlots > 0) {
             const pool = worthy.length ? worthy : opportunistic;
@@ -572,14 +594,63 @@ global.diplomacyReport = function () {
         console.log(`  ${name.padEnd(18)} ${u.standing.toFixed(1).padStart(8)} ${strength.padStart(8)}  ${lastAction}`);
     }
 
+    const idx = global.getIntelIndexes ? global.getIntelIndexes(currentTime) : {byOwner: {}};
+    const ownerToRooms = idx.byOwner || {};
+    const manualSet = new Set((global.MANUAL_WAR_TARGETS || []).filter(u =>
+        u && u !== MY_USERNAME && !FRIENDLIES.includes(u)
+    ));
+    const onList = new Set((global.WAR_TARGETS || []).map(t => t && t.user).filter(Boolean));
+
     if (global.WAR_TARGETS && global.WAR_TARGETS.length) {
         console.log(`\nWar targets (${global.WAR_TARGETS.length}):`);
-        console.log(`  ${'user'.padEnd(18)} ${'priority'.padStart(8)} ${'strength'.padStart(8)}`);
+        console.log(`  ${'user'.padEnd(18)} ${'priority'.padStart(8)} ${'strength'.padStart(8)}  why`);
         for (const t of global.WAR_TARGETS) {
-            console.log(`  ${t.user.padEnd(18)} ${String(t.priority).padStart(8)} ${userStrength(t.user).toFixed(1).padStart(8)}`);
+            const why = t.reason || (t.manual ? 'manual' : '-');
+            console.log(`  ${t.user.padEnd(18)} ${String(t.priority).padStart(8)} ${userStrength(t.user).toFixed(1).padStart(8)}  ${why}`);
         }
     } else {
         console.log(`\nNo active war targets.`);
+    }
+
+    const others = [];
+    const candidates = collectWarCandidateNames(ownerToRooms, manualSet);
+    for (let i = 0; i < candidates.length; i++) {
+        const name = candidates[i];
+        if (onList.has(name)) continue;
+        const ev = evaluateWarSignals(name, users[name] || {}, ownerToRooms[name] || [], currentTime);
+        others.push({name, tier: ev.tier || 'skip', reason: ev.reason});
+    }
+    others.sort((a, b) => {
+        const rank = {worthy: 0, opportunistic: 1, skip: 2};
+        return (rank[a.tier] - rank[b.tier]) || a.name.localeCompare(b.name);
+    });
+    if (others.length) {
+        console.log(`\nOther candidates (not on list):`);
+        console.log(`  ${'user'.padEnd(18)} ${'tier'.padStart(14)}  why`);
+        const limit = Math.min(8, others.length);
+        for (let i = 0; i < limit; i++) {
+            const o = others[i];
+            console.log(`  ${o.name.padEnd(18)} ${o.tier.padStart(14)}  ${o.reason}`);
+        }
+        if (others.length > limit) console.log(`  ... ${others.length - limit} more`);
+    }
+
+    const filtered = [];
+    const seenFilter = new Set();
+    const consider = Object.keys(users);
+    for (const name in ownerToRooms) consider.push(name);
+    for (let i = 0; i < consider.length; i++) {
+        const name = consider[i];
+        if (seenFilter.has(name) || onList.has(name)) continue;
+        seenFilter.add(name);
+        const why = skipWarReason(name, manualSet);
+        if (why && why !== 'invalid' && why !== 'npc' && why !== 'manual') filtered.push({name, why});
+    }
+    if (filtered.length) {
+        console.log(`\nFiltered:`);
+        for (let i = 0; i < Math.min(6, filtered.length); i++) {
+            console.log(`  ${filtered[i].name.padEnd(18)}  ${filtered[i].why}`);
+        }
     }
 
     let recentOffenders = 0;

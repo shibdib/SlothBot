@@ -229,7 +229,7 @@ function offensiveNuke() {
         if (!isEscalationCandidate(op, intel)) continue;
         if (!isValidOffensiveTarget(intel, availableLaunchers, warUsers)) continue;
 
-        let score = scoreTarget(roomName, 'roomDenial', null, warPriorityByUser);
+        let score = scoreTarget(roomName, 'roomDenial', warPriorityByUser);
         if (op.isAtRisk) score -= 500;
         if (intel.towers >= 4) score -= 100;
 

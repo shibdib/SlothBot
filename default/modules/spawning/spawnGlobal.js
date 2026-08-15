@@ -20,7 +20,10 @@ function queueHarassmentCreeps() {
 
     const readiness = state.EMPIRE_READINESS || getEmpireReadiness();
     if (!readiness.canLaunchOps || readiness.empireCritical) return;
-    if (!THREATS || !THREATS.length) return;
+
+    const threatCount = (THREATS && THREATS.length) || 0;
+    const warCount = (global.WAR_TARGETS && WAR_TARGETS.length) || 0;
+    if (!threatCount && !warCount) return;
 
     const remotePool = collectThreatRemotes();
     if (!remotePool.length) return;
@@ -29,7 +32,7 @@ function queueHarassmentCreeps() {
     const hardCap = typeof HARASSMENT_MAX === 'number' ? HARASSMENT_MAX : 3;
     const budget = Math.min(
         Math.max(1, Math.ceil(readiness.combatReady * ratio)),
-        THREATS.length,
+        Math.max(threatCount, warCount),
         remotePool.length,
         hardCap
     );

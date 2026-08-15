@@ -58,7 +58,7 @@ global.HARASSMENT_MAX = 3; // Hard cap on simultaneous harassers
 global.REMOTE_DENIAL_MAX_WITH_HARASS = 1; // Fallback remote denial if harassment has no remotes
 global.REMOTE_DENIAL_MAX_WITHOUT_HARASS = 3;
 global.HOLD_SECTOR = true; // Attack rooms in sectors you have rooms
-global.NEW_SPAWN_DENIAL = false; // Crush new spawns immediately
+global.NEW_SPAWN_DENIAL = false; // Immediately occupy/siege RCL<=3 rooms of war targets (skips attack cooldown)
 global.NCP_HOSTILE = false; // Always attack users of open source bots
 global.ATTACK_COOLDOWN = 1500; //Time between attacks on a room
 global.AVOID_ATTACKING_ALLIANCES = true; // Check LOAN and avoid attacking people in alliances
