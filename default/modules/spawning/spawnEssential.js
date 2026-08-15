@@ -97,8 +97,8 @@ function essentialCreepQueue(room) {
         numberNeeded: droneCount, rebootCondition: room.friendlyCreeps.length < 5
     });
 
-    if (room.level >= BUNKER_LEVEL && !empireOpsPaused()) {
-        let wallerCount = 0;
+    if (room.level >= BUNKER_LEVEL) {
+        let wallerCount = 1;
         // Spawn wallers for barrier maintenance unless the room is completely energy barren (energyState==0).
         // At energyState==1 we allow minimal (body will be heavily scaled down by flowScale anyway).
         // This prevents completely abandoning wall/rampart building in low-but-not-zero energy rooms.
