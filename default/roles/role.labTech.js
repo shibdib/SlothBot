@@ -109,6 +109,15 @@ class RoleLabTech {
             }
         }
 
+        // 1b. Both stores packed — swap/export before lab busywork. Otherwise
+        // a 0-space hub stays stuck feeding labs while K never reaches the terminal.
+        if (storage && terminal
+            && storage.store.getFreeCapacity() < BALANCE_MIN_TRANSFER
+            && terminal.store.getFreeCapacity() < BALANCE_MIN_TRANSFER) {
+            const stuck = this.findOverflowRelief(storage, terminal);
+            if (stuck) return stuck;
+        }
+
         // 2. Ground cleanup — non-energy drops and tombstones
         if (storeTarget) {
             const drop = this.room.droppedResources.find(r => r.resourceType !== RESOURCE_ENERGY) || this.room.tombstones.find(t => t.store.getUsedCapacity() > 0);
@@ -646,29 +655,32 @@ class RoleLabTech {
         this.room.memory._labTechBalance[resource] = {terminalToStorage, tick: Game.time};
     }
 
-    makeBalanceTask(withdrawTarget, deliveryTarget, resource, amount) {
+    makeBalanceTask(withdrawTarget, deliveryTarget, resource, amount, options = {}) {
         if (!withdrawTarget || !deliveryTarget || amount < BALANCE_MIN_TRANSFER) return null;
         if (this.blocksLabProductionBalance(resource, withdrawTarget)) return null;
         const available = withdrawTarget.store[resource] || 0;
         const free = deliveryTarget.store.getFreeCapacity(resource);
-        if (!available || free <= 0) return null;
-        amount = Math.min(amount, available, free);
+        if (!available) return null;
+        // Swap pickups free the destination before delivery; dest can start full.
+        if (free <= 0 && !options.swap) return null;
+        amount = Math.min(amount, available, options.swap ? amount : free);
         if (amount < BALANCE_MIN_TRANSFER) return null;
 
         if (this.isStorageTerminalShuffle(withdrawTarget, deliveryTarget)) {
             const storage = this.room.storage;
             const terminal = this.room.terminal;
             const terminalToStorage = withdrawTarget.structureType === STRUCTURE_TERMINAL;
-            // When terminal is near capacity, only drain terminal → storage.
-            if (storage && terminal && !terminalToStorage && this.isStructureNearFull(terminal)) {
+            const storageCongested = storage && this.isStructureNearFull(storage);
+            // Storage overflow must enter the terminal for export even when the
+            // terminal is already "near full". Block storage→terminal only when
+            // storage still has room (terminal should drain, not take more).
+            const allowIntoTerminal = options.allowCongestedTerminal || options.swap || storageCongested;
+            if (!terminalToStorage && terminal && this.isStructureNearFull(terminal) && !allowIntoTerminal) {
                 return null;
             }
-            // When both are tight, only relieve terminal → storage (never add to a full terminal).
-            if (storage && terminal && this.isStructureNearFull(storage) && this.isStructureNearFull(terminal)
-                && !terminalToStorage) {
-                return null;
-            }
-            if (this.isBalanceDirectionBlocked(resource, terminalToStorage)) return null;
+            // Overflow/swap must not wait out the 50-tick anti-churn lock — that
+            // lock is what parked 776k K in storage after a terminal drain.
+            if (!allowIntoTerminal && this.isBalanceDirectionBlocked(resource, terminalToStorage)) return null;
             this.setBalanceDirectionLock(resource, terminalToStorage);
         }
 
@@ -820,7 +832,8 @@ class RoleLabTech {
 
     findSellOrderBalance(storage, terminal) {
         const terminalFree = terminal.store.getFreeCapacity();
-        if (terminalFree < 1000 || this.isStructureNearFull(terminal)) return null;
+        if (terminalFree < BALANCE_MIN_TRANSFER) return null;
+        if (this.isStructureNearFull(terminal) && !this.isStructureNearFull(storage)) return null;
 
         for (const id in Game.market.orders) {
             const order = Game.market.orders[id];
@@ -856,11 +869,126 @@ class RoleLabTech {
         return null;
     }
 
+    pickStorageOverflowResource(storage) {
+        const resources = Object.keys(storage.store)
+            .filter(r => r !== RESOURCE_ENERGY && r !== RESOURCE_BATTERY)
+            .sort((a, b) => (storage.store[b] || 0) - (storage.store[a] || 0));
+        for (const resource of resources) {
+            const inStorage = storage.store[resource] || 0;
+            const retain = this.getKeepAmount(resource) || 0;
+            const excess = Math.max(0, inStorage - retain);
+            if (excess >= BALANCE_MIN_TRANSFER) return {resource, excess};
+        }
+        return null;
+    }
+
+    findTerminalFeeEnergy(storage, terminal) {
+        if (!this.isStructureNearFull(storage)) return null;
+        const terminalEnergy = terminal.store[RESOURCE_ENERGY] || 0;
+        const storageEnergy = storage.store[RESOURCE_ENERGY] || 0;
+        const terminalFree = terminal.store.getFreeCapacity(RESOURCE_ENERGY);
+        if (terminalEnergy >= TERMINAL_ENERGY_BUFFER) return null;
+        if (storageEnergy < BALANCE_MIN_TRANSFER || terminalFree < BALANCE_MIN_TRANSFER) return null;
+        return this.makeBalanceTask(storage, terminal, RESOURCE_ENERGY,
+            Math.min(TERMINAL_ENERGY_BUFFER - terminalEnergy, storageEnergy, terminalFree, ENERGY_TRANSFER_MAX),
+            {allowCongestedTerminal: true});
+    }
+
+    findEnergyRescueSwap(storage, terminal) {
+        if (!this.isStructureNearFull(storage) || !this.isStructureNearFull(terminal)) return null;
+        const terminalEnergy = terminal.store[RESOURCE_ENERGY] || 0;
+        if (terminalEnergy >= TERMINAL_ENERGY_BUFFER) return null;
+
+        const storageEnergy = storage.store[RESOURCE_ENERGY] || 0;
+        if (storageEnergy < BALANCE_MIN_TRANSFER) return null;
+
+        const creepCap = this.creep.store.getCapacity() || 0;
+        const half = Math.floor(creepCap / 2);
+        if (half < BALANCE_MIN_TRANSFER) return null;
+
+        let mineral = null;
+        let mineralAmt = 0;
+        for (const resource of Object.keys(terminal.store)) {
+            if (resource === RESOURCE_ENERGY) continue;
+            const amt = terminal.store[resource] || 0;
+            if (amt > mineralAmt) {
+                mineral = resource;
+                mineralAmt = amt;
+            }
+        }
+        if (!mineral || mineralAmt < BALANCE_MIN_TRANSFER) return null;
+
+        const amount = Math.min(
+            TERMINAL_ENERGY_BUFFER - terminalEnergy,
+            storageEnergy,
+            mineralAmt,
+            half,
+            5000
+        );
+        if (amount < BALANCE_MIN_TRANSFER) return null;
+
+        const task = this.makeBalanceTask(storage, terminal, RESOURCE_ENERGY, amount, {swap: true});
+        if (!task) return null;
+        task.swapReverse = {
+            withdrawTarget: terminal.id,
+            deliveryTarget: storage.id,
+            resource: mineral,
+            amount
+        };
+        return task;
+    }
+
+    findCongestionSwap(storage, terminal) {
+        if (!this.isStructureNearFull(storage) || !this.isStructureNearFull(terminal)) return null;
+
+        const creepCap = this.creep.store.getCapacity() || 0;
+        const half = Math.floor(creepCap / 2);
+        if (half < BALANCE_MIN_TRANSFER) return null;
+
+        const overflow = this.pickStorageOverflowResource(storage);
+        if (!overflow) return null;
+
+        const terminalEnergy = terminal.store[RESOURCE_ENERGY] || 0;
+        let reverseResource = null;
+        let reverseAvail = 0;
+        if (terminalEnergy > TERMINAL_ENERGY_BUFFER + BALANCE_MIN_TRANSFER) {
+            reverseResource = RESOURCE_ENERGY;
+            reverseAvail = terminalEnergy - TERMINAL_ENERGY_BUFFER;
+        } else {
+            for (const resource of Object.keys(terminal.store)) {
+                if (resource === overflow.resource || resource === RESOURCE_ENERGY) continue;
+                const amt = terminal.store[resource] || 0;
+                if (amt > reverseAvail) {
+                    reverseResource = resource;
+                    reverseAvail = amt;
+                }
+            }
+        }
+        if (!reverseResource || reverseAvail < BALANCE_MIN_TRANSFER) return null;
+
+        const amount = Math.min(overflow.excess, reverseAvail, half, 5000);
+        if (amount < BALANCE_MIN_TRANSFER) return null;
+
+        const task = this.makeBalanceTask(storage, terminal, overflow.resource, amount, {swap: true});
+        if (!task) return null;
+        task.swapReverse = {
+            withdrawTarget: terminal.id,
+            deliveryTarget: storage.id,
+            resource: reverseResource,
+            amount
+        };
+        return task;
+    }
+
     findStorageOverflowToTerminal(storage, terminal) {
         const terminalFree = terminal.store.getFreeCapacity();
-        if (terminalFree < BALANCE_MIN_TRANSFER || this.isStructureNearFull(terminal)) return null;
+        if (terminalFree < BALANCE_MIN_TRANSFER) return null;
 
         const storageCongested = this.isStructureNearFull(storage);
+        // Near-full terminal is fine when storage is the problem — any free
+        // slot is an export slot for the warehouse pile.
+        if (!storageCongested && this.isStructureNearFull(terminal)) return null;
+
         const resources = Object.keys(storage.store)
             .filter(r => r !== RESOURCE_ENERGY)
             .sort((a, b) => (storage.store[b] || 0) - (storage.store[a] || 0));
@@ -876,7 +1004,7 @@ class RoleLabTech {
             if (inStorage < BALANCE_MIN_TRANSFER) continue;
 
             // Normal: only move above storage retain target, capped by terminal export ceiling.
-            // Storage full: ignore export ceiling so bulk piles (e.g. 440k UH) can enter the
+            // Storage full: ignore export ceiling so bulk piles (e.g. 776k K) can enter the
             // terminal for pressure sends / fire sales. Keep only the local keep floor in storage.
             const retain = storageCongested
                 ? (this.getKeepAmount(resource) || 0)
@@ -895,7 +1023,8 @@ class RoleLabTech {
             }
 
             const task = this.makeBalanceTask(storage, terminal, resource,
-                Math.min(excess, 5000, maxToTerminal));
+                Math.min(excess, 5000, maxToTerminal),
+                storageCongested ? {allowCongestedTerminal: true} : undefined);
             if (task) return task;
         }
         return null;
@@ -906,9 +1035,18 @@ class RoleLabTech {
         const storageCongested = this.isStructureNearFull(storage);
         if (!terminalCongested && !storageCongested) return null;
 
-        // Both full: do NOT push terminal → storage (nowhere to go). Feed is useless too.
-        // Leave stock in terminal for market/pressure evacuation; only try energy reshape.
+        if (storageCongested) {
+            const feeTask = this.findTerminalFeeEnergy(storage, terminal);
+            if (feeTask) return feeTask;
+            const fill = this.findStorageOverflowToTerminal(storage, terminal);
+            if (fill) return fill;
+        }
+
         if (terminalCongested && storageCongested) {
+            const rescue = this.findEnergyRescueSwap(storage, terminal);
+            if (rescue) return rescue;
+            const swap = this.findCongestionSwap(storage, terminal);
+            if (swap) return swap;
             const energyTask = this.findEnergyStorageBalance(storage, terminal);
             if (energyTask) return energyTask;
             return null;
@@ -922,9 +1060,6 @@ class RoleLabTech {
             return null;
         }
 
-        // Storage full / congested, terminal has space: push largest surplus into terminal for export.
-        const fill = this.findStorageOverflowToTerminal(storage, terminal);
-        if (fill) return fill;
         const batteryTask = this.findBatteryStorageBalance(storage, terminal);
         if (batteryTask) return batteryTask;
         return this.findEnergyStorageBalance(storage, terminal);
@@ -1005,6 +1140,20 @@ class RoleLabTech {
         const primaryShare = Math.min(primary.amount || capacity, capacity);
         let remaining = capacity - primaryShare;
         if (remaining <= 0) return tasks;
+
+        if (primary.swapReverse && remaining >= BALANCE_MIN_TRANSFER) {
+            const rev = primary.swapReverse;
+            const take = Math.min(rev.amount, remaining);
+            if (take >= BALANCE_MIN_TRANSFER) {
+                tasks.push({
+                    withdrawTarget: rev.withdrawTarget,
+                    deliveryTarget: rev.deliveryTarget,
+                    resource: rev.resource,
+                    amount: take
+                });
+            }
+            return tasks;
+        }
 
         if (destination.structureType === STRUCTURE_LAB && source.store) {
             this.batchLabFills(tasks, source, remaining);

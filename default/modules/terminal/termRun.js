@@ -57,7 +57,10 @@ Object.assign(TerminalControl.prototype, {
 
         // Overfull rooms: evacuate via planned pressure sends first.
         // Fire-sale is hub-only so stuffed satellites do not parse the market.
+        // Sell orders do not consume the terminal action — list first so a
+        // 4.5k-energy terminal can still shed stock while also sending/dealing.
         if (pressured) {
+            if (hub) this.placePressureSellOrders(terminal, myOrders);
             if (this.relieveStoragePressure(terminal)) return;
             if (hub && runActiveMarket(this, globalOrders)) return;
         }

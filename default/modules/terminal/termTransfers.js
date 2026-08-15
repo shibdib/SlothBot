@@ -5,7 +5,7 @@
  */
 
 const state = require('termState');
-const {getRoomKeepAmount} = require('termKeep');
+const {getRoomKeepAmount, getPressureProtectAmount} = require('termKeep');
 const {getDerivedCommodityAmount} = require('termCache');
 const FactoryControl = require('module.factoryController');
 const profiler = require('tools.profiler');
@@ -61,20 +61,20 @@ function getTerminalExportable(room, resource, pressureRelief = false) {
     const terminal = room.terminal;
     if (!terminal || resource === RESOURCE_ENERGY) return 0;
 
-    const keep = getRoomResourceDemand(room, resource);
     const inTerminal = terminal.store[resource] || 0;
     if (!inTerminal) return 0;
 
     const effective = getRoomEffective(room, resource);
-    let available;
     if (pressureRelief) {
-        available = Math.max(0, effective - keep);
-        available = Math.min(available, inTerminal);
+        const protect = getPressureProtectAmount(room, resource);
+        if (!isFinite(protect)) return 0;
+        const available = Math.min(inTerminal, Math.max(0, effective - protect));
         return Math.min(available, PRESSURE_SEND_MAX);
     }
+
+    const keep = getRoomResourceDemand(room, resource);
     if (!keep || effective < keep) return 0;
-    available = Math.max(0, effective - keep);
-    available = Math.min(available, inTerminal);
+    const available = Math.min(inTerminal, Math.max(0, effective - keep));
     return Math.min(available, RESOURCE_SEND_MAX);
 }
 
@@ -84,6 +84,24 @@ function canUseTerminal(roomName) {
 
 function txCost(from, to, amount) {
     return Game.market.calcTransactionCost(amount, from, to);
+}
+
+function maxAffordableByEnergy(from, to, energy) {
+    if (energy <= 0) return 0;
+    const factor = 1 - Math.exp(-Game.map.getRoomLinearDistance(from, to) / 30);
+    if (factor <= 0) return energy;
+    return Math.floor(energy / factor);
+}
+
+function clampSendToEnergy(from, to, resource, amount, energy) {
+    if (amount < RESOURCE_SEND_MIN || energy <= 0) return 0;
+    while (amount >= RESOURCE_SEND_MIN) {
+        const fee = txCost(from, to, amount);
+        const need = (resource === RESOURCE_ENERGY ? amount : 0) + fee;
+        if (need <= energy) return amount;
+        amount = Math.floor(amount * 0.75);
+    }
+    return 0;
 }
 
 function scoreTransfer(need, cost, bonus = 0) {
@@ -475,6 +493,10 @@ function planPressureTransfers(transfers, profiles) {
         if (!srcRoom?.terminal) continue;
 
         // Prefer non-energy dumps so energy stays available for send fees and empire use.
+        const srcEnergy = srcRoom.terminal.store[RESOURCE_ENERGY] || 0;
+        const energyStarved = srcEnergy < TERMINAL_ENERGY_BUFFER;
+        const destFreeMin = energyStarved ? RESOURCE_SEND_MIN : PRESSURE_DEST_FREE_MIN;
+
         const resources = Object.keys(srcRoom.terminal.store)
             .filter(r => r !== RESOURCE_ENERGY && r !== RESOURCE_BATTERY && r !== RESOURCE_OPS && r !== RESOURCE_POWER)
             .sort((a, b) => (srcRoom.terminal.store[b] || 0) - (srcRoom.terminal.store[a] || 0));
@@ -492,13 +514,17 @@ function planPressureTransfers(transfers, profiles) {
                 if (isRoomCapacityPressured(destRoom)) continue;
 
                 const destFree = destRoom.terminal.store.getFreeCapacity(resource);
-                if (destFree < PRESSURE_DEST_FREE_MIN) continue;
+                if (destFree < destFreeMin) continue;
 
-                const sendAmount = Math.min(amount, destFree, PRESSURE_SEND_MAX);
+                let sendAmount = Math.min(amount, destFree, PRESSURE_SEND_MAX,
+                    maxAffordableByEnergy(srcName, profile.name, srcEnergy));
+                sendAmount = clampSendToEnergy(srcName, profile.name, resource, sendAmount, srcEnergy);
                 if (sendAmount < RESOURCE_SEND_MIN) continue;
                 const cost = txCost(srcName, profile.name, sendAmount);
-                // Slightly more lenient than normal balancing (0.25 → 0.35).
-                if (cost > sendAmount * 0.35) continue;
+                // Efficiency cap is for healthy rooms. Energy-starved overflow
+                // spends whatever fee it can afford — 4.5k energy is enough
+                // for a nearby dump if we don't insist on a 25k send.
+                if (!energyStarved && cost > sendAmount * 0.35) continue;
 
                 const demand = getRoomResourceDemand(destRoom, resource);
                 const effective = getRoomEffective(destRoom, resource);
@@ -569,6 +595,49 @@ function planPressureTransfers(transfers, profiles) {
     }
 }
 
+/**
+ * After an energy-starved pressured room frees a sliver of terminal space,
+ * other rooms ship fee-energy in so the next dump can be larger.
+ */
+function planEnergyRescue(transfers, profiles) {
+    for (const profile of profiles) {
+        const destRoom = Game.rooms[profile.name];
+        if (!destRoom?.terminal || !canUseTerminal(profile.name)) continue;
+        if (!isRoomCapacityPressured(destRoom)) continue;
+
+        const destEnergy = destRoom.terminal.store[RESOURCE_ENERGY] || 0;
+        if (destEnergy >= TERMINAL_ENERGY_BUFFER) continue;
+        const destFree = destRoom.terminal.store.getFreeCapacity(RESOURCE_ENERGY);
+        if (destFree < RESOURCE_SEND_MIN) continue;
+
+        const need = Math.min(TERMINAL_ENERGY_BUFFER - destEnergy, destFree, PRESSURE_SEND_MAX);
+        if (need < RESOURCE_SEND_MIN) continue;
+
+        const candidates = [];
+        for (const srcProfile of profiles) {
+            if (srcProfile.name === profile.name) continue;
+            const srcRoom = Game.rooms[srcProfile.name];
+            if (!srcRoom?.terminal || !canUseTerminal(srcProfile.name)) continue;
+            if (srcRoom.memory.dangerousAttack || (srcRoom.energyState || 0) < 2) continue;
+
+            const amount = terminalExportableEnergy(srcRoom.terminal, profile.name, need);
+            if (amount < RESOURCE_SEND_MIN) continue;
+            const cost = txCost(srcProfile.name, profile.name, amount);
+            if (cost > amount * 0.5) continue;
+            candidates.push({
+                from: srcProfile.name,
+                to: profile.name,
+                resource: RESOURCE_ENERGY,
+                amount,
+                kind: 'urgent',
+                score: scoreTransfer(need, cost, 4),
+            });
+        }
+        candidates.sort((a, b) => b.score - a.score);
+        if (candidates[0]) addTransfer(transfers, candidates[0]);
+    }
+}
+
 function planTransfers(ledger) {
     const profiles = MY_ROOMS
         .map(name => Game.rooms[name])
@@ -583,6 +652,7 @@ function planTransfers(ledger) {
     planUrgentTransfers(transfers, ledger, profiles);
     // Evacuate overfull rooms before normal battery/energy/resource balancing.
     planPressureTransfers(transfers, profiles);
+    planEnergyRescue(transfers, profiles);
     planBatteryTransfers(transfers, profiles);
     planEnergyTransfers(transfers, profiles);
 
@@ -620,13 +690,22 @@ function markTerminalsUsed(from, to, resource) {
 }
 
 function executeTransfer(terminal, transfer) {
-    const {to, resource, amount} = transfer;
+    const {to, resource} = transfer;
     if (terminal.pos.roomName !== transfer.from) return false;
     if (!canUseTerminal(to)) return false;
     if (terminal.room.memory.dangerousAttack && transfer.kind !== 'urgent') return false;
 
-    const txCost = Game.market.calcTransactionCost(amount, terminal.room.name, to);
-    const energyCost = (resource === RESOURCE_ENERGY ? amount : 0) + txCost;
+    const destRoom = Game.rooms[to];
+    const destFree = destRoom?.terminal
+        ? destRoom.terminal.store.getFreeCapacity(resource)
+        : transfer.amount;
+    let amount = Math.min(transfer.amount, destFree, terminal.store[resource] || 0);
+    const energy = terminal.store[RESOURCE_ENERGY] || 0;
+    amount = clampSendToEnergy(terminal.room.name, to, resource, amount, energy);
+    if (amount < RESOURCE_SEND_MIN) return false;
+
+    const fee = Game.market.calcTransactionCost(amount, terminal.room.name, to);
+    const energyCost = (resource === RESOURCE_ENERGY ? amount : 0) + fee;
     const {canAffordSend} = require('termBudget');
     const emergency = transfer.kind === 'pressure' || transfer.kind === 'urgent';
     if (!canAffordSend(energyCost, {emergency})) return false;

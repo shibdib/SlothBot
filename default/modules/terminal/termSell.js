@@ -16,6 +16,55 @@ const FIRE_SALE_MIN = 100;
 
 Object.assign(TerminalControl.prototype, {
 
+    /**
+     * Sell orders do not spend terminal energy (the buyer pays the deal fee).
+     * Used when storage is critically full so a mineral-stuffed, energy-poor
+     * terminal can still shed stock and make room for the warehouse pile.
+     */
+    placePressureSellOrders(terminal, myOrders) {
+        if (!this.isCapacityPressured(terminal.room)) return false;
+        if (Game.market.credits <= 0) return false;
+
+        const sorted = Object.keys(terminal.store).sort((a, b) => {
+            const rank = (r) => (r === RESOURCE_ENERGY ? 2 : r === RESOURCE_BATTERY ? 1 : 0);
+            const ra = rank(a);
+            const rb = rank(b);
+            if (ra !== rb) return ra - rb;
+            return (terminal.store[b] || 0) - (terminal.store[a] || 0);
+        });
+
+        for (const resource of sorted) {
+            if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) continue;
+            if ((resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY)
+                && !this.allowEnergySell(terminal)) continue;
+            if (_.some(myOrders, o =>
+                o.roomName === terminal.pos.roomName && o.resourceType === resource && o.type === ORDER_SELL
+            )) continue;
+
+            let sellAmount = this.computePressureDumpAmount(terminal, resource);
+            if (sellAmount < FIRE_SALE_MIN) continue;
+
+            const price = this.calculatePrice(ORDER_SELL, resource);
+            const orderCost = price * sellAmount * 0.05;
+            if (orderCost > Game.market.credits) {
+                sellAmount = Math.floor(Game.market.credits / (price * 0.05));
+            }
+            if (sellAmount < FIRE_SALE_MIN) continue;
+
+            if (Game.market.createOrder({
+                type: ORDER_SELL,
+                resourceType: resource,
+                price,
+                totalAmount: sellAmount,
+                roomName: terminal.pos.roomName
+            }) === OK) {
+                log.w(`Pressure Sell Order: ${sellAmount} ${resource} at/per ${price} in ${roomLink(terminal.room.name)}`, "Market: ");
+                return true;
+            }
+        }
+        return false;
+    },
+
     placeSellOrders(terminal, globalOrders, myOrders) {
         if (!isMarketHub(terminal.room.name)) return false;
         if (Game.market.credits <= 0) return false;
@@ -261,18 +310,19 @@ Object.assign(TerminalControl.prototype, {
         };
 
         const findBestBuyer = (resourceType, sellAmount) => {
-            const orders = globalOrders.filter(o =>
-                o.resourceType === resourceType && o.type === ORDER_BUY &&
-                o.roomName !== terminal.pos.roomName &&
-                !_.includes(MY_ROOMS, o.roomName) &&
-                transactionCost(Math.min(sellAmount, o.remainingAmount), o.roomName) < terminal.store[RESOURCE_ENERGY] &&
-                !isHostile(o.roomName)
-            );
+            const energy = terminal.store[RESOURCE_ENERGY] || 0;
+            const orders = globalOrders.filter(o => {
+                if (o.resourceType !== resourceType || o.type !== ORDER_BUY) return false;
+                if (o.roomName === terminal.pos.roomName || _.includes(MY_ROOMS, o.roomName)) return false;
+                if (isHostile(o.roomName)) return false;
+                const affordable = Math.min(sellAmount, o.remainingAmount, maxAffordable(energy, o.roomName));
+                return affordable >= FIRE_SALE_MIN;
+            });
             if (orders.length === 0) return null;
 
             const energyPrice = this.getEnergyValue(globalOrders);
             const netProfit = o => {
-                const amount = Math.min(sellAmount, o.remainingAmount);
+                const amount = Math.min(sellAmount, o.remainingAmount, maxAffordable(energy, o.roomName));
                 return amount * o.price - transactionCost(amount, o.roomName) * energyPrice;
             };
             const best = _.max(orders, netProfit);

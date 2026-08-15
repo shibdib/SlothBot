@@ -9,7 +9,7 @@
  */
 
 
-const {getRoomKeepAmount} = require('termKeep');
+const {getRoomKeepAmount, getPressureProtectAmount} = require('termKeep');
 const {
     canEmpireSell: empireCanSell,
     getEffectiveSupply,
@@ -94,44 +94,19 @@ Object.assign(TerminalControl.prototype, {
      * Amount safe to dump when storage/terminal are under capacity pressure.
      * Uses room-level surplus (not empire keep) so a non-hub can clear local piles
      * like hundreds of thousands of UH even if empire stock looks "under target".
+     * When storage itself is critically full, generic keep floors are dropped so
+     * the terminal can evacuate and take the warehouse pile (e.g. 776k K).
      */
     computePressureDumpAmount(terminal, resource) {
         const inTerminal = terminal.store[resource] || 0;
         if (!inTerminal) return 0;
-        if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) return 0;
 
-        const room = terminal.room;
-        let protect = getRoomKeepAmount(room, resource) || 0;
-        // Energy: protect send buffer + bulk storage reserve. Energy-poor rooms dump nothing.
-        if (resource === RESOURCE_ENERGY) {
-            protect = Math.max(protect, TERMINAL_ENERGY_BUFFER);
-            // Storage is the bulk energy store — do not network-dump energy that belongs there.
-            const storageReserve = typeof STORAGE_ENERGY_RESERVE !== 'undefined' ? STORAGE_ENERGY_RESERVE : 25000;
-            protect = Math.max(protect, storageReserve + TERMINAL_ENERGY_BUFFER);
-            if ((room.energyState || 0) < 2) return 0;
-        }
-        for (const lab of room.labs || []) {
-            if (lab.memory?.itemNeeded === resource) {
-                protect = Math.max(protect, REACTION_AMOUNT);
-            }
-            if (lab.memory?.neededBoost === resource) {
-                const amt = lab.memory.amount || BOOST_AMOUNT(room, resource);
-                protect = Math.max(protect, amt);
-            }
-        }
-        if (room.memory.producingBoost === resource) {
-            protect = Math.max(protect, BOOST_AMOUNT(room, resource));
-        }
-        if (room.memory.neededCommodity === resource) {
-            protect = Math.max(protect, REACTION_AMOUNT);
-        }
+        const protect = getPressureProtectAmount(terminal.room, resource);
+        if (!isFinite(protect)) return 0;
 
-        const roomTotal = room.store(resource) || 0;
-        // Always leave a small local floor; dump the rest of what is already in the terminal.
+        const roomTotal = terminal.room.store(resource) || 0;
         const roomSurplus = Math.max(0, roomTotal - protect);
         if (roomSurplus < 100) return 0;
-        // Prefer dumping terminal stock first; leave at least `protect` in the room overall
-        // by not emptying terminal below max(0, protect - (roomTotal - inTerminal)).
         const outsideTerminal = Math.max(0, roomTotal - inTerminal);
         const terminalFloor = Math.max(0, protect - outsideTerminal);
         return Math.max(0, Math.min(inTerminal - terminalFloor, roomSurplus, inTerminal));
