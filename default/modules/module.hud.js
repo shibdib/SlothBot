@@ -350,7 +350,9 @@ class HUD {
         });
         y += rowH;
 
-        const statusNote = pauseReason || stressNote;
+        const skip = state.lastPlanSkip && state.lastPlanSkipTick + 1500 > Game.time
+            ? state.lastPlanSkip : null;
+        const statusNote = pauseReason || stressNote || skip;
         if (statusNote) {
             this.drawHudRow(room, x, y, width, statusNote, null, {
                 leftColor: opsPaused ? '#c97a7a' : '#d4a55a', leftFont: '0.32 Tahoma'

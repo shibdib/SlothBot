@@ -48,14 +48,14 @@ global.SK_MINING = true; // Do we SK mine
 global.SK_MINING_LEVEL = 7; // What level do we do this (won't work before 7 atm)
 
 // Combat Settings
-global.OFFENSIVE_OPERATIONS = true; // Offensive Combat, disabling this will disable all offensive operations
+global.OFFENSIVE_OPERATIONS = true; // Room attacks (occupy / remote denial / siege). Harassment is independent.
 global.OFFENSIVE_NUKES = true; // Escalate stalled roomDenial sieges with nukes
 global.OFFENSIVE_NUKE_RESERVE = 1; // Keep this many loaded nukers available for MAD retaliation
 global.OFFENSIVE_NUKE_COOLDOWN = 50000; // Ticks between proactive nuke launches (matches nuke land time)
-global.HARASSMENT_OPERATIONS = true; // Cheap longbows that raid threat remotes and rotate on response
+global.HARASSMENT_OPERATIONS = true; // Cheap longbows that raid threat remotes. Works when OFFENSIVE_OPERATIONS is false.
 global.HARASSMENT_BUDGET_RATIO = 0.15; // Share of combat-ready rooms used as harasser cap
 global.HARASSMENT_MAX = 3; // Hard cap on simultaneous harassers
-global.REMOTE_DENIAL_MAX_WITH_HARASS = 1; // Focused remote denial when harass is active
+global.REMOTE_DENIAL_MAX_WITH_HARASS = 1; // Fallback remote denial if harassment has no remotes
 global.REMOTE_DENIAL_MAX_WITHOUT_HARASS = 3;
 global.HOLD_SECTOR = true; // Attack rooms in sectors you have rooms
 global.NEW_SPAWN_DENIAL = false; // Crush new spawns immediately

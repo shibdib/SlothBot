@@ -14,10 +14,12 @@ const {buildOperationsSignature, pruneEmptyOperations, getPriority} = require('s
 const {getSiegeTowerDamage} = require('module.bodyGenerator');
 
 function queueHarassmentCreeps() {
-    if (!HARASSMENT_OPERATIONS || !OFFENSIVE_OPERATIONS || !state.OFFENSIVE_ALLOWED) return;
+    // Harassment is independent of OFFENSIVE_OPERATIONS so live shards can raid
+    // remotes without opening room sieges.
+    if (!HARASSMENT_OPERATIONS || !state.ALLOW_NEW_OPS) return;
 
     const readiness = state.EMPIRE_READINESS || getEmpireReadiness();
-    if (!readiness.canLaunchOps) return;
+    if (!readiness.canLaunchOps || readiness.empireCritical) return;
     if (!THREATS || !THREATS.length) return;
 
     const remotePool = collectThreatRemotes();
@@ -81,7 +83,8 @@ function globalCreepQueue() {
             queueCreepIfNeeded({role: 'drone', priority: PRIORITIES.drone + 1, numberNeeded: 6, destination: key});
         }
 
-        if (!INTEL[key] || !opLevel) {
+        const intel = INTEL[key];
+        if (!intel || intel.cached == null || !opLevel) {
             queueCreepIfNeeded({role: 'scout', priority: 1, numberNeeded: 1, destination: key, closestRoom: true});
             continue;
         }

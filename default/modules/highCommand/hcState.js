@@ -79,6 +79,10 @@ module.exports = {
 
     lastNoSiegeWarning,
 
+    lastPlanSkip: null,
+
+    lastPlanSkipTick: 0,
+
     lastRun,
 
     tasks,

@@ -257,6 +257,8 @@ function warBudgetScale(budget) {
 }
 
 const TICK_CPU_WINDOW = 25;
+const MILITARY_BUCKET_MIN = 2000;
+const MILITARY_CPU_RATIO = 0.95;
 const tickCpuSamples = [];
 
 function noteTickCpu(used) {
@@ -333,15 +335,39 @@ function canSpareCpuForRoom() {
     return {ok: true, avg, spare, need};
 }
 
+/**
+ * Lighter CPU floor for launching military / auxiliary work.
+ * Expansion's canSpareCpuForRoom() also fails on remotes-off, roomPenalty,
+ * and rooms over share — those should not freeze a longbow raid.
+ */
+function canSpareCpuForMilitary() {
+    const limit = (typeof Game !== 'undefined' && Game.cpu && Game.cpu.limit) || 20;
+    const bucket = (typeof Game !== 'undefined' && Game.cpu && Game.cpu.bucket) || 0;
+    const avg = averageTickCpu();
+    const spare = limit - avg;
+
+    if (bucket < MILITARY_BUCKET_MIN) {
+        return {ok: false, reason: `bucket ${bucket}`, avg, spare};
+    }
+    if (avg > limit * MILITARY_CPU_RATIO) {
+        return {ok: false, reason: `tick ${avg.toFixed(1)}/${limit}`, avg, spare};
+    }
+    return {ok: true, avg, spare};
+}
+
 function applyOperationLimits(state) {
     const readiness = getEmpireReadiness();
-    const cpu = canSpareCpuForRoom();
-    readiness.cpuSpareRoom = cpu.ok;
-    readiness.cpuReason = cpu.reason || null;
-    readiness.tickCpuAvg = cpu.avg;
-    readiness.cpuSpare = cpu.spare;
+    const expandCpu = canSpareCpuForRoom();
+    const milCpu = canSpareCpuForMilitary();
+    readiness.cpuSpareRoom = expandCpu.ok;
+    readiness.cpuReason = expandCpu.reason || null;
+    readiness.tickCpuAvg = milCpu.avg;
+    readiness.cpuSpare = milCpu.spare;
+    readiness.militaryCpuOk = milCpu.ok;
+    readiness.militaryCpuReason = milCpu.reason || null;
     state.EMPIRE_READINESS = readiness;
-    state.ALLOW_NEW_OPS = !!(cpu.ok && readiness.canLaunchOps);
+    // New military / aux ops use the light military CPU floor, not expansion's.
+    state.ALLOW_NEW_OPS = !!(milCpu.ok && readiness.canLaunchOps);
 
     if (!readiness.canLaunchOps) {
         state.OPERATION_LIMIT = 0;
@@ -352,8 +378,8 @@ function applyOperationLimits(state) {
     }
 
     const budgetScale = warBudgetScale(readiness.warBudget);
-    // Tight CPU: keep existing ops, but do not start new offensives / rooms.
-    state.OFFENSIVE_ALLOWED = cpu.ok && !readiness.empireCritical && readiness.warBudget >= WAR_BUDGET_OFFENSE_MIN;
+    // Full room offense (occupy / denial / siege). Harassment uses ALLOW_NEW_OPS only.
+    state.OFFENSIVE_ALLOWED = milCpu.ok && !readiness.empireCritical && readiness.warBudget >= WAR_BUDGET_OFFENSE_MIN;
 
     if (readiness.empireCritical) {
         state.OPERATION_LIMIT = Math.max(1, Math.floor(readiness.weightedCombatReady * 0.25 * budgetScale));
@@ -380,7 +406,7 @@ function applyOperationLimits(state) {
 function getOpsPauseReason(readiness) {
     if (!readiness) readiness = getEmpireReadiness();
     if (!readiness.canLaunchOps) return `CR ${readiness.combatReady}/${readiness.minCombatReady}`;
-    if (readiness.cpuSpareRoom === false) return `cpu ${readiness.cpuReason || 'tight'}`;
+    if (readiness.militaryCpuOk === false) return `cpu ${readiness.militaryCpuReason || 'tight'}`;
     return null;
 }
 
@@ -390,7 +416,7 @@ function getOpsStressNote(readiness) {
     const parts = [];
     if (readiness.empireCritical) parts.push(`critical ${readiness.struggling}/${readiness.total}`);
     else if (readiness.empireStressed) parts.push(`stressed ${readiness.struggling}/${readiness.total}`);
-    if (readiness.cpuSpareRoom === false) parts.push(`cpu ${readiness.cpuReason || 'tight'}`);
+    if (readiness.militaryCpuOk === false) parts.push(`cpu ${readiness.militaryCpuReason || 'tight'}`);
     if (readiness.warBudget < WAR_BUDGET_OFFENSE_MIN) parts.push(`budget ${Math.round(readiness.warBudget)}`);
     else if (readiness.siegeLimitMultiplier < 1) {
         parts.push(`siege x${readiness.siegeLimitMultiplier.toFixed(1)}`);
@@ -425,4 +451,5 @@ module.exports = {
     noteTickCpu,
     averageTickCpu,
     canSpareCpuForRoom,
+    canSpareCpuForMilitary,
 };
