@@ -536,9 +536,12 @@ Creep.prototype.locateEnergy = function (room = this.room) {
 
     if (this.memory.role !== 'shuttle') {
         const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
-        if (room.storage && room.storage.store[RESOURCE_ENERGY] > (room.terminal ? room.terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER : 0)) {
+        const storageEnergy = room.storage ? (room.storage.store[RESOURCE_ENERGY] || 0) : 0;
+        const terminalEnergy = room.terminal ? (room.terminal.store[RESOURCE_ENERGY] || 0) : 0;
+        // storageEnergy > 0 is required: `0 > terminalEnergy - BUFFER` is true whenever the terminal is below the buffer.
+        if (storageEnergy > 0 && storageEnergy > (room.terminal ? terminalEnergy - TERMINAL_ENERGY_BUFFER : 0)) {
             potentialEnergy.push(room.storage);
-        } else if (room.terminal && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
+        } else if (terminalEnergy > TERMINAL_ENERGY_BUFFER) {
             potentialEnergy.push(room.terminal);
         } else if (protoStorage && protoStorage.store[RESOURCE_ENERGY] > 0) {
             potentialEnergy.push(protoStorage);
@@ -746,7 +749,7 @@ Creep.prototype.constructionWork = function (scope) {
     const pickCombatBarriers = () => {
         let site = available(damage.walls).find(s => s.hits < 5000) || available(damage.ramparts).find(s => s.hits < 5000);
         if (site) return repair(site, 12500);
-        if (intel && intel.threatLevel) {
+        if (intel && intel.threatLevel && (!this.room.controller || !this.room.controller.safeMode)) {
             const dangerous = room.hostileCreeps.filter(c =>
                 c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK));
             const near = dangerous.length && weakestBarrierNearHostiles(damage.allBarriers, dangerous);

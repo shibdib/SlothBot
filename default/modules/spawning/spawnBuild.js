@@ -9,6 +9,7 @@ const spawnState = require('spawnState');
 const {spawnEnergyState} = require('spawnFlow');
 const {getQueue, generateCreepName, queueCacheKey} = require('spawnQueue');
 
+
 const RENEW_ROLES = new Set(['hauler', 'shuttle', 'stationaryHarvester', 'upgrader']);
 const {assessSourceHaulBacklog} = require('bodyEconomic');
 
@@ -196,13 +197,19 @@ function processBuildQueue(room) {
             if (!role) continue;
 
             const generatedInfo = new generator(room.level, role, room, topPriority).generateBody();
+            if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) continue;
             body = generatedInfo.body;
             topPriority = generatedInfo.info;
-            if (!body || !body.length) continue;
 
             const cost = global.UNIT_COST(body);
             if (cost > room.energyCapacityAvailable) continue;
-            if (cost > room.energyAvailable && cost <= room.energyCapacityAvailable) return;
+            if (cost > room.energyAvailable && cost <= room.energyCapacityAvailable) {
+                // Wait only for spawn auto-regen (300). Anything that needs
+                // extension fill is skipped so an affordable creep can spawn.
+                const waitCap = Math.max(room.energyAvailable, SPAWN_ENERGY_CAPACITY);
+                if (cost > waitCap) continue;
+                return;
+            }
 
             queuedBuild = topPriority;
             break;

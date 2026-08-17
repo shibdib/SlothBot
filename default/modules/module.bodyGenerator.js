@@ -8,6 +8,8 @@ const {
     maxBodyNonMoveParts,
     roomHasCriticalBuildSites,
     harvesterWorkCapUnlocked,
+    roomInSpawnRecovery,
+    recoverySpawnEnergy,
 } = require('bodyHelpers');
 const economic = require('bodyEconomic');
 const remote = require('bodyRemote');
@@ -45,8 +47,9 @@ class ModuleBodyGenerator {
     }
 
     setEnergyAmount() {
-        if ((this.creepInfo && this.creepInfo.other && this.creepInfo.other.reboot) || this.room.myCreeps.length <= 3) {
-            this.energyAmount = Math.max(this.room.energyAvailable, 300);
+        const operation = this.creepInfo && this.creepInfo.operation;
+        if (roomInSpawnRecovery(this.room, this.creepInfo) && !operation) {
+            this.energyAmount = recoverySpawnEnergy(this.room);
         } else if (!this.creepInfo || !this.creepInfo.military) {
             this.energyAmount = this.room.energyCapacityAvailable;
         }
@@ -57,13 +60,14 @@ class ModuleBodyGenerator {
         const dutyBucket = Math.round(this.upgraderDuty * 10);
         const reboot = this.creepInfo && this.creepInfo.other && this.creepInfo.other.reboot;
         const rebootString = reboot ? 'reboot' : '';
+        const recoveryString = roomInSpawnRecovery(this.room, this.creepInfo) ? 'rec' : '';
         let bootstrapFlag = '';
         if (this.role === 'drone' && roomHasCriticalBuildSites(this.room)) bootstrapFlag = 'crit';
         else if (this.role === 'shuttle') {
             const other = this.creepInfo && this.creepInfo.other;
             if ((other && other.haulUrgent) || roomHasCriticalBuildSites(this.room)) bootstrapFlag = 'crit';
         }
-        return `${this.energyAmount}.${this.role}.${this.spareIncome}.${trendBucket}.${dutyBucket}.${rebootString}.${bootstrapFlag}.${stableCreepInfoKey(this.creepInfo)}`;
+        return `${this.energyAmount}.${this.role}.${this.spareIncome}.${trendBucket}.${dutyBucket}.${rebootString}.${recoveryString}.${bootstrapFlag}.${stableCreepInfoKey(this.creepInfo)}`;
     }
 
     buildRoleParts() {
@@ -93,7 +97,9 @@ class ModuleBodyGenerator {
         }
 
         if (this.creepInfo && this.creepInfo.body) {
-            return {body: this.creepInfo.body, info: this.creepInfo};
+            if (this.bodyCost(this.creepInfo.body) <= this.energyAmount) {
+                return {body: this.creepInfo.body, info: this.creepInfo};
+            }
         }
 
         const built = this.buildRoleParts();
@@ -136,15 +142,22 @@ class ModuleBodyGenerator {
         addBodyParts(tough, TOUGH, toughArray);
 
         let moveArray = [];
-        const totalParts = bodyArray.length + healArray.length + toughArray.length;
+        const autoMove = move !== 0 && !(move && move > 0);
+        const rebuildMoves = () => {
+            if (move === 0) {
+                moveArray = [];
+                return;
+            }
+            if (!autoMove) return;
+            const nonMove = bodyArray.length + healArray.length + toughArray.length;
+            const moveParts = halfMove ? Math.ceil(nonMove * 0.5) : nonMove;
+            moveArray = moveParts > 0 ? Array(moveParts).fill(MOVE) : [];
+        };
         if (move !== 0) {
-            if (move && move > 0) {
+            if (!autoMove) {
                 addBodyParts(move, MOVE, moveArray);
             } else {
-                const moveParts = halfMove
-                    ? Math.ceil(totalParts * 0.5)
-                    : totalParts;
-                addBodyParts(moveParts, MOVE, moveArray);
+                rebuildMoves();
             }
         }
 
@@ -159,6 +172,7 @@ class ModuleBodyGenerator {
             } else {
                 bodyArray.pop();
             }
+            rebuildMoves();
             currentCostBody = [...toughArray, ...moveArray, ...bodyArray, ...healArray];
         }
 

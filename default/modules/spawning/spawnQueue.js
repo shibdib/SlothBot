@@ -8,6 +8,7 @@ const generator = require('module.bodyGenerator');
 const {getCreepCount, creepExpiringSoon} = require('spawnCounts');
 const {collectGlobalOperations, unassignRoom} = require('spawnOperations');
 const {spawnEnergyState} = require('spawnFlow');
+const {roomInSpawnRecovery} = require('bodyHelpers');
 
 let queueCache = {};
 
@@ -120,6 +121,11 @@ function adjustQueuePriority(queue, room) {
         const body = generatedInfo.body;
         creep.body = body;
         if (!body.length) continue;
+
+        if (roomInSpawnRecovery(room) && !creep.operation && creep.role === 'shuttle'
+            && creep.priority < PRIORITIES.hauler) {
+            creep.priority = PRIORITIES.hauler;
+        }
 
         if (opMemory && opMemory.boosts && opMemory.boosts.includes(HEAL) &&
             !room.boostCheck(body, undefined, opMemory.boostTier)) {

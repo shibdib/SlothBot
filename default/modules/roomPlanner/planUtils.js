@@ -324,8 +324,13 @@ function tryCreateConstructionSite(pos, structureType) {
     const result = pos.createConstructionSite(structureType);
     if (result !== OK) {
         if (structureType === STRUCTURE_WALL && result === ERR_INVALID_TARGET) {
-            if (!room.memory.plannerWallDenylist) room.memory.plannerWallDenylist = {};
-            room.memory.plannerWallDenylist[pos.x + ',' + pos.y] = Game.time;
+            const hasRuin = typeof LOOK_RUINS !== 'undefined' && pos.lookFor(LOOK_RUINS).length;
+            // Ruins are temporary (~500 ticks). Denylisting for 5000 would skip
+            // wall fallback long after the tile is buildable again.
+            if (!hasRuin) {
+                if (!room.memory.plannerWallDenylist) room.memory.plannerWallDenylist = {};
+                room.memory.plannerWallDenylist[pos.x + ',' + pos.y] = Game.time;
+            }
             return result;
         }
         recordSitePlacementFailure(room.name, structureType, pos, result);

@@ -76,6 +76,79 @@ function roomHasCriticalBuildSites(room) {
     return _.some(room.constructionSites, s => CRITICAL_BUILD_STRUCTURE_TYPES.includes(s.structureType));
 }
 
+function ownedSpawnCount(room) {
+    if (!room) return 1;
+    if (global.roomMySpawns) {
+        const mine = global.roomMySpawns(room);
+        if (mine && mine.length) return mine.length;
+    }
+    const spawns = room.spawns || [];
+    let n = 0;
+    for (let i = 0; i < spawns.length; i++) {
+        try {
+            if (spawns[i] && spawns[i].my) n++;
+        } catch (e) {
+            // ignore broken spawn objects
+        }
+    }
+    return Math.max(1, n);
+}
+
+function creepRoleInRoom(room, role) {
+    const creeps = room && room.myCreeps;
+    if (!creeps || !creeps.length) return false;
+    for (let i = 0; i < creeps.length; i++) {
+        const mem = creeps[i] && creeps[i].memory;
+        if (mem && mem.role === role) return true;
+    }
+    return false;
+}
+
+function roomUsesDedicatedHauler(room) {
+    return !!(room && (room.storage || (room.memory && room.memory.protoStorage)));
+}
+
+/**
+ * Energy a recovering room can actually assemble: one spawn's auto-regen
+ * (300). Extra spawns are not a refill source without a hauler.
+ */
+function recoverySpawnEnergy(room) {
+    const capacity = (room && room.energyCapacityAvailable) || SPAWN_ENERGY_CAPACITY;
+    return Math.min(capacity, SPAWN_ENERGY_CAPACITY);
+}
+
+/** Haulers refill extensions. A shuttle only counts if energy is already above regen. */
+function roomHasExtensionFiller(room) {
+    if (!room) return false;
+    if (creepRoleInRoom(room, 'hauler')) return true;
+    if (roomUsesDedicatedHauler(room)) return false;
+    if (!creepRoleInRoom(room, 'shuttle')) return false;
+    const regen = recoverySpawnEnergy(room);
+    return (room.energyAvailable || 0) > regen + 100;
+}
+
+/**
+ * Room cannot grow energy past spawn regen. Used for body caps, reboot
+ * flags, and "skip this queue item" — not for waiting on extensions.
+ */
+function roomNeedsSpawnReboot(room, creepInfo) {
+    if (!room) return false;
+    if (creepInfo && creepInfo.other && creepInfo.other.reboot) return true;
+    if (room.myCreeps && room.myCreeps.length <= 3) return true;
+    if (roomHasExtensionFiller(room)) return false;
+    const regen = recoverySpawnEnergy(room);
+    const capacity = room.energyCapacityAvailable || 0;
+    return capacity > regen + 50;
+}
+
+function roomSpawnEnergyStuck(room) {
+    return roomNeedsSpawnReboot(room);
+}
+
+function roomInSpawnRecovery(room, creepInfo) {
+    return roomNeedsSpawnReboot(room, creepInfo);
+}
+
 function isColonyEarlyRush(room) {
     if (!room || !room.controller || !room.controller.my) return false;
     return !room.storage && room.controller.level <= 5;
@@ -183,6 +256,12 @@ module.exports = {
     maxBodyNonMoveParts,
     clampWorkCarryPair,
     roomHasCriticalBuildSites,
+    roomUsesDedicatedHauler,
+    roomHasExtensionFiller,
+    roomNeedsSpawnReboot,
+    roomSpawnEnergyStuck,
+    roomInSpawnRecovery,
+    recoverySpawnEnergy,
     isColonyEarlyRush,
     harvesterWorkCapUnlocked,
     routeHasBuiltRoads,

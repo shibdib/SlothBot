@@ -172,6 +172,9 @@ function policyReserveForLayer(roomName, layer, options) {
         : (roomPolicies[roomName] || {});
     const isLow = layer === 'roads' || layer === 'ramparts' || layer === 'corridors';
     if (!isLow) return 0;
+    // Incomplete seals must be allowed to take the last room slot; the steady
+    // reserve otherwise zeros rampartLimit while 9 road sites sit in the queue.
+    if (options && options.skipReserve) return 0;
 
     if (policy.layoutPending) {
         const higher = reservedForHigher(roomName, layer);
@@ -379,7 +382,10 @@ function rampartLimit(roomOrName, options) {
     const opts = options || {};
     const layoutPending = !!opts.layoutPending;
     const maxPerTick = opts.maxPerTick != null ? opts.maxPerTick : MAX_RAMPART_SITES_PER_TICK;
-    const req = request(roomOrName, 'ramparts', maxPerTick, {layoutPending});
+    const req = request(roomOrName, 'ramparts', maxPerTick, {
+        layoutPending,
+        skipReserve: !!opts.incompleteSeal,
+    });
     return req.allowed;
 }
 

@@ -89,7 +89,7 @@ class RoleDrone {
             s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
         if (hasBuilderWork && this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0 && this.building()) return;
 
-        if ((threatLevel || this.creep.memory.currentTarget) && this.walling()) return;
+        if ((threatLevel || this.creep.memory.currentTarget) && (!this.room.controller || !this.room.controller.safeMode) && this.walling()) return;
         if (this.hauling()) return;
         if (this.building()) return;
         if (this.upgrading()) return;
@@ -200,14 +200,14 @@ class RoleDrone {
         this.creep.memory.constructionSite = undefined;
         this.creep.memory.task = undefined;
 
-        if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
+        // Always re-validate via locateEnergy — a cached id can point at an emptied store.
+        if (this.creep.locateEnergy()) {
             this.creep.say('Energy!', true);
             return this.creep.withdrawResource();
         }
 
         // Emergency harvesting if no storage or low on energy
-        const hasStorage = !!this.room.storage;
-        if (!hasStorage || this.room.energyAvailable < 300) {
+        if (!this.room.storage || this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < 1000) {
             let source = Game.getObjectById(this.creep.memory.source);
             const sources = this.room.sources;
 

@@ -7,6 +7,8 @@ const {
     maxBodyNonMoveParts,
     clampWorkCarryPair,
     roomHasCriticalBuildSites,
+    roomInSpawnRecovery,
+    roomSpawnEnergyStuck,
 } = require('bodyHelpers');
 
 function buildRoadDroneWaller(gen) {
@@ -167,7 +169,7 @@ function planShuttleForSource(room, source, flow = {}) {
             haulUrgent: backlog.haulUrgent,
             containerFill: Math.round(backlog.containerFill * 100) / 100,
         },
-        reboot: !backlog.haulUrgent && !room.energyState,
+        reboot: roomSpawnEnergyStuck(room) || !room.energyState,
     };
 }
 
@@ -178,10 +180,12 @@ function buildHauler(gen) {
         ? maxBodyNonMoveParts(roadsBuilt)
         : (gen.room.level >= 6 ? gen.room.level * 2 : gen.room.level * 4);
     carry = Math.min(carry, maxHaulerCarry);
-    if (!gen.room.energyState) {
-        carry = Math.max(1, Math.floor(carry * 0.25));
-    } else if (gen.room.energyState < 3 || gen.trend < 0) {
-        carry = Math.max(1, Math.floor(carry * gen.flowScale(0.5, 10)));
+    if (!roomInSpawnRecovery(gen.room, gen.creepInfo)) {
+        if (!gen.room.energyState) {
+            carry = Math.max(1, Math.floor(carry * 0.25));
+        } else if (gen.room.energyState < 3 || gen.trend < 0) {
+            carry = Math.max(1, Math.floor(carry * gen.flowScale(0.5, 10)));
+        }
     }
     return {carry, halfMove: roadsBuilt || undefined};
 }
@@ -209,47 +213,46 @@ function buildShuttle(gen) {
     const throughputFloor = distToHub
         ? Math.max(4, Math.ceil(shuttleCarryTarget(harvestRate, distToHub) * 0.8))
         : 1;
-    const minCarry = haulUrgent ? throughputFloor : 1;
+    const recovery = roomInSpawnRecovery(gen.room, gen.creepInfo);
+    const minCarry = (haulUrgent && !recovery) ? Math.min(throughputFloor, affordable) : 1;
 
     const criticalBootstrap = haulUrgent || roomHasCriticalBuildSites(gen.room);
 
-    if (!haulUrgent) {
+    if (!recovery && !haulUrgent) {
         if (!gen.room.energyState) {
             carry = Math.max(minCarry, Math.floor(carry * (criticalBootstrap ? 0.65 : 0.25)));
         } else if (gen.room.energyState < 3 || gen.trend < 0) {
             const scale = criticalBootstrap ? gen.flowScale(0.75, 10) : gen.flowScale(0.5, 10);
             carry = Math.max(minCarry, Math.floor(carry * scale));
         }
-    } else if (!gen.room.energyState) {
+    } else if (!recovery && !gen.room.energyState) {
         carry = Math.max(minCarry, Math.floor(carry * 0.65));
-    } else if (gen.room.energyState < 3 && gen.trend < -3) {
+    } else if (!recovery && gen.room.energyState < 3 && gen.trend < -3) {
         carry = Math.max(minCarry, Math.floor(carry * gen.flowScale(0.75, 12)));
     }
 
-    carry = Math.max(minCarry, carry);
+    carry = Math.min(affordable, Math.max(minCarry, carry));
     return {carry, halfMove: roadsBuilt || undefined};
 }
 
 function buildStationaryHarvester(gen) {
-    let work, move = 0;
-    if (gen.room.level >= 2) {
-        work = Math.floor((gen.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
-        const isHealthy = (gen.room.energyState >= 2 || gen.spareIncome > 3 || gen.trend >= 0);
-        const additionalWork = gen.room.controller.level >= 7 ? (isHealthy ? 9 : 2) : 0;
-        const baseSaturation = Math.ceil(SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME));
-        let powerCreep = _.find(Game.powerCreeps, c => c.my && c.memory.destinationRoom === gen.room.name && c.powers[PWR_REGEN_SOURCE]);
-        if (powerCreep) {
-            const boostedSat = Math.floor((SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME));
-            work = boostedSat + additionalWork;
-            work = Math.max(boostedSat, work);
-        } else {
-            work = Math.ceil(Math.min(work, baseSaturation)) + additionalWork;
-        }
-        work = Math.min(Math.max(baseSaturation, work), Math.max(1, Math.floor((gen.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK])));
-    } else {
-        work = Math.floor((gen.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]) || 1;
+    const maxWork = Math.max(1, Math.floor((gen.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]));
+    if (roomInSpawnRecovery(gen.room, gen.creepInfo) || gen.room.level < 2) {
+        return {work: maxWork, carry: 1, move: 0};
     }
-    return {work, carry: 1, move};
+    const isHealthy = (gen.room.energyState >= 2 || gen.spareIncome > 3 || gen.trend >= 0);
+    const additionalWork = gen.room.controller.level >= 7 ? (isHealthy ? 9 : 2) : 0;
+    const baseSaturation = Math.ceil(SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME));
+    let work;
+    let powerCreep = _.find(Game.powerCreeps, c => c.my && c.memory.destinationRoom === gen.room.name && c.powers[PWR_REGEN_SOURCE]);
+    if (powerCreep) {
+        const boostedSat = Math.floor((SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME));
+        work = Math.max(boostedSat, boostedSat + additionalWork);
+    } else {
+        work = Math.min(maxWork, baseSaturation) + additionalWork;
+    }
+    work = Math.min(Math.max(baseSaturation, work), maxWork);
+    return {work, carry: 1, move: 0};
 }
 
 const builders = {

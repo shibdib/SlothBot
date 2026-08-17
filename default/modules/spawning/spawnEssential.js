@@ -10,7 +10,7 @@ const {getCreepCount} = require('spawnCounts');
 const {queueCreepIfNeeded} = require('spawnQueue');
 const {empireOpsPaused} = require('hcReadiness');
 const {planShuttleForSource} = require('bodyEconomic');
-const {roomHasCriticalBuildSites} = require('bodyHelpers');
+const {roomHasCriticalBuildSites, roomNeedsSpawnReboot} = require('bodyHelpers');
 
 function resolveDroneCount(room, ctx) {
     const {
@@ -86,15 +86,19 @@ function essentialCreepQueue(room) {
     // energy capacity/income). Matches the "always build" priority in constructionWork.
     const hasCriticalBuilds = roomHasCriticalBuildSites(room);
 
-    const dronePriority = earlyRush ? 1 : PRIORITIES.drone;
-    const droneCount = resolveDroneCount(room, {
+    const spawnReboot = roomNeedsSpawnReboot(room);
+
+    let droneCount = resolveDroneCount(room, {
         earlyRush, importantBuilds, hasCriticalBuilds, hasRoadMaintenance,
         flowHealthy, spareIncome,
     });
+    if (spawnReboot) droneCount = Math.min(droneCount, 1);
+    // Income creeps first while the room can only spend spawn regen.
+    const dronePriority = spawnReboot ? PRIORITIES.drone : (earlyRush ? 1 : PRIORITIES.drone);
 
     queueCreepIfNeeded({
         room, role: 'drone', priority: dronePriority + getCreepCount(room, 'drone'),
-        numberNeeded: droneCount, rebootCondition: room.friendlyCreeps.length < 5
+        numberNeeded: droneCount, rebootCondition: spawnReboot || room.friendlyCreeps.length < 5
     });
 
     if (room.level >= BUNKER_LEVEL) {
@@ -118,36 +122,37 @@ function essentialCreepQueue(room) {
     }
 
     queueCreepIfNeeded({
-        room, role: 'stationaryHarvester', priority: PRIORITIES.stationaryHarvester,
-        numberNeeded: room.sources.length, rebootCondition: !getCreepCount(room, 'stationaryHarvester')
+        room, role: 'stationaryHarvester',
+        priority: PRIORITIES.stationaryHarvester,
+        numberNeeded: room.sources.length,
+        rebootCondition: spawnReboot || !getCreepCount(room, 'stationaryHarvester')
     });
 
-    if (harvesterCount) {
-        const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
-        if (room.storage || protoStorage) {
-            // Single extension-fill hauler; multi-hauler scaling was a no-op (always 1).
-            const haulerAmount = 1;
-            const priority = !getCreepCount(room, 'hauler') ? 1 : PRIORITIES.hauler;
-            queueCreepIfNeeded({
-                room, role: 'hauler', priority,
-                numberNeeded: haulerAmount,
-                rebootCondition: !getCreepCount(room, 'hauler') || !energyState
-            });
-        }
+    const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
+    if (room.storage || protoStorage) {
+        const haulerAmount = 1;
+        const priority = !getCreepCount(room, 'hauler') ? 1 : PRIORITIES.hauler;
+        queueCreepIfNeeded({
+            room, role: 'hauler', priority,
+            numberNeeded: haulerAmount,
+            rebootCondition: spawnReboot || !getCreepCount(room, 'hauler') || !energyState
+        });
+    }
 
-        for (const source of room.sources) {
-            if (source.memory.link && room.memory.hubLink) continue;
-            const plan = planShuttleForSource(room, source, {trend, spareIncome});
-            const hasShuttle = getCreepCount(room, 'shuttle', undefined, undefined, undefined, source.id);
-            const shuttlePriority = !hasShuttle ? 1 : (plan.other.haulUrgent ? PRIORITIES.hauler * 0.75 : PRIORITIES.hauler);
-            queueCreepIfNeeded({
-                room, role: 'shuttle', priority: shuttlePriority,
-                numberNeeded: plan.count,
-                rebootCondition: room.myCreeps.length < 4 || (!hasShuttle && plan.reboot),
-                other: plan.other,
-                assignment: source.id
-            });
-        }
+    for (const source of room.sources) {
+        if (source.memory.link && room.memory.hubLink) continue;
+        const plan = planShuttleForSource(room, source, {trend, spareIncome});
+        const hasShuttle = getCreepCount(room, 'shuttle', undefined, undefined, undefined, source.id);
+        const shuttlePriority = spawnReboot
+            ? PRIORITIES.hauler + (hasShuttle ? 1 : 0)
+            : (!hasShuttle ? 1 : (plan.other.haulUrgent ? PRIORITIES.hauler * 0.75 : PRIORITIES.hauler));
+        queueCreepIfNeeded({
+            room, role: 'shuttle', priority: shuttlePriority,
+            numberNeeded: plan.count,
+            rebootCondition: spawnReboot || room.myCreeps.length < 4 || plan.reboot,
+            other: plan.other,
+            assignment: source.id
+        });
     }
 
     let upgraderAmount = 1;
@@ -172,7 +177,7 @@ function essentialCreepQueue(room) {
     queueCreepIfNeeded({
         room, role: 'upgrader', priority,
         numberNeeded: upgraderAmount, misc: {boosts: [WORK]},
-        rebootCondition: !getCreepCount(room, 'upgrader') || !energyState
+        rebootCondition: spawnReboot || !getCreepCount(room, 'upgrader') || !energyState
     });
 }
 

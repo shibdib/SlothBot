@@ -73,7 +73,7 @@ function resolveLabHubXY(room) {
  * Bump when the perimeter algorithm changes so owned rooms wipe old
  * min-cut rings and rebuild from the hub floodfill.
  */
-const PERIMETER_PLAN_REV = 7;
+const PERIMETER_PLAN_REV = 8;
 
 function chebyDistance(ax, ay, bx, by) {
     return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -374,6 +374,8 @@ function collectExistingBarrierKeys(room) {
 /**
  * If the ideal contour shifted one tile, keep an existing exit-facing barrier
  * instead of abandoning a built/site tile and opening a hole.
+ * Never drop a still-buildable contour tile — replacing P with neighbor N
+ * punched 1-tile holes once any adjacent wall existed.
  */
 function snapSpotsToExisting(room, spots, interior, terrain, exterior) {
     if (!spots || !spots.length) return spots || [];
@@ -382,33 +384,29 @@ function snapSpotsToExisting(room, spots, interior, terrain, exterior) {
 
     const snapped = [];
     const used = new Set();
+    const push = (x, y) => {
+        const k = xyKey(x, y);
+        if (used.has(k)) return;
+        used.add(k);
+        snapped.push({x, y});
+    };
+
     for (let i = 0; i < spots.length; i++) {
         const p = spots[i];
         const k = xyKey(p.x, p.y);
-        if (existing.has(k)) {
-            if (!used.has(k)) {
-                used.add(k);
-                snapped.push(p);
-            }
+        const pOk = existing.has(k) || isValidContourTile(p.x, p.y, interior, terrain, exterior);
+        if (pOk) {
+            push(p.x, p.y);
             continue;
         }
-        let replacement = null;
+        // P is unbuildable — substitute an adjacent existing contour barrier if one exists.
         for (let j = 0; j < 8; j++) {
             const nx = p.x + OCTALS[j][0];
             const ny = p.y + OCTALS[j][1];
-            const nk = xyKey(nx, ny);
-            if (!existing.has(nk) || used.has(nk)) continue;
+            if (!existing.has(xyKey(nx, ny))) continue;
             if (!isValidContourTile(nx, ny, interior, terrain, exterior)) continue;
-            replacement = {x: nx, y: ny};
+            push(nx, ny);
             break;
-        }
-        if (replacement) {
-            const rk = xyKey(replacement.x, replacement.y);
-            used.add(rk);
-            snapped.push(replacement);
-        } else if (!used.has(k)) {
-            used.add(k);
-            snapped.push(p);
         }
     }
     return snapped;
@@ -600,32 +598,38 @@ function getRampartWalkCorridors(room) {
             keys.add(xyKey(source.memory.accessReserved.x, source.memory.accessReserved.y));
         }
     }
+    // Checkerboard walls on these paths seal the bunker from the inside.
+    if (room.controller) addFullPath(room.controller.pos);
+    if (room.mineral) addFullPath(room.mineral.pos);
     rampartCorridorCache[name] = keys;
     rampartCorridorTick[name] = Game.time;
     return keys;
+}
+
+function isLiveBarrier(s) {
+    if (!s || !s.pos || !s.id) return false;
+    if (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL) return false;
+    if (!(s.hits > 0)) return false;
+    // Stale cached lists can keep destroyed objects with a leftover .pos.
+    return !!Game.getObjectById(s.id);
 }
 
 /** Built barrier keys for a room — one structure scan, reused for incomplete checks. */
 function getBuiltBarrierKeySet(room) {
     if (room._barrierKeySetTick === Game.time && room._barrierKeySet) return room._barrierKeySet;
     const set = new Set();
-    const barriers = room.barriers || [];
-    for (let i = 0; i < barriers.length; i++) {
-        const b = barriers[i];
-        if (b && b.pos) set.add(xyKey(b.pos.x, b.pos.y));
-    }
-    if (!set.size) {
-        const ramparts = room.ramparts || [];
-        for (let i = 0; i < ramparts.length; i++) {
-            const r = ramparts[i];
-            if (r && r.pos) set.add(xyKey(r.pos.x, r.pos.y));
+    const addList = (list) => {
+        if (!list) return;
+        for (let i = 0; i < list.length; i++) {
+            const b = list[i];
+            if (!isLiveBarrier(b)) continue;
+            set.add(xyKey(b.pos.x, b.pos.y));
         }
-        const walls = room.constructedWalls || [];
-        for (let i = 0; i < walls.length; i++) {
-            const w = walls[i];
-            if (w && w.pos) set.add(xyKey(w.pos.x, w.pos.y));
-        }
-    }
+    };
+    addList(room.barriers);
+    addList(room.ramparts);
+    addList(room.walls);
+    addList(room.constructedWalls);
     room._barrierKeySet = set;
     room._barrierKeySetTick = Game.time;
     return set;
@@ -668,10 +672,37 @@ function isNearNewPerimeterSpot(pos, newSpotSet) {
     return false;
 }
 
+function getQuadTrapKeySet(room) {
+    if (room._quadTrapKeySetTick === Game.time && room._quadTrapKeySet) return room._quadTrapKeySet;
+    const set = new Set();
+    const mem = room.memory && room.memory.quadTrapWalls;
+    if (mem) {
+        for (let i = 0; i < mem.length; i++) {
+            const p = mem[i];
+            if (p) set.add(xyKey(p.x, p.y));
+        }
+    }
+    const traps = quadTraps[room.name];
+    if (traps) {
+        for (let i = 0; i < traps.length; i++) {
+            const p = traps[i];
+            if (p) set.add(xyKey(p.x, p.y));
+        }
+    }
+    room._quadTrapKeySet = set;
+    room._quadTrapKeySetTick = Game.time;
+    return set;
+}
+
+function isQuadTrapTile(pos, room) {
+    return getQuadTrapKeySet(room).has(xyKey(pos.x, pos.y));
+}
+
 function isRemovableStrayBarrier(pos, room, perimeterSpotSet) {
     if (perimeterSpotSet.has(`${pos.x},${pos.y}`)) return false;
     if (hasBarrierUnderlay(pos)) return false;
     if (isOnSourcePad(pos, room)) return false;
+    if (isQuadTrapTile(pos, room)) return false;
     if (room.controller && pos.isNearTo(room.controller)) return false;
     if (room.mineral && pos.isNearTo(room.mineral)) return false;
     return true;
@@ -750,6 +781,7 @@ function isOrphanedUncachedBarrier(pos, room, newSpotSet, ctx) {
     if (newSpotSet.has(key)) return false;
     if (isOnSourcePad(pos, room)) return false;
     if (hasBarrierUnderlay(pos)) return false;
+    if (isQuadTrapTile(pos, room)) return false;
     if (room.controller && pos.isNearTo(room.controller)) return false;
     if (room.mineral && pos.isNearTo(room.mineral)) return false;
 
@@ -787,7 +819,6 @@ function isOrphanedUncachedBarrier(pos, room, newSpotSet, ctx) {
         if (nearestPlan < Infinity && chebyDistance(pos.x, pos.y, hub.x, hub.y) > nearestPlan) {
             return true;
         }
-        return true;
     }
 
     if (hub) {
@@ -955,6 +986,24 @@ function shouldBuildPerimeterTile(pos, room) {
         s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL)) {
         return 'hasBarrierSite';
     }
+    // Ruins occupy the tile for ~500 ticks after destroy/decay; skip so we do
+    // not denylist the wall tile or spend the seal's site slot on a doomed place.
+    if (typeof LOOK_RUINS !== 'undefined' && pos.lookFor(LOOK_RUINS).length) return 'hasRuin';
+    return true;
+}
+
+/** True when a wall here would seal a 1–2-wide pass (friendlies cannot walk a wall). */
+function isSingletonChoke(pos) {
+    const terrain = Game.map.getRoomTerrain(pos.roomName);
+    let walkable = 0;
+    for (let i = 0; i < 8; i++) {
+        const nx = pos.x + OCTALS[i][0];
+        const ny = pos.y + OCTALS[i][1];
+        if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
+        if (isTerrainWall(terrain, nx, ny)) continue;
+        walkable++;
+        if (walkable >= 3) return false;
+    }
     return true;
 }
 
@@ -962,8 +1011,8 @@ function shouldBuildPerimeterTile(pos, room) {
  * Classic perimeter checkerboard:
  *  - (x+y) even → constructed wall (when tile allows)
  *  - (x+y) odd  → rampart
- * Wall tiles that sit on roads, walk corridors, structures, or otherwise can't take a wall
- * get a rampart instead so the seal stays continuous.
+ * Wall tiles that sit on roads, walk corridors, structures, chokes, or otherwise
+ * can't take a wall get a rampart instead so the seal stays continuous and walkable.
  */
 function choosePerimeterBarrierType(pos, corridors) {
     if (pos.checkForImpassible(true, true)) return STRUCTURE_RAMPART;
@@ -972,6 +1021,7 @@ function choosePerimeterBarrierType(pos, corridors) {
     if (!isWallTile) return STRUCTURE_RAMPART;
     if (pos.checkForRoad()) return STRUCTURE_RAMPART;
     if (corridors && corridors.has(pos.x + ',' + pos.y)) return STRUCTURE_RAMPART;
+    if (isSingletonChoke(pos)) return STRUCTURE_RAMPART;
     if (!canPlaceConstructedWall(pos)) return STRUCTURE_RAMPART;
     return STRUCTURE_WALL;
 }

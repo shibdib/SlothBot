@@ -44,6 +44,9 @@ const {
     listVisibleOwnedRooms,
 } = require('planUtils');
 
+/** Ticks to skip automatic off-plan destroy after a no-destroy replan. */
+const OFF_PLAN_CLEANUP_HOLD = 200;
+
 /** Wall/rampart sites for a room — room cache can miss entries; Game.constructionSites is source of truth. */
 function listRoomBarrierSites(room) {
     const out = [];
@@ -356,6 +359,10 @@ function recalculateRampartsForRoom(room, layout, options = {}) {
         }
     }
 
+    if (!destroyOffPlan && room.memory) {
+        room.memory._offPlanCleanupHoldUntil = Game.time + OFF_PLAN_CLEANUP_HOLD;
+    }
+
     return {
         spots: newSpots.length,
         removedBarriers,
@@ -665,30 +672,30 @@ function rampartBuilder(room, layout = undefined, count = false, options = {}) {
     }
 
     function buildRampartAround(position) {
-        // Loop through a 3x3 area around the position
         for (let xOff = -1; xOff <= 1; xOff++) {
             for (let yOff = -1; yOff <= 1; yOff++) {
-                // Skip the center position
                 if (xOff === 0 && yOff === 0) continue;
-
-                let targetPos = new RoomPosition(position.x + xOff, position.y + yOff, position.roomName);
-
-                // Check if the position is valid for placing a rampart
-                if (isValidRampartPosition(targetPos)) {
-                    if (!canPlaceConstructionSite(Game.rooms[targetPos.roomName])) return false;
-                    const result = placeFn(targetPos, STRUCTURE_RAMPART);
-                    if (result === OK) return true;
-                    if (result === ERR_NOT_OWNER || result === ERR_FULL) return false;
-                    return false;
-                }
+                const x = position.x + xOff;
+                const y = position.y + yOff;
+                if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+                const targetPos = new RoomPosition(x, y, position.roomName);
+                if (targetPos.lookFor(LOOK_STRUCTURES).some(s => s.structureType === STRUCTURE_WALL)) continue;
+                if (!isValidRampartPosition(targetPos)) continue;
+                if (!canPlaceConstructionSite(Game.rooms[targetPos.roomName])) return false;
+                const result = placeFn(targetPos, STRUCTURE_RAMPART);
+                if (result === OK) return true;
+                if (result === ERR_NOT_OWNER || result === ERR_FULL) return false;
             }
         }
-        return false; // Return false if no valid position was found
+        return false;
     }
 }
 
-function freeSiteSlotsForPerimeter(room, want) {
-    if (want <= 0 || canPlaceConstructionSite(room)) return 0;
+function freeSiteSlotsForPerimeter(room, want, options) {
+    if (want <= 0) return 0;
+    // force: incomplete seal needs a slot even when the raw cap still has 1
+    // reserved for STEADY_SITE_RESERVE (canPlace is true, rampartLimit is 0).
+    if ((!options || !options.force) && canPlaceConstructionSite(room)) return 0;
     // Never cannibalize extensions while the room still needs energy capacity.
     // After a wipe, incomplete perimeters used to delete extension sites every tick.
     let extDeficit = 0;
@@ -931,16 +938,17 @@ function ensurePerimeterSites(room, options = {}) {
         }
     }
 
+    room._barrierKeySet = undefined;
+    room._barrierKeySetTick = undefined;
     const built = getBuiltBarrierKeySet(room);
     const barrierSiteKeys = new Set();
-    const sites = room.constructionSites || [];
+    const sites = listRoomBarrierSites(room);
     let inBuild = 0;
     for (let i = 0; i < sites.length; i++) {
         const s = sites[i];
-        if (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) {
-            inBuild++;
-            barrierSiteKeys.add(s.pos.x + ',' + s.pos.y);
-        }
+        if (!s || !s.pos || !Game.constructionSites[s.id]) continue;
+        inBuild++;
+        barrierSiteKeys.add(s.pos.x + ',' + s.pos.y);
     }
 
     const buildPositions = [];
@@ -998,7 +1006,21 @@ function ensurePerimeterSites(room, options = {}) {
         }
     }
 
-    const want = Math.max(0, siteCap - inBuild);
+    let want = Math.max(0, siteCap - inBuild);
+    // Incomplete seal: free idle roads when the layer got 0 (full cap *or*
+    // reserve ate the last slot). Then recompute so replacements actually place.
+    if (want <= 0 && buildPositions.length) {
+        const freed = freeSiteSlotsForPerimeter(room, Math.min(5, maxPlace + 1), {force: true});
+        if (freed > 0) {
+            if (typeof options.placementLimit === 'function') {
+                const allowedNew = options.placementLimit(room, layoutPending);
+                siteCap = inBuild + Math.max(1, allowedNew | 0);
+            } else {
+                siteCap = inBuild + Math.min(maxPlace, 5);
+            }
+            want = Math.max(0, siteCap - inBuild);
+        }
+    }
     if (want <= 0) {
         if (options.report) {
             options.report.placed = 0;
@@ -1385,6 +1407,7 @@ function placePerimeter(room, options) {
         placementLimit: (r, lp) => siteBudget.rampartLimit(r, {
             layoutPending: lp,
             maxPerTick: maxPlace,
+            incompleteSeal: true,
         }),
         placeSite: makePlaceSite(room, layoutPending),
     });
@@ -1453,25 +1476,28 @@ function placeRamparts(room, options) {
         bridge: false,
     });
 
-    // Off-plan multi-ring cleanup: V2 almost never called recalculate with
-    // destroyOffPlan, so old seals stacked forever. Cap per tick; prefer when
-    // the current seal is complete so we do not open holes mid-build.
-    //
-    // CRITICAL: complete seals used to run full-room barrier scans every room-turn
-    // (findClosestByRange per wall). Rate-limit hard and skip on low bucket.
+    // Off-plan multi-ring cleanup. Only when the *built* plan is a closed seal —
+    // sites do not block hostiles, and staggered destroy opened the old ring
+    // after destroyOffPlan:false replans (extensions / towers / core recovery).
     let cleanup = null;
     const sealComplete = perimeter.complete || (perimeter.missing === 0 && perimeter.planned > 0);
+    const builtSeal = hasPerimeterSpots(room.name) && !perimeterHasMissingBuilt(room);
     const bucket = Game.cpu && Game.cpu.bucket != null ? Game.cpu.bucket : 10000;
     const lastClean = room.memory._offPlanCleanupTick || 0;
+    const holdUntil = room.memory._offPlanCleanupHoldUntil || 0;
+    const holdActive = Game.time < holdUntil;
+    if (!holdActive && room.memory._offPlanCleanupHoldUntil) {
+        room.memory._offPlanCleanupHoldUntil = undefined;
+    }
     // Healthy: every ~50 ticks. Soft: ~100. Below 3k: never (cleanupOffPlan also guards).
     const cleanInterval = bucket < 5000 ? 100 : 50;
-    const staggered = Game.time % 17 === (room.name.charCodeAt(0) % 17);
     const cleanupDue = bucket >= 3000
-        && (Game.time - lastClean) >= cleanInterval
-        && (sealComplete || staggered);
+        && builtSeal
+        && !holdActive
+        && (Game.time - lastClean) >= cleanInterval;
     if (cleanupDue) {
         try {
-            cleanup = cleanupOffPlanBarriers(room, {maxDestroy: sealComplete ? 8 : 3});
+            cleanup = cleanupOffPlanBarriers(room, {maxDestroy: 8});
             room.memory._offPlanCleanupTick = Game.time;
         } catch (e) {
             cleanup = {error: (e && e.message) || String(e)};
