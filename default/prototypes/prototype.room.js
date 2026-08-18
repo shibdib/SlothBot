@@ -819,12 +819,16 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             purgeBadRoute(this.name);
             roomIntel.towers = towers.length;
             roomIntel.towerData = this.towerData(towers);
-            roomIntel.nukeTarget = this.terminal?.pos.toString() || this.storage?.pos.toString();
         } else {
             roomIntel.towers = undefined;
             roomIntel.towerData = undefined;
-            delete roomIntel.nukeTarget;
         }
+
+        // Compact impact tile for unattended launches. Prefer a tower in the
+        // densest cluster so splash can strip the bunker, not room-center.
+        const impact = this.pickNukeImpact();
+        if (impact) roomIntel.nukeTarget = {x: impact.x, y: impact.y};
+        else delete roomIntel.nukeTarget;
 
         // Loot
         roomIntel.loot = !this.hostileCreeps.length && this.structures.some(s =>
@@ -880,6 +884,57 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     const oldHeavy = INTEL[this.name];
     INTEL[this.name] = roomIntel;
     if (global.updateIntelIndex) global.updateIntelIndex(this.name, oldHeavy, roomIntel);
+};
+
+const NUKE_IMPACT_WEIGHT = {
+    [STRUCTURE_TOWER]: 10,
+    [STRUCTURE_SPAWN]: 8,
+    [STRUCTURE_STORAGE]: 6,
+    [STRUCTURE_TERMINAL]: 6,
+    [STRUCTURE_NUKER]: 6,
+    [STRUCTURE_POWER_SPAWN]: 5,
+    [STRUCTURE_FACTORY]: 5,
+    [STRUCTURE_LAB]: 3,
+};
+
+function collectNukeValuedStructures(room) {
+    const valued = [];
+    const add = (item, type) => {
+        if (!item) return;
+        const list = Array.isArray(item) ? item : [item];
+        const weight = NUKE_IMPACT_WEIGHT[type] || 1;
+        for (const s of list) {
+            if (s && s.pos) valued.push({pos: s.pos, weight});
+        }
+    };
+    add(room.towers, STRUCTURE_TOWER);
+    add(room.spawns, STRUCTURE_SPAWN);
+    add(room.storage, STRUCTURE_STORAGE);
+    add(room.terminal, STRUCTURE_TERMINAL);
+    add(room.nuker, STRUCTURE_NUKER);
+    add(room.powerSpawn, STRUCTURE_POWER_SPAWN);
+    add(room.factory, STRUCTURE_FACTORY);
+    add(room.labs, STRUCTURE_LAB);
+    return valued;
+}
+
+Room.prototype.pickNukeImpact = function () {
+    const valued = collectNukeValuedStructures(this);
+    if (!valued.length) return this.controller ? this.controller.pos : undefined;
+    let best = valued[0];
+    let bestScore = -1;
+    for (const cand of valued) {
+        let score = cand.weight;
+        for (const other of valued) {
+            if (other === cand) continue;
+            if (cand.pos.getRangeTo(other.pos) <= 2) score += other.weight;
+        }
+        if (score > bestScore) {
+            bestScore = score;
+            best = cand;
+        }
+    }
+    return best.pos;
 };
 
 function swampRoom(roomName) {

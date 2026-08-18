@@ -75,6 +75,11 @@ function isValidOffensiveTarget(intel, launchers, warUsers) {
 }
 
 
+function minOffensiveNukeWaves() {
+    return typeof OFFENSIVE_NUKE_MIN_WAVES === 'number' ? OFFENSIVE_NUKE_MIN_WAVES : 3;
+}
+
+
 function isTowerStalemate(op, intel) {
     if (!intel?.towers || op.camping) return false;
     return op.tick + CREEP_LIFE_TIME < Game.time;
@@ -85,25 +90,43 @@ function isEscalationCandidate(op, intel) {
     if (!op || op.type !== 'roomDenial' || op.manual || op.nukeLaunched) return false;
     if (op.tick + CREEP_LIFE_TIME >= Game.time) return false;
     if (op.isAtRisk) return true;
+    if ((op.waves || 0) < minOffensiveNukeWaves()) return false;
     if (isTowerStalemate(op, intel)) return true;
     const ratio = (op.friendlyDead || 0) / (op.enemyDead || 100);
     return ratio > 1.5 && intel?.towers > 0;
 }
 
 
-function resolveNukeTarget(intel) {
-    if (intel.nukeTarget) {
-        const parsed = RoomPosition.prototype.posFromString(intel.nukeTarget, true);
-        if (parsed instanceof RoomPosition) return parsed;
+function parseStoredNukeTarget(stored, roomName) {
+    if (!stored || !roomName) return null;
+    if (stored instanceof RoomPosition) {
+        return stored.roomName === roomName ? stored : new RoomPosition(stored.x, stored.y, roomName);
     }
+    if (typeof stored === 'object' && stored.x !== undefined && stored.y !== undefined) {
+        const x = +stored.x;
+        const y = +stored.y;
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+        return new RoomPosition(x, y, stored.roomName || roomName);
+    }
+    if (typeof stored === 'string') {
+        const parsed = RoomPosition.prototype.posFromString(stored, true);
+        if (parsed instanceof RoomPosition) {
+            return parsed.roomName === roomName ? parsed : new RoomPosition(parsed.x, parsed.y, roomName);
+        }
+        const compact = stored.match(/^(\d+),(\d+)$/);
+        if (compact) return new RoomPosition(+compact[1], +compact[2], roomName);
+    }
+    return null;
+}
+
+function resolveNukeTarget(intel) {
+    if (!intel?.name) return null;
     const room = Game.rooms[intel.name];
     if (room) {
-        if (room.controller) return room.controller.pos;
-        if (room.terminal) return room.terminal.pos;
-        if (room.storage) return room.storage.pos;
-        if (room.spawns.length) return room.spawns[0].pos;
+        const live = room.pickNukeImpact && room.pickNukeImpact();
+        if (live) return live;
     }
-    return new RoomPosition(25, 25, intel.name);
+    return parseStoredNukeTarget(intel.nukeTarget, intel.name);
 }
 
 
@@ -122,11 +145,16 @@ function pickLauncher(launchers, targetRoom) {
 function executeNukeLaunch(launcher, intel, options = {}) {
     const roomName = intel.name;
     const target = options.targetPos || resolveNukeTarget(intel);
+    if (!(target instanceof RoomPosition) || target.roomName !== roomName) {
+        Memory.observeRoom = roomName;
+        log.w(`Nuke launch aborted for ${roomLink(roomName)} — no useful impact tile (refusing room-center fallback).`, 'HIGH COMMAND: ');
+        return false;
+    }
     // Record before launch as launch consumes the loaded energy/ghodium.
     const nukeEnergySunk = launcher.store[RESOURCE_ENERGY] || 0;
     const result = launcher.launchNuke(target);
     if (result !== OK) {
-        log.w(`Nuke launch failed for ${roomLink(roomName)} from ${roomLink(launcher.room.name)}: ${result}`, 'HIGH COMMAND: ');
+        log.w(`Nuke launch failed for ${roomLink(roomName)} from ${roomLink(launcher.room.name)}: ${result} @ ${target.x},${target.y}`, 'HIGH COMMAND: ');
         return false;
     }
 
@@ -154,7 +182,7 @@ function executeNukeLaunch(launcher, intel, options = {}) {
     });
 
     const label = options.logLabel || 'Nuke';
-    log.a(`${label} launched at ${roomLink(roomName)} by ${roomLink(launcher.room.name)}`, 'HIGH COMMAND: ');
+    log.a(`${label} launched at ${roomLink(roomName)} ${target.x},${target.y} by ${roomLink(launcher.room.name)}`, 'HIGH COMMAND: ');
     return true;
 }
 

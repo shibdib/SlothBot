@@ -527,16 +527,34 @@ RoomPosition.prototype.isExit = function () {
 };
 
 RoomPosition.prototype.posFromString = function (str, dontThrowError = false) {
-    let temp = str.split(/[\[\] ,]/);
-    if (Game.rooms.sim && temp.length == 7) // sometimes sim's pos.toString() gives wierd
-        temp = ['', temp[2], temp[4], temp[5], '']; // stuff like "[room sim pos 25,25]"
-
-    if (dontThrowError) {
-        if (temp.length !== 5) return ERR_INVALID_ARGS;
-        if (!/^(W|E)\d+(N|S)\d+$/.test(temp[1]) && temp[1] !== 'sim') return ERR_INVALID_ARGS;
-        if (!/^\d+$/.test(temp[2])) return ERR_INVALID_ARGS;
-        if (!/^\d+$/.test(temp[3])) return ERR_INVALID_ARGS;
+    if (typeof str !== 'string' || !str.length) {
+        if (dontThrowError) return ERR_INVALID_ARGS;
+        throw new Error('Invalid RoomPosition string');
     }
 
-    return new RoomPosition(temp[2], temp[3], temp[1]);
+    // Native toString() is "[room E1N1 pos 25,25]". Also accept the short
+    // "[E1N1 25,25]" / "E1N1,25,25" forms used by older intel.
+    const parts = str.split(/[\[\] ,]/).filter(s => s !== '');
+    let roomName;
+    let x;
+    let y;
+    if (parts.length === 5 && parts[0] === 'room' && parts[2] === 'pos') {
+        roomName = parts[1];
+        x = parts[3];
+        y = parts[4];
+    } else if (parts.length === 3) {
+        roomName = parts[0];
+        x = parts[1];
+        y = parts[2];
+    } else {
+        if (dontThrowError) return ERR_INVALID_ARGS;
+        throw new Error('Invalid RoomPosition string: ' + str);
+    }
+
+    if (dontThrowError) {
+        if (!/^(W|E)\d+(N|S)\d+$/.test(roomName) && roomName !== 'sim') return ERR_INVALID_ARGS;
+        if (!/^\d+$/.test(x) || !/^\d+$/.test(y)) return ERR_INVALID_ARGS;
+    }
+
+    return new RoomPosition(+x, +y, roomName);
 }
